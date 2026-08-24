@@ -1,0 +1,1134 @@
+[
+{
+"fn": "newTicket",
+"start": 2418,
+"openLine": 2428,
+"title": "New support ticket",
+"footCommit": [
+"createTicket"
+],
+"allOnclick": [
+"createTicket"
+]
+},
+{
+"fn": "openNewRideRequestModal",
+"start": 2449,
+"openLine": 2466,
+"title": "📞 New ride request",
+"footCommit": [
+"commitNewRideRequest"
+],
+"allOnclick": [
+"commitNewRideRequest"
+]
+},
+{
+"fn": "renderRideRequestTracking",
+"start": 2516,
+"openLine": 2540,
+"title": "'+(st.vip?'⭐ VIP — ':'')+st.reqId+' — '+nm2(st.rider)+'",
+"footCommit": [
+"closeRideRequestTracking"
+],
+"allOnclick": [
+"closeRideRequestTracking"
+]
+},
+{
+"fn": "openSupportTicket",
+"start": 2542,
+"openLine": 2550,
+"title": "Open support ticket — '+entityName+'",
+"footCommit": [
+"createTicketFor"
+],
+"allOnclick": [
+"createTicketFor"
+]
+},
+{
+"fn": "openUserSwitch",
+"start": 3088,
+"openLine": 3096,
+"title": "👁 Act as team member",
+"footCommit": [
+"commitUserSwitch"
+],
+"allOnclick": [
+"commitUserSwitch",
+"selDriver"
+]
+},
+{
+"fn": "openSettlement",
+"start": 3639,
+"openLine": 3665,
+"title": "Early termination settlement — '+subId+'",
+"footCommit": [
+"commitSettlement"
+],
+"allOnclick": [
+"commitSettlement"
+]
+},
+{
+"fn": "openPublishVersionModal",
+"start": 3821,
+"openLine": 3831,
+"title": "Publish new version — '+doc.label+'",
+"footCommit": [
+"commitPublishVersion"
+],
+"allOnclick": [
+"commitPublishVersion"
+]
+},
+{
+"fn": "openProcessReferralModal",
+"start": 3907,
+"openLine": 3917,
+"title": "🎁 Process a referral",
+"footCommit": [
+"commitProcessReferral"
+],
+"allOnclick": [
+"commitProcessReferral"
+]
+},
+{
+"fn": "openWalletAdjustModal",
+"start": 3962,
+"openLine": 3975,
+"title": "'+(kind==='credit'?'Add wallet credit':'Deduct from wallet')+' — '+r.name+'",
+"footCommit": [
+"commitWalletAdjust"
+],
+"allOnclick": [
+"commitWalletAdjust"
+]
+},
+{
+"fn": "openEditTipModal",
+"start": 4192,
+"openLine": 4202,
+"title": "💰 Edit tip — '+tripId+'",
+"footCommit": [
+"commitEditTip"
+],
+"allOnclick": [
+"commitEditTip"
+]
+},
+{
+"fn": "openInvoiceModal",
+"start": 4429,
+"openLine": 4448,
+"title": "🧾 Tax invoice — '+inv.invoiceNumber+'",
+"footCommit": [
+"toast"
+],
+"allOnclick": [
+"toast"
+]
+},
+{
+"fn": "renderNewSubModal",
+"start": 4557,
+"openLine": 4635,
+"title": "New subscription",
+"footCommit": [
+"commitNewSub"
+],
+"allOnclick": [
+"commitNewSub",
+"toggleNsDriverMap"
+]
+},
+{
+"fn": "openSubTrackingModal",
+"start": 4787,
+"openLine": 4790,
+"title": "",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "renderSubDispatchUI",
+"start": 4992,
+"openLine": 5020,
+"title": "New subscription — dispatch in progress",
+"footCommit": [
+"cancelSubDispatch"
+],
+"allOnclick": [
+"cancelSubDispatch"
+]
+},
+{
+"fn": "renderSubReselectAfterDecline",
+"start": 5043,
+"openLine": 5060,
+"title": "New subscription — '+drv.name+' declined",
+"footCommit": [
+"cancelSubDispatch"
+],
+"allOnclick": [
+"cancelSubDispatch",
+"redispatchToNewDriver"
+]
+},
+{
+"fn": "renderSubAcceptedTracking",
+"start": 5133,
+"openLine": 5162,
+"title": "'+subId+' — '+drv.name+' accepted",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openRenewModal",
+"start": 5174,
+"openLine": 5209,
+"title": "Upgrade plan — '+rName+'",
+"footCommit": [
+"confirmModal"
+],
+"allOnclick": [
+"confirmModal",
+"selOpt"
+]
+},
+{
+"fn": "openAutoRenewOffReason",
+"start": 5455,
+"openLine": 5470,
+"title": "Turn off auto-renew — '+subId+'",
+"footCommit": [
+"commitAutoRenewOff"
+],
+"allOnclick": [
+"commitAutoRenewOff"
+]
+},
+{
+"fn": "freezePlan",
+"start": 5485,
+"openLine": 5501,
+"title": "Freeze subscription — '+subId+'",
+"footCommit": [
+"doFreeze"
+],
+"allOnclick": [
+"doFreeze"
+]
+},
+{
+"fn": "cancelSub",
+"start": 5518,
+"openLine": 5546,
+"title": "Cancel & refund — '+subId+'",
+"footCommit": [
+"confirmCancelSub"
+],
+"allOnclick": [
+"confirmCancelSub"
+]
+},
+{
+"fn": "renderChangeDriverModal",
+"start": 5751,
+"openLine": 5788,
+"title": "Change driver — '+subId+'",
+"footCommit": [],
+"allOnclick": [
+"commitDriverChange",
+"proceedChangeDriver"
+]
+},
+{
+"fn": "confirmActivatePlan",
+"start": 5947,
+"openLine": 5955,
+"title": "Activate '+p.name+' plan",
+"footCommit": [
+"doActivatePlan"
+],
+"allOnclick": [
+"doActivatePlan"
+]
+},
+{
+"fn": "confirmDeactivatePlan",
+"start": 5966,
+"openLine": 5976,
+"title": "Deactivate '+p.name+' plan",
+"footCommit": [
+"doDeactivatePlan"
+],
+"allOnclick": [
+"doDeactivatePlan"
+]
+},
+{
+"fn": "archivePlan",
+"start": 6156,
+"openLine": 6163,
+"title": "Archive '+p.name+' plan",
+"footCommit": [
+"doArchivePlan"
+],
+"allOnclick": [
+"doArchivePlan"
+]
+},
+{
+"fn": "openNewCorpModal",
+"start": 6498,
+"openLine": 6515,
+"title": "New corporate account",
+"footCommit": [
+"commitNewCorp"
+],
+"allOnclick": [
+"commitNewCorp"
+]
+},
+{
+"fn": "openCorpInvoiceModal",
+"start": 6669,
+"openLine": 6700,
+"title": "🧾 Consolidated invoice — '+c.companyName+'",
+"footCommit": [
+"commitSendCorpInvoice"
+],
+"allOnclick": [
+"commitSendCorpInvoice"
+]
+},
+{
+"fn": "openAddEmployeeModal",
+"start": 6724,
+"openLine": 6736,
+"title": "Add employee",
+"footCommit": [
+"commitAddEmployee"
+],
+"allOnclick": [
+"commitAddEmployee"
+]
+},
+{
+"fn": "processAllPayouts",
+"start": 7037,
+"openLine": 7047,
+"title": "Process all payouts",
+"footCommit": [
+"confirmProcessAll"
+],
+"allOnclick": [
+"confirmProcessAll"
+]
+},
+{
+"fn": "confirmApproveDriver",
+"start": 7165,
+"openLine": 7190,
+"title": "Confirm approval",
+"footCommit": [
+"approveDriver"
+],
+"allOnclick": [
+"approveDriver"
+]
+},
+{
+"fn": "confirmPayDriver",
+"start": 7194,
+"openLine": 7211,
+"title": "Confirm payment — '+d.name+'",
+"footCommit": [
+"executePayout"
+],
+"allOnclick": [
+"executePayout",
+"openEarningsStatement"
+]
+},
+{
+"fn": "previewInboundMessage",
+"start": 7536,
+"openLine": 7547,
+"title": "'+m.subject+'",
+"footCommit": [
+"replyToInbound"
+],
+"allOnclick": [
+"replyToInbound"
+]
+},
+{
+"fn": "previewEmail",
+"start": 7578,
+"openLine": 7586,
+"title": "'+e.subject+'",
+"footCommit": [
+"openProfile"
+],
+"allOnclick": [
+"openProfile"
+]
+},
+{
+"fn": "openCityDeactivateConfirm",
+"start": 7794,
+"openLine": 7802,
+"title": "⚠ Turn off '+name+'?",
+"footCommit": [
+"applyCityToggle"
+],
+"allOnclick": [
+"applyCityToggle"
+]
+},
+{
+"fn": "onMultiSubToggle",
+"start": 8049,
+"openLine": 8061,
+"title": "Disable multi-subscription?",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "showEntityLocation",
+"start": 8226,
+"openLine": 8264,
+"title": "📍 '+(isDrv?'Driver':'Rider')+' location — '+d.name+'",
+"footCommit": [],
+"allOnclick": [
+"showNearbyDriversMap"
+]
+},
+{
+"fn": "ndvRow",
+"start": 8404,
+"openLine": 8453,
+"title": "🗺️ Nearby drivers — '+r.name+(sc?' <span class=\"b b-'+(sc.color==='red'?'red':sc.color==='amber'?'amber':'gree",
+"footCommit": [
+"resolveUnavailable",
+"showEntityLocation"
+],
+"allOnclick": [
+"openReadinessTicket",
+"pickNearbyDriver",
+"quickContactDriver",
+"resolveUnavailable",
+"showEntityLocation"
+]
+},
+{
+"fn": "callRiderConfirm",
+"start": 8523,
+"openLine": 8534,
+"title": "📞 Call rider — '+rr.name+'",
+"footCommit": [
+"logCallOutcome"
+],
+"allOnclick": [
+"logCallOutcome"
+]
+},
+{
+"fn": "callDriverUrgent",
+"start": 8547,
+"openLine": 8557,
+"title": "📞 Contact driver — '+dd.name+'",
+"footCommit": [
+"logDriverCall"
+],
+"allOnclick": [
+"logDriverCall"
+]
+},
+{
+"fn": "notifyRiderChange",
+"start": 8574,
+"openLine": 8588,
+"title": "📲 Notify rider of driver change",
+"footCommit": [
+"sendRiderChangeNotif"
+],
+"allOnclick": [
+"sendRiderChangeNotif"
+]
+},
+{
+"fn": "openPostponeTrip",
+"start": 8606,
+"openLine": 8632,
+"title": "📅 Postpone trip",
+"footCommit": [
+"confirmPostponeTrip"
+],
+"allOnclick": [
+"confirmPostponeTrip"
+]
+},
+{
+"fn": "openReadinessTicket",
+"start": 8657,
+"openLine": 8684,
+"title": "🎧 Open support ticket",
+"footCommit": [
+"createReadinessTicket"
+],
+"allOnclick": [
+"createReadinessTicket"
+]
+},
+{
+"fn": "createReadinessTicket",
+"start": 8686,
+"openLine": 8700,
+"title": "Ticket created",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "confirmReleaseEscrow",
+"start": 8935,
+"openLine": 8946,
+"title": "Release escrow — '+e.sub+'",
+"footCommit": [
+"releaseEscrow"
+],
+"allOnclick": [
+"releaseEscrow"
+]
+},
+{
+"fn": "applyDeduction",
+"start": 8971,
+"openLine": 8984,
+"title": "Apply deduction",
+"footCommit": [
+"confirmApplyDeduction"
+],
+"allOnclick": [
+"confirmApplyDeduction"
+]
+},
+{
+"fn": "reviewDriver",
+"start": 8995,
+"openLine": 9001,
+"title": "Review driver — '+name+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openFlagAccountModal",
+"start": 9006,
+"openLine": 9024,
+"title": "🚩 Flag account — '+d.name+'",
+"footCommit": [
+"commitFlagAccount"
+],
+"allOnclick": [
+"commitFlagAccount"
+]
+},
+{
+"fn": "openSuspendAccountModal",
+"start": 9058,
+"openLine": 9077,
+"title": "🚫 Suspend account — '+d.name+'",
+"footCommit": [
+"commitSuspendAccount"
+],
+"allOnclick": [
+"commitSuspendAccount"
+]
+},
+{
+"fn": "onDriverExceptionToggle",
+"start": 9115,
+"openLine": 9125,
+"title": "Grant exception — '+d.name+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "priorityCall",
+"start": 9149,
+"openLine": 9159,
+"title": "📞 Priority call",
+"footCommit": [
+"logPriorityCall"
+],
+"allOnclick": [
+"logPriorityCall"
+]
+},
+{
+"fn": "exportData",
+"start": 9187,
+"openLine": 9202,
+"title": "Export — '+page+'",
+"footCommit": [
+"doExport"
+],
+"allOnclick": [
+"doExport",
+"selDriver"
+]
+},
+{
+"fn": "showActorHistory",
+"start": 9271,
+"openLine": 9279,
+"title": "'+(actor?actor.name:actorId)+'\\u2019s activity",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "showTeamMemberProfile",
+"start": 10325,
+"openLine": 10336,
+"title": "Team member",
+"footCommit": [
+"showActorHistory"
+],
+"allOnclick": [
+"showActorHistory"
+]
+},
+{
+"fn": "editTeamUser",
+"start": 10468,
+"openLine": 10482,
+"title": "Edit team member",
+"footCommit": [
+"commitEditTeamUser"
+],
+"allOnclick": [
+"commitEditTeamUser"
+]
+},
+{
+"fn": "openInviteModal",
+"start": 10502,
+"openLine": 10514,
+"title": "Invite team member",
+"footCommit": [
+"commitInvite"
+],
+"allOnclick": [
+"commitInvite"
+]
+},
+{
+"fn": "viewUserPermissions",
+"start": 10800,
+"openLine": 10811,
+"title": "Permissions — '+u.name+'",
+"footCommit": [
+"saveUserPermissions"
+],
+"allOnclick": [
+"saveUserPermissions"
+]
+},
+{
+"fn": "setDocStatus",
+"start": 10852,
+"openLine": 10865,
+"title": "Reject document",
+"footCommit": [
+"confirmDocReject"
+],
+"allOnclick": [
+"confirmDocReject"
+]
+},
+{
+"fn": "zoomDoc",
+"start": 10883,
+"openLine": 10891,
+"title": "'+label+' — document preview",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openDocDateEditor",
+"start": 11050,
+"openLine": 11062,
+"title": "📅 Document dates — '+nm2(driverId)+'",
+"footCommit": [
+"saveDriverDocDates"
+],
+"allOnclick": [
+"saveDriverDocDates"
+]
+},
+{
+"fn": "confirmRejectDriver",
+"start": 11081,
+"openLine": 11092,
+"title": "Confirm rejection",
+"footCommit": [
+"rejectDriver"
+],
+"allOnclick": [
+"rejectDriver"
+]
+},
+{
+"fn": "welcomeRider",
+"start": 11159,
+"openLine": 11174,
+"title": "Send welcome offer — '+r.name+'",
+"footCommit": [
+"confirmWelcomeOffer"
+],
+"allOnclick": [
+"confirmWelcomeOffer",
+"selDriver"
+]
+},
+{
+"fn": "sendDriverIncentive",
+"start": 11191,
+"openLine": 11206,
+"title": "Send incentive — '+d.name+'",
+"footCommit": [
+"confirmDriverIncentive"
+],
+"allOnclick": [
+"confirmDriverIncentive",
+"selDriver"
+]
+},
+{
+"fn": "openRenewFlow",
+"start": 11277,
+"openLine": 11282,
+"title": "",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openAddStopModal",
+"start": 11683,
+"openLine": 11695,
+"title": "➕ Add a stop — '+tripId+'",
+"footCommit": [
+"commitAddStop"
+],
+"allOnclick": [
+"commitAddStop"
+]
+},
+{
+"fn": "openSendChatModal",
+"start": 11732,
+"openLine": 11740,
+"title": "💬 Send message — '+tripId+'",
+"footCommit": [
+"commitSendChatMsg"
+],
+"allOnclick": [
+"commitSendChatMsg"
+]
+},
+{
+"fn": "interveneTrip",
+"start": 11765,
+"openLine": 11787,
+"title": "Intervene — '+id+'",
+"footCommit": [],
+"allOnclick": [
+"cancelLiveTrip",
+"reassignLiveDriver"
+]
+},
+{
+"fn": "cancelLiveTrip",
+"start": 11804,
+"openLine": 11822,
+"title": "Cancel live trip — '+id+'",
+"footCommit": [
+"confirmCancelLiveTrip"
+],
+"allOnclick": [
+"confirmCancelLiveTrip"
+]
+},
+{
+"fn": "resolveCashEntry",
+"start": 12146,
+"openLine": 12169,
+"title": "'+(isEscalate?'🚨 Escalate to Trust & Safety':'✓ Approve cash report')+' — '+e.id+'",
+"footCommit": [
+"commitCashResolve"
+],
+"allOnclick": [
+"commitCashResolve"
+]
+},
+{
+"fn": "recordCashRepayment",
+"start": 12187,
+"openLine": 12201,
+"title": "💵 Record cash-debt repayment",
+"footCommit": [
+"commitCashRepayment"
+],
+"allOnclick": [
+"commitCashRepayment"
+]
+},
+{
+"fn": "resolveUnavailable",
+"start": 13078,
+"openLine": 13093,
+"title": "🚨 Find replacement driver",
+"footCommit": [
+"confirmReassign"
+],
+"allOnclick": [
+"confirmReassign",
+"priorityCall",
+"selDriver",
+"showNearbyDriversMap"
+]
+},
+{
+"fn": "assignBackup",
+"start": 13186,
+"openLine": 13216,
+"title": "Assign backup captain — '+subId+'",
+"footCommit": [],
+"allOnclick": [
+"commitBackup"
+]
+},
+{
+"fn": "openNewPromo",
+"start": 13531,
+"openLine": 13547,
+"title": "New promo campaign",
+"footCommit": [
+"commitNewPromo"
+],
+"allOnclick": [
+"commitNewPromo"
+]
+},
+{
+"fn": "openAwardIncentiveModal",
+"start": 13688,
+"openLine": 13700,
+"title": "🏆 Award — '+inv.name+'",
+"footCommit": [
+"commitAwardIncentive"
+],
+"allOnclick": [
+"commitAwardIncentive"
+]
+},
+{
+"fn": "openSteerOffer",
+"start": 14002,
+"openLine": 14021,
+"title": "📣 Steer drivers to '+zoneName+'",
+"footCommit": [
+"commitSteerOffer"
+],
+"allOnclick": [
+"commitSteerOffer"
+]
+},
+{
+"fn": "openRetentionAction",
+"start": 14255,
+"openLine": 14270,
+"title": "Proactive retention — '+subId+'",
+"footCommit": [],
+"allOnclick": [
+"commitRetentionAction"
+]
+},
+{
+"fn": "openChangeReason",
+"start": 14887,
+"openLine": 14897,
+"title": "Change reason code — '+t.id+'",
+"footCommit": [
+"commitChangeReason"
+],
+"allOnclick": [
+"commitChangeReason"
+]
+},
+{
+"fn": "openLowRatingTicket",
+"start": 15302,
+"openLine": 15320,
+"title": "Ticket from low rating — '+tripId+'",
+"footCommit": [
+"createTicketFor"
+],
+"allOnclick": [
+"createTicketFor"
+]
+},
+{
+"fn": "openRatingDispute",
+"start": 15522,
+"openLine": 15533,
+"title": "Rating dispute — '+tripId+'",
+"footCommit": [
+"commitRatingDispute"
+],
+"allOnclick": [
+"commitRatingDispute"
+]
+},
+{
+"fn": "openReportRider",
+"start": 15543,
+"openLine": 15557,
+"title": "Captain reports rider — '+tripId+'",
+"footCommit": [
+"commitReportRider"
+],
+"allOnclick": [
+"commitReportRider"
+]
+},
+{
+"fn": "openDriverAppeal",
+"start": 15568,
+"openLine": 15580,
+"title": "Suspension appeal — '+d.name+'",
+"footCommit": [
+"commitDriverAppeal"
+],
+"allOnclick": [
+"commitDriverAppeal"
+]
+},
+{
+"fn": "openCreditNoteModal",
+"start": 15892,
+"openLine": 15919,
+"title": "🧾 Credit note — '+cn.noteNumber+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openErasureRequest",
+"start": 15978,
+"openLine": 15995,
+"title": "Account erasure request — '+r.name+'",
+"footCommit": [
+"commitErasureRequest"
+],
+"allOnclick": [
+"commitErasureRequest"
+]
+},
+{
+"fn": "openMassEvent",
+"start": 16091,
+"openLine": 16105,
+"title": "Declare a mass event",
+"footCommit": [
+"commitMassEvent"
+],
+"allOnclick": [
+"commitMassEvent"
+]
+},
+{
+"fn": "bulkReason",
+"start": 16183,
+"openLine": 16191,
+"title": "Change reason code — '+ids.length+' tickets",
+"footCommit": [
+"commitBulkReason"
+],
+"allOnclick": [
+"commitBulkReason"
+]
+},
+{
+"fn": "openLogContact",
+"start": 16215,
+"openLine": 16228,
+"title": "Log a contact",
+"footCommit": [
+"commitLogContact"
+],
+"allOnclick": [
+"commitLogContact"
+]
+},
+{
+"fn": "openDesyncTicket",
+"start": 16437,
+"openLine": 16452,
+"title": "Ticket from state desync — '+tripId+'",
+"footCommit": [
+"createTicketFor"
+],
+"allOnclick": [
+"createTicketFor"
+]
+},
+{
+"fn": "openEmergencyClaim",
+"start": 16768,
+"openLine": 16788,
+"title": "Emergency claim — '+absId+'",
+"footCommit": [
+"commitEmergencyClaim"
+],
+"allOnclick": [
+"commitEmergencyClaim"
+]
+},
+{
+"fn": "commitMenu",
+"start": 16858,
+"openLine": 16905,
+"title": "'+(extra||'Actions')+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openArrivalEvidence",
+"start": 17749,
+"openLine": 17758,
+"title": "🔍 Arrival evidence — '+tripId+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "confirmAction",
+"start": 17769,
+"openLine": 17800,
+"title": "'+(o.danger?'⚠ ':'')+o.title+'",
+"footCommit": [
+"cancelConfirm",
+"runConfirm"
+],
+"allOnclick": [
+"cancelConfirm",
+"runConfirm"
+]
+},
+{
+"fn": "line",
+"start": 18788,
+"openLine": 18819,
+"title": "🧾 Trip receipt — '+tripId+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openCaseView",
+"start": 19005,
+"openLine": 19026,
+"title": "🔗 '+c.id+' — '+c.label+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openHandover",
+"start": 19680,
+"openLine": 19706,
+"title": "🔁 Hand over your shift",
+"footCommit": [
+"commitHandover"
+],
+"allOnclick": [
+"commitHandover"
+]
+},
+{
+"fn": "screenPop",
+"start": 20204,
+"openLine": 20237,
+"title": "'+(channel==='whatsapp'?'💬 Inbound WhatsApp':'📞 Incoming call')+'",
+"footCommit": [
+"abandonCall",
+"answerCall"
+],
+"allOnclick": [
+"abandonCall",
+"answerCall"
+]
+},
+{
+"fn": "openWrapUp",
+"start": 20277,
+"openLine": 20295,
+"title": "Wrap up — '+Math.floor(secs/60)+'m '+(secs%60)+'s",
+"footCommit": [
+"commitWrapUp"
+],
+"allOnclick": [
+"commitWrapUp"
+]
+},
+{
+"fn": "openHealthBreakdown",
+"start": 20567,
+"openLine": 20591,
+"title": "Renewal health — '+subId+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "renewalMenu",
+"start": 20594,
+"openLine": 20619,
+"title": "'+subId+' — '+nm2(sub.rider)+'",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "showEffectivePermissions",
+"start": 21048,
+"openLine": 21065,
+"title": "What '+eff.user.name+' can do",
+"footCommit": [],
+"allOnclick": []
+},
+{
+"fn": "openSuspendSurge",
+"start": 21720,
+"openLine": 21734,
+"title": "Suspend surge",
+"footCommit": [
+"commitSuspendSurge"
+],
+"allOnclick": [
+"commitSuspendSurge"
+]
+},
+{
+"fn": "openRateCardChange",
+"start": 21743,
+"openLine": 21760,
+"title": "Propose a rate card change",
+"footCommit": [
+"commitRateCardChange"
+],
+"allOnclick": [
+"commitRateCardChange"
+]
+}
+]

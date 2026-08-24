@@ -1,0 +1,4766 @@
+{
+ "meta": {
+  "source_file": "eyvar_ops_panel_v40_fixed.html",
+  "schema_version": "1.0",
+  "generated_from": "static analysis of the `DB` object",
+  "db_literal_lines": [
+   2566,
+   2842
+  ],
+  "total_entities": 101,
+  "total_relationships": 223
+ },
+ "entities": [
+  {
+   "name": "AbsenceEvent",
+   "db_collection": "DB.absenceEvents",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16564,
+   "end_line": 16564
+  },
+  {
+   "name": "ArrivalConfig",
+   "db_collection": "DB.arrivalConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 17605,
+   "end_line": 17610
+  },
+  {
+   "name": "ArrivalTrace",
+   "db_collection": "DB.arrivalTraces",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 17611,
+   "end_line": 17611
+  },
+  {
+   "name": "AuditEntry",
+   "db_collection": "DB.auditLog",
+   "id_prefix": "AUD-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "AUD-0001 style, padded to 4 from the array length"
+    },
+    {
+     "name": "ts",
+     "type": "string",
+     "meaning": "Locale time string at log time (seeded rows carry a date-style label instead)"
+    },
+    {
+     "name": "actorId",
+     "type": "string",
+     "meaning": "CURRENT_USER_ID; the click argument for showActorHistory"
+    },
+    {
+     "name": "actorName",
+     "type": "string",
+     "meaning": "Resolved team-user name, rendered in the Who column"
+    },
+    {
+     "name": "action",
+     "type": "string",
+     "meaning": "Machine action key; never shown in the settings preview"
+    },
+    {
+     "name": "entityType",
+     "type": "string",
+     "meaning": "'settings', 'ownership', 'ticket', etc; settingsLastUpdated filters on 'settings'"
+    },
+    {
+     "name": "entityId",
+     "type": "string",
+     "meaning": "Record or settings-section id; the key renderSettingsMeta looks up"
+    },
+    {
+     "name": "summary",
+     "type": "string",
+     "meaning": "Human sentence, the only description shown in the preview"
+    },
+    {
+     "name": "before",
+     "type": "object",
+     "meaning": "Pre-change snapshot; omitted by every policy save on the reasons tab"
+    },
+    {
+     "name": "after",
+     "type": "object",
+     "meaning": "Post-change snapshot; rendered as a field-level diff by auditDiffHTML"
+    }
+   ],
+   "seed_count": 8,
+   "defined_line": 2863,
+   "end_line": 2872
+  },
+  {
+   "name": "BackupOffer",
+   "db_collection": "DB.backupOffers",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 18124,
+   "end_line": 18124
+  },
+  {
+   "name": "BackupRegistry",
+   "db_collection": "DB.backupRegistry",
+   "id_prefix": null,
+   "container": "scalar",
+   "fields": [],
+   "seed_count": null,
+   "defined_line": 17198,
+   "end_line": null
+  },
+  {
+   "name": "Branding",
+   "db_collection": "DB.branding",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 18388,
+   "end_line": 18388
+  },
+  {
+   "name": "CallSession",
+   "db_collection": "DB.callSessions",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 20175,
+   "end_line": 20175
+  },
+  {
+   "name": "CancellationRule",
+   "db_collection": "DB.cancellationPolicy",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Stable key for getCancellationRule(id) and the row's data-rule-id attribute"
+    },
+    {
+     "name": "appliesTo",
+     "type": "string",
+     "meaning": "'quick_ride' or 'subscription' — decides the table and which fee field applies"
+    },
+    {
+     "name": "scenario",
+     "type": "string",
+     "meaning": "Row title describing the cancellation window"
+    },
+    {
+     "name": "feeAmount",
+     "type": "number",
+     "meaning": "Flat fee in SAR for quick-ride rules, debited from the rider wallet"
+    },
+    {
+     "name": "enabled",
+     "type": "boolean",
+     "meaning": "Every consumption site treats a disabled rule as zero fee"
+    },
+    {
+     "name": "locked",
+     "type": "boolean",
+     "meaning": "Always-free by design; the row renders no inputs and no data-rule-id, so it is structurally unwritable"
+    },
+    {
+     "name": "note",
+     "type": "string",
+     "meaning": "Explanatory sub-caption under the scenario name"
+    }
+   ],
+   "seed_count": 8,
+   "defined_line": 13936,
+   "end_line": 13945
+  },
+  {
+   "name": "Case",
+   "db_collection": "DB.cases",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 18852,
+   "end_line": 18852
+  },
+  {
+   "name": "CashLedgerEntry",
+   "db_collection": "DB.cashLedger",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 12080,
+   "end_line": 12080
+  },
+  {
+   "name": "Circuits",
+   "db_collection": "DB.circuits",
+   "id_prefix": "DRV-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "(array element)",
+     "type": "array",
+     "meaning": null
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 2817,
+   "end_line": 2829
+  },
+  {
+   "name": "City",
+   "db_collection": "DB.cities",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "City name; also the de-facto primary key — all lookups and the duplicate check compare on it"
+    },
+    {
+     "name": "active",
+     "type": "boolean",
+     "meaning": "Whether riders in this city can be matched with drivers; the only field with downstream effect (isCityActive -> nearestAvailableDrivers)"
+    },
+    {
+     "name": "launched",
+     "type": "string",
+     "meaning": "'Live since' label, auto-stamped 'Mon YYYY' on first activation and never cleared or re-stamped"
+    },
+    {
+     "name": "seed",
+     "type": "boolean",
+     "meaning": "True on the four seeded cities; renders the grey 'seed data city' badge"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 13946,
+   "end_line": 13951
+  },
+  {
+   "name": "CommitPolicy",
+   "db_collection": "DB.commitPolicy",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 15,
+   "defined_line": 16541,
+   "end_line": 16561
+  },
+  {
+   "name": "CommLogEntry",
+   "db_collection": "DB.commLogs",
+   "id_prefix": "TRP-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "(array element)",
+     "type": "array",
+     "meaning": null
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2749,
+   "end_line": 2762
+  },
+  {
+   "name": "Complaint",
+   "db_collection": "DB.complaints",
+   "id_prefix": "CMP-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "record key"
+    },
+    {
+     "name": "against",
+     "type": "string",
+     "meaning": "the entity complained about"
+    },
+    {
+     "name": "by",
+     "type": "string",
+     "meaning": "the entity that filed it"
+    },
+    {
+     "name": "subject",
+     "type": "string",
+     "meaning": "complaint subject"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "display date"
+    },
+    {
+     "name": "severity",
+     "type": "string",
+     "meaning": "High, Medium or other, mapped to a badge colour"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Open or Resolved; only Open shows the Mark resolved action"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 2706,
+   "end_line": 2711
+  },
+  {
+   "name": "ComplianceSuspension",
+   "db_collection": "DB.complianceSuspensions",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13285,
+   "end_line": 13285
+  },
+  {
+   "name": "CompensationPolicy",
+   "db_collection": "DB.compPolicy",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "Owner",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "Operations",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "Support",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "Finance",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "default",
+     "type": "object",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 15379,
+   "end_line": 15390
+  },
+  {
+   "name": "Contact",
+   "db_collection": "DB.contacts",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 14718,
+   "end_line": 14718
+  },
+  {
+   "name": "CorpApprovalDecision",
+   "db_collection": "DB.corpApprovalLog",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13962,
+   "end_line": 13962
+  },
+  {
+   "name": "CorporateAccount",
+   "db_collection": "DB.corporateAccounts",
+   "id_prefix": "CORP-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "primary key, mirrors the object key"
+    },
+    {
+     "name": "companyName",
+     "type": "string",
+     "meaning": "display name"
+    },
+    {
+     "name": "contactName",
+     "type": "string",
+     "meaning": "main contact person"
+    },
+    {
+     "name": "contactEmail",
+     "type": "string",
+     "meaning": "main contact email, invoice fallback recipient"
+    },
+    {
+     "name": "contactPhone",
+     "type": "null",
+     "meaning": "optional"
+    },
+    {
+     "name": "billingType",
+     "type": "string",
+     "meaning": "Monthly invoice or Prepaid balance"
+    },
+    {
+     "name": "expectedEmployees",
+     "type": "number",
+     "meaning": "target headcount, display only"
+    },
+    {
+     "name": "invoiceDayOfMonth",
+     "type": "number",
+     "meaning": "issue day, clamped on save"
+    },
+    {
+     "name": "lastInvoiceGeneratedAt",
+     "type": "null",
+     "meaning": "stamped when an invoice is emailed"
+    },
+    {
+     "name": "riders",
+     "type": "array",
+     "meaning": "linked employees - the sole source of spend and headcount"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Pending | Active | Trial (Trial unreachable)"
+    },
+    {
+     "name": "createdAt",
+     "type": "string",
+     "meaning": "date label"
+    },
+    {
+     "name": "usagePolicy",
+     "type": "object",
+     "meaning": "monthlyCapSAR, vehicleTier, workHoursOnly, workHoursStart, workHoursEnd, officeDistrict, geoRestrictKm, requireApprovalAboveSAR, approverName, approverEmail"
+    }
+   ],
+   "seed_count": 1,
+   "defined_line": 13846,
+   "end_line": 13849
+  },
+  {
+   "name": "CreditNote",
+   "db_collection": "DB.creditNotes",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 15847,
+   "end_line": 15847
+  },
+  {
+   "name": "Credit Note Sequence",
+   "db_collection": "DB.creditNoteSequence",
+   "id_prefix": null,
+   "container": "scalar",
+   "fields": [],
+   "seed_count": null,
+   "defined_line": 15848,
+   "end_line": null
+  },
+  {
+   "name": "DailySnapshot",
+   "db_collection": "DB.dailySnapshots",
+   "id_prefix": "SNAP-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'SNAP-'+(length+1) padded to 4"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "capture timestamp; all 30 seeds are stamped 09:00"
+    },
+    {
+     "name": "riders",
+     "type": "number",
+     "meaning": "Object.keys(DB.riders).length"
+    },
+    {
+     "name": "drivers",
+     "type": "number",
+     "meaning": "active drivers only (status !== 'pending')"
+    },
+    {
+     "name": "activeSubs",
+     "type": "number",
+     "meaning": "subscriptions whose status does not match /cancel/i"
+    },
+    {
+     "name": "quickRides",
+     "type": "number",
+     "meaning": "trips with kind === 'Quick ride'"
+    },
+    {
+     "name": "cancelRatePct",
+     "type": "number",
+     "meaning": "integer percent of quick trips with status === 'Cancelled'"
+    },
+    {
+     "name": "totalRevenue",
+     "type": "string",
+     "meaning": "toFixed(2) sum of Paid payments — stored as a string"
+    },
+    {
+     "name": "quickRideRevenue",
+     "type": "string",
+     "meaning": "Paid payments of type 'Quick ride fare'; never displayed or exported"
+    },
+    {
+     "name": "subRevenue",
+     "type": "string",
+     "meaning": "Paid payments of type 'Subscription charge'; never displayed or exported"
+    }
+   ],
+   "seed_count": 30,
+   "defined_line": 13802,
+   "end_line": 13833
+  },
+  {
+   "name": "DataWindow",
+   "db_collection": "DB.dataWindow",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 20403,
+   "end_line": 20410
+  },
+  {
+   "name": "Deduction",
+   "db_collection": "DB.deductions",
+   "id_prefix": "DED-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "DED-*, manually assigned in the seed - no generator exists"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "DRV-* penalised"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "free-text penalty description; there is no enumerated type constant and no fee schedule"
+    },
+    {
+     "name": "trip",
+     "type": "string",
+     "meaning": "TRP-* the penalty attaches to"
+    },
+    {
+     "name": "amount",
+     "type": "number",
+     "meaning": "SAR positive magnitude, displayed as a negative"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "day label e.g. '25 Jun'"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'pending' | 'applied' | 'waived'; applied and waived are both terminal"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2807,
+   "end_line": 2811
+  },
+  {
+   "name": "Dispute",
+   "db_collection": "DB.disputes",
+   "id_prefix": "DSP-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "DSP-## primary key; no creation function exists"
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "meaning": "Subscription id — the sub badge, the source of the per-trip value at stake, and the fallback arrival-evidence key"
+    },
+    {
+     "name": "claim",
+     "type": "string",
+     "meaning": "Free-text rider claim, rendered as raw HTML"
+    },
+    {
+     "name": "claimant",
+     "type": "string",
+     "meaning": "Rider id — the party the gate says will be credited"
+    },
+    {
+     "name": "against",
+     "type": "string",
+     "meaning": "Driver id — never penalised by any code path"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'open' | 'resolved'; no reopen path"
+    },
+    {
+     "name": "evidence",
+     "type": "array",
+     "meaning": "Hand-authored [label, text] pairs rendered as grey pills"
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 14391,
+   "end_line": 14396
+  },
+  {
+   "name": "DriverBonus",
+   "db_collection": "DB.driverBonusLog",
+   "id_prefix": "BON-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Bonus-log row id"
+    },
+    {
+     "name": "driverId",
+     "type": "string",
+     "meaning": "Captain awarded the bonus"
+    },
+    {
+     "name": "incentiveId",
+     "type": "string",
+     "meaning": "Rule the award was made under; drives Earned/Total paid counters"
+    },
+    {
+     "name": "amount",
+     "type": "number",
+     "meaning": "Free-typed amount, validated only as >0; flows into Finance contribution margin"
+    },
+    {
+     "name": "note",
+     "type": "string",
+     "meaning": "Operator note"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "Demo-clock label from fmtReqNowLabel()"
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 13895,
+   "end_line": 13898
+  },
+  {
+   "name": "DriverCashDebt",
+   "db_collection": "DB.driverCashDebt",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 12081,
+   "end_line": 12081
+  },
+  {
+   "name": "DriverDocument",
+   "db_collection": "DB.driverDocs",
+   "id_prefix": "DRV-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "license",
+     "type": "string",
+     "meaning": "Driving licence expiry"
+    },
+    {
+     "name": "vehicle_reg",
+     "type": "string",
+     "meaning": "Vehicle registration (Istimara) expiry"
+    },
+    {
+     "name": "inspection",
+     "type": "string",
+     "meaning": "Periodic inspection (Fahs) expiry"
+    },
+    {
+     "name": "insurance",
+     "type": "string",
+     "meaning": "Insurance expiry"
+    },
+    {
+     "name": "operating_card",
+     "type": "string",
+     "meaning": "Transport authority operating card expiry"
+    }
+   ],
+   "seed_count": 5,
+   "defined_line": 13278,
+   "end_line": 13284
+  },
+  {
+   "name": "Driver",
+   "db_collection": "DB.drivers",
+   "id_prefix": "DRV-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "record key, DRV-nnnn"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "captain name used by nm2 across all three modules"
+    },
+    {
+     "name": "phone",
+     "type": "string",
+     "meaning": "contact number"
+    },
+    {
+     "name": "email",
+     "type": "string",
+     "meaning": "stored but rendered by no profile card"
+    },
+    {
+     "name": "rating",
+     "type": "number",
+     "meaning": "Used to rank VIP candidates (best-rated first) and by driverAutoRestricted's min-rating limit"
+    },
+    {
+     "name": "lvl",
+     "type": "string",
+     "meaning": "tier gold / silver / other, shown as a badge in captain economics"
+    },
+    {
+     "name": "vehicle",
+     "type": "string",
+     "meaning": "vehicle description in the meta line"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "Economy or Comfort - checked by dispatchEligibility against the plan tier"
+    },
+    {
+     "name": "joined",
+     "type": "string",
+     "meaning": "'Mon YYYY'; parsed by parseJoinedDate() to the 1st of that month for tenure"
+    },
+    {
+     "name": "hasPhoto",
+     "type": "boolean",
+     "meaning": "Drives avatarHTML gradient-photo versus initials"
+    },
+    {
+     "name": "gender",
+     "type": "string",
+     "meaning": "Used by gender-preference matching"
+    },
+    {
+     "name": "multiSubException",
+     "type": "boolean",
+     "meaning": "Per-driver override that lets this driver take another subscription while the general policy is closed. Seeded true only on DRV-0101; set from the driver profile at L9133."
+    },
+    {
+     "name": "address",
+     "type": "string",
+     "meaning": "Self-reported at signup"
+    },
+    {
+     "name": "city",
+     "type": "string",
+     "meaning": "Not used by the matcher directly - it is the RIDER's city that gates matching via isCityActive"
+    },
+    {
+     "name": "device",
+     "type": "string",
+     "meaning": "'<model> · <OS>' last known device"
+    },
+    {
+     "name": "appLang",
+     "type": "string",
+     "meaning": "App language"
+    },
+    {
+     "name": "lastIp",
+     "type": "string",
+     "meaning": "Last known IP"
+    },
+    {
+     "name": "mapPos",
+     "type": "object",
+     "meaning": "Position on the synthetic 0-100 demo grid; a driver without mapPos is skipped by the matcher entirely"
+    },
+    {
+     "name": "ipLocation",
+     "type": "string",
+     "meaning": "Geolocated IP label"
+    },
+    {
+     "name": "capacity",
+     "type": "string",
+     "meaning": "Free-text slot capacity label ('Full', '1 open'); static seed value, never recomputed"
+    },
+    {
+     "name": "movementLog",
+     "type": "array",
+     "meaning": "{date, action, location} location history"
+    },
+    {
+     "name": "bank",
+     "type": "object",
+     "meaning": "bankName, iban, holder and status for the Bank account card"
+    },
+    {
+     "name": "notifLog",
+     "type": "array",
+     "meaning": "delivery log; empty for every seed driver so the card never appears"
+    },
+    {
+     "name": "trips",
+     "type": "array",
+     "meaning": "TRP- ids"
+    },
+    {
+     "name": "payments",
+     "type": "array",
+     "meaning": "PAY- ids"
+    },
+    {
+     "name": "complaints",
+     "type": "array",
+     "meaning": "CMP- ids"
+    },
+    {
+     "name": "stats",
+     "type": "object",
+     "meaning": "totalTrips, monthEarn, onTime, activeSubs - rendered raw with no provenance chips"
+    }
+   ],
+   "seed_count": 6,
+   "defined_line": 2631,
+   "end_line": 2669
+  },
+  {
+   "name": "OutboxEmail",
+   "db_collection": "DB.emailOutbox",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13834,
+   "end_line": 13834
+  },
+  {
+   "name": "EmergencyClaim",
+   "db_collection": "DB.emergencyClaims",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16565,
+   "end_line": 16565
+  },
+  {
+   "name": "EmergencyDispatch",
+   "db_collection": "DB.emergencyDispatches",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 17199,
+   "end_line": 17199
+  },
+  {
+   "name": "Erasure Requests",
+   "db_collection": "DB.erasureRequests",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 15961,
+   "end_line": 15961
+  },
+  {
+   "name": "EscrowHold",
+   "db_collection": "DB.escrowHolds",
+   "id_prefix": "ESC-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "ESC-*, manually assigned in the seed - no generator function exists"
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "meaning": "SUB-* this hold belongs to"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "DRV-* recipient"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "RDR-* payer"
+    },
+    {
+     "name": "amount",
+     "type": "number",
+     "meaning": "SAR withheld; every seed equals subscription.paid x 0.80"
+    },
+    {
+     "name": "tripsRequired",
+     "type": "number",
+     "meaning": "trips that must complete before release"
+    },
+    {
+     "name": "tripsCompleted",
+     "type": "number",
+     "meaning": "trips delivered so far - never incremented by any code"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'held' or 'ready'; seed-only, nothing transitions held to ready, and release deletes the record"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 2801,
+   "end_line": 2806
+  },
+  {
+   "name": "FairnessCase",
+   "db_collection": "DB.fairnessCases",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 15505,
+   "end_line": 15505
+  },
+  {
+   "name": "GoodwillEntry",
+   "db_collection": "DB.goodwillLedger",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 15391,
+   "end_line": 15391
+  },
+  {
+   "name": "Handover",
+   "db_collection": "DB.handovers",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 19607,
+   "end_line": 19607
+  },
+  {
+   "name": "IdempotencyRecord",
+   "db_collection": "DB.idempotency",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 19880,
+   "end_line": 19880
+  },
+  {
+   "name": "InboundMessage",
+   "db_collection": "DB.inboundMessages",
+   "id_prefix": "INB-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "INB-001..003"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "sender name from the website contact form"
+    },
+    {
+     "name": "email",
+     "type": "string",
+     "meaning": "sender address"
+    },
+    {
+     "name": "subject",
+     "type": "string",
+     "meaning": "subject line; also matched by the corporate-lead regex"
+    },
+    {
+     "name": "message",
+     "type": "string",
+     "meaning": "full body"
+    },
+    {
+     "name": "receivedAt",
+     "type": "string",
+     "meaning": "hand-written seed timestamp"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "new | read | replied"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13899,
+   "end_line": 13903
+  },
+  {
+   "name": "Incentive",
+   "db_collection": "DB.incentives",
+   "id_prefix": "INV-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'INV-n' in the seed, 'INV-'+Date.now() at runtime"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Free-text rule name"
+    },
+    {
+     "name": "rule",
+     "type": "string",
+     "meaning": "Plain prose qualifying condition; never parsed or evaluated"
+    },
+    {
+     "name": "reward",
+     "type": "string",
+     "meaning": "Plain prose reward, not a number; the paid amount is typed by the operator at award time"
+    },
+    {
+     "name": "active",
+     "type": "boolean",
+     "meaning": "Shows/hides the 🏆 Award button; toggled inline with no permission check and no audit entry"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 13564,
+   "end_line": 13569
+  },
+  {
+   "name": "Incident",
+   "db_collection": "DB.incidents",
+   "id_prefix": "INC-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Incident id, rendered monospace red"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "SOS / Accident / Harassment report — no enumeration exists"
+    },
+    {
+     "name": "severity",
+     "type": "string",
+     "meaning": "'critical' | 'high' | anything else (renders as Normal); hand-authored, never changed at runtime"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'open' | 'closed'; only closeIncident writes it"
+    },
+    {
+     "name": "opened",
+     "type": "string",
+     "meaning": "Display-only timestamp such as '09:02' or 'Yesterday 18:40'; never parsed"
+    },
+    {
+     "name": "trip",
+     "type": "string",
+     "meaning": "Related trip id; not validated and two of three are dangling"
+    },
+    {
+     "name": "reporter",
+     "type": "string",
+     "meaning": "Who reported it, resolved through nm2()"
+    },
+    {
+     "name": "against",
+     "type": "string",
+     "meaning": "The accused driver; null for a self-reported accident. Gates the precautionary-suspend button."
+    },
+    {
+     "name": "summary",
+     "type": "string",
+     "meaning": "Free-text description"
+    },
+    {
+     "name": "steps",
+     "type": "object",
+     "meaning": "Each step is {done:bool} or {done:true,by:string,at:string}; all four must be done before closing"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13389,
+   "end_line": 13393
+  },
+  {
+   "name": "Invoice",
+   "db_collection": "DB.invoices",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13973,
+   "end_line": 13973
+  },
+  {
+   "name": "Invoice Sequence",
+   "db_collection": "DB.invoiceSequence",
+   "id_prefix": null,
+   "container": "scalar",
+   "fields": [],
+   "seed_count": null,
+   "defined_line": 13972,
+   "end_line": null
+  },
+  {
+   "name": "LedgerEntry",
+   "db_collection": "DB.ledger",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 19879,
+   "end_line": 19879
+  },
+  {
+   "name": "LegAck",
+   "db_collection": "DB.legAcks",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 18123,
+   "end_line": 18123
+  },
+  {
+   "name": "LegalDocument",
+   "db_collection": "DB.legalDocuments",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "label",
+     "type": "string",
+     "meaning": "display title (Terms of Service, Privacy Policy, Driver Agreement)"
+    },
+    {
+     "name": "currentVersion",
+     "type": "string",
+     "meaning": "free-form version string every consent is compared against by strict equality"
+    },
+    {
+     "name": "versions",
+     "type": "array",
+     "meaning": "published version records, newest first (unshift on publish)"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13867,
+   "end_line": 13882
+  },
+  {
+   "name": "LiveTrip",
+   "db_collection": "DB.liveTrips",
+   "id_prefix": "TRP-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'TRP-'+(9100+rand(900)), no collision check"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "RDR id"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "DRV id assigned"
+    },
+    {
+     "name": "stage",
+     "type": "number",
+     "meaning": "always 2 on creation from a request"
+    },
+    {
+     "name": "eta",
+     "type": "string",
+     "meaning": "always '3 min to pickup' on creation"
+    },
+    {
+     "name": "route",
+     "type": "string",
+     "meaning": "'<pickup> → <dest>'"
+    },
+    {
+     "name": "mapTrip",
+     "type": "string",
+     "meaning": "no map track on creation"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2781,
+   "end_line": 2785
+  },
+  {
+   "name": "LoginSession",
+   "db_collection": "DB.loginSessions",
+   "id_prefix": "SESS-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "(array element)",
+     "type": "array",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 2994,
+   "end_line": 3003
+  },
+  {
+   "name": "LostFoundItem",
+   "db_collection": "DB.lostFound",
+   "id_prefix": "LF-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "LF-## primary key; no creation function exists"
+    },
+    {
+     "name": "item",
+     "type": "string",
+     "meaning": "Item description, rendered bold"
+    },
+    {
+     "name": "trip",
+     "type": "string",
+     "meaning": "Trip id, clickable to the trip profile"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "Rider id, clickable to the rider profile"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "Driver id, clickable to the driver profile"
+    },
+    {
+     "name": "reported",
+     "type": "string",
+     "meaning": "Display string ('08:55', 'Yesterday', '22 Jun') — no numeric timestamp exists"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'searching' | 'with_driver' | 'returned'; strictly forward-only via LF_FLOW"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 14448,
+   "end_line": 14452
+  },
+  {
+   "name": "MassEvent",
+   "db_collection": "DB.massEvents",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16082,
+   "end_line": 16082
+  },
+  {
+   "name": "MoneyReject",
+   "db_collection": "DB.moneyRejects",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 19881,
+   "end_line": 19881
+  },
+  {
+   "name": "Multi Stop Config",
+   "db_collection": "DB.multiStopConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 1,
+   "defined_line": 13862,
+   "end_line": 13862
+  },
+  {
+   "name": "NewRider",
+   "db_collection": "DB.newRiders",
+   "id_prefix": "RDR-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "RDR-3001…3003; does not exist in DB.riders until promotion"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Display name"
+    },
+    {
+     "name": "phone",
+     "type": "string",
+     "meaning": "Contact number"
+    },
+    {
+     "name": "joined",
+     "type": "string",
+     "meaning": "'25 Jun · today' human-readable text, unparseable by riderTenureMonths()"
+    },
+    {
+     "name": "firstAction",
+     "type": "string",
+     "meaning": "Card sub-line, e.g. 'No trips yet', '1 quick ride completed'"
+    },
+    {
+     "name": "dob",
+     "type": "string",
+     "meaning": "Date of birth; copied on promotion, never rendered"
+    },
+    {
+     "name": "nid",
+     "type": "string",
+     "meaning": "National ID; copied on promotion, never rendered"
+    },
+    {
+     "name": "address",
+     "type": "string",
+     "meaning": "Copied on promotion and rendered on the profile"
+    },
+    {
+     "name": "city",
+     "type": "string",
+     "meaning": "Copied on promotion and rendered on the profile"
+    },
+    {
+     "name": "hasPhoto",
+     "type": "boolean",
+     "meaning": "Avatar mode on the card; NOT copied on promotion"
+    },
+    {
+     "name": "gender",
+     "type": "string",
+     "meaning": "NOT copied on promotion"
+    },
+    {
+     "name": "device",
+     "type": "string",
+     "meaning": "NOT copied on promotion"
+    },
+    {
+     "name": "appLang",
+     "type": "string",
+     "meaning": "NOT copied on promotion"
+    },
+    {
+     "name": "lastIp",
+     "type": "string",
+     "meaning": "NOT copied on promotion"
+    },
+    {
+     "name": "ipLocation",
+     "type": "string",
+     "meaning": "NOT copied on promotion"
+    },
+    {
+     "name": "movementLog",
+     "type": "array",
+     "meaning": "NOT copied on promotion, so the promoted profile shows no location history"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2744,
+   "end_line": 2748
+  },
+  {
+   "name": "Notification",
+   "db_collection": "DB.notifications",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "unique key; seed uses N1-N6, runtime uses 'N-AUTO-' plus window.__notifSeq"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "taxonomy key driving icon, derived priority and the fallback click destination; 10 declared keys plus two undeclared ones in use"
+    },
+    {
+     "name": "title",
+     "type": "string",
+     "meaning": "primary line, injected raw into innerHTML and scanned by the urgent-keyword regex when type is 'alert'"
+    },
+    {
+     "name": "desc",
+     "type": "string",
+     "meaning": "optional secondary line; the sub-line is omitted entirely when falsy, and toast-derived entries always pass an empty string"
+    },
+    {
+     "name": "time",
+     "type": "string",
+     "meaning": "display-only free text, never a Date; every runtime record is hardcoded to 'Just now'"
+    },
+    {
+     "name": "read",
+     "type": "boolean",
+     "meaning": "global (not per-user) read flag driving the bell badge, row styling and the unread filter"
+    }
+   ],
+   "seed_count": 6,
+   "defined_line": 2773,
+   "end_line": 2780
+  },
+  {
+   "name": "OnCallRosterSimple",
+   "db_collection": "DB.onCall",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 15776,
+   "end_line": 15776
+  },
+  {
+   "name": "OnCallSchedule",
+   "db_collection": "DB.onCallSchedule",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 5,
+   "defined_line": 19598,
+   "end_line": 19606
+  },
+  {
+   "name": "DispatchConfig",
+   "db_collection": "DB.opsConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 9,
+   "defined_line": 2567,
+   "end_line": 2575
+  },
+  {
+   "name": "OpsLimit",
+   "db_collection": "DB.opsLimits",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Stable key used by getLimit(id) and the row's data-limit-id attribute"
+    },
+    {
+     "name": "appliesTo",
+     "type": "string",
+     "meaning": "'rider' or 'driver' — decides which of the two tables the row renders into"
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "meaning": "Human-readable limit name, injected into the row as raw HTML"
+    },
+    {
+     "name": "value",
+     "type": "number",
+     "meaning": "The numeric cap; editable inline and committed by saveOpsLimits"
+    },
+    {
+     "name": "unit",
+     "type": "string",
+     "meaning": "Display-only unit caption (declines, ★, trips, requests, per day, seconds, subscriptions)"
+    },
+    {
+     "name": "enabled",
+     "type": "boolean",
+     "meaning": "Every enforcement site checks this before applying the value, so switching it off is a genuine bypass"
+    },
+    {
+     "name": "enforced",
+     "type": "boolean",
+     "meaning": "Self-describing flag: true means the key is actually read by live code; renders as the ● Live / ● Tracked badge and the row's left border colour"
+    },
+    {
+     "name": "enforcedBy",
+     "type": "string",
+     "meaning": "Hand-written prose naming the enforcement point; rendered as a sub-caption only when enforced"
+    },
+    {
+     "name": "custom",
+     "type": "boolean",
+     "meaning": "True on UI-added rows; gates the Remove button. Custom rows are always enforced:false"
+    }
+   ],
+   "seed_count": 8,
+   "defined_line": 2583,
+   "end_line": 2592
+  },
+  {
+   "name": "OwnershipClaim",
+   "db_collection": "DB.ownership",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 18851,
+   "end_line": 18851
+  },
+  {
+   "name": "Ownership Config",
+   "db_collection": "DB.ownershipConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 18853,
+   "end_line": 18853
+  },
+  {
+   "name": "PaymentGateway",
+   "db_collection": "DB.paymentGateways",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Identity for toggle/set-default/remove lookups; 'custom_'+Date.now() for UI-added rows"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Display name; also copied into matchPrefix for custom rows"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "Card | Wallet | Bank | BNPL — rendered as a grey badge, drives no logic"
+    },
+    {
+     "name": "matchPrefix",
+     "type": "string",
+     "meaning": "Case-sensitive prefix matched at position 0 against DB.payments[].method to attribute transactions and volume"
+    },
+    {
+     "name": "enabled",
+     "type": "boolean",
+     "meaning": "Intended to allow charges through the gateway; read only inside Settings"
+    },
+    {
+     "name": "isDefault",
+     "type": "boolean",
+     "meaning": "Exclusive default flag maintained by setDefaultGateway; read only inside Settings"
+    },
+    {
+     "name": "custom",
+     "type": "boolean",
+     "meaning": "False on the six seeds, true on UI-added rows; gates the Remove button"
+    }
+   ],
+   "seed_count": 6,
+   "defined_line": 13913,
+   "end_line": 13920
+  },
+  {
+   "name": "PaymentRiskFlag",
+   "db_collection": "DB.paymentRisk",
+   "id_prefix": "RDR-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 1,
+   "defined_line": 14199,
+   "end_line": 14199
+  },
+  {
+   "name": "Payment",
+   "db_collection": "DB.payments",
+   "id_prefix": "PAY-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "PAY-*"
+    },
+    {
+     "name": "entity",
+     "type": "string",
+     "meaning": "RDR-* for a rider charge or DRV-* for a driver payout"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "Subscription charge | Quick ride fare | Driver payout"
+    },
+    {
+     "name": "amount",
+     "type": "string",
+     "meaning": "SAR stored as TEXT e.g. '86.50 SAR', parsed with parseFloat everywhere"
+    },
+    {
+     "name": "method",
+     "type": "string",
+     "meaning": "Visa/Mada masked card, Apple Pay, or Bank transfer"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "day label e.g. '19 Jun'"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Paid | Refunded | Pending - seed-only, no code path mutates it"
+    },
+    {
+     "name": "trip",
+     "type": "string",
+     "meaning": "linked SUB-*, TRP-*, or the literal dash"
+    }
+   ],
+   "seed_count": 10,
+   "defined_line": 2694,
+   "end_line": 2705
+  },
+  {
+   "name": "Payout",
+   "db_collection": "DB.payouts",
+   "id_prefix": "DRV-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "trips",
+     "type": "number",
+     "meaning": "trips in the cycle; taken from d.stats.totalTrips when auto-created"
+    },
+    {
+     "name": "earned",
+     "type": "number",
+     "meaning": "SAR gross earned; increased by escrow release and never decreased by a payout"
+    },
+    {
+     "name": "paidOut",
+     "type": "number",
+     "meaning": "SAR cumulative amount already transferred"
+    },
+    {
+     "name": "pending",
+     "type": "number",
+     "meaning": "SAR currently payable, always >= 0; raised by escrow release, lowered by a deduction, hard-zeroed by a payout"
+    },
+    {
+     "name": "lastPayout",
+     "type": "string",
+     "meaning": "date label; the literal 'Just now' after a payout, a dash for auto-created entries"
+    },
+    {
+     "name": "deductionNote",
+     "type": "null",
+     "meaning": "{amount, type} of the LAST applied deduction only - a single overwritten slot, cleared on payout"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2812,
+   "end_line": 2816
+  },
+  {
+   "name": "PendingDriver",
+   "db_collection": "DB.pendingDrivers",
+   "id_prefix": "APP-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Application id APP-####"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Applicant full name"
+    },
+    {
+     "name": "phone",
+     "type": "string",
+     "meaning": "Contact number"
+    },
+    {
+     "name": "vehicle",
+     "type": "string",
+     "meaning": "Declared vehicle; the first alphabetic token is cross-checked against VEHICLE_CLASS_MAP"
+    },
+    {
+     "name": "plate",
+     "type": "string",
+     "meaning": "Plate number; searchable here but never copied to the driver record"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "Self-declared vehicle class, verified at review"
+    },
+    {
+     "name": "applied",
+     "type": "string",
+     "meaning": "'<DD Mon> · <relative>' free text, not a sortable date"
+    },
+    {
+     "name": "dob",
+     "type": "string",
+     "meaning": "'DD Mon YYYY' date of birth"
+    },
+    {
+     "name": "nid",
+     "type": "string",
+     "meaning": "10-digit Saudi national ID"
+    },
+    {
+     "name": "address",
+     "type": "string",
+     "meaning": "Self-reported address"
+    },
+    {
+     "name": "city",
+     "type": "string",
+     "meaning": "City"
+    },
+    {
+     "name": "gender",
+     "type": "string",
+     "meaning": "Gender"
+    },
+    {
+     "name": "device",
+     "type": "string",
+     "meaning": "Device and OS fingerprint"
+    },
+    {
+     "name": "appLang",
+     "type": "string",
+     "meaning": "App language"
+    },
+    {
+     "name": "lastIp",
+     "type": "string",
+     "meaning": "Last known IP"
+    },
+    {
+     "name": "ipLocation",
+     "type": "string",
+     "meaning": "Geolocated IP label"
+    },
+    {
+     "name": "hasPhoto",
+     "type": "boolean",
+     "meaning": "Avatar rendering mode"
+    },
+    {
+     "name": "movementLog",
+     "type": "array",
+     "meaning": "{date, action, location}; every seed has exactly one 'Application submitted' entry"
+    },
+    {
+     "name": "bank",
+     "type": "object",
+     "meaning": "{bankName, iban, holder, status}"
+    },
+    {
+     "name": "docs",
+     "type": "object",
+     "meaning": "Five fixed keys license/id_card/vehicle_reg/background/insurance holding the verdict strings '✓ Verified', '⏳ Pending', '✗ Rejected'"
+    },
+    {
+     "name": "acceptedTrips",
+     "type": "number",
+     "meaning": "Always 0 in seeds; copied to the driver on approval"
+    },
+    {
+     "name": "cancelledTrips",
+     "type": "number",
+     "meaning": "Always 0 in seeds"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Funnel state; all five seeds start pending"
+    }
+   ],
+   "seed_count": 5,
+   "defined_line": 2712,
+   "end_line": 2743
+  },
+  {
+   "name": "PlanConfirmation",
+   "db_collection": "DB.planConfirmations",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16563,
+   "end_line": 16563
+  },
+  {
+   "name": "Plan",
+   "db_collection": "DB.plans",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "key",
+     "type": "string",
+     "meaning": "Object key and plan_id shown in the editor sub-line; used as entityId in every audit entry"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "English plan name; also the cadence-matching prefix used to count active subscriptions"
+    },
+    {
+     "name": "nameAr",
+     "type": "string",
+     "meaning": "Arabic plan name (RTL); required on save but has no consumer outside the editor form"
+    },
+    {
+     "name": "duration",
+     "type": "number",
+     "meaning": "Length of the commitment window; no pricing consumer — CADENCE_DAYS is used instead"
+    },
+    {
+     "name": "execute",
+     "type": "number",
+     "meaning": "Trip-days billed in one plan period; the ×exec multiplier in the editor's plan-total formula"
+    },
+    {
+     "name": "cap",
+     "type": "number",
+     "meaning": "Cancellation cap per period; only the weekly plan's value is read, by the dashboard alert"
+    },
+    {
+     "name": "eyvarPct",
+     "type": "number",
+     "meaning": "Platform take rate; driver share = 100 − eyvarPct. Feeds commissionRateForPlan()"
+    },
+    {
+     "name": "discountPct",
+     "type": "number",
+     "meaning": "Discount applied to gross before the execute-days multiply"
+    },
+    {
+     "name": "ecoMin",
+     "type": "number",
+     "meaning": "Economy per-minute rate"
+    },
+    {
+     "name": "ecoKm",
+     "type": "number",
+     "meaning": "Economy per-km rate; never shown in the plans table"
+    },
+    {
+     "name": "comfortMin",
+     "type": "number",
+     "meaning": "Comfort per-minute rate"
+    },
+    {
+     "name": "comfortKm",
+     "type": "number",
+     "meaning": "Comfort per-km rate; never shown in the plans table"
+    },
+    {
+     "name": "sortOrder",
+     "type": "number",
+     "meaning": "Intended display order; dead — nothing sorts by it"
+    },
+    {
+     "name": "ecoActive",
+     "type": "boolean",
+     "meaning": "Whether Economy is offered on this plan; written immediately by the checkbox, no downstream consumer"
+    },
+    {
+     "name": "comfortActive",
+     "type": "boolean",
+     "meaning": "Whether Comfort is offered on this plan; no downstream consumer"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Lifecycle state; drives the table badge only — it does not gate what riders can buy"
+    },
+    {
+     "name": "features",
+     "type": "array",
+     "meaning": "Rider-facing bullet list on the plan card, persisted per plan"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2889,
+   "end_line": 2896
+  },
+  {
+   "name": "Presence",
+   "db_collection": "DB.presence",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 21324,
+   "end_line": 21324
+  },
+  {
+   "name": "Promo",
+   "db_collection": "DB.promos",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "code",
+     "type": "string",
+     "meaning": "Campaign code; uniqueness checked only at create"
+    },
+    {
+     "name": "discountPct",
+     "type": "number",
+     "meaning": "Discount percent displayed in the table; never applied to any fare"
+    },
+    {
+     "name": "budget",
+     "type": "number",
+     "meaning": "Total campaign budget"
+    },
+    {
+     "name": "spent",
+     "type": "number",
+     "meaning": "Budget consumed; never incremented by any code path"
+    },
+    {
+     "name": "uses",
+     "type": "number",
+     "meaning": "Redemption count; never incremented"
+    },
+    {
+     "name": "newSubs",
+     "type": "number",
+     "meaning": "Attributed new subscriptions; drives ROI; never incremented"
+    },
+    {
+     "name": "perUserLimit",
+     "type": "number",
+     "meaning": "Max redemptions per rider; never enforced"
+    },
+    {
+     "name": "target",
+     "type": "string",
+     "meaning": "Eligibility label; never enforced. 'Specific zone' has no zone picker."
+    },
+    {
+     "name": "expires",
+     "type": "string",
+     "meaning": "Expiry date; never compared to a clock"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "'active' | 'paused' | 'exhausted' | 'expired'; only active↔paused are reachable at runtime"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 13495,
+   "end_line": 13500
+  },
+  {
+   "name": "PushOutboxRecord",
+   "db_collection": "DB.pushOutbox",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13835,
+   "end_line": 13835
+  },
+  {
+   "name": "QuickRideType",
+   "db_collection": "DB.quickRideTypes",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Row identity; runtime-added types get custom_<Date.now()>"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Display name, matched by quickRideFare(); not editable in-table"
+    },
+    {
+     "name": "baseFare",
+     "type": "number",
+     "meaning": "Flat component of the fare"
+    },
+    {
+     "name": "perKm",
+     "type": "number",
+     "meaning": "Distance component"
+    },
+    {
+     "name": "perMin",
+     "type": "number",
+     "meaning": "Time component"
+    },
+    {
+     "name": "active",
+     "type": "boolean",
+     "meaning": "Display/state only — quickRideFare() does not filter on it"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13908,
+   "end_line": 13912
+  },
+  {
+   "name": "RateCard",
+   "db_collection": "DB.rateCard",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 13,
+   "defined_line": 21431,
+   "end_line": 21462
+  },
+  {
+   "name": "RateCardVersion",
+   "db_collection": "DB.rateCardHistory",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 21463,
+   "end_line": 21463
+  },
+  {
+   "name": "ReasonCode",
+   "db_collection": "DB.reasonCodes",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "code",
+     "type": "string",
+     "meaning": "Primary key, uppercase A-Z0-9_; never deleted or renamed by policy"
+    },
+    {
+     "name": "ref",
+     "type": "string",
+     "meaning": "Call Center Communication Guide section number; null for the 16 codes the guide does not cover"
+    },
+    {
+     "name": "cat",
+     "type": "string",
+     "meaning": "Category (Captain, Booking, Payment, Trip, Technical, Safety, Feedback, Subscription, Driver, Corporate, Other); copied onto tickets via rcCategory()"
+    },
+    {
+     "name": "target",
+     "type": "string",
+     "meaning": "'rider' | 'driver' | 'corp' - who the scenario is about; never rendered and never read"
+    },
+    {
+     "name": "tier",
+     "type": "string",
+     "meaning": "T1-T4, selects the DB.slaPolicy tier whose defaults and pause rule apply"
+    },
+    {
+     "name": "fr",
+     "type": "number",
+     "meaning": "First-response target in minutes; null means inherit the tier's firstResponseMin"
+    },
+    {
+     "name": "res",
+     "type": "number",
+     "meaning": "Resolution target in minutes; null means inherit the tier's resolveMin"
+    },
+    {
+     "name": "upd",
+     "type": "null",
+     "meaning": "Recurring update-promise clock in minutes; null means no recurring promise (no tier fallback exists)"
+    },
+    {
+     "name": "comp",
+     "type": "number",
+     "meaning": "Per-scenario goodwill ceiling in SAR; 0 blocks goodwill entirely except on OTHER_UNCODED"
+    },
+    {
+     "name": "owner",
+     "type": "string",
+     "meaning": "Root-cause owning team; editable and saved but read by nothing"
+    },
+    {
+     "name": "labelEn",
+     "type": "string",
+     "meaning": "English label, rendered as raw HTML in the registry and used by rcLabel()"
+    },
+    {
+     "name": "labelAr",
+     "type": "string",
+     "meaning": "Arabic label, rendered RTL in the registry and in the bilingual reason picker"
+    },
+    {
+     "name": "active",
+     "type": "boolean",
+     "meaning": "Filters the code out of every reason picker and out of the active-code count"
+    }
+   ],
+   "seed_count": 40,
+   "defined_line": 14667,
+   "end_line": 14716
+  },
+  {
+   "name": "RecruitmentQueueEntry",
+   "db_collection": "DB.recruitmentQueue",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13961,
+   "end_line": 13961
+  },
+  {
+   "name": "ReferralConfig",
+   "db_collection": "DB.referralConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "boolean",
+     "meaning": null
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13855,
+   "end_line": 13855
+  },
+  {
+   "name": "ReferralLogEntry",
+   "db_collection": "DB.referralLog",
+   "id_prefix": "REF-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'REF-'+Date.now() at runtime"
+    },
+    {
+     "name": "referrerId",
+     "type": "string",
+     "meaning": "Rider credited the referrer bonus; uncapped in how many referees they may bring"
+    },
+    {
+     "name": "refereeId",
+     "type": "string",
+     "meaning": "Rider credited the welcome bonus; capped at one referral for life by guard 4"
+    },
+    {
+     "name": "referrerBonus",
+     "type": "number",
+     "meaning": "Snapshot of the config value at processing time — never repriced"
+    },
+    {
+     "name": "refereeBonus",
+     "type": "number",
+     "meaning": "Snapshot of the config value at processing time"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "From fmtReqNowLabel() on the demo clock"
+    }
+   ],
+   "seed_count": 1,
+   "defined_line": 13888,
+   "end_line": 13890
+  },
+  {
+   "name": "Refund",
+   "db_collection": "DB.refunds",
+   "id_prefix": "REF-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'REF-'+String(DB.refunds.length+1).padStart(4,'0') — length-based"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "Hard-coded '25 Jun' (frozen demo clock)"
+    },
+    {
+     "name": "riderId",
+     "type": "string",
+     "meaning": "Rider refunded; falls back to {name:riderId} when unknown"
+    },
+    {
+     "name": "riderName",
+     "type": "string",
+     "meaning": "Display name at the time of the refund"
+    },
+    {
+     "name": "amount",
+     "type": "number",
+     "meaning": "VAT-inclusive gross SAR"
+    },
+    {
+     "name": "reason",
+     "type": "string",
+     "meaning": "Free text from the caller"
+    },
+    {
+     "name": "source",
+     "type": "string",
+     "meaning": "Caller-supplied bucket, e.g. 'Subscription cancellation'"
+    },
+    {
+     "name": "relatedId",
+     "type": "string",
+     "meaning": "Originating subscription or trip id; also part of the idempotency key"
+    },
+    {
+     "name": "processedBy",
+     "type": "string",
+     "meaning": "Actor name, or CURRENT_USER_ID when not found"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Hard-coded 'Processed' — the only value the field ever takes"
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 2881,
+   "end_line": 2884
+  },
+  {
+   "name": "RideRequest",
+   "db_collection": "DB.rideRequests",
+   "id_prefix": "REQ-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "request id, also the data-req attribute on the live-updating waiting span"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "rider id, resolved through nm2() and openProfile()"
+    },
+    {
+     "name": "pickup",
+     "type": "string",
+     "meaning": "pickup location text"
+    },
+    {
+     "name": "dest",
+     "type": "string",
+     "meaning": "destination text"
+    },
+    {
+     "name": "type",
+     "type": "string",
+     "meaning": "Economy | Comfort — never rendered on intervention rows"
+    },
+    {
+     "name": "waiting",
+     "type": "string",
+     "meaning": "'M:SS' elapsed wait, patched in place every tick without re-rendering the row"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "searching | no_drivers; assigned requests are spliced out of the array"
+    },
+    {
+     "name": "requestedAt",
+     "type": "string",
+     "meaning": "display timestamp — never rendered on intervention rows"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 2786,
+   "end_line": 2790
+  },
+  {
+   "name": "Rider",
+   "db_collection": "DB.riders",
+   "id_prefix": "RDR-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "RDR-#### key, also the object key in the DB.riders map"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Display name shown in the wallets table and resolved via nm2()"
+    },
+    {
+     "name": "phone",
+     "type": "string",
+     "meaning": "contact number shown in the meta line"
+    },
+    {
+     "name": "rating",
+     "type": "number",
+     "meaning": "star rating; 0 renders as a gold 'new' pill"
+    },
+    {
+     "name": "lvl",
+     "type": "string",
+     "meaning": "loyalty level gold / silver / standard / new, mapped by lvlBadge"
+    },
+    {
+     "name": "joined",
+     "type": "string",
+     "meaning": "join month label shown in the meta line"
+    },
+    {
+     "name": "hasPhoto",
+     "type": "boolean",
+     "meaning": "selects a gradient avatar over initials"
+    },
+    {
+     "name": "gender",
+     "type": "string",
+     "meaning": "Personal information card row"
+    },
+    {
+     "name": "driverGenderPref",
+     "type": "string",
+     "meaning": "stored on the record but rendered by no card"
+    },
+    {
+     "name": "wallet",
+     "type": "object",
+     "meaning": "Absent until credited, debited or seeded; its presence is the row filter for the rider-wallets page, and getRiderWallet materialises it on a plain read"
+    },
+    {
+     "name": "address",
+     "type": "string",
+     "meaning": "registered address, labelled self-reported at signup"
+    },
+    {
+     "name": "city",
+     "type": "string",
+     "meaning": "Personal information card row"
+    },
+    {
+     "name": "device",
+     "type": "string",
+     "meaning": "Device and access card row"
+    },
+    {
+     "name": "appLang",
+     "type": "string",
+     "meaning": "app language"
+    },
+    {
+     "name": "lastIp",
+     "type": "string",
+     "meaning": "last known IP, shown with ipLocation"
+    },
+    {
+     "name": "mapPos",
+     "type": "object",
+     "meaning": "{x,y} live-map coordinates"
+    },
+    {
+     "name": "ipLocation",
+     "type": "string",
+     "meaning": "geo label appended to lastIp"
+    },
+    {
+     "name": "movementLog",
+     "type": "array",
+     "meaning": "location-history timeline entries of date, action and location"
+    },
+    {
+     "name": "subs",
+     "type": "array",
+     "meaning": "subscription ids resolved through DB.subscriptions"
+    },
+    {
+     "name": "trips",
+     "type": "array",
+     "meaning": "trip ids resolved through DB.trips"
+    },
+    {
+     "name": "payments",
+     "type": "array",
+     "meaning": "payment ids resolved through DB.payments"
+    },
+    {
+     "name": "complaints",
+     "type": "array",
+     "meaning": "complaint ids resolved through DB.complaints"
+    },
+    {
+     "name": "stats",
+     "type": "object",
+     "meaning": "billing aggregate: totalTrips, quickRides, totalPaid, renewalRate - the source of the reconciliation divergence"
+    }
+   ],
+   "seed_count": 10,
+   "defined_line": 2593,
+   "end_line": 2630
+  },
+  {
+   "name": "RideStateLogEntry",
+   "db_collection": "DB.rideStateLogs",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16337,
+   "end_line": 16337
+  },
+  {
+   "name": "ScriptProgress",
+   "db_collection": "DB.scriptProgress",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 19410,
+   "end_line": 19410
+  },
+  {
+   "name": "SearchPhase",
+   "db_collection": "DB.searchPhases",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'phase_1'..'phase_3' in the seed; new ones are 'phase_'+Date.now()"
+    },
+    {
+     "name": "afterSec",
+     "type": "number",
+     "meaning": "Elapsed search seconds at which this multiplier takes over (last match wins over the ascending-sorted list)"
+    },
+    {
+     "name": "multiplier",
+     "type": "number",
+     "meaning": "Factor applied to quickRideRadiusKm at this phase; subscriptions never use it"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13925,
+   "end_line": 13929
+  },
+  {
+   "name": "SlaPolicy",
+   "db_collection": "DB.slaPolicy",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "T1",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "T2",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "T3",
+     "type": "object",
+     "meaning": null
+    },
+    {
+     "name": "T4",
+     "type": "object",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 14650,
+   "end_line": 14660
+  },
+  {
+   "name": "SteerOffer",
+   "db_collection": "DB.steerOffers",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 13960,
+   "end_line": 13960
+  },
+  {
+   "name": "SubscriptionBackup",
+   "db_collection": "DB.subBackups",
+   "id_prefix": "SUB-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 13140,
+   "end_line": 13140
+  },
+  {
+   "name": "SubscriptionRequest",
+   "db_collection": "DB.subscriptionRequests",
+   "id_prefix": "SREQ-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "SREQ-nnn request id"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "RDR-nnnn requesting rider"
+    },
+    {
+     "name": "plan",
+     "type": "string",
+     "meaning": "weekly | biweekly | monthly cadence key into PLANS"
+    },
+    {
+     "name": "vehicle",
+     "type": "string",
+     "meaning": "Economy | Comfort — selects the eco or comfort price"
+    },
+    {
+     "name": "pickup",
+     "type": "string",
+     "meaning": "pickup district"
+    },
+    {
+     "name": "dest",
+     "type": "string",
+     "meaning": "destination landmark"
+    },
+    {
+     "name": "preferredTime",
+     "type": "string",
+     "meaning": "12-hour preferred departure time"
+    },
+    {
+     "name": "requestedAt",
+     "type": "string",
+     "meaning": "'DD Mon HH:MM'; drives the 2-hour search window and is overwritten by reopenSubReq"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "pending | assigned | expired | declined"
+    },
+    {
+     "name": "notes",
+     "type": "string",
+     "meaning": "rider's stated preference — seeded but rendered nowhere"
+    }
+   ],
+   "seed_count": 5,
+   "defined_line": 2794,
+   "end_line": 2800
+  },
+  {
+   "name": "Subscription",
+   "db_collection": "DB.subscriptions",
+   "id_prefix": "SUB-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "record key, SUB-nnnn"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "rider id"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "committed captain id"
+    },
+    {
+     "name": "plan",
+     "type": "string",
+     "meaning": "plan name; the last word drives the vehicle badge and the comfort eligibility test"
+    },
+    {
+     "name": "started",
+     "type": "string",
+     "meaning": "period start label"
+    },
+    {
+     "name": "ends",
+     "type": "string",
+     "meaning": "period end label"
+    },
+    {
+     "name": "trips",
+     "type": "string",
+     "meaning": "progress string such as 5/5, split into done and total for exposure and reserve maths"
+    },
+    {
+     "name": "paid",
+     "type": "string",
+     "meaning": "amount paid; parsed to a number for the 80 percent driver share"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Active, Expiring or Cancelled - the /active|expiring/i filter drives every commitment list"
+    }
+   ],
+   "seed_count": 7,
+   "defined_line": 2685,
+   "end_line": 2693
+  },
+  {
+   "name": "SurgeConfig",
+   "db_collection": "DB.surgeConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "boolean",
+     "meaning": null
+    }
+   ],
+   "seed_count": 2,
+   "defined_line": 13861,
+   "end_line": 13861
+  },
+  {
+   "name": "SurgeWindow",
+   "db_collection": "DB.surgeSchedule",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "Row identity; runtime-added windows get surge_<Date.now()>"
+    },
+    {
+     "name": "label",
+     "type": "string",
+     "meaning": "Window name shown in the table"
+    },
+    {
+     "name": "startHour",
+     "type": "number",
+     "meaning": "Inclusive start hour of the window"
+    },
+    {
+     "name": "endHour",
+     "type": "number",
+     "meaning": "Exclusive end hour; never validated against startHour"
+    },
+    {
+     "name": "days",
+     "type": "array",
+     "meaning": "Weekday names from WEEKDAYS; read-only in the UI, new windows always get all 7"
+    },
+    {
+     "name": "multiplier",
+     "type": "number",
+     "meaning": "Fare multiplier; overlapping windows take the maximum, not the product"
+    },
+    {
+     "name": "enabled",
+     "type": "boolean",
+     "meaning": "Disabled windows are skipped by currentSurgeMultiplier()"
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 13883,
+   "end_line": 13887
+  },
+  {
+   "name": "SurgeSuspension",
+   "db_collection": "DB.surgeSuspensions",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 21464,
+   "end_line": 21464
+  },
+  {
+   "name": "TeamUser",
+   "db_collection": "DB.teamUsers",
+   "id_prefix": "USR-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "USR-n identifier"
+    },
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "Display name; the 2FA chip is appended after it in the Team table"
+    },
+    {
+     "name": "email",
+     "type": "string",
+     "meaning": "Column 2; uniqueness enforced case-insensitively on invite and edit"
+    },
+    {
+     "name": "phone",
+     "type": "string",
+     "meaning": "Seeded on all 5 users, never rendered or edited in this pane; absent on invited users"
+    },
+    {
+     "name": "photo",
+     "type": "null",
+     "meaning": "null on all seeds, never read by renderTeamTable; absent on invited users"
+    },
+    {
+     "name": "role",
+     "type": "string",
+     "meaning": "Owner / Finance / Support / Ops Manager"
+    },
+    {
+     "name": "lastLogin",
+     "type": "string",
+     "meaning": "Column 4, rendered raw; never updated by any code path"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Active | Invited"
+    },
+    {
+     "name": "twoFA",
+     "type": "boolean",
+     "meaning": "Whether this operator has 2FA enrolled. true for USR-1 and USR-5, false for USR-2/3/4; absent entirely on users created by commitInvite. Only setter is toggleMa2FA (own account only)."
+    },
+    {
+     "name": "permissions",
+     "type": "array",
+     "meaning": "Granted permission keys; unaffected by twoFA or require2FA"
+    }
+   ],
+   "seed_count": 5,
+   "defined_line": 2830,
+   "end_line": 2841
+  },
+  {
+   "name": "TelephonyConfig",
+   "db_collection": "DB.telephony",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "number",
+     "meaning": null
+    }
+   ],
+   "seed_count": 3,
+   "defined_line": 20174,
+   "end_line": 20174
+  },
+  {
+   "name": "TermsAcceptance",
+   "db_collection": "DB.termsAcceptances",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [],
+   "seed_count": 0,
+   "defined_line": 16566,
+   "end_line": 16566
+  },
+  {
+   "name": "Ticket",
+   "db_collection": "DB.tickets",
+   "id_prefix": "TKT-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "'TKT-'+(505+DB.tickets.length) — length-based, not collision-safe"
+    },
+    {
+     "name": "entity",
+     "type": "string",
+     "meaning": "Rider or driver id the ticket is filed for, or '—'"
+    },
+    {
+     "name": "entityName",
+     "type": "string",
+     "meaning": "resolveId(eid).data.name, else the raw id, else 'Unknown'"
+    },
+    {
+     "name": "subject",
+     "type": "string",
+     "meaning": "Free text, rendered as raw HTML"
+    },
+    {
+     "name": "category",
+     "type": "string",
+     "meaning": "rcCategory(reasonCode) — one of 11 values; re-derived on re-code"
+    },
+    {
+     "name": "priority",
+     "type": "string",
+     "meaning": "rcPriority(reasonCode): T1 Critical / T2 High / T3 Medium / T4 Low; Critical coerced to High on re-code"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "Open | In progress | Waiting on customer (no setter) | Resolved | Closed"
+    },
+    {
+     "name": "created",
+     "type": "string",
+     "meaning": "Display string ('25 Jun · 08:10', 'Just now') — not machine-readable"
+    },
+    {
+     "name": "agent",
+     "type": "string",
+     "meaning": "Assigned agent shown in the UI; hardcoded 'Sarah Al-Rashid' on creation"
+    },
+    {
+     "name": "thread",
+     "type": "array",
+     "meaning": "Conversation, chronological"
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 2763,
+   "end_line": 2772
+  },
+  {
+   "name": "Trip",
+   "db_collection": "DB.trips",
+   "id_prefix": "TRP-",
+   "container": "object",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "record key, TRP-nnnn"
+    },
+    {
+     "name": "kind",
+     "type": "string",
+     "meaning": "Quick ride or Subscription - drives the header glyph and the badge colour"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "rider id"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "driver id"
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "meaning": "subscription id; the source notes some records carry a sub id belonging to a different rider"
+    },
+    {
+     "name": "date",
+     "type": "string",
+     "meaning": "display label such as 25 Jun 07:00"
+    },
+    {
+     "name": "route",
+     "type": "string",
+     "meaning": "route description"
+    },
+    {
+     "name": "km",
+     "type": "string",
+     "meaning": "distance"
+    },
+    {
+     "name": "min",
+     "type": "string",
+     "meaning": "duration in minutes - the engaged-time input to captain economics"
+    },
+    {
+     "name": "fare",
+     "type": "string",
+     "meaning": "rider-facing fare"
+    },
+    {
+     "name": "driverEarn",
+     "type": "string",
+     "meaning": "captain share - the earnings input to captain economics"
+    },
+    {
+     "name": "status",
+     "type": "string",
+     "meaning": "In trip, Done, Late +n, Cancelled - matched by statusBadge and by departureRisk"
+    },
+    {
+     "name": "pay",
+     "type": "string",
+     "meaning": "linked payment id"
+    }
+   ],
+   "seed_count": 8,
+   "defined_line": 2670,
+   "end_line": 2684
+  },
+  {
+   "name": "UpcomingSubTrip",
+   "db_collection": "DB.upcomingSubTrips",
+   "id_prefix": "UST-",
+   "container": "array",
+   "fields": [
+    {
+     "name": "id",
+     "type": "string",
+     "meaning": "trip id, doubling as the context id for showNearbyDriversMap"
+    },
+    {
+     "name": "sub",
+     "type": "string",
+     "meaning": "SUB-nnnn parent subscription"
+    },
+    {
+     "name": "rider",
+     "type": "string",
+     "meaning": "rider id"
+    },
+    {
+     "name": "driver",
+     "type": "string",
+     "meaning": "assigned driver id; missing or unknown yields the 'unassigned' scenario"
+    },
+    {
+     "name": "scheduledTime",
+     "type": "string",
+     "meaning": "12-hour display label, e.g. '09:32 AM' or 'Tomorrow 06:30 AM'"
+    },
+    {
+     "name": "minutesUntil",
+     "type": "number",
+     "meaning": "minutes to pickup; decremented by 1 every 60 ticks and floored at 0"
+    },
+    {
+     "name": "riderConfirmed",
+     "type": "boolean",
+     "meaning": "drives the unconfirmed and watch_confirm scenarios, neither of which this page renders"
+    },
+    {
+     "name": "confirmedAt",
+     "type": "string",
+     "meaning": "confirmation time label, set to 'Just now' by logCallOutcome"
+    },
+    {
+     "name": "driverStatus",
+     "type": "string",
+     "meaning": "moving | not_started | unavailable"
+    },
+    {
+     "name": "route",
+     "type": "string",
+     "meaning": "route text on the row sub-line"
+    },
+    {
+     "name": "notes",
+     "type": "string",
+     "meaning": "operator-facing context line shown in italics"
+    }
+   ],
+   "seed_count": 8,
+   "defined_line": 6177,
+   "end_line": 6241
+  },
+  {
+   "name": "VatConfig",
+   "db_collection": "DB.vatConfig",
+   "id_prefix": null,
+   "container": "object",
+   "fields": [
+    {
+     "name": "(scalar element)",
+     "type": "string",
+     "meaning": null
+    }
+   ],
+   "seed_count": 4,
+   "defined_line": 13971,
+   "end_line": 13971
+  },
+  {
+   "name": "Zone",
+   "db_collection": "DB.zones",
+   "id_prefix": null,
+   "container": "array",
+   "fields": [
+    {
+     "name": "name",
+     "type": "string",
+     "meaning": "zone name"
+    },
+    {
+     "name": "demand",
+     "type": "number",
+     "meaning": "demand count; numerator of the demand/supply ratio and denominator of zoneFailRate"
+    },
+    {
+     "name": "supply",
+     "type": "number",
+     "meaning": "drivers currently serving the zone"
+    },
+    {
+     "name": "failures30d",
+     "type": "number",
+     "meaning": "failures in the last 30 days; zoneFailRate = round(failures30d/demand*100)"
+    }
+   ],
+   "seed_count": 6,
+   "defined_line": 13952,
+   "end_line": 13959
+  }
+ ],
+ "relationships": [
+  {
+   "from": "AbsenceEvent",
+   "to": "EmergencyClaim",
+   "via_field": "absenceEvent.emergencyId and claim.absenceId",
+   "cardinality": "1:1",
+   "notes": "an upheld claim sets waived on the event and lifts the freeze or termination"
+  },
+  {
+   "from": "AbsenceEvent",
+   "to": "EmergencyDispatch",
+   "via_field": "dispatch.absenceId",
+   "cardinality": "1:1",
+   "notes": "the link that lets acceptEmergency book the forfeiture as a recovery against the cover cost"
+  },
+  {
+   "from": "ActionLabel",
+   "to": "AuditEntry",
+   "via_field": "action",
+   "cardinality": "1:N",
+   "notes": "Only 26 of 161 distinct action keys resolve, so 84% of entries are unreachable from the Activity Log action-type filter."
+  },
+  {
+   "from": "AuditEntry",
+   "to": "Rider",
+   "via_field": "entityId",
+   "cardinality": "1:N",
+   "notes": "A loose, untyped link: resolveId tries six DB buckets by key and then falls back to a rider/driver NAME substring search, so short ids resolve non-deterministically."
+  },
+  {
+   "from": "AuditEntry",
+   "to": "SettingsSection",
+   "via_field": "entityType='settings' + entityId",
+   "cardinality": "1:N",
+   "notes": "settingsLastUpdated finds the newest settings entry for a section id to fill the 11 mapped #meta-* strips; #meta-reasons has no map entry, and the reasons tab logs entityIds that are not in the map."
+  },
+  {
+   "from": "CallSession",
+   "to": "Contact",
+   "via_field": "none stored",
+   "cardinality": "1:1",
+   "notes": "commitWrapUp creates one contact per wrapped session but stores no foreign key in either direction; the link is made positionally through DB.contacts[0]."
+  },
+  {
+   "from": "CancellationRule",
+   "to": "Subscription",
+   "via_field": "getCancellationRule('sub_mid_cycle').feePct applied to the gross refund in cancelSub",
+   "cardinality": "1:N",
+   "notes": "The fee is withheld from the refund rather than charged, so it produces no ledger entry of its own."
+  },
+  {
+   "from": "CancellationRule",
+   "to": "Trip",
+   "via_field": "cancellation reason -> ruleId (rider_request -> qr_after_grace, rider_noshow -> qr_rider_noshow)",
+   "cardinality": "1:N",
+   "notes": "Only two of the six quick-ride rules are reachable; ops_decision maps to no rule and charges nothing, and qr_after_arrival is unreachable."
+  },
+  {
+   "from": "Case",
+   "to": "OwnershipClaim",
+   "via_field": "children[] {type,id}",
+   "cardinality": "1:N",
+   "notes": "closeCase marks every child claim done; the case chip renders only when there is more than one child."
+  },
+  {
+   "from": "City",
+   "to": "Rider",
+   "via_field": "rider.city (string match against DB.cities[].name)",
+   "cardinality": "1:N",
+   "notes": "isCityActive(r.city) gates nearestAvailableDrivers; an unknown city name defaults to not-live so such a rider can never be matched. cityStats() ignores this field and hardcodes 'Riyadh' instead."
+  },
+  {
+   "from": "City",
+   "to": "Zone",
+   "via_field": "hardcoded 'Riyadh' in cityStats() and renderExecOverview",
+   "cardinality": "1:N",
+   "notes": "There is no per-city zone field — every zone is assumed to belong to the seed city."
+  },
+  {
+   "from": "City",
+   "to": "Zone",
+   "via_field": "(none)",
+   "cardinality": "1:N",
+   "notes": "Conceptual only — DB.zones has no city foreign key. The panel links to the Zones page but nothing joins the two collections; an in-code comment concedes all seeded zones are inside Riyadh."
+  },
+  {
+   "from": "CompPolicyRole",
+   "to": "GoodwillEntry",
+   "via_field": "agentId -> DB.teamUsers.role",
+   "cardinality": "1:N",
+   "notes": "The issuing agent's role selects the perCaseSAR/dailySAR limits; an unmatched role falls through to the 'default' key, which is what happens to 'Ops Manager'."
+  },
+  {
+   "from": "CorporateAccount",
+   "to": "CorpApprovalDecision",
+   "via_field": "CorpApprovalDecision.corpId",
+   "cardinality": "1:N",
+   "notes": "Newest first - entries are always unshifted. Written from four sites: approveCorpSubscription, rejectCorpSubscription, approveSubReqCorp and rejectSubReqCorp."
+  },
+  {
+   "from": "CorporateAccount",
+   "to": "Rider",
+   "via_field": "CorporateAccount.riders[]",
+   "cardinality": "1:N",
+   "notes": "The authoritative link. DB.riders[rid].corpAccountId is written alongside it but appears write-only; findCorpForRider scans the riders arrays instead."
+  },
+  {
+   "from": "CorporateAccount",
+   "to": "Rider",
+   "via_field": "employee rider ids",
+   "cardinality": "1:N",
+   "notes": "corpTotalSpend() sums riderLTV() over the linked riders and corpPolicyViolations() compares riderLTV/riderTenureMonths against the monthly cap"
+  },
+  {
+   "from": "CorporateAccount",
+   "to": "Subscription",
+   "via_field": "Subscription.approvalCorp",
+   "cardinality": "1:N",
+   "notes": "Set by finalizeNewSub when the package price exceeds the company's requireApprovalAboveSAR; the corp detail page counts these as Pending approvals."
+  },
+  {
+   "from": "DataWindow",
+   "to": "EntityReconciliation",
+   "via_field": "months -> windowStartMs() -> windowSplit(id)",
+   "cardinality": "1:N",
+   "notes": "One window setting reclassifies orphan vs expectedGap for every rider and driver, on this tab and on every entity profile banner."
+  },
+  {
+   "from": "DataWindow",
+   "to": "Trip",
+   "via_field": "months -> windowStartMs()/windowSplit()",
+   "cardinality": "1:N",
+   "notes": "Governs how much trip history is held per customer; fetchFullHistory pulls older records back for one customer for the session."
+  },
+  {
+   "from": "Deduction",
+   "to": "Payout",
+   "via_field": "driver",
+   "cardinality": "N:1",
+   "notes": "confirmApplyDeduction subtracts the amount from pending with a Math.max(0,...) clamp and overwrites the single deductionNote slot"
+  },
+  {
+   "from": "DispatchConfig",
+   "to": "SearchPhase",
+   "via_field": "quickRideRadiusKm multiplied by SearchPhase.multiplier via currentRadiusMultiplier(elapsedSec)",
+   "cardinality": "1:N",
+   "notes": "Ladder applies to quick rides only; kind==='sub' bypasses it (L8175). VIP requests pass elapsedSec 999 to jump straight to the highest multiplier."
+  },
+  {
+   "from": "Dispute",
+   "to": "ArrivalTrace",
+   "via_field": "d.trip || d.sub",
+   "cardinality": "1:1",
+   "notes": "Works only because seedArrivalTraces seeds traces under the two subscription ids"
+  },
+  {
+   "from": "Dispute",
+   "to": "Driver",
+   "via_field": "against",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; no code path ever penalises this party"
+  },
+  {
+   "from": "Dispute",
+   "to": "Rider",
+   "via_field": "claimant",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; the party the confirmation gate says will be credited, though no credit is ever issued"
+  },
+  {
+   "from": "Dispute",
+   "to": "Subscription",
+   "via_field": "sub",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; supplies perTrip via subEconomics, which is the whole financial basis of the outcome"
+  },
+  {
+   "from": "Driver",
+   "to": "AbsenceEvent",
+   "via_field": "absenceEvent.driverId",
+   "cardinality": "1:N",
+   "notes": "absenceCount and regulatorCount both filter on this field but disagree about decayed events"
+  },
+  {
+   "from": "Driver",
+   "to": "BackupRegistry",
+   "via_field": "DB.backupRegistry[subId] holds a driver id",
+   "cardinality": "1:N",
+   "notes": "an alias of DB.subBackups shared with the Coverage module; registered does not imply eligible"
+  },
+  {
+   "from": "Driver",
+   "to": "CashLedgerEntry",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "driverCashRiskCount counts this driver's under_report and no_report entries with a pattern threshold of 2"
+  },
+  {
+   "from": "Driver",
+   "to": "Complaint",
+   "via_field": "complaints[] / DB.complaints[*].against",
+   "cardinality": "1:N",
+   "notes": "driverOpenComplaints(id) counts DB.complaints where against===id and status==='Open', driving the Under review badge"
+  },
+  {
+   "from": "Driver",
+   "to": "Complaint",
+   "via_field": "complaint.against",
+   "cardinality": "1:N",
+   "notes": "drives hasOpenComplaint, which sets the subscription health badge to At risk"
+  },
+  {
+   "from": "Driver",
+   "to": "ComplianceSuspension",
+   "via_field": "driverId key",
+   "cardinality": "1:1",
+   "notes": "Populated by complianceScan(); costs -30 on the driver score and -30 on any subscription they serve."
+  },
+  {
+   "from": "Driver",
+   "to": "ComplianceSuspension",
+   "via_field": "DB.complianceSuspensions[driverId]",
+   "cardinality": "1:1",
+   "notes": "At most one suspension reason per driver; presence costs 30 health points."
+  },
+  {
+   "from": "Driver",
+   "to": "ComplianceSuspension",
+   "via_field": "driver id used as the DB.complianceSuspensions key",
+   "cardinality": "1:1",
+   "notes": "Single-slot: the reason string is never upgraded, so an expiry cannot be recorded on a driver already suspended for an incident."
+  },
+  {
+   "from": "Driver",
+   "to": "Deduction",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "Applied lateness deductions raise the dashboard's only critical alert type."
+  },
+  {
+   "from": "Driver",
+   "to": "Deduction",
+   "via_field": "DB.deductions[*].driver",
+   "cardinality": "1:N",
+   "notes": "Pending deductions subtracted in the Earnings breakdown"
+  },
+  {
+   "from": "Driver",
+   "to": "Dispute",
+   "via_field": "against",
+   "cardinality": "1:N",
+   "notes": "Open disputes cost -25 on the subscription score and -15 each on the driver score."
+  },
+  {
+   "from": "Driver",
+   "to": "DriverBonus",
+   "via_field": "DB.driverBonusLog[*].driverId",
+   "cardinality": "1:N",
+   "notes": "Read by the Earnings breakdown; nothing on the Drivers page ever writes it, so the row always reads +0.00 SAR"
+  },
+  {
+   "from": "Driver",
+   "to": "DriverBonus",
+   "via_field": "driverId",
+   "cardinality": "1:N",
+   "notes": "Surfaces on the driver 360 profile as '🏆 Incentive bonuses earned' and feeds Finance contribution margin."
+  },
+  {
+   "from": "Driver",
+   "to": "DriverCashDebt",
+   "via_field": "object key",
+   "cardinality": "1:1",
+   "notes": "one negative running balance per driver, feeding driverCashBlocked, the debt-ledger table and a -30 driver risk-score penalty"
+  },
+  {
+   "from": "Driver",
+   "to": "DriverDocument",
+   "via_field": "driverId key of DB.driverDocs",
+   "cardinality": "1:N",
+   "notes": "Five DOC_TYPES per driver; the worst days-left drives the -40 / -20 deduction."
+  },
+  {
+   "from": "Driver",
+   "to": "DriverDocumentExpiry",
+   "via_field": "DB.driverDocs[driverId]",
+   "cardinality": "1:1",
+   "notes": "Keyed by driver id; created at approval for all five DOC_TYPES. DRV-0106 has no entry and is invisible to complianceScan()"
+  },
+  {
+   "from": "Driver",
+   "to": "DriverDocuments",
+   "via_field": "driver id used as the DB.driverDocs key",
+   "cardinality": "1:1",
+   "notes": "Seeded for DRV-0101..0105 and created for every newly approved applicant; a driver absent from DB.driverDocs never appears on the Compliance table."
+  },
+  {
+   "from": "Driver",
+   "to": "EmergencyClaim",
+   "via_field": "claim.driverId",
+   "cardinality": "1:N",
+   "notes": "denormalised from the absence event at filing time"
+  },
+  {
+   "from": "Driver",
+   "to": "EscrowHold",
+   "via_field": "DB.escrowHolds[*].driver",
+   "cardinality": "1:N",
+   "notes": "Summed into the profile's Earnings breakdown for held and ready amounts"
+  },
+  {
+   "from": "Driver",
+   "to": "EscrowHold",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "DRV-0101 holds two of the four seeded holds"
+  },
+  {
+   "from": "Driver",
+   "to": "FairnessCase",
+   "via_field": "fairnessCase.driverId",
+   "cardinality": "1:N",
+   "notes": "every case belongs to a captain; the suspended list de-duplicates open suspension appeals only in the UI"
+  },
+  {
+   "from": "Driver",
+   "to": "Incident",
+   "via_field": "against",
+   "cardinality": "1:N",
+   "notes": "Same weighting as disputes; the repeat-incident tally combines both and ignores status."
+  },
+  {
+   "from": "Driver",
+   "to": "LiveTrip",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "Mutated in place by commitLiveReassign without updating the matching DB.trips record."
+  },
+  {
+   "from": "Driver",
+   "to": "Payment",
+   "via_field": "payments[]",
+   "cardinality": "1:N",
+   "notes": "Array of PAY- ids rendered by payTable()"
+  },
+  {
+   "from": "Driver",
+   "to": "Payment",
+   "via_field": "payment.entity",
+   "cardinality": "1:N",
+   "notes": "same derivation path applies to drivers"
+  },
+  {
+   "from": "Driver",
+   "to": "Payout",
+   "via_field": "object key",
+   "cardinality": "1:1",
+   "notes": "DB.payouts is keyed by driver id; ensurePayoutEntry lazily creates a zeroed record when an escrow release or deduction touches a driver with none"
+  },
+  {
+   "from": "Driver",
+   "to": "RideRequest",
+   "via_field": "RideRequest.offeredTo",
+   "cardinality": "1:N",
+   "notes": "Transient - deleted on decline or timeout, with the driver id pushed into declinedBy so nextOfferCandidate skips them."
+  },
+  {
+   "from": "Driver",
+   "to": "RideRequest",
+   "via_field": "RideRequest.offeredTo / RideRequest.declinedBy",
+   "cardinality": "1:N",
+   "notes": "A driver weighs one offer at a time — nextOfferCandidate excludes drivers already holding an offer elsewhere and those who declined this request."
+  },
+  {
+   "from": "Driver",
+   "to": "Subscription",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "Primary captain. driverRiskScore counts primaryLoad as the number of active subscriptions with this driver."
+  },
+  {
+   "from": "Driver",
+   "to": "Subscription",
+   "via_field": "Subscription.driver",
+   "cardinality": "1:N",
+   "notes": "The same-captain promise. commitDriverChange rewrites this field and increments driverChanges as a record of how many times the promise was broken."
+  },
+  {
+   "from": "Driver",
+   "to": "Subscription",
+   "via_field": "DB.subscriptions[*].driver",
+   "cardinality": "1:N",
+   "notes": "driverActiveSubCount() counts them; capped in principle by driver_max_active_subs, which is not enforced"
+  },
+  {
+   "from": "Driver",
+   "to": "Subscription",
+   "via_field": "DB.subscriptions[].driver counted by driverActiveSubCount where status==='Active'",
+   "cardinality": "1:N",
+   "notes": "The count gates driverCanTakeAnotherSub when allowMultiSubPerDriver is false and the driver has no multiSubException."
+  },
+  {
+   "from": "Driver",
+   "to": "SubscriptionBackup",
+   "via_field": "value of DB.subBackups",
+   "cardinality": "1:N",
+   "notes": "backupLoad = number of subscriptions for which this driver is the backup."
+  },
+  {
+   "from": "Driver",
+   "to": "SubscriptionBackup",
+   "via_field": "driver id stored as the DB.subBackups value",
+   "cardinality": "1:N",
+   "notes": "One captain can back unlimited subscriptions — the modal displays the load but nothing caps it."
+  },
+  {
+   "from": "Driver",
+   "to": "TermsAcceptance",
+   "via_field": "termsAcceptance.driverId",
+   "cardinality": "1:N",
+   "notes": "written only by acceptPlanTerms, which nothing calls"
+  },
+  {
+   "from": "Driver",
+   "to": "Trip",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "Mirrored as DB.drivers[id].trips; the fraud pairing signal tallies riders across this array."
+  },
+  {
+   "from": "Driver",
+   "to": "Trip",
+   "via_field": "Trip.driver",
+   "cardinality": "1:N",
+   "notes": "Drives the driver 360 trip history via tripsTable."
+  },
+  {
+   "from": "Driver",
+   "to": "Trip",
+   "via_field": "trips[]",
+   "cardinality": "1:N",
+   "notes": "Array of TRP- ids rendered by tripsTable() on the 360° profile; trips also carry t.driver in the reverse direction"
+  },
+  {
+   "from": "Driver",
+   "to": "UpcomingSubTrip",
+   "via_field": "driver",
+   "cardinality": "1:N",
+   "notes": "A missing or unknown driver id produces the alwaysCritical 'unassigned' scenario."
+  },
+  {
+   "from": "Driver",
+   "to": "UpcomingSubTrip",
+   "via_field": "UpcomingSubTrip.driver",
+   "cardinality": "1:N",
+   "notes": "Rewritten by confirmReassign, sendRiderChangeNotif, assignNearestDriver and commitDriverChange — only the first is permission-gated."
+  },
+  {
+   "from": "DriverApplicant",
+   "to": "Driver",
+   "via_field": "approvedAs",
+   "cardinality": "1:1",
+   "notes": "Set by approveDriver(); openApplicantDetail resolves it back through DB.drivers[a.approvedAs] to render the approved view"
+  },
+  {
+   "from": "EntityReconciliation",
+   "to": "Driver",
+   "via_field": "reconcileEntity(id) over Object.keys(DB.drivers)",
+   "cardinality": "1:1",
+   "notes": "Same two checks, rendered with kind 'captain'. Drivers are counted by the scan card but not by the window card."
+  },
+  {
+   "from": "EntityReconciliation",
+   "to": "Rider",
+   "via_field": "reconcileEntity(id) over Object.keys(DB.riders)",
+   "cardinality": "1:1",
+   "notes": "Compares rider.stats.totalTrips / totalPaid against entityDerived(id); a divergent row links to openProfile(id)."
+  },
+  {
+   "from": "EscrowHold",
+   "to": "Payout",
+   "via_field": "driver",
+   "cardinality": "N:1",
+   "notes": "releaseEscrow deletes the hold and adds its amount to both pending and earned on the driver's payout record"
+  },
+  {
+   "from": "GoodwillEntry",
+   "to": "ReasonCode",
+   "via_field": "reasonCode",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; defaults to OTHER_UNCODED when the picker is left empty"
+  },
+  {
+   "from": "GoodwillEntry",
+   "to": "Rider",
+   "via_field": "riderId",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1 — many goodwill entries per rider; drives the 30-day per-rider pattern check"
+  },
+  {
+   "from": "Handover",
+   "to": "OwnershipClaim",
+   "via_field": "items[].id and DB.ownership[c.key].ownerId",
+   "cardinality": "1:N",
+   "notes": "When transferred is true, commitHandover rewrites ownerId, ownerName and touchedAtMs on every claim the outgoing operator holds, giving each a fresh staleness window."
+  },
+  {
+   "from": "InboundMessage",
+   "to": "EmailOutboxRecord",
+   "via_field": "replyToInbound (subject 'Re: ' + original)",
+   "cardinality": "1:1",
+   "notes": "The reply record is written directly, bypassing sendSystemEmail, and carries toId:null; no field links the two records."
+  },
+  {
+   "from": "Incentive",
+   "to": "DriverBonus",
+   "via_field": "incentiveId",
+   "cardinality": "1:N",
+   "notes": "Drives the per-rule 'Earned (real)' count and 'Total paid' sum."
+  },
+  {
+   "from": "Incident",
+   "to": "ComplianceSuspension",
+   "via_field": "precautionSuspend writes 'Precautionary — pending <INC-id> investigation' keyed by inc.against",
+   "cardinality": "1:1",
+   "notes": "Cross-module write from Safety into Compliance's store; there is no path back and no lift action."
+  },
+  {
+   "from": "Invoice",
+   "to": "CreditNote",
+   "via_field": "againstInvoice",
+   "cardinality": "1:N",
+   "notes": "null when findInvoiceForRefund found nothing, which sets unlinked true; the fallback branch can attach an unrelated invoice and still mark it linked"
+  },
+  {
+   "from": "LedgerEntry",
+   "to": "Account",
+   "via_field": "postings[].account",
+   "cardinality": "N:M",
+   "notes": "An entry references 2-3 accounts; postLedger refuses any posting naming an account absent from ACCOUNTS."
+  },
+  {
+   "from": "LedgerEntry",
+   "to": "IdempotencyRecord",
+   "via_field": "ref / key",
+   "cardinality": "1:1",
+   "notes": "ref is the idempotency key, optionally suffixed |drv, |pay or |recover, so one key can carry two entries."
+  },
+  {
+   "from": "LedgerEntry",
+   "to": "Refund",
+   "via_field": "meta.refundId",
+   "cardinality": "1:1",
+   "notes": "meta also carries riderId and creditNote; the entry is only written if debits equal credits"
+  },
+  {
+   "from": "LedgerEntry",
+   "to": "Refund",
+   "via_field": "meta.refundId / meta.creditNote",
+   "cardinality": "1:1",
+   "notes": "Written by the patched recordRefund; the ledger books net-of-VAT while DB.refunds stores gross."
+  },
+  {
+   "from": "LedgerEntry",
+   "to": "Trip",
+   "via_field": "meta.trip (fare_capture, driver_accrual)",
+   "cardinality": "1:1",
+   "notes": "Stored but never rendered, so a posting cannot be traced to its trip from the UI."
+  },
+  {
+   "from": "LegalDocument",
+   "to": "Consent",
+   "via_field": "docKey / currentVersion",
+   "cardinality": "1:N",
+   "notes": "Consent is stored on the rider/driver entity, not centrally. isConsentCurrent compares consent.version to doc.currentVersion by strict string equality."
+  },
+  {
+   "from": "LegalDocument",
+   "to": "EmailOutboxRecord",
+   "via_field": "sendReconsentReminder -> sendSystemEmail",
+   "cardinality": "1:N",
+   "notes": "One transactional MAIL- record per non-compliant user per reminder press; no de-duplication."
+  },
+  {
+   "from": "LegalDocument",
+   "to": "LegalDocumentVersion",
+   "via_field": "versions",
+   "cardinality": "1:N",
+   "notes": "Array position is the only ordering; new versions are unshifted to index 0, so display order is publish order, not numeric order."
+  },
+  {
+   "from": "LiveTrip",
+   "to": "MapRoute",
+   "via_field": "mapTrip / id",
+   "cardinality": "1:1",
+   "notes": "MAP_ROUTES holds canvas-pixel polylines for 7 trip ids; runtime trips have mapTrip null and no geometry, so they are never drawn."
+  },
+  {
+   "from": "LiveTrip",
+   "to": "Trip",
+   "via_field": "id",
+   "cardinality": "1:1",
+   "notes": "Only for the three seeded trips; runtime trips use random TRP-91xx ids that have no DB.trips counterpart until completeTrip materialises one."
+  },
+  {
+   "from": "LostFoundItem",
+   "to": "Driver",
+   "via_field": "driver",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; the party who confirms the item was found"
+  },
+  {
+   "from": "LostFoundItem",
+   "to": "Rider",
+   "via_field": "rider",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; clickable to the 360 profile"
+  },
+  {
+   "from": "LostFoundItem",
+   "to": "Trip",
+   "via_field": "trip",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; nothing links the record back to a TRP_LOST_ITEM ticket"
+  },
+  {
+   "from": "MassEvent",
+   "to": "Ticket",
+   "via_field": "ticketIds[] / ticket.groupedUnder",
+   "cardinality": "1:N",
+   "notes": "One master ticket keeps its clock; every other member has its SLA paused via pausedSinceMs"
+  },
+  {
+   "from": "MassEvent",
+   "to": "Ticket",
+   "via_field": "ticketIds / t.massEvent",
+   "cardinality": "1:N",
+   "notes": "Bidirectional: the event stores the matched ticket ids and each ticket stores the EVT- id."
+  },
+  {
+   "from": "MoneyReject",
+   "to": "Account",
+   "via_field": "postings[].account",
+   "cardinality": "N:M",
+   "notes": "Refused postings retain their account references but only type and why are displayed."
+  },
+  {
+   "from": "NavRoute",
+   "to": "GateSpec",
+   "via_field": "render function -> onclick handler -> guarded window[name]",
+   "cardinality": "N:M",
+   "notes": "go() hard-references 77 distinct render functions, which emit the onclick handlers that guardAction monkey-patches. Adding a page means editing titles, subs, the page div, the sidebar item and the go() chain - five separate places."
+  },
+  {
+   "from": "NavRoute",
+   "to": "Notification",
+   "via_field": "type",
+   "cardinality": "1:N",
+   "notes": "handleNotifClick maps ticket->support, approval->drivers, renewal->renewal, payout->wallets; any other type is only marked read. An explicit n.action callback overrides the map."
+  },
+  {
+   "from": "NewRiderSignup",
+   "to": "Rider",
+   "via_field": "id",
+   "cardinality": "1:1",
+   "notes": "openNewRiderProfile() promotes the signup into DB.riders under the same id but copies only seven fields and never removes the source entry"
+  },
+  {
+   "from": "Notification",
+   "to": "Entity",
+   "via_field": "(none)",
+   "cardinality": "1:1",
+   "notes": "Notifications carry no entityId field at all; the only link to a record is the optional action closure captured at production time."
+  },
+  {
+   "from": "NotificationConfig",
+   "to": "Trip",
+   "via_field": "lowRatingThreshold compared against the driver rating on trip completion",
+   "cardinality": "1:N",
+   "notes": "Threshold-to-record comparison; drives pushOpsNotification + sendSystemEmail (L12452-L12454) and the All Trips low-rating KPI/badges via lowRatingThreshold()/isLowRating()."
+  },
+  {
+   "from": "OpsConfigGeneral",
+   "to": "AuditEntry",
+   "via_field": "entityId='general', entityType='settings'",
+   "cardinality": "1:N",
+   "notes": "saveGeneralConfig audits under the shared config_updated key, which has 40 call sites and no ACTION_LABELS entry, so a language change cannot be filtered for."
+  },
+  {
+   "from": "OpsLimit",
+   "to": "Driver",
+   "via_field": "getLimit(id) consumed by driverAutoRestricted / driverTrustedForSubs / driverDeclineOrTimeout",
+   "cardinality": "1:N",
+   "notes": "Only the three enforced driver limits reach a driver; the resulting flaggedForDeclines / rating / trip-count checks then exclude the driver in nearestAvailableDrivers and the subscription picker."
+  },
+  {
+   "from": "OwnershipClaim",
+   "to": "TeamUser",
+   "via_field": "ownerId",
+   "cardinality": "1:1",
+   "notes": "Compared against CURRENT_USER_ID (USR-1, role Owner) by heldByMe; the role also drives WORK_ROUTING filtering."
+  },
+  {
+   "from": "PagePermission",
+   "to": "BroadPermission",
+   "via_field": "legacy",
+   "cardinality": "1:1",
+   "notes": "20 of the 22 pages name a single broad key that unlocks all their actions; dashboard and audit-log have legacy null"
+  },
+  {
+   "from": "Payment",
+   "to": "Invoice",
+   "via_field": "paymentId",
+   "cardinality": "1:1",
+   "notes": "DB.invoices is keyed by payment id and never regenerated"
+  },
+  {
+   "from": "Payment",
+   "to": "Subscription",
+   "via_field": "trip",
+   "cardinality": "N:1",
+   "notes": "the trip field carries SUB-*, TRP-* or a dash; findInvoiceForRefund also tests a p.sub field that no record has"
+  },
+  {
+   "from": "PaymentGateway",
+   "to": "Payment",
+   "via_field": "gw.matchPrefix vs payment.method (case-sensitive prefix at index 0)",
+   "cardinality": "1:N",
+   "notes": "The only live linkage on the gateways tab; it is a string-prefix heuristic, not an id, so overlapping names silently reassign transactions between gateways."
+  },
+  {
+   "from": "PaymentHold",
+   "to": "Payment",
+   "via_field": "PaymentHold.paymentId",
+   "cardinality": "1:1",
+   "notes": "capturePaymentHold() is idempotent — a hold that already carries a paymentId returns it instead of creating a second payment."
+  },
+  {
+   "from": "Permission (broad)",
+   "to": "GateSpec",
+   "via_field": "the guarded function's own requirePerm call",
+   "cardinality": "1:N",
+   "notes": "The two layers are independent: a gate can exist with no permission check (recordRefund, impersonate) and a permission check can exist with no gate."
+  },
+  {
+   "from": "Permission (broad)",
+   "to": "PagePermission (granular)",
+   "via_field": "legacy",
+   "cardinality": "1:N",
+   "notes": "20 of the 22 pages name a legacy gate; dashboard and audit-log have legacy null and are therefore fully open to everyone."
+  },
+  {
+   "from": "Plan",
+   "to": "AuditEntry",
+   "via_field": "entityId = plan.key (entityType 'plan')",
+   "cardinality": "1:N",
+   "notes": "activate_plan, deactivate_plan, archive_plan, save_plan and toggle_vehicle_active entries; newPlan() writes no entry at all"
+  },
+  {
+   "from": "Plan",
+   "to": "PlanFeature",
+   "via_field": "features",
+   "cardinality": "1:N",
+   "notes": "Embedded array of {en,ar}; the UI documents it as a plan_features table with FK plan_id and a sort_order column that the stored object does not carry — order is array position only"
+  },
+  {
+   "from": "Plan",
+   "to": "Subscription",
+   "via_field": "name (prefix match on subscription.plan)",
+   "cardinality": "1:N",
+   "notes": "activeSubsForPlanCadence() matches DB.subscriptions[sid].plan.indexOf(name)===0. Prefix-matched on the plan NAME, not the key, so renaming a plan silently breaks its subscription count"
+  },
+  {
+   "from": "PlanVisibilityConfig",
+   "to": "Plan",
+   "via_field": "hideIfNoCoverage → isPlanVisibleForRider()",
+   "cardinality": "1:N",
+   "notes": "When coverage is blocked the New Subscription modal empties the whole plan option array — no plan at all is offered, not just uncovered ones"
+  },
+  {
+   "from": "PushOutboxRecord",
+   "to": "Rider",
+   "via_field": "audience label + recipients count",
+   "cardinality": "1:N",
+   "notes": "No per-recipient link exists: the id list is computed, counted and discarded, and the segment key is not stored."
+  },
+  {
+   "from": "QuickRideType",
+   "to": "Trip",
+   "via_field": "Trip.type matched by name in quickRideFare",
+   "cardinality": "1:N",
+   "notes": "Matched by display name, not id, with a hardcoded fallback identical to Economy when no entry matches."
+  },
+  {
+   "from": "QuickRideType",
+   "to": "Trip",
+   "via_field": "type name matched by quickRideFare(typeName,…)",
+   "cardinality": "1:N",
+   "notes": "Fare is materialised at completeTrip(); subscription legs are forced to '0.00' and never surge. An unmatched name falls back to the first array entry, then to a hardcoded 2.50/1.10/0.35"
+  },
+  {
+   "from": "RateCard",
+   "to": "RateCardDraft",
+   "via_field": "DB.rateCardHistory / version",
+   "cardinality": "1:N",
+   "notes": "Approval unshifts the outgoing live card into the same array as the drafts, which is what makes the length-derived draft ids collidable."
+  },
+  {
+   "from": "RateCard",
+   "to": "RateCardVersion",
+   "via_field": "version",
+   "cardinality": "1:N",
+   "notes": "approveRateCard() pushes the outgoing live card onto DB.rateCardHistory as 'superseded' and promotes the matching draft to DB.rateCard"
+  },
+  {
+   "from": "RateCard",
+   "to": "SurgeSuspension",
+   "via_field": "surge.capByCity / zoneId",
+   "cardinality": "1:N",
+   "notes": "effectiveSurge() checks an unexpired suspension for the zone first, then caps by city. Entirely separate from DB.surgeSchedule, which has no zone dimension"
+  },
+  {
+   "from": "RateCardDraft",
+   "to": "Trip",
+   "via_field": "simulation over DB.trips (<=300 Done trips)",
+   "cardinality": "1:N",
+   "notes": "Subscription trips carry kind 'Subscription' and are all simulated as economy."
+  },
+  {
+   "from": "ReasonCode",
+   "to": "Contact",
+   "via_field": "reasonCode",
+   "cardinality": "1:N",
+   "notes": "Every contact carries a reason code; cptStats groups inbound contacts by it and joins rcById for the label, category, tier and root-cause owner."
+  },
+  {
+   "from": "ReasonCode",
+   "to": "GoodwillEntry",
+   "via_field": "reasonCode",
+   "cardinality": "1:N",
+   "notes": "Every goodwill credit is coded to a scenario, defaulting to OTHER_UNCODED; the code's comp field is the per-scenario ceiling checked by compCheck."
+  },
+  {
+   "from": "ReasonCode",
+   "to": "Ticket",
+   "via_field": "reasonCode",
+   "cardinality": "1:N",
+   "notes": "Ticket reason codes drive rcTargets, hence the whole SLA clock; the breach-rate column in the CPT table is computed from tickets, not contacts."
+  },
+  {
+   "from": "Refund",
+   "to": "CreditNote",
+   "via_field": "refundId",
+   "cardinality": "1:1",
+   "notes": "the refund also carries a back-reference in refund.creditNote, set only when issueCreditNote returned a note"
+  },
+  {
+   "from": "Refund",
+   "to": "CreditNote",
+   "via_field": "creditNote",
+   "cardinality": "1:1",
+   "notes": "Set to cn.id when issueCreditNote returns one; a missing original invoice raises an ops notification"
+  },
+  {
+   "from": "Refund",
+   "to": "Rider",
+   "via_field": "riderId",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; falls back to {name:riderId} when the rider is unknown"
+  },
+  {
+   "from": "Refund",
+   "to": "Subscription",
+   "via_field": "relatedId",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; also part of the refund idempotency key, which has no time bucket"
+  },
+  {
+   "from": "Rider",
+   "to": "CallSession",
+   "via_field": "entityId",
+   "cardinality": "1:N",
+   "notes": "Resolved by findByPhone, which normalises to the last 9 digits and searches riders before drivers, so a shared number always resolves to the rider."
+  },
+  {
+   "from": "Rider",
+   "to": "CashLedgerEntry",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "the rider who handed over the cash; riderConfirmed records whether they confirmed it"
+  },
+  {
+   "from": "Rider",
+   "to": "Complaint",
+   "via_field": "complaints[]",
+   "cardinality": "1:N",
+   "notes": "Feeds riderHealth() and adds complaintCount points to the churn score"
+  },
+  {
+   "from": "Rider",
+   "to": "Complaint",
+   "via_field": "complaint.by and rider.complaints[]",
+   "cardinality": "1:N",
+   "notes": "rendered by cmpTable, which takes no ctxId and so never escalates its empty state"
+  },
+  {
+   "from": "Rider",
+   "to": "Consent",
+   "via_field": "consents",
+   "cardinality": "1:1",
+   "notes": "One consents object per rider (tos, privacy); drivers additionally get driverAgreement. Lazily created on first read."
+  },
+  {
+   "from": "Rider",
+   "to": "Driver",
+   "via_field": "nearestAvailableDrivers(riderId,...) - straight-line geoDistanceKm(r.mapPos,d.mapPos) against the configured radius, ranked by live.busy then eta",
+   "cardinality": "N:M",
+   "notes": "The single matcher shared by live quick-ride dispatch (nextOfferCandidate/tickEngine), subscription assignment, the 'Find replacement / Nearby drivers' picker and the plan-coverage check."
+  },
+  {
+   "from": "Rider",
+   "to": "EmailOutboxRecord",
+   "via_field": "toId",
+   "cardinality": "1:N",
+   "notes": "toId is null for inbox replies and for corporate-approver mails addressed by raw address, which breaks the profile link in the preview modal."
+  },
+  {
+   "from": "Rider",
+   "to": "EmergencyDispatch",
+   "via_field": "dispatch.riderId",
+   "cardinality": "1:N",
+   "notes": "the stranded rider receives the delay compensation credit on acceptance"
+  },
+  {
+   "from": "Rider",
+   "to": "EscrowHold",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "the rider is the payer whose subscription money is being withheld"
+  },
+  {
+   "from": "Rider",
+   "to": "FairnessCase",
+   "via_field": "fairnessCase.subjectId",
+   "cardinality": "1:N",
+   "notes": "captain-filed reports about a rider; riderNoShowCount reads these on the rider profile"
+  },
+  {
+   "from": "Rider",
+   "to": "LiveTrip",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "Used for the nearby-driver picker's rider pin and for wallet debits on cancellation."
+  },
+  {
+   "from": "Rider",
+   "to": "MassEvent",
+   "via_field": "riderIds",
+   "cardinality": "N:M",
+   "notes": "riderIds is written without de-duplication; both the notification loop and the display count de-duplicate independently at read time."
+  },
+  {
+   "from": "Rider",
+   "to": "Payment",
+   "via_field": "Payment.entity",
+   "cardinality": "1:N",
+   "notes": "Only the requests pipeline creates payments; the renewal wizard creates none."
+  },
+  {
+   "from": "Rider",
+   "to": "Payment",
+   "via_field": "payments[]",
+   "cardinality": "1:N",
+   "notes": "Sole input to riderLTV(); only status==='Paid' contributes. entityDerived() reaches the same payments by DB.payments[*].entity instead"
+  },
+  {
+   "from": "Rider",
+   "to": "Payment",
+   "via_field": "payment.entity and rider.payments[]",
+   "cardinality": "1:N",
+   "notes": "entityDerived sums only payments with status Paid"
+  },
+  {
+   "from": "Rider",
+   "to": "Payment",
+   "via_field": "entity",
+   "cardinality": "1:N",
+   "notes": "entity holds RDR-* for rider charges and DRV-* for the single seeded driver payout row PAY-W640"
+  },
+  {
+   "from": "Rider",
+   "to": "PaymentRisk",
+   "via_field": "DB.paymentRisk[riderId]",
+   "cardinality": "1:1",
+   "notes": "At most one payment-risk reason per rider; presence costs 20 health points."
+  },
+  {
+   "from": "Rider",
+   "to": "PaymentRiskFlag",
+   "via_field": "riderId key of DB.paymentRisk",
+   "cardinality": "1:1",
+   "notes": "Single hardcoded mock entry; costs -20 on subHealthScore."
+  },
+  {
+   "from": "Rider",
+   "to": "Referral",
+   "via_field": "referrerId",
+   "cardinality": "1:N",
+   "notes": "Uncapped — one rider may be credited the referrer bonus any number of times."
+  },
+  {
+   "from": "Rider",
+   "to": "Referral",
+   "via_field": "refereeId",
+   "cardinality": "1:1",
+   "notes": "Guard 4 rejects a second referral naming the same referee; the picker does not exclude them beforehand."
+  },
+  {
+   "from": "Rider",
+   "to": "ReferralLogEntry",
+   "via_field": "referrerId / refereeId",
+   "cardinality": "1:N",
+   "notes": "A self-abuse flag fires when both sides resolve to riders sharing lastIp or device; only the referee is actionable."
+  },
+  {
+   "from": "Rider",
+   "to": "Refund",
+   "via_field": "riderId",
+   "cardinality": "1:N",
+   "notes": "riderName is snapshotted onto the refund at creation, falling back to the raw id when the rider is missing"
+  },
+  {
+   "from": "Rider",
+   "to": "Rider",
+   "via_field": "referredBy",
+   "cardinality": "1:N",
+   "notes": "One referrer to many referred riders; written by processReferral() and never read"
+  },
+  {
+   "from": "Rider",
+   "to": "RideRequest",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "no_drivers requests are always-critical interventions."
+  },
+  {
+   "from": "Rider",
+   "to": "RideRequest",
+   "via_field": "RideRequest.rider",
+   "cardinality": "1:N",
+   "notes": "The tracking modal resolves the resulting live trip on this field rather than the request id, which misresolves for concurrent trips."
+  },
+  {
+   "from": "Rider",
+   "to": "RiderWallet",
+   "via_field": "wallet (nested object)",
+   "cardinality": "1:1",
+   "notes": "Lazily created by getRiderWallet on any read, including a plain 360-profile view"
+  },
+  {
+   "from": "Rider",
+   "to": "RiderWalletTransaction",
+   "via_field": "wallet.transactions[]",
+   "cardinality": "1:N",
+   "notes": "Newest first via unshift; the cash10 welcome offer credits 10 SAR here"
+  },
+  {
+   "from": "Rider",
+   "to": "Subscription",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "A rider can hold several subscriptions; the payment-risk card only ever surfaces the first one found (02a #6)."
+  },
+  {
+   "from": "Rider",
+   "to": "Subscription",
+   "via_field": "Subscription.rider",
+   "cardinality": "1:N",
+   "notes": "A rider can hold several packages; DB.riders[id].subs mirrors the link. The table and the profile both resolve the rider name through DB.riders with a raw-id fallback."
+  },
+  {
+   "from": "Rider",
+   "to": "Subscription",
+   "via_field": "Subscription.rider / DB.riders[id].subs",
+   "cardinality": "1:N",
+   "notes": "A rider owns zero or more subscriptions; riderCurrentSub() takes subs[0] as the current one."
+  },
+  {
+   "from": "Rider",
+   "to": "Subscription",
+   "via_field": "subs[]",
+   "cardinality": "1:N",
+   "notes": "Drives Current plan, Vehicle, Subs total and Status; the Status column ignores each subscription's actual status"
+  },
+  {
+   "from": "Rider",
+   "to": "Subscription",
+   "via_field": "subscription.rider and rider.subs[]",
+   "cardinality": "1:N",
+   "notes": "the rider profile renders its subs array through DB.subscriptions; ids missing from DB are silently dropped"
+  },
+  {
+   "from": "Rider",
+   "to": "SubscriptionRequest",
+   "via_field": "SubscriptionRequest.rider",
+   "cardinality": "1:N",
+   "notes": "riderHasPriorSub() flags requests from riders who already hold a subscription as '🔁 Existing subscriber'."
+  },
+  {
+   "from": "Rider",
+   "to": "Ticket",
+   "via_field": "Ticket.entity",
+   "cardinality": "1:N",
+   "notes": "Readiness tickets are filed against the rider, carrying the driver and subscription only as context tiles in the modal."
+  },
+  {
+   "from": "Rider",
+   "to": "Trip",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "Also mirrored as an array of trip ids on the rider record, extended at boot by reconstructHistory()."
+  },
+  {
+   "from": "Rider",
+   "to": "Trip",
+   "via_field": "Trip.rider",
+   "cardinality": "1:N",
+   "notes": "The authoritative link used by the subscription trip log and the corporate policy checks."
+  },
+  {
+   "from": "Rider",
+   "to": "Trip",
+   "via_field": "trips[]",
+   "cardinality": "1:N",
+   "notes": "Rendered by tripsTable() on the 360° profile"
+  },
+  {
+   "from": "Rider",
+   "to": "Trip",
+   "via_field": "trip.rider and rider.trips[]",
+   "cardinality": "1:N",
+   "notes": "entityDerived counts trips this way for non-drivers"
+  },
+  {
+   "from": "Rider",
+   "to": "UpcomingSubTrip",
+   "via_field": "rider",
+   "cardinality": "1:N",
+   "notes": "tripScenario() classifies each as unassigned / unavailable / late for the intervention feed."
+  },
+  {
+   "from": "Rider",
+   "to": "UpcomingSubTrip",
+   "via_field": "UpcomingSubTrip.rider",
+   "cardinality": "1:N",
+   "notes": "Copied from the parent subscription at creation."
+  },
+  {
+   "from": "Rider|Driver|Trip|Subscription|Payment|Complaint",
+   "to": "AuditEntry",
+   "via_field": "entityId",
+   "cardinality": "1:N",
+   "notes": "auditEntityLink calls resolveId to decide linkability; resolveId does not search DB.teamUsers, so entityType 'team_user' rows always render as inert text."
+  },
+  {
+   "from": "RideRequest",
+   "to": "LiveTrip",
+   "via_field": "created by commitRequestAssign / driverAcceptOffer",
+   "cardinality": "1:1",
+   "notes": "No stored foreign key — the request record is spliced away and a new TRP record is pushed, so the link is lost."
+  },
+  {
+   "from": "RiderWallet",
+   "to": "WalletTransaction",
+   "via_field": "transactions[]",
+   "cardinality": "1:N",
+   "notes": "Newest-first via unshift; the profile card shows only the first 6, the page shows only transactions[0]"
+  },
+  {
+   "from": "SecurityConfig",
+   "to": "TeamUser",
+   "via_field": "require2FA compared against TeamUser.twoFA",
+   "cardinality": "1:N",
+   "notes": "Policy-to-record comparison only - drives the 2FA compliance chip in renderTeamTable (L10454-L10456); it does not gate any permission or action."
+  },
+  {
+   "from": "SettingsGroup",
+   "to": "LangStrings",
+   "via_field": "i18nKey",
+   "cardinality": "1:1",
+   "notes": "Each runtime group header's i18nKey indexes LANG_STRINGS.ar, which is why six keys the doc calls orphans are in fact live."
+  },
+  {
+   "from": "SlaPolicy",
+   "to": "ReasonCode",
+   "via_field": "tier",
+   "cardinality": "1:N",
+   "notes": "rcTargets falls back to DB.slaPolicy.tiers[rc.tier||'T3'] for fr and res; there is no tier fallback for the update clock, so a null upd means no update clock at all."
+  },
+  {
+   "from": "SlaTier",
+   "to": "ReasonCode",
+   "via_field": "tier",
+   "cardinality": "1:N",
+   "notes": "Each code names one tier key (default T3 for unknown codes); the tier supplies firstResponseMin, resolveMin and pauseOnCustomer whenever the code's own fr/res are null. pauseOnCustomer is never overridable per code."
+  },
+  {
+   "from": "Subscription",
+   "to": "AbsenceEvent",
+   "via_field": "absenceEvent.subId",
+   "cardinality": "1:N",
+   "notes": "recordAbsence also increments the subscription driverChanges counter"
+  },
+  {
+   "from": "Subscription",
+   "to": "BackupOffer",
+   "via_field": "DB.backupOffers keyed by subscription id",
+   "cardinality": "1:1",
+   "notes": "expires unanswered after offerWindowMin, leaving the leg uncovered"
+  },
+  {
+   "from": "Subscription",
+   "to": "CorpApprovalDecision",
+   "via_field": "CorpApprovalDecision.subId",
+   "cardinality": "1:N",
+   "notes": "subId holds either a SUB-#### or a subscription-request id depending on which approval path produced the entry."
+  },
+  {
+   "from": "Subscription",
+   "to": "EmergencyDispatch",
+   "via_field": "dispatch.subId",
+   "cardinality": "1:N",
+   "notes": "opened by recordAbsence, by autoHandoff with no eligible backup, or by a declined backup offer"
+  },
+  {
+   "from": "Subscription",
+   "to": "EscrowHold",
+   "via_field": "sub",
+   "cardinality": "1:N",
+   "notes": "each seeded hold amount equals the subscription's paid value times 0.80, implying a flat 20% take rate"
+  },
+  {
+   "from": "Subscription",
+   "to": "LegAck",
+   "via_field": "DB.legAcks keyed by subscription id",
+   "cardinality": "1:1",
+   "notes": "carries the acknowledgement weight that separates a captain confirmation from an ops attestation"
+  },
+  {
+   "from": "Subscription",
+   "to": "PlanConfirmation",
+   "via_field": "DB.planConfirmations keyed by subscription id",
+   "cardinality": "1:1",
+   "notes": "one record per leg, holding the confirmation time, the handoff flag and the acknowledgement source"
+  },
+  {
+   "from": "Subscription",
+   "to": "Refund",
+   "via_field": "relatedId",
+   "cardinality": "1:N",
+   "notes": "relatedId also carries TRP-* or PAY-* ids; it is nullable and is used as part of the refund idempotency key"
+  },
+  {
+   "from": "Subscription",
+   "to": "SubBackup",
+   "via_field": "DB.subBackups[subId]",
+   "cardinality": "1:1",
+   "notes": "At most one backup captain per subscription; its absence costs 15 health points."
+  },
+  {
+   "from": "Subscription",
+   "to": "SubscriptionBackup",
+   "via_field": "subId key of DB.subBackups",
+   "cardinality": "1:1",
+   "notes": "At most one backup captain per subscription; absence costs -15 on subHealthScore."
+  },
+  {
+   "from": "Subscription",
+   "to": "SubscriptionBackup",
+   "via_field": "subscription id used as the DB.subBackups key",
+   "cardinality": "1:1",
+   "notes": "At most one registered backup per subscription; promoteBackup deletes the entry, leaving the plan uncovered."
+  },
+  {
+   "from": "Subscription",
+   "to": "Trip",
+   "via_field": "Trip.sub",
+   "cardinality": "1:N",
+   "notes": "Declared untrustworthy in-file - TRP-7742 tags SUB-1041 but belongs to a different rider. Both buildSubProfile and commitDriverChange deliberately match by rider identity plus kind instead."
+  },
+  {
+   "from": "Subscription",
+   "to": "UpcomingSubTrip",
+   "via_field": "UpcomingSubTrip.sub",
+   "cardinality": "1:N",
+   "notes": "generateUpcomingTripsForSubscription() creates one leg per scheduled departure, plus a reversed return leg for round trips."
+  },
+  {
+   "from": "Subscription",
+   "to": "WorkItem",
+   "via_field": "subId (types leg and coverage)",
+   "cardinality": "1:N",
+   "notes": "The four leg variants are mutually exclusive per subscription, but a leg item and a coverage item can coexist for the same subscription."
+  },
+  {
+   "from": "SubscriptionRequest",
+   "to": "CorpApprovalDecision",
+   "via_field": "CorpApprovalDecision.subId",
+   "cardinality": "1:N",
+   "notes": "One Approved or Declined entry per manager decision on a corporate-threshold request."
+  },
+  {
+   "from": "SubscriptionRequest",
+   "to": "PaymentHold",
+   "via_field": "SubscriptionRequest.hold",
+   "cardinality": "1:1",
+   "notes": "Created lazily by ensureHold(); reopenSubReq() replaces it with a fresh authorization after the old one was released."
+  },
+  {
+   "from": "SubscriptionRequest",
+   "to": "Subscription",
+   "via_field": "SubscriptionRequest.assignedSub",
+   "cardinality": "1:1",
+   "notes": "materializeSubscription() creates the subscription and back-references it; two seeded requests point at the non-existent SUB-1052b."
+  },
+  {
+   "from": "SurgeConfig",
+   "to": "SurgeWindow",
+   "via_field": "capMultiplier ceiling applied to matched windows",
+   "cardinality": "1:N",
+   "notes": "currentSurgeMultiplier() short-circuits to 1 when surgeConfig.enabled is false, otherwise takes max(matching multipliers) then min(result, capMultiplier)"
+  },
+  {
+   "from": "SurgeSuspension",
+   "to": "Zone",
+   "via_field": "zoneId",
+   "cardinality": "1:1",
+   "notes": "Broken link: zoneId holds an array index string ('0'..'5') because DB.zones is an array and the picker uses Object.keys()."
+  },
+  {
+   "from": "TeamUser",
+   "to": "AuditEntry",
+   "via_field": "actorId",
+   "cardinality": "1:N",
+   "notes": "logAction stamps actorId and actorName from CURRENT_USER_ID at write time. During impersonation CURRENT_USER_ID is already the impersonated user, so entries are attributed to the wrong operator."
+  },
+  {
+   "from": "TeamUser",
+   "to": "BroadPermission",
+   "via_field": "permissions",
+   "cardinality": "N:M",
+   "notes": "Stored as an array of permission keys on each user; can() does an indexOf over it. There is no role record in between - a role row in the matrix is the intersection/union aggregate over the users holding that role"
+  },
+  {
+   "from": "TeamUser",
+   "to": "Contact",
+   "via_field": "agentId",
+   "cardinality": "1:N",
+   "notes": "logContact stamps CURRENT_USER_ID and the resolved actor name onto every contact row."
+  },
+  {
+   "from": "TeamUser",
+   "to": "Handover",
+   "via_field": "fromId / toId",
+   "cardinality": "1:N",
+   "notes": "Both ends of a handover are team users; toName falls back to the raw id because nm2 resolves riders and captains, not team members."
+  },
+  {
+   "from": "TeamUser",
+   "to": "LoginSession",
+   "via_field": "DB.loginSessions keyed by user id",
+   "cardinality": "1:N",
+   "notes": "Read as DB.loginSessions[u.id]||[]. USR-4 has an empty array and USR-5 has no key at all, so his Security panel reads 'No other sessions.' despite a recent lastLogin."
+  },
+  {
+   "from": "TeamUser",
+   "to": "LoginSession",
+   "via_field": "DB.loginSessions keyed by TeamUser.id",
+   "cardinality": "1:N",
+   "notes": "USR-1 has 3 sessions, USR-2 and USR-3 one each, USR-4 none. Rendered by renderMaSecurity() in the My Account modal, NOT by the Settings > Security pane."
+  },
+  {
+   "from": "TeamUser",
+   "to": "OnCallSchedule",
+   "via_field": "assign['day:block:tier'] = userId",
+   "cardinality": "1:N",
+   "notes": "42 possible slots map to team user ids; a slot holding an id that no longer resolves reads as covered by rotaGaps but uncovered by onCallNow."
+  },
+  {
+   "from": "TeamUser",
+   "to": "PagePermission",
+   "via_field": "pagePerms[pageKey]",
+   "cardinality": "N:M",
+   "notes": "Lazily materialised from the broad permissions array by defaultPagePerms(); sync is one-way (broad to granular) only"
+  },
+  {
+   "from": "TeamUser",
+   "to": "PagePermission (granular)",
+   "via_field": "pagePerms{pageKey: permKey[]}",
+   "cardinality": "N:M",
+   "notes": "Absent from every seeded user and materialised lazily by defaultPagePerms(broadPerms): a page unlocks its full action set iff !pg.legacy || broadPerms.includes(pg.legacy), otherwise the user gets exactly ['view']."
+  },
+  {
+   "from": "TeamUser",
+   "to": "PagePermissionGrant",
+   "via_field": "pagePerms",
+   "cardinality": "1:N",
+   "notes": "One entry per pageKey in PAGE_PERMISSIONS, each holding an array of granted action keys; materialised lazily from the broad permissions array"
+  },
+  {
+   "from": "TeamUser",
+   "to": "Permission (broad)",
+   "via_field": "permissions[]",
+   "cardinality": "N:M",
+   "notes": "can(key) is an indexOf over this array. Seeded totals: Owner 13, Ops Manager 8, Finance 5, Support 3. Granted per role, but stored per user - a role change via commitEditTeamUser deliberately does not migrate the array."
+  },
+  {
+   "from": "Ticket",
+   "to": "Contact",
+   "via_field": "linked.id (linked.type='ticket')",
+   "cardinality": "1:N",
+   "notes": "One outage is many contacts and one ticket; the source comment at L14914 warns explicitly against conflating the two counts."
+  },
+  {
+   "from": "Ticket",
+   "to": "ReasonCode",
+   "via_field": "reasonCode",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; the code derives category, priority, SLA targets and the guide script"
+  },
+  {
+   "from": "Ticket",
+   "to": "Rider",
+   "via_field": "entity",
+   "cardinality": "1:1",
+   "notes": "Inverted N:1; entity may also be a DRV- id or the literal '—' when unresolved"
+  },
+  {
+   "from": "Ticket",
+   "to": "ScriptProgress",
+   "via_field": "DB.scriptProgress[ticketId]",
+   "cardinality": "1:1",
+   "notes": "Checked required-action indices for the ticket's guide script"
+  },
+  {
+   "from": "Ticket",
+   "to": "ThreadMessage",
+   "via_field": "thread[]",
+   "cardinality": "1:N",
+   "notes": "Chronological; only non-bot agent messages set firstResponseAtMs"
+  },
+  {
+   "from": "Ticket",
+   "to": "Ticket",
+   "via_field": "groupedUnder",
+   "cardinality": "1:N",
+   "notes": "Self-referential: the first matched ticket becomes the master and keeps its clock; every other matched ticket points at it and has its SLA clock paused."
+  },
+  {
+   "from": "Trip",
+   "to": "ArrivalTrace",
+   "via_field": "DB.arrivalTraces keyed by trip id",
+   "cardinality": "1:1",
+   "notes": "Seeded for every trip by seedArrivalTraces; drives the arrival-evidence verdict on the trip profile."
+  },
+  {
+   "from": "Trip",
+   "to": "CashLedgerEntry",
+   "via_field": "tripId",
+   "cardinality": "1:1",
+   "notes": "one cash event per cash-paid completed quick ride, generated with probability CASH_TRIP_CHANCE"
+  },
+  {
+   "from": "Trip",
+   "to": "Deduction",
+   "via_field": "trip",
+   "cardinality": "1:N",
+   "notes": "the trip the penalty attaches to, rendered as a rowLink"
+  },
+  {
+   "from": "Trip",
+   "to": "Driver",
+   "via_field": "driver",
+   "cardinality": "1:1",
+   "notes": "Read by the history table and the map stats bar; never updated by live-board actions."
+  },
+  {
+   "from": "Trip",
+   "to": "FairnessCase",
+   "via_field": "fairnessCase.tripId",
+   "cardinality": "1:1",
+   "notes": "set on rating disputes and rider reports; not de-duplicated, so one trip can carry many cases"
+  },
+  {
+   "from": "Trip",
+   "to": "Incident",
+   "via_field": "trip",
+   "cardinality": "1:N",
+   "notes": "Not validated: TRP-8977 and TRP-8720 are not keys in DB.trips, so 'Open trip' fails through resolveId()."
+  },
+  {
+   "from": "Trip",
+   "to": "Payment",
+   "via_field": "Trip.pay",
+   "cardinality": "1:1",
+   "notes": "The trip profile links through t.pay, but both the subscriptions and quick-rides tables instead scan DB.payments for p.trip === tripId - two directions for the same link."
+  },
+  {
+   "from": "Trip",
+   "to": "RideStateLogEntry",
+   "via_field": "DB.rideStateLogs keyed by trip id",
+   "cardinality": "1:N",
+   "notes": "Any entry with riderAcked false marks the trip desynced and feeds the State desync KPI."
+  },
+  {
+   "from": "WorkItem",
+   "to": "Dispute",
+   "via_field": "id (type dispute)",
+   "cardinality": "1:1",
+   "notes": "Source DB.disputes where status is open; always severity high with no clock."
+  },
+  {
+   "from": "WorkItem",
+   "to": "Incident",
+   "via_field": "id (type incident)",
+   "cardinality": "1:1",
+   "notes": "Source DB.incidents where status is open; critical incidents get the -1 permanent-overdue sentinel."
+  },
+  {
+   "from": "WorkItem",
+   "to": "OwnershipClaim",
+   "via_field": "key (ckey(type,id))",
+   "cardinality": "1:1",
+   "notes": "The claim is looked up by the composite key; leg and coverage items both derive their id from a subscription id, so one subscription can carry two unlinked claims."
+  },
+  {
+   "from": "WorkItem",
+   "to": "Ticket",
+   "via_field": "id (type ticket)",
+   "cardinality": "1:1",
+   "notes": "Source DB.tickets, skipped when resolvedAtMs or groupedUnder is set; dueMs comes from slaState(t)."
+  },
+  {
+   "from": "Zone",
+   "to": "RecruitmentQueueEntry",
+   "via_field": "zone (name string)",
+   "cardinality": "1:N",
+   "notes": "queueRecruitment blocks a duplicate while an entry is 'Queued', and status never changes, so in practice at most one per zone forever."
+  },
+  {
+   "from": "Zone",
+   "to": "SteerOffer",
+   "via_field": "zone (name string)",
+   "cardinality": "1:N",
+   "notes": "Intended to be 1:1 for active offers — the one-offer-per-zone rule is enforced only in openSteerOffer, not at commit."
+  },
+  {
+   "from": "Zone",
+   "to": "SubscriptionRequest",
+   "via_field": "derived by zoneOfPickup(r.pickup) — no stored foreign key",
+   "cardinality": "1:N",
+   "notes": "Naive lowercase substring match with ' / ' aliasing; unmatched pickups are silently dropped from momentum and the hourly chart."
+  }
+ ]
+}
