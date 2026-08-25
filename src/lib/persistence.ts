@@ -48,7 +48,7 @@ export function createNullStore<T>(): UiStateStore<T> {
 /**
  * The default every shell hook uses when no store is injected.
  *
- * Module-scoped and keyed, so `useNavCollapse()` in two components shares one
+ * Module-scoped and keyed, so one key read from two components shares one
  * value rather than two. Swap the body of this function when Q1 is answered.
  */
 const defaultStores = new Map<string, UiStateStore<unknown>>()
@@ -69,8 +69,22 @@ export function resetDefaultUiStores(): void {
 
 /** The keys the shell persists, so a Q1 implementation has the full list in one place. */
 export const UI_STATE_KEYS = {
-  /** foundation spec §8.3 `ui.subTabNavCollapsed`, AC-33. */
-  subTabNavCollapsed: 'ui.subTabNavCollapsed',
+  /*
+   * `ui.subTabNavCollapsed` was removed with `useNavCollapse` in 02-shell-fixes:
+   * `DECISIONS.md` **D5** stops the sub-tab column collapsing, so nothing reads
+   * or writes it. `UserPreferences.subTabNavCollapsed` still exists on the
+   * *server* type (`src/data/types/session.ts`) — retiring that is a data-seam
+   * and product-owner question, not a `src/lib` one.
+   */
   /** foundation spec §8.3 `ui.language`. Reseeded to `en` on every load today (`:2570`). */
   language: 'ui.language',
+  /**
+   * **Prefix, not a key.** Column pins are per table, so `useColumnPinning`
+   * stores under `ui.columnPins.<tableId>`. Listed here so a Q1 implementation
+   * sees that this namespace exists and can wildcard it, rather than discovering
+   * thirty-four unlisted keys.
+   */
+  columnPins: 'ui.columnPins',
+  /** **Prefix.** `useColumnVisibility` stores hidden ids under `ui.columnVisibility.<tableId>.<view>`. */
+  columnVisibility: 'ui.columnVisibility',
 } as const

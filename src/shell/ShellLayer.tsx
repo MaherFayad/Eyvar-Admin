@@ -19,6 +19,28 @@
  *               not."* Focus MOVES IN on open and `Tab` leaves the panel and
  *               continues into the page. AC-67 required a trap; §7 outranks an
  *               AC, so the AC was amended (finding F-1).
+ *
+ *               **Both halves of this were broken and both are fixed here.**
+ *               The 0.8 QA verdict was right and the unit tests could not see
+ *               it, because each half arrives from a component the hook is
+ *               composed WITH rather than from the hook:
+ *
+ *               1. *Focus never entered.* Radix `Portal` mounts its children in
+ *                  a SECOND commit, so `contentRef.current` and
+ *                  `initialFocusRef.current` were both `null` when
+ *                  `useFocusEntry`'s effect ran — and its deps are all stable
+ *                  ref objects, so it never retried. Fixed below with callback
+ *                  refs held in state: the ref OBJECT's identity changes when
+ *                  the node lands, which is a dep change, which re-runs the
+ *                  effect against a real node.
+ *               2. *Focus was trapped.* `@radix-ui/react-dialog` hardcodes
+ *                  `loop: true` on its `FocusScope` and `react-focus-scope`
+ *                  runs its Tab handler on `loop || trapped`. `modal={false}`
+ *                  clears `trapped` and **not** `loop`. Fixed in `sheet.tsx`
+ *                  (`releaseTabAtEdges`), because it is the primitive's
+ *                  problem, not this component's.
+ *
+ *               `useFocusEntry` itself was never wrong and is not touched.
  *   AC-66/AC-67 focus moves in on open and returns to **the control that opened
  *               it** on close. Radix's non-modal dialog restores focus to its
  *               *Trigger*, and these layers have no trigger — they are opened
@@ -48,7 +70,7 @@
  *   R-3 §1.3    tier 2 AND the inline-start hairline. Both, per the R-3 ruling.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useFocusEntry } from '@/hooks'
 import type { Translate } from '@/lib'
@@ -74,8 +96,24 @@ export function ShellLayer({
   children,
   t,
 }: ShellLayerProps) {
-  const contentRef = useRef<HTMLDivElement>(null)
-  const headingRef = useRef<HTMLHeadingElement>(null)
+  /* CALLBACK REFS HELD IN STATE, not `useRef`, and that is the whole fix for
+     "focus never enters the layer".
+
+     `useFocusEntry`'s deps are `[active, containerRef, initialFocusRef,
+     restoreFocus]` — all stable. With `useRef` the effect runs once, on the
+     commit where `open` flips true, and at that moment Radix's `Portal` has not
+     yet mounted its children, so both `.current` values are `null`. The effect
+     focuses nothing and never runs again.
+
+     A `useState` node plus a `useMemo`'d ref-shaped object means the ref
+     OBJECT's identity changes the moment the node lands, which IS a dep change,
+     so the effect re-runs against a real element. The intervening cleanup
+     restores focus to the opener — which is where focus already is, because
+     nothing moved it — so the extra cycle is invisible. */
+  const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null)
+  const [headingEl, setHeadingEl] = useState<HTMLHeadingElement | null>(null)
+  const contentRef = useMemo(() => ({ current: contentEl }), [contentEl])
+  const headingRef = useMemo(() => ({ current: headingEl }), [headingEl])
 
   /* AC-67 as amended, and AC-66. Enters focus on the layer's HEADING — a
      deterministic, non-destructive landing spot — and restores the real opener
@@ -104,7 +142,7 @@ export function ShellLayer({
       }}
     >
       <SheetContent
-        ref={contentRef}
+        ref={setContentEl}
         side="inline-end"
         tabIndex={-1}
         aria-label={title}
@@ -115,7 +153,7 @@ export function ShellLayer({
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle ref={headingRef} tabIndex={-1}>
+          <SheetTitle ref={setHeadingEl} tabIndex={-1}>
             {title}
           </SheetTitle>
           {/* `null` renders nothing. Radix wants a description for a11y; when

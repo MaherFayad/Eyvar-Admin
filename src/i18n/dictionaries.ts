@@ -32,6 +32,15 @@
 
 import type { Dictionary, Language } from '@/lib'
 import { SLA_MESSAGES_EN } from '@/lib'
+/* A Phase 1 screen owns its own copy and exports it as a `Dictionary`; the
+   assembly below is the only place they meet. One import and one spread per
+   screen, so adding a screen never edits another screen's strings.
+
+   **Imported from the screen's `copy` module, never from its barrel.** The
+   barrel also exports the screen component, which reaches `ShellContext`,
+   which imports this file — a cycle. `copy.ts` imports one TYPE and nothing
+   else, so this edge has no runtime cost and no ordering hazard. */
+import { PEOPLE_EN } from '@/screens/operations/people/copy'
 
 /* ───────────────────────── workspaces (§2.2) ───────────────────────── */
 
@@ -41,12 +50,28 @@ const workspaces: Dictionary = {
   'workspace.financials': 'Financials',
   'workspace.support': 'Customer Support',
   'workspace.admin': 'Admin',
-  /* §2.2 — `Customer Support` shortens to `Support` IN THE RAIL ONLY, as a
-     SEPARATE KEY, never a runtime truncation. Sixteen characters do not fit
-     72px at 12px on one line, and truncating a nav label is not acceptable.
-     The full name is what the level-2 heading, the tile's accessible name, the
-     top-bar pair and global search all use. No other workspace needs one. */
-  'nav.workspace.support.short': 'Support',
+
+  /* §2.2 (amended, D5) — THE RAIL'S OWN LABELS, and they are also the tiles'
+     ACCESSIBLE NAMES.
+
+     The old arrangement rendered a short label with the full name in
+     `aria-label`, and justified it under WCAG 2.5.3 (Label in Name) because
+     "Customer Support" contains "Support". That justification does not survive
+     `Ops` — "Operations" does not contain it — so the split is gone and the
+     short word is simply what the tile is called, visible and accessible alike.
+
+     The full name is not lost. `workspace.*` above is what the level-2 column
+     heading, the top-bar `Title › Subtitle` pair and global search all use, so
+     an operator who needs "Customer Support" spelled out reads it one column to
+     the inline-end of the tile they just clicked.
+
+     Every one is ≤ 7 characters, which is what keeps `truncate` from ever
+     firing at the 88px rail width. `nav.workspace.support.short` is retired. */
+  'nav.rail.management': 'Exec',
+  'nav.rail.operations': 'Ops',
+  'nav.rail.financials': 'Finance',
+  'nav.rail.support': 'Support',
+  'nav.rail.admin': 'Admin',
 }
 
 /* ───────────────── the 34 sub-tabs, spec §3.4 (§3.1) ───────────────── */
@@ -299,6 +324,14 @@ const states: Dictionary = {
   'state.notFound.body': 'Check the address, or pick a sub-tab from the list.',
   'state.notFound.action': 'Go to overview',
 
+  /* The generic sub-tab PLACEHOLDER — not a state, and deliberately not worded
+     as one. `SubTabScreen`'s content branch used to render
+     `state.cardError.message` on a SUCCESSFUL load, so a healthy page said
+     "Couldn't load Performance." to the operator looking at it (V8). This is
+     the honest replacement, and it disappears route by route as Phase 1 builds
+     each sub-tab. */
+  'state.placeholder.message': '{resource} is being built.',
+
   /* 2 route-forbidden */
   'state.forbidden.title': "You don't have access to this page",
   'state.forbidden.body':
@@ -307,15 +340,19 @@ const states: Dictionary = {
 
   /* 3 page-error */
   'state.pageError.title': "Couldn't load {resource}",
-  'state.pageError.body': "The data didn't arrive. Try again, or pick another sub-tab.",
+  /* §4.4 — "from the list", so the sentence points at something the operator
+     can actually see. The column is always rendered now (D5), so it does. */
+  'state.pageError.body':
+    "The data didn't arrive. Try again, or pick another sub-tab from the list.",
   'state.pageError.action': 'Try again',
 
   /* 4 page-partial-failure */
   'state.rowError.message': "Couldn't {verb} this {object}.",
   'state.rowError.action': 'Try again',
 
-  /* card-scoped error (§11.2) */
-  'state.cardError.message': "Couldn't load {resource}.",
+  /* card-scoped error (§11.2, §4.5). The second clause exists because the
+     first question an operator asks is whether their query survived. */
+  'state.cardError.message': "Couldn't load {resource}. The filters are unchanged.",
 
   /* 8 save-failed — validation */
   'state.saveInvalid.title': 'To save this {entity}, {count} changes need to be made:',
@@ -413,6 +450,7 @@ export const EN: Dictionary = {
   ...states,
   ...table,
   ...SLA_MESSAGES_EN,
+  ...PEOPLE_EN,
 }
 
 /** See the file header. Empty on purpose; it is AC-74's fixture, not a gap in the build. */

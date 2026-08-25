@@ -24,12 +24,10 @@ import type { NavCounts, NotificationSummary, Session } from '@/data/types'
 import {
   useAsync,
   useLanguageState,
-  useNavCollapse,
   LanguageContext,
   type AsyncStatus,
   type FormStatus,
   type LanguageState,
-  type NavCollapseState,
 } from '@/hooks'
 import { DICTIONARIES } from '@/i18n/dictionaries'
 import { permissionContext, type PermissionContext } from './permissions'
@@ -93,7 +91,9 @@ export interface ShellState {
   refreshNotifications: () => void
 
   permissions: PermissionContext
-  nav: NavCollapseState
+  /* `nav` is GONE. The sub-tab column no longer collapses (`DECISIONS.md`
+     **D5**), so there is no flag, no toggle and no setter — and no in-memory
+     store quietly failing AC-33 on the unanswered Q1. */
   language: LanguageState
 
   conditions: ShellConditions
@@ -133,10 +133,6 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     deps: [],
   })
 
-  /* §3.3 — seeded from the viewport at FIRST RUN ONLY, never re-derived from a
-     resize. AC-33 fails until Q1 lands (in-memory store); see 0.5's U-2. */
-  const nav = useNavCollapse()
-
   /* AC-70 — `dir` and `lang` on the DOCUMENT ELEMENT, not a subtree. */
   const language = useLanguageState({ dictionaries: DICTIONARIES })
 
@@ -165,7 +161,6 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       notifications: notifications.data,
       refreshNotifications: notifications.refetch,
       permissions,
-      nav,
       language,
       conditions,
       setConditions,
@@ -184,7 +179,6 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       notifications.data,
       notifications.refetch,
       permissions,
-      nav,
       language,
       conditions,
       setConditions,

@@ -1,0 +1,726 @@
+[
+  {
+    "width": 1280,
+    "path": "/management/performance",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 976,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 976,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 104,
+      "h": 24
+    },
+    "h1Text": "Performance",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 82,
+      "h": 20
+    },
+    "columnHeadingText": "Management",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "path": "/management/zones",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 976,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 976,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 126,
+      "h": 24
+    },
+    "h1Text": "Market & Zones",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 82,
+      "h": 20
+    },
+    "columnHeadingText": "Management",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "path": "/operations/overview",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 976,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 976,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 77,
+      "h": 24
+    },
+    "h1Text": "Overview",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 69,
+      "h": 20
+    },
+    "columnHeadingText": "Operations",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "path": "/management/performance",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 1136,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 1136,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 104,
+      "h": 24
+    },
+    "h1Text": "Performance",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 82,
+      "h": 20
+    },
+    "columnHeadingText": "Management",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "path": "/management/zones",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 1136,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 1136,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 126,
+      "h": 24
+    },
+    "h1Text": "Market & Zones",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 82,
+      "h": 20
+    },
+    "columnHeadingText": "Management",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "path": "/operations/overview",
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "w": 80,
+      "h": 820
+    },
+    "column": {
+      "x": 80,
+      "y": 0,
+      "w": 224,
+      "h": 820
+    },
+    "topBar": {
+      "x": 304,
+      "y": 0,
+      "w": 1136,
+      "h": 48
+    },
+    "main": {
+      "x": 304,
+      "y": 48,
+      "w": 1136,
+      "h": 772
+    },
+    "h1": {
+      "x": 320,
+      "y": 64,
+      "w": 77,
+      "h": 24
+    },
+    "h1Text": "Overview",
+    "columnHeading": {
+      "x": 96,
+      "y": 14,
+      "w": 69,
+      "h": 20
+    },
+    "columnHeadingText": "Operations",
+    "topBarBottomBorderY": 48,
+    "columnHeaderBottomY": 48,
+    "railWordmarkBandBottomY": 48,
+    "navRowHeight": 28,
+    "navRowPitch": 45,
+    "colours": {
+      "navBg": "rgb(234, 236, 241)",
+      "columnBg": "rgb(234, 236, 241)",
+      "canvasBg": "rgba(0, 0, 0, 0)",
+      "topBarBg": "rgb(238, 240, 243)",
+      "activePillBg": "rgb(255, 255, 255)",
+      "railBorderInlineEnd": "0px",
+      "columnBorderInlineEnd": "0px"
+    },
+    "railLabels": [
+      {
+        "text": "Exec",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "6",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Ops",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "35",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Finance",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "clientWidth": 15,
+        "scrollWidth": 15,
+        "clipped": false
+      },
+      {
+        "text": "Support",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "10",
+        "clientWidth": 22,
+        "scrollWidth": 22,
+        "clipped": false
+      },
+      {
+        "text": "Admin",
+        "clientWidth": 64,
+        "scrollWidth": 64,
+        "clipped": false
+      },
+      {
+        "text": "99+",
+        "clientWidth": 28,
+        "scrollWidth": 28,
+        "clipped": false
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "path": "/management/performance (dir=rtl)",
+    "rail": {
+      "x": 1192,
+      "w": 88
+    },
+    "column": {
+      "x": 936,
+      "w": 256
+    },
+    "main": {
+      "x": 0,
+      "w": 936
+    }
+  }
+]

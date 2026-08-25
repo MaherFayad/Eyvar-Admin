@@ -1,43 +1,79 @@
 /**
- * `ModuleRail` (S-01) — level 1, the workspace rail. Design spec §2.
+ * `ModuleRail` (S-01) — level 1, the workspace rail. Design spec §2, as amended
+ * by `02-visual-refinement.md` V1 / V2 / V3 / V6.
  *
- * 80px (96px in Arabic, by token), full height, **never scrolls** — five items
- * cannot overflow. Four workspace tiles as one group, then the sub-tab
- * disclosure, then `Admin` **pinned to the bottom**: the one §2.1 nav rule the
- * D-4 deviation preserves intact (**AC-02**).
+ * 80px (88px in Arabic, by token), full height, **never scrolls** — five items
+ * cannot overflow. Four workspace tiles as one group, then `Admin` **pinned to
+ * the bottom**: the one §2.1 nav rule the D-4 deviation preserves intact
+ * (**AC-02**).
  *
  * Rules applied
- *   §2.1        anatomy — wordmark 32px block · tile 72 × 56 inset 4px radius
- *               8px · icon 20px in the top 28px · label 12px/500 beneath ·
- *               4px between tiles · hairline above the pinned Admin tile.
- *   §2.2        icon + LABEL, not icon-only. At 1280px the sub-tab column is
- *               collapsed on first run, so the rail is the entire visible
- *               navigation, and five unlabelled glyphs — four of them abstract
- *               — are a recall test performed all day. `Customer Support`
- *               shortens to `Support` through a SEPARATE KEY, never a runtime
- *               truncation; the accessible name stays the full name.
- *   §2.3        ACTIVE = white pill + 1px hairline + label 600 + icon blue +
- *               a 3px `--ev-blue` INSET LEADING EDGE. Three carriers, so the
- *               state survives greyscale and low vision (§7.5). Disabled does
- *               not exist: a workspace the role cannot see is NOT RENDERED
- *               (**AC-57**).
+ *   §2.1/D6/V3  the rail's ground is `--ev-bg-nav`, ONE STEP DARKER than the
+ *               canvas, and there is **no border between nav and content**.
+ *               §2.1 forbids that border once the tonal step exists, and
+ *               keeping both is what makes a nav look bolted on. The token is
+ *               derived, not chosen — see `globals.css`.
+ *   §2.2 (amended, D5) **the visible label IS the accessible name.** The old
+ *               short-label / full-`aria-label` split was justified by WCAG
+ *               2.5.3 (Label in Name) because "Customer Support" contains
+ *               "Support". That reasoning does not survive `Ops`, which
+ *               "Operations" does not contain, so the short word becomes the
+ *               tile's actual name — visible and accessible alike. The full
+ *               name is not lost: the sub-tab column's heading carries it, and
+ *               so do the top-bar pair and global search.
+ *   §2.3/V2     ACTIVE = an inset filled WHITE pill and **nothing else**. No
+ *               3px leading edge, no 1px hairline, no shadow. Measured on
+ *               `products-list-default.webp`: at the active pill's leading edge
+ *               `|R − B| = 0` at every pixel (no chroma, so no blue marker) and
+ *               the minimum luminance around its edges is 229–248 against a
+ *               `#EBEBEB` ground (no darker stroke, so no border). The marker
+ *               and the hairline were compensation for a ground that was too
+ *               light — which is why V3's darker ground is a PREREQUISITE for
+ *               this treatment, not a separate nicety. On the new ground the
+ *               pill is 1.182 : 1, against Shopify's own 1.192 : 1.
+ *               Weight 600 on the active label is the second carrier, so the
+ *               state survives greyscale and low vision (§7.5).
  *   §2.3/AC-08  **the active tile is derived from `route.workspaceId`, never
  *               from a click.** No handler in this file sets an active state.
- *   §2.4/AC-26  count badges: warning or neutral, never red (R5a), never a
- *               `0`, `99+` above 99, and **never suppressed when the column is
- *               collapsed** (**AC-27**) — that is the one state in which the
- *               tile badge is the only backlog signal.
- *   §13.2/AC-64 the four tiles are ONE tab stop with a roving tabindex; ↑ ↓
- *               move between them, Home / End jump. Then the disclosure, then
- *               Admin. Visual order = DOM order = tab order (§7.3).
+ *   §2.4/V6     **the tile's count badge is `neutral`, always.** The count
+ *               still rolls up (AC-27's count clause); the TONE does not. A
+ *               tile's number is a sum of heterogeneous queues and a sum of
+ *               different kinds of thing has no single status to report. The
+ *               rule and the measurement live in `navBadges.ts`.
+ *   §2.4/AC-26  never a `0`, never a `—`, never an empty chip. `99+` above 99.
+ *   §13.2/AC-64 (amended, D5) the four tiles are ONE tab stop with a roving
+ *               tabindex; ↑ ↓ move between them, Home / End jump. Then Admin.
+ *               **The disclosure is gone, so it is no longer in the order.**
+ *   §7.2/V1     the focus ring is `ring-2 ring-inset`, **not** `ring-offset-2`.
+ *               Forced by the sub-tab column's zero row gap and applied to both
+ *               nav levels so the two agree; the rest of the product keeps the
+ *               offset ring.
  *   §7.4        every tile is an `<a>`. Nothing here is a `<div onClick>`.
- *   §9.5        none of the five glyphs mirrors; the disclosure does, per its
- *               own definition. Every utility is logical.
- *   R-3 §1.3    the rail carries NO elevation — it is a chrome region, not a
- *               card. Its separation from the canvas is the 1px hairline
- *               (sanctioned deviation 3).
+ *   §9.5        none of the five glyphs mirrors. Every utility is logical.
+ *   R-3 §1.3    the rail carries NO elevation and, since D6, no border either.
+ *               Its separation from the canvas is the tonal step.
+ *
+ * ── the vertical register ────────────────────────────────────────────────
+ *
+ * The rail used to be a 32px wordmark + 8px margin — a 40px band beside a 48px
+ * top bar and a 40px column header: three bands, three heights, meeting at the
+ * same y and agreeing about nothing. Now:
+ *
+ *   0  ──────────  wordmark band   48px = `--ev-topbar-h`, the same band as the
+ *                                  top bar and the sub-tab column's heading
+ *   48 ──────────  4px
+ *   52 ──────────  tile 1          44px  = 4 + 20 glyph + 4 + 12 label + 4
+ *   96 ──────────  4px             …so the tile PITCH is 48px, one top-bar
+ *   100 ─────────  tile 2          module, and every tile edge lands on it
+ *   …
+ *   flex-1 spacer                  Admin is pinned; it does not scroll (AC-02)
+ *   ── hairline ──                 inset 4px, matching the pill inset
+ *   4px
+ *   Admin tile     44px
+ *   4px            floor, symmetric with the 4px under the wordmark band
  */
 
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -46,8 +82,26 @@ import { formatCount } from '@/lib'
 import { useRovingFocus } from '@/hooks'
 import type { NavCounts, SubTabRoute, Workspace, WorkspaceId } from '@/data/types'
 import type { Translate } from '@/lib'
-import { WorkspaceGlyph, SubTabDisclosureGlyph } from './icons'
+import { WorkspaceGlyph } from './icons'
 import { badgeOverflows, workspaceBadge, type NavBadge } from './navBadges'
+
+/**
+ * §2.2 (amended, D5) — the rail's own label for each workspace, which is now
+ * **also its accessible name**. One explicit map rather than a key built from
+ * `workspace.id` at runtime, so every key is greppable and an id without a
+ * label is a type error rather than a missing string at 3am.
+ *
+ * `Exec` for Management is the business owner's pick. Recorded as an open
+ * naming question in `02-shell-fixes.md`: the other four name a FUNCTION and
+ * `Exec` names an AUDIENCE, which is the one inconsistency in the set.
+ */
+const RAIL_LABEL_KEY: Record<WorkspaceId, string> = {
+  management: 'nav.rail.management',
+  operations: 'nav.rail.operations',
+  financials: 'nav.rail.financials',
+  support: 'nav.rail.support',
+  admin: 'nav.rail.admin',
+}
 
 export interface ModuleRailProps {
   workspaces: readonly Workspace[]
@@ -58,10 +112,6 @@ export interface ModuleRailProps {
   /** Derived from the URL. Never set by a handler (**AC-08**). */
   activeWorkspaceId: WorkspaceId | null
   landingRoute: string
-  collapsed: boolean
-  onToggleCollapsed: () => void
-  /** The rail-anchored popover attaches here when collapsed (§3.2). */
-  disclosureRef: React.Ref<HTMLButtonElement>
   t: Translate
 }
 
@@ -72,9 +122,6 @@ export function ModuleRail({
   navCountsLoading,
   activeWorkspaceId,
   landingRoute,
-  collapsed,
-  onToggleCollapsed,
-  disclosureRef,
   t,
 }: ModuleRailProps) {
   /* §2.2 — rail order is display order, and `Admin` is pinned to the bottom
@@ -84,26 +131,30 @@ export function ModuleRail({
   const group = workspaces.filter((w) => !w.pinnedToBottom)
   const pinned = workspaces.filter((w) => w.pinnedToBottom)
 
-  /* AC-64 — the four tiles are ONE tab stop. The disclosure and Admin are
-     their own stops, which is §13.2's order exactly. */
+  /* AC-64 (amended) — the four tiles are ONE tab stop, then Admin. */
   const roving = useRovingFocus({ itemCount: group.length })
 
   return (
     <nav
       aria-label={t('shell.nav.workspaces')}
       /* `overflow-hidden`, not `overflow-auto`: §1.1 — the rail NEVER scrolls,
-         and AC-19 tests that scrolling the content leaves it untouched. */
-      className="flex h-full w-rail shrink-0 flex-col items-center overflow-hidden border-e border-border bg-background px-1 py-2"
+         and AC-19 tests that scrolling the content leaves it untouched.
+         D6 — `bg-nav` and NO `border-e`. */
+      className="flex h-full w-rail shrink-0 flex-col overflow-hidden bg-nav text-nav-foreground"
     >
-      <Link
-        to={landingRoute}
-        aria-label="Eyvar"
-        className="mb-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      >
-        <EyvarMark />
-      </Link>
+      {/* The wordmark BAND — `h-topbar`, so its lower edge is the top bar's
+          lower edge. One register across the full width of the app. */}
+      <div className="flex h-topbar shrink-0 items-center justify-center">
+        <Link
+          to={landingRoute}
+          aria-label="Eyvar"
+          className="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
+          <EyvarMark />
+        </Link>
+      </div>
 
-      <div ref={roving.containerRef} className="flex w-full flex-col gap-1">
+      <div ref={roving.containerRef} className="flex flex-col gap-1 px-1 pt-1">
         {group.map((workspace, index) => (
           <RailTile
             key={workspace.id}
@@ -117,28 +168,11 @@ export function ModuleRail({
         ))}
       </div>
 
-      {/* §2.5 — ONE control, ONE fixed position, two states. It sits between
-          the four tiles and Admin, which is finding F-3's placement and
-          AC-64's amended order. Re-expanding is the POPOVER's pin control, not
-          a second rail button, so D-L10 is not recreated. */}
-      <button
-        ref={disclosureRef}
-        type="button"
-        onClick={onToggleCollapsed}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? t('shell.nav.showSubTabs') : t('shell.nav.hideSubTabs')}
-        className="mt-1 flex h-7 w-full shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors outline-hidden hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      >
-        <SubTabDisclosureGlyph filled={!collapsed} className="size-5" />
-      </button>
-
       {/* Flexible spacer — Admin is pinned, it does not scroll with the list. */}
       <div className="flex-1" />
 
-      {pinned.length > 0 && (
-        <Separator className="my-2 w-full" />
-      )}
-      <div className="flex w-full flex-col gap-1">
+      <div className="flex flex-col gap-1 px-1 pb-1">
+        {pinned.length > 0 && <Separator />}
         {pinned.map((workspace) => (
           <RailTile
             key={workspace.id}
@@ -177,64 +211,83 @@ function RailTile({
   t,
   ...itemProps
 }: RailTileProps) {
-  /* §2.2 — the VISIBLE label may be the short form; the ACCESSIBLE name is
-     always the full one, and the full one contains the short one, so WCAG
-     2.5.3 (Label in Name) holds. `Customer Support` is the only workspace that
-     needs a short form; the key simply falls back to the full name for the
-     other four, so there is no branch here. */
-  const fullName = t(workspace.titleKey)
-  const shortName = workspace.id === 'support' ? t('nav.workspace.support.short') : fullName
+  /* §2.2 (amended, D5) — ONE name. It is what the tile shows and what a screen
+     reader announces, so WCAG 2.5.3 holds by identity rather than by
+     containment. There is no `shortName` / `fullName` split left to drift.
+     Note the tile carries NO `aria-label`: that is deliberate and it is the fix
+     for defect D-4. An `aria-label` replaces the whole subtree in the
+     accessible-name computation, so the count badge below used to be announced
+     to nobody. Now the name composes — `Ops 35 items need attention`. */
+  const name = t(RAIL_LABEL_KEY[workspace.id])
 
   return (
     <Link
       to={`${workspace.routePrefix}/overview`}
-      aria-label={fullName}
       /* AC-08 — `aria-current` and every visual affordance below come from the
          ROUTE, which is why there is no `onClick` on this element at all. */
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group/tile relative flex h-14 w-full flex-col items-center justify-center gap-1',
-        'rounded-lg border border-transparent text-muted-foreground',
+        /* 44px = 4 + 20 glyph + 4 gap + 12 label + 4, every term on the grid. */
+        'group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1',
+        'rounded-lg px-1',
         'transition-colors outline-hidden',
-        'hover:bg-accent hover:text-foreground',
-        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        active && 'border-border bg-card text-foreground',
+        'hover:bg-nav-hover hover:text-foreground',
+        /* V1 — INSET, not offset. The sub-tab column's rows sit at gap 0, so an
+           offset ring there would overlap its neighbour; both nav levels use
+           the same ring so they cannot disagree. */
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        /* §2.3 / V2 — the whole active treatment: an inset filled white pill
+           and a 600 label. Nothing else. */
+        active && 'bg-card text-foreground',
       )}
       {...itemProps}
     >
-      {/* §2.3 — the 3px `--ev-blue` inset leading edge. An absolutely
-          positioned span with `start-0`, NOT `box-shadow: inset 3px 0 0`:
-          box-shadow is one property and §7.2's focus ring already owns it
-          (R-3 ruling), and a physical inset would not mirror in Arabic. */}
-      {active && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-0 start-0 w-marker rounded-s-lg bg-primary"
-        />
-      )}
-
       <WorkspaceGlyph
         workspaceId={workspace.id}
         className={cn('size-5', active && 'text-primary')}
       />
-      <span className={cn('text-xs leading-none', active ? 'font-semibold' : 'font-medium')}>
-        {shortName}
+      {/* `truncate` is a GUARD, not a mechanism. Every rail label is ≤ 7
+          characters, and 7 characters at 11px measure ~40px inside a 72px
+          content box, so it cannot fire — verified by measurement, not by eye.
+          It stays because a workspace label is still translatable free text and
+          an Arabic string is not bound by the English count.
+          `leading-3` (12px), not `leading-none`: that is the term that makes
+          the tile sum to 44 on the 4px grid (V1). */}
+      <span
+        className={cn(
+          'w-full truncate text-center text-2xs leading-3',
+          active ? 'font-semibold' : 'font-medium',
+        )}
+      >
+        {name}
       </span>
 
-      {/* §2.4 — block-start / inline-end, inset 6px. AC-27: NEVER suppressed
-          when the sub-tab column is collapsed. §9.1: while the counts load,
-          only the BADGE is a skeleton — the label above already rendered. */}
+      {/* §2.4 — block-start / inline-end. §9.1: while the counts load, only the
+          BADGE is a skeleton — the label above already rendered, because it
+          comes from the route table and not from the network. The skeleton is
+          the chip's exact size and fill, so nothing moves when the number
+          lands. */}
       {badgeLoading ? (
         <span
           aria-hidden="true"
-          className="absolute top-1.5 end-1.5 h-4 w-6 animate-pulse rounded-lg bg-border"
+          className="absolute top-1 end-1 h-4 w-6 animate-pulse rounded-lg bg-nav-chip ring-2 ring-nav"
         />
       ) : (
         badge && (
           <Badge
             size="count"
-            tone={badge.tone}
-            className="absolute top-1.5 end-1.5"
+            /* V6 — the tile is always neutral, and on the nav's ground neutral
+               is `--ev-nav-chip`: a quiet plate you can actually see, with ink
+               digits. `badge.tone` is `'neutral'` unconditionally here; the
+               conditional is kept honest rather than assumed, so a future
+               change in `navBadges` cannot silently paint a tile amber. */
+            tone={badge.tone === 'warning' ? 'warning' : 'nav-neutral'}
+            /* The badge overlaps the glyph by design — there is no room for it
+               not to. The ring cuts a clean notch out of whatever sits under
+               it, which is what makes the overlap read as deliberate rather
+               than as a collision. On an ACTIVE tile that ground is the white
+               pill; everywhere else it is the nav. */
+            className={cn('absolute top-1 end-1 ring-2', active ? 'ring-card' : 'ring-nav')}
             aria-label={t('shell.nav.backlog', { count: badge.count })}
           >
             {badgeOverflows(badge.count) ? t('shell.nav.countOverflow') : formatCount(badge.count)}
@@ -247,11 +300,10 @@ function RailTile({
 
 /**
  * The Eyvar mark. **Brand — it never mirrors** (§9.5). Mark only, no wordmark
- * lettering: §2.1 gives it a 32px block with a 24px glyph, and lettering is
- * illegible at that size. D-3 moved the mark into the rail, which is what frees
- * the top bar for wayfinding.
+ * lettering: lettering is illegible at 24px. D-3 moved the mark into the rail,
+ * which is what frees the top bar for wayfinding.
  */
-function EyvarMark() {
+function EyvarMark(): ReactNode {
   return (
     <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true" focusable="false">
       <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />

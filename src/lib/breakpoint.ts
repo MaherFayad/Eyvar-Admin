@@ -31,8 +31,13 @@ export function readWideBreakpointPx(doc: Document | null = globalThis.document 
  * Whether the viewport is on the wide side of the one breakpoint, **right now**.
  *
  * Read once, at first run. §3.9 forbids re-deriving nav state from a resize by
- * name, so there is no listener here and no hook wrapping this — `useNavCollapse`
- * calls it exactly once, in a lazy `useState` initialiser.
+ * name, so there is no listener here and no hook wrapping this: a caller reads it
+ * once, in a lazy `useState` initialiser, and never again.
+ *
+ * `useNavCollapse` was that caller until 02-shell-fixes deleted it (**D5**).
+ * `--ev-bp-wide` still has two of its three documented uses ahead of it — the
+ * detail right-rail drop (§7.2) and the metric-tile grid — so this stays; it is
+ * not yet dead, only not yet called.
  *
  * `innerWidth`, not `matchMedia`: nothing subscribes, so a `MediaQueryList` would
  * only add a jsdom shim requirement for a value we read once.

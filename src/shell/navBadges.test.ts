@@ -34,7 +34,7 @@ import {
   useEmptyNavCounts,
 } from '@/data/clients'
 import { workspaceBadge } from './navBadges'
-import type { NavCounts } from '@/data/types'
+import type { NavCounts, WorkspaceId } from '@/data/types'
 
 /** Every sub-tab row, through the seam. The shell reads exactly this. */
 const SUB_TABS = getRouteTable().subTabs
@@ -54,7 +54,7 @@ const asCounts = (subTabs: NavCounts['subTabs']): NavCounts => ({
   computedAt: '2026-06-25T09:14:00+03:00',
 })
 
-const tile = (subTabs: NavCounts['subTabs'], workspaceId: 'financials' | 'operations') =>
+const tile = (subTabs: NavCounts['subTabs'], workspaceId: WorkspaceId) =>
   workspaceBadge(asCounts(subTabs), SUB_TABS, workspaceId)
 
 describe('the fixture the `count > 0` gate needs', () => {
@@ -84,16 +84,39 @@ describe('workspaceBadge against that fixture', () => {
     expect(tile(navCountFixtures, 'financials')).toEqual({ count: 2, tone: 'neutral' })
   })
 
-  it('escalates as soon as that same sub-tab has one item', () => {
+  /* ── RE-CUT UNDER V6. ─────────────────────────────────────────────────
+     Two tests here used to assert that a tile ESCALATES to `warning` when one
+     of its sub-tabs is `attention` with work — Q12's roll-up. `workspaceBadge`
+     now returns `neutral` unconditionally, so neither could pass against any
+     fixture, and the mock-data-engineer proved the failure was not theirs by
+     reverting to the old nine-attention fixture and getting an identical
+     result. They are replaced, not adjusted, and the replacement asserts the
+     new invariant instead of the old one.
+
+     **Why the roll-up went.** Q12 was sound — *any tone on a tile must be
+     explained by a visible row with the same tone and a non-zero count* — and
+     it AMPLIFIES: a tile sums about seven rows, so one toned row in seven
+     turned the whole tile amber. Measured on the running build at 1440, 8 of 11
+     visible nav badges were warning, including 4 of the 5 rail tiles. A tile's
+     number is a sum of heterogeneous queues — three applications, four expiring
+     documents, one dispute — and a sum of different kinds of thing has no
+     single status to report. Only the row knows what its number means.       */
+
+  it('does NOT escalate when a sub-tab is attention with work — V6, the tile has no tone', () => {
     const withWork = navCountFixtures.map((c) =>
       c.subTabId === 'financials-cash' ? { ...c, count: 1 } : c,
     )
-    expect(tile(withWork, 'financials')).toEqual({ count: 3, tone: 'warning' })
+    /* The COUNT still rolls up (AC-27's count clause, verbatim). The TONE does
+       not, and this is the assertion that keeps it that way. */
+    expect(tile(withWork, 'financials')).toEqual({ count: 3, tone: 'neutral' })
   })
 
-  it('still escalates when an attention sub-tab has work — the rule is a gate, not a removal', () => {
-    /* Operations: My Work 12/attention. */
-    expect(tile(navCountFixtures, 'operations')?.tone).toBe('warning')
+  it('gives every one of the five tiles a neutral tone against the real fixture', () => {
+    /* Not one workspace, all five: the failure mode this replaces was a rail
+       that was amber everywhere, so the assertion is over the whole rail. */
+    for (const workspace of ['management', 'operations', 'financials', 'support', 'admin'] as const) {
+      expect(tile(navCountFixtures, workspace)?.tone ?? 'neutral', workspace).toBe('neutral')
+    }
   })
 
   it('shows no badge when the sum is zero, even with attention children', async () => {

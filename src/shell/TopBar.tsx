@@ -18,17 +18,29 @@
  *               this retires `navStack.length` (`:7005`, D-L5). It **mirrors**
  *               in Arabic, at string-construction time via `mirrorGlyph`,
  *               never with CSS (§9.5).
- *   §4 slot 2   `Title › Subtitle`, **exactly two tokens, never three**. A null
- *               subtitle renders NOTHING — no orphan separator, no trailing
- *               space. The `›` mirrors to `‹`. Not focusable. Aligned to the
- *               content region's inline-start edge.
- *   §4 slot 3   global search, centred on the viewport (§5).
- *   §4 slot 4a  `Mine` chip → `/operations/my-work`. **This fixes D-L1**, which
+ *   §4 slot 2   **DELETED — `02-visual-refinement.md` V4.** The `Title ›
+ *               Subtitle` route trail is gone and the slots renumber to
+ *               1, 2, 3a–3d. §4 justified the trail as wayfinding and aligned
+ *               it deliberately to the `<h1>` beneath, and that justification
+ *               rested on a state that no longer exists: at 1280 the sub-tab
+ *               column was collapsed on first run, so the trail was the only
+ *               place the sub-tab's name appeared. **D5 removes the collapse,**
+ *               so the column is always visible and already renders the
+ *               workspace name in its header and the sub-tab name in the active
+ *               pill. The trail restated the two things immediately to its own
+ *               inline-start, and the page header restated it a third time.
+ *               Shopify's bar carries no route echo either — measured on
+ *               `products-list-default.webp`, it holds the store mark, a
+ *               centred search field, a bell and an account chip, and nothing
+ *               else. **The inline-start is left EMPTY on index routes. It is
+ *               not filled with anything.**
+ *   §4 slot 2   global search, centred on the viewport (§5).
+ *   §4 slot 3a  `Mine` chip → `/operations/my-work`. **This fixes D-L1**, which
  *               routes it to Support Center. Renders nothing at zero.
- *   §4 slot 4b  `On call` chip → `/admin/team`. Reads `On call: unassigned` in
+ *   §4 slot 3b  `On call` chip → `/admin/team`. Reads `On call: unassigned` in
  *               **warning** tone when the rota has a gap — that gap is the
  *               entire reason the chip exists.
- *   §4 slot 4c  bell (S-06). §4 slot 4d avatar (S-07).
+ *   §4 slot 3c  bell (S-06). §4 slot 3d avatar (S-07).
  *   AC-76       **no emoji.** The legacy `✋` on the Mine chip and `📟` on the
  *               on-call chip are gone; both are text now.
  *   AC-18       the bar is mounted once, above the router outlet, and is never
@@ -84,8 +96,9 @@ export function TopBar({
 
   return (
     <header className="flex h-topbar shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-      {/* Slots 1 + 2 — the wayfinding pair, aligned to the content region's
-          inline-start edge so it lines up with the page header title. */}
+      {/* Slot 1 — the back arrow, and nothing else. V4 deleted the route trail
+          that used to sit beside it, so on an index route this half of the bar
+          is deliberately empty. */}
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {route.showsBackArrow && (
           <Button
@@ -100,14 +113,13 @@ export function TopBar({
             </span>
           </Button>
         )}
-        <TitlePair route={route} t={t} dir={dir} />
       </div>
 
-      {/* Slot 3 — §2.1 centres the field on the VIEWPORT. */}
+      {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}
       <GlobalSearch t={t} onOpenEntity={onOpenEntity} />
 
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-        {/* Slot 4a — `Mine`. Renders nothing at zero (AC-26). Routes to
+        {/* Slot 3a — `Mine`. Renders nothing at zero (AC-26). Routes to
             `/operations/my-work`, which is D-L1's fix. No emoji (AC-76). */}
         {(session?.claimedCount ?? 0) > 0 && (
           <Button
@@ -125,7 +137,7 @@ export function TopBar({
           </Button>
         )}
 
-        {/* Slot 4b — `On call`. A ROTA GAP is the reason this chip exists, so
+        {/* Slot 3b — `On call`. A ROTA GAP is the reason this chip exists, so
             the gap is the state that gets the warning tone. */}
         <Button variant="secondary" size="xs" asChild>
           <Link to="/admin/team">
@@ -137,7 +149,7 @@ export function TopBar({
           </Link>
         </Button>
 
-        {/* Slot 4c */}
+        {/* Slot 3c */}
         <NotificationBell
           summary={shell.notifications}
           t={t}
@@ -146,7 +158,7 @@ export function TopBar({
           onOpenNotification={onOpenNotification}
         />
 
-        {/* Slot 4d */}
+        {/* Slot 3d */}
         <AccountMenu
           session={session}
           t={t}
@@ -159,37 +171,8 @@ export function TopBar({
   )
 }
 
-/**
- * §4 slot 2. **Exactly two tokens, never three.** The subtitle comes from the
- * route table's `subtitleKey`, and `null` renders NOTHING — legacy has 41
- * titles and only 31 subtitles, so the orphan-separator case is the common one,
- * not the edge case.
- *
- * Not focusable, and not a breadcrumb: §2.6 bans breadcrumbs outright, and D-3
- * sanctions this pair at exactly two tokens. A level-3 detail keeps the single
- * back arrow to its inline-start rather than growing a third token.
- */
-function TitlePair({ route, t, dir }: { route: RouteState; t: Translate; dir: Direction }) {
-  if (!route.subTab) return null
-
-  /* On a level-3 detail the pair is `<sub-tab> › <detail>`; on a sub-tab index
-     it is `<sub-tab> › <subtitle>`. Two tokens either way. */
-  const title = t(route.subTab.titleKey)
-  const secondKey = route.detail ? route.detail.titleKey : route.subTab.subtitleKey
-  const second = secondKey ? t(secondKey) : null
-
-  return (
-    <div className="flex min-w-0 items-baseline gap-1.5">
-      <span className="truncate text-sm font-semibold text-foreground">{title}</span>
-      {second && (
-        <>
-          {/* §9.5 — `›` mirrors to `‹`, at string-construction time. */}
-          <span aria-hidden="true" className="shrink-0 text-sm text-muted-foreground">
-            {mirrorGlyph('›', dir)}
-          </span>
-          <span className="truncate text-sm text-muted-foreground">{second}</span>
-        </>
-      )}
-    </div>
-  )
-}
+/* `TitlePair` was deleted here — V4. It rendered `<sub-tab> › <subtitle>` (or
+   `<sub-tab> › <detail>`), which is the third of three places the same two
+   strings appeared on every route. Nothing replaced it; the slot is empty. If
+   you are about to put a breadcrumb back, read §2.6 first — it bans them
+   outright, and D-3 only ever sanctioned this pair at exactly two tokens. */

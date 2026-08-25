@@ -92,12 +92,22 @@ function SupportGlyph(props: GlyphProps) {
   )
 }
 
-/** Admin — a gear. */
+/**
+ * Admin — sliders.
+ *
+ * **Not a gear.** The gear this replaced was a circle plus eight detached
+ * radial ticks, which at the rail's 20px renders as a ring of dashes — the
+ * universal loading spinner. A workspace tile that looks like it is perpetually
+ * loading is worse than one with a duller glyph, and settings-as-sliders is
+ * unambiguous at 20px because its three horizontal rules survive the hinting.
+ */
 function AdminGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9L5.3 5.3" />
+      <path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h9M17 17h3" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="12" r="2" />
+      <circle cx="15" cy="17" r="2" />
     </Glyph>
   )
 }
@@ -118,28 +128,8 @@ export function WorkspaceGlyph({
   return <Component {...props} />
 }
 
-/**
- * The sub-tab disclosure — §2.5. **Two states, one control, one position.**
- *
- * Expanded → a **filled** two-panel icon, `Hide sub-tabs`.
- * Collapsed → an **outline** two-panel icon, `Show sub-tabs`.
- *
- * This one DOES mirror, and it mirrors correctly by construction rather than
- * by CSS: the narrow panel is drawn at the INLINE-START, and the element
- * carries `rtl:-scale-x-100`. §14 bans a blanket `scaleX(-1)` on `svg` or any
- * broad selector — this is the per-glyph, opt-in case that ban leaves open,
- * and the decision is carried in the icon's own definition, which is where §14
- * says it belongs.
- */
-export function SubTabDisclosureGlyph({
-  filled,
-  ...props
-}: GlyphProps & { filled: boolean }) {
-  return (
-    <Glyph {...props} className={`rtl:-scale-x-100 ${props.className ?? ''}`}>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M9 4v16" />
-      {filled && <path d="M4.5 5.5h3v13h-3z" fill="currentColor" stroke="none" />}
-    </Glyph>
-  )
-}
+/* `SubTabDisclosureGlyph` was deleted in 02-shell-fixes. The sub-tab column no
+   longer collapses (`DECISIONS.md` **D5**), so the control it drew does not
+   exist. It was the only glyph in the product that mirrored, which is why §14's
+   per-glyph `rtl:-scale-x-100` opt-in now has zero call sites — leave the ban on
+   a blanket `svg { scaleX(-1) }` in place regardless. */

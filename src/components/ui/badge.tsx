@@ -60,6 +60,17 @@ const badgeVariants = cva(
         neutral: "bg-neutral text-neutral-foreground",
         // a new or promotional marker — outline, not a fill (§12.1).
         new: "border-primary bg-transparent text-info-foreground",
+        /* The NAV's neutral count chip, and only the nav's — V3.
+           This is NOT a sixth content tone and R7 is untouched: it is the same
+           `neutral` meaning on a different GROUND. `--ev-bg2` is 1.073 : 1
+           LIGHTER than `--ev-bg-nav`, so the stock neutral chip on the nav is a
+           plate nobody can see, and that invisibility is exactly why every nav
+           badge got promoted to `attention` — peach was the only fill with a
+           shape. `--ev-nav-chip` is 1.141 : 1 DARKER, matching Shopify's own
+           measured chip step (`#DDDDDD` on `#EBEBEB`, 1.139 : 1) to three
+           decimals. Digits are `--ev-ink` (12.92 : 1), never `--ev-text-2`,
+           which fails AA at 11px on any plate dark enough to read. */
+        "nav-neutral": "bg-nav-chip text-nav-chip-foreground",
       },
       size: {
         // Status badge: 20px, 11px/600, 6px inline padding.
@@ -80,6 +91,7 @@ function Badge({
   tone = "neutral",
   size = "default",
   asChild = false,
+  dir,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
@@ -90,6 +102,17 @@ function Badge({
       data-slot="badge"
       data-tone={tone}
       data-size={size}
+      /* AC-73 / §9.2 — **a count badge is a numeral run and is isolated LTR.**
+         Found in the RTL screenshot at 1280: `99+` rendered as `+99`, because
+         `+` is a bidi-neutral character and, at the end of a run inside an RTL
+         paragraph, it takes the paragraph's direction and jumps to the other
+         side. The same applies to `1 234` with a separator and to any future
+         `+`/`-` delta. `dir` is a DIRECTION attribute, not a physical utility —
+         it is the mechanism §9.2 asks for, and it is set here rather than at
+         thirty call sites. `default`-size badges carry words, which must
+         mirror, so only `count` is isolated. An explicit `dir` prop still
+         wins. */
+      dir={dir ?? (size === "count" ? "ltr" : undefined)}
       className={cn(badgeVariants({ tone, size }), className)}
       {...props}
     />

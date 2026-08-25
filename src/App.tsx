@@ -1,51 +1,65 @@
 /**
- * App — the minimal root for 0.3/0.4. **The real shell is 0.7.**
+ * `App` — the document-level providers, and the router.
  *
- * This file exists to do three things and nothing else:
- *   1. mount the three document-level providers every primitive depends on,
- *   2. give `globals.css` something to paint so the token layer is verifiable,
- *   3. compile.
+ * Each provider here is a **singleton per document**, which is why none of them
+ * lives inside `AppLayout`:
  *
- * In 0.7 the body of this file is replaced by `AppLayout` (L-01) plus the
- * router. The providers below stay, and they belong HERE rather than inside
- * `AppLayout` because each must be a singleton per document:
- *
- *   `DirectionProvider`  Radix reads direction from context, not the DOM
- *                        (AC-70, AC-71). It must be fed the SAME value set on
- *                        `<html>` — one source, never two.
+ *   `BrowserRouter`      one history. `AppLayout` is a LAYOUT ROUTE beneath it,
+ *                        so it is never remounted by navigation (**AC-18**).
+ *   `ShellProvider`      identity, nav counts, language, the collapse flag and
+ *                        the standing conditions. Mounted once for the session
+ *                        (spec §4.1); its `useAsync` reads have empty deps, so
+ *                        a route change never refetches identity.
+ *   `DirectionProvider`  Radix reads text direction from a React CONTEXT, not
+ *                        from the DOM. Without it every popover side, every
+ *                        menu alignment and every arrow-key traversal stays LTR
+ *                        while the page mirrors (**AC-70**, **AC-71**). It is
+ *                        fed the SAME value `useLanguage` sets on `<html>` —
+ *                        one source, never two.
  *   `TooltipProvider`    one delay policy for the whole product (§5.7).
- *   `Toaster`            mounted ABOVE the router outlet so a toast survives a
- *                        route change within its 5s window (AC-23), and so
- *                        there is exactly ONE live region for toasts (AC-29).
+ *   `Toaster`            mounted ABOVE the router outlet, so a toast **survives
+ *                        a route change** within its 5s window (**AC-23**), and
+ *                        so there is exactly one toast region.
  *
- * Two shell pieces are deliberately NOT here, because they are 0.7's:
- * `SkipToContent` (S-09, the first focusable element in the document, AC-62)
- * and `LiveRegionAnnouncer` (S-08).
+ * **`LiveRegionAnnouncer` (S-08) is deliberately not a component here.** 0.5's
+ * announcer is a module singleton created on first use, because **AC-29** says
+ * *exactly one* live region — and a component any screen can render is one
+ * `git grep` away from being three. Call `useAnnounce()`.
  */
-import { DirectionProvider } from "@/components/ui/direction"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { Toaster } from "@/components/ui/sonner"
+
+import { BrowserRouter } from 'react-router-dom'
+import { DirectionProvider } from '@/components/ui/direction'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
+import { AppRoutes } from '@/routes'
+import { ShellProvider, useShell } from '@/shell/ShellContext'
 
 function App() {
-  // 0.7 reads this from `ui.language`. Until then it follows the document,
-  // which `index.html` sets — so there is still exactly one source.
-  const dir =
-    (document.documentElement.getAttribute("dir") as "ltr" | "rtl" | null) ??
-    "ltr"
-
   return (
-    <DirectionProvider dir={dir}>
-      <TooltipProvider>
-        <main className="min-h-screen bg-background p-6 text-sm text-foreground">
-          <h1 className="text-lg font-semibold">Eyvar Admin</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Foundations only. The shell lands in 0.7.
-          </p>
-        </main>
-        <Toaster />
-      </TooltipProvider>
-    </DirectionProvider>
+    <BrowserRouter>
+      <ShellProvider>
+        <DirectionBridge>
+          <TooltipProvider>
+            <AppRoutes />
+            <Toaster />
+          </TooltipProvider>
+        </DirectionBridge>
+      </ShellProvider>
+    </BrowserRouter>
   )
+}
+
+/**
+ * Feeds Radix the direction the language hook already set on `<html>`.
+ *
+ * It reads `useShell()` rather than the DOM so there is **one source**: 0.5's
+ * `applyDocumentDirection` writes `dir` and `lang` on the document element, and
+ * this reads the same state that wrote them. Reading `document.documentElement`
+ * back would be a second source that can disagree for exactly one render.
+ */
+function DirectionBridge({ children }: { children: React.ReactNode }) {
+  const { language } = useShell()
+  return <DirectionProvider dir={language.dir}>{children}</DirectionProvider>
 }
 
 export { App }

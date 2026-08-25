@@ -38,6 +38,7 @@
 
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 export type EmptyKind = 'first-run' | 'no-match'
@@ -49,8 +50,40 @@ export interface EmptyAction {
   primary?: boolean
 }
 
+
+/**
+ * **All four states sit inside a card** — `02-visual-refinement.md` §4, item 10.
+ *
+ * They used to render straight onto `--ev-bg` with nothing under them, and a
+ * centred grey paragraph on a grey canvas with no ground reads as broken chrome
+ * rather than as a designed state. Measured on `customers-empty-state.webp`:
+ * Shopify's empty state is **inside a card**, at the full content width, 442px
+ * tall, with `Learn more about customers.` **outside and beneath it** — which is
+ * V-11 and our own §11.1 exactly. The card is the part we had dropped.
+ *
+ * **The decision left to me was prop vs. wrapper** (§7.1 of that spec). A PROP,
+ * because the ruling is *"the default must be carded"* and a wrapper cannot have
+ * a default — every call site would have to remember, and the two that forget
+ * are the two nobody looks at. `card` is opt-OUT, for the one real case: a state
+ * rendered inside a card that already exists, e.g. `no-match` in a `<td
+ * colspan>` under a live toolbar.
+ *
+ * `scope="row"` has no `card` prop at all. It replaces one table cell; a card
+ * there is not a styling mistake, it is a structural one, so the type forbids it
+ * rather than the review catching it.
+ *
+ * The card recipe itself is NOT re-typed here — it is `Card`, with its own
+ * padding-block zeroed so the state owns its vertical rhythm. One source for the
+ * radius, the border and `--ev-shadow-1`; one override.
+ */
+function StateCard({ children }: { children: ReactNode }) {
+  return <Card className="w-full py-0">{children}</Card>
+}
+
 interface FirstRunProps {
   kind: 'first-run'
+  /** §4 — carded by default. Opt out only inside a card that already exists. */
+  card?: boolean
   /** §11.1 — names the VALUE of the section, never the absence of data. */
   heading: string
   body: string
@@ -62,6 +95,8 @@ interface FirstRunProps {
 
 interface NoMatchProps {
   kind: 'no-match'
+  /** §4 — carded by default. Opt out only inside a card that already exists. */
+  card?: boolean
   /** ONE grey sentence. Takes a period (R6). */
   message: string
   action?: EmptyAction
@@ -71,11 +106,16 @@ interface NoMatchProps {
 export type EmptyStateProps = FirstRunProps | NoMatchProps
 
 export function EmptyState(props: EmptyStateProps) {
+  const carded = props.card ?? true
+
   if (props.kind === 'no-match') {
     const { message, action, className } = props
-    return (
-      <div className={cn('flex flex-col items-center gap-2 px-3 py-8 text-center', className)}>
-        {/* One grey sentence. No illustration, no heading — AC-37. */}
+    const body = (
+      /* §4.3 — padding-block 40. One grey sentence, no illustration, no
+         heading (**R8**, **AC-37**). The action appears only where one
+         GENUINELY exists — `Clear filters` when `table.isFiltered`, nothing
+         otherwise. */
+      <div className={cn('flex flex-col items-center gap-2 px-3 py-10 text-center', className)}>
         <p className="text-sm text-muted-foreground">{message}</p>
         {action && (
           <Button variant="ghost" size="default" onClick={action.onClick}>
@@ -84,20 +124,25 @@ export function EmptyState(props: EmptyStateProps) {
         )}
       </div>
     )
+    return carded ? <StateCard>{body}</StateCard> : body
   }
 
   const { heading, body, actions, illustration, className } = props
-  return (
+  const content = (
+    /* §4.2 — padding-block 64. The gap between the illustration and the
+       heading is 20 and between heading and body is 8, which `gap-3` plus the
+       heading's own line box approximates on the 4px grid. */
     <div
       className={cn(
-        'flex flex-col items-center gap-3 px-3 py-10 text-center',
+        'flex flex-col items-center gap-3 px-3 py-16 text-center',
         className,
       )}
     >
-      {/* ~160px wide, muted brand palette, INSIDE the index card (§11.1). */}
-      <div className="w-40 text-primary">{illustration ?? <DefaultIllustration />}</div>
+      {/* 144px, INSIDE the card (§11.1). Not 160: Shopify measures 146 and
+          D-2 puts us one 4px step denser (§4.2). `w-36` = 144. */}
+      <div className="w-36 text-primary">{illustration ?? <DefaultIllustration />}</div>
       <h3 className="text-base font-semibold text-foreground">{heading}</h3>
-      {/* Constrained to ~380px so the sentence keeps a readable measure. 96
+      {/* Constrained to 384px so the sentence keeps a readable measure. 96
           spacing units = 384px, on the 4px grid — no arbitrary value. */}
       <p className="max-w-96 text-sm text-muted-foreground">{body}</p>
       <div className="flex items-center gap-2">
@@ -113,6 +158,7 @@ export function EmptyState(props: EmptyStateProps) {
       </div>
     </div>
   )
+  return carded ? <StateCard>{content}</StateCard> : content
 }
 
 /**

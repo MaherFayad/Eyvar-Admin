@@ -25,6 +25,12 @@ designed until it gets one.**
 | Full-bleed editor | Breaks the frame: plan editor, bulk edit | Full viewport |
 | Monitoring shell | Live map + side list (§8.1) | Full viewport |
 
+## Table controls are not per-pattern
+
+Sort, filter and column pinning belong to `DataTable`, not to the screen, in **all three
+modes**. What varies is only which menu items a mode offers — see `components.md`. Do not
+build a per-page sort or filter control for any pattern in the table above.
+
 ## Pattern-specific traps
 
 - **Ledger ≠ index table.** Rows are append-only: no row actions, no bulk selection (§8.3).

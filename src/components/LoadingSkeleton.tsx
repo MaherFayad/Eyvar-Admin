@@ -158,7 +158,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
             <Skeleton className="h-4 w-56" />
             <Skeleton className="h-4 w-28" />
           </div>
-          <RowBars rows={6} columns={[24, 20, 40, 12, 12, 12]} />
+          <RowBars rows={6} columns={[2, 2, 4, 1, 1, 2]} />
           <div className="border-t border-border px-3 py-2">
             <Skeleton className="h-4 w-full" />
           </div>
@@ -226,25 +226,46 @@ function IndexShape({ rows, queue = false }: { rows: number; queue?: boolean }) 
       </div>
       <RowBars
         rows={rows}
-        columns={queue ? [4, 28, 20, 12, 16, 14, 12] : [4, 32, 16, 14, 12, 12, 6]}
+        columns={queue ? [1, 3, 2, 2, 2, 1, 1] : [1, 4, 2, 2, 1, 1, 1]}
       />
     </div>
   )
 }
 
-/** N rows of bars at the given percentage widths, plus a header row. */
+/**
+ * N rows of bars, plus a header row, on a 12-column grid.
+ *
+ * §11.3 requires the bars to match the real column widths, so each entry is a
+ * COLUMN SPAN out of twelve and they sum to twelve. Spans rather than
+ * percentages deliberately: a percentage would need an inline
+ * `style={{ width }}`, and static styling never belongs inline — the audit's
+ * triage permits an inline style only where it is genuinely dynamic, which a
+ * fixed skeleton shape is not.
+ */
+const SPAN: Record<number, string> = {
+  1: 'col-span-1',
+  2: 'col-span-2',
+  3: 'col-span-3',
+  4: 'col-span-4',
+  5: 'col-span-5',
+  6: 'col-span-6',
+}
+
 function RowBars({ rows, columns }: { rows: number; columns: number[] }) {
   return (
     <>
-      <div className="flex h-row items-center gap-3 border-b border-border px-3">
-        {columns.map((width, i) => (
-          <Skeleton key={i} className="h-2.5" style={{ width: `${width}%` }} />
+      <div className="grid h-row grid-cols-12 items-center gap-3 border-b border-border px-3">
+        {columns.map((span, i) => (
+          <Skeleton key={i} className={cn('h-2.5', SPAN[span])} />
         ))}
       </div>
       {Array.from({ length: rows }, (_, r) => (
-        <div key={r} className="flex h-row items-center gap-3 border-b border-border px-3 last:border-0">
-          {columns.map((width, i) => (
-            <Skeleton key={i} className="h-3" style={{ width: `${width}%` }} />
+        <div
+          key={r}
+          className="grid h-row grid-cols-12 items-center gap-3 border-b border-border px-3 last:border-0"
+        >
+          {columns.map((span, i) => (
+            <Skeleton key={i} className={cn('h-3', SPAN[span])} />
           ))}
         </div>
       ))}

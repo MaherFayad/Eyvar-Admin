@@ -214,16 +214,19 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
               heading={t('shell.search.destinations', { count: destinations.length })}
               results={destinations}
               onActivate={activate}
+              t={t}
             />
             <ResultGroup
               heading={t('shell.search.records', { count: records.length })}
               results={records}
               onActivate={activate}
+              t={t}
             />
             <ResultGroup
               heading={t('shell.search.actions', { count: actions.length })}
               results={actions}
               onActivate={activate}
+              t={t}
             />
 
             {/* §5 — the escape hatch is ALWAYS the last row, present whether or
@@ -253,33 +256,65 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
   )
 }
 
+/**
+ * **AC-74 — a search result must never render a raw i18n key.** The 0.8 QA
+ * verdict found `subtab.operations.overview` rendering as a visible result
+ * title, and it was right.
+ *
+ * The root cause is in the data layer, not here: `searchDestinations` in
+ * `src/data/clients/profile.ts` sets `title: row.titleKey`, and
+ * `SearchResult.title` is typed as a finished display string. **The real fix is
+ * a `titleKey` field on `SearchResult`** so a destination carries a key and an
+ * entity carries a name, and neither has to be guessed. `src/data` has a single
+ * owner and it is not me; raised to mock-data-engineer in `02-shell-fixes.md`.
+ *
+ * Until that lands the shell defends itself, because rendering a key to an
+ * operator is worse than a guard. The guard is deliberately narrow: a dotted,
+ * space-free, lower-camel token is an i18n key and nothing an operator is
+ * called. `Nora Al-Harbi`, `TRP-4182` and `Riyadh North` all fail it, so a
+ * human string is never put through `t()` — which matters, because `t()`
+ * THROWS on a missing key in dev and under test.
+ */
+const LOOKS_LIKE_I18N_KEY = /^[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+$/
+
+function displayString(value: string, t: Translate): string {
+  return LOOKS_LIKE_I18N_KEY.test(value) ? t(value) : value
+}
+
 /** One labelled section. Renders nothing when empty — a `Records (0)` heading is noise. */
 function ResultGroup({
   heading,
   results,
   onActivate,
+  t,
 }: {
   heading: string
   results: SearchResult[]
   onActivate: (result: SearchResult) => void
+  t: Translate
 }) {
   if (results.length === 0) return null
   return (
     <CommandGroup heading={heading}>
-      {results.map((result) => (
-        <CommandItem
-          key={`${result.kind}:${result.title}:${result.subtitle ?? ''}`}
-          value={`${result.kind}:${result.title}:${result.subtitle ?? ''}`}
-          onSelect={() => onActivate(result)}
-          className="flex-col items-start gap-0"
-        >
-          <span className="text-sm text-foreground">{result.title}</span>
-          {/* §5 — result METADATA, `·` separated. Not a breadcrumb (§2.6). */}
-          {result.subtitle && (
-            <span className="text-xs text-muted-foreground">{result.subtitle}</span>
-          )}
-        </CommandItem>
-      ))}
+      {results.map((result) => {
+        const title = displayString(result.title, t)
+        const subtitle = result.subtitle ? displayString(result.subtitle, t) : null
+        return (
+          <CommandItem
+            key={`${result.kind}:${result.title}:${result.subtitle ?? ''}`}
+            /* `value` is what `cmdk` filters and matches on, so it takes the
+               DISPLAY string: an operator typing `Overview` must match the row
+               that says `Overview`, not the key behind it. */
+            value={`${result.kind}:${title}:${subtitle ?? ''}`}
+            onSelect={() => onActivate(result)}
+            className="flex-col items-start gap-0"
+          >
+            <span className="text-sm text-foreground">{title}</span>
+            {/* §5 — result METADATA, `·` separated. Not a breadcrumb (§2.6). */}
+            {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
+          </CommandItem>
+        )
+      })}
     </CommandGroup>
   )
 }

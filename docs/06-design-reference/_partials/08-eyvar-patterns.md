@@ -3,8 +3,9 @@
 > **Why this section exists.** §1–§5 derive their rules from 159 screenshots of the Shopify
 > admin, which is a merchant CRUD tool: records are created, edited, listed and archived by
 > one person at a time, on their own schedule, against data that does not move while they
-> look at it. Eyvar Admin is an operations console. Four of its surface types have no
-> Shopify equivalent at all, and together they are roughly half the product:
+> look at it. Eyvar Admin is an operations console. Five of its surface types have no
+> Shopify equivalent, or no *governed* Shopify equivalent, and together they are roughly
+> half the product:
 >
 > | Surface type | Eyvar pages | Why §1–§5 does not reach it |
 > |---|---|---|
@@ -12,6 +13,7 @@
 > | Derived / computed values | `p-plan-edit`, `p-plans` | §4.2 has one line on read-only fields. Eyvar has a computation lattice with a published formula. |
 > | Money and ledgers | `p-wallets`, `p-rwallets`, `p-finance` | §4.2 says how to render a currency *input*. Nothing says how to render money as *output*. |
 > | Work queues and SLA | `p-fraud`, `p-all-pending`, `p-requests`, `p-interventions`, `p-readiness`, `p-renewal` | §3.1 governs a list of records. A queue is a list of *work*: claimed, timed, decided, gone. |
+> | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[Polaris]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
 >
 > **Claim marking, extended.** §1–§5 use `[observed]` (visible in a cited screenshot) and
 > `[Polaris]` (recalled, unverified). This section adds a third tag:
@@ -26,7 +28,9 @@
 > is upheld and extended in §8.3. R5 (no red badges) is upheld as a *badge* rule and
 > **explicitly amended** in §8.4 — see R5a. §1.6 (motion) is **explicitly amended** in
 > §8.1 — see R18. §4.2 (computed fields render as normal input boxes) is **overridden** in
-> §8.2.
+> §8.2. **§8.5 introduces no new ruling.** R1–R19 are untouched by it: its one collision
+> with §1–§5 — interactive header cells — is settled where the precedence ladder already
+> settles that class of collision, by a row in §6.2 (**D-6**), not by a twentieth ruling.
 
 ---
 
@@ -693,3 +697,298 @@ icon tile, never both, or red stops meaning "this one".
 - A breached row MUST NOT pulse, blink, or loop (R18, §8.1.6). `reqPulse` (`:145`) MUST NOT be applied to a critical state.
 - A row MUST carry at most one red carrier — the edge marker or an `.ai-r` icon tile (`:163`), never both.
 - Red MUST appear only in the four places R5a enumerates: a destructive button, one page-level critical banner, a breached-row edge marker, and a map marker. Any fifth use requires a written entry in §6.2.
+
+---
+
+### 8.5 Dense tables: per-column controls and column pinning
+
+**What was tried and why it does not fit.** §3.1 and §3.2 govern a list of records that fits.
+Every control they define lives in the **toolbar**: one sort popover, one filter chip row, one
+optional columns icon. That works at Shopify's ~40 px rows and six-to-eight columns on a page
+someone visits. Eyvar runs 23 of its 41 pages as tables at **32 px rows** (§6.2 D-2), some
+carrying twelve columns `[code]` `eyvar_ops_panel_v40_fixed.html:740-751`, in front of an
+operator who works one of them all day. Two things break.
+
+**First, the toolbar cannot reach a column.** §3.2's sort popover asks *which field*, which
+means the operator must translate "I want this column sorted" into "find its name in a radio
+list." §3.1's filter chips have the same indirection. The column is right there, under the
+pointer, and the control is 400 px away in a popover.
+
+**Second, §3.1 concedes horizontal scroll and then stops.** *"Wide tables clip at the card's
+right edge"* `[observed]` `02-orders/orders-list-with-metrics-row.webp` — the `Tags` column is
+cut off with no scrollbar in frame. The document adds: *"That they scroll horizontally, and that
+the checkbox + primary cell stay pinned while they do, are both `[Polaris]` — a static frame
+cannot show a scroll."* So §3.1 has **already committed to implicit column pinning** on recall,
+with no rule attached, no statement of which columns, no visual treatment, and no RTL clause —
+in a document whose §9 exists because directional geometry is where this product breaks.
+
+**And §2.5 already makes it a MUST, for exactly one surface:** *"Bulk grids MUST be edge-to-edge
+with a sticky header row and a **frozen identity column**."* So a frozen column is normative in
+this document today — for the full-bleed bulk editor, and nowhere else, with no statement of
+which column beyond "identity", no visual treatment, no cap and no RTL clause. §8.5 generalises
+that MUST to every dense table rather than inventing a second rule beside it.
+
+Nothing in §1–§5 covers an operator freezing a column of their own choosing, and Eyvar already
+ships one, badly (§8.5.1).
+
+#### 8.5.1 What already exists, and the defect in it
+
+**Shopify does freeze a column** — in the full-screen bulk-edit grid, not the index table.
+`03-products/products-bulk-editor-grid.webp` and `03-products/products-bulk-editor-price-columns.webp`
+are the same grid at two horizontal scroll offsets. Diffing them with PIL `[observed]`:
+
+```
+region                              mean channel diff   max
+Product title column   (x < 210)                0.13     14   <- WebP compression noise
+first scrolling column (x 230+)                 8.25    220
+```
+
+The first column does not move; `Tags` scrolls away and `Status` slides up against it. The
+frozen boundary, sampled at a body row in both frames:
+
+```
+x           204 ... 211   212    213    214   215
+grid        247,247       241    248    255   254
+scrolled    247,247       241    248    255   254
+```
+
+`[observed]` **One 1 px hairline, identical scrolled and unscrolled.** No gradient falloff, so
+no shadow — a `0 ... 6px` blur would render as a ramp across four to eight pixels and there is
+none.
+
+**Eyvar already pins a column, physically.** `[code]` `eyvar_ops_panel_v40_fixed.html:751` and
+`:3555`, on the twelve-column Subscriptions index:
+
+```html
+<th style="position:sticky;right:0;background:var(--bg2);
+           box-shadow:-4px 0 6px -4px rgba(0,0,0,.12)">Actions</th>
+```
+
+with `.tbl-scroll{overflow-x:auto}` at `:147` as the scroll container `[code]`. Three readings,
+all load-bearing:
+
+1. **The thing operators pin is the row's action control**, not a data column. That is a real
+   requirement, and §8.5.3 makes it structural rather than optional.
+2. **`right:0` has no `[dir="rtl"]` counterpart anywhere in the file.** The only RTL overrides
+   are `.sb` `:383-385` and `.settings-nav-col` `:401-402` `[code]`. In Arabic the pinned column
+   freezes to the edge the reader's eye *leaves*, and scrolling carries it further away. Same
+   family as the three defects §9.1 already lists.
+3. **The shadow carries a negative x-offset.** §1.4's elevation set is `offset-x: 0` throughout,
+   deliberately, so elevation never needs an RTL branch. `-4px 0 6px -4px` is exactly what that
+   closure exists to prevent. It is a defect, not a precedent.
+
+#### 8.5.2 Per-column controls
+
+**[ruling]** A header cell contains **exactly one** interactive element — a button opening a
+menu — or **none**. Never two. The menu carries only what the column declares: a sort direction
+pair, a filter, a pin, a hide. This is the deviation sanctioned as **D-6**; §6.2 carries the
+full argument and the three clauses it suspends.
+
+```
++- 200px -----------------------+   start-aligned header      end-aligned header
+| (*)  ^  Sort A to Z           |   +------------------+      +------------------+
+| ( )  v  Sort Z to A           |   | Captain  ^  v    |      |    v  v  Trips   |
+|      Clear sort               |   +------------------+      +------------------+
+| ----------------------------- |     label flush to the        label flush to the
+|      Filter...                |     inline-START              inline-END, so header
+|      Clear filter             |                               and value share one
+| ----------------------------- |                               edge — R4 upheld
+|      Pin column               |
+|      Hide column              |
++-------------------------------+
+```
+
+**Glyph assignment, made disjoint.** §1.5 and §9.1 translation row 9 reserve the trailing caret
+*"exclusively for controls that open a menu or select."* §3.1's `[observed]` sort indicator is
+also a chevron. Both cannot hold once every header is a menu, so:
+
+| Glyph | Means |
+|---|---|
+| `⌄` | this opens a menu — header trigger, filter chip, saved-view tab, `More actions` |
+| `↑` `↓` | sort direction — header indicator, and §3.2's direction pair, which already uses arrows `[observed]` |
+| `⇅` | the toolbar sort control |
+
+Neither mirrors in Arabic. `↑ ↓` are vertical magnitude (§9.2); `⌄` points block-end and only
+its *position* moves.
+
+**The affordance is not hover-only.** The `⌄` renders at rest, at `--muted`, on every header
+with a menu, and takes `--ink` plus a `--bg2` cell fill on `:hover`, on `:focus-visible` and
+while its menu is open — the same two-step §7.3 already requires of the row kebab. §7 beats §3,
+and capability that is invisible without a pointer does not exist for a keyboard operator.
+
+**Sorting stays single.** Exactly one column carries a sort arrow, ever. The header menu and
+§3.2's toolbar popover are two triggers writing one value; a second sort field would need a
+transport change and an ordinal glyph in a 32 px cell, and neither is warranted.
+
+**Filtering stays one model.** A column filter is one filter specification keyed on the column's
+field, rendered as a chip in §3.2's existing chip row and summarised in the header as
+`Label: value` in semibold. It is not a second filter state living somewhere new. The chip row
+remains the complete readout; the header summary may truncate.
+
+**A ledger header may filter and pin. It may never sort.** §8.3.3, unchanged: a running balance
+is meaningful only in posting order. Filtering selects a subset of postings and leaves each
+posting's persisted `balanceAfter` intact; reordering destroys the column's meaning.
+
+#### 8.5.3 Column pinning
+
+**[ruling]** Three regions. Only one of them belongs to the operator.
+
+```
++-- PINNED, inline-start --------+|~~~ scrolls ~~~~~~~~~~~~~~~~~~~+|+- PINNED, inline-end -+
+| # | Captain      ^ v | City v ||| Plan v | Trips v | Earned v ||          ...          |
+|---+------------------+--------|||--------+---------+----------|+-----------------------+
+| # | Nora Al-Harbi    | Riyadh ||| Weekly |     412 |  4,218.00||          ...          |
+| | | DRV-0106         | Dammam ||| Weekly |       0 |      0.00||          ...          |
++-^-+------------------+--------+|+--------+---------+----------++-----------------------+
+  |  R5a marker rides the pinned  hairline boundary
+  |  region and NEVER scrolls away
+```
+
+| Region | Contents | Decided by |
+|---|---|---|
+| Implicit inline-start | §8.4's row-critical marker lane · selection checkbox · column index 0, the identity | the component, always |
+| Operator inline-start | any columns within the width budget, rendered in **column-declaration order** | the operator |
+| Implicit inline-end | the row overflow kebab (absent on a ledger) | the component, always |
+
+**The pinned region renders in column-declaration order, never in the order the operator
+clicked.** Pinning is a freeze, not a reorder: if pinning one column moved it in front of another
+merely because it was clicked first, the operator would have performed a column reorder they
+never asked for, and pinning a second column would visibly shuffle the first. Column *order* is
+separate per-view state (§3.1 *Column visibility*).
+
+**Only the inline-start edge is operator-pinnable.** The inline-end is spoken for: §3.1 fixes
+the kebab at the row's inline-end and `[code]` `:751` shows that the action control is what
+operators freeze there. Allowing arbitrary data columns to be inserted between the scrolling
+region and the row's action control puts a moving boundary around the one control that must
+stay put. Shopify freezes one region, at the start `[observed]`.
+
+**The identity column is never hideable and never unpinnable.** §3.1: the first data cell MUST
+be the identity and MUST be a link to the record. You cannot hide or scroll away the only thing
+that navigates.
+
+**The row-critical marker rides the pinned region.** §8.4's 3 px leading-edge marker is drawn at
+the row's inline-start. On a scrolling region it would vanish the moment the operator scrolled,
+and R5a's three parts are explicit that *none substitutes for another*. The implicit block
+always exists, so the marker always has a stationary host.
+
+**One guard, measured against the floor — and therefore no resize behaviour at all.** The pinned
+region may not exceed **50 %** of the table's inline size **at the narrowest width that table
+will ever have**: the content region at the D2 floor, 976 px with both nav columns expanded
+(`design/00-shell.md` §1). The implicit block is exempt — it is not operator state. At the floor
+that leaves roughly 228 px, or one typical operator pin.
+
+Two consequences:
+
+- **A count cap is redundant.** Three narrow columns and one wide one are not the same risk, and
+  a width budget already refuses whichever combination is too much. A second refusal reason would
+  be a second sentence to write and a second disabled state to test, for no additional
+  protection.
+- **Pins never change on resize.** Because the budget is computed against the floor, a pin
+  accepted on a wide monitor is still valid at 1280 px. The budget is **not** a live measurement,
+  so no demotion-and-restoration path exists, and none may be built — it would be a code path
+  nothing can reach. A full-bleed bulk grid (§2.5) has no nav columns and legitimately declares a
+  larger floor; that is the only sanctioned override.
+
+A pin that would breach the budget renders **disabled in place, with its reason on a second line
+inside the menu item** — gated at render, never at commit (§4.6, §8.4.4). Not a tooltip: §5.7
+keeps constraints out of tooltips. The operator is never shown a pixel figure.
+
+**A pinnable column MUST declare an inline size.** §3.1 already requires wide tables to *"scroll
+horizontally rather than shrink columns below legibility"*; a column sized `auto` additionally
+has no sticky offset until layout has run, and an offset computed after layout is one frame of
+visible jump on every scroll.
+
+**Visual treatment: a hairline, and no elevation tier at all.** §1.4 gives the sticky table
+header a hairline shadow once the body scrolls under it, and a pinned column is the inline-axis
+analogue — but it does **not** inherit the token, for three reasons in order of force:
+
+1. **The axis is wrong and the closed set was closed on purpose.** Every elevation tier is
+   `offset-x: 0` so elevation is direction-invariant and needs no RTL branch. Applied to an
+   inline edge, a block-axis shadow renders *below* the column; giving it an x-offset creates a
+   token that **must** mirror — reintroducing precisely the defect `[code]` `:751` already has.
+2. **The measurement says hairline.** Shopify's frozen boundary is one 1 px step, unchanged by
+   scroll `[observed]` (§8.5.1).
+3. **The primary signal is motion, not the line.** Content moves; the pinned block does not. The
+   boundary is a supporting delimiter, which §7.1 classes as a decorative rule with no contrast
+   minimum.
+
+So: `border-inline-end: 1px solid var(--border)` on the **innermost pinned column at the
+inline-start edge** — the one the scrolling body actually slides under — and
+`border-inline-start` on the innermost one at the inline-end edge, **rendered only while the
+table actually overflows**. The boundary belongs to a **cell**, not to a wrapper: at the
+inline-end edge the innermost pinned column is the *first*-declared one, so "the last in the
+array" is the wrong column. With no overflow nothing is frozen in any meaningful sense, and a
+permanent vertical rule on every index table in the product would be a large visual change
+bought for nothing. Pinned cells take the row's own background, including its hover fill, so
+scrolling content cannot show through.
+
+**How the operator knows a column is pinned**, in order: it does not move · the boundary hairline
+groups the block · the header menu reads `Unpin column`, state in words · the columns popover
+shows the pin toggle pressed. **No pin glyph in the header** — there is none in the icon
+vocabulary, and emoji are banned (§5.7).
+
+#### 8.5.4 Bidirectionality — the part most likely to ship broken
+
+Pinning is inherently directional, and §9.1's mandate is not satisfied by good intentions.
+
+| Never | Always |
+|---|---|
+| `left: 0` / `right: 0` | `position: sticky; inset-inline-start: 0` (inline-end region: `inset-inline-end: 0`) |
+| `border-right` | `border-inline-end` |
+| `text-align: right` on a numeric header | `text-align: end` — R4, and §9.1 row 2 |
+| `box-shadow` with an x-offset | no shadow at all (§8.5.3) |
+| `scrollLeft > 0` | `Math.abs(scrollLeft) > 0` — see below |
+
+**What an operator switching to Arabic sees**, stated as a promise because this is what gets
+asked after it ships:
+
+- **Which columns are pinned, and their order within the block, do not change.** The identity is
+  still first in reading order; it moves from the physical left to the physical right.
+- The pinned block, the boundary hairline and the kebab region all move to the mirrored edge.
+  `inset-inline-*` and `border-inline-*` do this with no branch.
+- Horizontal scroll direction reverses, and **the scroll offset resets to the inline-start** on
+  a direction change. An offset carried across the flip is meaningless and lands the operator
+  mid-table.
+- The row-critical marker stays on the row's leading edge, now physically right, because it
+  rides the pinned block.
+- Sort arrows do not mirror (§9.2, vertical magnitude). Numeral runs in a range filter do not
+  reorder (§9.2).
+- A `Label: value` header summary needs the value **bidi-isolated**: a Latin city name, an id or
+  `100–500` inside an Arabic label jumps sides without it (§9.2).
+
+**Two mechanical traps.** A right-to-left scroll container's `scrollLeft` is **negative** under
+the current specification (Firefox, WebKit, current Chromium) and was positive or inverted in
+older engines `[standard]`; anything testing "has this scrolled" must normalise or it is
+silently wrong in Arabic. And the second and third pinned columns need an `inset-inline-start`
+equal to the accumulated inline size of those before them — a measured number applied to the
+**logical** property, never to `left`.
+
+**If a pinned layout is ever persisted, each pin is stored as a column id plus a *logical* edge —
+`start` or `end`, never `left` or `right`, and never a pixel offset.** A physical edge makes
+every saved layout wrong for every Arabic operator on the first load. Render order is not stored
+at all: it comes from the column declaration, and a stored order would be a second, silently
+competing source of truth for something §3.1 already governs.
+
+**Rules**
+
+- A table header cell MUST contain **exactly one** interactive element — a button that opens a menu — or **none**. It MUST NOT contain two. **§6.2 D-6.**
+- The header menu's affordance MUST render at rest. It MUST NOT be revealed only on `:hover` (§7.3).
+- Exactly **one** column MUST carry a sort indicator at any time, in any mode. The indicator MUST be an arrow (`↑` / `↓`) and MUST NOT be a chevron; a chevron in a header MUST mean only that a menu opens (§1.5, §9.1 row 9).
+- A ledger header MUST NOT offer sort or hide. It MAY offer filter and pin. This MUST be enforced by the ledger table type carrying no sort members, not by a runtime flag (§8.3.3).
+- A column filter MUST produce exactly one filter specification keyed on the column's field, MUST render as a chip in §3.2's chip row, and MUST set the same filtered state that a toolbar filter sets. A column MUST NOT be able to hold two filters at once.
+- A filter control MUST NOT be rendered inside a menu. The menu MUST close and a popover MUST open (menu typeahead consumes the keystrokes).
+- The row-critical marker lane (§8.4), the selection checkbox and the identity column MUST be pinned to the inline-start implicitly and permanently. The identity column MUST NOT be hideable or unpinnable.
+- The row overflow kebab MUST be pinned to the inline-end implicitly and permanently wherever it exists.
+- A breached row's leading-edge marker MUST remain visible at every horizontal scroll offset. **R5a's three parts MUST survive scrolling.**
+- The pinned region MUST render in column-declaration order. Pinning a column MUST NOT reorder any other column.
+- Operator pinning MUST be offered at the inline-start edge only, and the pinned inline-start region MUST NOT exceed 50 % of the table's inline size **at that table's floor width**. There MUST NOT be a second, count-based cap.
+- The pin budget MUST be computed against a fixed floor width, never against a live measurement. A pin, once accepted, MUST NOT be demoted, discarded or restored by a viewport change.
+- A pinnable column MUST declare an inline size. A column sized `auto` MUST NOT be pinnable.
+- A pin blocked by the budget MUST render its control **disabled in place with its reason available**, and MUST NOT be reported only after a click (§4.6, §8.4.4). The reason MUST NOT be a tooltip (§5.7) and MUST NOT state a pixel figure.
+- The boundary MUST be drawn on the **innermost pinned column at each edge**, as `border-inline-end` (or `border-inline-start` at the inline-end edge) of 1 px `--border`, MUST render only while the table overflows, and **MUST NOT carry a `box-shadow` of any kind.** `box-shadow:-4px 0 6px -4px` (`:751`, `:3555`) MUST NOT ship.
+- Pinned cells MUST be opaque, taking the row's own background including its hover fill.
+- The toolbar, the filter chip row, the pagination and the bulk action bar MUST sit **outside** the table's horizontal scroll container.
+- A pinned region MUST be positioned with `inset-inline-start` / `inset-inline-end`. `left:` and `right:` (`:751`, `:3555`) MUST NOT ship, and MUST be fixed before the next release.
+- Any test for horizontal scroll offset MUST normalise the sign, because a right-to-left container's `scrollLeft` is negative.
+- Changing `dir` MUST NOT change which columns are pinned or their order, and MUST reset the horizontal scroll offset to the inline-start.
+- A persisted column layout MUST store each pin as a column id plus a **logical** edge (`start` / `end`). It MUST NOT store a physical edge or a pixel offset, and it MUST NOT store a render order — render order comes from the column declaration.

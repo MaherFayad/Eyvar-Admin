@@ -11,6 +11,9 @@
  *               routes**. A single `←`, never a trail (§2.6). Mirrors in Arabic
  *               at string-construction time (§9.5).
  *   §8 slot 2   title 17px/600 (`text-lg`). Required, always translatable.
+ *   §8/V4       the second row is `meta` — **data-derived only**. `subtitle`
+ *               is gone, and so is the static route-table description it used
+ *               to render. See the prop's own doc comment.
  *   §8 slot 3   inline status badges, zero or more, immediately after the title
  *               **on the same baseline**. Never on their own row, never inside
  *               the action cluster. Read inline-start → inline-end in
@@ -62,8 +65,18 @@ export interface PageAction {
 
 export interface PageHeaderProps {
   title: string
-  /** Second row, 12px `--ev-text-2`. `null` renders nothing. */
-  subtitle?: string | null
+  /**
+   * §8's second row — 12px `--ev-text-2`. `null` renders nothing.
+   *
+   * **`meta`, not `subtitle`** (V4). It is a **metadata line, never a
+   * description.** It carries only content DERIVED FROM THE DATA ON SCREEN —
+   * counts, a record's identifiers, a timestamp. §7.1's own wireframe shows
+   * `4 218 captains · 611 riders`. **If it cannot change when the data changes,
+   * it does not belong here.** A sub-tab that needs explaining gets that in its
+   * first-run empty state, where the operator is actually stuck, and nowhere
+   * else.
+   */
+  meta?: string | null
   /** Inline status badges. Rendered after the title on the same baseline. */
   badges?: ReactNode
   /** §8 slot 1. Derived from the route's shape by the caller, never a stack depth. */
@@ -85,7 +98,7 @@ const SECONDARY_CAP = 2
 
 export function PageHeader({
   title,
-  subtitle,
+  meta,
   badges,
   onBack,
   secondaryActions = [],
@@ -102,7 +115,10 @@ export function PageHeader({
   const overflow = [...spilled, ...overflowActions]
 
   return (
-    <div className="flex flex-col gap-1 pb-3">
+    /* `pb-4` — 16px to the first card, up from 12 (V1). 12 was only tolerable
+       because a second line sat above it; V4 deleted that line. Shopify
+       measures 24; 16 is denser and on the grid. */
+    <div className="flex flex-col gap-1 pb-4">
       <div className="flex items-start gap-2">
         {onBack && (
           <Button
@@ -215,7 +231,7 @@ export function PageHeader({
         </div>
       </div>
 
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+      {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
     </div>
   )
 }

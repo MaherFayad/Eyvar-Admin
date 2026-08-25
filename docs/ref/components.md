@@ -61,3 +61,39 @@ Record the restyle in the component file header: which rules you applied.
 §8 has no equivalent anywhere: the monitoring shell, the append-only ledger, the work
 queue with SLA and the R5a row marker, derived-value fields. Those are built from
 primitives. That's four patterns — expected, not a failure of the choice.
+
+## Table controls live in the component, never in the screen
+
+`DataTable` owns sort, filter and column pinning for every column. A screen declares
+columns; it does **not** build a sort popover or a filter row. Spec:
+`docs/05-restructure/design/01-table-controls.md` (AC-80–AC-116), pattern: `DESIGN.md` §8.5,
+deviation: §6.2 **D-6**.
+
+- **The whole header cell is one button** opening a `dropdown-menu`. Never two hit targets
+  in one cell — §7.7 forbids it, and D-2's density licence may not be cited against §7.7.
+- **The `⌄` renders at rest** on every controllable header. Hover *or* focus takes ink and
+  fill. Same two-step as the row kebab (AC-68); hover-only is legacy defect D19.
+- **A column filter IS a `FilterSpec`.** So `table.isFiltered` is already true, and
+  AC-37/38's `no-match` vs `first-run` choice keeps working untouched. `filterRow` is gone.
+- **Pinned columns take elevation tier `none`.** Not a weight judgement — an axis one:
+  all three `--ev-shadow-*` are `offset-x: 0` so nothing mirrors, and an inline-edge shadow
+  needs an x-offset. Legacy `:751` is what that looks like when you do it anyway.
+- **A ledger header offers `Filter…` and `Pin column` only** — never a sort item, never
+  `Hide column` (§8.3.3 fixes the column set). `LedgerTable` has no `setSortField` to call,
+  so this is a compile error, not a convention.
+
+### Where the two sticky axes cross
+
+A pinned column and the sticky header row are both `position: sticky` and both take
+elevation tier `none`, so nothing in `DESIGN.md` said which wins where they meet. **Ruling:**
+
+1. The **sticky header row** sits above pinned **body** cells. The header is the frame; body
+   content scrolls under it, pinned or not.
+2. The **corner cell** — a pinned column's own header — is sticky on *both* axes and sits
+   above everything, because it belongs to both and must never be overlapped by either.
+3. Separation at both boundaries is a **hairline**, never a shadow. All three
+   `--ev-shadow-*` are `offset-x: 0` so nothing mirrors in Arabic; an inline-edge shadow
+   needs an x-offset, which is legacy defect **D25** (`:751`) exactly.
+
+Three stacking levels, no more. A fourth means something is being solved with z-index that
+should be solved with layout.

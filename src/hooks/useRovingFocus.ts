@@ -13,10 +13,20 @@
  * sort popover's field list. Do not use this hook inside one of those.
  *
  * The RTL clause is the reason `direction` is a parameter rather than an
- * assumption: in a **horizontal** list, `ArrowRight` must move toward the *end*
- * of the list, and in Arabic the end is on the physical left (§9.1 — logical, not
- * physical). A **vertical** list is unaffected; `ArrowDown` is down in every
- * language, which is why the rail and the sub-tab list need no special case.
+ * assumption. In a **horizontal** list the arrow that moves toward the *end* of
+ * the list is the one that points where the list continues — so it is
+ * `ArrowRight` in English and **`ArrowLeft` in Arabic**, because in Arabic the
+ * list's end is on the physical left (§9.1 — logical, not physical). Read the
+ * code: `forwardKey` is `ArrowLeft` under `rtl`. A **vertical** list is
+ * unaffected; `ArrowDown` is down in every language, which is why the rail and
+ * the sub-tab list need no special case.
+ *
+ * (F-15: this paragraph previously said `ArrowRight` moves toward the end in
+ * Arabic, which is the opposite of what the code does and of what an Arabic
+ * reader expects. Corrected rather than deleted, because a wrong comment on a
+ * direction-sensitive hook is worse than none — the next reader "fixes" the code
+ * to match it. `useFocusEntry.test.ts` — *"reads ArrowLeft as forward in a
+ * horizontal rtl list"* — asserts the real behaviour and always did.)
  */
 
 import { useCallback, useRef, useState, type KeyboardEvent } from 'react'

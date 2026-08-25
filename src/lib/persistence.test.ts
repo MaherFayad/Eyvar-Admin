@@ -35,12 +35,12 @@ describe('the Q1 seam', () => {
   })
 
   it('shares one value between two callers of the same default key', () => {
-    defaultUiStore<boolean>(UI_STATE_KEYS.subTabNavCollapsed).write(true)
-    expect(defaultUiStore<boolean>(UI_STATE_KEYS.subTabNavCollapsed).read()).toBe(true)
+    defaultUiStore<boolean>(UI_STATE_KEYS.columnPins).write(true)
+    expect(defaultUiStore<boolean>(UI_STATE_KEYS.columnPins).read()).toBe(true)
   })
 
   it('keeps different keys apart', () => {
-    defaultUiStore<boolean>(UI_STATE_KEYS.subTabNavCollapsed).write(true)
+    defaultUiStore<boolean>(UI_STATE_KEYS.columnPins).write(true)
     expect(defaultUiStore<string>(UI_STATE_KEYS.language).read()).toBeNull()
   })
 
@@ -51,6 +51,13 @@ describe('the Q1 seam', () => {
   })
 
   it('names every key the shell persists, so a Q1 answer has the full list', () => {
-    expect(Object.values(UI_STATE_KEYS)).toEqual(['ui.subTabNavCollapsed', 'ui.language'])
+    // The last two are **prefixes**, not keys: per-table column state is stored
+    // under `<prefix>.<tableId>.<view>`, so a Q1 answer must wildcard them
+    // rather than expect two literal entries.
+    expect(Object.values(UI_STATE_KEYS)).toEqual([
+      'ui.language',
+      'ui.columnPins',
+      'ui.columnVisibility',
+    ])
   })
 })

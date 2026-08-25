@@ -33,6 +33,28 @@
 @import "tailwindcss" source(none);
 @source "../../index.html";
 @source "../**/*.{ts,tsx}";
+/* ...but NOT the tests. 0.4 found that Tailwind harvests banned classes out of
+   PROSE — a comment describing `ring-[3px]` mints `.ring-\[3px\]`. It recurred in
+   0.7 from a different direction: `nav.test.tsx` asserts that no physical
+   utility appears, and its own regex spelled `text-left` and `text-right`, which
+   put both into `dist`. A test that FORBIDS a class was SHIPPING it.
+
+   Excluding tests is the structural fix, and it is correct on its own terms: a
+   test file is not production source and nothing it names should reach the
+   stylesheet. The prose fix alone would not survive the next test someone
+   writes. VERIFY IN `dist`, NOT IN `src` — that is where both defects hid. */
+@source not "../**/*.test.{ts,tsx}";
+/* ...nor `src/lib` and `src/data`. Both are declared non-rendering by their own
+   file headers — "pure. no React, no JSX, no fetching" — and `className`
+   appears ZERO times in either. So neither can legitimately contribute a
+   utility, and both can still MINT one out of prose: `src/lib/breakpoint.ts:5`
+   says "the detail right-rail drop" and that hyphen alone put
+   `.right-rail{right:var(--ev-rail-w)}` — a PHYSICAL offset — into `dist`.
+   Narrowing the scan to the directories that actually render is the fix that
+   does not require editing another owner's file. Reported to
+   utilities-engineer separately so the prose is corrected at source too. */
+@source not "../lib/**/*.{ts,tsx}";
+@source not "../data/**/*.{ts,tsx}";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
@@ -90,6 +112,15 @@
    error instead of a no-op. */
 @custom-variant dark (&:is(.dark *));
 
+/* THE one responsive variant in the product. Design spec §0.1: "There is no
+   second breakpoint anywhere in the product. If a screen needs one, that is a
+   finding against this document, not a local decision." Its three uses are
+   fixed: the sub-tab list's first-run default (§3.3), the detail right-rail
+   drop (§7.2), and the metric-tile grid (§0.1). See the note beside
+   `--breakpoint-*: initial` below for why this is a variant and not a
+   breakpoint token. */
+@custom-variant wide (@media (min-width: 1344px));
+
 /* ==========================================================================
    1. --ev-* — the Eyvar tokens. THE source of truth.
    ========================================================================== */
@@ -100,8 +131,70 @@
      carried over: R7 closes the badge palette at five tones and §6.4 forbids
      introducing a colour that is not a token. The `new` tone is an OUTLINE,
      not a fifth fill (design spec §12.1) — do not add --ev-teal-lt here. */
-  --ev-bg: #eef0f3; /* page canvas, rail, sub-tab column */
+  --ev-bg: #eef0f3; /* page canvas */
   --ev-surface: #ffffff; /* card, popover, drawer, bulk bar */
+
+  /* --- The nav's own greys. ADDED IN 02-shell-fixes on the business owner's
+     decision (DECISIONS.md D6), and derived — not chosen — in design spec
+     `02-visual-refinement.md` V3. Every value below was re-measured here
+     before it was written; the ratios in the comments are this file's own
+     arithmetic, not the design spec's, and they agree to three decimals.
+
+     WHY THESE EXIST AT ALL. §2.1's observed rule is:
+
+       "MUST give the left nav a near-canvas grey ONE STEP DARKER than the
+        canvas (#EBEBEB against #F1F1F1) and express selection with a white
+        rounded pill; MUST NOT draw a border, divider or shadow between nav and
+        content, and MUST NOT give the nav a contrasting panel fill."
+
+     §6.2 D-4 used to suspend that clause, on the grounds that ":root holds no
+     neutral darker than --bg and §6.4 forbids inventing one". The owner has
+     authorised the neutral, so the suspension is RETIRED rather than a new
+     deviation being added, and the 1px hairline that stood in for the tonal
+     step comes out of both nav columns.
+
+     THIS IS ALSO WHAT MAKES THE PLAIN WHITE PILL WORK. The 3px --ev-marker
+     edge and the 1px border on the active nav item were compensation for a
+     ground that was too light: white on --ev-bg is 1.142:1, which is a smudge
+     rather than a shape. Removing them WITHOUT darkening the ground would have
+     left the active state weaker than the version that was rejected. Ground
+     first, then the pill stands on its own (V2). */
+
+  /* The darkest grey in --ev-bg's hue family at which --ev-text-2 (#6b6b68 —
+     the RESTING nav label, 13px, and therefore 4.5:1 AA text) still passes.
+     Not a taste value, a boundary:
+       #eaecf1  4.523 : 1  PASS   ← this
+       #e9ebf0  4.482 : 1  FAIL
+       #e7e9ee  4.401 : 1  FAIL
+     Verified against the reference rather than against arithmetic alone:
+       white pill on nav   ours 1.182 : 1   Shopify 1.192 : 1   parity
+       nav on canvas       ours 1.035 : 1   Shopify 1.055 : 1   distinct region
+       --ev-ink on nav     14.746 : 1                           AAA
+     It keeps the ramp's warm-neutral relationship (g-r = 2, b-r = 5).
+     USED BY THE RAIL AND THE SUB-TAB COLUMN AND NOTHING ELSE. It is a
+     near-canvas grey, not a panel fill: if it reads as a coloured sidebar it
+     is too dark. The top bar spans the CONTENT region, so it stays --ev-bg. */
+  --ev-bg-nav: #eaecf1;
+
+  /* The nav count chip's plate. Pinned to Shopify's own chip step:
+       --ev-nav-chip on --ev-bg-nav   1.141 : 1
+       #DDDDDD on #EBEBEB (measured)  1.139 : 1
+     The direction matters more than the value. The old neutral chip was
+     --ev-bg2 (#f8f8f5), which is 1.073 : 1 LIGHTER than its ground — a plate
+     you cannot see. That invisibility is the whole reason every nav badge got
+     promoted to `attention`: warning peach was the only tone with a shape.
+     Give neutral a shape and the pressure to tone disappears (V6d).
+     Its digits are --ev-ink (12.924 : 1), NOT --ev-text-2: any plate dark
+     enough to read lands --ev-text-2 at 3.8-4.2:1, which fails AA at 11px.
+     Shopify's own chip digits fail here too; we do not copy that. */
+  --ev-nav-chip: #dadee6;
+
+  /* The nav's hover fill. --ev-bg2 (#f8f8f5) is warm and LIGHTER than white's
+     neighbourhood on this ground, so hover and active stopped being
+     distinguishable the moment the ground darkened. This sits between the two:
+     nav 234/236/241 -> hover 242/244/247 -> active white 255. Same hue
+     relationship as the rest of the ramp. */
+  --ev-nav-hover: #f2f4f7;
   --ev-bg2: #f8f8f5; /* subdued fill: hover, neutral badge, disabled */
   --ev-hairline: #e4e2da; /* 1px rules, card and control borders */
   --ev-hairline2: #dddbd3; /* the darker hairline, section rules */
@@ -152,11 +245,26 @@
      sanctions SMALLER, never OFF-grid (D15). ------------------------------ */
   --ev-bp-wide: 1344px; /* THE breakpoint. There is no second one. §0.1 */
 
-  --ev-rail-w: 80px; /* level-1 workspace rail */
+  --ev-rail-w: 80px; /* level-1 workspace rail. Back to the design spec's own
+                        80 (V1). It was widened to 88 because `Management` at
+                        11px measured ~71px in a 72px content box; the rail
+                        labels are now `Exec / Ops / Finance / Support / Admin`,
+                        the longest of which measures ~40px, so the reason for
+                        the widening is void and the 8px goes to the content
+                        region. */
   --ev-subnav-w: 224px; /* level-2 sub-tab column, expanded */
   --ev-topbar-h: 48px; /* top bar AND save bar — identical, always */
   --ev-shellbar-h: 32px; /* impersonation / call / offline strip */
-  --ev-navrow-h: 32px; /* sub-tab row */
+  /* Sub-tab row. 28, not 32 (V1). D-2 suspends §1.2, §1.3 and §3.1 BY NAME,
+     and the nav row lives in §2.3 — so the binding constraint is not a pixel
+     figure (R13 voids those) but the RELATIONSHIP §2.3 and §3.1 describe
+     together: THE NAV ROW IS SHORTER THAN THE DATA ROW. At 32 it equalled
+     --ev-row-h, which is why the column read as a stack of cards rather than a
+     list of links. 28 is one 4px step below, and equals the measured Shopify
+     figure. Not 24: §7.7 forbids citing D-2 against an accessibility minimum,
+     and at 24 a 20px line box leaves no room for a focus indicator INSIDE the
+     row — which matters because the row gap is now 0 and the ring is inset. */
+  --ev-navrow-h: 28px;
   --ev-row-h: 32px; /* table row, text */
   --ev-row-h-media: 44px; /* table row with a thumbnail or 2nd line */
   --ev-control-h: 28px; /* input, select, compact button */
@@ -234,9 +342,9 @@
    subnav-w, navrow-h, row-h, row-h-media, control-h AND control-h-lg. §18's
    prose says "six". The table is normative; reported as a finding. */
 :root:lang(ar) {
-  --ev-rail-w: 96px;
+  --ev-rail-w: 88px; /* 80 + 8, the same +8 the Latin rail lost (V1) */
   --ev-subnav-w: 256px;
-  --ev-navrow-h: 36px;
+  --ev-navrow-h: 32px; /* 28 + 4, one step, matching the Latin ramp */
   --ev-row-h: 36px;
   --ev-row-h-media: 48px;
   --ev-control-h: 32px;
@@ -263,6 +371,18 @@
 :root {
   --background: var(--ev-bg); /* canvas is grey, not white — closes D1 */
   --foreground: var(--ev-ink);
+
+  /* The nav's three slots (§2.1, D6, V3). Slots of their own rather than
+     re-maps of --background / --accent / --muted, because the canvas and the
+     nav are now genuinely two surfaces and one name cannot mean both.
+     --nav-foreground is --ev-text-2 — the RESTING label — and --ev-bg-nav is
+     pinned to exactly the darkest grey at which that still clears 4.5:1
+     (4.523). Active and hover raise it to --ev-ink by class, not by slot. */
+  --nav: var(--ev-bg-nav);
+  --nav-foreground: var(--ev-text-2);
+  --nav-hover: var(--ev-nav-hover);
+  --nav-chip: var(--ev-nav-chip);
+  --nav-chip-foreground: var(--ev-ink);
 
   --card: var(--ev-surface);
   --card-foreground: var(--ev-ink);
@@ -326,6 +446,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-chip: var(--nav-chip);
+  --color-nav-chip-foreground: var(--nav-chip-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -432,12 +557,19 @@
      drop (§7.2), and the metric-tile grid (§0.1).
 
      THE 1344 IS WRITTEN TWICE AND THAT IS UNAVOIDABLE: a media query cannot
-     read a custom property, so `--breakpoint-wide` must be a literal, while
+     read a custom property, so the variant below must carry a literal, while
      `--ev-bp-wide` must stay a literal on `:root` because `useNavCollapse`
      reads it at runtime through `getComputedStyle`. THE TWO MOVE TOGETHER OR
-     THE FIRST-RUN NAV DEFAULT SILENTLY DISAGREES WITH THE LAYOUT. */
+     THE FIRST-RUN NAV DEFAULT SILENTLY DISAGREES WITH THE LAYOUT.
+
+     `wide:` is declared as a CUSTOM VARIANT rather than as
+     `--breakpoint-wide`, and that is deliberate. A `--breakpoint-*` entry also
+     generates a `.container` utility carrying its OWN `@media (min-width:)`
+     block — for a class Eyvar never writes, since the capped page is
+     `max-w-page`. That put a SECOND min-width rule in the built stylesheet and
+     broke the one-breakpoint check. As a custom variant there is exactly one
+     `@media (min-width:)` in `dist`, and it is this one. */
   --breakpoint-*: initial;
-  --breakpoint-wide: 1344px;
 
   --text-2xs: 11px; /* count badge numeral, status badge label */
   --text-2xs--line-height: 16px;

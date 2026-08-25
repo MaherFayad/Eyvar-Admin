@@ -57,7 +57,8 @@
  *               MARKUP's job. `Money` (V-02) carries it; a hand-rolled money
  *               cell must too.
  *   R4 / §9.2   numeric, currency and count cells use `text-end` — NEVER
- *               `text-right` — with `tabular-nums`. `tabular-nums` is applied
+ *               the physical right-hand alignment utility — with `tabular-nums`.
+ *               `tabular-nums` is applied
  *               to every table by `globals.css`. In Arabic the COLUMN mirrors
  *               and the NUMERAL RUN does not (AC-73).
  *   §7.4        every `<th>` needs a `scope`; the caller supplies it.

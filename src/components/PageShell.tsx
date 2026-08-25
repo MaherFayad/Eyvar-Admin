@@ -3,7 +3,7 @@
  * resolves to exactly one**, and the shape comes from the route table
  * (`row.shape`), never from the screen.
  *
- *   `SingleColumnPage` (L-03)      32 of the 34 sub-tabs. `full` | `capped`.
+ *   `SingleColumnPage` (L-03)      32 of the 34 sub-tabs. ONE width.
  *   `DetailPage`       (L-04)      the 4 level-3 details + the profile's
  *                                  full-page escape. 2 : 1, restacking below
  *                                  the ONE breakpoint (**AC-34**).
@@ -11,10 +11,37 @@
  *   `FullBleedEditorShell` (L-05)  the plan editor, and nothing else.
  *
  * Rules applied
- *   §7.1        `capped` is `max-width: 1120px` **centred on the CONTENT
- *               REGION, not the viewport** (§2.2). 1120 = four metric tiles at
- *               268 plus three 16px gutters; Shopify's ~955 is indicative only
- *               (R13).
+ *   §7.1 (amended, V5) **`width: 'full' | 'capped'` is DELETED. Every
+ *               single-column page is full width with a 16px inline gutter.**
+ *
+ *               The prop was not mis-tuned, it was working as designed, and the
+ *               design was the defect: two sibling sub-tabs in the same
+ *               workspace put their `<h1>` in two different places — measured at
+ *               **244px apart at 1920** between `/management/performance`
+ *               (capped, centred) and `/management/zones` (full). Nothing else
+ *               about them differs, so an operator reads the movement as
+ *               breakage.
+ *
+ *               **Full, not capped-everywhere.** Capping the PAGE centres the
+ *               whole block and moves the header with it, which is the cause,
+ *               not the cure. Shopify keeps alignment fixed by running index
+ *               pages full-bleed with a uniform page padding — measured, content
+ *               starts at x = 264 on both `products-list-default.webp` (a dense
+ *               table) and `customers-empty-state.webp` (an empty state). **The
+ *               page frame is the constant; what varies is what sits inside it.**
+ *
+ *               **Measure is not abandoned, it moves down one level**, to where
+ *               the long-line problem actually occurs:
+ *                 metric tile row (P5)   auto-fill minmax(268px, 1fr), 4 cols
+ *                                        above `--ev-bp-wide`, 3 below
+ *                 form field column      `max-width: 640px` inside its card
+ *                 prose / empty body     `max-width: 384px`
+ *
+ *               `--ev-page-max: 1120px` survives with one consumer,
+ *               `FullBleedEditorShell` (§7.3), which is outside the layout and
+ *               has no sibling to be inconsistent with.
+ *   §7.4/AC-14  `MonitorShell` was already full width with no cap, and stays
+ *               that way. It is no longer the exception — everything is.
  *   §7.2/AC-34  below `--ev-bp-wide` the right rail **restacks BENEATH the main
  *               column, in its original order, at full width. No card is
  *               dropped, collapsed by default, or reordered**, and the page
@@ -39,16 +66,24 @@
  */
 
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 import { mirrorGlyph, type Direction, type Translate } from '@/lib'
 import { Button } from '@/components/ui/button'
+
+/**
+ * The content block every page shape shares: full width of the content region,
+ * a 16px inline gutter, and no cap. Written once so no page shape can drift
+ * from another — a page header that lands somewhere different depending on the
+ * route is exactly the defect V5 removed, and one shared constant is what makes
+ * that structural rather than a review item.
+ *
+ * There is no `width` prop and there is not meant to be one. If a specific
+ * block of content needs a measure, it constrains ITSELF (see §7.1 above).
+ */
+const PAGE_BLOCK = 'w-full p-4'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
 
 export interface SingleColumnPageProps {
-  /** `full` for index tables, ledgers, work queues and the activity log;
-   *  `capped` for every Overview and every settings sub-tab (§7.1). */
-  width?: 'full' | 'capped'
   /** §11.4 — zero or ONE banner, spanning the whole content block. */
   banner?: ReactNode
   header?: ReactNode
@@ -58,14 +93,18 @@ export interface SingleColumnPageProps {
 }
 
 export function SingleColumnPage({
-  width = 'full',
   banner,
   header,
   children,
   learnMore,
 }: SingleColumnPageProps) {
   return (
-    <div className={cn('w-full p-4', width === 'capped' && 'mx-auto max-w-page')}>
+    /* ONE width, every route. There is no `width` prop to get wrong, which is
+       the point: the page header lands in the same place whichever sub-tab you
+       are on. The header is INSIDE the cap, so §8's alignment rule — "the
+       title's inline-start edge is the first card's inline-start edge" — holds
+       by construction rather than by review. */
+    <div className={PAGE_BLOCK}>
       {header}
       {banner}
       {children}
@@ -92,7 +131,10 @@ export interface DetailPageProps {
 
 export function DetailPage({ banner, header, main, rail }: DetailPageProps) {
   return (
-    <div className="w-full p-4">
+    /* Same block as the single column, so a level-3 detail's `<h1>` lands where
+       its parent sub-tab's did. §7.2's "the page loses its max-width cap" below
+       the breakpoint is now vacuous — there is no cap at any width. */
+    <div className={PAGE_BLOCK}>
       {header}
       {banner}
       {/* ONE breakpoint. Below it: a single column, so the rail cards fall
@@ -121,8 +163,10 @@ export interface MonitorShellProps {
 export function MonitorShell({ header, banner, canvas, aside }: MonitorShellProps) {
   return (
     /* AC-14 — the shell STAYS. Only the content region goes full width, with
-       NO max-width cap, and the standard page header remains. */
-    <div className="w-full p-4">
+       NO max-width cap, and the standard page header remains. Since V5 that is
+       what every page shape does, so AC-14 is satisfied by the shared block
+       rather than by an exception. */
+    <div className={PAGE_BLOCK}>
       {header}
       {banner}
       <div className="grid grid-cols-1 gap-4 wide:grid-cols-monitor">
@@ -178,10 +222,14 @@ export function FullBleedEditorShell({
         </Button>
       </header>
 
-      {/* §7.3 — capped 1120px, centred. No inspector panel: §2.5 recommends one
-          for multi-mode editors and the plan editor has one mode. */}
+      {/* §7.3 — capped 1120px, centred. **The one surviving consumer of
+          `--ev-page-max`** (V5): the editor is outside `AppLayout` and has no
+          sibling route to be inconsistent with, so a centred measure costs
+          nothing here and buys a readable form. No inspector panel: §2.5
+          recommends one for multi-mode editors and the plan editor has one
+          mode. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-page p-4">{children}</div>
+        <div className="mx-auto w-full max-w-page p-4">{children}</div>
       </div>
     </div>
   )

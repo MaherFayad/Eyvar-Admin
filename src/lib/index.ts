@@ -32,6 +32,15 @@ export {
   type TranslateParams,
   type TranslatorOptions,
 } from './i18n/translate'
+export {
+  columnFilterIssue,
+  formatColumnFilterBounds,
+  toFilterSpec,
+  type ColumnFilterIssue,
+  type ColumnFilterKind,
+  type ColumnFilterValue,
+  type NumberFilterUnit,
+} from './columnFilter'
 export { isDeepEqual } from './equality'
 export { invariant, isDevEnvironment } from './invariant'
 export { pageRange, type PageRange } from './pagination'

@@ -15,8 +15,8 @@
  *   R19/§7.1   RESOLVED IN 0.7, same ruling as `checkbox.tsx`. The resting ring
  *              of an UNSELECTED radio was `--ev-hairline` on white (1.15:1)
  *              where an interactive boundary needs 3:1. It is now
- *              `border-border-strong` = `--ev-hairline-strong` #8a8a85 —
- *              3.47:1 on white, 3.26:1 on `--ev-bg2`, 3.04:1 on `--ev-bg`.
+ *              `border-border-strong`, from `--ev-hairline-strong`; the value
+ *              and its measurements live beside the token in `globals.css`.
  *              LICENSED FOR THIS ONE USE ONLY: not a border, not a divider,
  *              not an input border, not a hover state. The selected state
  *              keeps `border-primary`. The `group-has-[:focus-visible]` rule

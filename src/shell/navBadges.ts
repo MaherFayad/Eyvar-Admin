@@ -10,25 +10,30 @@
  *     reading badges.
  *   - above 99 the badge reads `99+`.
  *   - a workspace tile's count is the **sum of its sub-tabs'** counts
- *     (**AC-27**), and the tile's badge is **never suppressed when the sub-tab
- *     column is collapsed** — that is the only state in which it is the sole
- *     backlog signal.
+ *     (**AC-27**'s count clause, which survives verbatim). AC-27's *"never
+ *     suppressed when the column is collapsed"* clause is void with the
+ *     collapse itself (**D5**).
  *   - **never red.** R5a enumerates the four permitted uses of red and a nav
  *     badge is not among them. `attention` maps to **warning**.
  *
- * **The Q12 ruling, and why the roll-up is done here rather than read off
+ * **Q12's tone roll-up is SUPERSEDED (V6).** It was sound as an invariant —
+ * *any tone on a tile must be explained by a visible row with the same tone and
+ * a non-zero count* — and it still produced a rail that was permanently amber:
+ * a workspace tile sums ~7 rows, so one toned row in seven turned the whole
+ * tile. Measured on the running build at 1440, **8 of 11 visible nav badges
+ * were warning, including 4 of the 5 rail tiles.** The invariant held at every
+ * step and the result was meaningless.
+ *
+ * **The ruling: a workspace tile's badge is `neutral`, always.** Not
+ * expedience — a tile's number is a **sum of heterogeneous queues** (three
+ * applications, four expiring documents, one dispute) and a sum of different
+ * kinds of thing has no single status to report. Only the row knows what its
+ * number means. The count still rolls up; the tone does not.
+ *
+ * **Why the roll-up is still done here rather than read off
  * `navCounts.workspaces`.** The server's roll-up sums *every* sub-tab; it
- * cannot know which rows this role can see. The invariant is:
- *
- * > **Any tone on a tile must be explained by a visible row with the same tone
- * > and a non-zero count.**
- *
- * So the tile is computed over the **visible** rows only, and `warning`
- * requires `badgeTone === 'attention'` **AND `count > 0`**. That second gate is
- * the part worth getting right: `badgeTone` says what *kind* of backlog a
- * sub-tab is, not what its number currently is, so it stays `attention` when
- * the queue empties. Ungated, a tile would show warning because of a row that
- * shows nothing when you expand it.
+ * cannot know which rows this role can see. So the tile is computed over the
+ * **visible** rows only.
  *
  * **There is no `navCounts.workspaces` to be tempted by.** 0.6 deleted the
  * field from the wire type after this file shipped, so a server roll-up is now
@@ -81,18 +86,19 @@ export function workspaceBadge(
   if (rows.length === 0) return null
 
   let total = 0
-  let anyAttention = false
   for (const row of rows) {
     const entry = counts.subTabs.find((c) => c.subTabId === row.subTabId)
     if (!entry || entry.count === null || entry.count <= 0) continue
     total += entry.count
-    /* Q12: `attention` AND `count > 0`. A row contributing nothing to the
-       number contributes nothing to the tone either. */
-    if (entry.tone === 'attention') anyAttention = true
   }
 
   if (total <= 0) return null
-  return { count: total, tone: anyAttention ? 'warning' : 'neutral' }
+  /* V6 — `neutral` UNCONDITIONALLY. There is no tone branch here and there is
+     not meant to be one; a `tone` parameter would be an invitation to put it
+     back. The sub-tab ROW keeps its tone, and `warning` there now means
+     BREACHED, rarely, which is the only thing worth a colour in peripheral
+     vision. Never on a tile, never red (R5a), never a sixth tone (R7). */
+  return { count: total, tone: 'neutral' }
 }
 
 /**

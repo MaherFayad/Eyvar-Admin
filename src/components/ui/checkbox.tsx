@@ -28,9 +28,11 @@
  *               with the hit area and the label; the ruling is that a
  *               mitigation is not a boundary, and that §7's contrast floor
  *               beats §6.4's "no new colour token". The border is now
- *               `border-border-strong` = `--ev-hairline-strong` #8a8a85,
- *               measured at 3.47:1 on white, 3.26:1 on `--ev-bg2` and 3.04:1
- *               on `--ev-bg` — every surface a checkbox can sit on.
+ *               `border-border-strong`, mapped from `--ev-hairline-strong`,
+ *               which clears 3:1 on every surface a checkbox can sit on. The
+ *               value and the three measurements live beside the token in
+ *               `globals.css` — the one file where a colour is legal, and the
+ *               one place it should have to be changed.
  *               THE TOKEN IS LICENSED FOR THIS ONE USE. It is not a border,
  *               not a divider, not a card edge, not an input border and not a
  *               hover state; an input has a fill and a label to carry it, an

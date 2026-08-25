@@ -80,6 +80,77 @@ function SheetPortal({
 
 type SheetSide = "inline-start" | "inline-end" | "block-start" | "block-end"
 
+/**
+ * Everything the browser lets you Tab to. Radix's own focus guards are excluded
+ * — they exist to catch focus leaving a MODAL, and these drawers are not modal.
+ */
+const TABBABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",")
+
+function tabbablesIn(root: ParentNode): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(TABBABLE)).filter(
+    (el) =>
+      !el.hasAttribute("data-radix-focus-guard") &&
+      !el.hasAttribute("hidden") &&
+      el.getAttribute("aria-hidden") !== "true",
+  )
+}
+
+/**
+ * **AC-67 — the drawer must NOT trap focus, and `modal={false}` does not
+ * achieve that.** This is the fix, and the bug is in the dependency, not here:
+ *
+ *   `@radix-ui/react-dialog/dist/index.mjs:223`  hardcodes `loop: true` on its
+ *                                                `FocusScope`.
+ *   `react-focus-scope/dist/index.mjs:109`       runs its Tab handler when
+ *                                                `loop || trapped`.
+ *
+ * `modal={false}` clears `trapped`. **It does not clear `loop`.** So Tab on the
+ * last control inside the drawer is `preventDefault()`-ed and looped back to the
+ * first, forever. A keyboard operator who opens a 360° profile can never get
+ * back to the queue behind it without `Escape` — which closes the very thing
+ * they were reading against, and that workflow is the entire reason §5.5 and
+ * §7.3.3 removed the scrim.
+ *
+ * **Why this shape.** `FocusScope`'s handler only acts when
+ * `document.activeElement` is the first or last tabbable INSIDE the container.
+ * Radix `Slot` merges the child's `onKeyDown` before the scope's, so this runs
+ * first: it moves focus out of the drawer itself and calls `preventDefault()`.
+ * When the scope's handler runs a moment later it re-reads
+ * `document.activeElement`, finds something outside the container, matches
+ * neither edge, and does nothing. The loop is neutralised without patching a
+ * dependency and without a `keydown` listener on the document.
+ *
+ * The drawer is portalled to the end of `<body>`, so "the next tabbable after
+ * the container" is the start of the document and "the previous" is its end.
+ * That is what the browser would do with no focus scope at all, which is the
+ * behaviour §7.3.3 describes.
+ */
+function releaseTabAtEdges(event: React.KeyboardEvent<HTMLElement>) {
+  if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return
+  const container = event.currentTarget
+  const inside = tabbablesIn(container)
+  if (inside.length === 0) return
+
+  const active = document.activeElement
+  const atFirst = active === inside[0]
+  const atLast = active === inside[inside.length - 1]
+  if (event.shiftKey ? !atFirst : !atLast) return
+
+  const outside = tabbablesIn(document.body).filter((el) => !container.contains(el))
+  if (outside.length === 0) return
+
+  event.preventDefault()
+  const next = event.shiftKey ? outside[outside.length - 1] : outside[0]
+  next?.focus()
+}
+
 function SheetContent({
   className,
   children,
@@ -87,6 +158,7 @@ function SheetContent({
   showCloseButton = true,
   onPointerDownOutside,
   onInteractOutside,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: SheetSide
@@ -98,6 +170,13 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
+        /* AC-67 — see `releaseTabAtEdges`. This must stay ABOVE Radix's own
+           handler in the merge order, which is what passing it as a child prop
+           gets us. */
+        onKeyDown={(event) => {
+          onKeyDown?.(event)
+          if (!event.defaultPrevented) releaseTabAtEdges(event)
+        }}
         onPointerDownOutside={(event) => {
           // AC-20 — the page behind stays interactive, so an outside click is
           // a click on the page, not a dismissal.

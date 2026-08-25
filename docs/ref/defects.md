@@ -13,10 +13,11 @@ Use this to tell a **known** divergence from a **new** one you just introduced.
 | D-3 | Light 50px top bar with `Title › Subtitle` | §2.1, §2.6, §2.3 |
 | D-4 | **Two-level navigation** — 80px icon+label workspace rail (5 targets, Admin pinned bottom) + 224px sub-tab column, collapsible below 1344px. Replaces the hover-expanding rail entirely | §2.1 (six clauses) |
 | D-5 | **Settings is a route, not an overlay** — Admin is a workspace; four panes moved to Financials | §2.4 (four clauses) |
+| D-6 | **Table header cells are controls** — one button per header opening sort / filter / pin | §3.1, §1.5, §9.1, AC-45's interactivity clause |
 
 D-2 licences **smaller**, not **off-grid**. Values stay on the 4px grid.
 
-## Defects — 23 open (D3 reclassified as sanctioned **D-5**)
+## Defects — 24 open (D3 reclassified as sanctioned **D-5**; D25 added in 0.2)
 
 **Structure** — D1 `.page` is white like its cards, so canvas/surface collapses (`:70`) ·
 D2 no save bar anywhere, `.form-footer` used once, `.settings-dirty-dot` is dead CSS
@@ -39,6 +40,12 @@ D18 uppercase + letter-spacing in 8 selectors
 killed in 11 places, 6 of them inline · D21 `--ghost` fails at 2.79:1 across 431 uses;
 `.hint` at 2.32:1 · D22 labels are 11px `--muted`, reading as hints · D23 `.modal-close`
 turns red on hover · D24 three ambient loops, none `prefers-reduced-motion` guarded
+
+**Bidirectionality** — D25 the Actions column is pinned with `position:sticky; right:0` and
+`box-shadow:-4px 0 6px -4px` (`:751`, `:3555`) and the file contains **no `[dir="rtl"]`
+counterpart**, so in Arabic it freezes to the edge the eye is leaving and its shadow falls
+the wrong way. Found in 0.2's table-controls pass. This is why §8.5 pins to a **logical**
+edge and gives pinned columns no shadow at all.
 
 ## Fix order
 
