@@ -17,13 +17,13 @@ them fine. Ignore the Mobbin watermark strip at the bottom of each — it is not
 
 ## Quick reference
 
-`DESIGN.md` is 5,692 lines. Do not read it to check one rule - read the small file, and
+`DESIGN.md` is 5,761 lines. Do not read it to check one rule - read the small file, and
 open the `DESIGN.md` section only when you need the reasoning behind it.
 Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 
 | File | Answers |
 |---|---|
-| [`rulings.md`](../../docs/ref/rulings.md) | the 19 tiebreakers |
+| [`rulings.md`](../../docs/ref/rulings.md) | the 20 tiebreakers |
 | [`patterns.md`](../../docs/ref/patterns.md) | all 41 pages mapped to a page shape |
 | [`components.md`](../../docs/ref/components.md) | which shadcn component, and how to restyle it |
 | [`surfaces.md`](../../docs/ref/surfaces.md) | toast vs banner vs modal vs drawer vs page |

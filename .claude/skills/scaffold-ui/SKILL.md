@@ -83,7 +83,7 @@ Then run `/token-audit` on what you touched.
 
 ## Reference
 
-Check the small file, not the 5,692-line document:
+Check the small file, not the 5,761-line document:
 `docs/ref/components.md` · `docs/ref/tokens.md` · `docs/ref/states.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the

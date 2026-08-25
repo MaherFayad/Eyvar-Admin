@@ -84,7 +84,7 @@ logic is battle-tested even where it is ugly. Read it, port the behaviour, cite
 
 ## Reference
 
-Check the small file, not the 5,692-line document:
+Check the small file, not the 5,761-line document:
 `docs/ref/tokens.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md` · `docs/ref/copy.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the

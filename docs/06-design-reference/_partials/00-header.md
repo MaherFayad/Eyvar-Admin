@@ -38,7 +38,7 @@ audits are folded in; §6.5 records what was found wrong.
 When two rules collide, the winner is fixed. Do not improvise:
 
 ```
-Rulings table (R1–R18)   ←  highest. Settles conflicts the sources leave open.
+Rulings table (R1–R19)   ←  highest. Settles conflicts the sources leave open.
         ↑
 §6.2 sanctioned deviations   ←  suspends a §1–§5 rule for a named reason.
         ↑
@@ -161,4 +161,5 @@ not observations; overturn them deliberately, in writing, by editing this table.
 | R17 | Shopify ships two warning fills - peach `#F4D6B1` for `Payment pending`, yellow `#F6EA98` for `Unfulfilled` - which §1.1.5 collapses into one tone without saying so | **Eyvar has one warning tone** (the five-tone palette of R7). Where a surface needs to separate "waiting on someone else" from "waiting on you", separate them with the *label*, not a second fill. |
 | R5a | R5 sends critical state to a page-level banner, but a work queue's critical state is **per row**, and §5.2 forbids stacking banners - so the document had no legal way to render "this row is breached", which is the entire point of the screen. Raised and solved in §8.4.6 | R5 stands - no red badges. It is **amended** to enumerate the complete set of permitted red uses: (1) a destructive button, (2) one page-level critical banner, (3) a breached-row leading-edge marker (a 3px inset edge, not a pill - it cannot be mistaken for a badge tone), (4) a map marker. A breached row also carries the word `overdue`, so colour is never the only carrier. Any fifth use of red needs a row in §6.2. |
 | R18 | §1.6 caps every UI transition at 300ms, which makes every ambient looping animation in the product illegal - including the "feed is live" dot, which is load-bearing on a monitoring screen. Raised and solved in §8.1.6 | §1.6 governs **transitions only**. Ambient loops are a separate class with a narrow licence: permitted **only** to signal "this feed is live", opacity-only, 1200-2500ms, never dropping below 0.4 opacity, and **never encoding severity**. This kills `live-dot` (`:342`), `ping-pulse` (`:331`) and `reqPulse` (`:145`) as currently written. |
+| R19 | §6.4’s “no new colour token” rule and §7’s 3:1 non-text contrast requirement collide on the **unchecked** checkbox and radio. Their boundary is `--ev-hairline` on white, which measures below 3:1, and the token set holds no darker neutral. Raised in 0.4 as **R-4**. | **§7 wins; one neutral is licensed.** `--ev-hairline-strong`, used **only** for the resting boundary of an unchecked control — checkbox, radio, and any future control whose entire affordance *is* its outline. It is not a border token, not a divider, not a hover state, and it never appears on a surface that already carries a `--border`. The “no new colour” rule exists to stop palette drift, not to license a control the operator cannot see, and a control boundary is precisely what WCAG 2.2 non-text contrast was written for. Any second use of it needs a row in §6.2. |
 

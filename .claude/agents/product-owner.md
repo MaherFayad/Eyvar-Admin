@@ -13,7 +13,7 @@ You are the Product Owner for Eyvar Admin, a ride-hailing operations console.
 
 ## Quick reference
 
-`DESIGN.md` is 5,692 lines. Do not read it to check one rule - read the small file, and
+`DESIGN.md` is 5,761 lines. Do not read it to check one rule - read the small file, and
 open the `DESIGN.md` section only when you need the reasoning behind it.
 Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 

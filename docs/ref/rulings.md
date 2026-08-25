@@ -1,6 +1,6 @@
 # Rulings — the tiebreakers
 
-19 rulings settle places the sources disagree. They sit at the top of the precedence
+20 rulings settle places the sources disagree. They sit at the top of the precedence
 ladder: a ruling beats every section. Full text and reasoning: `DESIGN.md` → *Rulings on
 contested points*.
 
@@ -25,10 +25,11 @@ contested points*.
 | R16 | All four banner tones are pale tinted cards. The "info banners carry no fill" MUST is void. |
 | R17 | **One warning tone.** Separate "waiting on them" from "waiting on you" with the label, not a second fill. |
 | R18 | §1.6 governs transitions only. An ambient loop is licensed **only** for "this feed is live": opacity-only, 1200–2500ms, never below 0.4 opacity, and it may **never encode severity**. |
+| R19 | An unchecked checkbox/radio boundary must reach 3:1. §7 beats §6.4's “no new colour”: **`--ev-hairline-strong`** is licensed for resting control boundaries **only**. |
 
 ## Using them
 
 Cite the number. "This is R9" ends an argument; "the toast feels long" does not.
 
 If you hit a collision the ladder does not settle, that is a defect in `DESIGN.md` —
-report it, do not improvise a nineteenth ruling in a code review.
+report it, do not improvise a twentieth ruling in a code review.

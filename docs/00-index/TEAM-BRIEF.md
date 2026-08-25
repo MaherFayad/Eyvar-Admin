@@ -10,7 +10,7 @@ Density is a feature, not an oversight.
 
 ## Quick reference — start here
 
-`DESIGN.md` is 5,692 lines. Do not read it to check one rule. `docs/ref/` holds small
+`DESIGN.md` is 5,761 lines. Do not read it to check one rule. `docs/ref/` holds small
 lookup files; open a `DESIGN.md` section only when you need the reasoning behind a rule.
 
 | File | Answers |

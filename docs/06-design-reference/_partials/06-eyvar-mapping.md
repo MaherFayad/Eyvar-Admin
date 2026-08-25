@@ -60,7 +60,25 @@ sanctioned — it is a defect.
 | D-1 | **Brand blue is the primary action colour**, not near-black | §1.1.4, §4.6 (near-black primary) | Eyvar is a branded operations product, not a Shopify app. Consequence, per R3: blue stops carrying links; links take `--blue-dk` + underline. |
 | D-2 | **Higher density** — 13px base text, ~30px rows | §1.2 (type ramp), §1.3 (spacing scale), §3.1 (row height) | An ops console is watched all day on one screen. Density is the product. **This sanctions smaller values on the 4px grid — it does not sanction off-grid values** (see D18). |
 | D-3 | **Light top bar**, 50px, with a `Title › Subtitle` breadcrumb | §2.1 (dark frame), §2.6 (no breadcrumbs), §2.3 (logo in the save-bar left slot) | The wordmark lives in the rail, so the top bar is free for wayfinding. The §2.3 logo rule is unimplementable on this frame and does not apply. |
-| D-4 | **Icon rail that expands on hover** — 52px → 236px | §2.1 (fixed ~240px nav, always expanded) | Screen width is worth more to the live map and wide tables than a permanently open nav. |
+| D-4 | **Two-level navigation** — an 80px icon+label workspace rail (5 targets, `Admin` pinned to the bottom) plus a 224px sub-tab column listing the selected workspace's 5–9 sub-tabs, operator-collapsible below 1344px. Both columns are route-derived. The top bar spans the content region only; the two nav columns and the content canvas are all `--bg`, separated by 1px hairlines | §2.1 (fixed ~240px nav, always expanded — R11) · §2.1 (only one nav section MAY be expanded at a time, and it MUST be the one containing the current page) · §2.1 (every primary nav item MUST have a leading icon; secondary items MUST NOT) · §2.1 (active items MUST use an inset filled white pill at both levels, and a nested active row MUST additionally carry an elbow connector from its parent) · §2.1 (the nav column MUST be a near-canvas grey one step darker than the canvas; do NOT draw a border, shadow or contrasting panel between them) · §2.1 (a dark top bar spanning the full viewport width) | Five workspaces organised by the job someone is paid to do (`DECISIONS.md` **D1**) replace a flat 30-item rail over 62 destinations. The second column holds the labels the hover expansion existed to reveal, so hover expansion has no remaining purpose. Level 1 is icon **plus** label because at the 1280px minimum viewport (**D2**) the sub-tab column defaults to collapsed, making the rail the entire visible navigation — five unlabelled glyphs are then a recall test performed all day. There is no elbow connector because parent and child sit in different columns. The tonal step is unavailable because `:root` holds no neutral darker than `--bg` and §6.4 forbids inventing one, so a 1px `--border` hairline is the separator. The top bar narrows to the content region because **D-3** already moved the wordmark into the rail, which is what made the full-width bar's left slot meaningful. |
+| D-5 | **Settings is a route, not an overlay** — `Admin` is one of the five workspaces and its level-2 column is its settings nav; four former panes moved to `Financials` | §2.4 (Settings MUST open as an overlay over the current page) · §2.4 (the overlay MUST preserve the page underneath; settings MUST NOT be a route that destroys the previous page) · §2.4 (the settings shell MUST be nav ~289px + gutter ~27px + pane ~707px, centred as one ~1026px block inside the overlay) · §2.4 (settings MUST be dismissible with a single `✕` in its own header) | Under **D1** Admin is a workspace, not a drawer over one, and its 21 legacy pane keys become linkable routes — which §2.4's overlay model cannot do at all. A settings surface that *is* a workspace cannot also be an overlay over a workspace. Its nav is the same level-2 column every other workspace uses, so there is no second nav pattern to maintain. This entry **supersedes §6.3 defect D3**, which described the same behaviour as a defect; it is now a decision. |
+
+**D-4 replaces the former D-4 entirely; it does not supplement it.** The former entry
+sanctioned an icon rail that expanded on hover (52px → 236px). That behaviour no longer
+exists in the product, and leaving the entry in place would sanction something the product
+does not do.
+
+**Rules D-4 preserves, re-asserted so they are not quietly re-derived:**
+
+- §2.1 — *"Settings MUST be pinned to the bottom of the nav column and MUST NOT scroll with
+  the nav list."* `Admin` is pinned to the bottom of the rail. This is the one §2.1 nav rule
+  the deviation keeps intact.
+- §2.6 — *"The app MUST NOT use breadcrumbs."* Two columns are not a breadcrumb trail. The
+  `Title › Subtitle` pair sanctioned by **D-3** stays, at exactly two tokens, never three.
+  Level-3 details keep the single back arrow to the inline-start of the title.
+- **D-1**, **D-2** and **D-3** survive untouched. Brand blue is still the primary action
+  colour; 13px base and ~30px rows still bind, smaller but never off-grid; the top bar is
+  still light and still carries `Title › Subtitle`.
 
 Nothing else is sanctioned. Adding a deviation means adding a row here, naming the rule
 it suspends, before the code ships.
@@ -75,7 +93,7 @@ Verified against the source. Each is a divergence nobody decided on.
 |---|---|---|---|
 | D1 | `.page` sets `background:var(--white)` while cards are also white — the canvas/surface distinction collapses. (`body` and `.sb` do it correctly; only `.page` is wrong.) | §1.1 | `eyvar_ops_panel_v40_fixed.html:70` |
 | D2 | No contextual save bar, and no wired dirty indicator. `.form-footer` exists but is used **once in the entire file** (the plan editor); the other 40 pages and all 21 settings panes have no save chrome. `.settings-dirty-dot` is defined but dead — zero other occurrences. | §2.3 | `:279`, used at `:1127`; `:248` |
-| D3 | Settings is a **route**, not an overlay — `<div class="page" id="p-settings">` — so entering it destroys the previous page instead of layering over it. | §2.4 | `:1416`, `:70–71` |
+| D3 | **RECLASSIFIED — no longer a defect.** Settings is a route, not an overlay. Under `DECISIONS.md` **D1**, `Admin` is one of five workspaces and its level-2 column is its settings nav, so this is now a deliberate choice: see **sanctioned deviation D-5** in §6.2, which names the §2.4 rules it suspends. The number is retained rather than reused, because D1–D24 are cross-referenced from `docs/ref/defects.md` and elsewhere. | §2.4 → **§6.2 D-5** | `:1416`, `:70–71` |
 | D4 | Global search is a 230px field in the right-hand cluster, not a centred command surface. | §2.1 | `:569` |
 
 **Status and feedback**
@@ -127,13 +145,22 @@ All 41 pages. A page with no row here may not be designed until it gets one.
 | `drivers`, `riders`, `trips`, `subscriptions`, `corporate`, `contacts`, `quickrides`, `plans`, `zones`, `audit-log` | Index table + view tabs + filters + bulk action bar | §3.1–3.3 |
 | `applicant-detail`, `corp-detail`, `ticket-detail`, `profile` | Two-column detail: main + right rail summary, with timeline | §2.2, §3.8 |
 | `plan-edit` | Sectioned form + save bar + **derived-value rules** | §4.1, §2.3, §8.2 |
-| `settings` (21 panes), `my-account` | Settings shell with its own nav | §2.4, D3 |
-| `exec-overview`, `dashboard`, `predictive`, `growth`, `coverage`, `commitment`, `fairness` | Metric tile row + chart cards | §3.7 |
+| `settings` (21 panes), `my-account` | Settings shell with its own nav | §2.4, **D-5** |
+| `exec-overview`, `dashboard`, `predictive`, `growth`, `coverage`, `commitment`, `fairness`, **`fraud`** | Metric tile row + chart cards | §3.7 |
 | `live` | **Monitoring shell** — map + synchronised side list | §8.1 |
 | `finance`, `wallets`, `rwallets` | **Ledger** — append-only, money formatting | §8.3 |
-| `fraud`, `all-pending`, `requests`, `requests-sub-all`, `requests-instant-all`, `interventions`, `readiness`, `renewal` | **Work queue** — claim, SLA, disposition, row-level critical | §8.4 |
+| `all-pending`, `requests`, `requests-sub-all`, `requests-instant-all`, `interventions`, `readiness`, `renewal` | **Work queue** — claim, SLA, disposition, row-level critical | §8.4 |
 | `support`, `compliance`, `safety` | Index table → detail with timeline | §3.1, §3.8 |
 | `inbox`, `notifications-all` | Activity feed | §3.8 |
+
+> **`fraud` moved from Work queue to Metric tiles + chart cards.** Under `DECISIONS.md`
+> **D1** it folds into **Management › Risk & Signals**, which `PROPOSED-STRUCTURE.md` §4.2
+> describes as *"compute a flag, then send the operator somewhere else"* — every action
+> button is a `go()` to another page (`:14320`, `:14336`, `:14351`, `:14363`) — and
+> `PAGE-TRACEABILITY-MATRIX.md` row 4 states it *"has no work queue."* It has no claim, no
+> SLA clock and no disposition, so §8.4's apparatus is inapplicable to it. Consequence for
+> the component inventory: the work-queue pattern now governs **7** legacy pages and the
+> metric-tile pattern **8**. No component is added or removed by the change.
 
 **Rules**
 

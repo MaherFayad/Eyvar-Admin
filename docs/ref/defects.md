@@ -11,15 +11,16 @@ Use this to tell a **known** divergence from a **new** one you just introduced.
 | D-1 | Brand blue is the primary action colour | §1.1.4, §4.6 |
 | D-2 | Higher density — 13px base, ~30px rows | §1.2, §1.3, §3.1 |
 | D-3 | Light 50px top bar with `Title › Subtitle` | §2.1, §2.6, §2.3 |
-| D-4 | Icon rail expanding on hover, 52 → 236px | §2.1 |
+| D-4 | **Two-level navigation** — 80px icon+label workspace rail (5 targets, Admin pinned bottom) + 224px sub-tab column, collapsible below 1344px. Replaces the hover-expanding rail entirely | §2.1 (six clauses) |
+| D-5 | **Settings is a route, not an overlay** — Admin is a workspace; four panes moved to Financials | §2.4 (four clauses) |
 
 D-2 licences **smaller**, not **off-grid**. Values stay on the 4px grid.
 
-## Defects — 24 open
+## Defects — 23 open (D3 reclassified as sanctioned **D-5**)
 
 **Structure** — D1 `.page` is white like its cards, so canvas/surface collapses (`:70`) ·
 D2 no save bar anywhere, `.form-footer` used once, `.settings-dirty-dot` is dead CSS
-(`:279`, `:248`) · D3 settings is a route, not an overlay (`:1416`) · D4 global search is a
+(`:279`, `:248`) · ~~D3 settings is a route~~ — **now sanctioned D-5**, not a defect · D4 global search is a
 230px field, not centred (`:569`)
 
 **Status & feedback** — D5 11 badge tones, target is 5 (`:118`) · D6 three parallel status

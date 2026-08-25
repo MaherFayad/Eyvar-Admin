@@ -98,7 +98,7 @@ Include, deliberately:
 
 ## Reference
 
-Check the small file, not the 5,692-line document:
+Check the small file, not the 5,761-line document:
 `docs/ref/states.md` · `docs/ref/modules.md` · `docs/ref/defects.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the

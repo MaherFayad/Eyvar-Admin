@@ -97,7 +97,7 @@ can.
 
 ## Reference
 
-Check the small file, not the 5,692-line document:
+Check the small file, not the 5,761-line document:
 `docs/ref/rulings.md` · `docs/ref/tokens.md` · `docs/ref/components.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md` · `docs/ref/screenshots.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the

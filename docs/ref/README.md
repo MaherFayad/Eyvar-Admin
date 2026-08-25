@@ -1,6 +1,6 @@
 # Quick reference
 
-Small lookup files. `DESIGN.md` is 5,692 lines — do not read it to check one rule. Read
+Small lookup files. `DESIGN.md` is 5,761 lines — do not read it to check one rule. Read
 the file here, and open the `DESIGN.md` section only when you need the reasoning or the
 evidence behind it.
 

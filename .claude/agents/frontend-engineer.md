@@ -12,7 +12,7 @@ from (`docs/05-restructure/design/`), and the `DESIGN.md` sections it cites.
 
 ## Quick reference
 
-`DESIGN.md` is 5,692 lines. Do not read it to check one rule - read the small file, and
+`DESIGN.md` is 5,761 lines. Do not read it to check one rule - read the small file, and
 open the `DESIGN.md` section only when you need the reasoning behind it.
 Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 

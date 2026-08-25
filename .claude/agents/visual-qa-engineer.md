@@ -19,13 +19,13 @@ images.
 
 ## Quick reference
 
-`DESIGN.md` is 5,692 lines. Do not read it to check one rule - read the small file, and
+`DESIGN.md` is 5,761 lines. Do not read it to check one rule - read the small file, and
 open the `DESIGN.md` section only when you need the reasoning behind it.
 Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 
 | File | Answers |
 |---|---|
-| [`rulings.md`](../../docs/ref/rulings.md) | the 19 tiebreakers |
+| [`rulings.md`](../../docs/ref/rulings.md) | the 20 tiebreakers |
 | [`tokens.md`](../../docs/ref/tokens.md) | what value to use, and what has no token yet |
 | [`components.md`](../../docs/ref/components.md) | which shadcn component, and how to restyle it |
 | [`a11y.md`](../../docs/ref/a11y.md) | required ratios and which tokens fail |

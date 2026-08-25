@@ -9,10 +9,10 @@ designed until it gets one.**
 | `applicant-detail` `corp-detail` `ticket-detail` `profile` | **Two-column detail** — main + right rail, with timeline | §2.2, §3.8 |
 | `plan-edit` | **Sectioned form** + save bar + derived values | §4.1, §2.3, §8.2 |
 | `settings` (21 panes) `my-account` | **Settings shell** with its own nav | §2.4 |
-| `exec-overview` `dashboard` `predictive` `growth` `coverage` `commitment` `fairness` | **Metric tiles** + chart cards | §3.7 |
+| `exec-overview` `dashboard` `predictive` `growth` `coverage` `commitment` `fairness` `fraud` | **Metric tiles** + chart cards | §3.7 |
 | `live` | **Monitoring shell** — map + synchronised side list | §8.1 |
 | `finance` `wallets` `rwallets` | **Ledger** — append-only, money formatting | §8.3 |
-| `fraud` `all-pending` `requests` `requests-sub-all` `requests-instant-all` `interventions` `readiness` `renewal` | **Work queue** — claim, SLA, disposition, row-level critical | §8.4 |
+| `all-pending` `requests` `requests-sub-all` `requests-instant-all` `interventions` `readiness` `renewal` | **Work queue** — claim, SLA, disposition, row-level critical | §8.4 |
 | `support` `compliance` `safety` | Index table → detail with timeline | §3.1, §3.8 |
 | `inbox` `notifications-all` | Activity feed | §3.8 |
 

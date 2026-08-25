@@ -1,0 +1,131 @@
+/**
+ * The five seeded operators — legacy `DB.teamUsers` (`eyvar_ops_panel_v40_fixed.html:2830`–`:2841`).
+ * Names, emails, phones, roles, 2FA flags and permission arrays are verbatim.
+ *
+ * Converted on the way across the seam:
+ *   `lastLogin: 'Today 09:00'` → ISO, against the fixed clock (`2026-06-25T09:14:00+03:00`)
+ *   `lastLogin: 'Not yet'`     → `null`
+ *   `photo: null`              → `photoUrl: null`
+ *
+ * `compensationCapHalalas` is **not** in the legacy `teamUsers` shape — it comes
+ * from `compPolicy` (`:15379`), a five-role cap table, joined here because §11.2
+ * makes it a session-level authority and the wallet screen needs it on the
+ * operator, not on a config page.
+ */
+
+import type { TeamUser } from '../types/session'
+
+export const teamUserFixtures: TeamUser[] = [
+  {
+    id: 'USR-1',
+    name: 'Sarah Al-Rashid',
+    email: 'sarah@eyvar.com',
+    phone: '+966 50 123 4567',
+    photoUrl: null,
+    role: 'Owner',
+    lastLoginAt: '2026-06-25T09:00:00+03:00',
+    status: 'Active',
+    twoFactorEnabled: true,
+    /* All 13 keys. Also the only holder of `manage_settings`, which gates 39 of
+       131 guards — the bus factor of one named in §11.3 item 2. */
+    permissions: [
+      'approve_drivers',
+      'manage_subscriptions',
+      'live_ops',
+      'manage_plans',
+      'view_finance',
+      'process_payouts',
+      'release_escrow',
+      'apply_deductions',
+      'manage_tickets',
+      'view_profiles',
+      'contact_users',
+      'manage_team',
+      'manage_settings',
+    ],
+    compensationCapHalalas: null,
+  },
+  {
+    id: 'USR-2',
+    name: 'Fahad Al-Dosari',
+    email: 'fahad@eyvar.com',
+    phone: '+966 55 222 8890',
+    photoUrl: null,
+    role: 'Finance',
+    lastLoginAt: '2026-06-25T08:45:00+03:00',
+    status: 'Active',
+    /* Finance, moving real money, with 2FA off. That is the fixture that makes
+       the security pane's warning state reachable without hand-editing. */
+    twoFactorEnabled: false,
+    permissions: ['process_payouts', 'release_escrow', 'apply_deductions', 'view_finance', 'view_profiles'],
+    compensationCapHalalas: 500_00,
+  },
+  {
+    id: 'USR-3',
+    name: 'Lina Al-Otaibi',
+    email: 'lina@eyvar.com',
+    phone: '+966 54 771 3320',
+    photoUrl: null,
+    role: 'Support',
+    lastLoginAt: '2026-06-24T00:00:00+03:00',
+    status: 'Active',
+    twoFactorEnabled: false,
+    /* Three permissions. §13.1 R5: not equipped for a suspension decision,
+       which is why Safety & Incidents write actions stay Ops-Manager-gated. */
+    permissions: ['manage_tickets', 'view_profiles', 'contact_users'],
+    compensationCapHalalas: 100_00,
+  },
+  {
+    id: 'USR-4',
+    name: 'Noura Al-Fahad',
+    email: 'noura.f@eyvar.com',
+    phone: '+966 56 990 1145',
+    photoUrl: null,
+    role: 'Support',
+    /* Invited, never logged in — the `null` case for every "last seen" column. */
+    lastLoginAt: null,
+    status: 'Invited',
+    twoFactorEnabled: false,
+    permissions: ['manage_tickets', 'view_profiles', 'contact_users'],
+    compensationCapHalalas: 100_00,
+  },
+  {
+    id: 'USR-5',
+    name: 'Yousef Al-Balawi',
+    email: 'yousef@eyvar.com',
+    phone: '+966 53 410 7762',
+    photoUrl: null,
+    role: 'Ops Manager',
+    lastLoginAt: '2026-06-25T08:10:00+03:00',
+    status: 'Active',
+    twoFactorEnabled: true,
+    permissions: [
+      'approve_drivers',
+      'manage_subscriptions',
+      'live_ops',
+      'manage_plans',
+      'view_finance',
+      'manage_tickets',
+      'view_profiles',
+      'contact_users',
+    ],
+    compensationCapHalalas: 250_00,
+  },
+]
+
+/** Legacy `CURRENT_USER_ID = 'USR-1'` (`:2841`). The single-session demo's one operator. */
+export const CURRENT_USER_ID = 'USR-1'
+
+/**
+ * Role → landing workspace (§3.3, AC-07). Not invented: the mapping is stated
+ * in the spec and in `PROPOSED-STRUCTURE.md` §10.2.
+ */
+export const ROLE_LANDING: Record<string, { workspaceId: string; path: string }> = {
+  Owner: { workspaceId: 'management', path: '/management/overview' },
+  'Ops Manager': { workspaceId: 'operations', path: '/operations/overview' },
+  Finance: { workspaceId: 'financials', path: '/financials/overview' },
+  Support: { workspaceId: 'support', path: '/support/overview' },
+}
+
+/** §8.2 — the documented fallback when a role has no mapping. */
+export const DEFAULT_LANDING = { workspaceId: 'operations', path: '/operations/overview' }

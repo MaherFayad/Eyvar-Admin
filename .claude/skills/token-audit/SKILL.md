@@ -77,7 +77,7 @@ Zero hits is a normal, good result. Do not invent findings to look thorough.
 
 ## Reference
 
-Check the small file, not the 5,692-line document:
+Check the small file, not the 5,761-line document:
 `docs/ref/tokens.md` · `docs/ref/components.md` · `docs/ref/defects.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the

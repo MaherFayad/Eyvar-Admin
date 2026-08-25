@@ -1,0 +1,613 @@
+/* ============================================================================
+   Eyvar Admin — the only file in the product where a value is born.
+   ----------------------------------------------------------------------------
+   Sources, in precedence order:
+     docs/ref/tokens.md              the --ev-* colour set and the name collision
+     docs/05-restructure/design/00-shell.md §1.2   the geometry tokens
+     docs/05-restructure/design/00-shell.md §14    the Arabic overrides (§9.7)
+     DESIGN.md §6.1 / §6.2 D-2 / R15 / R7 / R18 / §7.2 / §7.6
+
+   Four layers, in this order and no other:
+     1. --ev-*            Eyvar tokens. Raw values live here and nowhere else.
+     2. shadcn slots      Mapped FROM --ev-*. Never given a raw value.
+     3. @theme            Exposed to utilities.
+     4. base + defences   Reset, reduced motion, Recharts literal suppression.
+
+   Read the name-collision section of docs/ref/tokens.md before touching layer 2:
+   shadcn's --muted is a BACKGROUND, Eyvar's legacy --muted was secondary TEXT.
+   Secondary text is --muted-foreground, mapped from --ev-text-2.
+   ========================================================================== */
+
+/* `source(none)` disables Tailwind v4's automatic content detection, and the
+   two `@source` lines put it back for SOURCE ONLY.
+
+   This is load-bearing, not tidiness. Automatic detection scans every
+   non-ignored file in the repo, INCLUDING `docs/`. `docs/ref/tokens.md` and
+   `TEAM-BRIEF.md` quote the banned patterns in order to ban them —
+   `bg-blue-500`, `text-gray-400`, `border-slate-200`, `bg-[#185FA5]`,
+   `p-[13px]` — and Tailwind harvested every one of them into the production
+   stylesheet. The documentation that forbids Tailwind's palette was shipping
+   Tailwind's palette, and a stray `bg-blue-500` in a component would have
+   silently WORKED. Verified: those rules are gone from `dist` after this
+   change. Do not remove `source(none)`. */
+@import "tailwindcss" source(none);
+@source "../../index.html";
+@source "../**/*.{ts,tsx}";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+/* --- R-5: the Arabic face, self-hosted and subset. §14. ------------------
+   §14 requires a **Naskh** face shipping 400/600/700 that covers Western
+   digits and `، ؛ ؟`, and states that "`system-ui` alone is not acceptable".
+   Before 0.7 the stack only *referenced* `Noto Naskh Arabic` without shipping
+   it, so §14 was unmet on any machine that did not already have it installed.
+
+   Self-hosted the same way Geist is — `@fontsource-variable/*`, OFL-1.1,
+   woff2, `font-display: swap` — but declared by hand rather than through the
+   package's `index.css`, because that file ships FIVE subsets and Eyvar needs
+   TWO. `math` (U+1D400-1D7FF), `symbols` (emoji and dingbats — AC-76 forbids
+   emoji outright) and `latin-ext` are dropped: 34kB of font files that no
+   Eyvar string can reach.
+
+   Coverage check, against §14's two named requirements:
+     `، ؛ ؟`        U+060C / U+061B / U+061F  → the `arabic` range below
+     Western digits U+0030-0039                → the `latin` range below
+   The variable `wght` axis is 400-700 continuous, so 400/600/700 all resolve
+   from one file rather than three.
+
+   In the stack Geist stays FIRST, so Latin text and every numeral run render
+   in Geist in BOTH languages — which is what makes AC-73 ("money, dates, ids
+   read in the same character order in Arabic") true by construction rather
+   than by review. Arabic characters have no Geist glyph, so they fall through
+   to Naskh per character. */
+@font-face {
+  font-family: "Noto Naskh Arabic Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("@fontsource-variable/noto-naskh-arabic/files/noto-naskh-arabic-arabic-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891,
+    U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41,
+    U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+@font-face {
+  font-family: "Noto Naskh Arabic Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("@fontsource-variable/noto-naskh-arabic/files/noto-naskh-arabic-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* Eyvar ships one theme. The variant is declared so that any residual `dark:`
+   utility compiles, but no `.dark` class is ever applied and no dark palette
+   exists below — deleting the variant would turn a stray utility into a build
+   error instead of a no-op. */
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   1. --ev-* — the Eyvar tokens. THE source of truth.
+   ========================================================================== */
+
+:root {
+  /* --- Colour. DESIGN.md §6.1, rebuilt set per docs/ref/tokens.md. --------
+     Teal, purple, navy, --amber-border and --red-border are deliberately NOT
+     carried over: R7 closes the badge palette at five tones and §6.4 forbids
+     introducing a colour that is not a token. The `new` tone is an OUTLINE,
+     not a fifth fill (design spec §12.1) — do not add --ev-teal-lt here. */
+  --ev-bg: #eef0f3; /* page canvas, rail, sub-tab column */
+  --ev-surface: #ffffff; /* card, popover, drawer, bulk bar */
+  --ev-bg2: #f8f8f5; /* subdued fill: hover, neutral badge, disabled */
+  --ev-hairline: #e4e2da; /* 1px rules, card and control borders */
+  --ev-hairline2: #dddbd3; /* the darker hairline, section rules */
+
+  /* R19 — ADDED IN 0.7, licensed for ONE use and no other.
+     §7's 3:1 non-text contrast requirement for an interactive boundary beats
+     §6.4's "no new colour token": an unchecked checkbox or radio has NO other
+     carrier — no fill, no label inside it, no glyph — so its resting outline
+     IS the control, and --ev-hairline (1.15:1 on white) does not draw it.
+     0.4 raised this as R-4 and mitigated it with hit area and label; the
+     ruling is that a mitigation is not a boundary.
+
+     THE ONE PERMITTED USE: the resting boundary of an UNCHECKED checkbox or
+     radio. It is NOT a border, NOT a divider, NOT a card edge, NOT a hover
+     state, NOT an input border (§4.2's input border is --ev-hairline and stays
+     that way — an input has a fill and a label, a checkbox has neither).
+
+     Measured, not eyeballed — relative luminance per WCAG 2.2:
+       on --ev-surface  #ffffff   3.47 : 1   PASS
+       on --ev-bg2      #f8f8f5   3.26 : 1   PASS  (a checkbox in a hovered row)
+       on --ev-bg       #eef0f3   3.04 : 1   PASS  (a checkbox on the canvas)
+     Every surface a checkbox can sit on clears 3:1. It stays lighter than
+     --ev-text-2 (#6b6b68, 5.35:1) so it cannot be mistaken for a text colour,
+     and keeps the warm-neutral r=g, b-5 relationship of the rest of the ramp. */
+  --ev-hairline-strong: #8a8a85;
+
+  --ev-ink: #1a1a18; /* primary text        17.43:1 on white */
+  --ev-text-2: #6b6b68; /* secondary text       5.35:1 on white */
+  --ev-text-3: #9b9b97; /* 2.79:1 — FAILS AA. Decorative rules only.
+                              NEVER text, never a graphic that carries
+                              meaning. Substitute --ev-text-2. a11y.md. */
+
+  --ev-blue: #185fa5; /* primary action (R3, D-1)  6.52:1 */
+  --ev-blue-lt: #e6f1fb;
+  --ev-blue-dk: #0c447c; /* links (+ underline), info label   9.84:1 */
+
+  --ev-green: #27500a;
+  --ev-green-lt: #eaf3de;
+
+  --ev-amber: #e8a33d; /* graphic only — 1.88:1, never a text colour */
+  --ev-amber-lt: #faeeda;
+  --ev-amber-dk: #633806; /* the warning LABEL colour */
+
+  --ev-red: #a32d2d; /* R5a: four permitted uses, and no red badge */
+  --ev-red-lt: #fcebeb;
+
+  /* --- Geometry. Design spec §1.2. Every value is on the 4px grid: D-2
+     sanctions SMALLER, never OFF-grid (D15). ------------------------------ */
+  --ev-bp-wide: 1344px; /* THE breakpoint. There is no second one. §0.1 */
+
+  --ev-rail-w: 80px; /* level-1 workspace rail */
+  --ev-subnav-w: 224px; /* level-2 sub-tab column, expanded */
+  --ev-topbar-h: 48px; /* top bar AND save bar — identical, always */
+  --ev-shellbar-h: 32px; /* impersonation / call / offline strip */
+  --ev-navrow-h: 32px; /* sub-tab row */
+  --ev-row-h: 32px; /* table row, text */
+  --ev-row-h-media: 44px; /* table row with a thumbnail or 2nd line */
+  --ev-control-h: 28px; /* input, select, compact button */
+  --ev-control-h-lg: 36px; /* in-form and full-width primary */
+  --ev-page-max: 1120px; /* capped single column */
+  --ev-detail-rail-w: 320px; /* detail right rail */
+  --ev-monitor-aside-w: 340px; /* monitoring side list */
+  --ev-drawer-w: 406px; /* shell layers (C12, R13 preserves it) */
+  --ev-radius-card: 12px; /* card (C3, R13 preserves it) */
+  --ev-radius-control: 8px; /* button, input, badge, toast, avatar, pill */
+
+  /* ADDED IN 0.4, not in design spec §1.2 — declared, not smuggled.
+     The design spec names 3px twice as a NAMED figure: the SLA countdown
+     track (§8.4.2 / V-04) and the R5a row-critical leading edge
+     (`box-shadow: inset 3px 0 0`, V-05 / §2.3's active nav bar). 3px is off
+     the 4px grid, but D15 records off-grid LITERALS as the defect and R13
+     preserves individually named figures — so it becomes one token used in
+     three places rather than three literals. Owner: product-designer to
+     confirm the name. */
+  --ev-marker: 3px;
+
+  /* --- Motion. R18 + §7.6. A loop may only signal "this feed is live".
+     Transition DURATIONS come from Tailwind's own scale (`duration-200` for a
+     layer, `duration-100` for a popover) — that scale is a token set, and a
+     second source here would drift. Only the loop needs a token of its own,
+     because it feeds an `animation` shorthand. -------------------------- */
+  --ev-live-loop: 1800ms; /* LiveDot opacity loop, 1200–2500ms */
+
+  /* --- Elevation. R-3, closed by product-designer — design spec §1.3 and
+     `design/00-decisions-r3.md`. These are the SETTLED values, not
+     placeholders; 0.7's provisional numbers are gone. Tailwind's stock scale
+     is deleted below (it painted `rgb(0 0 0 / 0.1)` from `node_modules`, which
+     no token audit of our source could see), so `shadow-md` is now a visible
+     no-op rather than a working escape hatch.
+
+     THREE TIERS, A CLOSED SET. A fourth needs a §6.2 entry.
+
+       none  rail · sub-tab column · top bar · SAVE BAR · shell banner strip ·
+             nested blocks · table rows · canvas · the scrim
+       1     cards · metric tiles · chart cards · form cards · a sticky table
+             header once the body scrolls under it
+       2     every popover · dropdown-menu · tooltip · command list · the
+             toast · the bulk-action bar · AND the 406px shell drawers
+       3     modals at 440/560/800 — the only scrimmed surfaces, and nothing
+             else
+
+     A drawer takes tier 2 AND the 1px inline-start hairline. Both.
+
+     EVERY TIER IS `offset-x: 0` DELIBERATELY, so nothing mirrors in Arabic and
+     these do NOT belong under the `:root:lang(ar)` hook.
+
+     THE PROPERTY TRAP: `box-shadow` is one property and §7.2's focus ring
+     already occupies it. Eyvar's rule, applied consistently: elevation is
+     ALWAYS a Tailwind `shadow-*` utility, which composes into the same
+     `box-shadow` list as `ring-*` by construction, and NO RAW `box-shadow` IS
+     WRITTEN ANYWHERE. The 3px markers (`--ev-marker`) are therefore an
+     `inset-inline-start` pseudo-element, never `box-shadow: inset 3px 0 0` —
+     which also fixes them in Arabic. Break that rule and D20 reopens silently
+     the first time someone tabs to a card. */
+  --ev-shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ev-shadow-2:
+    0 2px 8px -2px rgb(0 0 0 / 0.12), 0 1px 2px 0 rgb(0 0 0 / 0.06);
+  --ev-shadow-3:
+    0 8px 24px -8px rgb(0 0 0 / 0.24), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+}
+
+/* --- The single language hook. §9.7 / §14. -------------------------------
+   A dimension or a type size that varies by language is a custom property
+   redefined HERE, under ONE hook, and nowhere else. Never a second selector,
+   never a §6.2 deviation, never `[dir="rtl"]` as a parallel expression of the
+   same condition — direction and language are different questions and only
+   language moves these numbers.
+
+   Seven dimensions vary, not six: the design spec §1.2 table lists rail-w,
+   subnav-w, navrow-h, row-h, row-h-media, control-h AND control-h-lg. §18's
+   prose says "six". The table is normative; reported as a finding. */
+:root:lang(ar) {
+  --ev-rail-w: 96px;
+  --ev-subnav-w: 256px;
+  --ev-navrow-h: 36px;
+  --ev-row-h: 36px;
+  --ev-row-h-media: 48px;
+  --ev-control-h: 32px;
+  --ev-control-h-lg: 40px;
+
+  /* §14 type floors. These raise the Tailwind scale itself, so every
+     `text-xs` / `text-sm` in every component moves without a second class. */
+  --text-2xs: 12px; /* badge label      11 → 12 */
+  --text-2xs--line-height: 18px;
+  --text-xs: 13px; /* table header     12 → 13 */
+  --text-xs--line-height: 20px;
+  --text-sm: 14px; /* body, nav row, button, table body 13 → 14 */
+  --text-sm--line-height: 24px; /* ≥ 1.7 for body */
+  --text-base: 16px;
+  --text-base--line-height: 28px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+}
+
+/* ==========================================================================
+   2. shadcn semantic slots — mapped FROM --ev-*, never given a raw value.
+   ========================================================================== */
+
+:root {
+  --background: var(--ev-bg); /* canvas is grey, not white — closes D1 */
+  --foreground: var(--ev-ink);
+
+  --card: var(--ev-surface);
+  --card-foreground: var(--ev-ink);
+  --popover: var(--ev-surface);
+  --popover-foreground: var(--ev-ink);
+
+  --primary: var(--ev-blue); /* R3 / D-1 — brand blue, not near-black */
+  --primary-foreground: var(--ev-surface);
+
+  --secondary: var(--ev-surface); /* secondary button: white + hairline */
+  --secondary-foreground: var(--ev-ink);
+
+  --muted: var(--ev-bg2); /* a BACKGROUND in shadcn. Read tokens.md. */
+  --muted-foreground: var(--ev-text-2); /* THIS is secondary text */
+
+  --accent: var(--ev-bg2); /* hover fill on rows, menu items, nav */
+  --accent-foreground: var(--ev-ink);
+
+  --destructive: var(--ev-red); /* R5a — four uses. Not a badge, not a tab. */
+  --destructive-foreground: var(--ev-surface);
+
+  --border: var(--ev-hairline);
+  /* R19 — the unchecked checkbox / radio outline, and nothing else. See the
+     token's own declaration for the one permitted use and the measurements. */
+  --border-strong: var(--ev-hairline-strong);
+  --input: var(--ev-hairline);
+  --ring: var(--ev-blue); /* §7.2 — 2px ring at 2px offset, always */
+
+  --radius: var(--ev-radius-control);
+
+  /* --- The five tones. R7 closes the set; there is no sixth. -------------
+     `new` is an outline treatment over --ev-blue, not a fill — design spec
+     §12.1. It has no fill token by design. */
+  --tone-success: var(--ev-green-lt);
+  --tone-success-foreground: var(--ev-green);
+  --tone-warning: var(--ev-amber-lt); /* ONE warning tone — R17 */
+  --tone-warning-foreground: var(--ev-amber-dk);
+  --tone-info: var(--ev-blue-lt);
+  --tone-info-foreground: var(--ev-blue-dk);
+  --tone-neutral: var(--ev-bg2);
+  --tone-neutral-foreground: var(--ev-text-2);
+  --tone-critical: var(--ev-red-lt); /* banners only (R5a use #2) */
+  --tone-critical-foreground: var(--ev-red);
+
+  /* --- Charts. DESIGN.md §3.7: single-hue line, very pale area fill,
+     comparison series the SAME hue dotted, no gridlines beyond the axis
+     baseline. There is therefore no categorical chart palette and no
+     --chart-3. shadcn's --chart-1…5 neutral ramp is deleted, not remapped:
+     leaving five slots invites a categorical read R7 does not sanction. */
+  --chart-series: var(--ev-blue);
+  --chart-comparison: var(--ev-blue); /* differs by DASH, never by hue */
+  --chart-fill: var(--ev-blue-lt);
+  --chart-axis: var(--ev-text-2);
+  --chart-grid: var(--ev-hairline);
+}
+
+/* ==========================================================================
+   3. Expose to utilities.
+   ========================================================================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--tone-success);
+  --color-success-foreground: var(--tone-success-foreground);
+  --color-warning: var(--tone-warning);
+  --color-warning-foreground: var(--tone-warning-foreground);
+  --color-info: var(--tone-info);
+  --color-info-foreground: var(--tone-info-foreground);
+  --color-neutral: var(--tone-neutral);
+  --color-neutral-foreground: var(--tone-neutral-foreground);
+  --color-critical: var(--tone-critical);
+  --color-critical-foreground: var(--tone-critical-foreground);
+
+  --color-chart-series: var(--chart-series);
+  --color-chart-comparison: var(--chart-comparison);
+  --color-chart-fill: var(--chart-fill);
+  --color-chart-axis: var(--chart-axis);
+  --color-chart-grid: var(--chart-grid);
+
+  /* Geometry, so a component can say `w-rail` / `h-row` / `max-w-page`
+     instead of an arbitrary value. */
+  --spacing-rail: var(--ev-rail-w);
+  --spacing-subnav: var(--ev-subnav-w);
+  --spacing-topbar: var(--ev-topbar-h);
+  --spacing-shellbar: var(--ev-shellbar-h);
+  --spacing-navrow: var(--ev-navrow-h);
+  --spacing-row: var(--ev-row-h);
+  --spacing-row-media: var(--ev-row-h-media);
+  --spacing-control: var(--ev-control-h);
+  --spacing-control-lg: var(--ev-control-h-lg);
+  --spacing-detail-rail: var(--ev-detail-rail-w);
+  --spacing-monitor-aside: var(--ev-monitor-aside-w);
+  --spacing-drawer: var(--ev-drawer-w);
+  --spacing-marker: var(--ev-marker);
+  --container-page: var(--ev-page-max);
+
+  /* The two two-pane grids, as tokens rather than as arbitrary values. Both
+     are named ratios in the design spec and both restack below the ONE
+     breakpoint, so they belong beside the widths they consume:
+       detail   §7.2 — `minmax(0,1fr) 320px`, 16px gutter, the 2:1 that BINDS
+                (the px are indicative, R13)
+       monitor  §7.4 — `minmax(0,1fr) 340px`; at 1280px with the column
+                expanded that is 620 + 16 + 340 = 976 (AC-31 holds) */
+  --grid-template-columns-detail: minmax(0, 1fr) var(--ev-detail-rail-w);
+  --grid-template-columns-monitor: minmax(0, 1fr) var(--ev-monitor-aside-w);
+
+  /* Radius. Explicit, all on the 4px grid — shadcn's stock
+     calc(--radius * 0.6) produces 4.8px, which D15 records as a defect.
+     Controls are `rounded-lg` (8px), cards are `rounded-xl` (12px).
+     Nothing in the product is larger, so 2xl/3xl/4xl clamp to the card
+     radius rather than opening a door to a stadium (R15). */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: var(--ev-radius-control);
+  --radius-xl: var(--ev-radius-card);
+  --radius-2xl: var(--ev-radius-card);
+  --radius-3xl: var(--ev-radius-card);
+  --radius-4xl: var(--ev-radius-card);
+
+  /* Motion */
+  --animate-live-pulse: live-pulse var(--ev-live-loop) ease-in-out infinite;
+
+  /* Elevation — R-3. Tailwind's own scale is deleted so that `shadow-sm`,
+     `shadow-md`, `shadow-lg` and `shadow-xl` compile to nothing and cannot
+     smuggle `rgb(0 0 0 / 0.1)` back in. `shadow-none` is a static utility and
+     still works. Three steps, three utilities: `shadow-1|2|3`. */
+  --shadow-*: initial;
+  --shadow-1: var(--ev-shadow-1);
+  --shadow-2: var(--ev-shadow-2);
+  --shadow-3: var(--ev-shadow-3);
+}
+
+/* The type ramp. D-2: 13px base, the compact end of the scale. Plain @theme,
+   NOT @theme inline — the utilities must resolve through var() so the
+   :lang(ar) floors above can raise them. docs/ref/tokens.md:
+   "text-[13px] is banned, but text-sm with a tightened base is not." */
+@theme {
+  /* ONE BREAKPOINT. Design spec §0.1: "There is no second breakpoint anywhere
+     in the product. If a screen needs one, that is a finding against this
+     document, not a local decision." Tailwind ships five (sm/md/lg/xl/2xl) and
+     they are all deleted here, so a stray `lg:` utility is a no-op a reviewer
+     can see rather than a working escape hatch that quietly softens D2.
+
+     `wide:` is the only responsive variant in the product. Its three uses are
+     fixed: the sub-tab list's first-run default (§3.3), the detail right-rail
+     drop (§7.2), and the metric-tile grid (§0.1).
+
+     THE 1344 IS WRITTEN TWICE AND THAT IS UNAVOIDABLE: a media query cannot
+     read a custom property, so `--breakpoint-wide` must be a literal, while
+     `--ev-bp-wide` must stay a literal on `:root` because `useNavCollapse`
+     reads it at runtime through `getComputedStyle`. THE TWO MOVE TOGETHER OR
+     THE FIRST-RUN NAV DEFAULT SILENTLY DISAGREES WITH THE LAYOUT. */
+  --breakpoint-*: initial;
+  --breakpoint-wide: 1344px;
+
+  --text-2xs: 11px; /* count badge numeral, status badge label */
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px; /* secondary line, helper text, table header */
+  --text-xs--line-height: 16px;
+  --text-sm: 13px; /* BODY. nav row, table body, button, input */
+  --text-sm--line-height: 20px;
+  --text-base: 15px; /* first-run empty-state heading */
+  --text-base--line-height: 20px;
+  --text-lg: 17px; /* page header title */
+  --text-lg--line-height: 24px;
+
+  /* R-5. Geist FIRST in both languages: it has no Arabic glyphs, so Arabic
+     characters fall through to Naskh per character, while Latin text and every
+     numeral run stay in Geist — which is what makes AC-73 true by
+     construction. The self-hosted face leads the Arabic half of the stack; the
+     two installed-font names behind it are a genuine fallback for a machine
+     that has them, and `system-ui` is now last rather than the answer (§14:
+     "`system-ui` alone is not acceptable"). */
+  --font-sans:
+    "Geist Variable", "Noto Naskh Arabic Variable", "Noto Naskh Arabic",
+    "Noto Sans Arabic", ui-sans-serif, "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+
+  @keyframes live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4; /* R18: never below 0.4 */
+    }
+  }
+}
+
+/* ==========================================================================
+   4. Base, and the two mechanical defences.
+   ========================================================================== */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground text-sm;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* §7.2 / D20. `outline: none` with no replacement is a defect, so the
+     product ships a correct default ring and components opt into a stronger
+     one — they never opt out. 2px at 2px offset, --ev-blue. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* R4 + §9.2. Every number in the product is tabular and Western, in both
+     languages. `ar-SA` alone would switch to Arabic-Indic digits. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* --- Defence 1: reduced motion. AC-69 / §7.6. ----------------------------
+   No element in the shell animates indefinitely under this preference. This
+   is global so that a component cannot forget it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Defence 2: Recharts' hard-coded colour literals. Q5. ----------------
+   Recharts 3.8.0 ships ~30 colour literals as PROP defaults, so a mark
+   rendered without an explicit fill/stroke paints an off-token colour that no
+   token audit of our source can see. The shadcn `chart` wrapper neutralises
+   nine of them in its own class list (grid, cursor, dot, polar grid, radial
+   background, reference LINE, sector stroke, tick text). These are the rest.
+
+   This turns "remember to pass a colour" into "the wrong colour cannot
+   render". Evidence and the full literal census:
+   docs/05-restructure/build/00-primitives.md §Q5. */
+@layer base {
+  [data-slot="chart"] {
+    /* Line / Area default stroke and fill: #3182bd — a blue that is not ours */
+    .recharts-curve[stroke="#3182bd"] {
+      stroke: var(--chart-series);
+    }
+    .recharts-area-area[fill="#3182bd"],
+    .recharts-area-area[fill="#3182bd"] > * {
+      fill: var(--chart-fill);
+    }
+    /* Bar default fill: #eee */
+    .recharts-rectangle[fill="#eee"] {
+      fill: var(--chart-series);
+    }
+    /* Pie / Funnel default fill: #808080 */
+    .recharts-sector[fill="#808080"],
+    .recharts-trapezoid[fill="#808080"] {
+      fill: var(--chart-series);
+    }
+    /* CartesianAxis / Brush default stroke: #666 */
+    .recharts-cartesian-axis-line,
+    .recharts-cartesian-axis-tick-line {
+      stroke: var(--chart-axis);
+    }
+    .recharts-brush > rect {
+      fill: var(--card);
+      stroke: var(--border);
+    }
+    .recharts-brush-traveller > rect {
+      fill: var(--card);
+      stroke: var(--border);
+    }
+    /* PolarRadiusAxis default stroke: #ccc (the wrapper covers PolarGrid only) */
+    .recharts-polar-radius-axis-line {
+      stroke: var(--chart-grid);
+    }
+    /* ReferenceDot #fff/#ccc and ReferenceArea #ccc */
+    .recharts-reference-dot .recharts-dot {
+      fill: var(--card);
+      stroke: var(--chart-series);
+    }
+    .recharts-reference-area .recharts-rectangle {
+      fill: var(--muted);
+    }
+    /* Every remaining grid line */
+    .recharts-cartesian-grid line {
+      stroke: var(--chart-grid);
+    }
+
+    /* --- The nine the shadcn wrapper used to neutralise inline. They lived in
+       `chart.tsx` as `[&_.recharts-…[stroke='#ccc']]:stroke-border` classes,
+       which put raw hex in a component. Same rules, moved here. ------------ */
+    .recharts-cartesian-axis-tick text {
+      fill: var(--chart-axis);
+    }
+    .recharts-cartesian-grid line[stroke="#ccc"],
+    .recharts-polar-grid [stroke="#ccc"],
+    .recharts-reference-line [stroke="#ccc"] {
+      stroke: var(--chart-grid);
+    }
+    .recharts-curve.recharts-tooltip-cursor {
+      stroke: var(--chart-grid);
+    }
+    .recharts-rectangle.recharts-tooltip-cursor {
+      fill: var(--muted);
+    }
+    .recharts-dot[stroke="#fff"],
+    .recharts-sector[stroke="#fff"] {
+      stroke: transparent;
+    }
+    .recharts-radial-bar-background-sector {
+      fill: var(--muted);
+    }
+    .recharts-layer,
+    .recharts-sector,
+    .recharts-surface {
+      outline: none;
+    }
+  }
+}
