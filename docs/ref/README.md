@@ -16,6 +16,7 @@ evidence behind it.
 | [rtl.md](rtl.md) | "Does this mirror in Arabic?" | ~40 |
 | [defects.md](defects.md) | "Is this a known legacy defect or a new one?" | ~45 |
 | [screenshots.md](screenshots.md) | "Where's a real example of this pattern?" | ~40 |
+| [components.md](components.md) | "Which shadcn component, and how do I restyle it?" | ~55 |
 | [modules.md](modules.md) | "Which doc describes this part of the product?" | ~60 |
 
 ## Precedence, in one line
@@ -25,13 +26,14 @@ evidence behind it.
 A MUST in §1–§5 describes *Shopify*, not Eyvar. It binds only where §6 adopts it. Never
 cite a §1–§5 pixel figure in review — R13 voids them.
 
-## The five things most often got wrong
+## The six things most often got wrong
 
-1. A literal value in CSS instead of a token — and only colours are tokenised today.
-2. Shipping the happy path without the empty, loading, and error states.
-3. `margin-left` instead of `margin-inline-start`. The product ships Arabic.
-4. `outline: none` with nothing put back.
-5. A red badge. There is no red badge (R5a).
+1. **`text-gray-500`.** Tailwind's palette is not your palette. Semantic slots only.
+2. Using a shadcn component as it arrived, without restyling it to `DESIGN.md`.
+3. Shipping the happy path without the empty, loading, and error states.
+4. `ml-4` instead of `ms-4`. The product ships Arabic.
+5. `outline-none` with no `focus-visible:ring`.
+6. A red badge. There is no red badge (R5a).
 
 ## Maintaining these
 

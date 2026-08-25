@@ -5,15 +5,21 @@ arrival, not a polish item.
 
 ## The mandate
 
-Logical properties only. Never `left` or `right`.
+Logical only. Never `left` or `right`.
 
 | Never | Always |
 |---|---|
-| `margin-left` / `margin-right` | `margin-inline-start` / `margin-inline-end` |
-| `padding-left` / `padding-right` | `padding-inline-start` / `padding-inline-end` |
-| `left:` / `right:` | `inset-inline-start` / `inset-inline-end` |
-| `text-align: left` / `right` | `text-align: start` / `end` |
-| `border-left` / `border-right` | `border-inline-start` / `border-inline-end` |
+| `ml-*` / `mr-*` | `ms-*` / `me-*` |
+| `pl-*` / `pr-*` | `ps-*` / `pe-*` |
+| `left-*` / `right-*` | `start-*` / `end-*` |
+| `text-left` / `text-right` | `text-start` / `text-end` |
+| `border-l` / `border-r` | `border-s` / `border-e` |
+| `rounded-l-*` / `rounded-r-*` | `rounded-s-*` / `rounded-e-*` |
+
+**The CLI does this for you on add.** With `"rtl": true` in `components.json`, shadcn
+converts physical classes to logical ones as it copies a component in. Verify the flag is
+still on before adding anything — if it was ever off, every component added since is
+suspect. Hand-written code is not covered: `/token-audit` catches that.
 
 Same in prose: a spec that says "the badge sits on the right" is ambiguous. Say
 inline-end.

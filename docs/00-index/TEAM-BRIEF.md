@@ -47,26 +47,34 @@ Index: `docs/ref/README.md`.
 ## Stack
 
 - **React + TypeScript + Vite**
-- **CSS variables + CSS Modules.** Tokens live in one `:root` block. This choice exists so
-  that §6.4's "every value must be a token" rule stays greppable — do not defeat it.
+- **Tailwind v4 + shadcn/ui.** Components are *copied into* `src/components/ui/`, not
+  imported from a package — you own the code and restyle it to `DESIGN.md`.
+- **Tokens are still CSS variables.** Tailwind v4 is CSS-first: `--ev-*` tokens live in
+  `src/styles/globals.css`, map into shadcn's semantic slots, and are exposed to utilities
+  via `@theme inline`. `DESIGN.md` §6.1 is unchanged; only enforcement moved.
+- **`components.json` must have `"rtl": true`** — the CLI converts physical classes to
+  logical ones on add. That is how §9.1 is enforced mechanically.
 - **Vitest + Testing Library** for behaviour, **Playwright** for visual regression.
 
 ## The rules that bite
 
 These come from `DESIGN.md`. They are the ones most often broken:
 
-1. **Tokens only.** No literal colour, and no radius/spacing/font-size that isn't in the
-   token set. Today only colours are tokenised (§6.1) — extending the set is a deliberate
-   act, not a side effect of building a screen.
-2. **Four states per screen**: content, empty, loading, error. A PR with only the happy
+1. **Tokens only — and Tailwind's palette is not your palette.** `bg-blue-500` and
+   `text-gray-400` look legitimate and are the fastest way to lose the design system. Only
+   semantic slots: `bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`.
+   No arbitrary values (`p-[13px]`).
+2. **A shadcn component arrives non-compliant.** Restyle it on the way in — see
+   `docs/ref/components.md`. Using one as-shipped imports someone else's design system.
+3. **Four states per screen**: content, empty, loading, error. A PR with only the happy
    path is not done.
-3. **One event, one surface** (R10): transient confirmation → toast; standing condition →
+4. **One event, one surface** (R10): transient confirmation → toast; standing condition →
    banner. Never both, never two banners.
-4. **Red has exactly four permitted uses** (R5a). There is no red badge.
-5. **Logical properties only** (§9.1). `margin-inline-start`, never `margin-left`. The
-   product ships Arabic.
-6. **Visible focus on everything interactive** (§7.2). `outline:none` without a
-   replacement is a defect, not a style choice.
+5. **Red has exactly four permitted uses** (R5a). There is no red badge.
+6. **Logical utilities only** (§9.1). `ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`. The CLI
+   handles components it adds; hand-written code still drifts.
+7. **Visible focus on everything interactive** (§7.2). `outline-none` without a
+   `focus-visible:ring` is a defect, not a style choice.
 
 ## How work flows
 

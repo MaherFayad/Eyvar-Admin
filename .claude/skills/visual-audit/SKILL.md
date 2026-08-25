@@ -9,18 +9,22 @@ Five passes. Run all five; each catches a different class of defect.
 
 ## Pass 1 — Token conformance (mechanical, do it first)
 
-This pass is a script, not an opinion, and it finds more real defects than the other four
-combined. Run `/token-audit` on the changed files, or directly:
+Run `/token-audit`. This pass is a script, not an opinion, and it finds more real defects
+than the other four combined.
 
-```bash
-rg -n "#[0-9a-fA-F]{3,8}\b|rgba?\(" src --glob '*.css' | rg -v 'tokens.css'
-rg -n ":\s*-?[0-9.]+px" src --glob '*.module.css'
-rg -n "margin-(left|right)|padding-(left|right)|\b(left|right)\s*:" src --glob '*.css'
-rg -n "outline:\s*none" src --glob '*.css'
-rg -n "style=\{\{" src --glob '*.tsx'
-```
+Under Tailwind the top defect is **`bg-blue-500`** — a palette class that is not an Eyvar
+token and reads as perfectly legitimate. Then, in order of frequency:
 
-Every hit is a §6.4 or §9.1 violation. No judgement required.
+- arbitrary values — `p-[13px]`, `text-[#185FA5]`
+- raw hex or `oklch()` outside `src/styles/globals.css`
+- physical direction utilities — `ml-*`, `left-*`, `text-left`, `border-l`
+- `outline-none` with no paired `focus-visible:ring-*`
+- inline `style={{}}` on anything not genuinely dynamic
+- any file under `src/components/ui/` still carrying stock shadcn greys, which means it
+  was added by the CLI and never restyled
+
+Also confirm `components.json` still has `"rtl": true`. If it was ever off, every
+component added since is suspect and needs re-checking.
 
 ## Pass 2 — Rule conformance
 
@@ -94,7 +98,7 @@ can.
 ## Reference
 
 Check the small file, not the 5,692-line document:
-`docs/ref/rulings.md` · `docs/ref/tokens.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md` · `docs/ref/screenshots.md`
+`docs/ref/rulings.md` · `docs/ref/tokens.md` · `docs/ref/components.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md` · `docs/ref/screenshots.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
 reasoning or the evidence behind a rule.

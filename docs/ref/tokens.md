@@ -1,45 +1,82 @@
 # Tokens
 
-Source: `DESIGN.md` §6.1, read from `eyvar_ops_panel_v40_fixed.html:11–21`.
+Stack: **Tailwind v4 + shadcn/ui**. Tailwind v4 is CSS-first — there is no
+`tailwind.config.js` colour palette. Everything lives in `src/styles/globals.css`.
 
-## Colour — all 24 exist today
+## Two layers, one source
 
-| Token | Value | Use for |
+```css
+/* 1. Eyvar tokens — the source of truth. DESIGN.md §6.1. */
+:root {
+  --ev-bg:        #EEF0F3;   /* page canvas */
+  --ev-surface:   #ffffff;   /* card */
+  --ev-bg2:       #F8F8F5;   /* subdued fill */
+  --ev-hairline:  #E4E2DA;
+  --ev-hairline2: #DDDBD3;
+  --ev-ink:       #1A1A18;   /* primary text     17.43:1 */
+  --ev-text-2:    #6B6B68;   /* secondary text    5.35:1 */
+  --ev-text-3:    #9B9B97;   /* 2.79:1 — NOT for text */
+  --ev-blue:      #185FA5;   /* primary action, R3 */
+  --ev-blue-lt:   #E6F1FB;
+  --ev-blue-dk:   #0C447C;   /* links, + underline */
+  --ev-green:     #27500A;  --ev-green-lt: #EAF3DE;
+  --ev-amber:     #E8A33D;  --ev-amber-lt: #FAEEDA;  --ev-amber-dk: #633806;
+  --ev-red:       #A32D2D;  --ev-red-lt:   #FCEBEB;
+}
+
+/* 2. shadcn semantic slots — mapped from Eyvar tokens, never given raw values. */
+:root {
+  --background: var(--ev-bg);
+  --foreground: var(--ev-ink);
+  --card: var(--ev-surface);
+  --primary: var(--ev-blue);
+  --primary-foreground: #ffffff;
+  --muted: var(--ev-bg2);            /* NB: a BACKGROUND in shadcn */
+  --muted-foreground: var(--ev-text-2);
+  --border: var(--ev-hairline);
+  --destructive: var(--ev-red);
+  --ring: var(--ev-blue);
+}
+
+/* 3. Expose to utilities. */
+@theme inline {
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  /* …one line per slot */
+}
+```
+
+## The name collision — read this once
+
+shadcn and the legacy app use the **same names for different things**. This is why Eyvar
+tokens are prefixed `--ev-`:
+
+| Name | Legacy Eyvar meaning | shadcn meaning |
 |---|---|---|
-| `--bg` | `#EEF0F3` | Page canvas |
-| `--sb-bg` | `#EEF0F3` | Sidebar |
-| `--bg2` | `#F8F8F5` | Subdued fills — table headers, footers, icon buttons |
-| `--white` | `#fff` | Card / surface |
-| `--border` | `#E4E2DA` | Hairline |
-| `--border2` | `#DDDBD3` | Stronger hairline, input borders |
-| `--ink` | `#1A1A18` | Primary text (17.43:1) |
-| `--muted` | `#6B6B68` | Secondary text (5.35:1 — **use this, not `--ghost`**) |
-| `--ghost` | `#9B9B97` | **2.79:1 — fails contrast. Not for text.** |
-| `--blue` | `#185FA5` | Primary action (R3) |
-| `--blue-lt` | `#E6F1FB` | Info tint |
-| `--blue-dk` | `#0C447C` | Links (+ underline) |
-| `--green` / `--green-lt` | `#27500A` / `#EAF3DE` | Success |
-| `--amber` / `--amber-lt` / `--amber-dk` / `--amber-border` | `#E8A33D` / `#FAEEDA` / `#633806` / `#E0B368` | Warning |
-| `--red` / `--red-lt` / `--red-border` | `#A32D2D` / `#FCEBEB` / `#E8A9A9` | Critical — only where R5a permits |
-| `--teal` / `--teal-lt` | `#0B6B6B` / `#E1F5EE` | Legacy extra tone |
-| `--purple` / `--purple-lt` | `#4A2889` / `#EDE6FB` | Legacy extra tone |
-| `--navy` | `#3D434B` | Logo / section text |
+| `--muted` | secondary **text** colour | a muted **background** |
+| `--border` | hairline colour | the border slot |
+| `--primary` | (didn't exist) | primary action |
 
-## What does NOT exist yet
-
-**Radius, spacing, font-size, shadow, duration, z-index have no tokens.** `:root` holds
-colours and nothing else (defect D16).
-
-Until that set exists these categories are **frozen**: reuse a value already in the CSS and
-note it on the D16 ticket, or extend `styles/tokens.css` deliberately in the same commit
-and say so in your handoff. What you may not do is inline the value and move on — that is
-exactly how the legacy file reached 36 off-token colours, 15 font sizes and 13 radii
-(D12–D14).
+Secondary text is `--muted-foreground` in shadcn, mapped from `--ev-text-2`. Getting this
+backwards produces grey-on-grey text that passes review and fails contrast.
 
 ## Rules
 
-- Every colour in a `.module.css` is `var(--token)`. No exceptions.
-- New token → `styles/tokens.css`, same commit, mentioned in the handoff.
-- Run `/token-audit` before you hand anything off.
-- `--ghost` on any background fails 4.5:1. It is used 431 times in the legacy app for text;
-  do not carry that across. Substitute `--muted`, which already exists and passes.
+1. **Never write a raw value in a component.** No `bg-[#185FA5]`, no `p-[13px]`, no
+   `text-[11px]`.
+2. **Never use Tailwind's built-in palette.** `bg-blue-500`, `text-gray-400`,
+   `border-slate-200` are not your tokens — they look legitimate and are the biggest drift
+   risk under Tailwind. Only semantic utilities: `bg-background`, `text-muted-foreground`,
+   `border-border`, `bg-primary`.
+3. **New token → `globals.css`**, in the `--ev-*` layer, mapped into a slot, same commit.
+4. **`--ev-text-3` (2.79:1) is not a text colour.** Use `--ev-text-2`. See `a11y.md`.
+5. Run `/token-audit` before handing anything off.
+
+## Spacing, radius, type
+
+Tailwind's default scale is 4px-based, which matches the `DESIGN.md` grid, so use it:
+`p-2` `gap-3` `text-sm`. This closes legacy defect D16 — those categories finally have a
+token set.
+
+Density (§6.2 D-2) means the compact end of the scale: `text-[13px]` is banned, but
+`text-sm` with a tightened base is not. Set the base in `@theme`, then use the scale.

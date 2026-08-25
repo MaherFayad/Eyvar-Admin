@@ -100,7 +100,7 @@ Title · status badge · pager · actions (primary last)
 ## Reference
 
 Check the small file, not the 5,692-line document:
-`docs/ref/rulings.md` · `docs/ref/patterns.md` · `docs/ref/surfaces.md` · `docs/ref/states.md` · `docs/ref/copy.md` · `docs/ref/screenshots.md` · `docs/ref/rtl.md`
+`docs/ref/rulings.md` · `docs/ref/patterns.md` · `docs/ref/components.md` · `docs/ref/surfaces.md` · `docs/ref/states.md` · `docs/ref/copy.md` · `docs/ref/screenshots.md` · `docs/ref/rtl.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
 reasoning or the evidence behind a rule.

@@ -146,6 +146,46 @@ All 41 pages. A page with no row here may not be designed until it gets one.
 - MUST map any new page to a row in §6.4 before design starts.
 - SHOULD close defects in the order given at the end of §6.3.
 
+### 6.6 Implementation stack
+
+Decided deliberately, after weighing headless primitives against a full design system.
+
+**React + TypeScript + Vite · Tailwind v4 · shadcn/ui · TanStack Table · Vitest + Playwright.**
+
+shadcn components are **copied into `src/components/ui/`**, not imported from a package, so
+the team owns the source and restyles it to this document rather than fighting a library.
+
+**What this changes, and what it does not.**
+
+- §6.1's token model is **unchanged**. Tailwind v4 is CSS-first: `--ev-*` tokens live in
+  `globals.css`, map into shadcn's semantic slots, and reach utilities via `@theme inline`.
+  Tokens are still CSS custom properties in `:root`.
+- Tokens are **namespaced `--ev-*`**. shadcn claims `--border`, `--muted` and `--primary`
+  as its own semantic slots, and two of those collide with legacy Eyvar names carrying
+  different meanings — `--muted` is *secondary text* in the legacy app and a *muted
+  background* in shadcn. The prefix removes the collision permanently.
+- Defect **D16 is closed by adoption**: Tailwind's 4px-based scale supplies the radius,
+  spacing and type tokens that never existed. The "these categories are frozen" rule in
+  §6.4 is lifted; the colour rule stands.
+- §6.4's `MUST NOT introduce a colour that is not a token` gains a second clause:
+  **Tailwind's built-in palette is not a token set.** `bg-blue-500` and `text-gray-400`
+  bypass `--ev-*` entirely while looking legitimate, and are now the primary drift risk.
+  Only semantic slots are permitted.
+- §9.1 gains a **mechanical enforcer**: `"rtl": true` in `components.json` converts
+  physical classes to logical ones as the CLI copies a component in. It does not cover
+  hand-written code — `/token-audit` does.
+
+**What the stack does not supply.** Banners (R1/R16), empty states (R8), and the whole of
+§8 — the monitoring shell, the append-only ledger, the work queue with SLA and the R5a row
+marker, derived-value fields. These are built from primitives. Four patterns, expected.
+
+**The trade that was accepted.** shadcn's default styling is discarded, because §1–§5
+govern anatomy — badge geometry (R15), banner family (R1), empty states (R8), the save bar
+(R2) — and shadcn disagrees with all four by construction. The value bought is velocity
+across 41 pages and a component set the team does not have to write. The cost is that
+every added component must be restyled on arrival, and that discipline is what
+`/token-audit` and the visual-QA pass exist to enforce.
+
 ### 6.5 Audit record
 
 Two audits ran against the assembled document.

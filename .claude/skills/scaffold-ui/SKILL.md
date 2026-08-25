@@ -1,51 +1,36 @@
 ---
 name: scaffold-ui
-description: Scaffold an Eyvar Admin screen or component in React + TypeScript + CSS Modules with all four states wired from the start. Use when implementing a design spec, adding a component, or starting a new screen. Creates the files, the CSS module, and the test stub.
+description: Scaffold an Eyvar Admin screen or component with shadcn/ui, React and TypeScript, with all four states wired from the start. Use when implementing a design spec, adding a component, or starting a new screen. Adds the shadcn primitive, restyles it to DESIGN.md, and creates the test stub.
 ---
 
 # Scaffold a screen or component
 
 ## Before you write a file
 
-Read the design spec, and the `DESIGN.md` sections it cites. If there is no design spec,
-stop — ask product-designer. Building from a feature spec alone means inventing design
-decisions, which is how the system drifts.
+Read the design spec and the `DESIGN.md` sections it cites. No design spec → stop and ask
+product-designer. Building from a feature spec alone means inventing design decisions.
 
-## Component
+Then check `docs/ref/components.md` — the shadcn primitive for your pattern is probably
+already mapped, and if the answer is "none — build it" you need to know that now.
 
-```
-src/components/<Name>/
-  <Name>.tsx
-  <Name>.module.css
-  <Name>.test.tsx
-  index.ts
+## Adding a primitive
+
+```bash
+pnpm dlx shadcn@latest add button badge dialog
 ```
 
-```tsx
-// <Name>.tsx
-import styles from './<Name>.module.css'
+Never hand-write a component the CLI can add. `components.json` must have `"rtl": true`
+so physical classes are converted to logical ones on the way in — that is how §9.1 is
+enforced mechanically. Check it before adding anything.
 
-export interface <Name>Props {
-  /* typed, no `any` */
-}
+**A freshly added component is not Eyvar-compliant.** Restyle it immediately:
 
-export function <Name>({ ... }: <Name>Props) {
-  return <div className={styles.root}>...</div>
-}
-```
-
-```css
-/* <Name>.module.css - every value is a token. No literals. */
-.root {
-  padding: var(--space-3);
-  border-radius: var(--radius-card);
-  background: var(--white);
-  border: 1px solid var(--border);
-}
-```
-
-If a token you need does not exist, add it to `src/styles/tokens.css` **in the same
-commit** and say so in the handoff. Do not inline the value "for now".
+1. Strip Tailwind palette classes (`bg-slate-100`, `text-gray-500`) → semantic slots
+   (`bg-muted`, `text-muted-foreground`).
+2. Strip arbitrary values.
+3. Apply the rule for that component — geometry (R15), tone set (R7), copy (§5.7).
+4. Confirm the focus ring survives (§7.2).
+5. Note the rules you applied in a comment at the top of the file.
 
 ## Screen
 
@@ -53,8 +38,8 @@ commit** and say so in the handoff. Do not inline the value "for now".
 src/screens/<Module>/<Screen>.tsx
 ```
 
-Build the states in this order. Writing them in this order is the point — it makes
-omitting one visible:
+Build the states in this order. Writing them in order is the point — it makes omitting one
+visible:
 
 ```tsx
 export function <Screen>() {
@@ -68,39 +53,38 @@ export function <Screen>() {
 }
 ```
 
-Data comes from `src/data/clients/` — never import a fixture directly. Shared behaviour
-(pagination, filters, selection, formatting) comes from `src/hooks/` and `src/lib/` — if
-it doesn't exist, ask utilities-engineer rather than writing a private copy.
+Data comes from `src/data/clients/` — never import a fixture directly. Shared hooks and
+formatters come from `src/hooks/` and `src/lib/`; if one doesn't exist, ask
+utilities-engineer rather than writing a private copy that will drift.
 
 ## Non-negotiables
 
-Check each before you call it done:
-
-- [ ] No literal colour, radius, spacing, font-size or duration in the CSS module
+- [ ] No Tailwind palette classes — `bg-blue-500` is not a token
+- [ ] No arbitrary values — `p-[13px]`, `text-[#185FA5]`
 - [ ] All four states present and reachable
-- [ ] Logical properties only — `margin-inline-start`, never `margin-left` (§9.1)
-- [ ] Interactive elements are `<button>` / `<a>`, never a `<div onClick>` (§7.4)
-- [ ] No `outline: none` without a replacement focus ring (§7.2)
-- [ ] Hover-revealed actions also appear on `:focus-within` (§7.3)
-- [ ] One primary button, in `--blue` (R3)
-- [ ] Red used only where R5a permits
+- [ ] Logical utilities only — `ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`/`text-start`
+- [ ] Interactive elements are `<button>`/`<a>`, never `<div onClick>` (§7.4)
+- [ ] `outline-none` always paired with `focus-visible:ring-*` (§7.2)
+- [ ] Hover-revealed actions also appear on `focus-within:` (§7.3)
+- [ ] One primary button, `bg-primary` (R3); red only where R5a permits
 - [ ] Copy matches the design spec exactly — no improvised strings
 
-Then run `/token-audit` on the files you touched.
+Then run `/token-audit` on what you touched.
 
 ## Common failures
 
-- **Shipping the happy path and calling it done.** The other three states are the job.
-- **Inlining a value because the token doesn't exist yet.** It never gets cleaned up. Add
-  the token.
-- **Copying a component from the legacy HTML.** Port the *behaviour*, cite the line, but
-  the markup and CSS are rebuilt to `DESIGN.md` — the legacy file carries 24 documented
-  defects and you do not want to inherit them.
+- **Shipping the happy path.** The other three states are the job.
+- **Using a shadcn component as it arrived.** It comes with someone else's greys. Restyle
+  on arrival or the drift is permanent.
+- **`text-gray-500` because it looked right.** It is not a token, it passes casual review,
+  and it is the single most common way Tailwind projects lose their design system.
+- **Copying markup from the legacy HTML.** Port the *behaviour*, cite the line — the file
+  carries 24 documented defects you do not want to inherit.
 
 ## Reference
 
 Check the small file, not the 5,692-line document:
-`docs/ref/tokens.md` · `docs/ref/states.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md`
+`docs/ref/components.md` · `docs/ref/tokens.md` · `docs/ref/states.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
 reasoning or the evidence behind a rule.

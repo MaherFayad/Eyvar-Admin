@@ -25,6 +25,8 @@ Adding a third way to format a date is worse than the duplication you set out to
 |---|---|---|
 | Holds React state or effects | `src/hooks/` | |
 | Is a pure function | `src/lib/` | |
+| Is focus trapping, dismiss, portalling | — | shadcn/Radix already do it |
+| Is `cn()` | — | ships with shadcn init; never write a second |
 | Renders anything | — | frontend-engineer owns components |
 | Calls a real endpoint | — | mock-data-engineer owns the seam |
 | Encodes a domain rule ("inactive after 30 days") | — | lives with the feature |

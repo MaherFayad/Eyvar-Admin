@@ -1,63 +1,68 @@
 ---
 name: token-audit
-description: Grep Eyvar Admin source for values that should be design tokens - literal colours, raw px, physical directions, killed focus outlines, inline styles. Use before handing off a component, before merge, or when auditing drift. Mechanical, fast, no judgement required.
+description: Grep Eyvar Admin source for values that bypass the design tokens - Tailwind palette classes, arbitrary values, raw hex, physical directions, killed focus outlines. Use before handing off a component, before merge, or when auditing drift. Mechanical, fast, no judgement required.
 ---
 
 # Token audit
 
-`DESIGN.md` §6.4 says every value is a token. This is how that stays true. It is a script,
-not an opinion — every hit is a defect or a deliberate, documented exception.
+`DESIGN.md` §6.4 says every value is a token. Under Tailwind the drift risk is different
+from CSS Modules: the danger is not just `bg-[#185FA5]`, it is **`bg-blue-500`** — a
+legitimate-looking utility that is not your token and will pass a casual review.
 
 ## Run
 
 ```bash
-# 1. Literal colours outside the token file
-rg -n "#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(" src --glob '*.css' | rg -v 'styles/tokens.css'
+# 1. Tailwind's built-in palette - the biggest drift risk. These are NOT Eyvar tokens.
+rg -n "\b(bg|text|border|ring|from|to|via|fill|stroke|outline|decoration|divide|shadow)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\b" src
 
-# 2. Raw pixel values in component styles (spacing, radius, size)
-rg -n ":\s*-?[0-9.]+px" src --glob '*.module.css'
+# 2. Arbitrary values
+rg -n "\b[a-z-]+-\[[^\]]+\]" src --glob '*.tsx' --glob '*.css'
 
-# 3. Physical directions - forbidden by §9.1, the product ships Arabic
-rg -n "margin-(left|right)|padding-(left|right)|border-(left|right)(-|:)|^\s*(left|right)\s*:|text-align:\s*(left|right)" src --glob '*.css'
+# 3. Raw colours anywhere outside the token file
+rg -n "#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|oklch\(" src | rg -v 'styles/globals.css'
 
-# 4. Focus killed without a replacement
-rg -n -A3 "outline:\s*none" src --glob '*.css'
+# 4. Physical directions - the CLI converts on add, but hand-written code drifts (§9.1)
+rg -n "\b(ml|mr|pl|pr|left|right|border-l|border-r|rounded-l|rounded-r|text-left|text-right|inset-l|inset-r)-" src --glob '*.tsx'
+rg -n "margin-(left|right)|padding-(left|right)|^\s*(left|right)\s*:|text-align:\s*(left|right)" src --glob '*.css'
 
-# 5. Inline styles - they bypass the token layer entirely
+# 5. Focus killed without replacement
+rg -n -A2 "outline-none|outline:\s*none" src | rg -v "focus-visible:ring|focus:ring"
+
+# 6. Inline style objects - bypass the token layer entirely
 rg -n "style=\{\{" src --glob '*.tsx'
 
-# 6. Non-focusable click targets (§7.4)
+# 7. Non-focusable click targets (§7.4)
 rg -n "<(div|span|li|td|tr)[^>]*onClick" src --glob '*.tsx'
 
-# 7. Raw durations
-rg -n "transition:[^;]*[0-9]+m?s|animation:[^;]*[0-9]+m?s" src --glob '*.css'
+# 8. Hover-only reveals with no focus fallback (§7.3)
+rg -n "(group-hover|hover):(opacity-100|visible|flex|block)" src --glob '*.tsx' | rg -v "focus-within|focus-visible"
 
-# 8. Hover-only reveals without a focus fallback (§7.3)
-rg -n -B2 -A2 ":hover" src --glob '*.module.css' | rg -n "opacity:\s*0"
+# 9. shadcn components still carrying stock styling (they arrive non-compliant)
+rg -ln "slate-|gray-|zinc-" src/components/ui
 ```
 
 ## Triage
 
 | Hit | Verdict |
 |---|---|
-| Colour outside `tokens.css` | Defect. Add the token or use the existing one. |
-| `px` in a module CSS | Defect **unless** it is a genuine one-off geometry (a 1px hairline, a border width). Spacing, radius and font-size are always tokens. |
-| `margin-left`, `text-align: right`, bare `left:` | Defect (§9.1). Use `margin-inline-start`, `text-align: start`, `inset-inline-start`. |
-| `outline: none` with no replacement ring in the same rule | Defect (§7.2). |
-| Inline style object | Defect unless the value is genuinely dynamic (a computed chart width, a live position). Static styling belongs in the module. |
-| `<div onClick>` | Defect (§7.4). Use `<button>`. |
-| Raw duration | Defect. Tokenise it; motion also has to answer to §7.6 and R18. |
-| `opacity: 0` revealed only on `:hover` | Defect (§7.3). Add `:focus-within`. |
+| Tailwind palette class | **Defect.** Replace with a semantic slot: `bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`. |
+| Arbitrary value | **Defect.** Use the scale, or add an `--ev-*` token and map it. |
+| Raw colour outside `globals.css` | **Defect**, no exceptions. |
+| Physical direction | **Defect** (§9.1). `ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`/`text-start`. |
+| `outline-none` with no `focus-visible:ring` | **Defect** (§7.2). |
+| Inline style | Defect unless genuinely dynamic — a computed chart width, a live marker position. Static styling never. |
+| `<div onClick>` | **Defect** (§7.4). Use `<button>`. |
+| Hover-only reveal | **Defect** (§7.3). Add `focus-within:`. |
+| Stock shadcn colours in `components/ui/` | **Defect.** That component was never restyled — see `docs/ref/components.md`. |
 
-## If the token doesn't exist
+## Check the config too
 
-Only colours are tokenised today (`DESIGN.md` §6.1, defect D16). Radius, spacing,
-font-size and duration have **no token set yet**, and are frozen until one exists.
+```bash
+rg -n '"rtl"' components.json     # must be true - it is how §9.1 is enforced on add
+```
 
-So: reuse a value already present in the CSS, note it in the ticket that will close D16 —
-or extend `src/styles/tokens.css` deliberately, in the same commit, and say so in the
-handoff. What you may not do is inline the value and move on. That is exactly how the
-legacy app reached 36 off-token colours, 15 font sizes and 13 radii.
+If `rtl` is false or missing, every component added since is suspect. Re-check them, and
+fix the config before adding another.
 
 ## Report
 
@@ -73,7 +78,7 @@ Zero hits is a normal, good result. Do not invent findings to look thorough.
 ## Reference
 
 Check the small file, not the 5,692-line document:
-`docs/ref/tokens.md` · `docs/ref/defects.md`
+`docs/ref/tokens.md` · `docs/ref/components.md` · `docs/ref/defects.md`
 
 Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
 reasoning or the evidence behind a rule.

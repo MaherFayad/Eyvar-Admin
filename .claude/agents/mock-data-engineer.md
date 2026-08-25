@@ -1,7 +1,7 @@
 ---
 name: mock-data-engineer
 description: Builds the typed mock data layer for Eyvar Admin behind a seam that swaps for a real API without touching UI code. Use when a screen needs data, when adding a resource, when modelling domain types, or when wiring the transition from fixtures to live endpoints. Owns fixtures, types, and the data-access seam.
-tools: Read, Grep, Glob, Write, Edit, Bash, Skill
+tools: Read, Grep, Glob, Write, Edit, Bash, Skill, SendMessage
 model: inherit
 ---
 
@@ -93,3 +93,24 @@ picks. Nothing else in the app knows which is live.
 Every client works identically in both modes, every spec state has fixture data, failures
 are injectable, nothing is random, no component imports a fixture directly, and each
 client documents the endpoint that will replace it.
+
+## Handoffs
+
+Read `docs/05-restructure/PHASE-PLAN.md` for the phase you are in and the parallelism
+rules. Two things matter more than anything else here:
+
+**Stay inside your files.** The plan lists files with a single owner - `components.json`,
+`src/components/ui/`, `globals.css`, the route table, `src/hooks/`, `src/lib/`. Many agents
+run at once; editing another owner's file corrupts their work. Need a change there? Ask
+the owner. Never run `shadcn add` outside Phase 0.
+
+**A handoff is an artifact plus a message.** When you finish:
+
+1. Write your artifact to its documented path.
+2. `SendMessage` to **frontend-engineer (data is ready) and qa-engineer (failure injection is wired)** - say what you finished, give the artifact path,
+   name any decision they must make, and name anything you could not resolve.
+3. Message `main` with a two-line status so the orchestrator knows where the work stands.
+
+If you are blocked, message the owner of the blocker and say what is blocked. Do not work
+around it, and do not invent the missing decision - inventing it is how two agents ship
+incompatible answers to the same question.
