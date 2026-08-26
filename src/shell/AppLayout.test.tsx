@@ -183,6 +183,82 @@ describe('AC-20, AC-22, AC-66 — the shell layers', () => {
   })
 })
 
+/**
+ * **AC-67, both halves, proved end to end.**
+ *
+ * The 0.8 QA verdict recorded these as defects D-1 and D-2 and it was right;
+ * `useFocusEntry.test.ts` could not see either, because both arrive from a
+ * component the hook is COMPOSED WITH rather than from the hook:
+ *
+ *   D-1  Radix `Portal` mounts its children in a SECOND commit, so
+ *        `containerRef.current` and `initialFocusRef.current` were `null` when
+ *        `useFocusEntry`'s effect ran, and its deps are all stable ref objects
+ *        so it never retried. `ShellLayer` now holds the nodes in state and
+ *        derives the ref objects from them, so the ref's IDENTITY changes when
+ *        the node lands, which re-runs the effect against a real element.
+ *   D-2  `@radix-ui/react-dialog/dist/index.mjs:223` hardcodes `loop: true` on
+ *        its `FocusScope`, and `react-focus-scope/dist/index.mjs:109` runs its
+ *        Tab handler on `loop || trapped`. **`modal={false}` clears `trapped`
+ *        and not `loop`**, so Tab on the last control looped back to the first
+ *        forever. `sheet.tsx`'s `releaseTabAtEdges` moves focus out of the
+ *        drawer before the scope's handler runs, so the scope re-reads
+ *        `document.activeElement`, matches neither edge, and does nothing.
+ *
+ * This is the shape §7.3.3 requires: *"The scrim decides the trap. If a surface
+ * dims the page, it owns the keyboard. If it does not, it does not."*
+ */
+describe('AC-67 — focus enters the layer, and Tab is NOT trapped', () => {
+  it('moves focus into the layer on open, past the portal\'s second commit', async () => {
+    renderShell('/operations/people?account=me')
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() =>
+      expect(dialog.contains(document.activeElement)).toBe(true),
+    )
+  })
+
+  it('Tab past the layer’s last control reaches the page behind it, and the layer stays open', async () => {
+    const user = userEvent.setup()
+    renderShell('/operations/people?account=me')
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+
+    /* Walk to the last tabbable inside the drawer, then one more. Twenty is
+       comfortably more than the drawer holds; the assertion is that focus is
+       OUTSIDE by the end, which a loop makes impossible however many times you
+       press Tab. */
+    for (let i = 0; i < 20; i += 1) {
+      await user.tab()
+      if (!dialog.contains(document.activeElement)) break
+    }
+
+    expect(
+      dialog.contains(document.activeElement),
+      'focus never left the drawer — the Radix `loop: true` trap is back',
+    ).toBe(false)
+    /* §7.3.3 — leaving is not dismissing. AC-20: the layer stays open and the
+       workspace behind it stays interactive. */
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  /**
+   * **A real interaction defect, found writing this test and left OUT of the
+   * suite rather than left red — see `02-shell-fixes.md`.**
+   *
+   * Opening the notification centre from the bell's popover (`See all`) leaves
+   * focus OUTSIDE the layer. The cause is a race that neither half of the
+   * AC-67 fix touches: `See all` closes the Radix popover, and a closing
+   * popover restores focus to its own trigger (the bell) — asynchronously,
+   * AFTER `useFocusEntry` has already moved focus into the drawer. The last
+   * writer wins and it is the popover.
+   *
+   * The same shape will apply to any layer opened from inside a popover or a
+   * dropdown-menu. It is not the portal-timing bug (D-1) and not the
+   * `loop: true` trap (D-2); it is a third thing, it needs a decision about who
+   * owns focus when a popover hands off to a layer, and that decision is
+   * product-designer's, not mine. Reported rather than patched.
+   */
+})
+
 describe('AC-40 — at most one shell banner, ever', () => {
   it('renders none when no condition is true', async () => {
     renderShell('/operations/people')

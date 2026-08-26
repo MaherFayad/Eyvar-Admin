@@ -7,14 +7,16 @@
  */
 
 import { DATA_SOURCE } from '../config'
+import { toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { newRiderFixtures, riderFixtures } from '../fixtures/riders'
-import type { Paginated, QueryParams } from '../types/common'
+import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { ChurnRisk, NewRider, Rider, RiderStatus } from '../types/rider'
 import { http } from './http'
 
 export const RIDER_OPERATIONS = {
+  facets: 'riders.facets',
   list: 'riders.list',
   get: 'riders.get',
   listNew: 'riders.listNew',
@@ -37,14 +39,56 @@ const riderShape: QueryShape<Rider> = {
     joinedAt: (r) => r.joinedAt,
     lastTripAt: (r) => r.lastTripAt,
   },
+  /* Declared for the resource, not for Operations › People — Rider Wallets,
+     Growth and Contact Centre all query riders from other surfaces. Dates go
+     through `toInstant`; see `mock/clock.ts`. */
   filterable: {
+    /* identity — text */
+    id: (r) => r.id,
+    name: (r) => r.name,
+    phone: (r) => r.phone,
+    address: (r) => r.address,
+
+    /* closed sets — options via `getRiderFacets` */
     status: (r) => r.status,
     tier: (r) => r.tier,
     churnRisk: (r) => r.churnRisk,
     city: (r) => r.city,
+    gender: (r) => r.gender,
+    appLanguage: (r) => r.appLanguage,
+    driverGenderPreference: (r) => r.driverGenderPreference,
     corporateAccountId: (r) => r.corporateAccountId,
+
+    /* booleans */
+    hasPhoto: (r) => r.hasPhoto,
+
+    /* numbers — number-range and money-range */
+    rating: (r) => r.rating,
     walletBalanceHalalas: (r) => r.walletBalanceHalalas,
+    totalTrips: (r) => r.totalTrips,
+    lifetimeValueHalalas: (r) => r.lifetimeValueHalalas,
+    renewalRatePercent: (r) => r.renewalRatePercent,
+    quickRides: (r) => r.quickRides,
+
+    /* dates */
+    joinedAt: (r) => toInstant(r.joinedAt),
+    lastTripAt: (r) => toInstant(r.lastTripAt),
+
+    /* fraud signals — two seeded riders share `160.156.4.90` */
+    lastIp: (r) => r.lastIp,
+    ipLocation: (r) => r.ipLocation,
+    device: (r) => r.device,
   },
+  facetable: [
+    'status',
+    'tier',
+    'churnRisk',
+    'city',
+    'gender',
+    'appLanguage',
+    'driverGenderPreference',
+    'corporateAccountId',
+  ],
   views: {
     riders: () => true,
     /* Reachable without hand-editing: the overdrawn-wallet backlog. */
@@ -96,7 +140,20 @@ export async function getRider(id: string, signal?: AbortSignal): Promise<Rider>
 const newRiderShape: QueryShape<NewRider> = {
   searchable: [(r) => r.name, (r) => r.id, (r) => r.phone],
   sortable: { name: (r) => r.name, joinedAt: (r) => r.joinedAt },
-  filterable: { city: (r) => r.city, gender: (r) => r.gender },
+  filterable: {
+    id: (r) => r.id,
+    name: (r) => r.name,
+    phone: (r) => r.phone,
+    firstAction: (r) => r.firstAction,
+    city: (r) => r.city,
+    gender: (r) => r.gender,
+    appLanguage: (r) => r.appLanguage,
+    hasPhoto: (r) => r.hasPhoto,
+    ipLocation: (r) => r.ipLocation,
+    joinedAt: (r) => toInstant(r.joinedAt),
+    dateOfBirth: (r) => toInstant(r.dateOfBirth),
+  },
+  facetable: ['city', 'gender', 'appLanguage', 'firstAction'],
 }
 
 /**
@@ -116,4 +173,27 @@ export async function listNewRiders(
     return http.get<Paginated<NewRider>>('/riders/new', { ...params }, { signal })
   }
   return mock(RIDER_OPERATIONS.listNew, signal, () => runQuery(newRiderFixtures, params, newRiderShape))
+}
+
+/**
+ * GET /api/v1//riders/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over riders,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getRiderFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/riders/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(RIDER_OPERATIONS.facets, signal, () => computeFacets(riderFixtures, riderShape, view))
 }

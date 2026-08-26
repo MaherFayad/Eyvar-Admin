@@ -1,6 +1,15 @@
 /**
- * `TopBar` (S-03) — design spec §4. Light, 48px, spanning **the content region
- * only**.
+ * `TopBar` (S-03) — design spec §4, as amended by D7 §4.2. **52px, WHITE,
+ * with a 1px `--ev-hairline` bottom rule, spanning the content region only.**
+ *
+ * The height is `--ev-topbar-h` and it moved 48 → 52 under D7: app content
+ * begins at destination y = 5 in the reference (rows 0-4 are window chrome) and
+ * the bar's bottom border is at y = 32.5, so (32.5 − 5) × 1.875 = 51.6, and 52
+ * is on the 4px grid. The sidebar brand row takes the same token and the two
+ * still align. The fill is `bg-background`, which is now `#ffffff` — under D-11
+ * the content region is white edge to edge, so "white" here is not a special
+ * case, it is the ground. The rule below it is `--ev-hairline` `#f0f2f4`, the
+ * one hairline value on the page.
  *
  * **Why it does not span the viewport.** §2.1 describes a full-width dark bar
  * whose left slot holds the wordmark inside the nav column's width. D-3 already
@@ -45,7 +54,16 @@
  *               on-call chip are gone; both are text now.
  *   AC-18       the bar is mounted once, above the router outlet, and is never
  *               remounted by navigation.
- *   R-3 §1.3    the top bar carries NO elevation. It is chrome.
+ *   R-3 §1.3    the top bar carries NO elevation. It is chrome. Under D7 that
+ *               is doubly true — tier 1 itself now paints nothing (the
+ *               reference's card shows zero falloff within one pixel of its
+ *               border), so elevation is not available to lean on anywhere.
+ *   D7/audit    **this bar is the busiest strip on our page and the reference's
+ *               is nearly empty** — theirs carries a breadcrumb and one
+ *               inline-end item, ours carries a 400px centred search, two
+ *               chips, a bell and an avatar. That is §4's slot list and §5's
+ *               global search, i.e. FUNCTION, and D7 explicitly does not touch
+ *               §8. Recorded as a divergence, not fixed by a re-skin.
  */
 
 import { Link, useNavigate } from 'react-router-dom'

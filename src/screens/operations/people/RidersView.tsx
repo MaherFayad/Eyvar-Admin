@@ -47,6 +47,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
 import { CHURN_RISK, RIDER_STATUS, RIDER_TIER } from './domain'
+import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import { VIEW_CAPTAINS, type ViewChrome } from './views'
 
@@ -70,6 +71,7 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
   return (
     <PeopleTable
       t={t}
+      language={language}
       table={table}
       rows={data.data?.items ?? []}
       status={data.status}
@@ -79,45 +81,7 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
       skeletonPattern="P1"
       {...chrome}
       searchPlaceholder={t('people.search.riders')}
-      sortFields={[
-        { field: 'name', label: t('people.col.rider') },
-        { field: 'rating', label: t('people.col.rating') },
-        { field: 'totalTrips', label: t('people.col.trips') },
-        { field: 'walletBalanceHalalas', label: t('people.col.wallet') },
-        { field: 'lifetimeValueHalalas', label: t('people.col.ltv') },
-        { field: 'renewalRatePercent', label: t('people.col.renewal') },
-        { field: 'lastTripAt', label: t('people.col.lastTrip') },
-        { field: 'joinedAt', label: t('people.col.joined') },
-      ]}
-      filterFields={[
-        {
-          field: 'status',
-          label: t('people.filter.field.status'),
-          options: [
-            { value: 'subscriber', label: t('people.riderStatus.subscriber') },
-            { value: 'on-demand', label: t('people.riderStatus.onDemand') },
-          ],
-        },
-        {
-          field: 'churnRisk',
-          label: t('people.filter.field.churnRisk'),
-          options: [
-            { value: 'high', label: t('people.churn.high') },
-            { value: 'medium', label: t('people.churn.medium') },
-            { value: 'low', label: t('people.churn.low') },
-          ],
-        },
-        {
-          field: 'tier',
-          label: t('people.filter.field.tier'),
-          options: [
-            { value: 'gold', label: t('people.tier.gold') },
-            { value: 'silver', label: t('people.tier.silver') },
-            { value: 'bronze', label: t('people.tier.bronze') },
-            { value: 'new', label: t('people.tier.new') },
-          ],
-        },
-      ]}
+      extraFilters={riderExtraFilters(t)}
       rowActions={[
         {
           label: t('people.action.viewProfile'),
@@ -144,6 +108,24 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
   )
 }
 
+/**
+ * §6.4 — one filter with no column of its own.
+ *
+ * `corporateAccountId` is a rider's billing relationship. It qualifies the name
+ * on the identity's second line rather than earning a column (§9.1), but "every
+ * rider on account CORP-002" is a real question, so it is a `text` filter with
+ * `contains` — the client declares the field filterable.
+ */
+function riderExtraFilters(t: Translate): ExtraFilterSpec[] {
+  return [
+    {
+      field: 'corporateAccountId',
+      label: t('people.filter.field.corporateAccount'),
+      kind: 'text',
+    },
+  ]
+}
+
 function riderColumns(
   t: Translate,
   language: Language,
@@ -153,7 +135,17 @@ function riderColumns(
     {
       id: 'rider',
       header: t('people.col.rider'),
+      /* AC-104 — the identity: implicitly pinned, never hidden, never unpinned. */
       alwaysVisible: true,
+      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
+         of 32px took the 1280 content region from 1102 to 942, so the identity
+         column gives width back **before** anyone touches the gutter: D-2′ is
+         already a sanctioned deviation at 32 against a measured 68, and
+         shrinking it further is not on the table. 176 also buys the operator
+         24px more pin budget — the locked block drops from 240 to 216 of the
+         488 the floor allows. */
+      width: 176,
+      dataType: 'text',
       sortField: 'name',
       cell: (r) => <Identity to={profileHref(r.id)} name={r.name} t={t} />,
       /* Qualifies the name: a rider covered by a company account is billed to
@@ -163,11 +155,23 @@ function riderColumns(
     {
       id: 'id',
       header: t('people.col.id'),
+      width: 120,
+      dataType: 'text',
       cell: (r) => <MutedCell className="tabular-nums">{r.id}</MutedCell>,
     },
     {
       id: 'status',
       header: t('people.col.status'),
+      width: 128,
+      dataType: 'enum',
+      filter: {
+        kind: 'select',
+        field: 'status',
+        options: [
+          { value: 'subscriber', label: t('people.riderStatus.subscriber') },
+          { value: 'on-demand', label: t('people.riderStatus.onDemand') },
+        ],
+      },
       cell: (r) => (
         <Cell>
           <StatusBadge tone={RIDER_STATUS[r.status].tone}>
@@ -179,6 +183,17 @@ function riderColumns(
     {
       id: 'churn',
       header: t('people.col.churn'),
+      width: 128,
+      dataType: 'enum',
+      filter: {
+        kind: 'multi-select',
+        field: 'churnRisk',
+        options: [
+          { value: 'high', label: t('people.churn.high') },
+          { value: 'medium', label: t('people.churn.medium') },
+          { value: 'low', label: t('people.churn.low') },
+        ],
+      },
       cell: (r) => (
         <Cell>
           <StatusBadge tone={CHURN_RISK[r.churnRisk].tone}>
@@ -191,10 +206,12 @@ function riderColumns(
       id: 'rating',
       header: t('people.col.rating'),
       align: 'end',
+      width: 88,
+      dataType: 'number',
       sortField: 'rating',
       /* Behind the column control: `churnRisk` is the server-derived answer to
-         the question a rating is usually a proxy for, and at 1280px the
-         wallet, lifetime and renewal columns earn the width first. */
+         the question a rating is usually a proxy for, and at 1280px the wallet,
+         lifetime and renewal columns earn the width first. */
       defaultHidden: true,
       cell: (r) =>
         r.rating === null || r.rating === 0 ? (
@@ -206,14 +223,25 @@ function riderColumns(
     {
       id: 'city',
       header: t('people.col.city'),
-      /* One city in the data today; behind the control until there are two. */
+      width: 120,
+      dataType: 'text',
+      /* One city in the data today; behind the control until there are two. The
+         FILTER is still declared, because a hidden column keeps its chip and is
+         reachable from `Add filter` (§7.5's third case). */
       defaultHidden: true,
+      filter: {
+        kind: 'multi-select',
+        field: 'city',
+        options: [{ value: 'Riyadh', label: 'Riyadh' }],
+      },
       cell: (r) => <Cell>{r.city}</Cell>,
     },
     {
       id: 'trips',
       header: t('people.col.trips'),
       align: 'end',
+      width: 96,
+      dataType: 'number',
       sortField: 'totalTrips',
       cell: (r) => <NumCell>{formatCount(r.totalTrips, language)}</NumCell>,
     },
@@ -221,7 +249,15 @@ function riderColumns(
       id: 'wallet',
       header: t('people.col.wallet'),
       align: 'end',
+      width: 128,
+      dataType: 'money',
       sortField: 'walletBalanceHalalas',
+      /* AC-101 — the one money range in the product today. The control renders
+         the `SAR` in-field INLINE-START prefix (§4.2 governs inputs) and
+         converts major units to halalas before emitting, while this column keeps
+         `(SAR)` in its header and bare numbers in its cells (§8.3 governs
+         output). Both are correct and they look different on purpose. */
+      filter: { kind: 'number-range', field: 'walletBalanceHalalas', unit: 'money' },
       cell: (r) => (
         <NumCell>
           <Money unit="none" amount={r.walletBalanceHalalas} />
@@ -232,6 +268,8 @@ function riderColumns(
       id: 'ltv',
       header: t('people.col.ltv'),
       align: 'end',
+      width: 128,
+      dataType: 'money',
       sortField: 'lifetimeValueHalalas',
       cell: (r) => (
         <NumCell>
@@ -243,6 +281,8 @@ function riderColumns(
       id: 'renewal',
       header: t('people.col.renewal'),
       align: 'end',
+      width: 104,
+      dataType: 'number',
       sortField: 'renewalRatePercent',
       cell: (r) =>
         r.renewalRatePercent === null ? (
@@ -256,6 +296,8 @@ function riderColumns(
     {
       id: 'lastTrip',
       header: t('people.col.lastTrip'),
+      width: 112,
+      dataType: 'date',
       sortField: 'lastTripAt',
       cell: (r) =>
         r.lastTripAt === null ? (
@@ -267,25 +309,43 @@ function riderColumns(
     {
       id: 'tier',
       header: t('people.col.tier'),
+      width: 100,
+      dataType: 'enum',
       defaultHidden: true,
+      filter: {
+        kind: 'multi-select',
+        field: 'tier',
+        options: [
+          { value: 'gold', label: t('people.tier.gold') },
+          { value: 'silver', label: t('people.tier.silver') },
+          { value: 'bronze', label: t('people.tier.bronze') },
+          { value: 'new', label: t('people.tier.new') },
+        ],
+      },
       cell: (r) => <Cell>{t(RIDER_TIER[r.tier])}</Cell>,
     },
     {
       id: 'quickRides',
       header: t('people.col.quickRides'),
       align: 'end',
+      width: 112,
+      dataType: 'number',
       defaultHidden: true,
       cell: (r) => <NumCell>{formatCount(r.quickRides, language)}</NumCell>,
     },
     {
       id: 'phone',
       header: t('people.col.phone'),
+      width: 144,
+      dataType: 'text',
       defaultHidden: true,
       cell: (r) => <DateCell className="tabular-nums">{r.phone}</DateCell>,
     },
     {
       id: 'joined',
       header: t('people.col.joined'),
+      width: 120,
+      dataType: 'date',
       defaultHidden: true,
       sortField: 'joinedAt',
       cell: (r) => (

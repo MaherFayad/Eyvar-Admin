@@ -9,6 +9,7 @@
 
 import {
   DEFAULT_PAGE_SIZE,
+  type Facets,
   type FilterSpec,
   type Paginated,
   type QueryParams,
@@ -25,6 +26,13 @@ export interface QueryShape<T> {
   filterable: Record<string, (row: T) => unknown>
   /** Named view tabs → predicate. Views are controls, not endpoints (foundation §3.8 rule 3). */
   views?: Record<string, (row: T) => boolean>
+  /**
+   * Which `filterable` fields have a **closed value set**, so a `select` or
+   * `multi-select` control can source its options from the data instead of a
+   * hand-written list (F-6). Every name here must also exist in `filterable`;
+   * `computeFacets` throws if it does not.
+   */
+  facetable?: string[]
 }
 
 export function runQuery<T>(rows: readonly T[], params: QueryParams, shape: QueryShape<T>): Paginated<T> {
@@ -55,6 +63,49 @@ export function runQuery<T>(rows: readonly T[], params: QueryParams, shape: Quer
   if (params.sort) out = sortRows(out, params.sort, shape)
 
   return paginate(out, params)
+}
+
+/**
+ * The option set for every `facetable` field, computed from the rows.
+ *
+ * Scoped by `view` only, deliberately **not** by the active filters: a filter
+ * dropdown that loses its other options the moment you pick one is a dropdown
+ * an operator cannot get back out of. Counts are therefore "how many exist in
+ * this view", not "how many match what you have already narrowed to".
+ *
+ * A real API may instead return per-facet counts computed with that facet's own
+ * filter excluded. That is a better answer and it does not change this
+ * signature, so screens written against it survive the swap.
+ *
+ * Ordering is count-descending then value-ascending — deterministic, so a
+ * dropdown does not reshuffle between renders and a snapshot can diff it.
+ */
+export function computeFacets<T>(
+  rows: readonly T[],
+  shape: QueryShape<T>,
+  view?: string | null,
+): Facets {
+  const fields = shape.facetable ?? []
+  const scoped = view && shape.views?.[view] ? rows.filter(shape.views[view]!) : rows
+  const out: Facets = {}
+
+  for (const field of fields) {
+    const get = shape.filterable[field]
+    if (!get) throw new Error(`Facetable field "${field}" is not filterable`)
+    const counts = new Map<string, number>()
+    for (const row of scoped) {
+      const value = get(row)
+      /* `null` is "not set", not a value an operator can pick — the select
+         control already reserves null for `Any`. */
+      if (value === null || value === undefined || value === '') continue
+      const key = String(value)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    out[field] = [...counts.entries()]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, ['ar', 'en']))
+  }
+  return out
 }
 
 export function paginate<T>(rows: readonly T[], params: Pick<QueryParams, 'page' | 'pageSize'>): Paginated<T> {

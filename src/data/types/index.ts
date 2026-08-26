@@ -17,6 +17,8 @@ export type {
   ClaimTakeover,
   CountResult,
   CurrencyCode,
+  FacetValue,
+  Facets,
   FilterOperator,
   FilterSpec,
   FilterValue,

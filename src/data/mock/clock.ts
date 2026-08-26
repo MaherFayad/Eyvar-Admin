@@ -62,10 +62,28 @@ export function minutesSince(iso: IsoDateTime, now: IsoDateTime = EYVAR_NOW): nu
   return Math.floor((toEpochMs(now) - toEpochMs(iso)) / 60_000)
 }
 
-/** Date-only strings are midnight in Riyadh, not midnight UTC. */
-function normaliseDate(iso: IsoDateTime | IsoDate): IsoDateTime {
+/**
+ * Widen a date to an instant. A bare `2026-06-25` is **midnight in Riyadh**,
+ * not midnight UTC — `Date.parse('2026-06-25')` returns UTC midnight, which is
+ * 03:00 local, three hours into the wrong day at every boundary.
+ *
+ * This is what every date field goes through before it is compared, so a
+ * `date-range` filter is matching instant against instant. The range control
+ * emits Riyadh instants with an inclusive `23:59:59.999+03:00` upper bound; a
+ * value left as a bare date string would be compared against those bounds by
+ * luck of the offset's sign rather than by construction.
+ *
+ * Null-safe on purpose: nullable date columns are the common case
+ * (`lastTripAt` on a captain who has never driven), and `isNull` / `isNotNull`
+ * must keep working on them.
+ */
+export function toInstant(iso: IsoDateTime | IsoDate | null | undefined): IsoDateTime | null {
+  if (iso === null || iso === undefined) return null
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00${EYVAR_TZ_OFFSET}` : iso
 }
+
+/** Internal alias kept so the day-arithmetic helpers above read as they did. */
+const normaliseDate = (iso: IsoDateTime | IsoDate): IsoDateTime => toInstant(iso) as IsoDateTime
 
 /** Build a fixture timestamp by offsetting the fixed clock. Keeps fixtures readable and still deterministic. */
 export function offsetFromNow(opts: {

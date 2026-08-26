@@ -7,14 +7,16 @@
  */
 
 import { DATA_SOURCE } from '../config'
+import { toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { allTripFixtures } from '../fixtures/trips'
-import type { Paginated, QueryParams } from '../types/common'
+import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { Trip, TripKind, TripStatus } from '../types/trip'
 import { http } from './http'
 
 export const TRIP_OPERATIONS = {
+  facets: 'trips.facets',
   list: 'trips.list',
   get: 'trips.get',
   flag: 'trips.flag',
@@ -46,16 +48,44 @@ const tripShape: QueryShape<Trip> = {
     driverName: (t) => t.driverName,
   },
   filterable: {
+    /* identity — text */
+    id: (t) => t.id,
+    riderName: (t) => t.riderName,
+    driverName: (t) => t.driverName,
+    route: (t) => t.route,
+    pickup: (t) => t.pickup,
+    destination: (t) => t.destination,
+    paymentId: (t) => t.paymentId,
+
+    /* closed sets — options via `getTripFacets` */
     kind: (t) => t.kind,
     status: (t) => t.status,
+
+    /* relations */
     riderId: (t) => t.riderId,
     driverId: (t) => t.driverId,
     subscriptionId: (t) => t.subscriptionId,
+
+    /* booleans */
     flagged: (t) => t.flagged,
     stateDesynced: (t) => t.stateDesynced,
+
+    /* numbers — money-range and number-range */
     fareHalalas: (t) => t.fareHalalas,
-    startedAt: (t) => t.startedAt,
+    driverEarningsHalalas: (t) => t.driverEarningsHalalas,
+    platformCutHalalas: (t) => t.platformCutHalalas,
+    tipHalalas: (t) => t.tipHalalas,
+    extraStopFeeHalalas: (t) => t.extraStopFeeHalalas,
+    distanceKm: (t) => t.distanceKm,
+    durationMinutes: (t) => t.durationMinutes,
+    driverRatingGiven: (t) => t.driverRatingGiven,
+    latenessMinutes: (t) => t.latenessMinutes,
+
+    /* dates */
+    startedAt: (t) => toInstant(t.startedAt),
+    endedAt: (t) => toInstant(t.endedAt),
   },
+  facetable: ['kind', 'status'],
   /* The six views from the route table, as predicates. */
   views: {
     all: () => true,
@@ -133,4 +163,27 @@ export async function setTripFlag(
     if (!row) throw notFound('trip', id)
     return { ...row, flagged }
   })
+}
+
+/**
+ * GET /api/v1//trips/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over trips,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getTripFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/trips/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(TRIP_OPERATIONS.facets, signal, () => computeFacets(allTripFixtures, tripShape, view))
 }

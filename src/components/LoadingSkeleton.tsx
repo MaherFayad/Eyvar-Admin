@@ -224,7 +224,15 @@ function IndexShape({ rows, queue = false }: { rows: number; queue?: boolean }) 
           <Skeleton className="size-5 rounded-lg" />
         </div>
       </div>
+      {/* `media` — the index table's rows carry the TWO-LINE IDENTITY CELL
+          (avatar + a qualifying second line), so the skeleton row is
+          `--ev-row-h-media` (64) and not `--ev-row-h` (40). §11.3's whole point
+          is that nothing moves when the data lands, so this height and
+          `table.tsx`'s row height are ONE decision — see the F-4 note beside
+          `--ev-row-h` in `globals.css`. If the identity cell ever goes back to
+          one line, this flag comes off in the same commit. */}
       <RowBars
+        media
         rows={rows}
         columns={queue ? [1, 3, 2, 2, 2, 1, 1] : [1, 4, 2, 2, 1, 1, 1]}
       />
@@ -251,10 +259,23 @@ const SPAN: Record<number, string> = {
   6: 'col-span-6',
 }
 
-function RowBars({ rows, columns }: { rows: number; columns: number[] }) {
+function RowBars({
+  rows,
+  columns,
+  media = false,
+}: {
+  rows: number
+  columns: number[]
+  /** Two-line / avatar rows — `--ev-row-h-media` (64) instead of 40. */
+  media?: boolean
+}) {
   return (
     <>
-      <div className="grid h-row grid-cols-12 items-center gap-3 border-b border-border px-3">
+      {/* The header row is `--ev-row-h-head` (32) on `bg-muted`, which is what
+          the real table header is under D7 §4.5: a tinted 32px strip, not a
+          white one. A skeleton that omits the tint moves the eye when the tint
+          arrives. */}
+      <div className="grid h-row-head grid-cols-12 items-center gap-3 border-b border-border bg-muted px-3">
         {columns.map((span, i) => (
           <Skeleton key={i} className={cn('h-2.5', SPAN[span])} />
         ))}
@@ -262,7 +283,10 @@ function RowBars({ rows, columns }: { rows: number; columns: number[] }) {
       {Array.from({ length: rows }, (_, r) => (
         <div
           key={r}
-          className="grid h-row grid-cols-12 items-center gap-3 border-b border-border px-3 last:border-0"
+          className={cn(
+            'grid grid-cols-12 items-center gap-3 border-b border-border px-3 last:border-0',
+            media ? 'h-row-media' : 'h-row',
+          )}
         >
           {columns.map((span, i) => (
             <Skeleton key={i} className={cn('h-3', SPAN[span])} />

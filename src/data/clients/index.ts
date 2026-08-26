@@ -88,6 +88,8 @@ export { PROFILE_OPERATIONS, resolveProfile, search } from './profile'
 export {
   DRIVER_OPERATIONS,
   getDriver,
+  getDriverComplianceFacets,
+  getDriverFacets,
   getDriverCompliance,
   listDriverCompliance,
   listDrivers,
@@ -96,13 +98,21 @@ export {
   type DriverQuery,
 } from './drivers'
 
-export { RIDER_OPERATIONS, getRider, listNewRiders, listRiders, type RiderQuery } from './riders'
+export {
+  RIDER_OPERATIONS,
+  getRider,
+  getRiderFacets,
+  listNewRiders,
+  listRiders,
+  type RiderQuery,
+} from './riders'
 
 export {
   APPLICANT_OPERATIONS,
   approveApplicant,
   claimApplicant,
   getApplicant,
+  getApplicantFacets,
   listApplicants,
   rejectApplicant,
   releaseApplicant,
@@ -113,6 +123,7 @@ export {
   LOW_RATING_THRESHOLD,
   TRIP_OPERATIONS,
   getTrip,
+  getTripFacets,
   listTrips,
   setTripFlag,
   type TripQuery,
@@ -124,6 +135,7 @@ export {
   cancelSubscription,
   freezeSubscription,
   getSubscription,
+  getSubscriptionFacets,
   listSubscriptions,
   type SubscriptionQuery,
 } from './subscriptions'
@@ -133,6 +145,7 @@ export {
   addCorporateEmployee,
   createCorporateAccount,
   getCorporateAccount,
+  getCorporateFacets,
   listCorporateAccounts,
   updateCorporateUsagePolicy,
   type CorporateQuery,
@@ -147,6 +160,7 @@ export {
   daysSince,
   daysUntil,
   fixedClock,
+  toInstant,
   minutesSince,
   systemClock,
   type Clock,

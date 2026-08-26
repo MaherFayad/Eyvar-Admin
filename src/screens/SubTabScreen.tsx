@@ -109,7 +109,7 @@ export function SubTabScreen({ row }: { row: SubTabRoute }) {
     return <DetailPage header={header} main={body} rail={[]} />
   }
 
-  /* §7.1 (amended, D7) — ONE width. The `full` / `capped` split is what made
+  /* §7.1 (amended, V5) — ONE width. The `full` / `capped` split is what made
      the page header jump between routes; `SingleColumnPage` caps everything now
      and there is nothing to decide here. */
   return (

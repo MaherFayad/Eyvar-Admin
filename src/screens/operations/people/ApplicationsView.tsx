@@ -272,7 +272,9 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
 
       <PeopleTable
         t={t}
+        language={language}
         table={table}
+        now={now}
         rows={rows}
         status={data.status}
         total={data.data?.total ?? 0}
@@ -290,41 +292,6 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
               }
             : null
         }
-        sortFields={[
-          { field: 'slaDueAt', label: t('people.col.sla') },
-          { field: 'appliedAt', label: t('people.col.applied') },
-          { field: 'name', label: t('people.col.applicant') },
-          { field: 'status', label: t('people.col.status') },
-        ]}
-        filterFields={[
-          {
-            field: 'status',
-            label: t('people.filter.field.applicantStatus'),
-            options: [
-              { value: 'pending', label: t('people.applicantStatus.pending') },
-              { value: 'in-review', label: t('people.applicantStatus.inReview') },
-              { value: 'approved', label: t('people.applicantStatus.approved') },
-              { value: 'rejected', label: t('people.applicantStatus.rejected') },
-              { value: 'withdrawn', label: t('people.applicantStatus.withdrawn') },
-            ],
-          },
-          {
-            field: 'vehicleClass',
-            label: t('people.filter.field.vehicleClass'),
-            options: [
-              { value: 'Economy', label: t('people.class.economy') },
-              { value: 'Comfort', label: t('people.class.comfort') },
-            ],
-          },
-          {
-            field: 'unclaimed',
-            label: t('people.col.owner'),
-            options: [
-              { value: true, label: t('people.queue.owner.unclaimed') },
-              { value: false, label: t('people.col.owner') },
-            ],
-          },
-        ]}
         rowActions={[
           {
             /* §9.3 — opening is NOT claiming. Two controls, two effects. */
@@ -387,7 +354,14 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'applicant',
       header: t('people.col.applicant'),
+      /* AC-104 / AC-106 — the identity is implicitly pinned, and R5a's
+         leading-edge marker rides it. That is what keeps a breached row's
+         marker visible at EVERY horizontal scroll offset: on the scrolling
+         region it would vanish the moment the operator scrolled, and R5a's
+         three parts are explicit that none substitutes for another (AC-50). */
       alwaysVisible: true,
+      width: 200,
+      dataType: 'text',
       sortField: 'name',
       cell: (row) => (
         <>
@@ -404,12 +378,27 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'id',
       header: t('people.col.id'),
+      width: 120,
+      dataType: 'text',
       cell: (row) => <MutedCell className="tabular-nums">{row.id}</MutedCell>,
     },
     {
       id: 'status',
       header: t('people.col.status'),
+      width: 128,
+      dataType: 'enum',
       sortField: 'status',
+      filter: {
+        kind: 'multi-select',
+        field: 'status',
+        options: [
+          { value: 'pending', label: t('people.applicantStatus.pending') },
+          { value: 'in-review', label: t('people.applicantStatus.inReview') },
+          { value: 'approved', label: t('people.applicantStatus.approved') },
+          { value: 'rejected', label: t('people.applicantStatus.rejected') },
+          { value: 'withdrawn', label: t('people.applicantStatus.withdrawn') },
+        ],
+      },
       cell: (row) => (
         <Cell>
           <StatusBadge tone={APPLICANT_STATUS[row.status].tone}>
@@ -421,6 +410,8 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'applied',
       header: t('people.col.applied'),
+      width: 128,
+      dataType: 'date',
       sortField: 'appliedAt',
       cell: (row) => (
         <DateCell>{formatDate(row.appliedAt, { style: 'day-month-time', language })}</DateCell>
@@ -429,7 +420,14 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'sla',
       header: t('people.col.sla'),
-      sortField: 'slaDueAt',
+      width: 144,
+      dataType: 'date',
+      /* **AC-114 — no `sortField`, deliberately.** §8.4's order is a RULE, not
+         an operator preference: breached first, then remaining time ascending,
+         `No clock` last. A sort control able to override it would be a defect,
+         so the header carries a pin and no sort block. The queue's order is set
+         once, in `useIndexTable`'s `initialSort`, and the toolbar popover has no
+         entry for this column either — both read the same declaration. */
       /* A decided item has no clock left to run. `—` is not-applicable, which
          is exactly what it is — never a synthetic deadline (§9.3). */
       cell: (row) =>
@@ -439,6 +437,8 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
       id: 'docs',
       header: t('people.col.docs'),
       align: 'end',
+      width: 112,
+      dataType: 'number',
       /* Behind the column control by default: at 1280px the queue's own
          furniture — SLA pill and track, owner chip plus its verb, two
          dispositions — already fills the row, and §9.1 would rather scroll
@@ -457,6 +457,16 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'owner',
       header: t('people.col.owner'),
+      width: 176,
+      dataType: 'enum',
+      /* §6.1 — three states, so a radio group and not a switch. `null` is "not
+         set"; `false` is a filter. */
+      filter: {
+        kind: 'boolean',
+        field: 'unclaimed',
+        trueLabel: t('people.queue.owner.unclaimed'),
+        falseLabel: t('people.filter.value.claimed'),
+      },
       /* §8.4.1 — a fixed position: the last cell before the action cell. */
       cell: (row) =>
         isDecided(row) ? (
@@ -478,6 +488,8 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'decision',
       header: t('people.col.decision'),
+      width: 200,
+      dataType: 'enum',
       cell: (row) => {
         const failure = deps.rowErrors.get(row.id)
         /* AC-41 — the failure replaces THIS row's action cell and nothing
@@ -547,19 +559,38 @@ function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applic
     {
       id: 'plate',
       header: t('people.col.plate'),
+      width: 128,
+      dataType: 'text',
       defaultHidden: true,
       cell: (row) => <DateCell>{row.plate}</DateCell>,
     },
     {
       id: 'vehicle',
       header: t('people.col.vehicle'),
+      width: 144,
+      dataType: 'text',
       defaultHidden: true,
+      filter: {
+        kind: 'select',
+        field: 'vehicleClass',
+        options: [
+          { value: 'Economy', label: t('people.class.economy') },
+          { value: 'Comfort', label: t('people.class.comfort') },
+        ],
+      },
       cell: (row) => <Cell>{row.vehicle}</Cell>,
     },
     {
       id: 'city',
       header: t('people.col.city'),
+      width: 120,
+      dataType: 'text',
       defaultHidden: true,
+      filter: {
+        kind: 'multi-select',
+        field: 'city',
+        options: [{ value: 'Riyadh', label: 'Riyadh' }],
+      },
       cell: (row) => <Cell>{row.city}</Cell>,
     },
   ]

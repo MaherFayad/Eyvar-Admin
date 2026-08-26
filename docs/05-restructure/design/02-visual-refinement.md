@@ -1,5 +1,25 @@
 # 02 — Visual refinement: the measured diff, nine rulings, and the four states drawn
 
+> ## ⚠ PARTIALLY SUPERSEDED by `03-navattic-language.md` — `DECISIONS.md` D7
+>
+> D7 replaced the **visual** reference. Everything in this document was measured against
+> Shopify, so its colour and density work no longer governs. **Read `03-navattic-language.md`
+> §10 for the clause-by-clause ledger.** In short:
+>
+> | | |
+> |---|---|
+> | **V1** density (rail 80 · navrow 28 · control 28) | **SUPERSEDED.** `--ev-rail-w: 80` survives on its own label-width reasoning; navrow → 32, control → 32. |
+> | **V2** the plain **white** pill | **SUPERSEDED.** The pill is **grey `#e6e8ec` on a near-white nav**. V2's *argument* — the pill only works once the ground is right — survives and was re-verified: 1.172 : 1 against Shopify's 1.192 and V3's 1.182. |
+> | **V3** `--ev-bg-nav: #eaecf1` and its derivation | **VOID.** The derivation assumed a nav darker than a grey canvas. The canvas is **white**; the nav is a measured `#f8fafb`. `#eaecf1` is retired. |
+> | **V4** the top bar's route trail goes | **SURVIVES** — wayfinding, not colour. |
+> | **V5** one page width, no `width` prop | **SURVIVES**, with `--ev-page-pad` replacing its literal 16px. |
+> | **V6 / V6d** a count is a quantity, so its chip is neutral | **SURVIVES**; `--ev-nav-chip` is re-derived, and the reasoning is reused for the stat-tile delta chip. |
+> | **V7 / V8 / V9** and §4's four states | **SURVIVE** — state design, not colour. |
+> | §2.1–§2.6 measurement tables | **SUPERSEDED** — they measure Shopify. |
+>
+> Nothing below is deleted; the measurements are still the audit trail for how the shell got
+> where it is. But **do not build from this document's colours or pixel figures.**
+
 > **Owner:** product-designer. **Consumers:** frontend-engineer (shell + components),
 > utilities-engineer (nothing new required — see §7.4).
 >

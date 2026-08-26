@@ -5,10 +5,11 @@
  * ┌──────────────────────────────────────────────────────────────┐
  * │ shell banner strip — full viewport, 0 or 1, above everything │ 32
  * ├──────┬───────────────┬───────────────────────────────────────┤
- * │ rail │ sub-tab list  │ top bar  (content region only)        │ 48
- * │  88  │ 224, always   ├───────────────────────────────────────┤
- * │      │               │ <main> content region, fluid          │
+ * │ rail │ sub-tab list  │ top bar  (content region only)        │ 52
+ * │  80  │ 224, always   ├───────────────────────────────────────┤
+ * │ nav  │ nav           │ <main> content region, WHITE, fluid   │
  * └──────┴───────────────┴───────────────────────────────────────┘
+ *        ↑ 1px hairline  ↑ 1px hairline   — D7 §4.1, both seams
  * ```
  *
  * **Three independent scroll contexts** — the rail (never scrolls), the sub-tab
@@ -26,18 +27,28 @@
  *               what made §2.1's full-width bar's left slot meaningful; with the
  *               wordmark gone the slot would be empty. Named as suspended in the
  *               new D-4 — do not "fix" it.
- *   §1.1        rail, sub-tab column and content canvas are all `--ev-bg`;
- *               cards are `--ev-surface`; the three regions are separated by 1px
- *               `--ev-hairline` vertical rules. Eyvar's token set has no neutral
- *               darker than `--ev-bg` and §6.4 forbids inventing one, so the
- *               hairline is the available separator (sanctioned deviation 3).
- *               This also closes legacy defect **D1**: the canvas is grey, not
- *               white, so canvas and card are finally distinct.
+ *   §1.1/D7    **the tonal ladder does not invert and there is no grey canvas.**
+ *               The reference's own stylesheet declares ONE tinted grey and
+ *               spends it on the rail, the nav column and the tinted strips
+ *               alike; the content region is pure white edge to edge. So the
+ *               ladder is `--ev-bg-nav` = `--ev-bg2` **under** `--ev-bg`
+ *               `#ffffff`: the nav is ONE STEP DARKER than the content,
+ *               exactly as §2.1 says. What an earlier reading took for a grey
+ *               canvas was the reference's 53px icon strip, which is that same
+ *               tint. Values live in `globals.css` and nowhere else.
+ *               **And both seams carry a 1px `--ev-hairline`** — D6's second
+ *               bullet is void (D7 §4.1). At a 1.054:1 step the tone alone is
+ *               not a boundary, and the reference draws the border at both
+ *               sidebar edges in every frame.
+ *               Legacy defect **D1** is closed differently now: it is
+ *               NARROWED to "white on white *without a border*", which is what
+ *               the legacy app shipped. Under D-11 a card is white on white and
+ *               is carried by its 1px border and 8px radius (D7 §4.2).
  *   §3.2 (void) the sub-tab column is **ALWAYS RENDERED** (`DECISIONS.md`
  *               **D5**). There is no disclosure, no popover and no persisted
  *               collapse flag, so **AC-32** and **AC-33** are void with them.
- *               At the 1280px floor that is 88 + 224 = 312px of navigation and
- *               968px of content, which is more than the 976px AC-31 asks the
+ *               At the 1280px floor that is 80 + 224 = 304px of navigation and
+ *               976px of content, which is exactly the width AC-31 asks the
  *               monitoring shell for at its own widest — see
  *               `02-shell-fixes.md` §2.
  *   §4.1/AC-51  the save bar **replaces the top bar in place**, same height,

@@ -1,8 +1,13 @@
 # DESIGN.md — Eyvar Admin Design Rules
 
 **Status:** binding for all new UI work in this repo.
-**Source of truth:** the Shopify admin (Polaris) as it actually ships, evidenced by 159
-real screenshots in [`docs/06-design-reference/shopify-admin-web/`](docs/06-design-reference/shopify-admin-web/).
+**Source of truth — two sets, and they govern different things (`DECISIONS.md` D7):**
+
+| Set | Governs | Where |
+|---|---|---|
+| **Navattic** — 15 frames | **Everything visual.** Colour, spacing, radii, borders, type scale, page organisation, nav treatment, card treatment, table style and the spacing inside it. | [`docs/06-design-reference/navattic-web/`](docs/06-design-reference/navattic-web/) |
+| **Shopify admin (Polaris)** — 159 screenshots | **Structure only**, and the derivation trail behind §1–§5. It no longer governs a single visual value. | [`docs/06-design-reference/shopify-admin-web/`](docs/06-design-reference/shopify-admin-web/) |
+
 **Scope:** desktop web admin surfaces of Eyvar Admin.
 
 ## Contents
@@ -110,6 +115,27 @@ audits are folded in; §6.5 records what was found wrong.
 | 8 | **Patterns Shopify does not cover** — real-time, computed values, money, queues. | Yes. |
 | 9 | **Bidirectionality & localisation.** | Yes. |
 
+## What D7 changed, and what it did not
+
+The business owner replaced the **visual** reference. `DECISIONS.md` **D7** is the decision;
+`docs/05-restructure/design/03-navattic-language.md` is the specification that implements it,
+and **it holds the token set** — read that before you read §1's colour or §6.1's inventory.
+
+**Replaced.** The visual content of §1–§5 — colour, spacing, radii, borders, type scale,
+page organisation, nav treatment, card treatment, table style — and §6.1's token values.
+
+**Untouched, and this is not negotiable.** §7 accessibility, §8 the patterns Shopify never
+covered, §9 bidirectionality. None of the three was ever Shopify-specific. Every contrast
+ratio, focus ring, logical property and required state still binds. **A re-skin that drops a
+ratio is a failed re-skin** — where a sampled Navattic colour fails §7, the design spec gives
+the nearest compliant value with its arithmetic rather than shipping the sample.
+
+**The precedence ladder below is unchanged.**
+
+**§1–§5's screenshot citations are provenance, not authority.** They are kept so the
+derivation stays auditable — you can still open the cited frame and check what the analyst
+saw. You may not cite one to settle what Eyvar ships. Each of §1–§5 says so at its head.
+
 ## Precedence
 
 When two rules collide, the winner is fixed. Do not improvise:
@@ -144,7 +170,7 @@ document — file it, do not guess.
 Layout
 - [ ] Page uses an approved layout: single column, main + right rail, full-bleed editor, or the monitoring shell — §2.2, §8.1
 - [ ] Page header carries the title, status badge, and actions in the documented order — §2.2
-- [ ] Canvas and card surfaces are visually distinct — §1.1, §6.3 D1
+- [ ] A card is separable from the ground it sits on. **Under D7 that is a 1px border and an 8px radius, not a fill step** — both grounds are white — §6.2 D-11, §6.3 D1
 - [ ] Unsaved changes surface a contextual save bar, not just a footer button — §2.3
 
 Content
@@ -160,7 +186,7 @@ States
 - [ ] Error state designed — §4.4, §5.2
 
 Interaction
-- [ ] Primary action is the only filled button on the screen, in brand blue — R3, §4.6
+- [ ] Primary action is the only filled button on the screen, in **near-black `--ev-ink`** — R3 (rewritten by D7), §4.6
 - [ ] Destructive actions confirm, and the confirm names what will happen — §5.3
 - [ ] Success feedback is a toast; page-level state is a banner — §5.1, §5.2, R10
 - [ ] Every interactive element has a visible focus state — §7.2
@@ -175,20 +201,29 @@ editor, or the monitoring shell (§2.2, §8.1). List pages run full width; detai
 pages are centred and capped. Page header = back arrow, title, status badge, then actions
 with the primary last. No breadcrumbs beyond the top bar's `Title > Subtitle` (§6.2 D-3).
 
-**Surfaces.** Canvas is `--bg`, cards are `--white`, and they must never be the same
-colour (§6.3 D1). One card per concern. Hairlines are 1px, not `.5px` (§6.3 D17).
+**Surfaces (D7).** **The content region is white and so is a card** — a card is carried by
+its 1px `--ev-hairline` border and its 8px radius, not by a fill step. The only greys are
+the two nav columns (`--ev-bg-nav`) and the one subdued fill `--ev-bg2` `#f5f7f9`, which
+does six jobs: table header row, filter-chip strip, card section header, promo band, inner
+empty panel, avatar fill. One card per concern. Hairlines are 1px, not `.5px` (§6.3 D17).
 
-**Colour.** Primary action = `--blue`, and it is the only filled button on the screen
-(R3). Links = `--blue-dk` + underline, never bare blue. Red appears in exactly four
+**Colour (D7).** Primary action = **near-black `--ev-ink`**, and it is the only filled
+button on the screen (R3, rewritten). Accent blue `--ev-blue` `#2b6ef0` is the focus ring,
+the chart series and selection — **never a text colour on a tinted ground** (4.259:1 on
+`--ev-bg2`). Links = `--ev-blue-dk` + underline, never bare blue. Red appears in exactly four
 places and nowhere else (R5a). Five badge tones, no red badge (R7).
 
-**Type.** 13px body. Hierarchy comes from weight, not size. Labels are not hints - a
-field label is body size at full contrast (§6.3 D22). No uppercase, no letter-spacing on
-labels or table headers (§6.3 D18).
+**Type (D7).** 13px body — Navattic's body size, so this is no longer a deviation. Page
+title **22px**. Card title 17px. Secondary 12px. Hierarchy comes from weight, not size.
+Labels are not hints - a field label is body size at full contrast (§6.3 D22). No uppercase,
+no letter-spacing on labels, nav section headings or table headers (§6.3 D18).
 
-**Tables.** Numbers right-aligned with tabular figures, in every locale (R4, §9.2). Row
-height uniform. Row actions visible to the keyboard, never hover-only (§6.3 D19).
-Ledgers are append-only: no row actions, no bulk selection (§8.3).
+**Tables (D7).** **Columns carry vertical 1px hairlines** — Navattic rules its columns and
+Shopify does not. Header row 32px on `--ev-bg2` with 12px sentence-case labels. Rows 40px
+(56px with an avatar or a second line). Cell padding 12px inline. Numbers right-aligned with
+tabular figures, in every locale (R4, §9.2). Row height uniform. Row actions visible to the
+keyboard, never hover-only (§6.3 D19). Ledgers are append-only: no row actions, no bulk
+selection (§8.3).
 
 **Feedback.** One event, one surface (R10): transient confirmation to a toast, standing
 condition to a banner. Toast names the object exactly, one line, 60 characters (R9).
@@ -207,9 +242,12 @@ live", opacity-only, and it may never encode severity (R18).
 **Arabic.** Logical properties, never `left`/`right` (§9.1). Digits, currency and the map
 do not mirror (§9.2).
 
-**Before you write CSS:** the value must be a `:root` token. Only colours are tokenised
-today; radius, spacing, shadow, font-size and duration are not, and are frozen until they
-are (§6.1, §6.4).
+**Before you write CSS:** the value must be a `--ev-*` token in `src/styles/globals.css`,
+and **the complete post-D7 token set — every value, with its measurement or its derivation —
+is `docs/05-restructure/design/03-navattic-language.md` §1.** §6.1's legacy inventory is
+historical; §6.6 closed the "these categories are frozen" rule when the stack was adopted.
+Tailwind's own palette is **not** a token set: `bg-blue-500` bypasses `--ev-*` while looking
+legitimate (§6.6).
 
 ## Rulings on contested points
 
@@ -220,8 +258,8 @@ not observations; overturn them deliberately, in writing, by editing this table.
 | # | Conflict | Ruling for Eyvar |
 |---|---|---|
 | R1 | Two banner families ship: a saturated split-strip banner in the store admin, a soft tinted card in account/auth — §5.2 | Use the **soft tinted card** everywhere. It reads better at Eyvar's smaller type sizes, survives a future dark mode, and does not lock text to white-on-colour. |
-| R2 | The contextual save bar uses a green primary in account settings, a neutral one in the store admin. §2.3 additionally recommends a *light* Save, derived from Shopify's dark top bar — Eyvar's top bar is white, so a light Save would be invisible — §2.3, §4.6 | Save is the **brand-blue primary**, same as every other primary. Never green, never white-on-white. The §2.3 "light Save" recommendation does not apply to Eyvar and is void. |
-| R3 | Shopify's primary action is near-black `#303030` and reserves blue strictly for links — §1.1.4, §4.6 | Eyvar keeps **brand blue `--blue` for primary actions** (§6.2 D-1). Consequently blue MUST NOT also carry links: links get `--blue-dk` **plus** underline, so the two roles stay separable. The near-black MUSTs at §1.1.4 and §4.6 describe Shopify and do not bind Eyvar. |
+| R2 | The contextual save bar uses a green primary in account settings, a neutral one in the store admin. §2.3 additionally recommends a *light* Save, derived from Shopify's dark top bar — Eyvar's top bar is white, so a light Save would be invisible — §2.3, §4.6 | **AMENDED BY D7.** Save is **the same primary as every other primary**, and under D7 that primary is **near-black `--ev-ink`**, not brand blue. Never green, never white-on-white. The reasoning is untouched; one colour name changed. The §2.3 "light Save" recommendation does not apply to Eyvar and is void. |
+| R3 | Shopify's primary action is near-black `#303030` and reserves blue strictly for links — §1.1.4, §4.6 | **REWRITTEN BY D7 — the old ruling is void, do not cite it.** D7 kills §6.2 **D-1**, so brand blue is no longer the primary action colour. Navattic's primary button measures **`#0C1116`**, a cool near-black, so §1.1.4 and §4.6's near-black MUSTs — which the old R3 declared non-binding — now describe Eyvar too: **the primary action is `--ev-ink`.** The old ruling's *second* half survives on new evidence: `--ev-blue` `#2b6ef0` is **4.574 : 1** on white and **4.259 : 1** on `--ev-bg2`, so it cannot carry 13px text on a tinted ground. Links still take **`--ev-blue-dk` plus an underline** — no longer because blue is spoken for, but because blue is not a compliant text colour. Blue's remaining roles: focus ring, chart series, selection. Measurements: `design/03-navattic-language.md` §1.3, §7. |
 | R4 | Numeric columns are right-aligned on orders/discounts, left-aligned on customers — §3.1 | **Always right-align numeric, currency, and count columns**, with tabular figures. The customers index is the outlier. In Arabic this alignment does **not** flip — see §9.2. |
 | R5 | No critical/red badge appears in any of the 159 screens; red is reserved for destructive buttons — §3.4, §1.7 | **No red badge for ordinary lifecycle state.** Critical page-level state is a banner; critical *row-level* state in a work queue is the documented exception — see §8.4, which defines the only sanctioned row-critical treatment. Eyvar's 49 existing `b b-red` usages are a defect (§6.3 D11), not a precedent. |
 | R6 | Copy is inconsistent in one place — a missing trailing period on an empty-state line — §3.6, §5.7 | Do not copy typos. Full sentences take a period; fragments, labels and button text do not. The governing rule is §5.7. |
@@ -229,11 +267,11 @@ not observations; overturn them deliberately, in writing, by editing this table.
 | R8 | Empty states: §1.5 and §5.7 require an illustration unconditionally; §3.6 forbids one in an empty card; §3.8 forbids one in a timeline | Illustration **only** on a whole-page, zero-records-ever empty state. An empty card, section, timeline, or filtered-to-zero result gets one grey sentence and, where an action exists, one plain-button action — no illustration, no heading. §3.6's "emptiness is meaningful" exception is void: it was untestable. |
 | R9 | Toast length: §5.1 caps a toast at "≤ ~5 words", while §5.1 and §5.7 both require echoing the object's exact name | The **echo wins**. A toast is one line that names the object exactly, capped at 60 characters; past that, truncate the object name with an ellipsis, never the verb. The five-word cap is void. |
 | R10 | Toast vs banner: §5.0 says pair them when there is a next step; §4.4 says prefer a toast over a persistent banner; §5.2 forbids a banner where a toast would do | One event, one surface, decided by lifetime: **transient confirmation → toast; standing condition or a next step the user must act on → banner**. Pair the two only when the action both completed *and* left a standing condition, and never show more than one page-level banner. |
-| R11 | The left nav is measured at 240px (§1 calibration), 256px (§2.1), and 232px (§6.1) | The Shopify figure is **~240px**, the calibration constant. §2.1's 256px and §6.1's 232px are estimation error, not disagreement about the product. This does not bind Eyvar, whose rail is 52/236px by §6.2 D-4. |
+| R11 | The left nav is measured at 240px (§1 calibration), 256px (§2.1), and 232px (§6.1) | The Shopify figure is **~240px**, the calibration constant. §2.1's 256px and §6.1's 232px are estimation error, not disagreement about the product. This does not bind Eyvar, whose rail is 52/236px by §6.2 D-4. **SPENT UNDER D7:** it reconciles three measurements of a nav that no longer governs anything. Kept, not deleted — renumbering this table would break every citation of it. |
 | R12 | §1.6 issues six motion MUSTs, then states that all of it is inferred and none observed | §1.6 is **demoted to SHOULD in full** and is not citable in review. Motion that actually binds Eyvar is §7.6 (reduced motion) and §8.1 (ambient/looping animation). |
-| R13 | The same 768x523 captures are calibrated four different ways in four section preambles: 1.875x, 2x of a 1536px viewport, 1.93x, and 0.53x. Every pixel figure in the document inherits one of the four; the 2x reading made all of §2 about 6% high | **One calibration: the measured scale is ~1.90x.** More importantly: **every px figure in §1-§5 is indicative, not binding.** The screenshots cannot support exact measurement, so what binds is the *relationship* (nav narrower than content, card radius larger than badge radius, the 4px grid) and, for Eyvar, the token values in §6.1. Never cite a §1-§5 pixel number in review. Where a figure was individually re-measured and named in a ruling (the drawer widths, the popover width, the card radius), that figure stands as measured and is not rescaled. |
+| R13 | The same 768x523 captures are calibrated four different ways in four section preambles: 1.875x, 2x of a 1536px viewport, 1.93x, and 0.53x. Every pixel figure in the document inherits one of the four; the 2x reading made all of §2 about 6% high | **One calibration: the measured scale is ~1.90x.** More importantly: **every px figure in §1-§5 is indicative, not binding.** The screenshots cannot support exact measurement, so what binds is the *relationship* (nav narrower than content, card radius larger than badge radius, the 4px grid) and, for Eyvar, the token values in §6.1. Never cite a §1-§5 pixel number in review. Where a figure was individually re-measured and named in a ruling (the drawer widths, the popover width, the card radius), that figure stands as measured and is not rescaled. **STRENGTHENED BY D7:** §1-§5's px figures now describe a product that does not govern Eyvar at all, so they are doubly non-binding. The carve-out survives as a rule about *rescaling*, but **the three figures it names were re-measured against Navattic and two of them moved** - drawer **406 -> 480**, card radius **12 -> 8**; the popover width is not evidenced in the new set and is unchanged. `design/03-navattic-language.md` §1.4. |
 | R14 | `Paid` ships as a green badge in billing history and a grey one on orders - and §3.4 states a MUST that the same label never changes tone | **`Paid` is success (green).** The "same label, same tone" rule stands; Shopify breaks it, Eyvar does not. |
-| R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles, ~8px.** Badges and toasts are rounded rectangles, not stadium pills. Avatars are ~30px rounded squares, never circles. §1.4 is right; the pixels confirm it. Eyvar's existing `border-radius:999px` badges (`:117`) are a defect under this ruling. |
+| R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles.** Badges and toasts are rounded rectangles, not stadium pills — the badge radius is **4px**, the card and control radius **8px**, so the ladder §1.4 asserts survives. Eyvar's existing `border-radius:999px` badges (`:117`) are a defect under this ruling. **THE AVATAR CLAUSE IS KILLED BY D7.** "~30px rounded squares, never circles" is falsified: Navattic's identity avatar is a **32px circle**, and this is measured rather than eyeballed — the horizontal inset one destination pixel below the top edge is 5px, which a 9-destination-px-radius **circle** predicts at 4.88 and an 8px rounded square predicts at 1.54. **Avatars are 32px circles.** `design/03-navattic-language.md` §4.5, §6. |
 | R16 | §1.1.5 has a MUST that info banners carry "no coloured strip at all... not as a blue fill" - falsified by the document's own evidence, which shows a `#EDF4FF` fill | **All four banner tones are pale tinted cards** (this is R1 applied consistently). The §1.1.5 MUST is void. |
 | R17 | Shopify ships two warning fills - peach `#F4D6B1` for `Payment pending`, yellow `#F6EA98` for `Unfulfilled` - which §1.1.5 collapses into one tone without saying so | **Eyvar has one warning tone** (the five-tone palette of R7). Where a surface needs to separate "waiting on someone else" from "waiting on you", separate them with the *label*, not a second fill. |
 | R5a | R5 sends critical state to a page-level banner, but a work queue's critical state is **per row**, and §5.2 forbids stacking banners - so the document had no legal way to render "this row is breached", which is the entire point of the screen. Raised and solved in §8.4.6 | R5 stands - no red badges. It is **amended** to enumerate the complete set of permitted red uses: (1) a destructive button, (2) one page-level critical banner, (3) a breached-row leading-edge marker (a 3px inset edge, not a pill - it cannot be mistaken for a badge tone), (4) a map marker. A breached row also carries the word `overdue`, so colour is never the only carrier. Any fifth use of red needs a row in §6.2. |
@@ -245,6 +283,24 @@ not observations; overturn them deliberately, in writing, by editing this table.
 ---
 
 ## 1. Foundations
+
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
 
 > **Source & method.** Everything below was derived by reading 33 screenshots in
 > `docs/06-design-reference/shopify-admin-web/` spread across all 16 folders (auth, home, orders,
@@ -686,6 +742,24 @@ separately:
 ---
 
 ## 2. Layout & Navigation
+
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
 
 > **Evidence base.** Every `[observed]` claim below comes from a screenshot in
 > `docs/06-design-reference/shopify-admin-web/` that was opened and inspected for this section
@@ -1337,6 +1411,24 @@ normal page header below it. `.../05-online-store/blog-posts-list.webp`,
 ---
 
 ## 3. Data Display
+
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
 
 How the Shopify admin presents records: the index table, the toolbar that filters it, the
 bulk-selection layer on top of it, the badges that carry state, the cards that hold
@@ -2052,6 +2144,24 @@ Toolbar plus table, as assembled from `03-products/products-list-default.webp`,
 
 ## 4. Forms, Inputs & Actions
 
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
+
 Source: 44 screenshots read from `docs/06-design-reference/shopify-admin-web/`. Every claim is tagged
 `[observed]` (visible in a screenshot cited on the line) or `[Polaris]` (design-system recollection,
 **not** verifiable from these screenshots — treat as a default to confirm, not a fact).
@@ -2694,6 +2804,24 @@ Email / Social Post / SMS / Other).
 
 ## 5. Feedback, Overlays & Voice
 
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
+
 How the admin talks back: what it says, where it says it, and how long it stays. Derived
 from 68 screenshots read across all 16 folders. Every claim is tagged `[observed]`
 (visible in the cited screenshot) or `[Polaris]` (design-system knowledge these
@@ -3178,6 +3306,14 @@ this section is what binds.
 
 ### 6.1 Current Eyvar token inventory (`eyvar_ops_panel_v40_fixed.html` L11–L21)
 
+> **D7 note — this section is HISTORICAL.** It records what the legacy single-file app had,
+> which is what the rebuild had to translate. **It is not the token set.** Every value below
+> has been replaced. The live set — every `--ev-*` name with its measurement or its
+> derivation, every contrast ratio recomputed — is
+> **`docs/05-restructure/design/03-navattic-language.md` §1**, and it is realised in
+> `src/styles/globals.css` and nowhere else. Read this table to understand where a name came
+> from, never to find out what a value is.
+
 All 24 colour variables, verified line by line:
 
 | Eyvar token | Value | Line | Role today |
@@ -3225,12 +3361,63 @@ sanctioned — it is a defect.
 
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
-| D-1 | **Brand blue is the primary action colour**, not near-black | §1.1.4, §4.6 (near-black primary) | Eyvar is a branded operations product, not a Shopify app. Consequence, per R3: blue stops carrying links; links take `--blue-dk` + underline. |
-| D-2 | **Higher density** — 13px base text, ~30px rows | §1.2 (type ramp), §1.3 (spacing scale), §3.1 (row height) | An ops console is watched all day on one screen. Density is the product. **This sanctions smaller values on the 4px grid — it does not sanction off-grid values** (see D18). |
+| ~~D-1~~ | ~~**Brand blue is the primary action colour**, not near-black~~ | — | **VOID — `DECISIONS.md` D7.** Navattic's primary button measures `#0C1116`, a cool near-black, so §1.1.4 and §4.6 are **met**, not deviated from, and there is nothing left to suspend. `--ev-blue` `#2b6ef0` keeps three roles — focus ring, chart series, selection — and stays off links, because at 4.259:1 on `--ev-bg2` it is not a compliant text colour. See R3 (rewritten) and `design/03-navattic-language.md` §1.3. |
+| ~~D-2~~ | ~~**Higher density** — 13px base text, ~30px rows~~ | — | **RETIRED — `DECISIONS.md` D7, measured not asserted.** Re-measured against Navattic: body text **13px in both** (identical), page title 22–24 vs Eyvar's 17 (**Eyvar was tighter and rises**), nav row 32 vs 28 (**rises**), compact control 28–30 vs 28 (identical), table header row 32 vs 32 (identical), cell padding-inline 12 vs 12 (identical), spacing on a 4px grid in both. Eyvar's rows move **up** — 32 → 40 text, 44 → 56 media — against a reference measuring 41 and 62. **Eyvar is not denser than Navattic; it matches it, and in five places it was tighter and is being loosened.** Its type-ramp (§1.2) and spacing-scale (§1.3) suspensions are void and may not be cited again. Full table: `design/03-navattic-language.md` §5. |
+| D-2′ | **The page inline gutter is 32px**, against a reference measuring 68 | Nothing in §1–§5 — D7 replaced their visual content. This is a departure from the **reference**, recorded so it is not mistaken for drift. | At D2's 1280px floor the content region is **976px** (D5, measured: `<main>` x = 304, width = 976). Navattic spends 136px of its own 1173px region on gutters — 11.6% — leaving 1037 for a **six**-column table. Eyvar's index tables run six to nine columns and `01-people.md` records all four People views fitting at 1280 only with `min-w`/`max-w` pinning on the identity column. 68px would leave 840, **78px less than today's effective 918**, and would clip. 32px leaves 912 — 6px less than today, inside the noise of that pinning, and **frontend must re-verify `scrollWidth === clientWidth` at 1280 rather than assume it**. |
+| D-11 | **One white ground. A card is separated by a 1px border and an 8px radius, not by a fill step** | §1.1's canvas/surface tonal step; the derived rule that the canvas is grey | Measured in all 15 Navattic frames: the content region is `#FFFFFF` edge to edge (`82923d3f` y=440, x=144–767, n=624, one colour), and cards and stat tiles are white-on-white with 1px borders (`02b895df`, four tiles). §6.3 **D1** stays a defect for the case it was actually written about — white on white **with no border**, which is what the legacy app shipped and which genuinely collapses the distinction. Grey survives in exactly two roles: the two nav columns (`--ev-bg-nav` `#f8fafb`) and the one subdued fill (`--ev-bg2` `#f5f7f9`). |
 | D-3 | **Light top bar**, 50px, with a `Title › Subtitle` breadcrumb | §2.1 (dark frame), §2.6 (no breadcrumbs), §2.3 (logo in the save-bar left slot) | The wordmark lives in the rail, so the top bar is free for wayfinding. The §2.3 logo rule is unimplementable on this frame and does not apply. |
-| D-4 | **Two-level navigation** — an 80px icon+label workspace rail (5 targets, `Admin` pinned to the bottom) plus a 224px sub-tab column listing the selected workspace's 5–9 sub-tabs, operator-collapsible below 1344px. Both columns are route-derived. The top bar spans the content region only; the two nav columns and the content canvas are all `--bg`, separated by 1px hairlines | §2.1 (fixed ~240px nav, always expanded — R11) · §2.1 (only one nav section MAY be expanded at a time, and it MUST be the one containing the current page) · §2.1 (every primary nav item MUST have a leading icon; secondary items MUST NOT) · §2.1 (active items MUST use an inset filled white pill at both levels, and a nested active row MUST additionally carry an elbow connector from its parent) · §2.1 (the nav column MUST be a near-canvas grey one step darker than the canvas; do NOT draw a border, shadow or contrasting panel between them) · §2.1 (a dark top bar spanning the full viewport width) | Five workspaces organised by the job someone is paid to do (`DECISIONS.md` **D1**) replace a flat 30-item rail over 62 destinations. The second column holds the labels the hover expansion existed to reveal, so hover expansion has no remaining purpose. Level 1 is icon **plus** label because at the 1280px minimum viewport (**D2**) the sub-tab column defaults to collapsed, making the rail the entire visible navigation — five unlabelled glyphs are then a recall test performed all day. There is no elbow connector because parent and child sit in different columns. The tonal step is unavailable because `:root` holds no neutral darker than `--bg` and §6.4 forbids inventing one, so a 1px `--border` hairline is the separator. The top bar narrows to the content region because **D-3** already moved the wordmark into the rail, which is what made the full-width bar's left slot meaningful. |
+| D-4 | **Two-level navigation** — an 80px icon+label workspace rail (5 targets, `Admin` pinned to the bottom, labels `Exec · Ops · Finance · Support · Admin`) plus a 224px sub-tab column listing the selected workspace's 5–9 sub-tabs. **Both columns are always rendered and route-derived; there is no collapse.** The top bar spans the content region only and carries no route trail | §2.1 (fixed ~240px nav, always expanded — R11) · §2.1 (only one nav section MAY be expanded at a time, and it MUST be the one containing the current page) · §2.1 (every primary nav item MUST have a leading icon; secondary items MUST NOT) · §2.1 (a nested active row MUST additionally carry an elbow connector from its parent) · §2.1 (a dark top bar spanning the full viewport width) | Five workspaces organised by the job someone is paid to do (`DECISIONS.md` **D1**) replace a flat 30-item rail over 62 destinations. The second column holds the labels the hover expansion existed to reveal, so hover expansion has no remaining purpose. Level 1 is icon **plus** label because four of the five glyphs are abstract and an unlabelled rail is a recall test performed all day. There is no elbow connector because parent and child sit in different columns. The top bar narrows to the content region because **D-3** already moved the wordmark into the rail, which is what made the full-width bar's left slot meaningful; and it carries no `Title › Subtitle` trail because with the column permanently visible the trail restated the workspace name and the sub-tab name that sit immediately to its own inline-start (`DECISIONS.md` **D5**, design spec `02-visual-refinement.md` V4). |
 | D-5 | **Settings is a route, not an overlay** — `Admin` is one of the five workspaces and its level-2 column is its settings nav; four former panes moved to `Financials` | §2.4 (Settings MUST open as an overlay over the current page) · §2.4 (the overlay MUST preserve the page underneath; settings MUST NOT be a route that destroys the previous page) · §2.4 (the settings shell MUST be nav ~289px + gutter ~27px + pane ~707px, centred as one ~1026px block inside the overlay) · §2.4 (settings MUST be dismissible with a single `✕` in its own header) | Under **D1** Admin is a workspace, not a drawer over one, and its 21 legacy pane keys become linkable routes — which §2.4's overlay model cannot do at all. A settings surface that *is* a workspace cannot also be an overlay over a workspace. Its nav is the same level-2 column every other workspace uses, so there is no second nav pattern to maintain. This entry **supersedes §6.3 defect D3**, which described the same behaviour as a defect; it is now a decision. |
 | D-6 | **Table header cells are interactive** — each header cell for a column that declares a control is a single button opening a menu that carries that column's sort, filter and pin. A resting `⌄` chevron renders on every such header, without hover. The sort indicator is an **arrow** (`↑` / `↓`), never a chevron | §3.1 (*"Exactly one header MUST show the active sort indicator; the rest MUST show no resting affordance"* — the second half only) · §3.1's `[observed]` description of the sort indicator as a **chevron** · the derived rule *"headers are not interactive anywhere in the product"* (foundation **AC-45**, second clause) | An operations console works one list all day and needs sort, filter and pin **per column**, in the component, so no screen hand-builds them (business-owner request, `01-table-controls.md`). **AC-45's indicator clause is upheld verbatim and strengthened: exactly one column carries a sort arrow, ever.** Only its inertness clause is suspended, and the guarantee it existed to make reviewable — *a ledger cannot be sorted* — moves to a stronger carrier: `LedgerTable` has no `sort`, `setSortField`, `setSortDirection` or `clearSort` **at all**, so a sort item in a ledger header does not compile (**AC-48**, unchanged). The affordance may not be hover-only: §7.2 and the AC-68 precedent make hidden-until-hovered capability nonexistent for a keyboard operator, and §7 beats §3. The glyph split is forced: §1.5 and §9.1 translation row 9 reserve the trailing caret *"exclusively for controls that open a menu or select"*, so `⌄` cannot also mean sort — and §3.2's direction pair already uses arrows `[observed]` `03-products/products-list-sort-popover.webp`. Two interactive elements in one 32px header cell are refused: §7.7 requires ≥24×24 each and **D-2 may not be cited against §7.7**. |
+
+**The two §2.1 nav clauses, restated after D7. Both were rewritten under D6 and one of them
+reverses again — read this before touching either nav column.**
+
+- **The tonal step is MET; the "no border" half is now DEVIATED FROM, on measured evidence.**
+  §2.1 reads *"a near-canvas grey one step darker than the canvas … MUST NOT draw a border,
+  divider or shadow between nav and content."* Under D7 the content region is **white** and
+  the nav is `--ev-bg-nav` `#f8fafb`, so the nav is still one step darker and the first half
+  holds. But that step is **1.047 : 1** — five units of luminance is not a boundary — and
+  Navattic draws a 1px hairline on **both** seams (rail→column and column→content), present
+  at destination x = 28 and x = 142 in every sidebar frame. **The hairlines come back**, which
+  reverses `DECISIONS.md` **D6**'s second consequence bullet. D6's other bullets survive with
+  new values. **D-4 therefore suspends §2.1's no-border clause**, and this sentence is the
+  naming that makes it sanctioned rather than a defect.
+- **`--bg-nav`'s V3 derivation is VOID.** It was pinned as *"the darkest grey in `--bg`'s hue
+  family at which the resting nav label still clears 4.5:1"* — 4.523 against 4.482 one shade
+  darker. That constraint assumed a nav materially darker than the canvas. The measured
+  Navattic nav is `#f8fafb`, a hair off white, so nothing binds the value and it is simply
+  **measured** (`cfa43315` n=12 600, `6a08206b` n=15 300). `#eaecf1` is retired.
+- **The active pill INVERTS and costs nothing.** §2.1's *"a white rounded pill"* is now a
+  **grey pill `#e6e8ec` on a near-white nav** (`cfa43315`, n=150 flat). The 3px `--marker`
+  edge and the 1px border stay **removed**; the pill alone is the treatment, at both levels.
+  Pill-to-ground contrast: Shopify measured **1.192**, Eyvar under D6 **1.182**, Navattic
+  measured **1.172** — parity, upside down. Only the clause's *elbow-connector* half is
+  suspended for its original reason, and it is listed above.
+
+**D-9 — one page width.** `SingleColumnPage`'s `full | capped` width prop is deleted; every
+single-column page and every detail page runs the full width of the content region with a
+16px inline gutter. **Suspends:** the derived rule that an Overview or a settings pane is
+measure-capped. **Why:** two sibling sub-tabs in the same workspace were putting their `<h1>`
+244px apart at 1920 — `capped` centres the whole block and moves the header with it — and
+nothing else about them differed, so an operator read the movement as breakage. Shopify keeps
+alignment fixed by running index pages full-bleed with a uniform page padding (measured:
+content starts at x = 264 on both a dense table and an empty state). Measure is not abandoned,
+it moves down one level, to the metric-tile grid, the 640px form column and the 384px prose
+block. `--page-max` survives with one consumer, the full-bleed plan editor.
+
+**D-10 — the nav row is 28px and the nav count chip has its own two fills.** **Suspends:**
+§2.3's observed nav-row figure (R13 makes observed pixel figures non-binding) and §12.1's
+single neutral badge fill. **Why:** at 32 the nav row equalled the data row, breaking the
+§2.3 ↔ §3.1 relationship that a nav row is *shorter* than a data row, which is why the column
+read as a stack of cards rather than a list of links; 28 is one 4px step below and equals the
+measured Shopify figure. And the neutral chip on `--bg2` is 1.073:1 **lighter** than the nav
+ground — a plate nobody can see — which is precisely why every nav badge had been promoted to
+the warning tone. `--nav-chip` (`#dadee6`) is 1.141:1 **darker**, matching Shopify's measured
+`#DDDDDD` on `#EBEBEB` (1.139:1); its digits are `--ink`, because `--muted` fails AA at 11px
+on any plate dark enough to read. Tone on a **workspace tile** is suppressed entirely: a
+tile's number is a sum of heterogeneous queues and a sum of different kinds of thing has no
+single status to report.
 
 **D-4 replaces the former D-4 entirely; it does not supplement it.** The former entry
 sanctioned an icon rail that expanded on hover (52px → 236px). That behaviour no longer
@@ -3245,9 +3432,13 @@ does not do.
 - §2.6 — *"The app MUST NOT use breadcrumbs."* Two columns are not a breadcrumb trail. The
   `Title › Subtitle` pair sanctioned by **D-3** stays, at exactly two tokens, never three.
   Level-3 details keep the single back arrow to the inline-start of the title.
-- **D-1**, **D-2** and **D-3** survive untouched. Brand blue is still the primary action
-  colour; 13px base and ~30px rows still bind, smaller but never off-grid; the top bar is
-  still light and still carries `Title › Subtitle`.
+- **D-3 survives; D-1 and D-2 do not.** The top bar is still light and still carries
+  `Title › Subtitle` — its height moves 50 → **52px**, measured. **D-1 is void** (the primary
+  is near-black) and **D-2 is retired** (Eyvar's type and spacing are the reference's, and
+  its rows are rising toward it). Anyone about to cite "D-2 lets me make this smaller" is
+  citing a retired row; the surviving departure is **D-2′** and it is about the page gutter
+  and nothing else. The 4px-grid rule survives on its own terms via §6.3 **D15**: an off-grid
+  literal is a defect regardless of which deviation is in force.
 
 Nothing else is sanctioned. Adding a deviation means adding a row here, naming the rule
 it suspends, before the code ships.
@@ -3260,7 +3451,7 @@ Verified against the source. Each is a divergence nobody decided on.
 
 | # | Defect | Rule | Evidence |
 |---|---|---|---|
-| D1 | `.page` sets `background:var(--white)` while cards are also white — the canvas/surface distinction collapses. (`body` and `.sb` do it correctly; only `.page` is wrong.) | §1.1 | `eyvar_ops_panel_v40_fixed.html:70` |
+| D1 | **NARROWED BY D7.** `.page` sets `background:var(--white)` while cards are also white **and neither carries a border** — that is what collapses the distinction, and it is still a defect. Under **§6.2 D-11** white-on-white is the *intended* ground; a card is separated by a 1px `--ev-hairline` border and an 8px radius, measured that way in `02b895df`. So the defect is now precisely "no border", not "same colour". | §1.1, §6.2 **D-11** | `eyvar_ops_panel_v40_fixed.html:70` |
 | D2 | No contextual save bar, and no wired dirty indicator. `.form-footer` exists but is used **once in the entire file** (the plan editor); the other 40 pages and all 21 settings panes have no save chrome. `.settings-dirty-dot` is defined but dead — zero other occurrences. | §2.3 | `:279`, used at `:1127`; `:248` |
 | D3 | **RECLASSIFIED — no longer a defect.** Settings is a route, not an overlay. Under `DECISIONS.md` **D1**, `Admin` is one of five workspaces and its level-2 column is its settings nav, so this is now a deliberate choice: see **sanctioned deviation D-5** in §6.2, which names the §2.4 rules it suspends. The number is retained rather than reused, because D1–D24 are cross-referenced from `docs/ref/defects.md` and elsewhere. | §2.4 → **§6.2 D-5** | `:1416`, `:70–71` |
 | D4 | Global search is a 230px field in the right-hand cluster, not a centred command surface. | §2.1 | `:569` |
@@ -3284,7 +3475,7 @@ Verified against the source. Each is a divergence nobody decided on.
 | D12 | **36 off-token hex colours** in the CSS block alone (44 distinct hexes outside `:root`; only 8 match a token). Includes a second brand blue `#105291`, a third green `#3B6D11`, a fourth `#1E9E5A`, a fifth `#1E7B34`, and Google's blue `#1A73E8`. | §6.4 | `:22–468`; `:80`, `:116`, `:188`, `:328`, `:341` |
 | D13 | **15 distinct font sizes** (9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 14, 15, 16, 17, 19, 23px) against a six-role ramp. | §1.2 | `:22–468` |
 | D14 | **13 distinct border radii** (2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 99, 999px); nine are outside the permitted set. | §1.4 | `:22–468` |
-| D15 | Off-grid spacing throughout — `.page{padding:18px;gap:14px}`, `.ch{padding:11px 14px}`, `td{padding:9px 11px}`, `.kpi{padding:13px 15px}`. D-2 sanctions *smaller*, not *off-grid*. | §1.3, D-2 | `:70`, `:89`, `:150`, `:104` |
+| D15 | Off-grid spacing throughout — `.page{padding:18px;gap:14px}`, `.ch{padding:11px 14px}`, `td{padding:9px 11px}`, `.kpi{padding:13px 15px}`. **An off-grid literal is a defect on its own terms**, independent of any deviation. (This row used to lean on D-2's "smaller, never off-grid" clause; D-2 is retired under D7 and the rule stands without it — Navattic is on the same 4px grid.) | §1.3 | `:70`, `:89`, `:150`, `:104` |
 | D16 | No radius, spacing, shadow, font-size or duration tokens exist, so three of the four categories §6.4 governs cannot be checked. | §6.4 | `:11–21` |
 | D17 | `.5px` hairlines render inconsistently across DPRs — and **262 of the 316 occurrences are inline styles inside JS template literals**, so a CSS-only fix reaches under 18% of them. | §1.4 | 54 in CSS, 316 file-wide |
 | D18 | Uppercase + letter-spacing is banned for labels but used in **8 selectors**, not one: `table.dt th`, `.sb-sec-lbl`, `.kpi-lbl`, `.sec-badge`, `.settings-tab-group-lbl`, `.ptable th`, `.live-sec-hdr`, `.ms-lbl`. | §1.2 | `:149`, `:39`, `:110`, `:227`, `:233`, `:263`, `:363`, `:367` |
@@ -3394,7 +3585,19 @@ was wrong (L70, not L75). The defect list has grown from 14 to 24: the omissions
 largest divergences in the file — off-token colours, font sizes, radii, and settings being
 a route.
 
-**Known limits of the evidence.** The screenshots are 768px renders of a ~1440px viewport,
+**Known limits of the NAVATTIC evidence (D7).** 15 frames at the same 768 × 523 downscale,
+S = 1.875 — checked against the 32px avatar and the 30px control rather than assumed. Flat
+fills survive exactly (a 200 × 140 sample of the icon rail returns one colour for 100.0% of
+its pixels), so every ground, tint and pill fill in the token set is a **measurement**. Three
+things are below the floor and are reported as bands rather than invented: **1px stroke
+colours** (a stroke covers 53.3% of one destination pixel, so borders are recovered by
+integrating the luminance deficit, ±5 in Y), **small-text colour** (antialiasing makes the
+darkest pixel of a 13px glyph lighter than the truth), and **radii below 8px**. Absent from
+the set entirely, and therefore derived by rule and marked as such: a modal, a toast, a
+tooltip, a scrim, hover, focus, disabled, error, any form, the success/info/critical tones,
+a nav count, and dark mode. Full method and every ±: `design/03-navattic-language.md` §2.
+
+**Known limits of the SHOPIFY evidence.** The screenshots are 768px renders of a ~1440px viewport,
 so every pixel figure in §1–§5 is a scaled approximation, not a measurement. No hover,
 focus, loading, or dark-mode state appears in the sample. No responsive breakpoint can be
 derived from it. Exact hex values were eyeballed from compressed WebP and should be treated

@@ -1,6 +1,8 @@
 /**
- * `PageNav` (S-02) — level 2, the sub-tab column. Design spec §3, as amended by
- * `02-visual-refinement.md` V1 / V2 / V3.
+ * `PageNav` (S-02) — level 2, the sub-tab column. Design spec §3, as
+ * **superseded by D7 `design/03-navattic-language.md` §4.1**. V1's density,
+ * V2's white pill and V3's `#eaecf1` ground are all void; V2's *argument* — the
+ * pill only works once the ground is right — survives and §3.3 re-verifies it.
  *
  * **Always rendered.** The collapse is gone (`DECISIONS.md` **D5**): there is no
  * disclosure, no popover, no pin and no persisted flag. §3.2, §3.3 and design
@@ -10,11 +12,13 @@
  * gap rather than hiding it.
  *
  * Rules applied
- *   §3.1/V1     224px (256 in Arabic, by token) · heading `--ev-topbar-h` (48,
- *               see below) · rows 28px (`--ev-navrow-h`), **gap 0**, column
- *               inline padding 8, row inline padding 8, list padding-block-start
- *               8, group separator 8 · labels never truncate · an independent
- *               scroll context (**AC-19**).
+ *   §4.1/D7     224px (256 in Arabic, by token) · heading `--ev-topbar-h` (52,
+ *               see below) · rows **32px** (`--ev-navrow-h`), **gap 0** — the
+ *               measured pill height (32.8) and the measured pitch (32.5)
+ *               COINCIDE · radius 8 · column inline padding 8, row inline
+ *               padding 8 · labels never truncate · an independent scroll
+ *               context (**AC-19**). D-10's relationship still holds: the nav
+ *               row is SHORTER than the data row, at 32 < 40.
  *   §3.1        the `Overview` separator: Overview READS, it never ACTS, and
  *               that rule is encoded once in the chrome rather than
  *               re-explained per workspace.
@@ -23,13 +27,15 @@
  *               with that one row selected.
  *   §3.1/AC-09  active row = `route.subTabId`. A level-3 detail highlights its
  *               PARENT sub-tab; a `?view=` changes nothing (**AC-10**).
- *   §2.1/D6/V3  the column's ground is `--ev-bg-nav`, one step darker than the
- *               canvas, and there is **no `border-e`** — §2.1 forbids a border
- *               between nav and content once the tonal step exists.
- *   §2.3/V2     ACTIVE = an inset filled WHITE pill and nothing else. No 3px
- *               blue leading edge, no 1px hairline, no shadow. On the darker
- *               ground the pill alone reads at 1.182 : 1, against the
- *               reference's own 1.192 : 1; weight 600 is the second carrier.
+ *   §4.1/D7     the column's ground is `--ev-bg-nav` `#f8fafb`, one step darker
+ *               than a WHITE content region, **and it carries `border-e`
+ *               again** — D6's second bullet is void. See `ModuleRail` for the
+ *               measurement that reverses it.
+ *   §4.1/D7     ACTIVE = an inset filled **GREY** pill and nothing else. No 3px
+ *               leading edge, no 1px hairline, no shadow. **The pill inverts
+ *               and it costs almost nothing**: grey-on-near-white measures
+ *               1.172 : 1 against Shopify's white-on-grey 1.192. Weight 600 and
+ *               `aria-current` are the other two carriers (§7.5).
  *   §2.4/V6     the row keeps its tone, and `warning` there now means
  *               **breached**, rarely — never merely "this queue is non-empty".
  *               `neutral` uses `--ev-nav-chip`, a plate you can see, which is
@@ -40,21 +46,52 @@
  *   §7.4        every row is an `<a>`.
  *   R-3 §1.3    the column carries NO elevation and no border.
  *
+ * ── NOT BUILT: the section heading (D7 fix-list item 3) ──────────────────
+ *
+ * D7 §4.1 specifies a new element — a 12px `--ev-text-2` sentence-case section
+ * heading in its own 32px row, 24px above the group it labels and 0 below, not
+ * focusable, `role="presentation"` on the wrapper with the group labelled by
+ * it. **It is not built, and building it would have required inventing the one
+ * thing the spec does not supply: which sub-tabs form a group, and what each
+ * group is called.**
+ *
+ * `SubTabRoute` (`src/data/types/navigation.ts:115`) is flat — `subTabId`,
+ * `workspaceId`, `path`, `order`, `titleKey`, … and no section field — and
+ * `routeTable.ts` carries no grouping. There are no `nav.section.*` copy keys
+ * either. Rendering headings would mean hard-coding a partition of 34 sub-tabs
+ * plus five to eight English labels in this file, which is a design decision
+ * and a copy decision, taken in the wrong place.
+ *
+ * **What it needs, from two owners:**
+ *   mock-data-engineer   `SubTabRoute.sectionKey: string | null`, plus the
+ *                        value on each of the 34 rows. `null` = "no heading
+ *                        above me", which makes `Overview` fall out for free.
+ *   product-designer     the group labels and their copy keys, sentence case,
+ *                        never uppercase (§6.3 D18, and the reference agrees).
+ *
+ * Once both land this is ~15 lines here and nothing else moves. Until then the
+ * `Overview` separator below stays, because §3.1's rule that Overview READS and
+ * never ACTS still has to be carried by something.
+ *
  * ── the heading is `h-topbar`, not `h-10` ────────────────────────────────
  *
- * §3.1 specified a 40px heading row while §4 specifies a 48px top bar, and the
- * two sit side by side starting at the same y. The result was two full-width
+ * §3.1 specified a 40px heading row while §4 specifies a top bar, and the two
+ * sit side by side starting at the same y. The result was two full-width
  * horizontal rules 8px apart with the first nav row starting between them — a
- * visible step in the register right across the app at eye level. The heading is
- * now 48px, so the wordmark band, the column heading and the top bar are **one
- * band**.
+ * visible step in the register right across the app at eye level. The heading
+ * takes `--ev-topbar-h` (**52px under D7**, up from 48), so the wordmark band,
+ * the column heading and the top bar are **one band**. D7 §4.1 confirms it
+ * independently: "the sidebar brand row is the same height and the two align" —
+ * `cfa43315` brand ink centre y = 18 → 24.4px from the app top, the centre of a
+ * 52px row.
  *
- * **And the hairline under it is gone.** With the tonal step, the heading already
- * reads as part of the nav; a rule under it would be the only horizontal line in
- * either nav column and it would run straight into the top bar's own `border-b`
- * at the seam — reproducing the broken step in a new place, now with two
- * different grounds meeting a line. The band is carried by the ground, which is
- * what §2.1 asks for.
+ * **And the hairline under it is still gone.** The heading reads as part of the
+ * nav; a rule under it would be the only horizontal line in either nav column
+ * and it would run straight into the top bar's own `border-b` at the seam —
+ * reproducing the broken step in a new place, now with two different grounds
+ * meeting a line. This is unaffected by D7 restoring the two VERTICAL seams:
+ * those are the nav↔content boundary the reference draws, not a rule inside the
+ * nav, and the reference draws no horizontal rule in its sidebar either.
  */
 
 import { Link } from 'react-router-dom'
@@ -111,7 +148,10 @@ export function PageNav({
           ? t('shell.nav.subTabsFor', { workspace: t(workspace.titleKey) })
           : undefined
       }
-      className="flex h-full w-subnav shrink-0 flex-col overflow-hidden bg-nav text-nav-foreground"
+      /* D7 §4.1 — `bg-nav` AND `border-e`, the column -> content seam. Present
+         at destination x = 142 in every sidebar frame. See `ModuleRail` for the
+         full reversal of D6's second bullet. */
+      className="flex h-full w-subnav shrink-0 flex-col overflow-hidden border-e border-border bg-nav text-nav-foreground"
     >
       {/* §3.1 — the heading band: `h-topbar`, the workspace's FULL name (the
           rail shows the short one), 13px/600, and NO CONTROL. The collapse is
@@ -119,7 +159,10 @@ export function PageNav({
           is 8 + the row's own 8 = the label lands 16px from the column edge,
           exactly where the row labels below it do. */}
       <div className="flex h-topbar shrink-0 items-center px-4">
-        <h2 className="truncate text-sm font-semibold text-foreground">
+        {/* `text-base` (16px), not `text-sm`. The match audit solves the
+            reference's nav title at ~15.5px against our 13; 16 is the declared
+            `--text-base` and one step above the 14px row label beneath it. */}
+        <h2 className="truncate text-base font-semibold text-foreground">
           {workspace ? t(workspace.titleKey) : ''}
         </h2>
       </div>
@@ -184,9 +227,10 @@ function NavRow({ row, active, badge, badgeLoading, t, ...itemProps }: NavRowPro
       /* AC-08 — the highlight comes from the ROUTE. There is no `onClick`. */
       aria-current={active ? 'page' : undefined}
       className={cn(
-        /* 28px row at 0 gap: pitch 28, which is the measured Shopify figure and
-           one 4px step below `--ev-row-h` — restoring §2.3 ↔ §3.1's
-           relationship that a nav row is SHORTER than a data row. */
+        /* D7 §4.1 — 32px row at 0 gap, radius 8. Measured pitch 32.5 and
+           measured pill height 32.8 coincide, which is WHY the gap is 0. Still
+           one 8px step below `--ev-row-h` (40), so D-10's relationship — a nav
+           row is SHORTER than a data row — survives the rise. */
         'relative flex h-navrow shrink-0 items-center gap-2 rounded-lg px-2',
         'text-sm',
         'transition-colors outline-hidden',
@@ -195,8 +239,11 @@ function NavRow({ row, active, badge, badgeLoading, t, ...itemProps }: NavRowPro
            above and below. This is the one place in the product that does not
            use `ring-offset-2`, and the zero gap is the reason. */
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-        /* §2.3 / V2 — the whole active treatment. */
-        active && 'bg-card font-semibold text-foreground',
+        /* D7 §4.1 — the whole active treatment: a grey pill, a 600 label and
+           `aria-current`. `bg-nav-chip` is the pill; see the token's own
+           declaration in `globals.css` for why one value serves both the pill
+           and the resting count plate. */
+        active && 'bg-nav-chip font-semibold text-foreground',
       )}
       {...itemProps}
     >

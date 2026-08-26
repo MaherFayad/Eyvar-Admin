@@ -10,7 +10,14 @@
  *   §8 slot 1   back arrow on detail / create / edit only, **absent on index
  *               routes**. A single `←`, never a trail (§2.6). Mirrors in Arabic
  *               at string-construction time (§9.5).
- *   §8 slot 2   title 17px/600 (`text-lg`). Required, always translatable.
+ *   §8 slot 2/D7 title **22px/600 (`text-xl`)**, up from 17. This is the one
+ *               real change to the type ramp under D7 and it REDEFINES an
+ *               existing Tailwind name rather than adding a token: `Visitors`
+ *               (`82923d3f`) solves to 23.2 from cap height and 24.0 from
+ *               x-height, `Members` (`6a08206b`) to 22.6, and the match
+ *               audit's independent Inter-metric solve gives 21.95. Band
+ *               22-24; 22 chosen. Its Arabic floor is 24/32.
+ *               Required, always translatable.
  *   §8/V4       the second row is `meta` — **data-derived only**. `subtitle`
  *               is gone, and so is the static route-table description it used
  *               to render. See the prop's own doc comment.
@@ -25,7 +32,10 @@
  *   §8 slot 4b  overflow is a `dropdown-menu`: verb-first imperatives, sentence
  *               case, no trailing punctuation, destructive item LAST and
  *               separated — but **not red** where a confirmation follows (§5.4).
- *   §8 slot 4c  **at most ONE primary per header** (R3). On a task-shaped page
+ *   §8 slot 4c  **at most ONE primary per header.** R3 is KILLED by D7 — its
+ *               first half tied the primary to brand blue, and the primary is
+ *               near-black now — but the one-primary-per-header cap is §8's
+ *               own rule and is untouched. On a task-shaped page
  *               it moves to the bottom of the rail summary card and the header
  *               carries none — EXCEPT at base width, where §7.2's rule returns
  *               it here. That is the only layout-dependent action move in the
@@ -115,10 +125,10 @@ export function PageHeader({
   const overflow = [...spilled, ...overflowActions]
 
   return (
-    /* `pb-4` — 16px to the first card, up from 12 (V1). 12 was only tolerable
-       because a second line sat above it; V4 deleted that line. Shopify
-       measures 24; 16 is denser and on the grid. */
-    <div className="flex flex-col gap-1 pb-4">
+    /* D7 §4.2 — title → toolbar is 20px (11 destination px). `pb-5` is 20 on
+       the 4px grid. It was 16, set against a 17px title; the title is 22 now
+       and the old gap read as a collision. */
+    <div className="flex flex-col gap-1 pb-5">
       <div className="flex items-start gap-2">
         {onBack && (
           <Button
@@ -135,7 +145,7 @@ export function PageHeader({
         )}
 
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1">
-          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
           {/* §8 slot 3 — same baseline as the title, never a second row. */}
           {badges}
         </div>
@@ -231,7 +241,11 @@ export function PageHeader({
         </div>
       </div>
 
-      {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
+      {/* D7 §4.2 — the subtitle line is 13px `--ev-text-2`, i.e. `text-sm`,
+          not `text-xs`. It was two steps below the title and is now one.
+          NOTE the reference has no line here at all; V4 already narrowed this
+          slot to data-derived metadata, which is why it survives. */}
+      {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
     </div>
   )
 }

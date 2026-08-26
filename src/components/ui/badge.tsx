@@ -86,36 +86,61 @@ const badgeVariants = cva(
   }
 )
 
+/**
+ * **AC-73 / §9.2 — a count badge is a numeral run and is bidi-ISOLATED.**
+ *
+ * Found in the RTL screenshot at 1280: the overflow marker `99+` rendered as
+ * `+99`. `+` is a bidi-neutral character, and a neutral at the end of a run
+ * inside an RTL paragraph takes the paragraph's direction and jumps to the
+ * other side. The same would happen to any future `+`/`−` delta or trailing
+ * unit.
+ *
+ * **U+2066 LEFT-TO-RIGHT ISOLATE … U+2069 POP DIRECTIONAL ISOLATE, not a `dir`
+ * attribute.** `dir="ltr"` on the span would fix the glyph order and break
+ * **AC-70** — *"`dir=rtl` is set on the document element, not on a subtree"* —
+ * which asserts that every `[dir]` in the body reads `rtl`. The isolate
+ * characters are text, carry no attribute, and are the mechanism the Unicode
+ * bidi algorithm provides for exactly this case. One criterion is not traded
+ * for another.
+ *
+ * `default`-size badges carry WORDS, which must mirror, so only `count` is
+ * isolated. A non-string child (an icon, a `<Slot>`) is passed through
+ * untouched.
+ */
+const LRI = "\u2066"
+const PDI = "\u2069"
+
 function Badge({
   className,
   tone = "neutral",
   size = "default",
   asChild = false,
-  dir,
+  children,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "span"
+  /* Isolate ONLY when the run actually contains a bidi-neutral character. A
+     pure digit run (`12`, `7`) has strong-LTR direction of its own and needs no
+     help; `99+`, a future `+3` delta or a trailing unit does. Narrowing it this
+     way also keeps the badge's `textContent` byte-identical for the common
+     case, which matters because tests and screen readers both read it. */
+  const raw = typeof children === "string" || typeof children === "number" ? String(children) : null
+  const content =
+    size === "count" && !asChild && raw !== null && /\D/.test(raw)
+      ? `${LRI}${raw}${PDI}`
+      : children
 
   return (
     <Comp
       data-slot="badge"
       data-tone={tone}
       data-size={size}
-      /* AC-73 / §9.2 — **a count badge is a numeral run and is isolated LTR.**
-         Found in the RTL screenshot at 1280: `99+` rendered as `+99`, because
-         `+` is a bidi-neutral character and, at the end of a run inside an RTL
-         paragraph, it takes the paragraph's direction and jumps to the other
-         side. The same applies to `1 234` with a separator and to any future
-         `+`/`-` delta. `dir` is a DIRECTION attribute, not a physical utility —
-         it is the mechanism §9.2 asks for, and it is set here rather than at
-         thirty call sites. `default`-size badges carry words, which must
-         mirror, so only `count` is isolated. An explicit `dir` prop still
-         wins. */
-      dir={dir ?? (size === "count" ? "ltr" : undefined)}
       className={cn(badgeVariants({ tone, size }), className)}
       {...props}
-    />
+    >
+      {content}
+    </Comp>
   )
 }
 

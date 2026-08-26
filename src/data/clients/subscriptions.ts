@@ -6,15 +6,16 @@
  */
 
 import { DATA_SOURCE } from '../config'
-import { EYVAR_TODAY } from '../mock/clock'
+import { EYVAR_TODAY, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { allSubscriptionFixtures } from '../fixtures/subscriptions'
-import { ApiError, type Paginated, type QueryParams } from '../types/common'
+import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { PlanKey, Subscription, SubscriptionStatus } from '../types/subscription'
 import { http } from './http'
 
 export const SUBSCRIPTION_OPERATIONS = {
+  facets: 'subscriptions.facets',
   list: 'subscriptions.list',
   get: 'subscriptions.get',
   freeze: 'subscriptions.freeze',
@@ -53,13 +54,43 @@ const subscriptionShape: QueryShape<Subscription> = {
     tripsCompleted: (s) => s.tripsCompleted,
   },
   filterable: {
+    /* identity — text */
+    id: (s) => s.id,
+    riderName: (s) => s.riderName,
+    driverName: (s) => s.driverName,
+    planName: (s) => s.planName,
+    cancellationReason: (s) => s.cancellationReason,
+
+    /* closed sets — options via `getSubscriptionFacets` */
     status: (s) => s.status,
     planKey: (s) => s.planKey,
     vehicleClass: (s) => s.vehicleClass,
+
+    /* relations */
     riderId: (s) => s.riderId,
     driverId: (s) => s.driverId,
-    endsOn: (s) => s.endsOn,
+
+    /* numbers */
+    tripsCompleted: (s) => s.tripsCompleted,
+    tripsIncluded: (s) => s.tripsIncluded,
+    paidHalalas: (s) => s.paidHalalas,
+    escrowHeldHalalas: (s) => s.escrowHeldHalalas,
+    refundedHalalas: (s) => s.refundedHalalas,
+    renewalLikelihoodPercent: (s) => s.renewalLikelihoodPercent,
+
+    /**
+     * Dates. `endsOn` is what the *Expiring ≤ 7 days* view filters on, and it
+     * is deliberately **not** the same thing as `status: 'expiring'` — a
+     * subscription can be `active` and end tomorrow. Both are exposed so a
+     * screen can filter on either, which is the open question flagged for the
+     * Subscriptions spec rather than resolved here.
+     */
+    startedOn: (s) => toInstant(s.startedOn),
+    endsOn: (s) => toInstant(s.endsOn),
+    frozenUntil: (s) => toInstant(s.frozenUntil),
+    cancelledAt: (s) => toInstant(s.cancelledAt),
   },
+  facetable: ['status', 'planKey', 'vehicleClass', 'planName'],
   views: {
     all: () => true,
     active: (s) => s.status === 'active',
@@ -181,4 +212,27 @@ export async function cancelSubscription(
       refundedHalalas: refunded,
     }
   })
+}
+
+/**
+ * GET /api/v1//subscriptions/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over subscriptions,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getSubscriptionFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/subscriptions/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(SUBSCRIPTION_OPERATIONS.facets, signal, () => computeFacets(allSubscriptionFixtures, subscriptionShape, view))
 }

@@ -11,8 +11,9 @@
  *   `FullBleedEditorShell` (L-05)  the plan editor, and nothing else.
  *
  * Rules applied
- *   §7.1 (amended, V5) **`width: 'full' | 'capped'` is DELETED. Every
- *               single-column page is full width with a 16px inline gutter.**
+ *   §7.1 (amended, V5 · D-2′) **`width: 'full' | 'capped'` is DELETED. Every
+ *               single-column page is full width with a `--ev-page-pad`
+ *               (32px) inline gutter.**
  *
  *               The prop was not mis-tuned, it was working as designed, and the
  *               design was the defect: two sibling sub-tabs in the same
@@ -61,8 +62,15 @@
  *               page header remains.
  *   §0.1        there is ONE breakpoint and it is `wide:` (1344px). Any second
  *               one is a finding against the design spec, not a local decision.
- *   R-3 §1.3    the canvas carries no elevation; the CARDS inside it carry
- *               tier 1, through `card.tsx`.
+ *   R-3 §1.3    the content ground carries no elevation — and under D7 nor do
+ *               the cards in any visible sense: tier 1 is measured at ZERO in
+ *               the reference and now paints nothing. A card is carried by a
+ *               1px `--ev-hairline` border and an 8px radius (D-11). The tier
+ *               keeps its name so the ladder is not deleted.
+ *   D-11        **there is no canvas/card tonal step.** The content region is
+ *               `#ffffff` edge to edge and so is a card. §6.3 D1 is NARROWED
+ *               to "white on white *without a border*", which is what the
+ *               legacy app shipped.
  */
 
 import type { ReactNode } from 'react'
@@ -71,15 +79,33 @@ import { Button } from '@/components/ui/button'
 
 /**
  * The content block every page shape shares: full width of the content region,
- * a 16px inline gutter, and no cap. Written once so no page shape can drift
- * from another — a page header that lands somewhere different depending on the
- * route is exactly the defect V5 removed, and one shared constant is what makes
- * that structural rather than a review item.
+ * `--ev-page-pad` all round, and no cap. Written once so no page shape can
+ * drift from another — a page header that lands somewhere different depending
+ * on the route is exactly the defect V5 removed, and one shared constant is
+ * what makes that structural rather than a review item.
+ *
+ * **The gutter is `--ev-page-pad` (32px), up from a literal 16 — D-2'.** V5's
+ * "one page width" survives; only its literal moved into a token. This is the
+ * single largest deliberate departure from the reference in the whole re-skin
+ * and the arithmetic is why: Navattic spends **68px** a side, but at D2's
+ * 1280px floor Eyvar's content region is 976px, and 68 would leave 840px for
+ * index tables that run six to nine columns — 78px less than the effective 918
+ * they had, i.e. it would clip. At 32, and with the card gone from index pages,
+ * the table gets 912px. Verification is required and is fix-list item 9, which
+ * belongs to the table engineer: re-measure `scrollWidth === clientWidth` on
+ * all four People views at 1280. **If a view clips, the identity column's
+ * `min-w` drops first. Do not "fix" it by shrinking this gutter.**
+ *
+ * ONE VALUE AT BOTH WIDTHS, deliberately. 1440 gets the 1280 answer and reads
+ * tighter than the reference. The clean fix is the `wide:` variant, but
+ * redefining a token inside a `@media` block risks emitting a second
+ * `@media (min-width:)` into `dist`, which the one-breakpoint check counts.
+ * That is a ticket for the owner, not a local decision.
  *
  * There is no `width` prop and there is not meant to be one. If a specific
  * block of content needs a measure, it constrains ITSELF (see §7.1 above).
  */
-const PAGE_BLOCK = 'w-full p-4'
+const PAGE_BLOCK = 'w-full p-page-pad'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
 

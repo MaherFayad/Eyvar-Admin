@@ -414,13 +414,13 @@ const table: Dictionary = {
   'table.learnMore': 'Learn more about {resource}.',
   'table.sort': 'Sort',
   'table.sortBy': 'Sort by',
-  'table.sortAscending': 'Oldest first',
-  'table.sortDescending': 'Newest first',
   'table.search': 'Search',
   'table.cancel': 'Cancel',
   'table.saveAs': 'Save as',
   'table.clearAll': 'Clear all',
   'table.addFilter': 'Add filter',
+  'table.filter': 'Filter',
+  'table.clear': 'Clear',
   'table.columns': 'Columns',
   'table.openingBalance': 'Opening balance',
   'table.closingBalance': 'Closing balance',
@@ -429,7 +429,83 @@ const table: Dictionary = {
   'table.sourceDocument': 'Go to {reference}',
   'table.noMatch': 'No {resource} match these filters.',
   'table.clearFilters': 'Clear all filters',
+  'table.clearOneFilter': 'Clear {column} filter',
   'table.truncatedPostings': 'Showing {shown} of {total} postings.',
+
+  /* ── per-column controls — 01-table-controls.md §13 ──────────────────
+     Sentence case (copy.md rule 1). Menu items and buttons are VERBS
+     (rule 2) and carry no period (rule 8). No exclamation marks and no
+     emoji (rule 3). Errors are imperatives naming the fix (rule 4).
+
+     `table.sortAscending` / `table.sortDescending` are REMOVED above.
+     They were `Oldest first` / `Newest first` — DATE labels applied to
+     every column, and `Oldest first` on a `Trips` column is nonsense
+     (§5.4). The six pairs below are keyed off the column's `dataType`
+     instead, which is what AC-88 asserts. */
+  'table.column.menu': 'Column options for {column}',
+  'table.column.filtered': '{label}: {value}',
+  'table.column.hide': 'Hide column',
+  'table.sort.textAsc': 'Sort A to Z',
+  'table.sort.textDesc': 'Sort Z to A',
+  'table.sort.numberAsc': 'Sort low to high',
+  'table.sort.numberDesc': 'Sort high to low',
+  'table.sort.dateAsc': 'Sort oldest first',
+  'table.sort.dateDesc': 'Sort newest first',
+  'table.sort.booleanAsc': 'Sort {trueLabel} first',
+  'table.sort.booleanDesc': 'Sort {falseLabel} first',
+  'table.sort.clear': 'Clear sort',
+  'table.sort.active': 'Sorted by {column}',
+  'table.pin.pin': 'Pin column',
+  'table.pin.unpin': 'Unpin column',
+  /* §7.2 — `PinRefusalReason` has exactly one value, so there is exactly
+     one refusal sentence, and it never states the pixel figure the
+     refusal object carries. */
+  'table.pin.blocked': 'Not enough room to pin another column',
+
+  'table.filter.open': 'Filter…',
+  'table.filter.clear': 'Clear filter',
+  'table.filter.remove': 'Remove the {column} filter',
+  'table.filter.title': 'Filter by {column}',
+  'table.filter.searchPlaceholder': 'Search {column}',
+  'table.filter.optionSearch': 'Search options',
+  'table.filter.any': 'Any',
+  'table.filter.yes': 'Yes',
+  'table.filter.no': 'No',
+  'table.filter.from': 'From',
+  'table.filter.to': 'To',
+  'table.filter.lastDays': 'Last {days} days',
+  'table.filter.apply': 'Apply',
+  'table.filter.cancel': 'Cancel',
+  'table.filter.rangeError': 'Enter a To value that is higher than From',
+  'table.filter.noOptions': 'No options available',
+  /* §11.7 — deliberately does not quote the query: a Latin query inside
+     an Arabic sentence is a bidi hazard for zero benefit. */
+  'table.filter.noOptionsMatch': 'No options match that search',
+  /* AC-75 — one key per summary shape, never concatenation. */
+  'table.filter.summary.multi': '{value} +{count}',
+  'table.filter.summary.range': '{from}–{to}',
+  'table.filter.summary.rangeFrom': '{from} and above',
+  'table.filter.summary.rangeTo': '{to} and below',
+
+  'table.columns.title': 'Columns',
+  'table.columns.toggleVisible': 'Show {column}',
+  'table.columns.togglePin': 'Pin {column}',
+  'table.columns.identityLocked': 'Always shown',
+  'table.columns.reset': 'Reset columns',
+
+  /* §13.6 — `aria-live="polite"`, through `useAnnounce`. **No toast fires
+     for any of these**: R9/R10 spend a toast on a mutation of an object,
+     and sorting a view mutates nothing. One line each, no period. */
+  'table.announce.sortedAsc': 'Sorted by {column}, ascending',
+  'table.announce.sortedDesc': 'Sorted by {column}, descending',
+  'table.announce.sortCleared': 'Sort cleared',
+  'table.announce.filterApplied': '{column} filtered',
+  'table.announce.filterRemoved': '{column} filter removed',
+  'table.announce.allFiltersCleared': 'All filters cleared',
+  'table.announce.pinned': '{column} pinned',
+  'table.announce.unpinned': '{column} unpinned',
+  'table.announce.columnHidden': '{column} hidden',
+  'table.announce.columnShown': '{column} shown',
 }
 
 /* ────────────────────────────── assembly ────────────────────────────── */

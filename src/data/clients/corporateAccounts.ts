@@ -4,15 +4,16 @@
  */
 
 import { DATA_SOURCE } from '../config'
-import { EYVAR_NOW } from '../mock/clock'
+import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { corporateAccountFixtures } from '../fixtures/corporateAccounts'
-import { ApiError, type Paginated, type QueryParams } from '../types/common'
+import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { CorporateAccount, CorporateAccountStatus } from '../types/corporateAccount'
 import { http } from './http'
 
 export const CORPORATE_OPERATIONS = {
+  facets: 'corporate.facets',
   list: 'corporate.list',
   get: 'corporate.get',
   create: 'corporate.create',
@@ -35,10 +36,35 @@ const corporateShape: QueryShape<CorporateAccount> = {
     status: (c) => c.status,
   },
   filterable: {
+    /* identity — text */
+    id: (c) => c.id,
+    companyName: (c) => c.companyName,
+    contactName: (c) => c.contactName,
+    contactEmail: (c) => c.contactEmail,
+    contactPhone: (c) => c.contactPhone,
+
+    /* closed sets — options via `getCorporateFacets` */
     status: (c) => c.status,
     billingType: (c) => c.billingType,
+    vehicleTier: (c) => c.usagePolicy.vehicleTier,
+
+    /* booleans */
     invoiceOverdue: (c) => c.invoiceOverdue,
+    workHoursOnly: (c) => c.usagePolicy.workHoursOnly,
+
+    /* numbers */
+    employeeCount: (c) => c.employeeCount,
+    expectedEmployees: (c) => c.expectedEmployees,
+    totalSpendHalalas: (c) => c.totalSpendHalalas,
+    monthlyCapHalalas: (c) => c.usagePolicy.monthlyCapHalalas,
+    invoiceDayOfMonth: (c) => c.invoiceDayOfMonth,
+
+    /* dates */
+    createdAt: (c) => toInstant(c.createdAt),
+    lastInvoiceGeneratedAt: (c) => toInstant(c.lastInvoiceGeneratedAt),
+    nextInvoiceOn: (c) => toInstant(c.nextInvoiceOn),
   },
+  facetable: ['status', 'billingType', 'vehicleTier'],
   views: {
     all: () => true,
     overdue: (c) => c.invoiceOverdue,
@@ -218,4 +244,27 @@ export async function addCorporateEmployee(
     const riderIds = [...row.riderIds, riderId]
     return { ...row, riderIds, employeeCount: riderIds.length }
   })
+}
+
+/**
+ * GET /api/v1//corporate-accounts/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over corporate accounts,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getCorporateFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/corporate-accounts/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(CORPORATE_OPERATIONS.facets, signal, () => computeFacets(corporateAccountFixtures, corporateShape, view))
 }

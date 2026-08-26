@@ -3,7 +3,8 @@
  *
  * **Replaces the top bar IN PLACE, at identical height, with no layout shift.**
  * That is AC-51 and it is a one-line requirement with a real consequence: the
- * two bars share `--ev-topbar-h` (48px, both languages), and `AppLayout`
+ * two bars share `--ev-topbar-h` (**52px** under D7, both languages), and
+ * `AppLayout`
  * renders exactly one of them in the same slot. Nothing is stacked, nothing is
  * absolutely positioned over anything, and the content below does not move by
  * one pixel.
@@ -23,8 +24,12 @@
  *               when editing a named record (`Unsaved plan`), `Unsaved changes`
  *               otherwise. **No warning glyph** — the word carries it, and an
  *               amber glyph here would read as a banner.
- *   §2.3 / R2   inline-end: `Discard` (secondary) then `Save` (**brand-blue
- *               primary**, never green, never white-on-white).
+ *   §2.3 / R2   inline-end: `Discard` (secondary) then `Save` (**the primary**,
+ *               never green, never white-on-white). R2 is AMENDED by D7: Save
+ *               is still the same primary as every other primary, and that
+ *               primary is now NEAR-BLACK, not brand blue. D-1 is void and R3
+ *               is killed — `--primary` maps to `--ev-ink`. One colour name
+ *               changed; the reasoning did not.
  *   AC-52       `dirty-invalid` → `Save` disabled, `Discard` still ENABLED.
  *   §9.2 #7     `save-in-flight` → `Save` shows an inline progress indicator
  *               and is not re-triggerable; `Discard` is disabled for the
@@ -85,7 +90,8 @@ export function SaveBar({ model, t }: SaveBarProps) {
         <Button variant="secondary" onClick={model.onDiscard} disabled={!model.canDiscard}>
           {t('shell.saveBar.discard')}
         </Button>
-        {/* R2 — brand-blue primary. Not re-triggerable while in flight. */}
+        {/* R2 as amended by D7 — `bg-primary`, which is near-black now. Not
+            re-triggerable while in flight. */}
         <Button variant="default" onClick={model.onSave} disabled={!model.canSave}>
           {model.isSaving && <Spinner />}
           {t('shell.saveBar.save')}

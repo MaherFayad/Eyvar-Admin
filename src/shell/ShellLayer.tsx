@@ -51,7 +51,8 @@
  *               `document.activeElement` at open and restores it on close,
  *               declining a detached opener. That is the whole reason the hook
  *               exists.
- *   §6.1 / C12  `--ev-drawer-w` 406px, anchored inline-**end**, starting BELOW
+ *   §6.1 / D7   `--ev-drawer-w` **480px** (406 → 480), anchored inline-**end**,
+ *               starting BELOW
  *               the top bar so the top bar stays reachable — a layer can be
  *               open while a form is dirty and the save bar is up.
  *   AC-22       **one at a time.** Enforced in `withOverlay`, which deletes the
@@ -67,7 +68,19 @@
  *               from `sheet.tsx`'s own `rtl:` variant.
  *   §11.3       loading is a SKELETON SHAPED LIKE THE CARD STACK, never a
  *               spinner (§9.2 `overlay-loading`).
- *   R-3 §1.3    tier 2 AND the inline-start hairline. Both, per the R-3 ruling.
+ *   R-3 §1.3    tier 2 AND the inline-start hairline. Both, per the R-3
+ *               ruling. **Tier 2 is materially larger under D7** — the old
+ *               `0 2px 8px -2px` reached 6px below the edge and the measured
+ *               reference falloff is ~19px, so the token moved to
+ *               `0 8px 24px -2px`. Nothing here changes; the value moved under
+ *               the `shadow-2` utility `sheet.tsx` already applies.
+ *   D7 §4.7     width re-measured against the reference: its drawer's leading
+ *               edge is at destination x = 505.5 of a 767.5 frame → 491px, and
+ *               480 is the nearest 16px value. **R13's named-figure carve-out
+ *               is SPENT here** — the carve-out protected Shopify measurements,
+ *               and this is the re-measurement it always allowed for. 480
+ *               still leaves 976 − 480 = 496px of page visible at the 1280
+ *               floor, so C12's reason for a drawer over a modal holds.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'

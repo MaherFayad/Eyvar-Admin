@@ -1,5 +1,23 @@
 ## 2. Layout & Navigation
 
+> ### ⚠ D7 — this section is PROVENANCE, not authority
+>
+> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
+> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
+> style. **Everything visual below describes Shopify and no longer describes what Eyvar
+> ships.**
+>
+> The screenshot citations are **kept on purpose**: they are what makes the derivation
+> auditable — open the cited frame and you can check what the analyst saw. **They may not be
+> cited to settle what Eyvar ships.** For that, read
+> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
+> with every value's measurement or derivation.
+>
+> What still binds from this section is **structure** — what a page is made of, what goes in
+> a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
+> non-binding under **R13**; under D7 it is non-binding twice over.
+
+
 > **Evidence base.** Every `[observed]` claim below comes from a screenshot in
 > `docs/06-design-reference/shopify-admin-web/` that was opened and inspected for this section
 > (38 images across 00-auth, 01-home, 02-orders, 03-products, 04-customers, 05-online-store,

@@ -69,6 +69,7 @@ import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
 import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
 import { DRIVER_STATUS, DRIVER_TIER, VEHICLE_CLASS } from './domain'
+import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import type { ViewChrome } from './views'
 import { useRowOverrides } from './useRowOverrides'
@@ -172,6 +173,7 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
     <>
       <PeopleTable
         t={t}
+        language={language}
         table={table}
         rows={rows}
         status={data.status}
@@ -181,45 +183,7 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
         skeletonPattern="P1"
         {...chrome}
         searchPlaceholder={t('people.search.captains')}
-        sortFields={[
-          { field: 'name', label: t('people.col.captain') },
-          { field: 'rating', label: t('people.col.rating') },
-          { field: 'totalTrips', label: t('people.col.trips') },
-          { field: 'monthEarningsHalalas', label: t('people.col.earned') },
-          { field: 'onTimePercent', label: t('people.col.onTime') },
-          { field: 'activeSubscriptions', label: t('people.col.subs') },
-          { field: 'lastTripAt', label: t('people.col.lastTrip') },
-          { field: 'joinedAt', label: t('people.col.joined') },
-        ]}
-        filterFields={[
-          {
-            field: 'status',
-            label: t('people.filter.field.status'),
-            options: [
-              { value: 'active', label: t('people.driverStatus.active') },
-              { value: 'under-review', label: t('people.driverStatus.underReview') },
-              { value: 'suspended', label: t('people.driverStatus.suspended') },
-              { value: 'pending', label: t('people.driverStatus.pending') },
-            ],
-          },
-          {
-            field: 'tier',
-            label: t('people.filter.field.tier'),
-            options: [
-              { value: 'gold', label: t('people.tier.gold') },
-              { value: 'silver', label: t('people.tier.silver') },
-              { value: 'standard', label: t('people.tier.standard') },
-            ],
-          },
-          {
-            field: 'vehicleClass',
-            label: t('people.filter.field.vehicleClass'),
-            options: [
-              { value: 'Economy', label: t('people.class.economy') },
-              { value: 'Comfort', label: t('people.class.comfort') },
-            ],
-          },
-        ]}
+        extraFilters={captainExtraFilters(t)}
         rowActions={[
           {
             label: t('people.action.viewProfile'),
@@ -265,6 +229,47 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
 
 /* ─────────────────────────────── columns ─────────────────────────────── */
 
+/**
+ * §6.4 — two filters bound to no visible column.
+ *
+ *   `suspended`      the roster already carries `status: 'suspended'`, so it
+ *                    earns no column of its own — but an operator auditing
+ *                    dispatch wants it as a filter.
+ *   `openComplaints` a count with no column: it belongs to Risk & Fraud, and
+ *                    §8.2 forbids recomputing it here. As a bound it is honest.
+ *
+ * Both are `filterable` on `src/data/clients/drivers.ts`. Every filter in this
+ * file is; the handoff lists the fields that are NOT, and therefore have no
+ * control here yet.
+ */
+function captainExtraFilters(t: Translate): ExtraFilterSpec[] {
+  return [
+    {
+      field: 'suspended',
+      label: t('people.filter.field.suspended'),
+      kind: 'boolean',
+      trueLabel: t('people.filter.value.suspended.true'),
+      falseLabel: t('people.filter.value.suspended.false'),
+    },
+    {
+      field: 'openComplaints',
+      label: t('people.col.complaints'),
+      kind: 'number-range',
+      unit: 'count',
+    },
+  ]
+}
+
+/**
+ * §15 — every column declares its inline size, its data type and, where the
+ * client says the field is filterable, its filter kind.
+ *
+ * **The widths are not decoration.** §7.2: a column sized `auto` has no sticky
+ * offset until layout has run, and an offset computed after layout is a frame of
+ * visible jump on every scroll — so a pinnable column MUST declare one. They are
+ * also what makes this table overflow at the 1280 floor rather than squeeze a
+ * column below legibility (§3.1), which is what the pinning is for.
+ */
 function captainColumns(
   t: Translate,
   language: Language,
@@ -274,7 +279,18 @@ function captainColumns(
     {
       id: 'captain',
       header: t('people.col.captain'),
+      /* AC-104 — column index 0 is the identity: pinned implicitly and
+         permanently, never hideable, never unpinnable. */
       alwaysVisible: true,
+      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
+         of 32px took the 1280 content region from 1102 to 942, so the identity
+         column gives width back **before** anyone touches the gutter: D-2′ is
+         already a sanctioned deviation at 32 against a measured 68, and
+         shrinking it further is not on the table. 176 also buys the operator
+         24px more pin budget — the locked block drops from 240 to 216 of the
+         488 the floor allows. */
+      width: 176,
+      dataType: 'text',
       sortField: 'name',
       cell: (d) => <Identity to={hrefString(profileHref(d.id))} name={d.name} t={t} />,
       /* §9.1 — a second line only where a value QUALIFIES the primary one. */
@@ -283,11 +299,27 @@ function captainColumns(
     {
       id: 'id',
       header: t('people.col.id'),
+      width: 120,
+      dataType: 'text',
       cell: (d) => <MutedCell className="tabular-nums">{d.id}</MutedCell>,
     },
     {
       id: 'status',
       header: t('people.col.status'),
+      width: 128,
+      dataType: 'enum',
+      /* `in` even for one selection, so ticking a second box never changes the
+         query's OPERATOR (§6.1). `toFilterSpec` owns that. */
+      filter: {
+        kind: 'multi-select',
+        field: 'status',
+        options: [
+          { value: 'active', label: t('people.driverStatus.active') },
+          { value: 'under-review', label: t('people.driverStatus.underReview') },
+          { value: 'suspended', label: t('people.driverStatus.suspended') },
+          { value: 'pending', label: t('people.driverStatus.pending') },
+        ],
+      },
       cell: (d) => (
         <Cell>
           <StatusBadge tone={DRIVER_STATUS[d.status].tone}>
@@ -300,7 +332,13 @@ function captainColumns(
       id: 'rating',
       header: t('people.col.rating'),
       align: 'end',
+      width: 88,
+      dataType: 'number',
       sortField: 'rating',
+      /* §6.1 — integer bounds. A rating is stored to one decimal, so `gte 4`
+         matches 4.8; `toFilterSpec` throws on a decimal bound, because a decimal
+         means someone passed major units one layer up. */
+      filter: { kind: 'number-range', field: 'rating', unit: 'count' },
       /* `0` is a seeded value meaning NO RATING YET (`:2607`), and the client
          sends it as `null`. It is not a zero-star rating, so it renders as a
          word, not as a number. */
@@ -314,12 +352,27 @@ function captainColumns(
     {
       id: 'city',
       header: t('people.col.city'),
+      width: 120,
+      dataType: 'text',
+      /* The option LABELS are the data values, not keys: a city name is a
+         record's content, and the cell renders it untranslated too. A real API
+         returns this list as a facet — see the handoff. */
+      filter: {
+        kind: 'multi-select',
+        field: 'city',
+        options: [
+          { value: 'Riyadh', label: 'Riyadh' },
+          { value: 'Jeddah', label: 'Jeddah' },
+        ],
+      },
       cell: (d) => <Cell>{d.city}</Cell>,
     },
     {
       id: 'subs',
       header: t('people.col.subs'),
       align: 'end',
+      width: 88,
+      dataType: 'number',
       sortField: 'activeSubscriptions',
       cell: (d) => (
         <NumCell>
@@ -334,6 +387,8 @@ function captainColumns(
       id: 'trips',
       header: t('people.col.trips'),
       align: 'end',
+      width: 96,
+      dataType: 'number',
       sortField: 'totalTrips',
       cell: (d) => <NumCell>{formatCount(d.totalTrips, language)}</NumCell>,
     },
@@ -341,6 +396,8 @@ function captainColumns(
       id: 'onTime',
       header: t('people.col.onTime'),
       align: 'end',
+      width: 96,
+      dataType: 'number',
       sortField: 'onTimePercent',
       cell: (d) =>
         d.onTimePercent === null ? (
@@ -355,6 +412,8 @@ function captainColumns(
       id: 'earned',
       header: t('people.col.earned'),
       align: 'end',
+      width: 128,
+      dataType: 'money',
       sortField: 'monthEarningsHalalas',
       cell: (d) => (
         <NumCell>
@@ -365,6 +424,8 @@ function captainColumns(
     {
       id: 'lastTrip',
       header: t('people.col.lastTrip'),
+      width: 112,
+      dataType: 'date',
       sortField: 'lastTripAt',
       /* `null` is a captain who has never driven — a real fixture row. `—`
          means not-applicable or unknown and is never a zero (§8.3.1). */
@@ -378,24 +439,49 @@ function captainColumns(
     {
       id: 'tier',
       header: t('people.col.tier'),
+      width: 100,
+      dataType: 'enum',
       defaultHidden: true,
+      filter: {
+        kind: 'multi-select',
+        field: 'tier',
+        options: [
+          { value: 'gold', label: t('people.tier.gold') },
+          { value: 'silver', label: t('people.tier.silver') },
+          { value: 'standard', label: t('people.tier.standard') },
+        ],
+      },
       cell: (d) => <Cell>{t(DRIVER_TIER[d.tier])}</Cell>,
     },
     {
       id: 'class',
       header: t('people.col.class'),
+      width: 112,
+      dataType: 'enum',
       defaultHidden: true,
+      filter: {
+        kind: 'select',
+        field: 'vehicleClass',
+        options: [
+          { value: 'Economy', label: t('people.class.economy') },
+          { value: 'Comfort', label: t('people.class.comfort') },
+        ],
+      },
       cell: (d) => <Cell>{t(VEHICLE_CLASS[d.vehicleClass])}</Cell>,
     },
     {
       id: 'vehicle',
       header: t('people.col.vehicle'),
+      width: 144,
+      dataType: 'text',
       defaultHidden: true,
       cell: (d) => <Cell>{d.vehicle}</Cell>,
     },
     {
       id: 'phone',
       header: t('people.col.phone'),
+      width: 144,
+      dataType: 'text',
       defaultHidden: true,
       /* §9.2 — a phone value is a single LTR token: without isolation a
          leading `+` jumps sides under `dir="rtl"`. */
@@ -404,6 +490,8 @@ function captainColumns(
     {
       id: 'joined',
       header: t('people.col.joined'),
+      width: 120,
+      dataType: 'date',
       defaultHidden: true,
       sortField: 'joinedAt',
       cell: (d) => (

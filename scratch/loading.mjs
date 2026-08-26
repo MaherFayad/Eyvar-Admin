@@ -1,0 +1,10 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch()
+const p = await b.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 })
+await p.goto('http://localhost:5199/operations/people', { waitUntil: 'domcontentloaded' })
+await p.waitForSelector('[data-slot="skeleton"], .animate-pulse', { timeout: 5000 }).catch(() => {})
+await p.waitForTimeout(150)
+await p.screenshot({ path: './scratch/shots/people-loading-1280.png' })
+await p.close()
+await b.close()
+console.log('done')

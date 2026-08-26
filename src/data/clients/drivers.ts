@@ -10,15 +10,18 @@
  */
 
 import { DATA_SOURCE } from '../config'
+import { toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { allDriverFixtures } from '../fixtures/drivers'
 import { complianceFixtures } from '../fixtures/compliance'
-import type { Paginated, QueryParams } from '../types/common'
+import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { Driver, DriverCompliance, DriverStatus } from '../types/driver'
 import { http } from './http'
 
 export const DRIVER_OPERATIONS = {
+  complianceFacets: 'compliance.facets',
+  facets: 'drivers.facets',
   list: 'drivers.list',
   get: 'drivers.get',
   suspend: 'drivers.suspend',
@@ -44,16 +47,73 @@ const driverShape: QueryShape<Driver> = {
     lastTripAt: (d) => d.lastTripAt,
     activeSubscriptions: (d) => d.activeSubscriptions,
   },
+  /**
+   * **Filterability is a property of the resource, not of the screen.** Wave 1
+   * renders captains on Operations › People, but Risk & Signals, Trip
+   * Assurance, Payouts and Admin all query the same records from other
+   * surfaces. The full set is declared here so those waves do not each come
+   * back for one more accessor — and because `runQuery` throws on an
+   * undeclared field, which reaches the operator as the error state.
+   *
+   * Every **date** field goes through `toInstant`, so a `date-range` filter
+   * compares instant against instant. See `mock/clock.ts` for why a bare
+   * `2025-02-01` is not safe to compare against a Riyadh-bounded range.
+   */
   filterable: {
+    /* identity — text */
+    id: (d) => d.id,
+    name: (d) => d.name,
+    phone: (d) => d.phone,
+    email: (d) => d.email,
+    vehicle: (d) => d.vehicle,
+
+    /* closed sets — select / multi-select, options via `getDriverFacets` */
     status: (d) => d.status,
     tier: (d) => d.tier,
     vehicleClass: (d) => d.vehicleClass,
     city: (d) => d.city,
-    suspended: (d) => d.suspended,
+    gender: (d) => d.gender,
+    appLanguage: (d) => d.appLanguage,
     planAccess: (d) => d.planAccess,
+    bankStatus: (d) => d.bank.status,
+
+    /* booleans */
+    suspended: (d) => d.suspended,
+    hasPhoto: (d) => d.hasPhoto,
+    multiSubException: (d) => d.multiSubException,
+    flaggedForDeclines: (d) => d.flaggedForDeclines,
+    manualFlag: (d) => d.manualFlag,
+
+    /* numbers — number-range and money-range */
     rating: (d) => d.rating,
     openComplaints: (d) => d.openComplaints,
+    totalTrips: (d) => d.totalTrips,
+    monthEarningsHalalas: (d) => d.monthEarningsHalalas,
+    onTimePercent: (d) => d.onTimePercent,
+    activeSubscriptions: (d) => d.activeSubscriptions,
+    maxSubscriptions: (d) => d.maxSubscriptions,
+    openSubscriptionSlots: (d) => d.openSubscriptionSlots,
+
+    /* dates — the kind that had no reachable field until now */
+    joinedAt: (d) => toInstant(d.joinedAt),
+    lastTripAt: (d) => toInstant(d.lastTripAt),
+    planFrozenUntil: (d) => toInstant(d.planFrozenUntil),
+
+    /* fraud signals — Management › Risk & Signals (wave 4) reads these */
+    lastIp: (d) => d.lastIp,
+    ipLocation: (d) => d.ipLocation,
+    device: (d) => d.device,
   },
+  facetable: [
+    'status',
+    'tier',
+    'vehicleClass',
+    'city',
+    'gender',
+    'appLanguage',
+    'planAccess',
+    'bankStatus',
+  ],
   views: {
     captains: () => true,
   },
@@ -146,10 +206,31 @@ const complianceShape: QueryShape<DriverCompliance> = {
     soonestExpiry: (c) => c.docs.map((d) => d.expiresOn).sort()[0] ?? null,
   },
   filterable: {
+    driverId: (c) => c.driverId,
+    driverName: (c) => c.driverName,
+    vehicle: (c) => c.vehicle,
     worstState: (c) => c.worstState,
     suspended: (c) => c.suspendedReason !== null,
-    driverId: (c) => c.driverId,
+    /**
+     * Soonest expiry across the file — the field a `date-range` filter uses to
+     * answer "whose documents lapse this month". `null` for a captain with no
+     * documents, which sorts and filters as "not set" rather than as "never".
+     */
+    soonestExpiry: (c) => toInstant(c.docs.map((d) => d.expiresOn).sort()[0] ?? null),
+    /**
+     * How many documents are on file at all.
+     *
+     * **This is the answer to finding F-5.** Compliance's old hand-built filter
+     * offered `No file` — `worstState === null` — and `toFilterSpec` cannot
+     * express "this field IS null", because `select` reserves `null` for `Any`.
+     * A **number-range** filter of `0 … 0` on this field selects exactly the
+     * same captains, using a control that already exists. It is a workaround,
+     * not a reason to stop fixing `isNull`.
+     */
+    docCount: (c) => c.docs.length,
+    expiredCount: (c) => c.docs.filter((d) => d.state === 'expired').length,
   },
+  facetable: ['worstState'],
   views: {
     compliance: () => true,
     /* The backlog view: anything not clean, including captains with no file. */
@@ -197,4 +278,50 @@ export async function getDriverCompliance(
     if (!row) throw notFound('compliance record', driverId)
     return row
   })
+}
+
+/**
+ * GET /api/v1//drivers/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over captains,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getDriverFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/drivers/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(DRIVER_OPERATIONS.facets, signal, () => computeFacets(allDriverFixtures, driverShape, view))
+}
+
+/**
+ * GET /api/v1//compliance/drivers/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over compliance records,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getDriverComplianceFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/compliance/drivers/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(DRIVER_OPERATIONS.complianceFacets, signal, () => computeFacets(complianceFixtures, complianceShape, view))
 }

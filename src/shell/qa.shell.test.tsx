@@ -14,6 +14,8 @@
  * in the verdict file.
  */
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { render, screen, waitFor, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -26,7 +28,7 @@ import {
   resetDataLayer,
   switchMockUser,
 } from '@/data/clients'
-import { resetDefaultUiStores } from '@/lib'
+import { resetDefaultUiStores, UI_STATE_KEYS } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { AppLayout } from './AppLayout'
 import { ShellProvider, useShell, type SaveBarModel } from './ShellContext'
@@ -88,10 +90,27 @@ function renderApp(path: string) {
 const railName = () => en('shell.nav.workspaces')
 
 /**
+ * **Round 2 — D5: the rail tile's visible label IS its accessible name.**
+ * `Exec · Ops · Finance · Support · Admin`, and where a tile carries a count
+ * badge the badge's own `aria-label` composes into the tile's name —
+ * `Ops 35 items need attention` — because the tile sets no `aria-label` of its
+ * own any more (the fix for D-4). The lookup is anchored at the label and left
+ * open at the end, so it survives a workspace gaining or losing a backlog.
+ *
+ * The full names have not gone: `Operations` and `Customer Support` are the
+ * sub-tab column's `<h2>`, and the assertions on that heading still use
+ * `workspace.*`.
+ */
+const railLabel = (id: string) => en(`nav.rail.${id}`)
+const railTileName = (id: string) => new RegExp(`^${railLabel(id)}\\b`)
+const railTile = (id: string, scope?: HTMLElement) =>
+  (scope ? within(scope) : screen).getByRole('link', { name: railTileName(id) })
+
+/**
  * A sub-tab row's accessible name is its label PLUS its count badge, because
  * the badge in the column carries no `aria-label` of its own (the rail tile's
- * does). So `People 12` is the real accessible name, and a QA finding — see
- * the verdict file, defect D-5. Matching by prefix here rather than papering
+ * does). So `People 7` is the real accessible name, and a QA finding — see the
+ * verdict file, defect **D-3**. Matching by prefix here rather than papering
  * over it with a test id.
  */
 const rowName = (title: string) => (name: string) =>
@@ -105,7 +124,7 @@ describe('AC-06 — "Every workspace\'s first sub-tab is Overview, and selecting
     const rail = await screen.findByRole('navigation', { name: railName() })
 
     for (const workspace of table.workspaces) {
-      const tile = within(rail).getByRole('link', { name: en(workspace.titleKey) })
+      const tile = railTile(workspace.id, rail)
       const href = tile.getAttribute('href')
       const overview = table.subTabs.find(
         (r) => r.workspaceId === workspace.id && r.order === 1,
@@ -122,7 +141,7 @@ describe('AC-06 — "Every workspace\'s first sub-tab is Overview, and selecting
     const user = userEvent.setup()
     renderShell('/operations/people')
     const rail = await screen.findByRole('navigation', { name: railName() })
-    await user.click(within(rail).getByRole('link', { name: en('workspace.financials') }))
+    await user.click(railTile('financials', rail))
     expect(await screen.findByText('screen: financials-overview')).toBeInTheDocument()
   })
 })
@@ -236,13 +255,8 @@ describe('AC-11 — "Browser Back after three navigations returns through the th
     await screen.findByText('screen: financials-revenue')
     await user.click(screen.getByRole('button', { name: 'qa-back' }))
     await screen.findByText('screen: operations-overview')
-    expect(screen.getByRole('link', { name: en('workspace.operations') })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(screen.getByRole('link', { name: en('workspace.financials') })).not.toHaveAttribute(
-      'aria-current',
-    )
+    expect(railTile('operations')).toHaveAttribute('aria-current', 'page')
+    expect(railTile('financials')).not.toHaveAttribute('aria-current')
   })
 })
 
@@ -276,10 +290,7 @@ describe('AC-13 — "On /financials/pricing/plans/1/edit, neither the rail, the 
     await user.click(await screen.findByRole('button', { name: en('shell.topbar.back') }))
 
     const rail = await screen.findByRole('navigation', { name: railName() })
-    expect(within(rail).getByRole('link', { name: en('workspace.financials') })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(railTile('financials', rail)).toHaveAttribute('aria-current', 'page')
     expect(
       screen.getByRole('link', { name: rowName(en('subtab.financials.pricing')) }),
     ).toHaveAttribute('aria-current', 'page')
@@ -413,19 +424,34 @@ describe('AC-23 — "A toast raised on /operations/people is still visible after
     })
     expect(await screen.findByText('Applicant approved')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: en('workspace.financials') }))
+    await user.click(railTile('financials'))
     await screen.findByText('screen: financials-overview')
     expect(screen.getByText('Applicant approved')).toBeInTheDocument()
   })
 })
 
 describe('AC-24 — "When a sub-tab\'s data load fails it renders its error state AND the rail, sub-tab list and top bar remain interactive"', () => {
+  /**
+   * **Round 2 — re-pointed from `/operations/people` to `/operations/trips`.**
+   *
+   * `/operations/people` is no longer `SubTabScreen`: the parallel people work
+   * put a real `PeopleScreen` there, and it does not read `navCounts`, so
+   * `mockFailures.always('navCounts.list')` produced no page error and these
+   * two tests failed for a reason that was not the criterion. `trips` is still
+   * on the shared placeholder, so it exercises the shell's own error path,
+   * which is what AC-24 is about.
+   *
+   * **Recorded as a coverage note, not worked around:** whether the built
+   * `PeopleScreen` honours the same failure contract is a real question and it
+   * is people-QA's, against `applicants.list` rather than `navCounts.list`.
+   * The shell's shared `ErrorState` path is unchanged either way.
+   */
   it('renders the page error and still navigates to another sub-tab without a reload', async () => {
     const user = userEvent.setup()
     mockFailures.always('navCounts.list')
-    renderApp('/operations/people')
+    renderApp('/operations/trips')
 
-    const title = en('subtab.operations.people')
+    const title = en('subtab.operations.trips')
     expect(
       await screen.findByText((en('state.pageError.title') as string).replace('{resource}', title)),
     ).toBeInTheDocument()
@@ -436,15 +462,17 @@ describe('AC-24 — "When a sub-tab\'s data load fails it renders its error stat
     expect(rail).toBeInTheDocument()
     expect(screen.getByRole('banner')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.requests')) }))
     expect(
-      await screen.findByRole('heading', { level: 1, name: en('subtab.operations.trips') }),
+      await screen.findByRole('heading', { level: 1, name: en('subtab.operations.requests') }),
     ).toBeInTheDocument()
+    /* …and the rail followed, without a reload. */
+    expect(railTile('operations', rail)).toHaveAttribute('aria-current', 'page')
   })
 
   it('names a retry action on the failed sub-tab (AC-36)', async () => {
     mockFailures.always('navCounts.list')
-    renderApp('/operations/people')
+    renderApp('/operations/trips')
     expect(
       await screen.findByRole('button', { name: en('state.pageError.action') }),
     ).toBeInTheDocument()
@@ -471,6 +499,35 @@ describe('AC-36 — "With the mock client forced to fail, every shell region tha
     expect(
       await screen.findByRole('heading', { level: 1, name: en('subtab.operations.people') }),
     ).toBeInTheDocument()
+  })
+
+  /**
+   * **DEFECT D-10 — `?mockFail=` is dead. AC-36's own escape hatch does not
+   * work in the running app.**
+   *
+   * AC-36 says the failure is induced *"without editing source"*.
+   * `seedMockFailuresFromLocation` is that mechanism, its own doc comment says
+   * *"Call once at boot, before the first render, from the app entry point"* —
+   * and **no entry point calls it.** `src/main.tsx` renders `<App />`;
+   * `src/App.tsx` never imports it. The only callers in the repo are
+   * `src/data/clients/index.ts`, which re-exports it, and `seam.test.ts`, which
+   * unit-tests it with a hand-passed string.
+   *
+   * **Why this is not cosmetic.** Vitest can reach `mockFailures` by import.
+   * Playwright, visual-QA and anyone driving the built app cannot — for them
+   * `?mockFail=drivers.list` is the ONLY door to the error state, and it is
+   * bricked. It is also how §9.2's error states get reviewed at 1280, which is
+   * a visual-QA requirement nobody can currently satisfy.
+   *
+   * `it.fails` asserts the CORRECT behaviour, so it goes red the day one line
+   * lands in the entry point. **Owner: frontend-engineer** — one call, before
+   * `createRoot(...).render`.
+   */
+  it.fails('DEFECT D-10 — an entry point seeds ?mockFail= at boot, per AC-36', () => {
+    const entryPoints = ['src/main.tsx', 'src/App.tsx'].map((rel) =>
+      readFileSync(join(process.cwd(), ...rel.split('/')), 'utf8'),
+    )
+    expect(entryPoints.some((src) => /seedMockFailuresFromLocation\s*\(/.test(src))).toBe(true)
   })
 
   it('renders an error inside the shell layer when the profile read fails, layer still dismissible', async () => {
@@ -744,37 +801,146 @@ describe('AC-59 — "Switching the acting user re-derives the rail and sub-tab l
 })
 
 
-/* ═══════════════════ AC-32 / AC-33 — the collapse contract ══════════════
+/* ══════ D5 — what replaces AC-32 and AC-33: the column never collapses ═════
 
-   ⚠ FRONTEND-ENGINEER DESTROYED THIS BLOCK AND CANNOT RESTORE IT. ⚠
+   **Round 2. AC-32 and AC-33 are VOID** — `DECISIONS.md` D5 removed the sub-tab
+   collapse outright, and `specs/00-foundation.md` records both criteria struck
+   with the replacement stated. So the seven tests that stood here in round 1 —
+   four for AC-32's viewport default and resize rule, three for AC-33's popover
+   and its Q1 reload gap — are **not restored**. They tested a requirement that
+   no longer exists, and restoring them would be re-litigating a decision.
 
-   In `02-shell-fixes` I deleted qa-engineer's four AC-32 tests and three AC-33
-   tests from this file, on the grounds that `DECISIONS.md` D5 voids both
-   criteria. That was not my call to make in someone else's suite, and this file
-   is untracked, so there is no copy in git and I did not keep one. Everything
-   else I touched in the three `qa.*` files has been reverted literally.
+   What follows is the coverage that replaces them, one test per surviving
+   claim. Between them they close the same seven holes from the other side:
 
-   What was here, from `docs/02-verification/00-shell-qa.md` §AC-32 / §AC-33:
-     AC-32  1280 collapsed / 1440 expanded · does NOT re-collapse when narrowed
-            after first run · does NOT re-expand when widened after the operator
-            collapsed it · survives every route change (second clause)
-     AC-33  KNOWN GAP Q1 — does not survive a reload, and fails for that reason
-            ONLY · is a persistence gap and not a collapse gap · the popover and
-            the expanded column are literally the SAME component
+     was AC-32 (1280 default)        → the column is present at 1280
+     was AC-32 (1440 default)        → the column is present at 1440
+     was AC-32 (no re-collapse)      → narrowing changes nothing
+     was AC-32 (no re-expand)        → widening changes nothing
+     was AC-32 (survives navigation) → present on all 34 routes
+     was AC-33 (popover = same rows) → there is no disclosure and no popover
+     was AC-33 (Q1 reload gap)       → nothing about the column is persisted,
+                                       so no shell criterion waits on Q1
 
-   All seven would now fail regardless: there is no disclosure, no popover and
-   no `useNavCollapse`. **qa-engineer to re-cut or delete this block** once
-   product-owner has amended §3.9, AC-32 and AC-33 — which is tracked in
-   `docs/05-restructure/build/02-shell-fixes.md` §9.
+   The last one is the point of the whole decision and it is worth stating in a
+   test rather than only in prose: **the shell's one failing criterion was
+   removed by deleting the feature that failed, not by answering Q1.**       */
 
-   The failure below is deliberate. It is the marker for the missing coverage
-   and it should stay red until qa-engineer replaces it.                     */
+describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible"', () => {
+  /** The column, identified by its own landmark name, never by a class. */
+  const column = () =>
+    screen.queryByRole('navigation', {
+      name: (en('shell.nav.subTabsFor') as string).replace(
+        '{workspace}',
+        en('workspace.operations'),
+      ),
+    })
 
-describe('AC-32 / AC-33 — coverage destroyed by frontend-engineer, awaiting re-cut', () => {
-  it('is missing seven qa-engineer tests that frontend-engineer deleted', () => {
-    expect(
-      'qa-engineer to re-cut the AC-32 / AC-33 block; see the comment above and 02-shell-fixes.md §9',
-    ).toBe('restored')
+  it('renders the sub-tab column at the 1280 floor, where AC-32 used to default it collapsed', async () => {
+    setViewport(1280)
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    expect(column()).toBeInTheDocument()
+    expect(within(column()!).getAllByRole('link')).toHaveLength(
+      table.subTabs.filter((r) => r.workspaceId === 'operations').length,
+    )
+  })
+
+  it('renders the sub-tab column at 1440, identically — there are no longer two states', async () => {
+    setViewport(1440)
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    expect(column()).toBeInTheDocument()
+    expect(within(column()!).getAllByRole('link')).toHaveLength(
+      table.subTabs.filter((r) => r.workspaceId === 'operations').length,
+    )
+  })
+
+  it('does not hide the column when the window is narrowed across the breakpoint', async () => {
+    setViewport(1440)
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    const before = column()
+
+    setViewport(1280)
+    window.dispatchEvent(new Event('resize'))
+    /* §3.3's "the one thing not to get wrong" survives D5 in a stronger form:
+       there is no state to re-derive, so a resize cannot re-derive one. Node
+       identity is the assertion — a re-mount would fail it too. */
+    await waitFor(() => expect(column()).toBe(before))
+  })
+
+  it('does not change the column when the window is widened across the breakpoint', async () => {
+    setViewport(1280)
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    const before = column()
+
+    setViewport(1440)
+    window.dispatchEvent(new Event('resize'))
+    await waitFor(() => expect(column()).toBe(before))
+  })
+
+  it('keeps the column on every one of the 34 sub-tab routes', async () => {
+    for (const row of table.subTabs) {
+      const view = renderShell(row.path)
+      await screen.findByRole('main')
+      const workspace = table.workspaces.find((w) => w.id === row.workspaceId)!
+      expect(
+        screen.getByRole('navigation', {
+          name: (en('shell.nav.subTabsFor') as string).replace(
+            '{workspace}',
+            en(workspace.titleKey),
+          ),
+        }),
+        row.path,
+      ).toBeInTheDocument()
+      view.unmount()
+    }
+  })
+
+  it('offers no disclosure and opens no sub-tab popover — there is nothing to collapse it with', async () => {
+    const user = userEvent.setup()
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+
+    /* The rail is where §3.9 put the disclosure, and F-3 argued about where in
+       the rail. Both go with it: the rail holds no button at all. */
+    const rail = screen.getByRole('navigation', { name: railName() })
+    expect(rail.querySelectorAll('button')).toHaveLength(0)
+    expect(column()!.querySelectorAll('button')).toHaveLength(0)
+
+    /* Named lookups too, because the two strings are still in the dictionary —
+       see the dead-key finding in the verdict — and a control could be
+       reintroduced without changing any class. */
+    expect(screen.queryByRole('button', { name: en('shell.nav.hideSubTabs') })).toBeNull()
+    expect(screen.queryByRole('button', { name: en('shell.nav.showSubTabs') })).toBeNull()
+
+    /* And no dialog is reachable from either nav column. The account layer and
+       the bell popover are top-bar surfaces and are tested under AC-66. */
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await user.click(within(rail).getAllByRole('link')[1]!)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('persists nothing about the column, so no shell criterion waits on Q1 any more', async () => {
+    /* AC-33's second clause was the shell's ONLY failing criterion and it
+       failed on Q1 (what survives a reload). It is gone because the thing that
+       needed persisting is gone — asserted here in both directions. */
+    expect(Object.values(UI_STATE_KEYS).some((k) => /collaps/i.test(k))).toBe(false)
+
+    const view = renderShell('/operations/people')
+    await screen.findByRole('main')
+    expect(column()).toBeInTheDocument()
+    view.unmount()
+
+    /* `resetDefaultUiStores()` is precisely what a reload does to an in-memory
+       store. In round 1 this is where the operator's choice was lost. Now
+       there is no choice to lose: the column comes back either way. */
+    resetDefaultUiStores()
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    expect(column()).toBeInTheDocument()
   })
 })
 

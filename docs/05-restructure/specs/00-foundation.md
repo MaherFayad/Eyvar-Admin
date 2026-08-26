@@ -477,20 +477,38 @@ second is the sub-tab id. That is the whole resolution rule, and it holds for al
 
 ### 3.9 Level-2 behaviour at 1280 px
 
-**D2 governs this section.** The console must work at 1280 px, and the sub-tab list cannot be
-permanently open there.
+> ### AMENDED — `DECISIONS.md` **D5**. The sub-tab list does not collapse.
+>
+> The business owner's words, looking at the running app: *"remove this, no need to collapse
+> it."* **The level-2 column is always visible.** This reverses **D2**'s first consequence
+> bullet and the Collapse / Default state / breakpoint-first-use rows below.
+>
+> Deleted with it: the rail's disclosure and its popover, `PageNavPopoverBody`,
+> `useNavCollapse` and its test, and `ui.subTabNavCollapsed`. **AC-32 and AC-33 are void** —
+> see their entries in §10.
+>
+> **The 1280 px question this section exists to answer is still answered, and better.**
+> Measured in the browser at 1280: rail **80** + column **224** = **304 px** of navigation and
+> **976 px** of content. A 2 : 1 detail fits 976 exactly (640 + 16 + 320). The rail narrowed
+> from 88 to 80 because the labels shortened to `Exec · Ops · Finance · Support · Admin`, so
+> the column costs the content region less than it did when it was collapsible.
+>
+> `--ev-bp-wide: 1344px` **survives** with its other two consumers, the detail right-rail drop
+> and the metric-tile grid. It loses its first use only.
+
+**D2 governs this section.** The console must work at 1280 px.
 
 | Question | Requirement |
 |---|---|
-| **Collapse** | The sub-tab list is collapsible, and the state **persists** (§8, `ui.subTabNavCollapsed`). Collapsed, the column is not rendered; the rail gains a disclosure that opens the sub-tab list as a popover anchored to the active workspace. |
-| **Default state** | Derived from viewport **at first run only**: collapsed below the designer's breakpoint, expanded at or above it. **Never auto-toggled afterwards.** Collapsing a nav out from under an operator mid-task is worse than a narrow column, and an ops console is resized rarely and worked constantly. |
-| **The breakpoint** | One number, set by product-designer, used for both this and the detail-page right-rail drop (**D2**: *"the breakpoint is the designer's to set, and it must be one number used everywhere"*). |
-| **Both states are real states** | Every screen is reviewed at 1280 and at 1440+ (**D2**). That is a visual-QA requirement, not a nice-to-have — **AC-11a**. |
+| ~~**Collapse**~~ | **VOID (D5).** The sub-tab list is not collapsible. The column is always rendered; there is no disclosure, no popover, no pin and no persisted flag. |
+| ~~**Default state**~~ | **VOID (D5).** There is one state, so there is no first-run default to derive and nothing a resize could re-toggle. |
+| **The breakpoint** | One number, set by product-designer, **now used for two things rather than three**: the detail-page right-rail drop (§3.10) and the metric-tile grid. `--ev-bp-wide: 1344px`. Still one number used everywhere. |
+| **Both states are real states** | Every screen is reviewed at 1280 and at 1440+ (**D2**). That is a visual-QA requirement, not a nice-to-have. *(This row used to cite **AC-11a**, which §10 never defines — it numbers AC-01 … AC-76 with no `AC-11a`. Raised by the 0.8 QA verdict. The citation is **struck** rather than renumbered: the requirement it names is D2's own review rule, which needs no separate criterion, and the two states it referred to were the collapsed and expanded column — which no longer exist. The surviving pair of widths is 1280 / 1440, already covered by **AC-34**.)* |
 | **Content width** | The content region's width is a function of the collapsed state and the viewport, and of nothing else. Moving between workspaces or sub-tabs never changes it. |
 | **A workspace with one visible sub-tab** | Cannot happen by design — the smallest workspace has five. It *can* happen by permission filtering, and then the column still renders with its one row, selected. The column is never conditionally removed by content. |
 | **Scrolling** | Three independent scroll contexts: rail (5 items, never scrolls), sub-tab list (max 9 rows, rarely scrolls, scrolls independently when it must), content region. The top bar is fixed above all three. |
-| **Keyboard** | Skip link → rail's 4 workspace tiles → sub-tab disclosure → pinned Admin → sub-tab list → content, in DOM order. Arrow keys move within a column; `Tab` moves between columns. The disclosure lives in the rail and is always present — it toggles both ways — so its tab position does not move when the column collapses. *(Amended after 0.2: the original text placed it “in the column's place”, which contradicted “in the rail”. See **AC-64**.)* |
-| **Badges** | A count belongs on the **sub-tab row** that owns the work; the **workspace tile** shows the sum of its sub-tabs' counts. §2.1: count badges are right-aligned numerals reserved for actionable backlogs, never decoration. **A count of zero renders no badge, not a `0`** — legacy renders `0` on eleven rail badges at boot (`:491`, `:492`, `:496`, `:508`, `:514`–`:518`, `:523`, `:533`), training operators to stop reading them. When the list is collapsed, the workspace tile's badge is the only signal, so it must never be suppressed. |
+| **Keyboard** | **AMENDED (D5).** Skip link → rail's 4 workspace tiles → pinned Admin → sub-tab list → top bar → content, in DOM order. Arrow keys move within a column; `Tab` moves between columns. **The disclosure is no longer in the order because it no longer exists**, and design finding **F-3** — which decided *where* in the rail to put it — goes with it. *(This row has now been amended twice. After 0.2 it said the disclosure lived "in the column's place", which contradicted "in the rail"; D5 removes the control altogether. See **AC-64**.)* |
+| **Badges** | A count belongs on the **sub-tab row** that owns the work; the **workspace tile** shows the sum of its sub-tabs' counts. §2.1: count badges are right-aligned numerals reserved for actionable backlogs, never decoration. **A count of zero renders no badge, not a `0`** — legacy renders `0` on eleven rail badges at boot (`:491`, `:492`, `:496`, `:508`, `:514`–`:518`, `:523`, `:533`), training operators to stop reading them. ~~When the list is collapsed, the workspace tile's badge is the only signal, so it must never be suppressed.~~ **VOID (D5)** — the list is never collapsed. **Amended (V6):** the tile's **count** rolls up; its **tone does not.** A tile sums about seven rows, so one toned row in seven turned the whole tile amber — measured at 8 of 11 visible badges warning, including 4 of 5 tiles. A tile's number is a sum of heterogeneous queues and a sum of different kinds of thing has no single status to report. Tone lives on the sub-tab row only, and means **breached**. |
 
 ### 3.10 Page shapes and the one full-bleed screen
 
@@ -1258,7 +1276,17 @@ and the column headers restored.
 is 0 or null. No badge anywhere in the shell displays the character `0`.
 
 **AC-27** — A workspace tile's count equals the sum of the counts on that workspace's sub-tab rows,
-and the tile's badge is still rendered when the sub-tab list is collapsed.
+~~and the tile's badge is still rendered when the sub-tab list is collapsed.~~
+**The count clause stands verbatim.** The second clause is **void — D5**: the list is never
+collapsed, so there is no state in which the tile badge is the only signal.
+
+**Amended (V6):** the tile's count rolls up; **its tone does not.** `workspaceBadge` returns
+`neutral` unconditionally. A tile sums about seven rows, so one toned row in seven turned the
+whole tile amber — measured on the running build at 1440, 8 of 11 visible nav badges were
+warning, including 4 of the 5 rail tiles. A tile's number is a **sum of heterogeneous
+queues** (three applications, four expiring documents, one dispute) and a sum of different
+kinds of thing has no single status to report. Only the row knows what its number means.
+This **supersedes Q12**, whose invariant was sound and still amplified.
 
 **AC-28** — Exactly one `setInterval` is registered by the application. A surface that is not on the
 current route performs no render work when the clock ticks.
@@ -1275,17 +1303,28 @@ through `legacyPageIds`. Four searches, four correct destinations.
 **AC-31** — At 1280 px wide the shell renders with no horizontal scrollbar on any of the 34 sub-tabs,
 and the content region is at least as wide as the widest index table's minimum legible width.
 
-**AC-32** — At 1280 px the sub-tab list defaults to collapsed; at 1440 px it defaults to expanded.
-Resizing the window between the two after first run does **not** change the state the operator last
-chose.
+**AC-32** — ~~At 1280 px the sub-tab list defaults to collapsed; at 1440 px it defaults to expanded.~~
+**VOID — `DECISIONS.md` D5.** The sub-tab list does not collapse, so there is no default to
+derive and nothing a resize could re-toggle. What replaces it: **the column is present on
+every route at every width**, which `AppLayout.test.tsx` asserts directly. The four
+shell-level tests that covered this in `qa.shell.test.tsx` are qa-engineer's to re-cut or
+delete. ~~Resizing the window between the two after first run does not change the state the
+operator last chose.~~
 
-**AC-33** — Collapsing the sub-tab list, navigating to three different routes, and reloading leaves it
+**AC-33** — **VOID — `DECISIONS.md` D5**, and this is the one deletion that is a net gain
+rather than a trade. AC-33's second clause was the shell's **only failing criterion**, and it
+failed on the unanswered **Q1** (what persists across a reload). Removing the collapse removes
+the gap rather than hiding it: **no criterion in the shell now waits on Q1.** Original text
+follows, struck.
+
+~~Collapsing the sub-tab list, navigating to three different routes, and reloading leaves it
 collapsed. Expanding and reloading leaves it expanded. With it collapsed, the rail's disclosure opens
-a popover listing the same sub-tabs in the same order.
+a popover listing the same sub-tabs in the same order.~~
 
 **AC-34** — On a level-3 detail route below the designer's breakpoint, the right rail's cards restack
-beneath the main column and no content is clipped or lost. The same breakpoint value governs
-**AC-32**.
+beneath the main column and no content is clipped or lost. ~~The same breakpoint value governs
+**AC-32**.~~ AC-32 is void (D5); `--ev-bp-wide` now has two consumers, this one and the
+metric-tile grid, and it is still one number used everywhere.
 
 ### The four states
 
@@ -1386,11 +1425,16 @@ indicator. No focusable element in the shell sets `outline: none` without a `foc
 
 **AC-64** — Arrow keys move focus within the rail and within the sub-tab list; `Tab` moves between the
 two columns and then into the content region. The order is: the rail's four workspace tiles → the
-sub-tab disclosure → the pinned Admin tile → the sub-tab list, when expanded → top bar → content.
-*(Amended after 0.2, confirming the designer's placement. §3.9 required the disclosure to be both
-"in the rail" and "in the tab order in the column's place"; those cannot both hold, so the
-disclosure sits inside the rail between the tiles and Admin, where visual order, DOM order and tab
-order stay identical — §7.3, which is the constraint that actually matters.)*
+pinned Admin tile → the sub-tab list → top bar → content.
+
+*(Amended twice. After 0.2, because §3.9 required the disclosure to be both "in the rail" and
+"in the tab order in the column's place" and those cannot both hold. **Amended again by
+`DECISIONS.md` D5: the disclosure is deleted, so it is not in the order, and design finding
+F-3 — which decided where in the rail to put it — goes with it.** The constraint that
+actually matters is unchanged and still holds: visual order, DOM order and tab order stay
+identical (§7.3). The Eyvar wordmark in the rail is a real tab stop between the skip link and
+the first tile; AC-64 does not enumerate it, which remains a recorded spec gap rather than a
+defect.)*
 
 **AC-65** — Every icon-only control in the shell has an accessible name: the 5 rail tiles, the back
 arrow, the bell, the avatar, and the sub-tab list's collapse control.

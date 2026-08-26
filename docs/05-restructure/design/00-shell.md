@@ -1,5 +1,26 @@
 # 00 — Shell: two-level navigation, page shells, table and form anatomy, the four state components
 
+> ## ⚠ SUPERSEDED AGAIN by `03-navattic-language.md` — `DECISIONS.md` D7
+>
+> D7 replaced the **visual** reference. **Read `03-navattic-language.md` before this document
+> and before `02-visual-refinement.md`;** its §10 holds the clause-by-clause ledger. In short:
+>
+> | Section | Status |
+> |---|---|
+> | **§1.2** geometry tokens | **SUPERSEDED** — `03` §1.4. Top bar 48 → **52**, nav row 28 → **32**, row 32 → **40**, media row 44 → **56**, control 28 → **32**, drawer 406 → **480**, card radius 12 → **8**; `--ev-row-h-head` and `--ev-page-pad` added. |
+> | **§1.3** elevation tokens | **SUPERSEDED** — `03` §1.5. All three tiers re-derived; tier 2 is roughly three times its old reach. |
+> | **§2.1 / §2.3** rail anatomy and states | **SUPERSEDED visually** — `03` §4.1. The five tiles and the pinned `Admin` stand. |
+> | **§3.1** sub-tab column | **SUPERSEDED** — `03` §4.1, and it **gains a section-heading row** that has no Shopify equivalent. |
+> | **§3.2 / §3.3** the collapsed popover | Already struck by `DECISIONS.md` **D5**. Untouched. |
+> | **§4** top bar | **AMENDED** — 52px, white, 1px bottom hairline. Content unchanged. |
+> | **§6.1** drawer, no scrim | **CONFIRMED** by the new reference (no scrim in any frame); width → 480. §6.5's focus-trap conflict is still open. |
+> | **§7** page shells | **SURVIVE.** `PAGE_BLOCK` takes `--ev-page-pad`. |
+> | **§9.1** index-table anatomy | **AMENDED** — `03` §4.5: vertical column hairlines, tinted 32px header, new row heights, circular avatar. Column *semantics* untouched. |
+> | **§11.4** banner | **AMENDED** — `03` §4.8. |
+>
+> **Both nav seams get their 1px hairline back**, reversing `DECISIONS.md` D6's second
+> consequence bullet — the measured tonal step is 1.047 : 1 and cannot carry a boundary alone.
+
 > ## ⚠ PARTIALLY SUPERSEDED — read `02-visual-refinement.md` first
 >
 > The shell built from this document was **rejected by the business owner** on visual grounds,

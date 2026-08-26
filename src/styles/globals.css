@@ -2,10 +2,43 @@
    Eyvar Admin — the only file in the product where a value is born.
    ----------------------------------------------------------------------------
    Sources, in precedence order:
-     docs/ref/tokens.md              the --ev-* colour set and the name collision
-     docs/05-restructure/design/00-shell.md §1.2   the geometry tokens
-     docs/05-restructure/design/00-shell.md §14    the Arabic overrides (§9.7)
-     DESIGN.md §6.1 / §6.2 D-2 / R15 / R7 / R18 / §7.2 / §7.6
+     docs/05-restructure/design/03-navattic-language.md   **D7 — THE VISUAL
+       REFERENCE.** §1 is the whole token set, §1.7 the Arabic overrides, §7 the
+       accessibility ledger. It SUPERSEDES `00-shell.md` §1.2/§1.3 and
+       `02-visual-refinement.md` V1/V2/V3/V6 clause by clause (its §10 is the
+       exhaustive supersession ledger — nothing is left live and disagreeing).
+     docs/05-restructure/DECISIONS.md D7    why Navattic replaced Shopify
+     docs/ref/tokens.md              the name collision (read before layer 2)
+     DESIGN.md §6.1 / §6.2 D-2' / D-11 / R7 / R13 / R18 / §7.2 / §7.6
+
+   ...and one source that outranks all of them for COLOUR:
+     docs/02-verification/people-match.md   **the match audit.** Navattic
+       serves its own stylesheet — `app.navattic.com/_next/static/css/
+       98da06fdab16cbfa.css` — which carries their COMPLETE DECLARED TOKEN SET
+       and their `@font-face` block. A 768x523 downscale cannot recover a 1px
+       stroke or a small-text colour; a stylesheet STATES them. Every declared
+       value cross-checked against a sampled frame agrees to within 1/255, and
+       the row hairline agrees EXACTLY. **Where a declared value and a sampled
+       one disagree, the declared value wins**, and the comment beside the
+       token says `[css]`. Sampling still owns geometry and anything undeclared.
+
+   WHAT D7 CHANGED, in one breath: every colour value; the primary action is
+   NEAR-BLACK, not blue (R3 is killed, D-1 is void); the typeface is INTER, not
+   Geist; there is no grey canvas — the ladder is content #FFFFFF over nav and
+   strips #F6F8F9, i.e. the nav is the DARKER surface and the tonal direction
+   does NOT invert; both nav seams get their 1px hairline BACK (D6 bullet 2 is
+   void); every rule on the page is ONE light hairline #F0F2F4, with a separate
+   #DDE0E4 for control borders; the card carries NO shadow; body text is 14px;
+   the card radius is 8, not 12; the drawer is 480, not 406; rows and controls
+   RISE to 40/56/32; and D-2 (density) is retired outright rather than
+   re-derived.
+
+   FOUR VALUES IN D7 §1 ARE SUPERSEDED BY THE STYLESHEET and are recorded at
+   each token: --ev-bg2 / --ev-bg-nav (one tint #f6f8f9, not #f5f7f9 + #f8fafb),
+   --ev-hairline / --ev-hairline2 (one rule #f0f2f4, not #e1e4ea + #eceef2),
+   --ev-nav-chip (#e5e7eb), --ev-text-2 (#6b7280). D7's METHOD is intact —
+   every one of those is the same token it derived, read exactly instead of
+   through a 3.5x area downscale.
 
    Four layers, in this order and no other:
      1. --ev-*            Eyvar tokens. Raw values live here and nowhere else.
@@ -57,7 +90,58 @@
 @source not "../data/**/*.{ts,tsx}";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+
+/* --- R-5, AMENDED BY THE MATCH AUDIT: the Latin face is INTER. -----------
+   The reference resolves to Inter, and this is settled rather than inferred.
+   Their stylesheet declares
+     `font-family: var(--nv-font-sans, Inter), ui-sans-serif, system-ui, ...`
+   with `--nv-font-sans` defined NOWHERE in the file, so the declared fallback
+   takes it; the only families they self-host are Inter faces; and their
+   marketing site independently declares `'Inter','Inter Fallback'`.
+
+   **The typeface is the largest single contributor to a product's feel**, and
+   the owner asked for "everything", so this changes. Geist is narrower and
+   more geometric and sets ~4% short at equal px, which is a different rhythm
+   before a single token is compared.
+
+   Self-hosted exactly the way Naskh is — `@fontsource-variable/*`, OFL-1.1,
+   woff2, declared BY HAND rather than through the package's `index.css`,
+   because that file ships cyrillic, cyrillic-ext, greek, greek-ext and
+   vietnamese alongside latin and latin-ext. Eyvar's Latin strings reach latin
+   and latin-ext and nothing else; the rest is ~40kB of font no string can
+   reach. The `wght` axis is 100-900 continuous, so 400/500/600/700 all resolve
+   from one file.
+
+   `font-display: swap`, NOT the reference's `block`. Their `block` closes the
+   fallback window by hiding text for up to 3s; §7 has no rule that licenses
+   invisible text, and both faces already in this file use `swap`. The
+   consequence is a one-frame fallback to `Segoe UI`, which the match audit
+   logged as a real but bounded window. Recorded, not hidden.
+
+   THE ARABIC HALF OF THE STACK IS UNTOUCHED — that is §9/§14 and it stays. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
 
 /* --- R-5: the Arabic face, self-hosted and subset. §14. ------------------
    §14 requires a **Naskh** face shipping 400/600/700 that covers Western
@@ -65,7 +149,7 @@
    Before 0.7 the stack only *referenced* `Noto Naskh Arabic` without shipping
    it, so §14 was unmet on any machine that did not already have it installed.
 
-   Self-hosted the same way Geist is — `@fontsource-variable/*`, OFL-1.1,
+   Self-hosted the same way Inter is — `@fontsource-variable/*`, OFL-1.1,
    woff2, `font-display: swap` — but declared by hand rather than through the
    package's `index.css`, because that file ships FIVE subsets and Eyvar needs
    TWO. `math` (U+1D400-1D7FF), `symbols` (emoji and dingbats — AC-76 forbids
@@ -78,11 +162,12 @@
    The variable `wght` axis is 400-700 continuous, so 400/600/700 all resolve
    from one file rather than three.
 
-   In the stack Geist stays FIRST, so Latin text and every numeral run render
-   in Geist in BOTH languages — which is what makes AC-73 ("money, dates, ids
-   read in the same character order in Arabic") true by construction rather
-   than by review. Arabic characters have no Geist glyph, so they fall through
-   to Naskh per character. */
+   In the stack **Inter** stays FIRST, so Latin text and every numeral run
+   render in Inter in BOTH languages — which is what makes AC-73 ("money,
+   dates, ids read in the same character order in Arabic") true by construction
+   rather than by review. Arabic characters have no Inter glyph, so they fall
+   through to Naskh per character. (This sentence read "Geist" until the match
+   audit; the mechanism is identical, only the Latin face moved.) */
 @font-face {
   font-family: "Noto Naskh Arabic Variable";
   font-style: normal;
@@ -126,209 +211,565 @@
    ========================================================================== */
 
 :root {
-  /* --- Colour. DESIGN.md §6.1, rebuilt set per docs/ref/tokens.md. --------
-     Teal, purple, navy, --amber-border and --red-border are deliberately NOT
-     carried over: R7 closes the badge palette at five tones and §6.4 forbids
-     introducing a colour that is not a token. The `new` tone is an OUTLINE,
-     not a fifth fill (design spec §12.1) — do not add --ev-teal-lt here. */
-  --ev-bg: #eef0f3; /* page canvas */
-  --ev-surface: #ffffff; /* card, popover, drawer, bulk bar */
+  /* --- Colour. D7 / `design/03-navattic-language.md` §1.1–§1.3. -----------
+     EVERY VALUE IN THIS BLOCK WAS REPLACED BY D7. The NAMES are unchanged on
+     purpose: the whole point of a token namespace is that a re-skin is one
+     file, not a rename touching 38 primitives. If a comment below cites a
+     Shopify measurement it is describing PROVENANCE, not authority — Navattic
+     (`docs/06-design-reference/navattic-web/`, 15 frames, S = 1.875) is the
+     visual reference now.
 
-  /* --- The nav's own greys. ADDED IN 02-shell-fixes on the business owner's
-     decision (DECISIONS.md D6), and derived — not chosen — in design spec
-     `02-visual-refinement.md` V3. Every value below was re-measured here
-     before it was written; the ratios in the comments are this file's own
-     arithmetic, not the design spec's, and they agree to three decimals.
+     `M` = measured off a frame. `D` = derived, arithmetic in the spec.
 
-     WHY THESE EXIST AT ALL. §2.1's observed rule is:
+     Teal, purple, navy, --amber-border and --red-border are still deliberately
+     NOT carried over: R7 closes the badge palette at five tones and §6.4
+     forbids introducing a colour that is not a token. The `new` tone is an
+     OUTLINE, not a fifth fill — do not add --ev-teal-lt here. */
 
-       "MUST give the left nav a near-canvas grey ONE STEP DARKER than the
-        canvas (#EBEBEB against #F1F1F1) and express selection with a white
-        rounded pill; MUST NOT draw a border, divider or shadow between nav and
-        content, and MUST NOT give the nav a contrasting panel fill."
+  /* THE LADDER, and it does not invert. Sampled across all 15 frames:
+       icon rail   --ev-bg2     #f5f7f9   darkest
+       nav columns --ev-bg-nav  #f8fafb
+       content     --ev-bg      #ffffff   lightest
+     The nav is still ONE STEP DARKER than the content, exactly as §2.1 says.
+     What an earlier reading took for a grey "canvas" was the 53px icon strip. */
+  --ev-bg: #ffffff; /* M — the content region, pure white EDGE TO EDGE.
+                          `82923d3f` y=440 x=144-767 -> #FFFFFF, n=624px, one
+                          colour; same on 02b895df, 6a08206b, c53f19d9,
+                          546b7d98, 79a31934. THERE IS NO GREY CANVAS. */
+  --ev-surface: #ffffff; /* M — card, tile, popover, drawer, table body.
+                          IDENTICAL to --ev-bg ON PURPOSE (D-11). A card is
+                          distinguished by a 1px border and an 8px radius, not
+                          by a fill. Both names are kept so the two can be
+                          separated again without touching a component.
+                          §6.3 D1 is NARROWED, not deleted: white-on-white is a
+                          defect only when there is NO BORDER, which is what
+                          the legacy app shipped. */
 
-     §6.2 D-4 used to suspend that clause, on the grounds that ":root holds no
-     neutral darker than --bg and §6.4 forbids inventing one". The owner has
-     authorised the neutral, so the suspension is RETIRED rather than a new
-     deviation being added, and the 1px hairline that stood in for the tonal
-     step comes out of both nav columns.
+  /* THE ONE SUBDUED FILL, and it does six jobs: the icon rail, the table
+     header row, the filter-chip strip, a card's section-header strip, a promo
+     band, an inner empty panel.
 
-     THIS IS ALSO WHAT MAKES THE PLAIN WHITE PILL WORK. The 3px --ev-marker
-     edge and the 1px border on the active nav item were compensation for a
-     ground that was too light: white on --ev-bg is 1.142:1, which is a smudge
-     rather than a shape. Removing them WITHOUT darkening the ground would have
-     left the active state weaker than the version that was rejected. Ground
-     first, then the pill stands on its own (V2). */
+     `[css]` — DECLARED, not sampled. The reference serves its own stylesheet
+     (`app.navattic.com/_next/static/css/98da06fdab16cbfa.css`) and it defines
+     exactly ONE tinted grey — `--color-bg-muted: gray-50 = hsl(207 20% 97%)`
+     = **#f6f8f9** — spent on all three tinted surfaces on the page: the nav
+     ground, the filter strip and the table header strip. Sampling the frame
+     gives mean 247.0 against the declared 247.4, i.e. 0.4/255. **This corrects
+     D7 §1.1's #f5f7f9, which was the downscale's reading of this same token.**
 
-  /* The darkest grey in --ev-bg's hue family at which --ev-text-2 (#6b6b68 —
-     the RESTING nav label, 13px, and therefore 4.5:1 AA text) still passes.
-     Not a taste value, a boundary:
-       #eaecf1  4.523 : 1  PASS   ← this
-       #e9ebf0  4.482 : 1  FAIL
-       #e7e9ee  4.401 : 1  FAIL
-     Verified against the reference rather than against arithmetic alone:
-       white pill on nav   ours 1.182 : 1   Shopify 1.192 : 1   parity
-       nav on canvas       ours 1.035 : 1   Shopify 1.055 : 1   distinct region
-       --ev-ink on nav     14.746 : 1                           AAA
-     It keeps the ramp's warm-neutral relationship (g-r = 2, b-r = 5).
-     USED BY THE RAIL AND THE SUB-TAB COLUMN AND NOTHING ELSE. It is a
-     near-canvas grey, not a panel fill: if it reads as a coloured sidebar it
-     is too dark. The top bar spans the CONTENT region, so it stays --ev-bg. */
-  --ev-bg-nav: #eaecf1;
+     --ev-bg2 and --ev-bg-nav therefore hold the SAME value today. Two names
+     are kept so the strip and the nav can be separated again in one file. Do
+     not "fix" one of them darker to make them look different: the reference
+     does not distinguish them, and 2/255 is not a distinction anyway. */
+  --ev-bg2: #f6f8f9;
 
-  /* The nav count chip's plate. Pinned to Shopify's own chip step:
-       --ev-nav-chip on --ev-bg-nav   1.141 : 1
-       #DDDDDD on #EBEBEB (measured)  1.139 : 1
-     The direction matters more than the value. The old neutral chip was
-     --ev-bg2 (#f8f8f5), which is 1.073 : 1 LIGHTER than its ground — a plate
-     you cannot see. That invisibility is the whole reason every nav badge got
-     promoted to `attention`: warning peach was the only tone with a shape.
-     Give neutral a shape and the pressure to tone disappears (V6d).
-     Its digits are --ev-ink (12.924 : 1), NOT --ev-text-2: any plate dark
-     enough to read lands --ev-text-2 at 3.8-4.2:1, which fails AA at 11px.
-     Shopify's own chip digits fail here too; we do not copy that. */
-  --ev-nav-chip: #dadee6;
+  /* --- The nav's own greys. ------------------------------------------------
+     REWRITTEN BY D7. The previous derivation here is VOID and must not be
+     cited again: V3 pinned #eaecf1 as "the darkest grey at which --ev-text-2
+     still clears 4.5:1", which assumed a nav materially DARKER than the
+     canvas. The measured Navattic nav is a hair off white, so that binding
+     constraint no longer exists and the value is now DECLARED, not solved for
+     and not sampled:
 
-  /* The nav's hover fill. --ev-bg2 (#f8f8f5) is warm and LIGHTER than white's
-     neighbourhood on this ground, so hover and active stopped being
-     distinguishable the moment the ground darkened. This sits between the two:
-     nav 234/236/241 -> hover 242/244/247 -> active white 255. Same hue
-     relationship as the rest of the ramp. */
-  --ev-nav-hover: #f2f4f7;
-  --ev-bg2: #f8f8f5; /* subdued fill: hover, neutral badge, disabled */
-  --ev-hairline: #e4e2da; /* 1px rules, card and control borders */
-  --ev-hairline2: #dddbd3; /* the darker hairline, section rules */
+       `[css]` --color-bg-muted: gray-50 = hsl(207 20% 97%)  ->  #f6f8f9
+       frame sample, nav column, mean 247.0  vs  declared 247.4   (0.4/255)
 
-  /* R19 — ADDED IN 0.7, licensed for ONE use and no other.
-     §7's 3:1 non-text contrast requirement for an interactive boundary beats
-     §6.4's "no new colour token": an unchecked checkbox or radio has NO other
-     carrier — no fill, no label inside it, no glyph — so its resting outline
-     IS the control, and --ev-hairline (1.15:1 on white) does not draw it.
-     0.4 raised this as R-4 and mitigated it with hit area and label; the
-     ruling is that a mitigation is not a boundary.
+     Earlier readings of #F8FAFB (`cfa43315`) and #F9FBFB (`6a08206b`) are the
+     downscale's view of this same token, and D7 §1.1's #f8fafb is superseded
+     by it. **The reference has ONE tint** — see --ev-bg2 above, which now
+     holds the same value because it is the same declared token.
+
+     THE LADDER DOES NOT INVERT: nav #f6f8f9 is DARKER than content #ffffff,
+     exactly as §2.1 says. What an earlier reading took for a grey canvas was
+     the reference's 53px icon strip, which is this same tint.
+
+     BOTH NAV SEAMS CARRY A 1px --ev-hairline, and that reverses D6's second
+     bullet. A border is present at destination x = 28 AND x = 142 in every
+     sidebar frame, and at a 1.054:1 tonal step it has to be: five units of
+     luminance is not a boundary. §2.1's "MUST NOT draw a border between nav
+     and content" is a SHOPIFY observation that D7 replaces; D-4 now names it
+     as suspended. Do not take the borders off again. */
+  --ev-bg-nav: #f6f8f9;
+
+  /* The RAIL is a third step, darker than the sub-tab column.
+     ------------------------------------------------------------------
+     Business owner, looking at the built shell: "pane on the far left that
+     has Exec, ops... should be slightly darker color than the other pane."
+     The reference agrees - Navattic's icon rail samples #F5F7F9 against a
+     #F6F8F9 sidebar - but at 1/255 that step is not perceptible, so this is
+     a deliberate widening of the reference, not a copy of it. The ladder is
+     now rail -> column -> content, each one step lighter.
+
+     #eef1f4 is 1.064 : 1 against the column and 1.134 : 1 against white.
+     It COSTS a text token: --ev-text-2 (#6b7280) measures 4.264 : 1 here and
+     fails AA, so the rail carries its own label colour below. Darkening a
+     surface without re-deriving the ink on it is how a re-skin quietly drops
+     below AA - DESIGN.md section 7 outranks D7, and outranks this. */
+  --ev-bg-rail: #e9edf1;
+
+  /* The rail's resting label. #656c78 is 4.666 : 1 on --ev-bg-rail and
+     5.290 : 1 on white, so it is safe if it ever escapes the rail.
+     #6b7280 would be 4.264 and illegal. */
+  --ev-text-2-rail: #626974;
+
+  /* The rail's ACTIVE pill. The ordinary --ev-nav-chip (#e5e7eb) measures
+     1.052 : 1 on the darker rail and stops being a shape, so the rail takes
+     its own. #d8dde5 is 1.159 : 1 on --ev-bg-rail - the same relationship the
+     chip has on the lighter column - and --ev-ink on it is 12.76 : 1.
+     Darkening a ground without re-deriving what sits ON it is how a surface
+     ends up with an invisible selection. */
+  --ev-nav-chip-rail: #d8dde5;
+
+  /* The nav's hover fill. It must sit BETWEEN the nav ground and the active
+     pill so hover and active stay separable — and with both of those now taken
+     from the declared ramp, the midpoint is declared too: `[css]` `gray-100`.
+       nav #f6f8f9 (gray-50) -> hover #f0f2f4 (gray-100) -> pill #e5e7eb (200)
+       1.000                    1.054 : 1                   1.162 : 1
+     **NOT A TEXT GROUND:** --ev-text-2 on #f0f2f4 is 4.308:1 and fails AA.
+     That never arises, because `hover:bg-nav-hover` and `hover:text-foreground`
+     are applied in the SAME rule, so a hovered label is always --ev-ink
+     (15.5:1). If you ever split those two classes, this token is the reason
+     you cannot. */
+  --ev-nav-hover: #f0f2f4;
+
+  /* THE ACTIVE PILL **AND** THE RESTING COUNT PLATE. Rewritten by D7; the old
+     comment here derived a value against a nav that no longer exists.
+
+     THE PILL INVERTS AND IT COSTS ALMOST NOTHING. Shopify: a white pill on a
+     grey nav. Navattic: a GREY pill on a near-white nav, sampled over 150px of
+     flat fill in `cfa43315`.
+       Shopify, measured (D6)                    1.192 : 1
+       Eyvar under D6 (#ffffff on #eaecf1)       1.182 : 1
+       Navattic, measured (#e5e7eb on #f6f8f9)   1.162 : 1
+     D6's finding — the pill only works once the GROUND is right — survives
+     with its arithmetic intact, upside down.
+
+     ONE VALUE, TWO JOBS, and that is deliberate: D7 §1.1 adds no pill token
+     and its fix-list item 3 says the active pill takes the `--ev-nav-chip`
+     family. `[css]` `--color-bg-emphasis: gray-200 = hsl(220 13% 91%)` =
+     **#e5e7eb**, which the match audit sampled at #e6e8eb — 0.3/255. It
+     supersedes both D7's derived #e3e6ec and the earlier #e2e3e6, the latter
+     of which was also VIOLET-SHIFTED (hue 240 against the ramp's 207-220).
+
+     ONE RULE: THE CHIP ALWAYS STEPS AWAY FROM WHATEVER IT SITS ON. On a
+     RESTING row the plate is this token on the nav. On an ACTIVE row the plate
+     becomes --ev-surface (white), 1.162:1 against the pill. Two grounds, no
+     new token. Digits stay --ev-ink (14.063:1 on the pill, 16.344 on the nav)
+     and never --ev-text-2: any plate dark enough to read lands --ev-text-2 at
+     3.9:1, which fails AA at 11px.
+
+     NOT EVIDENCED, AND THE STRONGEST STATEMENT IN THE AUDIT ABOUT IT: **the
+     reference has no nav count badge anywhere, in the rail or the column**,
+     and ours are the loudest colour on our page. They are §8.4 FUNCTION and
+     are not deleted — but the tone is spent down to this plate rather than up
+     into a colour. That is V6d's argument arriving at the same place: give
+     neutral a shape and the pressure to reach for a warning tone disappears.
+     The one exception R7 still licenses is a BREACHED sub-tab row, rarely. */
+  --ev-nav-chip: #e5e7eb;
+
+  /* --- Hairlines. Both recovered by DEFICIT INTEGRATION, not by eyedropper.
+     At S = 1.875 a 1px stroke covers 53.3% of one destination pixel and the
+     rest is ground, so no eyedropper reading of a hairline is its colour:
+     `255 - B = 1.875 x sum(deficit)` across the transition. The recoverable
+     band is +/- 5 in Y and the spec gives it. ---------------------------- */
+
+  /* **EVERY HAIRLINE ON THE PAGE.** Card border, both nav seams, the table's
+     outer edge AND its internal rules, the drawer's leading edge, the top
+     bar's bottom rule. One value, not two.
+
+     `[css]` `--color-border-muted: gray-100 = hsl(220 14% 95%)` = **#f0f2f4**,
+     and this is the best-evidenced number in the whole re-skin: the match
+     audit's deficit integration of the row separator gives L = 242.1 and the
+     declared token's mean is 242.1 — **exact agreement**, which independently
+     validates the integration method used for every 1px stroke in D7 §1.1.
+
+     **IT CORRECTS TWO GENERATIONS AT ONCE.** The value in the tree before this
+     (#e5e8ed) is the reference's own `gray-200`, which they never use for a
+     rule — ours was 1.7x darker than theirs, and that is why our tables read
+     as a GRID where theirs reads as a LIST. D7's derived #e1e4ea was darker
+     still.
+
+     1.122:1 on white, and that is correct rather than weak. The reference buys
+     separation with two tinted strips and one very light rule and NOTHING else
+     — see --ev-shadow-1. A card also has radius, so colour is not the only
+     carrier (§7.5). **It is not a text ground:** --ev-text-2 on it is 4.308. */
+  --ev-hairline: #f0f2f4;
+
+  /* **THE FIRM BOUNDARY — the second of the product's two rule weights.**
+     Added deliberately, in the same commit, because --ev-hairline moved two
+     ramp steps lighter. An input, a select and an outline button are bounded by
+     a 1px stroke on white, and at 1.122:1 that stroke is not a boundary — the
+     control disappears. The reference splits at exactly this point and declares
+     the value: `[css]` `--color-border-default: gray-300 = hsl(216 12% 88%)`
+     = **#dde0e4**, listed against "input borders".
+
+     **THE TWO WEIGHTS ARE THE WHOLE SIGNAL AND THEY ARE DISTINGUISHABLE.**
+     Verified rather than assumed:
+       --ev-hairline        #f0f2f4  mean 242.0  1.122 : 1 on white
+       --ev-hairline-control #dde0e4 mean 224.3  1.324 : 1 on white
+       the two against each other                1.180 : 1
+     That relative step is larger than the active nav pill's own 1.162 against
+     its ground, which the spec accepts as legible. **The light rule is the
+     internal one — row separators, column rules, the card edge, the nav seams.
+     The firm one is a FUNCTIONAL boundary: a control's outline, and the frozen
+     /pinned column's edge in a scrolled table.** A pinned edge cannot be
+     expressed as a plain utility (`table.tsx` draws the internal rules with a
+     specificity that beats one, silently), so it is an inline style — which is
+     fine and still on-token as long as it reads `var(--ev-hairline-control)`
+     and never a literal.
+
+     IT IS NOT A LICENCE TO DRAW A HEAVIER LINE ANYWHERE ELSE. An UNCHECKED
+     checkbox or radio takes --ev-hairline-strong, which is R19's separate
+     problem with its own separate 3:1 requirement. */
+  --ev-hairline-control: #dde0e4;
+
+  /* ITS MEANING FLIPPED UNDER D7 AND THIS COMMENT IS THE WARNING. It used to
+     be the DARKER hairline for section rules. It is now the LIGHTER, IN-TABLE
+     rule: row separators and the vertical column rules, and nothing else. It
+     is never darker than --ev-hairline.
+
+     **AND UNDER THE STYLESHEET IT IS THE SAME VALUE AS --ev-hairline.** D7
+     inferred a two-LEVEL structure from two downscale readings:
+       `82923d3f` row rule     sum = 9.46 -> B ~ 237
+       `82923d3f` column rule  sum = 9.27 -> B ~ 238
+     The reference in fact declares ONE hairline token and spends it on the
+     card border and the internal rules alike (`[css]` `border-muted` =
+     #f0f2f4). The match audit's integration agrees EXACTLY on the horizontal
+     rule (L 242.1 vs the token's 242.1), reads the vertical rule at L ~ 238,
+     and records that it has NOT proven the two are different tokens.
+
+     THE NAME SURVIVES AND SO DOES ITS D7 ROLE, so `table.tsx`'s
+     `border-[--ev-hairline2]` classes keep compiling and now paint the right
+     colour. **Do not darken one of the two to "restore the hierarchy".** The
+     hierarchy is not in the reference, and putting it back is precisely what
+     made our table read as a spreadsheet grid instead of a list.
+
+     THE VERTICAL COLUMN RULES ARE A REAL DIVERGENCE FROM SHOPIFY, not a
+     compression artefact: `82923d3f` y=250 shows rules at destination
+     x ~ 306, 429, 509, 563, 653 plus the outer edges at 179 and 731, and it is
+     confirmed in `cfa43315`, `223f15e5`, `d209473e`, `02b895df`. The audit
+     adds one constraint the frames alone do not give: they are on the BODY
+     cells only and are **absent from the header strip**.
+
+     It had ZERO call sites in `src/` when the meaning flipped, so nothing
+     broke. Owner of its one intended consumer: `ui/table.tsx`. */
+  --ev-hairline2: #f0f2f4;
+
+  /* R19 — licensed for ONE use and no other, RE-DERIVED against the new
+     grounds. §7's 3:1 non-text contrast requirement for an interactive
+     boundary beats §6.4's "no new colour token": an unchecked checkbox or
+     radio has NO other carrier — no fill, no label inside it, no glyph — so
+     its resting outline IS the control, and --ev-hairline (1.274:1 on white)
+     does not draw it.
 
      THE ONE PERMITTED USE: the resting boundary of an UNCHECKED checkbox or
-     radio. It is NOT a border, NOT a divider, NOT a card edge, NOT a hover
-     state, NOT an input border (§4.2's input border is --ev-hairline and stays
-     that way — an input has a fill and a label, a checkbox has neither).
+     radio. NOT a border, NOT a divider, NOT a card edge, NOT a hover state,
+     NOT an input border (§4.2's input border is --ev-hairline and stays that
+     way — an input has a fill and a label, a checkbox has neither).
 
-     Measured, not eyeballed — relative luminance per WCAG 2.2:
-       on --ev-surface  #ffffff   3.47 : 1   PASS
-       on --ev-bg2      #f8f8f5   3.26 : 1   PASS  (a checkbox in a hovered row)
-       on --ev-bg       #eef0f3   3.04 : 1   PASS  (a checkbox on the canvas)
-     Every surface a checkbox can sit on clears 3:1. It stays lighter than
-     --ev-text-2 (#6b6b68, 5.35:1) so it cannot be mistaken for a text colour,
-     and keeps the warm-neutral r=g, b-5 relationship of the rest of the ramp. */
-  --ev-hairline-strong: #8a8a85;
+     It must clear 3:1 on EVERY surface a control can sit on:
+       on --ev-surface  #ffffff   3.441 : 1   PASS
+       on --ev-bg2      #f6f8f9   3.231 : 1   PASS  (a checkbox in a tinted row)
+       on --ev-bg-nav   #f6f8f9   3.231 : 1   PASS  (the same declared tint)
+     #8c95a3 was tried first and fails on two of the three (2.816, 2.889).
+     Stays lighter than --ev-text-2 (3.231 vs 4.538 on the worst ground) so it
+     cannot be read as a text colour. It has NO counterpart in the reference's
+     declared ramp — their `gray-400` #9ca3b0 is 2.536:1 and would fail — which
+     is why R19 keeps a value of its own. */
+  --ev-hairline-strong: #828b99;
 
-  --ev-ink: #1a1a18; /* primary text        17.43:1 on white */
-  --ev-text-2: #6b6b68; /* secondary text       5.35:1 on white */
-  --ev-text-3: #9b9b97; /* 2.79:1 — FAILS AA. Decorative rules only.
-                              NEVER text, never a graphic that carries
-                              meaning. Substitute --ev-text-2. a11y.md. */
+  /* --- Ink. §1.2. ------------------------------------------------------- */
+  /* D — cool near-black. The darkest sampled inks are #0C1116 (the
+     primary-button fill, a large flat area, `6a08206b`) and #202128 (the
+     `Visitors` h1, `82923d3f`); both are cool (b-r = 8-10). #171a21 sits
+     between them: 17.411:1 on white, 16.344 on the tint, 14.063 on the active
+     nav pill. Hue 222, inside the reference ramp's 207-220 blue-grey band —
+     the value this replaced (#24242f) was hue 240, i.e. VIOLET where the whole
+     reference ramp is blue-grey, which the match audit named as the one
+     off-hue token in the set. `[css]` brackets it from both sides: their H1 is
+     `gray-800` #1d2735 and their nav title is `gray-900` #070a0d.
+     THIS IS ALSO --primary NOW — see layer 2.
 
-  --ev-blue: #185fa5; /* primary action (R3, D-1)  6.52:1 */
-  --ev-blue-lt: #e6f1fb;
-  --ev-blue-dk: #0c447c; /* links (+ underline), info label   9.84:1 */
+     **IT IS NOT THE COLOUR OF AN ORDINARY TABLE CELL.** The reference runs TWO
+     ink levels in every row — `text-default` #384252 for the identity name and
+     `text-subtle` #6b7280 for every ordinary value — and ours ran one, three
+     times too dark, which is a large part of why our table shouted in
+     greyscale. Ordinary cell values take `text-muted-foreground`
+     (= --ev-text-2, below); ink is for the identity column. That is a class
+     change in `table.tsx` / `DataTable.tsx`, not a token change, and it is
+     owned by the table engineer. */
+  --ev-ink: #171a21;
 
-  --ev-green: #27500a;
-  --ev-green-lt: #eaf3de;
+  /* SECONDARY TEXT — AND, under D7, THE INK OF AN ORDINARY TABLE CELL.
+     `[css]` `--color-text-subtle: gray-500 = hsl(220 9% 46%)` = **#6b7280**,
+     which the reference uses for ordinary cell values and for `rows per page`.
+     The match audit sampled `an hour ago` at mean 115.7 against the declared
+     token's 116.1 — 0.4/255.
 
-  --ev-amber: #e8a33d; /* graphic only — 1.88:1, never a text colour */
-  --ev-amber-lt: #faeeda;
-  --ev-amber-dk: #633806; /* the warning LABEL colour */
+     It is taken as declared because it PASSES, which is not true of every
+     colour in their ramp (see --ev-text-3):
+       on #ffffff  4.834 : 1  AA
+       on #f6f8f9  4.538 : 1  AA — the binding case, the tinted header strip
+       on #e5e7eb  3.905 : 1  NOT a text ground; an active pill's label is
+                              --ev-ink, never this
+     D7 §1.2's derived #6a6e71 was solved against a sampled nav label and a
+     sampled tint, and BOTH of those have since been read off the stylesheet.
+     The declared value is a hair lighter, correctly blue-grey (hue 220) rather
+     than near-neutral, and clears AA on every ground the product renders. */
+  --ev-text-2: #6b7280;
 
-  --ev-red: #a32d2d; /* R5a: four permitted uses, and no red badge */
-  --ev-red-lt: #fcebeb;
+  /* 2.536:1 — STILL FAILS AA, still decorative only, still NEVER a text
+     colour. Substitute --ev-text-2. Kept only because deleting a name is a
+     rename. `[css]` `--color-text-muted: gray-400` = #9ca3b0, and the
+     reference spends it on its identity-cell second line and its
+     `Not identified` placeholder. **The value here IS that token, so the ramp
+     stays whole; the ROLE does not transfer.** Eyvar's second line and its
+     placeholders take --ev-text-2 (4.834). `people-match.md` records this as
+     W1/W2 — "will not match, by law" — because §7.1.1 gives no 3:1 large-text
+     tier to fall back on. Match the muting LEVEL, never the value.
+     Retiring this token is a separate, deliberate change. a11y.md. */
+  --ev-text-3: #9ca3b0;
 
-  /* --- Geometry. Design spec §1.2. Every value is on the 4px grid: D-2
-     sanctions SMALLER, never OFF-grid (D15). ------------------------------ */
+  /* --- Accent. §1.3. ---------------------------------------------------- */
+  /* M — sampled EXACTLY, twice, over 3 550px of flat bar fill in `04592c4f`.
+     ITS ROLES ARE: THE FOCUS RING, THE CHART SERIES, SELECTION, AND A LINK ON
+     WHITE ONLY. **It is NOT the primary-action fill.** D-1 is void and R3 is
+     killed: 4.574:1 on white is AA text on white and nothing else — 4.259 on
+     #f5f7f9 and 4.006 on #eaf0fe both FAIL. As a non-text object (the 2px
+     focus ring) it passes everywhere: 4.574 white, 4.259 --ev-bg2, 4.369 nav,
+     3.807 on --primary itself. */
+  --ev-blue: #2b6ef0;
+  --ev-blue-lt: #eaf0fe; /* D — --ev-blue at 10% on white. Cross-check: the
+                            measured chart area fill is #F0F5FA / #ECF2FB
+                            (`5b908c10`), i.e. 8-10%. */
+  /* D — THE LINK AND INFO-LABEL COLOUR, and the only blue permitted on a
+     tinted ground. White 6.952, --ev-bg2 6.474, --ev-blue-lt 6.089. R3's old
+     consequence — links take a darker blue PLUS an underline — survives for a
+     NEW reason: not because blue is spoken for by actions, but because
+     --ev-blue cannot carry 13px text on a tint. */
+  --ev-blue-dk: #1b51c4;
+
+  --ev-green: #15653c; /* D — success label. --ev-green-lt 6.351, white 7.098 */
+  --ev-green-lt: #e7f6ec; /* D — re-hued out of Shopify's olive into the
+                             reference's cool-neutral family */
+
+  /* D — AND THIS CLOSES A REAL §7 DEFECT. The old value (#e8a33d) was 1.88:1
+     and carried a comment saying "graphic only — never a text colour", which
+     is a way of writing down that it fails. #b45309 measures 4.623:1 on the
+     warning fill, so the warning ICON — a meaningful graphic under §7.5 —
+     finally passes on its own ground. */
+  --ev-amber: #b45309;
+  --ev-amber-lt: #fff4e6; /* M — sampled exactly off the one semantic surface
+                             in the 15 frames: the `Deprecation notice` banner
+                             in `79a31934`, n = 800px flat. */
+  --ev-amber-dk: #7a3e12; /* D — the warning LABEL. --ev-amber-lt 7.656 (AAA),
+                             white 8.316. The sampled label was #633422; this
+                             is the same warm-brown family, one step brighter,
+                             and keeps AAA. */
+
+  /* D — R5a's four permitted uses only, and there is still no red badge (R5).
+     --ev-red-lt 5.921, white 6.574, white-on-red 6.574, --ev-bg2 6.122. It
+     passes as a destructive-button FILL and as the 3px breached-row marker
+     (3:1 needed, 6.574 delivered). */
+  --ev-red: #b42318;
+  --ev-red-lt: #fef0ee; /* D — critical banner fill */
+
+  /* --- Geometry. D7 §1.4. Every value is on the 4px grid (D15).
+     D-2 IS RETIRED — see `03-navattic-language.md` §5. Its type half was not a
+     deviation (13px IS the reference's body size), its spacing half was not a
+     deviation (both products are on a 4px grid using the same values), and its
+     row half is inside R13's tolerance. In five places Eyvar was TIGHTER than
+     the reference and is now being LOOSENED toward it. Do not cite D-2 for
+     density again; §7.7's 24x24 hit target could never be argued down by it
+     and now there is nothing left to argue with. --------------------------- */
   --ev-bp-wide: 1344px; /* THE breakpoint. There is no second one. §0.1 */
 
-  --ev-rail-w: 80px; /* level-1 workspace rail. Back to the design spec's own
-                        80 (V1). It was widened to 88 because `Management` at
-                        11px measured ~71px in a 72px content box; the rail
-                        labels are now `Exec / Ops / Finance / Support / Admin`,
-                        the longest of which measures ~40px, so the reason for
-                        the widening is void and the 8px goes to the content
-                        region. */
-  --ev-subnav-w: 224px; /* level-2 sub-tab column, expanded */
-  --ev-topbar-h: 48px; /* top bar AND save bar — identical, always */
-  --ev-shellbar-h: 32px; /* impersonation / call / offline strip */
-  /* Sub-tab row. 28, not 32 (V1). D-2 suspends §1.2, §1.3 and §3.1 BY NAME,
-     and the nav row lives in §2.3 — so the binding constraint is not a pixel
-     figure (R13 voids those) but the RELATIONSHIP §2.3 and §3.1 describe
-     together: THE NAV ROW IS SHORTER THAN THE DATA ROW. At 32 it equalled
-     --ev-row-h, which is why the column read as a stack of cards rather than a
-     list of links. 28 is one 4px step below, and equals the measured Shopify
-     figure. Not 24: §7.7 forbids citing D-2 against an accessibility minimum,
-     and at 24 a 20px line box leaves no room for a focus indicator INSIDE the
-     row — which matters because the row gap is now 0 and the ring is inset. */
-  --ev-navrow-h: 28px;
-  --ev-row-h: 32px; /* table row, text */
-  --ev-row-h-media: 44px; /* table row with a thumbnail or 2nd line */
-  --ev-control-h: 28px; /* input, select, compact button */
-  --ev-control-h-lg: 36px; /* in-form and full-width primary */
-  --ev-page-max: 1120px; /* capped single column */
-  --ev-detail-rail-w: 320px; /* detail right rail */
-  --ev-monitor-aside-w: 340px; /* monitoring side list */
-  --ev-drawer-w: 406px; /* shell layers (C12, R13 preserves it) */
-  --ev-radius-card: 12px; /* card (C3, R13 preserves it) */
-  --ev-radius-control: 8px; /* button, input, badge, toast, avatar, pill */
+  --ev-rail-w: 80px; /* Untouched by D7, and it survives on its OWN reasoning
+                        rather than on the reference's. Navattic's rail is
+                        53 +/- 2px but it is ICON-ONLY; Eyvar's rail carries a
+                        label under each glyph (D-4), so the figure is recorded
+                        and not adopted. 80 fits `Exec / Ops / Finance /
+                        Support / Admin`, the longest of which measures ~40px. */
+  --ev-subnav-w: 224px; /* Untouched. Measured 214 +/- 4 ((142.5 - 28.5) x
+                           1.875); 224 is inside two destination px of that and
+                           is load-bearing in D5's 1280 arithmetic
+                           (80 + 224 = 304). Not worth re-deriving AC-31 to buy
+                           10px. */
+  /* M — 48 -> 52. App content begins at destination y = 5 (rows 0-4 are window
+     chrome); the top bar's bottom border is at y = 32.5. (32.5 - 5) x 1.875 =
+     51.6, and 52 is on the grid. THE SIDEBAR BRAND ROW IS THE SAME HEIGHT and
+     the two align — `cfa43315` brand ink centre y = 18 -> 24.4px from the app
+     top, i.e. the centre of a 52px row. TOP BAR AND SAVE BAR SHARE IT, always
+     (AC-51). */
+  --ev-topbar-h: 52px;
+  --ev-shellbar-h: 32px; /* X — no impersonation/offline strip in the 15
+                            frames. Unchanged. */
+  /* M — 28 -> 32. Nav item pitch = 17.33 destination px = 32.5; active pill
+     height = 17.5 = 32.8. PILL AND PITCH COINCIDE, SO THE GAP IS 0. The
+     §2.3 <-> §3.1 relationship D-10 exists to protect — the nav row is
+     SHORTER than the data row — still holds, at 32 < 40. */
+  --ev-navrow-h: 32px;
+  /* --- THE TWO ROW HEIGHTS, AND F-4 IS ONE DECISION, NOT TWO. ------------
+     D7 §1.4 derived 40 from the reference's leanest row; the match audit
+     measured 62 and called ours 47% too short. **Both are right, for different
+     content, and the disagreement dissolves once you say which row you mean:**
 
-  /* ADDED IN 0.4, not in design spec §1.2 — declared, not smuggled.
-     The design spec names 3px twice as a NAMED figure: the SLA countdown
-     track (§8.4.2 / V-04) and the R5a row-critical leading edge
-     (`box-shadow: inset 3px 0 0`, V-05 / §2.3's active nav bar). 3px is off
-     the 4px grid, but D15 records off-grid LITERALS as the defect and R13
-     preserves individually named figures — so it becomes one token used in
-     three places rather than three literals. Owner: product-designer to
-     confirm the name. */
+       62 is the reference's TWO-LINE IDENTITY ROW  — 30px avatar circle,
+          name on line 1, a qualifying value on line 2.
+       40 is a SINGLE-LINE row — the leanest row in the set (`6a08206b`,
+          destination y = 135 -> 157 = 41), which is what D7 measured.
+
+     So they are the two tokens below, not a conflict between them. **The call,
+     recorded here because `--ev-row-h` is this file's:** Eyvar takes the
+     two-line identity cell WITH the avatar AND the tall row. The owner asked
+     for "identically looking, in everything", and the halves do not separate —
+     a 62px row holding one line of text is just a loose table, and a 40px row
+     cannot hold two lines. **Implementing the cell is fix-list item 5 of the
+     match report and belongs to the table engineer; this file supplies the
+     height and `columns.ts` supplies the second line.**
+
+     One correction to the reference on the way through: 62 is OFF the 4px grid
+     and D15 records off-grid literals as the defect, so the value is **64** —
+     32px avatar + 16/16 padding-block, which is the reference's own geometry
+     read on-grid, and 2px inside the audit's own +/-3% band on that figure. */
+  --ev-row-h: 40px; /* SINGLE-LINE rows. A rise from 32, not a loss. */
+  --ev-row-h-media: 64px; /* TWO-LINE / avatar rows. 56 -> 64: D7 took 32 + 12/12
+                             = 56, "one 8px step tighter, inside R13", before
+                             the audit measured the same row at 61.9 and read
+                             its padding-block at ~16 a side. R13's tolerance is
+                             not a licence to stay short when the figure has
+                             been re-measured. */
+  /* ADDED BY D7 — the one added geometry token in §1.4, DECLARED rather than
+     smuggled as a literal (D15). Table header row: destination y = 139 -> 154
+     = 16px = 30, and `6a08206b` gives y = 118 -> 134 = 17px = 32. Equal to
+     --ev-navrow-h, which is what the reference shows. */
+  --ev-row-h-head: 32px;
+  --ev-control-h: 32px; /* M — search input `82923d3f` border centres
+                           y = 84 -> 99.5 = 29.1; primary button `6a08206b`
+                           26.6; filter chip 30. Mean 28.6, spread 3.4 — BELOW
+                           the measurement floor. 32 is the nearest grid value
+                           and also equals --ev-navrow-h, which is what the
+                           reference shows (a chip and a nav pill are the same
+                           height in `cfa43315`). */
+  --ev-control-h-lg: 40px; /* D — one 8px step above the compact control,
+                              matching the compact/data-row step. Not
+                              evidenced: the reference has no in-form control. */
+  /* ADDED BY D7 — the second added token, and THE SINGLE LARGEST DELIBERATE
+     DEPARTURE FROM THE REFERENCE (D-2'). The reference measures 68px (36
+     destination px, symmetric). Eyvar takes 32, and the arithmetic is the
+     reason: at D2's 1280px floor the content region is 976px, and 68 would
+     leave 840px for a table that runs six to nine columns — 78px LESS than
+     today's effective 918 — and would clip. At 32, with the card gone from
+     index pages, the table gets 912px, 6px less than today and inside the
+     noise of the identity column's `min-w`.
+     IT DOES NOT VARY BY LANGUAGE: a gutter is not a line box, and Arabic does
+     not need more of it. It is deliberately NOT redefined inside a `@media`
+     block either — that would risk a second `@media (min-width:)` in `dist`,
+     which the one-breakpoint check counts. 1440 therefore gets the 1280
+     answer; raising it at `wide:` is a ticket, not a local decision. */
+  --ev-page-pad: 32px;
+  --ev-page-max: 1120px; /* Untouched. ONE consumer: the full-bleed editor. */
+  --ev-detail-rail-w: 320px; /* X — not evidenced. Untouched: AC-34's
+                                640 + 16 + 320 = 976 depends on it. */
+  --ev-monitor-aside-w: 340px; /* X — not evidenced. Untouched (AC-31). */
+  /* M — 406 -> 480, and R13's NAMED-FIGURE CARVE-OUT IS SPENT HERE.
+     `9eb629ea` / `1ef8248f` / `79a31934`: the drawer's leading edge is at
+     destination x = 505.5 and the frame ends at 767.5 -> 262 x 1.875 = 491.
+     480 is the nearest 16px value and leaves 976 - 480 = 496px of page visible
+     at the 1280 floor. */
+  --ev-drawer-w: 480px;
+  /* M — 12 -> 8, and 12 is FALSIFIED, not merely re-preferred. Stat tile
+     `02b895df` top-left corner: the horizontal inset is 1 destination px at 1px
+     below the top edge. A 12px radius predicts 3 destination px there; 8px
+     predicts 1.5; 6px predicts 0.9. The band is 6-8. */
+  --ev-radius-card: 8px;
+  --ev-radius-control: 8px; /* M — active nav pill `cfa43315`: the left edge
+                               moves 38 -> 34 over five rows, an inset of 4
+                               destination px = 7.5px. Unchanged, and now EQUAL
+                               to the card radius. R15's ladder survives lower
+                               down: the badge radius is 4px (--radius-sm). */
+
+  /* Untouched by D7. The design spec names 3px twice as a NAMED figure: the SLA
+     countdown track (§8.4.2 / V-04) and the R5a row-critical leading edge
+     (V-05 / §2.3's active nav bar). 3px is off the 4px grid, but D15 records
+     off-grid LITERALS as the defect and R13 preserves individually named
+     figures — so it is one token used in three places rather than three
+     literals. It clears 3:1 on white at 6.574 against the new --ev-red. */
   --ev-marker: 3px;
 
-  /* --- Motion. R18 + §7.6. A loop may only signal "this feed is live".
-     Transition DURATIONS come from Tailwind's own scale (`duration-200` for a
-     layer, `duration-100` for a popover) — that scale is a token set, and a
-     second source here would drift. Only the loop needs a token of its own,
-     because it feeds an `animation` shorthand. -------------------------- */
-  --ev-live-loop: 1800ms; /* LiveDot opacity loop, 1200–2500ms */
+  /* --- Motion. R18 + §7.6. Untouched by D7. A loop may only signal "this feed
+     is live". Transition DURATIONS come from Tailwind's own scale
+     (`duration-200` for a layer, `duration-100` for a popover) — that scale is
+     a token set and a second source here would drift. Only the loop needs a
+     token, because it feeds an `animation` shorthand. -------------------- */
+  --ev-live-loop: 1800ms; /* LiveDot opacity loop, 1200-2500ms */
 
-  /* --- Elevation. R-3, closed by product-designer — design spec §1.3 and
-     `design/00-decisions-r3.md`. These are the SETTLED values, not
-     placeholders; 0.7's provisional numbers are gone. Tailwind's stock scale
-     is deleted below (it painted `rgb(0 0 0 / 0.1)` from `node_modules`, which
-     no token audit of our source could see), so `shadow-md` is now a visible
-     no-op rather than a working escape hatch.
+  /* --- Elevation. ALL THREE RE-DERIVED BY D7 — the previous values are gone
+     and their derivation is VOID. **The reference is lower-chrome than Shopify
+     and the old numbers do not survive it.**
 
-     THREE TIERS, A CLOSED SET. A fourth needs a §6.2 entry.
+     R-3's STRUCTURE is untouched: THREE TIERS, A CLOSED SET, a fourth needs a
+     §6.2 entry.
 
        none  rail · sub-tab column · top bar · SAVE BAR · shell banner strip ·
-             nested blocks · table rows · canvas · the scrim
+             nested blocks · table rows · the content ground · the scrim
        1     cards · metric tiles · chart cards · form cards · a sticky table
              header once the body scrolls under it
        2     every popover · dropdown-menu · tooltip · command list · the
-             toast · the bulk-action bar · AND the 406px shell drawers
+             toast · the bulk-action bar · AND the 480px shell drawers
        3     modals at 440/560/800 — the only scrimmed surfaces, and nothing
              else
 
      A drawer takes tier 2 AND the 1px inline-start hairline. Both.
 
      EVERY TIER IS `offset-x: 0` DELIBERATELY, so nothing mirrors in Arabic and
-     these do NOT belong under the `:root:lang(ar)` hook.
+     none of it belongs under the `:root:lang(ar)` hook. The shadow COLOUR
+     moves from `rgb(0 0 0)` to `rgb(16 24 40)`, the cool near-black the rest of
+     the ramp now uses.
 
-     THE PROPERTY TRAP: `box-shadow` is one property and §7.2's focus ring
-     already occupies it. Eyvar's rule, applied consistently: elevation is
-     ALWAYS a Tailwind `shadow-*` utility, which composes into the same
-     `box-shadow` list as `ring-*` by construction, and NO RAW `box-shadow` IS
-     WRITTEN ANYWHERE. The 3px markers (`--ev-marker`) are therefore an
-     `inset-inline-start` pseudo-element, never `box-shadow: inset 3px 0 0` —
-     which also fixes them in Arabic. Break that rule and D20 reopens silently
-     the first time someone tabs to a card. */
-  --ev-shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+     THE PROPERTY TRAP is unchanged: `box-shadow` is one property and §7.2's
+     focus ring already occupies it. Elevation is ALWAYS a Tailwind `shadow-*`
+     utility, which composes into the same `box-shadow` list as `ring-*` by
+     construction, and NO RAW `box-shadow` IS WRITTEN ANYWHERE. The 3px markers
+     are an `inset-inline-start` pseudo-element, never `box-shadow: inset 3px 0
+     0` — which also fixes them in Arabic. Break that and D20 reopens silently
+     the first time someone tabs to a card. ------------------------------- */
+
+  /* **MEASURED ZERO, TWICE, AND NOW PAINTED AS ZERO.** `02b895df`'s stat tile
+     and `04592c4f`'s card both go from border pixel to #FFFFFF in ONE ROW. The
+     match audit (`docs/02-verification/people-match.md` §1) then profiled the
+     reference's table card directly: outside the border at a text-free row
+     band, x = 722-727 reads **0.00**, x = 731 is the stroke, x = 733+ reads
+     **0.00**. The signal collapses to zero within a single pixel on BOTH
+     sides — no shadow, no glow, no second tonal ring. Ours spilled 3.0 deficit
+     one pixel outside the border, which is faint but real and measurable.
+
+     D7 §1.5 specified a 0.04-alpha token rather than `none`, reasoning that a
+     tier valued `none` invites someone to delete the tier. **The reasoning is
+     kept and the value is not:** this is a fully transparent shadow, so the
+     tier keeps its name, its slot in R-3's ladder and its `shadow-1` utility,
+     and paints nothing. Separation is bought the way the reference buys it —
+     two tinted strips and one very light 1px rule. A shadow ON TOP OF a tint
+     gets neither. Do not give this a visible value without new evidence. */
+  --ev-shadow-1: 0 0 0 0 rgb(16 24 40 / 0);
+
+  /* D — and THE OLD TIER 2 WAS A THIRD OF THIS. Popover falloff measured on
+     `6a08206b`'s row menu over clean white: BELOW the edge the ground recovers
+     over 10 destination px (~19px), peaking at ~7% of black; BESIDE it over 7
+     destination px (~13px) at ~3%. Solving `spread + blur/2 = 13` and
+     `offsetY + spread + blur/2 = 20` gives offsetY ~ 7, blur ~ 26; rounded to
+     the grid, `0 8px 24px -2px` reaches 18 below and 10 beside. Nominal alpha
+     0.12 lands ~6-7% at the edge with a 24px blur. The old `0 2px 8px -2px`
+     reached 6px below. */
   --ev-shadow-2:
-    0 2px 8px -2px rgb(0 0 0 / 0.12), 0 1px 2px 0 rgb(0 0 0 / 0.06);
+    0 8px 24px -2px rgb(16 24 40 / 0.12), 0 2px 6px -2px rgb(16 24 40 / 0.06);
+
+  /* X — NOT EVIDENCED. There is no modal in the 15 frames. Derived by applying
+     R-3's own tier-2 -> tier-3 ratio (~2.5x offset, 2x blur, 2x alpha) to the
+     new tier 2. FLAGGED IN THE SPEC (§11.3): the first modal built against this
+     must be reviewed by eye. */
   --ev-shadow-3:
-    0 8px 24px -8px rgb(0 0 0 / 0.24), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+    0 20px 48px -12px rgb(16 24 40 / 0.24), 0 6px 12px -6px rgb(16 24 40 / 0.10);
 }
 
 /* --- The single language hook. §9.7 / §14. -------------------------------
@@ -338,30 +779,44 @@
    same condition — direction and language are different questions and only
    language moves these numbers.
 
-   Seven dimensions vary, not six: the design spec §1.2 table lists rail-w,
-   subnav-w, navrow-h, row-h, row-h-media, control-h AND control-h-lg. §18's
-   prose says "six". The table is normative; reported as a finding. */
+   EIGHT dimensions vary now, not seven: D7 §1.7 adds `--ev-row-h-head`. The
+   step (+4, or +8 where the Latin value is already large) survives untouched;
+   the BASE values moved, so the overrides move with them.
+
+   `--ev-page-pad` is deliberately NOT here. It is a gutter, not a line box,
+   and Arabic does not need more of it. */
 :root:lang(ar) {
-  --ev-rail-w: 88px; /* 80 + 8, the same +8 the Latin rail lost (V1) */
-  --ev-subnav-w: 256px;
-  --ev-navrow-h: 32px; /* 28 + 4, one step, matching the Latin ramp */
-  --ev-row-h: 36px;
-  --ev-row-h-media: 48px;
-  --ev-control-h: 32px;
-  --ev-control-h-lg: 40px;
+  --ev-rail-w: 88px; /* 80 + 8 — unchanged by D7 */
+  --ev-subnav-w: 256px; /* unchanged by D7 */
+  --ev-navrow-h: 36px; /* 32 + 4 */
+  --ev-row-h: 44px; /* 40 + 4 */
+  --ev-row-h-media: 68px; /* 64 + 4 */
+  --ev-row-h-head: 36px; /* 32 + 4 — new under D7 */
+  --ev-control-h: 36px; /* 32 + 4 */
+  --ev-control-h-lg: 44px; /* 40 + 4 */
 
   /* §14 type floors. These raise the Tailwind scale itself, so every
-     `text-xs` / `text-sm` in every component moves without a second class. */
+     `text-xs` / `text-sm` in every component moves without a second class.
+     `--text-xl` gains a floor under D7 for the same reason every other step
+     has one — it is the page title now and it was previously Tailwind's own
+     20/28 default, which no floor reached. */
   --text-2xs: 12px; /* badge label      11 → 12 */
   --text-2xs--line-height: 18px;
-  --text-xs: 13px; /* table header     12 → 13 */
+  --text-xs: 13px; /* secondary line   12 → 13 */
   --text-xs--line-height: 20px;
-  --text-sm: 14px; /* body, nav row, button, table body 13 → 14 */
-  --text-sm--line-height: 24px; /* ≥ 1.7 for body */
-  --text-base: 16px;
+  /* §14: "MUST set Arabic body text to at least 14px with a line-height of at
+     least 1.7." The Latin body is now 14px itself, so this override no longer
+     RAISES the size — it is still doing its job, because a floor that is
+     already met is met. What it still buys is the LINE-HEIGHT: 24/14 = 1.71,
+     against the Latin 20/14 = 1.43. Do not delete it as a no-op. */
+  --text-sm: 14px;
+  --text-sm--line-height: 24px; /* ≥ 1.7 for body — the binding half now */
+  --text-base: 18px; /* 16 → 18, one step, matching the Latin ramp */
   --text-base--line-height: 28px;
   --text-lg: 18px;
   --text-lg--line-height: 28px;
+  --text-xl: 24px; /* page title       22 → 24 */
+  --text-xl--line-height: 32px;
 }
 
 /* ==========================================================================
@@ -369,16 +824,26 @@
    ========================================================================== */
 
 :root {
-  --background: var(--ev-bg); /* canvas is grey, not white — closes D1 */
+  /* D-11 — ONE WHITE GROUND. The content region is white edge to edge and so
+     is a card; the card is carried by a 1px border and an 8px radius, which is
+     exactly how the reference does it (`02b895df`, four stat tiles, white on
+     white, borders only). §6.3 D1 is NARROWED to "white on white WITHOUT a
+     border", which is what the legacy app actually shipped. */
+  --background: var(--ev-bg);
   --foreground: var(--ev-ink);
 
-  /* The nav's three slots (§2.1, D6, V3). Slots of their own rather than
-     re-maps of --background / --accent / --muted, because the canvas and the
-     nav are now genuinely two surfaces and one name cannot mean both.
-     --nav-foreground is --ev-text-2 — the RESTING label — and --ev-bg-nav is
-     pinned to exactly the darkest grey at which that still clears 4.5:1
-     (4.523). Active and hover raise it to --ev-ink by class, not by slot. */
+  /* The nav's three slots (§2.1, D6 bullets 1/3/4, D7 §4.1). Slots of their
+     own rather than re-maps of --background / --accent / --muted, because the
+     content ground and the nav are genuinely two surfaces and one name cannot
+     mean both. --nav-foreground is --ev-text-2 — the RESTING label — which
+     clears 4.914:1 on --ev-bg-nav. Active and hover raise it to --ev-ink by
+     class, not by slot. --nav-chip is BOTH the resting count plate and the
+     ACTIVE PILL; see the token's own declaration for why one value does two
+     jobs. */
   --nav: var(--ev-bg-nav);
+  --nav-rail: var(--ev-bg-rail);
+  --nav-rail-chip: var(--ev-nav-chip-rail);
+  --nav-rail-foreground: var(--ev-text-2-rail);
   --nav-foreground: var(--ev-text-2);
   --nav-hover: var(--ev-nav-hover);
   --nav-chip: var(--ev-nav-chip);
@@ -389,7 +854,19 @@
   --popover: var(--ev-surface);
   --popover-foreground: var(--ev-ink);
 
-  --primary: var(--ev-blue); /* R3 / D-1 — brand blue, not near-black */
+  /* **R3 IS KILLED AND D-1 IS VOID.** The primary action is NEAR-BLACK, not
+     blue, and a stale blue primary is now a DEFECT rather than a legacy. The
+     reference's primary button samples #0C1116 (`6a08206b`, `862c7e14`) — a
+     large flat area, so the sample is trustworthy — which is Shopify's own
+     answer arrived at independently. The arithmetic that forces it: --ev-blue
+     #2b6ef0 is 4.574:1 on white and 4.259:1 on #f5f7f9, so it is not a
+     compliant fill-with-white-text on any tinted ground.
+     THIS NEEDS NO NEW TOKEN: --primary maps to --ev-ink. White on #171a21 is
+     17.411:1. Blue keeps the focus ring, the chart series, selection, and a
+     link on white (via --ev-blue-dk). R2 is amended by one colour name only:
+     Save is still THE SAME PRIMARY as every other primary, still never green
+     and never white-on-white. */
+  --primary: var(--ev-ink);
   --primary-foreground: var(--ev-surface);
 
   --secondary: var(--ev-surface); /* secondary button: white + hairline */
@@ -408,7 +885,17 @@
   /* R19 — the unchecked checkbox / radio outline, and nothing else. See the
      token's own declaration for the one permitted use and the measurements. */
   --border-strong: var(--ev-hairline-strong);
-  --input: var(--ev-hairline);
+  /* The FIRM of the product's two rule weights — a control's outline and a
+     frozen/pinned column's edge. See --ev-hairline-control for the arithmetic
+     showing the two weights are distinguishable (1.180 : 1 against each
+     other). Exposed as `border-border-control`, and available to an inline
+     style as `var(--ev-hairline-control)` where the cascade demands one. */
+  --border-control: var(--ev-hairline-control);
+  /* NOT --ev-hairline any more. --border went two ramp steps lighter to match
+     the reference's table and card rules (1.122:1 on white), and a control
+     bounded by a stroke that faint has no boundary at all. The reference
+     splits here too and declares the value — see --ev-hairline-control. */
+  --input: var(--ev-hairline-control);
   --ring: var(--ev-blue); /* §7.2 — 2px ring at 2px offset, always */
 
   --radius: var(--ev-radius-control);
@@ -447,6 +934,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-nav: var(--nav);
+  --color-nav-rail: var(--nav-rail);
+  --color-nav-rail-chip: var(--nav-rail-chip);
+  --color-nav-rail-foreground: var(--nav-rail-foreground);
   --color-nav-foreground: var(--nav-foreground);
   --color-nav-hover: var(--nav-hover);
   --color-nav-chip: var(--nav-chip);
@@ -467,6 +957,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-border-control: var(--border-control);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
@@ -496,12 +987,17 @@
   --spacing-navrow: var(--ev-navrow-h);
   --spacing-row: var(--ev-row-h);
   --spacing-row-media: var(--ev-row-h-media);
+  --spacing-row-head: var(--ev-row-h-head);
   --spacing-control: var(--ev-control-h);
   --spacing-control-lg: var(--ev-control-h-lg);
   --spacing-detail-rail: var(--ev-detail-rail-w);
   --spacing-monitor-aside: var(--ev-monitor-aside-w);
   --spacing-drawer: var(--ev-drawer-w);
   --spacing-marker: var(--ev-marker);
+  /* D-2' — the page gutter, exposed so a page shape can write `p-page-pad`
+     rather than `p-[var(--ev-page-pad)]`. ONE constant, `PAGE_BLOCK` in
+     `PageShell.tsx`, is its only consumer. */
+  --spacing-page-pad: var(--ev-page-pad);
   --container-page: var(--ev-page-max);
 
   /* The two two-pane grids, as tokens rather than as arbitrary values. Both
@@ -516,9 +1012,12 @@
 
   /* Radius. Explicit, all on the 4px grid — shadcn's stock
      calc(--radius * 0.6) produces 4.8px, which D15 records as a defect.
-     Controls are `rounded-lg` (8px), cards are `rounded-xl` (12px).
-     Nothing in the product is larger, so 2xl/3xl/4xl clamp to the card
-     radius rather than opening a door to a stadium (R15). */
+     Controls are `rounded-lg` and cards are `rounded-xl`, and UNDER D7 THOSE
+     ARE THE SAME 8px: the 12px card radius is falsified by measurement (see
+     --ev-radius-card). The two names are kept apart anyway so the card and the
+     control can diverge again in one file. R15's ladder survives lower down —
+     a badge is `rounded-sm` (4px). Nothing in the product is larger than the
+     card, so 2xl/3xl/4xl clamp to it rather than opening a door to a stadium. */
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -573,24 +1072,59 @@
 
   --text-2xs: 11px; /* count badge numeral, status badge label */
   --text-2xs--line-height: 16px;
-  --text-xs: 12px; /* secondary line, helper text, table header */
+  /* Secondary line and helper text. **NOT the table column header any more:**
+     the audit measures their header labels at ~14px/500 with ink heights
+     matching the body text, i.e. a column header is the SAME optical size as
+     the cell beneath it, where ours was two steps smaller than its own body.
+     That is a class change in `table.tsx` (`text-xs` -> `text-sm font-medium`)
+     and it belongs to the table engineer, not to this token. */
+  --text-xs: 12px;
   --text-xs--line-height: 16px;
-  --text-sm: 13px; /* BODY. nav row, table body, button, input */
-  --text-sm--line-height: 20px;
-  --text-base: 15px; /* first-run empty-state heading */
-  --text-base--line-height: 20px;
-  --text-lg: 17px; /* page header title */
-  --text-lg--line-height: 24px;
+  /* **BODY — 14px, not 13.** nav row, table body, button, input.
+     D7 §1.6 called 13px "unchanged, and this matters", solving cap heights off
+     a 1.875x downscale. The match audit closed it from two directions the
+     frames cannot reach: their stylesheet DECLARES the Tailwind step
+     `--text-sm: .875rem / calc(1.25/.875)` = **14px / 20px**, and an
+     Inter-metric solve (their own `Inter-Regular.a74be992.woff2`, ink advances
+     for `rows per page`, `an hour ago` and `Not identified`) back-solves to
+     13.5-13.8px at S = 1.875 — 14px within measurement bias. Line-height 20 is
+     theirs exactly (ratio 1.43; ours was 1.54 at 13px).
 
-  /* R-5. Geist FIRST in both languages: it has no Arabic glyphs, so Arabic
-     characters fall through to Naskh per character, while Latin text and every
-     numeral run stay in Geist — which is what makes AC-73 true by
-     construction. The self-hosted face leads the Arabic half of the stack; the
-     two installed-font names behind it are a genuine fallback for a machine
-     that has them, and `system-ui` is now last rather than the answer (§14:
-     "`system-ui` alone is not acceptable"). */
+     This is the widest-reaching single number in the file: `text-sm` is the
+     body default on `<body>` and the size of every nav row, cell, button and
+     input. */
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  /* 15 -> 16. Their declared `--text-base` is 1rem, and the audit solves their
+     nav TITLE at ~15.5px against our 13. Also the first-run empty-state
+     heading. */
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 17px; /* card / drawer-section title, stat VALUE. D7 NARROWS its
+                      role: it is no longer the page title. `04592c4f` card
+                      title cap 6.5 destination px -> 16.8; `79a31934` stat
+                      value figure height 6.75 -> 17.4. */
+  --text-lg--line-height: 24px;
+  /* THE PAGE TITLE, and the one real change to the ramp under D7. It
+     REDEFINES an existing Tailwind name (stock 20/28) and adds no --ev-*
+     token. `Visitors` (`82923d3f`): cap 9 destination px -> 23.2, x-height
+     7 -> 24.0. `Members` (`6a08206b`): cap 8.75 -> 22.6. Band 22-24; 22
+     chosen. Its Arabic floor is 24/32, under the :lang(ar) hook above. */
+  --text-xl: 22px;
+  --text-xl--line-height: 28px;
+
+  /* R-5, amended by the match audit. **INTER** FIRST in both languages: it
+     has no Arabic glyphs, so Arabic characters fall through to Naskh per
+     character, while Latin text and every numeral run stay in Inter — which is
+     what makes AC-73 true by construction. Inter is what the reference
+     resolves to; see the `@font-face` block at the head of this file for the
+     evidence and for why `swap` rather than their `block`. The self-hosted
+     Naskh face leads the Arabic half of the stack; the two installed-font
+     names behind it are a genuine fallback for a machine that has them, and
+     `system-ui` is now last rather than the answer (§14: "`system-ui` alone is
+     not acceptable"). */
   --font-sans:
-    "Geist Variable", "Noto Naskh Arabic Variable", "Noto Naskh Arabic",
+    "Inter Variable", "Noto Naskh Arabic Variable", "Noto Naskh Arabic",
     "Noto Sans Arabic", ui-sans-serif, "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
 

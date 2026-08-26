@@ -126,6 +126,26 @@ export interface CountResult {
   count: number | null
 }
 
+/**
+ * A `select` / `multi-select` filter's option set, **derived from the data**.
+ *
+ * The alternative is a hand-written list in the screen, and that list is wrong
+ * the first time a third city is seeded (finding F-6 in
+ * `docs/05-restructure/build/03-table-controls.md`). A facet endpoint is what a
+ * real API returns for exactly this reason, so the seam models it now and the
+ * screens never hard-code an option again.
+ *
+ * `count` is how many records carry the value, so a dropdown can show
+ * `Riyadh (52)` and an operator can see that a value exists but is empty.
+ */
+export interface FacetValue {
+  value: string
+  count: number
+}
+
+/** Field name → its option set. Only fields a resource declares `facetable` appear. */
+export type Facets = Record<string, FacetValue[]>
+
 export const DEFAULT_PAGE_SIZE = 25
 
 /* ──────────────────────────── Errors ───────────────────────── */

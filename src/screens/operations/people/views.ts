@@ -18,7 +18,7 @@
  */
 
 import type { Language, Translate } from '@/lib'
-import type { ToolbarTab } from './IndexToolbar'
+import type { ToolbarTab } from '@/components/DataTable'
 
 export const VIEW_CAPTAINS = 'captains'
 export const VIEW_APPLICATIONS = 'applications'

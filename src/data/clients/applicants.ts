@@ -8,17 +8,18 @@
  */
 
 import { DATA_SOURCE } from '../config'
-import { EYVAR_NOW } from '../mock/clock'
+import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import { runQuery, type QueryShape } from '../mock/query'
+import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { applicantFixtures } from '../fixtures/applicants'
 import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { OWNERSHIP_STALE_MINUTES } from '../fixtures/claims'
-import { ApiError, type Claim, type Paginated, type QueryParams } from '../types/common'
+import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { Applicant, ApplicantStatus } from '../types/applicant'
 import { http } from './http'
 
 export const APPLICANT_OPERATIONS = {
+  facets: 'applicants.facets',
   list: 'applicants.list',
   get: 'applicants.get',
   claim: 'applicants.claim',
@@ -40,12 +41,54 @@ const applicantShape: QueryShape<Applicant> = {
     status: (a) => a.status,
   },
   filterable: {
+    /* identity — text */
+    id: (a) => a.id,
+    name: (a) => a.name,
+    phone: (a) => a.phone,
+    plate: (a) => a.plate,
+    vehicle: (a) => a.vehicle,
+    nationalId: (a) => a.nationalId,
+
+    /* closed sets — options via `getApplicantFacets` */
     status: (a) => a.status,
     vehicleClass: (a) => a.vehicleClass,
     city: (a) => a.city,
+    gender: (a) => a.gender,
+    appLanguage: (a) => a.appLanguage,
+    bankStatus: (a) => a.bank.status,
     claimedBy: (a) => a.claim?.ownerId ?? null,
+    decidedByUserId: (a) => a.decidedByUserId,
+
+    /* booleans */
     unclaimed: (a) => a.claim === null || a.claim.state !== 'claimed',
+    hasPhoto: (a) => a.hasPhoto,
+
+    /* numbers */
+    acceptedTrips: (a) => a.acceptedTrips,
+    cancelledTrips: (a) => a.cancelledTrips,
+    /* Outstanding paperwork, as a number-range: `1 …` is "has a blocker". */
+    docsOutstanding: (a) => a.docs.filter((d) => d.status !== 'verified').length,
+
+    /* dates — the SLA columns a work queue is sorted and filtered by */
+    appliedAt: (a) => toInstant(a.appliedAt),
+    slaDueAt: (a) => toInstant(a.slaDueAt),
+    decidedAt: (a) => toInstant(a.decidedAt),
+    dateOfBirth: (a) => toInstant(a.dateOfBirth),
+
+    /* fraud signals */
+    lastIp: (a) => a.lastIp,
+    ipLocation: (a) => a.ipLocation,
+    device: (a) => a.device,
   },
+  facetable: [
+    'status',
+    'vehicleClass',
+    'city',
+    'gender',
+    'appLanguage',
+    'bankStatus',
+    'claimedBy',
+  ],
   views: {
     applications: () => true,
     mine: (a) => a.claim?.state === 'claimed' && a.claim.ownerId === CURRENT_USER_ID,
@@ -258,4 +301,27 @@ function liveClaim(claim: Claim | null): Claim | null {
   if (!claim || claim.state !== 'claimed') return null
   const idleMinutes = (Date.parse(EYVAR_NOW) - Date.parse(claim.touchedAt)) / 60_000
   return idleMinutes > OWNERSHIP_STALE_MINUTES ? null : claim
+}
+
+/**
+ * GET /api/v1//applications/facets
+ *   params: view
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The option set for every `select` / `multi-select` filter over applications,
+ * **derived from the data**. A screen that hard-codes `Riyadh` / `Jeddah` is
+ * wrong the first time a third city is seeded (finding **F-6**). Scoped by
+ * `view` only, so narrowing one filter never removes the options you would
+ * need to widen it again.
+ *
+ * Facetable fields are declared on the shape's `facetable` list above.
+ */
+export async function getApplicantFacets(
+  view?: string | null,
+  signal?: AbortSignal,
+): Promise<Facets> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Facets>('/applications/facets', { view: view ?? undefined }, { signal })
+  }
+  return mock(APPLICANT_OPERATIONS.facets, signal, () => computeFacets(applicantFixtures, applicantShape, view))
 }

@@ -64,6 +64,7 @@ import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell } from './cells'
 import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
 import { DOC_STATE, WORST_STATE } from './domain'
+import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import { useNowIso } from './useNowIso'
 import { VIEW_CAPTAINS, type ViewChrome } from './views'
@@ -187,6 +188,7 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
     <>
       <PeopleTable
         t={t}
+        language={language}
         table={table}
         rows={rows}
         status={data.status}
@@ -196,31 +198,7 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
         skeletonPattern="P1"
         {...chrome}
         searchPlaceholder={t('people.search.compliance')}
-        sortFields={[
-          { field: 'driverName', label: t('people.col.captain') },
-          { field: 'worstState', label: t('people.col.docs') },
-          { field: 'soonestExpiry', label: t('people.col.doc.license') },
-        ]}
-        filterFields={[
-          {
-            field: 'worstState',
-            label: t('people.filter.field.worstState'),
-            options: [
-              { value: 'expired', label: t('people.compliance.worst.expired') },
-              { value: 'critical', label: t('people.compliance.worst.critical') },
-              { value: 'valid', label: t('people.compliance.worst.valid') },
-              { value: null, label: t('people.compliance.worst.none') },
-            ],
-          },
-          {
-            field: 'suspended',
-            label: t('people.filter.field.suspended'),
-            options: [
-              { value: true, label: t('people.filter.value.suspended.true') },
-              { value: false, label: t('people.filter.value.suspended.false') },
-            ],
-          },
-        ]}
+        extraFilters={complianceExtraFilters(t)}
         rowActions={[
           {
             label: t('people.action.viewProfile'),
@@ -264,6 +242,24 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
   )
 }
 
+/**
+ * §6.4 — dispatch state, which the `Dispatch` column shows but the client
+ * exposes as the boolean `suspended`, not as the column's own rendered value.
+ * Declared here rather than on the column so the field the filter writes and
+ * the value the cell reads stay visibly separate.
+ */
+function complianceExtraFilters(t: Translate): ExtraFilterSpec[] {
+  return [
+    {
+      field: 'suspended',
+      label: t('people.filter.field.suspended'),
+      kind: 'boolean',
+      trueLabel: t('people.filter.value.suspended.true'),
+      falseLabel: t('people.filter.value.suspended.false'),
+    },
+  ]
+}
+
 function complianceColumns(
   t: Translate,
   language: Language,
@@ -274,7 +270,17 @@ function complianceColumns(
     {
       id: 'captain',
       header: t('people.col.captain'),
+      /* AC-104 — the identity: implicitly pinned, never hidden, never unpinned. */
       alwaysVisible: true,
+      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
+         of 32px took the 1280 content region from 1102 to 942, so the identity
+         column gives width back **before** anyone touches the gutter: D-2′ is
+         already a sanctioned deviation at 32 against a measured 68, and
+         shrinking it further is not on the table. 176 also buys the operator
+         24px more pin budget — the locked block drops from 240 to 216 of the
+         488 the floor allows. */
+      width: 176,
+      dataType: 'text',
       sortField: 'driverName',
       cell: (row) => <Identity to={profileHref(row.driverId)} name={row.driverName} t={t} />,
       /* Two qualifiers, in priority order: why dispatch is blocked, or that
@@ -285,12 +291,35 @@ function complianceColumns(
     {
       id: 'id',
       header: t('people.col.id'),
+      width: 128,
+      dataType: 'text',
+      /* §6.1 — the `text` kind, `contains`, on a 250 ms debounce. `driverId` is
+         the one identifier this client declares filterable. */
+      filter: { kind: 'text', field: 'driverId' },
       cell: (row) => <MutedCell className="tabular-nums">{row.driverId}</MutedCell>,
     },
     {
       id: 'worst',
       header: t('people.col.docs'),
+      width: 128,
+      dataType: 'enum',
       sortField: 'worstState',
+      /* The `No file` option the previous hand-built filter offered is ABSENT,
+         deliberately and reported: `worstState` is `null` for a captain with no
+         documents, and `ColumnFilterValue`'s `select` reserves `null` for `Any`,
+         so "the field IS null" is not expressible. `FilterOperator` has
+         `isNull` and the mock engine implements it; `toFilterSpec` has no path
+         to it. Raised for utilities-engineer in the handoff. */
+      filter: {
+        kind: 'select',
+        field: 'worstState',
+        options: [
+          { value: 'expired', label: t('people.compliance.worst.expired') },
+          { value: 'critical', label: t('people.compliance.worst.critical') },
+          { value: 'expiring', label: t('people.compliance.worst.expiring') },
+          { value: 'valid', label: t('people.compliance.worst.valid') },
+        ],
+      },
       cell: (row) => {
         const state = WORST_STATE[row.worstState ?? 'none']
         return (
@@ -303,7 +332,9 @@ function complianceColumns(
     ...DOC_COLUMNS.map<PeopleColumn<DriverCompliance>>(({ type, key }) => ({
       id: type,
       header: t(key),
-      cell: (row) => {
+      width: 112,
+      dataType: 'enum' as const,
+      cell: (row: DriverCompliance) => {
         const doc = row.docs.find((d) => d.type === type)
         /* No document of this type on file. `—` is not-applicable or unknown
            (§8.3.1) and is exactly right: there is nothing to expire. */
@@ -323,6 +354,8 @@ function complianceColumns(
     {
       id: 'dispatch',
       header: t('people.col.dispatch'),
+      width: 120,
+      dataType: 'enum',
       cell: (row) => (
         <Cell>
           {/* No red badge (R5a): a blocked captain is neutral-toned and the
@@ -336,12 +369,16 @@ function complianceColumns(
     {
       id: 'vehicle',
       header: t('people.col.vehicle'),
+      width: 144,
+      dataType: 'text',
       defaultHidden: true,
       cell: (row) => <Cell>{row.vehicle}</Cell>,
     },
     {
       id: 'soonest',
       header: t('people.col.soonestExpiry'),
+      width: 128,
+      dataType: 'date',
       defaultHidden: true,
       cell: (row) => {
         const soonest = row.docs.map((d) => d.expiresOn).sort()[0]

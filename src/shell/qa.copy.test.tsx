@@ -41,6 +41,19 @@ function stripComments(source: string): string {
 const table = getRouteTable()
 const en = (key: string) => EN[key] as string
 
+/**
+ * **Round 2 — D5: the rail tile's visible label IS its accessible name.**
+ * `Exec · Ops · Finance · Support · Admin`, with the count badge's own label
+ * composing into it (`Ops 35 items need attention`), so the lookup is anchored
+ * at the label and left open at the end rather than matched exactly.
+ *
+ * The full names still exist and are still asserted — they are the sub-tab
+ * column's `<h2>`, which is what the `workspace.*` lookups below read.
+ */
+const railLabel = (id: string) => en(`nav.rail.${id}`)
+const railTile = (id: string) =>
+  screen.getByRole('link', { name: new RegExp(`^${railLabel(id)}\\b`) })
+
 beforeEach(() => {
   disableMockLatency()
   resetDataLayer()
@@ -173,8 +186,9 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
       if (text && rawKey.test(text) && Object.hasOwn(EN, text)) offenders.push(text)
     }
     expect(offenders).toEqual([])
-    /* …and the English fallback IS what rendered. */
-    expect(screen.getByRole('link', { name: en('workspace.operations') })).toBeInTheDocument()
+    /* …and the English fallback IS what rendered. The rail's own label under
+       D5 — `Ops` — with its badge composing into the accessible name. */
+    expect(railTile('operations')).toBeInTheDocument()
   })
 
   it('resolves every key the shell source references — no key is missing from EN', () => {
@@ -379,15 +393,13 @@ describe('AC-73 — "In Arabic, money values, dates, ids and phone numbers read 
     const user = userEvent.setup()
     renderShell('/operations/people', <LanguageDriver />)
     await screen.findByRole('main')
-    const tile = screen.getByRole('link', { name: en('workspace.operations') })
+    const tile = railTile('operations')
     const englishBadge = tile.querySelector('[data-slot="badge"]')?.textContent ?? ''
     expect(englishBadge).toMatch(/^[0-9]+$|^99\+$/)
 
     await user.click(screen.getByRole('button', { name: 'qa-arabic' }))
     await waitFor(() => expect(document.documentElement).toHaveAttribute('lang', 'ar'))
-    const arabicBadge =
-      screen.getByRole('link', { name: en('workspace.operations') }).querySelector('[data-slot="badge"]')
-        ?.textContent ?? ''
+    const arabicBadge = railTile('operations').querySelector('[data-slot="badge"]')?.textContent ?? ''
     expect(arabicBadge).toBe(englishBadge)
     /* Western digits, never Arabic-Indic — the `-nu-latn` locale is what makes
        that true, and the badge is the shell's only numeral surface today. */
@@ -460,19 +472,27 @@ describe('AC-60 — "Global search returns no result the current role cannot ope
 /* ═══════════════════════════ AC-56 — forbidden ══════════════════════════ */
 
 describe('AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required"', () => {
+  /* **Round 1's D-9, for the record.** `ForbiddenScreen` and `forbiddenReason`
+     both existed and both had ZERO call sites in production code; `routes.tsx`
+     mapped every route straight to its screen with no permission branch, so the
+     build note's *"the day the 34 values land in `routeTable.ts`, no shell code
+     changes"* was false. `RouteGuard` is the fix. The tests below are the same
+     assertions turned the right way up. */
+
   /**
-   * **DEFECT D-9.** `ForbiddenScreen` exists and is tested at the copy level,
-   * and `forbiddenReason` exists and is unit-tested — but NOTHING RENDERS
-   * EITHER. `grep -rn 'ForbiddenScreen\|forbiddenReason' src --include=*.tsx`
-   * finds one definition and zero call sites outside `permissions.test.ts`.
-   * `routes.tsx` maps every route straight to its screen with no permission
-   * branch, and `AppLayout` filters only the rail and the column.
+   * **Round 2 — D-9 is FIXED, so this test is inverted.** In round 1 it
+   * asserted `callSites === []` and passed, which is how a criterion the build
+   * note called `pass ✓T` turned out to be wired to nothing. It now asserts the
+   * wiring exists, and it goes red the day someone removes the guard.
    *
-   * So the build note's "the day the 34 values land in `routeTable.ts`, no
-   * shell code changes" is not true: a deep link into a forbidden route will
-   * render the sub-tab normally. AC-56 is a code gap, not a Q4 gap.
+   * A source assertion is the honest instrument here and it is not a
+   * substitute for the behavioural one: **Q4 is still open, all 34
+   * `permission` values are `null`, so no navigation in the running app can be
+   * denied.** The behavioural half — a denied route renders `ForbiddenScreen`
+   * naming the permission, with the shell intact and the URL kept — is driven
+   * with a synthetic denial in `qa.forbidden.test.tsx`.
    */
-  it('DEFECT D-9 — no production code renders ForbiddenScreen or calls forbiddenReason', () => {
+  it('AC-56 is wired: production code renders ForbiddenScreen and calls forbiddenReason', () => {
     const roots = [join(process.cwd(), 'src', 'shell'), join(process.cwd(), 'src', 'screens')]
     const callSites: string[] = []
     const walk = (dir: string) => {
@@ -494,19 +514,42 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
       }
     }
     roots.forEach(walk)
-    const routesFile = readFileSync(join(process.cwd(), 'src', 'routes.tsx'), 'utf8')
-    if (/<ForbiddenScreen\b/.test(routesFile) || /\bforbiddenReason\s*\(/.test(routesFile)) {
+    const routesFile = stripComments(readFileSync(join(process.cwd(), 'src', 'routes.tsx'), 'utf8'))
+    if (/<ForbiddenScreen\b/.test(routesFile) && /\bforbiddenReason\s*\(/.test(routesFile)) {
       callSites.push('src/routes.tsx')
     }
-    /* This is the DEFECT, asserted as it stands so the fix flips it. */
-    expect(callSites).toEqual([])
+    expect(callSites).toContain('src/routes.tsx')
   })
 
-  it('DEFECT D-9 — a route whose sub-tab is filtered out of the column still renders its screen', async () => {
-    /* The column and the rail are filtered by `visibleSubTabs`; the CONTENT is
-       not gated at all. With Q4 open nothing is denied, so this asserts the
-       structural gap: the content region renders the sub-tab regardless of any
-       permission decision, because no permission decision reaches it. */
+  /**
+   * **Round 2 — the companion, also inverted.** Round 1 recorded that the
+   * content region was not gated at all: the rail and the column were filtered
+   * by `visibleSubTabs` while `routes.tsx` mapped every path straight to its
+   * screen. Now **every sub-tab route and every non-bleed level-3 detail goes
+   * through `RouteGuard`**, so the permission decision reaches the content
+   * region on every navigation rather than only when Q4 lands.
+   *
+   * Counted rather than spot-checked, because "most routes are guarded" is the
+   * shape of the original defect.
+   */
+  it('routes every sub-tab and every non-bleed detail through the guard, not just some', () => {
+    const source = stripComments(readFileSync(join(process.cwd(), 'src', 'routes.tsx'), 'utf8'))
+    const opening = (source.match(/<RouteGuard\b/g) ?? []).length
+    const closing = (source.match(/<\/RouteGuard>/g) ?? []).length
+    expect(opening).toBeGreaterThanOrEqual(2)
+    expect(closing).toBe(opening)
+    /* No sub-tab `<Route>` may hand its element straight to a screen. The two
+       route maps in the file are the sub-tab map and the detail map, and both
+       must wrap. */
+    expect(source).not.toMatch(/element=\{<SubTabScreen\b/)
+    expect(source).not.toMatch(/element=\{screenFor\(/)
+  })
+
+  it('still renders the screen while nothing is denied, which is Q4 and not a wiring gap', async () => {
+    /* With all 34 `permission` values `null`, `forbiddenReason` returns `null`
+       and the guard is a pass-through. That is the CORRECT behaviour today —
+       recorded so the pass-through is not mistaken for the round-1 defect, and
+       so the Q4 gap stays visible in the suite. */
     renderShell('/admin/team')
     expect(await screen.findByText('screen: admin-team')).toBeInTheDocument()
     const column = screen.getByRole('navigation', {
@@ -515,6 +558,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
     expect(within(column).getAllByRole('link').length).toBe(
       table.subTabs.filter((r) => r.workspaceId === 'admin').length,
     )
+    expect(table.subTabs.filter((r) => r.permission !== null)).toHaveLength(0)
   })
 })
 

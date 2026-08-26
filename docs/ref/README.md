@@ -4,10 +4,17 @@ Small lookup files. `DESIGN.md` is 5,761 lines — do not read it to check one r
 the file here, and open the `DESIGN.md` section only when you need the reasoning or the
 evidence behind it.
 
+> **⚠ `DECISIONS.md` D7 — the visual reference changed (Shopify → Navattic).**
+> **[`design/03-navattic-language.md`](../05-restructure/design/03-navattic-language.md) §1
+> is the token set** — every `--ev-*` value with its measurement or its derivation.
+> `tokens.md` below is **stale on values** (the names are all still right) and `a11y.md`'s
+> ratios were recomputed in §7 of that spec. §7–§9 of `DESIGN.md` are untouched and still
+> bind in full. Do not ship a re-skin that drops a ratio.
+
 | File | Answers | Lines |
 |---|---|---|
 | [rulings.md](rulings.md) | "The sections disagree — which wins?" | ~30 |
-| [tokens.md](tokens.md) | "What value do I use? Does a token exist?" | ~45 |
+| [tokens.md](tokens.md) | "What value do I use? Does a token exist?" — **values superseded by D7** | ~45 |
 | [patterns.md](patterns.md) | "What shape is this screen?" | ~40 |
 | [surfaces.md](surfaces.md) | "Toast, banner, modal, drawer, or page?" | ~35 |
 | [states.md](states.md) | "Which states must I build?" | ~35 |

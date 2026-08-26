@@ -163,10 +163,13 @@ describe('ModuleRail — AC-01, AC-02', () => {
      additions on top of §2.1's observed rule, and together they made a selected
      tile read as a card floating in a list. A test asserting either is now
      wrong, so this asserts their ABSENCE. */
-  it('expresses ACTIVE as a white pill alone — no marker, no border (§2.3)', () => {
+  it('expresses ACTIVE as a GREY pill alone — no marker, no border (D7 §3.3/§4.1)', () => {
     renderRail({ activeWorkspaceId: 'operations' })
     const tile = railTile('operations')
-    expect(tile.className).toContain('bg-card')
+    /* D7: the pill is GREY on a near-white nav, not white on grey. A white pill
+       on `--ev-bg-nav` would measure 1.0 : 1 and disappear. V2's white pill is
+       recorded as superseded in `04-reskin.md` §10. */
+    expect(tile.className).toContain('bg-nav-chip')
     expect(tile.className).not.toMatch(/(^|\s)border(\s|$)/)
     expect(tile.className).not.toContain('marker')
   })
@@ -269,10 +272,10 @@ describe('PageNav — AC-05, AC-19, AC-58', () => {
   /* §2.3 (amended) — the active ROW is a white pill and nothing else, exactly
      as the active TILE is. A test asserting `--ev-marker` or a 1px border on a
      nav row is now wrong. */
-  it('expresses ACTIVE as a white pill alone — no marker, no border (§2.3)', () => {
+  it('expresses ACTIVE as a GREY pill alone — no marker, no border (D7 §3.3/§4.1)', () => {
     renderColumn({ activeSubTabId: 'operations-people' })
     const row = screen.getByRole('link', { name: EN['subtab.operations.people'] as string })
-    expect(row.className).toContain('bg-card')
+    expect(row.className).toContain('bg-nav-chip')
     expect(row.className).not.toMatch(/(^|\s)border(\s|$)/)
     expect(row.className).not.toContain('marker')
   })

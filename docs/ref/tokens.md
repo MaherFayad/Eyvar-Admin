@@ -1,5 +1,20 @@
 # Tokens
 
+> ### ⚠ STALE AS OF `DECISIONS.md` D7 — every hex below has been replaced
+>
+> D7 replaced the visual reference (Shopify → Navattic). **The live token set, with every
+> value's measurement or derivation and every contrast ratio recomputed, is
+> [`docs/05-restructure/design/03-navattic-language.md`](../05-restructure/design/03-navattic-language.md) §1.**
+>
+> The **names** below are all still correct — that was the point of keeping them — and the
+> two-layer model, the name-collision warning and the banned-pattern list are all unchanged.
+> **Only the values moved.** Headlines: the canvas is now `#ffffff`, the nav `#f8fafb`, the
+> one subdued fill `#f5f7f9`, the accent `#2b6ef0`, and **`--primary` maps to `--ev-ink`,
+> not `--ev-blue`** (R3 rewritten, §6.2 D-1 void).
+>
+> This file is regenerated from §1 once fix-list item 1 lands in `src/styles/globals.css`.
+> Until then, read §1, not this.
+
 Stack: **Tailwind v4 + shadcn/ui**. Tailwind v4 is CSS-first — there is no
 `tailwind.config.js` colour palette. Everything lives in `src/styles/globals.css`.
 
@@ -11,6 +26,10 @@ Stack: **Tailwind v4 + shadcn/ui**. Tailwind v4 is CSS-first — there is no
   --ev-bg:        #EEF0F3;   /* page canvas */
   --ev-surface:   #ffffff;   /* card */
   --ev-bg2:       #F8F8F5;   /* subdued fill */
+  /* The nav's own greys — DECISIONS.md D6. Rail + sub-tab column ONLY. */
+  --ev-bg-nav:    #EAECF1;   /* nav ground, one step darker than the canvas */
+  --ev-nav-chip:  #DADEE6;   /* nav count chip plate; digits are --ev-ink */
+  --ev-nav-hover: #F2F4F7;   /* nav hover fill, between ground and white */
   --ev-hairline:  #E4E2DA;
   --ev-hairline2: #DDDBD3;
   --ev-ink:       #1A1A18;   /* primary text     17.43:1 */
@@ -28,6 +47,11 @@ Stack: **Tailwind v4 + shadcn/ui**. Tailwind v4 is CSS-first — there is no
 :root {
   --background: var(--ev-bg);
   --foreground: var(--ev-ink);
+  --nav: var(--ev-bg-nav);                    /* utility: bg-nav */
+  --nav-foreground: var(--ev-text-2);         /* the RESTING nav label */
+  --nav-hover: var(--ev-nav-hover);
+  --nav-chip: var(--ev-nav-chip);
+  --nav-chip-foreground: var(--ev-ink);
   --card: var(--ev-surface);
   --primary: var(--ev-blue);
   --primary-foreground: #ffffff;
@@ -45,6 +69,47 @@ Stack: **Tailwind v4 + shadcn/ui**. Tailwind v4 is CSS-first — there is no
   /* …one line per slot */
 }
 ```
+
+## The nav's three greys, and why they are not taste values
+
+Added in `02-shell-fixes` on the business owner's decision (`DECISIONS.md` **D6**): the rail
+and the sub-tab column get a ground one step darker than the canvas, and the 1 px hairline
+between nav and content is deleted. This **retires** part of `DESIGN.md` §6.2 **D-4** — the
+clause that said the tonal step was unavailable because no neutral darker than `--bg` existed
+— rather than adding a deviation.
+
+| Token | Value | What pins it to exactly this value |
+|---|---|---|
+| `--ev-bg-nav` | `#EAECF1` | The **darkest** grey in `--ev-bg`'s hue family at which `--ev-text-2` (the resting nav label, 13 px, therefore 4.5:1 AA text) still passes. `#EAECF1` → **4.523 : 1** ✓ · `#E9EBF0` → 4.482 ✗ · `#E7E9EE` → 4.401 ✗. One shade darker fails AA, so this is a boundary, not a preference. |
+| `--ev-nav-chip` | `#DADEE6` | Pinned to Shopify's own measured chip step. `#DADEE6` on `#EAECF1` = **1.141 : 1**; Shopify's `#DDDDDD` on `#EBEBEB` = 1.139 : 1. |
+| `--ev-nav-hover` | `#F2F4F7` | Sits between the nav ground and the active white, so hover and active stay distinguishable when adjacent. Same `g−r = 2, b−r = 5` relationship as the rest of the ramp. |
+
+Verified, and every ratio below was recomputed independently of the design spec that derived
+them — the two agree to three decimals:
+
+| Pair | Ratio | Against the reference |
+|---|---:|---|
+| white pill on `--ev-bg-nav` | **1.182 : 1** | Shopify 1.192 — parity |
+| `--ev-bg-nav` on `--ev-bg` | **1.035 : 1** | Shopify 1.055 — a distinct region |
+| `--ev-nav-chip` on `--ev-bg-nav` | **1.141 : 1** | Shopify 1.139 — parity |
+| `--ev-ink` on `--ev-nav-chip` | **12.92 : 1** | chip digits are ink, not grey |
+| `--ev-text-2` on `--ev-bg-nav` | **4.523 : 1** | AA ✓ — this is the constraint |
+| `--ev-ink` on `--ev-bg-nav` | **14.75 : 1** | AAA ✓ |
+
+Three rules that come with them:
+
+1. **`--ev-bg-nav` is used by the rail and the sub-tab column and by nothing else.** §2.1 asks
+   for a *near-canvas* grey, not a panel fill: if it reads as a coloured sidebar it is too
+   dark. The top bar spans the **content** region, so it stays `--ev-bg`.
+2. **Neither nav column has a border.** With a tonal step the hairline is exactly what §2.1
+   forbids, and keeping both is what makes a nav look bolted on.
+3. **The nav's focus ring is `ring-2 ring-inset`, not `ring-offset-2`** — the sub-tab rows sit
+   at gap 0, so an offset ring would overlap its neighbour. This is the only place in the
+   product that does not use the offset ring, and the zero gap is the reason.
+
+**Chip digits are `--ev-ink`, never `--ev-text-2`.** Any plate dark enough to read as a plate
+lands `--ev-text-2` at 3.8–4.2 : 1, which fails AA at 11 px. Shopify's own chip digits fail
+here too (~2.2 : 1 measured); we do not copy that.
 
 ## The name collision — read this once
 

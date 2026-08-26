@@ -8,11 +8,14 @@
  * (**AC-02**).
  *
  * Rules applied
- *   §2.1/D6/V3  the rail's ground is `--ev-bg-nav`, ONE STEP DARKER than the
- *               canvas, and there is **no border between nav and content**.
- *               §2.1 forbids that border once the tonal step exists, and
- *               keeping both is what makes a nav look bolted on. The token is
- *               derived, not chosen — see `globals.css`.
+ *   §4.1/D7     the rail's ground is `--ev-bg-nav` `#f6f8f9`, ONE STEP DARKER
+ *               than a WHITE content region — **the tonal direction does not
+ *               invert** — **and it carries a 1px `--ev-hairline` seam.** D6's
+ *               second bullet is void: the reference draws a border at both
+ *               sidebar edges in every frame, and at a 1.054 : 1 tonal step it
+ *               has to, because five units of luminance is not a boundary.
+ *               The value is DECLARED, not sampled — it is the reference's own
+ *               `--color-bg-muted` / `gray-50`. See `globals.css`.
  *   §2.2 (amended, D5) **the visible label IS the accessible name.** The old
  *               short-label / full-`aria-label` split was justified by WCAG
  *               2.5.3 (Label in Name) because "Customer Support" contains
@@ -21,18 +24,21 @@
  *               tile's actual name — visible and accessible alike. The full
  *               name is not lost: the sub-tab column's heading carries it, and
  *               so do the top-bar pair and global search.
- *   §2.3/V2     ACTIVE = an inset filled WHITE pill and **nothing else**. No
- *               3px leading edge, no 1px hairline, no shadow. Measured on
- *               `products-list-default.webp`: at the active pill's leading edge
- *               `|R − B| = 0` at every pixel (no chroma, so no blue marker) and
- *               the minimum luminance around its edges is 229–248 against a
- *               `#EBEBEB` ground (no darker stroke, so no border). The marker
- *               and the hairline were compensation for a ground that was too
- *               light — which is why V3's darker ground is a PREREQUISITE for
- *               this treatment, not a separate nicety. On the new ground the
- *               pill is 1.182 : 1, against Shopify's own 1.192 : 1.
- *               Weight 600 on the active label is the second carrier, so the
- *               state survives greyscale and low vision (§7.5).
+ *   §4.1/D7     ACTIVE = an inset filled **GREY** pill and **nothing else**.
+ *               No 3px leading edge, no 1px hairline, no shadow, **and no blue
+ *               glyph** — `text-primary` came off the active icon here,
+ *               because `--primary` is near-black now and a near-black glyph
+ *               on a grey pill says nothing the pill and the 600 label do not
+ *               already say. **The pill inverts and it costs almost nothing:**
+ *                 Shopify, measured (D6)      1.192 : 1
+ *                 Eyvar under D6 (white)      1.182 : 1
+ *                 Navattic (#e5e7eb on nav)   1.162 : 1
+ *               V2's *argument* survives intact upside down — the marker and
+ *               the hairline were compensation for a ground that was too
+ *               light, so the ground is still the prerequisite, not a nicety.
+ *               Weight 600 on the active label and `aria-current` are the
+ *               other two carriers, so the state survives greyscale and low
+ *               vision (§7.5).
  *   §2.3/AC-08  **the active tile is derived from `route.workspaceId`, never
  *               from a click.** No handler in this file sets an active state.
  *   §2.4/V6     **the tile's count badge is `neutral`, always.** The count
@@ -50,8 +56,9 @@
  *               offset ring.
  *   §7.4        every tile is an `<a>`. Nothing here is a `<div onClick>`.
  *   §9.5        none of the five glyphs mirrors. Every utility is logical.
- *   R-3 §1.3    the rail carries NO elevation and, since D6, no border either.
- *               Its separation from the canvas is the tonal step.
+ *   R-3 §1.3    the rail carries NO elevation. Since D7 it carries a border
+ *               again: its separation from the content region is the tonal
+ *               step **plus** the seam, which is what the reference does.
  *
  * ── the vertical register ────────────────────────────────────────────────
  *
@@ -59,12 +66,17 @@
  * top bar and a 40px column header: three bands, three heights, meeting at the
  * same y and agreeing about nothing. Now:
  *
- *   0  ──────────  wordmark band   48px = `--ev-topbar-h`, the same band as the
- *                                  top bar and the sub-tab column's heading
- *   48 ──────────  4px
- *   52 ──────────  tile 1          44px  = 4 + 20 glyph + 4 + 12 label + 4
- *   96 ──────────  4px             …so the tile PITCH is 48px, one top-bar
- *   100 ─────────  tile 2          module, and every tile edge lands on it
+ *   0  ──────────  wordmark band   **52px** = `--ev-topbar-h` (48 → 52 under
+ *                                  D7), the same band as the top bar and the
+ *                                  sub-tab column's heading
+ *   52 ──────────  4px
+ *   56 ──────────  tile 1          44px  = 4 + 20 glyph + 4 + 12 label + 4
+ *   100 ─────────  4px             …so the tile PITCH is 48px, and every tile
+ *   104 ─────────  tile 2          edge lands on it. **The tile keeps 44.** D7
+ *                                  measures the reference's rail at 53px and
+ *                                  ICON-ONLY; Eyvar's rail carries a label
+ *                                  under every glyph (D-4), so neither its
+ *                                  width nor its tile height transfers.
  *   …
  *   flex-1 spacer                  Admin is pinned; it does not scroll (AC-02)
  *   ── hairline ──                 inset 4px, matching the pill inset
@@ -139,8 +151,12 @@ export function ModuleRail({
       aria-label={t('shell.nav.workspaces')}
       /* `overflow-hidden`, not `overflow-auto`: §1.1 — the rail NEVER scrolls,
          and AC-19 tests that scrolling the content leaves it untouched.
-         D6 — `bg-nav` and NO `border-e`. */
-      className="flex h-full w-rail shrink-0 flex-col overflow-hidden bg-nav text-nav-foreground"
+         D7 §4.1 — `bg-nav` AND `border-e`. **The seam is back**, reversing D6's
+         second bullet: Navattic draws a border at destination x = 28 in every
+         sidebar frame, and at a 1.047:1 tonal step it has to — five units of
+         luminance is not a boundary. §2.1's no-border clause is a Shopify
+         observation D7 replaces, and D-4 now names it as suspended. */
+      className="flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"
     >
       {/* The wordmark BAND — `h-topbar`, so its lower edge is the top bar's
           lower edge. One register across the full width of the app. */}
@@ -238,14 +254,17 @@ function RailTile({
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         /* §2.3 / V2 — the whole active treatment: an inset filled white pill
            and a 600 label. Nothing else. */
-        active && 'bg-card text-foreground',
+        active && 'bg-nav-rail-chip text-foreground',
       )}
       {...itemProps}
     >
-      <WorkspaceGlyph
-        workspaceId={workspace.id}
-        className={cn('size-5', active && 'text-primary')}
-      />
+      {/* No `text-primary` on the active glyph. It was blue and read as a
+          third carrier; `--primary` is `--ev-ink` under D7, so the class now
+          paints the same near-black the active label already has. Removing it
+          is fix-list item 10's audit clause — a component that reached for
+          `primary` because it wanted BLUE. The active state's carriers are the
+          pill, weight 600 and `aria-current` (§7.5). */}
+      <WorkspaceGlyph workspaceId={workspace.id} className="size-5" />
       {/* `truncate` is a GUARD, not a mechanism. Every rail label is ≤ 7
           characters, and 7 characters at 11px measure ~40px inside a 72px
           content box, so it cannot fire — verified by measurement, not by eye.
@@ -270,7 +289,7 @@ function RailTile({
       {badgeLoading ? (
         <span
           aria-hidden="true"
-          className="absolute top-1 end-1 h-4 w-6 animate-pulse rounded-lg bg-nav-chip ring-2 ring-nav"
+          className="absolute top-1 end-1 h-4 w-6 animate-pulse rounded-lg bg-nav-rail-chip ring-2 ring-nav-rail"
         />
       ) : (
         badge && (
@@ -280,7 +299,16 @@ function RailTile({
                is `--ev-nav-chip`: a quiet plate you can actually see, with ink
                digits. `badge.tone` is `'neutral'` unconditionally here; the
                conditional is kept honest rather than assumed, so a future
-               change in `navBadges` cannot silently paint a tile amber. */
+               change in `navBadges` cannot silently paint a tile amber.
+
+               **THE REFERENCE HAS NO NAV COUNT AT ALL** — not in its rail, not
+               in its column (`people-match.md` S14) — and ours were called the
+               loudest colour on the page. They are §8.4 FUNCTION and D7
+               explicitly does not touch §8, so they are NOT deleted. What
+               changed is the plate: `--ev-nav-chip` is now the reference's own
+               `gray-200` #e5e7eb at 1.162 : 1 on the nav, which sits UNDER the
+               white content region rather than over it. The count is legible
+               (ink digits, 14.1 : 1) and the chip is not an event. */
             tone={badge.tone === 'warning' ? 'warning' : 'nav-neutral'}
             /* The badge overlaps the glyph by design — there is no room for it
                not to. The ring cuts a clean notch out of whatever sits under

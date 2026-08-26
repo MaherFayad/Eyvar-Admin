@@ -140,7 +140,13 @@ export function EmptyState(props: EmptyStateProps) {
     >
       {/* 144px, INSIDE the card (§11.1). Not 160: Shopify measures 146 and
           D-2 puts us one 4px step denser (§4.2). `w-36` = 144. */}
-      <div className="w-36 text-primary">{illustration ?? <DefaultIllustration />}</div>
+      {/* `text-muted-foreground`, not `text-primary`. `--primary` is
+          `--ev-ink` under D7, so a caller passing `currentColor` art would
+          have got a near-black block where the class was written to mean
+          "muted brand". This is fix-list item 10's audit clause. */}
+      <div className="w-36 text-muted-foreground">
+        {illustration ?? <DefaultIllustration />}
+      </div>
       <h3 className="text-base font-semibold text-foreground">{heading}</h3>
       {/* Constrained to 384px so the sentence keeps a readable measure. 96
           spacing units = 384px, on the 4px grid — no arbitrary value. */}
@@ -162,10 +168,20 @@ export function EmptyState(props: EmptyStateProps) {
 }
 
 /**
- * The default `first-run` illustration — muted brand palette, `currentColor`
- * over the parent's `text-primary`, so it tints with the token and cannot
- * introduce a colour. An abstract stack of records, not a mascot: §11.1 asks
- * for an illustration, and a product this dense does not get a cartoon.
+ * The default `first-run` illustration — an abstract stack of records, not a
+ * mascot: §11.1 asks for an illustration, and a product this dense does not get
+ * a cartoon. Every fill is a token, so it cannot introduce a colour.
+ *
+ * **Re-toned under D7, and the reason is a remap rather than taste.** It used
+ * `fill-primary` for its accent bar and `fill-border` for the two quiet ones.
+ * `--primary` moved from brand blue to `--ev-ink`, which would have painted a
+ * near-black bar in a "muted brand" illustration; `--border` moved two ramp
+ * steps lighter to `#f0f2f4`, which is 1.12 : 1 on a white card and would have
+ * painted nothing at all. Both are now explicit:
+ *   the highlighted row keeps `fill-info` (`--ev-blue-lt`) with its bar in
+ *   `fill-info-foreground` (`--ev-blue-dk`, 6.09 : 1 on that fill) — the one
+ *   place blue survives here, as decoration on its own pale ground;
+ *   the two resting rows are `fill-muted` with `fill-muted-foreground` bars.
  *
  * It does **not** mirror (§9.5): it is an object, and there is no reading
  * direction in it.
@@ -176,9 +192,9 @@ function DefaultIllustration() {
       <rect x="12" y="14" width="136" height="20" rx="6" className="fill-info" />
       <rect x="12" y="40" width="136" height="20" rx="6" className="fill-muted" />
       <rect x="12" y="66" width="136" height="20" rx="6" className="fill-muted" />
-      <rect x="24" y="21" width="40" height="6" rx="3" className="fill-primary" />
-      <rect x="24" y="47" width="56" height="6" rx="3" className="fill-border" />
-      <rect x="24" y="73" width="32" height="6" rx="3" className="fill-border" />
+      <rect x="24" y="21" width="40" height="6" rx="3" className="fill-info-foreground" />
+      <rect x="24" y="47" width="56" height="6" rx="3" className="fill-muted-foreground" />
+      <rect x="24" y="73" width="32" height="6" rx="3" className="fill-muted-foreground" />
     </svg>
   )
 }
