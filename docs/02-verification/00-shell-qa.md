@@ -638,3 +638,448 @@ gone. **I have not re-pointed them, deliberately:** rewriting my own assertions 
 I have not audited would launder an unreviewed change through a QA file.
 
 **The verdict in §10 stands, and P-1 is now stronger, not weaker.**
+
+---
+---
+
+# Round 2 — re-cut against D5, D6, D7 and the shell fixes
+
+> **Round 1 above is unchanged.** Not one row, defect record or measurement has been
+> edited. The delta between the two rounds is the evidence, and a verdict that gets
+> quietly revised is not a verdict.
+>
+> **Scope of this round.** Re-point, invert or replace the 22 failing tests in `src/shell`
+> against `DECISIONS.md` **D5 / D6 / D7** and `build/02-shell-fixes.md`. Tests only — no
+> production code was changed, and the three files temporarily mutated for the mutation
+> checks in §R9 were restored and hash-verified.
+
+---
+
+## R0. What was measured, and when
+
+Everything below was **run**. Verbatim.
+
+### R0.1 The inherited baseline — 21:29
+
+```
+$ npx tsc -b --noEmit        → exit 0, no output
+$ npx vitest run             → Test Files  3 failed | 33 passed (36)
+                               Tests      22 failed | 770 passed (792)
+```
+
+All 22 in `qa.shell.test.tsx`, `qa.keyboard.test.tsx` and `qa.copy.test.tsx`, and every one
+accounted for in `02-shell-fixes.md` §9. **This matches the shell owner's §1 exactly.**
+
+### R0.2 What I leave — 22:04
+
+```
+$ npx tsc -b --noEmit        → exit 0, no output
+$ npx vitest run             → Test Files  1 failed | 36 passed (37)
+                               Tests       1 failed | 808 passed (809)
+```
+
+**22 → 1.** Three consecutive runs give 1, 1, 1.
+
+**The one remaining failure is not in my inherited set, is not a criterion, and is not
+mine.** See **R7 (P-2)**. It is `nav.test.tsx` asserting the class string `bg-nav-chip` on
+the active rail tile; `ModuleRail.tsx` and `globals.css` were both edited at **21:43:42**,
+mid-session, renaming the rail's pill token to `bg-nav-rail-chip` (a new
+`--ev-nav-chip-rail: #d8dde5`, one step darker than the column's `#e5e7eb`). That test is
+one of the two a teammate re-cut and I was told to leave; the change that broke it landed
+after that instruction.
+
+### R0.3 The flakiness question, closed
+
+Not re-investigated — the orchestrator had already found it: two `nav.test.tsx` tests were
+re-cut between the two runs that gave 24 and 22. Confirmed here from the other end: three
+consecutive full runs at the inherited baseline gave **22, 22, 22**, and three at the end
+gave **1, 1, 1**. **The suite is not flaky.**
+
+---
+
+## R1. Criteria whose verdict CHANGES in round 2
+
+| AC | Round 1 | **Round 2** | What changed, and the test that now proves it |
+|---|---|---|---|
+| **AC-56** | **FAIL** (D-9) | **Pass** | `ForbiddenScreen` is wired through `RouteGuard` in `routes.tsx`. Verified two ways: source-level (`qa.copy` *"AC-56 is wired…"*, *"routes every sub-tab and every non-bleed detail through the guard"*) **and behaviourally**, in the new `qa.forbidden.test.tsx` — 9 tests driving a synthetic denial through the real `AppRoutes`: the forbidden state renders, **names the permission**, names the route, keeps the URL, keeps the shell, offers a way out, gates a level-3 detail the same way, and — the control — renders the screen the moment the decision says permitted. See G-8 for what this still does not prove. |
+| **AC-67** | **FAIL, both clauses** (D-1, D-2) | **Pass, both clauses** | Focus enters the layer past the portal's second commit, and `Tab` from the last control **leaves** while the layer stays open. `qa.keyboard` — *"moves focus into the layer on open…"*, *"Tab past the layer's last control moves into the page behind it…"*, and a new **`Shift+Tab` from the first control** test, because Radix's `loop` wrapped both edges. **Mutation-verified** (R9 M3). |
+| **AC-74** | **FAIL in global search** (D-7) | **Pass** | The rendered half is fixed by `GlobalSearch`'s narrow key guard. New rendered-level test *"renders no raw key in the global search popover"* — **mutation-verified** (R9 M5), which the round-1 client-level tests could not be. The **data** defect is unfixed and still reported: D-7 below. |
+| **AC-65** | Pass (at baseline) | **Pass** | Re-pointed at the D5 rail labels. The criterion as written still enumerates *"the sub-tab list's collapse control"*, which no longer exists — **spec defect S-7**. The test asserts the fact that replaces it: no such control is in the DOM. |
+| **AC-64** | Pass (at baseline), with O-4 | **Pass** | Re-cut for D5's order — skip link → wordmark → four tiles (one stop) → **Admin, with nothing between them** → column (one stop) → top bar → content. Asserted as **element identity**, not as name strings, because a tile's name now carries its backlog count and the tab order must not depend on fixture numbers. |
+| **AC-63** | Pass | **Pass** | Re-pointed; one `Tab` between the rail group and Admin, not two. |
+| **AC-27** | Pass (at baseline) | **Pass, first clause; second clause VOID** | The count still rolls up (`nav.test.tsx`, `navBadges.test.ts`). *"…still rendered when the list is collapsed"* is void with D5 and the spec records it struck. |
+| **AC-30** | FAIL — 3 of 4 | **FAIL — 3 of 4, unchanged** | D-8 stands. `Cancellation policy` still resolves to nothing. |
+| **AC-24** | Pass | **Pass** | Re-pointed from `/operations/people` — which is now a real `PeopleScreen`, not `SubTabScreen` — to `/operations/trips`, which is still on the shared placeholder, so it exercises the shell's own error path. See G-9. |
+| **AC-36** | Pass | **Pass, and stronger** | `?mockFail=` was **dead** — found in this round as **D-10**, fixed during it, and the test kept. See R3. |
+| **AC-32** | Pass (at baseline) | **VOID — D5** | Not restored. Replaced. See R2. |
+| **AC-33** | Gap (Q1), first clause Pass | **VOID — D5** | Not restored. Replaced. See R2. **This retires the shell's last Q1 dependency.** |
+| **AC-11a** | Spec defect S-1 | **Resolved** | Struck in the spec by product-owner's amendment, with the reasoning recorded. Not renumbered, which is the right answer. |
+
+**Everything not in this table keeps its round-1 verdict.** In particular AC-61 remains a
+**Q4 gap**, AC-16 / AC-43–47 / AC-49 / AC-50 / AC-53–55 / AC-68 remain **Unverifiable** for
+want of a subject, and AC-31 / AC-34 remain **Visual**.
+
+### Revised totals against the 76 numbered criteria
+
+**Pass 49** · **Pass (weak) 8** · **Fail 1** (AC-30) · **Void 2** (AC-32, AC-33) ·
+**Gap 1** (AC-61 / Q4) · **Unverifiable 13** · **Visual 2**.
+
+Round 1's four failures were AC-30, AC-56, AC-67, AC-74. **Three are fixed.**
+
+---
+
+## R2. AC-32 and AC-33 — replaced, not restored
+
+The seven tests frontend-engineer deleted are **not** coming back, and the placeholder
+that said so is gone. AC-32 and AC-33 are void under D5, the spec records both struck with
+their replacement stated, and restoring tests for a deleted requirement would be
+re-litigating a decision through a test file.
+
+What replaces them is a seven-test block in `qa.shell.test.tsx`,
+**`D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible"`**, closing the
+same seven holes from the other side:
+
+| Was | Is now |
+|---|---|
+| AC-32 · 1280 defaults collapsed | the column is present at the 1280 floor, with all nine rows |
+| AC-32 · 1440 defaults expanded | present at 1440, **identically** — there are no longer two states |
+| AC-32 · does not re-collapse on narrowing | narrowing changes nothing, **and it is still there after the next render at the narrow width** |
+| AC-32 · does not re-expand on widening | widening changes nothing, same two-part shape |
+| AC-32 · survives every route change | present on **all 34** sub-tab routes, **at 1280** |
+| AC-33 · the popover lists the same rows | there is **no disclosure and no popover**: zero buttons in either nav column, neither `shell.nav.hideSubTabs` nor `shell.nav.showSubTabs` resolves to a control, and no dialog is reachable from the nav |
+| AC-33 · survives a reload (**Q1 gap**) | **nothing about the column is persisted.** No `UI_STATE_KEYS` entry matches `/collaps/i`, and the column returns after `resetDefaultUiStores()` — which is what a reload does to an in-memory store. **No shell criterion waits on Q1 any more.** |
+
+**The two resize tests are deliberately in two parts, and the reason is a mutation.** A
+one-part version does not bite: reintroducing the collapse as a render-time
+`window.innerWidth >= 1344 &&` guard in `AppLayout` survives a bare `resize` event, because
+nothing subscribes to one and React does not re-render. Each test therefore resizes **and**
+forces a real re-render by navigating. Under that mutation, **3 of the 7 fail** (R9 M4);
+under the one-part version, 1 did.
+
+---
+
+## R3. Defects — the round-1 list, updated
+
+| # | Round 1 | **Now** | Owner |
+|---|---|---|---|
+| **D-1** | HIGH — focus does not enter the layer | **FIXED.** Test inverted and kept. | — |
+| **D-2** | HIGH — the layer traps focus | **FIXED.** Test inverted, kept at its strongest, and a `Shift+Tab` companion added. Mutation-verified. | — |
+| **D-9** | HIGH — `ForbiddenScreen` renders nowhere | **FIXED.** Wired through `RouteGuard`; 9 behavioural tests added. | — |
+| **D-4** | MEDIUM — the tile's count is announced to nobody | **FIXED.** The tile carries no `aria-label`, so `Ops 35 items need attention` composes. Test inverted and kept. | — |
+| **D-8** | MEDIUM — `Cancellation policy` finds nothing | **OPEN, unchanged.** | mock-data-engineer |
+| **D-7** | MEDIUM — search renders raw i18n keys | **HALF FIXED.** The shell defends itself and AC-74 passes. The **data** defect stands: `searchDestinations` still sets `title: row.titleKey` and `SearchResult` has no `titleKey` field. | mock-data-engineer |
+| **D-3** | LOW — row count announced with no label or separator | **OPEN, and CORRECTED — see below.** | product-designer |
+| **D-5 / D-6** | folded | unchanged | — |
+
+### D-3 — **round 1 got half of this wrong, and it is corrected here**
+
+Round 1 reported the row's accessible name as **`My Work12`** and named the missing
+separator as the defect. **That was measured from `textContent`, and `textContent` is not
+the accessible name.** The accname algorithm joins element contributions with a space, so
+the real name is **`My Work 12`** and the separator was never missing. Verified with
+`dom-accessibility-api`, the same implementation Testing Library queries through.
+
+**What survives is still real and still open:** the numeral has **no label**. The row says
+`My Work 12` where the rail tile beside it says `Ops 35 items need attention` — two nav
+levels, two contracts, and only one tells the operator what the number counts. The test is
+renamed to what it actually shows and now asserts the *pair*, which is the finding.
+
+Frontend-engineer was right not to invent the copy: the only key that exists is
+`shell.nav.backlog` (*"{count} items need attention"*), which is wrong for a neutral count.
+**Product-designer: one key.**
+
+### D-10 — `?mockFail=` was dead · **HIGH at the time** · AC-36 · **found and fixed in this round**
+
+**Reproduce (as it was at 21:29).** `grep -rn seedMockFailuresFromLocation src/` → the
+definition in `src/data/config.ts`, the re-export in `src/data/clients/index.ts`, and
+`seam.test.ts`. **No entry point called it.** `src/main.tsx` rendered `<App />`;
+`src/App.tsx` never imported it.
+
+**Why it was not cosmetic.** AC-36 says the failure is induced *"without editing source"*.
+Vitest reaches `mockFailures` by import. **Playwright, visual-QA and anyone driving the
+built app cannot** — for them `?mockFail=drivers.list` is the only door to an error state,
+and it was bricked. Reviewing §9.2's error states at 1280 is a visual-QA requirement nobody
+could satisfy. The function's own doc comment had said *"Call once at boot, before the
+first render, from the app entry point"* since 0.2.
+
+**Written as `it.fails` at 21:41. It went red at 21:52**, because the wire landed in
+`src/main.tsx` at 21:50:50 — which is exactly what an `it.fails` is for. Flipped to a plain
+`it`, and **strengthened**: the call must precede `createRoot`, because every mock client
+takes from the registry on its way out and `ShellProvider` fires three reads in its first
+effect. A call ordered after `createRoot` would apply the failure to the retry rather than
+to the load, which looks like it works and does not.
+
+### D-11 — a layer opened from inside a popover does not receive focus · **MEDIUM** · AC-67
+
+**Not** D-1, and not fixed with it. Round 1 recorded this as *"the same, opened from a real
+control"* and asserted the broken behaviour; it is now an `it.fails` asserting the correct
+behaviour, so it goes red on the day it is fixed.
+
+**Reproduce.** Open the bell, activate `See all`. **Expected:** focus is inside the drawer.
+**Actual:** focus is on the bell.
+
+**Root cause** (frontend-engineer's, §13, and confirmed): `See all` closes the Radix
+popover, and a closing popover restores focus to **its own trigger**, asynchronously, after
+`useFocusEntry` has already moved focus into the drawer. Last writer wins and it is the
+popover. The same shape applies to any layer opened from a popover or a dropdown-menu —
+which includes the account menu's `My profile`, i.e. **two of the three ways an operator
+reaches a shell layer from the top bar**.
+
+**This needs a ruling, not a patch: who owns focus when a popover hands off to a layer?**
+**Owner: product-designer.**
+
+---
+
+## R4. Observations — updated
+
+Round 1's O-1, O-2, O-5, O-8 and O-9 stand unchanged. O-3 (the plan editor's exit control
+named `Back`) stands. O-4 is now spec defect **S-2**, still open. O-6 and O-7 stand.
+
+- **O-10 — two dead i18n keys.** `shell.nav.hideSubTabs` and `shell.nav.showSubTabs` are
+  still in `dictionaries.ts` with nothing rendering either. Harmless, but they are the
+  reason my D5 test looks them up **by name as well as** counting buttons: a control could
+  be reintroduced without changing a single class. **Owner: product-owner**, with the same
+  question as `routeTable.subtitleKey` and `UserPreferences.subTabNavCollapsed` — three
+  fields and two strings now unread, all flagged by their owners and none deleted.
+- **O-11 — the rail's `Admin` tile announces a count its own badge does not show.** With a
+  backlog over 99 the visible chip reads `99+` while the accessible name reads
+  `Admin 1251 items need attention`. That is defensible — the label carries the truth and
+  the chip carries the glance — but it is a deliberate divergence and nobody has written it
+  down. **visual-qa / product-designer.**
+
+---
+
+## R5. Coverage gaps
+
+G-1 … G-7 from round 1 stand, with G-7 (the concurrent rewrite) now **closed**: the new
+rail, the removed collapse and the guard are all audited here. Two new ones:
+
+- **G-8 — AC-56 is verified with a SYNTHETIC denial, not a real one.** The domain state
+  *"a route this role cannot see"* is unreachable through the app's own seams: all 34
+  `permission` values are `null` (**Q4**), `session.subTabPermissions` is `{}`, and there is
+  no `mockFailures` equivalent for permissions. `qa.forbidden.test.tsx` therefore stubs
+  **exactly one thing — the permission decision, `forbiddenReason`** — and leaves the real
+  `AppRoutes`, `RouteGuard`, `ForbiddenScreen`, `AppLayout` and dictionary in place, with the
+  rest of `@/shell/permissions` passed through. That proves the composition. It does not
+  prove that any **real** role is denied any **real** route, and it is not claimed to. That
+  is Q4, and it is a data gap, not a code one — which is the distinction round 1 was arguing
+  for and the reason AC-56 was a Fail rather than a Q4 gap.
+- **G-9 — `/operations/people` no longer honours the shell's failure contract, and nobody
+  has checked what it honours instead.** AC-24 is re-pointed at `/operations/trips` because
+  `PeopleScreen` does not read `navCounts`; it reads `applicants.list` and friends and has
+  its own per-view error states. **Whether it satisfies AC-24 is people-QA's, against
+  `applicants.list`.** The shell's shared `ErrorState` path is unchanged either way, and
+  `SubTabScreen` still renders it.
+
+---
+
+## R6. Spec defects — back to product-owner
+
+S-1 is **resolved** (AC-11a struck, with reasoning). S-3, S-4, S-5 and S-6 stand.
+S-2 stands — AC-64 still does not account for the Eyvar wordmark, which §4.1 requires in the
+rail and which is therefore a tab stop between the skip link and the first tile. One new:
+
+- **S-7 — AC-65 still enumerates a control D5 deleted.** *"…the 5 rail tiles, the back
+  arrow, the bell, the avatar, and **the sub-tab list's collapse control**."* §3.9, AC-27,
+  AC-32, AC-33 and AC-64 were all amended for D5; AC-65 was missed. Strike the last clause.
+  Until then the criterion is unsatisfiable as written and my test records why.
+
+---
+
+## R7. **P-2 — production changed under this round, twice** · not blocking
+
+Round 1's P-1 was blocking because the tree was mid-rewrite, `tsc` was red and 65 tests were
+failing. **This is not that.** Both changes are small, deliberate and green apart from one
+assertion. Recorded because a verdict that does not say when the tree moved is not
+reproducible.
+
+| Time | File | Change | Effect on this round |
+|---|---|---|---|
+| 21:43:42 | `src/shell/ModuleRail.tsx`, `src/styles/globals.css` | the rail's active pill moves from `bg-nav-chip` to a new `bg-nav-rail-chip` / `--ev-nav-chip-rail: #d8dde5`, one step darker than the column's `#e5e7eb` | **the one remaining red test.** `nav.test.tsx` › *"expresses ACTIVE as a GREY pill alone"* hard-codes the old class string |
+| 21:50:50 | `src/main.tsx` | `seedMockFailuresFromLocation()` wired at boot | **D-10 fixed.** My `it.fails` went red, which is the mechanism working |
+
+**On the red test, and why I have not touched it.** Its intent — *ACTIVE is a grey pill and
+nothing else, no marker, no border* — is unaffected; the fix is a one-string re-point from
+`bg-nav-chip` to `bg-nav-rail-chip`. I have left it for three reasons, and I would rather be
+argued out of them than have quietly re-pointed it:
+
+1. It is one of the two `nav.test.tsx` tests a teammate re-cut and I was told to leave.
+2. It asserts a **class name**, which is visual-qa-engineer's instrument, not mine, and the
+   comment above it carries a contrast argument I have not re-measured. `--ev-nav-chip-rail`
+   is a **new token whose measurement nobody has checked in this round.**
+3. The change was still in flight three minutes before my first full run. Re-pointing a test
+   at a value that may move again is churn, and it is how an unreviewed change gets laundered
+   through a QA file — the exact failure mode round 1's addendum §11A named.
+
+**Owner: whoever is live in `ModuleRail.tsx` and `globals.css`** — one string, plus a
+contrast measurement for visual-qa.
+
+---
+
+## R8. What changed in the test suite
+
+| File | Round 1 | **Round 2** | Net |
+|---|---:|---:|---|
+| `src/shell/qa.shell.test.tsx` | 42 | **43** | AC-32/33 placeholder (1) → **7 D5 tests**; AC-06 ×2, AC-11, AC-13, AC-23 re-pointed; AC-24 ×2 re-pointed at `trips`; **D-10 added** |
+| `src/shell/qa.keyboard.test.tsx` | 22 | **21** | AC-64 re-cut to element identity; the disclosure and popover tests **deleted, not re-pointed**; D-1, D-2, D-4 **inverted**; **`Shift+Tab` edge added**; **D-11 added**; D-3 corrected |
+| `src/shell/qa.copy.test.tsx` | 31 | **33** | AC-73, AC-74 re-pointed; D-9 ×2 **inverted**; **rendered-level AC-74 search test added** |
+| `src/shell/qa.forbidden.test.tsx` | — | **9** | **new** — AC-56 driven behaviourally |
+| `src/components/qa.states.test.tsx` | 28 | 28 | untouched, still green |
+| | **123** | **134** | |
+
+Three conventions, all deliberate:
+
+- **Every `it` name still quotes its criterion.**
+- **A criterion that is FALSE still gets `it.fails`** with `DEFECT D-n`. Two remain: **D-7**
+  (the data half) and **D-8**, plus **D-11**, newly written that way. Each goes red the day
+  it is fixed — D-10 did, twelve minutes after it was written, which is the whole argument
+  for the convention.
+- **A test that is inverted keeps the root-cause comment**, rewritten to say what the bug
+  *was*. D-2's mechanism — our key handler racing a hardcoded `loop: true` in a package we
+  do not control — is exactly what returns silently on a dependency bump, so the analysis is
+  worth more in the file than in a changelog.
+
+Non-accessible handles are unchanged from round 1: `[data-slot="badge"]`,
+`[data-slot="scroll-area"]`, `[data-sonner-toaster]`, plus one `data-testid` on a URL probe
+I render myself in `qa.forbidden.test.tsx`. The badge case **was** the defect; half of it is
+now fixed (D-4) and half is not (D-3).
+
+---
+
+## R9. Mutation tests
+
+The point of a mutation test is to prove the assertion bites. **All three files were
+restored and hash-verified byte-for-byte.**
+
+### M3 — the untrapped `Tab` (AC-67, the strongest new guarantee)
+
+Disabled `releaseTabAtEdges` in `src/components/ui/sheet.tsx`
+(`if (false && !event.defaultPrevented)`), which is precisely what a Radix bump that changes
+the merge order would do.
+
+**Result: caught, three times.**
+
+```
+× AC-67 (amended) > Tab past the layer's last control moves into the page behind it…
+× AC-67 (amended) > Shift+Tab from the layer's first control also leaves it…
+× AC-67 (AppLayout.test.tsx, frontend-engineer's) > Tab past the layer's last control…
+```
+
+Restored; `sha256 0836c416d978e31224915d59953b30df2eae2ee9691efbe1b80adaaf49960101` matches.
+**The new `Shift+Tab` test bites**, which is the half round 1 could not have.
+
+### M4 — the collapse, reintroduced (D5, replacing AC-32)
+
+Wrapped `<PageNav>` in `AppLayout.tsx` in `window.innerWidth >= 1344 &&` — the exact feature
+D5 deleted, in the cheapest form someone would reintroduce it.
+
+**Result: caught, 3 of 7.** The 1280 test, and both resize tests **after** they were made
+two-part. Before that change only 1 of 7 caught it, which is why the two-part shape is in
+the file with the reason written next to it. Restored;
+`sha256 f5c4028f114c0a450111d664529b0063d0a8d5e09aad0dfde22899c4b81ec640` matches.
+
+### M5 — the global-search key guard (AC-74)
+
+Replaced `displayString`'s body in `GlobalSearch.tsx` with `return value`.
+
+**Result: caught**, and **the first version of my test did not catch it** — it waited on a
+title that was already on screen in the sub-tab column, so it scanned a popover that had not
+opened yet. Re-cut to wait on the row's **path**, which appears nowhere else in the document:
+
+```
+× renders no raw key in the global search popover
+  → expected [ 'subtab.operations.overview', …(8) ] to deeply equal []
+```
+
+Restored; `sha256 2110a0a5646469f7c8e3a769b73b7c3cefb4fe55f6cde7444f18928fcae30cf6` matches.
+**Recorded because it is the more useful half of the result:** a passing test that does not
+bite is worse than no test, and only the mutation found that.
+
+### Not re-run
+
+M1 is void — `useNavCollapse` is deleted. M2 (`modal={false}`) stands from round 1 and its
+conclusion is unchanged: `modal={false}` buys the no-scrim, interactive page; it never bought
+the untrapped `Tab`, which is what M3 now defends.
+
+---
+
+## R10. Verdict
+
+> ### The three blockers in round 1's §10 are cleared. **Phase 1 may open on this shell.**
+
+Taking them in the order they were weighted:
+
+**1. P-1 is resolved.** `tsc` exits 0, 808 of 809 tests pass, and §3.9, AC-27, AC-32, AC-33
+and AC-64 were formally amended in `specs/00-foundation.md` rather than quietly ignored —
+which is what round 1 asked for and did not expect to get. The tree did move twice during
+this round (**P-2**), but small, deliberate and green, which is a different thing.
+
+**2. Both HIGH keyboard defects are fixed**, in the one mechanism every Phase 1 screen will
+use, and both fixes are mutation-verified rather than taken on trust. **D-11 is what is left
+of that story** and it is MEDIUM, not HIGH: focus does enter a layer opened directly, and
+does not enter one opened from a popover. It needs a design ruling, and it does not block a
+screen being built.
+
+**3. AC-56 is wired**, and — more to the point — it is wired in a way that makes the build
+note's original claim true for the first time: the guard is exercised on every navigation, so
+the day Q4's 34 values land, no shell code changes.
+
+### What is left, and who owns it
+
+| | Severity | Owner |
+|---|---|---|
+| **D-8** — `Cancellation policy` finds nothing | MEDIUM | mock-data-engineer |
+| **D-7** — `SearchResult` has no `titleKey`; the shell guards around it | MEDIUM | mock-data-engineer |
+| **D-11** — a layer opened from a popover does not receive focus | MEDIUM | **product-designer** — a ruling, not a patch |
+| **D-3** — a sub-tab row's count has no label (corrected) | LOW | **product-designer** — one key |
+| **P-2** — `nav.test.tsx` asserts the pre-rename pill class | LOW | whoever owns the rail re-skin |
+| **S-7** — AC-65 enumerates the deleted collapse control | — | product-owner |
+| **AC-61 / Q4** — 34 null permissions | gap | business owner |
+
+None blocks a Phase 1 screen. **AC-61 / Q4 still blocks sign-off on the foundation as
+complete**, which is a different signature — and it is now the **only** open question the
+shell has, because D5 retired Q1 by deleting the feature that depended on it.
+
+### On the build note, `02-shell-fixes.md`
+
+Round 1's criticism was that eleven criteria were marked `pass` on the strength of the code
+reading correctly, and four of those were false. **That does not apply to this one.** §1
+leads with the failing count instead of burying it, §9 accounts for all 22 reds by cause and
+by owner, §9e names a defect it chose **not** to fix and says why, §10 states a process
+failure plainly and without hedging, and §13 raises a third focus defect it found rather than
+patching around it. The two claims I probed hardest — that D-1 and D-2 were fixed at the
+composition level rather than papered over — both hold under mutation.
+
+One thing it got wrong, small and stated here rather than saved up: §9a lists the AC-32 /
+AC-33 marker as *"3"* reds alongside two AC-64 / AC-66 disclosure tests, but the coverage it
+destroyed was **seven** tests, and none of them should have come back. Deleting them was the
+right call made the wrong way, and §10 already says so better than I could.
+
+---
+
+## R11. Addendum — 22:07, closing measurement
+
+Recorded because §R0.2 must be the truth about the tree, not about my own diff.
+
+**`tsc` was exit 0 at 22:04, with everything in this round complete. At 22:07 it is exit 1**,
+on a single error in a file that did not exist three minutes earlier:
+
+```
+$ npx tsc -b --noEmit
+src/screens/metrics/source.ts(567,7): error TS2322:
+  Type '{ kind: "duration"; minutes: number | undefined; }' is not assignable to type 'MetricValue'.
+    Types of property 'minutes' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+```
+
+`src/screens/metrics/contract.ts` and `source.ts` were created at **22:05:05** and
+**22:05:21** by another agent — the command-centre work
+(`docs/05-restructure/design/05-command-centre.md`, also new and untracked). **Zero `tsc`
+errors are in `src/shell`, in `src/components/qa.states.test.tsx`, or in any file this round
+touched**, and the Vitest result is unaffected: 1 failed / 808 passed, three consecutive
+runs, with the one failure being P-2's class-string assertion.
+
+**This is P-2's third instance, not a fourth defect.** It is one line of narrowing in a file
+its owner is still writing, and it is theirs to close. It is recorded here only so that the
+next reader of §R0.2 does not run `tsc`, see red, and conclude that this round left it that
+way. **Owner: whoever owns `src/screens/metrics/`.**

@@ -324,7 +324,7 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
 
 /* ─────────────────────────────── columns ─────────────────────────────── */
 
-interface ColumnDeps {
+export interface ColumnDeps {
   t: Translate
   language: Language
   now: IsoDateTime
@@ -344,7 +344,7 @@ function isDecided(row: Applicant): boolean {
   return row.status === 'approved' || row.status === 'rejected' || row.status === 'withdrawn'
 }
 
-function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applicant>> {
+export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applicant>> {
   const { t, language, now } = deps
 
   const clockFor = (row: Applicant) =>

@@ -126,7 +126,7 @@ function riderExtraFilters(t: Translate): ExtraFilterSpec[] {
   ]
 }
 
-function riderColumns(
+export function riderColumns(
   t: Translate,
   language: Language,
   profileHref: (id: string) => string,

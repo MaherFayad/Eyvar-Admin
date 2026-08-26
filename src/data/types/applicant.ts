@@ -12,6 +12,7 @@
  */
 
 import type { Claim, IsoDate, IsoDateTime } from './common'
+import type { SlaTracked } from './workQueue'
 import type { MovementLogEntry, BankAccount, VehicleClass } from './driver'
 import type { ComplianceDocType } from './driver'
 
@@ -43,7 +44,7 @@ export interface ApplicantDoc {
   expiresOn: IsoDate | null
 }
 
-export interface Applicant {
+export interface Applicant extends SlaTracked {
   id: string
   name: string
   phone: string
@@ -62,8 +63,20 @@ export interface Applicant {
    * pattern (§8.4) requires an SLA and `all-pending` has none. Modelled so the
    * queue can be built; the actual SLA window is a **product-owner question**,
    * flagged in the handoff. `null` means no SLA has been set.
+   *
+   * **Wave 2 update.** `slaDueAt` is now one field of the shared `SlaTracked`
+   * block (`types/workQueue.ts`) that the five work queues carry, rather than a
+   * lone timestamp this type invented. Nothing about the value changed; what
+   * changed is that the placeholder is now *labelled* as one —
+   * `slaSource: 'unset'` on every applicant row says the 48-hour window is a
+   * shape waiting for **Q8**, not a decision. Every other queue's rows say
+   * `legacy-policy` or `legacy-reason-code` and mean it.
+   *
+   * `slaBreachedAt` is the addition that matters. `APP-2203` was approved
+   * 24 Jun 11:20 against a 25 Jun 09:00 deadline — its deadline is in the past
+   * and it never breached. A `slaDueAt < now` check calls it breached; the
+   * stamp does not.
    */
-  slaDueAt: IsoDateTime | null
 
   dateOfBirth: IsoDate
   /** Saudi national id. PII. */

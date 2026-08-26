@@ -126,3 +126,27 @@ export function useLanguage(): LanguageState {
   }
   return value
 }
+
+/* ── dev-only: HMR must not mint a second context ─────────────────────────
+   This module creates a React context at module scope AND exports hooks,
+   so Vite's React plugin makes it self-accepting. Fast Refresh then replaces
+   the module in place on every edit — and `createContext` runs again, minting a
+   NEW context object while the already-mounted tree still reads the OLD one.
+   Every consumer reads `null` and the next render throws
+
+       useLanguage was called outside a LanguageContext provider.
+
+   from a tree that is, in fact, correctly wrapped. It is a false alarm that
+   costs a real debugging session, and it fires whenever anyone edits a shell
+   file with the app open — which, with several people in this tree at once, is
+   most of the time.
+
+   `invalidate()` inside the accept handler declines the in-place swap and asks
+   Vite to propagate to importers instead, which ends in a full reload. Slower
+   than a hot swap, and correct instead of a lie. Dev only: the whole block is
+   `import.meta.hot`-guarded, so it is dead code in the production bundle. */
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate()
+  })
+}

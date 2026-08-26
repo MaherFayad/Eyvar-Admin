@@ -69,8 +69,10 @@
 
 import { useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { getRouteTable } from '@/data/clients'
 import type { Notification, ShellLayerId } from '@/data/types'
+import type { Language } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { ModuleRail } from './ModuleRail'
 import { PageNav } from './PageNav'
@@ -120,6 +122,45 @@ export function AppLayout() {
   )
 
   const closeLayer = useCallback(() => setLayer(null), [setLayer])
+
+  /**
+   * §11.6 row 23 `language-switching` — **AC-70's only production call site.**
+   *
+   * `setLanguage` writes `dir` and `lang` on the DOCUMENT ELEMENT (that is
+   * inside `useLanguage`, not repeated here) and updates the state
+   * `DirectionBridge` feeds to Radix, so the geometry and Radix's own side /
+   * alignment / arrow-key logic flip from one source in one render.
+   *
+   * Nothing navigates and nothing remounts: the provider sits above the router
+   * outlet, so the operator keeps the same route, the same view and the same
+   * scroll position, which is exactly what row 23 asks for.
+   *
+   * R9/R10 — a transient confirmation of something that already happened, so a
+   * TOAST and not a banner, one line, no action. The name is interpolated from
+   * the same key the menu item renders, so the two can never disagree.
+   *
+   * The `t` this closure holds is the **pre-switch** translator — state has not
+   * re-rendered yet — and that is row 23's own example: *"Interface language
+   * set to Arabic"*, an English sentence naming the language just chosen. The
+   * operator reads the confirmation in the language they were reading a moment
+   * ago, which is the one they can definitely read. (While `AR` is empty the
+   * two are identical anyway; this comment is here for the day it is not.)
+   *
+   * **The choice does not survive reload — Q1, recorded, not hidden.**
+   * `src/lib/persistence.ts` is in-memory by decision; a `localStorage` adapter
+   * here would be answering an open question by writing code.
+   */
+  const setLanguage = useCallback(
+    (next: Language) => {
+      shell.language.setLanguage(next)
+      toast(
+        shell.language.t('state.languageSwitched.toast', {
+          language: shell.language.t(`shell.language.${next}`),
+        }),
+      )
+    },
+    [shell.language],
+  )
 
   const openNotificationTarget = useCallback(
     (notification: Notification) => {
@@ -188,6 +229,7 @@ export function AppLayout() {
               onOpenNotification={openNotificationTarget}
               onSwitchUser={() => navigate('/admin/team')}
               onSignOut={() => navigate('/')}
+              onSetLanguage={setLanguage}
               /* The rota is Admin › Team & Access's data. Until that sub-tab is
                  built the chip shows the gap, which is the state it exists for
                  — and a wrong name would be worse than an honest `unassigned`. */

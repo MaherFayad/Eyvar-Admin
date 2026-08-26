@@ -22,6 +22,17 @@
  *               name.
  *   §7.2        Radix owns the roving highlight inside the menu; the trigger
  *               keeps the standard 2px ring.
+ *   AC-70       **the language control lives here.** §11.6 row 23
+ *               (`language-switching`) describes what happens when the operator
+ *               switches language and never says where they do it, and until
+ *               this menu grew a radio group there was NO answer: `setLanguage`
+ *               had zero production call sites, so `dir="rtl"` was reachable
+ *               only by hand-editing the DOM and nobody had ever seen the
+ *               product in Arabic. It is a `DropdownMenuRadioGroup`, not two
+ *               items and not a toggle, because the choice is exclusive and
+ *               `aria-checked` is what tells a screen reader which one is live.
+ *               It sits ABOVE the `Sign out` separator so the destructive item
+ *               stays last (§5.4).
  */
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -31,23 +42,34 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Session } from '@/data/types'
-import type { Translate } from '@/lib'
+import { isLanguage, type Language, type Translate } from '@/lib'
 
 export interface AccountMenuProps {
   session: Session | null
   t: Translate
+  /** The live language, so the radio group reflects state rather than owning it. */
+  language: Language
+  /** AC-70's only production entry point. `AppLayout` forwards `setLanguage`. */
+  onSetLanguage: (language: Language) => void
   onOpenMyProfile: () => void
   onSwitchUser: () => void
   onSignOut: () => void
 }
 
+/** §9.1 — the two the product ships. Ordered `en` first, matching §14's default. */
+const LANGUAGES: readonly Language[] = ['en', 'ar']
+
 export function AccountMenu({
   session,
   t,
+  language,
+  onSetLanguage,
   onOpenMyProfile,
   onSwitchUser,
   onSignOut,
@@ -76,6 +98,28 @@ export function AccountMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onOpenMyProfile}>{t('shell.account.myProfile')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={onSwitchUser}>{t('shell.account.switchUser')}</DropdownMenuItem>
+
+        {/* AC-70 — the language control. `onValueChange` hands Radix's string
+            back through `isLanguage` rather than casting it: the radio group's
+            value type is `string`, and a cast here is how `setLanguage('EN')`
+            would reach `directionFor` and silently resolve to `ltr`. */}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          {t('shell.account.language')}
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={language}
+          onValueChange={(next) => {
+            if (isLanguage(next) && next !== language) onSetLanguage(next)
+          }}
+        >
+          {LANGUAGES.map((code) => (
+            <DropdownMenuRadioItem key={code} value={code}>
+              {t(`shell.language.${code}`)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onSignOut}>{t('shell.account.signOut')}</DropdownMenuItem>
       </DropdownMenuContent>

@@ -43,13 +43,12 @@
  *               it opens carry tier 2, from `popover.tsx`.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ListFilter, Search } from 'lucide-react'
+import { useRef, type ReactNode } from 'react'
+import { ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Translate } from '@/lib'
-import { cn } from '@/lib/utils'
 
 export interface ToolbarTab {
   id: string
@@ -74,24 +73,35 @@ export interface IndexToolbarProps {
 
 export function IndexToolbar(props: IndexToolbarProps) {
   const { t, tabs, activeTab, onSelectTab, searchPlaceholder, query, onQueryChange } = props
-  const [searching, setSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  /* AC-47 — activating search focuses the field it just swapped in. Nothing
-     moves; only the row's contents change. */
-  useEffect(() => {
-    if (searching) inputRef.current?.focus()
-  }, [searching])
-
-  function cancelSearch() {
-    onQueryChange('')
-    setSearching(false)
-  }
-
   return (
-    <div className="flex h-10 items-center gap-2 border-b border-border px-3">
-      {searching ? (
-        <>
+    <div className="flex flex-col">
+      {/* ROW 1 — the view tabs, and nothing else. The active tab's rule sits ON
+          the row's own divider (`after:-bottom-px`), so the underline and the
+          separator are one line rather than two near-misses. */}
+      {tabs.length > 0 && (
+        <div className="flex h-11 items-center border-b border-border px-3">
+          <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 flex-1 gap-0">
+            <TabsList variant="line" className="h-11! gap-1 p-0">
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="rounded-none px-3 text-sm group-data-horizontal/tabs:after:-bottom-px"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
+
+      {/* ROW 2 — the controls, 56px against 32px controls: the 12px above and
+          below IS the margin the tab row and the header band were missing. */}
+      <div className="flex h-14 items-center gap-1.5 px-3">
+        <div className="flex h-control w-64 min-w-0 items-center gap-2 rounded-lg border border-border bg-card pe-1 ps-2.5 focus-within:ring-2 focus-within:ring-ring">
           <Search aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
           <Input
             ref={inputRef}
@@ -99,53 +109,44 @@ export function IndexToolbar(props: IndexToolbarProps) {
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
-            className="h-6 flex-1 border-transparent bg-transparent px-0"
+            className="h-full min-w-0 flex-1 border-transparent bg-transparent px-0 shadow-none focus-visible:ring-0"
             onKeyDown={(event) => {
-              if (event.key === 'Escape') cancelSearch()
+              if (event.key === 'Escape') onQueryChange('')
             }}
           />
-          <Button variant="ghost" size="xs" onClick={cancelSearch}>
-            {t('table.cancel')}
-          </Button>
-        </>
-      ) : tabs.length > 0 ? (
-        <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 flex-1">
-          <TabsList variant="line" className="h-7 p-0">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="px-2">
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      ) : (
-        <span className="min-w-0 flex-1" />
-      )}
+          {query !== '' && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t('table.clear')}
+              onClick={() => {
+                onQueryChange('')
+                inputRef.current?.focus()
+              }}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          )}
+        </div>
 
-      <div className={cn('flex items-center gap-1', searching && 'ms-auto')}>
-        {!searching && (
-          <Button variant="secondary" onClick={() => setSearching(true)}>
-            <Search aria-hidden="true" />
-            {t('table.search')}
-          </Button>
-        )}
+        <div className="ms-auto flex items-center gap-1.5">
+          {props.filterTrigger(
+            <Button variant="secondary">
+              <ListFilter aria-hidden="true" />
+              {t('table.filter')}
+              {/* §4.3's measured `Filter 1`. A COUNT, not a tone: R7 keeps the
+                  badge vocabulary for status, and this is neither status nor red. */}
+              {props.filterCount > 0 && (
+                <span className="rounded-sm bg-muted px-1 tabular-nums text-muted-foreground">
+                  {props.filterCount}
+                </span>
+              )}
+            </Button>,
+          )}
 
-        {props.filterTrigger(
-          <Button variant="secondary">
-            <ListFilter aria-hidden="true" />
-            {t('table.filter')}
-            {/* §4.3's measured `Filter 1`. A COUNT, not a tone: R7 keeps the
-                badge vocabulary for status, and this is neither status nor red. */}
-            {props.filterCount > 0 && (
-              <span className="rounded-sm bg-muted px-1 tabular-nums text-muted-foreground">
-                {props.filterCount}
-              </span>
-            )}
-          </Button>,
-        )}
-
-        {props.columnsControl}
-        {props.sortControl}
+          {props.columnsControl}
+          {props.sortControl}
+        </div>
       </div>
     </div>
   )

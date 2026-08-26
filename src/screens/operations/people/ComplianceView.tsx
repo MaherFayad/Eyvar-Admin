@@ -260,7 +260,7 @@ function complianceExtraFilters(t: Translate): ExtraFilterSpec[] {
   ]
 }
 
-function complianceColumns(
+export function complianceColumns(
   t: Translate,
   language: Language,
   now: IsoDateTime,

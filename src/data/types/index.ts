@@ -123,3 +123,65 @@ export type {
   CorporateBillingType,
   CorporateUsagePolicy,
 } from './corporateAccount'
+
+/* ── wave 2: the work queues ─────────────────────────────────────────── */
+
+export type { SlaSource, SlaTracked, WorkItemSeverity, WorkQueueId, WorkQueueRow } from './workQueue'
+
+export type { RequestChannel, RequestStatus, RideRequest } from './request'
+export {
+  OFFER_WINDOW_SECONDS,
+  REQUEST_SLA_MINUTES,
+  SUBSCRIPTION_REQUEST_REMINDER_MINUTES,
+} from './request'
+
+export type {
+  PrecautionarySuspension,
+  SafetyIncident,
+  SafetyIncidentSeverity,
+  SafetyIncidentStatus,
+  SafetyIncidentType,
+  SafetyProtocolStep,
+  SafetyProtocolStepKey,
+} from './safety'
+export { SAFETY_PROTOCOL_STEPS, SAFETY_REASON_CODE, SAFETY_RESOLVE_MINUTES } from './safety'
+
+export type { FairnessCase, FairnessCaseKind, FairnessCaseStatus, FairnessReasonCode } from './fairness'
+export { APPEAL_WINDOW_DAYS, FAIRNESS_RESOLVE_MINUTES } from './fairness'
+
+export type {
+  AbsenceEvent,
+  AssuranceTrip,
+  BackupOffer,
+  BackupOfferState,
+  CaptainDepartureState,
+  LegAckSource,
+  LegAcknowledgement,
+  LegAckWeight,
+} from './assurance'
+export {
+  ABSENCE_COUNTER_WINDOW_DAYS,
+  ASSURANCE_CONFIRM_WINDOW_MINUTES,
+  ASSURANCE_DEPARTING_WINDOW_HOURS,
+  BACKUP_OFFER_WINDOW_MINUTES,
+  CONFIRM_DEADLINE_LOCAL_TIME,
+  LEG_ACK_WEIGHT,
+} from './assurance'
+
+export type { WorkItem } from './work'
+export { WORK_QUEUE_ROUTE, WORK_ROUTING } from './work'
+
+/* ── wave 4: metric tiles and chart cards ────────────────────────────── */
+
+export type {
+  Metric,
+  MetricBoard,
+  MetricCategory,
+  MetricComparison,
+  MetricDirection,
+  MetricUnit,
+  NoComparisonReason,
+  SeriesPoint,
+  SeriesWindow,
+  TimeSeries,
+} from './metrics'

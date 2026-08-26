@@ -224,6 +224,44 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
     expect(titles.length).toBeGreaterThan(0)
     expect(titles.every((title) => Object.hasOwn(EN, title))).toBe(true)
   })
+
+  /**
+   * **Round 2 — the half of D-7 that AC-74 is actually about is FIXED, and this
+   * is the test for it.** The criterion says *"no raw key"*, which is a claim
+   * about what an operator SEES, and round 1 had no rendered-level assertion
+   * for the search popover — only the two client-level ones above.
+   *
+   * `GlobalSearch` now guards: a dotted, space-free, lower-camel token is put
+   * through `t()`, anything else is rendered as-is. The two tests above stay
+   * red-in-spirit because **the data defect is unfixed** — `searchDestinations`
+   * still sets `title: row.titleKey` and `SearchResult` has no `titleKey`
+   * field. That is mock-data-engineer's, and this test does not close it.
+   */
+  it('renders no raw key in the global search popover, which is the half AC-74 asserts', async () => {
+    const user = userEvent.setup()
+    renderShell('/operations/people')
+    await screen.findByRole('main')
+    await user.click(screen.getByRole('searchbox', { name: en('shell.topbar.search') }))
+    await user.keyboard('operations')
+
+    /* Waited for by the row's PATH, which appears nowhere else in the document
+       — the titles (`Overview`, `My Work`, …) are already on screen in the
+       sub-tab column, so waiting on one of those would resolve before the
+       debounced search had returned and the assertion below would scan a
+       popover that was not open. Mutation-checked: removing the guard in
+       `GlobalSearch` fails this test. */
+    const row = table.subTabs.find((r) => r.subTabId === 'operations-overview')!
+    expect(await screen.findByText(row.path)).toBeInTheDocument()
+
+    /* And nowhere in the rendered document is a leaf whose text is a key. */
+    const offenders: string[] = []
+    for (const node of document.body.querySelectorAll('*')) {
+      if (node.children.length > 0) continue
+      const text = (node.textContent ?? '').trim()
+      if (text && Object.hasOwn(EN, text)) offenders.push(text)
+    }
+    expect(offenders).toEqual([])
+  })
 })
 
 describe('AC-75 — "No operator-facing string in the shell is assembled by concatenating a translated fragment with a value"', () => {

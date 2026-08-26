@@ -91,6 +91,14 @@ export interface TopBarProps {
   onOpenNotification: (notification: Notification) => void
   onSwitchUser: () => void
   onSignOut: () => void
+  /**
+   * AC-70 — forwarded to the account menu, which is where the language control
+   * lives. The bar itself has no language affordance: slot 3 is already the
+   * busiest strip on the page (see the divergence note above) and a switch an
+   * operator touches twice a year does not earn a permanent slot beside a
+   * count chip they read every minute.
+   */
+  onSetLanguage: (language: Language) => void
   /** Who is on the rota right now. `null` is the gap the chip exists to show. */
   onCallName: string | null
 }
@@ -107,6 +115,7 @@ export function TopBar({
   onOpenNotification,
   onSwitchUser,
   onSignOut,
+  onSetLanguage,
   onCallName,
 }: TopBarProps) {
   const navigate = useNavigate()
@@ -180,6 +189,8 @@ export function TopBar({
         <AccountMenu
           session={session}
           t={t}
+          language={language}
+          onSetLanguage={onSetLanguage}
           onOpenMyProfile={onOpenAccount}
           onSwitchUser={onSwitchUser}
           onSignOut={onSignOut}

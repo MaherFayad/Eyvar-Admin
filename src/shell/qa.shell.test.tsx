@@ -502,32 +502,36 @@ describe('AC-36 — "With the mock client forced to fail, every shell region tha
   })
 
   /**
-   * **DEFECT D-10 — `?mockFail=` is dead. AC-36's own escape hatch does not
-   * work in the running app.**
+   * **D-10 — `?mockFail=` was dead. Found in round 2, fixed during round 2,
+   * and the test stays.**
    *
    * AC-36 says the failure is induced *"without editing source"*.
-   * `seedMockFailuresFromLocation` is that mechanism, its own doc comment says
-   * *"Call once at boot, before the first render, from the app entry point"* —
-   * and **no entry point calls it.** `src/main.tsx` renders `<App />`;
-   * `src/App.tsx` never imports it. The only callers in the repo are
-   * `src/data/clients/index.ts`, which re-exports it, and `seam.test.ts`, which
-   * unit-tests it with a hand-passed string.
+   * `seedMockFailuresFromLocation` is that mechanism and its own doc comment
+   * has said *"Call once at boot, before the first render, from the app entry
+   * point"* since 0.2 — and for six waves **no entry point called it.** The
+   * only references in the repo were the barrel re-export and `seam.test.ts`,
+   * which unit-tests it with a hand-passed string.
    *
-   * **Why this is not cosmetic.** Vitest can reach `mockFailures` by import.
+   * **Why it was not cosmetic.** Vitest reaches `mockFailures` by import.
    * Playwright, visual-QA and anyone driving the built app cannot — for them
-   * `?mockFail=drivers.list` is the ONLY door to the error state, and it is
-   * bricked. It is also how §9.2's error states get reviewed at 1280, which is
-   * a visual-QA requirement nobody can currently satisfy.
+   * `?mockFail=drivers.list` is the ONLY door to an error state, and it was
+   * bricked. Reviewing §9.2's error states at 1280 is a visual-QA requirement
+   * that nobody could satisfy.
    *
-   * `it.fails` asserts the CORRECT behaviour, so it goes red the day one line
-   * lands in the entry point. **Owner: frontend-engineer** — one call, before
-   * `createRoot(...).render`.
+   * Kept because the wire is a single statement in a file nobody edits, with
+   * no test elsewhere that would notice its removal.
    */
-  it.fails('DEFECT D-10 — an entry point seeds ?mockFail= at boot, per AC-36', () => {
-    const entryPoints = ['src/main.tsx', 'src/App.tsx'].map((rel) =>
-      readFileSync(join(process.cwd(), ...rel.split('/')), 'utf8'),
+  it('seeds ?mockFail= from an entry point at boot, which is AC-36\'s "without editing source"', () => {
+    const main = readFileSync(join(process.cwd(), 'src', 'main.tsx'), 'utf8')
+    expect(main).toMatch(/seedMockFailuresFromLocation\s*\(/)
+    /* **Before the first render, not inside a component.** Every mock client
+       takes from the registry on its way out and `ShellProvider` fires three
+       reads in its first effect, so a call ordered after `createRoot` would
+       apply the failure to the retry rather than to the load — which looks
+       like it works and does not. Order is the whole contract here. */
+    expect(main.indexOf('seedMockFailuresFromLocation(')).toBeLessThan(
+      main.indexOf('createRoot('),
     )
-    expect(entryPoints.some((src) => /seedMockFailuresFromLocation\s*\(/.test(src))).toBe(true)
   })
 
   it('renders an error inside the shell layer when the profile read fails, layer still dismissible', async () => {
@@ -856,7 +860,16 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
     )
   })
 
+  /**
+   * These two are deliberately in TWO parts, because a one-part version does
+   * not bite. Mutation-checked: reintroducing the collapse as a render-time
+   * `window.innerWidth >= 1344 &&` guard in `AppLayout` survives a bare resize
+   * event, since nothing subscribes to one and React does not re-render. So
+   * each test resizes AND then forces a real re-render by navigating, which is
+   * the path an operator actually takes.
+   */
   it('does not hide the column when the window is narrowed across the breakpoint', async () => {
+    const user = userEvent.setup()
     setViewport(1440)
     renderShell('/operations/people')
     await screen.findByRole('main')
@@ -868,9 +881,15 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
        there is no state to re-derive, so a resize cannot re-derive one. Node
        identity is the assertion — a re-mount would fail it too. */
     await waitFor(() => expect(column()).toBe(before))
+
+    /* …and it is still there after the next render at the narrow width. */
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
+    await screen.findByText('screen: operations-trips')
+    expect(column()).toBeInTheDocument()
   })
 
   it('does not change the column when the window is widened across the breakpoint', async () => {
+    const user = userEvent.setup()
     setViewport(1280)
     renderShell('/operations/people')
     await screen.findByRole('main')
@@ -879,9 +898,16 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
     setViewport(1440)
     window.dispatchEvent(new Event('resize'))
     await waitFor(() => expect(column()).toBe(before))
+
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
+    await screen.findByText('screen: operations-trips')
+    expect(column()).toBeInTheDocument()
   })
 
-  it('keeps the column on every one of the 34 sub-tab routes', async () => {
+  it('keeps the column on every one of the 34 sub-tab routes, at the 1280 floor', async () => {
+    /* At 1280 rather than 1440, so this also defends against a render-time
+       viewport read reappearing in `AppLayout` — see the mutation note above. */
+    setViewport(1280)
     for (const row of table.subTabs) {
       const view = renderShell(row.path)
       await screen.findByRole('main')

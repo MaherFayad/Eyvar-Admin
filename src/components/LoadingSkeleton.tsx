@@ -117,19 +117,28 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
         </div>
       )
 
-    /* P5 metric tiles — 4 tile outlines, each with a title bar, a value bar and
-       a chart block. 3-up below the breakpoint, 4-up above it (§0.1). */
+    /* P5 metric tiles — 4 tile outlines. 3-up below the breakpoint, 4-up above
+       it (§0.1), which is `MetricTileRow`'s own grid.
+
+       **The bars are the TILE's anatomy, not a generic card's** (§11.3: nothing
+       moves when the data lands). D7 §4.9, top to bottom: a 16px leading glyph,
+       the 17px/600 value, the 12px label, then the delta chip. The tile that
+       replaces this is `src/components/metrics/MetricTile.tsx`; the two are one
+       decision and the gap here is `gap-3` because the tile row's is. It used
+       to draw a title bar, a value bar and a 48px CHART block, which no metric
+       tile has ever contained. */
     case 'P5':
       return (
-        <div className="grid grid-cols-3 gap-4 wide:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3 wide:grid-cols-4">
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}
-              className="flex flex-col gap-2 rounded-xl border border-border bg-card shadow-1 p-3"
+              className="flex flex-col gap-1.5 rounded-xl border border-border bg-card shadow-1 p-3"
             >
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="size-4 rounded-sm" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-5 w-16 rounded-sm" />
             </div>
           ))}
         </div>

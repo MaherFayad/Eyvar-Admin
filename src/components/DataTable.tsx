@@ -845,48 +845,81 @@ export function DataTable<T>(props: DataTableProps<T>) {
           </div>
         )}
 
-        {/* §9.1 / AC-112 — the floating bulk bar is positioned against the CARD,
-            outside the scroll container: inside it, it would slide off with the
-            columns. WHITE surface, hairline, tier 2, radius 8px (NOT a stadium
-            — R15), 32px tall, at most THREE labelled secondary buttons. A
-            ledger cannot reach this branch: `selectable` is `false` at compile
-            time. */}
-        {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-15 flex justify-center">
-            <div className="pointer-events-auto flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-1 shadow-2">
-              {bulkActions.slice(0, 3).map((action) => (
-                <Button
-                  key={action.label}
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => action.onClick(table.selectedIds)}
-                >
-                  {action.label}
-                </Button>
-              ))}
-              {bulkActions.length > 3 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-xs" aria-label={t('shell.moreActions')}>
-                      <span aria-hidden="true">⋯</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {bulkActions.slice(3).map((action) => (
-                      <DropdownMenuItem
-                        key={action.label}
-                        onSelect={() => action.onClick(table.selectedIds)}
-                      >
-                        {action.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* §9.1 / AC-112 — THE BULK BAR FLOATS AGAINST THE PAGE, NOT THE CARD.
+          It is `sticky` in the content region's own scroll context and carries
+          zero layout height, so it rides 24px above the fold for as long as the
+          table is on screen and never pushes a row.
+
+          OWNER RULING — it has to READ as actions. The previous bar was a white
+          32px strip of ghost text on a white card: `Suspend  Reinstate` with no
+          surface, no context and no way out, which is why it was missed. It is
+          now the one INVERTED surface in the app - ink ground, white ink, tier 3
+          - which is the strongest "this is a mode, and it is temporary" signal
+          available without spending a colour. It states the count it is acting
+          on, and it carries its own exit.
+
+          A ledger cannot reach this branch: `selectable` is `false` at compile
+          time. */}
+      {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 && (
+        <div className="pointer-events-none sticky bottom-6 z-40 -mt-3 flex h-0 items-end justify-center">
+          <div
+            role="group"
+            aria-label={t('table.selectedCount', { count: formatCount(selectedCount) })}
+            className="pointer-events-auto flex h-11 items-center gap-0.5 rounded-xl bg-foreground ps-3.5 pe-1.5 text-background shadow-3"
+          >
+            <span className="whitespace-nowrap text-sm font-medium tabular-nums">
+              {t('table.selectedCount', { count: formatCount(selectedCount) })}
+            </span>
+            <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
+            {bulkActions.slice(0, 3).map((action) => (
+              <Button
+                key={action.label}
+                variant="ghost"
+                size="xs"
+                onClick={() => action.onClick(table.selectedIds)}
+                className="h-8 rounded-lg bg-background/20 px-2.5 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+              >
+                {action.label}
+              </Button>
+            ))}
+            {bulkActions.length > 3 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t('shell.moreActions')}
+                    className="h-8 w-8 rounded-lg bg-background/20 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+                  >
+                    <span aria-hidden="true">⋯</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {bulkActions.slice(3).map((action) => (
+                    <DropdownMenuItem
+                      key={action.label}
+                      onSelect={() => action.onClick(table.selectedIds)}
+                    >
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={table.clearSelection}
+              className="h-8 px-2.5 text-background/80 hover:bg-background/15 hover:text-background focus-visible:ring-background"
+            >
+              {t('table.clear')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* V-11 — one centred `Learn more about {resource}.`, outside the card. */}
       {learnMore && <div className="text-center">{learnMore}</div>}

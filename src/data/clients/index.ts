@@ -14,6 +14,8 @@
    barrel, so there is no cycle. */
 import { mockFailures as failureRegistry } from '../config'
 import { resetNavCounts as resetCounts } from './navCounts'
+import { resetAssurance as resetAssuranceState } from './assurance'
+import { resetSafetyIncidents as resetSafety } from './safety'
 import { resetNotifications as resetNotifs } from './notifications'
 import { resetMockSession as resetSession } from './session'
 
@@ -152,6 +154,81 @@ export {
   type CreateCorporateAccountInput,
 } from './corporateAccounts'
 
+/* ── wave 2: the work queues ─────────────────────────────────────────── */
+export {
+  REQUEST_OPERATIONS,
+  assignRequest,
+  claimRequest,
+  expireRequest,
+  getRequest,
+  getRequestFacets,
+  listRequests,
+  releaseRequest,
+  type RequestQuery,
+} from './requests'
+
+export {
+  SAFETY_OPERATIONS,
+  claimSafetyIncident,
+  closeSafetyIncident,
+  getSafetyFacets,
+  getSafetyIncident,
+  listSafetyIncidents,
+  precautionarilySuspend,
+  releaseSafetyIncident,
+  resetSafetyIncidents,
+  setSafetyProtocolStep,
+  useQuietSafetyQueue,
+  type SafetyQuery,
+} from './safety'
+
+export {
+  FAIRNESS_OPERATIONS,
+  claimFairnessCase,
+  decideFairnessCase,
+  getFairnessCase,
+  getFairnessFacets,
+  listFairnessCases,
+  releaseFairnessCase,
+  type FairnessQuery,
+} from './fairness'
+
+export {
+  ASSURANCE_OPERATIONS,
+  acknowledgeLeg,
+  claimAssuranceTrip,
+  getAssuranceFacets,
+  getAssuranceTrip,
+  listAbsences,
+  listAssuranceTrips,
+  offerBackup,
+  releaseAssuranceTrip,
+  resetAssurance,
+  useAbsenceHistory,
+  waiveAbsence,
+  type AbsenceQuery,
+  type AssuranceQuery,
+} from './assurance'
+
+export {
+  WORK_OPERATIONS,
+  getWorkFacets,
+  listWorkItems,
+  myWorkBacklogSize,
+  type WorkQuery,
+} from './myWork'
+
+/* ── wave 4: metric tiles and chart cards ────────────────────────────── */
+export {
+  METRIC_BOARD_SUB_TABS,
+  METRIC_OPERATIONS,
+  getMetricBoard,
+  getMetricFacets,
+  getMetricSeries,
+  listMetrics,
+  type MetricQuery,
+} from './metrics'
+
 /* ── the fixed clock, for anything that needs relative time ──────────── */
 export {
   EYVAR_NOW,
@@ -176,4 +253,6 @@ export function resetDataLayer(): void {
   resetSession()
   resetCounts()
   resetNotifs()
+  resetSafety()
+  resetAssuranceState()
 }

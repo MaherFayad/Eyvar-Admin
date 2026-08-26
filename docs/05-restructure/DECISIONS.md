@@ -249,3 +249,190 @@ agrees to within 1/255, and the row hairline agrees **exactly**.
 text colour; a stylesheet states them. Sampling remains the check on geometry and on anything
 the stylesheet does not declare — and remains the only evidence for the Shopify set, which
 publishes nothing.
+
+---
+
+## D8 — A row kebab is for *many* actions, never for one or two
+
+**Decided by the business owner**, looking at the People table:
+*"if only 1 action put the action not 3 dots"* · *"and if it's approve/reject put them check and cross and view not three dots also."*
+
+The `⋯` menu is a **disclosure for a list**. Where there is no list, it hides a single
+control behind a click and a read, and the operator pays that cost on every row of a queue
+they work all day.
+
+**The rule:**
+
+| Row actions | What renders |
+|---|---|
+| **1** | that action itself — its own control, labelled, no menu |
+| **A decision pair** (approve / reject, and similar) | **✓ and ✗ as direct controls**, plus **View** — no menu |
+| **3 or more, no decision pair** | the `⋯` kebab, as before |
+
+**Constraints that do not move.** These are §7 and they outrank D8:
+
+- **AC-68** — row actions are keyboard-operable and **visible without a pointer hovering the
+  row**. Legacy defect D19 is hover-only row actions; do not recreate it in a new shape.
+- **§7.7 hit target.** Two or three inline controls in one cell must each still be a legal
+  target. If they cannot be, the cell is too small — that is a row-height finding, not a
+  licence to shrink the target.
+- **§7.5** — an icon-only control is never colour-alone and always carries an accessible
+  name. `✓` and `✗` are **not** self-explanatory to a screen reader.
+- **R5a** — red is enumerated to four uses. A reject control is a **destructive button**,
+  which is one of them; it is not a new fifth use, and it is not a red badge.
+- **Confirmation.** A one-click approve or reject on a row is a one-click irreversible act.
+  Say what confirms it, or what undoes it. Legacy `alert()` at `:5233` is not the answer.
+
+**Where this applies:** every table, but it bites hardest in the §8.4 work queues, whose
+whole job is a disposition per row — the five wave-2 sub-tabs.
+
+---
+
+## D9 — ⌘K is a command centre, not a search box
+
+**Decided by the business owner:**
+*"command K should open a command center so the user can type commands, or search for
+anything on the system … so there is really rich context menu, not just search but making
+actions also."*
+
+**Plan:** `docs/05-restructure/design/05-command-centre.md`. It supersedes §5's
+*characterisation* of ⌘K as global search and leaves §5's mechanics — the scope chip, the
+two-line row, the escape hatch, the `legacyPageIds` resolution — untouched.
+
+**The load-bearing half is the mapping, not the palette.** `Suspend captain` is currently
+declared four times — row action, bulk action, page-header overflow, and (as a dead
+`kind: 'action'`) search — and the declarations already disagree: the row action carries a
+`disabled` predicate and the bulk action does not, so the same operator is stopped in one
+place and allowed in the other. One `src/commands` registry per domain feeds all four.
+**C-1 is worth building even if the palette is cut**, and if the plan is trimmed it is
+trimmed from the bottom.
+
+**Four rulings it needs** (CQ-1..CQ-4 in the plan): the palette stays an **anchored
+popover** (§2.6 is not spent on this); section order is **derived from the query shape**
+rather than fixed; **AC-60 governs destinations and records, §11.2 governs actions** — the
+first are absent, the second are disabled in place with a reason; and the palette may
+**mutate only through `command.run`**, never by calling a client itself.
+
+**Blocked on the two questions that are still open:** Q1 (persistence) gates "recent
+commands"; D4 (the role model) gates every `unavailable` predicate that is about a role
+rather than about domain state.
+
+---
+
+## D10 — Two rulings from the owner on chrome, applied immediately
+
+**D10a — a menu item is always ONE LINE.**
+*"the menu has to wrap for whatever inside so it's always 1 line."*
+The menu sizes to its widest item; it never sizes to its trigger. Stock shadcn shipped
+`w-(--radix-dropdown-menu-trigger-width)` on `DropdownMenuContent` — the **select/combobox**
+rule, *match the input*, wrongly applied to a **command menu**. Against a 28px kebab it
+collapsed every row-action menu to the 128px `min-w` floor and wrapped `Open 360° profile`
+onto two lines. Fixed in `dropdown-menu.tsx`: `w-max`, a 160px floor, items
+`whitespace-nowrap`. The same `whitespace-nowrap` is now on `select.tsx` and `command.tsx`
+items, so the rule holds for every menu surface rather than the one that was complained
+about.
+
+**D10b — the bulk bar has to READ as actions.**
+*"these floating actions need to be floating to the page, and look really like actions not
+like that this is so hard to see."*
+It was a white 32px strip of ghost text on a white card — `Suspend  Reinstate`, no surface,
+no count, no exit — positioned against the card. It is now:
+
+- **`sticky` in the content region's own scroll context**, 24px above the fold, carrying
+  **zero layout height**, so it floats against the page for as long as the table is on
+  screen and never pushes a row;
+- the **one inverted surface in the app** — ink ground, white ink, tier 3 — which is the
+  strongest *"this is a temporary mode"* signal available without spending a colour from
+  R5a's enumeration;
+- **stating the count it will act on**, and **carrying its own exit** (`Clear`).
+
+**Amended, same session** — *"make the actions also have some BG except clear."* The
+labelled actions and the overflow kebab now carry a **filled control** on the inverted
+ground: white at 20% over `--ev-ink`, 30% on hover. `Clear` stays bare, because it is the
+**exit, not an action**, and giving it the same fill would make leaving the mode look like
+a third thing to do. Measured: the fill reads `rgb(70,72,77)`, white label on it **8.9 : 1**;
+the fill against the bar's ground is **1.9 : 1**, which is below 1.4.11's 3 : 1 for a
+control *boundary* — permitted here because every one of these controls is identified by a
+visible text label at 8.9 : 1, not by its edge. An icon-only control on this surface would
+need the stronger fill.
+
+`--ev-shadow-3` had exactly one consumer (`dialog.tsx`) before this; it now has two, which
+is the first time R-3's tier 3 is doing work outside a modal. If that turns out to be too
+much elevation for a non-modal surface, the fix is the tier, not the inversion.
+
+---
+
+## D11 — The index toolbar is TWO rows, and search is a field
+
+Three separate complaints across two sessions turned out to be one cause:
+*"this search also is so broken the search should appear in the same place as the action"* ·
+*"these tabs look so bad, use tabs like the one in the reference"* ·
+*"add margin between the table and the tabs this looks really bad"* ·
+*"you still didn't fix the tabs and the spacing."*
+
+Everything — four view tabs and four controls — was crammed into **one 40px row with a
+bottom border sitting directly on the table header band**. There was no margin to add
+because there was no row to add it to, and AC-47's *"search replaces the tab row in place"*
+meant activating search **deleted the navigation**.
+
+**Now:**
+
+| Row | Height | Holds |
+|---|---|---|
+| 1 | 44px, `border-b` | the view tabs, and nothing else. The active tab's 2px rule sits **on** the divider (`after:-bottom-px`), so the underline and the separator are one line rather than two near-misses. |
+| 2 | 56px, no border | a **persistent search field** at inline-start, `Filter · Columns · Sort` at inline-end. 32px controls in a 56px row: **the 12px above and below IS the margin** the header band was missing. |
+
+**AC-47 is retired, not broken.** Its constraint was *no vertical shift when search
+activates*. A field that is always there cannot shift anything, and it removes the swap
+that made the tab row disappear. Nothing in the test suite asserted the swap.
+
+**D11 is a stopgap, and it is now superseded.** It shipped at 22:09; the index-screen
+redesign (`design/04-index-screen-redesign.md`) landed at 22:12 and answers the same three
+complaints structurally rather than by adding a row:
+
+- the tab strip is **deleted as a band** — the four views become a **segmented control** at
+  the inline-start of the control row, carrying their counts (`Captains 57`,
+  `Applications 12`), measured off the reference's own `Build | Submissions` control;
+- **there is no card** — the table is the bordered object;
+- the margin the owner asked for is not a number added between two adjacent things. **They
+  stop being adjacent:** the control row's block-end and an always-rendered query strip sit
+  between the tabs and the table, each interval a declared 12 px.
+
+D11's *persistent search field* survives verbatim (§5.2, "persistent, never a mode"), and
+so does its retirement of AC-47. Its two-row toolbar does not. Keep D11 in the register
+rather than deleting it, because the reason it was built — three separate complaints with
+one cause — is the evidence the redesign is answering.
+
+---
+
+## D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception
+
+**Decided by the business owner**, with a reference image:
+*"for tabs use tabs that look like this not the underlined ones."*
+
+The image is a fully rounded segmented control: a light grey stadium **track**, a **white
+raised pill** with a soft shadow for the active segment, muted text and no fill for the
+inactive one, segments abutting with no divider.
+
+**What this changes in `design/04-index-screen-redesign.md` §5.1** — only two things. The
+construction survives: still a segmented control, still 32px, still at the inline-start of
+the control row, still carrying its counts (`Captains 57`). **The radius becomes stadium
+instead of 8px, and the active treatment becomes a shadowed white pill instead of a fill
+flush with the track.**
+
+**The conflict, stated rather than discovered later.** R15 sets the radius vocabulary and
+is the reason the bulk bar is explicitly *"r8, NOT a stadium"*. The owner has now asked for
+a stadium in a different component, so R15 and the build disagree.
+
+**Resolution: build it, and scope the exception to one component.** The stadium is
+authorised for the **view segmented control** and nowhere else — not buttons, chips,
+badges, the bulk bar, or the drawer's tabs, whose underlines keep §11.3's reason intact.
+Whether R15 should be *amended* rather than excepted is a finding for the frontend engineer
+to argue and the owner to settle; nobody amends R15 unilaterally.
+
+**One open measurement.** The active pill reads as *raised*, and that is the shadow doing
+the work. R-3's three tiers were cut for cards, popovers and modals; if none of them fits a
+28px pill, that is a genuine gap in the elevation ladder and must be reported as one — not
+closed by inventing a fourth tier in a component file. §5.4's width budget also has to be
+re-checked, because a stadium track with an inset pill is not the width of a flush r8 one
+and the Arabic column had 49px of slack.

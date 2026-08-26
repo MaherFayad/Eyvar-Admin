@@ -270,7 +270,7 @@ function captainExtraFilters(t: Translate): ExtraFilterSpec[] {
  * also what makes this table overflow at the 1280 floor rather than squeeze a
  * column below legibility (§3.1), which is what the pinning is for.
  */
-function captainColumns(
+export function captainColumns(
   t: Translate,
   language: Language,
   profileHref: (id: string) => { pathname: string; search: string },
@@ -282,31 +282,28 @@ function captainColumns(
       /* AC-104 — column index 0 is the identity: pinned implicitly and
          permanently, never hideable, never unpinnable. */
       alwaysVisible: true,
-      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
-         of 32px took the 1280 content region from 1102 to 942, so the identity
-         column gives width back **before** anyone touches the gutter: D-2′ is
-         already a sanctioned deviation at 32 against a measured 68, and
-         shrinking it further is not on the table. 176 also buys the operator
-         24px more pin budget — the locked block drops from 240 to 216 of the
-         488 the floor allows. */
-      width: 176,
+      /* **§7.3 rule 2 — the one flexible column.** It declares no `width`, so
+         it absorbs 100 % of the residual the fixed columns leave: 278px at
+         1280, 406 at 1440 (content clamped to 320, the rest trailing air).
+         `minWidth` is what the budget counts and what a pinned offset is
+         computed from, and that offset is exact at the only moment it matters:
+         a table that overflows has no residual, so the column renders at
+         precisely 200. */
+      minWidth: 200,
       dataType: 'text',
       sortField: 'name',
-      cell: (d) => <Identity to={hrefString(profileHref(d.id))} name={d.name} t={t} />,
-      /* §9.1 — a second line only where a value QUALIFIES the primary one. */
-      secondaryLine: (d) => (d.suspended && d.suspensionReason ? d.suspensionReason : null),
-    },
-    {
-      id: 'id',
-      header: t('people.col.id'),
-      width: 120,
-      dataType: 'text',
-      cell: (d) => <MutedCell className="tabular-nums">{d.id}</MutedCell>,
+      /* §7.4 — line 2 is the PHONE. The suspension reason moves to the drawer
+         (§11): under R20 the second line is all-or-nothing, and a reason that
+         is present on 2 rows in 25 is exactly the partial application that made
+         the built table look ragged. Reported in the handoff as a real loss. */
+      cell: (d) => (
+        <Identity to={hrefString(profileHref(d.id))} name={d.name} secondary={d.phone} t={t} />
+      ),
     },
     {
       id: 'status',
       header: t('people.col.status'),
-      width: 128,
+      width: 112,
       dataType: 'enum',
       /* `in` even for one selection, so ticking a second box never changes the
          query's OPERATOR (§6.1). `toFilterSpec` owns that. */
@@ -332,7 +329,7 @@ function captainColumns(
       id: 'rating',
       header: t('people.col.rating'),
       align: 'end',
-      width: 88,
+      width: 80,
       dataType: 'number',
       sortField: 'rating',
       /* §6.1 — integer bounds. A rating is stored to one decimal, so `gte 4`
@@ -350,63 +347,13 @@ function captainColumns(
         ),
     },
     {
-      id: 'city',
-      header: t('people.col.city'),
-      width: 120,
-      dataType: 'text',
-      /* The option LABELS are the data values, not keys: a city name is a
-         record's content, and the cell renders it untranslated too. A real API
-         returns this list as a facet — see the handoff. */
-      filter: {
-        kind: 'multi-select',
-        field: 'city',
-        options: [
-          { value: 'Riyadh', label: 'Riyadh' },
-          { value: 'Jeddah', label: 'Jeddah' },
-        ],
-      },
-      cell: (d) => <Cell>{d.city}</Cell>,
-    },
-    {
-      id: 'subs',
-      header: t('people.col.subs'),
-      align: 'end',
-      width: 88,
-      dataType: 'number',
-      sortField: 'activeSubscriptions',
-      cell: (d) => (
-        <NumCell>
-          {t('people.subsOfMax', {
-            used: formatCount(d.activeSubscriptions, language),
-            max: formatCount(d.maxSubscriptions, language),
-          })}
-        </NumCell>
-      ),
-    },
-    {
       id: 'trips',
       header: t('people.col.trips'),
       align: 'end',
-      width: 96,
+      width: 88,
       dataType: 'number',
       sortField: 'totalTrips',
       cell: (d) => <NumCell>{formatCount(d.totalTrips, language)}</NumCell>,
-    },
-    {
-      id: 'onTime',
-      header: t('people.col.onTime'),
-      align: 'end',
-      width: 96,
-      dataType: 'number',
-      sortField: 'onTimePercent',
-      cell: (d) =>
-        d.onTimePercent === null ? (
-          <Absent numeric />
-        ) : (
-          <NumCell>
-            {t('people.percent', { value: formatCount(d.onTimePercent, language) })}
-          </NumCell>
-        ),
     },
     {
       id: 'earned',
@@ -422,10 +369,81 @@ function captainColumns(
       ),
     },
     {
+      id: 'city',
+      /* §7.3 rule 5 — `City` is the trailing data column BECAUSE it is text.
+         `Earned (SAR)` sat here and was the value the pinned action column
+         painted over: `12,4` where the truth was `12,400.50`. A truncated city
+         name announces itself; a truncated amount does not. */
+      header: t('people.col.city'),
+      width: 128,
+      dataType: 'text',
+      /* The option LABELS are the data values, not keys: a city name is a
+         record's content, and the cell renders it untranslated too. A real API
+         returns this list as a facet — see the handoff. */
+      filter: {
+        kind: 'multi-select',
+        field: 'city',
+        options: [
+          { value: 'Riyadh', label: 'Riyadh' },
+          { value: 'Jeddah', label: 'Jeddah' },
+        ],
+      },
+      cell: (d) => <Cell>{d.city}</Cell>,
+    },
+
+    /* ── §7.4's default-hidden set, reachable from `Columns` (§5.3). ────────
+       Rule 6: un-hiding one of these may push Σ past 910, and only THEN does
+       the table scroll horizontally — which §3.1 sanctions, and which is now
+       operator-initiated rather than the default state. */
+    {
+      id: 'id',
+      header: t('people.col.id'),
+      width: 112,
+      /* §7.3 rule 5 — an `id`, so it may never be the trailing column. */
+      dataType: 'id',
+      defaultHidden: true,
+      cell: (d) => <MutedCell className="tabular-nums">{d.id}</MutedCell>,
+    },
+    {
+      id: 'subs',
+      header: t('people.col.subs'),
+      align: 'end',
+      width: 88,
+      dataType: 'number',
+      defaultHidden: true,
+      sortField: 'activeSubscriptions',
+      cell: (d) => (
+        <NumCell>
+          {t('people.subsOfMax', {
+            used: formatCount(d.activeSubscriptions, language),
+            max: formatCount(d.maxSubscriptions, language),
+          })}
+        </NumCell>
+      ),
+    },
+    {
+      id: 'onTime',
+      header: t('people.col.onTime'),
+      align: 'end',
+      width: 88,
+      dataType: 'number',
+      defaultHidden: true,
+      sortField: 'onTimePercent',
+      cell: (d) =>
+        d.onTimePercent === null ? (
+          <Absent numeric />
+        ) : (
+          <NumCell>
+            {t('people.percent', { value: formatCount(d.onTimePercent, language) })}
+          </NumCell>
+        ),
+    },
+    {
       id: 'lastTrip',
       header: t('people.col.lastTrip'),
       width: 112,
       dataType: 'date',
+      defaultHidden: true,
       sortField: 'lastTripAt',
       /* `null` is a captain who has never driven — a real fixture row. `—`
          means not-applicable or unknown and is never a zero (§8.3.1). */

@@ -168,8 +168,26 @@ describe('ModuleRail — AC-01, AC-02', () => {
     const tile = railTile('operations')
     /* D7: the pill is GREY on a near-white nav, not white on grey. A white pill
        on `--ev-bg-nav` would measure 1.0 : 1 and disappear. V2's white pill is
-       recorded as superseded in `04-reskin.md` §10. */
-    expect(tile.className).toContain('bg-nav-chip')
+       recorded as superseded in `04-reskin.md` §10.
+
+       THE RAIL HAS ITS OWN CHIP. The owner asked for the workspace rail to be
+       one step darker than the sub-tab column, so the rail ground moved to
+       `--ev-bg-rail: #e9edf1` and the chip moved with it to
+       `--ev-nav-chip-rail: #d8dde5`. Measured, because the shell QA round-2
+       verdict correctly refused to re-point this line without numbers:
+
+         rail chip  #d8dde5 on rail ground   #e9edf1  →  1.159 : 1
+         column chip #e5e7eb on column ground #f6f8f9  →  1.162 : 1   (unchanged)
+         column chip #e5e7eb left on the RAIL #e9edf1  →  1.052 : 1   ← the bug
+
+       The rail chip holds the column chip's relationship to its own ground to
+       three decimal places; leaving `bg-nav-chip` on a darker rail would have
+       cut it to 1.052 : 1, which is the disappearance this comment was written
+       to prevent. The fill is not the only carrier and never was — active is
+       ink on the chip at 12.763 : 1, inactive is `--ev-text-2-rail` on the
+       ground at 4.707 : 1 — so the state survives greyscale on the weight and
+       the ink, per §7.5's two-carrier rule. */
+    expect(tile.className).toContain('bg-nav-rail-chip')
     expect(tile.className).not.toMatch(/(^|\s)border(\s|$)/)
     expect(tile.className).not.toContain('marker')
   })

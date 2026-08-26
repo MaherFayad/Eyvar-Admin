@@ -59,6 +59,17 @@ import { useShell } from '@/shell/ShellContext'
 import { forbiddenReason } from '@/shell/permissions'
 import { SubTabScreen } from '@/screens/SubTabScreen'
 import { PeopleScreen } from '@/screens/operations/people'
+/* Wave 4 — the eight metric-tile sub-tabs (§3.7). */
+import {
+  ManagementGrowthScreen,
+  ManagementOverviewScreen,
+  ManagementPerformanceScreen,
+  ManagementRiskScreen,
+  ManagementZonesScreen,
+} from '@/screens/management'
+import { OperationsOverviewScreen } from '@/screens/operations/overview'
+import { SupportOverviewScreen } from '@/screens/support/overview'
+import { AdminOverviewScreen } from '@/screens/admin/overview'
 import { ForbiddenScreen, NotFoundScreen } from '@/screens/RouteStates'
 import { PlanEditorScreen } from '@/screens/PlanEditorScreen'
 import { EntityPageScreen } from '@/screens/EntityPageScreen'
@@ -162,6 +173,19 @@ function RouteGuard({ row, children }: { row: SubTabRoute; children: ReactNode }
  */
 function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
+
+  /* Wave 4 — the eight §3.7 metric-tile sub-tabs. Each entry is one line and
+     the route, the path, the permission and the shape all still come from the
+     route table; only "which component renders this id" is decided here. */
+  if (row.subTabId === 'management-overview') return <ManagementOverviewScreen row={row} />
+  if (row.subTabId === 'management-performance') return <ManagementPerformanceScreen row={row} />
+  if (row.subTabId === 'management-risk') return <ManagementRiskScreen row={row} />
+  if (row.subTabId === 'management-growth') return <ManagementGrowthScreen row={row} />
+  if (row.subTabId === 'management-zones') return <ManagementZonesScreen row={row} />
+  if (row.subTabId === 'operations-overview') return <OperationsOverviewScreen row={row} />
+  if (row.subTabId === 'support-overview') return <SupportOverviewScreen row={row} />
+  if (row.subTabId === 'admin-overview') return <AdminOverviewScreen row={row} />
+
   return <SubTabScreen row={row} />
 }
 

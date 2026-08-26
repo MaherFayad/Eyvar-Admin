@@ -41,6 +41,9 @@ import { SLA_MESSAGES_EN } from '@/lib'
    which imports this file — a cycle. `copy.ts` imports one TYPE and nothing
    else, so this edge has no runtime cost and no ordering hazard. */
 import { PEOPLE_EN } from '@/screens/operations/people/copy'
+/* Wave 4 — one dictionary for all eight §3.7 metric-tile sub-tabs. They share
+   `overview.noData`, which §3.7 requires to be byte-identical everywhere. */
+import { OVERVIEW_EN } from '@/screens/metrics/copy'
 
 /* ───────────────────────── workspaces (§2.2) ───────────────────────── */
 
@@ -276,6 +279,18 @@ const shell: Dictionary = {
   'shell.account.myProfile': 'My profile',
   'shell.account.switchUser': 'Switch user',
   'shell.account.signOut': 'Sign out',
+
+  /* §11.6 row 23 `language-switching` — the control that fires it.
+     `shell.account.language` is a GROUP HEADING, not an action, so it is a
+     noun and not verb-first (§5.7 governs commands, and this is a label).
+     The two language names are the SAME KEYS the toast interpolates, so
+     "Interface language set to Arabic" and the menu item an operator just
+     chose can never disagree — and when `AR` is filled they both become the
+     endonym in the same edit. AC-75: named placeholder, one key, no
+     concatenation. */
+  'shell.account.language': 'Language',
+  'shell.language.en': 'English',
+  'shell.language.ar': 'Arabic',
 
   /* §4.1 — the save bar. */
   'shell.saveBar.dirty': 'Unsaved changes',
@@ -527,6 +542,7 @@ export const EN: Dictionary = {
   ...table,
   ...SLA_MESSAGES_EN,
   ...PEOPLE_EN,
+  ...OVERVIEW_EN,
 }
 
 /** See the file header. Empty on purpose; it is AC-74's fixture, not a gap in the build. */

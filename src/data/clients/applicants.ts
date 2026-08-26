@@ -62,6 +62,9 @@ const applicantShape: QueryShape<Applicant> = {
     /* booleans */
     unclaimed: (a) => a.claim === null || a.claim.state !== 'claimed',
     hasPhoto: (a) => a.hasPhoto,
+    /** **The stamp, never `slaDueAt < now`** — see `types/workQueue.ts`. */
+    breached: (a) => a.slaBreachedAt !== null,
+    hasSla: (a) => a.slaDueAt !== null,
 
     /* numbers */
     acceptedTrips: (a) => a.acceptedTrips,
@@ -69,9 +72,18 @@ const applicantShape: QueryShape<Applicant> = {
     /* Outstanding paperwork, as a number-range: `1 …` is "has a blocker". */
     docsOutstanding: (a) => a.docs.filter((d) => d.status !== 'verified').length,
 
+    /* closed set — where the SLA number came from. `unset` on every applicant
+       row: the 48-hour window is a placeholder waiting on Q8. */
+    slaSource: (a) => a.slaSource,
+
+    /* numbers */
+    slaTargetMinutes: (a) => a.slaTargetMinutes,
+
     /* dates — the SLA columns a work queue is sorted and filtered by */
     appliedAt: (a) => toInstant(a.appliedAt),
+    slaStartedAt: (a) => toInstant(a.slaStartedAt),
     slaDueAt: (a) => toInstant(a.slaDueAt),
+    slaBreachedAt: (a) => toInstant(a.slaBreachedAt),
     decidedAt: (a) => toInstant(a.decidedAt),
     dateOfBirth: (a) => toInstant(a.dateOfBirth),
 
@@ -88,14 +100,21 @@ const applicantShape: QueryShape<Applicant> = {
     'appLanguage',
     'bankStatus',
     'claimedBy',
+    'slaSource',
   ],
   views: {
     applications: () => true,
     mine: (a) => a.claim?.state === 'claimed' && a.claim.ownerId === CURRENT_USER_ID,
     unassigned: (a) => a.claim === null || a.claim.state !== 'claimed',
-    /* SLA breached. Compared against the fixed clock, not a live one, so the
-       set is stable for a visual diff. */
-    breached: (a) => a.slaDueAt !== null && Date.parse(a.slaDueAt) < Date.parse(EYVAR_NOW),
+    /**
+     * SLA breached — **the server's stamp**, not `slaDueAt < now`.
+     *
+     * Wave 1 compared the deadline to the fixed clock. That is wrong on
+     * `APP-2203`, approved on the 24th against a deadline on the 25th: its
+     * deadline has passed and it never breached. One row is enough to matter,
+     * and there are three more like it across wave 2.
+     */
+    breached: (a) => a.slaBreachedAt !== null,
   },
 }
 

@@ -50,7 +50,21 @@ import type { ReactNode } from 'react'
  * What kind of value the column holds. Drives §5.4's sort labels and the
  * alignment default. `align: 'end'` implies `number` unless stated.
  */
-export type ColumnDataType = 'text' | 'enum' | 'number' | 'money' | 'date' | 'boolean'
+export type ColumnDataType =
+  | 'text'
+  | 'enum'
+  | 'number'
+  | 'money'
+  | 'date'
+  | 'boolean'
+  /**
+   * `04-index-screen-redesign.md` §7.3 rule 5 — a record identifier
+   * (`APP-2204`, `DRV-0104`). It sorts and filters exactly like `text`; it
+   * exists as its own type because the width contract forbids it, like
+   * `money`, from being the LAST visible data column. A truncated id and a
+   * truncated amount are the two values a reader cannot tell are truncated.
+   */
+  | 'id'
 
 export interface ColumnFilterOption {
   /**
@@ -107,6 +121,19 @@ export interface DataColumn<T> {
    * makes a wide table overflow rather than squeeze columns below legibility.
    */
   width?: number
+  /**
+   * `04-index-screen-redesign.md` §7.3 rule 2 — **the identity column, and
+   * only the identity column, omits `width` and declares this instead.** It is
+   * the one flexible column: it absorbs 100 % of the residual the fixed
+   * columns leave, and it never falls below this floor.
+   *
+   * It is also what the width budget counts (§7.3 rule 3:
+   * `Σ declared px + identity min-inline-size ≤ 910`), and what a pinned
+   * offset is computed from — correct at exactly the moment pinning matters,
+   * because in a table that overflows there is no residual and the identity
+   * column renders at precisely this width.
+   */
+  minWidth?: number
   /** Default true where a `width` is declared. Never exposes the `end` edge (**AC-107**). */
   pinnable?: boolean
   /** §3.1 / §7.1 — the identity column. Never hideable, never unpinnable. */
@@ -179,6 +206,7 @@ export function filterEntries<T>(
 const SORT_KEYS: Readonly<Record<ColumnDataType, { asc: string; desc: string }>> = {
   text: { asc: 'table.sort.textAsc', desc: 'table.sort.textDesc' },
   enum: { asc: 'table.sort.textAsc', desc: 'table.sort.textDesc' },
+  id: { asc: 'table.sort.textAsc', desc: 'table.sort.textDesc' },
   number: { asc: 'table.sort.numberAsc', desc: 'table.sort.numberDesc' },
   money: { asc: 'table.sort.numberAsc', desc: 'table.sort.numberDesc' },
   date: { asc: 'table.sort.dateAsc', desc: 'table.sort.dateDesc' },
