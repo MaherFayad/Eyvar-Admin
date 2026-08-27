@@ -70,6 +70,8 @@ export interface PeopleTableProps<T> {
   scope?: { label: string; clearLabel: string; onClear: () => void } | null
 
   rowActions?: ReadonlyArray<RowAction<T>>
+  /** §7.8 — the actions lane width when exactly ONE action is declared. */
+  rowActionsWidth?: number
   bulkActions?: ReadonlyArray<{ label: string; onClick: (ids: ReadonlySet<string>) => void }>
 
   firstRun: { heading: string; body: string; actions: EmptyAction[] }
@@ -96,6 +98,7 @@ export function PeopleTable<T>({
   now = null,
   scope = null,
   rowActions,
+  rowActionsWidth,
   bulkActions,
   firstRun,
   noMatch,
@@ -131,6 +134,7 @@ export function PeopleTable<T>({
       scope={scope}
       skeletonPattern={skeletonPattern}
       rowActions={rowActions}
+      rowActionsWidth={rowActionsWidth}
       bulkActions={bulkActions}
       firstRun={firstRun}
       noMatch={noMatch}

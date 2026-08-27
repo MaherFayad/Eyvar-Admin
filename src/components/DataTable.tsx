@@ -39,9 +39,29 @@
  * per-view column state diverges. Elevation stays on the **card** (tier 1, from
  * `card.tsx`) and on the floating bulk bar (tier 2). No cell carries any.
  *
+ * ## What `04-index-screen-redesign.md` changed here
+ *
+ * **D-18 — there is no card.** `DESIGN.md` §3.1's one-card rule and
+ * `specs/00-foundation.md` §7.1's `Container` row are both §1–§5 Shopify
+ * observations that **D7** replaced, and §7.1 supersedes them by name: **the
+ * TABLE is the bordered object**, and the control row, the query strip and the
+ * pagination row sit on the white content ground outside it.
+ *
+ * **D-19 — the table is a bounded scroller and the page does not scroll.**
+ * Bands 2, 3 and 5 are `flex-none`; band 4 is `flex-1 min-h-0` and owns
+ * `overflow: auto` on both axes, with a 216px floor. That is the only
+ * construction that puts the pagination row, the horizontal scrollbar and the
+ * sticky header inside the viewport at once — and each of those was a live
+ * defect (N2, S16′, craft-critique F1 part 3).
+ *
+ * **§7.3 — the width contract.** Every column declares a width; exactly one,
+ * the identity, declares `minWidth` and absorbs the residual under
+ * `table-layout: fixed`. `Σ + identity min ≤ 910` (English) / `≤ 870`
+ * (Arabic — the `:lang(ar)` rail and sub-tab steps are 40px wide between them),
+ * and a `money` or `id` column may never be the last visible data column.
+ * Asserted per view in `table/columnBudget.test.ts`.
+ *
  * Rules applied
- *   §9.1        ONE CARD holds the toolbar, the chip strip, the header row, the
- *               rows and the bulk bar. **Never a bare `<table>`** (§3.1).
  *   §14.4/AC-112
  *               the toolbar, the chip strip, the pagination and the bulk bar sit
  *               **outside** the horizontal scroll container. The bulk bar is
@@ -127,9 +147,11 @@ import {
   type ExtraFilterSpec,
 } from './table/columns'
 import {
+  ACTION_LANE_WIDTH_PX,
   KEBAB_COLUMN_ID,
   LANE_WIDTH_PX,
   SELECT_COLUMN_ID,
+  SINGLE_ACTION_LANE_WIDTH_PX,
   pinnedStyle,
   useTableOverflow,
 } from './table/pinning'
@@ -148,6 +170,29 @@ export interface RowAction<T> {
   onSelect: (row: T) => void
   /** §11.2 — gate at RENDER, not at commit. Disabled in place, never hidden. */
   disabled?: (row: T) => boolean
+}
+
+/**
+ * §7.8 / **D8** — the one-action shape. A labelled control, visible at rest
+ * (**AC-68**), disabled in place when the role may not use it (§11.2).
+ *
+ * `truncate` and `w-full` so the lane's declared width (§7.3) is what the
+ * button obeys, rather than the label pushing the column wider and taking the
+ * table over budget in the one language nobody previewed.
+ */
+function SingleRowAction<T>({ action, row }: { action: RowAction<T>; row: T }) {
+  const disabled = action.disabled?.(row) ?? false
+  return (
+    <Button
+      variant="secondary"
+      size="xs"
+      className="w-full justify-center truncate"
+      disabled={disabled}
+      onClick={() => action.onSelect(row)}
+    >
+      {action.label}
+    </Button>
+  )
 }
 
 /* ──────────────────────────── the props ──────────────────────────── */
@@ -192,6 +237,14 @@ export interface DataTableProps<T> {
 
   /** §9.1 — always renders; takes ink and a fill on hover **or focus-within**. */
   rowActions?: ReadonlyArray<RowAction<T>>
+  /**
+   * §7.8 — the actions lane's width when exactly ONE action is declared and it
+   * therefore renders as a labelled button rather than a kebab. `12 + label +
+   * 12`, **declared per view** because a label's width is a translation
+   * question, and declared rather than measured because §7.3's budget has to be
+   * assertable before paint. Defaults to §7.8's 88. Ignored otherwise.
+   */
+  rowActionsWidth?: number
   /** §9.1 — at most THREE labelled secondary buttons, then `…`. */
   bulkActions?: ReadonlyArray<{ label: string; onClick: (ids: ReadonlySet<string>) => void }>
 
@@ -231,6 +284,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     extraFilters = [],
     now = null,
     rowActions,
+    rowActionsWidth,
     bulkActions,
     firstRun,
     noMatch,
@@ -249,7 +303,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
      time in the ledger branch and a reviewer can see it. */
   const isLedger = table.mode === 'ledger'
   const selectable = !isLedger && table.canSelect
-  const kebabs = Boolean(!isLedger && table.canRowAction && rowActions && rowActions.length > 0)
+  /**
+   * **D8 — the actions cell's shape comes from the COUNT of declared actions,
+   * and it is decided here rather than per screen.** Owner, twice:
+   * *"if only 1 action put the action not 3 dots"* · *"still kebab with 1
+   * item"*. §7.8's table:
+   *
+   * | declared actions | renders | lane |
+   * |---|---|---:|
+   * | 0 | nothing, and no lane at all | — |
+   * | 1 | that action, **labelled**, no menu | `rowActionsWidth ?? 88` |
+   * | 2 or more | the `⋯` kebab | 56 |
+   *
+   * **The count is of DECLARED actions, never of enabled ones.** §11.2 renders
+   * an unavailable action disabled in place with its reason; counting enabled
+   * ones instead would make the treatment depend on the row, and the column
+   * would jitter between a button and a kebab down the length of the table —
+   * which is a worse defect than the one being fixed.
+   *
+   * §7.8 also specifies a third shape, the `✓ ✗ View` decision triad at 116.
+   * That is build item 11 and is not derivable from a count: it needs the
+   * dispositions to be declared as a pair. Recorded, not guessed at.
+   *
+   * Two non-decision actions is unspecified by §7.8, which jumps from 1 to
+   * "3 or more". A kebab is the safe reading — it is only "1" that D8 names —
+   * and it is raised in the handoff.
+   */
+  const declaredActions = !isLedger && table.canRowAction ? (rowActions ?? []) : []
+  const actionShape: 'none' | 'single' | 'menu' =
+    declaredActions.length === 0 ? 'none' : declaredActions.length === 1 ? 'single' : 'menu'
+  const kebabs = actionShape !== 'none'
+  const actionLaneWidth =
+    actionShape === 'single'
+      ? (rowActionsWidth ?? SINGLE_ACTION_LANE_WIDTH_PX)
+      : ACTION_LANE_WIDTH_PX
 
   /* AC-113 — `null` on a ledger, and not as a flag: `LedgerTable` has no
      `setSortField`, so there is nothing to put in this object. A sort item in a
@@ -277,19 +364,29 @@ export function DataTable<T>(props: DataTableProps<T>) {
          only when the answer can be yes. A screen that forgets `width` gets a
          table with no frozen identity column — degraded, legible, and not a
          crash on first paint. */
-      const sizeable = typeof column.width === 'number' && Number.isFinite(column.width) && column.width > 0
+      /* §7.3 rule 2 makes the identity column FLEXIBLE — it declares
+         `minWidth` and no `width` — and §7.2 requires a declared size to pin.
+         The two are reconciled by the one fact that makes the conflict
+         vacuous: **a table that overflows has no residual to distribute, so the
+         identity column renders at exactly its `minWidth`.** Pinning only means
+         anything while the table overflows, so the offset computed from
+         `minWidth` is exact at every moment it is used. Reported to the
+         designer as a genuine §7.3-rule-2 vs §7.2 conflict rather than fixed
+         silently. */
+      const declared = column.width ?? column.minWidth
+      const sizeable = typeof declared === 'number' && Number.isFinite(declared) && declared > 0
       list.push({
         id: column.id,
-        width: sizeable ? (column.width as number) : 0,
+        width: sizeable ? declared : 0,
         ...(index === 0 && sizeable ? { lockedEdge: 'start' as const } : {}),
       })
     })
     /* AC-105 — the kebab column is pinned to the inline-END implicitly and
        permanently. `PinEdge` supports `'end'` for exactly this; **no operator
        control ever passes it** (AC-107). */
-    if (kebabs) list.push({ id: KEBAB_COLUMN_ID, width: LANE_WIDTH_PX, lockedEdge: 'end' })
+    if (kebabs) list.push({ id: KEBAB_COLUMN_ID, width: actionLaneWidth, lockedEdge: 'end' })
     return list
-  }, [selectable, kebabs, visible])
+  }, [selectable, kebabs, actionLaneWidth, visible])
 
   const pins = useColumnPinning({ columns: pinColumns, tableId, view })
   const { scrollRef, overflowing } = useTableOverflow(direction)
@@ -454,6 +551,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }, [status])
   const refreshing = status === 'loading' && hasShownContent.current
 
+  /**
+   * **R20 — row height is the TABLE's, not the row's, and there are no
+   * exceptions.** `04-index-screen-redesign.md` §7.6: `DESIGN.md` §3.1's prose
+   * says a two-line primary cell *"grows to fit rather than truncating"* and
+   * §3.1's own **Rules** block says row height *"MUST be uniform within a
+   * table"*. The build followed the prose. Measured before the fix, Applications
+   * ran 117 / 44 / 44 / 69 / 44 / 44 / 44 / 41 — five interval changes in eight
+   * rows, which a reader parses as damage rather than as data.
+   *
+   * The MUST wins and the prose clause is void. Declared here rather than on the
+   * `<td>` so that a cell's line box can never move a row again, which is what
+   * makes the loading skeleton's pitch and the content row's pitch the same
+   * number by construction (§10.2, craft-critique F3's ~575px of layout shift).
+   *
+   * A ledger keeps `--ev-row-h`: it is a different table, and R20 is per table.
+   */
+  const rowHeightClass = isLedger ? 'h-row' : 'h-row-media'
+
   const selectedCount = selectable ? table.selectedCount : 0
   const pattern = skeletonPattern ?? (isLedger ? 'P7' : table.mode === 'queue' ? 'P8' : 'P1')
   const range = pageRange(table.page, table.pageSize, total)
@@ -493,14 +608,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   /* AC-111 — a pinned cell is OPAQUE and takes the ROW's own background,
      hover included, or the scrolling content shows through it. */
-  const laneStyle = (id: string) => pinnedStyle(pins.pinnedColumn(id), LANE_WIDTH_PX, overflowing)
+  const laneStyle = (id: string) =>
+    pinnedStyle(
+      pins.pinnedColumn(id),
+      id === KEBAB_COLUMN_ID ? actionLaneWidth : LANE_WIDTH_PX,
+      overflowing,
+    )
   const laneClass = (id: string) =>
     cn(
+      id === KEBAB_COLUMN_ID ? undefined : 'w-10',
       pins.isPinned(id) &&
         'z-10 bg-card group-hover/row:bg-accent group-focus-within/row:bg-accent group-data-[state=selected]/row:bg-accent',
     )
   const headLaneClass = (id: string) =>
-    cn('sticky top-0 w-10 bg-muted', pins.isPinned(id) ? 'z-30' : 'z-20')
+    cn(
+      'sticky top-0 bg-muted',
+      id === KEBAB_COLUMN_ID ? undefined : 'w-10',
+      pins.isPinned(id) ? 'z-30' : 'z-20',
+    )
 
   const headerRow = (
     <TableHeader>
@@ -585,11 +710,23 @@ export function DataTable<T>(props: DataTableProps<T>) {
   )
 
   return (
-    <div className={cn('flex w-full flex-col gap-3', className)}>
-      {/* §9.1 — ONE CARD holds everything. Never a bare `<table>`. */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-1">
-        {/* AC-112 — the toolbar and the chip strip are OUTSIDE the horizontal
-            scroll container, so they do not move when the table scrolls. */}
+    /* **§7.2 / D-19 — the bands, and the page does not scroll.**
+       The four bands below are siblings on the white content ground, not a
+       stack inside a card. Bands 2, 3 and 5 are `flex-none`; band 4 is
+       `flex-1 min-h-0` and owns `overflow: auto` on both axes. `gap-3` is
+       §1.2's twelve, declared once: 2→3, 3→4 and 4→5 are all 12 and there is
+       no fourth number in this composition.
+
+       Consequences, all of them wanted: the pagination row is always in the
+       viewport (it sat at y = 1278 in an 820px one, so the owner had literally
+       never seen it — match audit N2); the horizontal scrollbar is always in
+       the viewport (craft-critique F1 part 3 put it ~430px below the fold);
+       and `<thead>`'s sticky finally works, because the scroller has a height
+       constraint for the first time. The declarations were already correct. */
+    <div className={cn('flex min-h-0 w-full flex-1 flex-col gap-3', className)}>
+      {/* **BAND 2 — the control row.** §7.1 / D-18: there is no card, so this
+          sits on the page ground. AC-112 still holds — it is outside the
+          horizontal scroll container and does not move when the table scrolls. */}
         <IndexToolbar
           t={t}
           tabs={tabs}
@@ -623,23 +760,30 @@ export function DataTable<T>(props: DataTableProps<T>) {
           }
         />
 
-        {/* §10.1 — at rest there is NO chip strip: the resting card is toolbar,
-            header row, rows. It appears the moment anything is filtered, or a
-            queue scope is on. `Add filter` is reachable at rest from the
-            toolbar's own filter control, which is the second trigger §6.3
-            already requires. */}
-        {(table.isFiltered || scope !== null) && <FilterChipRow {...chipProps} />}
+      {/* **BAND 3 — the query strip**, on the ground, with a declared 12 above
+          it and a declared 12 below. §6.1 makes it permanent so that adding a
+          filter cannot move the table; that is build item 8, and until it lands
+          it still appears only when something is narrowing. */}
+      {(table.isFiltered || scope !== null) && <FilterChipRow {...chipProps} />}
 
+      {/* **BAND 4 — the table, and it is the bordered object.** §7.1 / D-18.
+          Craft-critique F17 said the card that held everything was invisible;
+          it was invisible because a 1.122 : 1 border around 976px of white
+          containing more white has nothing to separate. **The border value does
+          not change** — what changes is what it encloses. F9's four inline-start
+          edges collapse to one at the same time, because there is no card
+          inset left to inset from. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
         {status === 'loading' && !refreshing && (
           <div className="p-3">
             <LoadingSkeleton pattern={pattern} />
           </div>
         )}
 
-        {/* §11.2 — the CARD scope keeps the toolbar and the chip strip rendered
-            above, so the operator can change the query that failed. §11.3: the
-            header row is NOT rendered in the error state, which is exactly why
-            the strip above it is the escape route. */}
+        {/* §11.2 — the card scope keeps the control row and the query strip
+            rendered above, so the operator can change the query that failed.
+            §11.3: the header row is NOT rendered in the error state, which is
+            exactly why the strip above it is the escape route. */}
         {status === 'error' && (
           <ErrorState
             scope="card"
@@ -663,11 +807,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
           ))}
 
         {(status === 'content' || refreshing) && (
-          /* §14.4 — ONE horizontal scroll container per table, inside the card,
-             wrapping the `<table>`. `overscroll-behavior-inline: contain` so a
-             trackpad flick at the end of the table does not trigger the
-             browser's back-navigation gesture. */
-          <Table containerRef={scrollRef}>
+          /* §14.4 — ONE scroll container per table, wrapping the `<table>`, and
+             under D-19 it is now the BOUNDED one: `flex-1 min-h-0` with
+             `overflow: auto` on both axes and §7.2's floor guard,
+             `min-block-size: calc(36px + 3 × 60px)` = 216. Below that the page
+             itself scrolls, which is the documented fallback and not a second
+             breakpoint. `overscroll-behavior-inline: contain` so a trackpad
+             flick at the end of a wide table does not trigger the browser's
+             back-navigation gesture. */
+          <Table
+            containerRef={scrollRef}
+            containerClassName="min-h-54 flex-1 overflow-y-auto"
+          >
               {headerRow}
 
               <TableBody>
@@ -680,7 +831,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
                 {refreshing
                   ? Array.from({ length: Math.max(rows.length, 5) }, (_, index) => (
-                      <TableRow key={`skeleton-${index}`} className="group/row relative">
+                      <TableRow key={`skeleton-${index}`} className={cn("group/row relative", rowHeightClass)}>
                         {selectable && (
                           <TableCell style={laneStyle(SELECT_COLUMN_ID)} className={laneClass(SELECT_COLUMN_ID)}>
                             <Skeleton className="size-4" />
@@ -689,7 +840,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         {visible.map((column) => (
                           <TableCell
                             key={column.id}
-                            style={pinnedStyle(pins.pinnedColumn(column.id), column.width, overflowing)}
+                            style={pinnedStyle(pins.pinnedColumn(column.id), column.width, overflowing, column.minWidth)}
                             className={laneClass(column.id)}
                           >
                             <Skeleton className="h-3 w-full" />
@@ -714,12 +865,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
                              against it — and because the marker rides the
                              implicitly pinned first cell, it stays visible at
                              every horizontal scroll offset (**AC-106**). */
-                          className="group/row relative"
+                          className={cn('group/row relative', rowHeightClass)}
                         >
                           {selectable && (
                             <TableCell
                               style={laneStyle(SELECT_COLUMN_ID)}
-                              className={cn('w-10', laneClass(SELECT_COLUMN_ID))}
+                              className={laneClass(SELECT_COLUMN_ID)}
                             >
                               <Checkbox
                                 aria-label={t('table.selectRow')}
@@ -734,7 +885,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             return (
                               <TableCell
                                 key={column.id}
-                                style={pinnedStyle(pinned, column.width, overflowing)}
+                                style={pinnedStyle(pinned, column.width, overflowing, column.minWidth)}
                                 className={cn(
                                   column.align === 'end' && 'text-end',
                                   /* `03-navattic-language.md` §4.5, and the
@@ -764,34 +915,48 @@ export function DataTable<T>(props: DataTableProps<T>) {
                           {kebabs && (
                             <TableCell
                               style={laneStyle(KEBAB_COLUMN_ID)}
-                              className={cn('w-10', laneClass(KEBAB_COLUMN_ID))}
+                              className={laneClass(KEBAB_COLUMN_ID)}
                             >
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    aria-label={t('table.rowActions', { row: id })}
-                                    /* AC-68 / D19 — ALWAYS rendered. Muted at
-                                       rest; ink plus a fill on the row's hover
-                                       OR its focus-within. Never `opacity: 0`. */
-                                    className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
-                                  >
-                                    <span aria-hidden="true">⋯</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {rowActions?.map((action) => (
-                                    <DropdownMenuItem
-                                      key={action.label}
-                                      onSelect={() => action.onSelect(row)}
-                                      disabled={action.disabled?.(row) ?? false}
+                              {/* **D8 — one action is a BUTTON, not a menu.**
+                                  §7.8. Still §11.2-gated: an action the role
+                                  cannot use renders disabled IN PLACE, because
+                                  the count that chose this shape is the count
+                                  of DECLARED actions and does not move per row.
+                                  AC-68 / D19 — visible at rest, never revealed
+                                  by hover. */}
+                              {actionShape === 'single' ? (
+                                <SingleRowAction
+                                  action={declaredActions[0] as RowAction<T>}
+                                  row={row}
+                                />
+                              ) : (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      aria-label={t('table.rowActions', { row: id })}
+                                      /* AC-68 / D19 — ALWAYS rendered. Muted at
+                                         rest; ink plus a fill on the row's hover
+                                         OR its focus-within. Never `opacity: 0`. */
+                                      className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
                                     >
-                                      {action.label}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                      <span aria-hidden="true">⋯</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {declaredActions.map((action) => (
+                                      <DropdownMenuItem
+                                        key={action.label}
+                                        onSelect={() => action.onSelect(row)}
+                                        disabled={action.disabled?.(row) ?? false}
+                                      >
+                                        {action.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </TableCell>
                           )}
                         </TableRow>
@@ -810,42 +975,45 @@ export function DataTable<T>(props: DataTableProps<T>) {
           </Table>
         )}
 
-        {/* `03-navattic-language.md` §4.6 — **the pagination footer sits INSIDE
-            the card**, and the match audit is why it moved: outside it, on a
-            57-row page, it rendered at y = 1080 in an 820px viewport, so the
-            owner had never seen it. Inside the card it is adjacent to the last
-            row and reachable at any page length. It is still OUTSIDE the
-            horizontal scroll container (**AC-112**), so it does not slide away
-            when the table scrolls. */}
-        {status === 'content' && (
-          <div className="flex h-12 items-center justify-between gap-3 border-t border-border px-3">
-            <span className="text-sm text-muted-foreground">
-              {t('table.showing', {
-                from: formatCount(range.from),
-                to: formatCount(range.to),
-                total: formatCount(range.total),
-              })}
-            </span>
-            <div className="flex items-center gap-2">
-              {/* §4.6 — bare text buttons, `--ev-text-2` when disabled. The
-                  labels are LOGICAL: inline-start is `Previous` in both
-                  directions, so nothing here reads `dir`. */}
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={table.previousPage}
-                disabled={!range.hasPrevious}
-              >
-                {t('table.previous')}
-              </Button>
-              <Button variant="ghost" size="xs" onClick={table.nextPage} disabled={!range.hasNext}>
-                {t('table.next')}
-              </Button>
-            </div>
-          </div>
-        )}
-
       </div>
+
+      {/* **BAND 5 — the pagination row, OUTSIDE the table.** §8, and match
+          audit N2 is what moved it twice. It was below the card and rendered at
+          y = 1278 in an 820px viewport, so the owner had never seen it; moving
+          it INSIDE the card fixed the symptom and broke the match — the
+          reference's pager sits ~22px below the card's bottom edge. D-19 fixes
+          the cause instead: the table is a bounded scroller, so a band beneath
+          it is on screen at any page length. 40px, white, and **no border above
+          it** — the table's own outer border already terminates the data.
+
+          The rows-per-page `select` §8 asks for is build item 9. */}
+      {status === 'content' && (
+        <div className="flex h-10 flex-none items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            {t('table.showing', {
+              from: formatCount(range.from),
+              to: formatCount(range.to),
+              total: formatCount(range.total),
+            })}
+          </span>
+          <div className="flex items-center gap-2">
+            {/* §8 — bare text buttons, `--ev-text-2` when disabled. The labels
+                are LOGICAL: inline-start is `Previous` in both directions, so
+                nothing here reads `dir`. */}
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={table.previousPage}
+              disabled={!range.hasPrevious}
+            >
+              {t('table.previous')}
+            </Button>
+            <Button variant="ghost" size="xs" onClick={table.nextPage} disabled={!range.hasNext}>
+              {t('table.next')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* §9.1 / AC-112 — THE BULK BAR FLOATS AGAINST THE PAGE, NOT THE CARD.
           It is `sticky` in the content region's own scroll context and carries

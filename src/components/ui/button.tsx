@@ -56,8 +56,19 @@ const buttonVariants = cva(
         // R3 / D-1 — the one primary.
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         // The everyday secondary: white surface, hairline, ink label.
+        //
+        // **`border-border-control`, not `border-border` — R23, match audit
+        // N3.** `--ev-hairline-control` #dde0e4 (1.324 : 1) is the CONTROL
+        // weight and `--ev-hairline` #f0f2f4 (1.122 : 1) is structure. The
+        // token was measured, declared and had ZERO consumers; every button in
+        // the product wore the structural weight instead, which is how
+        // craft-critique F7 found a non-interactive `Pending` badge outlined in
+        // near-black beside an `Approve` BUTTON outlined at 1.122 — the
+        // affordance exactly inverted. The interactive element is now at least
+        // as defined as the static one. Not a §7 contrast requirement either
+        // way: the boundary is never the sole indicator, the label is.
         secondary:
-          "border-border bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-accent",
+          "border-border-control bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-accent",
         // Same geometry, no surface — toolbar icons, kebabs, nav rows.
         ghost:
           "text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",

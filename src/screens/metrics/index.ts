@@ -1,28 +1,18 @@
 /**
- * The metric-tile / chart-card screen family — wave 4.
+ * The metric-tile / chart-card screen family — `DESIGN.md` §3.7.
  *
- * Eight sub-tabs, one composer, one data contract. What a screen file contains
- * is its **surface id and nothing else**; see `OverviewScreen.tsx` for why that
- * is the point rather than an economy.
+ * **One screen, eight sub-tabs.** `routes.tsx` mounts `MetricBoardScreen` for
+ * every id in `METRIC_BOARD_SUB_TABS` (`@/data/clients`), so which sub-tabs
+ * have a board is a data question answered in the data layer — adding a ninth
+ * is a fixture change and not a code change.
  *
- * `source.ts` is deliberately NOT exported. It is a temporary stand-in for a
- * client that does not exist yet and no screen may reach it directly — when
- * `@/data/clients` grows `getOverview`, exactly one import changes.
+ * Its data is `getMetricBoard(subTabId)`. There is no private stand-in here:
+ * an earlier cut of this directory carried a `contract.ts` and a `source.ts`
+ * written against the shape the screens needed while the metrics resource was
+ * still being built. `src/data/types/metrics.ts` and `src/data/clients/metrics.ts`
+ * landed, they are richer than the stand-in was, and the stand-in was deleted
+ * rather than left to drift beside the real thing.
  */
 
-export { OverviewScreen, type OverviewScreenProps } from './OverviewScreen'
+export { MetricBoardScreen } from './MetricBoardScreen'
 export { OVERVIEW_EN } from './copy'
-export type {
-  BreakdownRow,
-  BucketSize,
-  ChartBody,
-  ChartCardData,
-  Comparison,
-  Metric,
-  MetricValue,
-  Overview,
-  OverviewSurfaceId,
-  Period,
-  RowLabel,
-  SeriesPoint,
-} from './contract'

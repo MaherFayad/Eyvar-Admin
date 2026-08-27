@@ -129,9 +129,20 @@ function buildWorkItems(role: RoleName): WorkItem[] {
 
   /* ── trip assurance ──────────────────────────────────────────────────── */
   for (const t of assuranceTripFixtures) {
-    /* Legs that need a human: nobody has confirmed, or there is nobody to fall
-       back on. A confirmed, covered leg is not work. */
-    const needsWork = t.uncovered || t.acknowledgement === null || !t.backupEligible
+    /**
+     * Legs that need a human: nobody has *actually* confirmed, or there is
+     * nobody to fall back on. A confirmed, covered leg is not work.
+     *
+     * **A `weak` acknowledgement is not a confirmation.** `ACK_SOURCE.assumed`
+     * is explicit: *"Not a confirmation. Use only when the leg must proceed and
+     * somebody has decided to carry the risk"* (`:18135`). Treating it as one
+     * dropped `UST-4` out of the inbox — a captain who has not started with
+     * twelve minutes to pickup — and the disagreement was caught by
+     * `metrics.test.ts` comparing this count against the overview tile's.
+     * That is what a cross-check between two derivations is for.
+     */
+    const confirmed = t.acknowledgement !== null && t.acknowledgement.weight !== 'weak'
+    const needsWork = t.uncovered || !confirmed || !t.backupEligible
     if (!needsWork || t.autoHandedOff) continue
     items.push({
       key: `assurance:${t.id}`,
@@ -375,6 +386,43 @@ export function myWorkBacklogSize(): number {
       w.routedToMyRole &&
       (w.claim === null || w.claim.state !== 'claimed' || w.claim.ownerId === CURRENT_USER_ID),
   ).length
+}
+
+/** One queue's standing at this instant. Three predicates, no ordering. */
+export interface WorkQueueBacklog {
+  queue: WorkQueueId
+  /** Open items, whatever their claim state. */
+  open: number
+  /** Past an SLA clock — the same `breached` flag `view=breached` filters on. */
+  breached: number
+  /** In no operator's name — the same predicate `view=unassigned` uses. */
+  unassigned: number
+}
+
+/**
+ * The backlog, per queue, **synchronously**.
+ *
+ * Exists for one caller: Operations › Overview's `Backlog by queue` breakdown
+ * and the two tiles above it (`05-metrics-content.md` §10.3). Counting there by
+ * re-implementing five predicates is how a board and a queue start disagreeing
+ * — spec **AC-695** requires the breakdown's columns to sum to the tiles, and
+ * building both from `buildWorkItems` makes that true by construction rather
+ * than by a test that notices later.
+ *
+ * **Across every role**, matching `listWorkItems({ includeOtherRoles: true })`.
+ * A board states what the shift owes, not what one operator's inbox holds.
+ */
+export function workBacklogByQueue(): WorkQueueBacklog[] {
+  const all = buildWorkItems(currentRole())
+  return WORK_SOURCES.map((queue) => {
+    const rows = all.filter((w) => w.queue === queue)
+    return {
+      queue,
+      open: rows.length,
+      breached: rows.filter((w) => w.breached).length,
+      unassigned: rows.filter((w) => w.claim === null || w.claim.state !== 'claimed').length,
+    }
+  })
 }
 
 /** Exported for the cross-queue test; not part of the screen's surface. */

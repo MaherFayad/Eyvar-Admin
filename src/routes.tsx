@@ -52,24 +52,15 @@
 
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { getRouteTable } from '@/data/clients'
+import { METRIC_BOARD_SUB_TABS, getRouteTable } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { AppLayout } from '@/shell/AppLayout'
 import { useShell } from '@/shell/ShellContext'
 import { forbiddenReason } from '@/shell/permissions'
 import { SubTabScreen } from '@/screens/SubTabScreen'
 import { PeopleScreen } from '@/screens/operations/people'
-/* Wave 4 — the eight metric-tile sub-tabs (§3.7). */
-import {
-  ManagementGrowthScreen,
-  ManagementOverviewScreen,
-  ManagementPerformanceScreen,
-  ManagementRiskScreen,
-  ManagementZonesScreen,
-} from '@/screens/management'
-import { OperationsOverviewScreen } from '@/screens/operations/overview'
-import { SupportOverviewScreen } from '@/screens/support/overview'
-import { AdminOverviewScreen } from '@/screens/admin/overview'
+/* Wave 4 — ONE screen for all eight §3.7 metric-tile sub-tabs. */
+import { MetricBoardScreen } from '@/screens/metrics'
 import { ForbiddenScreen, NotFoundScreen } from '@/screens/RouteStates'
 import { PlanEditorScreen } from '@/screens/PlanEditorScreen'
 import { EntityPageScreen } from '@/screens/EntityPageScreen'
@@ -174,17 +165,19 @@ function RouteGuard({ row, children }: { row: SubTabRoute; children: ReactNode }
 function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
 
-  /* Wave 4 — the eight §3.7 metric-tile sub-tabs. Each entry is one line and
-     the route, the path, the permission and the shape all still come from the
-     route table; only "which component renders this id" is decided here. */
-  if (row.subTabId === 'management-overview') return <ManagementOverviewScreen row={row} />
-  if (row.subTabId === 'management-performance') return <ManagementPerformanceScreen row={row} />
-  if (row.subTabId === 'management-risk') return <ManagementRiskScreen row={row} />
-  if (row.subTabId === 'management-growth') return <ManagementGrowthScreen row={row} />
-  if (row.subTabId === 'management-zones') return <ManagementZonesScreen row={row} />
-  if (row.subTabId === 'operations-overview') return <OperationsOverviewScreen row={row} />
-  if (row.subTabId === 'support-overview') return <SupportOverviewScreen row={row} />
-  if (row.subTabId === 'admin-overview') return <AdminOverviewScreen row={row} />
+  /* Wave 4 — the §3.7 metric-tile sub-tabs, mounted FROM THE DATA rather than
+     from a list here. `METRIC_BOARD_SUB_TABS` is the data layer's own answer to
+     "which sub-tabs have a board", so adding a ninth board is a fixture change
+     and this file does not move — the same rule §11.3 applies to permissions.
+
+     `support-fairness` is in that list and is EXCLUDED here: its board is the
+     `captain-economics` VIEW inside a work queue, not a table-less sub-tab, and
+     mounting the board screen on `/support/fairness` would replace a queue with
+     a strip of tiles. The data layer says so at the constant; this is the one
+     place that has to act on it. */
+  if (row.subTabId !== 'support-fairness' && METRIC_BOARD_SUB_TABS.includes(row.subTabId)) {
+    return <MetricBoardScreen row={row} />
+  }
 
   return <SubTabScreen row={row} />
 }

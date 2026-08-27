@@ -96,16 +96,32 @@ import { Button } from '@/components/ui/button'
  * all four People views at 1280. **If a view clips, the identity column's
  * `min-w` drops first. Do not "fix" it by shrinking this gutter.**
  *
- * ONE VALUE AT BOTH WIDTHS, deliberately. 1440 gets the 1280 answer and reads
- * tighter than the reference. The clean fix is the `wide:` variant, but
- * redefining a token inside a `@media` block risks emitting a second
- * `@media (min-width:)` into `dist`, which the one-breakpoint check counts.
- * That is a ticket for the owner, not a local decision.
+ * **D-2′ AMENDED — `04-index-screen-redesign.md` §1.2, §14.3, §15.1.** The
+ * gutter is 32 below `--ev-bp-wide` and **48 at and above it**. It arrives
+ * through the **existing** `wide:` variant, so no token is redefined inside a
+ * media query and there is still exactly one `@media (min-width:)` in `dist` —
+ * which is the one-breakpoint check's actual test. `--ev-page-pad` itself is
+ * unchanged at 32; the step is `--ev-page-pad-wide`. This closes finding 2 of
+ * `03-navattic-language.md` §11.
+ *
+ * **The block padding is 24, not 32 — §1.2's band table.** 24 is "the page's
+ * own edge" and it is one of the composition's four gap values (24 · 20 · 12 ·
+ * 0). The inline gutter is a column budget and the block padding is a rhythm;
+ * they were the same number by accident, not by derivation.
+ *
+ * **D-19 — the block is a FLEX COLUMN that fills the content region.**
+ * `h-full min-h-0 flex flex-col`, so a page whose body is a bounded scroller
+ * (an index table, §7.2) can take `flex-1 min-h-0` and own its own overflow,
+ * and the pagination row beneath it is on screen at any page length. A page
+ * whose body is ordinary content is unaffected: nothing claims the residual, so
+ * everything keeps its natural height and `<main>`'s own `overflow-y-auto`
+ * still scrolls it when it is taller than the region.
  *
  * There is no `width` prop and there is not meant to be one. If a specific
  * block of content needs a measure, it constrains ITSELF (see §7.1 above).
  */
-const PAGE_BLOCK = 'w-full p-page-pad'
+const PAGE_BLOCK =
+  'flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
 
@@ -131,10 +147,17 @@ export function SingleColumnPage({
        title's inline-start edge is the first card's inline-start edge" — holds
        by construction rather than by review. */
     <div className={PAGE_BLOCK}>
-      {header}
-      {banner}
-      {children}
-      {learnMore && <div className="pt-3 text-center">{learnMore}</div>}
+      {/* §1.2 — band 1 takes a declared **20** beneath it: *"a different kind
+          of thing starts here"* — identity ends, controls begin. It is the only
+          20 in the composition, and `PageHeader` already carries it as its own
+          block-end padding, so this slot adds none. */}
+      {header && <div className="shrink-0">{header}</div>}
+      {banner && <div className="shrink-0">{banner}</div>}
+      {/* D-19 — the body claims the residual. A page whose body is a bounded
+          scroller uses it; one whose body is ordinary content does not grow
+          into it, because nothing inside asks for the height. */}
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      {learnMore && <div className="shrink-0 pt-3 text-center">{learnMore}</div>}
     </div>
   )
 }

@@ -174,8 +174,13 @@ export { WORK_QUEUE_ROUTE, WORK_ROUTING } from './work'
 /* ── wave 4: metric tiles and chart cards ────────────────────────────── */
 
 export type {
+  BoardNotice,
+  BoardNoticeTone,
+  DailySnapshot,
   Metric,
   MetricBoard,
+  MetricBreakdown,
+  MetricBreakdownRow,
   MetricCategory,
   MetricComparison,
   MetricDirection,

@@ -47,6 +47,38 @@ export const KEBAB_COLUMN_ID = '__actions'
 export const LANE_WIDTH_PX = 40
 
 /**
+ * The actions lane — **56**, `04-index-screen-redesign.md` §7.8.
+ *
+ * `12 + 28 + 12 = 52 -> 56` on the grid, for a 28 x 28 kebab in a 60px row: the
+ * padding-block is 16/16 and the control clears §7.7's 24px floor. It is wider
+ * than the selection lane because a checkbox is 16px and a control is 28, and
+ * it is a **declared** number rather than a shared one because §7.3's budget
+ * counts both lanes and cannot count a constant that means two things.
+ *
+ * §7.8's other two shapes are not this lane: a single row action renders as a
+ * labelled button (88 default) and a decision pair as three 28px controls
+ * (116). Both are build item 11.
+ */
+export const ACTION_LANE_WIDTH_PX = 56
+
+/**
+ * The actions lane when there is exactly ONE row action — **88**, §7.8.
+ *
+ * **D8, from the owner: *"if only 1 action put the action not 3 dots"*.** A
+ * menu that opens to a single item is two clicks and a surprise for something
+ * that could have been a button, and the owner has now reported it twice. The
+ * lane is `12 + label + 12`, **declared per view** (`rowActionsWidth`) because
+ * a label's width is a translation question; 88 is §7.8's default and fits
+ * `View` in both languages.
+ *
+ * It is a DECLARED number rather than a measured one on purpose: a lane that
+ * sized itself to the widest rendered label would change width between the
+ * loading state and the content state, and §7.3's budget could not be asserted
+ * before paint.
+ */
+export const SINGLE_ACTION_LANE_WIDTH_PX = 88
+
+/**
  * §7.2's contract, applied: the offset comes from the hook, already accumulated
  * and already logical. Never compute it here, and never write `left`.
  */
@@ -54,10 +86,21 @@ export function pinnedStyle(
   pinned: PinnedColumn | null,
   width?: number,
   overflowing = false,
+  /**
+   * §7.3 rule 2 — the identity column's floor. It declares no `width`, so it
+   * takes the residual under `table-layout: fixed`; this is what stops the
+   * residual from being zero. Ignored when a `width` is declared.
+   */
+  minWidth?: number,
 ): CSSProperties | undefined {
   const sized: CSSProperties =
-    width === undefined ? {} : { width, minWidth: width, maxWidth: width }
-  if (!pinned) return width === undefined ? undefined : sized
+    width === undefined
+      ? minWidth === undefined
+        ? {}
+        : { minWidth }
+      : { width, minWidth: width, maxWidth: width }
+  const hasSize = width !== undefined || minWidth !== undefined
+  if (!pinned) return hasSize ? sized : undefined
 
   return {
     ...sized,
@@ -97,7 +140,17 @@ function boundary(pinned: PinnedColumn, overflowing: boolean): CSSProperties {
   return {
     [`${side}Width`]: 1,
     [`${side}Style`]: 'solid',
-    [`${side}Color`]: 'var(--ev-hairline)',
+    /* **`--ev-hairline-control`, not `--ev-hairline` — §7.9, match audit N4,
+       ruling R23.** `--ev-hairline2` now holds the same value as
+       `--ev-hairline`, so at `--ev-hairline` the frozen edge was ZERO steps
+       darker than every ordinary column rule and the pinning signal simply did
+       not exist. R23 puts the pinned boundary in the control weight with the
+       things an operator can click, because "content slides under here" is an
+       interaction boundary, not a structural one. Still no shadow of any kind:
+       all three elevation tiers are `offset-x: 0` so nothing mirrors, and an
+       inline-edge shadow needs an x-offset — the legacy defect at
+       `eyvar_ops_panel_v40_fixed.html:751`. */
+    [`${side}Color`]: 'var(--ev-hairline-control)',
   }
 }
 

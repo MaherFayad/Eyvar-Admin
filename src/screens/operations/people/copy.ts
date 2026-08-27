@@ -67,6 +67,10 @@ export const PEOPLE_EN: Dictionary = {
   'people.col.quickRides': 'Quick rides',
   'people.col.churn': 'Churn risk',
   'people.col.applied': 'Applied',
+  /* §13.3 — the Applications identity's second line (§7.7). One key, because
+     `Applied` + a date is a sentence fragment and joining it in code is exactly
+     what AC-75 forbids. */
+  'people.applied': 'Applied {date}',
   'people.col.complaints': 'Open complaints',
   'people.col.sla': 'SLA',
   'people.col.owner': 'Owner',
@@ -114,6 +118,20 @@ export const PEOPLE_EN: Dictionary = {
      and it is a fragment, so it takes no period. */
   'people.doc.daysLeft': '{days}d',
   'people.doc.expired': 'Expired',
+
+  /* `04-index-screen-redesign.md` §13.3 — the derived Compliance cells. Every
+     one is PLAIN TEXT (§9.2): five per-document badge columns collapse into
+     `people.docs.summary`, and 33 computed day counts stop being badges. Each
+     is one key with named placeholders; nothing here concatenates (AC-75). */
+  'people.docs.summary': '{valid} of {total} valid',
+  'people.docs.expired': '{n} expired',
+  'people.docs.expiring': 'Expires in {days}d',
+  'people.docs.valid': 'Valid · {days}d',
+  'people.expiry.cell': '{date} · {days}d',
+  /* §13.3 has no variant for a document already past its date, and `{days}d`
+     renders `-7d` there — arithmetic leaking into copy. Raised as a finding;
+     this is the key the cell uses meanwhile. */
+  'people.expiry.cellExpired': '{date} · expired',
   'people.doc.expiresOn': 'Expires {date}',
   'people.doc.none': 'No file',
   'people.doc.noneOnFile': 'No documents on file',
@@ -168,6 +186,10 @@ export const PEOPLE_EN: Dictionary = {
 
   /* ── row and bulk actions ───────────────────────────────────────────── */
   'people.action.viewProfile': 'Open 360° profile',
+  /* §13.4 — the one-word form, for a row action rendered as a BUTTON rather
+     than as a menu item (D8, §7.8). A menu item can afford five words; an 88px
+     lane cannot. */
+  'people.action.view': 'View',
   'people.action.openApplication': 'Open application',
   'people.action.suspend': 'Suspend captain',
   'people.action.reinstate': 'Reinstate captain',

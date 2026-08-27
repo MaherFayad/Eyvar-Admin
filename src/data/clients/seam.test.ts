@@ -18,7 +18,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { disableMockLatency, mockFailures } from '../config'
 import { isApiError } from '../types/common'
 import { listApplicants } from './applicants'
+import { listAbsences, listAssuranceTrips, resetAssurance, useAbsenceHistory } from './assurance'
 import { listCorporateAccounts } from './corporateAccounts'
+import { listFairnessCases } from './fairness'
+import { getMetricBoard, getMetricSeries, listMetrics } from './metrics'
+import { listWorkItems } from './myWork'
+import { listRequests } from './requests'
+import { listSafetyIncidents, resetSafetyIncidents, useQuietSafetyQueue } from './safety'
 import { listDriverCompliance, listDrivers } from './drivers'
 import { getNavCounts, resetNavCounts, useEmptyNavCounts } from './navCounts'
 import { getNotificationSummary, listNotifications, resetNotifications } from './notifications'
@@ -46,6 +52,19 @@ const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
   { op: 'trips.list', call: () => listTrips() },
   { op: 'subscriptions.list', call: () => listSubscriptions() },
   { op: 'corporate.list', call: () => listCorporateAccounts() },
+
+  /* wave 2 — the work queues */
+  { op: 'requests.list', call: () => listRequests() },
+  { op: 'safety.list', call: () => listSafetyIncidents() },
+  { op: 'fairness.list', call: () => listFairnessCases() },
+  { op: 'assurance.list', call: () => listAssuranceTrips() },
+  { op: 'assurance.absences', call: () => listAbsences() },
+  { op: 'work.list', call: () => listWorkItems() },
+
+  /* wave 4 — metric tiles and chart cards */
+  { op: 'metrics.list', call: () => listMetrics() },
+  { op: 'metrics.board', call: () => getMetricBoard('management-overview') },
+  { op: 'metrics.series', call: () => getMetricSeries('management.overview.quickRideRevenue') },
 ]
 
 beforeEach(() => {
@@ -54,6 +73,8 @@ beforeEach(() => {
   resetMockSession()
   resetNavCounts()
   resetNotifications()
+  resetSafetyIncidents()
+  resetAssurance()
 })
 
 describe('1 — async always', () => {
@@ -190,6 +211,108 @@ describe('the states QA has to be able to reach without editing a fixture', () =
     const page = await listApplicants({ pageSize: 100 })
     const held = page.items.filter((a) => a.claim?.state === 'claimed' && a.claim.ownerId !== 'USR-1')
     expect(held.length).toBeGreaterThan(0)
+  })
+
+  it('carries a claim held by another operator on every wave-2 queue', async () => {
+    /* One per queue, so the take-over affordance can be designed once and
+       verified everywhere rather than on whichever screen was built first. */
+    const heldByOther = <T extends { id: string; claim: { state: string; ownerId: string } | null }>(
+      rows: readonly T[],
+    ) => rows.filter((r) => r.claim?.state === 'claimed' && r.claim.ownerId !== 'USR-1')
+
+    expect(heldByOther((await listRequests({ pageSize: 500 })).items).map((r) => r.id)).toContain(
+      'REQ-503',
+    )
+    expect(heldByOther((await listSafetyIncidents({ pageSize: 100 })).items).map((i) => i.id)).toContain(
+      'INC-016',
+    )
+    expect(heldByOther((await listFairnessCases({ pageSize: 100 })).items).map((c) => c.id)).toContain(
+      'FC-0002',
+    )
+    expect(heldByOther((await listAssuranceTrips({ pageSize: 100 })).items).map((t) => t.id)).toContain(
+      'UST-3',
+    )
+  })
+
+  it('reaches an empty queue that is empty because nothing went wrong', async () => {
+    /* Not a filter that matched nothing — the absence ledger ships empty
+       (`DB.absenceEvents = []`, `:16564`) because no captain has stood a rider
+       up in the rolling window. Different screen, different copy. */
+    const page = await listAbsences({ pageSize: 100 })
+    expect(page.total).toBe(0)
+    expect(page.totalPages).toBe(1)
+  })
+
+  it('reaches a populated strike ledger without hand-editing a fixture', async () => {
+    useAbsenceHistory()
+    const page = await listAbsences({ pageSize: 100 })
+    expect(new Set(page.items.map((e) => e.tier))).toEqual(new Set([1, 2, 3]))
+    expect(page.items.some((e) => e.waived)).toBe(true)
+    expect(page.items.some((e) => e.decayed)).toBe(true)
+    resetAssurance()
+  })
+
+  it('reaches a quiet safety queue — every incident closed, nothing breached', async () => {
+    useQuietSafetyQueue()
+    const page = await listSafetyIncidents({ pageSize: 100 })
+    expect(page.items.every((i) => i.status === 'closed')).toBe(true)
+    expect(page.items.every((i) => i.firstResponseBreachedAt === null)).toBe(true)
+    resetSafetyIncidents()
+  })
+
+  it('reaches every wave-2 status the filters offer', async () => {
+    const requests = await listRequests({ pageSize: 500 })
+    for (const status of ['searching', 'offered', 'assigned', 'no-drivers', 'expired', 'cancelled']) {
+      expect(new Set(requests.items.map((r) => r.status)).has(status as never), status).toBe(true)
+    }
+
+    const incidents = await listSafetyIncidents({ pageSize: 100 })
+    for (const type of ['sos', 'accident', 'harassment', 'unsafe-driving', 'theft']) {
+      expect(new Set(incidents.items.map((i) => i.type)).has(type as never), type).toBe(true)
+    }
+    for (const severity of ['critical', 'high', 'normal']) {
+      expect(new Set(incidents.items.map((i) => i.severity)).has(severity as never), severity).toBe(true)
+    }
+
+    const cases = await listFairnessCases({ pageSize: 100 })
+    for (const status of ['open', 'upheld', 'overturned', 'withdrawn']) {
+      expect(new Set(cases.items.map((c) => c.status)).has(status as never), status).toBe(true)
+    }
+    for (const kind of ['suspension-appeal', 'rating-dispute', 'rider-report']) {
+      expect(new Set(cases.items.map((c) => c.kind)).has(kind as never), kind).toBe(true)
+    }
+
+    const trips = await listAssuranceTrips({ pageSize: 100 })
+    for (const state of ['moving', 'not-started', 'unavailable']) {
+      expect(new Set(trips.items.map((t) => t.captainDepartureState)).has(state as never), state).toBe(
+        true,
+      )
+    }
+    for (const weight of ['strong', 'attested', 'weak']) {
+      expect(
+        new Set(trips.items.map((t) => t.acknowledgement?.weight)).has(weight as never),
+        weight,
+      ).toBe(true)
+    }
+  })
+
+  it('carries an incident with no reporter at all', async () => {
+    /* Automatic crash detection. Legacy renders `nm2(inc.reporter)`
+       unconditionally (`:13432`) and would print `undefined` into the list. */
+    const page = await listSafetyIncidents({ pageSize: 100 })
+    const orphan = page.items.find((i) => i.reporterId === null)
+    expect(orphan?.id).toBe('INC-017')
+    expect(orphan?.reporterKind).toBe('system')
+  })
+
+  it('carries a breach measured in minutes beside one measured in days', async () => {
+    const page = await listRequests({ view: 'breached', pageSize: 500 })
+    const minutes = page.items.find((r) => r.id === 'REQ-503')!
+    const days = page.items.find((r) => r.id === 'SREQ-006')!
+    const over = (iso: string) =>
+      (Date.parse('2026-06-25T09:14:00+03:00') - Date.parse(iso)) / 60_000
+    expect(over(minutes.slaBreachedAt!)).toBeLessThan(10)
+    expect(over(days.slaBreachedAt!)).toBeGreaterThan(60 * 24 * 4)
   })
 
   it('carries an overdrawn wallet', async () => {

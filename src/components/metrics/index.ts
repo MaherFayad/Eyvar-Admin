@@ -4,16 +4,14 @@
  *
  * Composed from the primitives already in `src/components/ui/`; nothing here
  * was added with `shadcn add` and `components.json` is frozen. §3.7's shapes —
- * a stat tile, a breakdown row, a two-role trend, a legend naming both periods
- * — have no shadcn equivalent, which is expected rather than a gap in the
- * stack.
+ * a stat tile, a two-role trend, a legend naming both periods with dates —
+ * have no shadcn equivalent, which is expected rather than a gap in the stack.
  *
- * **These components are dumb about fetching.** They render what they are
- * given. That is what lets the temporary `@/screens/metrics/source` be swapped
- * for a real `@/data/clients` read without touching one of them.
+ * **These components are dumb about fetching.** They render a `Metric` or a
+ * `TimeSeries` and nothing else, which is what lets `getMetricBoard`'s mock
+ * seam be swapped for a real endpoint without one of them changing.
  */
 
-export { BreakdownList, type BreakdownListProps } from './BreakdownList'
 export { ChartCard, type ChartCardProps } from './ChartCard'
 export { MetricTile, type MetricTileProps } from './MetricTile'
 export { MetricTileItem, MetricTileRow } from './MetricTileRow'

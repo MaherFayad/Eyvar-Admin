@@ -436,3 +436,199 @@ the work. R-3's three tiers were cut for cards, popovers and modals; if none of 
 closed by inventing a fourth tier in a component file. §5.4's width budget also has to be
 re-checked, because a stadium track with an inset pill is not the width of a flush r8 one
 and the Arabic column had 49px of slack.
+
+**D12 — built, with one deviation the owner has to settle.**
+
+The segmented control is in `tabs.tsx` as `variant="segmented"` and live in `IndexToolbar`.
+Stadium track, 2px inset, no divider between segments, white pill for the active view,
+ink label at weight 600. Track 375px at 1440, 32px tall.
+
+**The deviation: the active pill has a hairline, not a shadow.** The owner's reference lifts
+it with a soft drop shadow. R-3 is explicit — *"THREE TIERS, A CLOSED SET, a fourth needs a
+§6.2 entry"* — and none of the three fits a 28px pill: tier 1 **is** *"separation by border
+and radius, no shadow"*, and tiers 2 and 3 are popover and modal weight. So the pill is
+tier 1, which is the rule-conformant answer and a visible step down from the reference.
+**Closing it means minting a tier 0.5 through §6.2, and that is the owner's call, not a
+component file's.**
+
+**Two things measured on the way, both of which constrained the build:**
+
+- **The track cannot be darkened.** Matching the reference's greyer track means `#eceef1`,
+  and the inactive label `--ev-text-2` `#6b7280` then reads **4.16 : 1** — under the 4.5
+  floor. It stays `--ev-bg2` `#f6f8f9`, where the same label is **4.54 : 1**. Darkening the
+  track would have meant a second new token for the label, to fix a problem the first token
+  created.
+- **The Arabic slack is 9px, not 49.** `04-index-screen-redesign.md` §5.4 computed the
+  control row against a 912px content column in both languages. It is 912 in English and
+  **872 in Arabic** — the `:root:lang(ar)` step widens the rail 80 → 88 and the sub-tab
+  column 224 → 256, which is the 40px exactly. **It is a deliberate language step, not an
+  RTL defect**, and it also corrects §7.3's column budget: 910 LTR, **870 RTL**.
+
+**The band is not deleted yet.** §5 puts the switcher at the inline-start of the control
+row and removes its band; that is blocked on `Filter` and `Sort` relocating into the query
+strip, because the switcher plus five controls does not fit in 912px. Moving the tabs
+before the controls move would trade a treatment complaint for a truncation.
+
+---
+
+## D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen
+
+**Decided by the business owner**, with an Amplitude segmentation chart as the reference:
+*"a small module for reporting where the user can choose any data he wants and compare it to
+any data he wants … number of drivers vs passengers trend, number of subscriptions vs
+whatever … more like this from amplitude."*
+
+**Sequenced last, deliberately.** Every other screen answers a question somebody already
+decided is worth asking. This one lets an operator ask a question nobody anticipated, which
+means it can only be built on top of a catalogue of what is measurable — and that catalogue
+is being written right now as `specs/05-metrics-content.md`.
+
+**The load-bearing point, stated before anyone starts building.** The 34 sub-tabs are served
+by *typed, per-resource clients* — `drivers.list`, `applicants.list`, `postings.list`. That
+shape cannot answer *"drivers vs passengers, weekly, last 90 days"*, because the question
+names no resource. An explorer needs a **query model** — dimensions, measures, filters,
+grain, comparison — resolved against a catalogue, and that is a **different data contract**,
+not a new screen over the existing one. Building the panel first and discovering this
+second is the expensive order.
+
+**The split of ownership, so two specs do not write the same thing:**
+
+| Owns | Artifact |
+|---|---|
+| **What is measurable** — every measure, its definition, its source, its grain, its legal dimensions | `specs/05-metrics-content.md` |
+| **How a question is composed** — the query model, the panel, the chart contract, saving and sharing | `specs/06-report-builder.md` |
+
+The explorer does not define a single measure of its own. If a measure is missing it is a
+finding against the catalogue, which is how the two stay consistent instead of drifting.
+
+**Open, and named now rather than found later:** whether a saved report persists (**Q1**,
+still open), whether a report can be shared with an operator whose role cannot see one of
+its measures (**D4**, still open — and this is the sharpest form that question has taken
+yet, because a report is a permission hole with a URL), and whether comparison means *two
+series on one axis* or *two periods of one series* — the reference does both and they are
+not the same control.
+
+**D13 extended, same session** — *"and to be able to build quick dashboard, and alerts for
+this if it went over certain thresholds."* The module is three things sharing one query
+model: **compose a report → pin reports to a dashboard → alert on a threshold.** They stay
+in one spec, because splitting them would duplicate the model.
+
+**The half that cannot be faked.** Something has to evaluate a threshold *when nobody is
+looking at the screen*. That is a scheduler, and it is server work — every measure in this
+product currently resolves against fixtures in the browser. An alert that only evaluates
+while the tab is open is not an alert. The spec must say which half is the client's and
+which the server's, rather than specifying a thing that cannot exist yet.
+
+**Three collisions with what is already built, resolved rather than rediscovered:**
+
+- **Alerts have a delivery channel and it already exists.** `notifications.ts`, the bell
+  popover, and seeded rows like `N7`. An alert lands in that centre; it does not invent a
+  second inbox.
+- **The nav badge tone cap.** `attention` is capped at two sub-tabs at once, and wave 2
+  already had four evidenced candidates for two slots. **A user-defined alert that can turn
+  a nav badge red blows that cap open.** The proposed rule is that alerts never affect nav
+  tone and the notification centre is their only surface.
+- **R5a enumerates four permitted uses of `--ev-red`.** A threshold breach *feels* red. It
+  is not currently one of the four, and that is a finding for product-designer — not a
+  fifth use a report module authorises for itself.
+
+**And the open questions get sharper, not looser.** Q1 now carries reports, dashboards *and*
+alert rules. D4 gets its hardest form yet: a shared report is a permission hole with a URL;
+**an alert is a permission hole that actively pushes data at someone, on a schedule,
+possibly after their role has changed.**
+
+---
+
+## D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language
+
+**Proposed by product-owner in `specs/04-auth-and-onboarding.md`, for the owner to confirm
+or reverse.** Renumbered from the spec's own "D13", which collided with the Report Builder
+entry above — the register is the authority on numbering, not a spec.
+
+The owner asked for auth *"same as shopify design"*. **D7 replaced Shopify with Navattic as
+the product's visual language.** Both cannot be literally true, so the boundary is drawn
+where it costs least:
+
+- **Shopify governs the flow** — what screens exist, in what order, what a wrong code does,
+  how a reset is worded, how a session dies. Shopify Admin's auth is the closest
+  well-solved analogue to what Eyvar needs, and there is nothing to reverse-engineer:
+  **the legacy app has no login screen at all.** What it has is five seeded users with
+  roles (`:2831`), a change-password form that validates only in the browser (`:3011`), and
+  a `twoFA` flag that is displayed and never enforced (`:3022`).
+- **Navattic keeps the look**, because a product whose login page wears a different skin is
+  worse than one that is a shade off a reference.
+
+D14 does not carve an exception out of D7. It records a boundary D7 drew and did not name.
+
+**Scope delivered:** AC-500–681, six auth screens, two new shell layers, four onboarding
+tracks, 35 named states.
+
+**What blocks it, and what pointedly does not:**
+
+- **BLOCKING — `DESIGN.md` §6.4 has no row for an auth card or a guided checklist**, and
+  `patterns.md` forbids designing a page without one. Two new §6.4 rows and a fifth page
+  shape must land **before design starts**. Routed to product-designer.
+- **Q-78** — no `manage_security_policy` permission key exists, so AC-663 fails visibly.
+- **Q4** — the 34 sub-tab permissions block AC-610.
+- **D4 and Q1 do NOT block.** Four onboarding tracks ship against the four roles that
+  actually exist, and onboarding is deliberately **server-backed**, so it needs nothing
+  from the unresolved persistence question. That is the right call: onboarding state that
+  lives in one browser is onboarding that restarts on a new laptop.
+
+**AC numbering, corrected.** `06-report-builder.md` moved from **AC-700–799 to AC-800–899**.
+`05-metrics-content.md` was written in parallel, overran its 600 block and reached AC-724,
+so 700–724 was allocated twice. The catalogue keeps the lower range because three other
+specs cite its criteria; the report builder moved because nothing cites it yet. **The
+register is the authority on numbering** — the same rule that renumbered the auth spec's
+self-declared "D13" to D14 an hour earlier. Blocks in force:
+
+| Range | Spec |
+|---|---|
+| 1–79 | `00-foundation.md` |
+| 80–116 | `01-table-controls.md` (design) |
+| 200–344 | `02-work-queues.md` |
+| 300–450 | `03-financials.md` |
+| 500–681 | `04-auth-and-onboarding.md` |
+| 600–724 | `05-metrics-content.md` |
+| 800–899 | `06-report-builder.md` |
+
+**300–344 is double-allocated between wave 2 and wave 3 and has been since both landed.**
+Neither spec cites the other in that range, so nothing is broken today — but it is the same
+defect caught late, and it should be resolved before either is built against.
+
+---
+
+## AWAITING THE OWNER'S SIGNATURE — four items, from `design/07-rulings-r4.md`
+
+Nothing below blocks work in progress. Each is recorded so it is decided rather than drifted into.
+
+| # | Item | Designer's recommendation |
+|---|---|---|
+| **§6.2 D-12** | Mint a categorical chart palette, so two measures can share one axis | **DECLINE** — ship small multiples |
+| **R15 scope** | Amend R15 to state that it governs **badge, toast and avatar geometry only** | Amend. D12 reserved this to the owner in writing |
+| **§6.2 D-13** | Mint elevation **tier 0.5**, scoped to *a part inside a control* | **SIGN** |
+| **D15** | Merge five Management boards into three | A **D1 amendment**, and D1 is the owner's. Recommended, not taken |
+
+**R4-7 — R15 was never violated, and I repeated the error to the owner.** R15's own row reads
+*"Badge, toast and avatar geometry"* (`DESIGN.md:274`). It has never governed a segmented
+control. It was **mis-cited five times** across this project — including by me, when I told
+the owner their stadium tabs broke a rule. **D12's narrow exception is withdrawn as
+unnecessary**, and the segmented control ships unchanged. Avatars were already amended by
+D7: person = circle, entity = rounded square.
+
+**R4-1 — the palette question is not really about colour.** Every hue that clears 4.5:1 on
+white is pinned into one luminance band, so all pairs land 1.04–1.25:1 apart and hue becomes
+the sole carrier, which fails WCAG 1.4.1; under deuteranopia blue and violet collapse to
+1.145:1. But the owner's own example fails on **scale** first — riders outnumber captains by
+an order of magnitude, so on a shared axis the captains line is a flat trace, and two hues
+make it a *coloured* flat trace. Small multiples fix both, cost zero new tokens, and reuse
+the metric-tile grid. **Neither reference set contains a categorical chart in 174 frames.**
+
+**R4-10b — the `attention` cap moves 2 → 3.** Three queues legitimately qualify under the
+tightened rule and the cap was silencing one. The tie-break is now two falsifiable clauses,
+clause 2 checkable from `slaSource`.
+
+**One limitation worth recording:** the owner's segmented-control reference image **is not in
+the repo**. R4-8 was ruled from the built control and from measurement instead. Every other
+visual claim in this project cites a file; this one cannot, and that is a gap in the evidence
+chain rather than a judgement call.

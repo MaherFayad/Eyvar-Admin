@@ -63,7 +63,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell } from './cells'
 import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
-import { DOC_STATE, WORST_STATE } from './domain'
+import { WORST_STATE } from './domain'
 import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import { useNowIso } from './useNowIso'
@@ -272,36 +272,112 @@ export function complianceColumns(
       header: t('people.col.captain'),
       /* AC-104 — the identity: implicitly pinned, never hidden, never unpinned. */
       alwaysVisible: true,
-      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
-         of 32px took the 1280 content region from 1102 to 942, so the identity
-         column gives width back **before** anyone touches the gutter: D-2′ is
-         already a sanctioned deviation at 32 against a measured 68, and
-         shrinking it further is not on the table. 176 also buys the operator
-         24px more pin budget — the locked block drops from 240 to 216 of the
-         488 the floor allows. */
-      width: 176,
+      /* §7.3 rule 2 — the one flexible column. See `CaptainsView` for the
+         arithmetic; Compliance's residual is the largest of the four (302 at
+         1280) because it now carries the fewest columns. */
+      minWidth: 200,
       dataType: 'text',
       sortField: 'driverName',
-      cell: (row) => <Identity to={profileHref(row.driverId)} name={row.driverName} t={t} />,
-      /* Two qualifiers, in priority order: why dispatch is blocked, or that
-         there is no file at all. §9.1's own worked example is this row. */
-      secondaryLine: (row) =>
-        row.suspendedReason ?? (row.docs.length === 0 ? t('people.doc.noneOnFile') : null),
+      /* §7.7 — *"Compliance uses the id as the second line because there the id
+         IS the qualifier"*. `01-people.md`'s ruling that a driver id gets its
+         own column stands for Captains and is superseded here, by name. */
+      cell: (row) => (
+        <Identity
+          to={profileHref(row.driverId)}
+          name={row.driverName}
+          secondary={row.driverId}
+          t={t}
+        />
+      ),
     },
     {
-      id: 'id',
-      header: t('people.col.id'),
-      width: 128,
+      id: 'documents',
+      header: t('people.col.docs'),
+      /* **192, not §7.4's 160.** Measured: `4 of 5 valid 1 expired` needs ~168
+         of text plus 12/12 of cell padding, and at 160 it rendered
+         `4 of 5 valid 1 expi…` — a truncated derived value, which is the same
+         class of defect as the truncated money §7.3 exists to remove. The
+         budget pays for it: Compliance is the lightest of the four views at 808
+         and 192 takes it to 840, still inside the Arabic 870. */
+      width: 192,
+      /* §9.2 — a DERIVED value. `4 of 5 valid` is plain text, never a badge:
+         `DESIGN.md` §3.4 is a MUST and this column is where the build broke it
+         hardest. The five per-document badge columns collapse into this one
+         cell, which is the single largest visual change in the redesign —
+         Compliance goes from 51 coloured elements to about 4, and the two rows
+         that matter become the loudest things on the page. */
       dataType: 'text',
-      /* §6.1 — the `text` kind, `contains`, on a 250 ms debounce. `driverId` is
-         the one identifier this client declares filterable. */
-      filter: { kind: 'text', field: 'driverId' },
-      cell: (row) => <MutedCell className="tabular-nums">{row.driverId}</MutedCell>,
+      sortField: 'worstState',
+      cell: (row) => {
+        /* `DRV-0106` exists on the roster with NO document file at all, and
+           `worstState: null` is deliberately not `valid`. The gap keeps its own
+           words; it used to live on the identity's second line, which §7.7 now
+           spends on the id. */
+        if (row.docs.length === 0) return <MutedCell>{t('people.doc.noneOnFile')}</MutedCell>
+        const expired = row.docs.filter((d) => d.state === 'expired').length
+        const valid = row.docs.length - expired
+        return (
+          <Cell>
+            <bdi>
+              {t('people.docs.summary', {
+                valid: formatCount(valid, language),
+                total: formatCount(row.docs.length, language),
+              })}
+            </bdi>
+            {expired > 0 && (
+              /* §9.3 — the critical TEXT tone, one of exactly three values that
+                 may take it. Never colour alone: the word `expired` is in the
+                 string. */
+              <span className="text-critical-foreground">
+                {' '}
+                <bdi>{t('people.docs.expired', { n: formatCount(expired, language) })}</bdi>
+              </span>
+            )}
+          </Cell>
+        )
+      },
+    },
+    {
+      id: 'nextExpiry',
+      header: t('people.col.soonestExpiry'),
+      width: 128,
+      dataType: 'date',
+      /* §7.4 — `12 Aug · 45d`, plain text; inside the alert window the same
+         text in the critical tone. Computed from a clock this component is
+         PASSED (`useNowIso`), never a module-scope `Date.now()` (§8.3.1). */
+      cell: (row) => {
+        /* The soonest document, not the soonest DATE: the alert window is the
+           SERVER's `state`, never a threshold recomputed here (§8.2). */
+        const soonest = [...row.docs].sort((a, b) => a.expiresOn.localeCompare(b.expiresOn))[0]
+        if (soonest === undefined) return <Absent />
+        /* A document already past its date has no countdown left to state.
+           `{date} · -7d` is arithmetic leaking into copy: a negative day count
+           is not a duration, and §8.3.1 does not let a value mean two things.
+           The word is the readout, and it is red for the same reason the
+           countdown would have been. */
+        if (soonest.state === 'expired') {
+          return (
+            <DateCell className="text-critical-foreground">
+              {t('people.expiry.cellExpired', {
+                date: formatDate(soonest.expiresOn, { style: 'day-month', language }),
+              })}
+            </DateCell>
+          )
+        }
+        return (
+          <DateCell className={soonest.state === 'valid' ? undefined : 'text-critical-foreground'}>
+            {t('people.expiry.cell', {
+              date: formatDate(soonest.expiresOn, { style: 'day-month', language }),
+              days: formatCount(daysUntil(soonest.expiresOn, now), language),
+            })}
+          </DateCell>
+        )
+      },
     },
     {
       id: 'worst',
-      header: t('people.col.docs'),
-      width: 128,
+      header: t('people.col.status'),
+      width: 112,
       dataType: 'enum',
       sortField: 'worstState',
       /* The `No file` option the previous hand-built filter offered is ABSENT,
@@ -329,42 +405,66 @@ export function complianceColumns(
         )
       },
     },
-    ...DOC_COLUMNS.map<PeopleColumn<DriverCompliance>>(({ type, key }) => ({
-      id: type,
-      header: t(key),
-      width: 112,
-      dataType: 'enum' as const,
-      cell: (row: DriverCompliance) => {
-        const doc = row.docs.find((d) => d.type === type)
-        /* No document of this type on file. `—` is not-applicable or unknown
-           (§8.3.1) and is exactly right: there is nothing to expire. */
-        if (!doc) return <Absent />
-        const days = daysUntil(doc.expiresOn, now)
-        return (
-          <Cell>
-            <StatusBadge tone={DOC_STATE[doc.state]}>
-              {doc.state === 'expired'
-                ? t('people.doc.expired')
-                : t('people.doc.daysLeft', { days: formatCount(days, language) })}
-            </StatusBadge>
-          </Cell>
-        )
-      },
-    })),
     {
       id: 'dispatch',
       header: t('people.col.dispatch'),
-      width: 120,
+      width: 112,
       dataType: 'enum',
       cell: (row) => (
         <Cell>
           {/* No red badge (R5a): a blocked captain is neutral-toned and the
-              WORD carries it, with the reason on the identity's second line. */}
+              WORD carries it. */}
           <StatusBadge tone={row.suspendedReason === null ? 'success' : 'neutral'}>
             {t(row.suspendedReason === null ? 'people.dispatch.active' : 'people.dispatch.suspended')}
           </StatusBadge>
         </Cell>
       ),
+    },
+
+    /* ── §7.4's default-hidden set. The five per-document columns are PLAIN
+       TEXT now, not badges: 33 of Compliance's 51 badges were computed day
+       counts, which `DESIGN.md` §3.4 forbids outright. ─────────────────── */
+    ...DOC_COLUMNS.map<PeopleColumn<DriverCompliance>>(({ type, key }) => ({
+      id: type,
+      header: t(key),
+      width: 112,
+      dataType: 'text' as const,
+      defaultHidden: true,
+      cell: (row: DriverCompliance) => {
+        const doc = row.docs.find((d) => d.type === type)
+        /* No document of this type on file. `—` is not-applicable or unknown
+           (§8.3.1) and is exactly right: there is nothing to expire. */
+        if (!doc) return <Absent />
+        if (doc.state === 'expired') {
+          return <Cell className="text-critical-foreground">{t('people.doc.expired')}</Cell>
+        }
+        const days = daysUntil(doc.expiresOn, now)
+        /* R17 — `expiring` and `critical` are ONE window; the day count in the
+           label is what separates them. The tone comes from the server's state,
+           not from a threshold this file invents. */
+        const alerting = doc.state !== 'valid'
+        return (
+          <Cell className={alerting ? 'text-critical-foreground' : undefined}>
+            <bdi>
+              {t(alerting ? 'people.docs.expiring' : 'people.docs.valid', {
+                days: formatCount(days, language),
+              })}
+            </bdi>
+          </Cell>
+        )
+      },
+    })),
+    {
+      id: 'id',
+      header: t('people.col.id'),
+      width: 112,
+      /* §7.3 rule 5 — an `id` may never be the trailing column. */
+      dataType: 'id',
+      defaultHidden: true,
+      /* §6.1 — the `text` kind, `contains`, on a 250 ms debounce. `driverId` is
+         the one identifier this client declares filterable. */
+      filter: { kind: 'text', field: 'driverId' },
+      cell: (row) => <MutedCell className="tabular-nums">{row.driverId}</MutedCell>,
     },
     {
       id: 'vehicle',
@@ -373,21 +473,6 @@ export function complianceColumns(
       dataType: 'text',
       defaultHidden: true,
       cell: (row) => <Cell>{row.vehicle}</Cell>,
-    },
-    {
-      id: 'soonest',
-      header: t('people.col.soonestExpiry'),
-      width: 128,
-      dataType: 'date',
-      defaultHidden: true,
-      cell: (row) => {
-        const soonest = row.docs.map((d) => d.expiresOn).sort()[0]
-        return soonest === undefined ? (
-          <Absent />
-        ) : (
-          <DateCell>{formatDate(soonest, { style: 'day-month-year', language })}</DateCell>
-        )
-      },
     },
   ]
 }

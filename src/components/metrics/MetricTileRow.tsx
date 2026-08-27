@@ -4,32 +4,53 @@
  * *"its three uses are fixed: the sub-tab list's first-run default, the detail
  * right-rail drop, and the metric-tile grid"*).
  *
- * **Three across below `--ev-bp-wide`, four above it, 12px between.** The
- * reference shows four across on `02b895df` and six in two rows of three on
- * `5b908c10`; the drawer stat row in `79a31934` is three. Three and four are
- * the two the product uses and the breakpoint chooses between them — there is
- * no third arrangement and no second breakpoint (§0.1).
+ * **Three across below `--ev-bp-wide`. Above it, four — but only when four
+ * divides the row.** The reference shows both and shows why: `02b895df` is four
+ * across, and `5b908c10` is **six in two rows of three**, not four-then-two.
+ * A trailing row of two under a row of four reads as a layout that ran out,
+ * and the eye stops at the ragged edge instead of at the last number.
+ *
+ * So the column count is chosen from the tile count rather than fixed:
+ *
+ * ```
+ *  4 tiles   ->  4 across          (one clean row)
+ *  6 tiles   ->  3 across          (two rows of three — the reference's own)
+ *  5 tiles   ->  3 across          (3 + 2 beats 4 + 1)
+ * ```
+ *
+ * **The choice only exists above the breakpoint.** Below it the content region
+ * is 912px and D7's 268px tile floor allows three columns and no more, so a
+ * four-tile board renders 3 + 1 at 1280 — which is exactly what
+ * `auto-fill minmax(268px, 1fr)` does, and shrinking to 219px tiles to avoid a
+ * ragged edge would wrap every label instead.
  *
  * The gap is 12px (`gap-3`), measured at 7 destination px between tiles. It is
  * deliberately tighter than the 16px between page-level cards: a tile row is
  * one object read across, not four cards read in turn.
  *
- * **It is a list, and it says so.** Four tiles are four items; without a list
- * role a screen reader gets a run of headings-that-are-not-headings and no
- * count. `role="list"` on the grid keeps the semantics while the display
- * property strips them (a known `display: grid` behaviour in WebKit).
+ * **It is a list, and it says so.** Six tiles are six items; without a list
+ * role a screen reader gets a run of links with no count. `role="list"` keeps
+ * the semantics that `display: grid` strips in WebKit.
  *
- * §7.1's measure note: page width is fixed and the MEASURE moves down to here.
- * `auto-fill minmax(268px, 1fr)` is D7's own formulation; expressed as a fixed
- * 3/4 split it is the same two outcomes at the two widths the product has,
- * without a container query the rest of the tree does not use.
+ * §7.1's measure note: the PAGE width is fixed and the measure moves down to
+ * here. D7 formulates this as `auto-fill minmax(268px, 1fr)`; at the two widths
+ * this product has, that yields 3 and 4 — the same two outcomes, without a
+ * container query the rest of the tree does not use, and without `auto-fill`'s
+ * four-then-two problem.
  */
 
 import type { ReactNode } from 'react'
+import { Children } from 'react'
+import { cn } from '@/lib/utils'
 
 export function MetricTileRow({ children }: { children: ReactNode }) {
+  const count = Children.count(children)
+  /* Static class strings, both of them. A computed `grid-cols-${n}` is a class
+     Tailwind's scanner never sees and therefore never emits. */
+  const wide = count % 4 === 0 ? 'wide:grid-cols-4' : 'wide:grid-cols-3'
+
   return (
-    <ul role="list" className="grid list-none grid-cols-3 gap-3 wide:grid-cols-4">
+    <ul role="list" className={cn('grid list-none grid-cols-3 gap-3', wide)}>
       {children}
     </ul>
   )

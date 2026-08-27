@@ -106,7 +106,15 @@ function Table({
       <table
         data-slot="table"
         className={cn(
-          "w-full caption-bottom text-sm",
+          /* **`table-fixed` — `04-index-screen-redesign.md` §7.3 rule 1**, and
+             it is the half of the width contract the browser enforces. With
+             `auto` layout a column's declared width is a suggestion the engine
+             may overrule to fit content, which is how a table whose declared
+             widths sum to 910 still rendered 1248 wide and painted the pinned
+             action lane over `Earned (SAR)` (craft-critique F1). Fixed layout
+             takes the widths from the FIRST row — the header — and gives the
+             residual to the one column that declares none: the identity. */
+          "w-full table-fixed caption-bottom text-sm",
           /* 03-navattic-language.md §3.4 / §4.5, fix-list item 6 — **VERTICAL
              COLUMN RULES.** 1px `--ev-hairline2` between every pair of columns,
              header and body alike, running the full height of the table. This
@@ -120,8 +128,15 @@ function Table({
              a property of the grid, not of a cell, and `:not(:last-child)`
              keeps it off the trailing edge where the outer border already
              draws. `border-e` is logical, so it needs no RTL branch — in
-             Arabic every rule moves to the other side of its cell by itself. */
-          "[&_tr>*:not(:last-child)]:border-e [&_tr>*:not(:last-child)]:border-(--ev-hairline2)",
+             Arabic every rule moves to the other side of its cell by itself.
+
+             **SCOPED TO `tbody` — `04-index-screen-redesign.md` §7.5, match
+             audit N1, confidence `High`.** The reference's header deficit
+             profile is FLAT at 8.15–8.35 across x 206–264: no spikes, so no
+             vertical rules in the header strip. Ours drew them there, which
+             turned the one band that should read as a label row into the
+             densest part of the grid. One selector, one word. */
+          "[&_tbody_tr>*:not(:last-child)]:border-e [&_tbody_tr>*:not(:last-child)]:border-(--ev-hairline2)",
           className
         )}
         {...props}
@@ -211,8 +226,18 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
+        /* §7.5 — 36px (`--ev-row-h-head`, raised from 32), ground `--ev-bg2`,
+           label at the ramp's own `text-sm` / 500 in `--ev-text-2`, raised from
+           `text-xs`: the reference measures ~14 (audit G30'), i.e. a column
+           header is the SAME optical size as the cell beneath it, where ours
+           was two steps smaller than its own body. D-2 is retired, so this is
+           not a density deviation.
+           **`--ev-text-2` on `--ev-bg2` is 4.538 : 1 — the tightest pair in the
+           product, clearing AA by 0.038, and ruling R22 PINS it.** Neither token
+           moves without re-deriving this pair, and the derivation goes in the
+           commit message. */
         "h-(--ev-row-h-head) bg-muted px-3 text-start align-middle",
-        "text-xs font-medium whitespace-nowrap text-muted-foreground",
+        "text-sm font-medium whitespace-nowrap text-muted-foreground",
         "[&:has([role=checkbox])]:w-10 [&:has([role=checkbox])]:px-3",
         className
       )}

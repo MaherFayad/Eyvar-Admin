@@ -221,7 +221,9 @@ export {
 /* ── wave 4: metric tiles and chart cards ────────────────────────────── */
 export {
   METRIC_BOARD_SUB_TABS,
+  METRIC_KEYS,
   METRIC_OPERATIONS,
+  METRIC_SERIES_KEYS,
   getMetricBoard,
   getMetricFacets,
   getMetricSeries,

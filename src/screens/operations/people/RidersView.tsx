@@ -82,12 +82,23 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
       {...chrome}
       searchPlaceholder={t('people.search.riders')}
       extraFilters={riderExtraFilters(t)}
+      /* **D8 — one declared action, so `DataTable` renders it as a labelled
+         button and no kebab exists here.** Owner, on the screenshot: *"still
+         kebab with 1 item"*. The rule lives in `DataTable`, not in this file:
+         it is about the COUNT of actions, and deriving it per screen is how the
+         four-way duplication D9 records began.
+
+         The LABEL changed with the shape. `Open 360° profile` is a fine menu
+         item and a bad button: 17 characters is a 140px lane, and §7.3's budget
+         has 870px in Arabic to place. §13.4's word for this action is `View`. */
       rowActions={[
         {
-          label: t('people.action.viewProfile'),
+          label: t('people.action.view'),
           onSelect: (rider) => navigate(profileHref(rider.id)),
         },
       ]}
+      /* §7.8's default. `View` / `عرض` both fit 88 − 24 = 64. */
+      rowActionsWidth={88}
       firstRun={{
         heading: t('people.empty.riders.heading'),
         body: t('people.empty.riders.body'),
@@ -137,32 +148,21 @@ export function riderColumns(
       header: t('people.col.rider'),
       /* AC-104 — the identity: implicitly pinned, never hidden, never unpinned. */
       alwaysVisible: true,
-      /* Fix-list item 9 — 200 → 176. `03-navattic-language.md`'s `--ev-page-pad`
-         of 32px took the 1280 content region from 1102 to 942, so the identity
-         column gives width back **before** anyone touches the gutter: D-2′ is
-         already a sanctioned deviation at 32 against a measured 68, and
-         shrinking it further is not on the table. 176 also buys the operator
-         24px more pin budget — the locked block drops from 240 to 216 of the
-         488 the floor allows. */
-      width: 176,
+      /* §7.3 rule 2 — the one flexible column; 238px of residual at 1280, the
+         tightest of the four because Riders carries the most columns. */
+      minWidth: 200,
       dataType: 'text',
       sortField: 'name',
-      cell: (r) => <Identity to={profileHref(r.id)} name={r.name} t={t} />,
-      /* Qualifies the name: a rider covered by a company account is billed to
-         it, and that changes what an operator may do about their wallet. */
-      secondaryLine: (r) => r.corporateAccountId,
-    },
-    {
-      id: 'id',
-      header: t('people.col.id'),
-      width: 120,
-      dataType: 'text',
-      cell: (r) => <MutedCell className="tabular-nums">{r.id}</MutedCell>,
+      /* §7.7 — line 2 is the phone. The corporate account id it used to carry
+         qualifies the name too, but R20 makes the second line all-or-nothing
+         and only a minority of riders have one. It moves to the drawer (§11);
+         reported in the handoff as a real loss. */
+      cell: (r) => <Identity to={profileHref(r.id)} name={r.name} secondary={r.phone} t={t} />,
     },
     {
       id: 'status',
       header: t('people.col.status'),
-      width: 128,
+      width: 112,
       dataType: 'enum',
       filter: {
         kind: 'select',
@@ -181,54 +181,28 @@ export function riderColumns(
       ),
     },
     {
-      id: 'churn',
-      header: t('people.col.churn'),
-      width: 128,
-      dataType: 'enum',
-      filter: {
-        kind: 'multi-select',
-        field: 'churnRisk',
-        options: [
-          { value: 'high', label: t('people.churn.high') },
-          { value: 'medium', label: t('people.churn.medium') },
-          { value: 'low', label: t('people.churn.low') },
-        ],
-      },
-      cell: (r) => (
-        <Cell>
-          <StatusBadge tone={CHURN_RISK[r.churnRisk].tone}>
-            {t(CHURN_RISK[r.churnRisk].key)}
-          </StatusBadge>
-        </Cell>
-      ),
-    },
-    {
-      id: 'rating',
-      header: t('people.col.rating'),
-      align: 'end',
-      width: 88,
-      dataType: 'number',
-      sortField: 'rating',
-      /* Behind the column control: `churnRisk` is the server-derived answer to
-         the question a rating is usually a proxy for, and at 1280px the wallet,
-         lifetime and renewal columns earn the width first. */
-      defaultHidden: true,
-      cell: (r) =>
-        r.rating === null || r.rating === 0 ? (
-          <NumCell className="text-muted-foreground">{t('people.ratingNew')}</NumCell>
-        ) : (
-          <NumCell>{r.rating.toFixed(1)}</NumCell>
-        ),
-    },
-    {
       id: 'city',
       header: t('people.col.city'),
-      width: 120,
-      dataType: 'text',
-      /* One city in the data today; behind the control until there are two. The
-         FILTER is still declared, because a hidden column keeps its chip and is
-         reachable from `Add filter` (§7.5's third case). */
+      /* **Default-hidden, against §7.4, and the reason is the data.** There is
+         exactly ONE city in the rider fixtures, so this column repeats the same
+         word 25 times; it was behind the column control for that reason before
+         this pass and it goes back there.
+
+         **The budget is what forces the choice rather than leaving both.**
+         §7.4's Riders set sums to 872, which already misses the Arabic inner
+         width of 870 by 2 — the `:root:lang(ar)` step widens the rail by 8 and
+         the sub-tab column by 32, so the content region is 40px narrower in
+         Arabic. D8 then turns the actions lane from a 56px kebab into an 88px
+         labelled button, and with this column visible the view sums to 896:
+         inside the 910 English width and 26 OUTSIDE the Arabic one. Without it,
+         776. Raised as a finding against §7.4 — the published set does not fit
+         the language it ships in.
+
+         The FILTER stays declared: a hidden column keeps its chip and is
+         reachable from the filter picker (§7.5's third case). */
       defaultHidden: true,
+      width: 128,
+      dataType: 'text',
       filter: {
         kind: 'multi-select',
         field: 'city',
@@ -237,13 +211,14 @@ export function riderColumns(
       cell: (r) => <Cell>{r.city}</Cell>,
     },
     {
-      id: 'trips',
-      header: t('people.col.trips'),
+      id: 'subs',
+      header: t('people.col.subs'),
       align: 'end',
-      width: 96,
+      width: 88,
       dataType: 'number',
-      sortField: 'totalTrips',
-      cell: (r) => <NumCell>{formatCount(r.totalTrips, language)}</NumCell>,
+      /* The count of the ids the record already carries — not a recomputation
+         of another screen's derived value (§8.2), and not a second query. */
+      cell: (r) => <NumCell>{formatCount(r.subscriptionIds.length, language)}</NumCell>,
     },
     {
       id: 'wallet',
@@ -258,11 +233,80 @@ export function riderColumns(
          `(SAR)` in its header and bare numbers in its cells (§8.3 governs
          output). Both are correct and they look different on purpose. */
       filter: { kind: 'number-range', field: 'walletBalanceHalalas', unit: 'money' },
+      /* §9.3 / craft-critique F20.5 — a NEGATIVE balance takes the critical
+         TEXT tone. Today `-41.50` renders identically to `0.00` and it is the
+         one number on this screen an ops person must spot. Never colour alone:
+         the leading minus sign is in the string. */
       cell: (r) => (
-        <NumCell>
+        <NumCell className={r.walletBalanceHalalas < 0 ? 'text-critical-foreground' : undefined}>
           <Money unit="none" amount={r.walletBalanceHalalas} />
         </NumCell>
       ),
+    },
+    {
+      id: 'churn',
+      /* §7.3 rule 5 — an ordinal word is the trailing column, deliberately:
+         `Wallet (SAR)` may not be, and it was. */
+      header: t('people.col.churn'),
+      width: 120,
+      dataType: 'enum',
+      filter: {
+        kind: 'multi-select',
+        field: 'churnRisk',
+        options: [
+          { value: 'high', label: t('people.churn.high') },
+          { value: 'medium', label: t('people.churn.medium') },
+          { value: 'low', label: t('people.churn.low') },
+        ],
+      },
+      /* §9.2 replaces this badge with a three-tick meter plus the word — build
+         item 10, not this pass. The WIDTH is set for the meter now so the
+         budget does not move when the cell does. */
+      cell: (r) => (
+        <Cell>
+          <StatusBadge tone={CHURN_RISK[r.churnRisk].tone}>
+            {t(CHURN_RISK[r.churnRisk].key)}
+          </StatusBadge>
+        </Cell>
+      ),
+    },
+
+    /* ── §7.4's default-hidden set, reachable from `Columns` (§5.3). ─────── */
+    {
+      id: 'id',
+      header: t('people.col.id'),
+      width: 112,
+      /* §7.3 rule 5 — an `id` may never be the trailing column. */
+      dataType: 'id',
+      defaultHidden: true,
+      cell: (r) => <MutedCell className="tabular-nums">{r.id}</MutedCell>,
+    },
+    {
+      id: 'trips',
+      header: t('people.col.trips'),
+      align: 'end',
+      width: 88,
+      dataType: 'number',
+      defaultHidden: true,
+      sortField: 'totalTrips',
+      cell: (r) => <NumCell>{formatCount(r.totalTrips, language)}</NumCell>,
+    },
+    {
+      id: 'rating',
+      header: t('people.col.rating'),
+      align: 'end',
+      width: 80,
+      dataType: 'number',
+      sortField: 'rating',
+      /* Behind the column control: `churnRisk` is the server-derived answer to
+         the question a rating is usually a proxy for. */
+      defaultHidden: true,
+      cell: (r) =>
+        r.rating === null || r.rating === 0 ? (
+          <NumCell className="text-muted-foreground">{t('people.ratingNew')}</NumCell>
+        ) : (
+          <NumCell>{r.rating.toFixed(1)}</NumCell>
+        ),
     },
     {
       id: 'ltv',
@@ -270,6 +314,7 @@ export function riderColumns(
       align: 'end',
       width: 128,
       dataType: 'money',
+      defaultHidden: true,
       sortField: 'lifetimeValueHalalas',
       cell: (r) => (
         <NumCell>
@@ -283,6 +328,7 @@ export function riderColumns(
       align: 'end',
       width: 104,
       dataType: 'number',
+      defaultHidden: true,
       sortField: 'renewalRatePercent',
       cell: (r) =>
         r.renewalRatePercent === null ? (
@@ -298,6 +344,7 @@ export function riderColumns(
       header: t('people.col.lastTrip'),
       width: 112,
       dataType: 'date',
+      defaultHidden: true,
       sortField: 'lastTripAt',
       cell: (r) =>
         r.lastTripAt === null ? (

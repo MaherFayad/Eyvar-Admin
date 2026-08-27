@@ -120,8 +120,10 @@ export function OwnerChip({
 
   if (held === null) {
     return (
-      <span className="flex items-center gap-1.5">
-        <StatusBadge tone="neutral">{t('people.queue.owner.unclaimed')}</StatusBadge>
+      <span className="flex min-w-0 items-center gap-1.5">
+        <StatusBadge tone="neutral" className="min-w-0 truncate">
+          {t('people.queue.owner.unclaimed')}
+        </StatusBadge>
         <Button
           variant="ghost"
           size="xs"
@@ -137,8 +139,8 @@ export function OwnerChip({
 
   if (mine) {
     return (
-      <span className="flex items-center gap-1.5">
-        <StatusBadge tone="success">
+      <span className="flex min-w-0 items-center gap-1.5">
+        <StatusBadge tone="success" className="min-w-0 truncate">
           {t('people.queue.owner.mine', {
             duration: formatDuration(Date.parse(now) - Date.parse(held.claimedAt)),
           })}
@@ -151,9 +153,17 @@ export function OwnerChip({
   }
 
   return (
-    <span className="flex items-center gap-1.5">
+    /* §7.4 declares this column at 144 and `Yousef Al-Balawi` + `Take over`
+       needs ~168, so the pair overflowed the cell and painted into `Decision`.
+       **The CHIP gives way, not the verb**: a truncated name is still a name
+       and the full one is in `title`, whereas a truncated verb is an unusable
+       control. `min-w-0` is the half that makes `truncate` work at all inside
+       a flex row. Raised as a finding against §7.4's 144. */
+    <span className="flex min-w-0 items-center gap-1.5" title={held.ownerName}>
       {/* Someone else's: warning tone, and the chip names WHO. */}
-      <StatusBadge tone="warning">{held.ownerName}</StatusBadge>
+      <StatusBadge tone="warning" className="min-w-0 truncate">
+        {held.ownerName}
+      </StatusBadge>
       <Button
         variant="ghost"
         size="xs"
@@ -178,25 +188,34 @@ export function DecisionBadge({
   outcome: string
   /** `{actor} · {date}`, resolved through one key by the caller (**AC-75**). */
   meta: string | null
-  /** The rejection reason, when there is one. Wraps; it is a sentence. */
+  /**
+   * The rejection reason, when there is one. **It no longer wraps** — see
+   * below; it is `title`-only until §11's drawer carries it.
+   */
   reason: string | null
 }) {
   return (
-    /* §8.4.5 wants outcome, actor and reason with the timestamp beneath, and
-       all four in one badge label is a 200px cell. So the BADGE carries the
-       outcome, the muted line carries actor and timestamp, and the reason —
-       the only part that is a sentence — wraps under both, bounded. */
-    <span className="block max-w-48">
+    /* **R20 — this cell may not grow the row, and it was the one that did.**
+       `04-index-screen-redesign.md` §7.6 makes row height the TABLE's, and the
+       measurement that forced the ruling names this component: Applications ran
+       117 / 44 / 44 / 69 / 44 / 44 / 44 / 41, and the 117 was `APP-2206`'s
+       rejection reason wrapping to four lines under a badge and a meta line.
+       A data table's rules are a repeating beat; five interval changes in eight
+       rows reads as damage.
+
+       So: two lines, both `truncate`, and the full sentence stays reachable as
+       the element's `title`. §9.2 goes further — the whole column becomes one
+       nowrap line of plain text, `Approved · Yousef Al-Balawi · 24 Jun 11:20`,
+       and default-hidden — but that is build item 10, and the row height is
+       item 2. This is item 2's half: nothing here can change a row's height. */
+    <span className="block min-w-0" title={reason ?? undefined}>
       <Cell>
         {/* A terminal factual outcome is NEUTRAL — approval included. The
             outcome word carries the meaning, not a colour. */}
         <StatusBadge tone="neutral">{outcome}</StatusBadge>
       </Cell>
       {meta !== null && (
-        <span className="block text-xs leading-4 text-muted-foreground">{meta}</span>
-      )}
-      {reason !== null && (
-        <span className="block text-xs leading-4 text-muted-foreground">{reason}</span>
+        <span className="block truncate text-xs text-muted-foreground">{meta}</span>
       )}
     </span>
   )

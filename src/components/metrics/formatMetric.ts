@@ -1,30 +1,33 @@
 /**
- * Turning a `MetricValue` into a string, in one place.
+ * Turning a `Metric`'s bare `number | null` into a string, in one place.
  *
- * Eight screens, ~34 tiles and ~10 chart axes render numbers on this wave. The
- * legacy app has three money formatters across 87 call sites
- * (`src/lib/format/money.ts` header); this exists so the metric layer does not
- * repeat that with percentages.
+ * The data layer sends a number and a `MetricUnit` and nothing else — which is
+ * deliberate (`types/metrics.ts`: *"so `formatMoney` / `formatPercent` are
+ * chosen from data rather than guessed from the key's name"*). This file is
+ * the other half of that contract: one `switch`, six units, no screen ever
+ * reaching for `toLocaleString()`.
  *
- * **Nothing here computes anything.** `formatSignedPercent` is handed a signed
- * number by the data layer and chooses a glyph for it; it never subtracts one
- * period from another. That is the contract's fact 1, enforced by there being
- * no arithmetic to find.
+ * **Nothing here computes.** `deltaPercent` arrives signed and rounded from the
+ * server; this picks a string for it. `types/metrics.ts` is explicit about why:
+ * *"a screen that subtracts two numbers cannot tell 'no change' from 'no
+ * comparison'."*
  *
  * Rules applied
  *   §9.2 / R4  Western digits in both languages, via `localeFor`'s `-nu-latn`.
  *              The numeral run does not mirror; the CELL aligns.
  *   §8.3.2     the sign is **U+2212**, not a hyphen-minus, and it is
  *              typographic — never chromatic, never in a toned pill.
- *   §3.7       an absent comparison is an em dash, never `0%` and never blank.
- *              `0%` means "measured, did not move" and is a different string.
- *   `money.ts` `formatMoney` never returns an em dash, so `absent` is decided
- *              here, above it, exactly once.
+ *   §3.7       `null` renders an em dash, never `0`. A count of an empty set
+ *              and a count that could not be computed are different facts, and
+ *              `Metric.value`'s own doc comment names conflating them as the
+ *              legacy defect (`:6913` gets it right on one tile and wrong on
+ *              every other).
+ *   §8.3.1     money is halalas in, `formatMoney` out, `SAR` trailing.
  *
  * **`formatPercent` has no home in `src/lib` yet and should get one.**
  * `src/lib/format/number.ts` owns counts and ranges and this belongs beside
  * them, but `src/lib` is utilities-engineer's file. Raised in the wave-4
- * handoff with the three call sites already in hand.
+ * handoff with the call sites already in hand.
  */
 
 import {
@@ -36,9 +39,7 @@ import {
   localeFor,
   type Language,
 } from '@/lib'
-/* Type-only. When the metrics resource lands this import becomes
-   `@/data/types` and nothing else in this file changes. */
-import type { MetricValue } from '@/screens/metrics/contract'
+import type { MetricUnit } from '@/data/types'
 
 const MS_PER_MINUTE = 60_000
 
@@ -65,17 +66,23 @@ function decimalFormatter(language: Language, precision: number): Intl.NumberFor
 
 /**
  * `4.2` → `4.2`. A measured quantity that is not a whole count — an average
- * rating, a ratio. `formatCount` refuses a fraction on purpose, so this is the
- * other half of that rule rather than a loosening of it.
+ * rating, a ratio, a percentage with a fraction in it. `formatCount` refuses a
+ * fraction on purpose, so this is the other half of that rule rather than a
+ * loosening of it.
  */
 export function formatDecimal(value: number, precision: number, language: Language): string {
   const magnitude = decimalFormatter(language, precision).format(Math.abs(value))
   return value < 0 ? `${MINUS_SIGN}${magnitude}` : magnitude
 }
 
-/** `92` → `92%`. Percentage POINTS in, never a fraction. */
-export function formatPercent(value: number, language: Language, precision = 0): string {
-  return `${formatDecimal(value, precision, language)}%`
+/**
+ * `92` → `92%`. Percentage POINTS in, never a fraction.
+ *
+ * A decimal only when the value has one: `92%` and `4.5%` both read cleanly,
+ * `92.0%` reads as spurious precision on a tile the operator scans past.
+ */
+export function formatPercent(value: number, language: Language): string {
+  return `${formatDecimal(value, Number.isInteger(value) ? 0 : 1, language)}%`
 }
 
 /**
@@ -83,8 +90,8 @@ export function formatPercent(value: number, language: Language, precision = 0):
  *
  * **`0%` is a real answer and is never an em dash.** "Measured, did not move"
  * and "nothing to compare to" are different facts and §3.7 requires different
- * strings; the em dash belongs to `Comparison.kind === 'none'` and is chosen by
- * the tile, not here.
+ * strings; the em dash belongs to `deltaPercent === null` and is chosen by the
+ * tile, not here.
  */
 export function formatSignedPercent(value: number, language: Language): string {
   const magnitude = formatPercent(Math.abs(value), language)
@@ -94,43 +101,41 @@ export function formatSignedPercent(value: number, language: Language): string {
 }
 
 /**
- * The one formatter a tile, an axis tick or a breakdown row calls.
- * `absent` returns the em dash — the single place in the metric layer that
- * decides what "we do not have this number" looks like.
+ * The one formatter a tile, an axis tick or a legend calls.
+ *
+ * `null` returns the em dash — the single place in the metric layer that
+ * decides what "we could not compute this" looks like. `formatMoney` refuses to
+ * return one itself, for the same reason (`money.ts`), so the decision has to
+ * live above it and it lives here.
  */
-export function formatMetricValue(value: MetricValue, language: Language): string {
-  switch (value.kind) {
+export function formatMetricValue(
+  value: number | null,
+  unit: MetricUnit,
+  language: Language,
+): string {
+  if (value === null) return ABSENT
+  switch (unit) {
     case 'count':
-      return formatCount(value.value, language)
+      return formatCount(Math.round(value), language)
     case 'money':
-      return formatMoney(value.halalas)
+      return formatMoney(value)
     case 'percent':
-      return formatPercent(value.value, language)
-    case 'duration':
-      return formatDuration(value.minutes * MS_PER_MINUTE)
-    case 'decimal':
-      return formatDecimal(value.value, value.precision, language)
-    case 'absent':
-      return ABSENT
+      return formatPercent(value, language)
+    case 'minutes':
+      return formatDuration(value * MS_PER_MINUTE)
+    case 'rating':
+    case 'ratio':
+      return formatDecimal(value, 1, language)
   }
 }
 
-/** The axis and tooltip formatter for a trend, chosen by the series' unit. */
-export function formatSeriesValue(
-  value: number,
-  unit: 'count' | 'money' | 'percent' | 'duration' | 'decimal',
-  language: Language,
-): string {
-  switch (unit) {
-    case 'money':
-      return formatMoney(value, { unit: 'none' })
-    case 'percent':
-      return formatPercent(value, language)
-    case 'duration':
-      return formatDuration(value * MS_PER_MINUTE)
-    case 'decimal':
-      return formatDecimal(value, 1, language)
-    case 'count':
-      return formatCount(Math.round(value), language)
-  }
+/**
+ * The same, for a chart's y-axis and its tooltip.
+ *
+ * Money drops the trailing `SAR` — §8.3.1: in a repeated numeric context the
+ * unit appears once, and on a chart that place is the card, not every gridline.
+ */
+export function formatSeriesValue(value: number, unit: MetricUnit, language: Language): string {
+  if (unit === 'money') return formatMoney(value, { unit: 'none' })
+  return formatMetricValue(value, unit, language)
 }

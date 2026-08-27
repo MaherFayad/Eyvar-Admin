@@ -423,37 +423,47 @@
      problem with its own separate 3:1 requirement. */
   --ev-hairline-control: #dde0e4;
 
-  /* ITS MEANING FLIPPED UNDER D7 AND THIS COMMENT IS THE WARNING. It used to
-     be the DARKER hairline for section rules. It is now the LIGHTER, IN-TABLE
-     rule: row separators and the vertical column rules, and nothing else. It
-     is never darker than --ev-hairline.
+  /* RETIRED AS A DISTINCT VALUE — `04-index-screen-redesign.md` ruling **R23**,
+     §15.1. It is an ALIAS of --ev-hairline and it must never carry a literal
+     again.
 
-     **AND UNDER THE STYLESHEET IT IS THE SAME VALUE AS --ev-hairline.** D7
-     inferred a two-LEVEL structure from two downscale readings:
-       `82923d3f` row rule     sum = 9.46 -> B ~ 237
-       `82923d3f` column rule  sum = 9.27 -> B ~ 238
-     The reference in fact declares ONE hairline token and spends it on the
-     card border and the internal rules alike (`[css]` `border-muted` =
-     #f0f2f4). The match audit's integration agrees EXACTLY on the horizontal
-     rule (L 242.1 vs the token's 242.1), reads the vertical rule at L ~ 238,
-     and records that it has NOT proven the two are different tokens.
+     **TWO HAIRLINE WEIGHTS IN THE PRODUCT, AND ONLY TWO:**
+       --ev-hairline          #f0f2f4  1.122 : 1  STRUCTURE — card and table
+                                                  borders, row rules, the
+                                                  vertical column rules, nav
+                                                  seams.
+       --ev-hairline-control  #dde0e4  1.324 : 1  ANYTHING THE OPERATOR CAN
+                                                  CLICK, plus the pinned-column
+                                                  boundary (§7.9, match audit
+                                                  N4 — at --ev-hairline the
+                                                  frozen edge was zero steps
+                                                  darker than every ordinary
+                                                  rule, so the pinning signal
+                                                  was simply gone).
 
-     THE NAME SURVIVES AND SO DOES ITS D7 ROLE, so `table.tsx`'s
-     `border-[--ev-hairline2]` classes keep compiling and now paint the right
-     colour. **Do not darken one of the two to "restore the hierarchy".** The
-     hierarchy is not in the reference, and putting it back is precisely what
-     made our table read as a spreadsheet grid instead of a list.
+     D7 inferred a third, in-table weight from two downscale readings
+     (`82923d3f` row rule sum 9.46 -> B ~ 237; column rule 9.27 -> B ~ 238).
+     The reference in fact declares ONE hairline and spends it on the card
+     border and the internal rules alike (`[css]` `border-muted` = #f0f2f4),
+     and the match audit records that it never proved the two apart. Under the
+     stylesheet the value was already identical; R23 makes that structural.
+
+     **Do not give it a literal to "restore the hierarchy".** The hierarchy is
+     not in the reference, and putting it back is what made our table read as a
+     spreadsheet grid instead of a list. If a line needs to be darker, the
+     question is whether it bounds something clickable — and then it takes
+     --ev-hairline-control by name.
 
      THE VERTICAL COLUMN RULES ARE A REAL DIVERGENCE FROM SHOPIFY, not a
      compression artefact: `82923d3f` y=250 shows rules at destination
      x ~ 306, 429, 509, 563, 653 plus the outer edges at 179 and 731, and it is
      confirmed in `cfa43315`, `223f15e5`, `d209473e`, `02b895df`. The audit
-     adds one constraint the frames alone do not give: they are on the BODY
-     cells only and are **absent from the header strip**.
+     adds one constraint the frames alone do not give, and §7.5 (match audit
+     N1) makes it binding: they are on the BODY cells only and are **absent
+     from the header strip**. `ui/table.tsx` scopes the selector to `tbody`.
 
-     It had ZERO call sites in `src/` when the meaning flipped, so nothing
-     broke. Owner of its one intended consumer: `ui/table.tsx`. */
-  --ev-hairline2: #f0f2f4;
+     Owner of its one consumer: `ui/table.tsx`. */
+  --ev-hairline2: var(--ev-hairline);
 
   /* R19 — licensed for ONE use and no other, RE-DERIVED against the new
      grounds. §7's 3:1 non-text contrast requirement for an interactive
@@ -633,17 +643,29 @@
      32px avatar + 16/16 padding-block, which is the reference's own geometry
      read on-grid, and 2px inside the audit's own +/-3% band on that figure. */
   --ev-row-h: 40px; /* SINGLE-LINE rows. A rise from 32, not a loss. */
-  --ev-row-h-media: 64px; /* TWO-LINE / avatar rows. 56 -> 64: D7 took 32 + 12/12
-                             = 56, "one 8px step tighter, inside R13", before
-                             the audit measured the same row at 61.9 and read
-                             its padding-block at ~16 a side. R13's tolerance is
-                             not a licence to stay short when the figure has
-                             been re-measured. */
+  /* 64 -> 60 — `04-index-screen-redesign.md` §7.6, §15.1.
+     The reference measures **61.9** (separators at destination y 187/220/253/
+     286/319/352, pitch 33 x 1.875). 60 is the nearest 4px grid value, -3.2%,
+     and it is exactly the content box: a 32px avatar, or 38px of two line
+     boxes, plus 11/11. The declared 64 implied S = 1.939 and a 1489px frame,
+     which is wrong (audit R2.0 #1).
+     **R20 — this is the TABLE's height, not the row's.** Every row in a table
+     takes it, with no exceptions: the two-line identity cell applies to every
+     row or to none. Measured before the fix, Applications ran 117/44/44/69/44/
+     44/44/41 and Compliance 81/41x5/65/49 — five interval changes in eight
+     rows, which reads as damage. `DESIGN.md` §3.1's "grows to fit" PROSE is
+     void; its "MUST be uniform" RULE stands. */
+  --ev-row-h-media: 60px;
   /* ADDED BY D7 — the one added geometry token in §1.4, DECLARED rather than
      smuggled as a literal (D15). Table header row: destination y = 139 -> 154
      = 16px = 30, and `6a08206b` gives y = 118 -> 134 = 17px = 32. Equal to
-     --ev-navrow-h, which is what the reference shows. */
-  --ev-row-h-head: 32px;
+     --ev-navrow-h, which is what the reference shows.
+     **32 -> 36 — §7.5, §15.1.** The label rose with it: the reference measures
+     the header label at ~14 (audit G30'), so it takes the ramp's own --text-sm
+     (14/20) in a 20px line box, plus 8/8 padding = 36. It is no longer equal to
+     --ev-navrow-h, and that is correct: a nav row and a table header are not
+     the same object. */
+  --ev-row-h-head: 36px;
   --ev-control-h: 32px; /* M — search input `82923d3f` border centres
                            y = 84 -> 99.5 = 29.1; primary button `6a08206b`
                            26.6; filter chip 30. Mean 28.6, spread 3.4 — BELOW
@@ -668,6 +690,17 @@
      which the one-breakpoint check counts. 1440 therefore gets the 1280
      answer; raising it at `wide:` is a ticket, not a local decision. */
   --ev-page-pad: 32px;
+  /* D-2' AMENDED — `04-index-screen-redesign.md` §1.2, §14.3, §15.1.
+     32 below --ev-bp-wide and **48 at and above it**, through the EXISTING
+     `wide:` variant. `--ev-page-pad` itself is unchanged and is deliberately
+     NOT redefined inside a media query: a second `@media (min-width:)` in
+     `dist` is what the one-breakpoint check counts, and the `wide:` variant is
+     already declared, so this costs no new rule of its own.
+     48 is what buys 1440 the air the reference spends (68) without taking it
+     from the 1280 column budget, where §7.3 has 910px of table to place and
+     nothing to give. It reaches the page shell as `--spacing-page-pad-wide`;
+     `PAGE_BLOCK` in `PageShell.tsx` is its only consumer. */
+  --ev-page-pad-wide: 48px;
   --ev-page-max: 1120px; /* Untouched. ONE consumer: the full-bleed editor. */
   --ev-detail-rail-w: 320px; /* X — not evidenced. Untouched: AC-34's
                                 640 + 16 + 320 = 976 depends on it. */
@@ -678,6 +711,12 @@
      480 is the nearest 16px value and leaves 976 - 480 = 496px of page visible
      at the 1280 floor. */
   --ev-drawer-w: 480px;
+  /* ADDED — `04-index-screen-redesign.md` §11.1, §15.1. The detail drawer's
+     header is 72, not the top bar's 52: two independent readings measure 71.3.
+     Declared now, with ZERO consumers, because §15.1 lists it as a token change
+     and a literal 72 appearing in `sheet.tsx` when build item 16 lands is
+     exactly the D15 defect. Owner of its future consumer: `ui/sheet.tsx`. */
+  --ev-drawerhead-h: 72px;
   /* M — 12 -> 8, and 12 is FALSIFIED, not merely re-preferred. Stat tile
      `02b895df` top-left corner: the horizontal inset is 1 destination px at 1px
      below the top edge. A 12px radius predicts 3 destination px there; 8px
@@ -790,8 +829,9 @@
   --ev-subnav-w: 256px; /* unchanged by D7 */
   --ev-navrow-h: 36px; /* 32 + 4 */
   --ev-row-h: 44px; /* 40 + 4 */
-  --ev-row-h-media: 68px; /* 64 + 4 */
-  --ev-row-h-head: 36px; /* 32 + 4 — new under D7 */
+  --ev-row-h-media: 64px; /* 60 + 4 — §15.1 */
+  --ev-row-h-head: 40px; /* 36 + 4 — §15.1 */
+  --ev-drawerhead-h: 76px; /* 72 + 4 — §15.1 */
   --ev-control-h: 36px; /* 32 + 4 */
   --ev-control-h-lg: 44px; /* 40 + 4 */
 
@@ -998,6 +1038,9 @@
      rather than `p-[var(--ev-page-pad)]`. ONE constant, `PAGE_BLOCK` in
      `PageShell.tsx`, is its only consumer. */
   --spacing-page-pad: var(--ev-page-pad);
+  /* D-2' amended — the `wide:` step. Same one consumer. */
+  --spacing-page-pad-wide: var(--ev-page-pad-wide);
+  --spacing-drawerhead: var(--ev-drawerhead-h);
   --container-page: var(--ev-page-max);
 
   /* The two two-pane grids, as tokens rather than as arbitrary values. Both

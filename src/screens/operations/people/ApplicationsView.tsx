@@ -54,7 +54,6 @@
  */
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   approveApplicant,
@@ -92,7 +91,6 @@ interface RowError {
 }
 
 export function ApplicationsView({ chrome, t, language, canWrite, currentUserId }: ViewChrome) {
-  const navigate = useNavigate()
   const now = useNowIso()
 
   const table = useIndexTable<Applicant>({
@@ -292,13 +290,17 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
               }
             : null
         }
-        rowActions={[
-          {
-            /* §9.3 — opening is NOT claiming. Two controls, two effects. */
-            label: t('people.action.openApplication'),
-            onSelect: (row) => navigate(`${DETAIL_PATH}/${row.id}`),
-          },
-        ]}
+        /* **No row kebab, and no `rowActions`.** D8: *"if only 1 action put the
+           action not 3 dots"*. The single item this menu carried —
+           `Open application` — navigated to `${DETAIL_PATH}/${row.id}`, which is
+           byte-for-byte the destination the identity link in the same row
+           already opens (§12.1: the identity opens the record). A 56px pinned
+           lane, a menu and two keystrokes for a duplicate of the link beside it.
+
+           Removing it also pays for §7.3: with the lane gone the queue's Σ is
+           864 against the 870 the Arabic content region allows. §7.8 gives this
+           column a `View` control in build item 11; until then the identity link
+           is the one entry point, which is one more than it needs. */
         firstRun={{
           heading: t('people.empty.applications.heading'),
           body: t('people.empty.applications.body'),
@@ -360,7 +362,8 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
          region it would vanish the moment the operator scrolled, and R5a's
          three parts are explicit that none substitutes for another (AC-50). */
       alwaysVisible: true,
-      width: 200,
+      /* §7.3 rule 2 — the one flexible column; 266px of residual at 1280. */
+      minWidth: 200,
       dataType: 'text',
       sortField: 'name',
       cell: (row) => (
@@ -371,21 +374,32 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
               label, outside the row's content box. At most ONE red carrier per
               row, and this is it. */}
           {clockFor(row).kind === 'breached' && !isDecided(row) && <RowCriticalMarker />}
-          <Identity to={deps.detailHref(row.id)} name={row.name} t={t} />
+          {/* §7.7 — line 2 is `Applied 24 Jun`, which is what retires the
+              `Applied` COLUMN to the hidden set below. */}
+          <Identity
+            to={deps.detailHref(row.id)}
+            name={row.name}
+            secondary={t('people.applied', {
+              date: formatDate(row.appliedAt, { style: 'day-month', language }),
+            })}
+            t={t}
+          />
         </>
       ),
     },
     {
       id: 'id',
       header: t('people.col.id'),
-      width: 120,
-      dataType: 'text',
+      width: 112,
+      /* §7.3 rule 5 — `APP-2204` is an `id`, so it may never be the trailing
+         visible column: a truncated id reads as a different, valid id. */
+      dataType: 'id',
       cell: (row) => <MutedCell className="tabular-nums">{row.id}</MutedCell>,
     },
     {
       id: 'status',
       header: t('people.col.status'),
-      width: 128,
+      width: 112,
       dataType: 'enum',
       sortField: 'status',
       filter: {
@@ -412,6 +426,10 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
       header: t('people.col.applied'),
       width: 128,
       dataType: 'date',
+      /* §7.4 — behind the column control: the date is the identity's second
+         line now, and §6.4's rule is that state with a visible carrier does not
+         get a second one. */
+      defaultHidden: true,
       sortField: 'appliedAt',
       cell: (row) => (
         <DateCell>{formatDate(row.appliedAt, { style: 'day-month-time', language })}</DateCell>
@@ -420,7 +438,7 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     {
       id: 'sla',
       header: t('people.col.sla'),
-      width: 144,
+      width: 120,
       dataType: 'date',
       /* **AC-114 — no `sortField`, deliberately.** §8.4's order is a RULE, not
          an operator preference: breached first, then remaining time ascending,
@@ -457,7 +475,7 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     {
       id: 'owner',
       header: t('people.col.owner'),
-      width: 176,
+      width: 144,
       dataType: 'enum',
       /* §6.1 — three states, so a radio group and not a switch. `null` is "not
          set"; `false` is a filter. */
@@ -488,7 +506,16 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     {
       id: 'decision',
       header: t('people.col.decision'),
-      width: 200,
+      /* **176, and this column is a placeholder for build item 11.** §7.4 makes
+         `Decision` default-hidden and moves the disposition controls into a
+         116px ACTIONS lane carrying D8's `✓ ✗ View` triad. That is item 11 and
+         not this pass, so the column stays visible — it is the only carrier of
+         `Approve` and `Reject` today, and hiding it would take the queue's whole
+         purpose off the screen to satisfy an arithmetic that is not yet real.
+         176 is §7.4's own declared width for the hidden `Decision` column and it
+         keeps Σ inside the budget in both languages (864 ≤ 870). When item 11
+         lands this becomes `defaultHidden` and Σ drops to 844. */
+      width: 176,
       dataType: 'enum',
       cell: (row) => {
         const failure = deps.rowErrors.get(row.id)

@@ -49,6 +49,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Translate } from '@/lib'
+import { cn } from '@/lib/utils'
 
 export interface ToolbarTab {
   id: string
@@ -76,40 +77,61 @@ export function IndexToolbar(props: IndexToolbarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <div className="flex flex-col">
-      {/* ROW 1 — the view tabs, and nothing else. The active tab's rule sits ON
-          the row's own divider (`after:-bottom-px`), so the underline and the
-          separator are one line rather than two near-misses. */}
+    /* ONE ROW. The owner: *"move the search to next to filters and put the tabs
+       at the same line as them."* View switcher at the inline-start, then the
+       whole control cluster at the inline-end with search leading it.
+
+       It fits at the 1280 floor only because the search field shrinks. Measured
+       rather than estimated: at `min-w-40` the cluster was **11px over** the 912
+       content column, so the floor is `min-w-32` (128). The field reaching its
+       minimum is a `flex-shrink`, not a mode — it never disappears, nothing else
+       moves, and the placeholder ellipsises rather than the row wrapping. */
+    <div className="flex h-14 items-center gap-2 px-3">
       {tabs.length > 0 && (
-        <div className="flex h-11 items-center border-b border-border px-3">
-          <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 flex-1 gap-0">
-            <TabsList variant="line" className="h-11! gap-1 p-0">
-              {tabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="rounded-none px-3 text-sm group-data-horizontal/tabs:after:-bottom-px"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        <Tabs value={activeTab} onValueChange={onSelectTab} className="shrink-0 gap-0">
+          <TabsList variant="segmented">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                /* Overrides, not additions: `data-active:bg-accent` and
+                   `rounded-lg` come from the base trigger and are merged AWAY
+                   by `cn`, because each pair shares a utility group. */
+                className="rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       )}
 
-      {/* ROW 2 — the controls, 56px against 32px controls: the 12px above and
-          below IS the margin the tab row and the header band were missing. */}
-      <div className="flex h-14 items-center gap-1.5 px-3">
-        <div className="flex h-control w-64 min-w-0 items-center gap-2 rounded-lg border border-border bg-card pe-1 ps-2.5 focus-within:ring-2 focus-within:ring-ring">
-          <Search aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+      <div className="ms-auto flex min-w-0 items-center gap-1.5">
+        {/* ONE control, ONE focus ring. The previous construction was a
+            bordered wrapper with `focus-within:ring-2` around an `Input` that
+            still carried its own `focus-visible:ring-2 ring-offset-2` — so
+            focusing it drew TWO concentric blue rings with a white gap between
+            them, which is what the owner saw. The icon is now positioned inside
+            the field's own padding, so the field is a plain `Input` wearing
+            §7.2's single ring like every other input in the product. */}
+        <div className="relative min-w-32 shrink basis-60">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             ref={inputRef}
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
-            className="h-full min-w-0 flex-1 border-transparent bg-transparent px-0 shadow-none focus-visible:ring-0"
+            /* The trailing inset is reserved ONLY when the clear control is
+               actually there. At the 1280 floor the field is 128px; a permanent
+               32px trailing reserve left 64px for text and the placeholder was
+               clipped to `earch captains` in Arabic — read as an RTL defect,
+               but it is the same clip in both directions and it is padding,
+               not direction. */
+            className={cn('ps-8', query === '' ? 'pe-2.5' : 'pe-8')}
             onKeyDown={(event) => {
               if (event.key === 'Escape') onQueryChange('')
             }}
@@ -123,30 +145,29 @@ export function IndexToolbar(props: IndexToolbarProps) {
                 onQueryChange('')
                 inputRef.current?.focus()
               }}
+              className="absolute end-1 top-1/2 -translate-y-1/2"
             >
               <X aria-hidden="true" />
             </Button>
           )}
         </div>
 
-        <div className="ms-auto flex items-center gap-1.5">
-          {props.filterTrigger(
-            <Button variant="secondary">
-              <ListFilter aria-hidden="true" />
-              {t('table.filter')}
-              {/* §4.3's measured `Filter 1`. A COUNT, not a tone: R7 keeps the
-                  badge vocabulary for status, and this is neither status nor red. */}
-              {props.filterCount > 0 && (
-                <span className="rounded-sm bg-muted px-1 tabular-nums text-muted-foreground">
-                  {props.filterCount}
-                </span>
-              )}
-            </Button>,
-          )}
+        {props.filterTrigger(
+          <Button variant="secondary">
+            <ListFilter aria-hidden="true" />
+            {t('table.filter')}
+            {/* §4.3's measured `Filter 1`. A COUNT, not a tone: R7 keeps the
+                badge vocabulary for status, and this is neither status nor red. */}
+            {props.filterCount > 0 && (
+              <span className="rounded-sm bg-muted px-1 tabular-nums text-muted-foreground">
+                {props.filterCount}
+              </span>
+            )}
+          </Button>,
+        )}
 
-          {props.columnsControl}
-          {props.sortControl}
-        </div>
+        {props.columnsControl}
+        {props.sortControl}
       </div>
     </div>
   )

@@ -57,6 +57,12 @@ const tabsListVariants = cva(
       variant: {
         default: "bg-muted",
         line: "gap-1 bg-transparent",
+        /* D12 — the owner's own reference: a STADIUM track with an inset pill.
+           `p-0.5` is the 2px inset that makes the segments read as abutting;
+           `gap-0` because a divider between segments is what the reference
+           does NOT have. The track's own border is what gives a very light
+           fill a shape. */
+        segmented: "gap-0 rounded-full border border-border-control bg-muted p-0.5",
       },
     },
     defaultVariants: {

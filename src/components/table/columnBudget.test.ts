@@ -37,8 +37,36 @@ import { applicationColumns } from '@/screens/operations/people/ApplicationsView
 import { complianceColumns } from '@/screens/operations/people/ComplianceView'
 import { riderColumns } from '@/screens/operations/people/RidersView'
 
-/** §7.3 — the table's inner width at the 1280 floor: 912 content − 2 border. */
-export const TABLE_INNER_WIDTH_1280 = 910
+/**
+ * **§7.3's 910 is the ENGLISH number, and the budget has to hold in Arabic.**
+ *
+ * The RTL pass measured the table's scroll viewport at 910 in English and
+ * **870 in Arabic** and read the 40px as an inline-start inset — a direction
+ * defect. It is not one. There is no physical property left in this path and no
+ * scrollbar gutter: the 40 is the **language** step at `globals.css`
+ * `:root:lang(ar)`, which widens `--ev-rail-w` 80 → 88 and `--ev-subnav-w`
+ * 224 → 256. Both are declared, both are deliberate (§9.7 — one language hook),
+ * and 8 + 32 = 40 exactly. It would be present in a hypothetical Arabic-LTR and
+ * it is absent from a forced-DOM RTL with `lang="en"`, which is precisely why
+ * nothing saw it until the language switch had a production call site.
+ *
+ * So it is legitimate, the constant does not stay at 910, and — because it is a
+ * language step rather than a direction one — the pair below is keyed on
+ * LANGUAGE. `--ev-page-pad` is deliberately not in the `:lang(ar)` block (a
+ * gutter is not a line box), so it is the same 32 in both.
+ *
+ * ```
+ *   inner = 1280 − rail − subnav − 2 × --ev-page-pad − 2 (the table's border)
+ *   en    = 1280 −  80 −    224  −            64      − 2 = 910
+ *   ar    = 1280 −  88 −    256  −            64      − 2 = 870
+ * ```
+ *
+ * **Every view is asserted against both, and the language is in the test name.**
+ * A single number with no language on it is how this got through the first time.
+ */
+export const TABLE_INNER_WIDTH_1280 = { en: 910, ar: 870 } as const
+
+type BudgetLanguage = keyof typeof TABLE_INNER_WIDTH_1280
 
 /** §7.3 rule 5 — the two types a reader cannot tell have been truncated. */
 const UNTRAILABLE: ReadonlySet<ColumnDataType> = new Set<ColumnDataType>(['money', 'id'])
@@ -55,6 +83,11 @@ interface BudgetInput {
   readonly innerWidth?: number
 }
 
+interface ViewCase {
+  readonly name: string
+  readonly input: BudgetInput
+}
+
 interface BudgetResult {
   readonly sum: number
   readonly innerWidth: number
@@ -63,7 +96,7 @@ interface BudgetResult {
   readonly violations: readonly string[]
 }
 
-function budget({ columns, lanes, innerWidth = TABLE_INNER_WIDTH_1280 }: BudgetInput): BudgetResult {
+function budget({ columns, lanes, innerWidth = TABLE_INNER_WIDTH_1280.ar }: BudgetInput): BudgetResult {
   const shown = columns.filter((column) => column.defaultHidden !== true)
   const violations: string[] = []
 
@@ -121,40 +154,75 @@ const applicationDeps = {
   onReject: () => undefined,
 } as never
 
-const VIEWS: ReadonlyArray<{ name: string; input: BudgetInput }> = [
+/**
+ * The implicit lanes, counted as they actually RENDER, not as §7.4 draws them.
+ *
+ *   selection 40 — `index` mode only. Applications is a `queue` without
+ *                  `bulkClaim`, so it has no checkbox column (§9.3).
+ *   actions   —— — **D8, and the width follows the SHAPE.** §7.8:
+ *                  0 declared actions → no lane at all (Applications: its one
+ *                  action duplicated the identity link, so it was deleted);
+ *                  1 → a labelled button, `rowActionsWidth ?? 88` (Riders);
+ *                  2+ → the `⋯` kebab at 56 (Captains, Compliance).
+ *
+ * This is the coupling that made D8 a width question and not a styling one:
+ * replacing a 28px kebab with a labelled control costs the budget 32px, which
+ * is why Riders' `City` column went back behind the column control.
+ */
+const SELECT_LANE = 40
+const KEBAB_LANE = 56
+const SINGLE_ACTION_LANE = 88
+
+const VIEWS: readonly ViewCase[] = [
   {
     name: 'Captains',
-    /* index mode: a selection lane (40) and a kebab lane (56). */
-    input: { columns: captainColumns(t, language, href) as never, lanes: 40 + 56 },
+    /* 3 declared actions → kebab. */
+    input: { columns: captainColumns(t, language, href) as never, lanes: SELECT_LANE + KEBAB_LANE },
   },
   {
     name: 'Applications',
-    /* queue mode without `bulkClaim`: no selection lane. The decision triad
-       lane is 116 (§7.8) and today it is the `decision` COLUMN, so the lane
-       itself is 0 until §15.2 item 11 moves it. */
-    input: { columns: applicationColumns(applicationDeps) as never, lanes: 40 },
+    /* 0 declared actions, no selection lane. */
+    input: { columns: applicationColumns(applicationDeps) as never, lanes: 0 },
   },
   {
     name: 'Compliance',
+    /* 3 declared actions → kebab. */
     input: {
       columns: complianceColumns(t, language, '2026-06-24T09:00:00.000Z' as never, href) as never,
-      lanes: 40 + 56,
+      lanes: SELECT_LANE + KEBAB_LANE,
     },
   },
   {
     name: 'Riders',
-    input: { columns: riderColumns(t, language, href) as never, lanes: 40 + 56 },
+    /* 1 declared action → a labelled `View` button at §7.8's 88. */
+    input: {
+      columns: riderColumns(t, language, href) as never,
+      lanes: SELECT_LANE + SINGLE_ACTION_LANE,
+    },
   },
 ]
 
+const CASES: ReadonlyArray<{ name: string; lang: BudgetLanguage; input: BudgetInput }> = (
+  ['en', 'ar'] as const
+).flatMap((lang) => VIEWS.map((view) => ({ name: view.name, lang, input: view.input })))
+
 describe('§7.3 — the width contract', () => {
-  it.each(VIEWS)(
-    '$name fits the 910px inner width and does not end on money or an id',
-    ({ input }) => {
-      const result = budget(input)
+  it.each(CASES)(
+    '$name fits the $lang inner width at 1280 and does not end on money or an id',
+    ({ lang, input }) => {
+      const result = budget({ ...input, innerWidth: TABLE_INNER_WIDTH_1280[lang] })
       expect(result.violations).toEqual([])
     },
   )
+
+  /* The Arabic width is the binding one, so it is the one asserted by name:
+     if `:root:lang(ar)`'s rail or sub-tab step moves, this is what says so. */
+  it('derives the two inner widths from the declared nav widths', () => {
+    const inner = (rail: number, subnav: number) => 1280 - rail - subnav - 2 * 32 - 2
+    expect(inner(80, 224)).toBe(TABLE_INNER_WIDTH_1280.en)
+    expect(inner(88, 256)).toBe(TABLE_INNER_WIDTH_1280.ar)
+    expect(TABLE_INNER_WIDTH_1280.en - TABLE_INNER_WIDTH_1280.ar).toBe(40)
+  })
 
   it('rejects a set whose Σ overflows', () => {
     const result = budget({

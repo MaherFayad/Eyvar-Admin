@@ -96,9 +96,9 @@ export function FilterChipRow(props: FilterChipRowProps) {
   const { t, language, entries, active, onRemove, onClearAll, isFiltered, scope = null } = props
 
   return (
-    <div className="m-3 mb-0 flex flex-wrap items-center gap-2 rounded-lg bg-muted p-2">
+    <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 rounded-xl bg-muted p-2">
       {scope && (
-        <span className="inline-flex h-control items-center gap-1 rounded-lg border border-border bg-card ps-2 pe-1 text-sm text-foreground">
+        <span className="inline-flex h-control items-center gap-1 rounded-lg border border-border-control bg-card ps-2 pe-1 text-sm text-foreground">
           {scope.label}
           <Button
             variant="ghost"
@@ -126,7 +126,7 @@ export function FilterChipRow(props: FilterChipRowProps) {
             /* §4.4 — white fill on the tinted strip, 1px `--ev-hairline`, r8.
                The chip interior is deliberately NOT tinted: a tinted chip on a
                tinted strip has no edge and reads as a label, not a control. */
-            className="inline-flex h-control items-center rounded-lg border border-border bg-card"
+            className="inline-flex h-control items-center rounded-lg border border-border-control bg-card"
           >
             <FilterPopover
               {...props}
