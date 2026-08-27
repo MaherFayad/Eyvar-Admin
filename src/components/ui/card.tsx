@@ -9,7 +9,7 @@
  *               canvas and card are finally distinct. This closes legacy
  *               defect D1, where both were white.
  *   §2.1        separated from the canvas by a 1px `--ev-hairline` BORDER, not
- *               a ring and not a shadow. The stock `ring-1 ring-foreground/10`
+ *               a ring and not a shadow. The stock 1px translucent ring
  *               is a translucent black ring over an unknown backdrop; a token
  *               hairline is the sanctioned separator (design spec §1.1).
  *   §10.1       ONE CONCERN PER CARD. Bold card title, 12px internal padding,
@@ -22,7 +22,7 @@
  *               placeholder sentence, never blank — that is `EmptyState`
  *               `no-match`, and it is the caller's job.
  *
- * Removed on arrival: `ring-1 ring-foreground/10`, `bg-muted/50` on the
+ * Removed on arrival: the stock 1px translucent ring, `bg-muted/50` on the
  * footer (a filled grey band; D18), `font-heading`.
  */
 import * as React from "react"

@@ -32,6 +32,7 @@ import {
   boardNotices,
   metricSeeds,
   timeSeriesFixtures,
+  withShareOfMax,
   type MetricSeed,
 } from '../fixtures/metrics'
 import {
@@ -60,6 +61,7 @@ import type {
   TimeSeries,
 } from '../types/metrics'
 import { workBacklogByQueue } from './myWork'
+import { listCities, resolveZones, summariseZones } from './zones'
 import { http } from './http'
 
 /* ── window arithmetic, shared by the derived metrics below ──────────────
@@ -148,6 +150,37 @@ const DERIVED: Record<string, () => number | null> = {
    * populations. `endedAt` is on every trip, so the fix is to use it.
    */
   'management.performance.tripsCompleted': () => completedIn(SNAPSHOT_CURRENT),
+  /**
+   * **The average renewal rate — a derivation, and the population is declared.**
+   *
+   * `sourceResource: 'riders'`, so this is a mean over **riders**, and the
+   * expression below is the whole of it: the eight of thirteen who carry a
+   * reading. **8 of 13 · mean 69.5.**
+   *
+   * **Nulls are excluded, never coerced to zero** (**AC-606**). A rider with no
+   * renewal history did not renew nothing — they have not been asked yet, and
+   * counting them as `0` would report **42.8** for a population whose actual
+   * answer is 69.5. `Metric.value`'s own doc names that as the defect it exists
+   * to prevent.
+   *
+   * **If Q-107 answers *subscribers*, this is the one line that changes** —
+   * `.filter((r) => r.status === 'subscriber')` before the reading filter, for
+   * 4 of 13 and a mean of 62.0. The label and caption keys swap with it and
+   * both are already written. That is deliberately the entire cost of the open
+   * question.
+   *
+   * **L-4 is not fixed by any of this**: the stored percentage discarded its
+   * own numerator and denominator at write time, so a rider with one renewal
+   * opportunity weighs as much as a rider with twenty, at any population.
+   */
+  'management.performance.avgRenewalRate': () => {
+    const rated = riderFixtures.filter((r) => r.renewalRatePercent !== null)
+    if (rated.length === 0) return null
+    const total = rated.reduce((sum, r) => sum + (r.renewalRatePercent ?? 0), 0)
+    /* One decimal, at the source, so two screens show one number. */
+    return Math.round((total / rated.length) * 10) / 10
+  },
+
   'management.performance.avgCaptainRating': () => {
     const rated = allDriverFixtures.filter((d) => d.rating !== null)
     if (rated.length === 0) return null
@@ -220,6 +253,34 @@ const DERIVED: Record<string, () => number | null> = {
     return allDriverFixtures.filter((d) => d.status === 'active' && !onTrip.has(d.id)).length
   },
 
+  /* ── Management › Market & Zones ─────────────────────────────────────────
+     **R4-6b §6.6.4**: *"When the table lands, Market & Zones' four metric tiles
+     MUST be derived from the table's own rows. They may not remain literals."*
+
+     The table has landed (`clients/zones.ts`), so here are the four. Every one
+     of them was a hand-written number in `fixtures/metrics.ts` until this pass,
+     and every one derives to **exactly the value it replaces** — the derivation
+     changed no published figure, it removed the possibility of one drifting
+     from the row beneath it.
+
+     **The ruling says "four tiles" and there are five.** `captainsNeeded` is
+     zone-derived too — `sum(max(0, ceil(demand/3) − supply))` (`:14156`) — and
+     spec §9.1 ranks it *first* on the board. Deriving four of five and leaving
+     the fifth a literal would be the drift the ruling forbids, arriving one tile
+     to the left of where it was expected. Reported, not silently absorbed.
+
+     `steerOffersLive` and `liveCities` are deliberately NOT here: neither is a
+     function of the zone rows, and deriving a city count from six rows that are
+     all in one city is L-6's own mistake in a new place.                      */
+  'management.zones.captainsNeeded': () => summariseZones(resolveZones()).captainsNeeded,
+  'management.zones.starvedZones': () => summariseZones(resolveZones()).starvedZones,
+  'management.zones.unservedRequests30d': () => summariseZones(resolveZones()).unservedRequests30d,
+  'management.zones.avgFailureRate': () => summariseZones(resolveZones()).avgFailureRate,
+  /* `null` when no zone has a ratio — the `ratio` tile renders an em-dash
+     rather than `Infinity×` (R4-12, and `Zone.demandSupplyRatio`). */
+  'management.zones.worstDemandSupplyRatio': () =>
+    summariseZones(resolveZones()).worstDemandSupplyRatio,
+
   'support.overview.openIncidents': () =>
     safetyIncidentFixtures.filter((i) => i.status === 'open').length,
   /**
@@ -245,7 +306,11 @@ const DERIVED: Record<string, () => number | null> = {
   'admin.overview.activeOperators': () =>
     teamUserFixtures.filter((u) => u.status === 'Active').length,
   'admin.overview.operatorsWithoutTwoFactor': () =>
-    teamUserFixtures.filter((u) => !u.twoFactorEnabled).length,
+    /* `secondFactor === null` is **enrolment pending**, which is what the tile
+       now counts. `twoFactorEnabled: false` used to mean "chose not to", and
+       spec §4.2 removed the choice — the number is the same 3 of 5, and it now
+       means something an owner can act on. */
+    teamUserFixtures.filter((u) => u.secondFactor === null).length,
 
   'support.fairness.suspendedCaptains': () =>
     allDriverFixtures.filter((d) => d.suspended).length,
@@ -365,6 +430,9 @@ const metricShape: QueryShape<Metric> = {
     comparisonKind: (m) => m.comparison.kind,
     /** Why there is no comparison. `null` when there *is* one. */
     noComparisonReason: (m) => (m.comparison.kind === 'none' ? m.comparison.reason : null),
+    /* R5-1. `null` on a tile that has a value, which is where the facet's own
+       count comes from: three of fifty-one. */
+    absenceReason: (m) => m.absenceReason,
     direction: (m) => m.direction,
 
     /* booleans */
@@ -392,14 +460,33 @@ const metricShape: QueryShape<Metric> = {
     targetEffectiveFrom: (m) =>
       toInstant(m.comparison.kind === 'target' ? m.comparison.effectiveFrom : null),
   },
-  facetable: ['subTabId', 'category', 'unit', 'sourceResource', 'comparisonKind', 'noComparisonReason'],
+  facetable: [
+    'subTabId',
+    'category',
+    'unit',
+    'sourceResource',
+    'comparisonKind',
+    'noComparisonReason',
+    /* New with R5-1, and facetable for the same reason `noComparisonReason` is:
+       *how many of our numbers are absent, and for which of two reasons* is a
+       question the metrics library should be able to answer without a join. */
+    'absenceReason',
+  ],
   views: {
     all: () => true,
     derived: (m) => m.sourceResource !== null,
-    /* The three tiles §3.7 renders with an em-dash instead of a delta. */
+    /* The tiles §3.7 renders with an em-dash instead of a delta. */
     'no-comparison': (m) => m.comparison.kind === 'none',
     'against-target': (m) => m.comparison.kind === 'target',
-    'not-computable': (m) => m.value === null,
+    /**
+     * **Renamed from `not-computable` by R5-1, and the rename is the point.**
+     * This view selects every metric with no value, whatever the reason. Once
+     * `ValueAbsenceReason` has a member *called* `not-computable` that means
+     * something strictly narrower — the inputs exist and the calculation has no
+     * answer — a view of the same name selecting a superset is a contradiction
+     * inside one contract. Filter by `absenceReason` for the narrow set.
+     */
+    'value-absent': (m) => m.value === null,
   },
 }
 
@@ -421,28 +508,182 @@ function backlogByQueueRows(declared: MetricBreakdown): MetricBreakdown {
   const queues = [...workBacklogByQueue()].sort(
     (a, b) => b.breached - a.breached || b.open - a.open,
   )
-  const total = queues.reduce((sum, q) => sum + q.open, 0)
+  const rows = queues.map((q) => ({
+    id: q.queue,
+    /* A closed set of five, so unlike a captain's name this really is a key —
+       `kind: 'key'`, which takes the page direction (R5-7). */
+    label: { kind: 'key' as const, key: `breakdown.queue.${q.queue}`, params: null },
+    /* **B-6, reverted — R5-5, and the designer overruled their own objection.**
+       This was `{secondary} past their SLA`; a previous pass changed it to
+       `Open · past their SLA` because the rule of the day gave the number to
+       the second column. The column is withdrawn and the original was right, so
+       the number comes back into the phrase as `{past} past their SLA`. A
+       column legend repeated identically on every row is what a header row
+       exists to avoid, and a breakdown has no header row.
+
+       `{past}` is a bare count and `BreakdownList` formats it — the sub-label
+       is a key with parameters, never a sentence built by concatenation
+       (AC-713).
+
+       **C-6, and it is a knowing deviation rather than an oversight.** AC-663
+       asks a backlog row for **three** counts — open, breached and unclaimed.
+       R5-5 gives the row one numeric column and one sub-label, and §11.4's
+       string spends both on open and breached. `q.unassigned` is therefore not
+       on the row. It is not lost — it is the `operations.overview.unclaimedWork`
+       tile on the same board, summed from this same builder — but AC-663 as
+       written is no longer satisfied by this list and **nobody has amended it**.
+       Reported rather than left to surface as a regression. */
+    subLabelKey: 'breakdown.sub.queuePastSla',
+    subLabelParams: { past: q.breached },
+    value: q.open,
+    unit: 'count' as const,
+    currency: null,
+    /* Overwritten by `withShareOfMax` on the next line. */
+    barFraction: null,
+    drilldownRoute: WORK_QUEUE_ROUTES[q.queue] ?? null,
+  }))
   return {
     ...declared,
     rowsTotal: queues.length,
-    rows: queues.map((q) => ({
-      id: q.queue,
-      /* A closed set of five, so unlike a captain's name this really is a key. */
-      labelKey: `breakdown.queue.${q.queue}`,
-      labelParams: null,
-      /* The two facts a routing table owes: how many are late, how many are
-         nobody's. Both are counts, so the sub-label is a key with parameters
-         rather than a sentence built by concatenation (AC-713). */
-      subLabelKey: 'breakdown.sub.queueStanding',
-      value: q.open,
-      unit: 'count' as const,
-      currency: null,
-      secondaryValue: q.breached,
-      secondaryUnit: 'count' as const,
-      barFraction: total === 0 ? 0 : q.open / total,
-      drilldownRoute: WORK_QUEUE_ROUTES[q.queue] ?? null,
-    })),
+    /**
+     * **`false`, and R5-12 is why: a bar is legal only where the rows are
+     * ordered by the measure the bar draws.**
+     *
+     * This list is sorted **breached-first**, which is what a work queue is
+     * for — an overview's job is to say which screen to open next, and the
+     * queue with the breach is that screen. The bar would draw `open`. Sorted
+     * by breaches, its fractions ran **1, 0.857, 0.571, 0.714, 0.714**: falling,
+     * then rising, then flat. A bar chart whose bars do not descend is not read
+     * as *"a ranking with an exception"*; it is read as a rendering fault.
+     *
+     * **It loses nothing, because this is a routing table and not a ranking.**
+     * R5-6's three conditions are all satisfied — one unit, one denominator,
+     * `max > min` — so `barIsLegal` returns `true` and would have drawn one.
+     * That is the point of R5-12 being a separate rule: legality of the *scale*
+     * is not legality of the *ordering*.
+     *
+     * Worth recording how it survived two build passes: at the old
+     * `--chart-fill`'s 1.142 : 1 the bars were too faint to see the disorder in.
+     * **A token faint enough to conceal a data defect is a second, independent
+     * reason it was the wrong token.**
+     *
+     * `withShareOfMax` still runs, and still returns `null` on every row
+     * whenever the bar would be illegal — but with `bar: false` the fractions
+     * it computes must not be carried either: `MetricBreakdownRow.barFraction`
+     * is documented `null` whenever the breakdown's `bar` is false, *so a row
+     * cannot draw a bar the list forbids*.
+     */
+    bar: false,
+    rows: withShareOfMax(rows).map((row) => ({ ...row, barFraction: null })),
   }
+}
+
+/**
+ * `zones.citiesHealth`, computed — and **this is where legacy defect L-6 is
+ * preserved in shape and removed as a bug.**
+ *
+ * Legacy (`:6940`–`:6942`) computes a city's average request-failure rate as:
+ *
+ * ```js
+ * var zonesForCity = (DB.zones||[]);              // ← every zone, unfiltered
+ * var avgFail = c.name === 'Riyadh' && zonesForCity.length ? …average… : null;
+ * ```
+ *
+ * Two faults in three lines. It never filters the zones **to the city**, and it
+ * then covers for that by gating the whole computation on a **string literal**.
+ * So Jeddah, Dammam and Makkah render an em-dash forever — not because they have
+ * no zones, but because their names are not `'Riyadh'`. Seed one Jeddah zone and
+ * the column stays blank; seed a zone in a city called `riyadh` and it also
+ * stays blank.
+ *
+ * Here the reading exists **iff the city has tracked zones**, and it averages
+ * *that city's* zones. Today that produces the identical output — one reading
+ * for Riyadh, three genuine `null`s — which is the point: **three of four rows
+ * really have no reading, and `secondaryValue` is nullable for exactly them.**
+ * The em-dashes are kept because they are true, and they stop being permanent
+ * the day a second city launches.
+ *
+ * `value` is the **zone count**, not the rate, because `MetricBreakdownRow.value`
+ * is `number` and not `number | null` — ranking on a field three rows cannot
+ * fill is not a ranking. That constraint is a live finding for
+ * product-designer, recorded at the declaration in `fixtures/metrics.ts`.
+ *
+ * **AC-695**: Riyadh's `6` is the same six rows `listZones()` serves and its
+ * `45` is the same `avgFailureRate` the tile shows, because both come from
+ * `summariseZones()`.
+ */
+function citiesHealthRows(declared: MetricBreakdown): MetricBreakdown {
+  const zones = resolveZones()
+  const cities = listCities()
+  return {
+    ...declared,
+    rowsShown: cities.length,
+    rowsTotal: cities.length,
+    rows: cities.map((city) => {
+      const own = zones.filter((z) => z.city === city.name)
+      const summary = summariseZones(own)
+      return {
+        /* `CITY-RUH`, `CITY-JED`, … — the ids `entityRow` seeded, kept stable so
+           a bug report can still name a row. */
+        id: `CITY-${CITY_IDS[city.name] ?? city.name.slice(0, 3).toUpperCase()}`,
+        /* A city name is **data**, not copy — `kind: 'text'`, which carries its
+           own direction and truncates at its tail in an Arabic console (R5-7,
+           V-4). */
+        label: { kind: 'text' as const, text: city.name },
+        /* **R5-5.** The rate is a noun phrase now, not a nullable second
+           column: `Live · 45% of requests unserved`. A city with no tracked
+           zones states no rate at all and `Not launched` says why — which is
+           the difference between *no reading* and *a reading of zero*, and the
+           thing the column form could only spell as an em dash. */
+        /**
+         * Three cases, and `summary.avgFailureRate`'s `null` is never coerced
+         * to `0` — a city with no reading and a city reading zero are different
+         * facts, which is R5-5's own argument for this shape.
+         *
+         * **The third case now has a key: `breakdown.sub.cityLive` = `Live`.**
+         *
+         * It previously rendered **no sub-label at all**. Refusing to fill
+         * `{rate}` with a fabricated zero, or to label a live city
+         * `Not launched`, was right and stays right — but rendering *nothing*
+         * reproduces **V-2 at row scale**: an unexplained absence one level
+         * down, which is the exact defect this round exists to close. An
+         * operator reading a row with a count and no second line cannot tell a
+         * live city awaiting its first zone reading from a rendering fault.
+         *
+         * `Live` closes it **without inventing a number**. It states the one
+         * fact that is known — the city is launched — and says nothing about a
+         * rate nobody has measured.
+         *
+         * Still unreachable today: Riyadh is the only active city and it has
+         * six zones. It becomes reachable the day a second city launches before
+         * its zones are tracked, which is exactly the day the old behaviour
+         * would have shipped a blank.
+         */
+        subLabelKey: !city.active
+          ? 'breakdown.sub.cityNotLive'
+          : summary.avgFailureRate !== null
+            ? 'breakdown.sub.cityLiveUnserved'
+            : 'breakdown.sub.cityLive',
+        subLabelParams:
+          city.active && summary.avgFailureRate !== null
+            ? { rate: summary.avgFailureRate }
+            : null,
+        value: own.length,
+        unit: 'count' as const,
+        currency: null,
+        barFraction: null,
+        drilldownRoute: null,
+      }
+    }),
+  }
+}
+
+/** Stable row ids for the four seeded cities. A new city falls back to its first three letters. */
+const CITY_IDS: Record<string, string> = {
+  Riyadh: 'RUH',
+  Jeddah: 'JED',
+  Dammam: 'DMM',
+  Makkah: 'MAK',
 }
 
 /**
@@ -476,6 +717,18 @@ const WORK_QUEUE_ROUTES: Record<string, string> = {
  * *screen* renders at most one of them. This endpoint does not do the choosing:
  * the selection rule is a rendering rule and lives with the renderer.
  *
+ * **`metrics[]` is the board's tile list and the server decides its length.**
+ * A measure with no store is **absent from the array** — not present with a
+ * `null` value, not present with a flag (R4-11 §11.2, applied by R5-1). A
+ * present tile with `value: null` is a measure we take and have no reading for,
+ * and it always carries `absenceReason`. Whoever wires the real endpoint must
+ * keep that distinction: returning a `null` tile for a measure the backend does
+ * not hold puts an em-dash on the board claiming the number exists somewhere.
+ *
+ * A tile leaving or joining this array is a **spec** event — the AC that
+ * enumerates the board is amended in the same pass and the tile is listed in
+ * the spec's *deliberately not here* table against the store it waits on.
+ *
  * 404 when the sub-tab has no board, which is every sub-tab with a table. That
  * is deliberate: a table screen calling this is a bug, and a silently empty
  * board would hide it.
@@ -492,7 +745,11 @@ export async function getMetricBoard(
     const charts = timeSeriesFixtures.filter((c) => c.subTabId === subTabId)
     if (metrics.length === 0 && charts.length === 0) throw notFound('metric board', subTabId)
     const breakdowns = (boardBreakdowns[subTabId] ?? []).map((b) =>
-      b.key === 'operations.backlogByQueue' ? backlogByQueueRows(b) : b,
+      b.key === 'operations.backlogByQueue'
+        ? backlogByQueueRows(b)
+        : b.key === 'zones.citiesHealth'
+          ? citiesHealthRows(b)
+          : b,
     )
     return {
       subTabId,
@@ -508,7 +765,9 @@ export async function getMetricBoard(
 /**
  * GET /api/v1/metrics
  *   params: q · subTabId · category · page · pageSize · sort · filter ·
- *           view=all|derived|no-comparison|against-target|not-computable
+ *           view=all|derived|no-comparison|against-target|value-absent
+ *   facets: subTabId · category · unit · sourceResource · comparisonKind ·
+ *           noComparisonReason · absenceReason
  *   -> Paginated<Metric>
  *
  * Sortable: key · subTabId · category · value · deltaPercent · asOf

@@ -55,6 +55,41 @@ export function findSubTabByPath(path: string): SubTabRoute | null {
   return null
 }
 
+/**
+ * **The build registry — which declared sub-tabs do not yet have a screen.**
+ *
+ * A route-table row says a sub-tab *exists*. It does not say a sub-tab is
+ * *built*, and `OnboardingStep.available` needs the second fact: **AC-609** and
+ * **AC-626** require the two steps whose destination is unbuilt to render
+ * disabled in place with the reason named, and to become enabled with **no
+ * change to `fixtures/onboardingTracks.ts`**.
+ *
+ * The fact lives here rather than in the onboarding fixture for exactly that
+ * reason: registering a screen is a change to the routing layer, and the
+ * checklist should not have to be edited when a screen it points at ships.
+ *
+ * **Its proper long-term home is a `built: boolean` column on `SubTabRoute`**,
+ * beside `permission` and `hasBacklog`, where the spec puts it (*"`available` —
+ * source: route table"*, §8.9). That is a 34-row edit to a file two other
+ * agents read, so it is **requested from the route-table owner, not taken**.
+ * Until then this constant is the register, and it is one line per screen.
+ *
+ * Every id here must exist in the route table — asserted in `routes.test.ts`.
+ * Waves are from `PHASE-PLAN.md`; the two the onboarding tracks point at are
+ * named in the design spec §10.5 as *"unbuilt, wave 6"* and *"unbuilt, wave 5"*.
+ */
+export const UNBUILT_SUB_TAB_IDS: readonly string[] = [
+  /* Wave 6 — `ops.dispatch` step. */
+  'operations-dispatch',
+  /* Wave 5 — `support.ticket` step. */
+  'support-tickets',
+]
+
+/** `true` when the sub-tab exists in the route table **and** has a screen. */
+export function isSubTabBuilt(subTabId: string): boolean {
+  return findSubTabById(subTabId) !== null && !UNBUILT_SUB_TAB_IDS.includes(subTabId)
+}
+
 export function findShellLayer(layerId: ShellLayerRoute['layerId']): ShellLayerRoute | null {
   return ROUTE_TABLE.shellLayers.find((l) => l.layerId === layerId) ?? null
 }

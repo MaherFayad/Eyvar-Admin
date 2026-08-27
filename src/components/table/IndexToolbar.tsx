@@ -84,12 +84,33 @@ export function IndexToolbar(props: IndexToolbarProps) {
        It fits at the 1280 floor only because the search field shrinks. Measured
        rather than estimated: at `min-w-40` the cluster was **11px over** the 912
        content column, so the floor is `min-w-32` (128). The field reaching its
-       minimum is a `flex-shrink`, not a mode — it never disappears, nothing else
+       minimum is a flex shrink, not a mode — it never disappears, nothing else
        moves, and the placeholder ellipsises rather than the row wrapping. */
     <div className="flex h-14 items-center gap-2 px-3">
       {tabs.length > 0 && (
-        <Tabs value={activeTab} onValueChange={onSelectTab} className="shrink-0 gap-0">
-          <TabsList variant="segmented">
+        /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. This was `shrink-0`,
+           measured against People's four short labels (375px of track). Wave 2's
+           labels run 565–582 — `Departing next 24 h`, `Awaiting confirmation` —
+           and Arabic takes another 40px of content column, so at the 1280 floor
+           `Sort` left the viewport entirely: +1381 and +1364 in English on Trip
+           Assurance and Captain Fairness, and −141 / −124 / −37 in Arabic on
+           those two plus Requests. D12 predicted it in writing.
+
+           A control off the viewport is UNREACHABLE; a tab behind a scroll is
+           one gesture away. So the track shrinks and scrolls, and the cluster
+           keeps its width. The scrollbar is hidden because a 2px trough inside a
+           32px stadium reads as damage, and the overflow is discoverable the way
+           a horizontal list is — by dragging it. Keyboard reaches every tab
+           regardless: `TabsTrigger` is a focus stop and focus scrolls it in.
+
+           This is the DEGRADE, not the fix. The root cause is that these labels
+           are sentences where a segmented control wants nouns, and shortening
+           them is a copy decision. */
+        <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 shrink gap-0">
+          <TabsList
+            variant="segmented"
+            className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.id}
@@ -106,7 +127,32 @@ export function IndexToolbar(props: IndexToolbarProps) {
         </Tabs>
       )}
 
-      <div className="ms-auto flex min-w-0 items-center gap-1.5">
+      {/* NO SHRINK CLASS HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.
+          Shrink order is a priority and flexbox has only ratios, so with both
+          children at the default the track and the cluster give up space
+          proportionally. A large shrink factor on the cluster makes it absorb
+          nearly all of it and bottom out at its own min-content, which buys the
+          track ~33px more — enough that People's four tabs stop scrolling.
+
+          Measured, all three, at the 1280 floor in both languages:
+
+            cluster shrink        People track   Assurance track
+            large factor              375              437
+            default (this)            342              437
+            shrink-0                  289              330
+
+          The large factor wins by 33px on ONE screen, and costs an arbitrary
+          value that the token audit flags and that another owner reported as a
+          finding in a directory it does not belong to. Thirty-three pixels of
+          scrollable track on one view is not worth a permanent audit exception,
+          and `shrink-0` is worse than both. The search field still shrinks to
+          its 128px floor before the tabs give anything up.
+
+          What is NOT negotiable is that `min-w-0` stays off this element: it
+          disables the min-content floor, which is what let a shrink factor
+          crush the cluster to 298px while its children spilled 190px outside
+          it — `Sort` off the viewport, which is the defect all of this fixes. */}
+      <div className="ms-auto flex items-center gap-1.5">
         {/* ONE control, ONE focus ring. The previous construction was a
             bordered wrapper with `focus-within:ring-2` around an `Input` that
             still carried its own `focus-visible:ring-2 ring-offset-2` — so

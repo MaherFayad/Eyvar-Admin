@@ -75,9 +75,31 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.noCompare.no-target': 'No target set',
   'overview.noCompare.insufficient-data': 'Too little data to compare',
 
+  /* ── why there is no VALUE ─ R5-1 §11.1 ──────────────────────────────
+     A different question from the three above, answered on the same line.
+     `ValueAbsenceReason`'s two arms. **Two members, and a third is added by a
+     spec that needs one** — not pre-invented: a tile the operator may not see
+     is absent rather than em-dashed (AC-705), so permission is not a member,
+     and a measure with no store does not render at all (R4-11 §11.2), so that
+     is not one either.
+
+     These are the strings V-2 was missing. A tile carried two em dashes and
+     one sentence, and the sentence explained the LOWER dash — the upper one,
+     larger and first in reading order, had nothing. Fragments on the chip
+     line, so no period (R6). */
+  'overview.absent.not-captured': 'Not captured yet',
+  'overview.absent.not-computable': 'Nothing to measure yet',
+
   /* ── what a delta is measured against ──────────────────────────────── */
   'overview.compare.period': 'vs {from} – {to}',
   'overview.compare.target': 'vs {target} target',
+  /* **V-8 / R5-2 — never rendered visually.** `— vs 0 target` hides its em dash
+     from a screen reader and puts nothing in its place, so the tile announced
+     the target and said nothing at all about the delta. The other two absence
+     branches carry their reason as visible text and need no companion; this
+     one is the hole, and AC-605 as rewritten names closing it as an obligation
+     rather than leaving it a gap. */
+  'overview.compare.targetNoDelta.sr': 'No percentage change to state',
 
   /* ── the direction, in words ─────────────────────────────────────────
      Never rendered visually — the caret and the sign carry it there (§7.5).
@@ -184,8 +206,18 @@ export const OVERVIEW_EN: Dictionary = {
   /* Customer Support › Overview — "Are we answering people inside the time we
      promised, and what are they calling about?" */
   'metric.support.overview.unacknowledgedCriticalIncidents': 'Unacknowledged critical incidents',
-  'metric.support.overview.ticketsBreaching': 'Tickets breaching now',
-  'metric.support.overview.promiseKept': 'Promise kept',
+  /* **Two labels were deleted here and it is worth saying which and why.**
+     `ticketsBreaching` and `promiseKept` are gone — R4-11 §11.2, applied at
+     last, by the fixture rather than by this file: *"a measure with no store at
+     all → the tile does not render. Not an em-dash, not a skeleton, not a
+     'coming soon'. An em-dash is a claim that the number exists somewhere."*
+     The fixture's own words for both were *"there is no ticket store in this
+     layer"*.
+
+     They come back the day the store does, and until then a label with no
+     metric behind it is how a dictionary rots. `copy.test.ts` is what caught
+     them; it is the check that reads the CLIENTS and asks the inverse
+     question. */
   'metric.support.overview.openIncidents': 'Open safety incidents',
   'metric.support.overview.contactsPerThousandTrips': 'Contacts per 1,000 trips',
   'metric.support.overview.uncodedContactShare': 'Uncoded contacts',
@@ -198,9 +230,11 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.admin.overview.erasureOverdue': 'Erasure requests past their deadline',
   'metric.admin.overview.rotaGaps': 'On-call slots with nobody assigned',
   'metric.admin.overview.operatorsWithoutTwoFactor': 'Operators without two-factor',
-  'metric.admin.overview.integrityOrphans': 'Accounts with no records behind their totals',
-  'metric.admin.overview.impersonationSessions': 'Impersonation sessions',
-  'metric.admin.overview.legalDocsUnaccepted': 'Legal documents not accepted',
+  /* Three more gone under R4-11 §11.2 — `integrityOrphans` (*"the scan reads a
+     payments ledger this layer does not hold"*), `impersonationSessions` (the
+     events are logged; the JOIN that makes the measure is not) and
+     `legalDocsUnaccepted` (the grace-period field does not exist). Same
+     reasoning as Support's two above. */
   'metric.admin.overview.activeOperators': 'Active operators',
 
   /* Customer Support › Captain Fairness — a board on a QUEUE sub-tab, so it
@@ -211,14 +245,38 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.support.fairness.suspendedCaptains': 'Suspended captains',
 
   /* ══════════════════ tile captions — `Metric.caption` (R4-4 §4.2) ══════
-     One line under the label stating a **scope limit or a denominator**, and
-     nothing else. Never a value, never a status, never an action, never a
-     link. Sixty characters at most, and a full sentence takes a period (R6).
+     One line stating **what a reader must know to read the number correctly,
+     and nothing else** — a scope limit, a denominator, or **the direction that
+     counts as good where the label does not make it obvious** (R5-4 §9.2).
+     Never a value, never a status, never the delta, never an action, never a
+     link. A full sentence takes a period (R6).
+
+     **The budget is 38 characters, not 60, and the 60 was a guess.** R5-4
+     §4.1 measured the box a caption actually gets: 270px at 3-up (1280) and
+     **225px at 4-up (1440)**, which is ~46 and ~38 characters at the caption's
+     13px step.
+     The 60 came from R9's toast budget by analogy without measuring anything,
+     and the result was that the one caption whose content matters clipped on
+     the WIDE viewport and survived the narrow one. The count is a drafting
+     aid; **the rule is that the caption fits its 4-up box in both languages
+     without truncating**, and Arabic at 13px is checked per string, not per
+     rule. Two of the nineteen exceeded 38 and are rewritten below.
+
+     **A caption does not render at all while the tile's value is absent**
+     (R5-1 §1.3). It is not a slot for an absence — `Not captured yet` is
+     illegal here and lives on the delta line, because a slot that sometimes
+     qualifies a number and sometimes explains that there is no number has to
+     be read to find out which.
 
      Three of these are the tiles F-2 said could not ship without one:
      `dormancyProxy` (AC-641), `uncodedCeiling` (AC-674) and
      `overturnIsNotFailure` (AC-675). */
-  'caption.afterGivebacks': 'After promos, bonuses, refunds and cover.',
+  /* **Rewritten — R5-4 §11.3.** Was `After promos, bonuses, refunds and
+     cover.`, 41 characters and over budget — and it fixed a second thing on
+     the way: the old string named three of the six deductions AC-613 lists and
+     read as exhaustive. This states the RELATION, which is what a scope limit
+     is, and leaves the enumeration to AC-613 where it belongs. 34. */
+  'caption.afterGivebacks': 'Gross revenue less all deductions.',
   'caption.startedLessCancelled': 'Started less cancelled, in the period.',
   'caption.quickRidesOnly': 'Quick rides only.',
   'caption.storedRiderStat': 'A mean of a stored rider statistic.',
@@ -241,8 +299,26 @@ export const OVERVIEW_EN: Dictionary = {
      ranking is not trustworthy. */
   'caption.uncodedCeiling': 'The ceiling is 3%.',
   /* AC-675. `higherIsBetter` is true on this tile and every instinct says
-     otherwise, so the tile has to say why. */
-  'caption.overturnIsNotFailure': 'Of decided appeals. Higher is better here.',
+     otherwise, so the tile has to say why.
+
+     **This is the string B-3 was raised about, and R5-4 resolved it in the
+     caption's favour rather than the spec's.** §4.2 used to permit *only* a
+     scope limit or a denominator, and `Higher is better.` is neither — but
+     the four prohibitions were the rule, and the two-item list in front of
+     them was two instances mistaken for a definition. It states no value, no
+     status, no action and no link, and it does exactly the job the caption
+     exists for: **a number whose scope is not stated gets quoted wrong; a
+     number whose direction is not stated gets read wrong.**
+
+     There is a second reason and it is a consequence of R4-5. Making the delta
+     chip neutral was right, but it spent `higherIsBetter` on a screen-reader
+     phrase — so a SIGHTED operator has no valence carrier at all except
+     words. On fifty-five of fifty-six tiles that costs nothing, because
+     `Tickets breaching now` rising is obviously bad. Here the intuition runs
+     backwards and words are the only instrument left.
+
+     Trimmed from `… Higher is better here.`, 42 characters, to 37. */
+  'caption.overturnIsNotFailure': 'Of decided appeals. Higher is better.',
   'caption.statutoryThirtyDays': 'The statutory deadline is 30 days.',
   'caption.rotaSlots': '7 days, 3 blocks, 2 tiers.',
 
@@ -277,38 +353,186 @@ export const OVERVIEW_EN: Dictionary = {
   'breakdown.support.contactReasons': 'Top 5 contact reasons, per 1,000 trips',
   'breakdown.admin.rotaGapsByDay': 'All 7 days, by on-call slots unassigned',
 
-  /* AC-696, one key, one sentence, every breakdown. */
-  'breakdown.cutOff': 'Showing the top {shown} of {total}.',
+  /* AC-696, one key, one sentence, every breakdown. R4-4 §4.1 writes it out:
+     `Showing the top {n} of {total} {dimension}.` — the dimension is named
+     because the heading above the rows and the sentence below them are read
+     minutes apart on a board an operator scans. The noun is a key of its own
+     (below), never a raw `MetricBreakdown.dimension` string: `reason-code` is
+     an identifier and `contact reasons` is copy. */
+  'breakdown.cutOff': 'Showing the top {shown} of {total} {dimension}.',
+
+  /* The dimension nouns, PLURAL, lower case, for the cut-off sentence only.
+     One per `MetricBreakdown.dimension` in the fixtures; `copy.test.ts` fails
+     if a board ever declares a dimension with no noun here, because
+     `createTranslator` throws on a missing key in dev and that would take the
+     board down rather than the suite. */
+  'breakdown.dimension.captain': 'captains',
+  'breakdown.dimension.rider': 'riders',
+  'breakdown.dimension.subscription': 'subscriptions',
+  'breakdown.dimension.city': 'cities',
+  'breakdown.dimension.queue': 'queues',
+  'breakdown.dimension.reason-code': 'contact reasons',
+  'breakdown.dimension.rota-day': 'days',
   /* AC-692 — a section with nothing to rank. R8's SECOND kind of empty: one
      grey sentence, never the first-run illustration, because the section is
      empty and the page is not. */
   'breakdown.empty': 'Nothing to rank for this period.',
+  /**
+   * **R5-9 §18.1 — the caveat line, and it is a THIRD slot rather than a
+   * reuse of one of the two that exist.**
+   *
+   * AC-674: when uncoded contacts exceeds its ceiling, the contact-reasons
+   * breakdown states that its ranking is incomplete. Neither existing slot
+   * could take it. **The caption is a TILE slot and R5-1 suppresses it exactly
+   * when the tile's value is absent** — so the one caveat that must render
+   * while a number is missing sat on the one slot that switches off then. And a
+   * banner is page-scoped and capped at one per board, and Support's is spoken
+   * for by the SOS critical.
+   *
+   * It renders **under the heading and above the first row**, and the position
+   * is the ruling: *a gate that appears after the thing it gates is not a
+   * gate.* A reader who scans five rows and forms a conclusion before reaching
+   * a footer has already been misled, which is the failure AC-674 exists to
+   * prevent.
+   *
+   * `{share}` is a percent and is formatted before interpolation (AC-713), the
+   * same discipline as `subLabelParams`. `uncoded` rather than a word about
+   * failure — AC-718, and it is the product's own term.
+   */
+  'breakdown.caveat.uncodedRanking':
+    '{share} of contacts are uncoded, so this ranking is incomplete.',
+  /**
+   * **R5-11 §18.3 — the third absence, and conflating any two of the three is
+   * the V-2 defect in a new slot.**
+   *
+   * | Situation | Sentence |
+   * |---|---|
+   * | We ranked; this window had nothing to rank | `breakdown.empty` |
+   * | We queried; this date range returned nothing | `overview.noData` |
+   * | **Nothing is captured, so no ranking or query is possible** | **this** |
+   *
+   * Byte-identical wherever it renders, on the same footing as AC-714's no-data
+   * sentence — which is why it is one key for both card types and not two.
+   *
+   * **A card, unlike a tile, renders in this state rather than vanishing**, and
+   * the reason is structural: a tile's entire content is its number, so there
+   * is nowhere to put a sentence and an em dash cannot be made honest. A
+   * breakdown card and a chart card each have a heading and a body; the heading
+   * names the measure truthfully whether or not the data exists, so the body
+   * can carry the truth and there is no reason to throw the heading away with
+   * it. `Top 5 contact reasons, per 1,000 trips` over this sentence is what
+   * gets the contact log built. An absent card is not.
+   */
+  'overview.notRecorded': 'Nothing is recorded here yet.',
 
   /**
-   * The pass-through label for a row whose name is **data, not copy** — a
-   * captain, a rider, a city, a subscription. R4-4 makes `labelKey` *"a key,
-   * never a string"*, which is right for a closed set and impossible for a
-   * person's name. One key, one parameter, no concatenation (AC-713).
+   * **`breakdown.row.entity` is DELETED — R5-7, and it is deleted rather than
+   * left unused.**
    *
-   * Raised in the wave-4 handoff: `MetricBreakdownRow.label` wants to be a
-   * union of a key and a text, so the two kinds of row differ in the type
-   * rather than by convention.
+   * It was a pass-through key whose entire English string was `{name}`. It
+   * satisfied the type and AC-697 and it was a fig leaf, and both the fixture
+   * and the component said so independently. `BreakdownLabel` replaces it:
+   * `kind: 'key'` is copy — a rota day, a queue, a plan tier, a reason code —
+   * and `kind: 'text'` is data — a person, a city, a subscription. **Nothing
+   * translates a `text` and nothing may try**, so the component does not call
+   * `t` for one at all.
+   *
+   * Leaving the key here would leave the fig leaf reachable. Removing it makes
+   * `createTranslator` throw by name on anything still seeding it, which is the
+   * loud failure this dictionary is built around. AC-697 as redrafted carries
+   * the clause that would have caught it: *a row label is never a key whose
+   * whole string is a parameter.*
    */
-  'breakdown.row.entity': '{name}',
 
-  /* Row sub-labels. Each carries one **categorical** fact, one line, and is a
-     closed term rather than a name. */
-  'breakdown.sub.documentExpired': 'Document expired',
-  'breakdown.sub.churnHigh': 'High churn risk',
-  'breakdown.sub.churnMedium': 'Medium churn risk',
+  /* Row sub-labels — **R5-5 §11.4, and this block was rewritten whole.**
+
+     A sub-label carries the row's second fact, **categorical, numeric, or both
+     joined by a middot**. A numeric one is a **noun phrase**, and that is the
+     change: the secondary numeric COLUMN is withdrawn (R5-5), so the second
+     number moves to the only slot that can name it.
+
+     The reference is what settled it. `Online store conversion rate` on
+     `analytics-dashboard-today-no-data`:
+
+         Added to cart                         0.00%    —
+         0 sessions
+
+     `0 sessions` is the second number and it is a noun phrase in the
+     sub-label. The reference carries exactly one numeric column — the measure
+     the list is ranked by — and puts the second number where it can be named.
+
+     **Every value is FORMATTED before it is interpolated, and the component is
+     what formats it.** `{rate}` renders `45%`, not `45`; `{late}` renders a
+     formatted count. `MetricBreakdownRow.subLabelParams` carries **bare
+     numbers**, on the precedent `overview.compare.target` sets —
+     `MetricComparison.value` is a `number` and `MetricTile` runs it through a
+     formatter before handing it to `t()`.
+
+     R5-5 §11.4 note 1 reads as though the FIXTURE should pre-format, and the
+     data contract went the other way for a reason that decides it: a stored
+     `'45%'` can never render Arabic-Indic digits, because formatting is a
+     function of the language and the language is not known where the data is
+     seeded. Both readings agree on the thing the rule exists for — **a per-cent
+     sign assembled by CONCATENATION is what AC-713 forbids**, and one produced
+     by `formatPercent` is not that. `BreakdownList` holds the table of which
+     parameter takes which unit, because the unit is a property of the KEY:
+     `zones.citiesHealth` ranks on a count of zones and states a percentage.
+
+     **`unserved`, not `fail`.** AC-718 keeps `failed` out of tile labels,
+     chart titles and breakdown headings and names the zones chart
+     `Unserved requests`; the sub-label uses the same noun so a board does not
+     call one thing two names.
+
+     **Seven keys retired here, and B-6 is reversed deliberately.**
+     `breakdown.sub.queueStanding` was `{secondary} past their SLA` and was
+     changed last pass to `Open · past their SLA` — a column legend repeated
+     identically on every row, which is what a header row exists to avoid. The
+     original was right and the rule was wrong. It goes back. Also gone:
+     `weekend`, `nightBlock`, `churnHigh`, `churnMedium`, `cityLive`,
+     `documentExpired`. Nothing is kept behind a flag. */
+  'breakdown.sub.lateOfTrips': '{late} of {total} trips ran late',
+  'breakdown.sub.lateOfTripsExpired': 'Document expired · {late} of {total} trips ran late',
+  'breakdown.sub.churnHighTrips': 'High churn risk · {trips} trips',
+  'breakdown.sub.churnMediumTrips': 'Medium churn risk · {trips} trips',
+  'breakdown.sub.cityLiveUnserved': 'Live · {rate} of requests unserved',
+  /* Unchanged, and it is the one that proves the phrase form was right.
+     `zones.citiesHealth` ranks four cities; three have no failure-rate reading
+     at all. As a numeric column that is an em dash — the same mark V-2 is
+     about. As a phrase, a city with no reading simply does not state one, and
+     this says why. A city with no reading and a city with a reading of zero
+     are different facts, and only one of the two forms can render that. */
+  'breakdown.sub.cityNotLive': 'Not launched',
+  /**
+   * **Reinstated — R5-9 §18.7.** §11.4 retired this on the assumption that
+   * every live city carries a rate. It does not, and the retirement was the
+   * designer's own.
+   *
+   * The state is a **live city with no reading**. Refusing to fabricate `0%`
+   * was right — a live city with no zones tracked has no failure rate and a
+   * zero would claim a perfect one. Refusing to call it `Not launched` was
+   * right — it is launched. But rendering **nothing** reproduces V-2 one level
+   * down: a blank in a column where every other row carries a phrase, and the
+   * reader cannot tell *nothing to say* from *something we forgot*.
+   *
+   *     Riyadh      6    Live · 45% of requests unserved
+   *     Jeddah      2    Live
+   *     Dammam      0    Not launched
+   *     Makkah      0    Not launched
+   *
+   * `Live` on its own says *launched, no reading yet* by contrast with the row
+   * above it, and says it without a number nobody has. Unreachable today and
+   * reachable the day a second city launches before its zones are tracked — a
+   * state the product will pass through, not a hypothetical.
+   */
+  'breakdown.sub.cityLive': 'Live',
+  'breakdown.sub.queuePastSla': '{past} past their SLA',
+  'breakdown.sub.rotaWeekend': 'Weekend · all {count} are high-risk',
+  'breakdown.sub.rotaNightBlock': 'Night block · {count} are high-risk',
+  /* Purely categorical, and unchanged by R5-5 — a plan tier is a closed term
+     with no number behind it. */
   'breakdown.sub.planWeekly': 'Weekly plan',
   'breakdown.sub.planBiweekly': 'Bi-weekly plan',
   'breakdown.sub.planMonthly': 'Monthly plan',
-  'breakdown.sub.cityLive': 'Live',
-  'breakdown.sub.cityNotLive': 'Not launched',
-  'breakdown.sub.queueStanding': '{secondary} past their SLA',
-  'breakdown.sub.weekend': 'Weekend, so every block is high risk',
-  'breakdown.sub.nightBlock': 'The night block is high risk',
 
   /* The five wave-2 queues, named as the operator sees them in the nav. */
   'breakdown.queue.application': 'Applications',
@@ -340,4 +564,29 @@ export const OVERVIEW_EN: Dictionary = {
     '{count} erasure requests are past their statutory deadline.',
   'notice.action.openSafety': 'Open Safety & Incidents',
   'notice.action.openData': 'Open Data',
+
+  /* OPERATIONS DECLARES TWO, AND ALL SIX KEYS WERE OWED AND NEVER WRITTEN.
+     `fixtures/metrics.ts` hands them over in a comment block that names each
+     string exactly (`:2477`–`:2486`), and the handoff was never picked up — so
+     `t('notice.operations.complianceExpired.many')` threw
+     `Missing translation key` and **the Operations Overview board crashed for
+     any operator whose data raised the condition**. It surfaced as one failing
+     shell test (`qa.shell.test.tsx`, USR-5 landing on `/operations/overview`),
+     which is a board-level crash wearing a routing test's name.
+
+     The consequence is bigger than the crash. Two passes concluded that **no
+     board declares two notices**, so R4-4 §4.3's tie-break was recorded as
+     testable only on synthetic values. It is not: this board declares a
+     `warning` at severity 70 and a `critical` at severity 95, which exercises
+     the tone clause on real fixture data. Both passes reached that conclusion
+     honestly — the board they needed to look at threw before it rendered. */
+  'notice.operations.applicationsPastWindow.one': 'An application is past its 48-hour window.',
+  'notice.operations.applicationsPastWindow.many':
+    '{count} applications are past their 48-hour window.',
+  'notice.operations.complianceExpired.one':
+    'A captain has a lapsed document and cannot be dispatched.',
+  'notice.operations.complianceExpired.many':
+    '{count} captains have lapsed documents and cannot be dispatched.',
+  'notice.action.openApplications': 'Open applications',
+  'notice.action.openCompliance': 'Open compliance',
 }

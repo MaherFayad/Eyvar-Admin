@@ -18,6 +18,19 @@ import { resetAssurance as resetAssuranceState } from './assurance'
 import { resetSafetyIncidents as resetSafety } from './safety'
 import { resetNotifications as resetNotifs } from './notifications'
 import { resetMockSession as resetSession } from './session'
+import { resetAudit as resetAuditLog } from './audit'
+import { resetLedger as resetLedgerState } from './ledger'
+import { resetRevenue as resetRevenueState } from './revenue'
+import { resetPayouts as resetPayoutState } from './payouts'
+import { resetCash as resetCashState } from './cash'
+import { resetWallets as resetWalletState } from './wallets'
+import { resetPricing as resetPricingState } from './pricing'
+import { resetZones as resetZoneState } from './zones'
+import { resetAuth as resetAuthState } from './auth'
+import { resetOnboarding as resetOnboardingState } from './onboarding'
+import { resetReports as resetReportState } from './reports'
+import { resetDashboards as resetDashboardState } from './dashboards'
+import { resetAlerts as resetAlertState } from './alerts'
 
 const clearFailures = () => failureRegistry.clear()
 
@@ -43,8 +56,10 @@ export { http, buildUrl, toSearchParams } from './http'
 export {
   ROUTE_OPERATIONS,
   fetchRouteTable,
+  UNBUILT_SUB_TAB_IDS,
   findShellLayer,
   findSubTabById,
+  isSubTabBuilt,
   findSubTabByPath,
   getRouteTable,
   getSubTabs,
@@ -231,6 +246,263 @@ export {
   type MetricQuery,
 } from './metrics'
 
+/* ── wave 3: the ledger model and the seven Financials sub-tabs ──────── */
+export {
+  LEDGER_OPERATIONS,
+  accountBalanceFrom,
+  accountFlowFrom,
+  buildLedger,
+  getIdempotencyStats,
+  getInvoiceSequence,
+  getLedger,
+  getPosting,
+  getTrialBalance,
+  getVatConfig,
+  journalEntries,
+  listGateways,
+  listJournalEntries,
+  listReconciliation,
+  listRefusedPostings,
+  resetLedger,
+  resolveSubjectName,
+  reversePosting,
+  setDefaultGateway,
+  setGatewayEnabled,
+  useOutOfBalanceLedger,
+  type LedgerQuery,
+} from './ledger'
+
+export {
+  OVERVIEW_OPERATIONS,
+  getFinancialsOverview,
+  type OverviewQuery,
+} from './financialsOverview'
+
+export {
+  REVENUE_OPERATIONS,
+  getRefundFacets,
+  getRefundsLedger,
+  issueRefund,
+  listCreditNotes,
+  listRefunds,
+  listRevenueByPlan,
+  resetRevenue,
+  type IssueRefundInput,
+} from './revenue'
+
+export {
+  PAYOUT_OPERATIONS,
+  applyDeduction,
+  getCaptainPayableLedger,
+  getPayoutFacets,
+  listCaptainPayouts,
+  listDeductions,
+  listEscrowHolds,
+  payCaptain,
+  releaseEscrow,
+  resetPayouts,
+  waiveDeduction,
+} from './payouts'
+
+export {
+  CASH_OPERATIONS,
+  cashDebtCapHalalas,
+  claimCashReport,
+  decideCashReport,
+  getCashFacets,
+  getCashReport,
+  getCaptainDebtLedger,
+  listCaptainDebts,
+  listCashReports,
+  recordCashRepayment,
+  releaseCashReport,
+  resetCash,
+} from './cash'
+
+export {
+  DEFAULT_FINANCIALS_PERIOD,
+  WALLET_OPERATIONS,
+  adjustWallet,
+  checkAdjustmentAuthority,
+  getWalletFacets,
+  getWalletLedger,
+  listWallets,
+  resetWallets,
+  type AdjustWalletInput,
+} from './wallets'
+
+/**
+ * **`SURGE_SUSPENSION_MAX_HOURS` leaves through the client barrel, not only the
+ * type barrel.** It is server policy — the same class as
+ * `RESEND_COOLDOWN_SECONDS` — and the pricing screen gates its input on it. A
+ * screen that imported the ceiling from `@/data/types` and the operation from
+ * `@/data/clients` would be reading one contract from two places.
+ */
+export { SURGE_SUSPENSION_MAX_HOURS } from '../types/pricing'
+
+export {
+  PRICING_OPERATIONS,
+  getLiveRateCard,
+  getPlan,
+  listCancellationRules,
+  listPlans,
+  listQuickRideTypes,
+  listRateCards,
+  listSurgeSuspensions,
+  listSurgeWindows,
+  resetPricing,
+  savePlan,
+  suspendSurge,
+  type SavePlanInput,
+} from './pricing'
+
+export { AUDIT_OPERATIONS, auditLogSize, listAuditEntries, resetAudit } from './audit'
+
+/* ── wave 5: authentication and role-based onboarding ────────────────── */
+export {
+  AUTH_FIXTURE_CODES,
+  AUTH_FIXTURE_PASSWORD,
+  AUTH_FIXTURE_TOKENS,
+  AUTH_OPERATIONS,
+  DEVICE_OPERATIONS,
+  activateInvite,
+  beginTotpEnrolment,
+  enrollSecondFactor,
+  isDeviceTrusted,
+  listDevices,
+  reauthenticate,
+  requestPasswordReset,
+  resendCode,
+  resetAuth,
+  resetPassword,
+  revokeDevice,
+  setDeviceTrust,
+  signIn,
+  signOut,
+  signOutEverywhere,
+  validateResetToken,
+  verifyCode,
+} from './auth'
+
+export {
+  ONBOARDING_OPERATIONS,
+  completeStep,
+  dismissOnboarding,
+  getOnboarding,
+  markOnboardingAutoOpened,
+  resetOnboarding,
+  restartOnboarding,
+  shouldAutoOpen,
+  skipStep,
+} from './onboarding'
+
+/* ── wave 5: Management › Market & Zones (R4-6b gap 1) ───────────────── */
+export {
+  ZONE_OPERATIONS,
+  getZone,
+  getZoneFacets,
+  getZoneHealth,
+  listCities,
+  listZones,
+  openSteerOffer,
+  queueRecruitment,
+  resetZones,
+  resolveZones,
+  starvedZoneCount,
+  summariseZones,
+  useLiveSteerOffer,
+  useNoZones,
+  useZeroSupplyZone,
+} from './zones'
+
+
+/* ── the report builder — measure catalogue, queries, dashboards, alerts ─
+   `06-report-builder.md`, D13. The catalogue is exported as *data*: a screen
+   asks what can be measured and what it can be split by, and never holds a
+   list. That is the difference between a report builder and nine more fixed
+   boards. */
+export {
+  CATALOGUE_OPERATIONS,
+  listMeasures,
+  listDimensions,
+  planReportQuery,
+  pairRefusal,
+  pairableWith,
+  type MeasureQuery,
+} from './catalogue'
+
+export {
+  REPORT_OPERATIONS,
+  runReport,
+  listReports,
+  getReport,
+  saveReport,
+  deleteReport,
+  exportReport,
+  reportToCsv,
+  useTruncatedReports,
+  serialiseReportQuery,
+  resetReports,
+  type RunReportOptions,
+  type SaveReportInput,
+  type SavedReportQuery,
+} from './reports'
+
+export {
+  DASHBOARD_OPERATIONS,
+  listDashboards,
+  getDashboard,
+  saveDashboard,
+  deleteDashboard,
+  moveTile,
+  resetDashboards,
+  type SaveDashboardInput,
+} from './dashboards'
+
+export {
+  ALERT_OPERATIONS,
+  listAlertRules,
+  getAlertRule,
+  saveAlertRule,
+  deleteAlertRule,
+  evaluateAlertRule,
+  listAlertFirings,
+  describeAlertRule,
+  resetAlerts,
+  type SaveAlertInput,
+} from './alerts'
+
+/* Pure query logic — synchronous, so a control can be disabled in place with a
+   reason **before** a request is issued (AC-809, AC-816, AC-817, AC-836). */
+export {
+  CHART_TYPES,
+  GRAINS,
+  MAX_BUCKETS,
+  MAX_GROUPS,
+  MAX_MEASURES,
+  PIE_MAX_PARTS,
+} from '../reporting/plan'
+
+export {
+  WEEK_START_DOW,
+  bucketStarts,
+  comparisonWindow,
+  countBuckets,
+  localDayOf,
+  partialBucketIndexes,
+  resolvePreset,
+  resolveWindow,
+} from '../reporting/buckets'
+
+export {
+  REPORT_QUERY_PARAM,
+  deserialiseReportQuery,
+  reportQueryPath,
+} from '../reporting/serialise'
+
+/* §7.4's fold bucket, so a legend can name it rather than string-matching it. */
+export { OTHER as OTHER_GROUP } from '../mock/resolveReport'
+
 /* ── the fixed clock, for anything that needs relative time ──────────── */
 export {
   EYVAR_NOW,
@@ -257,4 +529,17 @@ export function resetDataLayer(): void {
   resetNotifs()
   resetSafety()
   resetAssuranceState()
+  resetAuditLog()
+  resetLedgerState()
+  resetRevenueState()
+  resetPayoutState()
+  resetCashState()
+  resetWalletState()
+  resetPricingState()
+  resetZoneState()
+  resetAuthState()
+  resetOnboardingState()
+  resetReportState()
+  resetDashboardState()
+  resetAlertState()
 }

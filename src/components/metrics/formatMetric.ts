@@ -24,66 +24,32 @@
  *              every other).
  *   §8.3.1     money is halalas in, `formatMoney` out, `SAR` trailing.
  *
- * **`formatPercent` has no home in `src/lib` yet and should get one.**
- * `src/lib/format/number.ts` owns counts and ranges and this belongs beside
- * them, but `src/lib` is utilities-engineer's file. Raised in the wave-4
- * handoff with the call sites already in hand.
+ * **`formatDecimal`, `formatPercent` and `formatRatio` now live in
+ * `src/lib/format/number.ts`** — the wave-4 handoff landed, closing W4-F5 and
+ * W4-F7. They are re-exported below so the old import path keeps working.
+ * What stays here is what is genuinely about METRICS rather than about
+ * numbers: `formatMetricValue` and `formatSeriesValue` switch on `MetricUnit`,
+ * which is domain, and `formatSignedPercent` is §3.7's delta rule.
  */
 
 import {
   ABSENT,
   MINUS_SIGN,
   formatCount,
+  formatDecimal,
   formatDuration,
   formatMoney,
-  localeFor,
+  formatPercent,
+  formatRatio,
   type Language,
 } from '@/lib'
 import type { MetricUnit } from '@/data/types'
 
+/* The old path keeps working: `index.ts` re-exports from this file, and
+   screens imported these from here before the move. */
+export { formatDecimal, formatPercent, formatRatio } from '@/lib'
+
 const MS_PER_MINUTE = 60_000
-
-/** One formatter per locale/precision pair; construction is the expensive part. */
-const decimalFormatters = new Map<string, Intl.NumberFormat>()
-
-function decimalFormatter(language: Language, precision: number): Intl.NumberFormat {
-  const locale = localeFor(language)
-  const key = `${locale}|${precision}`
-  let found = decimalFormatters.get(key)
-  if (!found) {
-    /* `localeFor` already carries `-u-ca-gregory-nu-latn`; `numberingSystem`
-       says it again where a reader can see it, as `date.ts` does. */
-    found = new Intl.NumberFormat(locale, {
-      numberingSystem: 'latn',
-      useGrouping: true,
-      minimumFractionDigits: precision,
-      maximumFractionDigits: precision,
-    })
-    decimalFormatters.set(key, found)
-  }
-  return found
-}
-
-/**
- * `4.2` → `4.2`. A measured quantity that is not a whole count — an average
- * rating, a ratio, a percentage with a fraction in it. `formatCount` refuses a
- * fraction on purpose, so this is the other half of that rule rather than a
- * loosening of it.
- */
-export function formatDecimal(value: number, precision: number, language: Language): string {
-  const magnitude = decimalFormatter(language, precision).format(Math.abs(value))
-  return value < 0 ? `${MINUS_SIGN}${magnitude}` : magnitude
-}
-
-/**
- * `92` → `92%`. Percentage POINTS in, never a fraction.
- *
- * A decimal only when the value has one: `92%` and `4.5%` both read cleanly,
- * `92.0%` reads as spurious precision on a tile the operator scans past.
- */
-export function formatPercent(value: number, language: Language): string {
-  return `${formatDecimal(value, Number.isInteger(value) ? 0 : 1, language)}%`
-}
 
 /**
  * A signed change, as §3.7's delta text: `+12%`, `−4%`, `0%`.
@@ -124,8 +90,9 @@ export function formatMetricValue(
     case 'minutes':
       return formatDuration(value * MS_PER_MINUTE)
     case 'rating':
-    case 'ratio':
       return formatDecimal(value, 1, language)
+    case 'ratio':
+      return formatRatio(value, language)
   }
 }
 

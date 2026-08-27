@@ -31,7 +31,7 @@
  *   §9.1        cell padding 8px block / 12px inline — on the 4px grid.
  *   §9.1        row hover fills `--ev-bg2`. THE WHOLE ROW IS NOT A CLICK
  *               TARGET — only the identity link is; a whole-row target
- *               collides with the checkbox and the kebab. No `cursor-pointer`
+ *               collides with the checkbox and the kebab. No pointer cursor
  *               and no `onClick` belong on `<tr>`.
  *   §7.3 / AC-68 / D19
  *               `focus-within` mirrors `hover` on the row, so a row action is

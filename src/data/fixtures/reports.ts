@@ -1,0 +1,433 @@
+/**
+ * Saved reports, dashboards, alert rules and alert history.
+ *
+ * ## These persist nowhere, and that is not an accident
+ *
+ * **Q1 is open.** The mock clients keep a mutable copy of these arrays exactly
+ * as `clients/notifications.ts` keeps its `rows`, so a save is observable
+ * within a session and gone on reload. **That is not a storage adapter and does
+ * not answer Q1** — `lib/persistence.ts` is explicit that shipping a
+ * `localStorage` adapter would be *"answering Q1 by writing code"*. §9.1 states
+ * what each artifact degrades to without it, and the composed query degrades to
+ * nothing at all, because §9.2 makes the URL its storage.
+ *
+ * ## The seeded set, and which state each one exists to reach
+ *
+ * Every one of §8.3's fifteen domain states that a fixture can carry is carried
+ * here, so QA never hand-edits data to reach one:
+ *
+ * | Fixture | State it makes reachable |
+ * |---|---|
+ * | `RPT-1` two stock measures | the owner's headline example, as two panels |
+ * | `RPT-2` a split by district | §7.4's fold — twelve groups, eight named plus `Other` |
+ * | `RPT-3` money, 90 days | a mostly-gap window **and** a series a Support operator may not see |
+ * | `RPT-4` pinned to two dashboards | §11.3's refused delete, with both dashboards named |
+ * | `RPT-5` an Arabic name | AC-898 — user content, never translated, correct direction inside an English UI |
+ * | `DSH-1` two tiles | a rendered dashboard |
+ * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
+ * | `DSH-3` a dangling `reportId` | §11.3's missing tile, which cannot be created through the UI |
+ * | `ALR-1` `firing` | §8.3 state 14, with `N11` in the notification centre |
+ * | `ALR-2` `armed`, muted | `mutedUntil` in the future, evaluation continuing |
+ * | `ALR-3` `suspended` | §13.3 — the owner lost access to the measure |
+ * | `ALR-4` `error` | five consecutive failures, notified once, to the owner only |
+ *
+ * ## Every cadence is `null`, deliberately
+ *
+ * No rule below declares an evaluation cadence. **The business has not
+ * specified one**, no scheduler exists (Q-RB-7), and **AC-453** is this
+ * project's standing rule for exactly this case: an invented window is
+ * indistinguishable from a measured one once it is in a fixture. `minReArmMinutes`
+ * is `null` for the same reason — §12.4 makes hysteresis the default and no
+ * backstop minimum has been given.
+ *
+ * The consequence is stated rather than hidden: **no rule here evaluates.**
+ * `ALR-1` is `firing` because it was *seeded* firing, so the delivered state is
+ * testable before a scheduler exists — which is precisely what §4.4.4 asks for.
+ */
+
+import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
+import { reportQueryPath } from '../reporting/serialise'
+import type { AlertFiring, AlertRule, Dashboard, ReportQuery, SavedReport } from '../types/report'
+
+/* ─────────────────────────── the queries ───────────────────────────────── */
+
+/**
+ * The business owner's own example: *"number of drivers vs passengers trend"*.
+ *
+ * Both stock, both count, so §6.2 lets them into one query — and they render as
+ * **two panels**, because R4-1 §1.2(c) measured what a shared axis does to
+ * them: they differ by an order of magnitude by construction, so one line is a
+ * flat trace and its trend, the thing the owner asked to see, is invisible.
+ */
+const captainsVsRiders: ReportQuery = {
+  measures: [{ key: 'captains.registered' }, { key: 'riders.registered' }],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
+
+const tripsByDistrict: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: 'trip.pickup',
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'week',
+  periodComparison: 'none',
+  chartType: 'line',
+}
+
+const revenueNinetyDays: ReportQuery = {
+  measures: [{ key: 'revenue.total' }],
+  groupBy: null,
+  filters: [],
+  /* Ninety days over a store that holds thirty. Sixty buckets of `null`, and
+     `gaps-outside-fixture-range` on the wire saying so. */
+  window: { kind: 'preset', preset: 'last-90d' },
+  grain: 'day',
+  periodComparison: 'previous-period',
+  chartType: 'line',
+}
+
+const subscriptionsByPlan: ReportQuery = {
+  measures: [{ key: 'subscriptions.started' }],
+  groupBy: 'subscription.plan',
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  /* The one shape that makes a pie legal: one measure, a split, a single
+     period, an additive measure and three parts (§7.2, AC-838). */
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'pie',
+}
+
+const cancellationTrend: ReportQuery = {
+  measures: [{ key: 'trips.cancellationRate' }],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
+
+/* ───────────────────────── saved reports ───────────────────────────────── */
+
+export const savedReportFixtures: SavedReport[] = [
+  {
+    id: 'RPT-1',
+    name: 'Captains vs riders — 30 days',
+    description: 'The owner’s standing question. Two panels, two scales, one x-axis.',
+    query: captainsVsRiders,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -12 }),
+    updatedAt: offsetFromNow({ days: -3 }),
+    pinnedToDashboardIds: ['DSH-1'],
+  },
+  {
+    id: 'RPT-2',
+    name: 'Completed trips by pickup district',
+    description: null,
+    query: tripsByDistrict,
+    ownerId: 'USR-5',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -9 }),
+    updatedAt: offsetFromNow({ days: -9 }),
+    pinnedToDashboardIds: ['DSH-1'],
+  },
+  {
+    id: 'RPT-3',
+    name: 'Gross revenue — 90 days vs previous',
+    description: 'Deliberately longer than the data. The break is the point.',
+    query: revenueNinetyDays,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -20 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-4',
+    name: 'New subscriptions by plan',
+    description: null,
+    query: subscriptionsByPlan,
+    ownerId: 'USR-1',
+    visibility: 'private',
+    createdAt: offsetFromNow({ days: -30 }),
+    updatedAt: offsetFromNow({ days: -30 }),
+    /* Pinned to two dashboards, so §11.3's refused delete has two names to put
+       in its confirmation (AC-868). */
+    pinnedToDashboardIds: ['DSH-1', 'DSH-3'],
+  },
+  {
+    id: 'RPT-5',
+    /* User content. Never translated, and it must render right-to-left inside
+       an English UI (AC-898). Long enough to find the column that breaks. */
+    name: 'معدل الإلغاء اليومي — الرياض وجدة خلال الثلاثين يوماً الماضية',
+    description: 'تقرير يومي لمتابعة نسبة الإلغاء',
+    query: cancellationTrend,
+    ownerId: 'USR-3',
+    visibility: 'private',
+    createdAt: offsetFromNow({ days: -5 }),
+    updatedAt: offsetFromNow({ days: -5 }),
+    pinnedToDashboardIds: [],
+  },
+]
+
+/* ─────────────────────────── dashboards ────────────────────────────────── */
+
+export const dashboardFixtures: Dashboard[] = [
+  {
+    id: 'DSH-1',
+    name: 'Monday morning',
+    ownerId: 'USR-1',
+    tiles: [
+      { tileId: 'TIL-1', reportId: 'RPT-1', pinnedName: 'Captains vs riders — 30 days', order: 1 },
+      { tileId: 'TIL-2', reportId: 'RPT-2', pinnedName: 'Completed trips by pickup district', order: 2 },
+      { tileId: 'TIL-3', reportId: 'RPT-4', pinnedName: 'New subscriptions by plan', order: 3 },
+    ],
+    createdAt: offsetFromNow({ days: -14 }),
+    updatedAt: offsetFromNow({ days: -2 }),
+  },
+  {
+    /* No tiles — R8 first-run *for that dashboard*: illustration plus `Add a
+       report`, which is a different empty from the library's (§11.4). */
+    id: 'DSH-2',
+    name: 'Finance weekly',
+    ownerId: 'USR-2',
+    tiles: [],
+    createdAt: offsetFromNow({ days: -2 }),
+    updatedAt: offsetFromNow({ days: -2 }),
+  },
+  {
+    id: 'DSH-3',
+    name: 'Growth review',
+    ownerId: 'USR-5',
+    tiles: [
+      { tileId: 'TIL-4', reportId: 'RPT-4', pinnedName: 'New subscriptions by plan', order: 1 },
+      {
+        /* A dangling reference. §11.3: it **cannot be created through the UI**
+           — the delete is refused — but a concurrent session, a restore or a
+           direct API call can still produce one, so the tile has a `missing`
+           state and it needs a fixture to reach it (AC-869). `pinnedName` is
+           what makes the missing tile able to say what it used to be. */
+        tileId: 'TIL-5',
+        reportId: 'RPT-DELETED',
+        pinnedName: 'Promo ROI by campaign',
+        order: 2,
+      },
+    ],
+    createdAt: offsetFromNow({ days: -21 }),
+    updatedAt: offsetFromNow({ days: -6 }),
+  },
+]
+
+/* ─────────────────────────── alert rules ───────────────────────────────── */
+
+export const alertRuleFixtures: AlertRule[] = [
+  {
+    id: 'ALR-1',
+    name: 'Cancellation rate over 6%',
+    reportId: 'RPT-5',
+    seriesId: 'trips.cancellationRate#_#current',
+    comparator: 'gt',
+    /* Six, not a round-looking eight: the last **complete** daily bucket in the
+       snapshots is 24 Jun at 7 %, so this threshold makes the seeded `firing`
+       state agree with what `alerts.evaluate` actually reads. A fixture whose
+       state contradicts its own data is the defect this module is about. */
+    threshold: 6,
+    thresholdUnit: 'percent',
+    thresholdCurrency: null,
+    evaluationGrain: 'day',
+    cadence: null,
+    minReArmMinutes: null,
+    consecutiveFailuresBeforeError: 5,
+    /* Seeded `firing`, because nothing evaluates: §4.4.4 requires one already
+       fired rule with a matching notification, or the entire delivered state of
+       §12 is unreachable without a scheduler. */
+    state: 'firing',
+    enabled: true,
+    mutedUntil: null,
+    recipientIds: ['USR-1', 'USR-5'],
+    ownerId: 'USR-1',
+    notificationPriority: 'high',
+    lastEvaluatedAt: offsetFromNow({ hours: -2 }),
+    lastFiredAt: offsetFromNow({ hours: -2 }),
+    /* 24 Jun — the last **complete** bucket, at 7 %. 25 Jun reads 9 % and is
+       never evaluated, because at 09:14 it is nine hours of a day (§12.3). The
+       rule fired on the edge, not on the level (§12.4). */
+    lastValue: 7,
+    stateReasonKey: null,
+    createdAt: offsetFromNow({ days: -11 }),
+    updatedAt: offsetFromNow({ hours: -2 }),
+  },
+  {
+    id: 'ALR-2',
+    name: 'Gross revenue below SAR 400 a day',
+    reportId: 'RPT-3',
+    seriesId: 'revenue.total#_#current',
+    comparator: 'lt',
+    /* Halalas on the wire, SAR in the field. An operator typing `400` against a
+       money measure means 400 SAR; this is that, without loss (AC-876). */
+    threshold: 40_000,
+    thresholdUnit: 'money',
+    thresholdCurrency: 'SAR',
+    evaluationGrain: 'day',
+    cadence: null,
+    minReArmMinutes: null,
+    consecutiveFailuresBeforeError: 5,
+    state: 'armed',
+    enabled: true,
+    /* Muted, still evaluating. §12.4: the state machine keeps running while
+       muted so the rule re-arms correctly, and the first notification after the
+       mute expires is a fresh crossing, not a replay (AC-887). */
+    mutedUntil: offsetFromNow({ hours: 20 }),
+    recipientIds: ['USR-2'],
+    ownerId: 'USR-2',
+    notificationPriority: 'high',
+    lastEvaluatedAt: offsetFromNow({ hours: -6 }),
+    lastFiredAt: null,
+    lastValue: 64_737,
+    stateReasonKey: null,
+    createdAt: offsetFromNow({ days: -18 }),
+    updatedAt: offsetFromNow({ hours: -6 }),
+  },
+  {
+    id: 'ALR-3',
+    name: 'Subscription revenue drop',
+    reportId: 'RPT-3',
+    seriesId: 'revenue.subscription#_#current',
+    comparator: 'lt',
+    threshold: 25_000,
+    thresholdUnit: 'money',
+    thresholdCurrency: 'SAR',
+    evaluationGrain: 'day',
+    cadence: null,
+    minReArmMinutes: null,
+    consecutiveFailuresBeforeError: 5,
+    /* §13.3 — the owner lost access to the measure. It stops evaluating
+       immediately: *"an alert that outlives its owner's permission is a
+       permission grant with no record of being granted."* USR-3 (Support) holds
+       no `view_finance`, so switching to that user reproduces the cause. */
+    state: 'suspended',
+    enabled: true,
+    mutedUntil: null,
+    recipientIds: ['USR-3'],
+    ownerId: 'USR-3',
+    notificationPriority: 'high',
+    lastEvaluatedAt: offsetFromNow({ days: -4 }),
+    lastFiredAt: null,
+    lastValue: null,
+    stateReasonKey: 'rb.alert.suspended.ownerLostAccess',
+    createdAt: offsetFromNow({ days: -25 }),
+    updatedAt: offsetFromNow({ days: -4 }),
+  },
+  {
+    id: 'ALR-4',
+    name: 'Completed trips below 3 a day',
+    reportId: 'RPT-2',
+    seriesId: 'trips.completed#_#current',
+    comparator: 'lt',
+    threshold: 3,
+    thresholdUnit: 'count',
+    thresholdCurrency: null,
+    evaluationGrain: 'day',
+    cadence: null,
+    minReArmMinutes: null,
+    consecutiveFailuresBeforeError: 5,
+    /* Five consecutive failures. Notified **once**, to the owner only — *"an
+       alert that is broken is the owner's problem, not the recipients'"*
+       (§12.4, AC-886). */
+    state: 'error',
+    enabled: true,
+    mutedUntil: null,
+    recipientIds: ['USR-5'],
+    ownerId: 'USR-5',
+    notificationPriority: 'high',
+    lastEvaluatedAt: offsetFromNow({ hours: -9 }),
+    lastFiredAt: null,
+    lastValue: null,
+    stateReasonKey: 'rb.alert.error.runFailed',
+    createdAt: offsetFromNow({ days: -7 }),
+    updatedAt: offsetFromNow({ hours: -9 }),
+  },
+  {
+    id: 'ALR-5',
+    name: 'قاعدة تنبيه غير مفعّلة — انخفاض عدد الكباتن المسجلين',
+    reportId: 'RPT-1',
+    seriesId: 'captains.registered#_#current',
+    comparator: 'lte',
+    threshold: 40,
+    thresholdUnit: 'count',
+    thresholdCurrency: null,
+    evaluationGrain: 'week',
+    cadence: null,
+    minReArmMinutes: null,
+    consecutiveFailuresBeforeError: 5,
+    state: 'armed',
+    /* Disabled by its operator. Distinct from `suspended`, which the server
+       does, and from `mutedUntil`, which silences without stopping. */
+    enabled: false,
+    mutedUntil: null,
+    recipientIds: [],
+    ownerId: 'USR-1',
+    notificationPriority: 'high',
+    lastEvaluatedAt: null,
+    lastFiredAt: null,
+    lastValue: null,
+    stateReasonKey: null,
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+  },
+]
+
+/* ──────────────────────── alert history ────────────────────────────────── */
+
+export const alertFiringFixtures: AlertFiring[] = [
+  {
+    id: 'AFR-1',
+    ruleId: 'ALR-1',
+    firedAt: offsetFromNow({ hours: -2 }),
+    bucketStart: '2026-06-24',
+    value: 7,
+    threshold: 6,
+    notificationId: 'N11',
+  },
+  {
+    id: 'AFR-2',
+    ruleId: 'ALR-1',
+    firedAt: offsetFromNow({ days: -6 }),
+    bucketStart: '2026-06-20',
+    value: 9,
+    threshold: 6,
+    /* An older firing whose notification has since been cleared. `null` is a
+       real state and the history must not imply the row is still in the inbox. */
+    notificationId: null,
+  },
+]
+
+/* ─────────────────── the route an alert sends you to ───────────────────── */
+
+/**
+ * §12.5: an alert notification routes to **the report that fired, at the window
+ * and grain the rule evaluated** — so the operator lands on the picture of the
+ * thing, not on a list.
+ *
+ * This also closes a defect the notification module already records: `alert` is
+ * the most-produced runtime type and has **no click destination**
+ * (`handleNotifClick`, `:2273`), modelled honestly as `route: null` in the
+ * notification fixtures. Alert-produced notifications are the first
+ * `alert`-type notifications in this product with a real destination.
+ */
+export const ALR_1_ROUTE = reportQueryPath(cancellationTrend)
+
+/** Exported for the alert client's `Test this rule`, which re-runs the rule's own query. */
+export const reportQueriesById: Record<string, ReportQuery> = Object.fromEntries(
+  savedReportFixtures.map((r) => [r.id, r.query]),
+)
+
+/** The instant the seeded set describes. Every timestamp above derives from it. */
+export const REPORT_FIXTURES_AS_OF = EYVAR_NOW

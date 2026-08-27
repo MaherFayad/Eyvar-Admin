@@ -83,6 +83,61 @@ describe('2 — the delta and the comparison cannot disagree', () => {
     }
   })
 
+  it('R5-1 — a value is absent exactly when there is a reason for it', async () => {
+    /**
+     * **The biconditional `absenceReason` exists to carry.** `Metric.value` is
+     * `null` **iff** `absenceReason` is non-null, asserted over the resolved
+     * metrics rather than over the seeds — a *derived* tile can resolve to
+     * `null` on data the seed cannot see (`worstDemandSupplyRatio` documents
+     * exactly that), and it is the resolved tile a screen renders.
+     *
+     * **This is also the guard on the removals.** Five tiles left this pass
+     * under R4-11 §11.2 because their measure has no store; the class this
+     * assertion refuses — a `null` with nothing to say about itself — is that
+     * class. A tile that cannot state an honest reason does not render, and a
+     * regression that re-adds one fails here rather than on the board.
+     */
+    for (const m of await allMetrics()) {
+      expect(m.absenceReason !== null, `${m.key}: absenceReason vs value`).toBe(m.value === null)
+    }
+  })
+
+  it('R5-6 — a bar is drawn only where one is legal, and it is share of the largest row', async () => {
+    /**
+     * Three conditions, and the third is the one R5-6 added: `max > min` across
+     * **the rows shown**. Zero rows cannot meet it either.
+     *
+     * **Share-of-max, not share-of-total** — so the top row is always exactly
+     * `1`, on every board. Before this ruling three breakdowns divided by three
+     * different things (largest row, total, and a literal 42) and all three were
+     * legal under *"one denominator"*, which only ever constrained them within a
+     * list.
+     */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const b of (await getMetricBoard(subTabId)).breakdowns) {
+        const values = b.rows.map((r) => r.value)
+        /* `max > min` is **necessary and not sufficient** — the other two
+           conditions, one unit and one denominator, are properties of the list
+           that no assertion over values can see. `captainsByLateShare` is five
+           percentages over five different trip counts and carries `false` for
+           that reason, not this one. */
+        if (b.bar) {
+          expect(values.length, `${b.key}: rows`).toBeGreaterThan(0)
+          expect(Math.max(...values), `${b.key}: max > min`).toBeGreaterThan(Math.min(...values))
+        }
+        if (!b.bar) {
+          expect(b.rows.every((r) => r.barFraction === null), `${b.key}: no fractions`).toBe(true)
+          continue
+        }
+        const max = Math.max(...values)
+        for (const r of b.rows) {
+          expect(r.barFraction, `${b.key} / ${r.id}`).toBe(Math.round((r.value / max) * 1000) / 1000)
+        }
+        expect(Math.max(...b.rows.map((r) => r.barFraction ?? 0)), `${b.key}: top is full`).toBe(1)
+      }
+    }
+  })
+
   it('keeps a target of zero instead of throwing it away — the only owned target on any board', async () => {
     /**
      * **The defect this replaces.** `resolve()` collapsed *any* zero baseline
@@ -480,10 +535,14 @@ describe('6 — previous-period baselines are derived, not typed in', () => {
      * The blanket `no-history` was the position this pass corrected, so the
      * remaining ones must each be true rather than a default.
      *
-     * `insufficient-data` is claimed exactly twice and both are the type's own
-     * example — a rate over a handful of records: average renewal rate (`null`
-     * over the active book) and the overturn rate (three decided cases, where
-     * one more decision moves it 25 points).
+     * `insufficient-data` is claimed once and it is the type's own example — a
+     * rate over a handful of records: the overturn rate, three decided cases,
+     * where one more decision either way moves it 25 points.
+     *
+     * **It was claimed twice until R5-1.** The second was the average renewal
+     * rate, which still carries it — the tile survived §1.2's sort, contested,
+     * and it is the same claim about the same three records. This assertion
+     * names the one that is not contested.
      */
     const metrics = await allMetrics()
     const reasonOf = (key: string) => {
@@ -690,10 +749,21 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
     }
   })
 
-  it('AC-697 — every label and sub-label is a key, never a bare string', async () => {
+  it('AC-697 — a label is a key or an entity name, and never a key that is one parameter', async () => {
+    /* **R5-7.** The old form of this assertion was *every label is a key*, and
+       it passed because every entity name went through `breakdown.row.entity`,
+       whose whole English string was `{name}`. The clause AC-697 gains is the
+       one that would have caught that: **a row label is never a key whose whole
+       string is a parameter.** The union makes it structural — a `text` label
+       cannot be a key at all. */
     for (const b of await allBreakdowns()) {
       for (const row of b.rows) {
-        expect(row.labelKey, `${b.key} / ${row.id}`).toMatch(/^breakdown\./)
+        if (row.label.kind === 'key') {
+          expect(row.label.key, `${b.key} / ${row.id}`).toMatch(/^breakdown\./)
+          expect(row.label.key, `${b.key} / ${row.id}`).not.toBe('breakdown.row.entity')
+        } else {
+          expect(row.label.text.length, `${b.key} / ${row.id}`).toBeGreaterThan(0)
+        }
         if (row.subLabelKey !== null) {
           expect(row.subLabelKey, `${b.key} / ${row.id}`).toMatch(/^breakdown\./)
         }
@@ -751,7 +821,12 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
       includeOtherRoles: true,
     })
 
-    expect(queues.rows.reduce((t, r) => t + (r.secondaryValue ?? 0), 0)).toBe(breachedTile.value)
+    /* **R5-5 withdrew the secondary column**, so the breached count now lives
+       in the sub-label's params. AC-695 is unchanged as an obligation — the
+       list still states the same total as the tile — only the slot moved. */
+    expect(
+      queues.rows.reduce((t, r) => t + Number(r.subLabelParams?.past ?? 0), 0),
+    ).toBe(breachedTile.value)
     expect(breachedTile.value).toBe(breached.total)
     expect(unclaimedTile.value).toBe(unassigned.total)
   })
@@ -766,7 +841,11 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
     expect(tile.value).toBe(42)
     /* `WEEKEND` is `['fri','sat']` (`:19596`) and the night block is high-risk
        every day, so 6 + 6 + 2×5 = 22 high-risk gaps — `rotaStats().highRisk`. */
-    expect(rota.rows.reduce((t, r) => t + (r.secondaryValue ?? 0), 0)).toBe(22)
+    expect(rota.rows.reduce((t, r) => t + Number(r.subLabelParams?.count ?? 0), 0)).toBe(22)
+    /* **V-13, by rule.** Seven rows all valued 6 means `max === min`, so R5-6
+       forbids the bar and no row may carry a fraction. */
+    expect(rota.bar).toBe(false)
+    expect(rota.rows.every((r) => r.barFraction === null)).toBe(true)
   })
 
   it('AC-694 — no row carries anything that could mutate a record', async () => {
@@ -780,11 +859,9 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
           'currency',
           'drilldownRoute',
           'id',
-          'labelKey',
-          'labelParams',
-          'secondaryUnit',
-          'secondaryValue',
+          'label',
           'subLabelKey',
+          'subLabelParams',
           'unit',
           'value',
         ])
@@ -823,6 +900,8 @@ describe('10 — a board declares conditions; the page renders at most one (R4-4
     const corroborates: Record<string, string> = {
       'notice.support.unacknowledgedSos': 'support.overview.unacknowledgedCriticalIncidents',
       'notice.admin.erasureOverdue': 'admin.overview.erasureOverdue',
+      'notice.operations.applicationsPastWindow': 'operations.overview.applicationsPastWindow',
+      'notice.operations.complianceExpired': 'operations.overview.complianceExpired',
     }
     let checked = 0
     for (const subTabId of METRIC_BOARD_SUB_TABS) {
@@ -836,7 +915,7 @@ describe('10 — a board declares conditions; the page renders at most one (R4-4
         checked += 1
       }
     }
-    expect(checked).toBe(2)
+    expect(checked).toBe(4)
   })
 
   it('sends every notice somewhere, in a tone R7 has a fill for', async () => {
@@ -848,6 +927,31 @@ describe('10 — a board declares conditions; the page renders at most one (R4-4
         expect(typeof notice.severity).toBe('number')
       }
     }
+  })
+
+  it('gives ONE board two competing notices, so the tie-break runs on real data', async () => {
+    /**
+     * **The gap `fixtures/metrics.ts` recorded and this closes.** Until this
+     * pass no board declared two, so every multi-notice case in
+     * `src/screens/metrics/board.test.ts` was `SYNTHETIC` and the selection
+     * rule had never chosen between two real conditions.
+     *
+     * The assertion that matters is the **declaration order**: the `warning` is
+     * declared first, because it corroborates tile 1 and the `critical`
+     * corroborates tile 7. An implementation that took the first notice, or
+     * that ordered by `severity` before `tone`, would render the wrong banner
+     * and this fails.
+     */
+    const board = await getMetricBoard('operations-overview')
+    expect(board.notices.map((n) => n.key)).toEqual([
+      'notice.operations.applicationsPastWindow',
+      'notice.operations.complianceExpired',
+    ])
+    expect(board.notices.map((n) => n.tone)).toEqual(['warning', 'critical'])
+    /* Both counts are 2 and both are DERIVED — a fixture edit to an applicant
+       or a compliance row moves the tile and the notice together, or this
+       fails. That is the corroboration rule, made structural. */
+    expect(board.notices.every((n) => n.params?.count === 2)).toBe(true)
   })
 
   it('leaves the rota gaps a tile rather than a notice, though all 42 are empty', async () => {

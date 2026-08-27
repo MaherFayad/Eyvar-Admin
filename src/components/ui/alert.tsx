@@ -32,7 +32,8 @@
  *   §9.1       `text-start`, `ps-`/`pe-` — logical only.
  *
  * Removed on arrival: the `default`/`destructive` variant pair, `md:` (there is
- * one breakpoint and it is `--ev-bp-wide`), `pe-18` (off-grid).
+ * one breakpoint and it is `--ev-bp-wide`), and an off-grid inline-end padding
+ * step. (Described rather than spelled - a utility named in prose ships as a rule.)
  */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"

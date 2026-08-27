@@ -947,6 +947,21 @@
   --tone-success-foreground: var(--ev-green);
   --tone-warning: var(--ev-amber-lt); /* ONE warning tone — R17 */
   --tone-warning-foreground: var(--ev-amber-dk);
+  /* The warning tone's MEANINGFUL GRAPHIC, as distinct from its label.
+     --ev-amber #b45309 is 4.623:1 on the warning fill and 3.982:1 on white, so
+     it clears §7's 3:1 for a non-text graphic and does NOT clear 4.5:1 for
+     text — which is exactly why the label is --ev-amber-dk and this is not it.
+     R17 is untouched: this is the SAME warning tone, exposed at its graphic
+     weight, not a sixth tone and not a second amber.
+
+     Added deliberately, in this commit, with one consumer: the password
+     strength meter's 50% bar (design/08 §7.3), which the design specifies as
+     `--ev-amber` while its caption is `--ev-amber-dk`. Before this the token
+     existed in the ramp and had no @theme exposure, so a component could only
+     reach it through an arbitrary value — which is the rule this slot exists
+     to keep. NOT for a badge (R7 closes that set), not for a row fill, and not
+     for text. */
+  --tone-warning-graphic: var(--ev-amber);
   --tone-info: var(--ev-blue-lt);
   --tone-info-foreground: var(--ev-blue-dk);
   --tone-neutral: var(--ev-bg2);
@@ -1005,6 +1020,7 @@
   --color-success-foreground: var(--tone-success-foreground);
   --color-warning: var(--tone-warning);
   --color-warning-foreground: var(--tone-warning-foreground);
+  --color-warning-graphic: var(--tone-warning-graphic);
   --color-info: var(--tone-info);
   --color-info-foreground: var(--tone-info-foreground);
   --color-neutral: var(--tone-neutral);

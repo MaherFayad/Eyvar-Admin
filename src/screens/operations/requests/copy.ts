@@ -1,0 +1,138 @@
+/**
+ * Operations › Requests — every operator-facing string, as keys (**AC-74**),
+ * with no concatenation anywhere (**AC-75**).
+ *
+ * `specs/02-work-queues.md` §5. Copy rules from `docs/ref/copy.md`; the shared
+ * §4 vocabulary is in `screens/queues/copy.ts` and is not repeated here.
+ */
+
+import type { Dictionary } from '@/lib'
+
+export const REQUESTS_EN: Dictionary = {
+  /* §8's metadata line (V4) — the mounted view's own record count. */
+  'requests.meta.one': '1 request',
+  'requests.meta.other': '{count} requests',
+
+  'requests.search': 'Search by rider, pickup, destination or ID',
+
+  /* ── columns ────────────────────────────────────────────────────────── */
+  'requests.col.rider': 'Rider',
+  'requests.col.type': 'Type',
+  'requests.col.pickup': 'Pickup',
+  'requests.col.destination': 'Destination',
+  'requests.col.requested': 'Requested',
+  'requests.col.riderDetail': 'Rider detail',
+  'requests.col.plan': 'Plan',
+  'requests.col.class': 'Class',
+  'requests.col.note': 'Rider note',
+
+  /* §5.1 — two item types on one queue, and **they are not variants of each
+     other**. AC-240: each row's type is legible without opening it. */
+  'requests.channel.instant': 'Instant',
+  'requests.channel.subscription': 'Subscription',
+
+  /* ── status (R7 tones; no red badge, R5a) ───────────────────────────── */
+  'requests.status.searching': 'Searching',
+  'requests.status.offered': 'Offered',
+  'requests.status.assigned': 'Assigned',
+  /* Legacy paints this `b-red` on a `--red-lt` row (`:9893`, `:9950`). R5a
+     permits neither. The WORD carries it. */
+  'requests.status.noDrivers': 'No captain',
+  'requests.status.expired': 'Expired',
+  'requests.status.cancelled': 'Cancelled',
+
+  /* **AC-246** — a request in the `offered` state offers no assign action and
+     states that the offer is with the captain, not with ops. */
+  'requests.offered.withCaptain': 'Offered to {name} — waiting for their reply',
+  'requests.offered.unnamed': 'Offered to a captain — waiting for their reply',
+
+  'requests.tag.vip': 'VIP',
+  /* Legacy `🔁 Existing subscriber` (`:9909`). AC-76 takes the emoji. */
+  'requests.tag.subscriber': 'Existing subscriber',
+  'requests.rider.newRating': 'No rating yet',
+  'requests.rider.rating': 'Rated {rating}',
+
+  'requests.plan.weekly': 'Weekly',
+  'requests.plan.biweekly': 'Biweekly',
+  'requests.plan.monthly': 'Monthly',
+  'requests.class.economy': 'Economy',
+  'requests.class.comfort': 'Comfort',
+
+  /* §7.7 — the identity's second line. ONE key with two named placeholders;
+     `pickup + ' → ' + destination` is exactly what AC-75 forbids. */
+  'requests.route': '{pickup} → {destination}',
+
+  /* ── dispositions (§5.5) ────────────────────────────────────────────── */
+  /* `copy.md` 2 — buttons are verbs. They are ONE word each because §7.3's
+     width contract gives this lane 192px and a `table-layout: fixed` cell
+     truncates rather than growing: `Close — no cap…` on every row is the defect
+     the budget exists to prevent. The full act is named in the `title` and
+     stated in full in the confirmation, which is where the consequence belongs. */
+  'requests.action.assign': 'Assign',
+  'requests.action.assign.help': 'Assign a captain to this request',
+  'requests.action.expire': 'Close',
+  'requests.action.expire.help': 'Close this request with no captain found',
+  'requests.a11y.open': 'Open the record for {name}',
+
+  'requests.assign.title': 'Assign a captain to {id}?',
+  /* §5.1 — **this is the only queue where money moves on disposition.** The
+     confirmation says so, and says what does not change. */
+  'requests.assign.body.instant':
+    'The rider is told a captain is on the way. Nothing is charged until the trip completes.',
+  'requests.assign.body.subscription':
+    "The rider's authorisation hold is captured and the subscription starts. This cannot be undone from here.",
+  'requests.assign.confirm': 'Assign captain',
+  'requests.assign.choice': 'Captain',
+  'requests.assign.choice.help': 'Active captains only. The rider is told who is coming.',
+  'requests.assign.choice.message': 'Choose a captain.',
+  'requests.assign.choice.placeholder': 'Choose a captain',
+  'requests.assign.choice.empty': 'No active captain is available to assign right now.',
+
+  'requests.expire.title': 'Close {id} with no captain?',
+  'requests.expire.body':
+    'The rider is told nobody is available. Any authorisation hold is released and nothing is charged.',
+  'requests.expire.confirm': 'Close request',
+
+  'requests.decided.assigned': 'Assigned',
+  'requests.decided.expired': 'Expired',
+  'requests.decided.cancelled': 'Cancelled',
+
+  'requests.toast.assigned': 'Captain assigned',
+  'requests.toast.expired': 'Request closed',
+
+  /* ── states (§4.7, §4.11) ───────────────────────────────────────────── */
+  /* **E1 — the queue is clear.** Per view, because a queue with one sentence
+     for six views tells five of them a half-truth (Q-36, **AC-234**). */
+  'requests.empty.cleared.heading': 'Nothing waiting',
+  'requests.empty.cleared.needsDecision': 'Every request has a captain or an answer.',
+  'requests.empty.cleared.all': 'No ride requests have come in.',
+  'requests.empty.cleared.instant': 'No instant ride request is waiting.',
+  'requests.empty.cleared.subscription': 'No subscription request is waiting.',
+  'requests.empty.cleared.assigned': 'No request has been assigned yet today.',
+  'requests.empty.cleared.expired': 'No request has been closed without a captain.',
+
+  /* E3 is unreachable here — work arrives from the system continuously (Q-37) —
+     so this collapses into E1 and these strings never render. They stay
+     because `DataTable` requires the copy, so an empty state cannot be a TODO. */
+  'requests.empty.firstRun.heading': 'Ride requests land here',
+  'requests.empty.firstRun.body':
+    'Every instant ride and every subscription sign-up waiting on a captain appears in this queue.',
+  'requests.empty.firstRun.action': 'Show all requests',
+
+  'requests.empty.noMatch': 'No request matches this search.',
+
+  'requests.banner.one': '1 request is past its deadline.',
+  'requests.banner.other': '{count} requests are past their deadline.',
+
+  'requests.error.list': "Couldn't load requests. The filters are unchanged.",
+  /* **Row errors are two words plus a verb, and the length is a constraint not
+     a style.** R20 fixes the row at one pitch, so an `ErrorState scope="row"`
+     that wraps to three lines is clipped rather than grown — the sentence
+     disappears into the cell it is meant to explain. The object is already on
+     the row; the message names the ACT, and `Try again` names the fix
+     (`copy.md` 4). */
+  'requests.error.row.claim': "Couldn't claim.",
+  'requests.error.row.release': "Couldn't release.",
+  'requests.error.row.assign': "Couldn't assign.",
+  'requests.error.row.expire': "Couldn't close.",
+}

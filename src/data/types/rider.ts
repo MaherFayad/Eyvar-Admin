@@ -25,21 +25,24 @@ export type RiderStatus = 'subscriber' | 'on-demand'
 export type ChurnRisk = 'low' | 'medium' | 'high'
 
 /**
- * A rider wallet entry. Legacy `wallet.transactions[]` (`:2595`):
- * `{id,type,amount,reason,date,balanceAfter}`.
+ * `WalletTransaction` **was here and is gone.**
  *
- * `amount` and `balanceAfter` are **floats** in legacy — `17.30` (`:2600`) —
- * which is exactly the defect §8.3 exists to prevent. Halalas here.
+ * It modelled the same fact as `LedgerPosting` — `{type:'credit'|'debit',
+ * amountHalalas, balanceAfterHalalas}` — and the financials spec is explicit
+ * that it *"should be subsumed by `LedgerPosting` rather than kept beside it"*
+ * (`specs/03-financials.md` §14). Two shapes for one concept is the defect that
+ * wave produced four disagreeing money surfaces, so the second shape is
+ * retired rather than kept for convenience.
+ *
+ * `Rider.walletTransactions` went with it. A wallet ledger is a paginated
+ * server read — `getWalletLedger(riderId)` in `clients/wallets.ts` — not an
+ * array embedded on an index row, because a rider with 412 postings cannot
+ * have them all on the row that lists them.
+ *
+ * `walletBalanceHalalas` stays, and `clients/financials.test.ts` asserts it
+ * equals that rider's ledger closing balance, so the index and the ledger can
+ * never disagree about one number.
  */
-export interface WalletTransaction {
-  id: string
-  type: 'credit' | 'debit'
-  amountHalalas: Halalas
-  reason: string
-  at: IsoDateTime
-  /** Running balance after this entry. A ledger is append-only; this is the audit trail, not a cache. */
-  balanceAfterHalalas: Halalas
-}
 
 export interface Rider {
   id: string
@@ -70,7 +73,6 @@ export interface Rider {
    * carry an overdrawn wallet so the screen has to answer it.
    */
   walletBalanceHalalas: Halalas
-  walletTransactions: WalletTransaction[]
 
   movementLog: MovementLogEntry[]
 

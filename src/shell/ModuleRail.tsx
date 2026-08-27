@@ -149,7 +149,7 @@ export function ModuleRail({
   return (
     <nav
       aria-label={t('shell.nav.workspaces')}
-      /* `overflow-hidden`, not `overflow-auto`: §1.1 — the rail NEVER scrolls,
+      /* `overflow-hidden`, never auto-scrolling: §1.1 — the rail NEVER scrolls,
          and AC-19 tests that scrolling the content leaves it untouched.
          D7 §4.1 — `bg-nav` AND `border-e`. **The seam is back**, reversing D6's
          second bullet: Navattic draws a border at destination x = 28 in every
@@ -330,8 +330,14 @@ function RailTile({
  * The Eyvar mark. **Brand — it never mirrors** (§9.5). Mark only, no wordmark
  * lettering: lettering is illegible at 24px. D-3 moved the mark into the rail,
  * which is what frees the top bar for wayfinding.
+ *
+ * **Exported, because the auth card needs the same glyph** (design/08 §2.2's
+ * `<AuthWordmark>` — the mark at 24px beside the word). It stays declared here
+ * rather than moving to a shared module: the rail is where the mark lives in
+ * the product, this is its one dependency-free file, and a second copy of a
+ * logo is a second logo the day one of them is edited.
  */
-function EyvarMark(): ReactNode {
+export function EyvarMark(): ReactNode {
   return (
     <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true" focusable="false">
       <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />

@@ -11,7 +11,14 @@ export { isWideViewport, readWideBreakpointPx, WIDE_BREAKPOINT_FALLBACK_PX } fro
 export { formatDate, toDate, RIYADH_TIME_ZONE, type DateStyle, type FormatDateOptions } from './format/date'
 export { formatDuration } from './format/duration'
 export { ABSENT, MINUS_SIGN, formatMoney, type FormatMoneyOptions } from './format/money'
-export { formatCount, formatRange } from './format/number'
+export {
+  MULTIPLICATION_SIGN,
+  formatCount,
+  formatDecimal,
+  formatPercent,
+  formatRange,
+  formatRatio,
+} from './format/number'
 export {
   LANGUAGES,
   directionFor,
@@ -30,8 +37,30 @@ export {
   type Dictionary,
   type Translate,
   type TranslateParams,
+  type Translator,
   type TranslatorOptions,
 } from './i18n/translate'
+export {
+  PLURAL_CATEGORIES,
+  PLURAL_SEPARATOR,
+  isPluralCategory,
+  pluralCategory,
+  pluralCountIn,
+  pluralFormKey,
+  pluralFormsIn,
+  selectPluralForm,
+  type PluralCategory,
+} from './i18n/plural'
+export {
+  LTR_RUN_KINDS,
+  isolatedRunProps,
+  stretchesInlineSize,
+  type IsolatedRun,
+  type IsolatedRunOptions,
+  type IsolatedRunProps,
+  type IsolationBoxProps,
+  type LtrRunKind,
+} from './i18n/isolate'
 export {
   columnFilterIssue,
   formatColumnFilterBounds,

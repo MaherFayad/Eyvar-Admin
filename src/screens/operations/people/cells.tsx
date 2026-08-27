@@ -9,7 +9,7 @@
  *              `DataTable` wraps every cell in a `display:block` span. At the
  *              13px body size the inherited line box is 20px, so 20 + 8 + 8 =
  *              **36px** and the row silently loses D-2's ~30px target. A block
- *              child collapses the parent's strut, so a `leading-4` (16px)
+ *              child collapses the parent's strut, so a 16px line-height utility
  *              block gives 16 + 8 + 8 = **32px** exactly — `--ev-row-h`, on
  *              the 4px grid, with no arbitrary value and nothing overridden in
  *              a file I do not own.

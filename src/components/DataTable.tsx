@@ -94,10 +94,17 @@
  *   §9.1/R4     numeric, currency and count columns are `text-end`, never
  *               `text-align: right`, header and value sharing one edge.
  *   §9.2/AC-49  a ledger opens and closes with labelled balance rows.
- *   R8/AC-37/38 `no-match` vs `first-run` comes from `table.isFiltered`, so the
- *               choice is mechanical rather than a judgement at the call site.
- *               A column filter sets it exactly like a toolbar filter, so
+ *   R8/AC-37/38 `no-match` vs everything-else comes from `table.isFiltered`, so
+ *               that choice is mechanical rather than a judgement at the call
+ *               site. A column filter sets it exactly like a toolbar filter, so
  *               neither criterion needed amending.
+ *   §4.7/AC-234 **`first-run` vs `cleared` is the call site's, and it has to
+ *               be.** `specs/02-work-queues.md` **F-3** was raised against this
+ *               file: an unfiltered empty QUEUE rendered the illustrated
+ *               first-run state, telling an operator who had just cleared their
+ *               queue that they have never had one. `emptyKind` is the fix, and
+ *               it is a prop rather than a `mode` branch because Safety &
+ *               Incidents reaches both kinds (Q-37) on one route.
  */
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
@@ -146,6 +153,7 @@ import {
   type DataColumn,
   type ExtraFilterSpec,
 } from './table/columns'
+import { RowActionMenuItem, SingleRowAction, type RowAction } from './table/rowActions'
 import {
   ACTION_LANE_WIDTH_PX,
   KEBAB_COLUMN_ID,
@@ -165,35 +173,17 @@ export type {
 } from './table/columns'
 export type { ToolbarTab } from './table/IndexToolbar'
 
-export interface RowAction<T> {
-  label: string
-  onSelect: (row: T) => void
-  /** §11.2 — gate at RENDER, not at commit. Disabled in place, never hidden. */
-  disabled?: (row: T) => boolean
-}
-
 /**
- * §7.8 / **D8** — the one-action shape. A labelled control, visible at rest
- * (**AC-68**), disabled in place when the role may not use it (§11.2).
+ * **`RowAction` and both of its shapes now live in `./table/rowActions`.**
  *
- * `truncate` and `w-full` so the lane's declared width (§7.3) is what the
- * button obeys, rather than the label pushing the column wider and taking the
- * table over budget in the one language nobody previewed.
+ * They moved so §11.2's second clause could be built where the table controls
+ * live: an action disabled in place owes the operator a **reason**, `RowAction`
+ * had no field to carry one, and both shapes rendered a control that explained
+ * nothing (**AC-368**). The type is re-exported here because every caller
+ * imports it from this file, and the shape a row renders is still decided
+ * below, by the count of DECLARED actions and nothing else.
  */
-function SingleRowAction<T>({ action, row }: { action: RowAction<T>; row: T }) {
-  const disabled = action.disabled?.(row) ?? false
-  return (
-    <Button
-      variant="secondary"
-      size="xs"
-      className="w-full justify-center truncate"
-      disabled={disabled}
-      onClick={() => action.onSelect(row)}
-    >
-      {action.label}
-    </Button>
-  )
-}
+export type { RowAction } from './table/rowActions'
 
 /* ──────────────────────────── the props ──────────────────────────── */
 
@@ -252,6 +242,29 @@ export interface DataTableProps<T> {
   firstRun: { heading: string; body: string; actions: EmptyAction[] }
   /** §11.5 — the `no-match` sentence. The ACTION is optional; this supplies a default. */
   noMatch: { message: string; action?: EmptyAction }
+  /**
+   * **F-3 — which empty an UNFILTERED zero is** (`specs/02-work-queues.md`
+   * §4.7, **AC-234**).
+   *
+   * `isFiltered` decides `no-match` and always has; it cannot decide the other
+   * two, and pretending it could is the defect. An unfiltered zero is
+   * `first-run` on an index and **`cleared` (E1)** on a work queue — and on
+   * Safety & Incidents it is `first-run` before the first incident is ever
+   * reported and `cleared` on every day after (Q-37, **AC-324**), so the
+   * distinction is not derivable from the mode either. **The call site knows;
+   * this component does not.**
+   *
+   * Defaults to `'first-run'`, so every existing caller is unchanged.
+   */
+  emptyKind?: 'first-run' | 'cleared'
+  /**
+   * §4.7 **E1** — required when `emptyKind` is `'cleared'`, and this is the one
+   * place where the copy names the SCOPE that is clear. Per queue **and per
+   * view**: `Nothing departing in the next 24 hours` is a different sentence
+   * from `No open incidents`, and a queue with one sentence for four views is
+   * telling three of them a half-truth.
+   */
+  cleared?: { heading: string; body: string }
   /** §11.2 — card-scoped error copy. */
   error: { message: string; onRetry: () => void }
 
@@ -288,6 +301,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     bulkActions,
     firstRun,
     noMatch,
+    emptyKind = 'first-run',
+    cleared,
     error,
     ledgerBoundaryRows,
     learnMore,
@@ -313,7 +328,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
    * |---|---|---:|
    * | 0 | nothing, and no lane at all | — |
    * | 1 | that action, **labelled**, no menu | `rowActionsWidth ?? 88` |
-   * | 2 or more | the `⋯` kebab | 56 |
+   * | 2 | both actions, **labelled**, side by side | `rowActionsWidth ?? 2×88 |
+   * | 3 or more | the `⋯` kebab | 56 |
    *
    * **The count is of DECLARED actions, never of enabled ones.** §11.2 renders
    * an unavailable action disabled in place with its reason; counting enabled
@@ -325,17 +341,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
    * That is build item 11 and is not derivable from a count: it needs the
    * dispositions to be declared as a pair. Recorded, not guessed at.
    *
-   * Two non-decision actions is unspecified by §7.8, which jumps from 1 to
-   * "3 or more". A kebab is the safe reading — it is only "1" that D8 names —
-   * and it is raised in the handoff.
+   * **THE KEBAB BEGINS AT THREE — D8-b, and this used to collapse at two.**
+   * §7.8 jumped from 1 to "3 or more" and said nothing about 2, so the first
+   * cut took a kebab as the safe reading and raised it. The ruling went the
+   * other way, and the argument is that §7.8's own decision-pair row already
+   * renders THREE controls directly at n=2: a rule that shows three at two and
+   * hides two at two is incoherent. So two actions render side by side.
+   *
+   * A screen may not work around this. `PayoutsScreen` carried a comment
+   * asserting the old behaviour's opposite while the code did the opposite of
+   * the comment; both are now the same thing.
    */
   const declaredActions = !isLedger && table.canRowAction ? (rowActions ?? []) : []
-  const actionShape: 'none' | 'single' | 'menu' =
-    declaredActions.length === 0 ? 'none' : declaredActions.length === 1 ? 'single' : 'menu'
+  const actionShape: 'none' | 'direct' | 'menu' =
+    declaredActions.length === 0 ? 'none' : declaredActions.length <= 2 ? 'direct' : 'menu'
   const kebabs = actionShape !== 'none'
   const actionLaneWidth =
-    actionShape === 'single'
-      ? (rowActionsWidth ?? SINGLE_ACTION_LANE_WIDTH_PX)
+    actionShape === 'direct'
+      ? (rowActionsWidth ?? SINGLE_ACTION_LANE_WIDTH_PX * declaredActions.length)
       : ACTION_LANE_WIDTH_PX
 
   /* AC-113 — `null` on a ledger, and not as a flag: `LedgerTable` has no
@@ -792,13 +815,41 @@ export function DataTable<T>(props: DataTableProps<T>) {
           />
         )}
 
-        {/* AC-37 / AC-38 — the kind is decided by `isFiltered`, not by taste.
-            A ledger is NEVER `first-run` empty (§9.2). */}
+        {/* **AC-37 / AC-38 / AC-234 — two decisions, not one.**
+
+            The FIRST is still mechanical and still `isFiltered`: something is
+            narrowing, so the answer is `no-match` and the call site cannot
+            override it. A ledger is NEVER `first-run` empty (§9.2), so it
+            collapses here too.
+
+            The SECOND is the one F-3 says this component was getting wrong. An
+            unfiltered zero is `first-run` on an index and **`cleared`** on a
+            work queue worked to zero, and no property of the table distinguishes
+            them — not `isFiltered`, and not `mode` either, because Safety &
+            Incidents reaches BOTH (Q-37). So `emptyKind` comes from the call
+            site and defaults to `first-run`. `cleared` copy is required with it;
+            without it this falls back rather than rendering a blank card. */}
+        {/* **`card={false}` on all three, and it is D-18 catching up.**
+            `EmptyState` cards by default because it used to render straight onto
+            `--ev-bg` with nothing under it. Under D-18 **the table is the
+            bordered object**, so this band is already a bordered box — and a
+            carded state inside it draws a second border, which reads on screen
+            as a stray horizontal rule beneath the sentence rather than as a
+            designed edge. `card` is opt-OUT for exactly this case, and its own
+            doc names it: *"a state rendered inside a card that already
+            exists."*
+
+            **This changes wave 1's empty states too**, because `DataTable` is
+            where all of them render. Disclosed in the handoff rather than left
+            for visual-QA to find as a difference between two waves. */}
         {status === 'empty' &&
           (table.isFiltered || isLedger ? (
-            <EmptyState kind="no-match" message={noMatch.message} action={noMatchAction} />
+            <EmptyState card={false} kind="no-match" message={noMatch.message} action={noMatchAction} />
+          ) : emptyKind === 'cleared' && cleared ? (
+            <EmptyState card={false} kind="cleared" heading={cleared.heading} body={cleared.body} />
           ) : (
             <EmptyState
+              card={false}
               kind="first-run"
               heading={firstRun.heading}
               body={firstRun.body}
@@ -924,11 +975,23 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                   of DECLARED actions and does not move per row.
                                   AC-68 / D19 — visible at rest, never revealed
                                   by hover. */}
-                              {actionShape === 'single' ? (
-                                <SingleRowAction
-                                  action={declaredActions[0] as RowAction<T>}
-                                  row={row}
-                                />
+                              {actionShape === 'direct' ? (
+                                /* One or two, side by side. The lane was sized
+                                   from the same count above, so two never
+                                   overflow into the cell beside them. */
+                                <div className="flex items-center justify-end gap-1">
+                                  {declaredActions.map((action) => (
+                                    /* `label` is the key: `RowAction` has no
+                                       id, and two actions on one row with the
+                                       same label would be a defect in the
+                                       caller rather than a collision here. */
+                                    <SingleRowAction
+                                      key={action.label}
+                                      action={action}
+                                      row={row}
+                                    />
+                                  ))}
+                                </div>
                               ) : (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -946,13 +1009,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     {declaredActions.map((action) => (
-                                      <DropdownMenuItem
+                                      /* §11.2 — disabled in place, and with its
+                                         reason on a second line inside the item
+                                         (§8.4.4). Never a tooltip. */
+                                      <RowActionMenuItem
                                         key={action.label}
-                                        onSelect={() => action.onSelect(row)}
-                                        disabled={action.disabled?.(row) ?? false}
-                                      >
-                                        {action.label}
-                                      </DropdownMenuItem>
+                                        action={action}
+                                        row={row}
+                                      />
                                     ))}
                                   </DropdownMenuContent>
                                 </DropdownMenu>

@@ -2,7 +2,27 @@
  * The metric-tile grid — `design/03-navattic-language.md` §4.9, and the one
  * sanctioned use of the `wide:` variant outside the shell (`globals.css`:
  * *"its three uses are fixed: the sub-tab list's first-run default, the detail
- * right-rail drop, and the metric-tile grid"*).
+ * rail drop on the inline-end side, and the metric-tile grid"*).
+ *
+ * **The wording above is deliberate and must not be "corrected" back.** The
+ * sentence it quotes used to join the physical side-word to the rail noun with
+ * a hyphen — and that alone is a valid Tailwind candidate, which resolved
+ * against the theme and emitted a rule setting a **physical** inset from
+ * `--ev-rail-w` into the built stylesheet, in a product where every inset is
+ * logical. `globals.css:80`-`:88` records the first occurrence; it came from
+ * `src/lib/breakpoint.ts:5` and was closed by excluding `src/lib` from the
+ * scan. This file lives in `src/components`, which IS scanned, so the same
+ * sentence minted the same rule again from a new home.
+ *
+ * **This comment was itself the third occurrence.** A first draft spelled the
+ * offending token out in order to warn about it, and the build put the rule
+ * straight back - the same way `MetricTile.tsx` once shipped an arbitrary value
+ * by writing that it did not use one. Naming the parts, never the token, is the
+ * only form of this warning that does not perform the defect.
+ *
+ * The lesson generalises: a class name in prose is a class name. It needs no
+ * brackets, no arbitrary value, no syntax resembling code - just two ordinary
+ * words and an ordinary hyphen. **Verify in `dist`, never in `src`.**
  *
  * **Three across below `--ev-bp-wide`. Above it, four — but only when four
  * divides the row.** The reference shows both and shows why: `02b895df` is four

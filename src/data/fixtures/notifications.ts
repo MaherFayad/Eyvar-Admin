@@ -6,9 +6,13 @@
  * against the fixed clock. N7–N10 are added because the seeded six do not reach
  * `critical`, do not include a long Arabic title, and do not include the
  * `route: null` case that §4.3.2 says is the *most common* runtime type.
+ *
+ * **N11 is the report builder's fired threshold alert** (`06-report-builder.md`
+ * §4.4 item 4). It is the one `alert`-type row with a real route.
  */
 
 import { offsetFromNow } from '../mock/clock'
+import { ALR_1_ROUTE } from './reports'
 import type { Notification } from '../types/notifications'
 
 export const notificationFixtures: Notification[] = [
@@ -148,6 +152,45 @@ export const notificationFixtures: Notification[] = [
     route: '/admin/data',
     entityId: 'SNAP-0030',
     entityType: null,
+  },
+  {
+    /* ── the report builder's threshold alert, `ALR-1` ───────────────────
+       `06-report-builder.md` §4.4 item 4: one seeded already-fired alert with
+       one seeded `Notification` pointing at it, *"otherwise the entire
+       delivered state of §12 is unreachable without a scheduler."*
+
+       Three things this row settles, each argued in the spec rather than
+       assumed here:
+
+       **It is the first `alert` notification in this product with a real
+       destination.** §4.3.2 records that `alert` is the most-produced runtime
+       type and has none (`handleNotifClick`, `:2273`); every other `alert` seed
+       carries `route: null` honestly. This one routes to the report that fired,
+       at the window and grain the rule evaluated, through §9.2's URL
+       serialisation — so the operator lands on the picture of the thing rather
+       than on a list (§12.5, AC-883).
+
+       **`priority: 'high'`, not `'critical'`.** §12.5: `critical` is reserved
+       for a rule an operator explicitly marked as such while holding a
+       permission that does not exist yet (Q-RB-9). It is **not** derived from
+       how far past the threshold the value went — *that is a magnitude, not an
+       urgency*.
+
+       **No red, and no nav badge.** §12.7 checks a firing threshold against
+       R5a's four permitted uses of red and it is none of them; §12.6 keeps
+       `management-reports` at `hasBacklog: false` so `navCounts.test.ts`'s
+       two-`attention` cap stays assertable. This row changes no count and no
+       tone anywhere (AC-884, AC-885). */
+    id: 'N11',
+    type: 'alert',
+    priority: 'high',
+    title: 'Cancellation rate over 6% — 24 Jun',
+    body: 'Daily cancellation rate reached 7%, over the 6% threshold on “Cancellation rate over 6%”.',
+    createdAt: offsetFromNow({ hours: -2 }),
+    read: false,
+    route: ALR_1_ROUTE,
+    entityId: 'ALR-1',
+    entityType: 'alert-rule',
   },
 ]
 

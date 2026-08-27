@@ -7,8 +7,8 @@ contested points*.
 | # | Ruling |
 |---|---|
 | R1 | Banners are **pale tinted cards**, never the saturated split-strip. |
-| R2 | Save is the **brand-blue primary**. Never green. Never white-on-white. |
-| R3 | Primary action is **`--blue`**, not Shopify's near-black. Links therefore get `--blue-dk` **+ underline** so the two roles stay separable. |
+| R2 | Save is **the same primary as every other primary** — near-black `--ev-ink` since D7, never green, never white-on-white. (D7 amends R2 by one colour name only; the rule is that Save is not special.) |
+| R3 | **Rewritten by D7.** Primary action is **near-black `--ev-ink`**, not brand blue — `DECISIONS.md` D7 voids deviation D-1. Links still take **`--ev-blue-dk` + underline**, now because `--ev-blue` is 4.574 : 1 on white and cannot carry 13px text on a tinted ground. A blue primary is a **defect**, not a legacy. |
 | R4 | Numeric, currency and count columns are **right-aligned**, tabular figures. Does **not** flip in Arabic. |
 | R5 | **No red badge** for lifecycle state. |
 | R5a | Red appears in exactly **four** places: a destructive button, one page-level critical banner, a breached-row leading edge marker, a map marker. A fifth use needs a §6.2 entry. |
@@ -21,7 +21,7 @@ contested points*.
 | R12 | §1.6 (motion) is **SHOULD, not citable in review**. Binding motion rules are §7.6 and §8.1. |
 | R13 | **No pixel figure in §1–§5 is binding.** They came from 768px screenshots. What binds: relationships, the 4px grid, and §6.1 tokens. |
 | R14 | `Paid` is **success (green)**. One label, one tone, always. |
-| R15 | Badges, toasts and avatars are **rounded rectangles (~8px)** — never stadium pills, never circles. |
+| R15 | Badges, toasts and avatars are **rounded rectangles** — never stadium pills. **Badge radius 4px, toast radius 8px** (`design/07-rulings-r4.md` §12.2). Avatars: **32px circle** for a person, **8px rounded square** for a non-person identity. `rounded-full` elsewhere only where the shape is the mechanism — a switch track and thumb, a segmented control's track and pill, a progress or meter track. |
 | R16 | All four banner tones are pale tinted cards. The "info banners carry no fill" MUST is void. |
 | R17 | **One warning tone.** Separate "waiting on them" from "waiting on you" with the label, not a second fill. |
 | R18 | §1.6 governs transitions only. An ambient loop is licensed **only** for "this feed is live": opacity-only, 1200–2500ms, never below 0.4 opacity, and it may **never encode severity**. |

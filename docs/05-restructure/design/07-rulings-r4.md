@@ -44,6 +44,7 @@
 | **R4-4** | `MetricBoard` cannot express breakdowns, captions or a banner | `05-metrics-content.md` | **All three granted.** The breakdown shape already exists in §3.7; only the contract is missing. | No | AC-690–697, AC-641, AC-674, AC-675, AC-351 |
 | **R4-5** | §3.7 requires a coloured delta, D7 §4.9 forbids one | `build/06-overviews.md` | **D7 wins, and R5a ends the argument** — a red delta is a fifth use of red nobody authorised. | No | Wave 4 sign-off |
 | **R4-6** | Market & Zones: table or board? | `build/06-overviews.md` | **Both, table primary.** The KPI tiles are filters into the table, exactly as legacy has them. | No | Wave 4 sign-off |
+| **R4-6b** | *Added this pass.* Zones by failure rate has no surface | coordinator | **It does not die and does not move.** It lives in the zone-health table; what is missing is a fixture and a build slot, and §6.6 names an owner for each. | No | `management-zones`; `05-metrics-content.md` AC-652, F-8 |
 | **R4-7** | R15 says never a stadium; one ships | `IndexToolbar`, D12 | **Amend R15 to state its scope.** It never governed the bulk bar. Avatars: already amended — flip the primitive. | **Yes** — D12 reserved this to the owner | D12's open item; `ui/avatar.tsx`; five stale code comments |
 | **R4-8** | R-3 has no tier for a 28px raised pill | D12 | **The gap is real. Tier 0.5, scoped to a part inside a control.** Today's build is the interim state, so nothing is blocked. | **Yes** — §12 **D-13** | D12's open measurement |
 | **R4-9** | Who owns focus when a popover opens a layer | `00-shell-qa.md` D-11 | **The layer. A traversal is not a dismissal.** | No | AC-67, two of three routes to a shell layer |
@@ -447,6 +448,15 @@ contract ruling rather than a design one.
 
 ### 4.1 F-1 — the breakdown. **Granted. One shape, not three.**
 
+> ⚠ **The anatomy table and the row contract below are SUPERSEDED by
+> [`09-rulings-r5.md`](09-rulings-r5.md) §9.1.** Four slots changed: the **secondary numeric
+> column is withdrawn** (R5-5 — a second number is a noun phrase in the sub-label, which is the
+> reference's own construction); the **bar takes `--chart-series` at 4px**, share-of-max, and is
+> legal only when `max > min` (R5-6 — `--chart-fill` is an area fill for a line to delimit, and I
+> cited it for a mark); the **row label becomes a discriminated union** so a translated label and
+> a person's name differ in the type (R5-7); and a **breakdown never exceeds half the content
+> width** (R5-8, §4.5). The reasoning below stands. **Read §9.1 of R5 for the current text.**
+
 **§3.7 already describes it, `[observed]`, in two variants**, and I looked at both this pass:
 
 - **Funnel/label rows** — `Online store conversion rate` renders `Added to cart` over a grey
@@ -556,6 +566,13 @@ Metric { …, caption: string | null }   // a translation key, never a string
 
 **The scope, and it is the whole of the ruling:**
 
+> ⚠ **SUPERSEDED by [`09-rulings-r5.md`](09-rulings-r5.md) §9.2.** Two errors, both mine. The
+> positive list below is **two instances I had on the desk, mistaken for a definition** — the
+> four prohibitions were always the rule, and a valence note (`Higher is better.`) breaks none of
+> them. And **≤60 characters was a guess**, made by analogy with R9's toast budget without
+> measuring the box a caption gets: the measured box holds ~38 at 4-up. The budget is now 38 and
+> the rule is that it fits its box in both languages. **Read §9.2 of R5 for the current text.**
+
 > A caption states a **scope limit or a denominator**. It never states a value, never states a
 > status, never carries a call to action, and never carries a link. One line, ≤60 characters,
 > truncates and never wraps. It is a translation key with parameters, never a concatenation.
@@ -596,6 +613,12 @@ one, the product has two, and the second one is the one nobody reads.
 > }
 > ```
 >
+> ⚠ **"then declaration order" is DELETED — [`09-rulings-r5.md`](09-rulings-r5.md) §9.3.** It was
+> mine and it was wrong: a tie-break decided by the order somebody typed an array is a coin flip
+> with a stable seed, and it made a real editorial ambiguity invisible. `severity` is **unique
+> among a board's notices of the same tone**, the selection is therefore total, and a collision
+> is a fixture defect caught by a test over real fixtures. The rest of this block stands.
+
 > The screen renders **exactly one** notice, in the page banner slot between the page header
 > and the tile grid: the highest tone, then the highest `severity`, then declaration order. A
 > board declares **at most three**. The suppressed conditions are not lost — each is
@@ -795,6 +818,126 @@ is wrong. **mock-data-engineer**, and it wants deciding before the table is buil
 table's default sort is worst-first and the badge should agree with its first row.
 
 ---
+
+
+### 6.6 R4-6b — "Zones by failure rate" does not die, and it does not move
+
+**Raised by the coordinator:** the two most valuable lists on Market & Zones — *zones by
+failure rate* and *zones by subscription-demand momentum* — have no surface.
+`05-metrics-content.md` **AC-652** declares them as board breakdowns; **§6.4 clause 3 above**
+redirected them into the zone-health table; and `build/08-breakdowns-and-notices.md` §10 then
+records that they *"do not ship, because R4-6 assigns them to a `P1` table that is not built and
+zones are not yet a resource in `src/data`."* **They were not dropped by a decision. They fell
+between two documents.** Ruling on it, because §6.4 is mine and this is my sentence's
+consequence.
+
+#### The ruling
+
+> **R4-6 stands. Both lists live in the zone-health table at `/management/zones`, exactly where
+> §6.4 clause 3 put them. Neither ships as a board breakdown, now or later.**
+>
+> **What is missing is not a decision — it is an owner and a fixture, and both are named in
+> §6.6.3.** *"Zones by failure rate"* is **not** dropped, and any document that currently reads
+> as though it were is corrected by this ruling.
+
+#### 6.6.1 Why the redirect was right, re-checked rather than defended
+
+The premise of §6.4 clause 3 was *"the ranked list and the table are the same rows."* Checked
+against `05-metrics-content.md` §9.3 rather than recalled:
+
+| | The breakdown, as specified | The zone-health table |
+|---|---|---|
+| Rows | **all 6 zones** | all zones |
+| Sort | worst first (`:14132`) | worst first |
+| Columns | demand : supply · failure rate · recruitment priority · captains needed | the same, plus row actions |
+
+**Same rows, same sort, same columns, differing only by two row actions.** The premise holds, so
+the ruling holds. Shipping both would put the same six rows on one page twice, and the copy
+would have to explain why the top five differ from the top five immediately below them.
+
+#### 6.6.2 Why it does not ship on the board as an interim
+
+The tempting fix is to render the breakdown now and delete it when the table lands. **No**, and
+the reason is not tidiness:
+
+- **R4-6's objection does not weaken because one copy is late.** *Same data twice* is a
+  statement about the page, not about the schedule.
+- **A component built to be deleted is deleted twice** — once from the screen, and once from
+  the operator's habits. An ops operator who learns to read the top five on the board will keep
+  looking there after the table arrives, and the board is the copy without the row actions,
+  which is the half that cannot act.
+- **Market & Zones looking thin is the honest signal.** §10 of the build doc already reached
+  that conclusion for Support › Overview and was right: *"they look sparse because they are
+  sparse."* A list shipped to fill space converts a scheduling gap into a design claim.
+
+#### 6.6.3 What is actually blocked, with an owner each
+
+| # | Gap | Owner | Size |
+|---:|---|---|---|
+| 1 | **`zones` is not a resource in `src/data`.** There is no fixture, no client, no type — `grep -rln zone src/data/` returns only metrics, pricing, navCounts and legacyPages, none of which holds a zone row | **mock-data-engineer** | Small — the shape is §6.6.5, and `DB.zones` is already seeded in the legacy file |
+| 2 | **The zone-health table has no build slot.** §6.4 clause 2 says *"the zone-health table **is built**"* and never said **when**. It is not in any wave of `PHASE-PLAN.md`, because D1's wave 4 scoped Market & Zones as a board and R4-6 changed that after the wave was written | **coordinator** | A sequencing decision, not a design one |
+
+**Gap 2 is the real one, and it is mine to have caused.** R4-6 amended a sub-tab's pattern after
+its wave had been planned, and I wrote *"nobody has to undo anything"* without noticing that
+nobody had been told to **do** anything either. Recorded plainly so the same shape is caught
+next time a ruling re-patterns a built screen.
+
+#### 6.6.4 One design ruling I make now, because it is cheap and prevents a real bug
+
+> **When the table lands, Market & Zones' ~~four~~ FIVE metric tiles MUST be derived from the
+> table's own rows. They may not remain literals.** — `captainsNeeded`, `starvedZones`,
+> `unservedRequests30d`, `avgFailureRate`, `worstDemandSupplyRatio`.
+
+> **Corrected 2026-08-27 ([`09-rulings-r5.md`](09-rulings-r5.md) §13.1). I wrote "four" by
+> counting the tiles I happened to be looking at, and `management.zones.captainsNeeded` — which
+> `05-metrics-content.md` §9.1 ranks FIRST on the board — is zone-derived like the rest.**
+> Worth correcting loudly, because deriving four and leaving the fifth a literal is precisely the
+> drift this ruling exists to prevent, arriving one tile to the left: the ruling as written would
+> have licensed it. Built as five; all five hit the literal they replaced exactly (3, 2, 31, 45,
+> 7), so the derivation changed no published number and removed the possibility of one drifting.
+
+Today `management.zones.worstDemandSupplyRatio` is `value: 7` — a **literal** in
+`src/data/fixtures/metrics.ts:977`–`:980`, not `max(demand ÷ supply)` over anything. All five
+zone tiles are the same. **The strip and its table cannot contradict each other today only
+because the table does not exist.** The moment it does, a hand-seeded `7` sits above a list
+whose worst row says something else, and the operator has no way to know which is lying.
+
+This is **§6.5's `navCounts` defect at page scale** — there I found the badge and the ratio tile
+disagreeing; this is the same failure waiting for five more tiles. The two should be fixed in
+one pass: **the nav badge, the five tiles and the table's first row all derive from one zone
+array, or they will drift.**
+
+#### 6.6.5 The fixture shape, so gap 1 is a job and not a question
+
+One row per zone, six rows, from `DB.zones` and `docs/01-modules/11b-zones.md` §5:
+
+| Field | Type | Note |
+|---|---|---|
+| `id` | string | |
+| `name` | string | `Al Narjis` |
+| `city` | string | Every seeded zone is in Riyadh — which is **L-6**'s cause, and the fixture should keep it rather than hide it |
+| `demand` | integer | 30-day request count |
+| `supply` | integer | captains active in the zone |
+| `failures30d` | integer | |
+| `failureRate` | integer, **derived** | `round(failures30d ÷ demand × 100)` — `zoneFailRate` `:13974`. Derived, never stored (§8.2) |
+| `demandSupplyRatio` | number, **derived** | `demand ÷ supply`. `>= 3` is *starved* (`:14133`) |
+| `captainsNeeded` | integer, **derived** | |
+| `subMomentum` | number, **derived** | `zoneSubMomentum()` `:14041`–`:14056`, today against the trailing average |
+
+`supply` of `0` must be representable, and `demandSupplyRatio` must state what it renders when
+`supply === 0` rather than emitting `Infinity` into a `ratio`-unit tile — **R4-12** ruled that
+unit and this is its first real consumer.
+
+#### 6.6.6 What this changes in other documents
+
+| Document | Change |
+|---|---|
+| `05-metrics-content.md` **AC-652** | *"Zones renders three breakdowns"* → **"Zones renders no breakdown. Its three declared breakdowns are columns of the zone-health table (R4-6, R4-6b); a board breakdown duplicating the table below it is a defect."* Its **F-8** — *"nothing today"* — is answered: the destination is the table, and the table needs gap 1 and gap 2 |
+| `build/08-breakdowns-and-notices.md` §10 | Correct as written and stays. *"Do not ship"* was the right call; it now has a reason with an owner instead of reading as an unexplained absence |
+| `specs/00-foundation.md` §3.4 Management row 5 | Already amended by §6.3 above. Unchanged |
+
+**Nothing in wave 4 is reopened and nothing built is undone.** Market & Zones ships its strip
+today, exactly as it does now, and gains its table when gaps 1 and 2 close.
 
 ## 7. R4-7 · R15, the stadium, and the avatar
 

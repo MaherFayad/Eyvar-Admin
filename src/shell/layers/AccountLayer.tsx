@@ -29,7 +29,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import type { Session } from '@/data/types'
-import type { Translate } from '@/lib'
+import type { Language, Translator } from '@/lib'
+import { DeviceList } from '@/components/auth/DeviceList'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { ShellLayer } from '../ShellLayer'
@@ -40,14 +41,29 @@ export interface AccountLayerProps {
   session: Session | null
   status: 'loading' | 'error' | 'empty' | 'content'
   onRetry: () => void
-  t: Translate
+  /**
+   * `Translator`, not `Translate` — the device list's
+   * `Sign out everywhere` confirmation is a plural family
+   * (`auth.devices.signOutAllConfirm`, **AC-576**) and needs `.plural`.
+   */
+  t: Translator
+  /** For the device list's dates. See its header on why this is a prop. */
+  language: Language
 }
 
 /** §6.4's five sections, in order. Each expands IN PLACE; none opens a modal. */
 const SECTIONS = ['profile', 'password', 'twoFactor', 'sessions', 'permissions'] as const
 type SectionId = (typeof SECTIONS)[number]
 
-export function AccountLayer({ open, onClose, session, status, onRetry, t }: AccountLayerProps) {
+export function AccountLayer({
+  open,
+  onClose,
+  session,
+  status,
+  onRetry,
+  t,
+  language,
+}: AccountLayerProps) {
   /** Which section is in edit mode. `null` is the resting state. §5.5: never a modal. */
   const [editing, setEditing] = useState<SectionId | null>(null)
 
@@ -107,7 +123,18 @@ export function AccountLayer({ open, onClose, session, status, onRetry, t }: Acc
               </div>
               <Separator />
               <div className="p-3">
-                {section === 'permissions' ? (
+                {section === 'sessions' ? (
+                  /* Design/08 §9 — **the legacy read-only list at `:3005`–`:3033`
+                     made real.** Trusted-device markers, `Stop trusting`, a
+                     per-row `Sign out` whose confirmation expands **in place**
+                     (§5.5 forbids a modal nested in a no-scrim drawer — this is
+                     what replaces the native `confirm()` at `:3059`, **D-A9**),
+                     and `Sign out everywhere` naming the count before it acts
+                     (**AC-576**). All four states live inside the card, so a
+                     failed sessions read leaves the rest of this layer working
+                     (**AC-652**). */
+                  <DeviceList t={t} language={language} />
+                ) : section === 'permissions' ? (
                   /* §6.4 — the 13-permission summary. The ONE place an operator
                      sees their own effective permissions. Rendered from
                      `session.permissions`, never re-derived from the role. */

@@ -1,8 +1,8 @@
 /**
  * `EmptyState` (B-02) — design spec §11.1, **R8**, **AC-37**, **AC-38**.
  *
- * **`kind` is the load-bearing prop, and it is a two-value union on purpose.**
- * There are exactly two kinds of empty and choosing wrongly is a defect:
+ * **`kind` is the load-bearing prop, and it is a three-value union on purpose.**
+ * There are exactly three kinds of empty and choosing wrongly is a defect:
  *
  *   `first-run`  the whole page, **zero records ever**. Illustration ~160px,
  *                heading naming THE VALUE OF THE SECTION (never the absence of
@@ -11,11 +11,30 @@
  *   `no-match`   an empty card, section, timeline, or a list filtered to zero.
  *                **One grey sentence.** No illustration, no heading, and a
  *                plain-button action only where one genuinely exists.
+ *   `cleared`    **a work queue worked to zero.** `04-index-screen-redesign.md`
+ *                §10.5, `specs/02-work-queues.md` §4.7 **E1**. One heading, one
+ *                line, **no illustration and no action**.
  *
  * Filtered-to-zero is **never** `first-run`: the illustration implies the data
  * does not exist, which is a lie the operator will act on. `useIndexTable`
  * gives you the answer — `table.isFiltered` — so the choice is mechanical, not
  * a judgement call at the call site.
+ *
+ * **`cleared` is the third kind, and it is F-3.** `specs/02-work-queues.md`
+ * §4.7 raised it against this component: *"a queue that is genuinely clear
+ * therefore renders first-run — the exact wrong answer"*, and **AC-234 cannot
+ * pass without it**. A queue at zero is neither first-run (records have
+ * existed, continuously, and will again in a minute) nor no-match (nothing is
+ * narrowing). It is a **success**, and *"nobody creates a queue item"* — so the
+ * first-run treatment's implicit *"create the first one"* is a lie in the other
+ * direction. Q-36 forbids it by name.
+ *
+ * `isFiltered` cannot decide this one, which is exactly what F-3 said: an
+ * unfiltered zero is `cleared` on a queue and `first-run` on an index, and on
+ * Safety & Incidents — the one queue whose E3 is genuinely reachable (Q-37) —
+ * it is **both, on different days**. So `DataTable` grew an explicit
+ * `emptyKind` for the unfiltered branch and the call site decides. The filtered
+ * branch stays mechanical; nothing there needed changing.
  *
  * **shadcn's `empty` was deliberately not added** (0.4 R-1, upheld by
  * product-designer). It encodes one illustrated shape behind a slot API, which
@@ -41,7 +60,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-export type EmptyKind = 'first-run' | 'no-match'
+export type EmptyKind = 'first-run' | 'no-match' | 'cleared'
 
 export interface EmptyAction {
   label: string
@@ -89,7 +108,18 @@ interface FirstRunProps {
   body: string
   /** At least one. The type does not enforce "at least one"; the review does. */
   actions: EmptyAction[]
-  illustration?: ReactNode
+  /**
+   * The art above the heading. **`null` renders NONE** — omitting the prop
+   * takes the default, which is a different thing and is why this is not
+   * simply optional.
+   *
+   * Before this arm existed the render read `illustration ?? <Default/>`, so
+   * **no caller could opt out**: a first-run empty placed inside a card that
+   * already exists shipped art inside a card, which §R8 forbids. `card={false}`
+   * turned the frame off and had no say over the picture. The two are separate
+   * decisions and now have separate switches.
+   */
+  illustration?: ReactNode | null
   className?: string
 }
 
@@ -103,10 +133,51 @@ interface NoMatchProps {
   className?: string
 }
 
-export type EmptyStateProps = FirstRunProps | NoMatchProps
+/**
+ * **E1 — the queue is clear** (`specs/02-work-queues.md` §4.7,
+ * `04-index-screen-redesign.md` §10.5).
+ *
+ * A heading and one line. **No `actions` field at all, and no `illustration`**
+ * — the type forbids both rather than a review catching them, because the whole
+ * defect F-3 names is a state that offers the operator something to create.
+ */
+interface ClearedProps {
+  kind: 'cleared'
+  /** §4 — carded by default. Opt out only inside a card that already exists. */
+  card?: boolean
+  /**
+   * §4.7 E1: *"one sentence naming the scope that is clear"*. The heading names
+   * the outcome (`Nothing waiting`); `body` names the scope, per view.
+   */
+  heading: string
+  body: string
+  className?: string
+}
+
+export type EmptyStateProps = FirstRunProps | NoMatchProps | ClearedProps
 
 export function EmptyState(props: EmptyStateProps) {
   const carded = props.card ?? true
+
+  if (props.kind === 'cleared') {
+    const { heading, body, className } = props
+    const content = (
+      /* §10.5 — 180px block, no illustration, no action. The heading is 13/500
+         `--ev-ink` and the line beneath is 13/400 `--ev-text-2`: this is a
+         quieter register than `first-run`'s 15/600, deliberately, because a
+         cleared queue is not an event and must not read as one. */
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-1 px-3 py-18 text-center',
+          className,
+        )}
+      >
+        <p className="text-sm font-medium text-foreground">{heading}</p>
+        <p className="max-w-96 text-sm text-muted-foreground">{body}</p>
+      </div>
+    )
+    return carded ? <StateCard>{content}</StateCard> : content
+  }
 
   if (props.kind === 'no-match') {
     const { message, action, className } = props
@@ -145,7 +216,10 @@ export function EmptyState(props: EmptyStateProps) {
           have got a near-black block where the class was written to mean
           "muted brand". This is fix-list item 10's audit clause. */}
       <div className="w-36 text-muted-foreground">
-        {illustration ?? <DefaultIllustration />}
+        {/* `undefined` takes the default; `null` is an explicit refusal. A
+            nullish coalesce cannot tell those apart, which is the defect this
+            replaced. */}
+        {illustration === null ? null : (illustration ?? <DefaultIllustration />)}
       </div>
       <h3 className="text-base font-semibold text-foreground">{heading}</h3>
       {/* Constrained to 384px so the sentence keeps a readable measure. 96
@@ -173,7 +247,8 @@ export function EmptyState(props: EmptyStateProps) {
  * a cartoon. Every fill is a token, so it cannot introduce a colour.
  *
  * **Re-toned under D7, and the reason is a remap rather than taste.** It used
- * `fill-primary` for its accent bar and `fill-border` for the two quiet ones.
+ * the primary fill for its accent bar and the border fill for the two quiet
+ * ones. (Named, not spelled: a utility written in prose is emitted as a rule.)
  * `--primary` moved from brand blue to `--ev-ink`, which would have painted a
  * near-black bar in a "muted brand" illustration; `--border` moved two ramp
  * steps lighter to `#f0f2f4`, which is 1.12 : 1 on a white card and would have

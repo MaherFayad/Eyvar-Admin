@@ -67,7 +67,7 @@
  *               (**AC-71**).
  */
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getRouteTable } from '@/data/clients'
@@ -86,6 +86,13 @@ import { useRouteState, withOverlay } from './routeState'
 import { ProfileLayer } from './layers/ProfileLayer'
 import { NotificationsLayer } from './layers/NotificationsLayer'
 import { AccountLayer } from './layers/AccountLayer'
+import { OnboardingLayer } from '@/screens/onboarding'
+import { Banner } from '@/components/Banner'
+import { ReauthModal } from '@/components/auth/ReauthModal'
+import { SignOutDirtyDialog } from './SignOutDirtyDialog'
+import { FROZEN_REASON_ID } from '@/components/auth/AuthCredentialForm'
+import { useFocusCapture, useOnline } from '@/hooks'
+import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from './session'
 
 export function AppLayout() {
   const shell = useShell()
@@ -122,6 +129,97 @@ export function AppLayout() {
   )
 
   const closeLayer = useCallback(() => setLayer(null), [setLayer])
+
+  /**
+   * **AC-568** — explicit `Sign out` while dirty raises the
+   * `navigate-away-dirty` modal naming what will be lost, and **cancelling
+   * leaves the operator signed in and the form dirty**.
+   *
+   * Distinct from §8.3's confirmation inside the re-auth modal: there the
+   * session has **expired** and the console is frozen; here it is alive and
+   * nothing is frozen. *Only the operator discards their own work* — which is
+   * the whole rule, and it is why signing out cannot be allowed to take a dirty
+   * form with it silently.
+   */
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false)
+
+  const signOut = useCallback(() => {
+    setConfirmingSignOut(false)
+    shell.setSaveBar(null)
+    shell.session_lifecycle.signOut()
+    navigate('/signin', { replace: true })
+  }, [navigate, shell])
+
+  /* ── the session lifecycle's two routed halves (design/08 §8.1) ───────── */
+
+  const lifecycle = shell.session_lifecycle
+  const online = useOnline()
+  const { registerLayerCloser, registerCleanExpiry } = shell
+
+  /* §8.1 rule 5 — **entering `session-expired` closes every open shell layer
+     first**, because tier 3 may not composite over tier 2 (R4-3 §3.2): §5.0
+     forbids a modal nested in a drawer. *Form state is preserved; overlay state
+     is not*, and those are different things. Closing a layer is a navigation,
+     which the provider cannot do, so the provider is handed the closer. */
+  useEffect(() => {
+    registerLayerCloser(() => setLayer(null))
+  }, [registerLayerCloser, setLayer])
+
+  /* §8.1 branch 1 — a **clean** route redirects to `/signin` with the reason
+     named. There is nothing to lose, and a clean redirect is a clearer signal
+     than a modal over a page the operator was not editing. */
+  useEffect(() => {
+    registerCleanExpiry((reason: SessionExpiryReason) => {
+      navigate('/signin', { replace: true, state: { condition: endedCondition(reason) } })
+    })
+  }, [registerCleanExpiry, navigate])
+
+  /**
+   * **AC-565** — the element that had focus at freeze time is recorded and
+   * restored on success, with the scroll position untouched.
+   *
+   * `useFocusCapture`, not `useFocusEntry`, and the difference is the **phase**:
+   * this captures during **render**, before React commits the freeze and before
+   * the layer-closing effect above runs — each closing layer's own
+   * `useFocusEntry` restores focus to *its* opener and would otherwise be the
+   * last writer, so an effect-phase capture records the notifications button
+   * instead of the field the operator was in.
+   */
+  const focus = useFocusCapture({ captured: lifecycle.frozenReason !== null })
+
+  /**
+   * **AC-594 — DEFERRED, and the blocker is in the seam, not in this file.**
+   *
+   * The criterion is *"the layer opens automatically **exactly once**, on the
+   * first session of an account that **has never had onboarding state**. A
+   * second sign-in does not auto-open it."*
+   *
+   * **There is no signal that says "never had state".** `getOnboarding` creates
+   * a blank `OnboardingState` on its first read (`stateFor` writes into the
+   * store), and the shell's own read is that first read — so by the time any
+   * code could ask, the answer is always *"it has state, and the state is
+   * blank"*. `startedAt` is stamped at creation, not at first sight.
+   *
+   * The obvious heuristic — auto-open when nothing is completed, skipped or
+   * dismissed — **violates the second half of the criterion outright**: it
+   * re-opens on every sign-in, indefinitely, for an operator who has read the
+   * checklist and chosen to do nothing about it yet. That is a worse failure
+   * than not auto-opening, because it is the one behaviour §5.6's *"MUST NOT
+   * resurrect it"* clause is written against, and it would be invisible in a
+   * single-session test.
+   *
+   * So the layer does **not** auto-open. It is reachable from the account menu
+   * at all times (**AC-598**), which is the path **AC-613** tests, and the
+   * count advertises the outstanding work (**AC-599**). **Requested from
+   * mock-data-engineer: one field** — `autoOpenedAt: IsoDateTime | null` on
+   * `OnboardingState`, or `startedAt: null` until first *sight* rather than
+   * first read. Either makes this six lines, with no design or component
+   * change.
+   *
+   * **AC-593** (*"an operator activating from an invite reaches their landing
+   * route with the onboarding layer open"*) is deferred with it, and for the
+   * same reason.
+   */
 
   /**
    * §11.6 row 23 `language-switching` — **AC-70's only production call site.**
@@ -181,12 +279,49 @@ export function AppLayout() {
 
       {/* §4.2 — full viewport width, ABOVE everything including the rail. At
           most one, ever (**AC-40**); the merge is inside `ShellBanner`. */}
-      <ShellBanner
-        conditions={shell.conditions}
-        t={t}
-        onStopImpersonating={() => shell.setConditions({ impersonating: null })}
-        onEndCall={() => shell.setConditions({ call: null })}
-      />
+      {/* §8.6, deviation **A-1** — **the idle warning takes the shell slot
+          outright** instead of merging into a count, and restores what it
+          displaced when it resolves. Every other shell condition is indefinite;
+          this one has a **deadline** and a two-minute life, and folding a
+          deadline into `2 conditions need your attention.` destroys the only
+          information it carries — an operator who reads that and expands it has
+          spent fifteen of their hundred and twenty seconds.
+
+          **R10's invariant is untouched**: one banner renders, never two. What
+          is suspended is §5.2's *merge* clause, for one condition, for two
+          minutes, with automatic restoration. */}
+      {lifecycle.idleWarningMinutes !== null ? (
+        <Banner
+          variant="shell"
+          /* Ticks **per minute, not per second** — three renders, three polite
+             announcements. A per-second live region is unusable with a screen
+             reader, and a per-second visual tick on a standing banner is an
+             ambient loop R18 does not licence. It is **undismissable**: it
+             names a standing condition (00-shell §11.4's dismiss rule). */
+          banner={{
+            id: 'session-idle-warning',
+            tone: 'warning',
+            title:
+              lifecycle.idleWarningMinutes === 0
+                ? t('session.idleWarningSoon')
+                : t.plural('session.idleWarning', { minutes: lifecycle.idleWarningMinutes }),
+            /* **AC-559** — the banner appearing does not extend the session.
+               Only this does, and activating it removes the banner. */
+            actions: [{ label: t('session.staySignedIn'), onClick: lifecycle.staySignedIn }],
+          }}
+          /* **AC-558** — a banner, not a modal, no scrim, and it does not block
+             the page. `status`, not `alert`: it is a deadline, not a rejection,
+             and it announces politely three times. */
+          role="status"
+        />
+      ) : (
+        <ShellBanner
+          conditions={shell.conditions}
+          t={t}
+          onStopImpersonating={() => shell.setConditions({ impersonating: null })}
+          onEndCall={() => shell.setConditions({ call: null })}
+        />
+      )}
 
       <div className="flex min-h-0 flex-1">
         <ModuleRail
@@ -215,7 +350,22 @@ export function AppLayout() {
           {/* AC-51 — ONE slot, ONE of two bars, identical height. Nothing is
               stacked and nothing is positioned over anything. */}
           {shell.saveBar && shell.saveBar.status !== 'clean' ? (
-            <SaveBar model={shell.saveBar} t={t} />
+            <SaveBar
+              model={shell.saveBar}
+              t={t}
+              /* Two causes, one treatment (§8.1, §8.5). While the console is
+                 frozen the reason is the visually-hidden `session-expired`
+                 sentence every other inert control also points at; while a
+                 write permission has been revoked it is the page-level banner
+                 below. `Discard` stays enabled through both. */
+              blockedReasonId={
+                lifecycle.frozenReason !== null
+                  ? FROZEN_REASON_ID
+                  : shell.writeRevokedPermission !== null
+                    ? WRITE_REVOKED_BANNER_ID
+                    : null
+              }
+            />
           ) : (
             <TopBar
               route={route}
@@ -226,9 +376,19 @@ export function AppLayout() {
               onOpenEntity={(entityId) => setLayer('entity', entityId)}
               onOpenNotifications={() => setLayer('notifications', 'all')}
               onOpenAccount={() => setLayer('account', 'me')}
+              /* §10.4 — the permanent account-menu entry, and **AC-613**'s
+                 keyboard path into the layer. `?onboarding=1`: the value is the
+                 literal `1`, not an id. */
+              onOpenOnboarding={() => setLayer('onboarding', '1')}
               onOpenNotification={openNotificationTarget}
               onSwitchUser={() => navigate('/admin/team')}
-              onSignOut={() => navigate('/')}
+              onSignOut={() => {
+                /* Nothing dirty, nothing to confirm — a dialog that asks about
+                   work that does not exist is a dialog an operator learns to
+                   dismiss without reading. */
+                if (shell.saveBar && shell.saveBar.status !== 'clean') setConfirmingSignOut(true)
+                else signOut()
+              }}
               onSetLanguage={setLanguage}
               /* The rota is Admin › Team & Access's data. Until that sub-tab is
                  built the chip shows the gap, which is the state it exists for
@@ -261,7 +421,30 @@ export function AppLayout() {
                 action={{ label: t('state.shellError.action'), onClick: shell.retry }}
               />
             ) : (
-              <Outlet />
+              <>
+                {/* §8.5 `write-permission-revoked-while-dirty` — **one
+                    page-level `critical` banner** (R5a use #2), the first
+                    element of the content block, spanning main + rail. `Save`
+                    is disabled with this as its reason, `Discard` stays
+                    enabled, and the form's content stays on screen and
+                    **selectable** — `readOnly`, never `disabled` (**AC-586**).
+                    Never a silent drop, never a toast, never a redirect. */}
+                {shell.writeRevokedPermission !== null && (
+                  <div id={WRITE_REVOKED_BANNER_ID} className="p-page-pad pb-0">
+                    <Banner
+                      banner={{
+                        id: 'write-revoked',
+                        tone: 'critical',
+                        title: t('session.writeRevoked.title'),
+                        body: t('session.writeRevoked.body', {
+                          permission: shell.writeRevokedPermission,
+                        }),
+                      }}
+                    />
+                  </div>
+                )}
+                <Outlet />
+              </>
             )}
           </main>
         </div>
@@ -298,8 +481,74 @@ export function AppLayout() {
           status={shell.status}
           onRetry={shell.retry}
           t={t}
+          language={language}
+        />
+      )}
+      {/* §10 — the fourth layer. `?onboarding=1`, an overlay **param**, never a
+          route: browser Back closes it and stays put, and it does not consume a
+          navigation level. One layer at a time is enforced by `withOverlay`,
+          which deletes the other three params on every write (**AC-22**). */}
+      {route.overlay === 'onboarding' && <OnboardingLayer open onClose={closeLayer} t={t} />}
+
+      {/* **AC-568**. Dismissible, unlike the re-auth modal: the session is
+          alive, nothing is frozen, and cancelling is the safe outcome. */}
+      <SignOutDirtyDialog
+        open={confirmingSignOut}
+        entity={shell.saveBar?.entity ?? null}
+        t={t}
+        onCancel={() => setConfirmingSignOut(false)}
+        onConfirm={signOut}
+      />
+
+      {/* §8.1 rule 3 and **AC-563** — **one** visually-hidden reason element,
+          referenced by `aria-describedby` from every frozen control. One id,
+          one string, no per-control copy. A `title` attribute is hover-only and
+          fails the criterion outright, which is why this is a `<p>` and not an
+          attribute. */}
+      <p id={FROZEN_REASON_ID} className="sr-only">
+        {t('session.expiredReason')}
+      </p>
+
+      {/* §8.2 — the re-authentication modal. **A modal, not a fifth layer**
+          (R4-3): a no-scrim layer does not trap, so `Tab` would walk the
+          operator out of the only working control on screen into the frozen
+          console behind it. It has no route and no URL param. */}
+      {lifecycle.frozenReason !== null && (
+        <ReauthModal
+          open
+          t={t}
+          email={shell.session?.email ?? ''}
+          reason={lifecycle.frozenReason}
+          /* §8.3 — `{entity}` comes from the SaveBar's own dirty label, so the
+             two surfaces name the same object (`copy.md` rule 5). `null` means
+             nothing is dirty, and `Sign out` then needs no confirmation. */
+          dirtyEntity={shell.saveBar?.entity ?? null}
+          online={online}
+          onResumed={() => lifecycle.resumed()}
+          onSignOut={() => {
+            /* The console the operator was standing in is about to be torn
+               down, so the captured element is **released** rather than
+               restored — putting focus back into a screen that is unmounting is
+               worse than not. */
+            focus.release()
+            lifecycle.signOut()
+            navigate('/signin', { replace: true })
+          }}
         />
       )}
     </div>
   )
+}
+
+/**
+ * §8.5's banner id, so `Save` can point `aria-describedby` at the sentence that
+ * explains why it is disabled (**AC-666**: the surface names the permission).
+ */
+const WRITE_REVOKED_BANNER_ID = 'write-revoked-reason'
+
+/** §3.2 / **AC-560** — idle and absolute are visibly distinct reasons. */
+function endedCondition(reason: SessionExpiryReason) {
+  return reason === 'absolute'
+    ? ({ kind: 'session-ended-absolute' } as const)
+    : ({ kind: 'session-ended-idle', minutes: DEFAULT_IDLE_TIMEOUT_MINUTES } as const)
 }

@@ -74,6 +74,18 @@ export interface BannerProps {
   children?: ReactNode
   className?: string
   dismissLabel?: string
+  /**
+   * **AC-678** — `alert` when the banner announces a rejection or a failure,
+   * `status` when it is informational.
+   *
+   * `alert.tsx` hard-codes `role="alert"`, which is right for a standing
+   * condition that is *wrong* and wrong for one that is merely *true*: a screen
+   * reader interrupts whatever the operator was reading for an `alert`, and
+   * `Check your inbox` does not earn an interruption. Design/08 §2.3 asks for
+   * both, so the choice is exposed here and defaults to the existing behaviour
+   * — no existing call site moves.
+   */
+  role?: 'alert' | 'status'
 }
 
 export function Banner({
@@ -82,13 +94,17 @@ export function Banner({
   children,
   className,
   dismissLabel = 'Dismiss',
+  /* Defaulted HERE rather than left `undefined`: `Alert` sets `role="alert"`
+     and then spreads its props, so an explicit `role: undefined` would delete
+     the role entirely instead of falling through to the default. */
+  role = 'alert',
 }: BannerProps) {
   /* §11.4 — zero to TWO secondary buttons. Beyond two is a design question,
      not a runtime one, so the extra ones are dropped rather than wrapped. */
   const actions = (banner.actions ?? []).slice(0, 2)
 
   return (
-    <Alert tone={banner.tone} variant={variant} className={className}>
+    <Alert tone={banner.tone} variant={variant} className={className} role={role}>
       <BannerGlyph tone={banner.tone} />
       <AlertTitle>{banner.title}</AlertTitle>
       {banner.body && <AlertDescription>{banner.body}</AlertDescription>}

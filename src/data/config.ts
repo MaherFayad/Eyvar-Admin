@@ -155,6 +155,38 @@ export const mockFailures = {
  * Seed failures from `?mockFail=a,b,c`. Call once at boot, before the first
  * render, from the app entry point. No-op outside a browser and outside mock
  * mode — an injected failure in http mode would be a lie.
+ *
+ * ## The `:status` suffix — `?mockFail=auth.signIn:429`
+ *
+ * Requested by `specs/04-auth-and-onboarding.md` §10.4 and granted, because
+ * without it **§3.2's rate-limit copy is testable only in a unit test and never
+ * in the product**. `mockFailures.always(op, error)` has always accepted a
+ * custom `ApiError`, but only from a console — a QA engineer on a deployed
+ * preview build has no console, and neither does a Playwright visual test that
+ * must pin a state from the URL.
+ *
+ * The status maps through `kindForStatus` and `isRetryableStatus`, which
+ * already exist and are already what the http transport uses. So the injected
+ * error is the **same object shape** a real 429 or 401 would produce, rather
+ * than a 503 wearing a different number:
+ *
+ * ```
+ * ?mockFail=drivers.list                 503 · server       · retryable
+ * ?mockFail=auth.signIn:429              429 · rate-limited  · retryable
+ * ?mockFail=session.current:401          401 · unauthorized  · NOT retryable
+ * ?mockFail=payouts.pay:409,zones.list   one of each, comma-separated
+ * ```
+ *
+ * `retryable` is the field that matters and it is why this is not cosmetic: an
+ * `ErrorState` offers `Try again` on a retryable error and does not on a 401 or
+ * a 403. A 503 standing in for a 401 shows the wrong control.
+ *
+ * **A malformed suffix is ignored rather than guessed** — `foo:abc` and
+ * `foo:99` fall back to the default 503 and the operation still fails, because
+ * the point of the URL form is to reach an error state and silently reaching no
+ * state at all would be the worse failure.
+ *
+ * Returns the operation ids that were seeded, suffix stripped.
  */
 export function seedMockFailuresFromLocation(search?: string): string[] {
   if (DATA_SOURCE !== 'mock') return []
@@ -162,12 +194,38 @@ export function seedMockFailuresFromLocation(search?: string): string[] {
   if (!raw) return []
   const value = new URLSearchParams(raw).get('mockFail')
   if (!value) return []
-  const ops = value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  ops.forEach((op) => mockFailures.always(op))
+  const ops: string[] = []
+  for (const entry of value.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const [op, rawStatus] = splitStatus(entry)
+    if (!op) continue
+    mockFailures.always(op, rawStatus === null ? undefined : injectedErrorWithStatus(op, rawStatus))
+    ops.push(op)
+  }
   return ops
+}
+
+/** `auth.signIn:429` → `['auth.signIn', 429]`. Anything unparseable → `[op, null]`. */
+function splitStatus(entry: string): [string, number | null] {
+  const colon = entry.lastIndexOf(':')
+  if (colon <= 0) return [entry, null]
+  const op = entry.slice(0, colon)
+  const status = Number(entry.slice(colon + 1))
+  if (!Number.isInteger(status) || status < 100 || status > 599) return [entry, null]
+  return [op, status]
+}
+
+/**
+ * The same `ApiError` a real response of that status would produce — `kind`,
+ * `code` and `retryable` all derived, never hand-set, so the injected failure
+ * and the real one cannot diverge.
+ */
+export function injectedErrorWithStatus(operation: string, status: number): ApiError {
+  return new ApiError({
+    status,
+    code: 'mock_injected_failure',
+    message: `Injected ${status} failure for "${operation}"`,
+    requestId: `mock-${operation}`,
+  })
 }
 
 /**

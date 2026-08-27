@@ -25,6 +25,7 @@ export type {
   Halalas,
   IsoDate,
   IsoDateTime,
+  LocalisedText,
   Money,
   NavBadgeTone,
   Paginated,
@@ -109,7 +110,7 @@ export type {
 
 export { COMPLIANCE_DOC_TYPES } from './driver'
 
-export type { ChurnRisk, NewRider, Rider, RiderStatus, RiderTier, WalletTransaction } from './rider'
+export type { ChurnRisk, NewRider, Rider, RiderStatus, RiderTier } from './rider'
 
 export type { Applicant, ApplicantDoc, ApplicantDocStatus, ApplicantStatus } from './applicant'
 
@@ -174,13 +175,23 @@ export { WORK_QUEUE_ROUTE, WORK_ROUTING } from './work'
 /* ── wave 4: metric tiles and chart cards ────────────────────────────── */
 
 export type {
+  /* R5-11. The closed union of stores a measure may be waiting on. A closed
+     union and not `string | null`, because a free string can be a placeholder
+     and pass — `breakdown.row.entity`'s exact failure mode. */
+  AwaitedStore,
   BoardNotice,
   BoardNoticeTone,
+  /* R5-7. A row label is a key or an entity name and the two are different
+     things in the type — `BreakdownList` branches on it to fix V-4. */
+  BreakdownLabel,
   DailySnapshot,
   Metric,
   MetricBoard,
   MetricBreakdown,
   MetricBreakdownRow,
+  /* R5-9 §20.2. Three fields that exist only together, so one nullable object
+     rather than two independent nullables. */
+  MetricCaveat,
   MetricCategory,
   MetricComparison,
   MetricDirection,
@@ -189,4 +200,177 @@ export type {
   SeriesPoint,
   SeriesWindow,
   TimeSeries,
+  /* R5-1. Exported although nothing imports it yet: a public union with no
+     barrel entry is the next agent's blocked build, and this one already cost
+     a round trip once. */
+  ValueAbsenceReason,
 } from './metrics'
+
+/* ── wave 3: the ledger model and the seven Financials sub-tabs ──────── */
+
+export type {
+  AccountDefinition,
+  AccountKey,
+  AccountLine,
+  AccountType,
+  IdempotencyStats,
+  JournalEntry,
+  Ledger,
+  LedgerPosting,
+  NormalSide,
+  PostingDirection,
+  PostingKind,
+  PostingSourceType,
+  ReconciliationRow,
+  RefusedPosting,
+  SettlementState,
+  TrialBalance,
+  TrialBalanceRow,
+} from './ledger'
+
+export {
+  ACCOUNT_KEYS,
+  CHART_OF_ACCOUNTS,
+  PENDING_SETTLEMENTS,
+  SETTLEMENT_BADGE_TONE,
+  accountDefinition,
+  isPendingSettlement,
+} from './ledger'
+
+export type {
+  AuthorityCheck,
+  CaptainDebt,
+  CaptainPayout,
+  CashClassification,
+  CashReport,
+  CashReportStatus,
+  CreditNote,
+  Deduction,
+  DeductionState,
+  EscrowHold,
+  FinancialsOverview,
+  FinancialsPeriod,
+  InvoiceSequence,
+  PaymentGateway,
+  PayoutState,
+  Refund,
+  RefundDestination,
+  RevenueByPlanRow,
+  VatConfig,
+  WalletSummary,
+} from './financials'
+
+export type {
+  CancellationRule,
+  DerivedFieldDefinition,
+  PlanFeature,
+  PlanStatus,
+  QuickRideCancellationRule,
+  QuickRideType,
+  RateCard,
+  RateCardClass,
+  RateCardSimulation,
+  RateCardStatus,
+  SubscriptionCancellationRule,
+  SubscriptionPlan,
+  SurgeSuspension,
+  SurgeWindow,
+} from './pricing'
+
+export {
+  PLAN_EXAMPLE_INPUTS,
+  PLAN_PRICING_DEFINITIONS,
+  PLAN_PRICING_INPUT_IDS,
+  SURGE_SUSPENSION_MAX_HOURS,
+} from './pricing'
+
+export type { AuditAction, AuditEntry } from './audit'
+
+export type {
+  AuthIdentity,
+  AuthIdentityOutcome,
+  DeviceSession,
+  ReauthenticateInput,
+  ReauthenticateOutcome,
+  RequestPasswordResetOutcome,
+  ResendCodeOutcome,
+  ResetPasswordOutcome,
+  SecondFactor,
+  SignInFailureReason,
+  SignInOutcome,
+  TokenState,
+  TotpEnrolment,
+  ValidateTokenOutcome,
+  VerifyCodeOutcome,
+  VerifyFailureReason,
+} from './auth'
+
+export type {
+  OnboardingChecklist,
+  OnboardingCompletion,
+  OnboardingDestination,
+  OnboardingState,
+  OnboardingStep,
+  OnboardingTracks,
+} from './onboarding'
+
+export type { RecruitmentPriority, Zone, ZoneHealthSummary, ZoneSteerOffer } from './zone'
+export { HEALTHY_DEMAND_PER_CAPTAIN, RECRUITMENT_PRIORITY_TONE, STARVED_RATIO } from './zone'
+
+/* ── the report builder's semantic layer (06-report-builder.md, D13) ──── */
+
+export type {
+  BucketAggregate,
+  Dimension,
+  DimensionKey,
+  DimensionRef,
+  Measure,
+  MeasureCoverage,
+  MeasureGrain,
+  MeasureKey,
+  MeasurePairRefusal,
+  MeasurePopulation,
+  Temporality,
+} from './measure'
+
+export { GRAIN_RANK, pairRefusal, pairableWith } from './measure'
+
+export type {
+  AlertCadence,
+  AlertComparator,
+  AlertEvaluation,
+  AlertFiring,
+  AlertRule,
+  AlertState,
+  ChartType,
+  Dashboard,
+  DashboardTile,
+  DeleteReportOutcome,
+  MeasureRef,
+  OptionLegality,
+  PeriodComparison,
+  QueryPlan,
+  QueryViolation,
+  QueryViolationCode,
+  ReportCsv,
+  ReportCsvHeader,
+  ReportCsvRow,
+  ReportGrain,
+  ReportPanel,
+  ReportPreset,
+  ReportQuery,
+  ReportResult,
+  ReportSeries,
+  ReportVisibility,
+  ReportWarning,
+  ReportWindow,
+  RunReportOutcome,
+  SaveAlertOutcome,
+  SaveDashboardOutcome,
+  SaveInvalid,
+  SaveInvalidReason,
+  SaveReportOutcome,
+  SavedReport,
+} from './report'
+
+export { REPORT_NAME_MAX } from './report'

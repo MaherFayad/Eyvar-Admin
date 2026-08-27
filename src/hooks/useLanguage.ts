@@ -30,7 +30,7 @@ import {
   isLanguage,
   localeFor,
 } from '@/lib/i18n/direction'
-import { createTranslator, type Dictionary, type Translate } from '@/lib/i18n/translate'
+import { createTranslator, type Dictionary, type Translator } from '@/lib/i18n/translate'
 import { defaultUiStore, UI_STATE_KEYS, type UiStateStore } from '@/lib/persistence'
 
 export interface LanguageState {
@@ -40,7 +40,12 @@ export interface LanguageState {
   /** The one locale string for every `Intl` call: `ar-SA-u-ca-gregory-nu-latn`. */
   locale: string
   setLanguage: (language: Language) => void
-  t: Translate
+  /**
+   * `Translator`, not `Translate` — it carries `.plural` (AC-670 / AC-671).
+   * A component that only renders strings may keep declaring `t: Translate`;
+   * a `Translator` is assignable to it.
+   */
+  t: Translator
 }
 
 export interface UseLanguageStateOptions {
@@ -102,6 +107,10 @@ export function useLanguageState(options: UseLanguageStateOptions): LanguageStat
         // English is the fallback for every language, including itself.
         // AC-74: an empty Arabic dictionary shows English, never a raw key.
         fallback: dictionaries.en,
+        // Plural selection needs to know which locale's CLDR table to read.
+        // Arabic has six cardinal forms; English has two.
+        language,
+        fallbackLanguage: 'en',
       }),
     [dictionaries, language],
   )

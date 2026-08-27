@@ -9,11 +9,14 @@
  *
  * Rules applied
  *   §4.4/§10.4 VALIDATION IS THREE LAYERS AND ALL THREE ARE REQUIRED.
- *              (1) Inline field error - 1px `--ev-red` border AND `--ev-red-lt`
- *                  fill AND a 12px `--ev-red` message with a leading filled
- *                  circle-exclamation glyph, INSERTED below the field, replacing
- *                  nothing. Never colour alone. The label above keeps its normal
- *                  colour.
+ *              (1) Inline field error - 1px `--ev-red` border AND a 12px
+ *                  `--ev-red` message with a leading filled circle-exclamation
+ *                  glyph, INSERTED below the field, replacing nothing. Never
+ *                  colour alone. The label above keeps its normal colour.
+ *                  NO FILL, DELIBERATELY - see `input.tsx` and §6.2 D-14. The
+ *                  clause as originally written demanded an `--ev-red-lt` fill
+ *                  here, which would be the SAME plate as layer (2) below, so
+ *                  the summary and the items it summarises would be one surface.
  *              (2) ONE page-level critical banner, the first element of the
  *                  content block, stating the COUNT and listing each blocking
  *                  item. A PALE TINTED CARD (R1/R16), not a saturated red strip.

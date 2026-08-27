@@ -206,7 +206,32 @@ export async function getSafetyIncident(id: string, signal?: AbortSignal): Promi
 /**
  * POST /api/v1/incidents/:id/claim
  *   body: { takeOver?: boolean }  ·  409 when another operator holds it
- *   -> SafetyIncident
+ *   -> SafetyIncident   (with `firstResponseAt` stamped, if it was not already)
+ *
+ * ## **Claiming IS the acknowledgement — AC-305**
+ *
+ * This endpoint used to set `claim` and nothing else, and the criterion failed
+ * *here*, in the client, rather than on the screen: an incident could be
+ * claimed, worked and closed while the acknowledgement clock still read as never
+ * answered. Safety carries two independent clocks (`firstResponseDueAt` and
+ * `slaDueAt`) and this is the one that makes the first of them mean anything.
+ *
+ * The protocol's first tick already stamped a response (`setSafetyProtocolStep`
+ * below), which was the right rule applied one step too late: an operator who
+ * claims an SOS at 09:14 and reaches the rider before opening the checklist had
+ * responded, and the queue said otherwise.
+ *
+ * > **Stamped only when `firstResponseAt` is null. Never overwritten.**
+ *
+ * A claim released and re-taken must not reset it. First response is *first*;
+ * a stamp that moved would measure the last handler's arrival instead of the
+ * response, which is the number a regulator and a post-incident review both
+ * ask for. `takeOver` is the case that proves it — a supervisor seizing the
+ * incident half an hour in does not un-answer the phone.
+ *
+ * `firstResponseBreachedAt` clears on the same terms as the protocol path: the
+ * *response* breach ends when someone responds, and the resolve clock's
+ * `slaBreachedAt` is untouched, because answering is not resolving.
  */
 export async function claimSafetyIncident(
   id: string,
@@ -219,7 +244,13 @@ export async function claimSafetyIncident(
   return mockMutation(SAFETY_OPERATIONS.claim, signal, () => {
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
-    return { ...row, claim: nextClaim('incident', id, row.claim, opts.takeOver) }
+    const respondingNow = row.firstResponseAt === null
+    return {
+      ...row,
+      claim: nextClaim('incident', id, row.claim, opts.takeOver),
+      firstResponseAt: respondingNow ? EYVAR_NOW : row.firstResponseAt,
+      firstResponseBreachedAt: respondingNow ? null : row.firstResponseBreachedAt,
+    }
   })
 }
 

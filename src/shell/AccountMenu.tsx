@@ -60,6 +60,23 @@ export interface AccountMenuProps {
   onOpenMyProfile: () => void
   onSwitchUser: () => void
   onSignOut: () => void
+  /**
+   * §10.4's account-menu entry — **present at all times, for every role**
+   * (**AC-598**), and the keyboard path into the layer (**AC-613**).
+   */
+  onOpenOnboarding: () => void
+  /**
+   * `{done} / {total}` while the track is incomplete **and** undismissed;
+   * **no indicator otherwise** (**AC-599**). `null` covers three different
+   * situations that all render the same way — dismissed, complete, and not yet
+   * loaded — because the menu's job is to advertise outstanding work and there
+   * is none in any of the three.
+   *
+   * This is also where **AC-612**'s decision lands: an auto-completed step
+   * produces **no toast**. The standing signal is this count, which is where
+   * R10 routes a standing condition.
+   */
+  onboardingProgress: { done: number; total: number } | null
 }
 
 /** §9.1 — the two the product ships. Ordered `en` first, matching §14's default. */
@@ -73,6 +90,8 @@ export function AccountMenu({
   onOpenMyProfile,
   onSwitchUser,
   onSignOut,
+  onOpenOnboarding,
+  onboardingProgress,
 }: AccountMenuProps) {
   const name = session?.name ?? ''
 
@@ -96,6 +115,18 @@ export function AccountMenu({
           <span className="text-xs font-normal text-muted-foreground">{session?.role ?? ''}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {/* §10.4 — **permanent, for every role**, above `My profile` exactly as
+            the design's menu sketch has it. The count sits at the inline-end,
+            12px `--ev-text-2`, and disappears when there is nothing outstanding
+            (**AC-599**) rather than reading `7 / 7`. */}
+        <DropdownMenuItem onSelect={onOpenOnboarding}>
+          {t('onboarding.menuEntry')}
+          {onboardingProgress !== null && (
+            <span className="ms-auto text-xs text-muted-foreground">
+              {t('onboarding.menuCount', onboardingProgress)}
+            </span>
+          )}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onOpenMyProfile}>{t('shell.account.myProfile')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={onSwitchUser}>{t('shell.account.switchUser')}</DropdownMenuItem>
 

@@ -25,7 +25,7 @@ export const teamUserFixtures: TeamUser[] = [
     role: 'Owner',
     lastLoginAt: '2026-06-25T09:00:00+03:00',
     status: 'Active',
-    twoFactorEnabled: true,
+    secondFactor: { method: 'totp', hint: 'Authenticator app' },
     /* All 13 keys. Also the only holder of `manage_settings`, which gates 39 of
        131 guards — the bus factor of one named in §11.3 item 2. */
     permissions: [
@@ -54,9 +54,11 @@ export const teamUserFixtures: TeamUser[] = [
     role: 'Finance',
     lastLoginAt: '2026-06-25T08:45:00+03:00',
     status: 'Active',
-    /* Finance, moving real money, with 2FA off. That is the fixture that makes
-       the security pane's warning state reachable without hand-editing. */
-    twoFactorEnabled: false,
+    /* Finance, moving real money, with **no second factor enrolled**. Under
+       spec §4.2 that is no longer a warning badge beside a toggle — it is a
+       mandatory enrolment at the next sign-in (`signin-enroll`, §4.4), and this
+       is the row that makes that screen reachable. */
+    secondFactor: null,
     permissions: ['process_payouts', 'release_escrow', 'apply_deductions', 'view_finance', 'view_profiles'],
     compensationCapHalalas: 500_00,
   },
@@ -69,7 +71,11 @@ export const teamUserFixtures: TeamUser[] = [
     role: 'Support',
     lastLoginAt: '2026-06-24T00:00:00+03:00',
     status: 'Active',
-    twoFactorEnabled: false,
+    /* `twoFA: false` at `:2835`, kept: **no second factor enrolled.** Three of
+       the five operators are in this state, which is what
+       `admin.overview.operatorsWithoutTwoFactor` counts — and under spec §4.2
+       it is no longer a badge beside a toggle but a mandatory enrolment. */
+    secondFactor: null,
     /* Three permissions. §13.1 R5: not equipped for a suspension decision,
        which is why Safety & Incidents write actions stay Ops-Manager-gated. */
     permissions: ['manage_tickets', 'view_profiles', 'contact_users'],
@@ -85,7 +91,8 @@ export const teamUserFixtures: TeamUser[] = [
     /* Invited, never logged in — the `null` case for every "last seen" column. */
     lastLoginAt: null,
     status: 'Invited',
-    twoFactorEnabled: false,
+    /* Never activated, so never enrolled. */
+    secondFactor: null,
     permissions: ['manage_tickets', 'view_profiles', 'contact_users'],
     compensationCapHalalas: 100_00,
   },
@@ -98,7 +105,7 @@ export const teamUserFixtures: TeamUser[] = [
     role: 'Ops Manager',
     lastLoginAt: '2026-06-25T08:10:00+03:00',
     status: 'Active',
-    twoFactorEnabled: true,
+    secondFactor: { method: 'sms', hint: '••••••62' },
     permissions: [
       'approve_drivers',
       'manage_subscriptions',

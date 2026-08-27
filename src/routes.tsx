@@ -51,19 +51,63 @@
  */
 
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { METRIC_BOARD_SUB_TABS, getRouteTable } from '@/data/clients'
-import type { SubTabRoute } from '@/data/types'
+import type { DetailRoute, SubTabRoute } from '@/data/types'
 import { AppLayout } from '@/shell/AppLayout'
 import { useShell } from '@/shell/ShellContext'
 import { forbiddenReason } from '@/shell/permissions'
+import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from '@/shell/session'
+import type { AuthCondition } from '@/components/auth/authContract'
 import { SubTabScreen } from '@/screens/SubTabScreen'
 import { PeopleScreen } from '@/screens/operations/people'
+/* Wave 2 — the five §8.4 work queues. Five sub-tabs, two workspaces, one
+   shared contract (`specs/02-work-queues.md` §4, `src/screens/queues/`). */
+import { RequestsScreen } from '@/screens/operations/requests'
+import { AssuranceScreen } from '@/screens/operations/assurance'
+import { MyWorkScreen } from '@/screens/operations/my-work'
+import { SafetyScreen } from '@/screens/support/safety'
+import { FairnessScreen } from '@/screens/support/fairness'
 /* Wave 4 — ONE screen for all eight §3.7 metric-tile sub-tabs. */
 import { MetricBoardScreen } from '@/screens/metrics'
+/* Wave 3 — the seven Financials sub-tabs and the one full-bleed editor. */
+import {
+  CashScreen,
+  LedgerControlsScreen,
+  OverviewScreen as FinancialsOverviewScreen,
+  PayoutsScreen,
+  PlanEditorScreen as FinancialsPlanEditorScreen,
+  PricingScreen,
+  RevenueScreen,
+  WalletsScreen,
+} from '@/screens/financials'
+/* R4-6b — Market & Zones is a P1 table with a P5 strip above it, and the strip
+   filters the table. It is in `METRIC_BOARD_SUB_TABS` because the board half is
+   real; the ruling makes the TABLE primary, so this screen renders both and the
+   board screen does not mount here. */
+import { ZonesScreen } from '@/screens/management/zones'
+/* Wave 6 — the Report Builder (`specs/06-report-builder.md`, D13).
+   **This mount point is deliberately unreachable today.** See `screenFor`. */
+import {
+  DashboardDetailScreen,
+  REPORTS_SUB_TAB_ID,
+  ReportsScreen,
+  SavedReportScreen,
+} from '@/screens/reports'
 import { ForbiddenScreen, NotFoundScreen } from '@/screens/RouteStates'
-import { PlanEditorScreen } from '@/screens/PlanEditorScreen'
 import { EntityPageScreen } from '@/screens/EntityPageScreen'
+/* Wave 5 — the six auth screens. **Siblings of the layout, never children**:
+   AC-500 requires that no rail, no sub-tab column and no top bar is IN THE
+   DOM, and a `hidden` class would leave all three in it. Same structural
+   argument as the plan editor's `bleed` route (AC-13). */
+import {
+  ActivateScreen,
+  EnrollScreen,
+  ForgotPasswordScreen,
+  ResetPasswordScreen,
+  SignInScreen,
+  VerifyScreen,
+} from '@/screens/auth'
 
 export function AppRoutes() {
   const table = getRouteTable()
@@ -79,9 +123,20 @@ export function AppRoutes() {
   return (
     <Routes>
       {bleedRoutes.map((detail) => (
-        <Route key={detail.path} path={detail.path} element={<PlanEditorScreen />} />
+        <Route key={detail.path} path={detail.path} element={<FinancialsPlanEditorScreen />} />
       ))}
 
+      {/* **AC-658** — the six auth screens require no permission and are
+          reachable while unauthenticated. They are also the only routes in the
+          product that are, which is why they sit outside `RequireSession`. */}
+      <Route path="/signin" element={<SignInScreen />} />
+      <Route path="/signin/verify" element={<VerifyScreen />} />
+      <Route path="/signin/enroll" element={<EnrollScreen />} />
+      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+      <Route path="/reset-password" element={<ResetPasswordScreen />} />
+      <Route path="/activate" element={<ActivateScreen />} />
+
+      <Route element={<RequireSession />}>
       <Route element={<AppLayout />}>
         {/* AC-07 — the landing route is ROLE-derived. `replace`, because the
             bare `/` is not a destination an operator should be able to go back
@@ -110,9 +165,7 @@ export function AppRoutes() {
                   /* A detail inherits its PARENT sub-tab's permission — the
                      route table has no separate key for one, and a detail the
                      role cannot see is a sub-tab the role cannot see. */
-                  <RouteGuard row={row}>
-                    <SubTabScreen row={row} />
-                  </RouteGuard>
+                  <RouteGuard row={row}>{detailScreenFor(row, detail)}</RouteGuard>
                 }
               />
             )),
@@ -125,8 +178,77 @@ export function AppRoutes() {
         {/* AC-12 — NOT a redirect. Shell intact, URL untouched. */}
         <Route path="*" element={<NotFoundScreen />} />
       </Route>
+      </Route>
     </Routes>
   )
+}
+
+/**
+ * **AC-501** — *"an operator who is not authenticated and opens any in-app
+ * route is sent to `/signin`, and after a successful sign-in lands on **the
+ * route they originally asked for**, not on `session.landingRoute`."*
+ *
+ * The route they asked for travels in `location.state.from` — never in a query
+ * parameter, and it is **never rendered on the sign-in card**. Design §3.1:
+ * *"the redirect target is an attacker-controllable URL parameter, and
+ * rendering its title on an unauthenticated page is a text-injection surface
+ * bought for no operator benefit."*
+ *
+ * ## Why the default is `authenticated`
+ *
+ * `GET /session` succeeds in mock mode, which models *"the server read the auth
+ * cookie and it was valid"*. So an operator opening the console has a session,
+ * exactly as they would against a real API, and this guard is a **pass-through
+ * until something ends the session** — a sign-out, an idle expiry, or an
+ * absolute expiry.
+ *
+ * That is not a weaker guard than the alternative; it is the honest one. A
+ * default of `signed-out` would assert that the mock server rejected a cookie
+ * it did not reject, and it would make every existing shell test navigate a
+ * sign-in form that has nothing to do with what it is testing. **AC-502**,
+ * **AC-575** and **AC-658** are all reachable and checkable against this shape;
+ * only the cold-boot-unauthenticated case is not, and it has no fixture behind
+ * it either way.
+ *
+ * `replace`, because the route the operator could not reach is not somewhere
+ * browser Back should return them to — it would bounce them straight here
+ * again.
+ */
+function RequireSession() {
+  const shell = useShell()
+  const location = useLocation()
+  if (shell.session_lifecycle.status === 'authenticated') return <Outlet />
+  return (
+    <Navigate
+      to="/signin"
+      replace
+      state={{
+        from: location.pathname + location.search,
+        /* §3.2 — the card names WHY the session ended: `Your session ended` /
+           `You were inactive for {duration}` for idle, and `Your session
+           reached its 12-hour limit` for absolute (**AC-560**). Nothing at all
+           for a deliberate sign-out, because nothing went wrong. */
+        condition: conditionForEndedSession(shell.session_lifecycle.endedReason),
+      }}
+    />
+  )
+}
+
+/**
+ * `SessionExpiryReason | null` → the `/signin` card's arrival banner.
+ *
+ * **The idle reason carries the configured timeout, not a measured elapsed
+ * time.** `You were inactive for {minutes} minutes.` is a statement about the
+ * policy that ended the session, and the policy is the number the operator can
+ * act on — the exact number of minutes they were away is both unknowable from
+ * here and useless to them.
+ */
+function conditionForEndedSession(reason: SessionExpiryReason | null): AuthCondition | undefined {
+  if (reason === 'absolute') return { kind: 'session-ended-absolute' }
+  if (reason === 'idle') {
+    return { kind: 'session-ended-idle', minutes: DEFAULT_IDLE_TIMEOUT_MINUTES }
+  }
+  return undefined
 }
 
 /**
@@ -163,7 +285,54 @@ function RouteGuard({ row, children }: { row: SubTabRoute; children: ReactNode }
  * path, its permission and its shape all still come from the route table.
  */
 function screenFor(row: SubTabRoute) {
+  /* **Wave 6 — the Report Builder, and the one entry here that is currently
+     unreachable.**
+
+     `specs/06-report-builder.md` §5.1 puts it at `management-reports`,
+     Management order 6 — which makes **35 sub-tabs where D1 says 34**. The spec
+     is explicit that this *"is a D1 amendment and must be recorded as one in
+     `DECISIONS.md` before the route table is edited"*, and **Q-RB-1 is the
+     business owner's and is unanswered**. There is a live proposal (D15) that
+     would move the count in the other direction, so guessing is worse than
+     waiting.
+
+     So the screens are built and registered, and the route table carries no row
+     for them. This branch never fires today. The day the row lands the sub-tab
+     appears with no change to this file — which is the same rule §11.3 applies
+     to permissions, and the reason registering a screen is one line. **AC-800
+     and AC-806 are BLOCKED, not passing.** */
+  if (row.subTabId === REPORTS_SUB_TAB_ID) return <ReportsScreen row={row} />
+
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
+
+  /* Wave 2 — the five work queues (`specs/02-work-queues.md`). Each is its own
+     screen because each has its own dispositions and its own column sets; what
+     they share is `src/screens/queues/`, not a component here. */
+  if (row.subTabId === 'operations-requests') return <RequestsScreen row={row} />
+  if (row.subTabId === 'operations-assurance') return <AssuranceScreen row={row} />
+  if (row.subTabId === 'operations-my-work') return <MyWorkScreen row={row} />
+  if (row.subTabId === 'support-safety') return <SafetyScreen row={row} />
+  if (row.subTabId === 'support-fairness') return <FairnessScreen row={row} />
+
+  /* Wave 3 — Financials. Seven sub-tabs, seven screens: each carries its own
+     views, its own dispositions and its own money rules, and what they share is
+     `src/screens/financials/shared/`, not a branch here. */
+  if (row.subTabId === 'financials-overview') return <FinancialsOverviewScreen row={row} />
+  if (row.subTabId === 'financials-revenue') return <RevenueScreen row={row} />
+  if (row.subTabId === 'financials-payouts') return <PayoutsScreen row={row} />
+  if (row.subTabId === 'financials-cash') return <CashScreen row={row} />
+  if (row.subTabId === 'financials-rider-wallets') return <WalletsScreen row={row} />
+  if (row.subTabId === 'financials-pricing') return <PricingScreen row={row} />
+  if (row.subTabId === 'financials-ledger') return <LedgerControlsScreen row={row} />
+
+  /* **R4-6 / R4-6b — Market & Zones is BOTH, and the table is primary.**
+     `management-zones` is in `METRIC_BOARD_SUB_TABS` and the branch below would
+     otherwise mount the board alone, which is the half that cannot act: the
+     rows carry `Steer drivers` and `Queue recruitment`, and a per-row
+     permission key (`zones.steer`, `:14004`) is a table's, never a board's.
+     This screen renders the strip AND the table, with the strip's tiles
+     filtering the table rather than linking away from it. */
+  if (row.subTabId === 'management-zones') return <ZonesScreen row={row} />
 
   /* Wave 4 — the §3.7 metric-tile sub-tabs, mounted FROM THE DATA rather than
      from a list here. `METRIC_BOARD_SUB_TABS` is the data layer's own answer to
@@ -179,6 +348,31 @@ function screenFor(row: SubTabRoute) {
     return <MetricBoardScreen row={row} />
   }
 
+  return <SubTabScreen row={row} />
+}
+
+/**
+ * A level-3 detail's screen. Same registry rule as `screenFor`, one level down.
+ *
+ * Almost every detail still renders its parent sub-tab's screen in detail shape
+ * until Phase 1 replaces it, so the default is unchanged. The Report Builder is
+ * the first to need two distinct details under one sub-tab — a report and a
+ * dashboard — and it distinguishes them by the route's own `paramName`, not by
+ * `DetailRoute.kind`.
+ *
+ * **That is deliberate.** `kind` is a closed union in `src/data/types/navigation.ts`
+ * and the two values this module needs (`'report'`, `'dashboard'`) are
+ * mock-data-engineer's change to make, in the same commit as the route-table row
+ * Q-RB-1 is blocking. Branching on `paramName` keeps this file honest in the
+ * meantime instead of widening someone else's type from here.
+ *
+ * Like `screenFor`'s first branch, neither arm is reachable today.
+ */
+function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
+  if (row.subTabId === REPORTS_SUB_TAB_ID) {
+    if (detail.paramName === 'dashboardId') return <DashboardDetailScreen />
+    return <SavedReportScreen row={row} />
+  }
   return <SubTabScreen row={row} />
 }
 

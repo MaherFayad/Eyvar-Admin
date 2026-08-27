@@ -69,6 +69,93 @@
  * window. Fifteen and fifteen is the largest symmetric pair this data supports
  * and it uses all thirty rows. Recorded rather than papered over.
  *
+ * ## Five tiles left this file — R5-1 / R4-11 §11.2
+ *
+ * **A tile with no store behind it does not render.** Not an em-dash, not a
+ * skeleton, not a *coming soon*: an em-dash is a claim that the number exists
+ * somewhere. Eight tiles carried `value: null` with nothing derived behind
+ * them; sorting them by that test removed five and left three, each of which
+ * now states why on the line where its delta would be.
+ *
+ * | Removed | Board | The store it waits on |
+ * |---|---|---|
+ * | `support.overview.ticketsBreaching` | Support › Overview | a ticket store |
+ * | `support.overview.promiseKept` | Support › Overview | the same ticket store |
+ * | `admin.overview.integrityOrphans` | Admin › Overview | a per-entity payments ledger **and** a data window |
+ * | `admin.overview.impersonationSessions` | Admin › Overview | a session store, or the start/end join |
+ * | `admin.overview.legalDocsUnaccepted` | Admin › Overview | legal documents, versions and acceptances |
+ *
+ * | Kept, with a reason | `absenceReason` | Why |
+ * |---|---|---|
+ * | `support.overview.contactsPerThousandTrips` | `not-captured` | the contact log exists and is empty |
+ * | `support.overview.uncodedContactShare` | `not-computable` | a rate over zero contacts |
+ * | ~~`management.performance.avgRenewalRate`~~ | **withdrawn** | **it is a derivation, and the count that justified the absence was wrong.** 8 of 13 riders carry a reading, not 3; the mean is 69.5. What it lacked was a declared population (**R5-14**, **AC-730**), not a value. See the tile |
+ *
+ * ## R5-14 — fourteen tiles declare no population, and I did not invent one
+ *
+ * > **An aggregate declares its population in `sourceResource`. `null` there is
+ * > an undeclared denominator, not an absent source.**
+ *
+ * Fourteen of the fifty-one seeds carry `sourceResource: null`. **I have set it
+ * on none of them, and the reason is the rule's own second half.** The rule's
+ * value comes from *"one population, four expressions — `sourceResource`,
+ * label, caption base count, drilldown — three of which are mechanically
+ * checkable against each other."* Every one of these fourteen is a **seeded
+ * literal** ported from the legacy app, not a computation over a fixture array.
+ * Naming a resource on a value that is not derived from it would make the check
+ * runnable **and false**: the caption's base count would disagree with a count
+ * over the declared resource, and the tile would be lying with a new field
+ * rather than silent with an old one. That is a worse failure than the one the
+ * rule closes, because it looks audited.
+ *
+ * They sort into two kinds, and the second is the more serious:
+ *
+ * | Population nameable, value not derived from it | What it would take |
+ * |---|---|
+ * | `management.risk.churnPredictedSubscriptions` | subscriptions exist; **the churn prediction does not** — no field encodes it, so the population is nameable and the predicate is not |
+ * | `management.risk.paymentRiskRenewals` | same store, same missing predicate |
+ * | `management.zones.liveCities` | derivable from `listCities()`; the seed predates the client's own city list and should become a `DERIVED` entry |
+ *
+ * | **No store for the population at all** | The store it waits on |
+ * |---|---|
+ * | `management.growth.promoROI` | a promotions store |
+ * | `management.growth.promoBudgetConsumed` | the same |
+ * | `management.growth.subscriptionsFromPromos` | the same, plus an attribution join |
+ * | `management.growth.referralAndIncentiveSpend` | referrals and incentives |
+ * | `management.zones.steerOffersLive` | a steer-offer store |
+ * | `admin.overview.erasureOverdue` | erasure requests, with their deadlines |
+ * | `admin.overview.rotaGaps` | a rota |
+ * | `support.fairness.earningsPerEngagedHour` | earnings **and** engaged hours, jointly |
+ * | `support.overview.contactsPerThousandTrips` | the contact log — already stated as `not-captured` |
+ * | `support.overview.uncodedContactShare` | the same log — already stated as `not-computable` |
+ *
+ * `management.overview.contributionMargin` is in neither list: it is a margin
+ * out of the pricing formula, **not an aggregate over records**, so R5-14 does
+ * not reach it and `null` is correct there without qualification.
+ *
+ * > **The finding, and it is for product-owner, not for me to act on.** §11.2's
+ * > test as generalised — *can this measure, as specified, be computed?* —
+ * > answers **no** for all nine in the second table, and every one of them
+ * > renders a number today because legacy seeded one. They were not caught by
+ * > the earlier sort because that sort keyed on `value: null`, and a seeded
+ * > literal is not null. **The sort's predicate was wrong, not its conclusion.**
+ * > Re-running it on *computability* rather than on *nullity* is the same
+ * > question asked properly, and it would take four boards' tile counts with
+ * > it — which is why it is a decision and not a cleanup.
+ *
+ * **Support goes 8 → 6 and Admin goes 7 → 4, and that is the intended
+ * outcome.** A four-tile board that answers beats an eight-tile board that
+ * half-answers. It does *not* make the boards fuller: four tiles saying
+ * `Not captured yet` were four tiles saying nothing, and the thing that
+ * actually answers *"there is so much still can be known"* is **a contact log**
+ * — one row per contact with a reason code — which is a data capture, not a
+ * design change, and the highest-value item outstanding on these boards.
+ *
+ * Every removal is owed a row in its spec's *deliberately not here* table
+ * (R4-11 §11.2, addendum) and an amendment to the AC that enumerates the
+ * board's tiles. **A board's tile count is never a surprise to the person
+ * reading the spec.**
+ *
  * ## Breakdowns and notices arrive with R4-4
  *
  * `boardBreakdowns` and `boardNotices` are keyed by sub-tab and assembled onto
@@ -162,6 +249,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-overview',
     category: 'revenue',
     value: 11,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -193,6 +281,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-overview',
     category: 'revenue',
     value: null,
+    absenceReason: null,
     unit: 'money',
     currency: 'SAR',
     asOf: EYVAR_NOW,
@@ -215,6 +304,7 @@ export const metricSeeds: MetricSeed[] = [
     category: 'subscriptions',
     /* Derived — `listSubscriptions({ status: 'active' }).total`. */
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -258,6 +348,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-overview',
     category: 'supply',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -297,6 +388,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-overview',
     category: 'subscriptions',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -321,6 +413,7 @@ export const metricSeeds: MetricSeed[] = [
        of the two promises printed on the rider's plan card, and until that
        function was written it was measured nowhere. */
     value: 83,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -338,6 +431,7 @@ export const metricSeeds: MetricSeed[] = [
     category: 'service',
     /* `onTimeStats()` (`:15708`). The second printed promise. */
     value: 91,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -372,6 +466,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-performance',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -396,40 +491,106 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-performance',
     category: 'subscriptions',
     /**
-     * **`null`, and that is not zero.** Legacy gets this one right —
-     * `renewRateAvg != null ? renewRateAvg+'%' : '—'` (`:6913`).
+     * **A DERIVATION, not an absence — and the reason it was neither for two
+     * passes is that the metric declared no population.**
      *
-     * Checked again this pass rather than assumed: of the **47 active
-     * subscriptions, three** belong to a rider carrying a
-     * `renewalRatePercent`, because the volume rows are riders the riders
-     * fixture does not hold. A mean over three records is the type's own worked
-     * example of `insufficient-data`, and `biweekly` would contribute zero
-     * records to it. So the tile stays an em-dash **and §6.3's second
-     * breakdown, renewal rate by plan tier, does not ship either** — it is
-     * blocked on exactly the same gap, and a ranked list of means over n=2,
-     * n=0 and n=1 is noise wearing a ranking.
+     * ## What was wrong, and the count that was wrong with it
      *
-     * **L-4 / Q-107 stand:** even with volume, legacy averages a per-*rider*
-     * stat string parsed with `parseInt`, not a renewal outcome measured over
-     * a period. Those are different numbers and only one is a metric.
+     * This tile carried `absenceReason: 'not-computable'` on the strength of a
+     * figure I reported and nobody re-ran: *"three of thirteen riders carry a
+     * reading."* **It is eight.**
+     *
+     * ```
+     * $ node -e "…/renewalRatePercent:\s*([^,
+]+)/g…"
+     *   occurrences 13 · non-null 8 · mean 69.50
+     *   values 100 · null · null · null · null · 25 · 93 · 30 · 91 · 85 · 44 · null · 88
+     * ```
+     *
+     * The command is here because that is the lesson: **a count in a report
+     * reads like an observation and this one was a claim.** It was relayed
+     * onward twice before product-owner re-derived it. For a number that
+     * decides whether a tile renders, the command goes beside the number.
+     *
+     * A mean over eight of thirteen is not *not computable*. §11.2 does not
+     * delete this tile, because **the measure as §6.1 specifies it is
+     * computable**. What it actually lacked was a **stated denominator**, which
+     * is now **AC-730**.
+     *
+     * ## The population, declared — R5-14 / AC-730 / AC-731
+     *
+     * `sourceResource: 'riders'`, and the caption states the base **within**
+     * that population. Four people computed this tile carefully and got four
+     * numbers, seven points apart, because it named none:
+     *
+     * | n | population | mean |
+     * |---:|---|---:|
+     * | 8 | riders with a reading | **69.5** |
+     * | 6 | a set no predicate produces — **L-12**, now fixed | 63.3 |
+     * | 4 | riders holding a plan | 62.0 |
+     * | — | active-subscriber mean | uncomputable |
+     *
+     * **The n=6 set was a fixture defect wearing a definition.** `RDR-4001` and
+     * `RDR-4003` carried `status: 'subscriber'` with `subscriptionIds: []`,
+     * so *"riders whose status says subscriber"* included two rows with no plan
+     * and excluded two others with no plan. Corrected in `fixtures/riders.ts`;
+     * it was the whole of the 62.0 / 63.3 gap.
+     *
+     * **`42.8` — nulls counted as zero — was never one of the four.**
+     * `Metric.value`'s own doc names nulls-as-zero as the defect it exists to
+     * prevent, and **AC-606** is the criterion. A rider with no renewal history
+     * did not renew nothing; they have not been asked yet.
+     *
+     * ## Which of the two remaining populations is **Q-107**, and it is open
+     *
+     * The value below is the **riders** branch — the mean over the eight riders
+     * who carry a reading — which is the branch **AC-730 spells out**: *"it
+     * names riders. The caption states how many of that population carry a
+     * reading and how many the population holds."* Copy is final for **both**
+     * branches, so nothing waits on the answer, and neither branch is picked
+     * here: if Q-107 answers *subscribers*, this becomes a one-line change to
+     * `DERIVED` and the label and caption keys swap. **That is the whole cost
+     * of the open question**, which is why it is not a blocker.
+     *
+     * **L-4 stands and no criterion closes it.** `renewalRatePercent` is a
+     * stored per-rider percentage whose own numerator and denominator were
+     * discarded at write time, so *renewals ÷ opportunities* is not recoverable
+     * at **any** population, and a rider with one opportunity weighs the same
+     * as a rider with twenty. Declaring the population fixes one of the three
+     * doors into being wrong, not all three.
      */
     value: null,
+    /* **Derived, so `null` here is the client's job and not an absence.** See
+       `DERIVED['management.performance.avgRenewalRate']` in `clients/metrics.ts`. */
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
     periodStart: '2026-06-01',
     periodEnd: '2026-06-25',
+    /* Still `insufficient-data`: there is no previous-period renewal figure to
+       compare against, because the stored stat is a running per-rider value and
+       carries no period at all. That is L-4 again, in the comparison slot. */
     comparison: { kind: 'none', reason: 'insufficient-data' },
     higherIsBetter: true,
+    /* **AC-730** — the base count within the declared population, `8 of 13`.
+       Riders with no reading are excluded from the mean, not counted as zero. */
     caption: 'caption.storedRiderStat',
-    sourceResource: null,
-    drilldownRoute: '/operations/subscriptions',
+    /* **R5-14.** The population, declared. `null` here is an *undeclared
+       denominator*, not an absent source — which is exactly how one tile
+       produced four numbers. */
+    sourceResource: 'riders',
+    /* **AC-607 / AC-730** — the drilldown lands on the population the mean is
+       taken over. It pointed at `/operations/subscriptions`, which is a
+       different set from the one being averaged. */
+    drilldownRoute: '/operations/people?view=riders',
   },
   {
     key: 'management.performance.avgCaptainRating',
     subTabId: 'management-performance',
     category: 'service',
     value: null,
+    absenceReason: null,
     unit: 'rating',
     currency: null,
     asOf: EYVAR_NOW,
@@ -462,6 +623,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-performance',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -509,6 +671,7 @@ export const metricSeeds: MetricSeed[] = [
        below 50. Halalas; legacy carries it as a float of SAR and prints
        `toFixed(0)`. */
     value: 184_700,
+    absenceReason: null,
     unit: 'money',
     currency: 'SAR',
     asOf: EYVAR_NOW,
@@ -535,6 +698,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-risk',
     category: 'risk',
     value: 2,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -553,6 +717,7 @@ export const metricSeeds: MetricSeed[] = [
     /* `driverRiskScore` below 80 (`:14371`): expiring documents, suspensions,
        open incidents, cash debt. */
     value: 3,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -585,6 +750,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-risk',
     category: 'risk',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -604,6 +770,7 @@ export const metricSeeds: MetricSeed[] = [
     /* `renderPredIncidents` (`:14345`): captains with 2+ incidents or disputes
        against them — *"a pattern, not a one-off"*. */
     value: 1,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -626,6 +793,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-risk',
     category: 'risk',
     value: 1,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -661,6 +829,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'revenue',
     value: 1.3,
+    absenceReason: null,
     unit: 'ratio',
     currency: null,
     asOf: EYVAR_NOW,
@@ -688,6 +857,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'revenue',
     value: 42,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -705,6 +875,7 @@ export const metricSeeds: MetricSeed[] = [
     category: 'subscriptions',
     /* `DB.promos[].newSubs`: 61 + 32 + 38 + 88. */
     value: 219,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -721,6 +892,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -757,6 +929,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -791,6 +964,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -817,6 +991,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-growth',
     category: 'revenue',
     value: 9_500,
+    absenceReason: null,
     unit: 'money',
     currency: 'SAR',
     asOf: EYVAR_NOW,
@@ -852,7 +1027,8 @@ export const metricSeeds: MetricSeed[] = [
     key: 'management.zones.captainsNeeded',
     subTabId: 'management-zones',
     category: 'supply',
-    value: 3,
+    value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -861,7 +1037,7 @@ export const metricSeeds: MetricSeed[] = [
     comparison: { kind: 'none', reason: 'no-history' },
     higherIsBetter: false,
     caption: 'caption.healthyRatio',
-    sourceResource: null,
+    sourceResource: 'zones',
     drilldownRoute: null,
   },
   {
@@ -881,7 +1057,8 @@ export const metricSeeds: MetricSeed[] = [
     key: 'management.zones.starvedZones',
     subTabId: 'management-zones',
     category: 'supply',
-    value: 2,
+    value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -890,7 +1067,7 @@ export const metricSeeds: MetricSeed[] = [
     comparison: { kind: 'none', reason: 'no-history' },
     higherIsBetter: false,
     caption: 'caption.demandThreeTimesSupply',
-    sourceResource: null,
+    sourceResource: 'zones',
     drilldownRoute: null,
   },
   {
@@ -901,7 +1078,8 @@ export const metricSeeds: MetricSeed[] = [
     key: 'management.zones.unservedRequests30d',
     subTabId: 'management-zones',
     category: 'demand',
-    value: 31,
+    value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -910,7 +1088,7 @@ export const metricSeeds: MetricSeed[] = [
     comparison: { kind: 'none', reason: 'no-history' },
     higherIsBetter: false,
     caption: null,
-    sourceResource: null,
+    sourceResource: 'zones',
     drilldownRoute: null,
   },
   {
@@ -927,7 +1105,8 @@ export const metricSeeds: MetricSeed[] = [
     key: 'management.zones.avgFailureRate',
     subTabId: 'management-zones',
     category: 'service',
-    value: 45,
+    value: null,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -936,7 +1115,7 @@ export const metricSeeds: MetricSeed[] = [
     comparison: { kind: 'none', reason: 'no-history' },
     higherIsBetter: false,
     caption: null,
-    sourceResource: null,
+    sourceResource: 'zones',
     drilldownRoute: null,
   },
   {
@@ -953,6 +1132,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-zones',
     category: 'supply',
     value: 0,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -977,7 +1157,8 @@ export const metricSeeds: MetricSeed[] = [
     key: 'management.zones.worstDemandSupplyRatio',
     subTabId: 'management-zones',
     category: 'supply',
-    value: 7,
+    value: null,
+    absenceReason: null,
     unit: 'ratio',
     currency: null,
     asOf: EYVAR_NOW,
@@ -986,7 +1167,7 @@ export const metricSeeds: MetricSeed[] = [
     comparison: { kind: 'none', reason: 'no-history' },
     higherIsBetter: false,
     caption: null,
-    sourceResource: null,
+    sourceResource: 'zones',
     drilldownRoute: null,
   },
   {
@@ -1000,6 +1181,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'management-zones',
     category: 'supply',
     value: 1,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1030,6 +1212,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'supply',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1047,6 +1230,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'supply',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1071,6 +1255,7 @@ export const metricSeeds: MetricSeed[] = [
        queue — and **AC-723**: it is the *breached* count, where the
        `operations-my-work` badge is the *backlog*. Both labels say which. */
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1102,6 +1287,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'service',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1121,6 +1307,7 @@ export const metricSeeds: MetricSeed[] = [
        *Registered but ineligible counts as exposed, because that is what
        happens in practice* (`:13149`). */
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1137,6 +1324,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'demand',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1159,6 +1347,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'risk',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1185,6 +1374,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'operations-overview',
     category: 'supply',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1201,12 +1391,26 @@ export const metricSeeds: MetricSeed[] = [
      "Are we answering people inside the time we promised, and what are they
      calling about?"
 
-     **Four of these eight are `null` and every one of them is honest.** The
-     ticket store and the contact log do not exist in this layer — `DB.contacts`
-     is seeded `[]` at `:14718` and there is no `fixtures/tickets.ts` — so under
-     Q-101 they ship as em-dashes with a stated reason rather than as plausible
-     literals. That is the single largest data gap in the product and it is
-     named in the handoff, not smoothed over here.                            */
+     **Six tiles, not eight — R5-1 applied R4-11 §11.2 and two left.** The
+     board used to carry four `null`s and treat them as one class. They are two
+     classes and the difference decides whether a tile renders at all:
+
+       - **`ticketsBreaching` and `promiseKept` have no store.** There is no
+         `fixtures/tickets.ts`, no `types/ticket.ts` and no ticket client — the
+         measure is not one this layer performs. An em-dash is a claim that the
+         number exists somewhere, so **they do not render.** Both are listed in
+         the spec's *deliberately not here* table against the store they wait
+         on, and they return the day it does.
+       - **`contactsPerThousandTrips` and `uncodedContactShare` have a store
+         and it is empty.** `DB.contacts` is seeded `[]` (`:14718`) and the
+         reason-code registry beside it is a full 26 entries (`:14690`+). This
+         layer models that log in three places at once and they agree: a tile
+         with no value, a chart with `points: []`, and a breakdown with zero
+         rows. **They render, with `absenceReason`.**
+
+     Under Q-101 neither class ships a plausible literal. That gap is still the
+     single largest in the product; what changed is that the board no longer
+     tells an operator four times that it cannot tell them anything.          */
   {
     /**
      * Open incidents of severity `critical` whose first-response clock has
@@ -1222,6 +1426,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'support-overview',
     category: 'risk',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1234,50 +1439,11 @@ export const metricSeeds: MetricSeed[] = [
     drilldownRoute: '/support/safety?view=critical-sos',
   },
   {
-    /** `NEW DATA` — there is no ticket store in this layer. `:15017`. */
-    key: 'support.overview.ticketsBreaching',
-    subTabId: 'support-overview',
-    category: 'service',
-    value: null,
-    unit: 'count',
-    currency: null,
-    asOf: EYVAR_NOW,
-    periodStart: null,
-    periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
-    higherIsBetter: false,
-    caption: null,
-    sourceResource: null,
-    /* The breached filter on Tickets does not exist either — F-8. */
-    drilldownRoute: '/support/tickets?view=open',
-  },
-  {
-    /**
-     * Resolved tickets with no recorded SLA breach, as a share of resolved
-     * (`:15020`). **The only tile on this board that measures an outcome rather
-     * than a backlog, and the one a support lead is judged on.** `NEW DATA`:
-     * same missing ticket store.
-     */
-    key: 'support.overview.promiseKept',
-    subTabId: 'support-overview',
-    category: 'service',
-    value: null,
-    unit: 'percent',
-    currency: null,
-    asOf: EYVAR_NOW,
-    periodStart: null,
-    periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
-    higherIsBetter: true,
-    caption: null,
-    sourceResource: null,
-    drilldownRoute: '/support/tickets?view=resolved',
-  },
-  {
     key: 'support.overview.openIncidents',
     subTabId: 'support-overview',
     category: 'risk',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1298,8 +1464,20 @@ export const metricSeeds: MetricSeed[] = [
      * seeded empty (`:14718`) and every contact is written at runtime, so the
      * numerator does not exist on a fresh load. Zero would claim a perfect
      * support record; `null` says we have not measured it.
+     *
+     * **`not-captured`, and this tile is R5-1 §10's worked example — the
+     * ruling draws it by name.** The contact log is a store this product
+     * declares and has written nothing into; *yet* is the whole content of the
+     * word. The chart of the same key carries `points: []` and the breakdown
+     * below carries zero rows, so three surfaces say one thing and none of them
+     * says zero.
+     *
+     * **Its caption is `null` and stays `null`.** Nothing about this number is
+     * mis-readable once it exists; there is no scope to limit and no direction
+     * to state.
      */
     value: null,
+    absenceReason: 'not-captured',
     unit: 'ratio',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1323,11 +1501,30 @@ export const metricSeeds: MetricSeed[] = [
      * decorative: the tile *gates the breakdown below it*. If a tenth of
      * contacts are uncoded, the reason-code ranking is not trustworthy and no
      * product fix should be prioritised from it.
+     *
+     * **`not-computable`, not `not-captured`, and the pair with CPT is what
+     * makes the distinction earn its keep.** Both read the same empty log. CPT
+     * is a count over a denominator that exists (trips), so its absence is that
+     * nothing has been captured. This one is *uncoded contacts ÷ all contacts*
+     * — **a rate over a zero denominator**, which is the type's own worked
+     * example of the second member. Same store, two honest and different
+     * answers.
+     *
+     * **Two consequences of R5-1 that land on this tile specifically**, stated
+     * so they are not discovered: while the value is absent, the caption does
+     * not render and neither does `vs 3 target`. So the ceiling that AC-674
+     * calls load-bearing is invisible for exactly as long as there is no number
+     * to read against it — which is correct, because it is the number that
+     * makes the ceiling worth stating. **Raised for product-designer** rather
+     * than worked around: the one tile whose caption gates a breakdown is the
+     * one tile where suppressing the caption removes an operator's warning, and
+     * the empty breakdown's own sentence is what carries the load meanwhile.
      */
     key: 'support.overview.uncodedContactShare',
     subTabId: 'support-overview',
     category: 'service',
     value: null,
+    absenceReason: 'not-computable',
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1347,6 +1544,7 @@ export const metricSeeds: MetricSeed[] = [
        `FC-0004` is four and a half days past a 24-hour window **with no first
        response at all**. */
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1374,6 +1572,7 @@ export const metricSeeds: MetricSeed[] = [
      * reasoning finally has somewhere to render.
      */
     value: null,
+    absenceReason: null,
     unit: 'percent',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1401,7 +1600,34 @@ export const metricSeeds: MetricSeed[] = [
      **`admin.overview.activityEvents` is deleted — AC-685, AC-722.** A count of
      log rows measures how busy the log was, and there is no value of it that
      changes what anybody does. The **chart** stays (§12.2) with its purpose
-     restated: it is an anomaly detector, not a volume report.                */
+     restated: it is an anomaly detector, not a volume report.
+
+     **Four tiles, not seven — R5-1 applied R4-11 §11.2 and three left.** This
+     is the board the ruling changes most, and every removal was re-derived from
+     the sources rather than taken from the ruling's table on trust:
+
+       - **`integrityOrphans`.** `reconcileEntity` (`:18515`) needs four inputs:
+         a stored lifetime total, the trips behind it, the *payments* behind it
+         (`entityDerived` `:18495` reads `DB.payments` keyed by entity), and a
+         **data window** (`DB.dataWindow.months = 13`, `:20403`). This layer
+         holds the first two — riders carry `totalTrips` and
+         `lifetimeValueHalalas`, and `fixtures/trips.ts` is real — and holds
+         **neither** of the last two. `fixtures/ledger.ts` is journal entries and
+         subject postings, not a per-entity payments ledger, and no data window
+         exists anywhere in `src/data`. Half a reconciliation is not the
+         measure; it is a different, smaller measure wearing its name.
+       - **`impersonationSessions`.** The events are logged and the join is not.
+         `clients/audit.ts` is *session-only and empty at boot* by design, and
+         carries no `impersonation_started` / `impersonation_ended` pair to join.
+         There is no session store.
+       - **`legalDocsUnaccepted`.** Nothing in `src/data` holds a legal document,
+         a version, or an acceptance — no fixture, no type, no client. The
+         `NEW DATA` note was written about the missing *grace period*; the
+         re-derivation found the documents missing too.
+
+     All three are listed in the spec's *deliberately not here* table. **A
+     board's tile count is never a surprise to the person reading the spec**
+     (R4-11 §11.2, addendum).                                                 */
   {
     /**
      * Pending PDPL erasure requests whose due instant has passed —
@@ -1429,6 +1655,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'admin-overview',
     category: 'risk',
     value: 1,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1456,6 +1683,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'admin-overview',
     category: 'supply',
     value: 42,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1482,6 +1710,7 @@ export const metricSeeds: MetricSeed[] = [
     subTabId: 'admin-overview',
     category: 'risk',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1494,88 +1723,13 @@ export const metricSeeds: MetricSeed[] = [
     drilldownRoute: '/admin/team',
   },
   {
-    /**
-     * Accounts whose stored lifetime totals reconcile to nothing inside the
-     * data window — `integrityScan().orphans` (`:18565`). `NEW DATA`: the scan
-     * reads a payments ledger this layer does not hold.
-     *
-     * `:18585` is worth keeping in front of whoever builds it: such an account
-     * *"cannot be investigated, refunded accurately, or defended in a dispute —
-     * and it is also the signature of a duplicate profile."*
-     */
-    key: 'admin.overview.integrityOrphans',
-    subTabId: 'admin-overview',
-    category: 'risk',
-    value: null,
-    unit: 'count',
-    currency: null,
-    asOf: EYVAR_NOW,
-    periodStart: null,
-    periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
-    higherIsBetter: false,
-    caption: null,
-    sourceResource: null,
-    drilldownRoute: '/admin/data',
-  },
-  {
-    /**
-     * Audit entries with action `impersonation_started` (`:21073`) less those
-     * with a matching `impersonation_ended` (`:21084`). **`NEW DATA` for the
-     * pairing** — legacy logs both events and never joins them, so one operator
-     * acting as another with no recorded end is the audit trail's blind spot.
-     *
-     * Ranked above the census because it is the closest computable proxy for
-     * the tile spec §12.1 actually wants — *destructive actions in the period*
-     * — which needs a severity classification `ACTION_LABELS` (`:2898`, 26
-     * entries) does not carry.
-     */
-    key: 'admin.overview.impersonationSessions',
-    subTabId: 'admin-overview',
-    category: 'risk',
-    value: null,
-    unit: 'count',
-    currency: null,
-    asOf: EYVAR_NOW,
-    periodStart: CURRENT_PERIOD.start,
-    periodEnd: CURRENT_PERIOD.end,
-    comparison: { kind: 'none', reason: 'no-history' },
-    higherIsBetter: false,
-    caption: null,
-    sourceResource: null,
-    drilldownRoute: '/admin/activity',
-  },
-  {
-    /**
-     * `DB.legalDocuments` entries whose current version a counted set of users
-     * has not accepted (`:13867`, `hasAcceptedCurrent` `:3799`). **`NEW DATA`
-     * for the grace period** — no such field exists, and R4-11 §12 item 3 is
-     * explicit that this stays a **tile and not a notice** until product-owner
-     * decides whether a grace period exists. No copy was written against a
-     * threshold nobody has set.
-     */
-    key: 'admin.overview.legalDocsUnaccepted',
-    subTabId: 'admin-overview',
-    category: 'risk',
-    value: null,
-    unit: 'count',
-    currency: null,
-    asOf: EYVAR_NOW,
-    periodStart: null,
-    periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
-    higherIsBetter: false,
-    caption: null,
-    sourceResource: null,
-    drilldownRoute: '/admin/workspace',
-  },
-  {
     /* A census, ranked last for that reason — spec §12.1: *"it is the tile I
        would cut first."* Four of five operators are Active. */
     key: 'admin.overview.activeOperators',
     subTabId: 'admin-overview',
     category: 'supply',
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1599,6 +1753,7 @@ export const metricSeeds: MetricSeed[] = [
      * `captain-economics` is a reading surface inside a queue-shaped sub-tab.
      */
     value: 4_180,
+    absenceReason: null,
     unit: 'money',
     currency: 'SAR',
     asOf: EYVAR_NOW,
@@ -1621,6 +1776,7 @@ export const metricSeeds: MetricSeed[] = [
     category: 'supply',
     /* `renderFairnessPage`'s third tile (`:15694`) — *"each may appeal"*. */
     value: null,
+    absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
@@ -1679,6 +1835,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     current: snapshotWindow(SNAPSHOT_CURRENT, (s) => s.quickRideRevenueHalalas),
     comparison: snapshotWindow(SNAPSHOT_PREVIOUS, (s) => s.quickRideRevenueHalalas),
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /**
@@ -1698,6 +1855,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     current: snapshotWindow(SNAPSHOT_CURRENT, (s) => s.subRevenueHalalas),
     comparison: snapshotWindow(SNAPSHOT_PREVIOUS, (s) => s.subRevenueHalalas),
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /**
@@ -1725,6 +1883,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
       points: points(PREVIOUS_DAYS, [90, 89, 91, 92, 90, 88, 89]),
     },
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /**
@@ -1748,6 +1907,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     current: snapshotWindow(SNAPSHOT_CURRENT, (s) => s.cancelRatePct),
     comparison: snapshotWindow(SNAPSHOT_PREVIOUS, (s) => s.cancelRatePct),
     higherIsBetter: false,
+    awaitingStore: null,
   },
   {
     /** **No comparison period yet** — the first week of a metric's life. */
@@ -1763,6 +1923,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     },
     comparison: null,
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /**
@@ -1796,12 +1957,25 @@ export const timeSeriesFixtures: TimeSeries[] = [
       points: points(PREVIOUS_DAYS, [0, 1, 0, 0, 2, 0, 0]),
     },
     higherIsBetter: false,
+    awaitingStore: null,
   },
   {
     /**
-     * **Genuinely no data.** `DB.contacts` is seeded empty (`:14718`), so there
-     * is nothing to plot for any day in the range. §3.7: keep the card, the
-     * title and the report link; one centred sentence in the plot area.
+     * **Genuinely no data — and R5-11 says *which kind*.** `DB.contacts` is
+     * seeded empty (`:14718`), so there is nothing to plot for any day in the
+     * range. §3.7: keep the card, the title and the report link; one centred
+     * sentence in the plot area.
+     *
+     * > **The only fixture in this file that is `awaitingStore`, and it is the
+     * > same call already made one level down.** The tile
+     * > `contactsPerThousandTrips` is **`not-captured`** — the store is declared
+     * > and empty — while `uncodedContactShare` is **`not-computable`**, a rate
+     * > over a zero denominator. The series inherits the first: the contact log
+     * > exists as a declaration and holds nothing, so the sentence owed is
+     * > *nothing is captured* and not *this range returned nothing*. Every
+     * > other series here queried a real store and got an answer, zeros
+     * > included — `management.zones.unservedRequests` is seven true zeros and
+     * > carries `null` for exactly that reason.
      */
     key: 'support.overview.contactsPerThousandTrips',
     subTabId: 'support-overview',
@@ -1811,6 +1985,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     current: { periodStart: CURRENT_PERIOD.start, periodEnd: CURRENT_PERIOD.end, points: [] },
     comparison: null,
     higherIsBetter: false,
+    awaitingStore: 'contact-log',
   },
   {
     /**
@@ -1838,6 +2013,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     },
     comparison: null,
     higherIsBetter: false,
+    awaitingStore: null,
   },
   {
     /* Volume context for the six backlog tiles above it: eleven breaches on a
@@ -1858,6 +2034,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
       points: points(PREVIOUS_DAYS, [54, 57, 50, 60, 55, 58, 44]),
     },
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /**
@@ -1883,6 +2060,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
       points: points(PREVIOUS_DAYS, [170, 192, 148, 187, 165, 179, 149]),
     },
     higherIsBetter: true,
+    awaitingStore: null,
   },
   {
     /* Captain economics over time — the trend that decides whether supply
@@ -1903,6 +2081,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
       points: points(PREVIOUS_DAYS, [4_700, 4_640, 4_520, 4_610, 4_580, 4_660, 4_430]),
     },
     higherIsBetter: true,
+    awaitingStore: null,
   },
 ]
 
@@ -1911,28 +2090,69 @@ export const timeSeriesFixtures: TimeSeries[] = [
 /**
  * A row whose label is an **entity name** rather than a term from a closed set.
  *
- * **This is a workaround and it should not survive contact with a real API.**
- * R4-4 makes `labelKey` *"a key, never a string — AC-697"*, which is exactly
- * right for queues, reason codes, plan tiers, blocks and hours of the day, and
- * impossible for a captain called Khalid Mansour or a city called Jeddah. A
- * person's name is data, not copy, and it is not in any dictionary.
+ * **The fig leaf is gone — R5-7 granted it.** This used to pass a name through
+ * `breakdown.row.entity`, a pass-through key whose entire English string was
+ * `{name}`. It satisfied AC-697 and AC-713 and it was a workaround, and the
+ * finding recorded here is the one the ruling granted: a person's name is data,
+ * not copy, and it is not in any dictionary.
  *
- * So an entity row passes its name through a single pass-through key whose
- * whole English string is `{name}`. It satisfies AC-713 (no concatenation) and
- * it satisfies the type, and it is a fig leaf over a contract gap.
+ * `BreakdownLabel` now says so in the type, and the win is not tidiness — it is
+ * **V-4**. `kind: 'text'` takes the run's own direction, so
+ * `Abdulaziz Al-Suwailem` in an Arabic console truncates at its tail rather
+ * than its head; `kind: 'key'` stays on the page direction, where a translated
+ * label belongs. One treatment could never have been right for both.
  *
- * **Finding, for product-designer:** `MetricBreakdownRow.label` wants to be a
- * union — `{ key, params }` for a closed set, `{ text }` for an entity — so
- * that a translated row and a named row are different things in the type
- * rather than different conventions in a comment.
+ * **`breakdown.row.entity` is retired** and `src/screens/metrics/copy.ts` drops
+ * the key. It is not kept alive as a fallback, deliberately: a fallback is how
+ * the fig leaf grows back.
+ *
+ * **C-2 — the union needs a carve-out in AC-713 and has not got one.** AC-713
+ * requires every rendered string to be a translation key, and the comment this
+ * one replaces said in as many words that `breakdown.row.entity` *"satisfies
+ * the type and AC-713"*. That criterion, unamended, is exactly what forced the
+ * workaround, so shipping `kind: 'text'` against it puts the fixture in
+ * technical breach of a criterion the ruling intends to allow. **The union is
+ * built as ruled and the criterion is flagged**, because the alternative —
+ * keeping a pass-through key so the letter of AC-713 is met — is the thing
+ * R5-7 exists to stop. AC-697's replacement text in R5 §12 covers the row
+ * label; AC-713 needs the matching clause and it is product-owner's.
  */
-const ENTITY_LABEL = 'breakdown.row.entity'
-
 const entityRow = (
   id: string,
   name: string,
-  rest: Omit<MetricBreakdownRow, 'id' | 'labelKey' | 'labelParams'>,
-): MetricBreakdownRow => ({ id, labelKey: ENTITY_LABEL, labelParams: { name }, ...rest })
+  rest: Omit<MetricBreakdownRow, 'id' | 'label'>,
+): MetricBreakdownRow => ({ id, label: { kind: 'text', text: name }, ...rest })
+
+/**
+ * `value / max(value over rows shown)`, to three decimals — **R5-6's
+ * share-of-max, written once so no row can be hand-edited out of step.**
+ *
+ * Share-of-**max**, never share-of-total: a ranked list asks *how far behind
+ * the leader?*, and share-of-total answers a composition question that a
+ * `Top 5 of 14` cut-off has already broken. Before R5-6 three breakdowns used
+ * three different denominators — largest row, total, and a literal 42 — all
+ * legal under *"one denominator"*, which only ever constrained them within a
+ * list. The top bar is now always full, on every board.
+ *
+ * Returns `null` on every row when `max === min` or there are no rows, because
+ * a bar is illegal then (R5-6): seven identical bars are 140px of row height
+ * carrying nothing. `clients/metrics.ts` calls the same function on the two
+ * breakdowns whose rows it computes, so there is exactly one implementation of
+ * the denominator in the product.
+ */
+export const withShareOfMax = (rows: MetricBreakdownRow[]): MetricBreakdownRow[] => {
+  const values = rows.map((r) => r.value)
+  const legal = rows.length > 0 && Math.max(...values) > Math.min(...values)
+  const max = legal ? Math.max(...values) : 0
+  return rows.map((row) => ({
+    ...row,
+    barFraction: legal ? Math.round((row.value / max) * 1000) / 1000 : null,
+  }))
+}
+
+/** `bar` is legal only if `withShareOfMax` would draw one. Same predicate, one definition. */
+export const barIsLegal = (rows: readonly MetricBreakdownRow[]): boolean =>
+  rows.length > 0 && Math.max(...rows.map((r) => r.value)) > Math.min(...rows.map((r) => r.value))
 
 /**
  * Ranked lists, by sub-tab. **Six of the eight boards declare one**, which is
@@ -1969,8 +2189,14 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
    * R4-4 permits a bar *"only when every row of the breakdown shares one unit
    * and one denominator"*. These are five percentages over five different trip
    * counts — 4 of 20, 3 of 18, 3 of 19, 3 of 20, 2 of 19 — so a bar would draw
-   * a shared scale that does not exist. The `secondaryValue` carries the count
-   * behind the rate instead, which is the honest way to show the same thing.
+   * a shared scale that does not exist.
+   *
+   * **The count behind the rate is now a noun phrase in the sub-label** —
+   * `4 of 20 trips ran late` — not a second numeric column (R5-5). It is the
+   * reference's own construction: `Online store conversion rate` in
+   * `analytics-dashboard-today-no-data.webp` writes `0 sessions` under
+   * `Added to cart 0.00%`. Every number carries its own noun, so there is no
+   * left-to-right convention to learn and none to get wrong in Arabic.
    *
    * **§6.3's second breakdown, renewal rate by plan tier, does not ship** — see
    * `management.performance.avgRenewalRate` above. Three rated subscriptions
@@ -1983,56 +2209,60 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       rowsShown: 5,
       rowsTotal: 6,
       bar: false,
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
       rows: [
         entityRow('DRV-0103', 'Khalid Mansour', {
-          subLabelKey: null,
+          subLabelKey: 'breakdown.sub.lateOfTrips',
+          subLabelParams: { late: 4, total: 20 },
           value: 20,
           unit: 'percent',
           currency: null,
-          secondaryValue: 4,
-          secondaryUnit: 'count',
           barFraction: null,
           drilldownRoute: '/operations/people?view=captains',
         }),
         entityRow('DRV-0105', 'Youssef Nouri', {
-          subLabelKey: null,
+          subLabelKey: 'breakdown.sub.lateOfTrips',
+          subLabelParams: { late: 3, total: 18 },
           value: 17,
           unit: 'percent',
           currency: null,
-          secondaryValue: 3,
-          secondaryUnit: 'count',
           barFraction: null,
           drilldownRoute: '/operations/people?view=captains',
         }),
         entityRow('DRV-0104', 'Hassan Al-Ghamdi', {
           /* The gold captain driving on a lapsed inspection certificate. Two
-             different problems on one row is what a board is for. */
-          subLabelKey: 'breakdown.sub.documentExpired',
+             different problems on one row is what a board is for, and R5-5's
+             middot join is what lets one sub-label carry both:
+             `Document expired · 3 of 19 trips ran late`. */
+          subLabelKey: 'breakdown.sub.lateOfTripsExpired',
+          subLabelParams: { late: 3, total: 19 },
           value: 16,
           unit: 'percent',
           currency: null,
-          secondaryValue: 3,
-          secondaryUnit: 'count',
           barFraction: null,
           drilldownRoute: '/operations/people?view=compliance',
         }),
         entityRow('DRV-0102', 'Omar Farouk', {
-          subLabelKey: null,
+          subLabelKey: 'breakdown.sub.lateOfTrips',
+          subLabelParams: { late: 3, total: 20 },
           value: 15,
           unit: 'percent',
           currency: null,
-          secondaryValue: 3,
-          secondaryUnit: 'count',
           barFraction: null,
           drilldownRoute: '/operations/people?view=captains',
         }),
         entityRow('DRV-0101', 'Ahmed Salem', {
-          subLabelKey: null,
+          subLabelKey: 'breakdown.sub.lateOfTrips',
+          subLabelParams: { late: 2, total: 19 },
           value: 11,
           unit: 'percent',
           currency: null,
-          secondaryValue: 2,
-          secondaryUnit: 'count',
           barFraction: null,
           drilldownRoute: '/operations/people?view=captains',
         }),
@@ -2050,9 +2280,20 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
        * confirmation and no undo. The action lives on the rider's profile.
        *
        * Riders whose churn risk is not `low`, by lifetime value descending.
-       * **`bar: true`** — one unit, one currency, one measurement, so the bar is
-       * a share of the largest row and reads as a ranking rather than a
-       * proportion of a total that does not exist.
+       * **`bar: true`** — one unit, one currency, one measurement, and
+       * `max > min` (884.00 SAR against 122.50), which is R5-6's third
+       * condition. The bar is a share of the **largest row**, so the top one is
+       * full and every other reads as *how far behind the leader*.
+       *
+       * **`barFraction` is not seeded here.** `withShareOfMax` computes it from
+       * the `value` beside it, so a hand-edited value moves its own bar and a
+       * bar cannot drift from the number it is drawn for. The literals it
+       * replaces were 1 / 0.24 / 0.2 / 0.15 / 0.14, rounded by hand; the
+       * computed set is 1 / 0.242 / 0.196 / 0.149 / 0.139.
+       *
+       * **The trip count moved into the sub-label** — `High churn risk · 63
+       * trips` (R5-5). Each figure agrees with `fixtures/riders.ts`
+       * `totalTrips`.
        *
        * `RDR-4002` is deliberately below the cut: zero lifetime value, zero
        * trips, a 46-character Arabic name and a high churn risk. A high-risk
@@ -2064,58 +2305,60 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       rowsShown: 5,
       rowsTotal: 7,
       bar: true,
-      rows: [
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
+      rows: withShareOfMax([
         entityRow('RDR-4001', 'Abdulaziz Al-Suwailem', {
-          subLabelKey: 'breakdown.sub.churnHigh',
+          subLabelKey: 'breakdown.sub.churnHighTrips',
+          subLabelParams: { trips: 63 },
           value: 88_400,
           unit: 'money',
           currency: 'SAR',
-          secondaryValue: 63,
-          secondaryUnit: 'count',
-          barFraction: 1,
+          barFraction: null,
           drilldownRoute: '/operations/people?view=riders',
         }),
         entityRow('RDR-2087', 'Layla Al-Faraj', {
-          subLabelKey: 'breakdown.sub.churnHigh',
+          subLabelKey: 'breakdown.sub.churnHighTrips',
+          subLabelParams: { trips: 11 },
           value: 21_400,
           unit: 'money',
           currency: 'SAR',
-          secondaryValue: 11,
-          secondaryUnit: 'count',
-          barFraction: 0.24,
+          barFraction: null,
           drilldownRoute: '/operations/people?view=riders',
         }),
         entityRow('RDR-1075', 'Sara Al-Ghamdi', {
-          subLabelKey: 'breakdown.sub.churnHigh',
+          subLabelKey: 'breakdown.sub.churnHighTrips',
+          subLabelParams: { trips: 13 },
           value: 17_300,
           unit: 'money',
           currency: 'SAR',
-          secondaryValue: 13,
-          secondaryUnit: 'count',
-          barFraction: 0.2,
+          barFraction: null,
           drilldownRoute: '/operations/people?view=riders',
         }),
         entityRow('RDR-2055', 'Bandar Al-Harbi', {
-          subLabelKey: 'breakdown.sub.churnHigh',
+          subLabelKey: 'breakdown.sub.churnHighTrips',
+          subLabelParams: { trips: 7 },
           value: 13_200,
           unit: 'money',
           currency: 'SAR',
-          secondaryValue: 7,
-          secondaryUnit: 'count',
-          barFraction: 0.15,
+          barFraction: null,
           drilldownRoute: '/operations/people?view=riders',
         }),
         entityRow('RDR-1052', 'Omar Al-Shehri', {
-          subLabelKey: 'breakdown.sub.churnMedium',
+          subLabelKey: 'breakdown.sub.churnMediumTrips',
+          subLabelParams: { trips: 8 },
           value: 12_250,
           unit: 'money',
           currency: 'SAR',
-          secondaryValue: 8,
-          secondaryUnit: 'count',
-          barFraction: 0.14,
+          barFraction: null,
           drilldownRoute: '/operations/people?view=riders',
         }),
-      ],
+      ]),
     },
     {
       /**
@@ -2139,54 +2382,56 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       rowsShown: 5,
       rowsTotal: 54,
       bar: false,
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
       rows: [
         entityRow('SUB-2001', 'Abdulaziz Al-Suwailem', {
           subLabelKey: 'breakdown.sub.planMonthly',
+          subLabelParams: null,
           value: 11,
           unit: 'percent',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: '/operations/subscriptions?view=at-risk',
         }),
         entityRow('SUB-1075', 'Sara Al-Ghamdi', {
           subLabelKey: 'breakdown.sub.planWeekly',
+          subLabelParams: null,
           value: 25,
           unit: 'percent',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: '/operations/subscriptions?view=at-risk',
         }),
         entityRow('SUB-3129', 'Nora Al-Harbi', {
           subLabelKey: 'breakdown.sub.planBiweekly',
+          subLabelParams: null,
           value: 31,
           unit: 'percent',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: '/operations/subscriptions?view=at-risk',
         }),
         entityRow('SUB-3157', 'Nora Al-Harbi', {
           subLabelKey: 'breakdown.sub.planMonthly',
+          subLabelParams: null,
           value: 32,
           unit: 'percent',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: '/operations/subscriptions?view=at-risk',
         }),
         entityRow('SUB-3120', 'Reem Al-Dosari', {
           subLabelKey: 'breakdown.sub.planBiweekly',
+          subLabelParams: null,
           value: 33,
           unit: 'percent',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: '/operations/subscriptions?view=at-risk',
         }),
@@ -2204,12 +2449,29 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
    * Riyadh only, by string equality on the city name, so the other three would
    * be em-dashes forever — and `MetricBreakdownRow.value` is `number`, not
    * `number | null`. Ranking on a field three of four rows cannot fill is not a
-   * ranking. So the rate rides in `secondaryValue`, which **is** nullable, and
-   * the three unlaunched cities carry a genuine `null` there.
+   * ranking.
    *
-   * **Finding for product-designer:** a breakdown whose primary measure is
-   * absent for some rows has no shape. Either `value` becomes nullable or the
-   * rule is that it may not be — but it should be a decision.
+   * **The finding this fixture raised is closed by R5-5, and the ruling says
+   * this list is what closed it.** The rate used to ride in `secondaryValue`
+   * because that field was nullable and `value` is not. The secondary column is
+   * withdrawn, and the rate is now a **noun phrase in the sub-label** —
+   * `Live · 45% of requests unserved`. Three cities do not state a rate at all
+   * and `Not launched` says why, which is a thing a column could only have
+   * spelled as an em dash. *"A city with no reading and a city with a reading
+   * of zero are different facts"*, and only one of the two forms can render the
+   * difference.
+   *
+   * **`unserved`, not `fail`** — AC-718 keeps `failed` out of tile labels,
+   * chart titles and breakdown headings and names the zones chart `Unserved
+   * requests`. The sub-label uses the same noun so one board does not call one
+   * thing two names.
+   *
+   * **`bar: false` is now a choice rather than a consequence, and it is left
+   * alone.** Under R5-6 the three conditions are met — one unit (`count`), one
+   * denominator, and `6 > 0` — so a bar would be *legal* here for the first
+   * time. Turning it on is a new decision this ruling does not ask for, and
+   * three empty tracks under one full one says less than the four numbers do.
+   * Raised, not taken.
    */
   'management-zones': [
     {
@@ -2218,44 +2480,56 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       rowsShown: 4,
       rowsTotal: 4,
       bar: false,
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
       rows: [
         entityRow('CITY-RUH', 'Riyadh', {
-          subLabelKey: 'breakdown.sub.cityLive',
+          subLabelKey: 'breakdown.sub.cityLiveUnserved',
+          /* The failure rate, which used to be the second numeric column.
+             `{rate}` is a percent and the component formats it — see
+             `MetricBreakdownRow.subLabelParams`. */
+          subLabelParams: { rate: 45 },
           value: 6,
           unit: 'count',
           currency: null,
-          secondaryValue: 45,
-          secondaryUnit: 'percent',
           barFraction: null,
           drilldownRoute: null,
         }),
         entityRow('CITY-JED', 'Jeddah', {
+          /* **R5-5's strongest argument, and it arrived from this fixture.** As
+             a column, a city with no reading is an em dash — the same mark V-2
+             is about. As a phrase, a city with no reading simply does not state
+             one, and `Not launched` says why. A city with no reading and a city
+             with a reading of zero are different facts, and only the phrase
+             form can render the difference. */
           subLabelKey: 'breakdown.sub.cityNotLive',
+          subLabelParams: null,
           value: 0,
           unit: 'count',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: null,
         }),
         entityRow('CITY-DMM', 'Dammam', {
           subLabelKey: 'breakdown.sub.cityNotLive',
+          subLabelParams: null,
           value: 0,
           unit: 'count',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: null,
         }),
         entityRow('CITY-MAK', 'Makkah', {
           subLabelKey: 'breakdown.sub.cityNotLive',
+          subLabelParams: null,
           value: 0,
           unit: 'count',
           currency: null,
-          secondaryValue: null,
-          secondaryUnit: null,
           barFraction: null,
           drilldownRoute: null,
         }),
@@ -2274,8 +2548,19 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
    * tile and the unclaimed column sums to the unclaimed tile. The entry below
    * is the declaration; the rows arrive at request time.
    *
-   * **`bar: true`** — five counts of work items, one unit, one denominator (the
-   * whole backlog). This is the case the bar rule exists to permit.
+   * **The bar is decided by the client, not declared here**, because the rows
+   * are. Two of R5-6's three conditions are properties of the list and hold by
+   * construction — five counts of work items, one unit, one denominator — and
+   * the third, `max > min`, is a property of rows that do not exist until the
+   * request. `bar: false` below is the honest value of the declaration as it
+   * stands: **zero rows shown cannot satisfy `max > min`.** `clients/metrics.ts`
+   * recomputes both `bar` and every `barFraction` with `withShareOfMax`, which
+   * is the same function the seeded lists use.
+   *
+   * **The denominator changed with R5-6**: it was the sum of the open column,
+   * and it is now the largest queue. The busiest queue's bar is full and the
+   * rest read as *how far behind*, which is the question a routing table is
+   * asked.
    */
   'operations-overview': [
     {
@@ -2283,7 +2568,14 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       dimension: 'queue',
       rowsShown: 5,
       rowsTotal: 5,
-      bar: true,
+      bar: false,
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
       rows: [],
     },
   ],
@@ -2321,7 +2613,43 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       dimension: 'reason-code',
       rowsShown: 5,
       rowsTotal: 0,
-      bar: true,
+      /* **`false`, and it is not a prediction about the day rows arrive.**
+         R5-6 makes `max > min` across *the rows shown* a condition of the bar,
+         and zero rows cannot meet it. Whoever seeds the contact log re-decides
+         this against the rows they seed. */
+      bar: false,
+      /**
+       * **No caveat — R5-9 §20.2 — on the one card R5-9 was written for.**
+       *
+       * AC-674's caveat is gated by `support.uncodedContactShare`, and that
+       * tile's value is **`not-computable`**: an uncoded *share* is a rate over
+       * a count of contacts, and there are none. §18.6 makes this arithmetic
+       * rather than judgement — `gate.value === null` → no answer → no
+       * threshold to have crossed → `caveat: null`. Seeding a share to
+       * demonstrate the slot would be **AC-453**'s invented SLA window in a new
+       * place.
+       */
+      caveat: null,
+      /**
+       * **R5-11, and this is the card the field exists for.**
+       *
+       * `support.contactReasons` has zero rows **and** no store, so both
+       * readings are true at once and only provenance can say which sentence it
+       * gets. *We ranked and this window had nothing* would be a lie: **no
+       * ranking happened.** `DB.reasonCodes` is a full 26-code registry
+       * (`:14690`+) and `DB.contacts` is `[]` (`:14718`) — the dimension is
+       * real and the volume was never captured. Legacy says as much in its own
+       * words at `:15044`: *"No coded contacts yet."*
+       *
+       * It is also the list the spec calls the most valuable capture left in
+       * the product, so it is the one people will look at, and the one where
+       * getting the sentence wrong costs most.
+       *
+       * The rows stay `[]` rather than being back-filled: seeding plausible
+       * volumes would put a ranking of made-up product problems in front of the
+       * person who has to act on it, which is exactly what Q-101 forbids.
+       */
+      awaitingStore: 'contact-log',
       rows: [],
     },
   ],
@@ -2339,12 +2667,21 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
    *
    * By **day** it works, ranks, and agrees with the tile: seven rows, six gaps
    * each — 3 blocks × 2 tiers — summing to the 42 the tile reports (**AC-695**),
-   * with the high-risk count as the secondary. `WEEKEND` is `['fri','sat']`
+   * with the high-risk count in the sub-label. `WEEKEND` is `['fri','sat']`
    * (`:19596`) and the night block is high-risk on every day (`:19655`), so
    * Friday and Saturday are 6 of 6 and the rest are 2 of 6 — **22 high-risk
    * gaps**, which is `rotaStats().highRisk`.
    *
-   * **`bar: true`**: one unit, one denominator, 42.
+   * **`bar: false` — V-13, closed by rule and not by taste.** Seven rows all
+   * valued 6 means `max === min`, and R5-6 makes `max > min` a condition of the
+   * bar. Its old denominator was 42 — all the rota's slots — which was neither
+   * the largest row nor the total of the rows shown, and was a third meaning of
+   * *"share"* on a third board. It also stops paying 20px a row for seven
+   * identical bands.
+   *
+   * **The finding the seven equal numbers encode survives, and it is the whole
+   * point of the list**: *nobody is on call at any hour of any day*. Seven
+   * sixes say that. Seven identical bars only said it twice.
    *
    * **§12.3's second breakdown — accounts failing the integrity scan — does not
    * ship**, for the same reason its tile is `null`: `integrityScan()`
@@ -2356,7 +2693,14 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
       dimension: 'rota-day',
       rowsShown: 7,
       rowsTotal: 7,
-      bar: true,
+      bar: false,
+      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
+         `breakdown.caveat.uncodedRanking`; its gate is
+         `support.uncodedContactShare`, whose value is `not-computable`, so
+         there is no threshold to have crossed. R5-11 — every one of these
+         cards has its store; the two absences that lack one are tiles. */
+      caveat: null,
+      awaitingStore: null,
       rows: [
         rotaDay('fri', 6, 6),
         rotaDay('sat', 6, 6),
@@ -2372,22 +2716,26 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
 
 /**
  * One day of the on-call rota. `DAY_KEYS` (`:19594`) is a closed set, so unlike
- * a captain or a city this row's label really is a translation key.
+ * a captain or a city this row's label really is a translation **key** — this
+ * is the `kind: 'key'` half of `BreakdownLabel`, and the one that must lay out
+ * RTL in an Arabic console.
  */
 function rotaDay(day: string, gaps: number, highRisk: number): MetricBreakdownRow {
   return {
     id: `ROTA-${day}`,
-    labelKey: `breakdown.rotaDay.${day}`,
-    labelParams: null,
-    subLabelKey: highRisk === gaps ? 'breakdown.sub.weekend' : 'breakdown.sub.nightBlock',
+    label: { kind: 'key', key: `breakdown.rotaDay.${day}`, params: null },
+    /* The high-risk count is a noun phrase now, not a second column — R5-5.
+       `Weekend · all 6 are high-risk` on Friday and Saturday, where every gap
+       is high-risk; `Night block · 2 are high-risk` on the other five, where
+       only the night block is. */
+    subLabelKey: highRisk === gaps ? 'breakdown.sub.rotaWeekend' : 'breakdown.sub.rotaNightBlock',
+    subLabelParams: { count: highRisk },
     value: gaps,
     unit: 'count',
     currency: null,
-    secondaryValue: highRisk,
-    secondaryUnit: 'count',
-    /* Six of forty-two. Every day is the same height, which is itself the
-       finding: nobody is on call at any hour of any day. */
-    barFraction: gaps / 42,
+    /* `null`: seven rows all valued 6, so `max === min`, so `bar` is false and
+       a row may not draw one (R5-6, V-13). */
+    barFraction: null,
     drilldownRoute: '/admin/team',
   }
 }
@@ -2416,13 +2764,129 @@ function rotaDay(day: string, gaps: number, highRisk: number): MetricBreakdownRo
  *     no board at all (**F-9b**). The *shape* is modelled for it; the board is
  *     not mine to invent.
  *
- * **A gap for qa-engineer, stated rather than manufactured:** no board declares
- * **two** notices, so the selection rule — highest tone, then `severity`, then
- * declaration order — has no fixture that exercises it. Inventing a second
- * condition to make a test possible would put a banner on screen that no tile
- * corroborates, which is the exact thing the ruling forbids.
+ * ## The two-notice board — `operations-overview` (**R4-4 §4.3's tie-break, on real data**)
+ *
+ * Until this pass no board declared two, so every multi-notice case in
+ * `src/screens/metrics/board.test.ts` was marked `SYNTHETIC` and the selection
+ * rule had never run against a real condition. **Operations › Overview declares
+ * two, and both were already true of this dataset before a notice existed for
+ * them.**
+ *
+ * | # | Condition | Tile it corroborates | Tone | Severity |
+ * |---|---|---|---|---:|
+ * | 1 | 2 applications past their 48-hour window | `operations.overview.applicationsPastWindow` | `warning` | 70 |
+ * | 2 | 2 captains dispatchable on a lapsed document | `operations.overview.complianceExpired` | `critical` | 95 |
+ *
+ * **Why this pairing is operationally real and not contrived.** They are the
+ * two halves of the *same seven* on the People sub-tab — `navCounts.ts` spells
+ * it out: *"five applications awaiting a decision plus two lapsed compliance
+ * documents"*, and both halves are named there with dates. `APP-2204` went past
+ * its window 20 hours ago; `DRV-0104` is a gold captain with 524 trips on an
+ * inspection certificate that expired on 2026-06-20. An Ops Manager opening the
+ * console on Thursday morning has both on their plate at once, and the count of
+ * each is on the board above.
+ *
+ * That is also **why the badge underneath them is one neutral `7`** and why the
+ * fixture there calls it *"the D-L8 failure in miniature — the chip cannot tell
+ * an operator which of the seven is the emergency."* The notices are what the
+ * chip cannot say.
+ *
+ * **Why the tones differ, and it is the same clause that tones the badge.**
+ * R4-10b's second clause: *"the deadline that makes it irreversible is not one
+ * we set."*
+ *
+ *   - The **document expiry** is set by the issuing authority. Nothing in Admin
+ *     › Operational Policy moves it, the captain is off dispatch until it is
+ *     renewed, and every hour they are not is a legal exposure. **`critical`.**
+ *   - The **48-hour application window** is *ours*, `slaSource` on every
+ *     applicant row is `'unset'`, and **Q8 has not been answered**. The delay
+ *     still does real damage — an applicant who waits four days signs with
+ *     somebody else, and deciding later does not get them back — so it is a
+ *     notice. But a criticality resting on a number nobody has ratified would
+ *     move when the number does. **`warning`.**
+ *
+ * The demotion is the honest form of the same reasoning that made
+ * `operations-people`'s badge neutral. Neither notice was written to make a
+ * test pass; the tones fell out of a rule that already existed.
+ *
+ * **What this fixture proves, and what it still does not.** They are declared
+ * in **board tile order** — `applicationsPastWindow` is tile 1 and
+ * `complianceExpired` is tile 7 — so the `warning` is declared **first**. An
+ * implementation that took declaration order, or that stopped at the first
+ * notice, renders the wrong banner and the test fails. **The tone clause now
+ * bites on real data.**
+ *
+ * The **severity** clause still does not, and is not manufactured here:
+ * severity is a tie-break *within* a tone (see `BoardNotice.severity`) and no
+ * board has two conditions of one tone. `board.test.ts`'s severity cases stay
+ * `SYNTHETIC` and should stay labelled as such.
+ *
+ * **Three copy keys are owed by `src/screens/metrics/copy.ts`, which is not
+ * this layer's file** — handed to frontend-engineer:
+ *
+ * ```
+ * notice.operations.applicationsPastWindow.one   An application is past its 48-hour window.
+ * notice.operations.applicationsPastWindow.many  {count} applications are past their 48-hour window.
+ * notice.operations.complianceExpired.one        A captain has a lapsed document and cannot be dispatched.
+ * notice.operations.complianceExpired.many       {count} captains have lapsed documents and cannot be dispatched.
+ * notice.action.openApplications                 Open applications
+ * notice.action.openCompliance                   Open compliance
+ * ```
+ *
+ * Full sentences take a period (R6); the two actions are verb-first fragments
+ * and do not (R6, §5.7). Two keys per count, never a pluralisation built by
+ * concatenation (AC-713).
+ *
+ * **Three conditions on this same board were considered and refused**, because
+ * a notice list is only worth reading if things were kept out of it:
+ *
+ *   - **`legsUncovered` (4).** `navCounts.ts` already ruled on it: *"the harm is
+ *     still avoidable right up to departure, which is the whole point of the
+ *     screen."* Recoverable, therefore a tile.
+ *   - **`breachedWorkItems`.** A mixed count across five queues with five
+ *     different SLA provenances. A banner over it could not say what is on fire,
+ *     which is the D-L8 failure the notice exists to avoid.
+ *   - **`unclaimedWork`.** A rota signal, not a deadline.
  */
 export const boardNotices: Record<string, BoardNotice[]> = {
+  /**
+   * **Declared in board tile order, warning first.** That ordering is not a
+   * flourish — it is what makes the tone clause of R4-4 §4.3's selection rule
+   * fail loudly if it is dropped. Do not reorder these to "put the critical
+   * first"; the screen chooses, the board declares.
+   */
+  'operations-overview': [
+    {
+      key: 'notice.operations.applicationsPastWindow',
+      /* `APP-2204` (due 2026-06-24 13:05) and `APP-2205` (due 2026-06-23
+         16:30). Equal to `operations.overview.applicationsPastWindow`, which is
+         derived in `clients/metrics.ts` from the same applicant rows. */
+      params: { count: 2 },
+      /* `warning`, not `critical`: the 48-hour window is ours and **Q8** has not
+         ratified it (`slaSource: 'unset'` on every applicant row). R4-10b
+         clause 2. */
+      tone: 'warning',
+      action: {
+        labelKey: 'notice.action.openApplications',
+        route: '/operations/people?view=applications',
+      },
+      severity: 70,
+    },
+    {
+      key: 'notice.operations.complianceExpired',
+      /* `complianceScan()` `worst === 0` (`:13322`) — off dispatch. One is
+         `DRV-0104`, 524 trips, inspection certificate expired 2026-06-20. */
+      params: { count: 2 },
+      /* Statutory, and the deadline is the issuing authority's. R4-10b clauses
+         1 and 2 both pass on their own terms. */
+      tone: 'critical',
+      action: {
+        labelKey: 'notice.action.openCompliance',
+        route: '/operations/people?view=compliance',
+      },
+      severity: 95,
+    },
+  ],
   'support-overview': [
     {
       key: 'notice.support.unacknowledgedSos',

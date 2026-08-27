@@ -4,7 +4,7 @@
  * Rules applied
  *   §1.2       heights are tokens: `--ev-control-h` (28px) default and
  *              `--ev-control-h-lg` (36px) large, so they widen in Arabic through
- *              the token. The stock `h-8` / `h-9` / `h-7` literals are replaced.
+ *              the token. The stock 7, 8 and 9 height literals are replaced.
  *   R3         THE ON STATE IS NOT `bg-primary`. Brand blue means "primary
  *              action" under R3/D-1; a pressed toggle is a state, not an action.
  *              On = white surface PLUS weight 600 on the `--ev-bg2` track - two

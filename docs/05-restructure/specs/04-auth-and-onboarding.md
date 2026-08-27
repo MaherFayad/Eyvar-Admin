@@ -8,6 +8,18 @@ fourth shell layer.
 **provisional on D4** for the two proposed ones — §8.6 names exactly which criteria move under
 each D4 outcome.
 
+> **Reconciled with `design/08-auth-and-onboarding.md`, 2026-08-27.** That document's §15 records
+> nine overrules of this spec; all nine are applied. **§19** is the record: what was applied as
+> written, what was applied with a different shape and why, which two were not overrules at all,
+> and **five further contradictions between the two documents that §15 did not name** (§19.3).
+> **Where the two disagree on a string, a placement or a control inventory, the design spec is the
+> source** and the criterion says so in its own text.
+>
+> **Two criteria are KNOWN-FAILING and must not be reported as regressions:** **AC-663** (blocked
+> on **Q-78** — no `manage_security_policy` key exists) and **AC-610** (blocked on foundation
+> **Q4** — every `requiredPermission` is `null`). Each names its blocker in place. **One cross-wave
+> blocker** is recorded at **§16.1 B-1**.
+
 **Evidence convention.** Every claim about current behaviour carries a `file:line`. Every claim
 that could not be grounded in the legacy app or an existing doc carries **`[inferred]`**. On these
 two surfaces the `[inferred]` tags are dense and that is the honest signal: **there is no login
@@ -72,9 +84,9 @@ difference on day one, day two, or ever.
 | **Single sign-on / SAML / OIDC, and social providers** | `DESIGN.md` §2.5 D describes three social-provider tiles because Shopify has them. Eyvar has one identity source: the team roster in `DB.teamUsers` (`:2830`). Shipping provider buttons that authenticate against nothing is chrome, and under D14 the *structure* we borrow from Shopify is the flow, not the providers it happens to offer. Revisit when an identity provider exists. |
 | **Self-service sign-up** | There is no such thing as a self-registering ops operator. Every account is created by someone holding `manage_team` (`:10530`). `signup-create-account-email-password.webp` is out of scope entirely. |
 | **The password hashing scheme, token format, and rate-limit implementation** | Server-side and not mine to choose. §11 states the *guarantee* each must meet; the mechanism is the engineering lead's. |
-| **Impersonation ("act as team member")** | Already exists (`:3086`–`:3113`) and already has four recorded defects (`00c` F3–F7, including a total RBAC bypass at `:3098`). It is a **separate spec** and folding it in here would let its defects ride in on an auth review. Named as a blocker in §13. |
+| **Impersonation ("act as team member")** | Already exists (`:3086`–`:3113`) and already has four recorded defects (`00c` F3–F7, including a total RBAC bypass at `:3098`). It is a **separate spec** and folding it in here would let its defects ride in on an auth review. Named as a cross-wave blocker in **§16.1 B-1**. |
 | **Editing another operator's password, role or permissions** | Admin › Team & Access, wave 7. This spec covers only what an operator does to their *own* credentials. |
-| **Biometric / WebAuthn / passkeys** | A strictly better second factor than SMS, and out of scope only because it needs a device-registration surface that does not exist. Recorded in §13 as **Q-77** so it is a deferral, not an oversight. |
+| **Biometric / WebAuthn / passkeys** | A strictly better second factor than SMS, and out of scope only because it needs a device-registration surface that does not exist. Recorded in §16 as **Q-77** so it is a deferral, not an oversight. |
 | **Audit-log surfaces for auth events** | The events are specified here (§12.3) because they must be emitted; *rendering* them is Admin › Activity Log, wave 7. |
 | **Onboarding content in Arabic** | Every string gets a key here (§12). The Arabic *copy* is a content decision, exactly as `src/i18n/dictionaries.ts` records for the shell's 200 strings. Keys yes, translations no. |
 | **Product-tour libraries, coach marks, spotlight overlays** | `DESIGN.md` §5.6: *"MUST NOT use modal wizards, coach-mark tours, or blocking overlays for onboarding."* That rule is structural, not visual, so D7 does not touch it. §8.2 takes the position this forces. |
@@ -163,10 +175,25 @@ saying so. It is one file and one design-spec section. Nothing in §4–§9 of t
 | 4 | `forgot-password` | `/forgot-password` | **NONE — see F-1** | Centred card, no frame |
 | 5 | `reset-password` | `/reset-password?token=…` | **NONE — see F-1** | Centred card, no frame |
 | 6 | `set-password` (invite) | `/activate?token=…` | **NONE — see F-1** | Centred card, no frame |
-| 7 | `reauthenticate` | shell layer, `?reauth=1` | **NONE — see F-2** | Shell layer, no scrim (§5.5) |
-| 8 | `onboarding` | shell layer, `?onboarding=1` | **NONE — see F-2** | Shell layer, no scrim (§5.5) |
+| 7 | `reauthenticate` | **no route and no URL param** — it renders over whatever is mounted | **Not a page.** `alert-dialog` modal, 440 px | **Modal, scrimmed, focus-trapping** — **R4-3**; design §8.2 |
+| 8 | `onboarding` | shell layer, `?onboarding=1` | **Guided checklist (§5.6)** — R4-2 | Shell layer, no scrim (§5.5) |
 
-> **F-1 — auth has no §6.4 row and no page shape, and I am not inventing either.**
+> **Row 7 is a correction, applied from design §15 overrule 5, sourced to `07-rulings-r4.md`
+> R4-3.** This spec originally called re-authentication a fifth shell layer. It is not one, and
+> the reason is §7.3.3's focus law — *the scrim decides the trap*. A no-scrim layer does not trap
+> focus, so `Tab` would carry the operator out of the only working control on the screen and into
+> the field of frozen controls §7.3 rule 2 puts behind it, with nothing to tell them they had
+> left. A surface that must trap must have a scrim, and a scrimmed, non-dismissible, single-task
+> surface is a modal by every row of §5.0. **Nothing in §7.3's guarantee changes** — the screen is
+> not unmounted, the form is not cleared, the SaveBar stays up, the route does not change. R4-3 is
+> a ruling about which overlay renders, not about the mount tree.
+
+> **F-1 — CLOSED by R4-2.** The row and the fifth page shape were minted (`07-rulings-r4.md` §2,
+> design §1.1): the six auth screens map to **Auth card — §2.5 D (structure only, D14), §4.2–4.4,
+> §5.2**, page **shape 5 — centred card, no frame**. The escalation as originally written is kept
+> below for its evidence trail.
+>
+> **F-1 (as escalated) — auth has no §6.4 row and no page shape, and I am not inventing either.**
 > `docs/ref/patterns.md` maps *"All 41 Eyvar pages"* and states *"A page with no row here may not be
 > designed until it gets one."* None of the 41 is an auth page. The four page shapes are single
 > column, main + right rail, full-bleed editor, and monitoring shell; a centred card on a bare
@@ -179,7 +206,15 @@ saying so. It is one file and one design-spec section. Nothing in §4–§9 of t
 > edits to `docs/06-design-reference/_partials/06-eyvar-mapping.md` followed by
 > `python docs/06-design-reference/build-design.py`. `DESIGN.md` is generated and never hand-edited.
 
-> **F-2 — there is no §6.4 row for a guided checklist, and the shell has three layers, not four.**
+> **F-2 — CLOSED by R4-2 and R4-3, and answered differently from how it was asked.** The
+> guided-checklist row was minted (R4-2). The layer count went to **four, not five** (R4-3):
+> `route.overlay` gains **`onboarding` and nothing else**, and re-authentication is a modal (row 7
+> above). **One shell layer is open at a time**, and **entering `session-expired` closes every open
+> layer first**, because a modal may not composite over a drawer (`00-decisions-r3.md` §1.2). Form
+> state is preserved across that close; overlay state is not, and those are different things. The
+> escalation as originally written is kept below.
+>
+> **F-2 (as escalated) — there is no §6.4 row for a guided checklist, and the shell has three layers, not four.**
 > `DESIGN.md` §5.6 specifies the setup-guide card and the guide drawer in detail, but §6.4 files
 > neither, because no Eyvar page had one. Foundation §4.3 declares **three** shell layers
 > (`profile`, `notifications-all`, `my-account`) and §8.2's `route.overlay` is
@@ -189,8 +224,9 @@ saying so. It is one file and one design-spec section. Nothing in §4–§9 of t
 > `reauth`; foundation §4.3 becomes five layers. This is a shell-owned file (`src/shell/*`) and a
 > mock-data-engineer-owned file (`routeTable.ts`) — **requested, not edited by me.**
 
-**Neither screen list may be designed until F-1 and F-2 land.** That is the rule `patterns.md` sets
-and I am not going around it.
+~~**Neither screen list may be designed until F-1 and F-2 land.**~~ **Both landed** — R4-2 and
+R4-3, and `design/08-auth-and-onboarding.md` §1.1 designs against the minted rows. The rule
+`patterns.md` sets was honoured, not gone around.
 
 ### 4.2 The decision: password **plus** a second factor, for everyone, every time
 
@@ -278,9 +314,18 @@ that will never work with no idea why, and their fix (call the Owner) requires k
 something to call about. **Trade recorded, taken deliberately, not overlooked.**
 
 **Inline field validation is format-only**: an identifier that is not a plausible email gets
-`Enter a valid email address` under the field, in the §4.4 treatment
-(`00-auth/login-email-validation-error.webp`, and `docs/ref/copy.md`'s exact-wording row). That is
-the only thing the client is allowed to judge.
+`Enter a valid email address.` under the field, in the §4.4 treatment
+(`00-auth/login-email-validation-error.webp`). That is the only thing the client is allowed to
+judge.
+
+> **The period is deliberate and it was a change.** `docs/ref/copy.md`'s exact-wording row spelled
+> this string **without** a period; design §16 **F-3** showed R6 (*full sentences take a period*)
+> beats `copy.md`, which is a condensation, and every inline field error in the design spec takes
+> one. **The design spec is the source for this string** (design §3.2) — and **`copy.md` now
+> agrees**: `:33` carries the period, and rule 8 at `:19` states that an inline field error is a
+> sentence and takes one. **All three sources spell it identically; QA has one string to check.**
+> Recorded because the three disagreed for a few minutes, and the next reader should not have to
+> rediscover which one won.
 
 ---
 
@@ -309,6 +354,14 @@ attempt locks them out for fifteen minutes.
 
 Pasted content is stripped of spaces, hyphens and non-digits before it is measured, because
 `123 456` and `123-456` are what an SMS client copies.
+
+**Focus moves on paste only, never on typing.** A paste is one atomic act whose whole result the
+operator can see, so handing them the button is a favour. A typist's next keystroke after the sixth
+digit would land on the button, where `Space` or `Enter` submits a code they have not read — the
+same wasted attempt this section exists to prevent. Typing the sixth digit moves nothing; the caret
+stays. **Applied from design §15 overrule 9; the design spec (§4.1 D-OTP-4) is the source.** This
+narrows a sentence that only ever described pasting and was silent on typing — a gap, not a
+disagreement.
 
 ### 5.3 The supersession rule — the most useful decision on this screen
 
@@ -363,6 +416,23 @@ After a request, the operator sees the same message whether the address exists o
 It renders as the soft in-card banner between the heading and the fields, which is where the
 reference puts it (`00-auth/login-reset-link-sent-banner.webp`; `DESIGN.md` §5.2 Family B) — and
 under D14 that placement is structure, so it is kept while its colour is not.
+
+**On which card, and in which tone — both settled by the design spec.**
+
+- **The card is `/signin`, not `/forgot-password`.** The reference frame shows the banner on a card
+  headed `Log in` with the identifier still filled; submitting the request returns the operator to
+  the sign-in card and the banner renders in its banner slot, between the subtitle and the
+  identifier field. It is also the better outcome: the operator's next act is in their mailbox, and
+  §6.3 deliberately keeps signing in normally from invalidating the link, so returning them to the
+  form that lets them do it is the point. **Applied from design §15 overrule 7 (design §7.1);
+  this spec was silent on which card, so this closes an ambiguity rather than reversing a
+  position.**
+- **The tone is `info`, not `success`.** The reference uses a green tick. Success asserts that
+  something happened, which is the exact claim a non-committal confirmation exists to refuse; a
+  green tick over a conditional sentence is a contradiction the operator reads faster than the
+  words. **Design §7.2 is the source.** The sentence above — *"the placement is kept while its
+  colour is not"* — already ceded tone to the designer, so design §15's clause 8 is a decision
+  taken inside a boundary this spec drew, not an overrule of it (§19.2).
 
 **Two things this requires that are not visible on screen**, both server guarantees (§11): the
 response for a known and an unknown address must be indistinguishable **in wording and in timing**;
@@ -463,8 +533,10 @@ Finance lead is halfway through a payout adjustment must not throw that away.
 1. Session expiry **never unmounts the screen, never clears a form, never reloads, and never
    redirects** while the active route is dirty.
 2. The shell enters `session-expired`: every mutating control is disabled in place with the reason
-   named (§11.2 of foundation: *gate at render, not at commit*), reads stop, and the `reauthenticate`
-   layer opens.
+   named (§11.2 of foundation: *gate at render, not at commit*), reads stop, and the
+   **`reauthenticate` modal** opens (§4.1 row 7; R4-3; design §8.2). **Entering `session-expired`
+   closes every open shell layer first**, because a modal may not composite over a drawer
+   (`00-decisions-r3.md` §1.2). Form state survives that close; overlay state does not.
 3. Re-authentication returns the operator to **the same route, the same view, the same scroll
    position, with the form still dirty and the SaveBar still up.**
 4. If the route is **clean**, expiry may redirect to `/signin` — there is nothing to lose, and a
@@ -500,14 +572,34 @@ Single session, or `Sign out everywhere`. Legacy's per-row logout uses a native 
 (`:3059`) and mutates the array in place; the confirm becomes a §5.3 dialog naming the device, and
 `Sign out everywhere` names how many sessions will end.
 
-### 7.6 Identity does not change on re-authentication
+### 7.6 Identity does not change on re-authentication — enforced by an absent field, not by a check
 
-The `reauthenticate` layer is bound to the `userId` of the session that expired. Signing in as a
-**different** operator from that layer is refused, with an instruction to sign out first. Without
-this rule, a mounted app holding one operator's dirty form can be handed to another operator's
-session and the audit log will attribute the save to the second person — which is `00c` **F5**
-(impersonation misattributes actions because `logAction` reads the already-reassigned
-`CURRENT_USER_ID`, `:3138`) recreated in a new place.
+The `reauthenticate` modal is bound to the `userId` of the session that expired. Without this rule,
+a mounted app holding one operator's dirty form can be handed to another operator's session and the
+audit log will attribute the save to the second person — which is `00c` **F5** (impersonation
+misattributes actions because `logAction` reads the already-reassigned `CURRENT_USER_ID`, `:3138`)
+recreated in a new place.
+
+**The mechanism changed, and the change is right.** This spec originally required that signing in
+as a different operator be **refused**. Design §8.2 removes the identifier field from the surface
+altogether: the account is rendered as **static text** bound to the expired session's `userId`, the
+only credential control is the password field, and `Sign out` is the named path to a different
+account. **Applied from design §15 overrule 3, and the design spec is the source.** The designer's
+argument holds on its own terms — a refusal is a check that can be forgotten, an absent field
+cannot be, and `00c` F5 is the cost of forgetting it once. Prevention beats refusal here because
+the refused case has no legitimate user: nobody has ever needed to become a second operator inside
+a first operator's unsaved form.
+
+> **What an absent field does not do, and why AC-567 is written the way it is.** Removing the
+> control removes the *UI* path. It does not, on its own, guarantee that `auth.reauthenticate`
+> rejects an identity that is not the expired session's — and a criterion that asserts only an
+> absence is unfalsifiable in the direction that matters, because a QA engineer cannot search the
+> space of all controls that might one day be added. **AC-567 therefore tests three things: a
+> closed inventory of the surface's controls, the request's shape, and the identity of the session
+> that comes back.** The inventory is the testable form of "there is no identifier field"; the
+> other two are the guarantee the field's absence is supposed to deliver, stated so it survives
+> somebody re-adding the field. §11.1 already places identity binding on the server; this is that
+> guarantee made checkable from the client.
 
 ---
 
@@ -544,9 +636,18 @@ requests exist."* Hanging onboarding off an empty state would put a training che
 an operator at the exact moment they have finished their work, which is the opposite of the signal.
 
 **So: a checklist, in a shell layer**, per §5.6's setup-guide anatomy — `n / m completed`, a
-progress bar, one expanded task at a time, description + `Learn more` + one primary action per
-expanded task, manual `Mark as done` as well as auto-detection, and `Dismiss` that does not
-resurrect.
+progress bar, one expanded task at a time, description + one primary action per expanded task,
+manual `Mark as done` as well as auto-detection, and `Dismiss` that does not resurrect.
+
+> **`Learn more` is not rendered, on any step, and that is a recorded content gap — not a
+> deferral and not an oversight.** §5.6 **SHOULD**s a `Learn more` link on every guide task and
+> `copy.md` rule 11 gives its exact form. **Eyvar has no help centre, so there is no destination
+> for it to have.** All 21 steps therefore ship `learnMoreKey: null` (§8.9), the design spec
+> renders nothing rather than a dead link (design §10.2, §14 **A-7**, §16 **F-2**), and no
+> acceptance criterion requires the link. A SHOULD that cannot be met is stated here as unmet
+> rather than left standing to be silently failed. **The gap is content, not design: somebody has
+> to write 21 help articles and put them somewhere before this SHOULD becomes reachable.**
+> Recorded as **Q-82** (§16).
 
 **Why the layer and not a card on the landing page.** The landing page differs by role
 (`session.landingRoute`), so a card would have to be added to five different Overview screens owned
@@ -607,8 +708,36 @@ spec. **No step says "explore the dashboard."**
 |---:|---|---|---|
 | 4 | Know who can do what | Admin › Team & Access | Read the role matrix. **`manage_settings` is held by one person and gates 39 of 131 guards** (`00c` F27) — decide whether that is still acceptable |
 | 5 | Confirm the policy you are accountable for | Admin › Operational Policy | Read dispatch radius, operating limits, SLA targets and reason codes once, deliberately |
-| 6 | Read the financial position | Financials › Overview | Trial balance and contribution margin (`03-financials.md` §5 row 1) |
+| 6 | **State the current contribution margin** (`owner.position`) | Financials › Overview — **the one destination AC-630 permits, named there and nowhere else** | The trial balance and the contribution margin are the two numbers the Owner is asked about, and they live on no other sub-tab (foundation §3.4 Financials row 1: `finance` contribution margin + pane `ledger` trial balance). The step is done when the Owner can say them out loud |
 | 7 | Settle the pricing model | Financials › Pricing & Plans | **The product computes captain earnings four different ways and nobody has picked one** (`03-financials.md` §4, **Q7**). This step's content is that the decision is outstanding and it is yours |
+
+> **Owner step 6 contradicted AC-630, and the contradiction was mine.** AC-630 banned every
+> workspace-Overview destination outright; §8.5 handed the Owner one. Design §15 overrule 4 found
+> it and I have verified it: foundation §3.4 makes `Overview` the first sub-tab of all five
+> workspaces, so `Financials › Overview` is a workspace Overview by definition, and the criterion
+> and the step could not both be right.
+>
+> **The fix is a named exception, not a deleted destination**, and the alternative was weighed:
+> banning the destination and moving the two numbers into the step body keeps AC-630 absolute, and
+> it does not work. Step bodies are **static i18n fixture strings** (`bodyKey`, §8.9), so a body
+> cannot carry a live trial balance or a live contribution margin — it can only carry their
+> *names*, which turns the step into *"go find two numbers, somewhere"*: no destination, manual
+> completion only, and an Owner sent hunting. That is a worse step than the one AC-630 was written
+> to prevent.
+>
+> **What AC-630 actually defends is intact.** It exists to stop *"explore the dashboard"* steps —
+> and `PROPOSED-STRUCTURE.md` §2.1 **P4** (*"Overview sub-tabs read; they never act"*) means a read
+> task is the only kind an Overview can honestly carry. `owner.position` names two facts the
+> operator must be able to state afterwards, which is **AC-629**'s bar, and AC-629 is the criterion
+> that catches a tour-of-a-screen step. AC-630's remaining job is to keep the exception from
+> multiplying, so it is rewritten as a **closed allow-list of exactly one step id**, plus one
+> clause this spec should have carried from the start: **no step's destination is the operator's
+> own `session.landingRoute`.** That is the real *"explore the dashboard"* ban — sending an
+> operator to the screen they land on every morning teaches nothing — and all 21 steps already
+> satisfy it, so it creates no design work. It is also what makes the exception principled rather
+> than arbitrary: `financials/overview` **is** the Finance role's landing route and **is not** the
+> Owner's (foundation §3.4 rows 3 and 1), which is exactly why the step is worth an Owner's time
+> and would be worth nothing to a Finance lead.
 
 **Finance** — `process_payouts`, `release_escrow`, `apply_deductions`, `view_finance`,
 `view_profiles` (`:2833`–`:2834`).
@@ -662,7 +791,7 @@ table.
 those keys would gate; today all three resolve through `manage_settings`, held by one person.
 `manage_security_policy` — the idle timeout, the trusted-device window, the enrolment policy in
 §7 — **does not exist under any proposal** and is currently inside `manage_settings`. It is named in
-§13 as **Q-78**.
+§16 as **Q-78**.
 
 ### 8.7 Steps whose destination is not built yet
 
@@ -696,7 +825,8 @@ paths.
 | `id` | string, stable, e.g. `common.sessions`, `ops.requests.claim` | fixture | — |
 | `trackRole` | `RoleName` | fixture | — |
 | `order` | integer | fixture | — |
-| `titleKey` / `bodyKey` / `learnMoreKey` | i18n key · key · key \| null | fixture | — |
+| `titleKey` / `bodyKey` | i18n key · i18n key | fixture | — |
+| `learnMoreKey` | i18n key \| null — **`null` on all 21 rows, today and until Q-82 is answered.** The field exists so the gap is visible in the data; nothing renders when it is `null` (§8.2, design §10.2) | fixture | — |
 | `destination` | `{ subTabId, view?: string, layer?: 'profile' \| 'account' } \| null` | fixture; `subTabId` **must** exist in the route table | — |
 | `completion` | `auto` \| `manual` | fixture | — |
 | `autoSignal` | string \| null — a named domain event id, e.g. `queue.item.claimed` | fixture | — |
@@ -744,7 +874,9 @@ operator loses a shift.
 | `code-expired` | §5.3 expired | *"That code has expired. Request a new one."* Counter does **not** tick. Resend enabled regardless of cooldown |
 | `code-invalidated` | 3rd wrong attempt (§5.4) | Input cleared, resend enabled immediately, instruction to request a new code |
 | `resend-cooldown` | Resend pressed | The control is disabled with the remaining seconds visible and counting |
-| `resend-exhausted` | 5 resends on one challenge | Return to `signin` and start again |
+| `resend-exhausted` | **Five codes sent for one challenge** — the opening code plus four resends; the next press is refused | Return to `signin` and start again. Copy: *"Five codes were sent for this sign-in."* **Codes, not resends — AC-533** |
+| **`challenge-missing`** | There is no open challenge for this browser context: `/signin/verify` opened directly, reached by browser back-then-forward after a consumed code, or a code issued in a different browser context (§5.1 binding row) | The whole card is replaced — no code field. A heading naming that the verification is no longer open, and one primary back to `signin`. **Added from design §15 overrule 6**; **AC-530**, **AC-531** and **AC-582** all require it and none of them had a named state to be designed against. The omission was mine |
+| **`challenge-completed-elsewhere`** | The same challenge was completed in another tab (§9.1's two-tab case) | The field and primary go read-only; a banner states that this sign-in finished in another tab and that the console is already open there, with a route back to `signin` for a second session. **Added from design §15 overrule 6**; **AC-583** requires it and requires that the tab *say so rather than hang* |
 | `enrolment-required` | `secondFactor === null` | `signin-enroll`. No skip, no dismiss, no route out except signing out |
 | `reset-requested` | §6.2 | The non-committal in-card banner |
 | `reset-token-invalid` | Unknown, used, superseded or expired token | One state for all four — *"This link is no longer valid. Request a new one."* — with the request action. Distinguishing them tells a link-holder which kind of link they have |
@@ -753,8 +885,8 @@ operator loses a shift.
 | `offline` | No connectivity | The card states it, submission is disabled with the reason named, and **nothing is cleared**. §5.2's merge rule: one banner |
 | `session-idle-warning` | 2 minutes remaining (§7.2) | Shell banner + `Stay signed in` |
 | `session-expired-clean` | Expiry, route not dirty | Redirect to `/signin` with a stated reason |
-| `session-expired-dirty` | Expiry, route dirty (§7.3) | App stays mounted, mutations disabled in place, `reauthenticate` layer opens, SaveBar stays up |
-| `reauth-wrong-identity` | A different operator tries to sign in from the re-auth layer | Refused, with the instruction to sign out first (§7.6) |
+| `session-expired-dirty` | Expiry, route dirty (§7.3) | App stays mounted, mutations disabled in place, every open shell layer closes, the **`reauthenticate` modal** opens, SaveBar stays up |
+| ~~`reauth-wrong-identity`~~ **retired** | — | **This state cannot occur and is no longer designed.** The re-auth modal has no identifier field (§7.6), so there is no gesture that reaches a wrong-identity refusal. The state is left in the table struck through, rather than deleted, so that nobody re-adds the field and then wonders where the refusal state went. **Retired under design §15 overrule 3** |
 | `role-revoked-in-session` | Permissions changed while signed in | Foundation's `role-switched`: rail, sub-tab list and every count re-derive; a now-forbidden route shows `route-forbidden`, **not** a redirect |
 | `write-permission-revoked-while-dirty` | The permission that authorises the pending save was removed | `Save` disables with the reason named; `Discard` stays enabled; the form's content stays on screen and selectable. **Never a silent drop** |
 
@@ -910,7 +1042,7 @@ is deliberately short.
 > avatar (`:578`), and `logAction` then attributes their actions to the impersonated user
 > (`:3138`). Recorded as `00c` **F3** and **F5**. Out of scope here (§2.2) and named because
 > **shipping authentication in front of a console that contains a one-click RBAC bypass is
-> theatre.** See §13, blocked list.
+> theatre.** Recorded as a cross-wave blocker in **§16.1 B-1**.
 
 ---
 
@@ -918,7 +1050,7 @@ is deliberately short.
 
 ### 12.1 Namespaces
 
-`auth.*` for the six screens and the re-auth layer. `onboarding.*` for the layer, the intro and the
+`auth.*` for the six screens and the re-auth modal. `onboarding.*` for the layer, the intro and the
 step content. Step titles and bodies are **keys on the fixture row** (`titleKey`, `bodyKey`), never
 literals in a component — otherwise 30 steps of training copy end up in TSX and out of reach of a
 translator.
@@ -932,7 +1064,7 @@ offenders are predictable, so here they are up front, each as **one key with nam
 |---|---|---|
 | `Try again in 12 minutes` | `auth.lockout.retryIn` `{minutes}` | Needs a plural rule. Arabic has six plural forms — this cannot be `n + ' minutes'` |
 | `Resend in 27s` | `auth.otp.resendIn` `{seconds}` | Same |
-| `Sent to ••• ••• 4567` | `auth.otp.sentTo` `{hint}` | The masked run is a **numeric run**: it does not reorder in RTL and needs bidi isolation (foundation §7.5 rule 6) |
+| `Sent to ••••••67` | `auth.otp.sentTo` `{hint}` | The masked run is a **numeric run**: it does not reorder in RTL and needs bidi isolation (foundation §7.5 rule 6). **The example string is corrected from `••• ••• 4567`, which exposed four digits and broke this spec's own AC-519 — applied from design §15 overrule 2. The criterion binds; the illustration was written against a four-digit habit** |
 | `3 of 8 completed` | `onboarding.progress` `{done}` `{total}` | §5.6's required format |
 | `Skipped (2)` | `onboarding.skipped` `{count}` | |
 | `Your role changed to Ops Manager` | `onboarding.roleChanged` `{role}` | Role names are themselves keys (`role.opsManager`), not English literals interpolated into Arabic |
@@ -975,11 +1107,24 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 - **AC-502** An authenticated operator opening `/signin` is sent to `session.landingRoute` without
   rendering the sign-in card.
 - **AC-503** The card contains, in this order: wordmark, heading, one-line subtitle, identifier
-  field, password field, `Remember this device`, a full-width primary, a `Forgot password?` link,
+  field, password field, a `Forgot password?` link, `Remember this device`, a full-width primary,
   and the legal link row. Nothing else. There are **no social-provider buttons** and no
-  `Create account` link anywhere on the surface.
+  `Create account` link anywhere on the surface. The legal row renders **only the links Admin ›
+  Workspace's `legal` pane actually provides** — `Help` is not among them, Eyvar having no help
+  centre — and when the pane provides none the row is absent rather than empty.
+  **Source: design §15 overrule 1 (design §1.3, §2.2).** `Forgot password?` moved from below the
+  primary to directly beneath the password field: two reference frames put it there
+  unambiguously, D14 sends card order to Shopify, and it is the control an operator reaches for in
+  the second after the primary just failed — below the primary it sits under the fold a banner
+  re-render pushes down. The trailing clause about the legal row is mine, added because design
+  §1.3 makes the row conditional and *"contains … the legal link row. Nothing else."* would
+  otherwise fail a card that correctly omits it.
 - **AC-504** Submitting an identifier that is not a plausible email address shows
-  `Enter a valid email address` under that field and does not issue a network request.
+  `Enter a valid email address.` under that field and does not issue a network request. **The
+  string carries a period.** `docs/ref/copy.md`'s exact-wording row omitted it and was wrong: R6
+  (*full sentences take a period*) is a ruling and beats `copy.md`, which is a condensation of
+  §5.7. **Source: design §3.2 and design §16 F-3** — see §4.5. **`copy.md:33` and its rule 8
+  now agree**, so there is one string to check and not two.
 - **AC-505** Submitting `sarah@eyvar.com` with the fixture password advances to `/signin/verify`.
 - **AC-506** Submitting an unknown identifier, submitting `sarah@eyvar.com` with a wrong password,
   and submitting `suspended@eyvar.com` with any password produce **byte-identical** on-screen copy.
@@ -1036,8 +1181,21 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 - **AC-531** A code issued in one browser context and entered in a different one is rejected.
 - **AC-532** Pressing `Resend` disables the control and displays a countdown that reaches zero and
   re-enables it. The first cooldown is longer than zero and the second is longer than the first.
-- **AC-533** After 5 resends on one challenge the operator is returned to `/signin` and told to
-  start again.
+- **AC-533** **Once five codes have been sent for one challenge, the operator is returned to
+  `/signin` and told to start again. The count is of codes, including the one sent when the
+  challenge opened — so the fifth code is the fourth successful resend, and the next press of
+  `Resend` is refused.**
+  *(Amended 2026-08-27. **This criterion and its own copy counted different nouns.** It said *"after
+  5 resends"*; `design/08-auth-and-onboarding.md` §4.4's string says *"Five codes were sent for this
+  sign-in."* — **and five resends is six codes.** Both literal readings happen to be satisfied by
+  the shipped `MAX_CODES_PER_CHALLENGE = 5`, which is why nothing failed; the engineer flagged it
+  anyway, correctly, because **a criterion and a string that count different nouns will be
+  re-litigated by whoever reads only one of them.**
+  **The noun is `codes`, and the choice is not arbitrary.** An operator can count codes — each one
+  arrived on their phone. Nobody can count *resends* without first deciding whether the code that
+  opened the challenge was one, which is precisely the ambiguity that produced the off-by-one.
+  Counting the thing the operator received also makes the string and the constant name the same
+  quantity, so all three now say `codes`.)*
 - **AC-534** After a resend, the previous code is rejected as **superseded**, not as wrong
   (AC-524's counter behaviour applies).
 - **AC-535** With `?mockFail=auth.verifyCode`, submitting a code shows a transport error with retry;
@@ -1053,7 +1211,11 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 - **AC-539** Submitting a known address and submitting an unknown address produce **byte-identical**
   on-screen copy.
 - **AC-540** The confirmation states the link's expiry in words and appears as an in-card banner
-  between the heading and the field, not as a toast.
+  **on the `/signin` card, in its banner slot between the subtitle and the identifier field** —
+  not on `/forgot-password`, and not as a toast. Its tone is `info`; there is no success glyph and
+  no green. **Source: design §15 overrules 7 and 8 (design §7.1, §7.2).** Overrule 7 is a
+  clarification, not a reversal: this spec named the placement within a card and never named the
+  card.
 - **AC-541** The confirmation copy never contains the words "found", "exists", "no account", or the
   address's account holder's name.
 - **AC-542** `/reset-password?token=valid` renders the new-password form.
@@ -1076,7 +1238,13 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   shows an error with retry, **not** the invalid-link state.
 - **AC-551** With `?mockFail=auth.resetPassword`, submitting shows an error with retry and the
   entered values are preserved.
-- **AC-552** A successful reset states that other sessions have ended, naming the count.
+- **AC-552** A successful reset states what happened to the account's other sessions. When there
+  is at least one, the message **names how many ended**. When there are none, the message says so
+  **without a numeral and without the word `0`** — it does not read `0 other sessions ended`.
+  Both forms come from one key with one plural rule, never from two keys and never from a
+  concatenation. **Corrected by me, not by the designer.** As originally written — *"naming the
+  count"* — this criterion cannot pass in the zero case, which design §7.5's explicit ICU `=0`
+  form correctly renders without a count. The design is right and the criterion was wrong.
 - **AC-553** After a successful reset the operator is required to complete a verification code
   before reaching any in-app route.
 - **AC-554** After a successful reset, every previously trusted device requires the second factor at
@@ -1100,16 +1268,49 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   `/signin` with the reason stated.
 - **AC-562** When the session expires while the active route is **dirty**, the operator is **not**
   redirected, the page is not reloaded, and the form's values are all still on screen.
-- **AC-563** In that state every mutating control on the page is disabled and each carries a
-  reason available without a pointer hover.
+- **AC-563** In that state every mutating control on the page is inert, and the reason is
+  available two ways: **stated visibly once on the surface** — the re-authentication modal's own
+  heading and body — and **programmatically associated with every inert control**, via
+  `aria-describedby` pointing at one reason element. No reason is carried by a `title` attribute
+  or by anything else that requires a pointer hover. Text inputs are made `readOnly`, not
+  `disabled`, so their content stays readable and selectable (**AC-562**). **Clarified by me
+  against design §8.1.** The original wording — *"each carries a reason"* — reads as a demand for
+  a visible reason per control, which the design deliberately does not do and should not; QA
+  would have failed a correct screen.
 - **AC-564** In that state the SaveBar is still visible and reports `dirty`.
 - **AC-565** Completing re-authentication returns the operator to the same route, the same
   `?view=`, the same scroll position, with every previously entered value intact and the SaveBar
   still `dirty`.
 - **AC-566** Saving immediately after re-authentication succeeds and writes one audit row
   attributed to the operator who typed the form.
-- **AC-567** Attempting to sign in as a **different** operator from the re-authentication layer is
-  refused, with an instruction to sign out first; the dirty form is untouched.
+- **AC-567** **A second operator cannot be signed in from the re-authentication surface, because
+  the surface offers no way to name one.** Checked as three independent tests, all three of which
+  must pass:
+  - **(a) Inventory, not search.** The complete set of controls inside the re-authentication modal
+    is exactly: the account line **rendered as static text** (not an `input`, not editable, not
+    focusable), one password field, its reveal control, `Sign out`, and `Sign in`. QA enumerates
+    every `<input>`, `<select>`, `<textarea>`, `contenteditable` and focusable element inside the
+    dialog and compares that enumeration to this list; **any element not on the list fails**, and
+    an `input` of any type other than `password` fails outright.
+  - **(b) The request carries no operator-supplied identity.** The `auth.reauthenticate` payload
+    contains no identifier, email or user id taken from anything the operator can type, paste or
+    put in a URL. QA checks the outbound request on a successful re-authentication.
+  - **(c) The identity that comes back is the identity that expired.** After re-authentication the
+    session's `userId` equals the `userId` of the session that expired, and the save that follows
+    writes **one** audit row naming the operator who typed the form (**AC-566**).
+
+  Throughout all three, the dirty form is untouched. The named path to a different account is
+  `Sign out`, which routes through §8.3 of the design spec.
+
+  **Source: design §15 overrule 3 (design §8.2), applied — with the test shape rewritten by me.**
+  The designer replaced a *refusal* with an *absent field* and they are right to: a refusal is a
+  check that can be forgotten, an absent field cannot be, and `00c` **F5** is what forgetting it
+  once costs. But a criterion phrased only as *"the surface has no identifier field"* is not
+  testable in the direction that matters — a QA engineer cannot search the space of controls that
+  might be added later, and an absence proves nothing about what `auth.reauthenticate` accepts.
+  (a) is the testable form of the absence, because a closed inventory can be diffed where an open
+  search cannot; (b) and (c) state the guarantee the absence is supposed to deliver, so that it
+  survives somebody re-adding the field. See §7.6.
 - **AC-568** Explicit `Sign out` while dirty raises the `navigate-away-dirty` modal naming what will
   be lost. Cancelling it leaves the operator signed in and the form dirty.
 - **AC-569** `Remember this device` unchecked, then a second sign-in from the same browser, reaches
@@ -1191,7 +1392,12 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   bar.
 - **AC-603** `total` counts only steps that are reachable — built destination and permission held.
 - **AC-604** At most one step is expanded at a time. Expanding a second collapses the first.
-- **AC-605** Only the expanded step shows its description, its `Learn more` link and its action.
+- **AC-605** Only the expanded step shows its description, its action and its skip control. **No
+  step renders a `Learn more` link, in any state**, because `learnMoreKey` is `null` on all 21
+  fixture rows and Eyvar has no help centre to link to (§8.2, **Q-82**, design §16 **F-2**). A
+  rendered `Learn more` **fails** this criterion until Q-82 is answered. **Corrected by me.** The
+  original wording required a link the product has no destination for; §5.6's `Learn more` is a
+  SHOULD and it is recorded as unmet rather than left to fail silently.
 - **AC-606** Every step can be marked done manually, whether or not it can be auto-detected.
 - **AC-607** Every step whose destination is a sub-tab navigates there when its action is activated,
   and closes the layer.
@@ -1199,8 +1405,19 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   diffing the fixture against `routeTable.ts`; a step naming an id that is not there fails.
 - **AC-609** A step whose destination sub-tab is not yet built renders disabled in place, states
   why, and is excluded from `total`.
-- **AC-610** A step whose `requiredPermission` the operator does not hold renders disabled in place,
-  names the permission and who can grant it, and is excluded from `total`.
+- **AC-610** ⚠ **KNOWN-FAILING — blocked on foundation Q4.** A step whose `requiredPermission` the
+  operator does not hold renders disabled in place, names the permission and who can grant it, and
+  is excluded from `total`.
+  **Blocker:** foundation §12.2 **Q4** — *which permission gates each of the 34 sub-tabs* — is
+  unanswered, so **every `requiredPermission` in `onboardingTracks.ts` is `null`** and no step can
+  enter the forbidden state. **The treatment is fully designed, keyed and copied** (design §10.2,
+  §10.3 `step-unreachable-forbidden`); it is unreachable, not unbuilt.
+  **QA: report as blocked, never as a regression.** It becomes reachable on the day Q4 lands and
+  the fixture's `requiredPermission` values stop being `null` — a data edit, with no design or
+  component change. Note that `newrole@eyvar.com` reaches `track-empty` through **zero
+  permissions**, not through a forbidden step, so **AC-631 passes while this one cannot** — the
+  two are not testing the same path and passing AC-631 does not discharge this one.
+  Cross-referenced: §14, design §16 **F-5**.
 - **AC-611** No step is hidden. Every step in the operator's track is present in the DOM.
 - **AC-612** Completing an auto-detected step by doing the real task in the product — claiming an
   item in Operations › My Work — marks that step done without the operator opening the layer.
@@ -1238,7 +1455,27 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 - **AC-629** No step in any track has a title or body that could be satisfied by "look at this
   screen": every step names an action the operator performs or a specific fact they must be able to
   state afterwards.
-- **AC-630** No track contains a step whose destination is a workspace Overview.
+- **AC-630** Checked as two clauses:
+  - **(a)** Across all four tracks, **exactly one** step has a workspace `Overview` as its
+    destination, and its `id` is **`owner.position`**. Any other step whose destination resolves to
+    a `*/overview` route fails. QA checks this as a diff of `onboardingTracks.ts` against the
+    route table — an allow-list of one id, not a judgement call.
+  - **(b)** No step's destination is the operator's own `session.landingRoute`. `owner.position`
+    satisfies this: `financials/overview` is the **Finance** role's landing route and is not the
+    Owner's (foundation §3.4 rows 3 and 1).
+
+  **Source: design §15 overrule 4 (design §10.5), applied — with the exception's form tightened by
+  me.** The contradiction the designer found is real and it was mine: §8.5 gave Owner step 6 a
+  Financials › Overview destination that this criterion banned outright, and foundation §3.4 makes
+  `Overview` the first sub-tab of all five workspaces, so the two could not both be right. I chose
+  the carve-out over the alternative — banning the destination and moving the two numbers into the
+  step body — because step bodies are static i18n fixture strings and cannot carry a live trial
+  balance or contribution margin; that fix produces a step with no destination that sends the
+  Owner hunting, which is worse than what this criterion was written to prevent. Clause (b) is
+  mine: it is the ban this criterion was actually reaching for, all 21 steps already satisfy it,
+  and it is what makes the single exception principled rather than arbitrary. The *"explore the
+  dashboard"* prohibition itself is enforced by **AC-629**, which `owner.position` passes — it
+  names two facts the operator must be able to state afterwards. See §8.5.
 - **AC-631** `newrole@eyvar.com` — an Ops Manager holding zero permissions — sees the `track-empty`
   state: one sentence, no illustration, naming who to ask.
 
@@ -1309,10 +1546,17 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 - **AC-661** An operator can always view their own device list; no permission gates it.
 - **AC-662** An operator cannot revoke a session belonging to another account without
   `manage_team`.
-- **AC-663** The idle-timeout, trusted-device-window and enrolment settings are gated, and the
-  screen naming that gate names a permission that exists in the built permission set. **This
-  criterion cannot pass until Q-78 is answered** — recorded as a known-failing criterion, not a
-  surprise.
+- **AC-663** ⚠ **KNOWN-FAILING — blocked on Q-78.** The idle-timeout, trusted-device-window and
+  enrolment settings are gated, and the screen naming that gate names a permission that **exists
+  in the built permission set**.
+  **Blocker:** **Q-78** — no `manage_security_policy` key exists under any proposal, and the three
+  settings sit inside `manage_settings` today: one key, one holder, 39 of 131 guards (`00c` F27).
+  The criterion cannot pass because the permission it requires the screen to name **is not in the
+  set to be named**.
+  **QA: report as blocked, never as a regression.** It is discharged when the business owner
+  answers Q-78 as part of **D4** and the key is added. Nothing has been designed around it: the
+  Admin › Team & Access pane carrying those three settings is **wave 7** and is in neither this
+  spec's screen list nor the design spec (design §16 **F-4**). Cross-referenced: §14, §16.
 - **AC-664** No screen offers a control that turns the second factor off for any account, for any
   role, including Owner.
 - **AC-665** A route the operator's role cannot see renders `route-forbidden` after
@@ -1363,8 +1607,8 @@ Cross-reference: `docs/01-modules/00c-identity-permissions-and-audit.md`.
 | Re-issuing an invite, resetting an account's onboarding | `manage_team` (`:10530` already guards `commitInvite` with it) |
 | The onboarding layer, own track | Every authenticated operator |
 | Another operator's onboarding state | `manage_team` |
-| Idle timeout · trusted-device window · enrolment policy | Today: `manage_settings` — one key, one holder, 39 of 131 guards (`00c` F27). **Q-78** proposes `manage_security_policy`. Until then AC-663 fails, visibly |
-| Each onboarding **step's destination** | The permission that gates the destination sub-tab — **which is foundation Q4, unanswered for all 34.** Every `requiredPermission` in the fixture is therefore `null` today, and §8.7's disabled-in-place path is unreachable until Q4 lands. Named, not papered over |
+| Idle timeout · trusted-device window · enrolment policy | Today: `manage_settings` — one key, one holder, 39 of 131 guards (`00c` F27). **Q-78** proposes `manage_security_policy`. Until then **AC-663 is known-failing** — blocker named there and in §16 |
+| Each onboarding **step's destination** | The permission that gates the destination sub-tab — **which is foundation Q4, unanswered for all 34.** Every `requiredPermission` in the fixture is therefore `null` today, and §8.7's disabled-in-place path is unreachable until Q4 lands. **AC-610 is known-failing** — blocker named there and in §16. Named, not papered over |
 
 ---
 
@@ -1403,6 +1647,17 @@ is this spec.
 | **Q1** *(foundation §12.2)* | **What persists across a reload** | Engineering lead | **Nothing in this spec.** §8.4 states why onboarding is deliberately server-backed and what it would use Q1 for if it landed: one nicety, which degrades cleanly |
 | **Q4** *(foundation §12.2)* | **Which permission gates each of the 34 sub-tabs** | Business owner | Every onboarding step's `requiredPermission` is `null` until it lands, so §8.7's forbidden-step path is unreachable. **AC-610** cannot pass until then |
 | **Q7** *(foundation §12.2)* | **Which of the four pricing models is real** | Finance lead | Owner step 7's *content*, not its existence. The step ships saying the decision is outstanding |
+| **Q-82** | **Where does `Learn more` go?** `DESIGN.md` §5.6 SHOULDs a `Learn more` link on every guide task and `copy.md` rule 11 gives its exact form. **Eyvar has no help centre, so there is no destination.** All 21 steps ship `learnMoreKey: null` and the layer renders nothing rather than a dead link (§8.2, design §14 **A-7**, §16 **F-2**). This is a **content gap**: somebody has to commission 21 help articles and a place to host them. It is recorded here so the unmet SHOULD is a decision on the record rather than a silent omission | Business owner, with whoever owns product content | **Nothing.** `learnMoreKey` is already nullable (§8.9) and **AC-605** is written so that a rendered link *fails* until this is answered. When it is answered, it is a fixture edit plus 21 strings — no design and no component change |
+
+### 16.1 Cross-wave blockers
+
+Things this spec depends on, or is undermined by, that belong to another wave and are **not**
+solvable inside it. Distinct from §16's questions: a question needs an answer, a blocker needs a
+piece of work by somebody else.
+
+| # | Blocker | Where it lives | Why it is named here |
+|---|---|---|---|
+| **B-1** | **`commitUserSwitch` has no permission check and no confirmation, and `logAction` then attributes actions to the impersonated user.** `commitUserSwitch` at **`eyvar_ops_panel_v40_fixed.html:3098`** reaches no `requirePerm` and raises no confirm, so any operator — including a Support user holding three permissions — can become the Owner from the top-bar avatar (`:578`). `logAction` at **`eyvar_ops_panel_v40_fixed.html:3138`** then reads the already-reassigned `CURRENT_USER_ID` and writes the audit row under the impersonated identity. Recorded independently as `00c` **F3** and **F5**, and here as **D-A4** (§15) | **Wave 7** — impersonation is a separate spec (§2.2). Owner: whoever specs Admin › Team & Access | **Shipping authentication in front of a one-click RBAC bypass is theatre.** Every guarantee in §11.1 — attempt counting, session issue, permission evaluation, audit emission — is evaluated against `CURRENT_USER_ID`, and `:3098` lets any operator choose what that is. §8.2 of the design spec removes the identifier field from the re-authentication surface **specifically to stop this same misattribution arriving through a new door** (§7.6, **AC-567**); leaving the old door open makes the new lock decorative. This spec does not fix it and must not be read as having fixed it. **Two things must land in wave 7: a `manage_team` guard on `:3098` with an explicit confirmation, and an actor/on-behalf-of split in `logAction` at `:3138` so an impersonated action records both identities** |
 
 ---
 
@@ -1429,13 +1684,24 @@ does what it says.
 
 ## 18. Handoff
 
-**Artifact:** this file. **AC-500 – AC-681**, contiguous.
+**Artifact:** this file. **AC-500 – AC-681**, contiguous. No criterion has been renumbered on any
+pass, and none sits outside 500–681.
+
+**Reconciliation pass, 2026-08-27.** `design/08-auth-and-onboarding.md` §15's nine overrules have
+been applied — see **§19** for what was applied as written, what was reshaped and why, and what
+was not an overrule at all. The design spec and this spec no longer contradict each other, and
+**§19.3 lists five further contradictions found on this pass that §15 did not name.**
 
 ### To product-designer
 
-1. **F-1 and F-2 block design of every screen in §4.1.** `patterns.md`: *"A page with no row here
-   may not be designed until it gets one."* Two §6.4 rows and one new page shape, as edits to
-   `docs/06-design-reference/_partials/06-eyvar-mapping.md` + `build-design.py`.
+1. ~~**F-1 and F-2 block design of every screen in §4.1.**~~ **Closed.** R4-2 minted the auth-card
+   row and the fifth page shape and the guided-checklist row; R4-3 ruled the layer count at four
+   and re-authentication a modal. §4.1 is corrected. **What is still yours: §19.3's five
+   contradictions** — **C-3 needs an edit in your file, not just awareness**: design §7.5 asserts
+   *“**AC-552** ✓ names the count”*, and that assertion is false for the `=0` form your own ICU
+   string introduces. The design is right and the claim about it is wrong, which is the worse of
+   the two. **C-2 is closed on both sides** — `copy.md:33` and rule 8 carry the period. Also §16 **Q-82**
+   (`Learn more` has no destination — now a recorded content gap, not a SHOULD left to fail).
 2. **Confirm or overturn D14** in your spec, and write the §2.5 D split from §3.4 into it — which
    clauses are structure (kept) and which are Shopify visual (replaced from `--ev-*`).
 3. **Final copy for every state in §9.1 and §9.2** — 24 auth states and 11 onboarding states.
@@ -1463,28 +1729,167 @@ does what it says.
 4. **`onboardingTracks.ts`** — four tracks, structured so D4 is a data edit (§8.6). Every
    `destination.subTabId` must exist in `routeTable.ts`; **AC-608** is a diff against it.
 5. **Requested:** `?mockFail=auth.signIn:429` status syntax, §10.4.
-6. **Requested, and it is yours to make:** `routeTable.ts` gains `overlay` values `onboarding` and
-   `reauth` (F-2).
+6. **Requested, and it is yours to make:** `routeTable.ts` gains the `overlay` value
+   **`onboarding` and nothing else** (R4-3). **`reauth` is not a layer and must not be added** —
+   corrected from this spec's original F-2 request; re-authentication is a modal with no route and
+   no URL param (§4.1 row 7).
+7. **`learnMoreKey: null` on all 21 rows** and **`requiredPermission: null` on all 21 rows**, and
+   both are deliberate: Q-82 and Q4 respectively (§16). Neither is a fixture to be filled in by
+   guessing.
 
 ### To frontend-engineer / shell owner
 
 1. **§7.3 is the expensive one and I want your response, not your compliance.** The sign-in form
    must exist at two mount points, and the dirty-form guarantee is the reason. If it is too
    expensive, say so — the answer is not to drop the guarantee.
-2. **F-2 touches `src/shell/`**: two new layers, `ShellContext` gains a `session` lifecycle, and
-   foundation §4.3 goes from three layers to five. Requested, not written by me.
+2. **F-2 touches `src/shell/`**: **one** new layer (`onboarding`), `ShellContext` gains a session
+   lifecycle and the freeze contract, and foundation §4.3 goes from three layers to **four**, one
+   open at a time. **Re-authentication is a modal, not a layer** (R4-3), and **entering
+   `session-expired` closes every open shell layer first**, because a modal may not composite over
+   a drawer. Corrected from this spec's original "five layers" request. Requested, not written by
+   me.
 3. **`DataTable`'s empty-kind request from wave 2 (§4.7 F-3) also bites here** — AC-653's device
    list must render the grey-sentence empty, not first-run.
 
 ### To main
 
 Spec written: `docs/05-restructure/specs/04-auth-and-onboarding.md`, AC-500–AC-681, covering six
-auth screens, two shell layers, four onboarding tracks and 35 named states. **D14 proposed** —
+auth screens, **one shell layer and one modal** (R4-3), four onboarding tracks and 37 named states. **D14 proposed** —
 Shopify governs auth structure and flow, Navattic keeps the visual language; the owner confirms or
 reverses.
 
-**Blocked and named:** F-1/F-2 (no §6.4 row for auth or onboarding — designer, before any design
-work) · Q-78 (`manage_security_policy` does not exist — AC-663 fails visibly) · Q4 (every step's
-`requiredPermission` is `null` — AC-610 cannot pass). **D4 does not block** — four tracks ship
-against the four roles that exist and §8.6 names what moves. **Q1 does not block** — onboarding is
-deliberately server-backed and §8.4 says why.
+**Blocked and named:** ~~F-1/F-2~~ **closed** by R4-2 and R4-3 · **Q-78** — **AC-663 is
+known-failing**, blocker named in the criterion · **Q4** — **AC-610 is known-failing**, blocker
+named in the criterion. Neither is a regression and QA must not report them as one. · **Q-82**
+(`Learn more` has no destination) does not block; **AC-605** is written so a rendered link fails.
+**D4 does not block** — four tracks ship against the four roles that exist and §8.6 names what
+moves. **Q1 does not block** — onboarding is deliberately server-backed and §8.4 says why.
+
+**Cross-wave blocker, new:** **§16.1 B-1** — `commitUserSwitch` (`:3098`) has no permission check
+and no confirmation, and `logAction` (`:3138`) then attributes actions to the impersonated user.
+Out of scope here by §2.2, **wave 7**, and named because shipping this authentication in front of
+a one-click RBAC bypass makes the lock decorative.
+
+---
+
+## 19. Reconciliation with the design spec — the nine, and what they cost
+
+`design/08-auth-and-onboarding.md` §15 records nine overrules of this spec. I have checked each
+against my own text rather than absorbing it, because **a spec that silently accepts every overrule
+has stopped being a spec.** All nine are applied in substance. Two are applied with a different
+shape, and two are not overrules at all. Nothing was refused.
+
+### 19.1 Disposition of the nine
+
+| § | Clause | Disposition | Where it now lives |
+|---:|---|---|---|
+| **1** | **AC-503** — `Forgot password?` moves above the primary | **Applied as written.** Card order is structure under D14, two reference frames put the link there unambiguously, and the product argument — it is the control an operator reaches for the second after the primary failed — is stronger than the reference one. This is layout, which is the designer's to decide and not mine | **AC-503**, plus a clause of mine on the conditional legal row (§19.3 **C-1**) |
+| **2** | **§12.2**'s `Sent to ••• ••• 4567` → `Sent to ••••••67` | **Applied as written.** My illustrative string exposed four digits and violated **AC-519**, which is my own criterion. The criterion binds; the illustration was wrong | §12.2 |
+| **3** | **AC-567** — refusal replaced by an absent identifier field | **Applied in substance, rewritten in shape.** §19.2 | **AC-567**, §7.6 |
+| **4** | **AC-630** — a carve-out for `owner.position` | **Applied in substance, tightened in form.** §19.2 | **AC-630**, §8.5 |
+| **5** | **§4.1 row 7** — `reauthenticate` is a modal, not a fifth layer | **Applied as written**, and it was already binding: **R4-3** ruled it before the design spec was written and named this file as the edit site. §7.3.3's focus law forces it — a no-scrim layer does not trap, so `Tab` would walk the operator out of the only working control into the frozen console behind it. §7.3's guarantee is untouched: R4-3 is about which overlay renders, not about the mount tree | §4.1 row 7 + note · §4.1 F-2 · §7.3 rule 2 · §7.6 · §9.1 · §12.1 · §18 |
+| **6** | **§9.1** — add `challenge-missing` and `challenge-completed-elsewhere` | **Applied as written, and the omission was mine.** I wrote **AC-530**, **AC-531**, **AC-582** and **AC-583** and then gave none of them a named state to be designed against. *Count the states* is my rule and I broke it | §9.1 |
+| **7** | **AC-540** — the confirmation lands on the `/signin` card | **Applied as written, and the designer's own label is right: a clarification.** This spec named a placement *within* a card and never named the card. Closing an ambiguity is not reversing a position | **AC-540**, §6.2 |
+| **8** | **§6.2** — the confirmation's tone is `info`, not `success` | **Applied, and it is not an overrule.** §19.2 | **AC-540**, §6.2 |
+| **9** | **§5.2** — focus moves on paste only, never on typing | **Applied, and it is not an overrule.** §19.2 | §5.2 |
+
+### 19.2 The four that need more than a table row
+
+**Overrule 3 — AC-567, and whether an absence is testable.**
+
+The mechanism is right and I have applied it. A refusal is a check, a check is a line of code, and a
+line of code can be deleted by someone who does not know why it is there; an absent field cannot be
+forgotten into existence. `00c` **F5** is the price of forgetting once, and the refused case has no
+legitimate user — nobody has ever needed to become a second operator inside a first operator's
+unsaved form. Prevention over refusal, agreed.
+
+**But the criterion as they wrote it is not testable, and the problem is structural rather than a
+matter of wording.** *"The re-authentication surface has no identifier field"* asks a QA engineer to
+prove a negative over an open set: they cannot enumerate every control that might one day be added
+and confirm that none of them is an identifier. And the assertion is about the **surface** while the
+risk is about the **operation** — an absent field says nothing about whether `auth.reauthenticate`
+would accept an identity if one were supplied, so the criterion goes green on a build where the
+guarantee has already been lost behind the field's absence.
+
+**An absence criterion needs a closed inventory plus the invariant the absence is supposed to
+deliver.** That is how **AC-567** is now written: **(a)** the surface's complete control list,
+diffable, where any element not on the list fails; **(b)** the request carries no operator-supplied
+identity; **(c)** the session that comes back carries the `userId` of the session that expired, and
+the save that follows is attributed to the operator who typed the form. (a) is the testable form of
+*no identifier field*, because a closed inventory can be diffed where an open search cannot. (b) and
+(c) survive somebody re-adding the field.
+
+**Overrule 4 — AC-630, and the two available fixes.**
+
+**The contradiction is real and it is mine.** I read my own §8.5: Owner step 6, destination
+`Financials › Overview`. Foundation §3.4 makes `Overview` the first sub-tab of every one of the five
+workspaces, so that destination **is** a workspace Overview, and AC-630 banned it outright. The
+criterion and the step could not both be right.
+
+**I chose the carve-out over ban-and-move, and the reason is that ban-and-move is not actually
+available.** Step bodies are static i18n fixture strings (`bodyKey`, §8.9). A body cannot carry a
+live trial balance or a live contribution margin; it can carry only their names. Banning the
+destination therefore does not move the two numbers into the body — it deletes them, and leaves the
+Owner a step that says *"there are two numbers you should know"* with no destination, manual
+completion only, and a hunt. That is a worse step than the one AC-630 exists to prevent. Putting
+live money figures into a translation dictionary would breach §12.2's own rule besides.
+
+**The carve-out's form was weak, and I have changed it.** An exception written as prose invites a
+second one. AC-630 is now a **closed allow-list of exactly one step id**, diffable against the
+fixture, plus a clause this spec should have carried from the start: **no step's destination is the
+operator's own `session.landingRoute`.** That is the ban AC-630 was reaching for — sending an
+operator to the screen they land on every morning teaches nothing. All 21 steps already satisfy it,
+so it creates no design work, and it is what makes the single exception principled rather than
+arbitrary: `financials/overview` **is** the Finance role's landing route and **is not** the Owner's,
+which is exactly why the step is worth an Owner's morning and would be worth nothing to a Finance
+lead. The *"explore the dashboard"* prohibition is carried by **AC-629** either way, and
+`owner.position` passes it — it names two facts the operator must be able to state afterwards.
+
+**Clauses 8 and 9 are not overrules, and saying so is not a quibble.**
+
+- **Clause 8** overrules §6.2's tone. §6.2 already read: *"under D14 that placement is structure, so
+  it is kept **while its colour is not**."* I ceded tone in the very sentence being overruled. The
+  designer made the call I asked them to make, and made it correctly.
+- **Clause 9** narrows §5.2's *"moves focus to the submit control"* to paste only. §5.2's sentence
+  begins *"Pasting a 6-digit string…"* and describes nothing else; it was **silent** on typing the
+  sixth digit, not wrong about it. That silence was a gap in my spec and the designer filled it
+  correctly. A gap filled is not a position reversed.
+
+Neither reclassification changes what gets built. Both change what the count of overrules means —
+and the count is what a reader uses to judge whether these two documents were written by people who
+agreed.
+
+### 19.3 Contradictions §15 did not name — found on this pass
+
+The design spec was read for what to overrule. This is the other search: what quietly disagrees.
+**Five.** All five are corrected on this side. **One still needs an edit in the designer's file:**
+**C-3** — design §7.5 asserts *“**AC-552** ✓ names the count”*, which is false for the `=0` form
+that same section introduces. **A right design carrying a wrong claim about itself is the worse
+defect**, because the claim is what the next reader checks instead of the design. **C-2 closed on
+both sides while this pass was running** — the designer corrected `copy.md` in the same pass that
+produced the ruling I was reading, so my first read of it predated the edit by minutes. Verified
+in the file rather than relayed.
+
+| # | Contradiction | Status |
+|---|---|---|
+| **C-1** | **AC-503 vs design §1.3 — the legal row is conditional.** AC-503 said the card *"contains … the legal link row. Nothing else."* Design §1.3 renders only the links Admin › Workspace's `legal` pane provides and, **when it provides none, does not render the row at all**. A correct card with an empty `legal` pane fails AC-503 as it was written | **Corrected by me** in AC-503. No design change needed |
+| **C-2** | **AC-504 vs design §3.2 — one string, two spellings.** AC-504 quoted `docs/ref/copy.md`'s `Enter a valid email address` with no period; the design spec's final string is `Enter a valid email address.` **with** one, because R6 beats `copy.md` (design §16 **F-3**). The designer found the `copy.md` conflict and did **not** notice that my criterion quotes the periodless form — so a byte-checking QA engineer fails a correct screen | **CLOSED ON BOTH SIDES.** Corrected by me in AC-504 and §4.5; and the designer corrected `copy.md` in the same pass — **`docs/ref/copy.md:33`** now carries the period, and **rule 8 at `:19`** gained *“An inline field error is a sentence and takes one”*. **Verified in the file, not relayed.** All three sources spell the string identically |
+| **C-3** | **AC-552 vs design §7.5 — the zero case.** AC-552 required the reset confirmation to name *"the count"* of ended sessions. Design §7.5 correctly gives `auth.reset.done` an explicit ICU **`=0`** form that names **no** count, because `0 other sessions ended` is not a sentence anyone should ship. Design §7.5 asserts *"**AC-552** ✓ names the count"*, which holds only for `{count} ≥ 1`. The design is right; my criterion was wrong | **Corrected by me** in AC-552. No design change needed |
+| **C-4** | **AC-563 vs design §8.1 — where the reason lives.** AC-563 required every frozen mutating control to *"carry a reason available without a pointer hover"*, which reads as a demand for a **visible** reason on each control. The design provides one visually-hidden `<p>` referenced by `aria-describedby` from every frozen control, plus the modal's own visible heading and body — the right answer, and one that fails the criterion read literally | **Clarified by me** in AC-563. No design change needed |
+| **C-5** | **AC-605 vs design §10.2 — a link that never renders.** AC-605 required the expanded step to show *"its `Learn more` link"*; design §10.2, §14 **A-7** and §16 **F-2** render none, on any step, ever. §16 **F-2** raises the SHOULD as a content gap but does not name AC-605 as the criterion it breaks | **Corrected by me** in AC-605, which now **fails** if a link is rendered, and recorded as **Q-82** (§16). No design change needed |
+
+**One thing checked and found consistent, recorded because it reads like a contradiction and is
+not.** **AC-624** says an Ops Manager *"sees 3 common steps plus 5 Ops Manager steps"* — eight —
+while **AC-603** and **AC-609** exclude the unbuilt `ops.dispatch` step from `total`, so the progress
+line reads out of **seven**. The two measure different things: AC-624 counts steps **present in the
+DOM** (**AC-611**: no step is hidden), AC-603 counts steps **reachable**. Both are right, and a QA
+engineer who conflates them will file a defect against a correct screen. Named here so they do not.
+
+### 19.4 What was deliberately not touched
+
+**No acceptance criterion has been renumbered, on this pass or any other.** Auth occupies
+**AC-500 – AC-681** and every criterion in this file is inside that range — checked, not assumed.
+The known collision elsewhere in the project (wave 2 claims 200–344, wave 3 claims 300–450, so
+**300–344 is double-allocated**) does not reach this spec and is not mine to resolve; two build
+agents are working against those numbers now, and renumbering under them would be the most
+expensive kind of tidying.

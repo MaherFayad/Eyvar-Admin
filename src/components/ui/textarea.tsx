@@ -3,7 +3,7 @@
  *
  * Rules applied
  *   §10.2      same border treatment as an input, ~72px tall (`min-h-18`),
- *              VERTICAL RESIZE ONLY. The stock `min-h-16` and free resize are
+ *              VERTICAL RESIZE ONLY. The stock 16-step minimum height and free resize are
  *              replaced; `text-base` becomes `text-sm` (13px).
  *   §10.2      a character counter, where a hard limit exists, is right-aligned
  *              INSIDE the field as `0/40`. Compose it with `InputGroup`.

@@ -88,6 +88,8 @@ export interface TopBarProps {
   onOpenEntity: (entityId: string) => void
   onOpenNotifications: () => void
   onOpenAccount: () => void
+  /** §10.4 — the account menu's permanent onboarding entry (**AC-598**). */
+  onOpenOnboarding: () => void
   onOpenNotification: (notification: Notification) => void
   onSwitchUser: () => void
   onSignOut: () => void
@@ -112,6 +114,7 @@ export function TopBar({
   onOpenEntity,
   onOpenNotifications,
   onOpenAccount,
+  onOpenOnboarding,
   onOpenNotification,
   onSwitchUser,
   onSignOut,
@@ -192,6 +195,18 @@ export function TopBar({
           language={language}
           onSetLanguage={onSetLanguage}
           onOpenMyProfile={onOpenAccount}
+          onOpenOnboarding={onOpenOnboarding}
+          /* **AC-599** — a count only while the track is incomplete AND
+             undismissed. `isComplete` and `dismissedAt` are both the server's
+             derivations, never recomputed here. */
+          onboardingProgress={
+            shell.onboarding !== null &&
+            !shell.onboarding.isComplete &&
+            shell.onboarding.state.dismissedAt === null &&
+            shell.onboarding.totalCount > 0
+              ? { done: shell.onboarding.doneCount, total: shell.onboarding.totalCount }
+              : null
+          }
           onSwitchUser={onSwitchUser}
           onSignOut={onSignOut}
         />

@@ -137,6 +137,19 @@ function compare(a: string | number | null, b: string | number | null): number {
   return String(a).localeCompare(String(b), ['ar', 'en'], { numeric: true, sensitivity: 'base' })
 }
 
+/**
+ * One `FilterSpec` against one value.
+ *
+ * Exported so the report builder's mock resolver applies **the same twelve
+ * operators the index tables apply**, rather than growing a second, subtly
+ * different matcher. `06-report-builder.md` §3.4 and `lib/columnFilter.ts` are
+ * explicit that there is one filter model and never a parallel one; sharing the
+ * matcher is what keeps that true at runtime and not just in the type.
+ */
+export function matchesFilter(value: unknown, filter: FilterSpec): boolean {
+  return matches(value, filter)
+}
+
 function matches(value: unknown, filter: FilterSpec): boolean {
   const { op, value: target } = filter
   switch (op) {

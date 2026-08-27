@@ -38,16 +38,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.14.201',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 2_000,
-    walletTransactions: [
-      {
-        id: 'WTX-seed-2',
-        type: 'credit',
-        amountHalalas: 2_000,
-        reason: 'Referral bonus — referred Sara Al-Ghamdi',
-        at: '2026-07-18T09:30:00+03:00',
-        balanceAfterHalalas: 2_000,
-      },
-    ],
     movementLog: [
       { at: '2026-03-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-04-01', action: 'Address updated', location: 'King Fahd District, Riyadh' },
@@ -86,16 +76,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '160.156.4.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 1_730,
-    walletTransactions: [
-      {
-        id: 'WTX-seed-1',
-        type: 'credit',
-        amountHalalas: 1_730,
-        reason: 'Trip cancellation refund',
-        at: '2026-06-19T10:52:00+03:00',
-        balanceAfterHalalas: 1_730,
-      },
-    ],
     movementLog: [
       { at: '2026-05-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-20', action: 'App opened', location: 'Riyadh, SA' },
@@ -130,7 +110,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.201.44',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [
       { at: '2026-01-01', action: 'Account registered', location: 'Riyadh, SA' },
       /* App opened in Jeddah, account registered in Riyadh. A real signal the
@@ -168,8 +147,8 @@ export const riderFixtures: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '37.36.88.5',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
-    walletTransactions: [],
+    /* Credited 20.00 by a cash top-up the captain collected (`CASH-0003`). */
+    walletBalanceHalalas: 2_000,
     movementLog: [{ at: '2026-06-25', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 1,
     lifetimeValueHalalas: 1_575,
@@ -203,7 +182,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '160.156.4.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [
       { at: '2026-04-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-25', action: 'App opened', location: 'Riyadh, SA' },
@@ -239,16 +217,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '185.45.10.91',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 1_000,
-    walletTransactions: [
-      {
-        id: 'WTX-seed-3',
-        type: 'credit',
-        amountHalalas: 1_000,
-        reason: 'Referee bonus — referred by Nora Al-Harbi',
-        at: '2026-07-18T09:30:00+03:00',
-        balanceAfterHalalas: 1_000,
-      },
-    ],
     movementLog: [
       { at: '2026-02-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-23', action: 'Complaint filed', location: 'Riyadh, SA' },
@@ -284,7 +252,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.33.6',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [
       { at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-25', action: 'App opened', location: 'Riyadh, SA' },
@@ -319,7 +286,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '46.31.77.12',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [{ at: '2026-05-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 8,
     lifetimeValueHalalas: 12_250,
@@ -351,7 +317,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.5.18',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [{ at: '2026-01-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 30,
     lifetimeValueHalalas: 164_000,
@@ -382,8 +347,8 @@ export const riderFixtures: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '37.36.50.2',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
-    walletTransactions: [],
+    /* A 40.00 refund that landed in the **wallet**, not the instrument (`REF-0003`). */
+    walletBalanceHalalas: 4_000,
     movementLog: [{ at: '2026-03-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 20,
     lifetimeValueHalalas: 154_000,
@@ -404,7 +369,32 @@ export const riderFixtures: Rider[] = [
     phone: '+966 55 777 3131',
     rating: 3.8,
     tier: 'bronze',
-    status: 'subscriber',
+    /**
+     * **`on-demand`, corrected — L-12.**
+     *
+     * This row carried `status: 'subscriber'` with `subscriptionIds: []`, which
+     * contradicts the field's own definition: `types/rider.ts` says `status` is
+     * legacy's `subs.length` join (`:6428`), materialised as a server field so
+     * three screens cannot compute it three ways. `RDR-2087` applies it
+     * correctly in the *harder* direction — it holds a **cancelled**
+     * subscription and is `on-demand` — so the rule was already established and
+     * two rows in this block broke it.
+     *
+     * **It is a fixture defect and not a population choice**, and it was doing
+     * real damage: it is the entire 62.0 / 63.3 gap on
+     * `management.performance.avgRenewalRate`. The n=6 set that nobody could
+     * name a predicate for was *"riders whose `status` says subscriber"* —
+     * which **included these two with empty `subscriptionIds` and excluded
+     * `RDR-1060` and `RDR-1090`, which also have empty `subscriptionIds`**. No
+     * predicate on the data produces that set, because the set was produced by
+     * an inconsistency.
+     *
+     * `renewalRatePercent: 44` **stays**, and it is not contradictory:
+     * `RDR-1060` and `RDR-1090` are the established pattern — a rider with a
+     * renewal history who holds no plan today. The rate is history; the status
+     * is now.
+     */
+    status: 'on-demand',
     churnRisk: 'high',
     joinedAt: '2025-11-01',
     hasPhoto: false,
@@ -425,32 +415,6 @@ export const riderFixtures: Rider[] = [
      * makes it do so.
      */
     walletBalanceHalalas: -4_150,
-    walletTransactions: [
-      {
-        id: 'WTX-4001-1',
-        type: 'credit',
-        amountHalalas: 5_000,
-        reason: 'Goodwill credit — repeated late pickups',
-        at: offsetFromNow({ days: -12 }),
-        balanceAfterHalalas: 5_000,
-      },
-      {
-        id: 'WTX-4001-2',
-        type: 'debit',
-        amountHalalas: 5_000,
-        reason: 'Applied to quick ride TRP-9101',
-        at: offsetFromNow({ days: -9 }),
-        balanceAfterHalalas: 0,
-      },
-      {
-        id: 'WTX-4001-3',
-        type: 'debit',
-        amountHalalas: 4_150,
-        reason: 'Chargeback reversal — card issuer disputed PAY-6103',
-        at: offsetFromNow({ days: -2 }),
-        balanceAfterHalalas: -4_150,
-      },
-    ],
     movementLog: [{ at: '2025-11-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 63,
     lifetimeValueHalalas: 88_400,
@@ -483,7 +447,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.201.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [{ at: '2026-06-22', action: 'Account registered', location: 'Riyadh, SA' }],
     /* Registered three days ago, never taken a trip. Every card on the profile
        is empty at once — the whole-page first-run empty (R8), not eight
@@ -505,7 +468,10 @@ export const riderFixtures: Rider[] = [
     phone: '+966 50 990 6161',
     rating: 4.6,
     tier: 'silver',
-    status: 'subscriber',
+    /** **`on-demand`, corrected — L-12.** Same defect as `RDR-4001`; the reason
+        is written out there. `subscriptionIds` is `[]`, so the join says
+        `on-demand`, and a corporate rider holds no personal plan of their own. */
+    status: 'on-demand',
     churnRisk: 'low',
     joinedAt: '2026-04-15',
     hasPhoto: true,
@@ -518,7 +484,6 @@ export const riderFixtures: Rider[] = [
     lastIp: '92.96.14.77',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
-    walletTransactions: [],
     movementLog: [{ at: '2026-04-15', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 74,
     lifetimeValueHalalas: 132_000,

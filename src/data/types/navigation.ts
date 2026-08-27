@@ -159,8 +159,23 @@ export interface SubTabRoute {
  * become overlay params on the current route. They are **rows in this table**
  * even though they are not sub-tabs, because they carry the remaining three
  * census ids and AC-04 counts the union over every row.
+ *
+ * ## `onboarding` is the fourth, and `reauth` is deliberately NOT a fifth
+ *
+ * **R4-2 §2.2** mints the guided checklist as a shell layer and **R4-3** rules
+ * that the shell has **four** layers, one open at a time. `onboarding` is that
+ * fourth, carried as `?onboarding=1` — an overlay *param*, never a route of its
+ * own, so browser Back closes it and stays put.
+ *
+ * **Re-authentication is a modal with no route and no URL param.** An earlier
+ * revision of `specs/04-auth-and-onboarding.md` asked for `reauth` here as a
+ * fifth layer and R4-3 §3.2 reversed it; spec §18 item 6 now says so outright.
+ * The reason is not tidiness: §7.3.3's focus law forces it — a no-scrim layer
+ * does not trap focus, so `Tab` would walk an operator out of the only working
+ * control into the frozen console behind it. And **a re-auth surface with an
+ * address is a re-auth surface someone can navigate past.** Do not add it.
  */
-export type ShellLayerId = 'entity' | 'notifications' | 'account'
+export type ShellLayerId = 'entity' | 'notifications' | 'account' | 'onboarding'
 
 export interface ShellLayerRoute {
   layerId: ShellLayerId

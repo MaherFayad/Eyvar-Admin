@@ -799,6 +799,32 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
        is Admin › Team & Access under `manage_team`. */
     permission: null,
   },
+  {
+    /**
+     * **The fourth layer, minted by R4-2 §2.2 and scoped by R4-3.** The guided
+     * onboarding checklist, `?onboarding=1`.
+     *
+     * `legacyPageIds` is **empty and that is correct** — this surface has no
+     * legacy ancestor. It is the first row in this table that carries none, and
+     * AC-04 counts the union over every row rather than requiring one per row,
+     * so nothing breaks.
+     *
+     * `permission: null` — every operator, every role, permanently reachable
+     * from the account menu (**AC-598**). A checklist an operator cannot open
+     * is a checklist they will not finish.
+     *
+     * **`reauth` is not here and must not be added** (R4-3, spec §18 item 6).
+     * See `ShellLayerId`.
+     */
+    layerId: 'onboarding',
+    overlayParam: 'onboarding',
+    titleKey: 'shellLayer.onboarding',
+    fullPagePath: null,
+    legacyPageIds: [],
+    /* Guided checklist — the §6.4 row R4-2 §2.2 minted. No new page shape. */
+    patterns: ['P4'],
+    permission: null,
+  },
 ]
 
 export const ROUTE_TABLE: RouteTable = {

@@ -19,9 +19,17 @@
  *              A DERIVED VALUE MUST NOT USE IT (§8.2.1) - a derived value has no
  *              box at all. Reusing this treatment for a computed field asks the
  *              border to mean two opposite things, and it resolves the wrong way.
- *   §10.4      invalid = 1px `--ev-red` border AND `--ev-red-lt` fill AND a 12px
- *              message below. Three signals, never colour alone. The message is
- *              `Field`'s, not this file's.
+ *   §10.4      invalid = 1px `--ev-red` border AND a 12px message below. Never
+ *              colour alone. The message is `Field`'s, not this file's.
+ *              THE FILL IS DELIBERATELY ABSENT AND THIS IS NOT A REGRESSION.
+ *              §10.4 as written also demands an `--ev-red-lt` fill, which has
+ *              never been implemented on any primitive and which `globals.css`
+ *              pins to banners only (`:585`, `:954`). Striking that clause is
+ *              §6.2 **D-14**, awaiting the owner. Do not "repair" this by adding
+ *              a fill: it would paint the same plate as the page-level critical
+ *              banner that §4.4 puts on screen at the same time, making the
+ *              summary and the items indistinguishable. Border + message is two
+ *              carriers and one of them is words, which is what §4.4 requires.
  *   §10.2      a MONEY input carries `SAR` as an in-field inline-START prefix; a
  *              money OUTPUT carries it trailing (§9.2's trap). Use `InputGroup`
  *              for the prefix - never a placeholder.

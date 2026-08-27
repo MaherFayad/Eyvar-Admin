@@ -52,11 +52,25 @@ export interface RouteState {
   isNotFound: boolean
 }
 
-/** `?entity=` · `?notifications=` · `?account=` → the layer they open (§8.1). */
+/**
+ * `?entity=` · `?notifications=` · `?account=` · `?onboarding=` → the layer
+ * they open (§8.1). **Four layers now, not three** (R4-3 §3.1).
+ *
+ * **`reauth` is deliberately absent and must stay absent.** R4-3 makes
+ * re-authentication a **modal**, with no route and no URL param: *"a re-auth
+ * surface with an address is one an operator can navigate past."* The spec's
+ * own §4.1 row 7 still says "layer" and §19.1 row 5 records that it was
+ * corrected. Adding a fifth entry here would give the freeze a back door.
+ *
+ * `?onboarding=1` — the value is the literal `1`, not an id. It is a param
+ * rather than a route so that browser Back **closes the layer and stays put**,
+ * and so the layer does not consume a navigation level (§10.1).
+ */
 const OVERLAY_PARAMS: ReadonlyArray<readonly [param: string, layer: ShellLayerId]> = [
   ['entity', 'entity'],
   ['notifications', 'notifications'],
   ['account', 'account'],
+  ['onboarding', 'onboarding'],
 ]
 
 export function normalisePath(pathname: string): string {

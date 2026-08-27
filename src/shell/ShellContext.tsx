@@ -13,17 +13,20 @@
  * route change never refetches identity or counts.
  */
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   getNavCounts,
+  getOnboarding,
   getSession,
   getNotificationSummary,
   type LegacyResolution,
 } from '@/data/clients'
 import type { NavCounts, NotificationSummary, Session } from '@/data/types'
+import type { OnboardingChecklist } from '@/data/types/onboarding'
 import {
   useAsync,
   useLanguageState,
+  useOnline,
   LanguageContext,
   type AsyncStatus,
   type FormStatus,
@@ -31,6 +34,7 @@ import {
 } from '@/hooks'
 import { DICTIONARIES } from '@/i18n/dictionaries'
 import { permissionContext, type PermissionContext } from './permissions'
+import { useSessionLifecycle, type SessionExpiryReason, type SessionLifecycle } from './session'
 
 /* ─────────────────────────── the save bar (§2.3) ────────────────────────── */
 
@@ -106,6 +110,73 @@ export interface ShellState {
   /** Global search's last legacy-name resolution, so the escape hatch can name it (**AC-30**). */
   lastLegacyResolution: LegacyResolution | null
   setLastLegacyResolution: (next: LegacyResolution | null) => void
+
+  /* ─────────────────── the session lifecycle (design/08 §8) ──────────────── */
+
+  /**
+   * Sign-in status, expiry reason, the freeze, and the idle warning —
+   * `session.ts`. The **freeze contract** is the expensive half: spec §7.3
+   * calls it *"the most important rule in §7 and the one an implementation will
+   * get wrong."*
+   *
+   * It lives on the shell rather than on a route because it outlives every
+   * route: the whole point is that a session can expire while a Finance lead is
+   * halfway through a payout adjustment, and **nothing unmounts**.
+   */
+  session_lifecycle: SessionLifecycle
+
+  /**
+   * **`true` while the console is frozen** — every text input `readOnly`
+   * (never `disabled`), every mutating button `disabled`, reads stopped.
+   *
+   * Exposed as a plain boolean because every screen that has a form needs it
+   * and none of them needs the reason. `FROZEN_REASON_ID` is the one string
+   * they all point `aria-describedby` at (**AC-563**).
+   */
+  isFrozen: boolean
+
+  /**
+   * §8.5 — `write-permission-revoked-while-dirty`. Set by whoever notices the
+   * permission behind a pending save has gone; rendered as **one page-level
+   * `critical` banner** (R5a use #2) with `Save` disabled, `Discard` still
+   * enabled, and the form's content still on screen and **selectable**.
+   *
+   * `null` when no permission has been revoked. The value is the permission's
+   * name, because **AC-666** requires the surface to name it.
+   */
+  writeRevokedPermission: string | null
+  setWriteRevokedPermission: (permission: string | null) => void
+
+  /**
+   * The operator's own onboarding track — design §10.
+   *
+   * **Read at the shell, not inside the layer**, for one reason: the
+   * account-menu entry carries `{done} / {total}` **at all times** (**AC-598**,
+   * **AC-599**), whether or not the layer has ever been opened. A read that
+   * lived in the layer would leave the menu with nothing to show until the
+   * operator opened the thing the menu is supposed to be advertising.
+   *
+   * `null` while loading and on failure. A failed checklist read must not stop
+   * the console: the menu simply shows no count, which is the same thing it
+   * shows for a dismissed track (**AC-599**).
+   */
+  onboarding: OnboardingChecklist | null
+  /** `loading` | `error` | `content` — the layer renders all four states from it. */
+  onboardingStatus: AsyncStatus
+  refreshOnboarding: () => void
+
+  /**
+   * `AppLayout` hands the provider the two things only a routed component can
+   * do: close every open shell layer (§8.1 rule 5) and redirect to `/signin`
+   * on a **clean** expiry (§8.1 branch 1).
+   *
+   * Registration rather than a prop, because `ShellProvider` sits **above** the
+   * router — it has no `useNavigate` and must not grow one, since that is the
+   * whole reason `AC-18` holds (the provider is never remounted by a
+   * navigation).
+   */
+  registerLayerCloser: (closer: () => void) => void
+  registerCleanExpiry: (handler: (reason: SessionExpiryReason) => void) => void
 }
 
 const ShellStateContext = createContext<ShellState | null>(null)
@@ -133,6 +204,23 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     deps: [],
   })
 
+  /* One read, at the shell, for the whole session.
+     **The signed-in operator's own track**, and the `userId` is passed
+     explicitly: `getOnboarding()` with no argument falls back to the mock's
+     `CURRENT_USER_ID` rather than to whoever the session says is signed in, so
+     an omitted argument silently serves one operator another operator's
+     checklist the moment the two differ. `deps` carries the id, so a switch
+     re-reads.
+
+     The account-menu entry needs these counts **before the layer has ever been
+     opened** (**AC-599**) — which is why the read is here and not inside the
+     layer. It is also the single source the layer itself renders from, so the
+     menu's `n / m` cannot drift from the list the operator is looking at. */
+  const onboarding = useAsync<OnboardingChecklist>(
+    (signal) => getOnboarding(session.data?.userId, signal),
+    { deps: [session.data?.userId], enabled: session.data !== null },
+  )
+
   /* AC-70 — `dir` and `lang` on the DOCUMENT ELEMENT, not a subtree. */
   const language = useLanguageState({ dictionaries: DICTIONARIES })
 
@@ -147,6 +235,49 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 
   const [saveBar, setSaveBar] = useState<SaveBarModel | null>(null)
   const [lastLegacyResolution, setLastLegacyResolution] = useState<LegacyResolution | null>(null)
+  const [writeRevokedPermission, setWriteRevokedPermission] = useState<string | null>(null)
+
+  /* §11.6 row 20 — the shell's `offline` banner has had copy and a flag since
+     the shell was built and **nothing has ever set the flag**. `useOnline` is
+     the missing producer, and it is read here rather than in `ShellBanner` so
+     that one value feeds the banner, the auth card and the re-auth modal. A
+     manually set `offline` still wins, for the test that sets it. */
+  const online = useOnline()
+
+  /* §8.1's branch is decided on the SaveBar, and it has to be read at the
+     instant of expiry rather than at the render that armed the timer — a form
+     can go dirty in the last second of the idle window. A ref, therefore, not
+     a dependency. */
+  const saveBarRef = useRef<SaveBarModel | null>(saveBar)
+  saveBarRef.current = saveBar
+
+  /* §8.1 rule 5 — **every open shell layer closes first.** Tier 3 may not
+     composite over tier 2 (R4-3 §3.2), because §5.0 forbids a modal nested in a
+     drawer. The layer is a URL param, so closing it is a navigation, which the
+     provider cannot do — `AppLayout` registers the closer here. **Form state is
+     preserved; overlay state is not**, and those are different things. */
+  const closeLayersRef = useRef<() => void>(() => {})
+  const registerLayerCloser = useCallback((closer: () => void) => {
+    closeLayersRef.current = closer
+  }, [])
+
+  const cleanExpiryRef = useRef<(reason: SessionExpiryReason) => void>(() => {})
+  const registerCleanExpiry = useCallback((handler: (reason: SessionExpiryReason) => void) => {
+    cleanExpiryRef.current = handler
+  }, [])
+
+  const sessionLifecycle = useSessionLifecycle({
+    isDirty: useCallback(
+      () => saveBarRef.current !== null && saveBarRef.current.status !== 'clean',
+      [],
+    ),
+    onCleanExpiry: useCallback((reason: SessionExpiryReason) => {
+      cleanExpiryRef.current(reason)
+    }, []),
+    onFreeze: useCallback(() => {
+      closeLayersRef.current()
+    }, []),
+  })
 
   const permissions = useMemo(() => permissionContext(session.data), [session.data])
 
@@ -162,12 +293,21 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       refreshNotifications: notifications.refetch,
       permissions,
       language,
-      conditions,
+      conditions: { ...conditions, offline: conditions.offline || !online },
       setConditions,
       saveBar,
       setSaveBar,
       lastLegacyResolution,
       setLastLegacyResolution,
+      onboarding: onboarding.data,
+      onboardingStatus: onboarding.status,
+      refreshOnboarding: onboarding.refetch,
+      session_lifecycle: sessionLifecycle,
+      isFrozen: sessionLifecycle.frozenReason !== null,
+      writeRevokedPermission,
+      setWriteRevokedPermission,
+      registerLayerCloser,
+      registerCleanExpiry,
     }),
     [
       session.status,
@@ -178,12 +318,20 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       counts.status,
       notifications.data,
       notifications.refetch,
+      onboarding.data,
+      onboarding.status,
+      onboarding.refetch,
       permissions,
       language,
       conditions,
       setConditions,
       saveBar,
       lastLegacyResolution,
+      online,
+      sessionLifecycle,
+      writeRevokedPermission,
+      registerLayerCloser,
+      registerCleanExpiry,
     ],
   )
 

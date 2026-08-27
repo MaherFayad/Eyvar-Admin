@@ -28,8 +28,10 @@ export {
   type UseColumnVisibilityOptions,
   type VisibilityColumn,
 } from './useColumnVisibility'
+export { useCooldown, secondsUntil, type Cooldown, type UseCooldownOptions } from './useCooldown'
 export { useDebouncedValue, DEFAULT_DEBOUNCE_MS } from './useDebouncedValue'
 export { useFilters, type FiltersState, type UseFiltersOptions } from './useFilters'
+export { useFocusCapture, type FocusCapture, type UseFocusCaptureOptions } from './useFocusCapture'
 export { useFocusEntry, type UseFocusEntryOptions } from './useFocusEntry'
 export {
   useForm,
@@ -77,6 +79,10 @@ export {
    exception. `UI_STATE_KEYS.subTabNavCollapsed` was removed in U-B, as asked;
    `UserPreferences.subTabNavCollapsed` still exists on the *server* type
    (`src/data/types/session.ts`), which is the data seam’s to retire, not mine. */
+/* The producer for `ShellConditions.offline`, which had copy, a flag and a
+   banner since the shell was built and **nothing that ever set it**. Promoted
+   out of `src/shell/` once it had three consumers. */
+export { useOnline } from './useOnline'
 export { useRovingFocus, type RovingFocus, type RovingItemProps, type UseRovingFocusOptions } from './useRovingFocus'
 export {
   useNow,

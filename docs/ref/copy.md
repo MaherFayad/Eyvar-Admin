@@ -16,6 +16,10 @@ Source: `DESIGN.md` §5.7. These are MUSTs.
 7. **Constraints go in helper text under the field**, never in a tooltip.
 8. **No period** ending a toast, tooltip, badge, or menu item. Banner and helper
    *sentences* do take one. (R6)
+   **An inline field error is a sentence and takes one** — `Enter a valid email address.`
+   R6 is a ruling and beats this file; the row below was missing the period and is
+   corrected. `00-shell.md` §10.4's own example (`Enter a discount between 0 and 100.`)
+   always carried it.
 9. **Destructive confirmations say what will *not* change**, alongside what will.
 10. **State end-of-list and no-data in words** rather than leaving a surface blank.
 11. **"Learn more about `<noun>`"** for page-level help, only the noun linked; a bare
@@ -26,7 +30,7 @@ Source: `DESIGN.md` §5.7. These are MUSTs.
 | Don't | Do |
 |---|---|
 | `Driver Successfully Updated!` | `Driver updated` |
-| `Invalid email` | `Enter a valid email address` |
+| `Invalid email` | `Enter a valid email address.` |
 | `Please try again later` | `Try again` |
 | `Something went wrong` | `Couldn't load drivers. Try again.` |
 | `Are you sure?` | `Archive 3 drivers?` |

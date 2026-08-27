@@ -41,9 +41,38 @@ import { SLA_MESSAGES_EN } from '@/lib'
    which imports this file — a cycle. `copy.ts` imports one TYPE and nothing
    else, so this edge has no runtime cost and no ordering hazard. */
 import { PEOPLE_EN } from '@/screens/operations/people/copy'
+/* Wave 2 — the five §8.4 work queues. `QUEUE_SHARED_EN` is §4's own contract
+   vocabulary (the owner chip, the countdown, the take-over confirmation), which
+   all five inherit; the five screen dictionaries carry only what differs. */
+import { QUEUE_SHARED_EN } from '@/screens/queues/copy'
+import { REQUESTS_EN } from '@/screens/operations/requests/copy'
+import { ASSURANCE_EN } from '@/screens/operations/assurance/copy'
+import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
+import { SAFETY_EN } from '@/screens/support/safety/copy'
+import { FAIRNESS_EN } from '@/screens/support/fairness/copy'
 /* Wave 4 — one dictionary for all eight §3.7 metric-tile sub-tabs. They share
    `overview.noData`, which §3.7 requires to be byte-identical everywhere. */
 import { OVERVIEW_EN } from '@/screens/metrics/copy'
+/* Wave 3 — the seven Financials sub-tabs, the ledger vocabulary they share, and
+   the plan editor. `FINANCIALS_EN` also carries the `fin.*` keys the DATA layer
+   emits as `LocalisedText`, because a posting description that resolves to
+   nothing renders a raw key. */
+import { FINANCIALS_EN } from '@/screens/financials/copy'
+/* R4-6b — Management › Market & Zones' table, strip and cities row. */
+import { ZONES_EN } from '@/screens/management/zones/copy'
+/* Wave 6 — the Report Builder. It carries the 60 `rb.*` keys the SEMANTIC layer
+   emits (measure labels, population sentences, violation reasons, panel titles)
+   as well as the module's own copy: the data layer holds no display string, and
+   this is the other end of every key it does hold. */
+import { REPORTS_EN } from '@/screens/reports/copy'
+/* Wave 5 — the six auth screens, the re-authentication modal, the session
+   banners and the device list; then the onboarding layer and its 21 steps.
+   Two dictionaries, because the two surfaces have different owners in the
+   design spec (§3–§9 and §10) and nothing is shared between them but the
+   `role.*` keys, which live with auth because the auth card renders one first
+   (`auth.activate.subtitle`). */
+import { AUTH_EN } from '@/screens/auth/copy'
+import { ONBOARDING_EN } from '@/screens/onboarding/copy'
 
 /* ───────────────────────── workspaces (§2.2) ───────────────────────── */
 
@@ -543,6 +572,17 @@ export const EN: Dictionary = {
   ...SLA_MESSAGES_EN,
   ...PEOPLE_EN,
   ...OVERVIEW_EN,
+  ...QUEUE_SHARED_EN,
+  ...REQUESTS_EN,
+  ...ASSURANCE_EN,
+  ...MY_WORK_EN,
+  ...SAFETY_EN,
+  ...FAIRNESS_EN,
+  ...AUTH_EN,
+  ...ONBOARDING_EN,
+  ...FINANCIALS_EN,
+  ...ZONES_EN,
+  ...REPORTS_EN,
 }
 
 /** See the file header. Empty on purpose; it is AC-74's fixture, not a gap in the build. */

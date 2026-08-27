@@ -247,6 +247,36 @@ describe('disposition — every queue can be finished, and can refuse', () => {
     expect(after.slaDueAt).toBe(before.slaDueAt)
   })
 
+  it('safety treats the CLAIM as the acknowledgement — AC-305', async () => {
+    /**
+     * **The criterion failed in the client, not on the screen.** Claiming used
+     * to set `claim` and nothing else, so an incident could be claimed, worked
+     * and closed with the acknowledgement clock still reading as never
+     * answered. Claiming an SOS *is* picking it up.
+     */
+    const before = (await listSafetyIncidents({ pageSize: 100 })).items.find(
+      (i) => i.id === 'INC-015',
+    )!
+    expect(before.firstResponseAt).toBeNull()
+    expect(before.firstResponseBreachedAt).not.toBeNull()
+
+    const claimed = await claimSafetyIncident('INC-015')
+    expect(claimed.firstResponseAt).toBe('2026-06-25T09:14:00+03:00')
+    expect(claimed.firstResponseBreachedAt).toBeNull()
+    /* Answering is not resolving — the second clock is untouched. */
+    expect(claimed.slaDueAt).toBe(before.slaDueAt)
+  })
+
+  it('safety never RE-stamps a first response on a second claim', async () => {
+    /* First response is *first*. A release and a re-claim, or a supervisor's
+       take-over half an hour in, must not un-answer the phone — a stamp that
+       moved would measure the last handler's arrival instead of the response. */
+    const first = await claimSafetyIncident('INC-015')
+    await releaseSafetyIncident('INC-015')
+    const second = await claimSafetyIncident('INC-015', { takeOver: true })
+    expect(second.firstResponseAt).toBe(first.firstResponseAt)
+  })
+
   it('safety refuses a precautionary suspension when nobody is named', async () => {
     /* `INC-013` is a captain reporting their own collision; `INC-017` was
        raised by a device. Legacy hides the button; an API has to answer. */

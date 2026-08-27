@@ -8,6 +8,7 @@
  * only the boot sequence changes when auth arrives.
  */
 
+import type { SecondFactor } from './auth'
 import type { IsoDateTime } from './common'
 import type { PermissionKey, WorkspaceId } from './navigation'
 
@@ -44,7 +45,20 @@ export interface TeamUser {
   /** Legacy stores display strings `'Today 09:00'`, `'24 Jun'`, `'Not yet'` (`:2831`–`:2841`). ISO here; `null` for never. */
   lastLoginAt: IsoDateTime | null
   status: TeamUserStatus
-  twoFactorEnabled: boolean
+  /**
+   * **Replaces `twoFactorEnabled: boolean` (spec §4.2, §10.1).**
+   *
+   * `null` means **enrolment pending** — not "opted out". Second factor is a
+   * property of the console, not of the user: §4.2 retires both legacy
+   * switches, the per-user `twoFA` toggle (`:3047`) and the workspace
+   * `require2FA` setting (`:8028`), because a policy whose "off" state is *"an
+   * operator who can release escrow may sign in with one factor"* is not a
+   * policy anyone should be able to set from a settings pane.
+   *
+   * What survives from the account's security section is *which* factor is
+   * enrolled, what it is bound to, and the ability to re-enrol.
+   */
+  secondFactor: SecondFactor | null
   permissions: PermissionKey[]
   /**
    * Compensation authority cap in halalas. Support may write rider-wallet

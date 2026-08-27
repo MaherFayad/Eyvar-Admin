@@ -93,8 +93,15 @@ export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
         {reportHref && (
           /* `CardAction`, not a bare div carrying the slot attribute: the slot
              is what switches `CardHeader` to `1fr auto`, and the COMPONENT also
-             carries the `col-start-2 row-span-2` placement that puts the link
-             beside the title instead of under it. */
+             carries the grid placement — second column, spanning both rows —
+             that puts the link beside the title instead of under it.
+
+             **That placement used to be spelled out here, in backticks, and
+             Tailwind emitted both rules into `dist` for no reason but this
+             sentence.** v4 scans comments as plain text and has no idea what a
+             comment is. Describe a utility; never spell it, and verify in
+             `dist` rather than in `src`. `scratch/prose-class-leak.mjs` is the
+             check that found these two. */
           <CardAction>
             <Link
               to={reportHref}
@@ -137,6 +144,38 @@ function Body({
      keep its card, title, and report link, and MUST show one centred sentence
      — never an empty plot or a spinner"*, and the copy is identical
      everywhere, punctuation included. Not the first-run illustration (R8). */
+  /**
+   * **R5-11a §19.1 — the third absence, and it comes FIRST because it is the
+   * strongest claim.**
+   *
+   * Three sentences, and conflating any two of them is the V-2 defect in a new
+   * slot:
+   *
+   *   we queried; this range returned nothing      → `overview.noData`
+   *   we plotted; every reading is a real zero     → `overview.allZero`
+   *   **nothing is captured, so no query is possible** → `overview.notRecorded`
+   *
+   * All three arrive at a card with no line to draw, and which one is true is
+   * **provenance** — which is why it takes a field rather than an inference.
+   * `awaitingStore` is a **named store and a closed union**: a chart cannot
+   * claim to be awaiting one without saying which, and `''` or `'TODO'` cannot
+   * satisfy it. The store name is deliberately **not rendered** — it is an
+   * engineering fact in an operator's register, nobody can act on it, and
+   * R5-11's sentence is byte-identical wherever it appears, on AC-714's
+   * footing, which interpolating a store name would break.
+   *
+   * **The card keeps its title.** A tile with no store does not render at all
+   * (R4-11 §11.2) and a card does, and the asymmetry is structural: a tile has
+   * no body and a card does. The heading names the measure truthfully whether
+   * or not the data exists.
+   */
+  if (series.awaitingStore !== null) {
+    return (
+      <p className="py-12 text-center text-sm text-muted-foreground">{t('overview.notRecorded')}</p>
+    )
+  }
+
+  /* No data for THIS RANGE — the query ran and returned nothing. */
   if (points.length === 0) {
     return <p className="py-12 text-center text-sm text-muted-foreground">{t('overview.noData')}</p>
   }

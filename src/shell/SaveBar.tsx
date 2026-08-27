@@ -62,9 +62,24 @@ import type { SaveBarModel } from './ShellContext'
 export interface SaveBarProps {
   model: SaveBarModel
   t: Translate
+  /**
+   * §8.1's freeze and §8.5's `write-permission-revoked-while-dirty` — **two
+   * different causes, one treatment on this bar**:
+   *
+   * > `Save` **disabled**, `aria-describedby` → the banner. `Discard` **stays
+   * > enabled**. The form's content stays on screen and **selectable**.
+   *
+   * `Discard` staying enabled is the load-bearing half and it is easy to lose:
+   * **AC-52** already says `canDiscard` is *never* gated on validity, and this
+   * adds that it is never gated on permission or on the freeze either. The
+   * operator has a screen full of work they can no longer save; taking away
+   * the only control that ends the state would leave them with a page they can
+   * neither commit nor leave.
+   */
+  blockedReasonId?: string | null
 }
 
-export function SaveBar({ model, t }: SaveBarProps) {
+export function SaveBar({ model, t, blockedReasonId = null }: SaveBarProps) {
   const announce = useAnnounce()
 
   /* §11.6 row 7 — the live region announces `Saving`. One region, module
@@ -86,13 +101,21 @@ export function SaveBar({ model, t }: SaveBarProps) {
       </span>
 
       <div className="flex shrink-0 items-center gap-2">
-        {/* AC-52 — enabled state comes straight from the form. */}
+        {/* AC-52 — enabled state comes straight from the form, and **AC-586**:
+            it is not gated on permission or on the freeze either. */}
         <Button variant="secondary" onClick={model.onDiscard} disabled={!model.canDiscard}>
           {t('shell.saveBar.discard')}
         </Button>
         {/* R2 as amended by D7 — `bg-primary`, which is near-black now. Not
-            re-triggerable while in flight. */}
-        <Button variant="default" onClick={model.onSave} disabled={!model.canSave}>
+            re-triggerable while in flight, and **gated at render** rather than
+            refused at commit (foundation §11.2, **AC-667**): the reason is
+            programmatically attached, not discovered by pressing it. */}
+        <Button
+          variant="default"
+          onClick={model.onSave}
+          disabled={!model.canSave || blockedReasonId !== null}
+          aria-describedby={blockedReasonId ?? undefined}
+        >
           {model.isSaving && <Spinner />}
           {t('shell.saveBar.save')}
         </Button>

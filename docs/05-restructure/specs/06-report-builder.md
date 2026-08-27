@@ -4,7 +4,17 @@
 > business owner mid-drafting: *"and to be able to build quick dashboard, and alerts for
 > this if it went over certain thresholds."*
 >
-> **Acceptance criteria: AC-800 … AC-899.** Nothing outside that range is claimed here.
+> **Acceptance criteria: AC-800 … AC-905**, after §14a appended six. Nothing renumbered, nothing
+> inserted, and nothing outside that range is claimed here.
+>
+> **Reconciled with the built semantic layer, 2026-08-27.** Ten contradictions came back. **Six
+> criteria are amended in place** — AC-800 and AC-806 (⛔ blocked on **Q-RB-1**), AC-814
+> (resource-qualified filter fields), AC-826 (`Compare separately` deleted by **R4-1 §1.3**, which
+> this spec had not absorbed), AC-827 (it named a measure that cannot exist), AC-838 (the
+> cardinality hint is a forecast, not a guarantee) — **§3.4, §4.2 and §6.2 are amended with them**,
+> and **§14a appends AC-900–905**. **Three of the ten were defects in this spec, not in the build:**
+> AC-827's measure, AC-814's bare `field` (two resources, one `status`), and `cadence` as a
+> required choice between two values this document invented while §12.1 says nothing evaluates.
 >
 > **This spec defines no measure.** Per D13 the catalogue of what is measurable belongs to
 > `specs/05-metrics-content.md`. Everything this document needs from that catalogue is
@@ -129,7 +139,16 @@ objects from the same six control kinds (`ColumnFilterKind`), and inherits, for 
 rules that file encodes: an empty control produces no filter; `false` is a value, not an
 absence; a date range is inclusive of the whole end day in Riyadh.
 
-What it does **not** inherit is *which fields are offered*. There are 382 filterable fields
+**What it does not inherit is the `field` vocabulary, and that is a safety fix rather than a
+preference.** `FilterSpec.field` is a **bare string**, and `subscriptions` and `trips` both carry
+`status` with unrelated vocabularies — so a two-measure query specified as §3.4 originally read
+would apply one resource's value to the other and return a confidently wrong number. **Every
+filterable field in a report query is therefore resource-qualified** — `subscription.status`,
+`trip.status` — while an index table's stays bare, because an index table has exactly one resource
+and its `field` cannot be ambiguous within its own surface. **One model, one type, two
+vocabularies; see AC-814 for the two consequences that ride with it.**
+
+What it also does **not** inherit is *which fields are offered*. There are 382 filterable fields
 across the data layer and almost none of them are meaningful against a given measure —
 `driver.city` against a subscriptions measure is a question with no answer. The catalogue must
 declare a filterable-field set per measure (**F-5**); until it does, the filter picker is
@@ -271,7 +290,8 @@ moving a tile between boards breaks saved reports. Escalate before the catalogue
 | `threshold` | `number` | operator | no |
 | `thresholdUnit` | `MetricUnit` | **derived** from the series' measure | yes — an operator never picks a unit; a threshold on a money measure is halalas on the wire and SAR in the field |
 | `evaluationGrain` | `'day' \| 'week' \| 'month'` | operator | no — which bucket's value is tested |
-| `cadence` | `'hourly' \| 'daily'` | operator | no — how often the server looks |
+| `cadence` | `'hourly' \| 'daily' \| null` | **server, once a scheduler exists** | no — how often the server looks. **`null` means *not specified, does not run*, and `null` is what every rule carries today.** ⛔ **Q-RB-7.** **Amended 2026-08-27:** §4.2 made this a **required operator choice** between two values **this spec invented**, while §12.1 states plainly that nothing evaluates. A required field whose legal values were minted by the document that requires them, sitting in a fixture, is **AC-453's failure mode exactly** — a plausible number becomes a policy by being on screen. **A rule may not offer a cadence the scheduler does not implement, and a fixture may not seed one.** When Q-RB-7 lands, the scheduler's real cadences populate this field and the control appears with them |
+| `minReArmMinutes` | `number \| null` | operator | no — the backstop re-arm in §12.4's state machine, for a value that oscillates across the line. `null` means hysteresis only, which is the default. **Added 2026-08-27: it was specified in §12.4's prose and absent from this table**, so the type the spec gives could not express the state machine the spec describes — the under-specified half of *writing a rule about code without reading the code* |
 | `state` | `'armed' \| 'firing' \| 'cooling' \| 'suspended' \| 'error'` | server | **yes** — §12.4 |
 | `enabled` | `boolean` | operator | no |
 | `mutedUntil` | `IsoDateTime \| null` | operator | no |
@@ -456,10 +476,15 @@ dismissed, and the resulting chart gets screenshotted into a board deck where th
 not travel. The cost of refusing is one extra click; the cost of warning is a wrong number in
 front of the founder.
 
-**The escape hatch is not a second axis.** It is **`Compare separately`** — the two measures
-render as **two stacked panels sharing one window, one grain and one x-axis extent**, each with
-its own y-axis and its own hue. The comparison the operator wanted is still visible; the false
-correlation is not available. This costs no new chart contract and no new token.
+**There is no escape hatch, because there is nothing to escape from.**
+**Amended 2026-08-27 (`design/07-rulings-r4.md` §1.3).** This paragraph offered
+**`Compare separately`** as an opt-in escape from a one-axis overlay. **The ruling deleted the
+overlay**, so it deleted the control with it: two measures render as **two stacked panels sharing
+one window, one grain and one x-axis extent**, each with its own y-axis — **unconditionally, with
+no control**. Below the second-measure picker sits one grey sentence, *`Two measures are drawn as
+two panels so their scales stay honest.`* The ruling amended **AC-826** in its own text and this
+section was left describing the deleted control for long enough that the build found it. Costs no
+new chart contract and no new token, as before.
 
 **Both of the owner's examples survive this rule.** `drivers vs passengers` is stock/stock,
 count/count → one axis, legal. `subscriptions vs whatever` is flow/× → one axis if the other
@@ -964,8 +989,13 @@ user X see measure M" has no answer today.
 
 ### Where it lives (AC-800 … AC-806)
 
-**AC-800** — `/management/reports` renders inside the standard shell: the rail, the sub-tab list and
-the app top bar are all in the DOM and interactive, and `Reports` is the selected sub-tab.
+**AC-800** — ⛔ **BLOCKED on Q-RB-1.** `/management/reports` renders inside the standard shell: the
+rail, the sub-tab list and the app top bar are all in the DOM and interactive, and `Reports` is the
+selected sub-tab. **There is no route-table row for `management-reports` and there must not be one
+until D1 is amended**, because adding it makes **35 sub-tabs where D1 says 34**. The screens are
+being built **unrouted, behind a single mount point**, which is the correct interim: it keeps the
+work moving without editing the route table on an unsigned count. **A route row appearing before
+Q-RB-1 is answered is a fail, not progress.**
 
 **AC-801** — *(blocked on finding F-P1)* The builder surface renders the pattern product-designer
 records in a `DESIGN.md` §6.4 row for it. Until that row exists this criterion cannot be tested and
@@ -983,8 +1013,10 @@ state inside the content region with the shell intact, and the URL is not rewrit
 **AC-805** — Every one of the 41 legacy census ids remains mapped to at least one other sub-tab
 after this sub-tab is added; `Reports` claims none of them.
 
-**AC-806** — The route table contains exactly one row whose `subTabId` is `management-reports`,
-and its `hasBacklog` is `false`.
+**AC-806** — ⛔ **BLOCKED on Q-RB-1, with AC-800.** The route table contains exactly one row whose
+`subTabId` is `management-reports`, and its `hasBacklog` is `false`. **Also blocked: there is no
+`'report'` or `'dashboard'` detail kind**, and minting one is the same D1 amendment in a second
+place. Both land in one edit or neither lands.
 
 ### The query model and the panel (AC-807 … AC-819)
 
@@ -1010,8 +1042,27 @@ split-by clears the split-by and states that it did.
 in the query. With two measures whose filterable-field sets do not intersect, the filter control is
 disabled and states that the two measures share no filterable field.
 
-**AC-814** — A filter emitted by the panel is a `FilterSpec` byte-identical in shape to one emitted
-by the same control kind on an index table. No second filter model is introduced.
+**AC-814** — A filter emitted by the panel is a `FilterSpec` — **the same type, the same twelve
+operators, the same three inherited rules** (an empty control produces no filter; `false` is a
+value, not an absence; a date range includes the whole end day) — as one emitted by the same
+control kind on an index table. **No second filter model is introduced.** Its `field` is
+**resource-qualified** (`subscription.status`, `trip.status`); an index table's is not, and that
+difference is a **vocabulary** difference inside one model, not a second model.
+**Amended 2026-08-27, and the original wording had to yield to a safety fix.** *"Byte-identical in
+shape"* was written as a shape rule and read as a string rule. **`FilterSpec.field` is a bare
+string, and `subscriptions` and `trips` both carry `status` with unrelated vocabularies** — so a
+two-measure query could apply one resource's value to the other and return a confidently wrong
+number. **The ambiguity is real in the report builder and absent from an index table**, because an
+index table has exactly one resource and its bare `field` cannot be ambiguous within its own
+surface. Of the two available fixes — namespace index tables too, or have `reports.run` carry a
+resource-qualified vocabulary — **the second is ratified**: it changes one consumer instead of
+every index screen, and it changes the consumer where the ambiguity actually exists.
+**Two consequences to carry rather than discover.** (1) **A saved report holds a namespaced field
+string.** If index tables are ever namespaced, both vocabularies migrate together or saved reports
+break silently — recorded so that migration is a decision and not a surprise. (2) **AC-813 is now
+true by construction**, which means it is **no longer evidence**: two measures across two resources
+can no longer share a field name by accident. It still binds on the observable — the control
+disabled, with the reason stated — and that is what remains checkable about it.
 
 **AC-815** — A date range of "to 30 June" includes rows dated 30 June (the whole-end-day rule from
 `src/lib/columnFilter.ts`).
@@ -1050,11 +1101,29 @@ measure whose unit is `money`, `percent`, `ratio`, `minutes` or `rating`.
 single-axis chart containing both a stock series and a flow series. A hand-edited URL asking for one
 is rejected with a stated reason and the previous query is retained.
 
-**AC-826** — `Compare separately` renders two panels sharing one window, one grain and one x-axis
-extent, each with its own y-axis, and each labelled with its own measure name.
+**AC-826** — **Any** multi-series result renders as two panels sharing one window, one grain and
+one x-axis extent, each with its own y-axis, and each labelled with its own measure name. **There
+is no `Compare separately` control**, and no control, URL parameter or saved report puts two
+measures on one axis.
+**Amended 2026-08-27 (`design/07-rulings-r4.md` §1.3).** The original made the two-panel rendering
+conditional on a control. **The ruling deleted the control and made the rendering unconditional** —
+with no overlay there is nothing to escape from, and *a checkbox whose only setting is its default
+teaches the operator that a mode exists when it does not*. The ruling post-dates this spec and
+amended the criterion in its own text; **the spec body (§6.2) was not amended with it, and is now.**
+Nothing else in AC-826 changes.
 
-**AC-827** — `Active captains` and `Registered riders` (both stock, both count) can be selected
+**AC-827** — `Registered captains` and `Registered riders` (both stock, both count) can be selected
 together and produce a two-series result.
+**Amended 2026-08-27. The criterion named a measure that cannot exist, and the criterion is what
+was wrong.** `Active captains` is computable **as a reading now** and **not as a series over past
+buckets**: `Driver` carries `status` and `joinedAt` and **no status history**, so
+`status === 'active' && joinedAt <= t` applies **today's** status to every past bucket — a captain
+suspended yesterday renders as suspended for all of last year, in a chart that looks entirely
+normal. The layer shipped `captains.registered` — cumulative over `joinedAt`, monotone, honest —
+and was right to. **The general obligation is AC-900**; the store gap is **Q-RB-11**. *(This does
+not disturb **AC-603**, which decides `Active captains` as a **tile**. A tile is a reading at an
+instant and needs no history; a series is a reading per bucket and needs one. That difference is
+now the catalogue's to declare, not each reader's to rediscover.)*
 
 ### Comparison — the two controls (AC-828 … AC-834)
 
@@ -1094,7 +1163,16 @@ legal type and states the switch inline in the chart card — not in a page bann
 
 **AC-838** — `pie` is enabled **only** when the query has one measure, a split-by, `grain: 'none'`,
 a measure the catalogue marks `additive`, and six or fewer parts. Changing any one of those five
-disables it.
+disables it. **The six-part clause is judged twice, at two layers, because before a run there is
+nothing to count**: pre-run it reads the catalogue's **cardinality hint**, which is **advisory**;
+post-run it reads the **result**, which is **authoritative**. Where a run returns more parts than
+the hint forecast and `pie` is selected, the chart switches to the nearest legal type and states
+the switch **inline in the chart card** (**AC-837**'s mechanism). **A pie rendered with seven or
+more parts is a fail whatever the hint said.**
+**Appended 2026-08-27.** The hints are genuinely wrong today — `trip.pickup` hints 12 against a
+real cardinality of 17 — so the gate is a **forecast, not a guarantee**, and the criterion said
+nothing about which reading governs. An understated hint could briefly offer a pie for a split
+that cannot legally have one.
 
 **AC-839** — `pie` is disabled for any measure whose unit is `percent`, `ratio` or `rating`, under
 every other combination of controls.
@@ -1307,6 +1385,61 @@ translated.
 carries a visible focus indicator, and every disabled control's reason is available to a screen
 reader — including the disabled chart types and the disabled grains.
 
+### 14a. Appended from the semantic-layer build (AC-900 … AC-905)
+
+**Six criteria, appended not inserted, from the ten contradictions the built layer returned on
+2026-08-27.** Six existing criteria were **amended in place** and each carries its own note:
+**AC-800** and **AC-806** (blocked on Q-RB-1), **AC-814** (namespaced fields), **AC-826**
+(`Compare separately` deleted), **AC-827** (a measure that cannot exist), **AC-838** (the
+cardinality hint is a forecast). §3.4, §4.2 and §6.2 were amended with them.
+
+**AC-900** — **A measure is offered as a *series* only where the store can produce its value **as
+at each bucket boundary from history**, not by applying today's state to a past bucket.** A stock
+measure whose resource carries current state and no history is **not selectable in the measure
+picker**, and where the catalogue declares one anyway it renders disabled in place with the reason
+naming what is missing. **A series computed by evaluating a present-tense predicate against past
+timestamps is a fail**, and it is the dangerous kind: the chart is smooth, plausible and wrong in
+a direction nobody can see. *(This is **R5-15**'s `sourceResource` rule extended along the time
+axis: a tile asks whether a store exists, a series asks whether it remembers.)*
+
+**AC-901** — **No alert rule stores, displays or offers an evaluation cadence that no scheduler
+implements.** Every seeded rule carries `cadence: null`, the rule builder renders no cadence
+control, and a rule with `cadence: null` states *not specified* rather than implying a schedule.
+**A fixture, response or control supplying `'hourly'` or `'daily'` is a fail — including a
+plausible one** (**Q-RB-7**, and the same discipline as **AC-453**). When a scheduler exists this
+criterion is **replaced** by one naming its real cadences, not satisfied by one.
+
+**AC-902** — `minReArmMinutes` is present on every alert rule as `number | null`, `null` means
+hysteresis-only, and §12.4's two re-arm paths are both reachable: a rule re-arms when the condition
+goes false for one full evaluation, **and** a rule with a non-null `minReArmMinutes` re-arms when
+that many minutes elapse with the condition still true. A state machine with a path no field can
+express fails.
+
+**AC-903** — The `hour` grain is **present and disabled** in the grain control under every query
+shape, and its disabled reason names that no measure supports a sub-daily grain (**AC-816**'s
+mechanism). **`ReportResult.buckets` is `IsoDate[]` and no bucket boundary carries an hour**, so a
+result claiming an hourly grain fails. **This is a contract, not a preference: an hourly boundary
+is not a date.** The day a sub-daily store exists, `buckets` widens to `IsoDateTime[]` and
+`SeriesPoint.at` with it, in one edit, and this criterion is replaced. **A date that silently
+loses the hour is the failing case**; the layer refused to paper over it and was right to.
+
+**AC-904** — Every client operation id in this module is registered **at module load**, so
+`knownOperations()` lists it before it has ever been called, and every one is reachable through
+`?mockFail=`. **Reachability and discoverability are two properties and only one of them holds
+today**: `mockFailures.take(operation)` matches by string at call time, so injection already works
+for any operation whether registered or not, while `registerOperations` is called **inside**
+`mock()` — so `knownOperations()` under-reports until an operation has been invoked, against
+`config.ts:232`'s claim that *"each client registers its ids here at module load."* **Nothing
+consumes `knownOperations()` today, so the impact is latent, not live** — but the QA panel this
+spec asks for, and any `?mockFail=` validation, would each list only what had already run. One
+line per client, about thirty clients, mechanical. **mock-data-engineer's.**
+
+**AC-905** — A saved report's `query.filters[*].field` is resource-qualified, and a report saved
+before this rule existed either resolves to a qualified field or refuses to run with a stated
+reason naming the ambiguous field. **A saved report never runs a filter whose resource cannot be
+determined** — that is the two-`status` defect surviving in storage after it was fixed in the
+panel (**AC-814**).
+
 ---
 
 ## 15. The cut line
@@ -1332,7 +1465,7 @@ until something evaluates them while nobody is watching.
 
 | # | Question | Who answers | What is blocked until they do |
 |---|---|---|---|
-| **Q-RB-1** | The Report Builder is a 35th sub-tab, and **D1** says 34. Amend D1, or does it live somewhere else? | **Business owner** | AC-800, AC-806. The route table cannot be edited without this. |
+| **Q-RB-1** ⛔ | The Report Builder is a 35th sub-tab, and **D1** says 34. Amend D1, or does it live somewhere else? **Answer it in the same sitting as D15**, which proposes collapsing Management from five sub-tabs to three — otherwise the count moves twice, in opposite directions, on two signatures that never saw each other. | **Business owner** | **AC-800, AC-806**, and the `'report'` / `'dashboard'` detail kinds. The route table cannot be edited without this; the screens build **unrouted behind one mount point** until it lands. |
 | **Q-RB-2** (F-P1) | The builder — a persistent query panel beside a live result canvas — maps to **no `DESIGN.md` §6.4 pattern row**. Confirm §3.7's customise mode covers it, or mint a row. | **product-designer** | AC-801. `patterns.md`: *"A page with no row here may not be designed until it gets one."* |
 | **Q-RB-3** | Does the week start Sunday or Monday? Every weekly number in every exported report depends on it. | **Business owner** | AC-819, and the correctness of every weekly report retroactively. |
 | **Q-RB-4** (F-P2) | Two measures on one axis need a **second series hue**, and §3.7 forbids one while `globals.css` deletes the ramp. Mint a categorical palette through §6.2, or ship multi-series as small multiples? | **product-designer**, then business owner for the §6.2 entry | AC-828, AC-835, and the shape of the owner's own headline example. |
@@ -1340,7 +1473,8 @@ until something evaluates them while nobody is watching.
 | **Q-RB-6** | **D4 (role model).** Per-measure permission (**F-8**) has no vocabulary to express itself in. | **Business owner** | AC-888…AC-893, §13 entire. |
 | **Q-RB-7** | Is there a backend commitment for a scheduler? If not, is the client half of alerts still worth building? | **Business owner + engineering lead** | Layer 4 entire. |
 | **Q-RB-8** | **F-9** — will the measure catalogue carry a measure identity independent of which board displays it? If keys stay board-namespaced, every saved report and alert rule holds a foreign key into a display decision. | **product-owner of `05-metrics-content.md`** | Everything. Escalate before the catalogue freezes. |
-| **Q-RB-9** | May an operator mark an alert `critical` (which pages the whole team), and if so which permission gates it? | **Business owner**, after D4 | §13.2's last row, AC-882's priority. |
+| **Q-RB-9** ⛔ | May an operator mark an alert `critical` (which pages the whole team), and if so which permission gates it? **`notificationPriority: 'critical'` is unreachable today** — the permission that would gate it does not exist, so the state is specified, buildable and enterable by nobody. | **Business owner**, after D4 | §13.2's last row, AC-882's priority. **Recorded as unreachable rather than left to be "fixed" by removing the gate** — an ungated `critical` pages the whole team on one operator's threshold. |
+| **Q-RB-11** | **Does `drivers` gain a status history?** Without one, no *active*-status measure is computable as a **series** — only as a tile — because the predicate is present-tense and the buckets are past (**AC-827**, **AC-900**). The layer ships `captains.registered` instead, which is honest and is not the same question. | **product-owner of `05-metrics-content.md`**, then business owner if a real store is needed | Any active-status trend, permanently. Nothing else — the builder ships without it and states what it cannot answer. |
 | **Q-RB-10** | Findings **F-1 … F-8** against the measure catalogue (§4.1). Each is a field the report builder reads and does not own. | **product-owner of `05-metrics-content.md`** | Named per finding in §4.1's `Blocks` column. |
 
 

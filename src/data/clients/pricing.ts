@@ -1,0 +1,371 @@
+/**
+ * Financials › Pricing & Plans — **Stage A**.
+ *
+ * Four views on one route: `Subscription plans` (default), `Quick rides`,
+ * `Rate card`, `Cancellation fees`.
+ *
+ * ## What ships and what does not
+ *
+ * **Q7 is unanswered** — which of four stores is authoritative for rates,
+ * commission and discount is a Finance-lead decision (§4). So:
+ *
+ *   - the catalogue half of a plan is **editable**: names, duration, execute
+ *     days, cancel cap, sort order, status, features;
+ *   - the pricing half renders in §4.6's **disabled** treatment, under one
+ *     page-level banner naming the open question and its owner;
+ *   - the rate card is **read-only in full**, with its version history and
+ *     simulations;
+ *   - **the derived values, the formula panel and the preview strip all work**,
+ *     computed from the live rate card. They are why Financials is wave 3 and
+ *     they are not deferred.
+ *
+ * Every Stage-B write — propose, approve, publish, edit a rate — is **absent**,
+ * not stubbed. A stub is a promise the screen would render.
+ *
+ * ## The derived values
+ *
+ * `PLAN_PRICING_DEFINITIONS` (`types/pricing.ts`) is the single source D-F2
+ * requires: the formula panel renders from it, the computation evaluates it,
+ * and there is no second copy of any formula in code or markup. **The evaluator
+ * is utilities-engineer's** (§14) — this client serves the definitions and the
+ * live rate card they read, and computes nothing itself.
+ */
+
+import { DATA_SOURCE } from '../config'
+import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
+import { mock, mockMutation, notFound } from '../mock/delay'
+import {
+  cancellationRuleFixtures,
+  quickRideTypeFixtures,
+  rateCardFixtures,
+  subscriptionPlanFixtures,
+  surgeSuspensionFixtures,
+  surgeWindowFixtures,
+} from '../fixtures/pricing'
+import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
+import { ApiError } from '../types/common'
+import type {
+  CancellationRule,
+  QuickRideType,
+  RateCard,
+  SubscriptionPlan,
+  SurgeSuspension,
+  SurgeWindow,
+} from '../types/pricing'
+import { SURGE_SUSPENSION_MAX_HOURS } from '../types/pricing'
+import type { PlanKey } from '../types/subscription'
+import { appendAudit } from './audit'
+import { http } from './http'
+
+export const PRICING_OPERATIONS = {
+  plans: 'pricing.plans',
+  plan: 'pricing.plan',
+  savePlan: 'pricing.savePlan',
+  rateCards: 'pricing.rateCards',
+  quickRides: 'pricing.quickRides',
+  cancellationRules: 'pricing.cancellationRules',
+  surgeWindows: 'pricing.surgeWindows',
+  surgeSuspensions: 'pricing.surgeSuspensions',
+  suspendSurge: 'pricing.suspendSurge',
+} as const
+
+let planState: SubscriptionPlan[] = subscriptionPlanFixtures.map((p) => ({ ...p }))
+let suspensionState: SurgeSuspension[] = surgeSuspensionFixtures.map((s) => ({ ...s }))
+let suspensionSequence = surgeSuspensionFixtures.length
+
+export function resetPricing(): void {
+  planState = subscriptionPlanFixtures.map((p) => ({ ...p }))
+  suspensionState = surgeSuspensionFixtures.map((s) => ({ ...s }))
+  suspensionSequence = surgeSuspensionFixtures.length
+}
+
+/* ─────────────────────── plan catalogue ─────────────────────── */
+
+/**
+ * GET /api/v1/plans
+ *   -> SubscriptionPlan[], in `sortOrder`
+ *
+ * Not paginated: three plans, and a catalogue an operator reorders by hand is
+ * not an index table. `driverSharePercent` and every worked-example figure are
+ * **derived** (§8.4) and are not on the wire.
+ */
+export async function listPlans(signal?: AbortSignal): Promise<SubscriptionPlan[]> {
+  if (DATA_SOURCE === 'http') return http.get<SubscriptionPlan[]>('/plans', undefined, { signal })
+  return mock(PRICING_OPERATIONS.plans, signal, () =>
+    [...planState].sort((a, b) => a.sortOrder - b.sortOrder),
+  )
+}
+
+/**
+ * GET /api/v1/plans/:id
+ *   -> SubscriptionPlan
+ */
+export async function getPlan(id: PlanKey, signal?: AbortSignal): Promise<SubscriptionPlan> {
+  if (DATA_SOURCE === 'http') return http.get<SubscriptionPlan>(`/plans/${id}`, undefined, { signal })
+  return mock(PRICING_OPERATIONS.plan, signal, () => {
+    const plan = planState.find((p) => p.id === id)
+    if (!plan) throw notFound('plan', id)
+    return plan
+  })
+}
+
+/**
+ * The catalogue fields Stage A may write. The pricing half is **absent from
+ * this type**, which is how "disabled until Q7" is enforced at the seam rather
+ * than by a `disabled` attribute a screen could forget.
+ */
+export interface SavePlanInput {
+  nameEn: string
+  nameAr: string
+  durationDays: number
+  executeDays: number
+  cancelCap: number
+  sortOrder: number
+  /** Read by the save handler — `savePlan()` today reads it from nothing (§8.6). */
+  status: SubscriptionPlan['status']
+  features: SubscriptionPlan['features']
+  economyActive: boolean
+  comfortActive: boolean
+}
+
+/**
+ * PUT /api/v1/plans/:id
+ *   body: SavePlanInput
+ *   -> SubscriptionPlan
+ *   422 when either name is empty, a feature is missing a language or exceeds
+ *       60 characters, or a numeric field is blank
+ *
+ * **Both names are required** (`:6125`, correct behaviour, kept) and each
+ * feature needs both languages at ≤ 60 characters (`:6050`).
+ *
+ * **D-F3, enforced at the seam.** A blank numeric input is `null`, not `0` and
+ * not the previously stored value. `gv(id)` returns `parseFloat(value) || 0` —
+ * blank is 0 (`:12984`) — while `numval(id, fallback)` returns the stored value
+ * (`:6150`), and the preview strip reads the first while `savePlan()` reads the
+ * second. The operator clears `Discount %`, watches the preview recompute at
+ * 0 %, presses Save, and stores 10 %. A `NaN` or non-finite number arriving
+ * here is refused rather than coerced, so the two can never disagree (AC-395).
+ */
+export async function savePlan(
+  id: PlanKey,
+  input: SavePlanInput,
+  signal?: AbortSignal,
+): Promise<SubscriptionPlan> {
+  if (DATA_SOURCE === 'http') {
+    return http.put<SubscriptionPlan>(`/plans/${id}`, input, { signal })
+  }
+  return mockMutation(PRICING_OPERATIONS.savePlan, signal, () => {
+    const plan = planState.find((p) => p.id === id)
+    if (!plan) throw notFound('plan', id)
+
+    const details: Array<{ field: string; code: string; message: string }> = []
+    if (!input.nameEn.trim()) details.push({ field: 'nameEn', code: 'required', message: 'Enter an English name' })
+    if (!input.nameAr.trim()) details.push({ field: 'nameAr', code: 'required', message: 'Enter an Arabic name' })
+    for (const [i, feature] of input.features.entries()) {
+      if (!feature.en.trim() || !feature.ar.trim()) {
+        details.push({ field: `features.${i}`, code: 'required', message: 'Enter both languages' })
+      }
+      if (feature.en.length > 60 || feature.ar.length > 60) {
+        details.push({ field: `features.${i}`, code: 'maxLength', message: '60 characters' })
+      }
+    }
+    for (const field of ['durationDays', 'executeDays', 'cancelCap', 'sortOrder'] as const) {
+      const value = input[field]
+      if (!Number.isFinite(value)) {
+        details.push({ field, code: 'required', message: 'Enter a number' })
+      }
+    }
+    if (details.length) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'plan_invalid',
+        message: 'Fix the fields below',
+        details,
+        retryable: false,
+      })
+    }
+
+    /* Only the catalogue half is written. The pricing half is untouched, which
+       is the Stage-A boundary made mechanical. */
+    const next: SubscriptionPlan = { ...plan, ...input }
+    planState = planState.map((p) => (p.id === id ? next : p))
+    appendAudit({
+      action: 'plan.save',
+      subjectType: 'plan',
+      subjectId: id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'fin.audit.planSaved', params: { plan: input.nameEn } },
+    })
+    return next
+  })
+}
+
+/* ────────────────────────── rate card ───────────────────────── */
+
+/**
+ * GET /api/v1/rate-cards
+ *   params: status
+ *   -> RateCard[], newest first
+ *
+ * Read-only in Stage A, in full: version, status, effective date, per-class
+ * rates, commission, ladder, floors, surge cap, and the version history with
+ * its simulations.
+ *
+ * The two draft states a screen must render are both here without any
+ * hand-editing: a draft **proposed by the acting operator** (`Approve` disabled
+ * — you cannot approve what you proposed, `:21586`, AC-405) and a draft with
+ * **no simulation** (`Approve` disabled — a price nobody modelled cannot be
+ * approved, `:21590`, AC-404). Both are render-time states, not commit-time
+ * refusals.
+ *
+ * **D-F10, recorded:** `proposeRateCard`, `approveRateCard`,
+ * `commitRateCardChange` and `suspendSurge` carry **no permission check** in
+ * 21,857 lines. The first three do not exist here at all — they are Stage B.
+ */
+export async function listRateCards(signal?: AbortSignal): Promise<RateCard[]> {
+  if (DATA_SOURCE === 'http') return http.get<RateCard[]>('/rate-cards', undefined, { signal })
+  return mock(PRICING_OPERATIONS.rateCards, signal, () =>
+    [...rateCardFixtures].sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom)),
+  )
+}
+
+/**
+ * GET /api/v1/rate-cards/live
+ *   -> RateCard
+ *
+ * The card the derived values, the formula panel and the preview strip read.
+ */
+export async function getLiveRateCard(signal?: AbortSignal): Promise<RateCard> {
+  if (DATA_SOURCE === 'http') return http.get<RateCard>('/rate-cards/live', undefined, { signal })
+  return mock(PRICING_OPERATIONS.rateCards, signal, () => {
+    const live = rateCardFixtures.find((c) => c.status === 'live')
+    if (!live) throw notFound('rate card', 'live')
+    return live
+  })
+}
+
+/* ───────────────────────── quick rides ─────────────────────── */
+
+/**
+ * GET /api/v1/quick-ride-types
+ *   -> QuickRideType[]
+ *
+ * Economy per-km is 1.10 here and 1.20 on the rate card. The view shows both
+ * until Q7 resolves which is the price.
+ */
+export async function listQuickRideTypes(signal?: AbortSignal): Promise<QuickRideType[]> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<QuickRideType[]>('/quick-ride-types', undefined, { signal })
+  }
+  return mock(PRICING_OPERATIONS.quickRides, signal, () => quickRideTypeFixtures)
+}
+
+/* ─────────────────── cancellation fees ──────────────────────── */
+
+/**
+ * GET /api/v1/cancellation-rules
+ *   -> CancellationRule[]
+ *
+ * Read-only. **Q-F1** — whether a cancellation fee is a property of *what
+ * happened* or *what class the trip was* — is unanswered, and merging the two
+ * stores means choosing a dimension.
+ *
+ * Five of the eight rules have `hasEnforcement: false` (**D-F7**) and render a
+ * visible `Not enforced` state. They never render as though they were live
+ * (AC-414).
+ */
+export async function listCancellationRules(signal?: AbortSignal): Promise<CancellationRule[]> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<CancellationRule[]>('/cancellation-rules', undefined, { signal })
+  }
+  return mock(PRICING_OPERATIONS.cancellationRules, signal, () => cancellationRuleFixtures)
+}
+
+/* ──────────────────────────── surge ─────────────────────────── */
+
+/**
+ * GET /api/v1/surge-windows
+ *   -> SurgeWindow[]
+ *
+ * Read-only on this sub-tab. **No control on any Financials surface raises a
+ * surge multiplier** (AC-410); operations may only suspend.
+ */
+export async function listSurgeWindows(signal?: AbortSignal): Promise<SurgeWindow[]> {
+  if (DATA_SOURCE === 'http') return http.get<SurgeWindow[]>('/surge-windows', undefined, { signal })
+  return mock(PRICING_OPERATIONS.surgeWindows, signal, () => surgeWindowFixtures)
+}
+
+/**
+ * GET /api/v1/surge-suspensions
+ *   -> SurgeSuspension[]
+ *
+ * `expiresIn` is **derived and live** — it counts down — so the wire carries
+ * `expiresAt` and the screen counts against the clock it was given. A countdown
+ * stored as data is a stale number by definition.
+ */
+export async function listSurgeSuspensions(signal?: AbortSignal): Promise<SurgeSuspension[]> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<SurgeSuspension[]>('/surge-suspensions', undefined, { signal })
+  }
+  return mock(PRICING_OPERATIONS.surgeSuspensions, signal, () => suspensionState)
+}
+
+/**
+ * POST /api/v1/surge-suspensions
+ *   body: { zoneId, zoneName, reason, hours }
+ *   -> SurgeSuspension
+ *   422 without a reason, or above the 12-hour ceiling
+ *
+ * A safety lever an ops manager must reach at 02:00, which is why §10.3 gives
+ * it `live_ops` and **not** the rate card's key. It cannot be extended, only
+ * re-raised (`:21527`, AC-409).
+ */
+export async function suspendSurge(
+  input: { zoneId: string; zoneName: string; reason: string; hours: number },
+  signal?: AbortSignal,
+): Promise<SurgeSuspension> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<SurgeSuspension>('/surge-suspensions', input, { signal })
+  }
+  return mockMutation(PRICING_OPERATIONS.suspendSurge, signal, () => {
+    if (!input.reason.trim()) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'reason_required',
+        message: 'Enter why surge is being suspended',
+        details: [{ field: 'reason', code: 'required', message: 'Enter a reason' }],
+        retryable: false,
+      })
+    }
+    if (!(input.hours > 0) || input.hours > SURGE_SUSPENSION_MAX_HOURS) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'hours_out_of_range',
+        message: `Choose between 1 and ${SURGE_SUSPENSION_MAX_HOURS} hours`,
+        details: [{ field: 'hours', code: 'max', message: String(SURGE_SUSPENSION_MAX_HOURS) }],
+        retryable: false,
+      })
+    }
+    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    suspensionSequence += 1
+    const suspension: SurgeSuspension = {
+      id: `SUS-${String(suspensionSequence).padStart(4, '0')}`,
+      zoneId: input.zoneId,
+      zoneName: input.zoneName,
+      reason: input.reason,
+      setByUserId: me.id,
+      setByUserName: me.name,
+      startedAt: EYVAR_NOW,
+      /* Riyadh offset, like every other instant in this dataset — not a UTC
+         `toISOString()`, which would be the one timestamp shaped differently. */
+      expiresAt: offsetFromNow({ hours: input.hours }),
+    }
+    suspensionState = [...suspensionState, suspension]
+    return suspension
+  })
+}

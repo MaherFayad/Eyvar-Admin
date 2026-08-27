@@ -17,7 +17,7 @@ import {
   teamUserFixtures,
 } from '../fixtures/teamUsers'
 import { claimFixtures } from '../fixtures/claims'
-import type { WorkspaceId } from '../types/navigation'
+import type { PermissionKey, WorkspaceId } from '../types/navigation'
 import type { Session, TeamUser, UserPreferences } from '../types/session'
 import { http } from './http'
 
@@ -135,6 +135,27 @@ export async function switchMockUser(userId: string, signal?: AbortSignal): Prom
     mockUserId = userId
     return buildSession(mockUserId)
   })
+}
+
+/**
+ * The signed-in mock operator's permissions, **synchronously**.
+ *
+ * Added for `reports.run`, which resolves each series against the **requesting**
+ * session (§13.1) and must therefore know who is asking while it is building a
+ * response. Reading `CURRENT_USER_ID` instead — as some older clients do —
+ * would make `switchMockUser` invisible to it, and §8.3 states 9 and 15 are
+ * both reachable only through `switchMockUser`.
+ *
+ * **Mock-only.** In http mode the server reads the auth cookie and this is
+ * never called; the report client guards on `DATA_SOURCE` before it gets here.
+ */
+export function currentMockPermissions(): readonly PermissionKey[] {
+  return teamUserFixtures.find((u) => u.id === mockUserId)?.permissions ?? []
+}
+
+/** The signed-in mock operator's id, synchronously. Same rationale as above. */
+export function currentMockUserId(): string {
+  return mockUserId
 }
 
 /** Reset between tests, so one file's `switchMockUser` cannot leak into the next. */

@@ -231,6 +231,27 @@ export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError
 }
 
+/* ──────────────────────── Localised text ───────────────────── */
+
+/**
+ * A server-supplied string that has **not** been assembled into a sentence.
+ *
+ * A ledger description is the case that forces this. Legacy builds them by
+ * concatenation — `'Released ' + e.amount.toFixed(2) + ' SAR escrow to ' + dn`
+ * (`:7068`), `nm2(driverId) + ' under-reported cash for ' + t.id + ' by ' + …`
+ * (`:12124`) — and Arabic does not put the noun where English does, so a
+ * concatenated sentence is untranslatable by construction (financials spec §11).
+ *
+ * The server sends a key and named params; the UI resolves both. Money params
+ * stay integer halalas so `formatMoney` is still the only formatter.
+ */
+export interface LocalisedText {
+  /** Dotted translation key, e.g. `fin.posting.tripFare`. */
+  key: string
+  /** Named placeholders. Never a pre-formatted money string. */
+  params?: Record<string, string | number>
+}
+
 /* ───────────────────────── Badge tones ─────────────────────── */
 
 /**

@@ -55,8 +55,9 @@
  * **`MetricBoard.notices`** — a board *declares conditions*; the page renders
  * **at most one** banner (R10 forbids two page-level banners). So this is a
  * declaration list, not a banner, and the name says so. The selection rule
- * lives on the screen: highest tone, then highest `severity`, then declaration
- * order. `03-financials.md` **AC-351** needs the same shape from a different
+ * lives on the screen: **highest tone, then highest `severity`, and that is
+ * all** — R5-3 deleted the *"then declaration order"* clause it used to carry.
+ * `03-financials.md` **AC-351** needs the same shape from a different
  * direction, which is why it is modelled for both.
  *
  * **`Metric.caption`** — a scope limit or a denominator, under a hard scope so
@@ -131,6 +132,42 @@ export type MetricComparison =
 /** Which way the value moved. `null` when there is nothing to compare against. */
 export type MetricDirection = 'up' | 'down' | 'flat'
 
+/**
+ * Why the value is absent. **Non-null if and only if `value === null`** (R5-1,
+ * `design/09-rulings-r5.md` §1.3).
+ *
+ *   `not-captured`    we do not record the data this number is computed from
+ *                     **yet** — the store exists and nothing has been written
+ *                     into it. `DB.contacts` is `[]` (`:14718`).
+ *   `not-computable`  the inputs exist; the calculation has no answer — a rate
+ *                     over a zero denominator, a mean of an empty set.
+ *
+ * **Two members, and a third is added by a spec that needs one.** Not
+ * pre-invented, and never guessed at a call site: a null with an invented
+ * explanation is worse than a null with none.
+ *
+ * **Two situations that are deliberately *not* members**, because neither ends
+ * with a rendered tile:
+ *
+ *   - **A measure the operator may not see** is **absent**, not em-dashed
+ *     (`05-metrics-content.md` §11.2 / AC-705).
+ *   - **A measure with no store at all** does not render as a tile
+ *     (R4-11 §11.2, applied by R5-1 §1.2). An em-dash is a claim that the
+ *     number exists somewhere. Five tiles left this file under that clause and
+ *     the removals are recorded at the top of `fixtures/metrics.ts`.
+ *
+ * **Where it renders: the delta line, not a new one.** When the value is absent
+ * the delta is *entailed* to be absent — you cannot compute a change from
+ * nothing — so the tile has exactly one line on which to say one thing, and
+ * without this field it says the less important of the two. Two consequences
+ * the ruling states so they are not discovered: the **caption does not render**
+ * while the value is absent (a denominator with no numerator is noise), and
+ * `comparison.reason` is **not shown** on such a tile — it is not deleted, it
+ * is still the right thing to say when a value exists and a comparison does
+ * not.
+ */
+export type ValueAbsenceReason = 'not-captured' | 'not-computable'
+
 export interface Metric {
   /** Stable, dotted, namespaced by sub-tab: `management.overview.activeSubscriptions`. */
   key: string
@@ -155,6 +192,15 @@ export interface Metric {
    * failed to compute look identical.
    */
   value: number | null
+  /**
+   * Why `value` is absent. **Non-null if and only if `value === null`** — R5-1.
+   *
+   * A tile that cannot state an honest reason for its absence is a tile whose
+   * measure has no store, and a measure with no store **does not render**
+   * (R4-11 §11.2). So this field has no `'unknown'` member and never will: the
+   * case it would cover is the case that leaves the board.
+   */
+  absenceReason: ValueAbsenceReason | null
   unit: MetricUnit
   /** Set iff `unit === 'money'`. The product is Saudi-only; the field exists so that stays a choice. */
   currency: CurrencyCode | null
@@ -194,19 +240,38 @@ export interface Metric {
   higherIsBetter: boolean
 
   /**
-   * One line under the label stating a **scope limit or a denominator**, as a
-   * translation key. `null` on a tile that needs none, which is most of them.
+   * One line under the label stating **what a reader must know to read the
+   * number correctly, and nothing else**, as a translation key. `null` on a
+   * tile that needs none, which is most of them.
    *
-   * **The scope is the whole of the rule** (R4-4 §4.2). A caption never states
-   * a value, never states a status, never carries a call to action and never
-   * carries a link. ≤60 characters, one line, truncates, never wraps. It is a
-   * key with parameters, never a concatenation (AC-713).
+   * **R4-4 §4.2 as amended by R5-4.** Three kinds and no fourth: a **scope
+   * limit**, a **denominator**, or **the direction that counts as good, where
+   * the label does not make it obvious**. It never states a value, never states
+   * a status, never states the delta, never carries a call to action and never
+   * carries a link. One line, **≤38 characters**, truncates, never wraps. It is
+   * a key with parameters, never a concatenation (AC-713).
    *
-   *   legal    `Excludes pending applicants.` · `1 of 4 cities live.` ·
-   *            `Ceiling is 3%.`
+   * **The third kind is R5-4 correcting a rule of the designer's own.** The
+   * two-item list that preceded it was two instances mistaken for a definition;
+   * the four prohibitions were always the rule. Valence is inside it because
+   * R4-5 made the delta chip neutral, which spent `higherIsBetter` on a
+   * screen-reader phrase and left a sighted operator no valence carrier except
+   * words. On the overturn tile the intuition runs backwards and words are the
+   * only instrument left. **This is also the slot AC-719's "caveat" wanted —
+   * the caveat and the caption are the same slot, not two.**
+   *
+   * **It does not render while the tile's value is absent** (R5-1 §1.3): a
+   * denominator with no numerator is noise, and a tile carries one explanation,
+   * not two. AC-641 / AC-674 / AC-675's *"cannot ship without a caption"* is an
+   * obligation on the tile **in its content state**, so the key stays seeded.
+   *
+   *   legal    `Excludes pending applicants.` · `1 of 4 cities is live.` ·
+   *            `Ceiling is 3%.` · `Of decided appeals. Higher is better.`
    *   illegal  `Up 8% on last week.` (that is the delta) · `Needs attention.`
    *            (that is a status, and R7 owns those) · `Review the queue →`
-   *            (that is an action, and a tile is not a banner)
+   *            (that is an action, and a tile is not a banner) ·
+   *            `Not captured yet` (that is an absence — `absenceReason` owns
+   *            it, and it lives on the delta line)
    *
    * Legacy carries exactly this line on the tiles that need one — *"excludes
    * pending applicants"* (`:10374`), *"5 of 12 total"* (`:6916`), *"ceiling
@@ -279,34 +344,119 @@ export interface TimeSeries {
   comparison: SeriesWindow | null
   /** Mirrors `Metric.higherIsBetter` so a chart can tint a trend without joining to a tile. */
   higherIsBetter: boolean
+  /**
+   * **R5-11, the same field as `MetricBreakdown.awaitingStore` and for the same
+   * reason.** *No store* and *the query ran over this range and returned
+   * nothing* are both zero points, and they are not the same sentence. The
+   * chart card keeps its title either way — a tile with no store does not
+   * render at all (R4-11 §11.2) and a card does, because a tile has no body and
+   * a card does.
+   */
+  awaitingStore: AwaitedStore | null
 }
 
 /**
- * One row of a ranked list. **R4-4 §4.1, and every slot below is normative.**
+ * A row label. **R5-7 — a discriminated union, and it is not tidiness.**
+ *
+ *   `kind: 'key'`   **copy.** A closed set: a rota day, a queue, a plan tier, a
+ *                   reason code. Takes the **page** direction — a translated
+ *                   label in an Arabic console must lay out RTL.
+ *   `kind: 'text'`  **data.** A person, a city, a subscription. Nothing
+ *                   translates it and nothing may try. Its direction is
+ *                   **unknown at build time** — `Abdulaziz Al-Suwailem` in an
+ *                   Arabic console is the shipping case, and it is LTR — so it
+ *                   takes `<bdi>`, and the truncating box takes the run's
+ *                   direction, not the page's.
+ *
+ * That second line is **V-4**. Under `dir="rtl"` an overflowing Latin row label
+ * is ellipsised at its *head* — `Abdulaziz Al-Suwailem` → `…uwailem` — because
+ * the truncating span carries the page direction while a `<bdi>` inside carries
+ * `ltr`. With the union the fix is *targetable*: `dir="auto"` /
+ * `unicode-bidi: plaintext` on the truncating box **for `text` labels only**.
+ * Without it, the same treatment would have to be applied to translated labels,
+ * and that is wrong for them.
+ *
+ * What this replaces is `labelKey: 'breakdown.row.entity'` with
+ * `labelParams: { name }` — a pass-through key whose entire English string was
+ * `{name}`. It satisfied AC-697 and it was a fig leaf, and both the fixture and
+ * the component said so independently before the ruling granted it.
+ * **AC-697 gains the clause that would have caught it: a row label is never a
+ * key whose whole string is a parameter.**
+ */
+export type BreakdownLabel =
+  | { kind: 'key'; key: string; params: Record<string, string | number> | null }
+  | { kind: 'text'; text: string }
+
+/**
+ * One row of a ranked list. **R4-4 §4.1 as amended by R5-5 and R5-7, and every
+ * slot below is normative.**
  *
  * ```
- * ┌─ Top 5 zones by failure rate ───────────────────────────────────┐
- * │  Al Narjis                                          79%     3   │  label / value / secondary
- * │  ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇                                 │  optional bar
- * │  Supply gap · captains needed                                   │  optional sub-label
- * │  Showing the top 5 of 14 zones.                                 │  AC-696
+ * ┌─ Top 5 riders at risk ──────────────────────────────────────────┐
+ * │  Abdulaziz Al-Suwailem                        884.00 SAR        │  label / the ONE numeric column
+ * │  ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇                                 │  optional bar, 4px, --chart-series
+ * │  High churn risk · 63 trips                                     │  optional sub-label — the second fact
+ * │  Showing the top 5 of 7 riders.                                 │  AC-696
  * └─────────────────────────────────────────────────────────────────┘
  * ```
  */
 export interface MetricBreakdownRow {
   id: string
-  /** A key, never a string — AC-697. Truncates, never wraps. */
-  labelKey: string
-  labelParams: Record<string, string | number> | null
-  /** The second **categorical** fact: a root-cause owner, a tier, a block. Optional. */
+  /** A key for a closed set, text for an entity — R5-7. Truncates, never wraps. */
+  label: BreakdownLabel
+  /**
+   * The row's second fact — **categorical, numeric, or both joined by a
+   * middot**. `Document expired` · `63 trips` · `Document expired · 3 of 19
+   * trips ran late`. Optional.
+   *
+   * A key with `subLabelParams`, never a concatenation (AC-713).
+   */
   subLabelKey: string | null
+  /**
+   * **NEW — R5-5.** The parameters a numeric sub-label interpolates.
+   *
+   * **These are bare numbers and the component formats them**, which is the
+   * `overview.compare.target` precedent §11.4 cites: `MetricComparison.value`
+   * is a `number` and `MetricTile` calls `formatMetricValue` before handing it
+   * to `t()`. A `%` assembled in the component *by concatenation* is what
+   * AC-713 forbids; a `%` produced by `formatPercent` and interpolated into a
+   * key is not, and it is the only form that survives translation — a
+   * pre-formatted `'45%'` stored here could never render Arabic-Indic digits.
+   *
+   * The unit of each param is a property of the **key**, and every key in use
+   * is listed in `fixtures/metrics.ts`. `{rate}` is a percent; `{late}`,
+   * `{total}`, `{trips}`, `{past}` and `{count}` are counts.
+   */
+  subLabelParams: Record<string, string | number> | null
+  /**
+   * **The only numeric column** (R5-5). Right-aligned, tabular figures, and it
+   * does not flip in Arabic (R4). Formatted from this row's own `unit`.
+   *
+   * `secondaryValue` / `secondaryUnit` are **withdrawn**. Two right-aligned
+   * numbers with no header row is a table without a table's affordances, and
+   * R4-6 already ruled that a board's list wanting columns becomes a table. A
+   * second numeric fact is a **noun phrase in the sub-label**, which is the
+   * reference's own construction (`analytics-dashboard-today-no-data.webp`,
+   * `Online store conversion rate`: `Added to cart / 0.00% / 0 sessions`) and
+   * the only shape that names it.
+   */
   value: number
   unit: MetricUnit
   currency: CurrencyCode | null
-  /** The second **numeric** fact — captains needed, the count behind a rate. Right-aligned after the primary. */
-  secondaryValue: number | null
-  secondaryUnit: MetricUnit | null
-  /** `0..1`. **`null` whenever the breakdown's `bar` is false**, so a row cannot draw a bar the list forbids. */
+  /**
+   * `0..1`, **share of the largest row shown** — `value / max(value over rows
+   * shown)`, so the top bar is always full (R5-6).
+   *
+   * Share-of-**max**, not share-of-total. A ranked list's question is *"how far
+   * behind the leader?"*; share-of-total answers a composition question that a
+   * `Top 5 of 14` cut-off has already broken. Before this ruling three
+   * breakdowns used three different denominators — largest row, total, and 42 —
+   * all legal by the letter of *"one denominator"*, which only ever constrained
+   * them *within* a list.
+   *
+   * **`null` whenever the breakdown's `bar` is false**, so a row cannot draw a
+   * bar the list forbids.
+   */
   barFraction: number | null
   /**
    * **`null` renders plain text, never a link** (AC-693, AC-653). A row links
@@ -340,14 +490,132 @@ export interface MetricBreakdown {
   /** So AC-696's `Showing the top {n} of {total}` needs no second request. */
   rowsTotal: number
   /**
-   * **False unless every row shares one unit AND one denominator.** Where rows
-   * are rates over their own bases, or counts of different things, the bar is a
-   * lie about a shared scale — omit it. Half the breakdowns in this product
-   * fail that test and carry `false`.
+   * **Three conditions, all required — R4-4 §4.1 as amended by R5-6.** Every
+   * row shares **one unit**, every row shares **one denominator**, and
+   * **`max > min` across the rows shown**.
+   *
+   * Where rows are rates over their own bases, or counts of different things,
+   * the bar is a lie about a shared scale — omit it. Where every row is the
+   * same height the bar is 20px of row height per row carrying no information;
+   * `admin.rotaGapsByDay` is seven rows all valued 6, so `max === min`, so
+   * `bar: false` **by rule and not by taste** (V-13). The finding those seven
+   * equal numbers encode survives — *nobody is on call at any hour of any day*
+   * — because the numbers say it.
+   *
+   * **Zero rows shown cannot satisfy `max > min`**, so an empty breakdown
+   * carries `false`. It is a statement about the rows there are, not a promise
+   * about rows that might arrive.
+   *
+   * The bar is `--chart-series` at 4px on an unpainted track, `aria-hidden`, and
+   * every bar sits beside its own number in text. Not `--chart-fill`: a pale
+   * area fill is what sits *under a line*, where the line does the delimiting; a
+   * ranked bar is the quantity mark itself, and the reference draws it
+   * saturated (`analytics-live-view-globe-map.webp`, `Top locations`).
    */
   bar: boolean
+  /**
+   * **R5-9, §18.1, in the §20.2 shape.** One sentence stating a reason the
+   * ranking below may not be trusted, rendered **under the heading and above
+   * the first row** — *"a gate that appears after the thing it gates is not a
+   * gate."*
+   *
+   * **`null` is the normal value**, and it is `null` on all seven fixtures
+   * today. See `MetricCaveat` for why the one card the ruling was written for
+   * still does not carry one.
+   */
+  caveat: MetricCaveat | null
+  /** **R5-11.** The third absence: no store, as opposed to nothing to rank. */
+  awaitingStore: AwaitedStore | null
   rows: MetricBreakdownRow[]
 }
+
+/**
+ * **R5-9 as §20.2 re-shaped it: three fields that exist only together.**
+ *
+ * `caveatKey` and `caveatParams` as two independent nullables were withdrawn
+ * because they permit three states and only one is meaningful — a key with no
+ * params, params with no key, and the pair. A single nullable object has two.
+ *
+ * ## `gatedBy` is the ruling, not decoration
+ *
+ * §18.1's guard was *a caveat exists only where a spec criterion names the
+ * condition that raises it and the threshold that clears it*. **A guard phrased
+ * as a sentence can only be enforced in fixture review**, which is how §4.2
+ * rotted. `gatedBy` enforces it by construction: the field cannot be filled
+ * without naming the metric that carries the condition, and that metric is on
+ * the same board, already showing its own number and its own target.
+ *
+ * It is **R4-4 §4.3's own test one level down** — *a notice may only exist for
+ * a condition the board already shows a number for.*
+ *
+ * And it makes §18.6 arithmetic instead of judgement: look up `gatedBy` on the
+ * board; if its `value` is `null` there is no answer, so there is no threshold
+ * to have crossed, so **the caveat is `null`**.
+ *
+ * > **Which is why `support.contactReasons` carries no caveat**, though it is
+ * > the card AC-674 was written for. Its gate is `support.uncodedContactShare`,
+ * > which is **`not-computable`** — a rate over a zero denominator, because
+ * > `DB.contacts` is `[]`. There is no share to state. Seeding one to
+ * > demonstrate the slot would be the same defect as an invented SLA window
+ * > (**AC-453**): a plausible number standing in for a measurement nobody took.
+ */
+export interface MetricCaveat {
+  /** `breakdown.caveat.uncodedRanking` — the only key in the vocabulary today. */
+  key: string
+  /**
+   * **Bare numbers; the component formats them before interpolation** — the
+   * same contract as `subLabelParams`, and the same reason: a pre-formatted
+   * `'12%'` stored here could never render Arabic-Indic digits. `{share}` is a
+   * percent.
+   */
+  params: Record<string, string | number> | null
+  /**
+   * **The `MetricTile.key` on this board that raises the caveat.**
+   *
+   * A free string, deliberately, and note the asymmetry with `AwaitedStore`
+   * below: **a metric key has referential integrity** — something can check it
+   * points at a real tile on the same board — **so the check is used. A store
+   * name has nothing to check it against, so the set is closed instead.**
+   * Where a check exists, use it; where none does, close the set.
+   */
+  gatedBy: string
+}
+
+/**
+ * **R5-11 — the store a measure is waiting on, as a closed union.**
+ *
+ * The third absence. Two zero-row cards are not the same card:
+ *
+ *   - *we ranked and this window had nothing* → `awaitingStore: null`, rows
+ *     empty. R8's second kind, one grey sentence.
+ *   - *nothing is captured, so no ranking happened* → this field set.
+ *
+ * Conflating them is **V-2 at card scale**, which is the defect this whole
+ * round exists to close. Only the data layer knows which it is, so provenance
+ * is the seam's to state and not the component's to infer.
+ *
+ * **A closed union rather than `string | null`, and the reason is worth
+ * carrying: a free string can be a placeholder and pass.** That is
+ * `breakdown.row.entity`'s exact failure mode — the fig leaf R5-7 exists to
+ * delete. A union member cannot be invented at a call site.
+ *
+ * This is the same distinction already drawn one level down, at tile scale, and
+ * the classification follows the same evidence:
+ *
+ *   - `contactsPerThousandTrips` is **`not-captured`** — the store is declared
+ *     and empty (`DB.contacts = []`).
+ *   - `uncodedContactShare` is **`not-computable`** — a rate over a zero
+ *     denominator.
+ *
+ * `'contact-log'` is the store the first of those waits on; `'payments-by-entity'`
+ * is the keyed-by-entity payment store an integrity scan needs and the legacy
+ * app has never had.
+ *
+ * **A card awaiting a store does not count as content for `isBoardEmpty`** —
+ * same reasoning as §4.3's notice: a surface that is only telling you it has
+ * nothing is not something.
+ */
+export type AwaitedStore = 'contact-log' | 'payments-by-entity'
 
 /** R7's five-tone palette, less `neutral`, which is not a banner tone. */
 export type BoardNoticeTone = 'critical' | 'warning' | 'info' | 'success'
@@ -362,9 +630,21 @@ export type BoardNoticeTone = 'critical' | 'warning' | 'info' | 'success'
  * > rendered one, the product would have two and the second is the one nobody
  * > reads.
  *
- * The screen renders the highest tone, then the highest `severity`, then
- * declaration order, in the page banner slot between the header and the tile
- * grid. A board declares **at most three**. The suppressed conditions are not
+ * The screen renders **the highest tone, then the highest `severity`**, in the
+ * page banner slot between the header and the tile grid. The selection is total
+ * because **`severity` is unique among a board's notices of the same tone**;
+ * two notices sharing a tone and a severity is a **fixture defect**, not a
+ * rendering question, and it is enforced by a test over these fixtures rather
+ * than by a synthetic case.
+ *
+ * **R5-3 deleted the third clause, and the designer named it as their own
+ * error.** *"A tie-break decided by the order somebody typed an array is not a
+ * tie-break. It is a coin flip with a stable seed."* Two conditions equally
+ * severe and equally urgent is a real editorial problem on a board and it
+ * should surface as a defect, not be resolved silently by a line number and
+ * `Array.prototype.sort` happening to be stable in this runtime.
+ *
+ * A board declares **at most three**. The suppressed conditions are not
  * lost: each is independently visible in the tile or breakdown it came from,
  * and **that is the test — a notice may only exist for a condition the board
  * already shows a number for.** A banner nothing on the page corroborates is a
@@ -377,7 +657,13 @@ export interface BoardNotice {
   tone: BoardNoticeTone
   /** Verb-first fragment plus a route. No period (R6, §5.7). `null` when there is nowhere to send them. */
   action: { labelKey: string; route: string } | null
-  /** Tie-break **within** a tone. Higher wins. */
+  /**
+   * Tie-break **within** a tone. Higher wins.
+   *
+   * **Unique among a board's notices of the same tone** — R5-3. That uniqueness
+   * is what makes the selection total, so it is an invariant of this fixture and
+   * not a convention: a duplicate `(tone, severity)` pair is a fixture defect.
+   */
   severity: number
 }
 

@@ -1,0 +1,413 @@
+/**
+ * `reports.run` and the saved-report library — §3, §9, §10.
+ *
+ * `reports.run` is **the** operation of this module: §3.1 says the panel is a
+ * form whose value is a `ReportQuery`, the URL is that object serialised, a
+ * saved report is that object plus a name, a dashboard tile is a pointer to one
+ * and an alert rule is a pointer to one of its series. Everything else here is
+ * CRUD around it.
+ *
+ * ## Why it does not go through the 34 per-resource clients
+ *
+ * `drivers.list` returns `Paginated<Driver>` and there is no argument to it
+ * that means *"weekly, last 90 days, counted"*. D13 named this before anyone
+ * started building: *"that shape cannot answer 'drivers vs passengers, weekly,
+ * last 90 days', because the question names no resource."*
+ *
+ * ## Two things this client refuses to do
+ *
+ * **It does not resolve an illegal query.** `planQuery` runs first and its
+ * violations come back as a returned outcome, not a throw — including for a
+ * hand-edited URL (AC-825). The previous result is the caller's to retain.
+ *
+ * **It does not redact in the response body.** A blocked series comes back with
+ * `blocked` set and **no points**, because *"a client-side filter over a full
+ * payload is not a permission control, it is a rendering choice with the data
+ * still in the response"* (§13.1). AC-888 verifies that against the response.
+ */
+
+import { DATA_SOURCE, registerOperations } from '../config'
+import { dimensionFixtures, measureFixtures } from '../fixtures/measures'
+import {
+  dashboardFixtures,
+  savedReportFixtures,
+} from '../fixtures/reports'
+import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
+import { mock, mockMutation, notFound } from '../mock/delay'
+import { paginate } from '../mock/query'
+import { resolveReport, resetReportRowCap, useTruncatedReports } from '../mock/resolveReport'
+import { planQuery, type Catalogue } from '../reporting/plan'
+import { resolveWindow } from '../reporting/buckets'
+import { serialiseReportQuery } from '../reporting/serialise'
+import type { IsoDate, Paginated, QueryParams, Single } from '../types/common'
+import type { PermissionKey } from '../types/navigation'
+import {
+  REPORT_NAME_MAX,
+  type DeleteReportOutcome,
+  type ReportCsv,
+  type ReportCsvRow,
+  type ReportQuery,
+  type ReportResult,
+  type RunReportOutcome,
+  type SaveInvalidReason,
+  type SaveReportOutcome,
+  type SavedReport,
+} from '../types/report'
+import { currentMockPermissions, currentMockUserId } from './session'
+import { http } from './http'
+
+export const REPORT_OPERATIONS = {
+  run: 'reports.run',
+  list: 'reports.list',
+  get: 'reports.get',
+  save: 'reports.save',
+  delete: 'reports.delete',
+  export: 'reports.export',
+} as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(REPORT_OPERATIONS))
+
+const CATALOGUE: Catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
+
+/** Mutable copies, so a save is observable within a session. **Not persistence** — see `fixtures/reports.ts`. */
+let reports: SavedReport[] = savedReportFixtures.map((r) => ({ ...r }))
+
+/* ───────────────────────────── run ─────────────────────────────────────── */
+
+export interface RunReportOptions {
+  /**
+   * Make one measure's series come back `failed` while the rest resolve —
+   * §8.3 state 10, and AC-851's *"retrying it does not re-request the resolved
+   * series"*.
+   *
+   * Separate from `?mockFail=reports.run`, which fails the whole operation.
+   * Both are needed: one is a transport failure, the other is a partial one,
+   * and a UI that only handles the first renders a blank canvas for the second.
+   */
+  failMeasureKeys?: readonly string[]
+  /** The day to resolve presets against. Defaults to the fixed clock. Never a global read. */
+  today?: IsoDate
+  signal?: AbortSignal
+}
+
+/**
+ * POST /api/v1/reports/run
+ *   body: ReportQuery
+ *   -> ReportResult
+ *
+ * **A POST, because a filter list can exceed a URL** (§4.3). The *sharing* URL
+ * is a separate, client-side serialisation of the same object (§9.2) — the
+ * tension is real and is resolved by keeping the two encodings independent
+ * rather than by making one serve both.
+ *
+ * Each series is authorised **against the requesting session, not the report's
+ * owner** (§13.1). In mock mode that is `currentMockPermissions()`, so
+ * `switchMockUser('USR-3')` reaches the blocked state today, before D4 lands.
+ */
+export async function runReport(
+  query: ReportQuery,
+  options: RunReportOptions = {},
+): Promise<RunReportOutcome> {
+  const { signal } = options
+  if (DATA_SOURCE === 'http') {
+    const result = await http.post<ReportResult>('/reports/run', query, { signal })
+    return { status: 'ok', result }
+  }
+  return mock(REPORT_OPERATIONS.run, signal, () => {
+    const today = options.today ?? EYVAR_TODAY
+    const plan = planQuery(query, CATALOGUE, today)
+    /* An illegal query is a **domain** answer, returned. A hand-edited URL
+       asking for a stock and a flow on one axis gets the same violation the
+       picker would have shown, and the caller keeps its previous result. */
+    if (plan.violations.length > 0) {
+      return { status: 'invalid-query' as const, violations: plan.violations }
+    }
+    return {
+      status: 'ok' as const,
+      result: resolveReport(query, CATALOGUE, {
+        permissions: currentMockPermissions() as readonly PermissionKey[],
+        today,
+        failMeasureKeys: options.failMeasureKeys,
+      }),
+    }
+  })
+}
+
+/* ─────────────────────────── the library ───────────────────────────────── */
+
+export interface SavedReportQuery extends QueryParams {
+  /** `mine` or `team`. A control, not an endpoint (§3.8 rule 3). */
+  view?: string | null
+}
+
+/**
+ * GET /api/v1/reports
+ *   params: q · view=mine|team · page · pageSize
+ *   -> Paginated<SavedReport>
+ *
+ * **Needs Q1.** Without a storage adapter this serves seeded rows and any save
+ * is gone on reload; §9.1 states that the named, saved report is *cut* until Q1
+ * lands, and the composed query is not, because §9.2 makes the URL its storage.
+ */
+export async function listReports(
+  params: SavedReportQuery = {},
+  signal?: AbortSignal,
+): Promise<Paginated<SavedReport>> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Paginated<SavedReport>>('/reports', { ...params, signal }, { signal })
+  }
+  return mock(REPORT_OPERATIONS.list, signal, () => {
+    const me = currentMockUserId()
+    let rows = reports.filter((r) => r.visibility === 'team' || r.ownerId === me)
+    if (params.view === 'mine') rows = rows.filter((r) => r.ownerId === me)
+    if (params.view === 'team') rows = rows.filter((r) => r.visibility === 'team')
+    const q = params.q?.trim().toLowerCase()
+    if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q))
+    return paginate(rows, params)
+  })
+}
+
+/**
+ * GET /api/v1/reports/:id
+ *   -> Single<SavedReport>
+ *
+ * A 404 here is §8.3 state 12 — the report was deleted while open. The screen
+ * becomes read-only with a notice and `Save` becomes `Save as new`; it does not
+ * navigate away, and the URL is not rewritten (AC-804).
+ */
+export async function getReport(id: string, signal?: AbortSignal): Promise<Single<SavedReport>> {
+  if (DATA_SOURCE === 'http') return http.get<Single<SavedReport>>(`/reports/${id}`, undefined, { signal })
+  return mock(REPORT_OPERATIONS.get, signal, () => {
+    const row = reports.find((r) => r.id === id)
+    if (!row) throw notFound('report', id)
+    return { data: { ...row } }
+  })
+}
+
+export interface SaveReportInput {
+  /** `null` creates; a value updates in place. `Save` and `Save as` are two calls, not a mode. */
+  id: string | null
+  name: string
+  description: string | null
+  query: ReportQuery
+  visibility: SavedReport['visibility']
+}
+
+/**
+ * POST /api/v1/reports · PATCH /api/v1/reports/:id
+ *   body: { name, description, query, visibility }
+ *   -> Single<SavedReport>
+ *
+ * Validation is a **returned** outcome, not a throw: a failed save never closes
+ * the dialog it came from and the operator's input is preserved (§8.3, AC-859).
+ * `?mockFail=reports.save` still throws, because that is a transport failure and
+ * the two must stay distinguishable.
+ */
+export async function saveReport(
+  input: SaveReportInput,
+  signal?: AbortSignal,
+): Promise<SaveReportOutcome> {
+  if (DATA_SOURCE === 'http') {
+    const res = input.id
+      ? await http.patch<Single<SavedReport>>(`/reports/${input.id}`, input, { signal })
+      : await http.post<Single<SavedReport>>('/reports', input, { signal })
+    return { status: 'saved', report: res.data }
+  }
+  return mockMutation(REPORT_OPERATIONS.save, signal, () => {
+    const reasons = validateName(input.name)
+    if (planQuery(input.query, CATALOGUE, EYVAR_TODAY).violations.length > 0) {
+      reasons.push('query-invalid')
+    }
+    if (reasons.length > 0) return { status: 'invalid' as const, reasons }
+
+    if (input.id) {
+      const existing = reports.find((r) => r.id === input.id)
+      if (!existing) throw notFound('report', input.id)
+      const updated: SavedReport = {
+        ...existing,
+        name: input.name,
+        description: input.description,
+        query: input.query,
+        visibility: input.visibility,
+        updatedAt: EYVAR_NOW,
+      }
+      reports = reports.map((r) => (r.id === updated.id ? updated : r))
+      return { status: 'saved' as const, report: { ...updated } }
+    }
+
+    const created: SavedReport = {
+      id: `RPT-${reports.length + 1}${reports.length}`,
+      name: input.name,
+      description: input.description,
+      query: input.query,
+      ownerId: currentMockUserId(),
+      visibility: input.visibility,
+      createdAt: EYVAR_NOW,
+      updatedAt: EYVAR_NOW,
+      pinnedToDashboardIds: [],
+    }
+    reports = [...reports, created]
+    return { status: 'saved' as const, report: { ...created } }
+  })
+}
+
+/**
+ * DELETE /api/v1/reports/:id
+ *   -> 204, or 409 with the dashboards that pin it
+ *
+ * §11.3: **deleting a pinned report is refused by default**, and the
+ * confirmation names the dashboards. The names come back as data because a bare
+ * `409` could not name them, and `Remove from those dashboards and delete` has
+ * to be an explicit second step — `force` (AC-868).
+ *
+ * *"A dangling reference cannot be created through the UI."*
+ */
+export async function deleteReport(
+  id: string,
+  options: { force?: boolean; signal?: AbortSignal } = {},
+): Promise<DeleteReportOutcome> {
+  const { force = false, signal } = options
+  if (DATA_SOURCE === 'http') {
+    await http.delete<void>(`/reports/${id}${force ? '?force=true' : ''}`, { signal })
+    return { status: 'deleted' }
+  }
+  return mockMutation(REPORT_OPERATIONS.delete, signal, () => {
+    const row = reports.find((r) => r.id === id)
+    if (!row) throw notFound('report', id)
+    if (row.pinnedToDashboardIds.length > 0 && !force) {
+      return {
+        status: 'pinned' as const,
+        dashboards: row.pinnedToDashboardIds.map((dashboardId) => ({
+          id: dashboardId,
+          name: dashboardFixtures.find((d) => d.id === dashboardId)?.name ?? dashboardId,
+        })),
+      }
+    }
+    reports = reports.filter((r) => r.id !== id)
+    return { status: 'deleted' as const }
+  })
+}
+
+/* ─────────────────────────── export (§10) ──────────────────────────────── */
+
+/**
+ * The resolved result as §10.1's long format — one row per bucket × series,
+ * with a header block naming the report, the window, the grain, the comparison,
+ * every filter and the `asOf`.
+ *
+ * Pure, and in the data layer rather than in a screen, for one reason: **§10.2's
+ * deliberate break of the halalas rule**. Money in the CSV is decimal SAR with
+ * an explicit currency column, because a CSV's consumer is a human in a
+ * spreadsheet and `29505` in a revenue column is a defect they will not catch.
+ * Left to a component, that conversion gets "fixed" back to halalas by the next
+ * person who greps for the money rule. Here it is one function with the reason
+ * attached.
+ *
+ * A blocked series is **omitted and named** in the header (AC-890): exporting a
+ * redacted row would be a permission leak with a `null` in it.
+ */
+export function reportToCsv(result: ReportResult, reportName: string | null, today: IsoDate = EYVAR_TODAY): ReportCsv {
+  const window = resolveWindow(result.query.window, today)
+  const rows: ReportCsvRow[] = []
+  const omitted: Array<{ measureKey: string; permission: PermissionKey }> = []
+
+  for (const series of result.series) {
+    if (series.blocked) {
+      omitted.push({ measureKey: series.measureKey, permission: series.blocked })
+      continue
+    }
+    result.buckets.forEach((bucket, i) => {
+      const raw = series.points[i] ?? null
+      rows.push({
+        bucket_start: bucket,
+        series: series.id,
+        measure_key: series.measureKey,
+        group_value: series.groupValue,
+        role: series.role,
+        /* §10.2. Halalas → decimal SAR, here and nowhere else in the product. */
+        value: raw === null ? null : series.unit === 'money' ? raw / 100 : raw,
+        unit: series.unit,
+        currency: series.currency,
+        is_partial_bucket: series.partialBucketIndexes.includes(i),
+      })
+    })
+  }
+
+  return {
+    header: {
+      reportName,
+      windowFrom: window.from,
+      windowTo: window.to,
+      grain: result.query.grain,
+      periodComparison: result.query.periodComparison,
+      filters: result.query.filters,
+      asOf: result.asOf,
+      omittedSeries: omitted,
+    },
+    rows,
+  }
+}
+
+/**
+ * POST /api/v1/reports/export
+ *   body: ReportQuery
+ *   -> ReportCsv
+ *
+ * **Audit-logged, and that is the one thing legacy got right here**
+ * (`logAction('export_data', …)`, `:7604`): an export of operational data that
+ * leaves no trace is a compliance problem, not a feature. The audit entry names
+ * the actor, the report and the window (AC-864); writing it is the server's job
+ * and the endpoint exists so it has somewhere to happen.
+ */
+export async function exportReport(
+  query: ReportQuery,
+  options: { reportName?: string | null; today?: IsoDate; signal?: AbortSignal } = {},
+): Promise<ReportCsv> {
+  const { signal } = options
+  if (DATA_SOURCE === 'http') {
+    return http.post<ReportCsv>('/reports/export', query, { signal })
+  }
+  return mock(REPORT_OPERATIONS.export, signal, () => {
+    const today = options.today ?? EYVAR_TODAY
+    const outcome = resolveReport(query, CATALOGUE, {
+      permissions: currentMockPermissions() as readonly PermissionKey[],
+      today,
+    })
+    return reportToCsv(outcome, options.reportName ?? null, today)
+  })
+}
+
+/* ─────────────────────────── QA affordances ────────────────────────────── */
+
+/**
+ * Serve results that really are cut short — §8.3 state 7.
+ *
+ * The cap is applied to the rows the resolver reads, so the numbers that come
+ * back are genuinely short and `truncated: true` describes something that
+ * happened. A flag with full data behind it would ship the caveat's copy for a
+ * state that never occurs.
+ */
+export { useTruncatedReports }
+
+/** The shareable link for a query, for a QA engineer pinning a state from the URL. */
+export { serialiseReportQuery }
+
+export function resetReports(): void {
+  reports = savedReportFixtures.map((r) => ({ ...r }))
+  resetReportRowCap()
+}
+
+/* ────────────────────────────── helpers ────────────────────────────────── */
+
+/** 1–80 characters (AC-856). `Save` is disabled until a name exists, and carries no error text while it is. */
+function validateName(name: string): SaveInvalidReason[] {
+  const trimmed = name.trim()
+  if (trimmed.length === 0) return ['name-required']
+  if (trimmed.length > REPORT_NAME_MAX) return ['name-too-long']
+  return []
+}

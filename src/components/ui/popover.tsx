@@ -19,7 +19,7 @@
  *              helper text, never in either.
  *   R15        radius 8px, 1px hairline, never a stadium.
  *
- * Removed on arrival: `ring-1 ring-foreground/10` - a translucent black ring over
+ * Removed on arrival: the stock 1px translucent ring - a translucent black ring over
  * an unknown backdrop - replaced by a `--ev-hairline` border.
  */
 import * as React from "react"

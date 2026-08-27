@@ -13,7 +13,8 @@ import { DATA_SOURCE } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
 import { navCountFixtures, navCountFixturesAllEmpty } from '../fixtures/navCounts'
-import type { NavCounts } from '../types/navigation'
+import { starvedZoneCount } from './zones'
+import type { NavCounts, SubTabCount } from '../types/navigation'
 import { http } from './http'
 
 export const NAV_COUNT_OPERATIONS = {
@@ -44,9 +45,34 @@ let scenario: NavCountScenario = 'default'
 export async function getNavCounts(signal?: AbortSignal): Promise<NavCounts> {
   if (DATA_SOURCE === 'http') return http.get<NavCounts>('/nav/counts', undefined, { signal })
   return mock(NAV_COUNT_OPERATIONS.list, signal, () => {
-    const subTabs = scenario === 'all-empty' ? navCountFixturesAllEmpty : navCountFixtures
-    return { subTabs, computedAt: EYVAR_NOW }
+    if (scenario === 'all-empty') return { subTabs: navCountFixturesAllEmpty, computedAt: EYVAR_NOW }
+    return { subTabs: navCountFixtures.map(ground), computedAt: EYVAR_NOW }
   })
+}
+
+/**
+ * **`management-zones` is computed, not seeded — R4-6 §6.5 and §6.6.4.**
+ *
+ * The badge's legacy definition is the *starved* count (`sbb-zones`, `:14140`),
+ * and until `clients/zones.ts` existed this layer had no zone array to count.
+ * `fixtures/navCounts.ts` records the consequence in its own comment: the badge
+ * and the `starvedZones` tile were *"asserted against each other"* and both
+ * merely cited to `:14133`, with the closing line **"A real `clients/zones.ts`
+ * closes it."** This is that close.
+ *
+ * The seeded `2` stays in the fixture as the expected value — a grep-able
+ * number a bug report can name — and this function is what makes it *true*
+ * rather than *agreed*. The badge, the tile and the table's first row now come
+ * from one array (§6.6.4), so none of the three can drift from the others.
+ *
+ * **`all-empty` is NOT grounded**, and that is the one place the two must
+ * differ: the clean-shift scenario asserts what the nav looks like when every
+ * backlog is empty, and a badge that recomputed itself back to `2` would make
+ * that scenario unreachable — the opposite of the point.
+ */
+function ground(row: SubTabCount): SubTabCount {
+  if (row.subTabId !== 'management-zones') return row
+  return { ...row, count: row.count === null ? null : starvedZoneCount() }
 }
 
 /**
