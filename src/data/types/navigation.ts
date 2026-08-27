@@ -69,8 +69,25 @@ export interface SubTabView {
   isDefault: boolean
 }
 
-/** §3.4 — five level-3 routes: corporate, applicant, ticket, plan editor, and the profile's full-page escape. */
-export type DetailKind = 'corporate' | 'applicant' | 'ticket' | 'plan-editor' | 'entity'
+/**
+ * §3.4 named five level-3 routes: corporate, applicant, ticket, plan editor,
+ * and the profile's full-page escape.
+ *
+ * **`report` and `dashboard` are the sixth and seventh, added with the
+ * `management-reports` row (D1a).** `specs/06-report-builder.md` §5.1 requires
+ * both — a saved report opens at `/management/reports/:reportId` and a
+ * dashboard at `/management/reports/dashboards/:dashboardId`. They are detail
+ * routes rather than views because each addresses **one named record**, which
+ * is what `?view=` cannot carry (§3.8 rule 3).
+ */
+export type DetailKind =
+  | 'corporate'
+  | 'applicant'
+  | 'ticket'
+  | 'plan-editor'
+  | 'entity'
+  | 'report'
+  | 'dashboard'
 
 export interface DetailRoute {
   kind: DetailKind

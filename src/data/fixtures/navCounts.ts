@@ -191,6 +191,11 @@ export const navCountFixtures: SubTabCount[] = [
    * `clients/zones.ts` closes it.
    */
   { subTabId: 'management-zones', count: 2, tone: 'neutral' },
+  /* `count: null` renders no badge at all, which is the honest state for the
+     report builder: `hasBacklog: false` (§12.6) because a report is a question,
+     not a queue. A `0` here would draw an empty chip claiming there is a
+     backlog with nothing in it. */
+  { subTabId: 'management-reports', count: null, tone: 'neutral' },
 
   /* Operations */
   { subTabId: 'operations-overview', count: null, tone: 'neutral' },

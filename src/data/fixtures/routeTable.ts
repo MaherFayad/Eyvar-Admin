@@ -1,12 +1,12 @@
 /**
  * The route table — foundation spec §3.4, §3.5, §3.6, §3.7, §3.10, §8.5.
  *
- * One row per destination, 34 sub-tabs across 5 workspaces, plus the 3 shell
+ * One row per destination, 35 sub-tabs across 5 workspaces, plus the 3 shell
  * layers. Boring and greppable on purpose: someone will need to hand-edit a row
  * to reproduce a bug, and a clever factory would make that impossible.
  *
- * **Every `permission` is `null`.** Q4 (§12.2) is open — the *rule* that all 34
- * sub-tabs get an entry is decided; the 34 *values* are not, and 19 legacy pages
+ * **Every `permission` is `null`.** Q4 (§12.2) is open — the *rule* that all 35
+ * sub-tabs get an entry is decided; the 35 *values* are not, and 19 legacy pages
  * had nothing to inherit. Inventing them here would ship an answer the business
  * owner has not given. AC-61 fails against this table today, deliberately and
  * visibly.
@@ -25,7 +25,7 @@ import type {
 } from '../types/navigation'
 import { RETIRED_LEGACY_PAGE_IDS } from './legacyPages'
 
-/* Small helper so the 34 rows below read as data and not as boilerplate. */
+/* Small helper so the 35 rows below read as data and not as boilerplate. */
 function views(...defs: Array<[id: string, titleKey: string]>): SubTabView[] {
   return defs.map(([id, titleKey], i) => ({ id, titleKey, order: i + 1, isDefault: i === 0 }))
 }
@@ -128,10 +128,10 @@ const PLAN_EDITOR: DetailRoute = {
   patterns: ['P3'],
 }
 
-/* ────────────────────────── The 34 sub-tabs (§3.4) ────────────────────────── */
+/* ─────────────────── The 35 sub-tabs (§3.4, and D1a) ─────────────────── */
 
 export const SUB_TABS: SubTabRoute[] = [
-  /* ── 1. Management — 5 ───────────────────────────────────────────────── */
+  /* ── 1. Management — 6 (five §3.7 boards, then the report builder) ───── */
   {
     subTabId: 'management-overview',
     workspaceId: 'management',
@@ -213,6 +213,79 @@ export const SUB_TABS: SubTabRoute[] = [
     shape: 'single',
     permission: null,
     hasBacklog: true,
+  },
+  {
+    /**
+     * **The 35th sub-tab, and the row Q-RB-1 was blocking.**
+     *
+     * `specs/06-report-builder.md` §5.1 places the Report Builder at Management
+     * order 6 and is explicit that the row *"is a **D1 amendment** and must be
+     * recorded as one in `DECISIONS.md` before the route table is edited"*. The
+     * business owner answered — **add it under Management** — and the amendment
+     * is recorded as **D1a**. The screens have been built and mounted behind
+     * `REPORTS_SUB_TAB_ID` since wave 6; this row is the only thing that was
+     * missing, which is why nothing in `routes.tsx` changes.
+     *
+     * **Management rather than Admin**, per §5.1: the other five Management
+     * sub-tabs are §3.7 boards and this is their ad-hoc sibling. Filing "ask a
+     * question about the business" under configuration would be wrong.
+     *
+     * **`views` are declared here even though `ReportsScreen` carries its own
+     * `VIEWS` list.** The screen predates the row and had to name itself while
+     * unrouted. Rather than refactor a screen with passing tests to read
+     * `row.views`, `routes.test.ts` asserts the two lists are identical — so
+     * the duplication cannot drift, and the screen can adopt `row.views` later
+     * without a behaviour change.
+     *
+     * **`legacyPageIds: []`** — genuinely new. Nothing in the 41-page census
+     * maps here, and AC-04 requires each census id in *at least* one row, never
+     * each row to claim one.
+     *
+     * **`hasBacklog: false`** (§12.6) — a report is a question, not a queue, so
+     * there is no count to badge. **`permission: null`** keeps it with the
+     * other 34 under the still-open **Q4**; it is not a decision made here.
+     */
+    subTabId: 'management-reports',
+    workspaceId: 'management',
+    path: '/management/reports',
+    order: 6,
+    titleKey: 'subtab.management.reports',
+    subtitleKey: 'subtab.management.reports.sub',
+    views: views(
+      ['reports', 'rb.view.reports'],
+      ['dashboards', 'rb.view.dashboards'],
+      ['alerts', 'rb.view.alerts'],
+    ),
+    detailRoutes: [
+      {
+        kind: 'report',
+        path: '/management/reports/:reportId',
+        parentSubTabId: 'management-reports',
+        paramName: 'reportId',
+        titleKey: 'rb.page.title',
+        shape: 'single',
+        patterns: ['P5'],
+      },
+      {
+        /* Ordered AFTER the saved-report route on purpose. `:reportId` would
+           otherwise swallow `/dashboards/DASH-1` by matching `dashboards` as an
+           id — the same first-match hazard `findSubTabByPath` resolves for
+           sub-tab paths, one level down. */
+        kind: 'dashboard',
+        path: '/management/reports/dashboards/:dashboardId',
+        parentSubTabId: 'management-reports',
+        paramName: 'dashboardId',
+        titleKey: 'rb.page.title',
+        shape: 'single',
+        patterns: ['P5'],
+      },
+    ],
+    legacyPageIds: [],
+    legacySettingsPanes: [],
+    patterns: ['P5'],
+    shape: 'single',
+    permission: null,
+    hasBacklog: false,
   },
 
   /* ── 2. Operations — 9 ───────────────────────────────────────────────── */

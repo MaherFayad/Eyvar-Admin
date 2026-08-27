@@ -513,7 +513,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
   /* **Round 1's D-9, for the record.** `ForbiddenScreen` and `forbiddenReason`
      both existed and both had ZERO call sites in production code; `routes.tsx`
      mapped every route straight to its screen with no permission branch, so the
-     build note's *"the day the 34 values land in `routeTable.ts`, no shell code
+     build note's *"the day the 35 values land in `routeTable.ts`, no shell code
      changes"* was false. `RouteGuard` is the fix. The tests below are the same
      assertions turned the right way up. */
 
@@ -524,7 +524,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
    * wiring exists, and it goes red the day someone removes the guard.
    *
    * A source assertion is the honest instrument here and it is not a
-   * substitute for the behavioural one: **Q4 is still open, all 34
+   * substitute for the behavioural one: **Q4 is still open, all 35
    * `permission` values are `null`, so no navigation in the running app can be
    * denied.** The behavioural half — a denied route renders `ForbiddenScreen`
    * naming the permission, with the shell intact and the URL kept — is driven
@@ -584,7 +584,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
   })
 
   it('still renders the screen while nothing is denied, which is Q4 and not a wiring gap', async () => {
-    /* With all 34 `permission` values `null`, `forbiddenReason` returns `null`
+    /* With all 35 `permission` values `null`, `forbiddenReason` returns `null`
        and the guard is a pass-through. That is the CORRECT behaviour today —
        recorded so the pass-through is not mistaken for the round-1 defect, and
        so the Q4 gap stays visible in the suite. */
@@ -602,9 +602,9 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
 
 /* ═══════════════════════════ AC-61 — the Q4 gap ═════════════════════════ */
 
-describe('AC-61 — "Every one of the 34 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
-  it('FAILS: all 34 permissions are null and there is no named exceptions table', () => {
-    expect(table.subTabs).toHaveLength(34)
+describe('AC-61 — "Every one of the 35 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
+  it('FAILS: all 35 permissions are null and there is no named exceptions table', () => {
+    expect(table.subTabs).toHaveLength(35)
     expect(table.subTabs.filter((r) => r.permission !== null)).toHaveLength(0)
     /* The criterion offers a second way to pass — a named exceptions table with
        a reason. No such table exists in the route table's data. */

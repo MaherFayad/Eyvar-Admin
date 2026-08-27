@@ -126,6 +126,8 @@ const subTabs: Dictionary = {
   'subtab.management.growth.sub': 'Promotions, referrals and captain incentives',
   'subtab.management.zones': 'Market & Zones',
   'subtab.management.zones.sub': 'Coverage, demand and expansion-ready cities',
+  'subtab.management.reports': 'Reports',
+  'subtab.management.reports.sub': 'Build a report, pin it to a dashboard, alert on it',
 
   // Operations — 9
   'subtab.operations.overview': 'Overview',

@@ -7,6 +7,10 @@ repo. Do not re-litigate one in a spec or a review — if it is wrong, change it
 
 ## D1 — Information architecture: 5 workspaces, 34 sub-tabs
 
+> **Amended by D1a — the count is 35.** The heading keeps its original number on
+> purpose: D1 is what was decided, and rewriting it would erase the fact that the
+> count moved and who moved it.
+
 **Decided.** The rail adopts `PROPOSED-STRUCTURE.md` as written: five workspaces —
 Management · Operations · Financials · Customer Support · Admin — with 34 sub-tabs
 beneath them.
@@ -36,6 +40,47 @@ separate decision — see **D4**.
 **Why:** five rail items is a switcher; ten is a list. The proposal was authored by the
 business owner against the same census this rebuild uses, and it organises the product by
 the job someone is paid to do rather than by how the software was built.
+
+---
+
+## D1a — Amendment to D1: 35 sub-tabs. Management gains **Reports** at order 6
+
+**Decided by the business owner**, answering **Q-RB-1**. `specs/06-report-builder.md` §5.1
+requires the Report Builder at `management-reports`, which makes **35 sub-tabs where D1 said
+34**. The spec is explicit that this is a D1 amendment and must be recorded as one *before*
+the route table is edited. This is that record.
+
+**What changed:**
+- `SUB_TABS` is **35**, distributed **6 / 9 / 7 / 6 / 7**. Management is six.
+- `management-reports` at `/management/reports`, order 6, `shape: 'single'`,
+  `hasBacklog: false` (§12.6 — a report is a question, not a queue), `permission: null`
+  (still **Q4**, not decided here), `legacyPageIds: []` — genuinely new.
+- `DetailKind` gains **`report`** and **`dashboard`**; §3.4's five level-3 routes are now
+  seven. A saved report and a dashboard each address one named record, which `?view=`
+  cannot carry (§3.8 rule 3).
+- **AC-800 and AC-806 move from BLOCKED to testable.**
+- No change to `routes.tsx`. The mount point was already keyed on `REPORTS_SUB_TAB_ID`, so
+  the row alone made the screen reachable — which is the argument for having waited.
+
+**Why Management rather than Admin** (§5.1): the other five Management sub-tabs are §3.7
+boards and the Report Builder is their ad-hoc sibling. Filing *"ask a question about the
+business"* under configuration would be wrong.
+
+### The pairing was not honoured, and that is recorded rather than smoothed over
+
+The register asked for **Q-RB-1 and D15 in one sitting**, because D15 proposes collapsing
+Management to three sub-tabs and moves the same count in the opposite direction. **Q-RB-1
+is answered; D15 is still open.** The owner is entitled to answer one and not the other —
+but the consequence the register predicted is now live and must be named:
+
+- **The sub-tab count has been signed once and can be signed again.** If D15 lands, the
+  Management order changes and this row moves with it. That is a one-line change to
+  `order`, plus the count assertions in `clients/routes.test.ts`, `shell/permissions.test.ts`
+  and `shell/qa.copy.test.tsx`.
+- **The risk is not the row; it is the second signature.** Whoever answers D15 must be told
+  Management is six now, not five, or they will collapse a set they have miscounted.
+
+**D15 stays open and now carries a dependency it did not have.**
 
 ---
 
@@ -1823,6 +1868,12 @@ than in either spec, because neither spec can see the other's question — which
 this register exists. **Nothing is blocked by the pairing itself:** the Report Builder screens
 build **unrouted behind one mount point**, and **AC-800 / AC-806 are blocked on Q-RB-1**, exactly
 as they should be. **A route-table row appearing before the sitting is a fail, not progress.**
+
+> **RESOLVED, PARTLY — see D1a.** The owner answered **Q-RB-1** on its own: Reports goes under
+> Management, order 6, and the row has landed. **D15 was not answered with it**, so the sitting
+> this paragraph asked for did not happen. The warning above stands as written and now applies to
+> whoever answers D15: **Management is six sub-tabs, not five.** The count has been signed once;
+> the danger the paragraph names is the second signature, not the first.
 
 ---
 

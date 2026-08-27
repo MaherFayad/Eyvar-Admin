@@ -14,7 +14,7 @@
  *
  *   **The current pass-everything behaviour is asserted as the RECORDED GAP,
  *   not as correct.** Q4 is unanswered and every route-table `permission` is
- *   `null`, so `isSubTabVisible` returns `true` for all 34. The test below says
+ *   `null`, so `isSubTabVisible` returns `true` for all 35. The test below says
  *   so in its own name, so when Q4 lands the failure names the reason instead
  *   of looking like a regression.
  */
@@ -52,8 +52,8 @@ const firstOf = (workspaceId: Workspace['id']) => {
 }
 
 describe('AC-61 — the recorded gap: Q4 is open, so nothing is gated yet', () => {
-  it('ships every one of the 34 rows with a null permission', () => {
-    expect(table.subTabs).toHaveLength(34)
+  it('ships every one of the 35 rows with a null permission', () => {
+    expect(table.subTabs).toHaveLength(35)
     expect(table.subTabs.every((r) => r.permission === null)).toBe(true)
   })
 

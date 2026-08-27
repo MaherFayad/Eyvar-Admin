@@ -1,21 +1,21 @@
 /**
- * The Report Builder sub-tab — **one screen, four surfaces, and no route
- * table row.**
+ * The Report Builder sub-tab — **one screen, four surfaces**, at
+ * `/management/reports`.
  *
- * ## Why this is not routed yet, and why that is correct
+ * ## It shipped unrouted for a wave, and that was the right call
  *
- * The spec puts this at `management-reports`, Management order 6. **That makes
- * 35 sub-tabs and D1 says 34.** The spec's own words: this *"is a **D1
+ * The spec puts this at `management-reports`, Management order 6. **That made
+ * 35 sub-tabs where D1 said 34.** The spec's own words: it *"is a **D1
  * amendment** and must be recorded as one in `DECISIONS.md` before the route
- * table is edited"*, and **Q-RB-1 is the business owner's and is unanswered**.
- * The data layer declined to add the row for that reason and it was right to.
+ * table is edited"*, and Q-RB-1 was the business owner's. The data layer
+ * declined to add the row and was right to.
  *
- * So the screens are built and mounted **behind a single mount point keyed on a
- * sub-tab id that does not exist in the table** (`routes.tsx`, `screenFor`). The
- * day the row lands, the screen appears with no code change here. Mounting it on
- * a borrowed route in the meantime would answer D1 by writing code, which is the
- * failure mode `lib/persistence.ts` names for Q1 one layer down. **AC-800 and
- * AC-806 are blocked, not passing.**
+ * So the screens were built and mounted **behind a mount point keyed on a
+ * sub-tab id that did not yet exist in the table** (`routes.tsx`, `screenFor`).
+ * Mounting them on a borrowed route in the meantime would have answered D1 by
+ * writing code — the failure mode `lib/persistence.ts` names for Q1 one layer
+ * down. **Q-RB-1 is now answered and D1a is recorded**; the row landed and this
+ * file did not change, which is the whole argument for having waited.
  *
  * ## `?view=` is a control, not a level
  *
@@ -61,7 +61,17 @@ import { ReportLibrary } from './ReportLibrary'
 export const REPORTS_SUB_TAB_ID = 'management-reports'
 
 type View = 'reports' | 'dashboards' | 'alerts'
-const VIEWS: View[] = ['reports', 'dashboards', 'alerts']
+
+/**
+ * The three `?view=` values, in tab order, with `reports` first as the default.
+ *
+ * **Exported so the route table cannot drift from it.** The row declares the
+ * same three (D1a); `clients/routes.test.ts` asserts the two lists are
+ * identical, ids and order. Until this screen reads `row.views` directly, that
+ * test is what keeps one fact from having two owners.
+ */
+export const REPORTS_VIEWS = ['reports', 'dashboards', 'alerts'] as const
+const VIEWS: View[] = [...REPORTS_VIEWS]
 
 export interface ReportsScreenProps {
   /** The route-table row, once one exists. Absent today; the screen names itself. */

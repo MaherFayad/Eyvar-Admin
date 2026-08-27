@@ -5,10 +5,12 @@
  * `ReportQuery` (the URL is its storage), a saved report, a dashboard tile that
  * points at one, and an alert rule that points at one of its series.
  *
- * **Nothing here is routed yet.** `management-reports` would be a 35th sub-tab
- * and D1 says 34; **Q-RB-1 is the business owner's and is unanswered**. The
- * mount point in `routes.tsx` is keyed on `REPORTS_SUB_TAB_ID` and stays inert
- * until the row exists.
+ * **Routed at `/management/reports` as of D1a.** It was inert for a wave:
+ * `management-reports` is a 35th sub-tab where D1 said 34, and Q-RB-1 was the
+ * business owner's to answer. It is answered — Management, order 6 — the
+ * amendment is recorded in `DECISIONS.md`, and `routeTable.ts` carries the row.
+ * The mount point in `routes.tsx` is still keyed on `REPORTS_SUB_TAB_ID` and did
+ * not change when the row landed.
  */
 
 export { AlertRuleDialog, type AlertRuleDialogProps } from './AlertRuleDialog'
@@ -19,6 +21,7 @@ export { ReportLibrary, type ReportLibraryProps } from './ReportLibrary'
 export {
   DashboardDetailScreen,
   REPORTS_SUB_TAB_ID,
+  REPORTS_VIEWS,
   ReportsScreen,
   SavedReportScreen,
   type ReportsScreenProps,

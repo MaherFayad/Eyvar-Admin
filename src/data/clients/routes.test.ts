@@ -17,6 +17,7 @@ import {
   LEGACY_SETTINGS_PANE_KEYS,
   RETIRED_LEGACY_PAGE_IDS,
 } from '../fixtures/legacyPages'
+import { REPORTS_SUB_TAB_ID, REPORTS_VIEWS } from '@/screens/reports'
 import { findSubTabByPath, resolveLegacyPage } from './routes'
 import { WORKSPACE_IDS } from '../types/navigation'
 
@@ -34,19 +35,25 @@ describe('AC-01/AC-02 — the rail', () => {
   })
 })
 
-describe('AC-03 — 34 sub-tabs, distributed 5/9/7/6/7, unique paths', () => {
-  it('has exactly 34 sub-tab rows', () => {
-    expect(SUB_TABS).toHaveLength(34)
+describe('AC-03 — 35 sub-tabs, distributed 6/9/7/6/7, unique paths', () => {
+  /**
+   * **AC-03 was written for 34 and the table now holds 35.** `D1a` amends D1 to
+   * admit `management-reports` at Management order 6, so Management is 6 and the
+   * total is 35. The numbers are updated here rather than the assertion softened
+   * to `>= 34`: a count test that cannot fail is not a count test.
+   */
+  it('has exactly 35 sub-tab rows', () => {
+    expect(SUB_TABS).toHaveLength(35)
   })
 
-  it('distributes them 5 / 9 / 7 / 6 / 7', () => {
+  it('distributes them 6 / 9 / 7 / 6 / 7', () => {
     const counts = WORKSPACE_IDS.map((id) => SUB_TABS.filter((r) => r.workspaceId === id).length)
-    expect(counts).toEqual([5, 9, 7, 6, 7])
+    expect(counts).toEqual([6, 9, 7, 6, 7])
   })
 
   it('gives every sub-tab a unique path and a unique id', () => {
-    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(34)
-    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(34)
+    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(35)
+    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(35)
   })
 
   it('numbers display order 1..n contiguously within each workspace', () => {
@@ -147,13 +154,18 @@ describe('AC-06 — every workspace opens on its Overview', () => {
 
 describe('§3.10 — page shapes', () => {
   /**
-   * §3.10 says "32 of the 34". The arithmetic does not work: 34 sub-tabs minus
+   * §3.10 says "32 of the 34". The arithmetic never worked: 34 sub-tabs minus
    * the one monitor (Live Dispatch) is **33**, because the full-bleed plan
-   * editor is a level-3 detail route and not a sub-tab at all. 33 is asserted
-   * here; the spec's 32 is a recorded finding for product-owner.
+   * editor is a level-3 detail route and not a sub-tab at all. The spec's 32
+   * stays a recorded finding for product-owner.
+   *
+   * **D1a moves both numbers by one** — `management-reports` is `single`, so it
+   * is 34 of 35 now. The invariant the test actually guards is unchanged and is
+   * the reason it is written as two assertions rather than one: **every sub-tab
+   * is single-column except Live Dispatch**, which is a monitor.
    */
-  it('gives 33 of the 34 sub-tabs the single-column shape', () => {
-    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(33)
+  it('gives 34 of the 35 sub-tabs the single-column shape', () => {
+    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(34)
     expect(SUB_TABS.filter((r) => r.shape === 'monitor').map((r) => r.subTabId)).toEqual([
       'operations-dispatch',
     ])
@@ -164,12 +176,95 @@ describe('§3.10 — page shapes', () => {
     expect(bleed.map((d) => d.path)).toEqual(['/financials/pricing/plans/:planId/edit'])
   })
 
-  it('declares exactly the five level-3 routes named in §3.4', () => {
+  /**
+   * §3.4 named five. **D1a adds two** — `report` and `dashboard` — because a
+   * saved report and a dashboard each address one named record, which `?view=`
+   * cannot carry (§3.8 rule 3).
+   */
+  it('declares exactly the seven level-3 routes — §3.4’s five, plus D1a’s two', () => {
     const kinds = [
       ...SUB_TABS.flatMap((r) => r.detailRoutes.map((d) => d.kind)),
       ...SHELL_LAYERS.filter((l) => l.fullPagePath).map(() => 'entity' as const),
     ]
-    expect(kinds.sort()).toEqual(['applicant', 'corporate', 'entity', 'plan-editor', 'ticket'])
+    expect(kinds.sort()).toEqual([
+      'applicant',
+      'corporate',
+      'dashboard',
+      'entity',
+      'plan-editor',
+      'report',
+      'ticket',
+    ])
+  })
+})
+
+describe('D1a — the Report Builder row', () => {
+  const reports = SUB_TABS.find((r) => r.subTabId === REPORTS_SUB_TAB_ID)
+
+  it('sits in Management at order 6, on /management/reports', () => {
+    expect(reports, 'no management-reports row').toBeDefined()
+    expect(reports!.workspaceId).toBe('management')
+    expect(reports!.order).toBe(6)
+    expect(reports!.path).toBe('/management/reports')
+  })
+
+  /**
+   * **The drift guard, and the reason the duplication is tolerable.**
+   *
+   * `ReportsScreen` carries its own `VIEWS` list because it was built while the
+   * row did not exist and had to name itself. Two sources for one fact is a
+   * defect waiting to happen, so this pins them together: the day someone adds
+   * a fourth view to either side without the other, this fails by name.
+   *
+   * It asserts the ORDER too, not just the set — the view tabs render in
+   * `order`, and a screen listing them differently would put the default in the
+   * wrong place.
+   */
+  it('declares the same three views, in the same order, as the screen', () => {
+    const declared = [...reports!.views].sort((a, b) => a.order - b.order).map((v) => v.id)
+    expect(declared).toEqual([...REPORTS_VIEWS])
+  })
+
+  it('makes `reports` the default view', () => {
+    expect(reports!.views.filter((v) => v.isDefault).map((v) => v.id)).toEqual(['reports'])
+  })
+
+  /**
+   * §12.6 — a report is a question, not a queue, so there is nothing to badge.
+   * Asserted rather than assumed because `hasBacklog: true` would put an empty
+   * chip in the rail claiming a backlog that cannot exist.
+   */
+  it('carries no backlog badge', () => {
+    expect(reports!.hasBacklog).toBe(false)
+  })
+
+  /** Both level-3 routes resolve back to this row (§3.8 rule 2). */
+  it('resolves a saved report and a dashboard to the sub-tab', () => {
+    expect(findSubTabByPath('/management/reports/REP-1')?.subTabId).toBe(REPORTS_SUB_TAB_ID)
+    expect(findSubTabByPath('/management/reports/dashboards/DASH-1')?.subTabId).toBe(
+      REPORTS_SUB_TAB_ID,
+    )
+  })
+
+  /**
+   * The ordering hazard the fixture comment names: `:reportId` would swallow
+   * `/dashboards/DASH-1` by matching `dashboards` as an id. This asserts the
+   * dashboard path resolves to the **dashboard** route and not to the saved
+   * report one — the distinction `detailScreenFor` branches on.
+   */
+  it('does not let :reportId swallow the dashboard path', () => {
+    const row = findSubTabByPath('/management/reports/dashboards/DASH-1')
+    const match = row?.detailRoutes.find((d) =>
+      new RegExp(`^${d.path.replace(/:[A-Za-z]+/g, '[^/]+')}$`).test(
+        '/management/reports/dashboards/DASH-1',
+      ),
+    )
+    expect(match?.paramName).toBe('dashboardId')
+  })
+
+  /** It is genuinely new — AC-04 requires census ids in a row, not rows in the census. */
+  it('claims no legacy page', () => {
+    expect(reports!.legacyPageIds).toEqual([])
   })
 })
 
@@ -218,14 +313,14 @@ describe('§4.3.4 — global search resolves legacy names', () => {
 
 describe('recorded gaps — these fail on purpose until a human answers', () => {
   /**
-   * AC-61: every one of the 34 sub-tabs needs a permission. **Q4 is open** —
+   * AC-61: every one of the 35 sub-tabs needs a permission. **Q4 is open** —
    * the rule is decided (§11.3), the values are not. This test asserts the
    * *current, recorded* state so the gap cannot be forgotten; when Q4 lands,
    * invert it to `toBe(0)` and it becomes AC-61 proper.
    */
-  it('Q4: all 34 sub-tab permissions are still null', () => {
+  it('Q4: all 35 sub-tab permissions are still null', () => {
     const unresolved = SUB_TABS.filter((r) => r.permission === null)
-    expect(unresolved).toHaveLength(34)
+    expect(unresolved).toHaveLength(35)
   })
 
   it('the 360° profile layer is the one permission the spec already fixed', () => {

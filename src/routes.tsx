@@ -285,22 +285,19 @@ function RouteGuard({ row, children }: { row: SubTabRoute; children: ReactNode }
  * path, its permission and its shape all still come from the route table.
  */
 function screenFor(row: SubTabRoute) {
-  /* **Wave 6 — the Report Builder, and the one entry here that is currently
-     unreachable.**
+  /* **Wave 6 — the Report Builder. Live as of D1a, and this file did not
+     change to make it so.**
 
-     `specs/06-report-builder.md` §5.1 puts it at `management-reports`,
-     Management order 6 — which makes **35 sub-tabs where D1 says 34**. The spec
-     is explicit that this *"is a D1 amendment and must be recorded as one in
-     `DECISIONS.md` before the route table is edited"*, and **Q-RB-1 is the
-     business owner's and is unanswered**. There is a live proposal (D15) that
-     would move the count in the other direction, so guessing is worse than
-     waiting.
+     It sat here unreachable for a wave: `specs/06-report-builder.md` §5.1 put
+     it at `management-reports`, Management order 6 — **35 sub-tabs where D1
+     said 34** — and the spec required the D1 amendment to be recorded before
+     the route table could be edited. Q-RB-1 is answered (add it under
+     Management), D1a is recorded, and `routeTable.ts` carries the row.
 
-     So the screens are built and registered, and the route table carries no row
-     for them. This branch never fires today. The day the row lands the sub-tab
-     appears with no change to this file — which is the same rule §11.3 applies
-     to permissions, and the reason registering a screen is one line. **AC-800
-     and AC-806 are BLOCKED, not passing.** */
+     **The branch below is byte-identical to the one that never fired**, which
+     is the point worth keeping: registering a screen is one line here, and
+     whether an operator can reach it is a fact about the route table. Same rule
+     §11.3 applies to permissions. **AC-800 and AC-806 are testable now.** */
   if (row.subTabId === REPORTS_SUB_TAB_ID) return <ReportsScreen row={row} />
 
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
@@ -362,11 +359,16 @@ function screenFor(row: SubTabRoute) {
  *
  * **That is deliberate.** `kind` is a closed union in `src/data/types/navigation.ts`
  * and the two values this module needs (`'report'`, `'dashboard'`) are
- * mock-data-engineer's change to make, in the same commit as the route-table row
- * Q-RB-1 is blocking. Branching on `paramName` keeps this file honest in the
- * meantime instead of widening someone else's type from here.
+ * mock-data-engineer's change to make, in the same commit as the route-table
+ * row. Both landed with D1a: `DetailKind` now carries `'report'` and
+ * `'dashboard'`, and the row declares one route for each.
  *
- * Like `screenFor`'s first branch, neither arm is reachable today.
+ * **The branch still keys on `paramName` rather than on `kind`**, and that is
+ * deliberate rather than left over. `paramName` is what the router actually
+ * binds — it is the thing that has to be right for `useParams` to resolve — so
+ * branching on it fails loudly if the row and the screen disagree, where
+ * branching on `kind` would happily render the wrong screen with an undefined
+ * id.
  */
 function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
   if (row.subTabId === REPORTS_SUB_TAB_ID) {
