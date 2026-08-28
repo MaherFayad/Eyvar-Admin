@@ -177,7 +177,8 @@ const DERIVED: Record<string, () => number | null> = {
   'management.performance.repeatLatenessConcentration': () => {
     const driverLates: Record<string, number> = {}
     allTripFixtures.forEach((t) => {
-      if (t.status === 'done') {
+      // `driverId` is null on unassigned trips, which no driver can concentrate.
+      if (t.status === 'done' && t.driverId !== null) {
         driverLates[t.driverId] = (driverLates[t.driverId] ?? 0) + 1
       }
     })
