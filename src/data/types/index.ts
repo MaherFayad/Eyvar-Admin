@@ -374,3 +374,5 @@ export type {
 } from './report'
 
 export { REPORT_NAME_MAX } from './report'
+
+export type { Ticket, TicketMessage, TicketPriority, TicketStatus } from './ticket'

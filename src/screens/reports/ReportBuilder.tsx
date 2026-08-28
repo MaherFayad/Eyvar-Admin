@@ -87,6 +87,7 @@ import type {
 import { isDeepEqual, type Language, type Translator } from '@/lib'
 import { downloadCsv, reportCsvToText } from './csv'
 import { SaveReportDialog } from './SaveReportDialog'
+import { ReportStudio } from './ReportStudio'
 
 /**
  * The empty question. **Not a first-run illustration** (R8's first kind claims
@@ -316,6 +317,22 @@ export function ReportBuilder({
       dir={dir}
     />
   )
+
+  const isDirectSerializedQuery = useMemo(() => {
+    const q = new URLSearchParams(location.search).get(REPORT_QUERY_PARAM)
+    return Boolean(q !== null)
+  }, [location.search])
+
+  if (!isDirectSerializedQuery) {
+    return (
+      <ReportStudio
+        report={report}
+        title={title}
+        onSaved={onSaved}
+        onBack={() => navigate('/management/reports')}
+      />
+    )
+  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide">

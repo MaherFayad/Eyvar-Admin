@@ -105,6 +105,9 @@ export interface ColumnHeaderCellProps<T> {
   overflowing: boolean
   today?: string | null
   rovingProps: RovingItemProps
+  width?: number
+  onResize?: (width: number) => void
+  onResetWidth?: () => void
 }
 
 export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
@@ -122,11 +125,47 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
     overflowing,
     today,
     rovingProps,
+    width,
+    onResize,
+    onResetWidth,
   } = props
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const headRef = useRef<HTMLTableCellElement>(null)
+
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const startX = e.clientX
+    const currentW = width ?? column.width ?? headRef.current?.getBoundingClientRect().width ?? 120
+    setIsResizing(true)
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = language === 'ar' ? startX - moveEvent.clientX : moveEvent.clientX - startX
+      const minW = column.minWidth ?? 60
+      const nextWidth = Math.max(minW, Math.min(800, Math.round(currentW + deltaX)))
+      onResize?.(nextWidth)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const handleResizeDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onResetWidth?.()
+  }
   /**
    * AC-97 — **two sequential surfaces, never nested.** `Filter…` records the
    * intent and lets the menu close normally; the popover opens in the menu's
@@ -190,6 +229,8 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
 
   const caret = <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
 
+  const cellWidth = width ?? column.width
+
   const cellClass = cn(
     /* The corner cell: sticky on BOTH axes and above everything. Three
        stacking levels, no more — sticky header (20) < pinned header (30), and
@@ -200,30 +241,54 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
        `bg-muted` is the header row's own ground (§4.5) and it must be OPAQUE:
        a pinned header cell has both the body and the scrolling header sliding
        under it. */
-    'sticky top-0 bg-muted p-0',
+    'sticky top-0 bg-muted p-0 relative group/head',
     pinned ? 'z-30' : 'z-20',
   )
+
+  const resizeHandle = onResize ? (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      onMouseDown={handleResizeMouseDown}
+      onDoubleClick={handleResizeDoubleClick}
+      title={t('table.resizeColumn', { defaultValue: 'Drag to resize column, double click to reset' })}
+      className={cn(
+        'absolute inset-y-0 end-0 w-3 cursor-col-resize select-none touch-none z-30 flex items-center justify-center group/resizer',
+        isResizing && 'bg-primary/20',
+      )}
+    >
+      <div
+        className={cn(
+          'h-3.5 w-[2px] rounded-full bg-border transition-colors group-hover/resizer:bg-primary group-hover/resizer:h-full',
+          isResizing && 'bg-primary h-full',
+        )}
+      />
+    </div>
+  ) : null
 
   if (!controllable) {
     return (
       <TableHead
+        ref={headRef}
         scope="col"
-        style={pinnedStyle(pinned, column.width, overflowing)}
+        style={pinnedStyle(pinned, cellWidth, overflowing, column.minWidth)}
         className={cn(cellClass, 'px-3', end && 'text-end')}
       >
         {column.header}
+        {resizeHandle}
       </TableHead>
     )
   }
 
   return (
     <TableHead
+      ref={headRef}
       scope="col"
       /* §13.7 — the NATIVE mechanism, on the `th`, not a label. */
       aria-sort={
         direction === null ? undefined : direction === 'asc' ? 'ascending' : 'descending'
       }
-      style={pinnedStyle(pinned, column.width, overflowing)}
+      style={pinnedStyle(pinned, cellWidth, overflowing, column.minWidth)}
       className={cellClass}
     >
       <Popover
@@ -392,6 +457,7 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
           </PopoverContent>
         )}
       </Popover>
+      {resizeHandle}
     </TableHead>
   )
 }

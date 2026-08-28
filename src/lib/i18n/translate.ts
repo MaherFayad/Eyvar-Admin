@@ -95,7 +95,7 @@ export function createTranslator(options: TranslatorOptions): Translator {
   } = options
 
   function translate(key: string, params?: TranslateParams): string {
-    const template = dictionary[key] ?? fallback[key]
+    const template = dictionary[key] ?? fallback[key] ?? (params as any)?.defaultValue
     if (template === undefined) return onMissingKey(key)
     return interpolate(template, key, params)
   }

@@ -60,14 +60,27 @@ import { forbiddenReason } from '@/shell/permissions'
 import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from '@/shell/session'
 import type { AuthCondition } from '@/components/auth/authContract'
 import { SubTabScreen } from '@/screens/SubTabScreen'
-import { PeopleScreen } from '@/screens/operations/people'
+import { ApplicantDetailScreen, PeopleScreen } from '@/screens/operations/people'
+import { SubscriptionsScreen } from '@/screens/operations/subscriptions'
+import { TripsScreen } from '@/screens/operations/trips'
+import { CorporateDetailScreen, CorporateScreen } from '@/screens/operations/corporate'
+import { DispatchScreen } from '@/screens/operations/dispatch'
 /* Wave 2 — the five §8.4 work queues. Five sub-tabs, two workspaces, one
    shared contract (`specs/02-work-queues.md` §4, `src/screens/queues/`). */
 import { RequestsScreen } from '@/screens/operations/requests'
 import { AssuranceScreen } from '@/screens/operations/assurance'
 import { MyWorkScreen } from '@/screens/operations/my-work'
+import { TicketDetailScreen, TicketsScreen } from '@/screens/support/tickets'
+import { DisputesScreen } from '@/screens/support/disputes'
 import { SafetyScreen } from '@/screens/support/safety'
 import { FairnessScreen } from '@/screens/support/fairness'
+import { ContactCentreScreen } from '@/screens/support/contacts'
+import { AdminWorkspaceScreen } from '@/screens/admin/workspace'
+import { AdminTeamScreen } from '@/screens/admin/team'
+import { AdminPolicyScreen } from '@/screens/admin/policy'
+import { AdminCommunicationsScreen } from '@/screens/admin/communications'
+import { AdminDataScreen } from '@/screens/admin/data'
+import { AdminActivityScreen } from '@/screens/admin/activity'
 /* Wave 4 — ONE screen for all eight §3.7 metric-tile sub-tabs. */
 import { MetricBoardScreen } from '@/screens/metrics'
 /* Wave 3 — the seven Financials sub-tabs and the one full-bleed editor. */
@@ -89,7 +102,6 @@ import { ZonesScreen } from '@/screens/management/zones'
 /* Wave 6 — the Report Builder (`specs/06-report-builder.md`, D13).
    **This mount point is deliberately unreachable today.** See `screenFor`. */
 import {
-  DashboardDetailScreen,
   REPORTS_SUB_TAB_ID,
   ReportsScreen,
   SavedReportScreen,
@@ -285,35 +297,26 @@ function RouteGuard({ row, children }: { row: SubTabRoute; children: ReactNode }
  * path, its permission and its shape all still come from the route table.
  */
 function screenFor(row: SubTabRoute) {
-  /* **Wave 6 — the Report Builder. Live as of D1a, and this file did not
-     change to make it so.**
-
-     It sat here unreachable for a wave: `specs/06-report-builder.md` §5.1 put
-     it at `management-reports`, Management order 6 — **35 sub-tabs where D1
-     said 34** — and the spec required the D1 amendment to be recorded before
-     the route table could be edited. Q-RB-1 is answered (add it under
-     Management), D1a is recorded, and `routeTable.ts` carries the row.
-
-     **The branch below is byte-identical to the one that never fired**, which
-     is the point worth keeping: registering a screen is one line here, and
-     whether an operator can reach it is a fact about the route table. Same rule
-     §11.3 applies to permissions. **AC-800 and AC-806 are testable now.** */
   if (row.subTabId === REPORTS_SUB_TAB_ID) return <ReportsScreen row={row} />
 
+  /* Operations */
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
-
-  /* Wave 2 — the five work queues (`specs/02-work-queues.md`). Each is its own
-     screen because each has its own dispositions and its own column sets; what
-     they share is `src/screens/queues/`, not a component here. */
+  if (row.subTabId === 'operations-subscriptions') return <SubscriptionsScreen row={row} />
+  if (row.subTabId === 'operations-trips') return <TripsScreen row={row} />
+  if (row.subTabId === 'operations-corporate') return <CorporateScreen row={row} />
+  if (row.subTabId === 'operations-dispatch') return <DispatchScreen row={row} />
   if (row.subTabId === 'operations-requests') return <RequestsScreen row={row} />
   if (row.subTabId === 'operations-assurance') return <AssuranceScreen row={row} />
   if (row.subTabId === 'operations-my-work') return <MyWorkScreen row={row} />
+
+  /* Customer Support */
+  if (row.subTabId === 'support-tickets') return <TicketsScreen row={row} />
+  if (row.subTabId === 'support-disputes') return <DisputesScreen row={row} />
   if (row.subTabId === 'support-safety') return <SafetyScreen row={row} />
   if (row.subTabId === 'support-fairness') return <FairnessScreen row={row} />
+  if (row.subTabId === 'support-contact-centre') return <ContactCentreScreen row={row} />
 
-  /* Wave 3 — Financials. Seven sub-tabs, seven screens: each carries its own
-     views, its own dispositions and its own money rules, and what they share is
-     `src/screens/financials/shared/`, not a branch here. */
+  /* Financials */
   if (row.subTabId === 'financials-overview') return <FinancialsOverviewScreen row={row} />
   if (row.subTabId === 'financials-revenue') return <RevenueScreen row={row} />
   if (row.subTabId === 'financials-payouts') return <PayoutsScreen row={row} />
@@ -322,25 +325,17 @@ function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'financials-pricing') return <PricingScreen row={row} />
   if (row.subTabId === 'financials-ledger') return <LedgerControlsScreen row={row} />
 
-  /* **R4-6 / R4-6b — Market & Zones is BOTH, and the table is primary.**
-     `management-zones` is in `METRIC_BOARD_SUB_TABS` and the branch below would
-     otherwise mount the board alone, which is the half that cannot act: the
-     rows carry `Steer drivers` and `Queue recruitment`, and a per-row
-     permission key (`zones.steer`, `:14004`) is a table's, never a board's.
-     This screen renders the strip AND the table, with the strip's tiles
-     filtering the table rather than linking away from it. */
+  /* Admin / Settings */
+  if (row.subTabId === 'admin-workspace') return <AdminWorkspaceScreen row={row} />
+  if (row.subTabId === 'admin-team') return <AdminTeamScreen row={row} />
+  if (row.subTabId === 'admin-policy') return <AdminPolicyScreen row={row} />
+  if (row.subTabId === 'admin-communications') return <AdminCommunicationsScreen row={row} />
+  if (row.subTabId === 'admin-data') return <AdminDataScreen row={row} />
+  if (row.subTabId === 'admin-activity') return <AdminActivityScreen row={row} />
+
+  /* Management */
   if (row.subTabId === 'management-zones') return <ZonesScreen row={row} />
 
-  /* Wave 4 — the §3.7 metric-tile sub-tabs, mounted FROM THE DATA rather than
-     from a list here. `METRIC_BOARD_SUB_TABS` is the data layer's own answer to
-     "which sub-tabs have a board", so adding a ninth board is a fixture change
-     and this file does not move — the same rule §11.3 applies to permissions.
-
-     `support-fairness` is in that list and is EXCLUDED here: its board is the
-     `captain-economics` VIEW inside a work queue, not a table-less sub-tab, and
-     mounting the board screen on `/support/fairness` would replace a queue with
-     a strip of tiles. The data layer says so at the constant; this is the one
-     place that has to act on it. */
   if (row.subTabId !== 'support-fairness' && METRIC_BOARD_SUB_TABS.includes(row.subTabId)) {
     return <MetricBoardScreen row={row} />
   }
@@ -350,30 +345,19 @@ function screenFor(row: SubTabRoute) {
 
 /**
  * A level-3 detail's screen. Same registry rule as `screenFor`, one level down.
- *
- * Almost every detail still renders its parent sub-tab's screen in detail shape
- * until Phase 1 replaces it, so the default is unchanged. The Report Builder is
- * the first to need two distinct details under one sub-tab — a report and a
- * dashboard — and it distinguishes them by the route's own `paramName`, not by
- * `DetailRoute.kind`.
- *
- * **That is deliberate.** `kind` is a closed union in `src/data/types/navigation.ts`
- * and the two values this module needs (`'report'`, `'dashboard'`) are
- * mock-data-engineer's change to make, in the same commit as the route-table
- * row. Both landed with D1a: `DetailKind` now carries `'report'` and
- * `'dashboard'`, and the row declares one route for each.
- *
- * **The branch still keys on `paramName` rather than on `kind`**, and that is
- * deliberate rather than left over. `paramName` is what the router actually
- * binds — it is the thing that has to be right for `useParams` to resolve — so
- * branching on it fails loudly if the row and the screen disagree, where
- * branching on `kind` would happily render the wrong screen with an undefined
- * id.
  */
-function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
+function detailScreenFor(row: SubTabRoute, _detail: DetailRoute) {
   if (row.subTabId === REPORTS_SUB_TAB_ID) {
-    if (detail.paramName === 'dashboardId') return <DashboardDetailScreen />
     return <SavedReportScreen row={row} />
+  }
+  if (row.subTabId === 'operations-corporate') {
+    return <CorporateDetailScreen />
+  }
+  if (row.subTabId === 'operations-people') {
+    return <ApplicantDetailScreen />
+  }
+  if (row.subTabId === 'support-tickets') {
+    return <TicketDetailScreen />
   }
   return <SubTabScreen row={row} />
 }

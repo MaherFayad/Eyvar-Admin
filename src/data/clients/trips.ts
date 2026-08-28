@@ -165,6 +165,14 @@ export async function setTripFlag(
   })
 }
 
+export async function flagTrip(id: string, _reason?: string, signal?: AbortSignal): Promise<Trip> {
+  return setTripFlag(id, true, signal)
+}
+
+export async function unflagTrip(id: string, signal?: AbortSignal): Promise<Trip> {
+  return setTripFlag(id, false, signal)
+}
+
 /**
  * GET /api/v1//trips/facets
  *   params: view

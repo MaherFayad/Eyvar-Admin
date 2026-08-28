@@ -245,14 +245,28 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
   const totals = useMemo(
     () =>
       rows.reduce(
-        (sum, plan) => ({
-          activeSubs: sum.activeSubs + plan.activeSubs,
-          trips: sum.trips + plan.trips,
-          grossHalalas: sum.grossHalalas + plan.grossHalalas,
-          platformHalalas: sum.platformHalalas + plan.platformHalalas,
-          captainHalalas: sum.captainHalalas + plan.captainHalalas,
-        }),
-        { activeSubs: 0, trips: 0, grossHalalas: 0, platformHalalas: 0, captainHalalas: 0 },
+        (sum, plan) => {
+          const givebacks = plan.givebacksHalalas ?? 0
+          const contribution = plan.platformHalalas - givebacks
+          return {
+            activeSubs: sum.activeSubs + plan.activeSubs,
+            trips: sum.trips + plan.trips,
+            grossHalalas: sum.grossHalalas + plan.grossHalalas,
+            platformHalalas: sum.platformHalalas + plan.platformHalalas,
+            captainHalalas: sum.captainHalalas + plan.captainHalalas,
+            givebacksHalalas: sum.givebacksHalalas + givebacks,
+            contributionHalalas: sum.contributionHalalas + contribution,
+          }
+        },
+        {
+          activeSubs: 0,
+          trips: 0,
+          grossHalalas: 0,
+          platformHalalas: 0,
+          captainHalalas: 0,
+          givebacksHalalas: 0,
+          contributionHalalas: 0,
+        },
       ),
     [rows],
   )
@@ -263,7 +277,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         id: 'plan',
         header: t('fin.revenue.byPlan.plan'),
         dataType: 'text',
-        minWidth: 200,
+        minWidth: 160,
         sortField: 'planName',
         cell: (plan) => <span className="font-medium">{plan.planName}</span>,
       },
@@ -272,7 +286,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         header: t('fin.revenue.byPlan.subs'),
         dataType: 'number',
         align: 'end',
-        width: 120,
+        width: 100,
         cell: (plan) => <span className="tabular-nums">{formatCount(plan.activeSubs, language)}</span>,
       },
       {
@@ -280,7 +294,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         header: t('fin.revenue.byPlan.trips'),
         dataType: 'number',
         align: 'end',
-        width: 100,
+        width: 90,
         cell: (plan) => <span className="tabular-nums">{formatCount(plan.trips, language)}</span>,
       },
       {
@@ -288,7 +302,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         header: t('fin.revenue.byPlan.gross'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 120,
         cell: (plan) => <MoneyCell amount={plan.grossHalalas} />,
       },
       {
@@ -296,15 +310,61 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         header: t('fin.revenue.byPlan.platform'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 120,
         cell: (plan) => <MoneyCell amount={plan.platformHalalas} />,
+      },
+      {
+        id: 'givebacks',
+        header: t('fin.revenue.byPlan.givebacks'),
+        dataType: 'money',
+        align: 'end',
+        width: 120,
+        cell: (plan) => <MoneyCell amount={plan.givebacksHalalas ?? 0} />,
+      },
+      {
+        id: 'contribution',
+        header: t('fin.revenue.byPlan.contribution'),
+        dataType: 'money',
+        align: 'end',
+        width: 130,
+        cell: (plan) => <MoneyCell amount={plan.platformHalalas - (plan.givebacksHalalas ?? 0)} />,
+      },
+      {
+        id: 'contributionPercent',
+        header: t('fin.revenue.byPlan.contributionPercent'),
+        dataType: 'number',
+        align: 'end',
+        width: 100,
+        cell: (plan) => {
+          const contrib = plan.platformHalalas - (plan.givebacksHalalas ?? 0)
+          const value = percentOrNull(contrib, plan.grossHalalas)
+          return (
+            <span className="tabular-nums" aria-label={value === null ? ABSENT : undefined}>
+              {value === null ? ABSENT : formatPercent(value, language)}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'arpa',
+        header: t('fin.revenue.byPlan.arpa'),
+        dataType: 'money',
+        align: 'end',
+        width: 120,
+        cell: (plan) => {
+          if (plan.activeSubs === 0) {
+            return <span className="tabular-nums" aria-label={ABSENT}>{ABSENT}</span>
+          }
+          const arpaHalalas = Math.round(plan.grossHalalas / plan.activeSubs)
+          return <MoneyCell amount={arpaHalalas} />
+        },
       },
       {
         id: 'captain',
         header: t('fin.revenue.byPlan.captain'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 120,
         cell: (plan) => <MoneyCell amount={plan.captainHalalas} />,
       },
       {
@@ -312,7 +372,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
         header: t('fin.revenue.byPlan.platformPercent'),
         dataType: 'number',
         align: 'end',
-        width: 112,
+        width: 100,
         /* **Derived** — `platform / gross` (M-4), and `null` when gross is zero
            so **AC-342**'s em dash renders rather than `0%`. */
         cell: (plan) => {

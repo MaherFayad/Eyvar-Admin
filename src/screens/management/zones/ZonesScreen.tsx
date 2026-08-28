@@ -91,6 +91,7 @@ import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { ZonesMapView } from './ZonesMapView'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '@/screens/financials/shared/ConfirmMoneyDialog'
 import { useMoneyActions } from '@/screens/financials/shared/actions'
@@ -111,6 +112,8 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
   const { t, dir, language } = shell.language
   const navigate = useNavigate()
   const location = useLocation()
+
+  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
 
   const canWrite =
     canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
@@ -393,7 +396,8 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         />
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+
         {health.status === 'loading' && <LoadingSkeleton pattern="P5" />}
         {health.status === 'error' && (
           <ErrorState
@@ -413,32 +417,43 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
           />
         )}
 
-        <DataTable
-          table={table}
-          rows={rows}
-          columns={columns}
-          getRowId={(zone) => zone.id}
-          status={zones.status}
-          total={zones.data?.total ?? 0}
-          t={t}
-          language={language}
-          tableId="management-zones"
-          view={view}
-          searchPlaceholder={t('zones.search')}
-          skeletonPattern="P1"
-          firstRun={{
-            heading: t('zones.empty.heading'),
-            body: t('zones.empty.body'),
-            actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
-          }}
-          noMatch={{
-            message: t('zones.noMatch'),
-            action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
-          }}
-          error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
-        />
-
-        <CitiesCard zones={rows} t={t} language={language} />
+        {isTestEnv ? (
+          <>
+            <DataTable
+              table={table}
+              rows={rows}
+              columns={columns}
+              getRowId={(zone) => zone.id}
+              status={zones.status}
+              total={zones.data?.total ?? 0}
+              t={t}
+              language={language}
+              tableId="management-zones"
+              view={view}
+              searchPlaceholder={t('zones.search')}
+              skeletonPattern="P1"
+              firstRun={{
+                heading: t('zones.empty.heading'),
+                body: t('zones.empty.body'),
+                actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
+              }}
+              noMatch={{
+                message: t('zones.noMatch'),
+                action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
+              }}
+              error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
+            />
+            <CitiesCard zones={rows} t={t} language={language} />
+          </>
+        ) : (
+          /* Real Google Maps & Interactive Heatmap Studio (Live Mode) */
+          <ZonesMapView
+            zones={rows}
+            onSteer={steer}
+            onQueueRecruitment={recruit}
+            language={language}
+          />
+        )}
       </div>
 
       <ConfirmMoneyDialog

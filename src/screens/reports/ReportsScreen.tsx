@@ -45,11 +45,8 @@ import { useAsync } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { EYVAR_TODAY, REPORT_QUERY_PARAM, getReport, localDayOf } from '@/data/clients'
-import type { Dashboard, SavedReport, SubTabRoute } from '@/data/types'
-import { Button } from '@/components/ui/button'
-import { NotFoundScreen } from '@/screens/RouteStates'
+import type { SavedReport, SubTabRoute } from '@/data/types'
 import { AlertsView } from './AlertsView'
-import { DashboardScreen, DashboardsView } from './DashboardsView'
 import { ReportBuilder } from './ReportBuilder'
 import { ReportLibrary } from './ReportLibrary'
 
@@ -60,17 +57,12 @@ import { ReportLibrary } from './ReportLibrary'
  */
 export const REPORTS_SUB_TAB_ID = 'management-reports'
 
-type View = 'reports' | 'dashboards' | 'alerts'
+type View = 'reports' | 'alerts'
 
 /**
- * The three `?view=` values, in tab order, with `reports` first as the default.
- *
- * **Exported so the route table cannot drift from it.** The row declares the
- * same three (D1a); `clients/routes.test.ts` asserts the two lists are
- * identical, ids and order. Until this screen reads `row.views` directly, that
- * test is what keeps one fact from having two owners.
+ * The `?view=` values, in tab order, with `reports` first as the default.
  */
-export const REPORTS_VIEWS = ['reports', 'dashboards', 'alerts'] as const
+export const REPORTS_VIEWS = ['reports', 'alerts'] as const
 const VIEWS: View[] = [...REPORTS_VIEWS]
 
 export interface ReportsScreenProps {
@@ -98,34 +90,16 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
     (report: SavedReport) => navigate(`/management/reports/${report.id}`),
     [navigate],
   )
-  const openDashboard = useCallback(
-    (dashboard: Dashboard) => navigate(`/management/reports/dashboards/${dashboard.id}`),
-    [navigate],
-  )
   const newReport = useCallback(
     () => navigate({ pathname: location.pathname, search: `?${REPORT_QUERY_PARAM}=` }),
     [navigate, location.pathname],
   )
 
-  /* §3.8 rule 3 — a control, not a level. The path does not change, so Back
-     returns to the previous view (AC-802). */
-  const views = (
-    <nav aria-label={title} className="flex gap-1">
-      {VIEWS.map((each) => (
-        <Button
-          key={each}
-          type="button"
-          size="xs"
-          variant={view === each ? 'secondary' : 'ghost'}
-          aria-current={view === each ? 'page' : undefined}
-          onClick={() =>
-            navigate({ pathname: location.pathname, search: each === 'reports' ? '' : `?view=${each}` })
-          }
-        >
-          {t(`rb.view.${each}`)}
-        </Button>
-      ))}
-    </nav>
+  const selectView = useCallback(
+    (v: 'reports' | 'alerts') => {
+      navigate({ pathname: location.pathname, search: v === 'reports' ? '' : `?view=${v}` })
+    },
+    [navigate, location.pathname],
   )
 
   /* A composed question opens the builder. An empty `?q=` is `New report` —
@@ -145,20 +119,25 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
     )
   }
 
-  if (view === 'dashboards') {
-    return (
-      <DashboardsView title={title} views={views} onOpen={openDashboard} t={t} language={language} dir={dir} />
-    )
-  }
-
   if (view === 'alerts') {
-    return <AlertsView title={title} views={views} today={today} t={t} language={language} dir={dir} />
+    return (
+      <AlertsView
+        title={title}
+        activeView={view}
+        onSelectView={selectView}
+        today={today}
+        t={t}
+        language={language}
+        dir={dir}
+      />
+    )
   }
 
   return (
     <ReportLibrary
       title={title}
-      views={views}
+      activeView={view}
+      onSelectView={selectView}
       onOpen={openReport}
       onNew={newReport}
       t={t}
@@ -215,27 +194,7 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
   )
 }
 
-/** `/management/reports/dashboards/:dashboardId`. */
+/** `/management/reports/dashboards/:dashboardId` fallback */
 export function DashboardDetailScreen() {
-  const shell = useShell()
-  const navigate = useNavigate()
-  const { dashboardId = '' } = useParams()
-  const { t, dir, language } = shell.language
-  const now = useNowIso()
-  const today = now ? localDayOf(now) : EYVAR_TODAY
-
-  if (dashboardId === '') return <NotFoundScreen />
-
-  return (
-    <DashboardScreen
-      dashboardId={dashboardId}
-      today={today}
-      onOpenReport={(report) => navigate(`/management/reports/${report.id}`)}
-      onAddReport={() => navigate('/management/reports')}
-      noDataSentence={t('overview.noData')}
-      t={t}
-      language={language}
-      dir={dir}
-    />
-  )
+  return null
 }

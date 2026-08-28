@@ -199,7 +199,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.revenue.byPlan.gross': 'Gross (SAR)',
   'fin.revenue.byPlan.platform': 'Platform (SAR)',
   'fin.revenue.byPlan.captain': 'Captain (SAR)',
-  'fin.revenue.byPlan.platformPercent': 'Platform %',
+  'fin.revenue.byPlan.givebacks': 'Givebacks (SAR)',
+  'fin.revenue.byPlan.contribution': 'Contribution (SAR)',
+  'fin.revenue.byPlan.contributionPercent': 'Contrib %',
+  'fin.revenue.byPlan.arpa': 'ARPA (SAR)',
+  'fin.revenue.byPlan.platformPercent': 'Take rate %',
   'fin.revenue.byPlan.total': 'Total',
 
   'fin.refund.col.id': 'Refund',

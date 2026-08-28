@@ -116,6 +116,7 @@ export interface RevenueByPlanRow {
   grossHalalas: Halalas
   platformHalalas: Halalas
   captainHalalas: Halalas
+  givebacksHalalas?: Halalas
 }
 
 /**

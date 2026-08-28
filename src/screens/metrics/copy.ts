@@ -146,6 +146,10 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.management.overview.netSubscriptionMovement': 'Net subscription movement',
   'metric.management.overview.sameCaptainKept': 'Plans keeping the same captain',
   'metric.management.overview.onTimePickup': 'On-time pickups',
+  'metric.management.overview.arpa': 'Revenue per active subscription',
+  'metric.management.overview.revenueMix': 'Subscription share of gross',
+  'metric.management.overview.revenuePerActiveCaptain': 'Revenue per active captain',
+  'metric.management.overview.tripMix': 'Subscription-to-quick-ride trip mix',
 
   /* Management › Performance — "Is the service getting worse for the people
      who already pay us?" */
@@ -153,17 +157,19 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.management.performance.avgRenewalRate': 'Average renewal rate',
   'metric.management.performance.avgCaptainRating': 'Average captain rating',
   'metric.management.performance.tripsCompleted': 'Trips completed',
+  'metric.management.performance.complaintRatePer100Trips': 'Complaints per 100 trips',
+  'metric.management.performance.repeatLatenessConcentration': 'Repeat lateness concentration',
 
   /* Management › Risk & Signals — "What is about to fail that nobody has been
-     told about yet?" `openSignals` was deleted as a tile (AC-720): it summed
-     the three counts around it and restated the nav badge. The `chart.` key
-     below is a different string for a different thing and stays. */
+     told about yet?" */
   'metric.management.risk.revenueAtRisk': 'Revenue at risk',
   'metric.management.risk.churnPredictedSubscriptions': 'Subscriptions predicted to churn',
   'metric.management.risk.atRiskCaptains': 'Captains at risk of unavailability',
   'metric.management.risk.identityCollisions': 'Rider and captain accounts sharing a number',
   'metric.management.risk.repeatIncidentCaptains': 'Captains with repeat incidents',
   'metric.management.risk.paymentRiskRenewals': 'Renewal payments flagged',
+  'metric.management.risk.revenueAtRiskShareOfMrr': 'Revenue at risk as share of MRR',
+  'metric.management.risk.daysToRenewalAtRisk': 'Median days to renewal on at-risk rows',
 
   /* Management › Growth — "Is the money we spend to acquire and keep riders
      producing subscriptions?" */
@@ -174,14 +180,13 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.management.growth.registeredRiders': 'Registered riders',
   'metric.management.growth.dormantRiderShare': 'Dormant riders',
   'metric.management.growth.referralAndIncentiveSpend': 'Referral and incentive spend',
+  'metric.management.growth.activationRate7d': '7-day rider activation rate',
+  'metric.management.growth.qrToSubConversionRate': 'Quick-ride to subscription conversion',
+  'metric.management.growth.cacPerSubscription': 'CAC per subscription',
+  'metric.management.growth.ltvCacRatio': 'LTV-to-CAC ratio',
 
   /* Management › Market & Zones — "Where is demand going unserved, and where
-     does the next captain need to be?" `Zones tracked` was deleted (AC-650):
-     six is a constant of the seed, which makes it a setting, not a metric.
-
-     **R4-12** — `worstDemandSupplyRatio` renders `7.0×` and this label is where
-     the operands live. A value that reads `2.4× demand/supply` cannot be
-     right-aligned against another number and cannot be translated. */
+     does the next captain need to be?" */
   'metric.management.zones.captainsNeeded': 'Captains needed for a healthy ratio',
   'metric.management.zones.starvedZones': 'Supply-starved zones',
   'metric.management.zones.unservedRequests30d': 'Unserved requests',
@@ -189,11 +194,11 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.management.zones.steerOffersLive': 'Steering offers live',
   'metric.management.zones.worstDemandSupplyRatio': 'Worst demand-to-supply ratio',
   'metric.management.zones.liveCities': 'Cities live',
+  'metric.management.zones.unservedDemandCities': 'Registered riders in unserved candidate cities',
+  'metric.management.zones.applicantPipelinePerCity': 'Applicant supply in pipeline',
+  'metric.management.zones.steerOfferAcceptanceRate': 'Steer-offer acceptance rate',
 
-  /* Operations › Overview — "What must this shift deal with before it ends?"
-     **AC-721 and AC-723 are both label rules and both land here**: the
-     applications tile names applications, never people, and the SLA tile names
-     its predicate — past their SLA, not "work items". */
+  /* Operations › Overview — "What must this shift deal with before it ends?" */
   'metric.operations.overview.applicationsPastWindow': 'Applications past their window',
   'metric.operations.overview.pendingApplications': 'Applications waiting',
   'metric.operations.overview.breachedWorkItems': 'Work items past their SLA',
@@ -202,47 +207,38 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.operations.overview.openRequests': 'Open requests',
   'metric.operations.overview.complianceExpired': 'Captains with an expired document',
   'metric.operations.overview.captainsAvailable': 'Captains available now',
+  'metric.operations.overview.oldestItemWaitingMinutes': 'Oldest item waiting',
+  'metric.operations.overview.medianTimeToAssign': 'Median time to assign',
+  'metric.operations.overview.slaAttainmentPercent': 'SLA attainment',
+  'metric.operations.overview.riderAbandonmentRate': 'Rider abandonment rate',
 
   /* Customer Support › Overview — "Are we answering people inside the time we
      promised, and what are they calling about?" */
   'metric.support.overview.unacknowledgedCriticalIncidents': 'Unacknowledged critical incidents',
-  /* **Two labels were deleted here and it is worth saying which and why.**
-     `ticketsBreaching` and `promiseKept` are gone — R4-11 §11.2, applied at
-     last, by the fixture rather than by this file: *"a measure with no store at
-     all → the tile does not render. Not an em-dash, not a skeleton, not a
-     'coming soon'. An em-dash is a claim that the number exists somewhere."*
-     The fixture's own words for both were *"there is no ticket store in this
-     layer"*.
-
-     They come back the day the store does, and until then a label with no
-     metric behind it is how a dictionary rots. `copy.test.ts` is what caught
-     them; it is the check that reads the CLIENTS and asks the inverse
-     question. */
   'metric.support.overview.openIncidents': 'Open safety incidents',
   'metric.support.overview.contactsPerThousandTrips': 'Contacts per 1,000 trips',
   'metric.support.overview.uncodedContactShare': 'Uncoded contacts',
   'metric.support.overview.openFairnessCases': 'Open fairness cases',
   'metric.support.overview.overturnRate': 'Appeals overturned',
+  'metric.support.overview.medianTimeToFirstResponse': 'Median time to first response',
+  'metric.support.overview.repeatContactRate': 'Repeat-contact rate',
 
   /* Admin › Overview — "Is the console itself safe, staffed, and inside its
-     statutory obligations?" `Activity events` was deleted as a tile (AC-685):
-     a count of log rows measures how busy the log was. */
+     statutory obligations?" */
   'metric.admin.overview.erasureOverdue': 'Erasure requests past their deadline',
   'metric.admin.overview.rotaGaps': 'On-call slots with nobody assigned',
   'metric.admin.overview.operatorsWithoutTwoFactor': 'Operators without two-factor',
-  /* Three more gone under R4-11 §11.2 — `integrityOrphans` (*"the scan reads a
-     payments ledger this layer does not hold"*), `impersonationSessions` (the
-     events are logged; the JOIN that makes the measure is not) and
-     `legalDocsUnaccepted` (the grace-period field does not exist). Same
-     reasoning as Support's two above. */
   'metric.admin.overview.activeOperators': 'Active operators',
+  'metric.admin.overview.itemsResolvedPerOperatorHour': 'Items resolved per operator-hour',
+  'metric.admin.overview.workloadBalance': 'Workload balance ratio',
 
-  /* Customer Support › Captain Fairness — a board on a QUEUE sub-tab, so it
-     does not render through `MetricBoardScreen` today. Keyed anyway: the seeds
-     exist, and a missing key is a crash rather than a blank the day the
-     `captain-economics` view is built. */
+  /* Customer Support › Captain Fairness */
   'metric.support.fairness.earningsPerEngagedHour': 'Earnings per engaged hour',
   'metric.support.fairness.suspendedCaptains': 'Suspended captains',
+  'metric.support.fairness.earningsP10': 'Earnings per engaged hour (P10)',
+  'metric.support.fairness.earningsP90': 'Earnings per engaged hour (P90)',
+  'metric.support.fairness.suspensionRatePer100': 'Suspension rate per 100 active captains',
+  'metric.support.fairness.overturnRate': 'Appeals overturned',
 
   /* ══════════════════ tile captions — `Metric.caption` (R4-4 §4.2) ══════
      One line stating **what a reader must know to read the number correctly,

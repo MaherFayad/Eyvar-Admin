@@ -185,6 +185,7 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
     grossHalalas: 178_400,
     platformHalalas: 35_680,
     captainHalalas: 142_720,
+    givebacksHalalas: 3_200,
   },
   {
     planId: 'biweekly',
@@ -194,6 +195,7 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
     grossHalalas: 121_900,
     platformHalalas: 21_942,
     captainHalalas: 99_958,
+    givebacksHalalas: 1_800,
   },
   {
     /* Draft plan, nine subscribers on a pilot. A row whose plan is not live is
@@ -205,6 +207,7 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
     grossHalalas: 41_500,
     platformHalalas: 6_225,
     captainHalalas: 35_275,
+    givebacksHalalas: 600,
   },
   {
     /* Not a plan. Quick rides are the majority of trips and would otherwise be
@@ -216,6 +219,7 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
     grossHalalas: 101_452,
     platformHalalas: 20_290,
     captainHalalas: 81_162,
+    givebacksHalalas: 2_400,
   },
 ]
 

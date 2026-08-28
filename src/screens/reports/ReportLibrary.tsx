@@ -56,9 +56,11 @@ import { formatDate, isolatedRunProps, type Language, type Translator } from '@/
 
 export interface ReportLibraryProps {
   title: string
+  activeView?: 'reports' | 'alerts'
+  onSelectView?: (view: 'reports' | 'alerts') => void
   onOpen: (report: SavedReport) => void
   onNew: () => void
-  views: React.ReactNode
+  views?: React.ReactNode
   t: Translator
   language: Language
   dir: 'ltr' | 'rtl'
@@ -71,7 +73,16 @@ interface PendingDelete {
   failed: boolean
 }
 
-export function ReportLibrary({ title, onOpen, onNew, views, t, language, dir }: ReportLibraryProps) {
+export function ReportLibrary({
+  title,
+  activeView = 'reports',
+  onSelectView,
+  onOpen,
+  onNew,
+  t,
+  language,
+  dir,
+}: ReportLibraryProps) {
   const table = useIndexTable<SavedReport>({ mode: 'index', getRowId: (row) => row.id })
   const [pending, setPending] = useState<PendingDelete | null>(null)
 
@@ -115,14 +126,6 @@ export function ReportLibrary({ title, onOpen, onNew, views, t, language, dir }:
           {t(`rb.save.visibility.${row.visibility}`)}
         </StatusBadge>
       ),
-    },
-    {
-      id: 'pinned',
-      header: t('rb.library.col.pinned'),
-      width: 140,
-      align: 'end',
-      dataType: 'number',
-      cell: (row) => <span className="tabular-nums">{row.pinnedToDashboardIds.length}</span>,
     },
     {
       id: 'updated',
@@ -174,7 +177,6 @@ export function ReportLibrary({ title, onOpen, onNew, views, t, language, dir }:
       }
     >
       <div className="flex flex-col gap-3">
-        {views}
         <DataTable
           table={table}
           rows={rows}
@@ -185,14 +187,13 @@ export function ReportLibrary({ title, onOpen, onNew, views, t, language, dir }:
           t={t}
           language={language}
           tableId="management-reports-library"
-          view={table.view}
+          view={activeView}
           tabs={[
-            { id: 'all', label: t('rb.library.tab.all') },
-            { id: 'mine', label: t('rb.library.tab.mine') },
-            { id: 'team', label: t('rb.library.tab.team') },
+            { id: 'reports', label: t('rb.view.reports') },
+            { id: 'alerts', label: t('rb.view.alerts') },
           ]}
-          activeTab={table.view ?? 'all'}
-          onSelectTab={(id) => table.setView(id === 'all' ? null : id)}
+          activeTab={activeView}
+          onSelectTab={(id) => onSelectView?.(id as 'reports' | 'alerts')}
           searchPlaceholder={t('rb.library.search')}
           rowActions={rowActions}
           skeletonPattern="P1"

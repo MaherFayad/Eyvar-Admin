@@ -15,7 +15,6 @@
 
 export { AlertRuleDialog, type AlertRuleDialogProps } from './AlertRuleDialog'
 export { AlertsView, type AlertsViewProps } from './AlertsView'
-export { DashboardScreen, DashboardsView } from './DashboardsView'
 export { EMPTY_QUERY, ReportBuilder, type ReportBuilderProps } from './ReportBuilder'
 export { ReportLibrary, type ReportLibraryProps } from './ReportLibrary'
 export {

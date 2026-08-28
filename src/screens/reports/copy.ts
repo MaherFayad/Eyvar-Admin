@@ -75,6 +75,9 @@ export const REPORTS_EN: Dictionary = {
   'rb.measure.revenue.quickRide': 'Quick-ride revenue',
   'rb.measure.revenue.subscription': 'Subscription revenue',
   'rb.measure.trips.cancellationRate': 'Cancellation rate',
+  'rb.measure.requests.timeToAssign': 'Time to assign',
+  'rb.measure.riders.activated': 'Activated riders',
+  'rb.measure.financials.arpa': 'Revenue per active subscription (ARPA)',
 
   /* ───────────────────────── populations (R5-15) ────────────────────────── */
 
@@ -103,6 +106,9 @@ export const REPORTS_EN: Dictionary = {
     'A share of that day’s requests, so it is comparable across days of very different size.',
   'rb.caption.snapshot.base':
     'Comes from the snapshot table, which is captured by hand. A day nobody captured has no reading.',
+  'rb.caption.requests.timeToAssign': 'Mean time from ride request to captain assignment in minutes.',
+  'rb.caption.riders.activated': 'Counts riders who completed at least one ride.',
+  'rb.caption.financials.arpa': 'Subscription revenue per active subscriber in SAR.',
 
   /* ───────────────────────────── categories ────────────────────────────── */
 

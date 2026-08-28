@@ -33,6 +33,7 @@
  */
 
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import type { BadgeTone } from '@/data/types'
 
 export interface StatusBadgeProps {
@@ -73,11 +74,14 @@ export function StatusBadge({ tone, children, className }: StatusBadgeProps) {
  * the state survives colour being removed (**AC-50**): rendering the queue in
  * greyscale still shows which rows are breached.
  */
-export function RowCriticalMarker() {
+export function RowCriticalMarker({ className }: { className?: string } = {}) {
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute inset-y-0 start-0 w-marker bg-destructive"
+      className={cn(
+        "pointer-events-none absolute inset-y-0 -start-3 w-[3.5px] bg-destructive z-10",
+        className
+      )}
     />
   )
 }

@@ -35,7 +35,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { formatCount, formatDate } from '@/lib'
 import { useAsync } from '@/hooks'
@@ -99,39 +98,48 @@ export function NotificationBell({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-90 gap-0 p-0">
-        <div className="flex h-10 items-center border-b border-border px-3">
-          <h2 className="text-sm font-semibold text-foreground">{t('shell.notifications.title')}</h2>
+      <PopoverContent
+        align="end"
+        className="w-88 sm:w-96 max-h-[85vh] flex flex-col gap-0 p-0 bg-popover text-popover-foreground shadow-2xl border border-border rounded-xl overflow-hidden z-50"
+      >
+        <div className="shrink-0 flex h-11 items-center justify-between border-b border-border px-4 bg-popover">
+          <h2 className="text-sm font-bold text-foreground">{t('shell.notifications.title')}</h2>
+          {unread > 0 && (
+            <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+              {unread} new
+            </span>
+          )}
         </div>
 
-        <div className="min-h-24">
+        <div className="flex-1 min-h-0 overflow-hidden bg-popover">
           {preview.status === 'loading' && (
-            <div className="p-3">
+            <div className="p-4 bg-popover">
               <LoadingSkeleton pattern="P10" />
             </div>
           )}
 
           {preview.status === 'error' && (
-            <ErrorState
-              scope="card"
-              message={t('state.cardError.message', { resource: t('shell.notifications.title') })}
-              action={{ label: t('state.pageError.action'), onClick: preview.refetch }}
-            />
+            <div className="p-4 bg-popover">
+              <ErrorState
+                scope="card"
+                message={t('state.cardError.message', { resource: t('shell.notifications.title') })}
+                action={{ label: t('state.pageError.action'), onClick: preview.refetch }}
+              />
+            </div>
           )}
 
           {/* R8 `no-match` — one grey sentence, no illustration, no heading. */}
           {preview.status === 'empty' && (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground bg-popover">
               {t('shell.notifications.noUnread')}
             </p>
           )}
 
           {preview.status === 'content' && preview.data && (
-            <ScrollArea className="max-h-96">
-              <ul className="flex list-none flex-col">
-                {preview.data.map((notification, index) => (
-                  <li key={notification.id}>
-                    {index > 0 && <Separator />}
+            <ScrollArea className="h-full max-h-[420px] overflow-y-auto bg-popover">
+              <ul className="flex list-none flex-col bg-popover divide-y divide-border/60">
+                {preview.data.map((notification) => (
+                  <li key={notification.id} className="bg-popover">
                     <NotificationRow
                       notification={notification}
                       language={language}
@@ -144,17 +152,20 @@ export function NotificationBell({
                 ))}
               </ul>
               {/* §5.4 — end-of-list IN WORDS. Never a blank edge. */}
-              <p className="px-3 py-2 text-center text-xs text-muted-foreground">
-                {t('shell.notifications.endOfList')}
-              </p>
+              <div className="p-3 text-center border-t border-border/40 bg-muted/20">
+                <span className="text-xs text-muted-foreground font-medium">
+                  {t('shell.notifications.endOfList')}
+                </span>
+              </div>
             </ScrollArea>
           )}
         </div>
 
-        <div className="border-t border-border p-1">
+        <div className="shrink-0 border-t border-border p-2 bg-popover">
           <Button
             variant="ghost"
-            className="w-full"
+            size="default"
+            className="w-full text-xs font-semibold text-foreground hover:bg-accent"
             onClick={() => {
               setOpen(false)
               onSeeAll()
@@ -189,18 +200,33 @@ function NotificationRow({
   const navigable = notification.route !== null || notification.entityId !== null
 
   const body = (
-    <>
-      <span className="text-xs text-muted-foreground">
-        {formatDate(notification.createdAt, { style: 'day-month-time', language })}
-      </span>
-      <span className={cn('text-sm', notification.read ? 'font-normal' : 'font-semibold')}>
+    <div className="flex flex-col gap-1 w-full text-start">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-2xs font-medium text-muted-foreground tabular-nums">
+          {formatDate(notification.createdAt, { style: 'day-month-time', language })}
+        </span>
+        {!notification.read && (
+          <span className="size-1.5 rounded-full bg-blue-500 shrink-0" />
+        )}
+      </div>
+      <span
+        dir="auto"
+        className={cn(
+          'text-xs leading-snug break-words',
+          notification.read ? 'font-normal text-muted-foreground' : 'font-semibold text-foreground',
+        )}
+      >
         {notification.title}
       </span>
-      {notification.body && <span className="text-sm text-muted-foreground">{notification.body}</span>}
-    </>
+      {notification.body && (
+        <span dir="auto" className="text-xs text-muted-foreground leading-relaxed break-words">
+          {notification.body}
+        </span>
+      )}
+    </div>
   )
 
-  const className = 'flex w-full flex-col gap-0.5 px-3 py-2 text-start'
+  const className = 'flex w-full flex-col gap-1 px-4 py-3 text-start transition-colors bg-popover'
 
   if (!navigable) return <div className={className}>{body}</div>
 
@@ -210,8 +236,8 @@ function NotificationRow({
       onClick={onOpen}
       className={cn(
         className,
-        'transition-colors outline-hidden hover:bg-accent',
-        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'hover:bg-accent/70 active:bg-accent cursor-pointer',
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background outline-none',
       )}
     >
       {body}

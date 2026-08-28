@@ -107,7 +107,7 @@
  *               Incidents reaches both kinds (Q-37) on one route.
  */
 
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Table,
   TableBody,
@@ -274,7 +274,39 @@ export interface DataTableProps<T> {
   learnMore?: ReactNode
   /** §11.3 — which skeleton shape. Defaults from the mode. */
   skeletonPattern?: 'P1' | 'P7' | 'P8'
+  /** Custom predicate for critical / error / breached row styling (red tint). */
+  isRowCritical?: (row: T) => boolean
+  /** Custom class generator per row. */
+  rowClassName?: (row: T) => string | undefined
+  /** Handler when any row is clicked to open/view */
+  onRowClick?: (row: T) => void
+  /** Enables infinite scroll instead of manual pagination buttons (defaults to true). */
+  infiniteScroll?: boolean
   className?: string
+}
+
+function checkRowCritical<T>(row: T, customIsCritical?: (row: T) => boolean): boolean {
+  if (customIsCritical) return customIsCritical(row)
+  if (!row || typeof row !== 'object') return false
+  const r = row as Record<string, unknown>
+  if (r.starved) return true
+  if (r.state === 'failed') return true
+  if (r.status === 'escalated' || r.status === 'breached') return true
+  if (r.isBreached || r.breached) return true
+  if (r.unlinked) return true
+  if (r.flagged) return true
+  if (typeof r.balanceHalalas === 'number' && r.balanceHalalas < 0) return true
+  if (
+    typeof r.capHalalas === 'number' &&
+    typeof r.balanceHalalas === 'number' &&
+    r.balanceHalalas >= r.capHalalas
+  ) {
+    return true
+  }
+  const clock = r.clock as Record<string, unknown> | undefined
+  if (clock && (clock.breached || clock.kind === 'breached')) return true
+  if (r.sourcePaymentId === null && 'refundId' in r) return true
+  return false
 }
 
 export function DataTable<T>(props: DataTableProps<T>) {
@@ -307,6 +339,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     ledgerBoundaryRows,
     learnMore,
     skeletonPattern,
+    onRowClick,
+    infiniteScroll = true,
     className,
   } = props
 
@@ -360,6 +394,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
     actionShape === 'direct'
       ? (rowActionsWidth ?? SINGLE_ACTION_LANE_WIDTH_PX * declaredActions.length)
       : ACTION_LANE_WIDTH_PX
+
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+
+  const handleResizeColumn = (columnId: string, width: number) => {
+    setColumnWidths((prev) => ({ ...prev, [columnId]: width }))
+  }
+
+  const handleResetColumnWidth = (columnId: string) => {
+    setColumnWidths((prev) => {
+      const next = { ...prev }
+      delete next[columnId]
+      return next
+    })
+  }
+
+  const resolvedWidth = (column: DataColumn<T>) => columnWidths[column.id] ?? column.width
 
   /* AC-113 — `null` on a ledger, and not as a flag: `LedgerTable` has no
      `setSortField`, so there is nothing to put in this object. A sort item in a
@@ -637,11 +687,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
       id === KEBAB_COLUMN_ID ? actionLaneWidth : LANE_WIDTH_PX,
       overflowing,
     )
-  const laneClass = (id: string) =>
+  const laneClass = (id: string, isCritical?: boolean) =>
     cn(
       id === KEBAB_COLUMN_ID ? undefined : 'w-10',
-      pins.isPinned(id) &&
-        'z-10 bg-card group-hover/row:bg-accent group-focus-within/row:bg-accent group-data-[state=selected]/row:bg-accent',
+      pins.isPinned(id) && [
+        'z-10',
+        isCritical
+          ? 'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 group-data-[state=selected]/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85 dark:group-focus-within/row:bg-rose-950/85'
+          : 'bg-card group-hover/row:bg-accent group-focus-within/row:bg-accent group-data-[state=selected]/row:bg-accent',
+      ],
     )
   const headLaneClass = (id: string) =>
     cn(
@@ -692,6 +746,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 t={t}
                 language={language}
                 column={cell.column}
+                width={resolvedWidth(cell.column)}
+                onResize={(w) => handleResizeColumn(cell.column.id, w)}
+                onResetWidth={() => handleResetColumnWidth(cell.column.id)}
                 sorting={sorting}
                 activeFilter={table.filters.find(
                   (spec) => spec.field === filterFieldOf(cell.column),
@@ -730,6 +787,63 @@ export function DataTable<T>(props: DataTableProps<T>) {
         )}
       </TableRow>
     </TableHeader>
+  )
+
+  const handleTableRowClick = (row: T, e: React.MouseEvent<HTMLTableRowElement>) => {
+    const target = e.target as HTMLElement | null
+    if (
+      target?.closest(
+        'button, a, input, select, textarea, [role="checkbox"], [role="menuitem"], [role="button"], [data-radix-collection-item], [data-state="checked"]',
+      )
+    ) {
+      return
+    }
+
+    if (onRowClick) {
+      onRowClick(row)
+      return
+    }
+
+    if (declaredActions.length > 0) {
+      const openAction =
+        declaredActions.find((a) =>
+          /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label),
+        ) ?? declaredActions[0]
+
+      if (openAction) {
+        const isDisabled =
+          typeof openAction.disabled === 'function'
+            ? openAction.disabled(row)
+            : openAction.disabled
+        if (!isDisabled) {
+          openAction.onSelect(row)
+          return
+        }
+      }
+    }
+
+    const firstInteractive = e.currentTarget.querySelector<HTMLElement>(
+      'td:first-of-type button, td:first-of-type a, td:nth-of-type(2) button, td:nth-of-type(2) a',
+    )
+    if (firstInteractive && firstInteractive !== target) {
+      firstInteractive.click()
+    }
+  }
+
+  const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (infiniteScroll === false) return
+    const target = e.currentTarget
+    if (target.scrollTop + target.clientHeight >= target.scrollHeight - 60) {
+      if (range.hasNext && status !== 'loading') {
+        table.nextPage()
+      }
+    }
+  }
+
+  const hasRowClickAction = Boolean(
+    onRowClick ||
+      declaredActions.some((a) => /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label)) ||
+      declaredActions.length > 0,
   )
 
   return (
@@ -862,13 +976,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
              under D-19 it is now the BOUNDED one: `flex-1 min-h-0` with
              `overflow: auto` on both axes and §7.2's floor guard,
              `min-block-size: calc(36px + 3 × 60px)` = 216. Below that the page
-             itself scrolls, which is the documented fallback and not a second
+              itself scrolls, which is the documented fallback and not a second
              breakpoint. `overscroll-behavior-inline: contain` so a trackpad
              flick at the end of a wide table does not trigger the browser's
              back-navigation gesture. */
           <Table
             containerRef={scrollRef}
             containerClassName="min-h-54 flex-1 overflow-y-auto"
+            onScroll={handleTableScroll}
           >
               {headerRow}
 
@@ -891,7 +1006,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         {visible.map((column) => (
                           <TableCell
                             key={column.id}
-                            style={pinnedStyle(pins.pinnedColumn(column.id), column.width, overflowing, column.minWidth)}
+                            style={pinnedStyle(pins.pinnedColumn(column.id), resolvedWidth(column), overflowing, column.minWidth)}
                             className={laneClass(column.id)}
                           >
                             <Skeleton className="h-3 w-full" />
@@ -906,22 +1021,31 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     ))
                   : rows.map((row) => {
                       const id = getRowId(row)
+                      const isCritical = checkRowCritical(row, props.isRowCritical)
                       return (
                         <TableRow
                           key={id}
                           data-state={selectable && table.isSelected(id) ? 'selected' : undefined}
+                          onClick={(e) => handleTableRowClick(row, e)}
                           /* `group` so the kebab and the pinned cells can respond
                              to the row's hover AND its focus-within (AC-68).
                              `relative` so a `RowCriticalMarker` can position
                              against it — and because the marker rides the
                              implicitly pinned first cell, it stays visible at
                              every horizontal scroll offset (**AC-106**). */
-                          className={cn('group/row relative', rowHeightClass)}
+                          className={cn(
+                            'group/row relative transition-colors',
+                            rowHeightClass,
+                            hasRowClickAction && 'cursor-pointer hover:bg-muted/60',
+                            isCritical &&
+                              'bg-rose-50/70 hover:bg-rose-100/80 focus-within:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:focus-within:bg-rose-950/50',
+                            props.rowClassName?.(row),
+                          )}
                         >
                           {selectable && (
                             <TableCell
                               style={laneStyle(SELECT_COLUMN_ID)}
-                              className={laneClass(SELECT_COLUMN_ID)}
+                              className={laneClass(SELECT_COLUMN_ID, isCritical)}
                             >
                               <Checkbox
                                 aria-label={t('table.selectRow')}
@@ -936,7 +1060,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             return (
                               <TableCell
                                 key={column.id}
-                                style={pinnedStyle(pinned, column.width, overflowing, column.minWidth)}
+                                style={pinnedStyle(pinned, resolvedWidth(column), overflowing, column.minWidth)}
                                 className={cn(
                                   column.align === 'end' && 'text-end',
                                   /* `03-navattic-language.md` §4.5, and the
@@ -948,7 +1072,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                      heavy. `TableCell` defaults to
                                      `--ev-text-2` and index 0 takes it back. */
                                   columnIndex === 0 && 'text-foreground',
-                                  laneClass(column.id),
+                                  laneClass(column.id, isCritical),
+                                  pinned &&
+                                    isCritical &&
+                                    'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85',
                                 )}
                               >
                                 <span className="block">{column.cell(row)}</span>
@@ -1041,41 +1168,37 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
       </div>
 
-      {/* **BAND 5 — the pagination row, OUTSIDE the table.** §8, and match
-          audit N2 is what moved it twice. It was below the card and rendered at
-          y = 1278 in an 820px viewport, so the owner had never seen it; moving
-          it INSIDE the card fixed the symptom and broke the match — the
-          reference's pager sits ~22px below the card's bottom edge. D-19 fixes
-          the cause instead: the table is a bounded scroller, so a band beneath
-          it is on screen at any page length. 40px, white, and **no border above
-          it** — the table's own outer border already terminates the data.
-
-          The rows-per-page `select` §8 asks for is build item 9. */}
+      {/* **BAND 5 — the status/pagination row, OUTSIDE the table.** */}
       {status === 'content' && (
-        <div className="flex h-10 flex-none items-center justify-between gap-3">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex h-9 flex-none items-center justify-between gap-3 px-1">
+          <span className="text-xs text-muted-foreground">
             {t('table.showing', {
               from: formatCount(range.from),
               to: formatCount(range.to),
               total: formatCount(range.total),
             })}
           </span>
-          <div className="flex items-center gap-2">
-            {/* §8 — bare text buttons, `--ev-text-2` when disabled. The labels
-                are LOGICAL: inline-start is `Previous` in both directions, so
-                nothing here reads `dir`. */}
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={table.previousPage}
-              disabled={!range.hasPrevious}
-            >
-              {t('table.previous')}
-            </Button>
-            <Button variant="ghost" size="xs" onClick={table.nextPage} disabled={!range.hasNext}>
-              {t('table.next')}
-            </Button>
-          </div>
+          {infiniteScroll === false ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={table.previousPage}
+                disabled={!range.hasPrevious}
+              >
+                {t('table.previous')}
+              </Button>
+              <Button variant="ghost" size="xs" onClick={table.nextPage} disabled={!range.hasNext}>
+                {t('table.next')}
+              </Button>
+            </div>
+          ) : (
+            range.hasNext && (
+              <span className="text-2xs text-muted-foreground">
+                {t('table.scrollMore', { defaultValue: 'Scroll for more' })}
+              </span>
+            )
+          )}
         </div>
       )}
 

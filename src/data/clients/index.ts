@@ -143,6 +143,8 @@ export {
   getTripFacets,
   listTrips,
   setTripFlag,
+  flagTrip,
+  unflagTrip,
   type TripQuery,
 } from './trips'
 
@@ -471,6 +473,18 @@ export {
   resetAlerts,
   type SaveAlertInput,
 } from './alerts'
+
+export {
+  TICKET_OPERATIONS,
+  listTickets,
+  getTicket,
+  claimTicket,
+  replyTicket,
+  resolveTicket,
+  reopenTicket,
+  createTicket,
+  type TicketQuery,
+} from './tickets'
 
 /* Pure query logic — synchronous, so a control can be disabled in place with a
    reason **before** a request is issued (AC-809, AC-816, AC-817, AC-836). */

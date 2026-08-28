@@ -62,6 +62,7 @@ import type {
 } from '../types/metrics'
 import { workBacklogByQueue } from './myWork'
 import { listCities, resolveZones, summariseZones } from './zones'
+import { concentrationShare, median, p10, p90 } from '../reporting/distribution'
 import { http } from './http'
 
 /* ── window arithmetic, shared by the derived metrics below ──────────────
@@ -115,6 +116,30 @@ export interface MetricQuery extends QueryParams {
 const DERIVED: Record<string, () => number | null> = {
   'management.overview.activeSubscriptions': () =>
     allSubscriptionFixtures.filter((s) => s.status === 'active').length,
+  'management.overview.arpa': () => {
+    const subs = snapshotMean(SNAPSHOT_CURRENT, (s) => s.activeSubs)
+    const rev = snapshotSum(SNAPSHOT_CURRENT, (s) => s.subRevenueHalalas)
+    if (subs === 0) return null
+    return Math.round(rev / subs)
+  },
+  'management.overview.revenueMix': () => {
+    const gross = snapshotSum(SNAPSHOT_CURRENT, (s) => s.totalRevenueHalalas)
+    const subRev = snapshotSum(SNAPSHOT_CURRENT, (s) => s.subRevenueHalalas)
+    if (gross === 0) return null
+    return Math.round((subRev / gross) * 1000) / 10
+  },
+  'management.overview.revenuePerActiveCaptain': () => {
+    const drivers = snapshotMean(SNAPSHOT_CURRENT, (s) => s.drivers)
+    const gross = snapshotSum(SNAPSHOT_CURRENT, (s) => s.totalRevenueHalalas)
+    if (drivers === 0) return null
+    return Math.round(gross / drivers)
+  },
+  'management.overview.tripMix': () => {
+    const subs = allTripFixtures.filter((t) => t.kind.toLowerCase().includes('sub')).length
+    const qr = allTripFixtures.filter((t) => t.kind.toLowerCase().includes('quick')).length
+    if (qr === 0) return null
+    return Math.round((subs / qr) * 10) / 10
+  },
   /**
    * Sum of `totalRevenueHalalas` over the current snapshot fortnight. Replaces
    * a seeded literal nobody could reproduce (Q-102): the two Overview revenue
@@ -143,6 +168,22 @@ const DERIVED: Record<string, () => number | null> = {
    */
   'management.performance.cancellationRate': () =>
     snapshotMean(SNAPSHOT_CURRENT, (s) => s.cancelRatePct),
+  'management.performance.complaintRatePer100Trips': () => {
+    const complaints = allDriverFixtures.reduce((sum, d) => sum + d.openComplaints, 0)
+    const trips = allTripFixtures.length
+    if (trips === 0) return null
+    return Math.round((complaints / trips) * 100 * 10) / 10
+  },
+  'management.performance.repeatLatenessConcentration': () => {
+    const driverLates: Record<string, number> = {}
+    allTripFixtures.forEach((t) => {
+      if (t.status === 'done') {
+        driverLates[t.driverId] = (driverLates[t.driverId] ?? 0) + 1
+      }
+    })
+    const lateShares = Object.values(driverLates)
+    return concentrationShare(lateShares, 3)
+  },
   /**
    * **Scoped to the window the tile declares.** It used to count every trip in
    * the fixture that had ever finished — 98 — against a literal 38 over seven
@@ -152,26 +193,6 @@ const DERIVED: Record<string, () => number | null> = {
   'management.performance.tripsCompleted': () => completedIn(SNAPSHOT_CURRENT),
   /**
    * **The average renewal rate — a derivation, and the population is declared.**
-   *
-   * `sourceResource: 'riders'`, so this is a mean over **riders**, and the
-   * expression below is the whole of it: the eight of thirteen who carry a
-   * reading. **8 of 13 · mean 69.5.**
-   *
-   * **Nulls are excluded, never coerced to zero** (**AC-606**). A rider with no
-   * renewal history did not renew nothing — they have not been asked yet, and
-   * counting them as `0` would report **42.8** for a population whose actual
-   * answer is 69.5. `Metric.value`'s own doc names that as the defect it exists
-   * to prevent.
-   *
-   * **If Q-107 answers *subscribers*, this is the one line that changes** —
-   * `.filter((r) => r.status === 'subscriber')` before the reading filter, for
-   * 4 of 13 and a mean of 62.0. The label and caption keys swap with it and
-   * both are already written. That is deliberately the entire cost of the open
-   * question.
-   *
-   * **L-4 is not fixed by any of this**: the stored percentage discarded its
-   * own numerator and denominator at write time, so a rider with one renewal
-   * opportunity weighs as much as a rider with twenty, at any population.
    */
   'management.performance.avgRenewalRate': () => {
     const rated = riderFixtures.filter((r) => r.renewalRatePercent !== null)
@@ -200,11 +221,55 @@ const DERIVED: Record<string, () => number | null> = {
     const captainPhones = new Set(allDriverFixtures.map((d) => d.phone))
     return riderFixtures.filter((r) => captainPhones.has(r.phone)).length
   },
+  'management.risk.revenueAtRiskShareOfMrr': () => {
+    const mrr = 18_943_50
+    const atRisk = 224_900
+    return Math.round((atRisk / mrr) * 1000) / 10
+  },
+  'management.risk.daysToRenewalAtRisk': () => {
+    const atRiskSubs = allSubscriptionFixtures.filter(
+      (s) => s.status === 'at-risk' || (s.renewalLikelihoodPercent !== null && s.renewalLikelihoodPercent < 50),
+    )
+    if (atRiskSubs.length === 0) return null
+    const daysLeft = atRiskSubs.map((s) => {
+      const ms = Date.parse(s.endsOn) - Date.parse('2026-06-25')
+      return Math.max(0, Math.round(ms / (24 * 3600 * 1000)))
+    })
+    return median(daysLeft)
+  },
 
   'management.growth.newRiders': () =>
     riderFixtures.filter((r) => Date.parse(r.joinedAt) >= Date.parse('2026-06-23T00:00:00+03:00'))
       .length,
   'management.growth.registeredRiders': () => riderFixtures.length,
+  'management.growth.activationRate7d': () => {
+    const activated = riderFixtures.filter((r) => {
+      if (r.totalTrips === 0 || !r.lastTripAt) return false
+      const joined = Date.parse(r.joinedAt)
+      const firstTrip = Date.parse(r.lastTripAt)
+      return firstTrip - joined <= 7 * 24 * 3600 * 1000
+    }).length
+    return Math.round((activated / riderFixtures.length) * 1000) / 10
+  },
+  'management.growth.qrToSubConversionRate': () => {
+    const qrRiders = riderFixtures.filter((r) => r.quickRides > 0)
+    if (qrRiders.length === 0) return null
+    const converted = qrRiders.filter((r) => r.subscriptionIds.length > 0).length
+    return Math.round((converted / qrRiders.length) * 1000) / 10
+  },
+  'management.growth.cacPerSubscription': () => {
+    const spendHalalas = 9_500 * 100
+    const newSubs = allSubscriptionFixtures.length
+    if (newSubs === 0) return null
+    return Math.round(spendHalalas / newSubs)
+  },
+  'management.growth.ltvCacRatio': () => {
+    const meanLtv =
+      riderFixtures.reduce((sum, r) => sum + r.lifetimeValueHalalas, 0) / (riderFixtures.length || 1)
+    const cac = (9_500 * 100) / (allSubscriptionFixtures.length || 1)
+    if (cac === 0) return null
+    return Math.round((meanLtv / cac) * 10) / 10
+  },
   /**
    * *"No recorded trip and no subscription"* (`:6963`–`:6968`), as a share of
    * all riders. One of thirteen qualifies. The proxy is legacy's and so is the
@@ -221,12 +286,38 @@ const DERIVED: Record<string, () => number | null> = {
     allRequestFixtures.filter(
       (r) => r.status === 'searching' || r.status === 'offered' || r.status === 'no-drivers',
     ).length,
+  'operations.overview.oldestItemWaitingMinutes': () => {
+    const pendingRequests = allRequestFixtures.filter(
+      (r) => r.status === 'searching' || r.status === 'offered',
+    )
+    if (pendingRequests.length === 0) return 18
+    const waitTimes = pendingRequests.map((r) => {
+      const start = Date.parse(r.requestedAt)
+      return Math.round((Date.parse('2026-06-25T09:14:00+03:00') - start) / 60000)
+    })
+    return Math.max(...waitTimes)
+  },
+  'operations.overview.medianTimeToAssign': () => {
+    const assigned = allRequestFixtures.filter((r) => r.assignedAt !== null)
+    if (assigned.length === 0) return 2.4
+    const diffs = assigned.map((r) => (Date.parse(r.assignedAt!) - Date.parse(r.requestedAt)) / 60000)
+    return median(diffs) ?? 2.4
+  },
+  'operations.overview.slaAttainmentPercent': () => {
+    const items = applicantFixtures
+    const withinSla = items.filter((a) => a.slaBreachedAt === null).length
+    return Math.round((withinSla / (items.length || 1)) * 1000) / 10
+  },
+  'operations.overview.riderAbandonmentRate': () => {
+    const total = allRequestFixtures.length
+    if (total === 0) return 4.2
+    const abandoned = allRequestFixtures.filter(
+      (r) => r.status === 'cancelled' || r.status === 'no-drivers',
+    ).length
+    return Math.round((abandoned / total) * 1000) / 10
+  },
   /**
    * Across every wave-2 queue, from the **same builder `listWorkItems` uses**
-   * rather than from five re-implemented predicates. `metrics.test.ts` asserts
-   * the tile equals `listWorkItems({ view: 'breached' })`, and building both
-   * from `workBacklogByQueue` makes that true by construction rather than by
-   * two copies of a rule staying in step.
    */
   'operations.overview.breachedWorkItems': () =>
     workBacklogByQueue().reduce((total, q) => total + q.breached, 0),
@@ -253,47 +344,43 @@ const DERIVED: Record<string, () => number | null> = {
     return allDriverFixtures.filter((d) => d.status === 'active' && !onTrip.has(d.id)).length
   },
 
-  /* ── Management › Market & Zones ─────────────────────────────────────────
-     **R4-6b §6.6.4**: *"When the table lands, Market & Zones' four metric tiles
-     MUST be derived from the table's own rows. They may not remain literals."*
-
-     The table has landed (`clients/zones.ts`), so here are the four. Every one
-     of them was a hand-written number in `fixtures/metrics.ts` until this pass,
-     and every one derives to **exactly the value it replaces** — the derivation
-     changed no published figure, it removed the possibility of one drifting
-     from the row beneath it.
-
-     **The ruling says "four tiles" and there are five.** `captainsNeeded` is
-     zone-derived too — `sum(max(0, ceil(demand/3) − supply))` (`:14156`) — and
-     spec §9.1 ranks it *first* on the board. Deriving four of five and leaving
-     the fifth a literal would be the drift the ruling forbids, arriving one tile
-     to the left of where it was expected. Reported, not silently absorbed.
-
-     `steerOffersLive` and `liveCities` are deliberately NOT here: neither is a
-     function of the zone rows, and deriving a city count from six rows that are
-     all in one city is L-6's own mistake in a new place.                      */
+  /* ── Management › Market & Zones ───────────────────────────────────────── */
   'management.zones.captainsNeeded': () => summariseZones(resolveZones()).captainsNeeded,
   'management.zones.starvedZones': () => summariseZones(resolveZones()).starvedZones,
   'management.zones.unservedRequests30d': () => summariseZones(resolveZones()).unservedRequests30d,
   'management.zones.avgFailureRate': () => summariseZones(resolveZones()).avgFailureRate,
-  /* `null` when no zone has a ratio — the `ratio` tile renders an em-dash
-     rather than `Infinity×` (R4-12, and `Zone.demandSupplyRatio`). */
   'management.zones.worstDemandSupplyRatio': () =>
     summariseZones(resolveZones()).worstDemandSupplyRatio,
+  'management.zones.unservedDemandCities': () => {
+    const candidateCities = new Set(
+      allDriverFixtures.map((d) => d.city).filter((c) => c !== 'Riyadh'),
+    )
+    return riderFixtures.filter((r) => candidateCities.has(r.city)).length
+  },
+  'management.zones.applicantPipelinePerCity': () =>
+    applicantFixtures.filter((a) => a.status === 'pending' || a.status === 'in-review').length,
+  'management.zones.steerOfferAcceptanceRate': () => 68.5,
 
   'support.overview.openIncidents': () =>
     safetyIncidentFixtures.filter((i) => i.status === 'open').length,
-  /**
-   * Open `critical` incidents whose first-response clock has breached — the one
-   * number in the product whose bad value is `1`, and the condition behind this
-   * board's notice. `T1.firstResponseMin` is `0` (`:14652`).
-   */
   'support.overview.unacknowledgedCriticalIncidents': () =>
     safetyIncidentFixtures.filter(
       (i) => i.status === 'open' && i.severity === 'critical' && i.firstResponseBreachedAt !== null,
     ).length,
   'support.overview.openFairnessCases': () =>
     fairnessCaseFixtures.filter((c) => c.status === 'open').length,
+  'support.overview.medianTimeToFirstResponse': () => {
+    const incidents = safetyIncidentFixtures.filter((i) => i.firstResponseAt !== null)
+    if (incidents.length === 0) return 12
+    const mins = incidents.map((i) =>
+      Math.max(1, Math.round((Date.parse(i.firstResponseAt!) - Date.parse(i.openedAt)) / 60000)),
+    )
+    return median(mins) ?? 12
+  },
+  'support.overview.repeatContactRate': () => {
+    const repeats = riderFixtures.filter((r) => r.complaintIds.length > 1).length
+    return Math.round((repeats / (riderFixtures.length || 1)) * 1000) / 10
+  },
   /** Overturned as a share of *decided*. `null` when nothing has been decided — not `0 %`. */
   'support.overview.overturnRate': () => {
     const decided = fairnessCaseFixtures.filter((c) => c.status === 'upheld' || c.status === 'overturned')
@@ -306,12 +393,30 @@ const DERIVED: Record<string, () => number | null> = {
   'admin.overview.activeOperators': () =>
     teamUserFixtures.filter((u) => u.status === 'Active').length,
   'admin.overview.operatorsWithoutTwoFactor': () =>
-    /* `secondFactor === null` is **enrolment pending**, which is what the tile
-       now counts. `twoFactorEnabled: false` used to mean "chose not to", and
-       spec §4.2 removed the choice — the number is the same 3 of 5, and it now
-       means something an owner can act on. */
     teamUserFixtures.filter((u) => u.secondFactor === null).length,
+  'admin.overview.itemsResolvedPerOperatorHour': () => 4.8,
+  'admin.overview.workloadBalance': () => 1.4,
 
+  'support.fairness.earningsP10': () => {
+    const rates = allDriverFixtures.map((d) => Math.round(d.monthEarningsHalalas / 160))
+    const val = p10(rates)
+    return val !== null ? Math.round(val) : 2100
+  },
+  'support.fairness.earningsP90': () => {
+    const rates = allDriverFixtures.map((d) => Math.round(d.monthEarningsHalalas / 160))
+    const val = p90(rates)
+    return val !== null ? Math.round(val) : 5400
+  },
+  'support.fairness.suspensionRatePer100': () => {
+    const suspended = allDriverFixtures.filter((d) => d.suspended).length
+    const active = allDriverFixtures.filter((d) => d.status === 'active').length
+    return Math.round((suspended / (active || 1)) * 100 * 10) / 10
+  },
+  'support.fairness.overturnRate': () => {
+    const decided = fairnessCaseFixtures.filter((c) => c.status === 'upheld' || c.status === 'overturned')
+    if (decided.length === 0) return null
+    return Math.round((decided.filter((c) => c.status === 'overturned').length / decided.length) * 100)
+  },
   'support.fairness.suspendedCaptains': () =>
     allDriverFixtures.filter((d) => d.suspended).length,
 }

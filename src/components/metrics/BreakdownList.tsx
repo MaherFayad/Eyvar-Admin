@@ -248,13 +248,13 @@ export function BreakdownList({ breakdown, t, language }: BreakdownListProps) {
     breakdown.awaitingStore === null && breakdown.rowsTotal > breakdown.rowsShown
 
   return (
-    <Card className="min-w-0">
-      <CardHeader>
+    <Card className="min-w-0 shadow-xs border border-border">
+      <CardHeader className="pb-3 border-b border-border/50">
         {/* AC-690 — dimension, ranking and cut-off, as a fragment. No period. */}
         <CardTitle id={headingId}>{heading}</CardTitle>
       </CardHeader>
 
-      <CardContent className="min-w-0">
+      <CardContent className="min-w-0 p-2">
         {breakdown.awaitingStore !== null ? (
           /* **R5-11 — the THIRD absence, and conflating any two of the three is
              the V-2 defect in a new slot.** *We ranked and this window had
@@ -301,7 +301,7 @@ export function BreakdownList({ breakdown, t, language }: BreakdownListProps) {
                 condition lives on `caveat.gatedBy`'s metric, and it is
                 evaluated there, not here. */}
             {breakdown.caveat && <Caveat caveat={breakdown.caveat} t={t} language={language} />}
-            <ul aria-labelledby={headingId} className="divide-y divide-border">
+            <ul aria-labelledby={headingId} className="divide-y divide-border/40 flex flex-col gap-0.5">
             {breakdown.rows.map((row) => (
               <li key={row.id} className="min-w-0">
                 <Row row={row} showBar={showBar} t={t} language={language} />
@@ -313,7 +313,7 @@ export function BreakdownList({ breakdown, t, language }: BreakdownListProps) {
       </CardContent>
 
       {showCutOff && (
-        <CardFooter>
+        <CardFooter className="pt-3 border-t border-border/50 bg-muted/10">
           {/* AC-696. A full SENTENCE, so it takes a period (R6). The dimension
               is a key of its own — `queues` and `captains` are copy. */}
           <CutOff breakdown={breakdown} t={t} />
@@ -452,13 +452,15 @@ function Row({
           value beside the label, not beneath it — and the bar and the sub-label
           span the full width underneath, which is what makes the bar's track
           the row's width rather than the label's. */}
-      <span className="flex min-w-0 items-center gap-3">
+      <span className="flex min-w-0 items-center justify-between gap-3">
         <RowLabel label={row.label} t={t} />
         {/* R5-5 — **the only numeric column**, aligned to the inline-end and
             tabular, and isolated so `45%` does not hop its sign or its unit in
             Arabic. There is nothing after it. */}
         <span {...value.box}>
-          <bdi {...value.run}>{formatMetricValue(row.value, row.unit, language)}</bdi>
+          <span className="inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded-md text-xs font-bold bg-muted/60 text-foreground tabular-nums border border-border/40">
+            <bdi {...value.run}>{formatMetricValue(row.value, row.unit, language)}</bdi>
+          </span>
         </span>
       </span>
       {showBar && <Bar fraction={row.barFraction} />}
@@ -475,8 +477,10 @@ function Row({
   /* R4-4 — uniform height, chosen by the bar and not by the content. The two
      text slots truncate into it rather than growing it. */
   const shape = cn(
-    'flex flex-col justify-center gap-0.5 px-1',
+    'flex flex-col justify-center gap-0.5 px-3 rounded-lg transition-colors',
     showBar ? 'h-row-media' : 'h-row',
+    'hover:bg-muted/50',
+    row.drilldownRoute && 'cursor-pointer group',
   )
 
   if (!row.drilldownRoute) {
@@ -488,7 +492,7 @@ function Row({
       to={row.drilldownRoute}
       className={cn(
         shape,
-        'rounded-lg outline-none transition-colors hover:bg-muted',
+        'outline-none',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       )}
     >

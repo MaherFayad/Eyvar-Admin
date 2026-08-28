@@ -62,7 +62,9 @@ import { AlertRuleDialog } from './AlertRuleDialog'
 
 export interface AlertsViewProps {
   title: string
-  views: React.ReactNode
+  activeView?: 'reports' | 'alerts'
+  onSelectView?: (view: 'reports' | 'alerts') => void
+  views?: React.ReactNode
   /** The day a `Test this rule` and the form's series resolution run against. */
   today: string
   t: Translator
@@ -86,7 +88,15 @@ const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'n
   error: 'neutral',
 }
 
-export function AlertsView({ title, views, today, t, language, dir }: AlertsViewProps) {
+export function AlertsView({
+  title,
+  activeView = 'alerts',
+  onSelectView,
+  today,
+  t,
+  language,
+  dir,
+}: AlertsViewProps) {
   /* `null` creates, a rule edits. One dialog, two modes, and the mode is the
      value rather than a flag — the same shape `saveReport` uses. */
   const [editing, setEditing] = useState<AlertRule | null>(null)
@@ -238,8 +248,6 @@ export function AlertsView({ title, views, today, t, language, dir }: AlertsView
       }
     >
       <div className="flex flex-col gap-3">
-        {views}
-
         {/* AC-877 — it reports the bucket, the value and whether it WOULD have
             fired. It never changes the rule and never emits a notification, and
             the sentence says so out loud so nobody reads a test as a firing. */}
@@ -266,6 +274,13 @@ export function AlertsView({ title, views, today, t, language, dir }: AlertsView
           t={t}
           language={language}
           tableId="management-reports-alerts"
+          view={activeView}
+          tabs={[
+            { id: 'reports', label: t('rb.view.reports') },
+            { id: 'alerts', label: t('rb.view.alerts') },
+          ]}
+          activeTab={activeView}
+          onSelectTab={(id) => onSelectView?.(id as 'reports' | 'alerts')}
           searchPlaceholder={t('rb.alerts.search')}
           rowActions={rowActions}
           skeletonPattern="P1"

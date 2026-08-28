@@ -64,13 +64,8 @@ import { Children } from 'react'
 import { cn } from '@/lib/utils'
 
 export function MetricTileRow({ children }: { children: ReactNode }) {
-  const count = Children.count(children)
-  /* Static class strings, both of them. A computed `grid-cols-${n}` is a class
-     Tailwind's scanner never sees and therefore never emits. */
-  const wide = count % 4 === 0 ? 'wide:grid-cols-4' : 'wide:grid-cols-3'
-
   return (
-    <ul role="list" className={cn('grid list-none grid-cols-3 gap-3', wide)}>
+    <ul role="list" className="grid list-none grid-cols-4 gap-3">
       {children}
     </ul>
   )

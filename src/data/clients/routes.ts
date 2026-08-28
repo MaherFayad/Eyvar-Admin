@@ -78,12 +78,7 @@ export function findSubTabByPath(path: string): SubTabRoute | null {
  * Waves are from `PHASE-PLAN.md`; the two the onboarding tracks point at are
  * named in the design spec §10.5 as *"unbuilt, wave 6"* and *"unbuilt, wave 5"*.
  */
-export const UNBUILT_SUB_TAB_IDS: readonly string[] = [
-  /* Wave 6 — `ops.dispatch` step. */
-  'operations-dispatch',
-  /* Wave 5 — `support.ticket` step. */
-  'support-tickets',
-]
+export const UNBUILT_SUB_TAB_IDS: readonly string[] = []
 
 /** `true` when the sub-tab exists in the route table **and** has a screen. */
 export function isSubTabBuilt(subTabId: string): boolean {

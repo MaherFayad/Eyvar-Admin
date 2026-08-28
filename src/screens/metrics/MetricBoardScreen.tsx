@@ -78,6 +78,7 @@ import { useAsync } from '@/hooks'
 import { getMetricBoard } from '@/data/clients'
 import type { BoardNotice, MetricBoard, SubTabRoute } from '@/data/types'
 import { formatDate, type Translate } from '@/lib'
+import { cn } from '@/lib/utils'
 import {
   BreakdownList,
   ChartCard,
@@ -384,33 +385,44 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
 
             **Arabic:** the grid mirrors and the first cell is at the
             inline-start. Nothing here depends on anything being on the left. */}
-        {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (
-          <div className="grid grid-cols-2 gap-4">
-            {loaded.charts.map((chart) => (
-              <ChartCard
-                key={chart.key}
-                series={chart}
-                /* §3.7's report icon. `TimeSeries` carries no route, so it
-                   borrows the one from the metric with the same key — which is
-                   the surface that owns the number, by definition. `null` when
-                   the series has no tile beside it. */
-                reportHref={
-                  loaded.metrics.find((metric) => metric.key === chart.key)?.drilldownRoute ?? null
-                }
-                t={t}
-                language={language}
-              />
-            ))}
-            {loaded.breakdowns.map((breakdown) => (
-              <BreakdownList
-                key={breakdown.key}
-                breakdown={breakdown}
-                t={t}
-                language={language}
-              />
-            ))}
-          </div>
-        )}
+        {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (() => {
+          const count = loaded.charts.length + loaded.breakdowns.length
+          const colsClass =
+            count === 3
+              ? 'grid-cols-3'
+              : count === 2
+                ? 'grid-cols-2'
+                : count >= 4
+                  ? 'grid-cols-2'
+                  : 'grid-cols-1'
+          return (
+            <div className={cn('grid gap-4 items-start', colsClass)}>
+              {loaded.charts.map((chart) => (
+                <ChartCard
+                  key={chart.key}
+                  series={chart}
+                  /* §3.7's report icon. `TimeSeries` carries no route, so it
+                     borrows the one from the metric with the same key — which is
+                     the surface that owns the number, by definition. `null` when
+                     the series has no tile beside it. */
+                  reportHref={
+                    loaded.metrics.find((metric) => metric.key === chart.key)?.drilldownRoute ?? null
+                  }
+                  t={t}
+                  language={language}
+                />
+              ))}
+              {loaded.breakdowns.map((breakdown) => (
+                <BreakdownList
+                  key={breakdown.key}
+                  breakdown={breakdown}
+                  t={t}
+                  language={language}
+                />
+              ))}
+            </div>
+          )
+        })()}
       </div>
     )
   }

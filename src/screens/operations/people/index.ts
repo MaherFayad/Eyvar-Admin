@@ -9,3 +9,4 @@
  */
 
 export { PeopleScreen } from './PeopleScreen'
+export { ApplicantDetailScreen } from './ApplicantDetailScreen'

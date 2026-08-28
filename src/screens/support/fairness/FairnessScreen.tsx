@@ -461,9 +461,13 @@ function BoardBody({
           </MetricTileItem>
         ))}
       </MetricTileRow>
-      {board.charts.map((chart) => (
-        <ChartCard key={chart.key} series={chart} reportHref={null} t={t} language={language} />
-      ))}
+      {board.charts.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 items-start">
+          {board.charts.map((chart) => (
+            <ChartCard key={chart.key} series={chart} reportHref={null} t={t} language={language} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

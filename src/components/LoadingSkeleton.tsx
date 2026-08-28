@@ -129,7 +129,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
        tile has ever contained. */
     case 'P5':
       return (
-        <div className="grid grid-cols-3 gap-3 wide:grid-cols-4">
+        <div className="grid grid-cols-4 gap-3">
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}
