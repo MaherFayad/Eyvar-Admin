@@ -84,10 +84,13 @@ import type {
   ReportResult,
   SavedReport,
 } from '@/data/types'
+import { applyReportMode } from '@/data/clients/reports'
+import { reportMode, type ReportMode } from '@/data/types'
 import { isDeepEqual, type Language, type Translator } from '@/lib'
 import { downloadCsv, reportCsvToText } from './csv'
 import { SaveReportDialog } from './SaveReportDialog'
-import { ReportStudio } from './ReportStudio'
+import { ModeField, ReportModePanel } from './ReportModePanel'
+import { ReportModeCanvas } from './ReportModeCanvas'
 
 /**
  * The empty question. **Not a first-run illustration** (R8's first kind claims
@@ -226,13 +229,25 @@ export function ReportBuilder({
 
   /* A question that arrives already composed — from a link, from a saved
      report, from an alert notification — runs itself once. A question the
-     operator is still composing does not (AC-809). */
+     operator is still composing does not (AC-809).
+
+     **"Composed" is the planner's answer, not `measures.length`.** A funnel,
+     a cohort and a journey carry no `measures` by construction (P7-T1 put
+     their configuration in `funnel` / `cohort` / `journey`), so keying the
+     seed on that array meant a shared link to any of the three landed on an
+     unstarted canvas and the operator had to press `Run` to see the report
+     they were sent — which is AC-855 not holding for four of the five
+     modes. The planner already answers "is this question answerable", it is
+     the same function `reports.run` calls, and it says no for the empty
+     query. */
   const seeded = useRef(false)
   useEffect(() => {
     if (seeded.current) return
     if (catalogue.status !== 'content') return
     seeded.current = true
-    if (initial.measures.length > 0) void run(initial, false)
+    const seedPlan = planReportQuery(initial, { measures, dimensions }, today)
+    if (seedPlan.violations.length === 0) void run(initial, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogue.status, initial, run])
 
   /* AC-854 — Back steps through previous questions, and the panel follows.
@@ -292,6 +307,7 @@ export function ReportBuilder({
 
   const stale = ranQuery !== null && !isDeepEqual(query, ranQuery)
 
+
   const header = (
     <PageHeader
       title={title}
@@ -303,9 +319,13 @@ export function ReportBuilder({
              it "save as new" would imply an original it is diverging from. */
           label: deleted ? t('rb.saveAs') : t('rb.save'),
           onClick: () => setSaveOpen(true),
-          /* Nothing to save until something has been asked. Disabled IN PLACE,
-             never hidden (§8). */
-          disabled: query.measures.length === 0,
+          /* Nothing to save until something has been asked — and *asked* is
+             mode-shaped: a funnel has no `measures` and never will, so keying
+             this on `measures.length` alone made `Save` permanently off in
+             three of the five modes. The planner already knows whether the
+             question is answerable, and that is the same test `saveReport`
+             applies (`query-invalid`). */
+          disabled: plan.violations.length > 0,
         },
         {
           label: t('rb.export'),
@@ -318,21 +338,47 @@ export function ReportBuilder({
     />
   )
 
-  const isDirectSerializedQuery = useMemo(() => {
-    const q = new URLSearchParams(location.search).get(REPORT_QUERY_PARAM)
-    return Boolean(q !== null)
-  }, [location.search])
+  /**
+   * **P7-T4 — the `isDirectSerializedQuery` fallback is gone, and with it
+   * `ReportStudio`.**
+   *
+   * It used to render the Studio whenever the URL carried no `?q=`, which made
+   * the ungoverned editor the front door and left the governed one reachable
+   * only from a link the governed one had produced — a closed loop where the
+   * shareable half could only be entered by someone who already had a share
+   * (`REMEDIATION-PLAN.md` §3.3). The Studio's five modes are now on this
+   * builder, behind `mode`, so there is nothing left to fall back to.
+   */
+  const mode = reportMode(query)
+  /* `trend` and `table` are the two modes `QueryPanel` was written for: a
+     measure, a split, a grain, a chart. The other three configure a different
+     shape and get the rail built for it. */
+  const seriesMode = mode === 'trend' || mode === 'table'
 
-  if (!isDirectSerializedQuery) {
-    return (
-      <ReportStudio
-        report={report}
-        title={title}
-        onSaved={onSaved}
-        onBack={() => navigate('/management/reports')}
-      />
-    )
-  }
+  const switchMode = useCallback(
+    (next: ReportMode) => setQuery((current) => applyReportMode(current, next)),
+    [],
+  )
+
+  /**
+   * **A retained result belongs to the question that produced it, and changing
+   * mode changes the question.**
+   *
+   * §8.3 state 2 keeps the previous answer on screen while the panel is edited,
+   * and that is right for every edit except this one: a trend's series drawn
+   * under a funnel's chrome is not a stale answer, it is a picture of a
+   * different question — `rb.trend.heading` does not exist because a trend is
+   * not one of the three shapes this canvas draws. So a result from another
+   * mode is withheld and the canvas falls back to its unstarted sentence,
+   * which is honest: this question has not been asked yet.
+   *
+   * The previous result is **not discarded** — switching back restores it,
+   * because `result` is untouched and only what is handed to the canvas
+   * changes.
+   */
+  const resultInMode = result !== null && reportMode(result.query) === mode
+  const shownResult = resultInMode ? result : null
+  const shownStatus: CanvasStatus = status === 'content' && !resultInMode ? 'unstarted' : status
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide">
@@ -348,35 +394,74 @@ export function ReportBuilder({
       )}
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <QueryPanel
-          query={query}
-          onChange={setQuery}
-          onRun={() => void run(query, true)}
-          plan={plan}
-          measures={measures}
-          dimensions={dimensions}
-          catalogueStatus={catalogue.status}
-          onRetryCatalogue={catalogue.refetch}
-          today={today}
-          running={status === 'loading'}
-          t={t}
-          language={language}
-        />
+        {/* The rail: the mode switcher, then the panel that mode is asked in.
+            One `Run`, one primary, whichever panel is below it (R3). */}
+        <div className="flex min-h-0 w-72 shrink-0 flex-col gap-3 overflow-y-auto">
+          <ModeField query={query} onChange={switchMode} t={t} />
 
-        <ResultCanvas
-          status={status}
-          result={result}
-          stale={stale}
-          violations={violations}
-          measuresByKey={measuresByKey}
-          coercedFrom={plan.chartTypeCoerced ? query.chartType : null}
-          effectiveChartType={plan.effectiveChartType}
-          onRetry={() => void run(ranQuery ?? query, false)}
-          onRetrySeries={(key) => void retrySeries(key)}
-          noDataSentence={noDataSentence}
-          t={t}
-          language={language}
-        />
+          {seriesMode ? (
+            <QueryPanel
+              query={query}
+              onChange={setQuery}
+              onRun={() => void run(query, true)}
+              plan={plan}
+              measures={measures}
+              dimensions={dimensions}
+              catalogueStatus={catalogue.status}
+              onRetryCatalogue={catalogue.refetch}
+              today={today}
+              running={status === 'loading'}
+              t={t}
+              language={language}
+            />
+          ) : (
+            <ReportModePanel
+              query={query}
+              onChange={setQuery}
+              onRun={() => void run(query, true)}
+              plan={plan}
+              measures={measures}
+              dimensions={dimensions}
+              catalogueStatus={catalogue.status}
+              onRetryCatalogue={catalogue.refetch}
+              today={today}
+              running={status === 'loading'}
+              t={t}
+              language={language}
+            />
+          )}
+        </div>
+
+        {/* The canvas the mode's answer has a shape for. Both take the same
+            `status`, so loading, error and empty look identical in all five. */}
+        {seriesMode ? (
+          <ResultCanvas
+            status={shownStatus}
+            result={shownResult}
+            stale={stale}
+            violations={violations}
+            measuresByKey={measuresByKey}
+            coercedFrom={plan.chartTypeCoerced ? query.chartType : null}
+            effectiveChartType={plan.effectiveChartType}
+            onRetry={() => void run(ranQuery ?? query, false)}
+            onRetrySeries={(key) => void retrySeries(key)}
+            noDataSentence={noDataSentence}
+            t={t}
+            language={language}
+          />
+        ) : (
+          <ReportModeCanvas
+            status={shownStatus}
+            result={shownResult}
+            stale={stale}
+            violations={violations}
+            measuresByKey={measuresByKey}
+            onRetry={() => void run(ranQuery ?? query, false)}
+            noDataSentence={noDataSentence}
+            t={t}
+            language={language}
+          />
+        )}
       </div>
 
       <SaveReportDialog

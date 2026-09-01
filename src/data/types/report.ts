@@ -70,6 +70,25 @@ export type ReportPreset =
   | 'last-12-months'
   | 'last-year'
 
+/**
+ * The nine, in the order every range control offers them.
+ *
+ * Exported so a second range control cannot be built with eight of them in a
+ * different order: the list and the union are one declaration, and a preset
+ * added to the type without a place in this array does not compile.
+ */
+export const REPORT_PRESETS: readonly ReportPreset[] = [
+  'today',
+  'yesterday',
+  'last-7d',
+  'last-30d',
+  'last-90d',
+  'last-365d',
+  'last-month',
+  'last-12-months',
+  'last-year',
+]
+
 export type ReportWindow =
   | { kind: 'preset'; preset: ReportPreset }
   /** Inclusive of the whole end day in Riyadh — the rule `lib/columnFilter.ts` already encodes. */
@@ -94,6 +113,133 @@ export interface MeasureRef {
   key: MeasureKey
 }
 
+/* ──────────────────────── the analysis mode ────────────────────────────── */
+
+/**
+ * **The five questions one editor can ask.** P7-T1.
+ *
+ * `ReportStudio.tsx:111` had these as `AnalysisNavMode` — a `useState` inside an
+ * unrouted screen, so a funnel could not be reloaded, bookmarked, sent to
+ * anyone, pinned to a dashboard or alerted on. Moving the value into the query
+ * is what makes the other four modes reach the same governance `trend` already
+ * has: §9.2 makes the URL the storage adapter, and **a mode that does not
+ * serialise is a mode nobody can send to anyone** (AC-853/854/855).
+ *
+ * The names are the domain's, not the legacy screen's: `ReportStudio` called
+ * them `segmentation`, `retention` and `journeys`. `trend` is what §3 already
+ * calls this module's default question, `cohort` is what `reporting/cohorts.ts`
+ * already computes, and singulars match every other enum here.
+ *
+ * ## Why `mode` is optional and why that is the contract, not a shortcut
+ *
+ * **Absence means `'trend'`, on the wire and in the URL.** Every report saved,
+ * bookmarked or pasted into a chat window before this field existed carries no
+ * mode, and those links must keep resolving to the report they named — which is
+ * AC-853 applied to the field that was added rather than to the field that
+ * changed. So the default is never written (`serialiseReportQuery` omits it)
+ * and never required (`reportMode()` resolves it). A server rolling this out
+ * additively answers the same way.
+ *
+ * Read it through `reportMode(query)`. Do not read `query.mode` directly; the
+ * `undefined` arm is meaningful and reading it raw is how one call site decides
+ * `undefined` is an error state.
+ */
+export type ReportMode = 'trend' | 'funnel' | 'table' | 'cohort' | 'journey'
+
+/** All five, in switcher order. An illegal configuration disables in place, never hides a mode. */
+export const REPORT_MODES: readonly ReportMode[] = ['trend', 'funnel', 'table', 'cohort', 'journey']
+
+/** What an absent `mode` means — in a saved report, in a URL, and in a request body. */
+export const DEFAULT_REPORT_MODE: ReportMode = 'trend'
+
+/**
+ * One rung of a funnel: a population, narrowed.
+ *
+ * `filters` is per step and not per query, because *"requested a trip in
+ * Riyadh, then completed it anywhere"* is a different funnel from
+ * *"requested and completed in Riyadh"*, and a single query-level filter cannot
+ * express the first. It is the **same** `FilterSpec` vocabulary — no second
+ * filter model (AC-814).
+ */
+export interface FunnelStep {
+  measureKey: MeasureKey
+  filters: FilterSpec[]
+}
+
+/**
+ * §P7-T2: *a funnel needs ordered steps*. **The array order is the order** —
+ * there is no `position` field, because two sources of truth for an ordering is
+ * how a funnel ends up rendering its steps in one order and computing drop-off
+ * in another.
+ */
+export interface FunnelSpec {
+  steps: FunnelStep[]
+  /**
+   * How long one subject has to reach the last step from the first.
+   *
+   * **`null` means the report window**, which is the only answer that needs no
+   * business decision: a funnel over `last-30d` with no conversion window is
+   * "of the people who entered in these 30 days, how many finished in these 30
+   * days". Any other default would be invented (AC-453), so none is.
+   */
+  conversionWindowDays: number | null
+}
+
+/**
+ * How cohorts are bucketed and how their age is counted.
+ *
+ * **Only `'month'` computes today**, and the reason is a data fact rather than
+ * an unwritten feature: `reporting/cohorts.ts` measures age with `monthDiff`
+ * over a single `lastActiveAt` per subject. That is honest at month resolution
+ * — "was this subject still around in month 3" — and it is not honest at day
+ * resolution, where a day-7 column derived from one last-seen timestamp is a
+ * survival curve wearing a retention matrix. `planQuery` therefore returns
+ * `'day'` and `'week'` **disabled in place with that reason** (D9 CQ-3) rather
+ * than omitting them from the type, because a server with a real activity
+ * history answers all three and the contract is written for that server.
+ */
+export type CohortGrain = 'day' | 'week' | 'month'
+
+/**
+ * §P7-T2: *a cohort needs an anchor event and a window*.
+ *
+ * The **anchor** is what puts a subject in a cohort and starts its clock; the
+ * **window** is `ReportQuery.window` — there is no second date range here,
+ * because a cohort report with its own window and the query's window would be
+ * two ranges the operator has to reconcile. `horizon` says how far past the
+ * anchor the matrix reaches, and the plan checks the window is long enough to
+ * reach it (`cohort-window-too-short`).
+ */
+export interface CohortSpec {
+  /** The event that forms the cohort. `null` is an unstarted cohort report, not an error. */
+  anchorMeasureKey: MeasureKey | null
+  /**
+   * What counts as *still here*. `null` means the anchor's own subject
+   * activity, which is what `buildCohortMatrix`'s `getLastActiveAt` reads.
+   */
+  returnMeasureKey: MeasureKey | null
+  cohortGrain: CohortGrain
+  /**
+   * How many intervals after the anchor the matrix reaches — `M0 … M{horizon}`,
+   * the exact vocabulary `reporting/cohorts.ts` already consumes.
+   */
+  horizon: number
+}
+
+/**
+ * §P7-T2: *a journey needs a root*.
+ *
+ * `depth` is how many steps forward the tree expands. There is no
+ * `direction` field: `ReportStudio`'s journeys were forward-only
+ * (`:1370–1470`) and a backwards journey is a different question nobody has
+ * asked for.
+ */
+export interface JourneySpec {
+  /** Where every path starts. `null` is an unstarted journey report, not an error. */
+  rootMeasureKey: MeasureKey | null
+  depth: number
+}
+
 export interface ReportQuery {
   /**
    * One or two. **Capped at two** (§6.1) — *"the third series is where a chart
@@ -110,6 +256,46 @@ export interface ReportQuery {
   grain: ReportGrain
   periodComparison: PeriodComparison
   chartType: ChartType
+
+  /* ── the mode, and the three configurations only one mode reads ───────── */
+
+  /**
+   * Which of the five questions this is. **Absent means `'trend'`** — read it
+   * through `reportMode(query)`, never directly. See `ReportMode`.
+   */
+  mode?: ReportMode
+  /** Read only when `mode` is `'funnel'`. Absent is an unstarted funnel. */
+  funnel?: FunnelSpec
+  /** Read only when `mode` is `'cohort'`. Absent is an unstarted cohort report. */
+  cohort?: CohortSpec
+  /** Read only when `mode` is `'journey'`. Absent is an unstarted journey. */
+  journey?: JourneySpec
+}
+
+/**
+ * The **one** reader of `query.mode`.
+ *
+ * Everything downstream — the planner, the resolver, the serialiser, a screen
+ * — goes through this, so `undefined` is interpreted in exactly one place. The
+ * alternative is five call sites each deciding for themselves whether a missing
+ * mode is a trend or a bug, and four of them being right.
+ */
+export function reportMode(query: Pick<ReportQuery, 'mode'>): ReportMode {
+  return query.mode ?? DEFAULT_REPORT_MODE
+}
+
+/**
+ * The query with its default made explicit.
+ *
+ * `serialiseReportQuery` is **lossless up to this normalisation** and no
+ * further: a query carrying no `mode` and a query carrying `mode: 'trend'` are
+ * the same question, they produce the same URL by construction (the default is
+ * never written), and they therefore come back as one value. That is the
+ * property the round-trip tests assert, and it is what keeps an existing saved
+ * link resolving unchanged.
+ */
+export function normaliseReportQuery(query: ReportQuery): ReportQuery & { mode: ReportMode } {
+  return { ...query, mode: reportMode(query) }
 }
 
 /* ─────────────────────────── the result ────────────────────────────────── */
@@ -130,6 +316,38 @@ export type ReportWarning =
   | 'grain-coarsened'
   | 'groups-folded'
   | 'gaps-outside-fixture-range'
+  /**
+   * **The seam, stated on the wire.** P7-T1 put `funnel`, `cohort` and
+   * `journey` in the query and P7-T2 made them legal; until P7-T3 the mock
+   * resolved them to a result with no panels and no series, carrying this
+   * warning, rather than silently resolving them as a trend.
+   *
+   * **P7-T3 resolved all three, so nothing emits this today.** It is kept in
+   * the union rather than deleted because it is a *wire* value: a server that
+   * has not caught up with a mode this client can ask for needs a way to say
+   * so, and a screen that already renders the sentence handles that server
+   * without a release. Deleting it would make the honest answer unrepresentable
+   * and push a partial server towards an empty chart instead.
+   */
+  | 'mode-not-resolved'
+  /**
+   * **A funnel counted events instead of following subjects, and says so.**
+   *
+   * A funnel's real question is *of the people who did A, how many went on to
+   * do B* — it follows one subject down the rungs. That is only possible when
+   * every rung's population names the same kind of subject
+   * (`reporting/subjects.ts`). A rung over `daily-snapshots` names nobody, and
+   * a funnel mixing rider rungs with captain rungs follows two different
+   * populations, so neither can be followed.
+   *
+   * Rather than refuse the query — `planQuery` deliberately does not, because
+   * a count-to-count funnel is still a legitimate question — the resolver
+   * counts each rung's population over the window and **admits on the wire that
+   * the conversion between them is a ratio of two totals, not a rate at which
+   * people progressed.** Without this the same picture would carry two very
+   * different meanings and nothing on screen would separate them.
+   */
+  | 'funnel-counted-not-followed'
 
 /**
  * A y-axis and a chart card. **The unit of rendering, and the reason two
@@ -211,6 +429,27 @@ export interface ReportResult {
   warnings: ReportWarning[]
   /** How many groups §7.4 folded into `Other`. `null` when nothing was folded. */
   foldedGroupCount: number | null
+  /**
+   * **`mode: 'cohort'` only — the denominators.** One per bucket, aligned to
+   * `buckets`, in the same order.
+   *
+   * A retention matrix is percentages, and a percentage of an unstated base is
+   * the exact defect R5-15 exists to prevent: *38 % retained* over a cohort of
+   * 1 400 and over a cohort of 6 are not the same claim, and a matrix that
+   * shows only the percentage lets an operator quote the second as if it were
+   * the first.
+   *
+   * It is a field on the result rather than a series because it is not a
+   * measurement over time — it is the size of each row, and there is no
+   * bucket-by-bucket reading of it. `undefined` in every other mode, which is
+   * how a renderer tells "not a cohort" from "a cohort of nobody".
+   *
+   * A cohort's overall survival rate is deliberately **not** here: it is
+   * `Σ(size × M1 %) / Σ size`, arithmetic the renderer does over two things it
+   * already holds, and a second copy of it on the wire is a second number that
+   * can disagree with the matrix above it.
+   */
+  cohortSizes?: number[]
 }
 
 /* ──────────────────── query legality, as data ──────────────────────────── */
@@ -236,11 +475,51 @@ export type QueryViolationCode =
   | 'too-many-buckets'
   | 'illegal-chart-type'
   | 'window-inverted'
+  /* ── per-mode legality, P7-T2. Same shape, same component, no new control. ── */
+  /** A funnel with fewer than two rungs is a number, not a funnel. */
+  | 'funnel-needs-steps'
+  | 'funnel-too-many-steps'
+  /** Two identical rungs convert at 100 % by construction and measure nothing. */
+  | 'funnel-duplicate-step'
+  | 'cohort-needs-anchor'
+  /**
+   * The anchor — or the return event — names a store whose rows are not about a
+   * person, so there is nobody to put in a cohort and nobody to still be here
+   * in month three. `reporting/subjects.ts` is the table this reads.
+   */
+  | 'cohort-anchor-not-subject'
+  /** The window is shorter than the horizon it is asked to show. */
+  | 'cohort-window-too-short'
+  | 'cohort-horizon-out-of-range'
+  /** No engine here buckets retention by day or week. See `CohortGrain`. */
+  | 'cohort-grain-unavailable'
+  | 'journey-needs-root'
+  /** A journey follows a subject forward. A store that names nobody has no path. */
+  | 'journey-root-not-subject'
+  | 'journey-depth-out-of-range'
+  /**
+   * The mode, not the operator, decides the grain. A funnel, a cohort matrix
+   * and a journey each collapse the window to one period; their x-axis is
+   * steps, cohort age and path depth, none of which is a calendar.
+   */
+  | 'mode-fixes-grain'
 
 export interface QueryViolation {
   code: QueryViolationCode
   /** Which control the reason belongs beside. */
-  field: 'measures' | 'groupBy' | 'filters' | 'window' | 'grain' | 'chartType'
+  field:
+    | 'measures'
+    | 'groupBy'
+    | 'filters'
+    | 'window'
+    | 'grain'
+    | 'chartType'
+    /* The mode switcher itself, and the three per-mode configurations. Each is
+       a control on the panel, so each is somewhere a reason can sit. */
+    | 'mode'
+    | 'funnel'
+    | 'cohort'
+    | 'journey'
   /** The reason, as a key with params. Never assembled from fragments (AC-894). */
   reasonKey: string
   reasonParams: Record<string, string | number>
@@ -272,6 +551,36 @@ export interface QueryPlan {
   legalFilterFields: string[]
   /** How many panels the result will have. > 1 is small multiples, unconditionally (R4-1). */
   panelCount: number
+
+  /* ── mode, P7-T2 ──────────────────────────────────────────────────────── */
+
+  /**
+   * The mode this plan was computed for, resolved. Echoed so a plan held beside
+   * a query that has since changed mode is detectable without re-deriving it.
+   */
+  mode: ReportMode
+  /**
+   * The cohort-grain switcher's options. Populated in `'cohort'` mode and empty
+   * in every other, because a control that is not on screen has no options —
+   * not options that are all illegal, which reads as a broken control.
+   */
+  cohortGrains: OptionLegality<CohortGrain>[]
+  /**
+   * Cohort mode: the age-interval column headers, `M0 … M{horizon}`.
+   *
+   * **This is the handoff to `reporting/cohorts.ts` and it is deliberately its
+   * vocabulary, not a new one** — `buildCohortMatrix(entities, joined, active,
+   * intervals)` takes exactly this array as its fourth argument. The retention
+   * maths does not move; the plan hands it its columns. `[]` in every other
+   * mode.
+   */
+  cohortIntervals: string[]
+  /**
+   * Funnel mode: the ordered step measure keys, resolved against the catalogue.
+   * The renderer draws them in this order and computes drop-off between
+   * neighbours. `[]` in every other mode.
+   */
+  funnelStepKeys: MeasureKey[]
 }
 
 /* ────────────────────────── run outcome ────────────────────────────────── */

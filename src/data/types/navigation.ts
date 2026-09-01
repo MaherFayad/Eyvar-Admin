@@ -88,6 +88,17 @@ export type DetailKind =
   | 'entity'
   | 'report'
   | 'dashboard'
+  /* Support › Contact Centre. The conversation pane is a **page**, not a
+     drawer, and the reasoning is worth keeping because the first answer was
+     wrong for a revealing reason: it was chosen as a drawer only because this
+     row declared `detailRoutes: []` and `routes.tsx` has a single owner — a
+     file-ownership constraint deciding a page shape. On the design itself,
+     §5.0's drawer is *"a surface consulted against the page behind it"*, and
+     under D22's 45-second first response at a cap of three an operator is IN
+     the conversation for twenty minutes rather than consulting it; and
+     `--ev-drawer-w` is 406px, which cannot hold a thread, a 320px rail and a
+     pinned composer at once. */
+  | 'conversation'
 
 export interface DetailRoute {
   kind: DetailKind
@@ -103,25 +114,100 @@ export interface DetailRoute {
 
 /* ────────────────────── Permissions ────────────────────────── */
 
-/** The 13 broad keys that exist today — legacy `PERMISSION_LABELS` (`:3225`–`:3239`). */
+/**
+ * **The twenty keys — DECISIONS.md D17.**
+ *
+ * Twelve survive from the legacy `PERMISSION_LABELS` (`:3225`–`:3239`), eight
+ * are minted, and `manage_settings` is **retired**. Every mint closes a named
+ * gap in `PROPOSED-STRUCTURE.md` §10.5; none is speculative.
+ *
+ * Declaration order is the order §6.4's "exactly what your role can do" summary
+ * renders them in: the five workspace read keys first, then `view_profiles`,
+ * then the write keys in the order their workspaces appear on the rail.
+ */
 export type PermissionKey =
+  /* ── the five workspace read keys ───────────────────────────────
+     `view_finance` already WAS one and has been since the legacy app. The other
+     four complete the pattern; the alternative — bending a write-flavoured key
+     such as `live_ops` into a view gate — reproduces `manage_settings`: one key
+     doing two jobs, and nobody able to grant half of it (D17). */
+  | 'view_analytics'
+  | 'view_operations'
+  | 'view_finance'
+  | 'view_support'
+  | 'view_admin'
+  /* The 360° layer. Enforced at ZERO call sites before D17 (§10.5 Problem 2). */
+  | 'view_profiles'
+  /* ── write keys ──────────────────────────────────────────── */
   | 'approve_drivers'
   | 'manage_subscriptions'
   | 'live_ops'
   | 'manage_plans'
-  | 'view_finance'
   | 'process_payouts'
   | 'release_escrow'
   | 'apply_deductions'
   | 'manage_tickets'
-  | 'view_profiles'
   | 'contact_users'
   | 'manage_team'
+  /* Dispatch radius, cities, limits, reason codes, SLA policy, the D22 chat cap. */
+  | 'manage_ops_policy'
+  /* General, branding, legal, communications, integrations. */
+  | 'manage_workspace'
+  /* Retention, erasure, integrity, exports. */
+  | 'manage_data_governance'
+  /* Second-factor enforcement, session lifetime, re-auth window. **Closes Q-78**,
+     which recorded that AC-663 fails visibly for want of this key. It is a
+     separate key from `manage_workspace` on purpose: folded together, the person
+     who edits the logo can turn off the second factor. */
+  | 'manage_security_policy'
+  /**
+   * **RETIRED by D17** — it was 39 of the console's 131 guards, held by one
+   * person (§10.5 Problem 1). It splits into `manage_ops_policy`,
+   * `manage_workspace`, `manage_data_governance` and `manage_security_policy`.
+   *
+   * **It survives in the union as a transitional alias, granted to `Owner` and
+   * to nobody else**, because five screens outside this file's owner still read
+   * it directly and deleting the key would make them read-only for the Owner
+   * mid-migration. **It gates no route-table row.** The migration each screen
+   * owner has to make:
+   *
+   * | Screen | reads today | must read |
+   * |---|---|---|
+   * | `admin/workspace/AdminWorkspaceScreen.tsx:97` | `manage_settings` | `manage_workspace` |
+   * | `admin/communications/AdminCommunicationsScreen.tsx:76` | `manage_settings` | `manage_workspace` |
+   * | `admin/policy/AdminPolicyScreen.tsx:~60` | `manage_settings` | `manage_ops_policy` |
+   * | `admin/data/RetentionCard.tsx:78` | `manage_settings` | `manage_data_governance` |
+   * | `admin/data/IntegrityPane.tsx:149` | `manage_settings` | `manage_data_governance` |
+   *
+   * **AC-925 fails until those five land**, and it fails naming this comment.
+   * Delete this member the day the last one migrates.
+   *
+   * @deprecated D17 — use one of the four successors above.
+   */
   | 'manage_settings'
 
-/** §11.2 — `◐` read-only sub-tabs render, with write actions disabled in place. */
+/**
+ * **Retired from the navigation model by D17; retained for the measure
+ * catalogue only.**
+ *
+ * `PermissionLevel` was a property of the ROW, so a sub-tab was `full` or
+ * `read` for everybody — and §10.3's matrix needs Operations › People to be
+ * full-access for Ops Manager and read-only for Finance **at the same time**.
+ * That is a modelling defect, not a missing value, which is why D17 replaces
+ * `SubTabRoute.permission` with `viewPermission` + `writePermission` and makes
+ * read/write a fact about the OPERATOR, where it always was.
+ *
+ * These two declarations survive only because `types/measure.ts:268` and
+ * `fixtures/measures.ts` still carry `permission: PermissionRef | null` on a
+ * **measure**, which D17 does not rule on and whose owner is not this one.
+ * **Nothing in the navigation model may reference them.** Delete both from this
+ * file the day the measure catalogue is re-modelled.
+ *
+ * @deprecated D17 — navigation carries `PermissionKey | null` directly.
+ */
 export type PermissionLevel = 'full' | 'read'
 
+/** @deprecated D17 — see `PermissionLevel`. Measure catalogue only. */
 export interface PermissionRef {
   key: PermissionKey
   level: PermissionLevel
@@ -159,12 +245,39 @@ export interface SubTabRoute {
   patterns: PatternKey[]
   shape: PageShape
   /**
-   * `null` = unresolved. **Q4 is open**: the rule is settled (§11.3), the 34
-   * values are not, and 19 legacy pages had nothing to inherit. Shipping `null`
-   * is the recorded gap AC-61 fails against — it is not a decision this file
-   * is allowed to make.
+   * **D17 — the row declares TWO keys, not one level.**
+   *
+   * `● = the operator holds both · ◐ = holds view only · ○ = holds neither`.
+   *
+   * This is the key that decides whether the row RENDERS at all
+   * (`isSubTabVisible`, AC-58) and which key `forbiddenReason` names on a deep
+   * link (AC-56).
+   *
+   * **Non-null on 34 of the 35 rows.** `admin-activity` is the one `null` and
+   * it is deliberate: every authenticated operator can open the Activity Log,
+   * and its rows are filtered **server-side** to entities the operator can
+   * otherwise see. An audit trail only the accused can hide is not a control,
+   * and a client-side filter over a full log is a leak in the network tab.
+   * **AC-919 asserts it is the only one.**
    */
-  permission: PermissionRef | null
+  viewPermission: PermissionKey | null
+  /**
+   * The key that decides whether this row's write actions are ENABLED
+   * (`canWriteSubTab`). §11.2: a read-only sub-tab still renders, with its write
+   * actions **disabled in place, at rest, with the reason named**.
+   *
+   * **`null` means this sub-tab declares no write actions at all, and
+   * `canWriteSubTab` returns `false` for it** — the four Overview boards,
+   * `management-overview`, `management-performance` and `admin-activity`.
+   * Returning `true` there would be the same open-by-default that made the old
+   * `permission: null` mean "ungated" and turned every `disabled={!gate.canWrite}`
+   * in Financials into decoration (REMEDIATION-PLAN §4.7.1).
+   *
+   * It may equal `viewPermission`: `operations-my-work` and `management-reports`
+   * are **self-gating** — claiming your own work and saving your own report
+   * require no authority beyond being able to see the screen.
+   */
+  writePermission: PermissionKey | null
   /** Whether this sub-tab owns a backlog and therefore can carry a count badge (§8.4). */
   hasBacklog: boolean
 }
@@ -203,7 +316,13 @@ export interface ShellLayerRoute {
   fullPagePath: string | null
   legacyPageIds: string[]
   patterns: PatternKey[]
-  permission: PermissionRef | null
+  /**
+   * The same two-key shape as `SubTabRoute` (D17), so one predicate serves both
+   * and the shell never has to ask which kind of row it is holding. `null` on
+   * both = every authenticated operator, which is three of the four layers.
+   */
+  viewPermission: PermissionKey | null
+  writePermission: PermissionKey | null
 }
 
 export interface RouteTable {

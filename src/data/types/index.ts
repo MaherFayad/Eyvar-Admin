@@ -59,6 +59,7 @@ export type {
 export { WORKSPACE_IDS } from './navigation'
 
 export type {
+  PermissionDelta,
   ProposedRoleName,
   RoleName,
   Session,
@@ -67,7 +68,14 @@ export type {
   UserPreferences,
 } from './session'
 
-export { ROLE_NAMES } from './session'
+/**
+ * `ROLE_PERMISSIONS` and `effectivePermissions` are **D17's role baseline and
+ * its resolver**. They are the mock server's implementation of *"computed
+ * server-side and delivered resolved on `Session.permissions`"* — called from
+ * `clients/session.ts` and `clients/auth.ts` and from **nothing in the UI**,
+ * which re-derives no authority of its own (§8.2).
+ */
+export { ROLE_NAMES, ROLE_PERMISSIONS, effectivePermissions, granterRoleFor } from './session'
 
 export type {
   Notification,
@@ -260,6 +268,38 @@ export type {
   WalletSummary,
 } from './financials'
 
+/* ── the two resources every screen referenced and nothing modelled ──────
+   `Payment` reuses `SettlementState` from './ledger' rather than declaring a
+   status of its own, and `Complaint` reuses `SlaTracked` from './workQueue'
+   rather than a third work-queue vocabulary. Neither adds a badge tone. */
+
+export type { Payment, PaymentDirection, PaymentKind } from './payment'
+
+export { PAYMENT_KINDS, paymentDirectionFor } from './payment'
+
+export type {
+  Complaint,
+  ComplaintCategory,
+  ComplaintOutcome,
+  ComplaintResolution,
+  ComplaintSeverity,
+  ComplaintStatus,
+} from './complaint'
+
+export {
+  COMPLAINT_CATEGORIES,
+  COMPLAINT_COMPENSATION_HALALAS,
+  COMPLAINT_FIRST_RESPONSE_MINUTES,
+  COMPLAINT_OUTCOMES,
+  COMPLAINT_REASON_CODE,
+  COMPLAINT_RESOLVE_MINUTES,
+  COMPLAINT_SEVERITIES,
+  COMPLAINT_STATUSES,
+  OPEN_COMPLAINT_STATUSES,
+  isOpenComplaint,
+  outcomeAuthorisesCompensation,
+} from './complaint'
+
 export type {
   CancellationRule,
   DerivedFieldDefinition,
@@ -357,6 +397,12 @@ export type {
   ReportCsvRow,
   ReportGrain,
   ReportPanel,
+  CohortGrain,
+  CohortSpec,
+  FunnelSpec,
+  FunnelStep,
+  JourneySpec,
+  ReportMode,
   ReportPreset,
   ReportQuery,
   ReportResult,
@@ -373,6 +419,124 @@ export type {
   SavedReport,
 } from './report'
 
-export { REPORT_NAME_MAX } from './report'
+/* P7-T1's values. `reportMode(query)` rather than `query.mode` at every call
+   site: `mode` is optional so that every link written before the field existed
+   still parses, and absence means `trend`. */
+export {
+  DEFAULT_REPORT_MODE,
+  REPORT_MODES,
+  REPORT_NAME_MAX,
+  normaliseReportQuery,
+  reportMode,
+} from './report'
 
-export type { Ticket, TicketMessage, TicketPriority, TicketStatus } from './ticket'
+export type {
+  Ticket,
+  TicketCallLog,
+  TicketCallOutcome,
+  TicketMessage,
+  TicketPriority,
+  TicketStatus,
+} from './ticket'
+/* A value, not a type — `verbatimModuleSyntax` means it cannot ride on the
+   `export type` line above, and a barrel that re-exports the union while
+   withholding the array of its members forces every caller to write the list
+   out again. */
+export { TICKET_CALL_OUTCOMES } from './ticket'
+
+/* ── the support conversation centre (P5-T1) ─────────────────────────── */
+
+export type {
+  AgentPresence,
+  Conversation,
+  ConversationChannel,
+  ConversationCloseReason,
+  ConversationEvent,
+  ConversationParticipant,
+  ConversationStatus,
+  Message,
+  MessageAttachment,
+  MessageDelivery,
+  MessageDeliveryState,
+  MessageDirection,
+  MessageVisibility,
+  ParticipantKind,
+  PresenceState,
+  TypingState,
+} from './conversation'
+
+export {
+  CONVERSATION_CHANNELS,
+  CONVERSATION_STATUSES,
+  MESSAGE_DELIVERY_STATES,
+  TYPING_TTL_SECONDS,
+  channelIsLive,
+  channelReportsRead,
+  deliveryAttempts,
+  deliveryCanRetry,
+  deliveryIsWellFormed,
+  isConversationEvent,
+  messageSubjectIsWellFormed,
+} from './conversation'
+
+/* ── the operator lifecycle (P6-T5) and the workspace pane (P6-T1) ────── */
+
+export type {
+  OnCallRota,
+  OperatorSessionsResult,
+  SecurityPolicy,
+  TeamGuardCode,
+  TeamInvite,
+  TeamInviteInput,
+  TeamTransition,
+} from './team'
+
+/**
+ * The F-016 predicate is exported as a VALUE, not only as a type. A surface
+ * that has to disable a control in place (§11.2) asks the same question the
+ * client asks, so the two cannot word or scope the refusal differently.
+ */
+export { manageTeamGuard, manageTeamHolders } from './team'
+
+export type {
+  LegalDocument,
+  ReconsentResult,
+  WorkspaceCurrency,
+  WorkspaceLogo,
+  WorkspaceSettings,
+  WorkspaceSettingsPatch,
+  WorkspaceTimezone,
+} from './workspace'
+
+export { MAX_LOGO_BYTES } from './workspace'
+
+/* ── Support › Disputes & Lost and Found ─────────────────────────────── */
+
+export type {
+  Dispute,
+  DisputeClaimantType,
+  DisputeEvidence,
+  DisputeEvidenceSource,
+  DisputeKind,
+  DisputeOutcome,
+  DisputeResolution,
+  DisputeStatus,
+  LostFoundItem,
+  LostFoundStatus,
+} from './dispute'
+
+/**
+ * Values, not only types. `LOST_FOUND_FLOW` is the transition ladder the screen
+ * reads instead of carrying its own chain of ternaries, and `outcomeMovesMoney`
+ * is the one place that says which verdict pays — a screen re-deriving either is
+ * a second answer waiting to disagree with this one.
+ */
+export {
+  DISPUTE_KINDS,
+  DISPUTE_OUTCOMES,
+  DISPUTE_STATUSES,
+  LOST_FOUND_FLOW,
+  LOST_FOUND_STATUSES,
+  nextLostFoundStatus,
+  outcomeMovesMoney,
+} from './dispute'

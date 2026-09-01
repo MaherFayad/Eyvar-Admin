@@ -13,6 +13,8 @@
 
 import { offsetFromNow } from '../mock/clock'
 import { claimFixtures } from './claims'
+import { cycle, cycleRecord } from './cycle'
+import { fillerDrivers } from './drivers'
 import type { Applicant } from '../types/applicant'
 
 /** 48 h from submission. **Not in the legacy data** — the work-queue pattern needs one; the window is product-owner's. */
@@ -22,7 +24,7 @@ function sla(appliedAt: string): string {
   return new Date(Date.parse(appliedAt) + SLA_HOURS * 3_600_000).toISOString()
 }
 
-export const applicantFixtures: Applicant[] = [
+const namedApplicants: Applicant[] = [
   {
     id: 'APP-2201',
     name: 'Saad Al-Quraishi',
@@ -445,3 +447,142 @@ export const applicantFixtures: Applicant[] = [
     decidedByUserId: null,
   },
 ]
+
+/* ── volume ──────────────────────────────────────────────────────────── */
+
+const FILLER_APPLICANT_NAMES: ReadonlyArray<{ readonly given: string; readonly family: string }> = [
+  { given: 'Nasser', family: 'Al-Harthi' },
+  { given: 'Rakan', family: 'Al-Suwaidan' },
+  { given: 'Waleed', family: 'Al-Jubair' },
+  { given: 'Hind', family: 'Al-Salem' },
+  { given: 'Basem', family: 'Al-Rasheed' },
+  { given: 'Tala', family: 'Al-Munajjed' },
+  { given: 'Mazen', family: 'Al-Hazmi' },
+  { given: 'Ghada', family: 'Al-Sabban' },
+  { given: 'Ammar', family: 'Al-Duwaish' },
+  { given: 'Latifa', family: 'Al-Ghannam' },
+  { given: 'Bassam', family: 'Al-Khudair' },
+]
+
+const FILLER_APPLICANT_VEHICLES: ReadonlyArray<{ readonly model: string; readonly klass: 'Economy' | 'Comfort' }> = [
+  { model: 'Corolla 2022 · White', klass: 'Economy' },
+  { model: 'Camry 2023 · Silver', klass: 'Comfort' },
+  { model: 'Elantra 2023 · Grey', klass: 'Economy' },
+  { model: 'Sonata 2024 · Black', klass: 'Comfort' },
+  { model: 'Yaris 2021 · White', klass: 'Economy' },
+]
+
+const REJECTION_REASONS: readonly string[] = [
+  'Background check returned an unspent traffic conviction',
+  'Vehicle is older than the eight-year limit for the class applied for',
+  'Insurance certificate names a policyholder who is not the applicant',
+  'Identity document and bank account holder do not match',
+]
+
+/**
+ * Volume for Operations › People › Applications — 43 decided applications, so
+ * the queue pages and its `approved` / `rejected` / `withdrawn` views have
+ * populations rather than one row each.
+ *
+ * **Not one of them is `pending` or `in-review`, and that is a hard
+ * constraint.** `fixtures/navCounts.ts` pins `operations-people` to *five
+ * applications awaiting a decision plus two lapsed compliance documents*, and
+ * `navCounts.test.ts:292` asserts the five against this collection while
+ * `metrics.test.ts` asserts the same five against the
+ * `operations.overview.pendingApplications` tile. A forty-fourth undecided
+ * application would falsify a badge, a tile and the argument in AC-721 that
+ * they differ legitimately.
+ *
+ * It is also the true shape. An applications queue is five open files and
+ * several hundred decided ones, and a fixture where every row is undecided
+ * makes the decided views — the ones an operator uses to answer *"why was this
+ * captain rejected?"* — untestable.
+ *
+ * Deterministic: name, vehicle and bank holder come off **one** record per row,
+ * and every timestamp descends from a single per-row offset, so a decision
+ * cannot precede its application.
+ */
+export const fillerApplicants: Applicant[] = Array.from({ length: 43 }, (_, i) => {
+  const person = cycle(FILLER_APPLICANT_NAMES, i)
+  const vehicle = cycle(FILLER_APPLICANT_VEHICLES, i)
+  const name = `${person.given} ${person.family}`
+  const female = person.given === 'Hind' || person.given === 'Tala' || person.given === 'Ghada' || person.given === 'Latifa'
+  /* Two rejected and one withdrawn in every seven; the rest approved. A queue
+     that only ever approves teaches nobody what a rejection looks like. */
+  const status = i % 7 === 6 ? 'withdrawn' : i % 7 < 2 ? 'rejected' : 'approved'
+  const appliedMinutesAgo = 1_440 * (3 + (i % 45)) + ((i * 83) % 1_400)
+  const decidedAfter = 120 + ((i * 197) % 3_600)
+  const appliedAt = offsetFromNow({ minutes: -appliedMinutesAgo })
+  return {
+    id: `APP-${3100 + i}`,
+    name,
+    phone: `+966 5${i % 10} ${String(200 + i).padStart(3, '0')} ${String(5000 + i * 17).slice(-4)}`,
+    email: i % 3 === 0 ? null : `${person.given.toLowerCase()}.${person.family.toLowerCase().replace('al-', '')}@example.com`,
+    vehicle: vehicle.model,
+    plate: `${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(65 + ((i * 3) % 26))}${String.fromCharCode(65 + ((i * 7) % 26))} ${String(1000 + i * 37).slice(-4)}`,
+    vehicleClass: vehicle.klass,
+    status,
+    appliedAt,
+    slaStartedAt: appliedAt,
+    slaDueAt: sla(appliedAt),
+    slaTargetMinutes: SLA_HOURS * 60,
+    /* Decided late in roughly a third of cases. Computed from the two offsets
+       rather than asserted, so a row cannot claim a breach its dates deny. */
+    slaBreachedAt: decidedAfter > SLA_HOURS * 60 ? offsetFromNow({ minutes: -appliedMinutesAgo + SLA_HOURS * 60 }) : null,
+    /**
+     * **`unset`, like every row above it.** Q8 is still open: nothing in the
+     * legacy app states a decision window for an application, so `slaDueAt`
+     * here is a *modelled* deadline and `slaSource` says so. Volume does not
+     * change that — forty-three more rows carrying an invented source would
+     * have made an unanswered question look settled.
+     */
+    slaSource: 'unset',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+    dateOfBirth: `19${85 + (i % 15)}-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 27) + 1).padStart(2, '0')}`,
+    nationalId: `10${String(10_000_000 + i * 7_919).slice(0, 8)}`,
+    address: `District ${(i % 12) + 1}, Riyadh`,
+    city: 'Riyadh',
+    gender: female ? 'Female' : 'Male',
+    hasPhoto: i % 3 !== 0,
+    device: i % 2 === 0 ? 'iPhone 13 · iOS 17.2' : 'Samsung Galaxy A54 · Android 13',
+    appLanguage: i % 6 === 0 ? 'English' : 'Arabic',
+    lastIp: `92.96.${(i * 11) % 200}.${(i * 5) % 250}`,
+    ipLocation: 'Riyadh, SA',
+    bank: {
+      bankName: 'Al Rajhi Bank',
+      iban: `SA44 8000 0000 ${String(4000 + i)} ${String(5000 + i)} ${String(6000 + i)}`,
+      /* The holder is the applicant, read off the same record as the name. A
+         mismatch between the two is a rejection reason, not a filler accident —
+         see `REJECTION_REASONS`. */
+      holder: name,
+      status: 'Verified',
+    },
+    docs: [
+      { type: 'license', status: 'verified', expiresOn: `202${8 + (i % 2)}-0${(i % 9) + 1}-1${i % 9}` },
+      { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'vehicle_reg', status: 'verified', expiresOn: `2027-0${(i % 9) + 1}-2${i % 8}` },
+      { type: 'background', status: status === 'rejected' ? 'rejected' : 'verified', expiresOn: null },
+      { type: 'insurance', status: 'verified', expiresOn: `2027-1${i % 3}-0${(i % 8) + 1}` },
+    ],
+    movementLog: [
+      { at: appliedAt.slice(0, 10), action: 'Application submitted', location: 'Riyadh, SA' },
+    ],
+    acceptedTrips: 0,
+    cancelledTrips: 0,
+    /* A decided application is in nobody's name. The claim states live on the
+       five undecided rows above, where they mean something. */
+    claim: null,
+    /* An approval mints a captain. These point at the filler captains, which
+       exist — an `approvedDriverId` naming nobody would be the same dangling
+       link the trip fillers used to carry. */
+    approvedDriverId: status === 'approved' ? cycleRecord(fillerDrivers, i).id : null,
+    rejectionReason: status === 'rejected' ? cycle(REJECTION_REASONS, i) : null,
+    decidedAt: offsetFromNow({ minutes: -appliedMinutesAgo + decidedAfter }),
+    decidedByUserId: status === 'withdrawn' ? null : cycle(['USR-1', 'USR-5'], i),
+  } satisfies Applicant
+})
+
+/** 51 rows — eight hand-written files and forty-three decided. */
+export const applicantFixtures: Applicant[] = [...namedApplicants, ...fillerApplicants]

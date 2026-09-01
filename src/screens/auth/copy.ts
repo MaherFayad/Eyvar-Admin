@@ -48,7 +48,13 @@ export const AUTH_EN: Dictionary = {
   /* The legal row (§1.3). `Help` is deliberately absent — Eyvar has no help
      centre, and a dead `Help` on a sign-in page is worse than no `Help`. When
      Admin › Workspace's `legal` pane provides none of these, the row is not
-     rendered at all rather than rendered empty. */
+     rendered at all rather than rendered empty.
+
+     **These two keys are currently UNRENDERED, and that is deliberate.**
+     `legal.ts` returns an empty list because Eyvar has no privacy page and no
+     terms page — the same rule that removes `Help`, applied to the other two.
+     The keys stay so that restoring the row is a one-line change there and
+     nothing here; see `legal.ts`'s header for the decision and its grounds. */
   'auth.legal.privacy': 'Privacy',
   'auth.legal.terms': 'Terms',
 

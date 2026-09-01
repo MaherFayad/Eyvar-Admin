@@ -91,7 +91,8 @@ export interface TopBarProps {
   /** §10.4 — the account menu's permanent onboarding entry (**AC-598**). */
   onOpenOnboarding: () => void
   onOpenNotification: (notification: Notification) => void
-  onSwitchUser: () => void
+  /** The seeded operator to become. See `AccountMenu` on why it takes an id. */
+  onSwitchUser: (userId: string) => void
   onSignOut: () => void
   /**
    * AC-70 — forwarded to the account menu, which is where the language control

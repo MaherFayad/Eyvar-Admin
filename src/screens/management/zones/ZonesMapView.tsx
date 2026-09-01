@@ -21,7 +21,6 @@ import {
   AlertTriangle,
   Users,
   Navigation,
-  ChevronRight,
   Search,
   Layers,
   TrendingUp,
@@ -30,7 +29,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import type { Zone } from '@/data/types'
-import { ABSENT, formatPercent } from '@/lib'
+import { ABSENT, formatPercent, type Translate } from '@/lib'
 
 // Real World Latitude / Longitude coordinates for Google Maps API Polygons & Markers
 const RIYADH_ZONE_LAT_LNG: Record<
@@ -120,6 +119,15 @@ export interface ZonesMapViewProps {
   onSteer: (zone: Zone) => void
   onQueueRecruitment: (zone: Zone) => void
   language?: 'en' | 'ar'
+  /**
+   * **§11.2 reaches the map.** The table's two row actions are disabled in
+   * place with a stated reason when the operator's role cannot act or the
+   * shell is frozen; the inspector card's copies of the same two actions were
+   * not, so the map was a way around the permission the table enforces. Passed
+   * in rather than re-derived, so the two surfaces cannot disagree.
+   */
+  canWrite: boolean
+  t: Translate
 }
 
 export function ZonesMapView({
@@ -127,6 +135,8 @@ export function ZonesMapView({
   onSteer,
   onQueueRecruitment,
   language = 'en',
+  canWrite,
+  t,
 }: ZonesMapViewProps) {
   const [selectedCity, setSelectedCity] = useState<string>('Riyadh')
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>('ZONE-01')
@@ -693,20 +703,36 @@ export function ZonesMapView({
                 <Button
                   variant="default"
                   size="xs"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 font-bold shadow-xs h-8"
+                  className="flex-1 text-xs gap-1.5 font-bold shadow-xs h-8"
+                  disabled={!canWrite || selectedZone.activeSteerOffer !== null}
+                  title={
+                    selectedZone.activeSteerOffer !== null
+                      ? t('zones.steer.blocked.live')
+                      : canWrite
+                        ? undefined
+                        : t('zones.blocked.permission')
+                  }
                   onClick={() => onSteer(selectedZone)}
                 >
                   <Navigation className="size-3.5" />
-                  <span>Steer Drivers</span>
+                  <span>{t('zones.action.steer')}</span>
                 </Button>
                 <Button
                   variant="secondary"
                   size="xs"
                   className="flex-1 text-xs gap-1.5 font-bold border border-border/80 h-8"
+                  disabled={!canWrite || selectedZone.recruitmentQueuedAt !== null}
+                  title={
+                    selectedZone.recruitmentQueuedAt !== null
+                      ? t('zones.recruit.blocked.queued')
+                      : canWrite
+                        ? undefined
+                        : t('zones.blocked.permission')
+                  }
                   onClick={() => onQueueRecruitment(selectedZone)}
                 >
                   <Users className="size-3.5" />
-                  <span>Recruitment</span>
+                  <span>{t('zones.action.recruit')}</span>
                 </Button>
               </div>
             </div>
@@ -773,8 +799,10 @@ export function ZonesMapView({
                 const isSelected = selectedZoneId === zone.id
                 const colors = getZoneHeatColor(zone)
                 return (
-                  <div
+                  <button
                     key={zone.id}
+                    type="button"
+                    aria-pressed={isSelected}
                     onClick={() => {
                       setSelectedZoneId(zone.id)
                       const geo = RIYADH_ZONE_LAT_LNG[zone.id]
@@ -784,7 +812,8 @@ export function ZonesMapView({
                       }
                     }}
                     className={cn(
-                      'p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 group',
+                      'w-full text-start p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 group',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       isSelected
                         ? 'bg-blue-50/70 border-blue-400 dark:bg-blue-950/40 dark:border-blue-700 shadow-xs ring-1 ring-blue-500/20'
                         : 'bg-card border-border/80 hover:bg-muted/40 hover:border-border',
@@ -823,16 +852,19 @@ export function ZonesMapView({
                       <span>{zone.demand} req • {zone.supply} cap</span>
                       <span className="font-bold">{zone.failureRate}% failure</span>
                     </div>
-                  </div>
+                  </button>
                 )
               })
             ) : (
               CITIES_DATA.map((city) => (
-                <div
+                <button
                   key={city.name}
+                  type="button"
+                  aria-pressed={selectedCity === city.name}
                   onClick={() => setSelectedCity(city.name)}
                   className={cn(
-                    'p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 group',
+                    'w-full text-start p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 group',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     selectedCity === city.name
                       ? 'bg-blue-50/70 border-blue-400 dark:bg-blue-950/40 dark:border-blue-700 shadow-xs'
                       : 'bg-card border-border/80 hover:bg-muted/40 hover:border-border',
@@ -860,21 +892,36 @@ export function ZonesMapView({
                     <span>{city.zonesCount > 0 ? `${city.zonesCount} zones tracked` : 'Not launched'}</span>
                     <span>{city.failureRate !== null ? `${city.failureRate}% failure` : '—'}</span>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>
 
-          {/* Bottom Summary Link */}
-          <div className="p-3 border-t border-border/80 bg-muted/20 flex items-center justify-between text-xs">
-            <span className="text-2xs text-muted-foreground font-medium">Last 7 days data</span>
-            <button
-              type="button"
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
-            >
-              <span>View full analytics</span>
-              <ChevronRight className="size-3" />
-            </button>
+          {/* **The "View full analytics" control that stood here is DELETED,
+              not wired, and the reason is a ruling rather than an oversight.**
+
+              The full analytics for Market & Zones is the seeded
+              `management-zones` metric board - ten tiles and the
+              `zones.citiesHealth` breakdown (`fixtures/metrics.ts:1250`,
+              `:2953`). **R4-6b makes the table primary and that board does not
+              mount**: `routes.tsx:338` returns `ZonesScreen` for this sub-tab
+              before the `METRIC_BOARD_SUB_TABS` branch is reached, and the row
+              declares `detailRoutes: []` and `views: []`
+              (`fixtures/routeTable.ts:201`). There is no page to go to, and the
+              four boards that DO mount answer other questions - sending a click
+              that reads "zones, this district, this city" to CSAT and retention
+              cohorts is a mismatch, not a destination.
+
+              So the control is removed rather than pointed somewhere plausible.
+              Restoring it is a design decision with a prerequisite: either the
+              zones board mounts somewhere, or this screen stops hiding its own
+              analytics half (see `ZonesScreen`'s `isTestEnv` note).
+
+              The caption's period is corrected with it: every zone measure in
+              scope here is 30-day - `failures30d`, `unservedRequests30d`,
+              `subMomentum` - and the strip claimed seven. */}
+          <div className="p-3 border-t border-border/80 bg-muted/20 flex items-center text-xs">
+            <span className="text-2xs text-muted-foreground font-medium">Last 30 days</span>
           </div>
         </aside>
       </div>

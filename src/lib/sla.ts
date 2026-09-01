@@ -1,7 +1,7 @@
 /**
  * The SLA clock. Design spec 00-shell §9.3 and §18; DESIGN.md §8.4.
  *
- * Four rules live here so no work queue can express them wrongly:
+ * Five rules live here so no work queue can express them wrongly:
  *
  * 1. **`No clock` is a value, not a gap.** An item with no deadline renders
  *    `No clock` in a neutral tone. Never `—` (that means *absent*), never a
@@ -20,6 +20,13 @@
  *    remaining is `neutral`, less than half is `warning`, past due is `breached`.
  *    With no known window there is no honest way to compute half, so the band
  *    stays `neutral` and the pill still tells the truth in words.
+ * 5. **The window decides the countdown's precision, not the number.** Q-13 /
+ *    AC-215 (`specs/02-work-queues.md` §4.3): under a 10-minute window the pill
+ *    counts in seconds — `45s left`, `overdue 20s` — because `2m left` …
+ *    `1m left` … `0m left` is not a countdown a person can act on. Above it the
+ *    minute tier stands: a 4-hour ticket reading `47s` in its last minute is
+ *    precision nobody can use. Deciding it here rather than per screen is what
+ *    stops five queues from answering it five ways.
  *
  * This module is pure. It never reads the host clock — `now` is passed in, from
  * the one clock (`@/hooks/useTick`, which reads `src/data/mock/clock.ts`).
@@ -27,7 +34,7 @@
 
 import type { IsoDateTime } from '@/data/types/common'
 import { toDate } from './format/date'
-import { formatDuration } from './format/duration'
+import { type DurationPrecision, formatDuration } from './format/duration'
 import type { Translate } from './i18n/translate'
 
 /** §9.3's three bands. `breached` is the row-critical signal, R5a (b) and (c). */
@@ -45,6 +52,12 @@ export type SlaClock =
       readonly remainingMs: number
       /** 0-1 of the window consumed, or `null` when the window is unknown. */
       readonly consumedRatio: number | null
+      /**
+       * The item's own target window in milliseconds, or `null` when it is
+       * genuinely unknown. Exposed because the window — not the number on the
+       * clock — decides how precisely the countdown reads (rule 5).
+       */
+      readonly windowMs: number | null
     }
   | {
       readonly kind: 'breached'
@@ -52,6 +65,7 @@ export type SlaClock =
       readonly dueAt: IsoDateTime
       readonly overdueMs: number
       readonly consumedRatio: number | null
+      readonly windowMs: number | null
     }
 
 export interface SlaInput {
@@ -76,6 +90,16 @@ export const NO_CLOCK: SlaClock = Object.freeze({ kind: 'no-clock', band: 'neutr
 const WARNING_THRESHOLD = 0.5
 
 /**
+ * Q-13 / AC-215: a window **under 10 minutes** counts in seconds. The two rows
+ * in the product today are the 3-minute instant request and the 5-minute
+ * critical acknowledgement; D22's 45-second chat first-response target is the
+ * third and the reason this shipped. An item whose window is unknown keeps the
+ * minute tier — guessing precision from the remaining time is exactly the
+ * `47s`-on-a-4-hour-ticket regression the tier exists to avoid.
+ */
+const SECONDS_TIER_WINDOW_MS = 10 * 60_000
+
+/**
  * Sentinel for `No clock` in the sort key. Legacy used `9e12` (`:19230`); this is
  * larger than any real remaining-time in milliseconds by many orders of
  * magnitude, and unlike `Infinity` it subtracts cleanly in a comparator.
@@ -89,9 +113,11 @@ export function slaClock(input: SlaInput, now: IsoDateTime): SlaClock {
   const nowMs = toDate(now).getTime()
   const remainingMs = dueMs - nowMs
 
-  const windowMs = resolveWindowMs(input, dueMs)
-  const consumedRatio =
-    windowMs === null || windowMs <= 0 ? null : clamp01((windowMs - remainingMs) / windowMs)
+  /* A non-positive window is not a window — a start at or after the deadline
+     tells us nothing about half of it, and nothing about precision either. */
+  const resolved = resolveWindowMs(input, dueMs)
+  const windowMs = resolved !== null && resolved > 0 ? resolved : null
+  const consumedRatio = windowMs === null ? null : clamp01((windowMs - remainingMs) / windowMs)
 
   if (remainingMs <= 0) {
     return {
@@ -100,13 +126,14 @@ export function slaClock(input: SlaInput, now: IsoDateTime): SlaClock {
       dueAt: input.dueAt,
       overdueMs: -remainingMs,
       consumedRatio,
+      windowMs,
     }
   }
 
   const band: 'neutral' | 'warning' =
     consumedRatio !== null && consumedRatio > 1 - WARNING_THRESHOLD ? 'warning' : 'neutral'
 
-  return { kind: 'running', band, dueAt: input.dueAt, remainingMs, consumedRatio }
+  return { kind: 'running', band, dueAt: input.dueAt, remainingMs, consumedRatio, windowMs }
 }
 
 /** The item's own window, in milliseconds, or `null` when it is genuinely unknown. */
@@ -181,19 +208,33 @@ export interface SlaLabelDescriptor {
   params: Readonly<Record<string, string>>
 }
 
+/**
+ * Rule 5, in one place: the item's own window picks the tier, and a screen
+ * never passes a precision itself. `null` — an unknown window — keeps minutes.
+ */
+export function slaPrecision(clock: SlaClock): DurationPrecision {
+  if (clock.kind === 'no-clock') return 'minute'
+  if (clock.windowMs === null) return 'minute'
+  return clock.windowMs < SECONDS_TIER_WINDOW_MS ? 'second' : 'minute'
+}
+
 /** The key and its parameters, for a caller that owns its own translator call. */
 export function slaLabelDescriptor(clock: SlaClock): SlaLabelDescriptor {
+  const precision = slaPrecision(clock)
   switch (clock.kind) {
     case 'no-clock':
       return { key: 'sla.noClock', params: {} }
     case 'running':
-      return { key: 'sla.left', params: { duration: formatDuration(clock.remainingMs) } }
+      return { key: 'sla.left', params: { duration: formatDuration(clock.remainingMs, { precision }) } }
     case 'breached':
-      return { key: 'sla.overdue', params: { duration: formatDuration(clock.overdueMs) } }
+      return { key: 'sla.overdue', params: { duration: formatDuration(clock.overdueMs, { precision }) } }
   }
 }
 
-/** The finished pill text: `12m left` · `3h 20m left` · `2d 4h left` · `overdue 14m` · `No clock`. */
+/**
+ * The finished pill text: `12m left` · `3h 20m left` · `2d 4h left` ·
+ * `overdue 14m` · `45s left` (a window under 10 minutes) · `No clock`.
+ */
 export function formatSlaLabel(clock: SlaClock, t: Translate): string {
   const { key, params } = slaLabelDescriptor(clock)
   return t(key, params)

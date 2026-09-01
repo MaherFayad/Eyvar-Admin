@@ -50,6 +50,8 @@
 
 import type { AbsenceEvent, AssuranceTrip } from '../types/assurance'
 import { LEG_ACK_WEIGHT } from '../types/assurance'
+import { cycle, cycleRecord } from './cycle'
+import { subscriptionFixtures } from './subscriptions'
 
 /** The confirmation cut-off for a leg departing on the given day, as an instant. */
 const cutOffBefore = (departureDay: string): string => {
@@ -59,7 +61,7 @@ const cutOffBefore = (departureDay: string): string => {
   return `${previous.getUTCFullYear()}-${p(previous.getUTCMonth() + 1)}-${p(previous.getUTCDate())}T21:00:00+03:00`
 }
 
-export const assuranceTripFixtures: AssuranceTrip[] = [
+const namedAssuranceTrips: AssuranceTrip[] = [
   {
     /* SCENARIO 1 — fully on track. Every queue needs the row where nothing is
        wrong, or the screen is only ever designed in its alarm state. */
@@ -484,6 +486,249 @@ export const assuranceTripFixtures: AssuranceTrip[] = [
     firstResponseAt: null,
     firstResponseBreachedAt: null,
   },
+  {
+    /**
+     * **SCENARIO 9 — `whatsapp`, the acknowledgement source nothing reached.**
+     *
+     * `LegAckSource` has four members. `app`, `phone` and `assumed` all had
+     * legs; `whatsapp` had none, so the filter facet matched nothing and — more
+     * to the point — **half the `attested` weight class was invisible**.
+     * `LEG_ACK_WEIGHT` maps `phone` and `whatsapp` to the same weight, and a
+     * screen that renders the weight but names the source has to prove it can
+     * name both.
+     *
+     * It is the most common attestation in practice and the one that dates
+     * worst in a dispute: an operator pasted a captain's reply into the leg. The
+     * `note` carries the timestamp of the message, because the message itself
+     * is not in this system.
+     */
+    id: 'UST-9',
+    subscriptionId: 'SUB-1075',
+    planKey: 'weekly',
+    planName: 'Weekly Economy',
+    riderId: 'RDR-1075',
+    riderName: 'Sara Al-Ghamdi',
+    driverId: 'DRV-0101',
+    driverName: 'Ahmed Salem',
+    departsAt: '2026-06-26T06:45:00+03:00',
+    route: 'Qurtubah → King Saud University',
+    pickup: 'Qurtubah',
+    destination: 'King Saud University',
+    riderConfirmed: true,
+    riderConfirmedAt: '2026-06-25T07:20:00+03:00',
+    captainDepartureState: 'not-started',
+    captainUnavailableReason: null,
+    acknowledgement: {
+      source: 'whatsapp',
+      weight: LEG_ACK_WEIGHT.whatsapp,
+      at: '2026-06-25T08:41:00+03:00',
+      byUserId: 'USR-5',
+      byUserName: 'Yousef Al-Balawi',
+      note: 'Captain replied “تمام، بكون هناك ٦:٣٠” on WhatsApp at 08:39. Pasted by the dispatcher.',
+    },
+    autoHandedOff: false,
+    minutesToPickup: null,
+    backupDriverId: 'DRV-0104',
+    backupDriverName: 'Hassan Al-Ghamdi',
+    backupEligible: true,
+    backupIneligibleReason: null,
+    nearbyEligibleCount: 3,
+    nearestEligibleKm: 2.4,
+    uncovered: false,
+    backupOffer: null,
+    claim: null,
+    slaStartedAt: null,
+    slaDueAt: cutOffBefore('2026-06-26'),
+    slaTargetMinutes: null,
+    slaBreachedAt: null,
+    slaSource: 'legacy-policy',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+  },
+  {
+    /**
+     * **SCENARIO 10 — a backup offer that was `declined`.**
+     *
+     * `BackupOfferState` has four members; `offered`, `accepted` and `expired`
+     * all had legs and `declined` had none. The distinction the missing one
+     * carries is the whole reason the state is not a boolean: an **expired**
+     * offer means the captain never saw it, a **declined** one means they saw
+     * it and said no. The first is a notification problem and the second is a
+     * supply problem, and an operator does opposite things about them.
+     *
+     * The leg is covered — a second backup accepted afterwards — so this row is
+     * not work and does not move `operations-assurance`'s nav count, which
+     * `navCounts.test.ts` pins to the `no-backup-captain` view.
+     */
+    id: 'UST-10',
+    subscriptionId: 'SUB-1052',
+    planKey: 'biweekly',
+    planName: 'Bi-weekly Comfort',
+    riderId: 'RDR-2031',
+    riderName: 'Tariq Al-Saud',
+    driverId: 'DRV-0103',
+    driverName: 'Khalid Mansour',
+    departsAt: '2026-06-26T06:15:00+03:00',
+    route: 'Al Nuzha → Olaya',
+    pickup: 'Al Nuzha',
+    destination: 'Olaya',
+    riderConfirmed: true,
+    riderConfirmedAt: '2026-06-25T06:02:00+03:00',
+    captainDepartureState: 'not-started',
+    captainUnavailableReason: null,
+    acknowledgement: {
+      source: 'app',
+      weight: LEG_ACK_WEIGHT.app,
+      at: '2026-06-25T08:12:00+03:00',
+      byUserId: null,
+      byUserName: 'Khalid Mansour',
+      note: null,
+    },
+    autoHandedOff: false,
+    minutesToPickup: null,
+    backupDriverId: 'DRV-0106',
+    backupDriverName: 'Reem Al-Otaibi',
+    backupEligible: true,
+    backupIneligibleReason: null,
+    nearbyEligibleCount: 2,
+    nearestEligibleKm: 3.9,
+    uncovered: false,
+    backupOffer: {
+      driverId: 'DRV-0105',
+      driverName: 'Youssef Nouri',
+      state: 'declined',
+      offeredAt: '2026-06-25T07:30:00+03:00',
+      expiresAt: '2026-06-25T08:00:00+03:00',
+      /* Answered inside the window. An expired offer has `respondedAt: null`;
+         that is the field the two states are actually distinguished by. */
+      respondedAt: '2026-06-25T07:38:00+03:00',
+    },
+    claim: null,
+    slaStartedAt: null,
+    slaDueAt: cutOffBefore('2026-06-26'),
+    slaTargetMinutes: null,
+    slaBreachedAt: null,
+    slaSource: 'legacy-policy',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+  },
+]
+
+/* ── volume ──────────────────────────────────────────────────────────── */
+
+/**
+ * The subscriptions the filler legs run against — **whole records**, so a leg's
+ * plan, rider and captain are three facts read off one object rather than three
+ * sequences that happen to line up today. This is the correction the file
+ * header already describes being made by hand to `UST-2`: *"a leg whose rider
+ * disagrees with its plan is a support call, not a fixture"*. The generator
+ * makes that structural instead of vigilant.
+ */
+const LEG_PLANS = subscriptionFixtures.flatMap((sub) =>
+  sub.driverId === null || sub.driverName === null || sub.status === 'cancelled'
+    ? []
+    : [{ ...sub, driverId: sub.driverId, driverName: sub.driverName }],
+)
+
+const LEG_ROUTES: ReadonlyArray<{ readonly pickup: string; readonly destination: string }> = [
+  { pickup: 'Al Malqa', destination: 'KAFD' },
+  { pickup: 'Hittin', destination: 'King Saud University' },
+  { pickup: 'Al Yasmin', destination: 'Riyadh Front' },
+  { pickup: 'Qurtubah', destination: 'Granada Mall' },
+  { pickup: 'Al Nakheel', destination: 'King Fahd Medical City' },
+  { pickup: 'Olaya', destination: 'Kingdom Tower' },
+  { pickup: 'Al Wurud', destination: 'Al Faisaliah' },
+]
+
+/**
+ * Volume for the readiness board — 43 upcoming legs, so it pages and sorts.
+ *
+ * **Every one of them is a clean leg**, and that is a constraint rather than a
+ * shortcut. `clients/myWork.ts:145` turns a leg into a work item when it is
+ * uncovered, unconfirmed, or has no eligible backup, and
+ * `fixtures/navCounts.ts` pins both `operations-assurance` and
+ * `operations-my-work` to counts derived from those predicates. A filler that
+ * needed a human would silently move two badges that three files reason about.
+ *
+ * It is also the true shape: a subscription business's readiness board is
+ * mostly legs that are going to be fine, and the eight hand-written scenarios
+ * above are the ones that are not. A board where every row is a problem teaches
+ * an operator that the board is noise.
+ */
+export const fillerAssuranceTrips: AssuranceTrip[] = Array.from({ length: 43 }, (_, i) => {
+  const plan = cycleRecord(LEG_PLANS, i)
+  const route = cycle(LEG_ROUTES, i)
+  const backup = cycleRecord(LEG_PLANS, i + 3)
+  /* Two to nine days out. `departsAt` and `slaDueAt` both descend from this one
+     day, so a leg's cut-off cannot contradict its departure. */
+  const day = 27 + (i % 4)
+  const departureDay = day <= 30 ? `2026-06-${day}` : `2026-07-0${day - 30}`
+  const attested = i % 4 === 0
+  return {
+    id: `UST-${1001 + i}`,
+    subscriptionId: plan.id,
+    planKey: plan.planKey,
+    planName: plan.planName,
+    riderId: plan.riderId,
+    riderName: plan.riderName,
+    driverId: plan.driverId,
+    driverName: plan.driverName,
+    departsAt: `${departureDay}T0${6 + (i % 3)}:${String((i * 7) % 60).padStart(2, '0')}:00+03:00`,
+    route: `${route.pickup} → ${route.destination}`,
+    pickup: route.pickup,
+    destination: route.destination,
+    riderConfirmed: true,
+    riderConfirmedAt: `${departureDay}T00:0${i % 6}:00+03:00`,
+    captainDepartureState: 'not-started',
+    captainUnavailableReason: null,
+    /* Strong three times in four, attested the fourth. Never `assumed`: a weak
+       acknowledgement is not a confirmation (`:18135`) and would make the leg
+       work. */
+    acknowledgement: attested
+      ? {
+          source: 'phone' as const,
+          weight: LEG_ACK_WEIGHT.phone,
+          at: `${departureDay}T00:1${i % 6}:00+03:00`,
+          byUserId: 'USR-5',
+          byUserName: 'Yousef Al-Balawi',
+          note: 'Confirmed by call the evening before.',
+        }
+      : {
+          source: 'app' as const,
+          weight: LEG_ACK_WEIGHT.app,
+          at: `${departureDay}T00:1${i % 6}:00+03:00`,
+          byUserId: null,
+          byUserName: plan.driverName,
+          note: null,
+        },
+    autoHandedOff: false,
+    minutesToPickup: null,
+    backupDriverId: backup.driverId,
+    backupDriverName: backup.driverName,
+    backupEligible: true,
+    backupIneligibleReason: null,
+    nearbyEligibleCount: 2 + (i % 7),
+    nearestEligibleKm: Number((0.8 + ((i * 13) % 90) / 10).toFixed(1)),
+    uncovered: false,
+    backupOffer: null,
+    claim: null,
+    slaStartedAt: null,
+    slaDueAt: cutOffBefore(departureDay),
+    slaTargetMinutes: null,
+    slaBreachedAt: null,
+    slaSource: 'legacy-policy',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+  } satisfies AssuranceTrip
+})
+
+/** 53 legs — ten hand-written scenarios and forty-three that are simply fine. */
+export const assuranceTripFixtures: AssuranceTrip[] = [
+  ...namedAssuranceTrips,
+  ...fillerAssuranceTrips,
 ]
 
 /**

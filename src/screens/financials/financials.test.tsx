@@ -467,6 +467,56 @@ describe('copy — AC-429, AC-442, AC-443, AC-444', () => {
     expect(offenders).toEqual([])
   })
 
+  /**
+   * **D21 — three sentences per refusal cause, and a family with two is a
+   * `createTranslator` throw at the moment an operator reaches it.**
+   *
+   * `bulkRefusalText` appends `.one`, `.other` or `.all` to a base key chosen
+   * by the screen, so a family that ships two of the three works until a
+   * selection happens to take the third shape — the `.all` case in particular
+   * needs every record refused, which no happy-path test reaches. This sweep
+   * makes the gap a build failure instead.
+   *
+   * It walks the dictionary rather than a hand-written list, so a cause added
+   * to any `*_REFUSAL_COPY` map is covered the moment its copy lands.
+   */
+  it('D21 — every bulk refusal family declares .one, .other and .all', () => {
+    const forms = new Map<string, Set<string>>()
+    for (const key of Object.keys(FINANCIALS_EN)) {
+      const match = /^(fin\.bulk\.[a-z]+\.[A-Za-z]+)\.(one|other|all)$/.exec(key)
+      if (!match) continue
+      const [, base, form] = match
+      const set = forms.get(base as string) ?? new Set<string>()
+      set.add(form as string)
+      forms.set(base as string, set)
+    }
+
+    /* Non-vacuity: the five bulk commands declare at least ten causes between
+       them, so an empty sweep is a broken regex rather than a clean bill. */
+    expect(forms.size, 'the sweep found refusal families').toBeGreaterThan(9)
+
+    const incomplete = [...forms.entries()]
+      .filter(([, set]) => !(set.has('one') && set.has('other') && set.has('all')))
+      .map(([base, set]) => `${base} declares ${[...set].sort().join(', ')}`)
+    expect(incomplete).toEqual([])
+  })
+
+  /**
+   * The `.other` and `.all` forms carry the count; `.one` must not, because it
+   * has no subset to name and `interpolate` would render a bare number into a
+   * sentence about a single record.
+   */
+  it('D21 — the counted forms carry {count} and the single form does not', () => {
+    for (const [key, value] of Object.entries(FINANCIALS_EN)) {
+      if (!/^fin\.bulk\.[a-z]+\.[A-Za-z]+\.(other|all)$/.test(key)) continue
+      expect(String(value), `${key} names the count`).toContain('{count}')
+    }
+    for (const [key, value] of Object.entries(FINANCIALS_EN)) {
+      if (!/^fin\.bulk\.[a-z]+\.[A-Za-z]+\.one$/.test(key)) continue
+      expect(String(value), `${key} has no subset to count`).not.toContain('{count}')
+    }
+  })
+
   it('AC-444 — no operator-facing string contains an emoji', () => {
     const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u
     const offenders = Object.entries(FINANCIALS_EN).filter(([, value]) => emoji.test(String(value)))

@@ -142,8 +142,22 @@ export interface OnboardingStep {
   reachable: boolean
 }
 
-/** One role's track: the ordered step ids it includes. D4 is a new entry here and nothing else. */
-export type OnboardingTracks = Readonly<Record<RoleName, readonly string[]>>
+/**
+ * One role's track: the ordered step ids it includes. D4 is a new entry here and
+ * nothing else.
+ *
+ * **`Partial` since D17**, which minted `Dispatcher` and `Trust & Safety`. The
+ * map is *meant* to be total and `resolveSteps` still throws `notFound` on a
+ * missing track (**AC-617 — no default and no fallback**: a role with no track
+ * is a bug and must read as one). But an exhaustive `Record` makes the fixture
+ * itself a compile error the moment a role is added, which converts a data gap
+ * into a build break for whoever adds the role, and the gap is not theirs.
+ *
+ * **The two new roles have no track and `getOnboardingChecklist` throws for
+ * them.** That is the honest state: the track content is a product decision, not
+ * something the role model may invent. Owner: `fixtures/onboardingTracks.ts`.
+ */
+export type OnboardingTracks = Readonly<Partial<Record<RoleName, readonly string[]>>>
 
 /* ─────────────────────────── the state ──────────────────────── */
 

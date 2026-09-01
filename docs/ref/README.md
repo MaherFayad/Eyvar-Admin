@@ -26,6 +26,20 @@ evidence behind it.
 | [components.md](components.md) | "Which shadcn component, and how do I restyle it?" | ~55 |
 | [modules.md](modules.md) | "Which doc describes this part of the product?" | ~60 |
 
+## The second set — surfaces the rounds 13–18 audits opened
+
+These summarise `design/13`–`design/18` and the reconciled audit, not `DESIGN.md`. They
+carry live line numbers into `src/`, so re-grep before citing one.
+
+| File | Answers | Lines |
+|---|---|---|
+| [table.md](table.md) | "What breaks if I touch `DataTable`?" — the four live defects | ~79 |
+| [i18n.md](i18n.md) | "Is this string translatable at all?" — the key inventory and the four gaps | ~75 |
+| [verify.md](verify.md) | "Is this claimed defect real?" — and the nine that were not | ~73 |
+| [motion.md](motion.md) | "May this move, and for how long?" | ~70 |
+| [pwa.md](pwa.md) | "What may be cached, and what may queue?" | ~66 |
+| [api.md](api.md) | "What does the backend have to return?" — the 284-endpoint contract | ~70 |
+
 ## Precedence, in one line
 
 **Rulings → §6.2 sanctioned deviations → §7–§9 → §1–§5.**

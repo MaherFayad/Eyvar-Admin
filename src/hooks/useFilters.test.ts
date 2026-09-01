@@ -1,7 +1,52 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useDebouncedValue } from './useDebouncedValue'
-import { useFilters } from './useFilters'
+import { hasActiveFilters, useFilters, withFilter, withoutFilter } from './useFilters'
+import type { FilterSpec } from '@/data/types/common'
+
+/**
+ * The chip algebra is pure and exported because two stores now apply it — this
+ * hook's `useState` and the URL (`useUrlTableState`, P1-T1). Tested here rather
+ * than only through a store, so a change to the rule fails on the rule.
+ */
+describe('the chip algebra', () => {
+  const riyadh: FilterSpec = { field: 'city', op: 'eq', value: 'Riyadh' }
+  const jeddah: FilterSpec = { field: 'city', op: 'eq', value: 'Jeddah' }
+  const active: FilterSpec = { field: 'status', op: 'eq', value: 'active' }
+
+  it('replaces the chip for a field instead of adding a second one (§9.1)', () => {
+    expect(withFilter([riyadh], jeddah)).toEqual([jeddah])
+  })
+
+  it('appends a chip for a field that has none', () => {
+    expect(withFilter([riyadh], active)).toEqual([riyadh, active])
+  })
+
+  it('does not mutate the list it was given', () => {
+    const original = [riyadh]
+    withFilter(original, jeddah)
+    withoutFilter(original, 'city')
+    expect(original).toEqual([riyadh])
+  })
+
+  it('removes one field and leaves the rest', () => {
+    expect(withoutFilter([riyadh, active], 'city')).toEqual([active])
+  })
+
+  it('is a no-op for a field with no chip', () => {
+    expect(withoutFilter([riyadh], 'status')).toEqual([riyadh])
+  })
+
+  it.each([
+    ['', [], false],
+    ['   ', [], false],
+    ['nora', [], true],
+    ['', [riyadh], true],
+    ['   ', [riyadh], true],
+  ] as const)('hasActiveFilters(%j, %j) is %s', (query, filters, expected) => {
+    expect(hasActiveFilters(query, [...filters])).toBe(expected)
+  })
+})
 
 describe('useFilters', () => {
   it('starts empty and unfiltered', () => {

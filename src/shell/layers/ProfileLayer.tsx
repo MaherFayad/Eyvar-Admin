@@ -13,10 +13,13 @@
  *               as a declared contract** — Financials contributes wallet and
  *               payment cards, Support contributes tickets / disputes /
  *               fairness, Operations contributes trips / subscriptions /
- *               compliance / commitment. **Not one 600-line builder**, which is
- *               why 0.7 ships the SHELL of the stack and each workspace fills
- *               its own section in Phase 1. `ProfileRef.sections` is that
- *               contract, as data.
+ *               compliance / commitment. **Not one 600-line builder**:
+ *               `ProfileRef.sections` is the contract as data, and the twelve
+ *               renderers live in `components/profile`, one per key. This file
+ *               renders the stack; it does not know what a wallet card is.
+ *   §6.2        **the same stack on both surfaces.** `EntityPageScreen` renders
+ *               the identical `<ProfileSections>` from the identical registry.
+ *               Nothing is passed in, so nothing can be passed differently.
  *   §6.2        **EVERY entity type gets card toggles**, not just riders and
  *               drivers. Legacy `initCardToggles()` runs for two of eleven
  *               (`09b` §17.4) and the other nine get an uncollapsible wall.
@@ -35,15 +38,15 @@
  *               is enforced at ZERO call sites today, finally becomes real.
  */
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { useAsync } from '@/hooks'
 import { resolveProfile } from '@/data/clients'
-import { isApiError, type ProfileRef, type ProfileSectionKey } from '@/data/types'
-import type { Translate } from '@/lib'
+import { isApiError, type ProfileRef } from '@/data/types'
+import type { Language, Translate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { ProfileSections, useProfileRecord } from '@/components/profile'
 import { ShellLayer } from '../ShellLayer'
 
 export interface ProfileLayerProps {
@@ -52,21 +55,36 @@ export interface ProfileLayerProps {
   onClose: () => void
   onOpenFullProfile: (path: string) => void
   t: Translate
-  /**
-   * §6.2 — the declared contract. A workspace registers a renderer for the
-   * section keys it owns; unclaimed keys render nothing. Phase 1 fills this,
-   * and no workspace has to edit this file to do it.
-   */
-  sectionRenderers?: Partial<Record<ProfileSectionKey, (ref: ProfileRef) => React.ReactNode>>
+  /** The card stack's dates and numbers. See `ProfileSections`. */
+  language: Language
 }
 
+/**
+ * **`sectionRenderers` is gone, and its removal is the fix.**
+ *
+ * It was an optional prop defaulting to `{}` that `AppLayout` never passed, so
+ * every section fell to the `??` branch and rendered `state.cardError.message`.
+ * A healthy rider's profile showed eight cards each claiming to have failed, and
+ * an operator could not tell that from an outage.
+ *
+ * Re-adding it as a **required** prop would have moved the same drift one level
+ * up: the drawer would take a registry from `AppLayout` while
+ * `EntityPageScreen`, which has no `AppLayout` above it, would still need its
+ * own. So there is no prop. Both presentations render `<ProfileSections>`, which
+ * is the single consumer of the single registry (`components/profile`).
+ *
+ * §6.2's *"contributed by workspaces as a declared contract"* is unharmed: the
+ * contract is `ProfileRef.sections` — **data**, from `clients/profile.ts` — and
+ * a workspace adds a section by adding a renderer to the registry, not by
+ * editing this file. That was always the part that mattered.
+ */
 export function ProfileLayer({
   entityId,
   open,
   onClose,
   onOpenFullProfile,
   t,
-  sectionRenderers = {},
+  language,
 }: ProfileLayerProps) {
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(entityId, signal), {
     deps: [entityId],
@@ -114,60 +132,30 @@ export function ProfileLayer({
         />
       )}
 
-      {ref && (
-        <div className="flex flex-col gap-2">
-          {ref.sections.map((section) => (
-            <ProfileCard key={section} title={section} defaultOpen={section === 'identity'}>
-              {sectionRenderers[section]?.(ref) ?? (
-                /* §3.5 — an empty pair renders an explicit grey placeholder
-                   sentence, never blank. A section no workspace has claimed yet
-                   says so rather than showing an empty box. */
-                <p className="text-sm text-muted-foreground">
-                  {t('state.cardError.message', { resource: section })}
-                </p>
-              )}
-            </ProfileCard>
-          ))}
-        </div>
-      )}
+      {/* §6.2's card stack. The drawer has no rail, so it omits nothing — the
+          identity card is its first card. */}
+      {ref && <ProfileBody entity={ref} t={t} language={language} />}
     </ShellLayer>
   )
 }
 
 /**
- * One collapsible card. **Every entity type gets these toggles** (§6.2) — the
- * component takes no "is this a rider" branch, which is what makes that true.
+ * A child, so `useProfileRecord` is only mounted once a ref exists.
+ *
+ * Calling it in `ProfileLayer` would mean either a hook that fires with an
+ * unresolved id or one held disabled through the whole `resolveProfile`
+ * round-trip. A child keyed on the resolved ref is the honest shape: the record
+ * read starts when there is something to read.
  */
-function ProfileCard({
-  title,
-  defaultOpen,
-  children,
+function ProfileBody({
+  entity,
+  t,
+  language,
 }: {
-  title: string
-  defaultOpen: boolean
-  children: React.ReactNode
+  entity: ProfileRef
+  t: Translate
+  language: Language
 }) {
-  return (
-    <Collapsible
-      defaultOpen={defaultOpen}
-      className="overflow-hidden rounded-xl border border-border bg-card shadow-1"
-    >
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex h-10 w-full items-center justify-between rounded-none px-3 text-sm font-semibold"
-        >
-          <span className="capitalize">{title}</span>
-          {/* A disclosure caret. `▾` is a mark and does not mirror (§9.5); the
-              rotation is vertical, so it is direction-neutral too. */}
-          <span aria-hidden="true" className="transition-transform group-data-open/collapsible:rotate-180">
-            ▾
-          </span>
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="border-t border-border p-3">{children}</div>
-      </CollapsibleContent>
-    </Collapsible>
-  )
+  const record = useProfileRecord(entity)
+  return <ProfileSections entity={entity} record={record} t={t} language={language} />
 }

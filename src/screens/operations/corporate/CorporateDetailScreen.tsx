@@ -1,11 +1,55 @@
+/**
+ * **Operations > Corporate > account detail** - `/operations/corporate/:corpId`.
+ *
+ * ## What P4 changed here, and why each one was a defect
+ *
+ * **Two controls reported writes that never happened.** `handleRemoveEmployee`
+ * filtered a local array and toasted *"Employee rider unlinked"*; the next read
+ * of the account brought the rider straight back. `handleSendInvoice` toasted
+ * *"Consolidated invoice sent to {email}"* and did nothing at all - there is no
+ * invoicing operation anywhere in `@/data/clients`. Both are now **disabled in
+ * place with their reason** (§11.2), and the two client operations they need
+ * are named in the handoff:
+ *
+ * ```ts
+ * removeCorporateEmployee(id: string, riderId: string, signal?: AbortSignal)
+ *   : Promise<CorporateAccount>          // 409 when the rider has open rides on this account
+ * sendCorporateInvoice(id: string, signal?: AbortSignal)
+ *   : Promise<CorporateInvoice>          // the period, the total and the delivery record
+ * ```
+ *
+ * A disabled control with a sentence is not a worse product than a working
+ * button; it is a truthful one. The button that lied taught the operator the
+ * unlink had happened, and the invoice had gone out.
+ *
+ * **The vehicle-tier select wrote a value the type forbids.**
+ * `CorporateUsagePolicy.vehicleTier` is `'Economy' | 'Comfort' | 'any'`; the
+ * options offered `'economy'` and `'comfort'`, and an `as any` cast on the
+ * handler hid it. So saving the policy PATCHed a lowercase string the domain
+ * does not recognise, and reopening the form showed the placeholder because
+ * neither option matched. The cast is gone and `VEHICLE_TIERS` is derived from
+ * the union, so a fourth tier is a compile error here rather than a silent
+ * mismatch.
+ *
+ * **`catch (err: any)`** on the link handler is gone with it. `any` in a data
+ * path is a defect; `isApiError` is the narrowing the client's own 409 was
+ * written for.
+ *
+ * **§11.2 - refused controls are disabled, not hidden.** `canWrite` used to
+ * remove `Link employee`, the policy save bar and every row's unlink from the
+ * page. An operator without `manage_subscriptions` therefore saw a read-only
+ * page with no indication that any of it was ever editable, which is exactly
+ * what §11.2 says teaches the wrong thing. They are now rendered, disabled, and
+ * they say why.
+ */
+
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { addCorporateEmployee, getCorporateAccount, updateCorporateUsagePolicy } from '@/data/clients/corporateAccounts'
-import { riderFixtures } from '@/data/fixtures/riders'
-import type { CorporateAccount } from '@/data/types'
+import { addCorporateEmployee, getCorporateAccount, listRiders, updateCorporateUsagePolicy } from '@/data/clients'
+import { isApiError, type CorporateAccount, type Paginated, type Rider } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { formatDate } from '@/lib'
+import { formatCount, formatDate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -14,6 +58,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
+import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,9 +68,29 @@ import { Switch } from '@/components/ui/switch'
 import { Building2, CreditCard, Plus, ShieldAlert, Trash2, Users } from 'lucide-react'
 import { AddEmployeeModal } from './AddEmployeeModal'
 
+/**
+ * The three values `CorporateUsagePolicy.vehicleTier` actually accepts, keyed
+ * to their copy. Typed as a record over the union rather than three loose
+ * `<SelectItem>`s, so the option values cannot drift from the domain again -
+ * which is precisely how `'economy'` came to be written to a field that only
+ * knows `'Economy'`.
+ */
+const VEHICLE_TIERS: Readonly<
+  Record<CorporateAccount['usagePolicy']['vehicleTier'], { key: string; fallback: string }>
+> = {
+  any: { key: 'corp.tier.any', fallback: 'Any tier (Economy, Comfort, Exec)' },
+  Economy: { key: 'corp.tier.economy', fallback: 'Economy only' },
+  Comfort: { key: 'corp.tier.comfort', fallback: 'Comfort and Economy' },
+}
+
+const VEHICLE_TIER_VALUES = Object.keys(
+  VEHICLE_TIERS,
+) as Array<CorporateAccount['usagePolicy']['vehicleTier']>
+
 export function CorporateDetailScreen() {
   const shell = useShell()
   const navigate = useNavigate()
+  const location = useLocation()
   const { corpId = '' } = useParams<{ corpId: string }>()
   const { t, dir, language } = shell.language
 
@@ -57,7 +122,69 @@ export function CorporateDetailScreen() {
 
   const currentEmployees = localEmployees ?? data?.riderIds ?? []
 
+  /**
+   * The linked employee riders, read through the seam.
+   *
+   * This used to be `riderFixtures.filter(...)`, which meant the card kept
+   * serving mocks after a `VITE_DATA_SOURCE=http` cutover — the seam's whole
+   * point (`REMEDIATION-PLAN.md` §2.1). `id in [...]` is a declared rider
+   * filter (`clients/riders.ts` — `filterable.id`, operator `in`), so no new
+   * client operation is needed.
+   *
+   * An empty `in` set matches nothing, so an account with no employees lands on
+   * `empty` without a special case, and `pageSize` is the size of the set so
+   * the page can never truncate the answer.
+   *
+   * The dep is the joined id list, not the array: `useAsync` compares deps
+   * shallowly, and a fresh array each render would re-fetch forever.
+   *
+   * `enabled` holds the read until the account is in hand. This is a DEPENDENT
+   * read — without the gate it fires once against an empty id set before
+   * `riderIds` exists and again after, which is a wasted request and, worse,
+   * silently swallows a `mockFailures.once` injection on the throwaway call.
+   */
+  const employeeIdKey = currentEmployees.join(',')
+  const employees = useAsync<Paginated<Rider>>(
+    (signal) =>
+      listRiders(
+        {
+          filters: [{ field: 'id', op: 'in', value: currentEmployees }],
+          pageSize: Math.max(currentEmployees.length, 1),
+        },
+        signal,
+      ),
+    { deps: [employeeIdKey], enabled: account.status === 'content' },
+  )
+
+  /**
+   * **P8-T1** - the 360 profile layer, as an overlay param on THIS route
+   * (AC-21 / AC-22). A rider named on this page is a rider an operator can
+   * open, without losing the account they are looking at.
+   */
+  const profileHref = (id: string) => ({
+    pathname: location.pathname,
+    search: withOverlay(location.search, 'entity', id),
+  })
+
   const canWrite = shell.permissions.permissions.includes('manage_subscriptions')
+
+  /**
+   * §11.2 - one sentence per refusal, and the control renders disabled beside
+   * it rather than disappearing. `noWrite` is the role refusal; the other two
+   * are *"there is no operation behind this"*, which is a different fact and
+   * gets a different sentence.
+   */
+  const noWrite = canWrite
+    ? null
+    : t('corp.action.noPermission', {
+        defaultValue: 'You need the Subscriptions permission to change this account.',
+      })
+  const unlinkUnavailable = t('corp.action.unlink.unavailable', {
+    defaultValue: 'Unlinking an employee is not connected yet. Nothing would be saved.',
+  })
+  const invoiceUnavailable = t('corp.action.invoice.unavailable', {
+    defaultValue: 'Invoice generation is not connected yet. Nothing would be sent.',
+  })
 
   const handlePolicyChange = (patch: Partial<CorporateAccount['usagePolicy']>) => {
     setLocalPolicy({ ...currentPolicy, ...patch })
@@ -85,22 +212,15 @@ export function CorporateDetailScreen() {
       const next = [...currentEmployees, riderId]
       setLocalEmployees(next)
       toast.success(t('corp.toast.employeeAdded', { defaultValue: 'Employee rider linked successfully' }))
-    } catch (err: any) {
-      toast.error(err?.message ?? t('corp.toast.employeeError', { defaultValue: 'Failed to link employee' }))
+    } catch (error: unknown) {
+      /* Re-thrown, not swallowed: `AddEmployeeModal` awaits this and renders
+         the 409 - which names the company already covering the rider - beside
+         the choice that produced it. A toast here would close the dialog over
+         the one sentence the operator needs. */
+      throw isApiError(error)
+        ? error
+        : new Error(t('corp.toast.employeeError', { defaultValue: 'Failed to link employee' }))
     }
-  }
-
-  const handleRemoveEmployee = (riderId: string) => {
-    const next = currentEmployees.filter((id) => id !== riderId)
-    setLocalEmployees(next)
-    toast.success(t('corp.toast.employeeRemoved', { defaultValue: 'Employee rider unlinked' }))
-  }
-
-  const handleSendInvoice = () => {
-    toast.success(t('corp.toast.invoiceSent', {
-      defaultValue: 'Consolidated invoice sent to {email}',
-      email: data?.contactEmail ?? 'billing contact',
-    }))
   }
 
   if (account.status === 'loading') {
@@ -130,21 +250,23 @@ export function CorporateDetailScreen() {
     )
   }
 
-  const linkedRiders = riderFixtures.filter((r) => currentEmployees.includes(r.id))
+  const linkedRiders = employees.data?.items ?? []
 
   const header = (
     <PageHeader
       title={data.companyName}
       meta={`${data.id} · ${data.billingType} · ${data.status}`}
       onBack={() => navigate('/operations/corporate')}
-      primaryAction={
-        canWrite
-          ? {
-              label: t('corp.sendInvoice', { defaultValue: 'Generate Invoice' }),
-              onClick: handleSendInvoice,
-            }
-          : undefined
-      }
+      /* **`Generate invoice` has moved out of the header, and it is now
+         refused rather than faked.** It toasted `Consolidated invoice sent to
+         {email}` with no client, no invoice record and no delivery - the
+         operator was told a bill had gone to a customer. There is no
+         invoicing operation to call, so it cannot be R3's primary; and
+         `PageAction` has a `disabled` flag but no field for a REASON, so a
+         disabled header primary could not satisfy §11.2 either. It sits in the
+         *Invoicing schedule* rail card instead, disabled, with its sentence
+         beside it - which is also where an operator looks for it. The missing
+         `PageAction.disabledReason` is reported to the `PageHeader` owner. */
       t={t}
       dir={dir}
     />
@@ -205,14 +327,25 @@ export function CorporateDetailScreen() {
                 {t('corp.card.usagePolicyDesc', { defaultValue: 'Enforce spend caps, vehicle classes, and manager approval rules.' })}
               </CardDescription>
             </div>
+            {/* §11.2 - the save bar appears when the form is dirty and is
+                DISABLED with its reason when the role cannot commit it, rather
+                than the whole form being silently read-only. */}
             {policyDirty && (
-              <Button
-                size="xs"
-                onClick={handleSavePolicy}
-                disabled={savingPolicy}
-              >
-                {savingPolicy ? t('action.saving', { defaultValue: 'Saving...' }) : t('action.savePolicy', { defaultValue: 'Save Policy' })}
-              </Button>
+              <span className="flex items-center gap-2">
+                {noWrite !== null && (
+                  <span id="corp-policy-refusal" className="text-2xs text-muted-foreground">
+                    {noWrite}
+                  </span>
+                )}
+                <Button
+                  size="xs"
+                  onClick={() => void handleSavePolicy()}
+                  disabled={savingPolicy || !canWrite}
+                  aria-describedby={noWrite === null ? undefined : 'corp-policy-refusal'}
+                >
+                  {savingPolicy ? t('action.saving', { defaultValue: 'Saving...' }) : t('action.savePolicy', { defaultValue: 'Save policy' })}
+                </Button>
+              </span>
             )}
           </div>
         </CardHeader>
@@ -235,18 +368,27 @@ export function CorporateDetailScreen() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">{t('corp.policy.vehicleTier', { defaultValue: 'Allowed Vehicle Tier' })}</Label>
+              {/* The option values ARE the domain's values. `as any` used to
+                  hide `'economy'` being written to a field whose union is
+                  `'Economy' | 'Comfort' | 'any'`; the cast is gone and the
+                  narrowing is a real one. */}
               <Select
                 value={currentPolicy.vehicleTier}
-                onValueChange={(val) => handlePolicyChange({ vehicleTier: val as any })}
+                onValueChange={(val) => {
+                  const tier = VEHICLE_TIER_VALUES.find((each) => each === val)
+                  if (tier) handlePolicyChange({ vehicleTier: tier })
+                }}
                 disabled={!canWrite}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">{t('corp.tier.any', { defaultValue: 'Any Tier (Economy, Comfort, Exec)' })}</SelectItem>
-                  <SelectItem value="economy">{t('corp.tier.economy', { defaultValue: 'Economy Only' })}</SelectItem>
-                  <SelectItem value="comfort">{t('corp.tier.comfort', { defaultValue: 'Comfort & Economy' })}</SelectItem>
+                  {VEHICLE_TIER_VALUES.map((tier) => (
+                    <SelectItem key={tier} value={tier}>
+                      {t(VEHICLE_TIERS[tier].key, { defaultValue: VEHICLE_TIERS[tier].fallback })}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -302,51 +444,119 @@ export function CorporateDetailScreen() {
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 {t('corp.card.linkedEmployees', { defaultValue: 'Linked Employee Riders' })}
-                <span className="text-xs font-normal text-muted-foreground">({linkedRiders.length})</span>
+                {/* The count comes from the ACCOUNT's `riderIds`, not from the
+                    rider read, so the number does not appear, vanish and
+                    reappear as the second request resolves (§11.3 — nothing
+                    moves when the data lands). */}
+                <span className="text-xs font-normal text-muted-foreground">({currentEmployees.length})</span>
               </CardTitle>
               <CardDescription className="text-xs">
                 {t('corp.card.linkedEmployeesDesc', { defaultValue: 'Employees whose rides are consolidated onto this invoice.' })}
               </CardDescription>
             </div>
-            {canWrite && (
-              <Button size="xs" variant="secondary" onClick={() => setAddEmployeeOpen(true)} className="gap-1">
+            {/* §11.2 - rendered and refused, never removed. */}
+            <span className="flex items-center gap-2">
+              {noWrite !== null && (
+                <span id="corp-link-refusal" className="text-2xs text-muted-foreground">
+                  {noWrite}
+                </span>
+              )}
+              <Button
+                size="xs"
+                variant="secondary"
+                onClick={() => setAddEmployeeOpen(true)}
+                disabled={!canWrite}
+                aria-describedby={noWrite === null ? undefined : 'corp-link-refusal'}
+                className="gap-1"
+              >
                 <Plus className="h-3.5 w-3.5" />
-                {t('corp.linkEmployee', { defaultValue: 'Link Employee' })}
+                {t('corp.linkEmployee', { defaultValue: 'Link employee' })}
               </Button>
-            )}
+            </span>
           </div>
         </CardHeader>
         <CardContent>
-          {linkedRiders.length === 0 ? (
+          {/* Four states for the card's OWN read — loading, error, empty,
+              content, in that order. `card={false}` on both states: this card
+              already exists, and a state card inside it would be a second
+              frame. */}
+          {employees.status === 'loading' ? (
+            <LoadingSkeleton pattern="P1" rows={3} />
+          ) : employees.status === 'error' ? (
+            /* §11.2 — card scope: the rest of the detail page (summary,
+               policy form, rail) is unaffected and stays interactive, so only
+               this card reports. Retry re-runs the rider read. */
+            <ErrorState
+              scope="card"
+              card={false}
+              message={t('state.cardError.message', { resource: t('view.people.riders') })}
+              action={{ label: t('state.pageError.action'), onClick: employees.refetch }}
+            />
+          ) : employees.status === 'empty' ? (
             <EmptyState
               kind="cleared"
+              card={false}
               heading={t('corp.noEmployees', { defaultValue: 'No employees linked to this account yet.' })}
               body={t('corp.noEmployeesBody', { defaultValue: 'Link employee rider accounts to include their rides on monthly consolidated billing.' })}
             />
           ) : (
             <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
               {linkedRiders.map((rider) => (
-                <div key={rider.id} className="flex items-center justify-between p-3 text-xs bg-card hover:bg-muted/30">
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-foreground">{rider.name}</span>
-                    <span className="text-[11px] text-muted-foreground font-mono">{rider.id} · {rider.phone} · {rider.city}</span>
+                <div
+                  key={rider.id}
+                  className="group/row flex items-center justify-between bg-card p-3 text-xs hover:bg-muted/30 focus-within:bg-muted/30"
+                >
+                  <div className="flex min-w-0 flex-col">
+                    {/* **P8-T1** - a cell that NAMES an entity opens that
+                        entity. A real `<Link>`: focusable, middle-clickable,
+                        and its address can be copied. */}
+                    <Link
+                      to={profileHref(rider.id)}
+                      className="truncate rounded-sm font-semibold text-foreground hover:underline"
+                    >
+                      {rider.name}
+                    </Link>
+                    <span className="truncate font-mono text-2xs text-muted-foreground">
+                      {rider.id} · {rider.phone} · {rider.city}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">{rider.subscriptionIds.length} active subs</span>
-                    {canWrite && (
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => handleRemoveEmployee(rider.id)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-muted-foreground">
+                      {t('corp.activeSubs', {
+                        defaultValue: '{count} active subscriptions',
+                        count: formatCount(rider.subscriptionIds.length, language),
+                      })}
+                    </span>
+                    {/* §11.2 - disabled IN PLACE with its reason. This used to
+                        filter a local array and toast success over an unlink
+                        that the next read undid. */}
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      disabled
+                      aria-label={t('corp.unlinkEmployee', {
+                        defaultValue: 'Unlink {name}',
+                        name: rider.name,
+                      })}
+                      aria-describedby="corp-unlink-refusal"
+                      className="text-muted-foreground"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+
+          {/* §8.4.4 - ONE sentence for the whole column of disabled unlink
+              buttons, pointed at by every one of them. Twenty-five copies of
+              the same line would be noise; a `title` would be invisible to the
+              keyboard. */}
+          {employees.status === 'content' && (
+            <p id="corp-unlink-refusal" className="pt-2 text-2xs text-muted-foreground">
+              {noWrite ?? unlinkUnavailable}
+            </p>
           )}
         </CardContent>
       </Card>
@@ -384,9 +594,29 @@ export function CorporateDetailScreen() {
           <span className="font-medium text-foreground">Day {data.invoiceDayOfMonth} of month</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.nextInvoice', { defaultValue: 'Next Invoice' })}:</span>
+          <span className="text-muted-foreground">{t('corp.nextInvoice', { defaultValue: 'Next invoice' })}:</span>
           <span className="font-medium text-foreground">
-            {data.nextInvoiceOn ? formatDate(data.nextInvoiceOn, { language }) : 'Upcoming'}
+            {data.nextInvoiceOn
+              ? formatDate(data.nextInvoiceOn, { language })
+              : t('corp.nextInvoice.upcoming', { defaultValue: 'Not scheduled' })}
+          </span>
+        </div>
+
+        {/* §11.2 - the invoice action, disabled IN PLACE with its reason as
+            real text. It used to be the page's primary and it used to toast
+            success over an invoice that was never generated and never sent. */}
+        <div className="flex flex-col gap-1 border-t border-border pt-2">
+          <Button
+            size="xs"
+            variant="secondary"
+            disabled
+            aria-describedby="corp-invoice-refusal"
+            className="w-full"
+          >
+            {t('corp.sendInvoice', { defaultValue: 'Generate invoice' })}
+          </Button>
+          <span id="corp-invoice-refusal" className="text-2xs text-muted-foreground">
+            {noWrite ?? invoiceUnavailable}
           </span>
         </div>
       </CardContent>

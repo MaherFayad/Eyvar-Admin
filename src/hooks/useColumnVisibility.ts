@@ -39,6 +39,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { invariant } from '@/lib/invariant'
 import { UI_STATE_KEYS, createNullStore, defaultUiStore, type UiStateStore } from '@/lib/persistence'
+/* D16 — see `useLanguage.ts`: the validator is what makes the store cached
+   rather than in-memory, and it is required because caching without one means
+   casting an unvalidated `JSON.parse` result to `T`. */
+import { isUiStringList } from '@/data/clients/preferences'
 
 /**
  * The minimum a column must declare. Generic, so `DataTable` passes its own
@@ -111,8 +115,9 @@ export function useColumnVisibility<T extends VisibilityColumn>(
     options.store ??
     (tableId === undefined
       ? fallbackStore
-      : defaultUiStore<readonly string[]>(
+      : defaultUiStore(
           `${UI_STATE_KEYS.columnVisibility}.${tableId}.${view ?? 'all'}`,
+          isUiStringList,
         ))
 
   const [hiddenIds, setHiddenIds] = useState<readonly string[]>(

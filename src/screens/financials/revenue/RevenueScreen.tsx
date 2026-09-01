@@ -66,6 +66,7 @@ import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
+import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { LedgerCard } from '../shared/LedgerCard'
 import { FinancialsPage, periodLabel, usePeriod } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
@@ -461,6 +462,21 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const rows = refunds.data?.items ?? []
 
+  /**
+   * **P8-T1** — the rider the refund went to.
+   *
+   * The refund id, the credit-note number and `processedByUserName` are **not**
+   * entity links: a refund and a credit note are documents with no profile, and
+   * an operator is not one of the six kinds `/entity/:id` resolves. Rendering
+   * any of them as a link would be a guess about the route table (**AC-474**).
+   *
+   * **This view has no bulk bar either**, and that is not an omission: a refund
+   * here is a *record of an issued refund*. It has no row action at all — the
+   * act that creates one is `Issue a refund` in the PageHeader (**AC-477**) —
+   * so there is no command to offer over a set.
+   */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((refund) => refund.riderId), [rows]))
+
   const columns = useMemo<DataColumn<Refund>[]>(
     () => [
       {
@@ -486,7 +502,9 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
         dataType: 'text',
         width: 180,
         sortField: 'riderName',
-        cell: (refund) => <span className="truncate">{refund.riderName}</span>,
+        cell: (refund) => (
+          <EntityName href={hrefFor(refund.riderId)} name={refund.riderName} t={t} />
+        ),
       },
       {
         id: 'amount',
@@ -534,7 +552,7 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
         cell: (refund) => <span className="truncate">{refund.processedByUserName}</span>,
       },
     ],
-    [t, language],
+    [t, language, hrefFor],
   )
 
   return (
@@ -584,6 +602,11 @@ function CreditNotesView({
 
   const rows = notes.data?.items ?? []
 
+  /* **P8-T1** — the buyer. A buyer is a rider or a corporate account and both
+     resolve; the note number, the refund id and `againstInvoice` are documents
+     and stay text. */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((note) => note.buyerId), [rows]))
+
   /* **AC-356's count is of the population, not of the page.** A count of what
      is on screen understates the moment there are two pages, which is the same
      argument §4.4 makes for a queue's breach banner. */
@@ -620,7 +643,7 @@ function CreditNotesView({
         header: t('fin.creditNote.col.buyer'),
         dataType: 'text',
         width: 180,
-        cell: (note) => <span className="truncate">{note.buyerName}</span>,
+        cell: (note) => <EntityName href={hrefFor(note.buyerId)} name={note.buyerName} t={t} />,
       },
       {
         id: 'subtotal',

@@ -22,7 +22,7 @@
  */
 
 import type { LocalisedText } from '@/data/types'
-import { formatMoney, type Translate } from '@/lib'
+import { formatCount, formatMoney, type Language, type Translate } from '@/lib'
 
 const MONEY_SUFFIX = 'Halalas'
 
@@ -46,4 +46,46 @@ export function localisedText(t: Translate, text: LocalisedText): string {
         : value
   }
   return t(text.key, rendered)
+}
+
+/**
+ * **The bulk bar's refusal, as one finished sentence** — P4-T1, **D21**.
+ *
+ * `bulkRefusal` (`derive.ts`) decides *whether* and *which cause*, staying pure
+ * and holding no `t`. This picks which of D21's **three** sentences that cause
+ * takes, and it is the only place the count is formatted — so a refusal on a
+ * money surface groups its digits the way every other number on the page does
+ * (D21 rendering rule 4: `formatCount`, never `String(n)`).
+ *
+ * | Case | Suffix | Why it is its own sentence |
+ * |---|---|---|
+ * | one record selected, refused | `.one` | there is no subset to talk about |
+ * | some of the selection refused | `.other` | the escape hatch is offered |
+ * | **every** selected record refused | `.all` | **no** escape hatch (AC-960) |
+ *
+ * D21 states the third one's reason: *"`.other` is wrong when every target is
+ * blocked"* — `4 of the selected payouts cannot be paid` is true of 4-of-4 and
+ * invites the operator to believe a subset would work.
+ *
+ * `.one` wins over `.all` at a selection of one, which is the order D21's own
+ * table gives: a single refused record is *"this payout"*, not *"all 1"*.
+ *
+ * @param keyFor the **base** key per cause; the case suffix is appended here so
+ *   a call site cannot ship two of the three and discover the missing one from
+ *   a `createTranslator` throw in production.
+ */
+export function bulkRefusalText<K extends string>(
+  t: Translate,
+  language: Language,
+  refusal: { key: K; blocked: number; total: number } | null,
+  keyFor: Readonly<Record<K, string>>,
+): string | null {
+  if (refusal === null) return null
+  const form = refusal.total === 1 ? 'one' : refusal.blocked === refusal.total ? 'all' : 'other'
+  /* **D21 rendering rule 4** — the count is `blocked.length`, the whole refused
+     subset, and it is formatted rather than stringified. It has to be the whole
+     subset for the sentence to agree with the escape hatch beside it:
+     `blocked + eligible === total`. `.one` carries no placeholder and ignores
+     the parameter. */
+  return t(`${keyFor[refusal.key]}.${form}`, { count: formatCount(refusal.blocked, language) })
 }

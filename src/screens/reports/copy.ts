@@ -231,12 +231,142 @@ export const REPORTS_EN: Dictionary = {
   'rb.violation.filterFieldNotShared': 'Both measures must be filterable on {field}.',
   'rb.violation.windowInverted': '{to} is before {from}.',
 
+  /* ────────────────────── the five modes (P7-T3) ────────────────────────── */
+
+  /* **Five questions, not five chart types.** The label names the QUESTION the
+     operator is asking, because that is what they are choosing between: a
+     funnel and a trend over the same measures are not two renderings of one
+     answer. Each carries one line, because *Retention* and *Journeys* are not
+     self-evident to someone who has not used an analytics tool, and a mode
+     entered by mistake costs a `Run`. */
+  'rb.control.mode': 'Question',
+  'rb.mode.trend': 'Trend',
+  'rb.mode.funnel': 'Funnel',
+  'rb.mode.table': 'Data table',
+  'rb.mode.cohort': 'Retention',
+  'rb.mode.journey': 'Journeys',
+  'rb.mode.trend.hint': 'How a number moved over a range.',
+  'rb.mode.funnel.hint': 'Of the people who did one thing, how many went on to do the next.',
+  'rb.mode.table.hint': 'The same numbers as a trend, listed rather than drawn.',
+  'rb.mode.cohort.hint': 'Of the people who arrived in one month, how many were still here later.',
+  'rb.mode.journey.hint': 'What people did next, after one event.',
+
+  /* ── why a control is disabled, per mode — the layer’s own keys ────────── */
+
+  /* The mode decided this, and the sentence says which mode and what it
+     decided. D9 CQ-3: the option stays on screen, off, carrying its reason —
+     an operator who cannot see that a funnel is always bars will try to change
+     it, and a control that vanishes teaches nothing. */
+  'rb.chart.modeFixed': 'A {mode} is always drawn as a {chart}, so this cannot be changed here.',
+  'rb.grain.modeFixed':
+    'A {mode} has no calendar along the bottom, so it reads the whole range as one period.',
+
+  'rb.funnel.needsSteps':
+    'A funnel needs at least {min} steps to have a conversion between them. This one has {steps}.',
+  'rb.funnel.tooManySteps':
+    'A funnel reads up to {max} steps. This one has {steps}; remove some, or split it into two reports.',
+  'rb.funnel.duplicateStep':
+    'Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own.',
+
+  'rb.cohort.needsAnchor': 'Choose the event that puts a person in a cohort and starts their clock.',
+  'rb.cohort.anchorNotSubject':
+    '{measure} counts days, not people, so there is nobody to follow. Choose an event that happens to a rider or a captain.',
+  'rb.cohort.grainUnavailable':
+    'Retention is measured a month at a time, because each person carries one last-seen date and nothing finer. Day and week need an activity history the product does not keep yet.',
+  'rb.cohort.horizonOutOfRange':
+    'A matrix reaches from M{min} to M{max}. This one asks for M{horizon}.',
+  'rb.cohort.windowTooShort':
+    'This range covers {periods} periods and the matrix needs {needed}. Widen the range, or ask for fewer columns.',
+
+  'rb.journey.needsRoot': 'Choose the event every path starts from.',
+  'rb.journey.rootNotSubject':
+    '{measure} counts days, not people, so there is no path to follow. Choose an event that happens to a rider or a captain.',
+  'rb.journey.depthOutOfRange':
+    'A journey reads from {min} to {max} steps forward. This one asks for {depth}.',
+
+  /* ─────────────────────── composing a funnel (P7-T3) ───────────────────── */
+
+  'rb.funnel.steps': 'Steps',
+  'rb.funnel.steps.unstarted':
+    'No steps yet. Add the event people start from, then what they do next.',
+  'rb.funnel.step': 'Step {position}',
+  'rb.funnel.step.add': 'Add a step',
+  'rb.funnel.step.removeLabel': 'Remove',
+  'rb.funnel.step.remove': 'Remove step {position}',
+  'rb.funnel.step.atMax': 'This funnel is at its limit of {max} steps.',
+  'rb.funnel.filter.field': 'Filter field for step {position}',
+  'rb.funnel.filter.value': 'Filter value for step {position}',
+  'rb.funnel.filter.remove': 'Remove the {field} filter from step {position}',
+  'rb.funnel.window': 'Time to convert',
+  'rb.funnel.window.range': 'The whole date range',
+  'rb.funnel.window.days': '{days} days',
+  'rb.funnel.window.explain':
+    'How long one person has to reach the last step from the first. The whole range means anyone who started inside it and finished inside it.',
+
+  /* ────────────────────── composing a retention report ──────────────────── */
+
+  'rb.cohort.anchor': 'Joining event',
+  'rb.cohort.anchor.placeholder': 'Choose an event',
+  'rb.cohort.anchor.explain': 'What puts a person in a cohort, and the month their clock starts.',
+  'rb.cohort.return': 'Still here means',
+  /* Rule 10 — the default is stated in words, never left blank. */
+  'rb.cohort.return.own': 'Anything at all by the same person',
+  'rb.cohort.grain': 'Cohorts grouped by',
+  'rb.cohortGrain.day': 'Day',
+  'rb.cohortGrain.week': 'Week',
+  'rb.cohortGrain.month': 'Month',
+  'rb.cohort.horizon': 'Columns',
+  'rb.cohort.horizon.value': 'M0 to M{horizon}',
+  'rb.cohort.horizon.explain':
+    'How far past joining the matrix reaches. The date range has to be long enough to hold every column.',
+
+  /* ────────────────────── composing a journey report ────────────────────── */
+
+  'rb.journey.root': 'Starting event',
+  'rb.journey.root.placeholder': 'Choose an event',
+  'rb.journey.root.explain':
+    'Every path starts here, and only what happened afterwards is counted.',
+  'rb.journey.depth': 'Steps forward',
+  'rb.journey.depth.value': '{depth} steps',
+  'rb.journey.depth.explain': 'How many events after the start each path follows.',
+
+  /* ──────────────── reading a funnel, a matrix and a tree ───────────────── */
+
+  'rb.funnel.heading': 'Conversion funnel',
+  'rb.cohort.heading': 'Retention',
+  'rb.journey.heading': 'Journeys',
+  /* Two different numbers, and both are labelled. A cascade that shows one of
+     them unlabelled is how a funnel figure gets quoted as the wrong one. */
+  'rb.funnel.conversion': '{percent} of step 1',
+  'rb.funnel.conversion.none': 'No reading for this step',
+  'rb.funnel.dropoff': '{percent} of the previous step did not reach this one.',
+  'rb.cohort.col.cohort': 'Joined',
+  /* R5-15 — the base travels with the percentage. */
+  'rb.cohort.col.size': 'People',
+  'rb.cohort.cell.none': 'No reading',
+  'rb.cohort.survival':
+    '{percent} of everyone counted here was still active a month after joining.',
+  'rb.journey.entered': '{subjects} people started here.',
+  'rb.journey.allStopped': 'Nobody did anything else inside this range.',
+  'rb.journey.stopped': '{subjects} ({percent}) did nothing else inside this range.',
+  'rb.journey.folded': '{subjects} ({percent}) are on paths outside the eight most common.',
+  'rb.journey.share': '{percent} of everyone who started',
+
+  /* The panel titles the data layer names for the three modes. Each is a
+     heading, so it takes no period (rule 6). */
+  'rb.panel.funnel': 'Conversion funnel',
+  'rb.panel.cohort': 'Retention by joining month',
+  'rb.panel.journey': 'Paths after the starting event',
+
   /* ──────────────────────────── the canvas ──────────────────────────────── */
 
   'rb.canvas.heading': 'Result',
   /* R8's SECOND kind of empty. Not the illustration: the data exists, the
      question has not been asked (AC-843). */
   'rb.canvas.unstarted': 'Choose a measure, then run the report.',
+  /* The same second kind of empty, worded for a mode that has no measure
+     picker: *choose a measure* is not what a funnel is waiting for. */
+  'rb.canvas.unstarted.mode': 'Finish the question in the panel, then run the report.',
   'rb.canvas.stale': 'Showing the previous run, computed {time}. Run to update it.',
   'rb.canvas.asOf': 'Computed {time}',
   'rb.canvas.loading': 'Running the report',
@@ -256,6 +386,14 @@ export const REPORTS_EN: Dictionary = {
   'rb.warning.truncated':
     'This report hit the {rows}-row cap, so it is short. It is not the whole answer.',
   'rb.warning.chartCoerced': 'Showing a {chartType}: a {requested} is no longer legal here.',
+  /* A funnel whose steps do not all name the same kind of person cannot follow
+     anybody, so the conversion between its steps is a ratio of two totals and
+     not a rate at which people progressed. Said out loud, because the picture
+     is identical either way. */
+  'rb.warning.funnelCounted':
+    'These steps count totals rather than following the same people, because they are not all about the same kind of person. Read the percentages as a ratio between two totals.',
+  'rb.warning.modeNotResolved': 'This kind of report is not available from this server yet.',
+  'rb.warning.pathsFolded': 'The {count} least common paths are grouped together.',
 
   /* ───────────────────────────── a panel ────────────────────────────────── */
 
@@ -382,6 +520,49 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboards.noMatch.action': 'Clear search',
   'rb.dashboards.error': 'The dashboards didn’t load. The filters are unchanged.',
 
+  /* ─────────────── the dashboards view and one dashboard ───────────────── */
+
+  'rb.dashboards.delete': 'Delete',
+  'rb.dashboards.delete.title': 'Delete {name}?',
+  /* The asymmetry with a report's delete, said plainly. §11: a dashboard is a
+     view over reports, so losing it loses an arrangement; losing a report
+     loses a definition several dashboards may be showing. */
+  'rb.dashboards.delete.body':
+    'The board goes and the reports on it stay. Nothing they count changes.',
+  'rb.dashboards.delete.confirm': 'Delete dashboard',
+  'rb.dashboards.delete.cancel': 'Cancel',
+  'rb.dashboards.delete.failed': 'The dashboard wasn’t deleted. Nothing was changed.',
+
+  'rb.dashboards.new.title': 'New dashboard',
+  /* AC-865 — a dashboard with no reports is valid, and the copy says so rather
+     than letting an operator think they have to choose reports first. */
+  'rb.dashboards.new.body': 'Give it a name. You can add reports to it straight after.',
+  'rb.dashboards.new.name': 'Name',
+  'rb.dashboards.new.confirm': 'Create dashboard',
+  'rb.dashboards.new.cancel': 'Cancel',
+  'rb.dashboards.new.failed': 'The dashboard wasn’t created. Nothing was changed.',
+
+  'rb.dashboard.back': 'All dashboards',
+  'rb.dashboard.loading': 'Loading the dashboard',
+  'rb.dashboard.error': 'The dashboard didn’t load.',
+  'rb.dashboard.retry': 'Try again',
+  'rb.dashboard.save.failed': 'That change wasn’t saved. The board is showing what the server holds.',
+
+  'rb.dashboard.add': 'Add a report',
+  'rb.dashboard.add.title': 'Add a report to this dashboard',
+  /* AC-867 stated where the decision is made: the tile points at the report,
+     so editing the report changes every board that holds it. */
+  'rb.dashboard.add.body':
+    'The board shows the report’s current definition, so editing the report updates every dashboard that holds it.',
+  'rb.dashboard.add.loading': 'Loading the saved reports',
+  'rb.dashboard.add.error': 'The reports didn’t load.',
+  'rb.dashboard.add.empty': 'There are no saved reports yet. Save one, then pin it here.',
+  /* §11.2 — offered and disabled with the reason, never filtered out: an
+     operator looking for a report they pinned last week needs to see that it is
+     already here rather than conclude it was deleted. */
+  'rb.dashboard.add.already': 'Already on this dashboard.',
+  'rb.dashboard.add.cancel': 'Cancel',
+
   'rb.dashboard.empty.heading': 'This dashboard has no reports yet',
   'rb.dashboard.empty.body': 'Add a saved report and it appears here, in the order you choose.',
   'rb.dashboard.empty.action': 'Add a report',
@@ -471,6 +652,20 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.form.cadence': 'Checked',
   'rb.alert.form.recipients': 'Also tell',
   'rb.alert.form.enabled': 'On',
+  'rb.alert.form.report.loading': 'Loading the saved reports',
+  'rb.alert.form.report.error': 'The saved reports didn’t load.',
+  'rb.alert.form.series.unstarted': 'Choose a report first.',
+  'rb.alert.form.series.loading': 'Reading the report’s series',
+  'rb.alert.form.series.error': 'The report didn’t run, so its series are unknown.',
+  'rb.alert.form.series.empty': 'This report has no series you can read.',
+  'rb.alert.form.muted': 'Muted',
+  'rb.alert.form.muted.none': 'Not muted',
+  'rb.alert.form.muted.clear': 'Un-mute',
+  /* AC-891 is blocked on D4. The field is present and off, saying why — an
+     absent field is a decision nobody can see. */
+  'rb.alert.form.recipients.count': 'Currently telling {count} people',
+  'rb.alert.form.recipients.blocked':
+    'Who else gets told cannot be chosen yet: an operator who cannot see this measure is not allowed to receive the alert, and permissions are not yet fine-grained enough to work that out. The people already on this rule keep getting told.',
   'rb.alert.form.save': 'Save alert',
   'rb.alert.form.cancel': 'Cancel',
   'rb.alert.form.failed': 'The alert wasn’t saved. Nothing was changed.',

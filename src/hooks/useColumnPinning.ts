@@ -113,6 +113,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { invariant } from '@/lib/invariant'
 import { UI_STATE_KEYS, createNullStore, defaultUiStore, type UiStateStore } from '@/lib/persistence'
+/* D16 — see `useLanguage.ts`: the validator is what makes the store cached
+   rather than in-memory, and it is required because caching without one means
+   casting an unvalidated `JSON.parse` result to `T`. */
+import { isUiColumnPinList } from '@/data/clients/preferences'
 
 /** Logical edges. There is no `left` and no `right` here, and there must never be. */
 export type PinEdge = 'start' | 'end'
@@ -420,8 +424,9 @@ export function useColumnPinning(options: UseColumnPinningOptions): ColumnPinnin
     options.store ??
     (tableId === undefined
       ? fallbackStore
-      : defaultUiStore<readonly ColumnPin[]>(
+      : defaultUiStore(
           `${UI_STATE_KEYS.columnPins}.${tableId}.${view ?? 'all'}`,
+          isUiColumnPinList,
         ))
 
   const [pins, setPins] = useState<readonly ColumnPin[]>(() => {

@@ -47,6 +47,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import {
   DataTable,
+  type BulkAction,
   type DataColumn,
   type ExtraFilterSpec,
   type RowAction,
@@ -219,9 +220,52 @@ export interface QueueTableProps<T> {
   searchPlaceholder: string
 
   extraFilters?: readonly ExtraFilterSpec[]
+  /**
+   * **§9.4 — a queue SCOPE, which is a view and not a filter.** It renders as a
+   * dismissible chip in the query strip carrying its own `✕`, and it
+   * deliberately does **not** set `table.isFiltered`.
+   *
+   * **This prop is a pure passthrough**, added the same way and for the same
+   * reason `bulkActions` was: `DataTable` has declared `scope` since §9.4, this
+   * adapter dropped it on the floor, so no queue could offer one however it
+   * declared it. Additive, defaulted to `null`, and every existing call site is
+   * unchanged.
+   *
+   * Support › Contact Centre is the first caller. Its `Show only past
+   * first-response deadline` control cannot be a `FilterSpec`, because the
+   * breach it scopes to is **derived from D22's channel policy** rather than
+   * stamped on the row — `clients/conversations.ts`'s `breached` predicate
+   * reads `slaBreachedAt`/`firstResponseBreachedAt`, and `fixtures/
+   * conversations.ts` leaves both `null` on every chat row until D22's fixture
+   * work lands. A filter the server cannot evaluate would return an empty
+   * page under a banner reporting a non-zero count.
+   */
+  scope?: { label: string; clearLabel: string; onClear: () => void } | null
   now?: string | null
   rowActions?: ReadonlyArray<RowAction<T>>
   rowActionsWidth?: number
+  /**
+   * **§9.3 / P4-T1 — a queue's bulk bar, and it may hold nothing but claims.**
+   *
+   * `DESIGN.md:5328`: *"A queue row MUST NOT carry a selection checkbox unless
+   * every bulk action offered is a claim or assign action. Bulk disposition
+   * MUST NOT ship."* `useIndexTable` enforces the first half at compile time —
+   * a `queue` has no `selectedIds` at all without `bulkClaim: true` — so a
+   * screen that passes this without also passing `bulkClaim` gets a bar that
+   * can never render, not a bar over a table that cannot select.
+   *
+   * The second half is the caller's, and it is not enforceable by a type: the
+   * list below must contain claims and assignments only. Every wave-2 queue
+   * passes exactly one, `Claim`.
+   *
+   * **This prop is a pure passthrough added by P4-T1.** `QueueTable` is the
+   * adapter three Operations queues and two Support queues share; it dropped
+   * `bulkActions` on the floor, so no queue could have a bulk bar however it
+   * declared one. Additive, defaulted, and every existing call site is
+   * unchanged — but the file is shared with Support, and the change is named in
+   * the handoff rather than made quietly.
+   */
+  bulkActions?: ReadonlyArray<BulkAction>
 
   /**
    * §4.7 — **E1**, and the copy names the scope that is clear, per view. This
@@ -261,9 +305,11 @@ export function QueueTable<T>({
   onTotal,
   searchPlaceholder,
   extraFilters,
+  scope = null,
   now = null,
   rowActions,
   rowActionsWidth,
+  bulkActions,
   cleared,
   firstRun,
   emptyKind = 'cleared',
@@ -298,11 +344,15 @@ export function QueueTable<T>({
       onSelectTab={onSelectTab}
       searchPlaceholder={searchPlaceholder}
       extraFilters={extraFilters}
+      /* §9.4 — a scope chip, never a filter. See the prop's doc. */
+      scope={scope}
       now={now}
       /* AC-35 — the QUEUE skeleton, shaped like the columns it replaces. */
       skeletonPattern="P8"
       rowActions={rowActions}
       rowActionsWidth={rowActionsWidth}
+      /* §9.3 — claims and assignments only. See the prop's doc. */
+      bulkActions={bulkActions}
       firstRun={firstRun}
       noMatch={noMatch}
       emptyKind={emptyKind}

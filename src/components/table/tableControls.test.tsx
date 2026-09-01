@@ -87,6 +87,12 @@ function Harness({ cols }: { cols: DataColumn<Row>[] }) {
       getRowId={(row) => row.id}
       status="content"
       total={ROWS.length}
+      /* **D25** — an index table renders its checkbox lane only when the screen
+         declares bulk work, so a harness testing the lane has to declare some.
+         Before D25 every `mode: 'index'` table showed checkboxes whether or not
+         anything could act on them, which is the defect the ruling closed; this
+         suite was relying on that. */
+      bulkActions={[{ label: 'Suspend', onClick: () => undefined }]}
       t={t}
       language="en"
       tableId="test"

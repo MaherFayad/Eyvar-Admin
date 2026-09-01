@@ -85,17 +85,28 @@ export function toInstant(iso: IsoDateTime | IsoDate | null | undefined): IsoDat
 /** Internal alias kept so the day-arithmetic helpers above read as they did. */
 const normaliseDate = (iso: IsoDateTime | IsoDate): IsoDateTime => toInstant(iso) as IsoDateTime
 
-/** Build a fixture timestamp by offsetting the fixed clock. Keeps fixtures readable and still deterministic. */
+/**
+ * Build a fixture timestamp by offsetting the fixed clock. Keeps fixtures
+ * readable and still deterministic.
+ *
+ * **`seconds` exists because of D22.** The chat first-response promise is
+ * **45 seconds**, and D22 is explicit that the number is chosen to be *"inside
+ * a minute"*. A fixture that could only express whole minutes would have to
+ * round it to 0 or 1, and rounding a promise is how the promise stops being the
+ * one that was ruled.
+ */
 export function offsetFromNow(opts: {
   days?: number
   hours?: number
   minutes?: number
+  seconds?: number
 }): IsoDateTime {
   const ms =
     toEpochMs(EYVAR_NOW) +
     (opts.days ?? 0) * 86_400_000 +
     (opts.hours ?? 0) * 3_600_000 +
-    (opts.minutes ?? 0) * 60_000
+    (opts.minutes ?? 0) * 60_000 +
+    (opts.seconds ?? 0) * 1_000
   // Re-render in the dataset's offset so fixtures read as Riyadh local time.
   const d = new Date(ms + 3 * 3_600_000)
   const p = (n: number) => String(n).padStart(2, '0')

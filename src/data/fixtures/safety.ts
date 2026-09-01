@@ -53,8 +53,16 @@
  *            `slaDueAt < now` breach check.
  */
 
-import type { SafetyIncident, SafetyProtocolStep, SafetyProtocolStepKey } from '../types/safety'
+import type { IsoDateTime } from '../types/common'
+import type {
+  SafetyIncident,
+  SafetyIncidentType,
+  SafetyProtocolStep,
+  SafetyProtocolStepKey,
+} from '../types/safety'
 import { SAFETY_PROTOCOL_STEPS, SAFETY_REASON_CODE, SAFETY_RESOLVE_MINUTES } from '../types/safety'
+import { cycle, cycleRecord } from './cycle'
+import { allTripFixtures } from './trips'
 
 /**
  * Build the four-step protocol block. Always four entries in
@@ -79,7 +87,7 @@ function protocol(
   })
 }
 
-export const safetyIncidentFixtures: SafetyIncident[] = [
+const namedSafetyIncidents: SafetyIncident[] = [
   {
     id: 'INC-014',
     type: 'sos',
@@ -168,7 +176,12 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     closedAt: null,
     closedByUserId: null,
     closedByUserName: null,
-    tripId: 'TRP-8977',
+    /* Was `TRP-8977`, legacy verbatim (`:13391`) -- and **it does not exist in
+       legacy either**: `DB.trips` holds eight rows and this is not one of them,
+       so the legacy incident list has always linked to nothing. `TRP-8010` is a
+       real leg driven by `DRV-0104`, who is this incident's reporter, so the
+       trip and the incident now name the same captain. */
+    tripId: 'TRP-8010',
     reporterId: 'DRV-0104',
     reporterName: 'Hassan Al-Ghamdi',
     reporterKind: 'driver',
@@ -203,7 +216,10 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     closedAt: null,
     closedByUserId: null,
     closedByUserName: null,
-    tripId: 'TRP-8901',
+    /* Was `TRP-8901`, which no collection held. `TRP-8004` is `SUB-1075`'s
+       leg -- rider `RDR-1075`, captain `DRV-0101` -- the exact pair this
+       incident is between. */
+    tripId: 'TRP-8004',
     reporterId: 'RDR-1075',
     reporterName: 'Sara Al-Ghamdi',
     reporterKind: 'rider',
@@ -309,7 +325,9 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     closedAt: null,
     closedByUserId: null,
     closedByUserName: null,
-    tripId: 'TRP-8845',
+    /* Was `TRP-8845`, which no collection held. `TRP-9108` is this captain's
+       last leg before the suspension, and it is the trip the report is about. */
+    tripId: 'TRP-9108',
     reporterId: 'RDR-1060',
     reporterName: 'Khaled Al-Zahrani',
     reporterKind: 'rider',
@@ -363,12 +381,23 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     closedAt: '2026-06-22T14:45:00+03:00',
     closedByUserId: 'USR-1',
     closedByUserName: 'Sarah Al-Rashid',
-    tripId: 'TRP-8720',
+    /**
+     * Was `TRP-8720` against `DRV-0105` -- and `TRP-8720` exists in no
+     * collection, in this layer or in legacy (`:13392`).
+     *
+     * **The reporter is kept and the counterparty moves**, because the
+     * counterparty is a *join off the trip*: a harassment report is filed by
+     * the rider of a trip against the captain of that trip, so whichever of the
+     * two is wrong, it is the one the trip contradicts. `RDR-2031` holds
+     * `SUB-1052`, whose legs are driven by `DRV-0103`; `TRP-8007` is the one
+     * that ran three days before the report.
+     */
+    tripId: 'TRP-8007',
     reporterId: 'RDR-2031',
     reporterName: 'Tariq Al-Saud',
     reporterKind: 'rider',
-    againstId: 'DRV-0105',
-    againstName: 'Youssef Nouri',
+    againstId: 'DRV-0103',
+    againstName: 'Khalid Mansour',
     protocol: protocol({
       contact: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T10:15:00+03:00' },
       verify: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T11:02:00+03:00' },
@@ -403,12 +432,16 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     closedAt: '2026-06-18T14:41:00+03:00',
     closedByUserId: 'USR-5',
     closedByUserName: 'Yousef Al-Balawi',
-    tripId: 'TRP-8690',
+    /* Was `TRP-8690` against `DRV-0207`, and `TRP-8690` existed nowhere.
+       `TRP-8016` is `RDR-1041`'s `SUB-1041` leg on 10 Jun, eight days before
+       the report; its captain is `DRV-0101`, so the counterparty moves to the
+       captain who actually drove -- the same reasoning as INC-011 above. */
+    tripId: 'TRP-8016',
     reporterId: 'RDR-1041',
     reporterName: 'Nora Al-Harbi',
     reporterKind: 'rider',
-    againstId: 'DRV-0207',
-    againstName: 'Saud Al-Harbi',
+    againstId: 'DRV-0101',
+    againstName: 'Ahmed Salem',
     protocol: protocol({
       contact: { userId: 'USR-5', userName: 'Yousef Al-Balawi', at: '2026-06-18T14:06:00+03:00' },
       verify: { userId: 'USR-5', userName: 'Yousef Al-Balawi', at: '2026-06-18T14:20:00+03:00' },
@@ -427,6 +460,236 @@ export const safetyIncidentFixtures: SafetyIncident[] = [
     firstResponseAt: '2026-06-18T14:06:00+03:00',
     firstResponseBreachedAt: null,
   },
+  {
+    /**
+     * **`other` -- the sixth incident type, and the first row to reach it.**
+     *
+     * `SafetyIncidentType` closes the enum with `other` so a report that fits
+     * none of the five named kinds still has somewhere to go. The filter facet
+     * has offered it since the type was written and nothing produced it, so the
+     * facet has never matched a row and the chip has never rendered.
+     *
+     * Like `harassment`, no Section 6 reason code covers it, so
+     * `SAFETY_RESOLVE_MINUTES.other` is `null` and the row carries **no clock
+     * at all** -- `slaSource: 'unset'`, every SLA field null. Two of the six
+     * types having no measurable window is the finding, not the fixture: it is
+     * the same Q8 the harassment rows raise, and it is why `slaSource` exists.
+     */
+    id: 'INC-020',
+    type: 'other',
+    severity: 'normal',
+    /**
+     * **Closed, and that is a constraint rather than a preference.**
+     * `fixtures/navCounts.ts:340` pins `support-safety` at `6` and reasons
+     * about the six open rows *by id* over eighty lines — which two SOS
+     * incidents justify the product's one `attention` tone, and which sub-tab
+     * stepped aside for them. `navCounts.test.ts` asserts the literal against
+     * the live `open` queue. A seventh open incident would either falsify the
+     * literal or silently rewrite that argument, so every row added to this
+     * file after the original eight is closed.
+     */
+    status: 'closed',
+    reasonCode: SAFETY_REASON_CODE.other,
+    summary: 'Rider reports a child seat was promised on the plan and has not been fitted for three legs',
+    openedAt: '2026-06-22T07:26:00+03:00',
+    closedAt: '2026-06-22T11:40:00+03:00',
+    closedByUserId: 'USR-3',
+    closedByUserName: 'Lina Al-Otaibi',
+    tripId: 'TRP-8004',
+    reporterId: 'RDR-1075',
+    reporterName: 'Sara Al-Ghamdi',
+    reporterKind: 'rider',
+    againstId: 'DRV-0101',
+    againstName: 'Ahmed Salem',
+    protocol: protocol({
+      contact: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T07:41:00+03:00' },
+      verify: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T09:02:00+03:00' },
+      act: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T11:15:00+03:00' },
+      document: { userId: 'USR-3', userName: 'Lina Al-Otaibi', at: '2026-06-22T11:40:00+03:00' },
+    }),
+    precautionarySuspension: null,
+    workSeverity: 'normal',
+    claim: null,
+    slaStartedAt: null,
+    slaDueAt: null,
+    slaTargetMinutes: null,
+    slaBreachedAt: null,
+    slaSource: 'unset',
+    firstResponseDueAt: null,
+    firstResponseAt: '2026-06-22T07:41:00+03:00',
+    firstResponseBreachedAt: null,
+  },
+]
+
+/**
+ * `iso` plus `minutes`, rendered back in the dataset's Riyadh offset.
+ *
+ * Local on purpose. `mock/clock.ts`'s `offsetFromNow` measures from the fixed
+ * clock, and an incident's clock is measured from **the trip it is about** --
+ * so a filler that used `offsetFromNow` for the opening time and read a trip
+ * record for the parties would be doing exactly what `cycle.ts` exists to stop:
+ * deriving two halves of one fact from two independent sources, and letting
+ * them disagree about which came first.
+ *
+ * No host clock is read. `Date.parse` on a literal ISO string is total and
+ * deterministic; `Date.now()` never appears.
+ */
+function plusMinutes(iso: IsoDateTime, minutes: number): IsoDateTime {
+  const d = new Date(Date.parse(iso) + minutes * 60_000 + 3 * 3_600_000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}` +
+    `T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}+03:00`
+  )
+}
+
+/**
+ * Every finished trip with a captain on it, projected to the fields an incident
+ * denormalises.
+ *
+ * **This is the whole anti-drift device.** An incident's `tripId`,
+ * `reporterId`, `reporterName`, `againstId`, `againstName` and `openedAt` are
+ * six facts about one event, and every one of them comes off the same `Trip`
+ * record here. There is no second list to fall out of step with the first, and
+ * a trip that stops existing is a build failure rather than a queue row linking
+ * to a 404 -- which is what `TRP-8690`, `TRP-8720`, `TRP-8845`, `TRP-8901` and
+ * `TRP-8977` were doing on five of the eight hand-written rows above.
+ */
+interface IncidentSubject {
+  readonly id: string
+  readonly riderId: string
+  readonly riderName: string
+  readonly driverId: string
+  readonly driverName: string
+  readonly endedAt: IsoDateTime
+}
+
+const INCIDENT_SUBJECTS: readonly IncidentSubject[] = allTripFixtures.flatMap((t) =>
+  t.driverId === null || t.driverName === null || t.endedAt === null
+    ? []
+    : [
+        {
+          id: t.id,
+          riderId: t.riderId,
+          riderName: t.riderName,
+          driverId: t.driverId,
+          driverName: t.driverName,
+          endedAt: t.endedAt,
+        },
+      ],
+)
+
+const FILLER_INCIDENT_TYPES: readonly SafetyIncidentType[] = [
+  'unsafe-driving',
+  'theft',
+  'harassment',
+  'accident',
+  'other',
+  'sos',
+]
+
+const FILLER_INCIDENT_SUMMARIES: readonly string[] = [
+  'Rider reported harsh braking and lane weaving on the ring road',
+  'Rider left a phone in the vehicle and reports it was not returned',
+  'Rider reports the captain argued about the destination and raised his voice',
+  'Kerb strike reported by the captain — no injuries, tyre replaced',
+  'Rider reports the vehicle was not the one shown in the app',
+  'Panic button pressed and cancelled within the same minute — no voice contact',
+]
+
+/**
+ * Volume for the Safety queue. Eight hand-written rows could not page at the
+ * default 25, so the second page, the sort controls and the `closed` archive
+ * view had never been exercised against more than one screenful.
+ *
+ * Deterministic by index, and **every timestamp descends from the source
+ * trip's own `endedAt`** — the incident is opened between four minutes and
+ * three hours after the leg finished, its resolve clock starts there, and its
+ * closing time falls inside or outside the window by construction rather than
+ * by a literal somebody has to keep in step.
+ *
+ * **Every one of them is `closed`, and the open queue is deliberately not
+ * grown.** `fixtures/navCounts.ts:340` pins `support-safety` at `6` and argues
+ * for the product's one `attention` tone from those six rows by id;
+ * `navCounts.test.ts` asserts the literal against the live `open` queue, and
+ * `myWorkBacklogSize()` counts the same rows again. Adding open incidents would
+ * falsify a number three files reason about. It is also the truthful shape: an
+ * operations console's open safety queue is six rows and its archive is
+ * hundreds.
+ */
+export const fillerSafetyIncidents: SafetyIncident[] = Array.from({ length: 44 }, (_, i) => {
+  const subject = cycleRecord(INCIDENT_SUBJECTS, i * 7 + 1)
+  const type = cycle(FILLER_INCIDENT_TYPES, i)
+  const target = SAFETY_RESOLVE_MINUTES[type]
+  const severity = type === 'sos' ? 'critical' : type === 'accident' || type === 'harassment' ? 'high' : 'normal'
+  const openedAt = plusMinutes(subject.endedAt, 4 + ((i * 17) % 176))
+  const respondedAt = plusMinutes(openedAt, 3 + (i % 24))
+  const closedAt = plusMinutes(openedAt, 25 + ((i * 13) % 400))
+  /* Two of the six types have no measurable window (Q8), so a third of these
+     rows carry no clock at all — which is the honest distribution, not a gap. */
+  const clocked = target !== null
+  /* Whoever closed it, from one row of the roster. */
+  const operator = cycleRecord(
+    [
+      { id: 'USR-1', name: 'Sarah Al-Rashid' },
+      { id: 'USR-3', name: 'Lina Al-Otaibi' },
+      { id: 'USR-5', name: 'Yousef Al-Balawi' },
+    ],
+    i,
+  )
+  const step = { userId: operator.id, userName: operator.name, at: respondedAt }
+  return {
+    id: `INC-${1001 + i}`,
+    type,
+    severity,
+    status: 'closed',
+    reasonCode: SAFETY_REASON_CODE[type],
+    summary: cycle(FILLER_INCIDENT_SUMMARIES, i),
+    openedAt,
+    closedAt,
+    closedByUserId: operator.id,
+    closedByUserName: operator.name,
+    tripId: subject.id,
+    reporterId: subject.riderId,
+    reporterName: subject.riderName,
+    reporterKind: 'rider',
+    againstId: subject.driverId,
+    againstName: subject.driverName,
+    protocol: protocol({
+      contact: step,
+      verify: { ...step, at: plusMinutes(respondedAt, 12) },
+      act: { ...step, at: plusMinutes(respondedAt, 30) },
+      document: { userId: operator.id, userName: operator.name, at: closedAt },
+    }),
+    precautionarySuspension: null,
+    workSeverity: severity,
+    /* A closed incident is in nobody's name — `closeIncident` releases the
+       claim (`:13480`). The take-over case lives on `INC-016`, which is open. */
+    claim: null,
+    slaStartedAt: clocked ? openedAt : null,
+    slaDueAt: clocked ? plusMinutes(openedAt, target) : null,
+    slaTargetMinutes: target,
+    /**
+     * Breached iff it closed **later than its own deadline** — computed from
+     * the two instants rather than asserted, so a row cannot claim a breach its
+     * own dates deny. Roughly a third of them do breach, which is what makes
+     * the archive worth sorting by.
+     */
+    slaBreachedAt:
+      clocked && Date.parse(closedAt) > Date.parse(plusMinutes(openedAt, target))
+        ? plusMinutes(openedAt, target)
+        : null,
+    slaSource: clocked ? 'legacy-reason-code' : 'unset',
+    firstResponseDueAt: clocked ? plusMinutes(openedAt, severity === 'critical' ? 0 : 15) : null,
+    firstResponseAt: respondedAt,
+    firstResponseBreachedAt: null,
+  } satisfies SafetyIncident
+})
+
+/** 53 rows — three pages at the default 25, and an archive worth sorting. */
+export const safetyIncidentFixtures: SafetyIncident[] = [
+  ...namedSafetyIncidents,
+  ...fillerSafetyIncidents,
 ]
 
 /**

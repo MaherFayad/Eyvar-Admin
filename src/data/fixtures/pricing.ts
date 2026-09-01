@@ -9,6 +9,8 @@
  * is to show the operator that they disagree.
  */
 
+import { offsetFromNow } from '../mock/clock'
+import { cycle } from './cycle'
 import type {
   CancellationRule,
   QuickRideType,
@@ -56,6 +58,35 @@ export const subscriptionPlanFixtures: SubscriptionPlan[] = [
     pricingEditable: false,
   },
   {
+    /**
+     * **`archived` — the third `PlanStatus`, and this is the row that reaches
+     * it.** `active` and `draft` both had plans; `archived` had none, so the
+     * status filter offered a value nothing matched and the *"withdrawn from
+     * sale, not deleted"* case had never rendered. It is the status that
+     * matters most of the three: an archived plan is the one an operator must
+     * be stopped from *assigning* while still being able to read, because the
+     * subscriptions sold under it are still running out their term.
+     *
+     * **Why an existing plan rather than a fourth one.** A trial plan would
+     * have been the tidier fixture, and `PlanKey` is a closed three-member
+     * union (`types/subscription.ts:30`) feeding `Record<PlanKey, number>` on
+     * the rate card, so a fourth plan is a type change in a file this fixture
+     * does not own, and `clients/financials.test.ts:1281` pins the catalogue to
+     * exactly `['weekly', 'biweekly', 'monthly']`. Bending both to reach a
+     * filter facet is worse than choosing which of the three is withdrawn.
+     *
+     * **Bi-weekly is the right one to withdraw**, and it makes the fixture
+     * stronger rather than weaker: it still has live subscriptions
+     * (`SUB-1052`, `SUB-2002` and the fillers) and 62 active subscribers in
+     * `revenueByPlanFixtures`. An archived plan with nothing behind it proves
+     * only that a badge renders. This one proves the hard part — that an
+     * operator can read a plan they may not sell, that its subscribers are
+     * still served, and that its revenue is still in the books.
+     *
+     * **Flagged for product-owner as a data decision, not a product one.** If
+     * bi-weekly is meant to stay on sale, the answer is to widen `PlanKey` and
+     * add a fourth plan; say so and this reverts in one line.
+     */
     id: 'biweekly',
     nameEn: 'Bi-weekly',
     nameAr: 'الباقة نصف الشهرية',
@@ -63,13 +94,15 @@ export const subscriptionPlanFixtures: SubscriptionPlan[] = [
     executeDays: 10,
     cancelCap: 2,
     sortOrder: 2,
-    status: 'active',
+    status: 'archived',
     features: [
       { en: 'Same captain every trip', ar: 'نفس السائق في كل رحلة' },
       { en: 'Save up to 35% vs single rides', ar: 'وفر حتى 35% مقارنة بالرحلات الفردية' },
     ],
-    economyActive: true,
-    comfortActive: true,
+    /* Withdrawn from both classes. An archived plan with a live vehicle class
+       would still be reachable through the class picker. */
+    economyActive: false,
+    comfortActive: false,
     commissionPercent: 18,
     discountPercent: 5,
     economyPerMinuteHalalas: 85,
@@ -436,8 +469,47 @@ export const surgeWindowFixtures: SurgeWindow[] = [
  * returns `expiresAt` and the screen counts against the clock it was given, so
  * nothing here moves between runs.
  */
+/**
+ * Zones a suspension can be set on, **as whole records**. The id and the display
+ * name are read off one object per row so a suspension cannot name one zone by
+ * id and a different one in its label — the defect `cycle.ts` documents, applied
+ * to a much smaller list.
+ *
+ * These are not `fixtures/zones.ts`'s `ZONE-0n` ids: the surge module keys zones
+ * by slug and the zones module by code, and reconciling the two is a product
+ * decision, not a fixture edit. **Finding for whoever owns the zone identity.**
+ */
+const SURGE_ZONES: ReadonlyArray<{ readonly id: string; readonly name: string }> = [
+  { id: 'al-narjis', name: 'Al Narjis' },
+  { id: 'al-sahafa', name: 'Al Sahafa' },
+  { id: 'kafd-olaya', name: 'KAFD / Olaya' },
+  { id: 'al-malaz', name: 'Al Malaz' },
+  { id: 'qurtubah', name: 'Qurtubah' },
+  { id: 'al-yasmin', name: 'Al Yasmin' },
+]
+
+const SURGE_SUSPENSION_REASONS: readonly string[] = [
+  'Stadium event — surge would price out the evening commute',
+  'School run window — capped by the operations policy for the term',
+  'Ministry inspection announced for the district',
+  'Weather advisory: surge suppressed while the alert stands',
+  'Complaint cluster on evening pricing, held pending review',
+]
+
+/**
+ * One live suspension and eleven of history. A single row could not page, could
+ * not be sorted, and left the **expired** case — a suspension whose window has
+ * closed and which the table must still show — unreachable, which is the same
+ * mistake `releaseEscrow` makes when it splices a released hold out of the array
+ * (`:7064`).
+ *
+ * Deterministic: every timestamp is `offsetFromNow` from a single per-row offset,
+ * so a row's expiry cannot contradict its start.
+ */
 export const surgeSuspensionFixtures: SurgeSuspension[] = [
   {
+    /* The one live suspension: started an hour before the fixed clock, six
+       hours to run. */
     id: 'SUS-0001',
     zoneId: 'al-narjis',
     zoneName: 'Al Narjis',
@@ -447,4 +519,25 @@ export const surgeSuspensionFixtures: SurgeSuspension[] = [
     startedAt: '2026-06-25T07:14:00+03:00',
     expiresAt: '2026-06-25T13:14:00+03:00',
   },
+  ...Array.from({ length: 11 }, (_, i) => {
+    const zone = cycle(SURGE_ZONES, i + 1)
+    const operator = cycle(
+      [
+        { id: 'USR-5', name: 'Yousef Al-Balawi' },
+        { id: 'USR-1', name: 'Sarah Al-Rashid' },
+      ],
+      i,
+    )
+    const startedMinutesAgo = 1_440 * (1 + i) + ((i * 97) % 900)
+    return {
+      id: `SUS-${String(2 + i).padStart(4, '0')}`,
+      zoneId: zone.id,
+      zoneName: zone.name,
+      reason: cycle(SURGE_SUSPENSION_REASONS, i),
+      setByUserId: operator.id,
+      setByUserName: operator.name,
+      startedAt: offsetFromNow({ minutes: -startedMinutesAgo }),
+      expiresAt: offsetFromNow({ minutes: -startedMinutesAgo + 120 + ((i * 71) % 600) }),
+    } satisfies SurgeSuspension
+  }),
 ]

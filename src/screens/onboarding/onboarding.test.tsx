@@ -17,6 +17,15 @@
  * **AC-631** passes through a different path — zero permissions, not a
  * forbidden step. The two are not testing the same thing and passing AC-631
  * does not discharge AC-610.
+ *
+ * **Three are SYNTHETICALLY covered and labelled `SYNTHETIC —` in their names:
+ * AC-609, AC-611 and AC-626.** `UNBUILT_SUB_TAB_IDS` is empty since Live
+ * Dispatch and Support › Tickets shipped, so **no step in any track is
+ * unavailable today** and the unavailable row has no real fixture to reach it.
+ * The behaviour is still tested — against a checklist assembled in this file —
+ * and a `TRIPWIRE` case fails the day real data can carry it again. See the
+ * block's own header for why this is labelled rather than deleted or left to
+ * pass vacuously.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
@@ -61,14 +70,21 @@ beforeEach(() => {
  * what the fixture says, while a test that reads the client proves what an
  * operator gets. The difference is exactly where `available` and `reachable`
  * are derived, which is the half these criteria are about.
+ *
+ * **Asked for by id, not by signing in.** This used to `switchMockUser(user.id)`
+ * and then call `getOnboarding()` bare — but the bare call reads the
+ * `CURRENT_USER_ID` **constant**, not the operator the mock session is on, so
+ * all four iterations returned `USR-1`'s Owner track. The map still had four
+ * keys, because the keys come from the roster, and every consumer below
+ * therefore checked **7 rows while its comment said 21**. Reported as a data
+ * layer defect; corrected here so the union is real.
  */
 async function tracks(): Promise<Map<string, OnboardingStep[]>> {
   const users = await listTeamUsers()
   const byRole = new Map<string, OnboardingStep[]>()
   for (const user of users) {
     if (byRole.has(user.role)) continue
-    await switchMockUser(user.id)
-    const checklist = await getOnboarding()
+    const checklist = await getOnboarding(user.id)
     byRole.set(user.role, checklist.steps)
   }
   return byRole
@@ -93,7 +109,12 @@ async function allSteps(): Promise<OnboardingStep[]> {
   for (const steps of (await tracks()).values()) {
     for (const step of steps) byId.set(step.id, step)
   }
-  return [...byId.values()]
+  const all = [...byId.values()]
+  /* The count is the assertion. Every criterion below that says "all 21 rows"
+     is only worth its wording if 21 rows actually arrived; a helper that
+     quietly returned one track's seven would flatter five of them at once. */
+  expect(all, 'the union of the four tracks').toHaveLength(21)
+  return all
 }
 
 function renderLayer(onClose = vi.fn()) {
@@ -301,11 +322,63 @@ describe('AC-605 / AC-606 — only the expanded step shows its controls, and eve
   })
 })
 
+/**
+ * ═══ AC-609 / AC-611 / AC-626 — SYNTHETIC COVERAGE, and it says so ═══
+ *
+ * **These three criteria have no real fixture left to exercise them.**
+ *
+ * `available` was never fixture data: it is derived in `clients/onboarding.ts`
+ * from `UNBUILT_SUB_TAB_IDS` in `clients/routes.ts` — which is precisely what
+ * **AC-626** asks for, *"becomes enabled with no change to
+ * `fixtures/onboardingTracks.ts`"*. Live Dispatch (`operations-dispatch`) and
+ * Support › Tickets (`support-tickets`) have since shipped, the route-table
+ * owner emptied that register, and **`UNBUILT_SUB_TAB_IDS` is now `[]`**. Every
+ * destination in all four tracks resolves and is built, so **no step in the
+ * product is unavailable today**. AC-626 is therefore *satisfied by
+ * observation*: the two steps became enabled and this fixture did not move.
+ *
+ * The criteria are **not deleted** — the unavailable treatment is still the
+ * designed behaviour for the next unbuilt destination, and the day one appears
+ * an operator meets this row. So it is tested against a checklist **built in
+ * this file**, and the label is deliberate: DECISIONS.md § *"a negative
+ * assertion can pass vacuously"* — the general test is *what would have to be
+ * broken for this to fail?* For a real-data version of this test the answer is
+ * now **nothing I can construct**, which makes it vacuous, and a vacuous test
+ * is a false tick. Labelling it synthetic is the honest alternative to
+ * quietly reporting a green criterion that measured nothing.
+ *
+ * The synthetic checklist is the **real** Ops Manager checklist with exactly
+ * the two fields the data layer would flip flipped — nothing else is invented.
+ * The tripwire below fails the day real data can carry this again.
+ */
 describe('AC-609 / AC-611 / AC-626 — an unbuilt destination renders disabled IN PLACE', () => {
-  it('shows the Live Dispatch step, disabled, with the reason named', async () => {
-    /* The Ops Manager track is the one carrying `ops.dispatch`, whose
-       destination is wave 6 and not built. */
-    await switchMockUser(await userWithRole('Ops Manager'))
+  /**
+   * The real Ops Manager checklist with `ops.dispatch` demoted to unavailable —
+   * byte-for-byte what `assemble()` returns if `operations-dispatch` goes back
+   * into `UNBUILT_SUB_TAB_IDS`. `totalCount` is recomputed the way the client
+   * computes it (reachable only, **AC-603**) rather than hard-coded to 7.
+   */
+  async function withUnbuiltDispatch() {
+    /* Asked for **by id**. `getOnboarding()` with no argument reads the
+       `CURRENT_USER_ID` constant rather than the operator `switchMockUser` last
+       signed in as, so switching and then calling it bare returns somebody
+       else's track — reported separately, worked around here. */
+    const real = await getOnboarding(await userWithRole('Ops Manager'))
+    const steps = real.steps.map((step) =>
+      step.id === 'ops.dispatch' ? { ...step, available: false, reachable: false } : step,
+    )
+    const reachable = steps.filter((step) => step.reachable)
+    return {
+      ...real,
+      steps,
+      totalCount: reachable.length,
+      doneCount: reachable.filter((step) => real.state.completedStepIds.includes(step.id)).length,
+    }
+  }
+
+  it('SYNTHETIC — shows the Live Dispatch step, disabled, with the reason named', async () => {
+    const checklist = await withUnbuiltDispatch()
+    const get = vi.spyOn(onboardingClient, 'getOnboarding').mockResolvedValue(checklist)
     renderLayer()
 
     const row = await screen.findByRole('button', {
@@ -319,10 +392,51 @@ describe('AC-609 / AC-611 / AC-626 — an unbuilt destination renders disabled I
        the row refuses to open. */
     expect(row).toBeDisabled()
     expect(
-      screen.getByText(
-        en('onboarding.step.unbuilt').replace('{subTab}', 'Live Dispatch'),
+      screen.getByText(en('onboarding.step.unbuilt').replace('{subTab}', 'Live Dispatch')),
+    ).toBeInTheDocument()
+    get.mockRestore()
+  })
+
+  it('SYNTHETIC — renders eight rows and a progress line out of seven — AC-603 vs AC-624', async () => {
+    /* The two counts measure different things (spec §19.3): every step is in
+       `steps`, only the reachable ones are in `total`. Asserted through the
+       layer, because conflating them is what makes a QA engineer file a defect
+       against a correct screen. */
+    const checklist = await withUnbuiltDispatch()
+    expect(checklist.steps).toHaveLength(8)
+    expect(checklist.totalCount).toBe(7)
+    const get = vi.spyOn(onboardingClient, 'getOnboarding').mockResolvedValue(checklist)
+    renderLayer()
+
+    expect(
+      await screen.findByText(
+        en('onboarding.progress').replace('{done}', '0').replace('{total}', '7'),
       ),
     ).toBeInTheDocument()
+    /* AC-611 — eight rows on screen, none hidden, including the disabled one. */
+    const titles = checklist.steps.map((step) => en(step.titleKey))
+    for (const title of titles) {
+      expect(screen.getByText(title), title).toBeInTheDocument()
+    }
+    expect(titles).toHaveLength(8)
+    get.mockRestore()
+  })
+
+  it('TRIPWIRE — no real step is unavailable today, so the case above must stay synthetic', async () => {
+    /**
+     * **Delete the synthetic scaffolding above and retarget it at real data the
+     * day this fails.** It fails when some step's destination stops being built
+     * — a new sub-tab lands in `UNBUILT_SUB_TAB_IDS`, or a destination is
+     * renamed out of the route table — which is exactly the condition that
+     * gives AC-609/AC-611 a real fixture again.
+     *
+     * It is also the guard the old test was silently doing: that test read as
+     * *"the unavailable treatment works"* and had degenerated into *"Live
+     * Dispatch is still unbuilt"*, which stopped being true without anyone
+     * being told.
+     */
+    const unavailable = (await allSteps()).filter((step) => !step.available)
+    expect(unavailable.map((step) => step.id)).toEqual([])
   })
 })
 

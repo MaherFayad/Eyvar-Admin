@@ -101,6 +101,22 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.posting.tripEarnings': 'Earnings for trip {tripId}',
   'fin.posting.earningsAccrual': 'Earnings accrued {from} to {to}',
   'fin.posting.chargeback': 'Chargeback {reference}',
+
+  /* Seven postings that arrived with the ledger fixture's enum-coverage pass —
+     `SettlementState`'s previously-unreachable members and the invoice /
+     credit-note lifecycle. Each is a `descriptionKey` on a posting, resolved
+     verbatim by `t()`, so the build-time guard fails while any is absent.
+     Written from each posting's own account, direction and params rather than
+     from its key name: `invoiceVoided` is the credit that reverses
+     `invoiceRaised` for the same reference, and saying so is the whole value of
+     the line on a ledger somebody is reconciling. */
+  'fin.posting.walletTopup': 'Wallet top-up',
+  'fin.posting.invoiceRaised': 'Invoice {reference} raised',
+  'fin.posting.invoiceVoided': 'Invoice {reference} voided',
+  'fin.posting.payoutReleased': 'Payout {reference} released',
+  'fin.posting.payoutReversed': 'Payout {reference} reversed',
+  'fin.posting.creditNoteVatReversal': 'VAT reversed on credit note {noteNumber}',
+  'fin.posting.gatewaySettlementPending': 'Awaiting gateway settlement {reference}',
   'fin.posting.chargebackReceivable': 'Chargeback raised against trip {tripId}',
   'fin.posting.subscriptionAuthorised': 'Subscription payment authorised',
   'fin.posting.refundIssued': 'Refund {reference} to {riderName}',
@@ -118,6 +134,20 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.posting.payout': 'Payout {reference}',
   'fin.posting.payoutFailed': 'Payout {reference} returned by the bank',
   'fin.posting.deductionApplied': 'Deduction {reference} applied',
+  /* The receivable leg. When a deduction exceeds what this cycle's earnings can
+     cover, the excess is debited to `ar.driver` — the captain cash receivable —
+     and carries forward. Minted since wave 3 and defined nowhere until the
+     `LocalisedText` guard in `i18n/localisedKeys.test.ts` found it. */
+  'fin.posting.deductionReceivable': 'Deduction {reference} carried as a receivable',
+
+  /* The `payment` resource landed after this file was written, and both of these
+     are `LocalisedText` minted by `fixtures/payments.ts` and `clients/payments.ts`
+     — so `t()` resolves them verbatim and `localisedKeys.test.ts` fails the build
+     while either is absent. Written here rather than in the data layer because a
+     sentence an operator reads is copy, and copy lives beside its screen. */
+  'fin.payment.failure.insufficientFunds': 'The card was declined for insufficient funds.',
+  'fin.payment.escalation.unsettledPastCycle':
+    'Unsettled {days} days past its cycle — escalate to the gateway.',
   'fin.posting.emergencyCover': 'Emergency cover paid to the replacement',
   'fin.posting.emergencyForfeit': 'Emergency cover forfeited by the absentee',
   'fin.posting.adjustment': 'Adjustment · {reasonCode}',
@@ -342,6 +372,131 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.riderNoShow': 'Rider no-show not reported',
   'fin.deduction.vehicleCleanliness': 'Vehicle cleanliness',
 
+  /* ═══════════ the bulk bar — P4-T1, D21, §11.2 over a SET ═════════════ */
+
+  /* **The rule these sentences encode (D21, RATIFIED).** A bulk command is
+     refused if **any** selected record would be refused, the refusal **names
+     the count**, and there is **no partial apply** — the one way out is the
+     bar's own `Select only the N eligible`, which changes the selection by the
+     operator's own act before the command becomes available. On a money
+     surface that distinction is the whole thing: a half-applied bulk payout is
+     a reconciliation incident, and the outcome toast must name the number that
+     was on the bar (**AC-961**).
+
+     **Three sentences per cause, not two.** D21: *"`.other` is wrong when every
+     target is blocked"* — `4 of the selected payouts cannot be paid` is true of
+     4-of-4 and invites the operator to believe a subset would work, when the
+     right next act is to pick a different command.
+
+       `.one`    one record selected, and it is refused
+       `.other`  some of the selection is refused — the escape hatch renders
+       `.all`    every selected record is refused — no escape hatch (**AC-960**)
+
+     **The role refusal carries all three forms too**, rather than one flat
+     sentence. It refuses the whole set, so in practice it is always the `.all`
+     shape — and writing it as one count-free line would make the one refusal an
+     operator most needs to recognise the only one that does not look like the
+     others. **AC-962**: it outranks every domain cause, which is the order the
+     `*_REFUSAL_ORDER` arrays declare.
+
+     `{count}` is the **blocked** subset, formatted by `formatCount` so Arabic
+     gets Arabic-Indic digits (D21 rendering rule 4). Never `String(n)`.
+
+     **One key, one whole sentence** (AC-443). The rejected alternative is a
+     frame with the row-level refusal interpolated into it — a sentence inside a
+     sentence, which is the finding `fin.refused.*` already records. */
+
+  'fin.bulk.pay.permission.one': 'This payout cannot be paid — your role cannot move money.',
+  'fin.bulk.pay.permission.other':
+    '{count} of the selected payouts cannot be paid — your role cannot move money.',
+  'fin.bulk.pay.permission.all':
+    'All {count} selected payouts cannot be paid — your role cannot move money.',
+  'fin.bulk.pay.noBank.one': 'This payout cannot be paid — no bank account is on file.',
+  'fin.bulk.pay.noBank.other':
+    '{count} of the selected payouts cannot be paid — no bank account is on file.',
+  'fin.bulk.pay.noBank.all':
+    'All {count} selected payouts cannot be paid — no bank account is on file.',
+  'fin.bulk.pay.nothing.one': 'This payout cannot be paid — nothing is payable after cash debt.',
+  'fin.bulk.pay.nothing.other':
+    '{count} of the selected payouts cannot be paid — nothing is payable after cash debt.',
+  'fin.bulk.pay.nothing.all':
+    'All {count} selected payouts cannot be paid — nothing is payable after cash debt.',
+  /* A **plural family** (`lib/i18n/plural.ts`) for the confirmation title, not a
+     pair of caller-chosen keys: Arabic takes six cardinal forms and a call site
+     is not the thing that should hold the CLDR table. `{count}` is the one
+     numeric parameter, so every money value arrives pre-formatted.
+     (The refusal cases above are NOT a plural family: `all` is a case, not a
+     CLDR category, and no `Intl.PluralRules` can select it.) */
+  'fin.bulk.pay.confirm.title#one': 'Pay 1 captain {net}?',
+  'fin.bulk.pay.confirm.title#other': 'Pay {count} captains {net}?',
+  'fin.bulk.pay.confirm.body':
+    'Every captain is paid their own net — the payable less the cash debt on it. The totals above are for the whole selection. The debts are cleared by these payouts and nothing else about the captains changes.',
+  'fin.bulk.pay.confirm.confirm': 'Pay',
+  'fin.bulk.pay.toast': 'Payouts sent',
+
+  'fin.bulk.release.permission.one': 'This hold cannot be released — your role cannot move money.',
+  'fin.bulk.release.permission.other':
+    '{count} of the selected holds cannot be released — your role cannot move money.',
+  'fin.bulk.release.permission.all':
+    'All {count} selected holds cannot be released — your role cannot move money.',
+  'fin.bulk.release.state.one':
+    'This hold cannot be released — it is already released or reversed.',
+  'fin.bulk.release.state.other':
+    '{count} of the selected holds cannot be released — they are already released or reversed.',
+  'fin.bulk.release.state.all':
+    'All {count} selected holds cannot be released — they are already released or reversed.',
+  'fin.bulk.release.trips.one': 'This hold cannot be released — not every plan trip is delivered.',
+  'fin.bulk.release.trips.other':
+    '{count} of the selected holds cannot be released — not every plan trip is delivered.',
+  'fin.bulk.release.trips.all':
+    'All {count} selected holds cannot be released — not every plan trip is delivered.',
+  'fin.bulk.release.confirm.title#one': 'Release {amount} from 1 hold?',
+  'fin.bulk.release.confirm.title#other': 'Release {amount} from {count} holds?',
+  'fin.bulk.release.confirm.body':
+    'Every hold stays on this list showing its released state, and each amount is credited to its own captain payable ledger. The subscriptions are unaffected.',
+  'fin.bulk.release.confirm.confirm': 'Release',
+  'fin.bulk.release.toast': 'Escrow released',
+
+  'fin.bulk.apply.permission.one':
+    'This deduction cannot be applied — your role cannot move money.',
+  'fin.bulk.apply.permission.other':
+    '{count} of the selected deductions cannot be applied — your role cannot move money.',
+  'fin.bulk.apply.permission.all':
+    'All {count} selected deductions cannot be applied — your role cannot move money.',
+  'fin.bulk.apply.decided.one': 'This deduction cannot be applied — it is already applied or waived.',
+  'fin.bulk.apply.decided.other':
+    '{count} of the selected deductions cannot be applied — they are already applied or waived.',
+  'fin.bulk.apply.decided.all':
+    'All {count} selected deductions cannot be applied — they are already applied or waived.',
+  'fin.bulk.apply.confirm.title#one': 'Apply {amount} from 1 deduction?',
+  'fin.bulk.apply.confirm.title#other': 'Apply {amount} from {count} deductions?',
+  'fin.bulk.apply.confirm.body':
+    'Each amount comes off its own captain payable balance. Anything a payable cannot cover becomes cash receivable rather than being written off.',
+  'fin.bulk.apply.confirm.confirm': 'Apply',
+  'fin.bulk.apply.toast': 'Deductions applied',
+
+  'fin.bulk.waive.permission.one': 'This deduction cannot be waived — your role cannot move money.',
+  'fin.bulk.waive.permission.other':
+    '{count} of the selected deductions cannot be waived — your role cannot move money.',
+  'fin.bulk.waive.permission.all':
+    'All {count} selected deductions cannot be waived — your role cannot move money.',
+  'fin.bulk.waive.decided.one': 'This deduction cannot be waived — it is already applied or waived.',
+  'fin.bulk.waive.decided.other':
+    '{count} of the selected deductions cannot be waived — they are already applied or waived.',
+  'fin.bulk.waive.decided.all':
+    'All {count} selected deductions cannot be waived — they are already applied or waived.',
+  'fin.bulk.waive.confirm.title#one': 'Waive {amount} on 1 deduction?',
+  'fin.bulk.waive.confirm.title#other': 'Waive {amount} on {count} deductions?',
+  'fin.bulk.waive.confirm.body':
+    'Every deduction stays on this list showing who waived it and why. The captains keep the amounts and nothing is posted.',
+  'fin.bulk.waive.confirm.confirm': 'Waive',
+  'fin.bulk.waive.toast': 'Deductions waived',
+
+  /* **AC-75** — one key, one placeholder. The link's accessible name is never
+     `Open` plus a name glued together at the call site. */
+  'fin.a11y.openProfile': 'Open the 360° profile for {name}',
+  'fin.a11y.openWallet': 'Open the wallet ledger for {name}',
+
   /* ═══════════════════ Cash & Captain Debt ═════════════════════════════ */
 
   'fin.cash.view.queue': 'Reconciliation queue',
@@ -380,6 +535,42 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.cash.escalate.body':
     'The report stays in the queue showing your decision. Trust & Safety take it from here and the captain keeps working.',
   'fin.cash.escalate.confirm': 'Escalate',
+  /* **P4-T1 on a QUEUE, and the one bulk command §9.3 permits here.**
+     `design/00-shell.md` §9.3: a queue carries a checkbox column *"only if
+     every bulk action offered is a claim or assign action"*, and, in the same
+     table, ***"Bulk disposition must not ship."*** So `Claim` is the whole set
+     of bulk commands on this queue — `Resolve` and `Escalate` each need their
+     own reason about their own report, and a set that shares one reason is the
+     blanket justification the audit trail exists to prevent. */
+  /* **D21's three forms**, one set per cause. The role refusal is first in
+     `CLAIM_REFUSAL_ORDER` (**AC-962**) and carries the same three forms as the
+     domain causes, so the refusal an operator most needs to recognise does not
+     read differently from the rest. */
+  'fin.bulk.claim.permission.one': 'This report cannot be claimed — your role cannot claim work.',
+  'fin.bulk.claim.permission.other':
+    '{count} of the selected reports cannot be claimed — your role cannot claim work.',
+  'fin.bulk.claim.permission.all':
+    'All {count} selected reports cannot be claimed — your role cannot claim work.',
+  'fin.bulk.claim.decided.one': 'This report cannot be claimed — it is already decided.',
+  'fin.bulk.claim.decided.other':
+    '{count} of the selected reports cannot be claimed — they are already decided.',
+  'fin.bulk.claim.decided.all':
+    'All {count} selected reports cannot be claimed — they are already decided.',
+  'fin.bulk.claim.heldByOther.one':
+    'This report cannot be claimed — another operator holds it.',
+  'fin.bulk.claim.heldByOther.other':
+    '{count} of the selected reports cannot be claimed — another operator holds them.',
+  'fin.bulk.claim.heldByOther.all':
+    'All {count} selected reports cannot be claimed — another operator holds them.',
+  /* Already yours is a refusal rather than a no-op, because a bulk command that
+     silently skips records is the partial apply D21 rules out. */
+  'fin.bulk.claim.mine.one': 'This report is already yours.',
+  'fin.bulk.claim.mine.other': '{count} of the selected reports are already yours.',
+  'fin.bulk.claim.mine.all': 'All {count} selected reports are already yours.',
+  /* **No confirmation, and that is the same decision the row control made.**
+     A claim moves no money and takes nothing from anybody — releasing is one
+     click away. A take-over does need one, and is not offered in bulk. */
+  'fin.bulk.claim.toast': 'Reports claimed',
   'fin.cash.reason.label': 'Reason',
   'fin.cash.reason.help': 'One line. It goes on the record with your name.',
   'fin.cash.reason.message': 'Enter a reason.',
@@ -782,4 +973,44 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.invoice.lastIssued': 'Last issued',
   'fin.invoice.gapless': 'The sequence is issued by the server and never skips a number.',
   'fin.invoice.none': 'None issued yet',
+
+  /* ────────────────────── audit detail lines (AC-74) ─────────────────────
+     **These 14 keys were minted by the data layer and defined nowhere.**
+
+     Every financial client writes `AuditEntry.detail` as a `LocalisedText`, and
+     `detail` had no UI consumer until Admin › Activity read it — so the gap sat
+     unnoticed through wave 3. The first render threw
+     `Missing translation key "fin.audit.gatewayDefaulted"`, which is AC-74's
+     dev-time guard doing exactly its job.
+
+     Three rules govern the sentences below.
+
+     **Money is a `…Halalas` param and is never written into the string.**
+     `formatLocalisedText` (`lib/format/localisedText.ts`) formats any param whose
+     name ends in `Halalas` through `formatMoney` before interpolation, because
+     `common.ts` promises *"money params stay integer halalas so `formatMoney` is
+     still the only formatter"*. A sentence here that spelled out a currency would
+     break that promise.
+
+     **One key, one sentence, no concatenation** (AC-75). Each is a complete past-
+     tense statement of what happened, so Arabic can reorder it freely.
+
+     **Past tense, and no blame** (AC-39). An audit line records an act, and the
+     operator who took it is a separate column — the sentence never says "you". */
+
+  'fin.audit.cash.resolve': 'Resolved the cash report {reference}.',
+  'fin.audit.cash.escalate': 'Escalated the cash report {reference}.',
+  'fin.audit.cashRepayment': 'Recorded a cash repayment. {remainingHalalas} of debt remains.',
+  'fin.audit.postingReleased': 'Released the held posting {reference}.',
+  'fin.audit.postingReversed': 'Reversed the posting {original} with {reversal}.',
+  'fin.audit.gatewayToggled': 'Changed whether the {gateway} gateway accepts payments.',
+  'fin.audit.gatewayDefaulted': 'Made {gateway} the default payment gateway.',
+  'fin.audit.payoutPaid':
+    'Paid {netHalalas} — {payableHalalas} payable, less {cashDebtHalalas} of cash debt.',
+  'fin.audit.escrowReleased': 'Released the escrow hold {escrowId}.',
+  'fin.audit.deductionApplied': 'Applied the deduction {reference}.',
+  'fin.audit.deductionWaived': 'Waived the deduction {reference}.',
+  'fin.audit.planSaved': 'Saved the plan {plan}.',
+  'fin.audit.refundIssued': 'Issued the refund {reference} to {destination}.',
+  'fin.audit.walletAdjusted': 'Adjusted a wallet — {direction} {reference}.',
 }

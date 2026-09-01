@@ -355,15 +355,27 @@ export const metricSeeds: MetricSeed[] = [
     periodStart: null,
     periodEnd: null,
     /**
-     * **51** active captains had joined on or before 10 Jun; two more joined on
+     * **50** active captains had joined on or before 10 Jun; two more joined on
      * the 20th and the 24th. An approximation in one respect and it is worth
      * naming: `status` is *current*, so a captain suspended yesterday is not
      * counted as active a fortnight ago either. The driver fixture holds no
      * status history and inventing one would be worse than the approximation.
+     *
+     * **Was 51.** `DRV-0101` moved from `active` to `under-review` when
+     * `fixtures/complaints.ts` landed `CMP-330` against him — legacy has it
+     * `Open` (`:2711`) and notification N6 names it — and
+     * `types/driver.ts` derives `under-review` from a non-zero open-complaint
+     * count (`:6394`).
+     *
+     * **Finding for the metrics owner, and the second one on this file:** this
+     * baseline and `management.growth.registeredRiders`'s are derived facts
+     * kept as literals, so every change to a *different* fixture is a two-file
+     * change and `metrics.test.ts` is what discovers it. Both should be
+     * computed from the fixture the way their numerators already are.
      */
     comparison: {
       kind: 'previous-period',
-      value: 51,
+      value: 50,
       periodStart: SNAPSHOT_PREVIOUS.start,
       periodEnd: SNAPSHOT_PREVIOUS.end,
     },
@@ -1089,10 +1101,27 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    /** **12** riders had joined on or before 10 Jun; one joined 22 Jun is the thirteenth. */
+    /**
+     * **54** riders had joined on or before 10 Jun; the fifty-fifth joined
+     * 22 Jun.
+     *
+     * **This is a derived fact stored as a literal, and it is the reason this
+     * line moved.** `value` is computed (`riderFixtures.length`) while the
+     * baseline beside it is typed in, so the two drift the moment the rider
+     * population changes — which it did when `RDR-1042` … `RDR-1049` were
+     * added as real records and `fillerRiders` took the population past the
+     * page size. `clients/metrics.test.ts` re-derives it from
+     * `riderFixtures`, which is what caught the drift.
+     *
+     * **Finding for the metrics owner:** this baseline should be computed the
+     * same way its numerator is — `riderFixtures.filter(r => r.joinedAt <=
+     * SNAPSHOT_PREVIOUS.end).length` — rather than maintained by hand. It is
+     * the only cross-file coupling that makes growing a fixture population a
+     * two-file change.
+     */
     comparison: {
       kind: 'previous-period',
-      value: 12,
+      value: 54,
       periodStart: SNAPSHOT_PREVIOUS.start,
       periodEnd: SNAPSHOT_PREVIOUS.end,
     },

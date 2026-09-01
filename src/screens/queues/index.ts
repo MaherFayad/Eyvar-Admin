@@ -32,5 +32,6 @@ export {
   SlaCell,
   SlaCountdown,
   queueClock,
+  type QueueClockInput,
   type QueueClockResult,
 } from './queue'

@@ -70,24 +70,44 @@ describe('AC-382 — the index is an index and the ledger behind it is a ledger'
     mount('/financials/rider-wallets?view=all-wallets')
     await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
 
-    /* ── the index ── */
+    /* ── the index ──
+       **AC-382 amended by D25.** This test's subject is the index/ledger
+       BOUNDARY, and that half is untouched: an index sorts and filters, a
+       ledger does neither. What moved is the affordance enumeration. AC-382
+       used to also require a select-all here, and D25 derives selection from
+       whether a screen declares bulk work — the wallet index declares none, so
+       it has no checkbox column.
+
+       That is not a capability lost. Before D25 the checkboxes were rendered
+       and inert: ticking one replaced the column header row with an
+       `N selected` cell and no bulk bar arrived, so the operator destroyed
+       their own column labels and got nothing back. The reason there is no set
+       command is recorded in the sibling describe below, and it is a real
+       argument about wallet adjustments rather than an omission. */
     expect(
-      screen.getByRole('checkbox', { name: EN['table.selectAll'] as string }),
-      'the index carries a select-all',
-    ).toBeTruthy()
-    expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(1)
+      screen.queryByRole('checkbox', { name: EN['table.selectAll'] as string }),
+      'D25 — no bulk command declared, so no select-all',
+    ).toBeNull()
     expect(screen.getByRole('button', { name: EN['table.sort'] as string })).toBeTruthy()
     expect(screen.getByRole('button', { name: EN['table.filter'] as string })).toBeTruthy()
 
-    /* Selection actually works — §7.1, not a decorative checkbox. */
-    const rowCheckbox = within(rowFor('Nora Al-Harbi')).getByRole('checkbox')
-    await user.click(rowCheckbox)
-    await waitFor(() => expect(rowCheckbox.getAttribute('data-state')).toBe('checked'))
-
-    /* ── across the identity link, into the ledger ── */
-    await user.click(screen.getByRole('button', { name: 'Nora Al-Harbi' }))
+    /* ── across the identity link, into the ledger ──
+       **AC-43 / P8-T1.** The identity is a real `<a href>`, not a `<button>`:
+       the ledger is a view of this route (`?rider=`), so it has an address, and
+       an identity with an address must be openable in a new tab and copyable.
+       Its accessible name is one key with the rider interpolated (AC-75). */
+    const identity = screen.getByRole('link', {
+      name: (EN['fin.a11y.openWallet'] as string).replace('{name}', 'Nora Al-Harbi'),
+    })
+    expect(identity.getAttribute('href')).toContain('rider=RDR-')
+    await user.click(identity)
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
 
+    /* Still true and still worth asserting — but note it no longer CONTRASTS
+       with the index, which has no checkboxes either since D25. The live
+       contrast in this test is sort and filter, asserted present above and
+       absent below. A ledger's inability to select is compile-time enforced in
+       `useIndexTable.types.ts`; this is the runtime twin. */
     expect(screen.queryAllByRole('checkbox'), 'a ledger has no selection').toHaveLength(0)
     expect(screen.queryByRole('button', { name: EN['table.sort'] as string })).toBeNull()
     expect(screen.queryByRole('button', { name: EN['table.addFilter'] as string })).toBeNull()
@@ -272,5 +292,110 @@ describe('the compensation authority, which no reason may route around', () => {
     for (const wallet of negative.items) {
       expect(rowFor(wallet.riderName).textContent).toContain('−')
     }
+  })
+})
+
+
+/* ═══ P8-T1 — two names for one rider, and they go to two places ═══ */
+
+/**
+ * **The one place in Financials where the identity link is NOT the profile.**
+ *
+ * Spec §5: *"Rider Wallets is an index **of** ledgers … the second level,
+ * reached by the identity link, is that rider's ledger … **the boundary is the
+ * identity link**"*, and **AC-382** tests it. P8-T1 nevertheless requires that
+ * a cell naming a rider opens that rider. Both hold because the cell carries
+ * **two** names for the same entity: the rider's name is the ledger, and the
+ * rider's **id** on the second line is the 360° profile.
+ *
+ * Every other Financials table sends the name to the profile and keeps its
+ * money view on a labelled control; this one is the criterion-bound exception
+ * and the divergence is asserted rather than left to a comment.
+ */
+describe('P8-T1 — the wallet row names its rider twice, deliberately', () => {
+  it('the name opens the ledger and the id opens the profile', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+    const row = rowFor('Nora Al-Harbi')
+
+    /* AC-382's boundary: the identity goes to this rider's wallet ledger. */
+    const identity = within(row).getByRole('link', {
+      name: (EN['fin.a11y.openWallet'] as string).replace('{name}', 'Nora Al-Harbi'),
+    })
+    expect(identity.getAttribute('href')).toContain('rider=RDR-')
+    expect(identity.getAttribute('href')).not.toContain('entity=')
+
+    /* P8-T1's reach: the id goes to the 360° profile, over this route. */
+    const profile = await within(row).findByRole('link', {
+      name: (EN['fin.a11y.openProfile'] as string).replace(
+        '{name}',
+        identity.getAttribute('href')?.match(/rider=(RDR-\d+)/)?.[1] ?? '',
+      ),
+    })
+    expect(profile.getAttribute('href')).toContain('entity=RDR-')
+  })
+
+  /**
+   * **AC-43** — an identity with an address is a link, not a button. The
+   * `<button>` this replaces could not be middle-clicked, copied or opened in a
+   * new tab, and it carried `focus-visible:outline-none` plus its own restored
+   * ring; the link inherits `globals.css`'s default and suppresses nothing.
+   */
+  it('the identity is an anchor with an href, not a button', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    const identity = screen.getByText('Nora Al-Harbi').closest('a')
+    expect(identity, 'the identity is an anchor').toBeTruthy()
+    expect(identity?.getAttribute('href')).toBeTruthy()
+    expect(screen.getByText('Nora Al-Harbi').closest('button')).toBeNull()
+    expect(identity?.className ?? '').not.toContain('outline-none')
+  })
+})
+
+/* ═════ P4-T1 — why this sub-tab has no bulk bar, recorded as a test ═════ */
+
+/**
+ * **This is a decision, and it is asserted so that adding one is a deliberate
+ * act rather than a drift.** The only command on this index is `Adjust`, and
+ * three things about it are per-rider: **AC-387**'s reason code, the daily
+ * authority ceiling consumed as a set is applied, and **AC-386**'s
+ * second-approval flag computed from that rider's own 30-day history. A set
+ * cannot be refused honestly before it runs, and a half-applied set of money
+ * movements is what D21 exists to prevent.
+ *
+ * The checkbox column stays because **AC-382** puts it there. That leaves it
+ * doing nothing, which is raised with product-owner in the handoff — the two
+ * ways out are a genuinely set-shaped command or an amendment to AC-382, and
+ * neither is an engineer's call.
+ */
+describe('P4-T1 — the wallet index offers no bulk command', () => {
+  /**
+   * **D25 strengthened this from "no bulk bar" to "no checkbox at all", and the
+   * reason the index declares no bulk command is worth keeping written down.**
+   *
+   * Three per-rider facts defeat the set rule, and each would have to be
+   * evaluated per record before a set command could honestly say yes: AC-387's
+   * reason code (nine riders sharing one reason is the blanket justification
+   * the field exists to prevent); the daily authority ceiling, which is
+   * **consumed as the set is applied** — `checkAdjustmentAuthority` measures
+   * `dailyUsed + amount`, so a uniform set of nine can be permitted for six and
+   * refused for three, and D21's *"refused if any would be refused"* cannot be
+   * answered before the run because there is no reservation; and AC-386's
+   * second-approval flag, computed from that rider's own 30-day history.
+   */
+  it('offers no selection, because there is no set command behind it', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    expect(within(rowFor('Nora Al-Harbi')).queryAllByRole('checkbox')).toHaveLength(0)
+    expect(
+      screen.queryByRole('group', { name: /selected/i }),
+      'an adjustment is a per-rider act; there is no set command to offer',
+    ).toBeNull()
+
+    /* Non-vacuity: the table really is rendered and really is an index — it
+       sorts. Without this the two assertions above would pass on a blank page. */
+    expect(screen.getByRole('button', { name: EN['table.sort'] as string })).toBeTruthy()
   })
 })

@@ -13,15 +13,25 @@
  * route change never refetches identity or counts.
  */
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import {
   getNavCounts,
   getOnboarding,
+  getSecurityPolicy,
   getSession,
   getNotificationSummary,
   type LegacyResolution,
 } from '@/data/clients'
-import type { NavCounts, NotificationSummary, Session } from '@/data/types'
+import type { NavCounts, NotificationSummary, SecurityPolicy, Session } from '@/data/types'
 import type { OnboardingChecklist } from '@/data/types/onboarding'
 import {
   useAsync,
@@ -33,6 +43,7 @@ import {
   type LanguageState,
 } from '@/hooks'
 import { DICTIONARIES } from '@/i18n/dictionaries'
+import { setUiStateOwner } from '@/lib/persistence'
 import { permissionContext, type PermissionContext } from './permissions'
 import { useSessionLifecycle, type SessionExpiryReason, type SessionLifecycle } from './session'
 
@@ -196,6 +207,27 @@ export function ShellProvider({ children }: { children: ReactNode }) {
      failure through the mock's registry without editing source. */
   const session = useAsync<Session>((signal) => getSession(signal), { deps: [] })
 
+  /**
+   * **D16 — who the cached UI state belongs to.**
+   *
+   * The cache is namespaced per operator, and **nothing is written until this
+   * runs**: an unowned write goes to the memory tier only, so an anonymous boot
+   * cannot deposit a value into a namespace the next operator would read. That
+   * makes this line the difference between a persistence seam and an elaborate
+   * in-memory store — without it every test still passes, every read still
+   * returns the correct empty result, and no preference ever survives a reload.
+   *
+   * Set here rather than at the sign-in screen because this is the one place
+   * that knows who is signed in on *every* path into the app — a fresh sign-in,
+   * a restored session, and a switch between operators all resolve through the
+   * same `getSession` read. Clearing is not symmetrical and does not belong
+   * here: see `signOut` in `./session.ts` for why an effect cannot tell a
+   * sign-out from a refetch.
+   */
+  useEffect(() => {
+    setUiStateOwner(session.data?.userId ?? null)
+  }, [session.data?.userId])
+
   /* §8.4 — a NETWORK read, not a constant, which is what makes §9.1's
      "labels render immediately, only the badges are skeletons" honourable. */
   const counts = useAsync<NavCounts>((signal) => getNavCounts(signal), { deps: [] })
@@ -266,7 +298,27 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     cleanExpiryRef.current = handler
   }, [])
 
+  /**
+   * **§7.1's idle window, from the setting rather than from a constant.**
+   *
+   * `DEFAULT_IDLE_TIMEOUT_MINUTES` was the only source, so Admin › Team &
+   * Access could persist a session lifetime that nothing ever read: the setting
+   * saved, the console kept signing people out at 30, and the admin had a
+   * confirmation that their change had taken effect. `getSecurityPolicy` is
+   * seeded to the same 30, so wiring it changes no behaviour today and makes
+   * the setting real the moment it is edited.
+   *
+   * `undefined` while the read is in flight takes the hook's own fallback,
+   * which is that same 30 — so there is no window in which the console runs on
+   * a number nobody chose. The clamp (5…240) stays in the hook, and the client
+   * refuses the same range with a 422, so neither end can be talked past.
+   */
+  const securityPolicy = useAsync<SecurityPolicy>((signal) => getSecurityPolicy(signal), {
+    deps: [],
+  })
+
   const sessionLifecycle = useSessionLifecycle({
+    idleTimeoutMinutes: securityPolicy.data?.idleTimeoutMinutes,
     isDirty: useCallback(
       () => saveBarRef.current !== null && saveBarRef.current.status !== 'clean',
       [],

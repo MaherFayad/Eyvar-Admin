@@ -61,6 +61,7 @@ import {
 } from '@/lib'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { liveClaim } from '@/data/clients'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Cell } from './cells'
 
@@ -272,8 +273,14 @@ export function OwnerChip({
   unavailableReason = null,
 }: OwnerChipProps) {
   /* Only a LIVE claim is ownership. A released or done claim is history, and a
-     row still carrying one is unclaimed — §4.2 Q-6. */
-  const held = claim && claim.state === 'claimed' ? claim : null
+     row still carrying one is unclaimed — §4.2 Q-6.
+     **And a claim that has gone stale is history too**, which this used to
+     miss: it read `state === 'claimed'` and stopped there, ignoring the
+     `OWNERSHIP_STALE_MINUTES` window it prints in its own tooltip two lines
+     below. The clients' `unassigned` views use `liveClaim`, so the chip
+     disagreed with the list it was rendering — a row the client had returned as
+     free drew `Held by … · Take over`. One predicate, asked in one place. */
+  const held = liveClaim(claim ?? null)
   const mine = held !== null && held.ownerId === currentUserId
   const blocked = !canWrite || unavailableReason !== null
   const reason = unavailableReason ?? disabledReason

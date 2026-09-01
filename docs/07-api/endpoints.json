@@ -1,0 +1,3437 @@
+{
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1//applications/facets",
+      "client": "src/data/clients/applicants.ts",
+      "function": "getApplicantFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//compliance/drivers/facets",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverComplianceFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//corporate-accounts/facets",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "getCorporateFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//drivers/facets",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//riders/facets",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRiderFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//subscriptions/facets",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "getSubscriptionFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1//trips/facets",
+      "client": "src/data/clients/trips.ts",
+      "function": "getTripFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts",
+      "client": "src/data/clients/alerts.ts",
+      "function": "listAlertRules",
+      "params": "q · view=firing|suspended|error|disabled · page · pageSize",
+      "body": null,
+      "returns": "Paginated<AlertRule>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts",
+      "client": "src/data/clients/alerts.ts",
+      "function": "saveAlertRule",
+      "params": null,
+      "body": "SaveAlertInput",
+      "returns": "Single<AlertRule>",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/alerts/:id",
+      "client": "src/data/clients/alerts.ts",
+      "function": "deleteAlertRule",
+      "params": null,
+      "body": null,
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/:id",
+      "client": "src/data/clients/alerts.ts",
+      "function": "getAlertRule",
+      "params": null,
+      "body": null,
+      "returns": "Single<AlertRule>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/alerts/:id",
+      "client": "src/data/clients/alerts.ts",
+      "function": "saveAlertRule",
+      "params": null,
+      "body": "SaveAlertInput",
+      "returns": "Single<AlertRule>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/:id/evaluate",
+      "client": "src/data/clients/alerts.ts",
+      "function": "evaluateAlertRule",
+      "params": null,
+      "body": null,
+      "returns": "AlertEvaluation",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/:id/history",
+      "client": "src/data/clients/alerts.ts",
+      "function": "listAlertFirings",
+      "params": "page · pageSize",
+      "body": null,
+      "returns": "Paginated<AlertFiring>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/applications",
+      "client": "src/data/clients/applicants.ts",
+      "function": "listApplicants",
+      "params": "q · status · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<Applicant>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/applications/:id",
+      "client": "src/data/clients/applicants.ts",
+      "function": "getApplicant",
+      "params": null,
+      "body": null,
+      "returns": "Applicant",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/approve",
+      "client": "src/data/clients/applicants.ts",
+      "function": "approveApplicant",
+      "params": null,
+      "body": null,
+      "returns": "Applicant  (with `approvedDriverId` set to the new `DRV-*` record)",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "without `approve_drivers`"
+        },
+        {
+          "code": "422",
+          "when": "when a required document is not verified"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/claim",
+      "client": "src/data/clients/applicants.ts",
+      "function": "claimApplicant",
+      "params": null,
+      "body": "{ takeOver?: boolean }",
+      "returns": "Applicant",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when another operator holds it and `takeOver` was not sent"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/reject",
+      "client": "src/data/clients/applicants.ts",
+      "function": "rejectApplicant",
+      "params": null,
+      "body": "{ reason: string }",
+      "returns": "Applicant",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when `reason` is empty — a rejection with no stated reason is not appealable"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/release",
+      "client": "src/data/clients/applicants.ts",
+      "function": "releaseApplicant",
+      "params": null,
+      "body": null,
+      "returns": "Applicant",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assurance/absences",
+      "client": "src/data/clients/assurance.ts",
+      "function": "listAbsences",
+      "params": "q · driverId · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<AbsenceEvent>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assurance/absences/:id/waive",
+      "client": "src/data/clients/assurance.ts",
+      "function": "waiveAbsence",
+      "params": null,
+      "body": "{ reason: string }",
+      "returns": "AbsenceEvent",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when `reason` is empty"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assurance/trips",
+      "client": "src/data/clients/assurance.ts",
+      "function": "listAssuranceTrips",
+      "params": "q · subscriptionId · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<AssuranceTrip>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assurance/trips/:id",
+      "client": "src/data/clients/assurance.ts",
+      "function": "getAssuranceTrip",
+      "params": null,
+      "body": null,
+      "returns": "AssuranceTrip",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assurance/trips/:id/acknowledge",
+      "client": "src/data/clients/assurance.ts",
+      "function": "acknowledgeLeg",
+      "params": null,
+      "body": "{ source: 'app' | 'phone' | 'whatsapp' | 'assumed', note?: string }",
+      "returns": "AssuranceTrip",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when `source === 'assumed'` and no note is given"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assurance/trips/:id/backup-offer",
+      "client": "src/data/clients/assurance.ts",
+      "function": "offerBackup",
+      "params": null,
+      "body": "{ driverId: string }",
+      "returns": "AssuranceTrip",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when an offer is already outstanding"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assurance/trips/:id/claim",
+      "client": "src/data/clients/assurance.ts",
+      "function": "claimAssuranceTrip",
+      "params": null,
+      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assurance/trips/:id/release",
+      "client": "src/data/clients/assurance.ts",
+      "function": "releaseAssuranceTrip",
+      "params": null,
+      "body": null,
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assurance/trips/facets",
+      "client": "src/data/clients/assurance.ts",
+      "function": "getAssuranceFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit",
+      "client": "src/data/clients/audit.ts",
+      "function": "listAuditEntries",
+      "params": "subjectType · subjectId · action · page · pageSize",
+      "body": null,
+      "returns": "Paginated<AuditEntry>, newest-first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/activate",
+      "client": "src/data/clients/auth.ts",
+      "function": "activateInvite",
+      "params": null,
+      "body": "{ token, password }",
+      "returns": "ResetPasswordOutcome",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/enroll-second-factor",
+      "client": "src/data/clients/auth.ts",
+      "function": "enrollSecondFactor",
+      "params": null,
+      "body": "{ enrolmentToken, method: 'sms' | 'totp', destination }",
+      "returns": "SignInOutcome   (a `challenge`, because enrolment confirms with a code)",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/reauthenticate",
+      "client": "src/data/clients/auth.ts",
+      "function": "reauthenticate",
+      "params": null,
+      "body": "{ password }        ← and **nothing else**",
+      "returns": "ReauthenticateOutcome",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/request-password-reset",
+      "client": "src/data/clients/auth.ts",
+      "function": "requestPasswordReset",
+      "params": null,
+      "body": "{ email }",
+      "returns": "RequestPasswordResetOutcome   — always `{ kind: 'accepted' }`",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/resend-code",
+      "client": "src/data/clients/auth.ts",
+      "function": "resendCode",
+      "params": null,
+      "body": "{ challengeId }",
+      "returns": "ResendCodeOutcome   { sent | cooling-down | failed }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/reset-password",
+      "client": "src/data/clients/auth.ts",
+      "function": "resetPassword",
+      "params": null,
+      "body": "{ token, password }",
+      "returns": "ResetPasswordOutcome",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/reset-token/:token",
+      "client": "src/data/clients/auth.ts",
+      "function": "validateResetToken",
+      "params": null,
+      "body": null,
+      "returns": "ValidateTokenOutcome   { state, email, purpose }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/sign-in",
+      "client": "src/data/clients/auth.ts",
+      "function": "signIn",
+      "params": null,
+      "body": "{ email, password, rememberDevice?: boolean }",
+      "returns": "SignInOutcome   { challenge | enrolment-required | failed }",
+      "statuses": [
+        {
+          "code": "429",
+          "when": "with `Retry-After` when the transport rate-limits"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/sign-out",
+      "client": "src/data/clients/auth.ts",
+      "function": "signOut",
+      "params": null,
+      "body": null,
+      "returns": "{ signedOut: true }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/sign-out-everywhere",
+      "client": "src/data/clients/auth.ts",
+      "function": "signOutEverywhere",
+      "params": null,
+      "body": null,
+      "returns": "{ sessionsEnded: number }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/totp-secret",
+      "client": "src/data/clients/auth.ts",
+      "function": "beginTotpEnrolment",
+      "params": null,
+      "body": "{ enrolmentToken }",
+      "returns": "TotpEnrolment   { secret, otpauthUri, enrolmentToken }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/verify-code",
+      "client": "src/data/clients/auth.ts",
+      "function": "verifyCode",
+      "params": null,
+      "body": "{ challengeId, code, rememberDevice?: boolean }",
+      "returns": "VerifyCodeOutcome   { signed-in | failed }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cancellation-rules",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listCancellationRules",
+      "params": null,
+      "body": null,
+      "returns": "CancellationRule[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/captain-debts",
+      "client": "src/data/clients/cash.ts",
+      "function": "listCaptainDebts",
+      "params": "q · page · pageSize · sort · filter · view=all|over-cap|in-credit",
+      "body": null,
+      "returns": "Paginated<CaptainDebt>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/captain-debts/:captainId/repayment",
+      "client": "src/data/clients/cash.ts",
+      "function": "recordCashRepayment",
+      "params": null,
+      "body": "{ amountHalalas, reasonCode }",
+      "returns": "CaptainDebt",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "on a non-positive amount or an amount above the balance"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cash-reports",
+      "client": "src/data/clients/cash.ts",
+      "function": "listCashReports",
+      "params": "q · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<CashReport>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cash-reports/:id",
+      "client": "src/data/clients/cash.ts",
+      "function": "getCashReport",
+      "params": null,
+      "body": null,
+      "returns": "CashReport",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cash-reports/:id/claim",
+      "client": "src/data/clients/cash.ts",
+      "function": "claimCashReport",
+      "params": null,
+      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
+      "returns": "CashReport",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cash-reports/:id/decide",
+      "client": "src/data/clients/cash.ts",
+      "function": "decideCashReport",
+      "params": null,
+      "body": "{ disposition: 'resolve' | 'escalate', reasonCode }",
+      "returns": "CashReport",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when already decided  ·  422 without a reason code"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/cash-reports/:id/release",
+      "client": "src/data/clients/cash.ts",
+      "function": "releaseCashReport",
+      "params": null,
+      "body": null,
+      "returns": "CashReport",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/cash-reports/facets",
+      "client": "src/data/clients/cash.ts",
+      "function": "getCashFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/catalogue/dimensions",
+      "client": "src/data/clients/catalogue.ts",
+      "function": "listDimensions",
+      "params": "page · pageSize",
+      "body": null,
+      "returns": "Paginated<Dimension>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/catalogue/measures",
+      "client": "src/data/clients/catalogue.ts",
+      "function": "listMeasures",
+      "params": "q · category · pairableWith · page · pageSize",
+      "body": null,
+      "returns": "Paginated<Measure>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/complaints",
+      "client": "src/data/clients/complaints.ts",
+      "function": "listComplaints",
+      "params": "q · category · severity · status · driverId · riderId ·",
+      "body": null,
+      "returns": "Paginated<Complaint>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/complaints/:id",
+      "client": "src/data/clients/complaints.ts",
+      "function": "getComplaint",
+      "params": null,
+      "body": null,
+      "returns": "Complaint",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "naming the id (§9.2 `overlay-not-found`)."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/complaints/:id/claim",
+      "client": "src/data/clients/complaints.ts",
+      "function": "claimComplaint",
+      "params": null,
+      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
+      "returns": "Complaint",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/complaints/:id/release",
+      "client": "src/data/clients/complaints.ts",
+      "function": "releaseComplaint",
+      "params": null,
+      "body": null,
+      "returns": "Complaint",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/complaints/:id/resolve",
+      "client": "src/data/clients/complaints.ts",
+      "function": "resolveComplaint",
+      "params": null,
+      "body": "{ outcome, compensationHalalas, note }",
+      "returns": "Complaint",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "without the support disposition permission"
+        },
+        {
+          "code": "409",
+          "when": "when the complaint is already disposed"
+        },
+        {
+          "code": "422",
+          "when": "when `dismissed` carries compensation, or compensation is not a"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/complaints/count",
+      "client": "src/data/clients/complaints.ts",
+      "function": "countOpenComplaints",
+      "params": "driverId",
+      "body": null,
+      "returns": "{ count, ids }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/complaints/facets",
+      "client": "src/data/clients/complaints.ts",
+      "function": "getComplaintFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/compliance/drivers",
+      "client": "src/data/clients/drivers.ts",
+      "function": "listDriverCompliance",
+      "params": "q · page · pageSize · sort · filter · view=compliance|needs-attention",
+      "body": null,
+      "returns": "Paginated<DriverCompliance>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/compliance/drivers/:driverId",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverCompliance",
+      "params": null,
+      "body": null,
+      "returns": "DriverCompliance",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/conversations",
+      "client": "src/data/clients/conversations.ts",
+      "function": "listConversations",
+      "params": "q · channel · status · ticketId · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<Conversation>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/conversations/:id",
+      "client": "src/data/clients/conversations.ts",
+      "function": "getConversation",
+      "params": null,
+      "body": null,
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "naming the id"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/claim",
+      "client": "src/data/clients/conversations.ts",
+      "function": "claimConversation",
+      "params": null,
+      "body": "{ takeOver?: boolean }",
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds it and `takeOver` was"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/close",
+      "client": "src/data/clients/conversations.ts",
+      "function": "closeConversation",
+      "params": null,
+      "body": "{ reason: ConversationCloseReason }",
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when already closed — closing twice would restamp `closedAt` and lose"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/conversations/:id/messages",
+      "client": "src/data/clients/conversations.ts",
+      "function": "listConversationMessages",
+      "params": "page · pageSize",
+      "body": null,
+      "returns": "Paginated<Message>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/messages",
+      "client": "src/data/clients/conversations.ts",
+      "function": "replyConversation",
+      "params": null,
+      "body": "{ body: string, visibility: 'customer' | 'internal' }",
+      "returns": "Message",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when `body` is empty"
+        },
+        {
+          "code": "409",
+          "when": "when the conversation is closed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/messages/:messageId/retry",
+      "client": "src/data/clients/conversations.ts",
+      "function": "retryMessage",
+      "params": null,
+      "body": null,
+      "returns": "Message   (the **same** message, with a fresh delivery attempt)",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "naming the conversation, or the message inside it"
+        },
+        {
+          "code": "409",
+          "when": "`conversation_closed`"
+        },
+        {
+          "code": "409",
+          "when": "`retry_refused` when the message's current delivery is not `failed` —"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/release",
+      "client": "src/data/clients/conversations.ts",
+      "function": "releaseConversation",
+      "params": null,
+      "body": null,
+      "returns": "Conversation",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/reopen",
+      "client": "src/data/clients/conversations.ts",
+      "function": "reopenConversation",
+      "params": null,
+      "body": null,
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`conversation_not_closed` — reopening an open conversation would"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/ticket",
+      "client": "src/data/clients/conversations.ts",
+      "function": "createTicketForConversation",
+      "params": null,
+      "body": "{ subject?, category, reasonCode, priority }",
+      "returns": "{ conversation: Conversation, ticket: Ticket }",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`ticket_exists` when this conversation already has one"
+        },
+        {
+          "code": "422",
+          "when": "`entity_not_ticketable` for an entity `Ticket` cannot describe"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/transfer",
+      "client": "src/data/clients/conversations.ts",
+      "function": "transferConversation",
+      "params": null,
+      "body": "{ toUserId: string, note?: string }",
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when `toUserId` is not an operator"
+        },
+        {
+          "code": "409",
+          "when": "when the conversation is closed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/conversations/:id/typing",
+      "client": "src/data/clients/conversations.ts",
+      "function": "sendTypingIndicator",
+      "params": null,
+      "body": "{ typing: boolean }",
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/conversations/facets",
+      "client": "src/data/clients/conversations.ts",
+      "function": "getConversationFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/corporate-accounts",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "listCorporateAccounts",
+      "params": "q · status · page · pageSize · sort · filter · view=all|overdue",
+      "body": null,
+      "returns": "Paginated<CorporateAccount>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/corporate-accounts",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "createCorporateAccount",
+      "params": null,
+      "body": "CreateCorporateAccountInput",
+      "returns": "CorporateAccount   (status `Pending`, empty `riderIds`)",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when company name, contact name or contact email is missing"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/corporate-accounts/:id",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "getCorporateAccount",
+      "params": null,
+      "body": null,
+      "returns": "CorporateAccount",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/corporate-accounts/:id/employees",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "addCorporateEmployee",
+      "params": null,
+      "body": "{ riderId: string }",
+      "returns": "CorporateAccount",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the rider is already covered by another account"
+        }
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/corporate-accounts/:id/usage-policy",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "updateCorporateUsagePolicy",
+      "params": null,
+      "body": "Partial<CorporateUsagePolicy>",
+      "returns": "CorporateAccount",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/credit-notes",
+      "client": "src/data/clients/revenue.ts",
+      "function": "listCreditNotes",
+      "params": "q · page · pageSize · sort · filter · view=all|unlinked",
+      "body": null,
+      "returns": "Paginated<CreditNote>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboards",
+      "client": "src/data/clients/dashboards.ts",
+      "function": "listDashboards",
+      "params": "q · page · pageSize",
+      "body": null,
+      "returns": "Paginated<Dashboard>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dashboards",
+      "client": "src/data/clients/dashboards.ts",
+      "function": "saveDashboard",
+      "params": null,
+      "body": "{ name, tiles }",
+      "returns": "Single<Dashboard>",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/dashboards/:id",
+      "client": "src/data/clients/dashboards.ts",
+      "function": "deleteDashboard",
+      "params": null,
+      "body": null,
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboards/:id",
+      "client": "src/data/clients/dashboards.ts",
+      "function": "getDashboard",
+      "params": null,
+      "body": null,
+      "returns": "Single<Dashboard>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/dashboards/:id",
+      "client": "src/data/clients/dashboards.ts",
+      "function": "saveDashboard",
+      "params": null,
+      "body": "{ name, tiles }",
+      "returns": "Single<Dashboard>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/deductions",
+      "client": "src/data/clients/payouts.ts",
+      "function": "listDeductions",
+      "params": "q · page · pageSize · sort · filter · view=all|pending|applied|waived",
+      "body": null,
+      "returns": "Paginated<Deduction>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/deductions/:id/apply",
+      "client": "src/data/clients/payouts.ts",
+      "function": "applyDeduction",
+      "params": null,
+      "body": "{ reasonCode }",
+      "returns": "Deduction",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/deductions/:id/waive",
+      "client": "src/data/clients/payouts.ts",
+      "function": "waiveDeduction",
+      "params": null,
+      "body": "{ reasonCode, note }",
+      "returns": "Deduction",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "without a reason code"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/disputes",
+      "client": "src/data/clients/disputes.ts",
+      "function": "listDisputes",
+      "params": "QueryParams + status · kind · claimantType",
+      "body": null,
+      "returns": "Paginated<Dispute>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/disputes/:id",
+      "client": "src/data/clients/disputes.ts",
+      "function": "getDispute",
+      "params": null,
+      "body": null,
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/claim",
+      "client": "src/data/clients/disputes.ts",
+      "function": "claimDispute",
+      "params": null,
+      "body": null,
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/resolve",
+      "client": "src/data/clients/disputes.ts",
+      "function": "resolveDispute",
+      "params": null,
+      "body": "{ outcome, refundHalalas, note }",
+      "returns": "{ dispute, refund }",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the dispute is already resolved"
+        },
+        {
+          "code": "422",
+          "when": "on an amount that contradicts the outcome"
+        },
+        {
+          "code": "403",
+          "when": "when a goodwill credit is above the operator's authority (`adjustWallet`)"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/disputes/facets",
+      "client": "src/data/clients/disputes.ts",
+      "function": "getDisputeFacets",
+      "params": null,
+      "body": null,
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/drivers",
+      "client": "src/data/clients/drivers.ts",
+      "function": "listDrivers",
+      "params": "q · status · page · pageSize · sort=<field>:<dir> · filter=<field>:<op>:<value>",
+      "body": null,
+      "returns": "Paginated<Driver>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/drivers/:id",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriver",
+      "params": null,
+      "body": null,
+      "returns": "Driver",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/drivers/:id/reinstate",
+      "client": "src/data/clients/drivers.ts",
+      "function": "reinstateDriver",
+      "params": null,
+      "body": null,
+      "returns": "Driver",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/drivers/:id/suspend",
+      "client": "src/data/clients/drivers.ts",
+      "function": "suspendDriver",
+      "params": null,
+      "body": "{ reason: string }",
+      "returns": "Driver",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/email/deliveries",
+      "client": "src/data/clients/emails.ts",
+      "function": "listEmailDeliveries",
+      "params": "view=outbox|inbox|all · q · state · templateKey · sort · page · pageSize",
+      "body": null,
+      "returns": "Paginated<EmailDelivery>, newest first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/email/deliveries/:id/resend",
+      "client": "src/data/clients/emails.ts",
+      "function": "resendEmailDelivery",
+      "params": null,
+      "body": null,
+      "returns": "EmailDelivery — **the new row**, queued",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/email/identities",
+      "client": "src/data/clients/emails.ts",
+      "function": "listSenderIdentities",
+      "params": "q · verification · page · pageSize",
+      "body": null,
+      "returns": "Paginated<SenderIdentity>, default first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/email/identities/:id/default",
+      "client": "src/data/clients/emails.ts",
+      "function": "setDefaultSenderIdentity",
+      "params": null,
+      "body": null,
+      "returns": "SenderIdentity[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/email/identities/:id/verify",
+      "client": "src/data/clients/emails.ts",
+      "function": "requestSenderVerification",
+      "params": null,
+      "body": null,
+      "returns": "SenderIdentity",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/email/templates",
+      "client": "src/data/clients/emails.ts",
+      "function": "listEmailTemplates",
+      "params": "q · key · locale · status · page · pageSize",
+      "body": null,
+      "returns": "Paginated<EmailTemplate>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/email/templates/:id",
+      "client": "src/data/clients/emails.ts",
+      "function": "getEmailTemplate",
+      "params": null,
+      "body": null,
+      "returns": "EmailTemplate",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/email/templates/:id",
+      "client": "src/data/clients/emails.ts",
+      "function": "saveEmailTemplate",
+      "params": null,
+      "body": "draft + `confirmInUse`",
+      "returns": "EmailTemplate",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/email/templates/:id/preview",
+      "client": "src/data/clients/emails.ts",
+      "function": "previewEmailTemplate",
+      "params": null,
+      "body": "the unsaved draft, or nothing for the saved template",
+      "returns": "EmailTemplatePreview",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/email/templates/:id/validate",
+      "client": "src/data/clients/emails.ts",
+      "function": "validateEmailTemplate",
+      "params": null,
+      "body": null,
+      "returns": "EmailTemplateValidation",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/email/templates/coverage",
+      "client": "src/data/clients/emails.ts",
+      "function": "listEmailTemplateCoverage",
+      "params": null,
+      "body": null,
+      "returns": "EmailTemplateCoverage[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entities/:entityId",
+      "client": "src/data/clients/profile.ts",
+      "function": "resolveProfile",
+      "params": null,
+      "body": null,
+      "returns": "ProfileRef",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id resolves to nothing — and the copy must name the id that"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/entities/resolve",
+      "client": "src/data/clients/profile.ts",
+      "function": "resolveProfiles",
+      "params": null,
+      "body": "{ ids: string[] }",
+      "returns": "{ entities: Record<string, ProfileRef | null> }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/escrow",
+      "client": "src/data/clients/payouts.ts",
+      "function": "listEscrowHolds",
+      "params": "q · page · pageSize · sort · filter · view=all|held|releasable|released|cancelled",
+      "body": null,
+      "returns": "Paginated<EscrowHold>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/escrow/:id/release",
+      "client": "src/data/clients/payouts.ts",
+      "function": "releaseEscrow",
+      "params": null,
+      "body": "{ reasonCode }",
+      "returns": "EscrowHold",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the trips are not delivered, or the hold is not `held`"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fairness-cases",
+      "client": "src/data/clients/fairness.ts",
+      "function": "listFairnessCases",
+      "params": "q · kind · status · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<FairnessCase>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fairness-cases/:id",
+      "client": "src/data/clients/fairness.ts",
+      "function": "getFairnessCase",
+      "params": null,
+      "body": null,
+      "returns": "FairnessCase",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fairness-cases/:id/claim",
+      "client": "src/data/clients/fairness.ts",
+      "function": "claimFairnessCase",
+      "params": null,
+      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
+      "returns": "FairnessCase",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fairness-cases/:id/decide",
+      "client": "src/data/clients/fairness.ts",
+      "function": "decideFairnessCase",
+      "params": null,
+      "body": "{ outcome: 'upheld' | 'overturned', rationale: string }",
+      "returns": "FairnessCase",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "without `approve_drivers`"
+        },
+        {
+          "code": "409",
+          "when": "when the case is already decided"
+        },
+        {
+          "code": "422",
+          "when": "when `rationale` is empty"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/fairness-cases/:id/release",
+      "client": "src/data/clients/fairness.ts",
+      "function": "releaseFairnessCase",
+      "params": null,
+      "body": null,
+      "returns": "FairnessCase",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fairness-cases/facets",
+      "client": "src/data/clients/fairness.ts",
+      "function": "getFairnessFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/financials/overview",
+      "client": "src/data/clients/financialsOverview.ts",
+      "function": "getFinancialsOverview",
+      "params": "from · to",
+      "body": null,
+      "returns": "FinancialsOverview",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/financials/revenue-by-plan",
+      "client": "src/data/clients/revenue.ts",
+      "function": "listRevenueByPlan",
+      "params": "from · to",
+      "body": null,
+      "returns": "RevenueByPlanRow[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/gateways",
+      "client": "src/data/clients/ledger.ts",
+      "function": "listGateways",
+      "params": "from · to",
+      "body": null,
+      "returns": "PaymentGateway[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/gateways/:id/default",
+      "client": "src/data/clients/ledger.ts",
+      "function": "setDefaultGateway",
+      "params": null,
+      "body": null,
+      "returns": "PaymentGateway[]",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the gateway is disabled"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/gateways/:id/enabled",
+      "client": "src/data/clients/ledger.ts",
+      "function": "setGatewayEnabled",
+      "params": null,
+      "body": "{ enabled: boolean }",
+      "returns": "PaymentGateway",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when disabling the default gateway"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/incidents",
+      "client": "src/data/clients/safety.ts",
+      "function": "listSafetyIncidents",
+      "params": "q · status · type · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<SafetyIncident>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/incidents/:id",
+      "client": "src/data/clients/safety.ts",
+      "function": "getSafetyIncident",
+      "params": null,
+      "body": null,
+      "returns": "SafetyIncident",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/incidents/:id/claim",
+      "client": "src/data/clients/safety.ts",
+      "function": "claimSafetyIncident",
+      "params": null,
+      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
+      "returns": "SafetyIncident   (with `firstResponseAt` stamped, if it was not already)",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/incidents/:id/close",
+      "client": "src/data/clients/safety.ts",
+      "function": "closeSafetyIncident",
+      "params": null,
+      "body": null,
+      "returns": "SafetyIncident",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when any protocol step is outstanding"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/incidents/:id/precautionary-suspension",
+      "client": "src/data/clients/safety.ts",
+      "function": "precautionarilySuspend",
+      "params": null,
+      "body": "{ driverId: string, reason: string }",
+      "returns": "SafetyIncident   (with `act` ticked and `precautionarySuspension` set)",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "without `approve_drivers`"
+        },
+        {
+          "code": "422",
+          "when": "when the incident has no counterparty to suspend"
+        }
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/incidents/:id/protocol/:step",
+      "client": "src/data/clients/safety.ts",
+      "function": "setSafetyProtocolStep",
+      "params": null,
+      "body": "{ done: boolean }",
+      "returns": "SafetyIncident",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "on a closed incident — legacy disables the checkbox (`:13425`) rather"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/incidents/:id/release",
+      "client": "src/data/clients/safety.ts",
+      "function": "releaseSafetyIncident",
+      "params": null,
+      "body": null,
+      "returns": "SafetyIncident",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/incidents/facets",
+      "client": "src/data/clients/safety.ts",
+      "function": "getSafetyFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integrations/api-keys",
+      "client": "src/data/clients/integrations.ts",
+      "function": "listApiKeys",
+      "params": "q · state · sort · page · pageSize",
+      "body": null,
+      "returns": "Paginated<ApiKey>, newest first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/api-keys",
+      "client": "src/data/clients/integrations.ts",
+      "function": "issueApiKey",
+      "params": null,
+      "body": "IssueApiKeyInput",
+      "returns": "ApiKeyIssueResult — **the only response in the product that carries a",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/api-keys/:id/revoke",
+      "client": "src/data/clients/integrations.ts",
+      "function": "revokeApiKey",
+      "params": null,
+      "body": null,
+      "returns": "ApiKey",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/api-keys/:id/rotate",
+      "client": "src/data/clients/integrations.ts",
+      "function": "rotateApiKey",
+      "params": null,
+      "body": null,
+      "returns": "ApiKeyIssueResult — a new secret, once, for the **same** key",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integrations/webhook-deliveries",
+      "client": "src/data/clients/integrations.ts",
+      "function": "listWebhookDeliveries",
+      "params": "q · endpointId · state · event · sort · page · pageSize",
+      "body": null,
+      "returns": "Paginated<WebhookDelivery>, newest first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/webhook-deliveries/:id/replay",
+      "client": "src/data/clients/integrations.ts",
+      "function": "replayWebhookDelivery",
+      "params": null,
+      "body": null,
+      "returns": "WebhookDelivery — **the new row**, pending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integrations/webhooks",
+      "client": "src/data/clients/integrations.ts",
+      "function": "listWebhookEndpoints",
+      "params": null,
+      "body": null,
+      "returns": "WebhookEndpoint[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/webhooks",
+      "client": "src/data/clients/integrations.ts",
+      "function": "createWebhookEndpoint",
+      "params": null,
+      "body": "WebhookEndpointDraft",
+      "returns": "WebhookEndpointCreateResult — endpoint plus the signing secret, once",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/integrations/webhooks/:id",
+      "client": "src/data/clients/integrations.ts",
+      "function": "updateWebhookEndpoint",
+      "params": null,
+      "body": "Partial<WebhookEndpointDraft> & { state? }",
+      "returns": "WebhookEndpoint",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrations/webhooks/:id/rotate-secret",
+      "client": "src/data/clients/integrations.ts",
+      "function": "rotateWebhookSecret",
+      "params": null,
+      "body": null,
+      "returns": "IssuedSecret — once",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integrity/checks",
+      "client": "src/data/clients/integrity.ts",
+      "function": "listIntegrityChecks",
+      "params": "{",
+      "body": null,
+      "returns": "IntegrityCheck[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/integrity/runs",
+      "client": "src/data/clients/integrity.ts",
+      "function": "runIntegrityChecks",
+      "params": null,
+      "body": "{ checkIds?: IntegrityCheckId[] }",
+      "returns": "IntegrityRun",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/invoice-sequence",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getInvoiceSequence",
+      "params": null,
+      "body": null,
+      "returns": "InvoiceSequence",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger/idempotency",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getIdempotencyStats",
+      "params": null,
+      "body": null,
+      "returns": "IdempotencyStats",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger/journal",
+      "client": "src/data/clients/ledger.ts",
+      "function": "listJournalEntries",
+      "params": "page · pageSize",
+      "body": null,
+      "returns": "Paginated<JournalEntry>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger/reconciliation",
+      "client": "src/data/clients/ledger.ts",
+      "function": "listReconciliation",
+      "params": null,
+      "body": null,
+      "returns": "ReconciliationRow[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger/refused",
+      "client": "src/data/clients/ledger.ts",
+      "function": "listRefusedPostings",
+      "params": null,
+      "body": null,
+      "returns": "RefusedPosting[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger/trial-balance",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getTrialBalance",
+      "params": "from · to",
+      "body": null,
+      "returns": "TrialBalance",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledgers/:account/:subjectId",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getLedger",
+      "params": "from · to · page · pageSize",
+      "body": null,
+      "returns": "Ledger",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledgers/ar.driver/:captainId",
+      "client": "src/data/clients/cash.ts",
+      "function": "getCaptainDebtLedger",
+      "params": "from · to · page · pageSize",
+      "body": null,
+      "returns": "Ledger",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledgers/contra.refunds",
+      "client": "src/data/clients/revenue.ts",
+      "function": "getRefundsLedger",
+      "params": "from · to · page · pageSize",
+      "body": null,
+      "returns": "Ledger",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledgers/liability.driver/:captainId",
+      "client": "src/data/clients/payouts.ts",
+      "function": "getCaptainPayableLedger",
+      "params": "from · to · page · pageSize",
+      "body": null,
+      "returns": "Ledger",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledgers/liability.wallet/:riderId",
+      "client": "src/data/clients/wallets.ts",
+      "function": "getWalletLedger",
+      "params": "from · to · page · pageSize",
+      "body": null,
+      "returns": "Ledger",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lost-found",
+      "client": "src/data/clients/disputes.ts",
+      "function": "listLostFound",
+      "params": "{ disputeId: dispute.id },",
+      "body": null,
+      "returns": "Paginated<LostFoundItem>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lost-found/:id",
+      "client": "src/data/clients/disputes.ts",
+      "function": "getLostFoundItem",
+      "params": null,
+      "body": null,
+      "returns": null,
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/lost-found/:id/advance",
+      "client": "src/data/clients/disputes.ts",
+      "function": "advanceLostFoundItem",
+      "params": null,
+      "body": null,
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the item is already returned"
+        },
+        {
+          "code": "422",
+          "when": "when the next step needs a captain and the report has none"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/devices",
+      "client": "src/data/clients/auth.ts",
+      "function": "listDevices",
+      "params": null,
+      "body": null,
+      "returns": "{ items: DeviceSession[] }",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/devices/:deviceId",
+      "client": "src/data/clients/auth.ts",
+      "function": "revokeDevice",
+      "params": null,
+      "body": null,
+      "returns": "{ revoked: true }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/devices/:deviceId/trust",
+      "client": "src/data/clients/auth.ts",
+      "function": "setDeviceTrust",
+      "params": null,
+      "body": "{ trusted: boolean }",
+      "returns": "DeviceSession",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/onboarding",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "getOnboarding",
+      "params": "userId  (omit for the caller; another operator's needs `manage_team`)",
+      "body": null,
+      "returns": "OnboardingChecklist  { steps[], state, counts }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/onboarding/auto-opened",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "markOnboardingAutoOpened",
+      "params": null,
+      "body": null,
+      "returns": "OnboardingChecklist",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/onboarding/dismiss",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "dismissOnboarding",
+      "params": null,
+      "body": null,
+      "returns": "OnboardingChecklist",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/onboarding/restart",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "restartOnboarding",
+      "params": null,
+      "body": "{ userId? }   ← another operator's needs `manage_team` (**AC-641**)",
+      "returns": "OnboardingChecklist",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/onboarding/steps/:stepId/complete",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "completeStep",
+      "params": null,
+      "body": "{ source: 'manual' | 'auto' }",
+      "returns": "OnboardingChecklist",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/onboarding/steps/:stepId/skip",
+      "client": "src/data/clients/onboarding.ts",
+      "function": "skipStep",
+      "params": null,
+      "body": "{ skipped: boolean }   ← `false` is AC-633's `Do this step`",
+      "returns": "OnboardingChecklist",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/preferences",
+      "client": "src/data/clients/session.ts",
+      "function": "getPreferences",
+      "params": null,
+      "body": null,
+      "returns": "UserPreferences",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/preferences",
+      "client": "src/data/clients/session.ts",
+      "function": "updatePreferences",
+      "params": null,
+      "body": "Partial<UserPreferences>",
+      "returns": "UserPreferences",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/ui-state",
+      "client": "src/data/clients/preferences.ts",
+      "function": "getUiState",
+      "params": "none — the server reads the auth cookie",
+      "body": null,
+      "returns": "UiState",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/ui-state",
+      "client": "src/data/clients/preferences.ts",
+      "function": "updateUiState",
+      "params": null,
+      "body": "Partial<UiState> — `schemaVersion` is the server's and is not accepted",
+      "returns": "UiState",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/messaging/templates",
+      "client": "src/data/clients/emails.ts",
+      "function": "listMessagingTemplates",
+      "params": null,
+      "body": null,
+      "returns": "Paginated<MessagingTemplate>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/metrics",
+      "client": "src/data/clients/metrics.ts",
+      "function": "listMetrics",
+      "params": "q · subTabId · category · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<Metric>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/metrics/:key/series",
+      "client": "src/data/clients/metrics.ts",
+      "function": "getMetricSeries",
+      "params": "from · to · compare=previous-period|none",
+      "body": null,
+      "returns": "TimeSeries  { current, comparison | null }",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the metric has no series. A metric tile without a chart is normal"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/metrics/boards/:subTabId",
+      "client": "src/data/clients/metrics.ts",
+      "function": "getMetricBoard",
+      "params": "from · to   (the §3.7 date-range chip; the mock serves one window)",
+      "body": null,
+      "returns": "MetricBoard  { subTabId, asOf, metrics[], charts[], breakdowns[], notices[] }",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the sub-tab has no board, which is every sub-tab with a table. That"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/metrics/facets",
+      "client": "src/data/clients/metrics.ts",
+      "function": "getMetricFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — powers the metrics-library sidebar's category grouping",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/nav/counts",
+      "client": "src/data/clients/navCounts.ts",
+      "function": "getNavCounts",
+      "params": "none — the server scopes to the caller's permissions",
+      "body": null,
+      "returns": "NavCounts",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notifications",
+      "client": "src/data/clients/notifications.ts",
+      "function": "listNotifications",
+      "params": "filter=all|unread|<type> · page · pageSize",
+      "body": null,
+      "returns": "Paginated<Notification>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notifications/:id/read",
+      "client": "src/data/clients/notifications.ts",
+      "function": "markNotificationRead",
+      "params": null,
+      "body": null,
+      "returns": "Notification",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notifications/read-all",
+      "client": "src/data/clients/notifications.ts",
+      "function": "markAllNotificationsRead",
+      "params": null,
+      "body": null,
+      "returns": "NotificationSummary",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notifications/summary",
+      "client": "src/data/clients/notifications.ts",
+      "function": "getNotificationSummary",
+      "params": null,
+      "body": null,
+      "returns": "NotificationSummary",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notifications?pageSize=8",
+      "client": "src/data/clients/notifications.ts",
+      "function": "previewNotifications",
+      "params": null,
+      "body": null,
+      "returns": "Paginated<Notification>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payments",
+      "client": "src/data/clients/payments.ts",
+      "function": "listPayments",
+      "params": "q · kind · settlement · direction · riderId · captainId · tripId ·",
+      "body": null,
+      "returns": "Paginated<Payment>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payments/:id",
+      "client": "src/data/clients/payments.ts",
+      "function": "getPayment",
+      "params": null,
+      "body": null,
+      "returns": "Payment",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "naming the id, so `overlay-not-found` can print it (§9.2)."
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payments/facets",
+      "client": "src/data/clients/payments.ts",
+      "function": "getPaymentFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payments/for/:entityId",
+      "client": "src/data/clients/payments.ts",
+      "function": "listPaymentsForEntity",
+      "params": "page · pageSize · sort",
+      "body": null,
+      "returns": "Paginated<Payment>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payouts",
+      "client": "src/data/clients/payouts.ts",
+      "function": "listCaptainPayouts",
+      "params": "q · page · pageSize · sort · filter · view=all|due|failed|in-debt",
+      "body": null,
+      "returns": "Paginated<CaptainPayout>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/payouts/:captainId",
+      "client": "src/data/clients/payouts.ts",
+      "function": "payCaptain",
+      "params": null,
+      "body": "{ amountHalalas, reasonCode }",
+      "returns": "CaptainPayout",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when there is nothing payable"
+        },
+        {
+          "code": "422",
+          "when": "when the amount exceeds the net payable"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/payouts/facets",
+      "client": "src/data/clients/payouts.ts",
+      "function": "getPayoutFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plans",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listPlans",
+      "params": null,
+      "body": null,
+      "returns": "SubscriptionPlan[], in `sortOrder`",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plans/:id",
+      "client": "src/data/clients/pricing.ts",
+      "function": "getPlan",
+      "params": null,
+      "body": null,
+      "returns": "SubscriptionPlan",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/plans/:id",
+      "client": "src/data/clients/pricing.ts",
+      "function": "savePlan",
+      "params": null,
+      "body": "SavePlanInput",
+      "returns": "SubscriptionPlan",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when either name is empty, a feature is missing a language or exceeds"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/policy",
+      "client": "src/data/clients/policy.ts",
+      "function": "getOperationalPolicy",
+      "params": null,
+      "body": null,
+      "returns": "OperationalPolicy",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/policy",
+      "client": "src/data/clients/policy.ts",
+      "function": "saveOperationalPolicy",
+      "params": null,
+      "body": "SaveOperationalPolicyInput",
+      "returns": "SavePolicyResult",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "on a malformed grid, a negative or fractional target, an empty city"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/policy/reason-codes",
+      "client": "src/data/clients/policy.ts",
+      "function": "listReasonCodes",
+      "params": "q · surface · state · page · pageSize",
+      "body": null,
+      "returns": "Paginated<ReasonCode>, active first then retired, `key` within each",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/policy/reason-codes",
+      "client": "src/data/clients/policy.ts",
+      "function": "createReasonCode",
+      "params": null,
+      "body": "CreateReasonCodeInput",
+      "returns": "ReasonCode",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the key already exists — including when the existing one is retired"
+        },
+        {
+          "code": "422",
+          "when": "on a malformed key, a missing label in either language, or no surface"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/policy/reason-codes/:key",
+      "client": "src/data/clients/policy.ts",
+      "function": "resolveReasonCode",
+      "params": null,
+      "body": null,
+      "returns": "ReasonCode",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "only when the key was never defined"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/policy/reason-codes/:key",
+      "client": "src/data/clients/policy.ts",
+      "function": "saveReasonCode",
+      "params": null,
+      "body": "SaveReasonCodeInput",
+      "returns": "ReasonCode",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/policy/reason-codes/:key/restore",
+      "client": "src/data/clients/policy.ts",
+      "function": "restoreReasonCode",
+      "params": null,
+      "body": null,
+      "returns": "ReasonCode",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the code is already active"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/policy/reason-codes/:key/retire",
+      "client": "src/data/clients/policy.ts",
+      "function": "retireReasonCode",
+      "params": null,
+      "body": "{ supersededByKey }",
+      "returns": "ReasonCode",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the code is already retired"
+        },
+        {
+          "code": "422",
+          "when": "when the named successor does not exist, is itself retired, or is the"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/policy/reason-codes/options",
+      "client": "src/data/clients/policy.ts",
+      "function": "listReasonCodeOptions",
+      "params": "surface",
+      "body": null,
+      "returns": "ReasonCode[] — **active only**",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/postings/:id",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getPosting",
+      "params": null,
+      "body": null,
+      "returns": "LedgerPosting",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/postings/:id/reverse",
+      "client": "src/data/clients/ledger.ts",
+      "function": "reversePosting",
+      "params": null,
+      "body": "{ reasonCode, note }",
+      "returns": "{ original: LedgerPosting, reversal: LedgerPosting | null }",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when already reversed  ·  422 without a reason code"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/presence/agents",
+      "client": "src/data/clients/conversations.ts",
+      "function": "listAgentPresence",
+      "params": null,
+      "body": null,
+      "returns": "AgentPresence[]",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/presence/me",
+      "client": "src/data/clients/conversations.ts",
+      "function": "setMyPresence",
+      "params": null,
+      "body": "{ state: 'online' | 'away' | 'offline' }",
+      "returns": "AgentPresence",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/push/audiences",
+      "client": "src/data/clients/emails.ts",
+      "function": "listPushAudiences",
+      "params": null,
+      "body": null,
+      "returns": "PushAudience[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/push/broadcasts",
+      "client": "src/data/clients/emails.ts",
+      "function": "listPushBroadcasts",
+      "params": null,
+      "body": null,
+      "returns": "Paginated<PushBroadcast>, newest first",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/push/broadcasts",
+      "client": "src/data/clients/emails.ts",
+      "function": "sendPushBroadcast",
+      "params": null,
+      "body": null,
+      "returns": "PushBroadcast",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quick-ride-types",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listQuickRideTypes",
+      "params": null,
+      "body": null,
+      "returns": "QuickRideType[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/rate-cards",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listRateCards",
+      "params": "status",
+      "body": null,
+      "returns": "RateCard[], newest first",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/rate-cards/live",
+      "client": "src/data/clients/pricing.ts",
+      "function": "getLiveRateCard",
+      "params": null,
+      "body": null,
+      "returns": "RateCard",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/refunds",
+      "client": "src/data/clients/revenue.ts",
+      "function": "listRefunds",
+      "params": "q · page · pageSize · sort · filter · view=all|to-wallet|to-instrument|unsourced",
+      "body": null,
+      "returns": "Paginated<Refund>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/refunds",
+      "client": "src/data/clients/revenue.ts",
+      "function": "issueRefund",
+      "params": null,
+      "body": "IssueRefundInput",
+      "returns": "{ refund: Refund, creditNote: CreditNote }",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when an identical unconfirmed refund already exists"
+        },
+        {
+          "code": "422",
+          "when": "on a non-positive amount"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/refunds/facets",
+      "client": "src/data/clients/revenue.ts",
+      "function": "getRefundFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports",
+      "client": "src/data/clients/reports.ts",
+      "function": "listReports",
+      "params": "q · view=mine|team · page · pageSize",
+      "body": null,
+      "returns": "Paginated<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports",
+      "client": "src/data/clients/reports.ts",
+      "function": "saveReport",
+      "params": null,
+      "body": "{ name, description, query, visibility }",
+      "returns": "Single<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/reports/:id",
+      "client": "src/data/clients/reports.ts",
+      "function": "deleteReport",
+      "params": null,
+      "body": null,
+      "returns": "204, or 409 with the dashboards that pin it",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/:id",
+      "client": "src/data/clients/reports.ts",
+      "function": "getReport",
+      "params": null,
+      "body": null,
+      "returns": "Single<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/reports/:id",
+      "client": "src/data/clients/reports.ts",
+      "function": "saveReport",
+      "params": null,
+      "body": "{ name, description, query, visibility }",
+      "returns": "Single<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/export",
+      "client": "src/data/clients/reports.ts",
+      "function": "exportReport",
+      "params": null,
+      "body": "ReportQuery",
+      "returns": "ReportCsv",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/run",
+      "client": "src/data/clients/reports.ts",
+      "function": "runReport",
+      "params": null,
+      "body": "ReportQuery",
+      "returns": "ReportResult",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/requests",
+      "client": "src/data/clients/requests.ts",
+      "function": "listRequests",
+      "params": "q · channel · status · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<RideRequest>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/requests/:id",
+      "client": "src/data/clients/requests.ts",
+      "function": "getRequest",
+      "params": null,
+      "body": null,
+      "returns": "RideRequest",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests/:id/assign",
+      "client": "src/data/clients/requests.ts",
+      "function": "assignRequest",
+      "params": null,
+      "body": "{ driverId: string }",
+      "returns": "RideRequest",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the request is no longer open — legacy re-reads the index before"
+        },
+        {
+          "code": "422",
+          "when": "when `driverId` is empty"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests/:id/claim",
+      "client": "src/data/clients/requests.ts",
+      "function": "claimRequest",
+      "params": null,
+      "body": "{ takeOver?: boolean }",
+      "returns": "RideRequest",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when another operator holds it and `takeOver` was not sent"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests/:id/expire",
+      "client": "src/data/clients/requests.ts",
+      "function": "expireRequest",
+      "params": null,
+      "body": "{ reason?: string }",
+      "returns": "RideRequest",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests/:id/release",
+      "client": "src/data/clients/requests.ts",
+      "function": "releaseRequest",
+      "params": null,
+      "body": null,
+      "returns": "RideRequest",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/requests/facets",
+      "client": "src/data/clients/requests.ts",
+      "function": "getRequestFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders",
+      "client": "src/data/clients/riders.ts",
+      "function": "listRiders",
+      "params": "q · status · churnRisk · page · pageSize · sort · filter · view=riders|overdrawn",
+      "body": null,
+      "returns": "Paginated<Rider>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders/:id",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRider",
+      "params": null,
+      "body": null,
+      "returns": "Rider",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders/new",
+      "client": "src/data/clients/riders.ts",
+      "function": "listNewRiders",
+      "params": "q · page · pageSize · sort",
+      "body": null,
+      "returns": "Paginated<NewRider>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/routes",
+      "client": "src/data/clients/routes.ts",
+      "function": "fetchRouteTable",
+      "params": "none",
+      "body": null,
+      "returns": "RouteTable",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/search",
+      "client": "src/data/clients/profile.ts",
+      "function": "search",
+      "params": "q · scope · limit",
+      "body": null,
+      "returns": "SearchResponse",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security-policy",
+      "client": "src/data/clients/securityPolicy.ts",
+      "function": "getSecurityPolicy",
+      "params": null,
+      "body": null,
+      "returns": "SecurityPolicy",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/security-policy",
+      "client": "src/data/clients/securityPolicy.ts",
+      "function": "updateSecurityPolicy",
+      "params": null,
+      "body": "Partial<SecurityPolicy>",
+      "returns": "SecurityPolicy",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/session",
+      "client": "src/data/clients/session.ts",
+      "function": "getSession",
+      "params": "none — the server reads the auth cookie",
+      "body": null,
+      "returns": "Session",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/settings/retention",
+      "client": "src/data/clients/retention.ts",
+      "function": "getRetentionPolicy",
+      "params": null,
+      "body": null,
+      "returns": "RetentionPolicy",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/settings/retention",
+      "client": "src/data/clients/retention.ts",
+      "function": "saveRetentionPolicy",
+      "params": null,
+      "body": "RetentionPolicyInput",
+      "returns": "RetentionPolicy",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "listSubscriptions",
+      "params": "q · status · planKey · riderId · driverId · page · pageSize ·",
+      "body": null,
+      "returns": "Paginated<Subscription>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/:id",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "getSubscription",
+      "params": null,
+      "body": null,
+      "returns": "Subscription",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/subscriptions/:id/cancel",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "cancelSubscription",
+      "params": null,
+      "body": "{ reason: string }",
+      "returns": "Subscription  (with `refundedHalalas` computed for unused trips)",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/subscriptions/:id/freeze",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "freezeSubscription",
+      "params": null,
+      "body": "{ until: IsoDate, reason?: string }",
+      "returns": "Subscription",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the subscription is cancelled or expired"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/surge-suspensions",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listSurgeSuspensions",
+      "params": null,
+      "body": null,
+      "returns": "SurgeSuspension[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/surge-suspensions",
+      "client": "src/data/clients/pricing.ts",
+      "function": "suspendSurge",
+      "params": null,
+      "body": "{ zoneId, zoneName, reason, hours }",
+      "returns": "SurgeSuspension",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "without a reason, or above the 12-hour ceiling"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/surge-windows",
+      "client": "src/data/clients/pricing.ts",
+      "function": "listSurgeWindows",
+      "params": null,
+      "body": null,
+      "returns": "SurgeWindow[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team-users",
+      "client": "src/data/clients/session.ts",
+      "function": "listTeamUsers",
+      "params": "none (the roster is five people; pagination would be theatre)",
+      "body": null,
+      "returns": "{ items: TeamUser[] }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team-users/:id",
+      "client": "src/data/clients/session.ts",
+      "function": "getTeamUser",
+      "params": null,
+      "body": null,
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/invites",
+      "client": "src/data/clients/team.ts",
+      "function": "listInvites",
+      "params": null,
+      "body": null,
+      "returns": "{ items: TeamInvite[] }",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/team/invites/:userId",
+      "client": "src/data/clients/team.ts",
+      "function": "revokeInvite",
+      "params": null,
+      "body": null,
+      "returns": "{ revoked: true }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/team/invites/:userId/resend",
+      "client": "src/data/clients/team.ts",
+      "function": "resendInvite",
+      "params": null,
+      "body": null,
+      "returns": "TeamInvite",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/on-call",
+      "client": "src/data/clients/team.ts",
+      "function": "getOnCallRota",
+      "params": null,
+      "body": null,
+      "returns": "OnCallRota",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/team/on-call",
+      "client": "src/data/clients/team.ts",
+      "function": "updateOnCallRota",
+      "params": null,
+      "body": "{ primaryUserId, secondaryUserId }",
+      "returns": "OnCallRota",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/operators",
+      "client": "src/data/clients/team.ts",
+      "function": "listOperators",
+      "params": "page · pageSize · q · sort · filters · view",
+      "body": null,
+      "returns": "Paginated<TeamUser>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/team/operators",
+      "client": "src/data/clients/team.ts",
+      "function": "inviteOperator",
+      "params": null,
+      "body": "{ name, email, phone, role, compensationCapHalalas }",
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/team/operators/:id",
+      "client": "src/data/clients/team.ts",
+      "function": "offboardOperator",
+      "params": null,
+      "body": "{ reason }",
+      "returns": "{ offboarded: true }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/operators/:id",
+      "client": "src/data/clients/team.ts",
+      "function": "getOperator",
+      "params": null,
+      "body": null,
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/team/operators/:id/permissions",
+      "client": "src/data/clients/team.ts",
+      "function": "setOperatorPermissions",
+      "params": null,
+      "body": "{ permissions }",
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/team/operators/:id/reinstate",
+      "client": "src/data/clients/team.ts",
+      "function": "reinstateOperator",
+      "params": null,
+      "body": null,
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/operators/:id/sessions",
+      "client": "src/data/clients/team.ts",
+      "function": "listOperatorSessions",
+      "params": null,
+      "body": null,
+      "returns": "{ items: DeviceSession[], canRevoke, refusal }",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/team/operators/:id/sessions/:deviceId",
+      "client": "src/data/clients/team.ts",
+      "function": "revokeOperatorSession",
+      "params": null,
+      "body": null,
+      "returns": "{ revoked: true }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/team/operators/:id/suspend",
+      "client": "src/data/clients/team.ts",
+      "function": "suspendOperator",
+      "params": null,
+      "body": "{ reason }",
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets",
+      "client": "src/data/clients/tickets.ts",
+      "function": "createTicket",
+      "params": null,
+      "body": "{ subject, entityId, entityName, entityType, category, reasonCode,",
+      "returns": "Ticket",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/call-log",
+      "client": "src/data/clients/tickets.ts",
+      "function": "logTicketCall",
+      "params": null,
+      "body": "{ outcome, notes }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "on an outcome outside the closed set"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips",
+      "client": "src/data/clients/trips.ts",
+      "function": "listTrips",
+      "params": "q · kind · status · riderId · driverId · subscriptionId ·",
+      "body": null,
+      "returns": "Paginated<Trip>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/:id",
+      "client": "src/data/clients/trips.ts",
+      "function": "getTrip",
+      "params": null,
+      "body": null,
+      "returns": "Trip",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/:id/flag",
+      "client": "src/data/clients/trips.ts",
+      "function": "setTripFlag",
+      "params": null,
+      "body": "{ flagged: boolean, reason?: string }",
+      "returns": "Trip",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/vat-config",
+      "client": "src/data/clients/ledger.ts",
+      "function": "getVatConfig",
+      "params": null,
+      "body": null,
+      "returns": "VatConfig",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallets",
+      "client": "src/data/clients/wallets.ts",
+      "function": "listWallets",
+      "params": "q · page · pageSize · sort · filter · view=all-wallets|negative-balances|goodwill",
+      "body": null,
+      "returns": "Paginated<WalletSummary>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/wallets/:riderId/adjust",
+      "client": "src/data/clients/wallets.ts",
+      "function": "adjustWallet",
+      "params": null,
+      "body": "{ amountHalalas, direction, reasonCode, note }",
+      "returns": "{ posting: LedgerPosting, authority: AuthorityCheck }",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "when the authority check refuses  ·  422 without a reason code"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallets/:riderId/authority",
+      "client": "src/data/clients/wallets.ts",
+      "function": "checkAdjustmentAuthority",
+      "params": "amountHalalas · reasonCode",
+      "body": null,
+      "returns": "AuthorityCheck",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallets/facets",
+      "client": "src/data/clients/wallets.ts",
+      "function": "getWalletFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-items",
+      "client": "src/data/clients/myWork.ts",
+      "function": "listWorkItems",
+      "params": "q · queue · includeOtherRoles · page · pageSize · sort · filter ·",
+      "body": null,
+      "returns": "Paginated<WorkItem>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-items/facets",
+      "client": "src/data/clients/myWork.ts",
+      "function": "getWorkFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/workspace/legal/:key/reconsent",
+      "client": "src/data/clients/workspace.ts",
+      "function": "queueReconsent",
+      "params": null,
+      "body": null,
+      "returns": "ReconsentResult",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/workspace/logo",
+      "client": "src/data/clients/workspace.ts",
+      "function": "removeLogo",
+      "params": null,
+      "body": null,
+      "returns": "WorkspaceSettings",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/workspace/logo",
+      "client": "src/data/clients/workspace.ts",
+      "function": "updateLogo",
+      "params": null,
+      "body": "{ dataUrl, fileName, sizeBytes }",
+      "returns": "WorkspaceSettings",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/workspace/settings",
+      "client": "src/data/clients/workspace.ts",
+      "function": "getWorkspaceSettings",
+      "params": null,
+      "body": null,
+      "returns": "WorkspaceSettings",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/workspace/settings",
+      "client": "src/data/clients/workspace.ts",
+      "function": "updateWorkspaceSettings",
+      "params": null,
+      "body": "WorkspaceSettingsPatch",
+      "returns": "WorkspaceSettings",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/zones",
+      "client": "src/data/clients/zones.ts",
+      "function": "listZones",
+      "params": "q · view=all|starved|offers|needs-captains · sort · filters ·",
+      "body": null,
+      "returns": "Paginated<Zone>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/zones/:zoneId",
+      "client": "src/data/clients/zones.ts",
+      "function": "getZone",
+      "params": null,
+      "body": null,
+      "returns": "Zone",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/zones/:zoneId/recruitment",
+      "client": "src/data/clients/zones.ts",
+      "function": "queueRecruitment",
+      "params": null,
+      "body": null,
+      "returns": "{ zoneId, queuedAt }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/zones/:zoneId/steer-offers",
+      "client": "src/data/clients/zones.ts",
+      "function": "openSteerOffer",
+      "params": null,
+      "body": "{ bonusPerTripHalalas, budgetCapHalalas, durationMinutes }",
+      "returns": "ZoneSteerOffer",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/zones/facets",
+      "client": "src/data/clients/zones.ts",
+      "function": "getZoneFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets   { city: [...], recruitmentPriority: [...] }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/zones/health",
+      "client": "src/data/clients/zones.ts",
+      "function": "getZoneHealth",
+      "params": null,
+      "body": null,
+      "returns": "ZoneHealthSummary",
+      "statuses": []
+    }
+  ],
+  "problems": [
+    {
+      "file": "applicants.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "applicants.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//applications/facets` (getApplicantFacets)"
+    },
+    {
+      "file": "assurance.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "assurance.ts",
+      "kind": "no-return",
+      "detail": "POST `/api/v1/assurance/trips/:id/claim` has no return annotation (claimAssuranceTrip)"
+    },
+    {
+      "file": "assurance.ts",
+      "kind": "no-return",
+      "detail": "POST `/api/v1/assurance/trips/:id/release` has no return annotation (releaseAssuranceTrip)"
+    },
+    {
+      "file": "auth.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "cash.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "complaints.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "conversations.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "corporateAccounts.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "corporateAccounts.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//corporate-accounts/facets` (getCorporateFacets)"
+    },
+    {
+      "file": "disputes.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "disputes.ts",
+      "kind": "no-return",
+      "detail": "GET `/api/v1/disputes/facets` has no return annotation (getDisputeFacets)"
+    },
+    {
+      "file": "disputes.ts",
+      "kind": "no-return",
+      "detail": "GET `/api/v1/disputes/:id` has no return annotation (getDispute)"
+    },
+    {
+      "file": "disputes.ts",
+      "kind": "no-return",
+      "detail": "POST `/api/v1/disputes/:id/claim` has no return annotation (claimDispute)"
+    },
+    {
+      "file": "disputes.ts",
+      "kind": "no-return",
+      "detail": "GET `/api/v1/lost-found/:id` has no return annotation (getLostFoundItem)"
+    },
+    {
+      "file": "drivers.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "drivers.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//drivers/facets` (getDriverFacets)"
+    },
+    {
+      "file": "drivers.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//compliance/drivers/facets` (getDriverComplianceFacets)"
+    },
+    {
+      "file": "emails.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "fairness.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "integrations.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "integrity.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "ledger.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "metrics.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "myWork.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "navCounts.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "notifications.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "onboarding.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "payments.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "payouts.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "preferences.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "profile.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "requests.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "retention.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "revenue.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "riders.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "riders.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//riders/facets` (getRiderFacets)"
+    },
+    {
+      "file": "routes.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "safety.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "securityPolicy.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "session.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "subscriptions.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "subscriptions.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//subscriptions/facets` (getSubscriptionFacets)"
+    },
+    {
+      "file": "team.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "tickets.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "trips.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "trips.ts",
+      "kind": "malformed-path",
+      "detail": "double slash in `/api/v1//trips/facets` (getTripFacets)"
+    },
+    {
+      "file": "wallets.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "workspace.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    },
+    {
+      "file": "zones.ts",
+      "kind": "unregistered",
+      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
+    }
+  ]
+}

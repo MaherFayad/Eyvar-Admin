@@ -23,6 +23,12 @@ Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 | [`states.md`](../../docs/ref/states.md) | the four states, and the two kinds of empty |
 | [`modules.md`](../../docs/ref/modules.md) | which of the 60 module docs covers this |
 | [`defects.md`](../../docs/ref/defects.md) | the 24 known legacy defects vs a new one |
+| [`api.md`](../../docs/ref/api.md) | **the outward contract — what the backend must return** |
+
+The docblock above every exported client function is **the source of the backend
+handover** (`npm run api:contract`). Break its format and the endpoint vanishes from
+`docs/07-api/ENDPOINTS.md`. The **api-contract-steward** owns that consolidation; you own
+the shapes it describes.
 
 ## The one thing that matters
 

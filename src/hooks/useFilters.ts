@@ -20,6 +20,43 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { FilterSpec } from '@/data/types/common'
 
+/* ───────────────────── the algebra, as pure functions ───────────────────── */
+
+/**
+ * **One chip per field, as §9.1 draws it.** Adding `city eq Riyadh` on top of
+ * `city eq Jeddah` replaces it; it never accumulates two chips an operator has
+ * to reason about.
+ *
+ * Pure and exported because there are now two stores for the same algebra —
+ * this hook's `useState`, and the URL (`useUrlTableState`, P1-T1). The rule
+ * lives here once; a second copy inside the serialiser is exactly how the two
+ * would drift apart on the day someone allows two chips per field.
+ */
+export function withFilter(
+  filters: readonly FilterSpec[],
+  filter: FilterSpec,
+): readonly FilterSpec[] {
+  return [...filters.filter((f) => f.field !== filter.field), filter]
+}
+
+/** Removes the chip for one field. Absent field: the same list back, not a throw. */
+export function withoutFilter(
+  filters: readonly FilterSpec[],
+  field: string,
+): readonly FilterSpec[] {
+  return filters.filter((f) => f.field !== field)
+}
+
+/**
+ * `Clear all`'s condition, and `no-match` vs `first-run` (**AC-37** / **AC-38**).
+ *
+ * `view` is deliberately not an argument: a view is a control, not a filter
+ * (foundation spec §3.8 rule 3). See the file header.
+ */
+export function hasActiveFilters(query: string, filters: readonly FilterSpec[]): boolean {
+  return filters.length > 0 || query.trim() !== ''
+}
+
 export interface UseFiltersOptions {
   initialQuery?: string
   initialView?: string | null
@@ -75,7 +112,7 @@ export function useFilters(options: UseFiltersOptions = {}): FiltersState {
 
   const setFilter = useCallback(
     (filter: FilterSpec) => {
-      setFilters((current) => [...current.filter((f) => f.field !== filter.field), filter])
+      setFilters((current) => withFilter(current, filter))
       bump()
     },
     [bump],
@@ -83,7 +120,7 @@ export function useFilters(options: UseFiltersOptions = {}): FiltersState {
 
   const removeFilter = useCallback(
     (field: string) => {
-      setFilters((current) => current.filter((f) => f.field !== field))
+      setFilters((current) => withoutFilter(current, field))
       bump()
     },
     [bump],
@@ -95,7 +132,7 @@ export function useFilters(options: UseFiltersOptions = {}): FiltersState {
     bump()
   }, [bump])
 
-  const isFiltered = filters.length > 0 || query.trim() !== ''
+  const isFiltered = hasActiveFilters(query, filters)
 
   return useMemo(
     () => ({

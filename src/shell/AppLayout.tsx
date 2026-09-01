@@ -70,7 +70,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getRouteTable } from '@/data/clients'
+import {
+  getOnCallRota,
+  getRouteTable,
+  getTeamUser,
+  markNotificationRead,
+  switchMockUser,
+} from '@/data/clients'
 import type { Notification, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
@@ -91,8 +97,8 @@ import { Banner } from '@/components/Banner'
 import { ReauthModal } from '@/components/auth/ReauthModal'
 import { SignOutDirtyDialog } from './SignOutDirtyDialog'
 import { FROZEN_REASON_ID } from '@/components/auth/AuthCredentialForm'
-import { useFocusCapture, useOnline } from '@/hooks'
-import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from './session'
+import { useAsync, useFocusCapture, useOnline } from '@/hooks'
+import type { SessionExpiryReason } from './session'
 
 export function AppLayout() {
   const shell = useShell()
@@ -170,9 +176,16 @@ export function AppLayout() {
      than a modal over a page the operator was not editing. */
   useEffect(() => {
     registerCleanExpiry((reason: SessionExpiryReason) => {
-      navigate('/signin', { replace: true, state: { condition: endedCondition(reason) } })
+      /* **The window that actually expired, not the module constant.** The
+         lifecycle hook already resolved and clamped it from
+         `SecurityPolicy.idleTimeoutMinutes`; quoting the default here would
+         tell an admin who set 60 minutes that they had been idle for 30. */
+      navigate('/signin', {
+        replace: true,
+        state: { condition: endedCondition(reason, lifecycle.idleTimeoutMinutes) },
+      })
     })
-  }, [registerCleanExpiry, navigate])
+  }, [registerCleanExpiry, navigate, lifecycle.idleTimeoutMinutes])
 
   /**
    * **AC-565** — the element that had focus at freeze time is recorded and
@@ -260,15 +273,108 @@ export function AppLayout() {
     [shell.language],
   )
 
+  /**
+   * **Opening a notification marks it read**, which it did not.
+   *
+   * `markNotificationRead` (`clients/notifications.ts`) had **zero callers**,
+   * so the bell's badge never decremented: an operator could work through every
+   * notification and the count would still read 3. §6.3's third listed defect is
+   * that legacy loses every read flag on reload; the rebuild had gone one worse
+   * and never set one.
+   *
+   * Both entry points route through here — the bell popover
+   * (`NotificationBell`) and the layer (`NotificationsLayer`) — so one call
+   * covers both, which is why it is here and not duplicated in each.
+   *
+   * **Navigation does not wait for the write.** The operator asked to go
+   * somewhere; a bookkeeping flag must not put a request between them and it.
+   * The summary is refreshed either way, so the badge shows whatever the server
+   * actually holds rather than an optimistic decrement that could be wrong —
+   * and a failed write leaves a count that is high, which is the safe direction
+   * to be wrong in. No toast: R9 spends a toast on something the operator did,
+   * and this is bookkeeping they did not ask for.
+   */
+  /**
+   * **Who is on call, from the rota rather than from `null`.**
+   *
+   * The chip shipped `onCallName={null}` with a comment saying the rota was
+   * Admin › Team & Access's data and did not exist yet. It does now
+   * (`getOnCallRota`), and the asymmetry while it did not was the worse of the
+   * two failure modes: an admin could set the rota, get a confirmation that the
+   * setting took, and watch the top bar go on reading `On call: unassigned`
+   * forever.
+   *
+   * Two reads, one dependent on the other, because the rota stores an **id**
+   * and the chip needs a **name** — and `getTeamUser` is the operation that
+   * turns one into the other. `null` all the way through is still a real
+   * answer: `primaryUserId: null` is the gap the chip exists to show, and
+   * `TopBar` already renders `On call: unassigned` for it.
+   *
+   * Read once, at the shell, like the nav counts. It does not revalidate when
+   * an admin edits the rota on another route — that is P8-T2's job (revalidate
+   * on route change plus a slow poll) and it applies to every shell read at
+   * once, not to this one specially. Noted in the handoff rather than solved
+   * here with a poll nobody asked for.
+   */
+  const onCall = useAsync<string | null>(async (signal) => {
+    const rota = await getOnCallRota(signal)
+    if (rota.primaryUserId === null) return null
+    return (await getTeamUser(rota.primaryUserId, signal)).name
+  }, { deps: [] })
+
   const openNotificationTarget = useCallback(
     (notification: Notification) => {
+      if (!notification.read) {
+        void markNotificationRead(notification.id)
+          .catch(() => undefined)
+          .finally(() => shell.refreshNotifications())
+      }
       if (notification.entityId) {
         setLayer('entity', notification.entityId)
         return
       }
       if (notification.route) navigate(notification.route)
     },
-    [navigate, setLayer],
+    [navigate, setLayer, shell],
+  )
+
+  /**
+   * **`Switch user` switches user.** It called `navigate('/admin/team')` — a
+   * menu item that took the operator somewhere unrelated and left them to work
+   * out that it had not done what its label said.
+   *
+   * `switchMockUser` returns the new session, so the landing route comes from
+   * the server's own answer rather than from a role→route map recomputed here
+   * (§3.3, §8.2). Navigating matters: the role decides which workspaces are
+   * visible, and staying put would leave the operator on a sub-tab their new
+   * role may not hold — `route-forbidden` is the correct render for that
+   * (**AC-56**), but it is a poor place to arrive.
+   *
+   * `shell.retry` re-reads the session, which is what repaints the rail, the
+   * sub-tab column, the permission summary and the `mine` chip.
+   *
+   * **Mock-only**, by the client's own contract: in `http` mode this is
+   * impersonation and belongs to an audited endpoint. `AccountMenu` disables
+   * the control there with the reason stated (§11.2), so this handler is not
+   * reachable — the `catch` is for a switch that legitimately fails, and it
+   * says so rather than leaving the menu looking as if it worked.
+   */
+  const switchUser = useCallback(
+    (userId: string) => {
+      void switchMockUser(userId)
+        .then((next) => {
+          shell.retry()
+          navigate(next.landingRoute)
+          /* R9/R10 — a transient confirmation of something that already
+             happened: one line, names who, no action. Same register as the
+             language toast (§11.6 row 23). */
+          toast(t('state.userSwitched.toast', { name: next.name, role: next.role }))
+        })
+        .catch(() => {
+          toast(t('state.userSwitched.failed'))
+        })
+    },
+    [navigate, shell, t],
   )
 
   return (
@@ -381,7 +487,7 @@ export function AppLayout() {
                  literal `1`, not an id. */
               onOpenOnboarding={() => setLayer('onboarding', '1')}
               onOpenNotification={openNotificationTarget}
-              onSwitchUser={() => navigate('/admin/team')}
+              onSwitchUser={switchUser}
               onSignOut={() => {
                 /* Nothing dirty, nothing to confirm — a dialog that asks about
                    work that does not exist is a dialog an operator learns to
@@ -390,10 +496,11 @@ export function AppLayout() {
                 else signOut()
               }}
               onSetLanguage={setLanguage}
-              /* The rota is Admin › Team & Access's data. Until that sub-tab is
-                 built the chip shows the gap, which is the state it exists for
-                 — and a wrong name would be worse than an honest `unassigned`. */
-              onCallName={null}
+              /* `null` covers three situations that all render as the honest
+                 `On call: unassigned` — nobody is rostered, the read has not
+                 landed, and the read failed. A wrong name would be worse than
+                 any of them, and a skeleton on a 28px chip would be noise. */
+              onCallName={onCall.data ?? null}
             />
           )}
 
@@ -461,6 +568,11 @@ export function AppLayout() {
             navigate(path)
           }}
           t={t}
+          /* The card stack formats dates and counts. Passed, not read from a
+             context inside the cards, for the same reason `DeviceList` takes
+             it: a formatter that reads the language itself is a second source
+             for the one the shell already owns. */
+          language={language}
         />
       )}
       {route.overlay === 'notifications' && (
@@ -547,8 +659,8 @@ export function AppLayout() {
 const WRITE_REVOKED_BANNER_ID = 'write-revoked-reason'
 
 /** §3.2 / **AC-560** — idle and absolute are visibly distinct reasons. */
-function endedCondition(reason: SessionExpiryReason) {
+function endedCondition(reason: SessionExpiryReason, idleTimeoutMinutes: number) {
   return reason === 'absolute'
     ? ({ kind: 'session-ended-absolute' } as const)
-    : ({ kind: 'session-ended-idle', minutes: DEFAULT_IDLE_TIMEOUT_MINUTES } as const)
+    : ({ kind: 'session-ended-idle', minutes: idleTimeoutMinutes } as const)
 }

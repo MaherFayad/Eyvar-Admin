@@ -97,6 +97,39 @@ export const REQUESTS_EN: Dictionary = {
   'requests.decided.expired': 'Expired',
   'requests.decided.cancelled': 'Cancelled',
 
+
+  /* ── the bulk bar (P4-T1, §9.3, D21) ────────────────────────────────── */
+  /* §9.3 permits a queue a selection checkbox **only** where every bulk action
+     is a claim or an assign, and forbids bulk disposition outright. `Claim` is
+     the one command offered, and it is the one an operator working a queue
+     reaches for twenty times an hour: take the next ten and start.
+
+     A bulk TAKE-OVER is deliberately absent. AC-203 makes a take-over a
+     confirmed act that NAMES the operator losing the item; over a set it would
+     strip N owners at once and name none of them, so a row already held is
+     BLOCKED rather than silently taken. */
+  /* ── 360° reach (P8-T1) ─────────────────────────────────────────────── */
+  'requests.a11y.openCaptain': 'Open the 360° profile for {name}',
+  /* §11.2 — the id is on the row but the resolver says it names nothing. A
+     different fact from "there is no id", with a different next action. */
+  'requests.entity.unresolved': 'There is no record on file for this reference.',
+  /* The half-sentence that follows the captain's LINK in the decision cell.
+     Split from `requests.offered.withCaptain` rather than interpolated around
+     an `<a>`: AC-75 forbids assembling a sentence around a component, and a
+     translator cannot move a link that is inside a template. The one-name
+     version stays for the row that has no captain id to open. */
+  'requests.offered.waiting': '— waiting for their reply',
+
+  'requests.bulk.claim': 'Claim',
+  'requests.action.claim.blocked.one': 'This request is already claimed, or already decided.',
+  'requests.action.claim.blocked.other':
+    '{count} of the selected requests are already claimed, or already decided.',
+  'requests.action.claim.blocked.all':
+    'All {count} selected requests are already claimed, or already decided.',
+  'requests.toast.claimed.other': '{count} requests claimed',
+
+  'requests.action.noPermission': 'You need the Live Ops permission to claim a request.',
+
   'requests.toast.assigned': 'Captain assigned',
   'requests.toast.expired': 'Request closed',
 

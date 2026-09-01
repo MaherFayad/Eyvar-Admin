@@ -44,6 +44,30 @@
  *   AC-379     a repayment accepts a **partial** amount and leaves the rest
  *              visible. `commitCashRepayment` sets the debt to zero by
  *              assignment and calls it a feature (`:12197`, **D-F5**).
+ *   §9.3 / P4-T1
+ *              the reconciliation queue carries a checkbox column and **one**
+ *              bulk command, `Claim`. The captain debt index carries neither.
+ *              See the two notes below.
+ *
+ * ## P4-T1 — where a bulk bar belongs on this route, and where it does not
+ *
+ * **The queue gets one, and it may only ever be `Claim`.** §9.3 lets a queue
+ * carry a checkbox *"only if every bulk action offered is a claim or assign
+ * action"*, and `design/00-shell.md` §9.3 says the other half outright:
+ * ***"Bulk disposition must not ship."*** So `bulkClaim: true` is declared,
+ * `Claim` is the whole set of bulk commands, and `Resolve` and `Escalate` stay
+ * on the row where each can carry its own reason about its own report. A set of
+ * nine reports sharing one resolution reason is the blanket justification
+ * **AC-374**'s reason field exists to prevent.
+ *
+ * **The captain debt index gets none, and that is a decision, not an
+ * omission.** The only act on it is `Record repayment`, and **AC-379** makes
+ * that a *partial* amount prefilled with **that captain's** balance and
+ * lowerable. There is no amount a set of captains shares: one figure applied to
+ * nine different balances is either an over-payment on eight of them or the
+ * assignment-to-zero D-F5 records. `View ledger` is navigation, which is never
+ * bulk. So the table stays `mode: 'queue'` without `bulkClaim`, which is what
+ * makes the checkbox column structurally absent rather than merely unused.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -69,7 +93,7 @@ import type {
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, formatMoney } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
-import { DataTable, type DataColumn } from '@/components/DataTable'
+import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
@@ -77,11 +101,34 @@ import { Button } from '@/components/ui/button'
 import { DecisionBadge, OwnerChip, useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
+import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
-import { deviationHalalas } from '../shared/derive'
+import { bulkRefusal, claimWithheldFrom, deviationHalalas } from '../shared/derive'
+import { bulkRefusalText } from '../shared/text'
 import { useScreenViews, type ScreenView } from '../shared/views'
+
+/**
+ * §11.2 over a set, for the queue's one bulk command — **D21**.
+ *
+ * Permission first (**AC-962**): a role that cannot claim is refused on every
+ * row, and naming a subset underneath that answers a question the operator did
+ * not ask. Then the states, most terminal first.
+ */
+const CLAIM_REFUSAL_ORDER = [
+  'fin.payout.blocked.permission',
+  'fin.cash.blocked.decided',
+  'fin.cash.blocked.heldByOther',
+  'fin.cash.blocked.mine',
+] as const
+
+const CLAIM_REFUSAL_COPY = {
+  'fin.payout.blocked.permission': 'fin.bulk.claim.permission',
+  'fin.cash.blocked.decided': 'fin.bulk.claim.decided',
+  'fin.cash.blocked.heldByOther': 'fin.bulk.claim.heldByOther',
+  'fin.cash.blocked.mine': 'fin.bulk.claim.mine',
+} as const
 
 const VIEWS: readonly ScreenView[] = [
   { id: 'reconciliation-queue', titleKey: 'fin.cash.view.queue' },
@@ -191,16 +238,28 @@ function ReconciliationQueue({
   const { t, language } = shell.language
   const now = useNowIso()
   const currentUserId = shell.session?.userId ?? ''
-  const table = useIndexTable<CashReport>({ mode: 'queue', getRowId: (report) => report.id })
+  /* **§9.3 / P4-T1** — `bulkClaim: true` is the literal the type system reads:
+     without it the returned table has no `selectedIds` to bind a checkbox to.
+     It is declared here because the ONE bulk command this queue offers is a
+     claim, which is the only condition under which §9.3 permits the column. */
+  const table = useIndexTable<CashReport>({
+    mode: 'queue',
+    getRowId: (report) => report.id,
+    bulkClaim: true,
+  })
   const actions = useMoneyActions<CashReport>({ keyOf: (report) => report.id })
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
   const reports = useAsync<Paginated<CashReport>>(
-    (signal) => listCashReports({ view: activeTab, ...table.params }, signal),
+    (signal) => listCashReports({ ...table.params, view: activeTab }, signal),
     { deps: [activeTab, table.params] },
   )
 
   const rows = useMemo(() => actions.apply(reports.data?.items ?? []), [actions, reports.data])
+
+  /* **P8-T1** — the captain the report is about. The report id is a document,
+     not an entity, and the rider is not a column on this queue. */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((report) => report.captainId), [rows]))
 
   const escalated = useAsync<Paginated<CashReport>>(
     (signal) => listCashReports({ view: 'escalated', pageSize: 1 }, signal),
@@ -277,7 +336,9 @@ function ReconciliationQueue({
         dataType: 'text',
         width: 168,
         sortField: 'captainName',
-        cell: (report) => <span className="truncate">{report.captainName}</span>,
+        cell: (report) => (
+          <EntityName href={hrefFor(report.captainId)} name={report.captainName} t={t} />
+        ),
         secondaryLine: (report) =>
           report.riderConfirmed ? t('fin.cash.riderConfirmed') : t('fin.cash.riderUnconfirmed'),
       },
@@ -465,7 +526,67 @@ function ReconciliationQueue({
         },
       },
     ],
-    [t, language, now, currentUserId, gate, actions, decide],
+    [t, language, now, currentUserId, gate, actions, decide, hrefFor],
+  )
+
+  /* ── the bulk bar: one command, and it is a claim ── */
+
+  const selected = useMemo(
+    () => rows.filter((report) => table.selectedIds.has(report.id)),
+    [rows, table.selectedIds],
+  )
+
+  const claimRefusal = useMemo(
+    () =>
+      bulkRefusalText(
+        t,
+        language,
+        bulkRefusal(
+          selected.map((report) => claimWithheldFrom(report, gate.canWrite, currentUserId)),
+          CLAIM_REFUSAL_ORDER,
+        ),
+        CLAIM_REFUSAL_COPY,
+      ),
+    [selected, gate.canWrite, currentUserId, t, language],
+  )
+
+  /**
+   * **D21's escape hatch.** The reports in the current selection that are still
+   * claimable. `undefined` when none are: there is nothing to narrow to, the
+   * sentence is already the `.all` form, and no control renders (**AC-960**).
+   */
+  const claimEligible = useMemo(() => {
+    const ids = selected
+      .filter((report) => claimWithheldFrom(report, gate.canWrite, currentUserId) === null)
+      .map((report) => report.id)
+    return ids.length === 0 ? undefined : new Set(ids)
+  }, [selected, gate.canWrite, currentUserId])
+
+  const bulkActions = useMemo<BulkAction[]>(
+    () => [
+      {
+        label: t('queue.claim'),
+        /* **No confirmation, and that is the row control's decision repeated.**
+           A claim moves no money and takes nothing from anybody — `Release` is
+           one click away. A **take-over** does need one and is deliberately not
+           offered in bulk: nine operators losing their rows at once is not a
+           thing one dialog can honestly describe. */
+        onClick: () => {
+          void actions
+            .runMany({
+              keys: selected.map((report) => report.id),
+              errorMessage: t('fin.error.row'),
+              toastMessage: t('fin.bulk.claim.toast'),
+              action: (id) => claimCashReport(id),
+            })
+            .then(() => table.clearSelection())
+        },
+        disabled: claimRefusal !== null,
+        reason: claimRefusal,
+        eligibleIds: claimRefusal === null ? undefined : claimEligible,
+      },
+    ],
+    [t, actions, table, selected, claimRefusal, claimEligible],
   )
 
   return (
@@ -485,6 +606,7 @@ function ReconciliationQueue({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.cash.search')}
+        bulkActions={bulkActions}
         skeletonPattern="P8"
         /* §4.7 **E1** — a queue worked to zero is `cleared`, never the
            illustrated first-run state that tells an operator who just cleared
@@ -522,16 +644,26 @@ function CaptainDebtIndex({
 }: ViewProps & { onOpenLedger: (id: string) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
+  /* **No `bulkClaim`, deliberately** — see the file header. A repayment is a
+     partial amount against ONE captain balance (**AC-379**), so there is no
+     bulk command to offer, and §9.3 makes the checkbox column follow that
+     rather than the other way round. */
   const table = useIndexTable<CaptainDebt>({ mode: 'queue', getRowId: (debt) => debt.captainId })
   const actions = useMoneyActions<CaptainDebt>({ keyOf: (debt) => debt.captainId })
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
   const debts = useAsync<Paginated<CaptainDebt>>(
-    (signal) => listCaptainDebts({ view: activeTab, ...table.params }, signal),
+    (signal) => listCaptainDebts({ ...table.params, view: activeTab }, signal),
     { deps: [activeTab, table.params] },
   )
 
   const rows = useMemo(() => actions.apply(debts.data?.items ?? []), [actions, debts.data])
+
+  /* **P8-T1** — the captain name opens the captain. The receivable **ledger**
+     keeps its own labelled `View ledger` control in the action lane, which is
+     the same split the Payouts index makes and for the same reason: a captain
+     here has two ledgers, so neither can own the name. */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((debt) => debt.captainId), [rows]))
 
   /* **AC-381** — the total includes every captain with a non-zero receivable,
      **in both directions**. A captain in credit is not silently dropped, which
@@ -551,7 +683,7 @@ function CaptainDebtIndex({
             {/* **AC-380** — over the cap, from the same source value the 360°
                 profile reads. R5a's leading edge, and the words below. */}
             {debt.balanceHalalas >= debt.capHalalas && <RowCriticalMarker />}
-            {debt.captainName}
+            <EntityName href={hrefFor(debt.captainId)} name={debt.captainName} t={t} />
           </span>
         ),
         secondaryLine: (debt) => {
@@ -688,7 +820,7 @@ function CaptainDebtIndex({
         ),
       },
     ],
-    [t, language, gate, actions, onOpenLedger],
+    [t, language, gate, actions, onOpenLedger, hrefFor],
   )
 
   return (

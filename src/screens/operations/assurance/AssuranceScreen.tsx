@@ -79,7 +79,10 @@ import type {
   Paginated,
   SubTabRoute,
 } from '@/data/types'
+import { toast } from 'sonner'
 import { useAsync, useIndexTable } from '@/hooks'
+import { setRefusal } from '../bulkRefusal'
+import { EntityLink, useEntityLinks } from '../EntityLink'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
@@ -89,7 +92,6 @@ import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import {
-  Absent,
   BreachBanner,
   Cell,
   ConfirmDialog,
@@ -171,6 +173,20 @@ function LegsView({
        nulls last on `asc`, so Q-59's out-of-window legs land at the bottom
        without a second pass. */
     initialSort: { field: 'slaDueAt', dir: 'asc' },
+    /**
+     * **§9.3 / P4-T1.** A queue gets a checkbox column **only** where every
+     * bulk action is a claim or an assign, and `bulkClaim: true` is how this
+     * file declares it — without it `table.selectedIds` is not on the returned
+     * type. `Confirm` and `Offer backup` are dispositions and stay row-only:
+     * confirming twelve legs from one pill would attest to twelve phone calls
+     * nobody made, and §6.4 requires a note *"so the risk has a name attached
+     * to it"*.
+     *
+     * The **absences** view below declares no `bulkClaim` and therefore has no
+     * checkbox, which is correct and is Q-60 rather than an omission: an
+     * `AbsenceEvent` is a recorded fact with no claim and no clock.
+     */
+    bulkClaim: true,
   })
 
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
@@ -195,7 +211,22 @@ function LegsView({
     { deps: [] },
   )
 
+  /* **P8-T1** — every id the page names, asked once each. */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () =>
+        (data.data?.items ?? []).flatMap((trip) => [
+          trip.subscriptionId,
+          trip.riderId,
+          trip.driverId,
+        ]),
+      [data.data?.items],
+    ),
+  )
+
   const actions = useRowActions<AssuranceTrip>({ t })
+  /** True while a bulk claim is in flight; the bar's command is not re-entrant. */
+  const [claimingMany, setClaimingMany] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const rows = actions.rows(data.data?.items ?? [])
@@ -323,6 +354,45 @@ function LegsView({
     )
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  const selected = rows.filter((trip) => table.selectedIds.has(trip.id))
+
+  /**
+   * D21 over a set. A leg already held is **blocked, not taken over** —
+   * AC-203's take-over names the operator losing it, and over a set it would
+   * name none of them.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (trip) => trip.id,
+    isBlocked: (trip) => trip.claim?.state === 'claimed',
+    roleReason: canWrite ? null : t('assurance.action.noPermission'),
+    blockedKeyPrefix: 'assurance.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /** One `claimAssuranceTrip` per record — the same call the row's own `Claim`
+      makes, so the queue and My Work cannot disagree about who holds what. */
+  async function claimSelected(ids: ReadonlySet<string>) {
+    setClaimingMany(true)
+    try {
+      await Promise.all([...ids].map((id) => claimAssuranceTrip(id, { takeOver: false })))
+      table.clearSelection()
+      toast(
+        ids.size === 1
+          ? t('queue.toast.claimed')
+          : t('assurance.toast.claimed.other', { count: formatCount(ids.size, language) }),
+      )
+    } catch {
+      toast(t('assurance.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = legColumns(activeTab, {
     t,
     language,
@@ -330,6 +400,8 @@ function LegsView({
     canWrite,
     currentUserId,
     profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    /* **P8-T1 — resolution is ASKED, not assumed.** */
+    hrefFor,
     failure: actions.failure,
     onClaim: (trip) => claim(trip, false),
     onRelease: (trip) =>
@@ -374,6 +446,17 @@ function LegsView({
         now={now}
         searchPlaceholder={t('assurance.search.legs')}
         extraFilters={BREACH_FILTER(t)}
+        /* §9.3 — claims only. `Confirm` and `Offer backup` are dispositions and
+           stay on the row. */
+        bulkActions={[
+          {
+            label: t('assurance.bulk.claim'),
+            onClick: (ids) => void claimSelected(ids),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         /* **AC-274** — each view's cleared sentence names THAT view's scope. */
         cleared={{
           heading: t('assurance.empty.cleared.heading'),
@@ -580,6 +663,8 @@ export interface LegDeps {
   canWrite: boolean
   currentUserId: string
   profileHref: (id: string) => string
+  /** **P8-T1** — `null` when the id names nothing this console can open. */
+  hrefFor: (id: string | null | undefined) => string | null
   failure: (id: string) => RowFailure | undefined
   onClaim: (row: AssuranceTrip) => void
   onRelease: (row: AssuranceTrip) => void
@@ -886,7 +971,21 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
       dataType: 'text',
       defaultHidden: true,
       sortField: 'riderName',
-      cell: (trip) => <Cell>{trip.riderName}</Cell>,
+      /* **P8-T1** — a cell that names a rider opens that rider. It was plain
+         text, so an operator reading a leg could not reach the person it is
+         for without going through global search. */
+      cell: (trip) => (
+        <Cell>
+          <EntityLink
+            href={deps.hrefFor(trip.riderId)}
+            label={t('assurance.a11y.openRider', { name: trip.riderName })}
+            reason={t('assurance.entity.unresolved')}
+            reasonId={`leg-${trip.id}-rider-unresolved`}
+          >
+            {trip.riderName}
+          </EntityLink>
+        </Cell>
+      ),
     },
     {
       id: 'captain',
@@ -903,16 +1002,37 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
           label: t(CAPTAIN_STATE[value].key),
         })),
       },
-      cell: (trip) =>
-        trip.driverName === null ? (
-          <Absent />
-        ) : (
-          <Cell title={trip.captainUnavailableReason ?? undefined}>
+      /**
+       * The committed captain's READINESS is the badge; the captain's NAME is
+       * the link beside it (**P8-T1**). Before this the column carried only a
+       * state, so the one cell on the row that is about a person named nobody
+       * and opened nobody.
+       *
+       * §11.2 — an uncommitted leg has no captain to open, so the name is plain
+       * muted text with its reason rather than a dead link.
+       */
+      cell: (trip) => (
+        <Cell title={trip.captainUnavailableReason ?? undefined}>
+          <span className="flex min-w-0 items-center gap-1.5">
             <StatusBadge tone={CAPTAIN_STATE[trip.captainDepartureState].tone}>
               {t(CAPTAIN_STATE[trip.captainDepartureState].key)}
             </StatusBadge>
-          </Cell>
-        ),
+            <EntityLink
+              href={deps.hrefFor(trip.driverId)}
+              label={t('assurance.a11y.openCaptain', { name: trip.driverName ?? '' })}
+              reason={
+                trip.driverId === null
+                  ? t('assurance.captain.none.reason')
+                  : t('assurance.entity.unresolved')
+              }
+              reasonId={`leg-${trip.id}-captain-absent`}
+              className="min-w-0"
+            >
+              {trip.driverName ?? t('assurance.captain.none')}
+            </EntityLink>
+          </span>
+        </Cell>
+      ),
     },
     {
       id: 'departs',

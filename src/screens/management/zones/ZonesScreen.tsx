@@ -93,7 +93,10 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ZonesMapView } from './ZonesMapView'
 import { useShell } from '@/shell/ShellContext'
-import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '@/screens/financials/shared/ConfirmMoneyDialog'
+import {
+  ConfirmMoneyDialog,
+  type MoneyConfirmRequest,
+} from '@/screens/financials/shared/ConfirmMoneyDialog'
 import { useMoneyActions } from '@/screens/financials/shared/actions'
 import { canWriteSubTab, permissionContext } from '@/shell/permissions'
 
@@ -113,10 +116,32 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+  /**
+   * **RESOLVED — the screen renders both surfaces, and the environment branch
+   * that used to choose between them is gone.**
+   *
+   * It read `process.env.NODE_ENV === 'test'`: under test, the strip +
+   * `DataTable` + `CitiesCard` that **R4-6b specifies** and that
+   * `zones.test.tsx` asserts on; everywhere else, `ZonesMapView` instead. So
+   * every rendering assertion in that suite was green over a surface **no
+   * operator ever saw**, `ZonesMapView` could hold no test at all because it
+   * was unreachable from a rendered `ZonesScreen`, and the table's search,
+   * filters, sort, column controls and pagination did not exist in production.
+   *
+   * It was the only `NODE_ENV` branch in `src/`, and it is worth naming what it
+   * actually was: **a way to keep a suite green while changing the screen out
+   * from under it.** A test that cannot see the shipped component is not a
+   * weaker test — it is a test of something else, reported as coverage.
+   *
+   * The resolution is that neither surface was wrong; the exclusive choice was.
+   * The map answers *where is demand starved*, the table answers *which zone do
+   * I act on*, and an operator needs both in the same visit. They now stack,
+   * and **`DataTable` is the single owner of the four states** — the map
+   * renders on `content` and nothing otherwise, so loading, empty and error are
+   * stated once instead of twice with two different treatments.
+   */
 
-  const canWrite =
-    canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
+  const canWrite = canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
 
   /* The tile toggles ride as `?view=` — a control, not a level (§3.8.3). */
   const view = new URLSearchParams(location.search).get('view') ?? 'all'
@@ -139,9 +164,12 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
     isEmpty: () => false,
   })
 
-  const zones = useAsync<Paginated<Zone>>((signal) => listZones({ view, ...table.params, signal }), {
-    deps: [view, table.params],
-  })
+  const zones = useAsync<Paginated<Zone>>(
+    (signal) => listZones({ view, ...table.params, signal }),
+    {
+      deps: [view, table.params],
+    },
+  )
 
   const rows = useMemo(() => actions.apply(zones.data?.items ?? []), [actions, zones.data])
 
@@ -246,8 +274,13 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
            ratio, and a zone with no captains renders an em dash rather than
            `Infinity×`. */
         cell: (zone) => (
-          <span className="block text-end tabular-nums" aria-label={zone.demandSupplyRatio === null ? ABSENT : undefined}>
-            {zone.demandSupplyRatio === null ? ABSENT : formatRatio(zone.demandSupplyRatio, language)}
+          <span
+            className="block text-end tabular-nums"
+            aria-label={zone.demandSupplyRatio === null ? ABSENT : undefined}
+          >
+            {zone.demandSupplyRatio === null
+              ? ABSENT
+              : formatRatio(zone.demandSupplyRatio, language)}
           </span>
         ),
         secondaryLine: (zone) => (
@@ -307,7 +340,10 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
            nothing to measure, which is the second-most valuable reading on this
            page and must not read as flat. */
         cell: (zone) => (
-          <span className="block text-end tabular-nums" aria-label={zone.subMomentum === null ? ABSENT : undefined}>
+          <span
+            className="block text-end tabular-nums"
+            aria-label={zone.subMomentum === null ? ABSENT : undefined}
+          >
             {zone.subMomentum === null ? ABSENT : formatPercent(zone.subMomentum, language)}
           </span>
         ),
@@ -397,7 +433,6 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
-
         {health.status === 'loading' && <LoadingSkeleton pattern="P5" />}
         {health.status === 'error' && (
           <ErrorState
@@ -408,52 +443,49 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         )}
 
         {health.data && (
-          <ZoneStrip
-            summary={health.data}
-            view={view}
-            onView={setView}
-            t={t}
-            language={language}
-          />
+          <ZoneStrip summary={health.data} view={view} onView={setView} t={t} language={language} />
         )}
 
-        {isTestEnv ? (
-          <>
-            <DataTable
-              table={table}
-              rows={rows}
-              columns={columns}
-              getRowId={(zone) => zone.id}
-              status={zones.status}
-              total={zones.data?.total ?? 0}
-              t={t}
-              language={language}
-              tableId="management-zones"
-              view={view}
-              searchPlaceholder={t('zones.search')}
-              skeletonPattern="P1"
-              firstRun={{
-                heading: t('zones.empty.heading'),
-                body: t('zones.empty.body'),
-                actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
-              }}
-              noMatch={{
-                message: t('zones.noMatch'),
-                action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
-              }}
-              error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
-            />
-            <CitiesCard zones={rows} t={t} language={language} />
-          </>
-        ) : (
-          /* Real Google Maps & Interactive Heatmap Studio (Live Mode) */
+        {/* Content only — `DataTable` below owns loading, empty and error for
+            both surfaces. A map that draws an identical basemap whether the
+            data is loading, empty or broken is not a content state, which is
+            what made duplicating them here a defect rather than a redundancy. */}
+        {zones.status === 'content' && (
           <ZonesMapView
             zones={rows}
             onSteer={steer}
             onQueueRecruitment={recruit}
             language={language}
+            canWrite={canWrite}
+            t={t}
           />
         )}
+
+        <DataTable
+          table={table}
+          rows={rows}
+          columns={columns}
+          getRowId={(zone) => zone.id}
+          status={zones.status}
+          total={zones.data?.total ?? 0}
+          t={t}
+          language={language}
+          tableId="management-zones"
+          view={view}
+          searchPlaceholder={t('zones.search')}
+          skeletonPattern="P1"
+          firstRun={{
+            heading: t('zones.empty.heading'),
+            body: t('zones.empty.body'),
+            actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
+          }}
+          noMatch={{
+            message: t('zones.noMatch'),
+            action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
+          }}
+          error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
+        />
+        <CitiesCard zones={rows} t={t} language={language} />
       </div>
 
       <ConfirmMoneyDialog

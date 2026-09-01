@@ -206,8 +206,10 @@ All 41 pages. A page with no row here may not be designed until it gets one.
 
 | Eyvar page(s) | Pattern | Section |
 |---|---|---|
-| `drivers`, `riders`, `trips`, `subscriptions`, `corporate`, `contacts`, `quickrides`, `plans`, `zones`, `audit-log` | Index table + view tabs + filters + bulk action bar | §3.1–3.3 |
-| `applicant-detail`, `corp-detail`, `ticket-detail`, `profile` | Two-column detail: main + right rail summary, with timeline | §2.2, §3.8 |
+| `drivers`, `riders`, `trips`, `subscriptions`, `corporate`, `quickrides`, `plans`, `zones`, `audit-log` | Index table + view tabs + filters + bulk action bar | §3.1–3.3 |
+| `applicant-detail`, `corp-detail`, `profile` | Two-column detail: main + right rail summary, with timeline | §2.2, §3.8 |
+| **`contacts`** (Support › Contact Centre) | **Work queue** for the list; **two-column detail + a sending composer** for the conversation pane | §8.4 · §2.2, §3.8, **§8.6** |
+| `ticket-detail` | Two-column detail with timeline, **and a sending composer** | §2.2, §3.8, **§8.6** |
 | `plan-edit` | Sectioned form + save bar + **derived-value rules** | §4.1, §2.3, §8.2 |
 | `settings` (21 panes), `my-account` | Settings shell with its own nav | §2.4, **D-5** |
 | `exec-overview`, `dashboard`, `predictive`, `growth`, `coverage`, `commitment`, `fairness`, **`fraud`** | Metric tile row + chart cards | §3.7 |
@@ -225,6 +227,31 @@ All 41 pages. A page with no row here may not be designed until it gets one.
 > SLA clock and no disposition, so §8.4's apparatus is inapplicable to it. Consequence for
 > the component inventory: the work-queue pattern now governs **7** legacy pages and the
 > metric-tile pattern **8**. No component is added or removed by the change.
+
+> **`contacts` splits out of the index-table row, and `ticket-detail` splits out of the
+> two-column-detail row — both because they SEND.** `DECISIONS.md` **D19** makes Support ›
+> Contact Centre the conversation console: chat and email compose, phone read-only, WhatsApp
+> modelled with zero rows, one conversation with many message channels. The `contacts` row in
+> the index-table line described the **legacy phone roster**, which that page no longer is,
+> and D19 requires it re-pointed. It is now two composed rows and no new page shape: the
+> **queue** is a §8.4 work queue and reuses `screens/queues/`; the **conversation pane** is a
+> §2.2 two-column detail whose thread is a §3.8 feed.
+>
+> **The composer is the part neither existing row could carry, and it is `DESIGN.md`'s gap,
+> not the screen's.** Finding **F-R5-1** was raised by D19 and escalated rather than invented
+> in a component file, in the same shape as **D14**'s auth-card blocker. §4 governs a form
+> that **saves** — dirty state, save bar, discard, a primary you may press twice. A composer
+> has no dirty state worth preserving, no discard, an **irreversible** primary, and a
+> **post-hoc delivery state** (`queued · sent · delivered · read · failed`) that arrives after
+> the interaction is over. **§8.6 is that row's governing section** and it answers all four;
+> it also overrides §3.8's *"composer above the feed"* for a conversation thread only.
+> **F-R5-1 is closed. The conversation pane may be designed.**
+>
+> Consequence for the pattern census: `contacts` leaves the index-table row (10 pages → 9) and
+> `ticket-detail` leaves the two-column-detail row (4 → 3). The work-queue pattern gains one
+> and now governs **8** legacy pages — **the `fraud` note above says 7 and this row is the +1;
+> the two notes are read together.** **Two pages cite §8.6; no page shape and no component is
+> added by the change** — the composer is an element inside an existing shell.
 
 **Rules**
 

@@ -1,102 +1,229 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Bell, Send } from 'lucide-react'
-import type { Translate } from '@/lib'
+/**
+ * The push composer — rewritten so that the send is real.
+ *
+ * What changed and why:
+ *
+ * **The audiences come from the client.** They were four hard-coded English
+ * `SelectItem`s. Now they are `PushAudience` records with a device count, which
+ * is what lets the composer say how many devices a choice reaches **before**
+ * the operator commits, and what the recorded broadcast counts afterwards.
+ *
+ * **The send is a client call, not a `setTimeout`.** It was
+ * `setTimeout(300)` followed by a local array push carrying
+ * `deliveredCount: 142`. The number was invented, and an operator reading it
+ * had no way to know. `sendPushBroadcast` returns the record; the card renders
+ * the record.
+ *
+ * **Every string is a key** (AC-74) and the disabled send states its reason in
+ * place (§11.2) rather than going quiet.
+ */
 
-interface PushComposerModalProps {
+import { useCallback, useEffect, useState } from 'react'
+import { listPushAudiences, sendPushBroadcast } from '@/data/clients'
+import type { PushAudience, PushAudienceId, PushBroadcast } from '@/data/types/email'
+import { formatCount, type Language, type Translate } from '@/lib'
+import { useAsync } from '@/hooks'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Banner } from '@/components/Banner'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { AUDIENCE_LABEL } from './PushBroadcastsCard'
+
+export interface PushComposerModalProps {
   open: boolean
   onClose: () => void
-  onSend: (title: string, body: string, audience: string, deepLink: string) => void
+  /** Called with the record the client returned, never with an invented one. */
+  onSent: (broadcast: PushBroadcast) => void
   t: Translate
+  language: Language
+  actorId: string
 }
 
-export function PushComposerModal({ open, onClose, onSend, t }: PushComposerModalProps) {
+const DEFAULT_AUDIENCE: PushAudienceId = 'online-captains'
+
+export function PushComposerModal({
+  open,
+  onClose,
+  onSent,
+  t,
+  language,
+  actorId,
+}: PushComposerModalProps) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [audience, setAudience] = useState('all_captains')
-  const [deepLink, setDeepLink] = useState('eyvar://subscriptions')
-  const [busy, setBusy] = useState(false)
+  const [audienceId, setAudienceId] = useState<PushAudienceId>(DEFAULT_AUDIENCE)
+  const [deepLink, setDeepLink] = useState('')
+  const [sending, setSending] = useState(false)
+  const [failed, setFailed] = useState(false)
 
-  const handleSend = () => {
-    if (!title.trim() || !body.trim()) return
-    setBusy(true)
-    setTimeout(() => {
-      onSend(title.trim(), body.trim(), audience, deepLink.trim())
-      setBusy(false)
-      setTitle('')
-      setBody('')
+  /* Held until the dialog opens: a modal that fetches on mount fetches for
+     every operator who never opens it. */
+  const audiences = useAsync<PushAudience[]>((signal) => listPushAudiences(signal), {
+    enabled: open,
+    deps: [open],
+  })
+
+  useEffect(() => {
+    if (open) return
+    setTitle('')
+    setBody('')
+    setDeepLink('')
+    setFailed(false)
+    setAudienceId(DEFAULT_AUDIENCE)
+  }, [open])
+
+  const selected = (audiences.data ?? []).find((audience) => audience.id === audienceId) ?? null
+
+  const send = useCallback(async () => {
+    setSending(true)
+    setFailed(false)
+    try {
+      const broadcast = await sendPushBroadcast({
+        title: title.trim(),
+        body: body.trim(),
+        audienceId,
+        deepLink: deepLink.trim() === '' ? null : deepLink.trim(),
+        actorId,
+      })
+      onSent(broadcast)
       onClose()
-    }, 300)
-  }
+    } catch {
+      setFailed(true)
+    } finally {
+      setSending(false)
+    }
+  }, [actorId, audienceId, body, deepLink, onClose, onSent, title])
+
+  const incomplete = title.trim() === '' || body.trim() === ''
+  const blockedReason = incomplete
+    ? t('comms.push.composer.incomplete')
+    : audiences.status === 'error'
+      ? t('comms.push.composer.audiencesError')
+      : null
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[460px]">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-primary" />
-            {t('admin.push.composeTitle', { defaultValue: 'Compose Operational Push Notification' })}
-          </DialogTitle>
-          <DialogDescription>
-            {t('admin.push.composeDesc', { defaultValue: 'Broadcast instant push message to active drivers or riders.' })}
-          </DialogDescription>
+          <DialogTitle>{t('comms.push.composer.title')}</DialogTitle>
+          <DialogDescription>{t('comms.push.composer.desc')}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-3 text-xs">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">{t('admin.push.audience', { defaultValue: 'Target Audience' })}</Label>
-            <Select value={audience} onValueChange={setAudience}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all_captains">All Active Captains (Riyadh & Jeddah)</SelectItem>
-                <SelectItem value="online_captains">Captains Currently Online</SelectItem>
-                <SelectItem value="all_riders">All Registered Riders</SelectItem>
-                <SelectItem value="active_subs">Active Subscription Riders</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="push-audience" className="text-xs font-medium">
+              {t('comms.push.composer.audience')}
+            </Label>
+            {audiences.status === 'loading' ? (
+              <LoadingSkeleton pattern="P4" rows={1} label={t('comms.push.composer.audience')} />
+            ) : (
+              <Select
+                value={audienceId}
+                onValueChange={(value) => setAudienceId(value as PushAudienceId)}
+              >
+                <SelectTrigger id="push-audience">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(audiences.data ?? []).map((audience) => (
+                    <SelectItem key={audience.id} value={audience.id}>
+                      {t(AUDIENCE_LABEL[audience.id])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {/* The size of what is about to happen, before it happens. */}
+            {selected !== null && (
+              <span className="text-2xs text-muted-foreground">
+                {t('comms.push.devices', { count: formatCount(selected.deviceCount, language) })}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">{t('admin.push.msgTitle', { defaultValue: 'Notification Title' })} *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Surge Alert: Riyadh Northern Ring Rd" required />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="push-title" className="text-xs font-medium">
+              {t('comms.push.composer.msgTitle')}
+            </Label>
+            <Input id="push-title" value={title} onChange={(event) => setTitle(event.target.value)} />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">{t('admin.push.msgBody', { defaultValue: 'Message Body' })} *</Label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="push-body" className="text-xs font-medium">
+              {t('comms.push.composer.msgBody')}
+            </Label>
             <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="High demand near KAFD. 1.4x surge bonus active for the next 45 minutes."
+              id="push-body"
               rows={3}
-              required
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">{t('admin.push.deepLink', { defaultValue: 'In-App Deep Link' })}</Label>
-            <Input value={deepLink} onChange={(e) => setDeepLink(e.target.value)} placeholder="eyvar://demand-map" />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="push-link" className="text-xs font-medium">
+              {t('comms.push.composer.deepLink')}
+            </Label>
+            <Input
+              id="push-link"
+              value={deepLink}
+              onChange={(event) => setDeepLink(event.target.value)}
+            />
+            <span className="text-2xs text-muted-foreground">
+              {t('comms.push.composer.deepLinkHelp')}
+            </span>
           </div>
+
+          {audiences.status === 'error' && (
+            <Banner
+              variant="card"
+              banner={{
+                id: 'push-audiences-failed',
+                tone: 'warning',
+                title: t('comms.push.composer.audiencesError'),
+              }}
+            />
+          )}
+
+          {failed && (
+            <Banner
+              variant="card"
+              banner={{
+                id: 'push-send-failed',
+                tone: 'warning',
+                title: t('comms.push.composer.error'),
+              }}
+            />
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
-            {t('action.cancel', { defaultValue: 'Cancel' })}
+          {/* §11.2 — the send is disabled in place and says why. */}
+          {blockedReason !== null && (
+            <span className="me-auto text-2xs text-muted-foreground">{blockedReason}</span>
+          )}
+          <Button size="xs" variant="secondary" onClick={onClose} disabled={sending}>
+            {t('comms.push.composer.cancel')}
           </Button>
-          <Button
-            size="xs"
-            onClick={handleSend}
-            disabled={!title.trim() || !body.trim() || busy}
-            className="gap-1"
-          >
-            <Send className="h-3 w-3" />
-            {busy ? t('action.saving', { defaultValue: 'Broadcasting...' }) : t('admin.push.broadcast', { defaultValue: 'Broadcast Push' })}
+          <Button size="xs" onClick={() => void send()} disabled={blockedReason !== null || sending}>
+            {sending ? t('comms.push.composer.sending') : t('comms.push.composer.send')}
           </Button>
         </DialogFooter>
       </DialogContent>

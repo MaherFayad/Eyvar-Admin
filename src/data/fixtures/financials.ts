@@ -13,6 +13,7 @@
  * containing `EYVAR_NOW`.
  */
 
+import type { LocalisedText } from '../types/common'
 import type {
   CaptainDebt,
   CaptainPayout,
@@ -27,6 +28,10 @@ import type {
   RevenueByPlanRow,
   VatConfig,
 } from '../types/financials'
+import { cycleRecord } from './cycle'
+import { fillerDrivers } from './drivers'
+import { fillerSubscriptions } from './subscriptions'
+import { allTripFixtures } from './trips'
 
 /**
  * The default window. **Q-F8 open**: nobody has said whether a period closes.
@@ -259,7 +264,7 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
  * **not** `earned − paidOut` because a deduction moved it; `DRV-0202`, whose
  * payable is **negative**; and `DRV-0206`, who is owed nothing and owes 316.90.
  */
-export const captainPayoutFixtures: CaptainPayout[] = [
+const namedCaptainPayoutFixtures: CaptainPayout[] = [
   {
     captainId: 'DRV-0101',
     captainName: 'Ahmed Salem',
@@ -339,6 +344,17 @@ export const captainPayoutFixtures: CaptainPayout[] = [
     bankAccountLast4: null,
   },
   {
+    /**
+     * **`processing` — submitted to the bank this morning and not yet
+     * confirmed.** `PayoutState` declares five states and three had rows;
+     * `processing` is the one an operator sees most of a payout run in, and the
+     * filter facet for it had never matched.
+     *
+     * Nothing about the money changes: a payout in flight has not settled, so
+     * the payable is still 40.00 and still inside `liability.driver`. The state
+     * is the only difference between this row and a `due` one — which is
+     * precisely why the screen must not offer *Pay* on it twice.
+     */
     captainId: 'DRV-0106',
     captainName: 'Reem Al-Otaibi',
     tier: 'gold',
@@ -348,7 +364,7 @@ export const captainPayoutFixtures: CaptainPayout[] = [
     payableHalalas: 4_000,
     cashDebtHalalas: 0,
     lastPayoutAt: '2026-05-22T12:00:00+03:00',
-    state: 'due',
+    state: 'processing',
     failureReason: null,
     bankAccountLast4: '7766',
   },
@@ -400,6 +416,22 @@ export const captainPayoutFixtures: CaptainPayout[] = [
     bankAccountLast4: '6644',
   },
   {
+    /**
+     * **`reversed` — a payout run that went out against a payable that was not
+     * there, and came back.**
+     *
+     * `PO-0007` paid 300.00 on 22 May while this captain's payable was zero,
+     * driving `liability.driver` to −300.00; the reversal on the 24th put it
+     * back. `fixtures/ledger.ts` carries both legs (`PAY-0207-1`,
+     * `PAY-0207-2`), they net to zero on every account they touch, and that is
+     * why the period figures below are all zero while the state records what
+     * happened.
+     *
+     * An erroneous payout that had to be clawed back is the ugliest ordinary
+     * event on this screen and nothing seeded it. `paidOutHalalas` is **0**,
+     * not 300: net of the reversal, nothing was paid, and a screen that reads
+     * `paidOut` as "money that left" would otherwise be wrong here.
+     */
     captainId: 'DRV-0207',
     captainName: 'Saud Al-Harbi',
     tier: 'silver',
@@ -409,7 +441,7 @@ export const captainPayoutFixtures: CaptainPayout[] = [
     payableHalalas: 0,
     cashDebtHalalas: 300,
     lastPayoutAt: '2026-05-22T12:00:00+03:00',
-    state: 'due',
+    state: 'reversed',
     failureReason: null,
     bankAccountLast4: '2071',
   },
@@ -421,7 +453,7 @@ export const captainPayoutFixtures: CaptainPayout[] = [
  * data (**D-F19**) and the two trip counts beside it are what actually decide
  * releasability.
  */
-export const escrowHoldFixtures: EscrowHold[] = [
+const namedEscrowHoldFixtures: EscrowHold[] = [
   {
     /* 4 of 5. `Release` renders **disabled in place** with the reason and the
        progress stated in words (AC-365). */
@@ -509,7 +541,7 @@ export const escrowHoldFixtures: EscrowHold[] = [
   },
 ]
 
-export const deductionFixtures: Deduction[] = [
+const namedDeductionFixtures: Deduction[] = [
   {
     id: 'DED-01',
     captainId: 'DRV-0103',
@@ -589,7 +621,7 @@ export const deductionFixtures: Deduction[] = [
  * countdown, and the window is a product decision. Ownership, claims and
  * take-over are all fully seeded and unaffected.
  */
-export const cashReportFixtures: CashReport[] = [
+const namedCashReportFixtures: CashReport[] = [
   {
     id: 'CASH-0001',
     tripId: 'TRP-7742',
@@ -779,7 +811,12 @@ export const cashReportFixtures: CashReport[] = [
     captainId: 'DRV-0206',
     captainName: 'Ibrahim Diarra Coulibaly',
     riderId: 'RDR-1046',
-    riderName: 'Nora Al-Harbi',
+    /* Was `Nora Al-Harbi` -- RDR-1041's name on RDR-1046's id, and RDR-1046 did
+       not exist. Both halves are fixed: the rider is a real record now
+       (`fixtures/riders.ts`) and the name is hers. The two are one letter
+       apart, which is how the mistake happened and why it is worth keeping
+       both riders in the set. */
+    riderName: 'Noura Al-Harbi',
     reportedAt: '2026-06-24T21:00:00+03:00',
     expectedFareHalalas: 30_000,
     reportedHalalas: null,
@@ -850,7 +887,7 @@ export const cashReportFixtures: CashReport[] = [
  * is about: a captain in credit must not be silently dropped. The
  * reconciliation view carries the gap as a row rather than hiding it.
  */
-export const captainDebtFixtures: CaptainDebt[] = [
+const namedCaptainDebtFixtures: CaptainDebt[] = [
   {
     captainId: 'DRV-0103',
     captainName: 'Khalid Mansour',
@@ -893,6 +930,299 @@ export const captainDebtFixtures: CaptainDebt[] = [
     lastReportAt: '2026-06-25T08:10:00+03:00',
     openReportCount: 0,
   },
+]
+
+
+/* ══════════════════════════ volume ═══════════════════════════ */
+
+/**
+ * ## Why the filler money is all zero, or all outside the period
+ *
+ * Four of the five collections below are **reconciled against the general
+ * ledger**, and `clients/financials.test.ts` asserts each one:
+ *
+ * | figure | must equal | AC |
+ * |---|---|---|
+ * | sum of `payableHalalas` | `liability.driver` balance | AC-348 |
+ * | positive `balanceHalalas` | the captain-debt tile | AC-350 |
+ * | held escrow | the escrow tile | AC-349 |
+ * | each rider's wallet | that rider's ledger | — |
+ *
+ * So a filler row carrying money has to carry a matching journal entry and a
+ * matching subject posting, or the books stop agreeing — and forty of those
+ * would be forty chances to get double-entry wrong in a fixture nobody reads.
+ *
+ * The rows below take the honest way out instead: **every one of them is a
+ * position that is genuinely zero, or a document from a period the ledger page
+ * does not cover.** A captain who has been paid in full has a payable of zero
+ * and a `liability.driver` balance of zero, and those two agree exactly. A cash
+ * report from April is a real document whose postings are not on this page —
+ * `fixtures/ledger.ts` says in its own header that it is *"built from in-period
+ * activity"*, so an out-of-period document with no posting here is the
+ * established shape, not a gap.
+ *
+ * Every row is still built the paired way: a cash report's trip, captain, rider
+ * and expected fare all come off **one** `Trip` record, an escrow hold's plan,
+ * captain and rider off **one** `Subscription`, and a payout's captain off one
+ * `Driver`. None of these collections can drift from the records they describe.
+ */
+
+/** Finished legs with a captain on them — the source a cash report describes. */
+const CASHABLE_TRIPS = allTripFixtures.flatMap((t) =>
+  t.driverId === null || t.driverName === null || t.status !== 'done' || t.fareHalalas === 0
+    ? []
+    : [{ ...t, driverId: t.driverId, driverName: t.driverName }],
+)
+
+/**
+ * The plans a **released** hold can be attached to: filler subscriptions that
+ * carry no escrow of their own.
+ *
+ * Both halves of that are load-bearing.
+ *
+ * **Filler, not named.** `clients/integrity.test.ts` looks up
+ * `agree.escrow-amount`'s finding for `SUB-1060` and asserts its counterpart is
+ * `ESC-1060`. The check indexes holds by `subscriptionId`, so a second hold on
+ * a named plan would silently take that slot and the finding would name the
+ * wrong document.
+ *
+ * **`escrowHeldHalalas === null`, not any plan.** A subscription that still
+ * claims escrow while its only hold is released is `escrowAfterRelease` — a
+ * *critical* finding, and correctly so. Attaching forty-six released holds to
+ * plans that claim escrow would have manufactured forty-six criticals out of
+ * nothing but a pagination requirement.
+ *
+ * A plan legitimately carries several holds over its life — a weekly plan
+ * raises and releases one per cycle — so cycling a smaller set of plans is the
+ * shape, not a compromise.
+ */
+const ESCROWABLE_PLANS = fillerSubscriptions.flatMap((sub) =>
+  sub.driverId === null || sub.driverName === null || sub.escrowHeldHalalas !== null
+    ? []
+    : [{ ...sub, driverId: sub.driverId, driverName: sub.driverName }],
+)
+
+/**
+ * Forty-four archived cash reports, all `resolved`, all reconciled weeks ago.
+ *
+ * The queue an operator works is the seven above; this is the history behind
+ * it, which is what makes the `resolved` view, the repeat-offender count and
+ * the date-range filter worth anything.
+ *
+ * **`slaSource: 'unset'` and null clocks on every one**, exactly as on the
+ * seven. `financials.test.ts:1042` states that as a *prohibition* rather than a
+ * gap — *"if you can make a countdown render here, you have broken it"* —
+ * because no cash SLA window exists to look up. Volume does not create one.
+ */
+export const fillerCashReports: CashReport[] = Array.from({ length: 44 }, (_, i) => {
+  const trip = cycleRecord(CASHABLE_TRIPS, i * 3 + 1)
+  const commission = Math.round(trip.fareHalalas * (CASH_COMMISSION_PERCENT / 100))
+  const operator = cycleRecord(
+    [
+      { id: 'USR-2', name: 'Fahad Al-Dosari' },
+      { id: 'USR-5', name: 'Yousef Al-Balawi' },
+    ],
+    i,
+  )
+  const reportedAt = `2026-0${4 + (i % 2)}-${String((i % 27) + 1).padStart(2, '0')}T${String(6 + (i % 14)).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}:00+03:00`
+  return {
+    id: `CASH-${String(1000 + i)}`,
+    tripId: trip.id,
+    captainId: trip.driverId,
+    captainName: trip.driverName,
+    riderId: trip.riderId,
+    riderName: trip.riderName,
+    reportedAt,
+    expectedFareHalalas: trip.fareHalalas,
+    /* Handed in to the halala. `match` is what most of an archive is; the
+       interesting classifications stay on the seven rows that argue for them. */
+    reportedHalalas: trip.fareHalalas,
+    topupHalalas: 0,
+    classification: 'match',
+    riderConfirmed: true,
+    captainNote: null,
+    /* `commission + topup` (`:12089`), with no top-up. */
+    debtAddedHalalas: commission,
+    status: 'resolved',
+    repeatCount: 0,
+    claim: null,
+    resolvedAt: reportedAt,
+    resolvedByUserId: operator.id,
+    resolvedByUserName: operator.name,
+    resolutionReasonCode: 'PAY_INCORRECT_CHARGE',
+    slaStartedAt: null,
+    slaDueAt: null,
+    slaTargetMinutes: null,
+    slaBreachedAt: null,
+    slaSource: 'unset',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+  } satisfies CashReport
+})
+
+/** 51 rows — seven in the queue, forty-four reconciled. */
+export const cashReportFixtures: CashReport[] = [...namedCashReportFixtures, ...fillerCashReports]
+
+/**
+ * Forty-one captains paid in full.
+ *
+ * `payableHalalas: 0`, and that is not a placeholder: it is the
+ * `liability.driver` balance for a captain whose earnings have all been
+ * released, and it agrees with the ledger exactly, which is what AC-348
+ * requires. `earnedHalalas === paidOutHalalas` says the same thing from the
+ * document side.
+ *
+ * The interesting positions — the failed payout, the negative payable, the
+ * captain over the debt cap, the reversal — all stay on the ten hand-written
+ * rows, where each is argued for. This is the population they are exceptions
+ * to, and without it the exceptions were the entire table.
+ */
+export const fillerCaptainPayouts: CaptainPayout[] = Array.from({ length: 41 }, (_, i) => {
+  const captain = cycleRecord(fillerDrivers, i)
+  const earned = 12_000 + ((i * 4_150) % 90_000)
+  return {
+    captainId: captain.id,
+    captainName: captain.name,
+    tier: captain.tier,
+    tripsInPeriod: 8 + ((i * 13) % 140),
+    earnedHalalas: earned,
+    paidOutHalalas: earned,
+    payableHalalas: 0,
+    cashDebtHalalas: 0,
+    lastPayoutAt: `2026-06-${String(20 + (i % 5)).padStart(2, '0')}T12:00:00+03:00`,
+    state: 'paid',
+    failureReason: null,
+    bankAccountLast4: String(1000 + i * 7).slice(-4),
+  } satisfies CaptainPayout
+})
+
+/** 51 rows. */
+export const captainPayoutFixtures: CaptainPayout[] = [
+  ...namedCaptainPayoutFixtures,
+  ...fillerCaptainPayouts,
+]
+
+/**
+ * Forty-six escrow holds that have already been released.
+ *
+ * **All `released`, never `held`.** `financials.test.ts:1714` pins the
+ * settlement set to exactly `{ held, released }`, the escrow tile is the sum of
+ * the `held` rows, and a released row adds nothing to it — so this population
+ * grows the table without moving a number. It also exercises the thing AC-364
+ * is about: `releaseEscrow` splices a released hold **out of the array**
+ * (`:7064`), so an operator cannot see what the balance was or who released it.
+ * Forty-six rows that survived their release are the evidence that it should
+ * not.
+ */
+export const fillerEscrowHolds: EscrowHold[] = Array.from({ length: 46 }, (_, i) => {
+  const plan = cycleRecord(ESCROWABLE_PLANS, i)
+  const heldSince = `2026-0${3 + (i % 3)}-${String((i % 27) + 1).padStart(2, '0')}T08:00:00+03:00`
+  return {
+    id: `ESC-${String(2000 + i)}`,
+    subscriptionId: plan.id,
+    captainId: plan.driverId,
+    captainName: plan.driverName,
+    riderId: plan.riderId,
+    riderName: plan.riderName,
+    amountHalalas: 3_298 + ((i * 617) % 30_000),
+    tripsRequired: plan.tripsIncluded,
+    /* Released, so the plan was delivered in full. `tripsCompleted` short of
+       `tripsRequired` on a released hold would be the contradiction AC-365 is
+       about. */
+    tripsCompleted: plan.tripsIncluded,
+    settlement: 'released',
+    heldSince,
+    releasedAt: `2026-0${4 + (i % 2)}-${String((i % 27) + 1).padStart(2, '0')}T09:00:00+03:00`,
+    subscriptionCancelled: false,
+  } satisfies EscrowHold
+})
+
+/** 51 rows — five live holds and forty-six released ones that stayed visible. */
+export const escrowHoldFixtures: EscrowHold[] = [
+  ...namedEscrowHoldFixtures,
+  ...fillerEscrowHolds,
+]
+
+/**
+ * Forty-seven historical deductions.
+ *
+ * A deduction denormalises the captain and points at a trip, so both come off
+ * **one** `Trip` record — the captain who drove the leg is the captain the
+ * deduction is against, by construction rather than by care.
+ *
+ * The spread is deliberate: mostly `applied`, a fifth `waived` **with the actor
+ * and the reason on the row**. `waiveDeduction` today has no permission check,
+ * no confirmation, no reason and no audit entry (`12b` R1); AC-369 and AC-370
+ * close that, and they need a population of waivers to close it against — one
+ * waived row proves a badge renders, forty-seven prove the audit column is
+ * never empty on a waiver.
+ */
+export const fillerDeductions: Deduction[] = Array.from({ length: 47 }, (_, i) => {
+  const trip = cycleRecord(CASHABLE_TRIPS, i * 5 + 2)
+  const waived = i % 5 === 0
+  const raisedAt = `2026-0${4 + (i % 3)}-${String((i % 27) + 1).padStart(2, '0')}T${String(7 + (i % 12)).padStart(2, '0')}:${String((i * 11) % 60).padStart(2, '0')}:00+03:00`
+  const type = cycleRecord(
+    [
+      { id: 'late', key: 'fin.deduction.latePickup' },
+      { id: 'noshow', key: 'fin.deduction.riderNoShow' },
+      { id: 'clean', key: 'fin.deduction.vehicleCleanliness' },
+      { id: 'repeat', key: 'fin.deduction.latePickupRepeat' },
+    ],
+    i,
+  )
+  return {
+    id: `DED-${String(100 + i)}`,
+    captainId: trip.driverId,
+    captainName: trip.driverName,
+    type: (type.id === 'late'
+      ? { key: type.key, params: { minutes: 5 + (i % 20) } }
+      : type.id === 'repeat'
+        ? { key: type.key, params: { occurrence: 2 + (i % 4) } }
+        : { key: type.key }) as LocalisedText,
+    tripId: trip.id,
+    amountHalalas: 500 * (1 + (i % 8)),
+    status: waived ? 'waived' : 'applied',
+    raisedAt,
+    appliedAt: waived ? null : raisedAt,
+    waivedAt: waived ? raisedAt : null,
+    waivedByUserId: waived ? 'USR-1' : null,
+    waivedByUserName: waived ? 'Sarah Al-Rashid' : null,
+    waivedReasonCode: waived ? 'TRP_ROUTE_DEVIATION' : null,
+  } satisfies Deduction
+})
+
+/** 51 rows — four in the queue, forty-seven decided. */
+export const deductionFixtures: Deduction[] = [...namedDeductionFixtures, ...fillerDeductions]
+
+/**
+ * Forty-six captains whose cash position is **flat**.
+ *
+ * `balanceHalalas: 0` is the answer for every captain who has handed in
+ * everything they collected, which is most of them, and it keeps the positive
+ * total at 42,730 — the figure AC-350 pins to the captain-debt tile and AC-381
+ * measures the 440-halala credit gap against.
+ *
+ * A cash-position table where every row is in trouble is a table an operator
+ * stops reading. These are the rows the four interesting ones — over the cap,
+ * in credit, and two ordinary debts — are exceptions to.
+ */
+export const fillerCaptainDebts: CaptainDebt[] = Array.from({ length: 46 }, (_, i) => {
+  const captain = cycleRecord(fillerDrivers, i)
+  return {
+    captainId: captain.id,
+    captainName: captain.name,
+    balanceHalalas: 0,
+    capHalalas: CASH_DEBT_CAP_HALALAS,
+    lastReportAt: `2026-06-${String(10 + (i % 15)).padStart(2, '0')}T${String(7 + (i % 12)).padStart(2, '0')}:00:00+03:00`,
+    openReportCount: 0,
+  } satisfies CaptainDebt
+})
+
+/** 51 rows. */
+export const captainDebtFixtures: CaptainDebt[] = [
+  ...namedCaptainDebtFixtures,
+  ...fillerCaptainDebts,
 ]
 
 /* ─────────────── ledger & payment controls ──────────────────── */

@@ -1,20 +1,48 @@
-import { useState } from 'react'
+/**
+ * **Register a corporate account** - Operations > Corporate.
+ *
+ * **P4 - the fake latency is gone and the failure has somewhere to land.** This
+ * ran `setTimeout(..., 200)`, called `onConfirm` and closed. The screen then
+ * ran `createCorporateAccount` and navigated on success; on failure the
+ * operator was back on the index with a toast and **seven fields of typing
+ * gone**. That is the worst possible place to lose a form.
+ *
+ * `onConfirm` is now awaited, the dialog stays open for the round trip, and a
+ * refusal renders in place with every field intact (§11.2).
+ */
+
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CreateCorporateAccountInput } from '@/data/clients/corporateAccounts'
+import { isApiError } from '@/data/types'
 import type { Translate } from '@/lib'
 
 interface NewCorpModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: (input: CreateCorporateAccountInput) => void
+  /** Awaited. The screen owns the write; this owns busy, failure and closing. */
+  onConfirm: (input: CreateCorporateAccountInput) => Promise<void>
+  /**
+   * §11.2 - why this cannot be committed, as a sentence. Non-null disables the
+   * primary **in place** and renders the sentence beside it. The index's own
+   * `New corporate account` control stays visible either way: an operator who
+   * cannot create one still needs to know that creating one is a thing.
+   */
+  unavailableReason?: string | null
   t: Translate
 }
 
-export function NewCorpModal({ open, onClose, onConfirm, t }: NewCorpModalProps) {
+export function NewCorpModal({
+  open,
+  onClose,
+  onConfirm,
+  unavailableReason = null,
+  t,
+}: NewCorpModalProps) {
   const [companyName, setCompanyName] = useState('')
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
@@ -23,12 +51,21 @@ export function NewCorpModal({ open, onClose, onConfirm, t }: NewCorpModalProps)
   const [expectedEmployees, setExpectedEmployees] = useState('20')
   const [invoiceDayOfMonth, setInvoiceDayOfMonth] = useState('1')
   const [busy, setBusy] = useState(false)
+  /** §11.2 - the last write's refusal, as real text inside this dialog. */
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const handleConfirm = () => {
+  /* Each opening is a fresh question. */
+  useEffect(() => {
+    if (open) setSubmitError(null)
+  }, [open])
+
+  const handleConfirm = async () => {
+    if (unavailableReason !== null) return
     if (!companyName.trim() || !contactName.trim() || !contactEmail.trim()) return
     setBusy(true)
-    setTimeout(() => {
-      onConfirm({
+    setSubmitError(null)
+    try {
+      await onConfirm({
         companyName: companyName.trim(),
         contactName: contactName.trim(),
         contactEmail: contactEmail.trim(),
@@ -37,9 +74,18 @@ export function NewCorpModal({ open, onClose, onConfirm, t }: NewCorpModalProps)
         expectedEmployees: parseInt(expectedEmployees, 10) || null,
         invoiceDayOfMonth: parseInt(invoiceDayOfMonth, 10) || 1,
       })
-      setBusy(false)
       onClose()
-    }, 200)
+    } catch (error: unknown) {
+      setSubmitError(
+        isApiError(error)
+          ? error.message
+          : t('corp.new.saveError', {
+              defaultValue: "Couldn't create the account. Nothing was saved.",
+            }),
+      )
+    } finally {
+      setBusy(false)
+    }
   }
 
   const isValid = companyName.trim() && contactName.trim() && contactEmail.trim()
@@ -150,6 +196,24 @@ export function NewCorpModal({ open, onClose, onConfirm, t }: NewCorpModalProps)
               onChange={(e) => setInvoiceDayOfMonth(e.target.value)}
             />
           </div>
+
+          {/* §11.2 / §8.4.4 - the refusal is real text, and it renders with
+              every field still filled in. `col-span-2` so it takes the full
+              width of the two-column form rather than one cell of it.
+
+              The STANDING refusal (`unavailableReason` - the role may not
+              create an account) and the TRANSIENT one (`submitError` - the
+              server said no) share the treatment, because to an operator they
+              are the same fact: this did not happen, and here is why. */}
+          {(unavailableReason ?? submitError) !== null && (
+            <p
+              id="new-corp-refusal"
+              role={submitError === null ? undefined : 'alert'}
+              className="col-span-2 text-xs text-destructive"
+            >
+              {unavailableReason ?? submitError}
+            </p>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -158,8 +222,9 @@ export function NewCorpModal({ open, onClose, onConfirm, t }: NewCorpModalProps)
           </Button>
           <Button
             size="xs"
-            onClick={handleConfirm}
-            disabled={!isValid || busy}
+            onClick={() => void handleConfirm()}
+            disabled={!isValid || busy || unavailableReason !== null}
+            aria-describedby={unavailableReason === null ? undefined : 'new-corp-refusal'}
           >
             {busy ? t('action.saving', { defaultValue: 'Creating...' }) : t('corp.createAccount', { defaultValue: 'Create Account' })}
           </Button>

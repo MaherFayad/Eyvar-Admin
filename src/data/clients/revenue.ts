@@ -48,16 +48,67 @@ export const REVENUE_OPERATIONS = {
 
 /* ─────────────────── session state ──────────────────────────── */
 
+/**
+ * **The document number each sequence continues from is a constant, not
+ * `fixtures.length`.**
+ *
+ * It used to be the array length, and that quietly froze two fixtures at three
+ * rows. The first refund this app mints is `REF-0004`, and
+ * `clients/financials.test.ts:569` asserts exactly that; under the old rule a
+ * fourth seeded refund renamed it `REF-0005` and the assertion failed, so
+ * `refundFixtures` could not grow. `fixtures/disputes.ts` records the same
+ * blockage from the other side: seeded dispute resolutions all carry
+ * `refundId: null` because no seeded id could be written without colliding with
+ * whatever the next issued refund would be called.
+ *
+ * The coupling is real and stays real — a `CreditNote` requires a `refundId`,
+ * so credit notes cannot grow independently of refunds. What is gone is the
+ * coupling to *array length*: these two numbers are now the seeded high-water
+ * mark, stated once, and adding a fourth fixture on either side moves neither.
+ *
+ * The second half of the fix is `nextDocumentNumber`, which skips any id
+ * already on file. So a fixture may take **any** free number — `REF-0007` on a
+ * dispute resolution is now writable — and the mint deterministically steps
+ * past it instead of issuing a duplicate id. The only number a new fixture may
+ * not take is `REF-0004`/`CN-0004` itself, because that is the one the suite
+ * names.
+ */
+const SEEDED_REFUND_SEQUENCE = 3
+const SEEDED_CREDIT_NOTE_SEQUENCE = 3
+
 let sessionRefunds: Refund[] = []
 let sessionCreditNotes: CreditNote[] = []
-let refundSequence = refundFixtures.length
-let creditNoteSequence = creditNoteFixtures.length
+let refundSequence = SEEDED_REFUND_SEQUENCE
+let creditNoteSequence = SEEDED_CREDIT_NOTE_SEQUENCE
 
 export function resetRevenue(): void {
   sessionRefunds = []
   sessionCreditNotes = []
-  refundSequence = refundFixtures.length
-  creditNoteSequence = creditNoteFixtures.length
+  refundSequence = SEEDED_REFUND_SEQUENCE
+  creditNoteSequence = SEEDED_CREDIT_NOTE_SEQUENCE
+}
+
+/**
+ * The next free `PREFIX-0000` at or after `from + 1`, skipping every id already
+ * on file. Returns the sequence it stopped on so the caller can carry it.
+ *
+ * A real API mints from a database sequence and a unique index catches the
+ * collision; here the fixtures are the database, so the skip is what stands in
+ * for the index. Without it a seeded `REF-0007` and the fourth issued refund
+ * are the same document with two histories.
+ */
+function nextDocumentNumber(
+  prefix: string,
+  from: number,
+  taken: ReadonlySet<string>,
+): { id: string; sequence: number } {
+  let sequence = from
+  let id: string
+  do {
+    sequence += 1
+    id = `${prefix}-${String(sequence).padStart(4, '0')}`
+  } while (taken.has(id))
+  return { id, sequence }
 }
 
 const allRefunds = (): Refund[] => [...refundFixtures, ...sessionRefunds]
@@ -209,7 +260,8 @@ export async function issueRefund(
     const rider = riderFixtures.find((r) => r.id === input.riderId)
     if (!rider) throw notFound('rider', input.riderId)
 
-    const duplicate = allRefunds().find(
+    const refundsOnFile = allRefunds()
+    const duplicate = refundsOnFile.find(
       (r) =>
         r.riderId === input.riderId &&
         r.amountHalalas === input.amountHalalas &&
@@ -232,10 +284,23 @@ export async function issueRefund(
     }
 
     const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
-    refundSequence += 1
-    creditNoteSequence += 1
-    const id = `REF-${String(refundSequence).padStart(4, '0')}`
-    const creditNoteId = `CN-${String(creditNoteSequence).padStart(4, '0')}`
+
+    /* Seeded sequence + skip-what-exists, never `fixtures.length`. See the
+       constants at the top of this file for why. */
+    const mintedRefund = nextDocumentNumber(
+      'REF',
+      refundSequence,
+      new Set(refundsOnFile.map((r) => r.id)),
+    )
+    const mintedNote = nextDocumentNumber(
+      'CN',
+      creditNoteSequence,
+      new Set(allCreditNotes().map((n) => n.id)),
+    )
+    refundSequence = mintedRefund.sequence
+    creditNoteSequence = mintedNote.sequence
+    const id = mintedRefund.id
+    const creditNoteId = mintedNote.id
 
     /* VAT as the residual: `net = round(gross / 1.15)`, `vat = gross − net`
        (M-3, `:19966`). Never `round(gross × 0.15 / 1.15)`. */

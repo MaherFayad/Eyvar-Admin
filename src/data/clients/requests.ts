@@ -329,6 +329,20 @@ export async function getRequestFacets(
  * one rule — a claim is not a lock, a take-over is deliberate and recorded, a
  * claim idle past `OWNERSHIP_STALE_MINUTES` is already free (`:18866`). The
  * endpoint comments stay per-client; only the state machine is shared.
+ *
+ * **The owner it stamps is the signed-in operator, read from the session.**
+ * It used to write `ownerId: CURRENT_USER_ID`, the module constant, while the
+ * `mine` views that read ownership back had moved to `CURRENT_USER_ID` —
+ * so **the two halves of ownership disagreed about who is acting.** A claim
+ * made after `switchMockUser('USR-3')` landed on `USR-1` and `USR-3`'s `mine`
+ * never saw it; the take-over 409 fired against the wrong holder for the same
+ * reason. This function is imported by five wave-2 queues and by
+ * `conversations.ts`, so the disagreement was not one screen's.
+ *
+ * `clients/session.ts` states the rule: *"Reading `CURRENT_USER_ID` instead —
+ * as some older clients do — would make `switchMockUser` invisible to it."*
+ * Mock-only, and every caller is inside a `DATA_SOURCE === 'mock'` branch; in
+ * http mode the server resolves the claimant from the auth cookie.
  */
 export function nextClaim(
   entityType: string,

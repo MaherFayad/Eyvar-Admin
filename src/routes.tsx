@@ -102,6 +102,7 @@ import { ZonesScreen } from '@/screens/management/zones'
 /* Wave 6 — the Report Builder (`specs/06-report-builder.md`, D13).
    **This mount point is deliberately unreachable today.** See `screenFor`. */
 import {
+  DashboardDetailScreen,
   REPORTS_SUB_TAB_ID,
   ReportsScreen,
   SavedReportScreen,
@@ -345,8 +346,41 @@ function screenFor(row: SubTabRoute) {
 
 /**
  * A level-3 detail's screen. Same registry rule as `screenFor`, one level down.
+ *
+ * **Keyed on `detail.kind` first, `row.subTabId` second — and the order is the
+ * fix, not a preference.** The Reports row declares *two* detail routes
+ * (`routeTable.ts:259`): `kind: 'report'` at `/management/reports/:reportId` and
+ * `kind: 'dashboard'` at `/management/reports/dashboards/:dashboardId`. Keying
+ * on the sub-tab alone cannot tell them apart, so **both resolved to
+ * `SavedReportScreen`** — which reads `useParams().reportId`, gets `''` from a
+ * route whose param is named `dashboardId`, and hands the operator the
+ * read-only *"this report was deleted"* builder for a dashboard that exists.
+ *
+ * A sub-tab with one detail route is unaffected: its `kind` falls through to the
+ * same branch it always took. The rule generalises — the moment a second row
+ * declares two details, this dispatch already handles it.
  */
-function detailScreenFor(row: SubTabRoute, _detail: DetailRoute) {
+function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
+  if (detail.kind === 'dashboard') {
+    return <DashboardDetailScreen />
+  }
+  /**
+   * **The conversation pane is a PAGE, and the first answer was a drawer for a
+   * reason worth recording: this row declared `detailRoutes: []` and this file
+   * has a single owner, so a drawer was the only surface reachable without
+   * touching it.** A file-ownership constraint had decided a page shape.
+   *
+   * On the design: `--ev-drawer-w` is 406px and cannot hold a thread, a 320px
+   * rail and a pinned composer at once — and the rail is where §8.4.2 puts the
+   * countdown that both D22's SLA and its concurrent-chat cap are read from, so
+   * keeping the drawer would have traded the screen's instrument for its
+   * container. §5.0's drawer is also *"a surface consulted against the page
+   * behind it"*, and at a 45-second first response an operator is IN the
+   * conversation for twenty minutes rather than consulting it.
+   */
+  if (detail.kind === 'conversation') {
+    return <ContactCentreScreen row={row} />
+  }
   if (row.subTabId === REPORTS_SUB_TAB_ID) {
     return <SavedReportScreen row={row} />
   }

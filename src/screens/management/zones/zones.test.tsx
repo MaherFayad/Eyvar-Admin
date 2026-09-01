@@ -12,7 +12,7 @@
  * derived strip has to follow it while a literal one cannot.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -50,6 +50,66 @@ function renderZones(path = '/management/zones') {
       </ShellProvider>
     </MemoryRouter>,
   )
+}
+
+/**
+ * **Every assertion below is scoped to the surface it names, and that is a
+ * correction, not a convenience.**
+ *
+ * `ZonesScreen` used to branch on `process.env.NODE_ENV === 'test'`: under test
+ * it rendered the strip + `DataTable` + `CitiesCard`, and in every other
+ * environment it rendered `ZonesMapView` instead. So this file was green over a
+ * surface **no operator ever saw**, and the map — which lists the same zones and
+ * the same cities in its sidebar — held no test at all, because it was
+ * unreachable from a rendered `ZonesScreen`.
+ *
+ * The branch is gone and both surfaces now ship, stacked. That is what makes
+ * unscoped `getByText('Al Narjis')` throw *"found multiple elements"*: the zone
+ * really is on the page twice, in the map and in the table, which is correct
+ * and is exactly what the branch was hiding.
+ *
+ * Scoping is therefore the honest repair rather than reaching for
+ * `getAllByText(...)[0]`. A test named *"the table"* that would pass on a
+ * string rendered by the map is not testing the table — and picking the first
+ * of two matches silently depends on DOM order, so it would go on passing if
+ * the table stopped rendering the row entirely.
+ */
+function zoneTable(): HTMLElement {
+  const header = screen.getAllByRole('columnheader', {
+    name: ZONES_EN['zones.col.zone'] as string,
+  })[0]
+  const table = header?.closest('table')
+  if (!table) throw new Error('No zone table on the page')
+  return table
+}
+
+function citiesCard(): HTMLElement {
+  const heading = screen.getByRole('heading', {
+    name: ZONES_EN['zones.cities.heading'] as string,
+  })
+  const card = heading.closest('[data-slot="card"]')
+  if (!(card instanceof HTMLElement)) throw new Error('No cities card on the page')
+  return card
+}
+
+/**
+ * The five-tile strip: the `<ul role="list">` holding the tile labels. Named by
+ * a landmark rather than reached by filtering the document, because the map
+ * sidebar's zone and city lists are `aria-pressed` buttons too — correctly, they
+ * are selection controls — and a test that counted "every pressed button that
+ * is not in the table" would silently re-break the moment the map grew a sixth.
+ */
+function zoneStrip(): HTMLElement {
+  const label = screen.getAllByText(ZONES_EN['zones.tile.captainsNeeded'] as string)[0]
+  const strip = label?.closest('ul[role="list"]')
+  if (!(strip instanceof HTMLElement)) throw new Error('No metric strip on the page')
+  return strip
+}
+
+/** The strip and the tiles live above both surfaces and are not inside either. */
+async function zonesReady(): Promise<HTMLElement> {
+  await waitFor(() => expect(within(zoneTable()).getByText('Al Narjis')).toBeTruthy())
+  return zoneTable()
 }
 
 describe('R4-6b §6.6.4 — the strip derives from the table', () => {
@@ -92,7 +152,7 @@ describe('R4-6b §6.6.4 — the strip derives from the table', () => {
     expect(after.starvedZones).toBe(2)
 
     renderZones()
-    await waitFor(() => expect(screen.getByText('Al Narjis')).toBeTruthy())
+    await zonesReady()
     /* The strip shows the moved value, and nowhere on the page is `7.0×`. */
     expect(screen.getAllByText('3.0×').length).toBeGreaterThan(0)
     expect(screen.queryByText('7.0×')).toBeNull()
@@ -111,21 +171,26 @@ describe('the table', () => {
 
   it('R4-6 §6.4 clause 2 — two row actions, both labelled and visible at rest', async () => {
     renderZones()
-    await waitFor(() => expect(screen.getByText('Al Narjis')).toBeTruthy())
+    const table = await zonesReady()
 
-    const steer = screen.getAllByRole('button', { name: ZONES_EN['zones.action.steer'] as string })
-    const recruit = screen.getAllByRole('button', {
+    /* Counted INSIDE the table. The map inspector offers the same two actions
+       for the zone it has selected, so an unscoped count asserts the sum of two
+       surfaces and would drift every time either changed. */
+    const steer = within(table).getAllByRole('button', {
+      name: ZONES_EN['zones.action.steer'] as string,
+    })
+    const recruit = within(table).getAllByRole('button', {
       name: ZONES_EN['zones.action.recruit'] as string,
     })
     expect(steer.length).toBe(6)
     expect(recruit.length).toBe(6)
     /* Not behind a kebab: there is no row-actions menu trigger on this table. */
-    expect(screen.queryByText('⋯')).toBeNull()
+    expect(within(table).queryByText('⋯')).toBeNull()
   })
 
   it('the five tiles render, and two of them are toggles that narrow the table', async () => {
     renderZones()
-    await waitFor(() => expect(screen.getByText('Al Narjis')).toBeTruthy())
+    await zonesReady()
 
     for (const key of [
       'zones.tile.captainsNeeded',
@@ -141,7 +206,9 @@ describe('the table', () => {
 
     /* R4-6 §6.4 clause 1 — a tile is a toggle, not an anchor. Exactly two of
        the five correspond to a view the table can be narrowed to. */
-    const toggles = screen
+    /* Counted inside the strip. Exactly two of the five tiles correspond to a
+       view the table can be narrowed to; the other three are read-only. */
+    const toggles = within(zoneStrip())
       .getAllByRole('button')
       .filter((element) => element.getAttribute('aria-pressed') !== null)
     expect(toggles).toHaveLength(2)
@@ -154,14 +221,20 @@ describe('the table', () => {
 describe('L-6 — three cities have no failure rate, and the row says why', () => {
   it('renders an em dash and a reason rather than a fabricated number', async () => {
     renderZones()
-    await waitFor(() => expect(screen.getByText('Al Narjis')).toBeTruthy())
+    await zonesReady()
+    const cities = citiesCard()
 
     /* Riyadh appears once per zone row and once in the cities card. */
     expect(screen.getAllByText('Riyadh').length).toBeGreaterThan(1)
+    /* The four cities are asserted INSIDE the card. The map sidebar lists cities
+       too, so `getByText('Jeddah')` on the document now finds two — and the one
+       this test is about is the one whose failure rate is an em dash. */
     for (const city of ['Jeddah', 'Dammam', 'Makkah']) {
-      expect(screen.getByText(city)).toBeTruthy()
+      expect(within(cities).getByText(city)).toBeTruthy()
     }
     /* One `Not launched` per city with no tracked zone, and no invented rate. */
-    expect(screen.getAllByText(ZONES_EN['zones.cities.notLive'] as string)).toHaveLength(3)
+    expect(
+      within(cities).getAllByText(ZONES_EN['zones.cities.notLive'] as string),
+    ).toHaveLength(3)
   })
 })

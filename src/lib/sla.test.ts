@@ -6,6 +6,7 @@ import {
   formatSlaLabel,
   slaBand,
   slaClock,
+  slaPrecision,
   slaSortKey,
   slaTrackPercent,
 } from './sla'
@@ -181,5 +182,79 @@ describe('copy', () => {
     })
     expect(formatSlaLabel(slaClock({ dueAt: at(12) }, NOW), arabic)).toBe('متبقٍ 12m')
     expect(formatSlaLabel(NO_CLOCK, arabic)).toBe('بدون مؤقت')
+  })
+})
+
+/* ═══════ rule 5 — the window picks the tier (Q-13 / AC-215, D22) ═══════ */
+
+describe('slaPrecision — the window decides, not the number', () => {
+  /** `now` plus a signed number of seconds, as an ISO instant. */
+  const atSeconds = (s: number) => new Date(Date.parse(NOW) + s * 1_000).toISOString()
+
+  it('counts a sub-10-minute window in seconds', () => {
+    // D22: a 45-second chat first-response target, 44 seconds in.
+    const chat = slaClock({ dueAt: atSeconds(44), targetMinutes: 0.75 }, NOW)
+    expect(slaPrecision(chat)).toBe('second')
+    expect(formatSlaLabel(chat, t)).toBe('44s left')
+  })
+
+  it('watches a 45-second promise move — the whole point of the tier', () => {
+    const labels = [44, 30, 9, 1].map((s) =>
+      formatSlaLabel(slaClock({ dueAt: atSeconds(s), targetMinutes: 0.75 }, NOW), t),
+    )
+    expect(labels).toEqual(['44s left', '30s left', '9s left', '1s left'])
+    expect(new Set(labels).size).toBe(labels.length)
+  })
+
+  it('counts a short window overdue in seconds too', () => {
+    const late = slaClock({ dueAt: atSeconds(-20), targetMinutes: 3 }, NOW)
+    expect(formatSlaLabel(late, t)).toBe('overdue 20s')
+  })
+
+  it('keeps the minute tier for the 3- and 5-minute windows above a minute', () => {
+    expect(formatSlaLabel(slaClock({ dueAt: at(2), targetMinutes: 3 }, NOW), t)).toBe('2m left')
+    expect(formatSlaLabel(slaClock({ dueAt: at(4), targetMinutes: 5 }, NOW), t)).toBe('4m left')
+  })
+
+  it('turns exactly at a 10-minute window', () => {
+    expect(slaPrecision(slaClock({ dueAt: atSeconds(30), targetMinutes: 9.99 }, NOW))).toBe('second')
+    expect(slaPrecision(slaClock({ dueAt: atSeconds(30), targetMinutes: 10 }, NOW))).toBe('minute')
+  })
+
+  it('leaves a 4-hour ticket clock in minutes in its last seconds — no `47s` regression', () => {
+    const ticket = slaClock({ dueAt: atSeconds(47), startedAt: at(-240) }, NOW)
+    expect(slaPrecision(ticket)).toBe('minute')
+    expect(formatSlaLabel(ticket, t)).toBe('1m left')
+  })
+
+  it('keeps minutes when the window is unknown, rather than guessing from the remaining time', () => {
+    const unknown = slaClock({ dueAt: atSeconds(47) }, NOW)
+    expect(unknown.kind === 'running' && unknown.windowMs).toBeNull()
+    expect(slaPrecision(unknown)).toBe('minute')
+    expect(formatSlaLabel(unknown, t)).toBe('1m left')
+    expect(slaPrecision(NO_CLOCK)).toBe('minute')
+  })
+
+  it('reports the window it used, and treats a non-positive window as unknown', () => {
+    const running = slaClock({ dueAt: at(30), targetMinutes: 100 }, NOW)
+    expect(running.kind === 'running' && running.windowMs).toBe(100 * 60_000)
+    const breached = slaClock({ dueAt: at(-5), startedAt: at(-65) }, NOW)
+    expect(breached.kind === 'breached' && breached.windowMs).toBe(60 * 60_000)
+    // Started after the deadline: not a window, so no ratio and no precision claim.
+    const nonsense = slaClock({ dueAt: at(-30), startedAt: at(-10) }, NOW)
+    expect(nonsense.kind === 'breached' && nonsense.windowMs).toBeNull()
+    expect(slaTrackPercent(nonsense)).toBeNull()
+    expect(slaPrecision(nonsense)).toBe('minute')
+  })
+
+  it('holds AC-290 in both tiers — no row reads `overdue 0m` while it is late', () => {
+    // Minute tier: 30 seconds late still rounds up to a whole minute.
+    expect(formatSlaLabel(slaClock({ dueAt: atSeconds(-30), targetMinutes: 60 }, NOW), t)).toBe(
+      'overdue 1m',
+    )
+    // Seconds tier: it says how late it actually is instead.
+    expect(formatSlaLabel(slaClock({ dueAt: atSeconds(-30), targetMinutes: 3 }, NOW), t)).toBe(
+      'overdue 30s',
+    )
   })
 })

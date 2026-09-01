@@ -47,8 +47,10 @@ import { useShell } from '@/shell/ShellContext'
 import { EYVAR_TODAY, REPORT_QUERY_PARAM, getReport, localDayOf } from '@/data/clients'
 import type { SavedReport, SubTabRoute } from '@/data/types'
 import { AlertsView } from './AlertsView'
+import { DashboardsView } from './DashboardsView'
 import { ReportBuilder } from './ReportBuilder'
 import { ReportLibrary } from './ReportLibrary'
+import { REPORTS_VIEWS, type ReportsView } from './views'
 
 /**
  * The id the route table will carry once **Q-RB-1** is answered. Declared here
@@ -57,13 +59,20 @@ import { ReportLibrary } from './ReportLibrary'
  */
 export const REPORTS_SUB_TAB_ID = 'management-reports'
 
-type View = 'reports' | 'alerts'
-
 /**
- * The `?view=` values, in tab order, with `reports` first as the default.
+ * **Three, and the list lives in `views.ts`.**
+ *
+ * This file declared two — `'reports' | 'alerts'` — against the route table's
+ * three, and the mismatch was silent: `?view=dashboards` failed the `find`
+ * below and fell back to `reports`, so the Dashboards view was *unreachable*
+ * rather than broken and nothing on screen said so. That is the assertion
+ * failing at `clients/routes.test.ts:225`.
+ *
+ * `REPORTS_VIEWS` is re-exported unchanged, because `routes.test.ts` imports it
+ * from here and the route table is what it is held against.
  */
-export const REPORTS_VIEWS = ['reports', 'alerts'] as const
-const VIEWS: View[] = [...REPORTS_VIEWS]
+const VIEWS: ReportsView[] = [...REPORTS_VIEWS]
+export { REPORTS_VIEWS }
 
 export interface ReportsScreenProps {
   /** The route-table row, once one exists. Absent today; the screen names itself. */
@@ -79,7 +88,7 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   /* Passed down, never read from an ambient clock inside a control. */
   const today = now ? localDayOf(now) : EYVAR_TODAY
   const params = new URLSearchParams(location.search)
-  const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as View
+  const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as ReportsView
   const composed = params.get(REPORT_QUERY_PARAM)
 
   const title = row ? t(row.titleKey) : t('rb.page.title')
@@ -96,7 +105,7 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   )
 
   const selectView = useCallback(
-    (v: 'reports' | 'alerts') => {
+    (v: ReportsView) => {
       navigate({ pathname: location.pathname, search: v === 'reports' ? '' : `?view=${v}` })
     },
     [navigate, location.pathname],
@@ -115,6 +124,22 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
         language={language}
         dir={dir}
         onSaved={openReport}
+      />
+    )
+  }
+
+  if (view === 'dashboards') {
+    return (
+      <DashboardsView
+        title={title}
+        activeView={view}
+        onSelectView={selectView}
+        /* §3.8 rule 2 — a named record is a LEVEL, not a `?view=`. Opening a
+           dashboard is a navigation, and Back returns to the list. */
+        onOpen={(dashboard) => navigate(`/management/reports/dashboards/${dashboard.id}`)}
+        t={t}
+        language={language}
+        dir={dir}
       />
     )
   }
@@ -194,7 +219,6 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
   )
 }
 
-/** `/management/reports/dashboards/:dashboardId` fallback */
-export function DashboardDetailScreen() {
-  return null
-}
+/* `DashboardDetailScreen` used to live here and return `null`. It is a real
+   screen now — `DashboardDetailScreen.tsx` — and `routes.tsx` dispatches to it
+   on `detail.kind === 'dashboard'`. The barrel keeps the export name. */

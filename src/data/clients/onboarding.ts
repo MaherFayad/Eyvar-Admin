@@ -25,7 +25,24 @@ import {
   onboardingStepSeeds,
   type OnboardingStepSeed,
 } from '../fixtures/onboardingTracks'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
+import { teamUserFixtures } from '../fixtures/teamUsers'
+/**
+ * **The signed-in operator, not the seeded constant.**
+ *
+ * Every `userId ?? …` default below used to read the Owner's fixture
+ * constant. That made `switchMockUser` invisible to this whole client:
+ * `getOnboarding()` with no argument returned the Owner's track no matter
+ * who was signed in. `session.ts` names this exact defect in
+ * `currentMockPermissions`'s doc comment — *"reading the constant instead,
+ * as some older clients do, would make `switchMockUser` invisible to it"* —
+ * and this was one of the older clients.
+ *
+ * Low impact at runtime, because the shell passes an explicit id. High
+ * impact on test integrity: a helper that switched user and then asked bare
+ * got one track four times, which silently narrowed five acceptance criteria
+ * to a third of the rows they claimed to cover.
+ */
+import { currentMockUserId } from './session'
 import { authIdentityFixtures } from '../fixtures/authIdentities'
 import type { PermissionKey } from '../types/navigation'
 import type { RoleName } from '../types/session'
@@ -230,7 +247,7 @@ export async function getOnboarding(
   if (DATA_SOURCE === 'http') {
     return http.get<OnboardingChecklist>('/me/onboarding', { userId }, { signal })
   }
-  return mock(ONBOARDING_OPERATIONS.get, signal, () => assemble(userId ?? CURRENT_USER_ID))
+  return mock(ONBOARDING_OPERATIONS.get, signal, () => assemble(userId ?? currentMockUserId()))
 }
 
 /* ────────────────────────────── mutations ─────────────────────────────── */
@@ -269,7 +286,7 @@ export async function completeStep(
     )
   }
   return mockMutation(ONBOARDING_OPERATIONS.completeStep, signal, () => {
-    const id = userId ?? CURRENT_USER_ID
+    const id = userId ?? currentMockUserId()
     const checklist = assemble(id)
     if (!checklist.steps.some((s) => s.id === stepId)) throw notFound('onboarding step', stepId)
     const state = checklist.state
@@ -311,7 +328,7 @@ export async function skipStep(
     )
   }
   return mockMutation(ONBOARDING_OPERATIONS.skipStep, signal, () => {
-    const id = userId ?? CURRENT_USER_ID
+    const id = userId ?? currentMockUserId()
     const checklist = assemble(id)
     if (!checklist.steps.some((s) => s.id === stepId)) throw notFound('onboarding step', stepId)
     const state = checklist.state
@@ -353,7 +370,7 @@ export async function markOnboardingAutoOpened(
     return http.post<OnboardingChecklist>('/me/onboarding/auto-opened', { userId }, { signal })
   }
   return mockMutation(ONBOARDING_OPERATIONS.markAutoOpened, signal, () => {
-    const id = userId ?? CURRENT_USER_ID
+    const id = userId ?? currentMockUserId()
     const state = assemble(id).state
     if (state.autoOpenedAt === null) states.set(id, { ...state, autoOpenedAt: EYVAR_NOW })
     return finish(id)
@@ -382,7 +399,7 @@ export async function dismissOnboarding(
     return http.post<OnboardingChecklist>('/me/onboarding/dismiss', { userId }, { signal })
   }
   return mockMutation(ONBOARDING_OPERATIONS.dismiss, signal, () => {
-    const id = userId ?? CURRENT_USER_ID
+    const id = userId ?? currentMockUserId()
     const state = assemble(id).state
     states.set(id, { ...state, dismissedAt: EYVAR_NOW })
     return finish(id)
@@ -416,7 +433,7 @@ export async function restartOnboarding(
     return http.post<OnboardingChecklist>('/me/onboarding/restart', { userId }, { signal })
   }
   return mockMutation(ONBOARDING_OPERATIONS.restart, signal, () => {
-    const id = userId ?? CURRENT_USER_ID
+    const id = userId ?? currentMockUserId()
     const state = assemble(id).state
     states.set(id, {
       ...state,

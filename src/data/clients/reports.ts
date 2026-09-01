@@ -36,7 +36,17 @@ import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
 import { resolveReport, resetReportRowCap, useTruncatedReports } from '../mock/resolveReport'
-import { planQuery, type Catalogue } from '../reporting/plan'
+import {
+  MAX_COHORT_HORIZON,
+  MAX_FUNNEL_STEPS,
+  MAX_JOURNEY_DEPTH,
+  MIN_COHORT_HORIZON,
+  MIN_FUNNEL_STEPS,
+  MIN_JOURNEY_DEPTH,
+  applyReportMode,
+  planQuery,
+  type Catalogue,
+} from '../reporting/plan'
 import { resolveWindow } from '../reporting/buckets'
 import { serialiseReportQuery } from '../reporting/serialise'
 import type { IsoDate, Paginated, QueryParams, Single } from '../types/common'
@@ -396,6 +406,36 @@ export { useTruncatedReports }
 
 /** The shareable link for a query, for a QA engineer pinning a state from the URL. */
 export { serialiseReportQuery }
+
+/* ─────────────── the mode, and the bounds its controls need ────────────── */
+
+/**
+ * Re-exported here rather than imported from `reporting/plan` by a screen, so
+ * **the panel reaches the query model through the same door `reports.run`
+ * does**. `applyReportMode` is the one function that may change a query's mode:
+ * four of the five modes decide the chart and three collapse the grain, and a
+ * screen doing that itself would be a second copy of the legality rules this
+ * client validates against.
+ *
+ * The six bounds come with it because a stepper that lets an operator reach a
+ * horizon the planner then refuses is a control that lies about its own range.
+ * One declaration, read by the picker and by the refusal.
+ */
+export {
+  MAX_COHORT_HORIZON,
+  MAX_FUNNEL_STEPS,
+  MAX_JOURNEY_DEPTH,
+  MIN_COHORT_HORIZON,
+  MIN_FUNNEL_STEPS,
+  MIN_JOURNEY_DEPTH,
+  applyReportMode,
+}
+
+/**
+ * §3.2's nine presets, from the query model, so the range control this module's
+ * mode panel needs offers the same nine in the same order as `QueryPanel`.
+ */
+export { REPORT_PRESETS } from '../types/report'
 
 export function resetReports(): void {
   reports = savedReportFixtures.map((r) => ({ ...r }))

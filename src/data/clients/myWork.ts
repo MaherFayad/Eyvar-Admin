@@ -305,7 +305,7 @@ const workShape: QueryShape<WorkItem> = {
   },
 }
 
-/** The role the mock scopes to. Reads the same `CURRENT_USER_ID` the claim logic does. */
+/** The role the mock scopes to. Reads the same signed-in session the claim logic does. */
 function currentRole(): RoleName {
   return teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)?.role ?? 'Support'
 }

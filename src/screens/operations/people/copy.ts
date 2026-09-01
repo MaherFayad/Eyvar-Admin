@@ -198,6 +198,33 @@ export const PEOPLE_EN: Dictionary = {
   'people.bulk.suspend': 'Suspend',
   'people.bulk.reinstate': 'Reinstate',
 
+  /* §11.2 / **AC-368** — the second clause. A disabled action owes the operator
+     a sentence, and `rowActions.tsx` renders it as real text beside the dead
+     control, never as a tooltip. `people.action.noPermission` above is the
+     third refusal and already existed; these two are the domain-state ones,
+     added with `src/commands/captains.ts` (D9, C-1) because until the registry
+     existed the row menu disabled `Suspend` with no explanation at all.
+
+     Two keys per refusal, singular and plural, and the plural counts the
+     BLOCKED subset rather than the selection — "3 of the selected captains"
+     tells the operator how much of what they picked is the problem. */
+  'people.action.suspend.blocked.one': 'This captain is already suspended.',
+  'people.action.suspend.blocked.other':
+    '{count} of the selected captains are already suspended.',
+  'people.action.reinstate.blocked.one': 'This captain is not suspended.',
+  'people.action.reinstate.blocked.other':
+    '{count} of the selected captains are not suspended.',
+
+  /* **D21's third sentence.** `.one` and `.other` above are unchanged and are
+     the strings the ruling quotes verbatim; these are the case they cannot
+     cover. `3 of the selected captains are already suspended` is TRUE of a
+     3-of-3 selection and invites the operator to deselect a few and try again,
+     when there is nothing to deselect to — so an all-blocked selection gets its
+     own sentence, and `DataTable` offers no `Select only…` control beside it
+     (**AC-960**). */
+  'people.action.suspend.blocked.all': 'All {count} selected captains are already suspended.',
+  'people.action.reinstate.blocked.all': 'None of the {count} selected captains is suspended.',
+
   /* §9.1 — the confirmation states the VERB and the COUNT, the body states
      the consequence AND what will not change, the primary repeats the verb.
      Never `OK`, `Yes`, `Confirm` or `Submit`. Blue, not red: a suspension is

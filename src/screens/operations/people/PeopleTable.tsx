@@ -30,6 +30,7 @@ import type { AnyTable } from '@/hooks'
 import type { Language, Translate } from '@/lib'
 import {
   DataTable,
+  type BulkAction,
   type DataColumn,
   type ExtraFilterSpec,
   type RowAction,
@@ -72,7 +73,24 @@ export interface PeopleTableProps<T> {
   rowActions?: ReadonlyArray<RowAction<T>>
   /** §7.8 — the actions lane width when exactly ONE action is declared. */
   rowActionsWidth?: number
-  bulkActions?: ReadonlyArray<{ label: string; onClick: (ids: ReadonlySet<string>) => void }>
+  /**
+   * **P4-T1 - this used to be a narrowed copy of `BulkAction` and that was a
+   * bug, not a style.** It declared `{ label; onClick }` inline, so when
+   * `DataTable`'s `BulkAction` grew `disabled` and `reason` (§11.2's other
+   * half), neither People view could pass them: the fields were stripped off at
+   * this boundary before they ever reached the bulk bar.
+   *
+   * The visible consequence was two surfaces disagreeing about the same record.
+   * `CaptainsView` had a correct refusal predicate and could only deliver it
+   * **after** the click, as a toast; `ComplianceView`'s bulk `Suspend` had no
+   * predicate at all, while the row kebab eight lines above it gated on both
+   * `canWrite` and `suspendedReason`.
+   *
+   * It is now `DataTable`'s own type, imported. A field added there arrives
+   * here for free, which is the only arrangement in which the two cannot drift
+   * again.
+   */
+  bulkActions?: ReadonlyArray<BulkAction>
 
   firstRun: { heading: string; body: string; actions: EmptyAction[] }
   noMatch: { message: string; action?: EmptyAction }

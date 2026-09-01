@@ -107,7 +107,7 @@
  *               Incidents reaches both kinds (Q-37) on one route.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Table,
   TableBody,
@@ -235,8 +235,40 @@ export interface DataTableProps<T> {
    * assertable before paint. Defaults to §7.8's 88. Ignored otherwise.
    */
   rowActionsWidth?: number
-  /** §9.1 — at most THREE labelled secondary buttons, then `…`. */
-  bulkActions?: ReadonlyArray<{ label: string; onClick: (ids: ReadonlySet<string>) => void }>
+  /**
+   * §9.1 — at most THREE labelled secondary buttons, then `…`.
+   *
+   * **`disabled` and `reason` are §11.2's other half, and they were missing.**
+   * The rule is one sentence: an action the operator may not take is *"never
+   * hidden, disabled in place **with its reason**"*. `RowAction` has carried
+   * both fields since it was written; `BulkAction` carried neither, so the bulk
+   * bar could only refuse **after** the click — gating at commit, which is the
+   * legacy behaviour §11.2 exists to replace.
+   *
+   * That gap produced a live divergence, which is the defect D9 records: the
+   * same operator was stopped by the row kebab and allowed by the bulk bar over
+   * the same record, because only one of the two surfaces could express a
+   * refusal. The command registry (`src/commands/`) now derives both from one
+   * predicate, and this is the field that lets the bulk bar render what the
+   * predicate says.
+   *
+   * `reason` is the sentence, not a boolean — same shape as `RowAction.reason`,
+   * so the two surfaces cannot word a refusal differently.
+   */
+  /**
+   * **`BulkAction`, not a structural copy of it — and the difference was a live
+   * defect.** This prop used to inline its own `{ label; onClick; disabled;
+   * reason }`, which type-checked and drifted: when `BulkAction` gained D21's
+   * `eligibleIds`, the prop kept the old shape, so no caller could pass the
+   * field the bar had just learned to render. The same mistake is live one
+   * directory away at `screens/operations/people/PeopleTable.tsx:75`, where a
+   * narrowed re-declaration strips `disabled` and `reason` and forces
+   * `CaptainsView` to refuse **after** the click.
+   *
+   * A shared contract is named once. A second spelling of it is a second
+   * contract that has not noticed yet.
+   */
+  bulkActions?: ReadonlyArray<BulkAction>
 
   /** §11.1 — the `first-run` copy. Required so the empty state cannot be a TODO. */
   firstRun: { heading: string; body: string; actions: EmptyAction[] }
@@ -351,7 +383,35 @@ export function DataTable<T>(props: DataTableProps<T>) {
      `false` on `LedgerTable`, so these two constants are `false` at compile
      time in the ledger branch and a reviewer can see it. */
   const isLedger = table.mode === 'ledger'
-  const selectable = !isLedger && table.canSelect
+  /**
+   * **D25 — a table selects only if it has something to do with a selection.**
+   *
+   * `table.canSelect` says the *hook* permits selection; `bulkActions` says the
+   * *screen* declared work. Both are required, and the conjunction lives here
+   * because this is the one place that renders both halves of **AC-46** —
+   * *"replaces the column header row with an `N selected` count **and** shows
+   * the bulk action bar."*
+   *
+   * Eleven index tables were failing that criterion, and the failure was worse
+   * than "selecting does nothing": every `mode: 'index'` table gets
+   * `canSelect: true` from `useIndexTable`, so ticking a box **destroyed the
+   * column header row** — labels, sort affordances and header menus replaced by
+   * the `N selected` cell at `:782` — and then no bar arrived, because the bar
+   * renders only when `bulkActions.length > 0`. The operator removed their own
+   * column labels by ticking a box, and got no `Clear`, no action and no
+   * acknowledged mode in exchange.
+   *
+   * Enforced in the predicate rather than by review, deliberately. The
+   * alternative ruling — *"every selectable table must declare a bulk
+   * command"* — is a rule somebody has to remember on each of eleven screens,
+   * and a rule like that gets satisfied by a fig leaf: there is no export
+   * affordance anywhere in this product, so `Export selected` would have minted
+   * a subsystem to make a checkbox honest. Deriving it makes the two halves of
+   * AC-46 inseparable in one line, and a screen that declares no command loses
+   * its checkbox with nobody editing it.
+   */
+  const selectable = !isLedger && table.canSelect && (bulkActions?.length ?? 0) > 0
+
   /**
    * **D8 — the actions cell's shape comes from the COUNT of declared actions,
    * and it is decided here rather than per screen.** Owner, twice:
@@ -426,7 +486,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
      inset-inline-start, inside the first cell, and the first cell is locked. */
   const pinColumns = useMemo<PinnableColumn[]>(() => {
     const list: PinnableColumn[] = []
-    if (selectable) list.push({ id: SELECT_COLUMN_ID, width: LANE_WIDTH_PX, lockedEdge: 'start' })
+    if (selectable)
+      list.push({
+        id: SELECT_COLUMN_ID,
+        width: LANE_WIDTH_PX,
+        lockedEdge: 'start',
+      })
     visible.forEach((column, index) => {
       /* **AC-104 with its precondition made explicit.** Column index 0 is the
          identity and is pinned implicitly and permanently — *provided it
@@ -457,7 +522,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
     /* AC-105 — the kebab column is pinned to the inline-END implicitly and
        permanently. `PinEdge` supports `'end'` for exactly this; **no operator
        control ever passes it** (AC-107). */
-    if (kebabs) list.push({ id: KEBAB_COLUMN_ID, width: actionLaneWidth, lockedEdge: 'end' })
+    if (kebabs)
+      list.push({
+        id: KEBAB_COLUMN_ID,
+        width: actionLaneWidth,
+        lockedEdge: 'end',
+      })
     return list
   }, [selectable, kebabs, actionLaneWidth, visible])
 
@@ -643,14 +713,87 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const rowHeightClass = isLedger ? 'h-row' : 'h-row-media'
 
   const selectedCount = selectable ? table.selectedCount : 0
+  /* `selectOnly` is on the selectable variants only. `selectable` narrows it at
+     runtime, but a union does not follow a boolean, so the capability is read
+     once here where the narrowing holds rather than cast at each use. */
+  const selectOnly = selectable ? table.selectOnly : undefined
+
+  /**
+   * **The refusal compartment's lines — one per DISTINCT sentence, not one per
+   * refused action.**
+   *
+   * Each disabled action used to render its own unlabelled sentence, stacked.
+   * With two refused actions the operator could not tell which sentence
+   * belonged to which dead button, and with two refused actions sharing a
+   * reason — the common case, because a permission refusal outranks a domain
+   * one and then every action carries the *same* sentence — they read the same
+   * line twice and had to work out that it was one fact.
+   *
+   * So identical sentences collapse to one line with no prefix, and different
+   * ones are prefixed with the action they belong to. Every refused control
+   * points `aria-describedby` at the line that actually carries its reason,
+   * which is why the id comes from this map rather than from each action's own
+   * label.
+   */
+  const refusalLines = useMemo(() => {
+    const refused = (bulkActions ?? []).filter(
+      (action) => action.disabled === true && action.reason,
+    )
+    const distinct = new Set(refused.map((action) => action.reason))
+    const labelled = distinct.size > 1
+    const lines: {
+      key: string
+      text: string
+      narrow: { count: number; onSelect: () => void } | null
+    }[] = []
+    const seen = new Map<string, string>()
+
+    for (const action of refused) {
+      const reason = action.reason as string
+      const existing = seen.get(reason)
+      if (existing !== undefined) {
+        /* Same sentence, already on screen. The control still needs an id to
+           point at, and it points at the line that is there. */
+        continue
+      }
+      const key = bulkReasonId(action.label)
+      seen.set(reason, key)
+
+      /* D21's escape hatch, offered only when narrowing leaves something to act
+         on. An eligible set that is empty or as large as the selection is not a
+         narrowing — it is the `.all` case (AC-960) or a no-op. */
+      const eligible = action.eligibleIds
+      const narrowable =
+        eligible !== undefined && eligible.size > 0 && eligible.size < selectedCount
+
+      lines.push({
+        key,
+        text: labelled ? t('table.bulk.refusalLabelled', { action: action.label, reason }) : reason,
+        narrow: narrowable
+          ? { count: eligible.size, onSelect: () => selectOnly?.(eligible) }
+          : null,
+      })
+    }
+    return lines
+  }, [bulkActions, selectOnly, selectedCount, t])
+
+  /** Which line a refused control points at — see `refusalLines`. */
+  const reasonIdFor = useCallback(
+    (action: BulkAction): string | undefined => {
+      if (action.disabled !== true || !action.reason) return undefined
+      const match = (bulkActions ?? []).find(
+        (each) => each.disabled === true && each.reason === action.reason,
+      )
+      return match === undefined ? undefined : bulkReasonId(match.label)
+    },
+    [bulkActions],
+  )
+
   const pattern = skeletonPattern ?? (isLedger ? 'P7' : table.mode === 'queue' ? 'P8' : 'P1')
   const range = pageRange(table.page, table.pageSize, total)
   const columnCount = visible.length + (selectable ? 1 : 0) + (kebabs ? 1 : 0)
 
-  const entries = useMemo(
-    () => filterEntries(columns, extraFilters),
-    [columns, extraFilters],
-  )
+  const entries = useMemo(() => filterEntries(columns, extraFilters), [columns, extraFilters])
 
   const chipProps = {
     t,
@@ -677,7 +820,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
     if (!table.isFiltered) return undefined
     return { label: t('table.clearFilters'), onClick: clearAll }
-  }, [noMatch.action, table.filters, table.query, table.isFiltered, t, labelOf, removeFilter, clearAll])
+  }, [
+    noMatch.action,
+    table.filters,
+    table.query,
+    table.isFiltered,
+    t,
+    labelOf,
+    removeFilter,
+    clearAll,
+  ])
 
   /* AC-111 — a pinned cell is OPAQUE and takes the ROW's own background,
      hover included, or the scrolling content shows through it. */
@@ -812,9 +964,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
       if (openAction) {
         const isDisabled =
-          typeof openAction.disabled === 'function'
-            ? openAction.disabled(row)
-            : openAction.disabled
+          typeof openAction.disabled === 'function' ? openAction.disabled(row) : openAction.disabled
         if (!isDisabled) {
           openAction.onSelect(row)
           return
@@ -842,8 +992,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const hasRowClickAction = Boolean(
     onRowClick ||
-      declaredActions.some((a) => /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label)) ||
-      declaredActions.length > 0,
+    declaredActions.some((a) =>
+      /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label),
+    ) ||
+    declaredActions.length > 0,
   )
 
   return (
@@ -864,38 +1016,38 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {/* **BAND 2 — the control row.** §7.1 / D-18: there is no card, so this
           sits on the page ground. AC-112 still holds — it is outside the
           horizontal scroll container and does not move when the table scrolls. */}
-        <IndexToolbar
-          t={t}
-          tabs={tabs}
-          activeTab={activeTab}
-          onSelectTab={onSelectTab ?? (() => undefined)}
-          searchPlaceholder={searchPlaceholder}
-          query={table.query}
-          onQueryChange={table.setQuery}
-          filterTrigger={(trigger) => <AddFilterPopover {...chipProps} trigger={trigger} />}
-          filterCount={table.filters.length}
-          columnsControl={
-            visibility.needsColumnsControl ? (
-              <ColumnLayoutPopover
-                t={t}
-                columns={columns}
-                isVisible={visibility.isVisible}
-                isHideable={visibility.isHideable}
-                onToggleVisible={toggleVisible}
-                isPinned={pins.isPinned}
-                canPin={canPinColumn}
-                onTogglePin={togglePin}
-                onReset={resetColumns}
-                /* §9 — a ledger's column set is fixed by §8.3.3; it gets pin
+      <IndexToolbar
+        t={t}
+        tabs={tabs}
+        activeTab={activeTab}
+        onSelectTab={onSelectTab ?? (() => undefined)}
+        searchPlaceholder={searchPlaceholder}
+        query={table.query}
+        onQueryChange={table.setQuery}
+        filterTrigger={(trigger) => <AddFilterPopover {...chipProps} trigger={trigger} />}
+        filterCount={table.filters.length}
+        columnsControl={
+          visibility.needsColumnsControl ? (
+            <ColumnLayoutPopover
+              t={t}
+              columns={columns}
+              isVisible={visibility.isVisible}
+              isHideable={visibility.isHideable}
+              onToggleVisible={toggleVisible}
+              isPinned={pins.isPinned}
+              canPin={canPinColumn}
+              onTogglePin={togglePin}
+              onReset={resetColumns}
+              /* §9 — a ledger's column set is fixed by §8.3.3; it gets pin
                    toggles and no visibility checkboxes. */
-                showVisibility={!isLedger}
-              />
-            ) : null
-          }
-          sortControl={
-            sorting === null ? null : <SortControl t={t} sorting={sorting} columns={columns} />
-          }
-        />
+              showVisibility={!isLedger}
+            />
+          ) : null
+        }
+        sortControl={
+          sorting === null ? null : <SortControl t={t} sorting={sorting} columns={columns} />
+        }
+      />
 
       {/* **BAND 3 — the query strip**, on the ground, with a declared 12 above
           it and a declared 12 below. §6.1 makes it permanent so that adding a
@@ -925,7 +1077,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
           <ErrorState
             scope="card"
             message={error.message}
-            action={{ label: t('state.pageError.action'), onClick: error.onRetry }}
+            action={{
+              label: t('state.pageError.action'),
+              onClick: error.onRetry,
+            }}
           />
         )}
 
@@ -958,7 +1113,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
             for visual-QA to find as a difference between two waves. */}
         {status === 'empty' &&
           (table.isFiltered || isLedger ? (
-            <EmptyState card={false} kind="no-match" message={noMatch.message} action={noMatchAction} />
+            <EmptyState
+              card={false}
+              kind="no-match"
+              message={noMatch.message}
+              action={noMatchAction}
+            />
           ) : emptyKind === 'cleared' && cleared ? (
             <EmptyState card={false} kind="cleared" heading={cleared.heading} body={cleared.body} />
           ) : (
@@ -985,85 +1145,104 @@ export function DataTable<T>(props: DataTableProps<T>) {
             containerClassName="min-h-54 flex-1 overflow-y-auto"
             onScroll={handleTableScroll}
           >
-              {headerRow}
+            {headerRow}
 
-              <TableBody>
-                {/* §9.2 / AC-49 — a ledger OPENS with a labelled opening balance. */}
-                {isLedger && ledgerBoundaryRows && (
-                  <TableRow className="font-semibold">
-                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.opening}</TableCell>
-                  </TableRow>
-                )}
+            <TableBody>
+              {/* §9.2 / AC-49 — a ledger OPENS with a labelled opening balance. */}
+              {isLedger && ledgerBoundaryRows && (
+                <TableRow className="font-semibold">
+                  <TableCell colSpan={columnCount}>{ledgerBoundaryRows.opening}</TableCell>
+                </TableRow>
+              )}
 
-                {refreshing
-                  ? Array.from({ length: Math.max(rows.length, 5) }, (_, index) => (
-                      <TableRow key={`skeleton-${index}`} className={cn("group/row relative", rowHeightClass)}>
-                        {selectable && (
-                          <TableCell style={laneStyle(SELECT_COLUMN_ID)} className={laneClass(SELECT_COLUMN_ID)}>
-                            <Skeleton className="size-4" />
-                          </TableCell>
-                        )}
-                        {visible.map((column) => (
-                          <TableCell
-                            key={column.id}
-                            style={pinnedStyle(pins.pinnedColumn(column.id), resolvedWidth(column), overflowing, column.minWidth)}
-                            className={laneClass(column.id)}
-                          >
-                            <Skeleton className="h-3 w-full" />
-                          </TableCell>
-                        ))}
-                        {kebabs && (
-                          <TableCell style={laneStyle(KEBAB_COLUMN_ID)} className={laneClass(KEBAB_COLUMN_ID)}>
-                            <Skeleton className="size-4" />
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  : rows.map((row) => {
-                      const id = getRowId(row)
-                      const isCritical = checkRowCritical(row, props.isRowCritical)
-                      return (
-                        <TableRow
-                          key={id}
-                          data-state={selectable && table.isSelected(id) ? 'selected' : undefined}
-                          onClick={(e) => handleTableRowClick(row, e)}
-                          /* `group` so the kebab and the pinned cells can respond
+              {refreshing
+                ? Array.from({ length: Math.max(rows.length, 5) }, (_, index) => (
+                    <TableRow
+                      key={`skeleton-${index}`}
+                      className={cn('group/row relative', rowHeightClass)}
+                    >
+                      {selectable && (
+                        <TableCell
+                          style={laneStyle(SELECT_COLUMN_ID)}
+                          className={laneClass(SELECT_COLUMN_ID)}
+                        >
+                          <Skeleton className="size-4" />
+                        </TableCell>
+                      )}
+                      {visible.map((column) => (
+                        <TableCell
+                          key={column.id}
+                          style={pinnedStyle(
+                            pins.pinnedColumn(column.id),
+                            resolvedWidth(column),
+                            overflowing,
+                            column.minWidth,
+                          )}
+                          className={laneClass(column.id)}
+                        >
+                          <Skeleton className="h-3 w-full" />
+                        </TableCell>
+                      ))}
+                      {kebabs && (
+                        <TableCell
+                          style={laneStyle(KEBAB_COLUMN_ID)}
+                          className={laneClass(KEBAB_COLUMN_ID)}
+                        >
+                          <Skeleton className="size-4" />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                : rows.map((row) => {
+                    const id = getRowId(row)
+                    const isCritical = checkRowCritical(row, props.isRowCritical)
+                    return (
+                      <TableRow
+                        key={id}
+                        data-state={selectable && table.isSelected(id) ? 'selected' : undefined}
+                        onClick={(e) => handleTableRowClick(row, e)}
+                        /* `group` so the kebab and the pinned cells can respond
                              to the row's hover AND its focus-within (AC-68).
                              `relative` so a `RowCriticalMarker` can position
                              against it — and because the marker rides the
                              implicitly pinned first cell, it stays visible at
                              every horizontal scroll offset (**AC-106**). */
-                          className={cn(
-                            'group/row relative transition-colors',
-                            rowHeightClass,
-                            hasRowClickAction && 'cursor-pointer hover:bg-muted/60',
-                            isCritical &&
-                              'bg-rose-50/70 hover:bg-rose-100/80 focus-within:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:focus-within:bg-rose-950/50',
-                            props.rowClassName?.(row),
-                          )}
-                        >
-                          {selectable && (
-                            <TableCell
-                              style={laneStyle(SELECT_COLUMN_ID)}
-                              className={laneClass(SELECT_COLUMN_ID, isCritical)}
-                            >
-                              <Checkbox
-                                aria-label={t('table.selectRow')}
-                                checked={table.isSelected(id)}
-                                onCheckedChange={() => table.toggleRow(id)}
-                              />
-                            </TableCell>
-                          )}
+                        className={cn(
+                          'group/row relative transition-colors',
+                          rowHeightClass,
+                          hasRowClickAction && 'cursor-pointer hover:bg-muted/60',
+                          isCritical &&
+                            'bg-rose-50/70 hover:bg-rose-100/80 focus-within:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:focus-within:bg-rose-950/50',
+                          props.rowClassName?.(row),
+                        )}
+                      >
+                        {selectable && (
+                          <TableCell
+                            style={laneStyle(SELECT_COLUMN_ID)}
+                            className={laneClass(SELECT_COLUMN_ID, isCritical)}
+                          >
+                            <Checkbox
+                              aria-label={t('table.selectRow')}
+                              checked={table.isSelected(id)}
+                              onCheckedChange={() => table.toggleRow(id)}
+                            />
+                          </TableCell>
+                        )}
 
-                          {visible.map((column, columnIndex) => {
-                            const pinned = pins.pinnedColumn(column.id)
-                            return (
-                              <TableCell
-                                key={column.id}
-                                style={pinnedStyle(pinned, resolvedWidth(column), overflowing, column.minWidth)}
-                                className={cn(
-                                  column.align === 'end' && 'text-end',
-                                  /* `03-navattic-language.md` §4.5, and the
+                        {visible.map((column, columnIndex) => {
+                          const pinned = pins.pinnedColumn(column.id)
+                          return (
+                            <TableCell
+                              key={column.id}
+                              style={pinnedStyle(
+                                pinned,
+                                resolvedWidth(column),
+                                overflowing,
+                                column.minWidth,
+                              )}
+                              className={cn(
+                                column.align === 'end' && 'text-end',
+                                /* `03-navattic-language.md` §4.5, and the
                                      match audit's largest single delta: **ink
                                      belongs to the identity column; the rest of
                                      the row is quieter.** Measured `#6b7280`
@@ -1071,101 +1250,98 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                      and a large part of why the table read
                                      heavy. `TableCell` defaults to
                                      `--ev-text-2` and index 0 takes it back. */
-                                  columnIndex === 0 && 'text-foreground',
-                                  laneClass(column.id, isCritical),
-                                  pinned &&
-                                    isCritical &&
-                                    'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85',
-                                )}
-                              >
-                                <span className="block">{column.cell(row)}</span>
-                                {/* §9.1 — a 12px second line INSIDE the identity
-                                    cell. The row grows to fit; never truncates. */}
-                                {column.secondaryLine && (
-                                  <span className="block text-xs text-muted-foreground">
-                                    {column.secondaryLine(row)}
-                                  </span>
-                                )}
-                              </TableCell>
-                            )
-                          })}
-
-                          {kebabs && (
-                            <TableCell
-                              style={laneStyle(KEBAB_COLUMN_ID)}
-                              className={laneClass(KEBAB_COLUMN_ID)}
+                                columnIndex === 0 && 'text-foreground',
+                                laneClass(column.id, isCritical),
+                                pinned &&
+                                  isCritical &&
+                                  'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85',
+                              )}
                             >
-                              {/* **D8 — one action is a BUTTON, not a menu.**
+                              <span className="block">{column.cell(row)}</span>
+                              {/* §9.1 — a 12px second line INSIDE the identity
+                                    cell. The row grows to fit; never truncates. */}
+                              {column.secondaryLine && (
+                                <span className="block text-xs text-muted-foreground">
+                                  {column.secondaryLine(row)}
+                                </span>
+                              )}
+                            </TableCell>
+                          )
+                        })}
+
+                        {kebabs && (
+                          <TableCell
+                            style={laneStyle(KEBAB_COLUMN_ID)}
+                            className={laneClass(KEBAB_COLUMN_ID)}
+                          >
+                            {/* **D8 — one action is a BUTTON, not a menu.**
                                   §7.8. Still §11.2-gated: an action the role
                                   cannot use renders disabled IN PLACE, because
                                   the count that chose this shape is the count
                                   of DECLARED actions and does not move per row.
                                   AC-68 / D19 — visible at rest, never revealed
                                   by hover. */}
-                              {actionShape === 'direct' ? (
-                                /* One or two, side by side. The lane was sized
+                            {actionShape === 'direct' ? (
+                              /* One or two, side by side. The lane was sized
                                    from the same count above, so two never
                                    overflow into the cell beside them. */
-                                <div className="flex items-center justify-end gap-1">
-                                  {declaredActions.map((action) => (
-                                    /* `label` is the key: `RowAction` has no
+                              <div className="flex items-center justify-end gap-1">
+                                {declaredActions.map((action) => (
+                                  /* `label` is the key: `RowAction` has no
                                        id, and two actions on one row with the
                                        same label would be a defect in the
                                        caller rather than a collision here. */
-                                    <SingleRowAction
+                                  <SingleRowAction key={action.label} action={action} row={row} />
+                                ))}
+                              </div>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label={t('table.rowActions', {
+                                      row: id,
+                                    })}
+                                    /* AC-68 / D19 — ALWAYS rendered. Muted at
+                                         rest; ink plus a fill on the row's hover
+                                         OR its focus-within. Never `opacity: 0`. */
+                                    className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
+                                  >
+                                    <span aria-hidden="true">⋯</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {declaredActions.map((action) => (
+                                    /* §11.2 — disabled in place, and with its
+                                         reason on a second line inside the item
+                                         (§8.4.4). Never a tooltip. */
+                                    <RowActionMenuItem
                                       key={action.label}
                                       action={action}
                                       row={row}
                                     />
                                   ))}
-                                </div>
-                              ) : (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      aria-label={t('table.rowActions', { row: id })}
-                                      /* AC-68 / D19 — ALWAYS rendered. Muted at
-                                         rest; ink plus a fill on the row's hover
-                                         OR its focus-within. Never `opacity: 0`. */
-                                      className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
-                                    >
-                                      <span aria-hidden="true">⋯</span>
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {declaredActions.map((action) => (
-                                      /* §11.2 — disabled in place, and with its
-                                         reason on a second line inside the item
-                                         (§8.4.4). Never a tooltip. */
-                                      <RowActionMenuItem
-                                        key={action.label}
-                                        action={action}
-                                        row={row}
-                                      />
-                                    ))}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      )
-                    })}
-              </TableBody>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    )
+                  })}
+            </TableBody>
 
-              {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
-              {isLedger && ledgerBoundaryRows && (
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.closing}</TableCell>
-                  </TableRow>
-                </TableFooter>
-              )}
+            {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
+            {isLedger && ledgerBoundaryRows && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={columnCount}>{ledgerBoundaryRows.closing}</TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
         )}
-
       </div>
 
       {/* **BAND 5 — the status/pagination row, OUTSIDE the table.** */}
@@ -1219,59 +1395,117 @@ export function DataTable<T>(props: DataTableProps<T>) {
           time. */}
       {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 && (
         <div className="pointer-events-none sticky bottom-6 z-40 -mt-3 flex h-0 items-end justify-center">
-          <div
-            role="group"
-            aria-label={t('table.selectedCount', { count: formatCount(selectedCount) })}
-            className="pointer-events-auto flex h-11 items-center gap-0.5 rounded-xl bg-foreground ps-3.5 pe-1.5 text-background shadow-3"
-          >
-            <span className="whitespace-nowrap text-sm font-medium tabular-nums">
-              {t('table.selectedCount', { count: formatCount(selectedCount) })}
-            </span>
-            <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
-            {bulkActions.slice(0, 3).map((action) => (
+          {/**
+           * **One object with two compartments, not a card floating above a pill.**
+           *
+           * The provisional treatment was a borderless white card on a white page
+           * — §6.2 D-11 / §6.3 D1, the defect itself — setting a load-bearing
+           * sentence at `text-2xs`, a size `globals.css` annotates as *"count
+           * badge numeral, status badge label"*, centred, wrapping, and off the
+           * 4px grid. Two surfaces also meant two shadows and two radii for what
+           * is one control in one state.
+           *
+           * The refusal now joins the bar: same container, same shadow, same
+           * radius, a `background/20` rule between the compartments — the rule
+           * the bar already draws between its own groups. Growth is upward, and
+           * the container is bottom-aligned inside a zero-height sticky row, so
+           * a refusal appearing moves nothing on the page.
+           */}
+          <div className="pointer-events-auto flex flex-col rounded-xl bg-foreground text-background shadow-3">
+            {refusalLines.length > 0 && (
+              <>
+                <div className="flex max-w-prose flex-col gap-1 px-4 py-2 text-start">
+                  {refusalLines.map((line) => (
+                    <div
+                      key={line.key}
+                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
+                    >
+                      {/* `text-xs` on `background/80` measures 11.6 : 1 on ink —
+                          AA with room. `text-2xs` is a badge size and this is a
+                          sentence somebody has to act on. */}
+                      <span id={line.key} className="text-xs text-background/80">
+                        {line.text}
+                      </span>
+                      {line.narrow !== null && (
+                        /* D21's escape hatch, at the compartment's inline-end.
+                           It leaves the sentence for discoverability, not for
+                           accessibility: at `size="xs"` it is ≥28px, sits at a
+                           predictable edge, and stops competing with the text it
+                           was embedded in. The label is unchanged. */
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={line.narrow.onSelect}
+                          className="h-7 shrink-0 rounded-lg bg-background/20 px-2.5 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+                        >
+                          {t('table.bulk.selectEligible', {
+                            count: formatCount(line.narrow.count),
+                          })}
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <span aria-hidden="true" className="h-px bg-background/20" />
+              </>
+            )}
+            <div
+              role="group"
+              aria-label={t('table.selectedCount', {
+                count: formatCount(selectedCount),
+              })}
+              /* Chrome moved to the shared container above. `ps-4 pe-2` rather
+                 than the old `ps-3.5 pe-1.5`, which was off the 4px grid
+                 (design/12 F-3). */
+              className="flex h-11 items-center gap-0.5 ps-4 pe-2"
+            >
+              <span className="whitespace-nowrap text-sm font-medium tabular-nums">
+                {t('table.selectedCount', {
+                  count: formatCount(selectedCount),
+                })}
+              </span>
+              <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
+              {bulkActions.slice(0, 3).map((action) => (
+                <BulkBarButton
+                  key={action.label}
+                  action={action}
+                  describedBy={reasonIdFor(action)}
+                  onRun={() => action.onClick(table.selectedIds)}
+                />
+              ))}
+              {bulkActions.length > 3 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={t('shell.moreActions')}
+                      className="h-8 w-8 rounded-lg bg-background/20 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+                    >
+                      <span aria-hidden="true">⋯</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {bulkActions.slice(3).map((action) => (
+                      <BulkBarMenuItem
+                        key={action.label}
+                        action={action}
+                        onRun={() => action.onClick(table.selectedIds)}
+                      />
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
               <Button
-                key={action.label}
                 variant="ghost"
                 size="xs"
-                onClick={() => action.onClick(table.selectedIds)}
-                className="h-8 rounded-lg bg-background/20 px-2.5 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+                onClick={table.clearSelection}
+                className="h-8 px-2.5 text-background/80 hover:bg-background/15 hover:text-background focus-visible:ring-background"
               >
-                {action.label}
+                {t('table.clear')}
               </Button>
-            ))}
-            {bulkActions.length > 3 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={t('shell.moreActions')}
-                    className="h-8 w-8 rounded-lg bg-background/20 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
-                  >
-                    <span aria-hidden="true">⋯</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {bulkActions.slice(3).map((action) => (
-                    <DropdownMenuItem
-                      key={action.label}
-                      onSelect={() => action.onClick(table.selectedIds)}
-                    >
-                      {action.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <span aria-hidden="true" className="mx-2 h-5 w-px bg-background/25" />
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={table.clearSelection}
-              className="h-8 px-2.5 text-background/80 hover:bg-background/15 hover:text-background focus-visible:ring-background"
-            >
-              {t('table.clear')}
-            </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1280,4 +1514,107 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {learnMore && <div className="text-center">{learnMore}</div>}
     </div>
   )
+}
+
+/* ─────────────────────── the bulk bar's two shapes ─────────────────────── */
+
+/**
+ * What a screen declares for the bulk bar. Deliberately the same three ideas as
+ * `RowAction` — label, refusal, handler — so one command registry can feed both
+ * surfaces without either translating the other's vocabulary.
+ */
+export interface BulkAction {
+  label: string
+  onClick: (ids: ReadonlySet<string>) => void
+  disabled?: boolean
+  reason?: string | null
+  /**
+   * **D21** — the ids in the current selection this command *would* accept.
+   *
+   * Present only on a refused action that has something to narrow to. The bar
+   * renders `Select only the N eligible` from it and narrows the selection; it
+   * never recomputes the predicate, because the predicate belongs to the
+   * command registry and a second implementation here is a second answer.
+   *
+   * **Omitted when every selected record is refused** — there is nothing to
+   * narrow to, that case gets the `.all` sentence, and no control renders
+   * (AC-960). The bar treats an empty set the same way for the same reason.
+   */
+  eligibleIds?: ReadonlySet<string>
+}
+
+/**
+ * §11.2 — **disabled in place, at rest, with its reason.** Before this existed
+ * the bulk bar had no way to say no until after the click, so the row kebab and
+ * the bulk bar could disagree about the same record. That divergence is the
+ * defect **D9** records, and the command registry now derives both from one
+ * predicate; this is the half that renders it.
+ *
+ * The reason is not on the button. The bar is a 44px inverted pill and a second
+ * line inside it would break the geometry, so the sentence renders in the
+ * light-ground region above the bar and the button points at it with
+ * `aria-describedby` — real text, reachable by keyboard and by screen reader,
+ * which is what §8.4.4 requires and what a `title` attribute would not give.
+ */
+function BulkBarButton({
+  action,
+  describedBy,
+  onRun,
+}: {
+  action: BulkAction
+  /** The refusal line this control points at — see `refusalLines`. Identical
+      sentences collapse to one line, so it is not always this action's own. */
+  describedBy?: string | undefined
+  onRun: () => void
+}) {
+  const refused = action.disabled === true
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      disabled={refused}
+      aria-describedby={describedBy}
+      onClick={onRun}
+      className="h-8 rounded-lg bg-background/20 px-2.5 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
+    >
+      {action.label}
+    </Button>
+  )
+}
+
+/**
+ * The overflow item — §8.4.4's construction exactly, and identical to
+ * `RowActionMenuItem`'s: disabled in place with the reason on a second line
+ * **inside** the item, the accessible name kept as the bare label so a caller
+ * that finds an action by its label still finds it.
+ */
+function BulkBarMenuItem({ action, onRun }: { action: BulkAction; onRun: () => void }) {
+  const refused = action.disabled === true
+  const reason = refused ? (action.reason ?? null) : null
+  const reasonId = useId()
+
+  return (
+    <DropdownMenuItem
+      onSelect={onRun}
+      disabled={refused}
+      aria-label={reason === null ? undefined : action.label}
+      aria-describedby={reason === null ? undefined : reasonId}
+      className={cn(reason !== null && 'flex-col items-start gap-0.5 whitespace-normal')}
+    >
+      {action.label}
+      {reason !== null && (
+        <span
+          id={reasonId}
+          className="block text-2xs font-normal whitespace-normal text-muted-foreground"
+        >
+          {reason}
+        </span>
+      )}
+    </DropdownMenuItem>
+  )
+}
+
+/** Stable across renders and shared by the button and the sentence above the bar. */
+function bulkReasonId(label: string): string {
+  return `bulk-refusal-${label.replace(/\W+/g, '-').toLowerCase()}`
 }

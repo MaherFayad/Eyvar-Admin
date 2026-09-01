@@ -1,103 +1,87 @@
-import { useMemo, useState } from 'react'
+/**
+ * Support › Disputes & Lost and Found.
+ *
+ * Rules applied
+ *   §2         **the data comes from a client.** The screen this replaces held
+ *              `INITIAL_DISPUTES` and `INITIAL_LOST_FOUND` as module literals in
+ *              `useState`, so nothing could page, filter, fail or be swapped for
+ *              an API. Both views now read `clients/disputes.ts`.
+ *   §4.3       **all four states**, on both views, from `useAsync().status`. The
+ *              old screen passed `status="content"` as a literal and an
+ *              `onRetry` that was `() => {}` — an error branch that could not be
+ *              reached and could not have recovered if it had been.
+ *   §11.2      **an action the operator may not take is disabled in place with
+ *              its reason**, never hidden. Every row action here is declared for
+ *              every row; `disabled` and `reason` decide what the operator sees.
+ *              The old screen rendered `null` — so a resolved claim showed no
+ *              trace that resolving exists, and a returned item showed no trace
+ *              of the ladder it had come down.
+ *   D8-b       two declared row actions render as two labelled controls, not a
+ *              kebab. That is `DataTable`'s threshold and this screen does not
+ *              re-implement it.
+ *   AC-68      row actions are visible at rest and keyboard-operable. Nothing
+ *              here appears on `:hover`.
+ *   §9.3       the verdict clock is `slaClock`, and `No clock` is a VALUE —
+ *              `DSP-118` has no deadline and says so rather than showing `—`.
+ *   AC-74/75   every string is a key in `./copy`, with named placeholders. No
+ *              `defaultValue` anywhere.
+ *   §4.6 · 1   `view` is passed **after** `table.params`, explicitly `null`,
+ *              rather than letting `table.params.view` clobber the tab. These
+ *              two collections are separate endpoints, not two views of one.
+ */
+
+import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import type { SubTabRoute } from '@/data/types'
-import { formatDate } from '@/lib'
-import { useIndexTable } from '@/hooks'
-import { DataTable, type DataColumn } from '@/components/DataTable'
-import { Money } from '@/components/Money'
+import {
+  advanceLostFoundItem,
+  claimDispute,
+  listDisputes,
+  listLostFound,
+  resolveDispute,
+  type ResolveDisputeInput,
+} from '@/data/clients'
+import {
+  DISPUTE_KINDS,
+  DISPUTE_OUTCOMES,
+  DISPUTE_STATUSES,
+  LOST_FOUND_STATUSES,
+  type BadgeTone,
+  type Dispute,
+  type LostFoundItem,
+  type Paginated,
+  type SubTabRoute,
+} from '@/data/types'
+import { useAsync, useIndexTable, useNow } from '@/hooks'
+import {
+  NO_CLOCK,
+  formatDate,
+  formatMoney,
+  formatSlaLabel,
+  slaClock,
+} from '@/lib'
+import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
+import { MoneyCell } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withView } from '@/shell/routeState'
-import { Button } from '@/components/ui/button'
-import { PackageCheck } from 'lucide-react'
-import { ResolveDisputeModal, type DisputeItem } from './ResolveDisputeModal'
+import { ResolveDisputeModal } from './ResolveDisputeModal'
 
-interface LostFoundItem {
-  id: string
-  itemDescription: string
-  riderName: string
-  riderId: string
-  driverName: string
-  driverId: string
-  tripId: string
-  status: 'reported' | 'item-found' | 'in-transit' | 'returned'
-  reportedAt: string
+const DISPUTE_STATUS_TONE: Record<Dispute['status'], BadgeTone> = {
+  open: 'warning',
+  'under-review': 'info',
+  resolved: 'success',
 }
 
-const INITIAL_DISPUTES: DisputeItem[] = [
-  {
-    id: 'DSP-101',
-    kind: 'Toll Discrepancy',
-    claimantName: 'Sarah Al-Ghamdi',
-    claimantId: 'RDR-1041',
-    tripId: 'TRP-1002',
-    amountHalalas: 2500,
-    status: 'pending',
-    filedAt: '2026-06-25T08:15:00+03:00',
-    details: 'Airport toll gate was billed twice on quick ride invoice.',
-  },
-  {
-    id: 'DSP-102',
-    kind: 'Late Cancellation Charge',
-    claimantName: 'Rayan Al-Shehri',
-    claimantId: 'RDR-1044',
-    tripId: 'TRP-1005',
-    amountHalalas: 1500,
-    status: 'under-review',
-    filedAt: '2026-06-24T18:30:00+03:00',
-    details: 'Driver took 15 minutes to arrive; rider cancelled due to excessive wait time.',
-  },
-  {
-    id: 'DSP-103',
-    kind: 'Vehicle Interior Damage',
-    claimantName: 'Abdullah Al-Otaibi',
-    claimantId: 'DRV-0101',
-    tripId: 'TRP-1001',
-    amountHalalas: 15000,
-    status: 'pending',
-    filedAt: '2026-06-25T09:00:00+03:00',
-    details: 'Beverage spilled on rear seat upholstery requiring steam cleaning.',
-  },
-]
+const LOST_FOUND_STATUS_TONE: Record<LostFoundItem['status'], BadgeTone> = {
+  searching: 'warning',
+  'with-captain': 'info',
+  returned: 'success',
+}
 
-const INITIAL_LOST_FOUND: LostFoundItem[] = [
-  {
-    id: 'LF-201',
-    itemDescription: 'Apple MacBook Pro in grey sleeve',
-    riderName: 'Fahad Al-Dosari',
-    riderId: 'RDR-1042',
-    driverName: 'Sultan Al-Harbi',
-    driverId: 'DRV-0104',
-    tripId: 'TRP-1004',
-    status: 'item-found',
-    reportedAt: '2026-06-25T08:45:00+03:00',
-  },
-  {
-    id: 'LF-202',
-    itemDescription: 'Black leather wallet with national ID & bank cards',
-    riderName: 'Noura Al-Fahad',
-    riderId: 'RDR-1043',
-    driverName: 'Khalid Al-Zahrani',
-    driverId: 'DRV-0102',
-    tripId: 'TRP-1003',
-    status: 'in-transit',
-    reportedAt: '2026-06-24T20:10:00+03:00',
-  },
-  {
-    id: 'LF-203',
-    itemDescription: 'Prescription sunglasses in black Ray-Ban case',
-    riderName: 'Yousef Al-Balawi',
-    riderId: 'RDR-1045',
-    driverName: 'Abdullah Al-Otaibi',
-    driverId: 'DRV-0101',
-    tripId: 'TRP-1001',
-    status: 'returned',
-    reportedAt: '2026-06-23T14:20:00+03:00',
-  },
-]
+const LOST_FOUND_VIEW = 'lost-and-found'
 
 export function DisputesScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -105,293 +89,483 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t, dir, language } = shell.language
+  /* One clock (`AC-28`). The verdict countdown re-reads it every 15 s, which is
+     §9.3's SLA bucket, not a per-screen interval. */
+  const now = useNow(15)
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
   const fallback = views.find((v) => v.isDefault)?.id ?? 'disputes'
   const activeTab = views.some((v) => v.id === route.view) ? (route.view as string) : fallback
+  const onLostFound = activeTab === LOST_FOUND_VIEW
 
-  const [disputes, setDisputes] = useState<DisputeItem[]>(INITIAL_DISPUTES)
-  const [lostFound, setLostFound] = useState<LostFoundItem[]>(INITIAL_LOST_FOUND)
-  const [activeDispute, setActiveDispute] = useState<DisputeItem | null>(null)
+  const currentUserId = shell.session?.userId ?? 'USR-1'
+  const currentUserName = shell.session?.name ?? 'Sarah Al-Rashid'
+  const canWrite = shell.permissions.permissions.includes('manage_tickets')
 
-  const disputeTable = useIndexTable<DisputeItem>({
+  /* ── disputes ─────────────────────────────────────────────────────── */
+
+  const disputeTable = useIndexTable<Dispute>({
     mode: 'index',
     getRowId: (d) => d.id,
+    initialSort: { field: 'filedAt', dir: 'desc' },
   })
+
+  const disputeParams = useMemo(
+    /* `view: null` LAST, on purpose. `table.params.view` is `null` on a screen
+       that passes no `initialView`, and three call sites in Financials spread it
+       after the tab and silently delete their own filter (§4.6 item 1). Here the
+       two tabs are two collections, so there is no view to send at all — stating
+       it beats relying on the spread order. */
+    () => ({ ...disputeTable.params, view: null }),
+    [disputeTable.params],
+  )
+
+  const disputes = useAsync<Paginated<Dispute>>(
+    (signal) => listDisputes(disputeParams, signal),
+    { deps: [disputeParams], enabled: !onLostFound },
+  )
+
+  /* ── lost and found ───────────────────────────────────────────────── */
 
   const lfTable = useIndexTable<LostFoundItem>({
     mode: 'index',
-    getRowId: (lf) => lf.id,
+    getRowId: (l) => l.id,
+    initialSort: { field: 'reportedAt', dir: 'desc' },
   })
 
-  const canWrite = shell.permissions.permissions.includes('manage_tickets')
+  const lfParams = useMemo(() => ({ ...lfTable.params, view: null }), [lfTable.params])
 
-  const handleResolveDispute = (disputeId: string, resolution: string, _refundHalalas: number) => {
-    setDisputes((prev) =>
-      prev.map((d) => (d.id === disputeId ? { ...d, status: 'resolved' } : d))
-    )
-    toast.success(t('dispute.toast.resolved', { defaultValue: 'Dispute {id} resolved: {res}', id: disputeId, res: resolution }))
-  }
+  const lostFound = useAsync<Paginated<LostFoundItem>>(
+    (signal) => listLostFound(lfParams, signal),
+    { deps: [lfParams], enabled: onLostFound },
+  )
 
-  const handleAdvanceLF = (id: string) => {
-    setLostFound((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item
-        const nextStatus =
-          item.status === 'reported'
-            ? 'item-found'
-            : item.status === 'item-found'
-              ? 'in-transit'
-              : 'returned'
-        return { ...item, status: nextStatus }
-      })
-    )
-    toast.success(t('dispute.toast.lfAdvanced', { defaultValue: 'Lost & Found item status updated' }))
-  }
+  /* ── mutations ────────────────────────────────────────────────────── */
 
-  const disputeColumns: DataColumn<DisputeItem>[] = useMemo(
+  const [activeDispute, setActiveDispute] = useState<Dispute | null>(null)
+
+  const handleTake = useCallback(
+    async (dispute: Dispute) => {
+      try {
+        await claimDispute(dispute.id, currentUserId, currentUserName)
+        toast.success(t('dispute.toast.taken', { id: dispute.id }))
+        disputes.refetch()
+      } catch {
+        toast.error(t('dispute.toast.failed', { id: dispute.id }))
+      }
+    },
+    [currentUserId, currentUserName, disputes, t],
+  )
+
+  /**
+   * Resolving is the money-moving act, so the screen owns the call and the
+   * modal stays dumb. It **re-throws**: the modal renders the seam's own reason
+   * inline and stays open, because closing a form over a refusal loses the
+   * operator's note and tells them nothing.
+   */
+  const handleResolve = useCallback(
+    async (input: ResolveDisputeInput) => {
+      const dispute = activeDispute
+      if (!dispute) return
+      const { dispute: resolved } = await resolveDispute(input)
+      const outcome = resolved.resolution?.outcome
+      if (outcome && outcome !== 'declined') {
+        toast.success(
+          t('dispute.toast.resolved', {
+            id: resolved.id,
+            amount: formatMoney(resolved.resolution?.refundHalalas ?? 0, { unit: 'code' }),
+            name: resolved.claimantName,
+          }),
+        )
+      } else {
+        toast.success(t('dispute.toast.declined', { id: resolved.id }))
+      }
+      setActiveDispute(null)
+      disputes.refetch()
+    },
+    [activeDispute, disputes, t],
+  )
+
+  const handleAdvance = useCallback(
+    async (item: LostFoundItem) => {
+      try {
+        const updated = await advanceLostFoundItem({ id: item.id })
+        toast.success(
+          t('dispute.lf.toast.advanced', {
+            id: updated.id,
+            status: t(`dispute.lf.status.${updated.status}`),
+          }),
+        )
+        lostFound.refetch()
+      } catch {
+        toast.error(t('dispute.lf.toast.failed', { id: item.id }))
+      }
+    },
+    [lostFound, t],
+  )
+
+  /* ── columns ──────────────────────────────────────────────────────── */
+
+  const disputeColumns: DataColumn<Dispute>[] = useMemo(
     () => [
       {
         id: 'id',
-        header: t('column.case', { defaultValue: 'Case ID' }),
-        width: 110,
+        header: t('dispute.col.case'),
+        width: 96,
         dataType: 'text',
+        alwaysVisible: true,
         cell: (d) => <span className="font-mono text-xs font-semibold text-foreground">{d.id}</span>,
       },
       {
-        id: 'kind',
-        header: t('column.claimType', { defaultValue: 'Claim Category' }),
-        width: 200,
-        dataType: 'text',
+        id: 'what',
+        header: t('dispute.col.what'),
+        minWidth: 240,
+        dataType: 'enum',
+        sortField: 'kind',
         cell: (d) => (
-          <div className="flex flex-col text-xs">
-            <span className="font-medium text-foreground">{d.kind}</span>
-            <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">{d.details}</span>
-          </div>
+          <span className="block truncate text-xs font-medium text-foreground">
+            {t(`dispute.kind.${d.kind}`)}
+          </span>
+        ),
+        /* §15 — the options come from the CLOSED union, so a seventh kind is a
+           missing key at build time rather than a facet nobody added. Every
+           member has at least one seeded row (`fixtures/disputes.ts`), which is
+           what stops this being a filter that can never match. */
+        filter: {
+          kind: 'select',
+          field: 'kind',
+          options: DISPUTE_KINDS.map((value) => ({ value, label: t(`dispute.kind.${value}`) })),
+        },
+        secondaryLine: (d) => (
+          <span className="block truncate text-xs text-muted-foreground">{d.claim}</span>
         ),
       },
       {
-        id: 'claimant',
-        header: t('column.claimant', { defaultValue: 'Claimant' }),
-        width: 150,
+        id: 'parties',
+        header: t('dispute.col.parties'),
+        width: 180,
         dataType: 'text',
+        sortField: 'claimantName',
         cell: (d) => (
-          <div className="flex flex-col text-xs">
-            <span className="font-medium text-foreground">{d.claimantName}</span>
-            <span className="text-[11px] font-mono text-muted-foreground">{d.claimantId}</span>
-          </div>
+          <span className="block truncate text-xs text-foreground">
+            {t('dispute.line.claimant', { name: d.claimantName })}
+          </span>
         ),
-      },
-      {
-        id: 'trip',
-        header: t('column.trip', { defaultValue: 'Related Trip' }),
-        width: 110,
-        dataType: 'text',
-        cell: (d) => <span className="font-mono text-xs text-muted-foreground">{d.tripId}</span>,
-      },
-      {
-        id: 'amount',
-        header: t('column.disputedAmount', { defaultValue: 'Disputed' }),
-        width: 110,
-        align: 'end',
-        dataType: 'money',
-        cell: (d) => (
-          <span className="text-xs font-semibold tabular-nums text-foreground">
-            <Money amount={d.amountHalalas} />
+        secondaryLine: (d) => (
+          <span className="block truncate text-xs text-muted-foreground">
+            {d.againstName === null
+              ? t('dispute.line.noAgainst')
+              : t('dispute.line.against', { name: d.againstName })}
           </span>
         ),
       },
       {
+        id: 'amount',
+        header: t('dispute.col.amount'),
+        width: 116,
+        align: 'end',
+        dataType: 'money',
+        sortField: 'amountHalalas',
+        cell: (d) => <MoneyCell amount={d.amountHalalas} />,
+      },
+      {
         id: 'status',
-        header: t('column.status', { defaultValue: 'Status' }),
-        width: 110,
+        header: t('dispute.col.status'),
+        width: 132,
         dataType: 'enum',
+        sortField: 'status',
         cell: (d) => (
-          <StatusBadge tone={d.status === 'resolved' ? 'success' : d.status === 'pending' ? 'warning' : 'info'}>
-            {d.status}
+          <StatusBadge tone={DISPUTE_STATUS_TONE[d.status]}>
+            {t(`dispute.status.${d.status}`)}
           </StatusBadge>
         ),
+        filter: {
+          kind: 'select',
+          field: 'status',
+          options: DISPUTE_STATUSES.map((value) => ({
+            value,
+            label: t(`dispute.status.${value}`),
+          })),
+        },
+        secondaryLine: (d) =>
+          d.resolution === null ? (
+            <span className="block truncate text-xs text-muted-foreground">
+              {d.ownerName === null
+                ? t('dispute.line.unowned')
+                : t('dispute.line.owner', { name: d.ownerName })}
+            </span>
+          ) : (
+            <span className="block truncate text-xs text-muted-foreground">
+              {d.resolution.refundHalalas === 0
+                ? t('dispute.line.settledNothing', {
+                    outcome: t(`dispute.outcome.${d.resolution.outcome}`),
+                  })
+                : t('dispute.line.settled', {
+                    outcome: t(`dispute.outcome.${d.resolution.outcome}`),
+                    amount: formatMoney(d.resolution.refundHalalas, { unit: 'code' }),
+                  })}
+            </span>
+          ),
       },
       {
-        id: 'filedAt',
-        header: t('column.filed', { defaultValue: 'Filed' }),
-        width: 120,
+        id: 'due',
+        header: t('dispute.col.due'),
+        width: 124,
         dataType: 'date',
-        cell: (d) => <span className="text-[11px] text-muted-foreground">{formatDate(d.filedAt, { language })}</span>,
-      },
-      {
-        id: 'actions',
-        header: '',
-        width: 100,
-        align: 'end',
-        cell: (d) =>
-          canWrite && d.status !== 'resolved' ? (
-            <Button
-              size="xs"
-              onClick={() => setActiveDispute(d)}
-            >
-              {t('dispute.action.resolve', { defaultValue: 'Resolve Claim' })}
-            </Button>
-          ) : null,
+        sortField: 'dueAt',
+        cell: (d) => {
+          /* A decided claim's clock has stopped. Driving the pill off a past
+             `dueAt` would print `overdue 3d` on work nobody owes — §9.3's own
+             rule, and the reason `NO_CLOCK` is referentially stable. */
+          const clock =
+            d.status === 'resolved' ? NO_CLOCK : slaClock({ dueAt: d.dueAt, startedAt: d.filedAt }, now)
+          return (
+            <StatusBadge tone={clock.band === 'neutral' ? 'neutral' : 'warning'}>
+              {formatSlaLabel(clock, t)}
+            </StatusBadge>
+          )
+        },
       },
     ],
-    [canWrite, language, t]
+    [now, t],
   )
 
   const lfColumns: DataColumn<LostFoundItem>[] = useMemo(
     () => [
       {
         id: 'id',
-        header: t('column.case', { defaultValue: 'Case ID' }),
-        width: 110,
+        header: t('dispute.lf.col.case'),
+        width: 96,
         dataType: 'text',
-        cell: (lf) => <span className="font-mono text-xs font-semibold text-foreground">{lf.id}</span>,
+        alwaysVisible: true,
+        cell: (l) => <span className="font-mono text-xs font-semibold text-foreground">{l.id}</span>,
       },
       {
         id: 'item',
-        header: t('column.item', { defaultValue: 'Item Description' }),
-        width: 200,
+        header: t('dispute.lf.col.item'),
+        minWidth: 240,
         dataType: 'text',
-        cell: (lf) => <span className="text-xs font-medium text-foreground">{lf.itemDescription}</span>,
-      },
-      {
-        id: 'rider',
-        header: t('column.rider', { defaultValue: 'Rider' }),
-        width: 150,
-        dataType: 'text',
-        cell: (lf) => (
-          <div className="flex flex-col text-xs">
-            <span className="font-medium text-foreground">{lf.riderName}</span>
-            <span className="text-[11px] font-mono text-muted-foreground">{lf.riderId}</span>
-          </div>
+        sortField: 'item',
+        cell: (l) => (
+          <span className="block truncate text-xs font-medium text-foreground">{l.item}</span>
         ),
       },
       {
-        id: 'driver',
-        header: t('column.captain', { defaultValue: 'Captain & Trip' }),
-        width: 160,
+        id: 'rider',
+        header: t('dispute.lf.col.rider'),
+        width: 170,
         dataType: 'text',
-        cell: (lf) => (
-          <div className="flex flex-col text-xs">
-            <span className="font-medium text-foreground">{lf.driverName}</span>
-            <span className="text-[11px] font-mono text-muted-foreground">{lf.tripId}</span>
-          </div>
+        cell: (l) => <span className="block truncate text-xs text-foreground">{l.riderName}</span>,
+        secondaryLine: (l) => (
+          <span className="block font-mono text-xs text-muted-foreground">{l.riderId}</span>
+        ),
+      },
+      {
+        id: 'captain',
+        header: t('dispute.lf.col.captain'),
+        width: 190,
+        dataType: 'text',
+        cell: (l) => (
+          <span className="block truncate text-xs text-foreground">
+            {l.driverName === null
+              ? t('dispute.lf.line.noCaptain', { trip: l.tripId })
+              : t('dispute.lf.line.captain', { name: l.driverName, trip: l.tripId })}
+          </span>
         ),
       },
       {
         id: 'status',
-        header: t('column.status', { defaultValue: 'Status' }),
-        width: 120,
+        header: t('dispute.lf.col.status'),
+        width: 140,
         dataType: 'enum',
-        cell: (lf) => (
-          <StatusBadge
-            tone={
-              lf.status === 'returned'
-                ? 'success'
-                : lf.status === 'in-transit'
-                  ? 'info'
-                  : lf.status === 'item-found'
-                    ? 'new'
-                    : 'warning'
-            }
-          >
-            {lf.status}
+        sortField: 'status',
+        cell: (l) => (
+          <StatusBadge tone={LOST_FOUND_STATUS_TONE[l.status]}>
+            {t(`dispute.lf.status.${l.status}`)}
           </StatusBadge>
         ),
+        filter: {
+          kind: 'select',
+          field: 'status',
+          options: LOST_FOUND_STATUSES.map((value) => ({
+            value,
+            label: t(`dispute.lf.status.${value}`),
+          })),
+        },
       },
       {
         id: 'reportedAt',
-        header: t('column.reported', { defaultValue: 'Reported' }),
-        width: 120,
+        header: t('dispute.lf.col.reported'),
+        width: 124,
         dataType: 'date',
-        cell: (lf) => <span className="text-[11px] text-muted-foreground">{formatDate(lf.reportedAt, { language })}</span>,
-      },
-      {
-        id: 'actions',
-        header: '',
-        width: 130,
-        align: 'end',
-        cell: (lf) =>
-          canWrite && lf.status !== 'returned' ? (
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={() => handleAdvanceLF(lf.id)}
-              className="gap-1"
-            >
-              <PackageCheck className="h-3.5 w-3.5 text-muted-foreground" />
-              {lf.status === 'reported'
-                ? t('dispute.markFound', { defaultValue: 'Mark Found' })
-                : lf.status === 'item-found'
-                  ? t('dispute.inTransit', { defaultValue: 'In Transit' })
-                  : t('dispute.handoverReturned', { defaultValue: 'Hand Over' })}
-            </Button>
-          ) : null,
+        sortField: 'reportedAt',
+        cell: (l) => (
+          <span className="text-xs text-muted-foreground">
+            {formatDate(l.reportedAt, { style: 'day-month-time', language })}
+          </span>
+        ),
       },
     ],
-    [canWrite, language, t]
+    [language, t],
   )
 
+  /* ── row actions · §11.2, declared for every row ──────────────────── */
+
+  const disputeActions: RowAction<Dispute>[] = useMemo(
+    () => [
+      {
+        label: t('dispute.action.take'),
+        onSelect: (d) => void handleTake(d),
+        disabled: (d) => !canWrite || d.status === 'resolved' || d.ownerId !== null,
+        reason: (d) => {
+          if (!canWrite) return t('dispute.action.take.blocked.permission')
+          if (d.status === 'resolved') return t('dispute.action.take.blocked.resolved')
+          if (d.ownerId !== null) {
+            return t('dispute.action.take.blocked.owned', { name: d.ownerName ?? d.ownerId })
+          }
+          return null
+        },
+      },
+      {
+        label: t('dispute.action.resolve'),
+        onSelect: (d) => setActiveDispute(d),
+        disabled: (d) => !canWrite || d.status === 'resolved',
+        reason: (d) => {
+          if (!canWrite) return t('dispute.action.resolve.blocked.permission')
+          if (d.status === 'resolved') {
+            return t('dispute.action.resolve.blocked.resolved', {
+              date: formatDate(d.resolution?.resolvedAt ?? d.filedAt, {
+                style: 'day-month',
+                language,
+              }),
+            })
+          }
+          return null
+        },
+      },
+    ],
+    [canWrite, handleTake, language, t],
+  )
+
+  const lfActions: RowAction<LostFoundItem>[] = useMemo(
+    () => [
+      {
+        label: t('dispute.lf.action.found'),
+        onSelect: (l) => void handleAdvance(l),
+        disabled: (l) => !canWrite || l.status !== 'searching' || l.driverId === null,
+        reason: (l) => {
+          if (!canWrite) return t('dispute.lf.action.found.blocked.permission')
+          if (l.status !== 'searching') return t('dispute.lf.action.found.blocked.past')
+          if (l.driverId === null) return t('dispute.lf.action.found.blocked.noCaptain')
+          return null
+        },
+      },
+      {
+        label: t('dispute.lf.action.returned'),
+        onSelect: (l) => void handleAdvance(l),
+        disabled: (l) => !canWrite || l.status !== 'with-captain',
+        reason: (l) => {
+          if (!canWrite) return t('dispute.lf.action.returned.blocked.permission')
+          if (l.status === 'searching') return t('dispute.lf.action.returned.blocked.searching')
+          if (l.status === 'returned') return t('dispute.lf.action.returned.blocked.done')
+          return null
+        },
+      },
+    ],
+    [canWrite, handleAdvance, t],
+  )
+
+  /* ── render ───────────────────────────────────────────────────────── */
+
   const tabs = views.map((v) => ({ id: v.id, label: t(v.titleKey) }))
+  const onSelectTab = (id: string) =>
+    navigate({ pathname: location.pathname, search: withView(location.search, id) })
+
+  const total = onLostFound ? (lostFound.data?.total ?? 0) : (disputes.data?.total ?? 0)
+  const meta = onLostFound
+    ? t.plural('dispute.lf.meta', { count: total })
+    : t.plural('dispute.meta', { count: total })
 
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} t={t} dir={dir} />}>
-      {activeTab === 'lost-and-found' ? (
+    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}>
+      {onLostFound ? (
         <DataTable
           table={lfTable}
-          rows={lostFound}
+          rows={lostFound.data?.items ?? []}
           columns={lfColumns}
-          getRowId={(lf) => lf.id}
-          status="content"
-          total={lostFound.length}
+          getRowId={(l) => l.id}
+          status={lostFound.status}
+          total={total}
           t={t}
           language={language}
           tableId="support-lost-found"
           view={activeTab}
           tabs={tabs}
           activeTab={activeTab}
-          onSelectTab={(id) => navigate({ pathname: location.pathname, search: withView(location.search, id) })}
-          searchPlaceholder={t('dispute.searchPlaceholder', { defaultValue: 'Search cases by ID or user...' })}
+          onSelectTab={onSelectTab}
+          searchPlaceholder={t('dispute.lf.search')}
+          rowActions={lfActions}
+          rowActionsWidth={224}
           firstRun={{
-            heading: t('dispute.lf.empty.heading', { defaultValue: 'No lost property reports' }),
-            body: t('dispute.lf.empty.body', { defaultValue: 'Items reported lost in vehicles during trips appear here.' }),
+            heading: t('dispute.lf.empty.heading'),
+            body: t('dispute.lf.empty.body'),
             actions: [],
           }}
-          noMatch={{ message: t('dispute.empty.noMatch', { defaultValue: 'No records match your filter' }) }}
-          error={{ message: t('dispute.error.read', { defaultValue: 'Failed to load records' }), onRetry: () => {} }}
+          noMatch={{ message: t('dispute.lf.empty.noMatch') }}
+          error={{ message: t('dispute.lf.error.read'), onRetry: lostFound.refetch }}
         />
       ) : (
         <DataTable
           table={disputeTable}
-          rows={disputes}
+          rows={disputes.data?.items ?? []}
           columns={disputeColumns}
           getRowId={(d) => d.id}
-          status="content"
-          total={disputes.length}
+          status={disputes.status}
+          total={total}
           t={t}
           language={language}
           tableId="support-disputes"
           view={activeTab}
           tabs={tabs}
           activeTab={activeTab}
-          onSelectTab={(id) => navigate({ pathname: location.pathname, search: withView(location.search, id) })}
-          searchPlaceholder={t('dispute.searchPlaceholder', { defaultValue: 'Search cases by ID or user...' })}
+          onSelectTab={onSelectTab}
+          searchPlaceholder={t('dispute.search')}
+          /* §6.4 — a filter bound to no visible column. The verdict lives inside
+             `resolution`, which has no column of its own, and *"show me every
+             claim we declined"* is the first question anyone asks of a settled
+             queue. `resolution` is null on an open claim, so the filter matches
+             only decided rows by construction. */
+          extraFilters={[
+            {
+              kind: 'select',
+              field: 'outcome',
+              label: t('dispute.col.outcome'),
+              options: DISPUTE_OUTCOMES.map((value) => ({
+                value,
+                label: t(`dispute.outcome.${value}`),
+              })),
+            },
+          ]}
+          rowActions={disputeActions}
+          rowActionsWidth={224}
           firstRun={{
-            heading: t('dispute.empty.heading', { defaultValue: 'No active disputes' }),
-            body: t('dispute.empty.body', { defaultValue: 'Customer fare adjustments and property damage claims appear here.' }),
+            heading: t('dispute.empty.heading'),
+            body: t('dispute.empty.body'),
             actions: [],
           }}
-          noMatch={{ message: t('dispute.empty.noMatch', { defaultValue: 'No disputes match your filter' }) }}
-          error={{ message: t('dispute.error.read', { defaultValue: 'Failed to load disputes' }), onRetry: () => {} }}
+          noMatch={{ message: t('dispute.empty.noMatch') }}
+          error={{ message: t('dispute.error.read'), onRetry: disputes.refetch }}
         />
       )}
 
       <ResolveDisputeModal
         dispute={activeDispute}
-        open={!!activeDispute}
+        open={activeDispute !== null}
+        canWrite={canWrite}
         onClose={() => setActiveDispute(null)}
-        onConfirm={handleResolveDispute}
+        onConfirm={handleResolve}
         t={t}
+        language={language}
       />
     </SingleColumnPage>
   )

@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "api:contract": "python scripts/extract-api-contract.py",
+    "api:check": "python scripts/extract-api-contract.py --check"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

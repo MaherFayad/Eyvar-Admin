@@ -40,6 +40,11 @@ import { SLA_MESSAGES_EN } from '@/lib'
    barrel also exports the screen component, which reaches `ShellContext`,
    which imports this file — a cycle. `copy.ts` imports one TYPE and nothing
    else, so this edge has no runtime cost and no ordering hazard. */
+/* P3-T5…T9 — the command centre's own copy. A module exports a `Dictionary`
+   and this file spreads it, exactly as a screen does; `src/commands` is its
+   own owner, so its strings live with it rather than inside the shell's
+   `shell.search.*` block. */
+import { COMMANDS_EN } from '@/commands/copy'
 import { PEOPLE_EN } from '@/screens/operations/people/copy'
 /* Wave 2 — the five §8.4 work queues. `QUEUE_SHARED_EN` is §4's own contract
    vocabulary (the owner chip, the countdown, the take-over confirmation), which
@@ -73,6 +78,45 @@ import { REPORTS_EN } from '@/screens/reports/copy'
    (`auth.activate.subtitle`). */
 import { AUTH_EN } from '@/screens/auth/copy'
 import { ONBOARDING_EN } from '@/screens/onboarding/copy'
+/* P6-T3 — Admin › Policy. It also carries the `policy.audit.*` keys the DATA
+   layer emits as `LocalisedText` on every policy and reason-code write, and the
+   `labelKey` on every SLA tier and queue in `fixtures/policy.ts`. Those are the
+   half that has to be here rather than in the screen: Admin › Activity resolves
+   an audit line with the SHELL translator, and a raw key on an audit line is the
+   one place a missing string is unrecoverable. */
+import { COMMUNICATIONS_EN } from '@/screens/admin/communications/copy'
+import { POLICY_EN } from '@/screens/admin/policy/copy'
+/* Remediation wave 5 — Support › Tickets and Support › Disputes. Between them
+   the two screens shipped 55 `t(key, { defaultValue })` calls and defined not
+   one of those keys (`REMEDIATION-PLAN.md` §4.2), so every string on both was
+   untranslatable by construction. `DISPUTES_EN` also carries
+   `dispute.posting.settlement`, which `clients/disputes.ts` mints as a
+   `LocalisedText` — `i18n/localisedKeys.test.ts` fails the build without it. */
+import { TICKETS_EN } from '@/screens/support/tickets/copy'
+import { DISPUTES_EN } from '@/screens/support/disputes/copy'
+/* P5-T4 / P5-T6 — Support › Contact Centre, rebuilt as the conversation console
+   (D19, D22). The screen it replaces shipped 21 `t(key, { defaultValue })` calls
+   and defined none of those keys, so every string on it was untranslatable by
+   construction. The §4 work-queue vocabulary stays in `QUEUE_SHARED_EN`; this
+   carries only what a conversation adds. */
+import { CONVERSATIONS_EN } from '@/screens/support/conversations/copy'
+/* The 360° profile's twelve section renderers and its right rail. It is a
+   COMPONENT directory rather than a screen because two surfaces render it —
+   the `?entity=` drawer and `/entity/:entityId` — and a dictionary living
+   under either one would make the other a second home for the same string. */
+import { PROFILE_EN } from '@/components/profile/copy'
+/* P6-T4 — Admin › Data & Compliance. Carries the `integrity.check.*` and
+   `integrity.detail.*` families the DATA layer emits as `LocalisedText`: a
+   finding crosses the seam as a key plus params and is worded here, so
+   re-phrasing one never means editing a scan function. */
+import { ADMIN_DATA_EN } from '@/screens/admin/data/copy'
+/* P6-T5 / P6-T1 / P4-T1 — the three Admin sub-tabs rebuilt in this round.
+   `ADMIN_TEAM_EN` and `ADMIN_WORKSPACE_EN` each carry the `admin.audit.*`
+   family their client emits as `LocalisedText`; `i18n/localisedKeys.test.ts`
+   fails the build if one is minted in `src/data` and missing here. */
+import { ADMIN_TEAM_EN } from '@/screens/admin/team/copy'
+import { ADMIN_WORKSPACE_EN } from '@/screens/admin/workspace/copy'
+import { ADMIN_ACTIVITY_EN } from '@/screens/admin/activity/copy'
 
 /* ───────────────────────── workspaces (§2.2) ───────────────────────── */
 
@@ -270,11 +314,22 @@ const routes: Dictionary = {
   'route.corporate.detail': 'Corporate account',
   'route.people.applicantDetail': 'Application',
   'route.tickets.detail': 'Ticket',
+  'route.contacts.conversation': 'Conversation',
   'route.pricing.planEditor': 'Edit plan',
 
   'shellLayer.profile': 'Profile',
   'shellLayer.notifications': 'Notifications',
   'shellLayer.account': 'My profile',
+  /* The fourth layer. `SHELL_LAYERS` has carried `titleKey:
+     'shellLayer.onboarding'` since the row was minted (`routeTable.ts:894`);
+     this side of the pair was never written, so the layer's own title was the
+     one string on it that could throw. `t()` raises on a missing key in dev
+     (AC-74), which is why nobody saw a raw key — they saw an exception, from a
+     surface that opens off the account menu for every operator and every role.
+
+     Found by a dictionary sweep, not by use, and that is the point: three
+     sibling keys sitting right here made the gap look filled. */
+  'shellLayer.onboarding': 'Getting started',
 }
 
 /* ──────────────────── the shell chrome, §2 – §6 ──────────────────── */
@@ -309,7 +364,93 @@ const shell: Dictionary = {
   /* §4 — the account menu. Verb-first where they are actions. */
   'shell.account.myProfile': 'My profile',
   'shell.account.switchUser': 'Switch user',
+  /* The submenu's own four states. An empty roster menu reads as "there is
+     nobody else", which is a different claim from "the roster did not load". */
+  'shell.account.switchLoading': 'Loading operators',
+  'shell.account.switchError': "Operators couldn't be read",
+  'shell.account.switchEmpty': 'No other operators',
+  /* §11.2 — the reason, on a second line inside the disabled item. Switching
+     against a real API is impersonation and needs an audited endpoint. */
+  'shell.account.switchUnavailable': 'Only available against mock data',
   'shell.account.signOut': 'Sign out',
+
+  /* §6.4 — the account layer's five sections. `password` and `twoFactor`
+     rendered `state.cardError.message` on a layer where nothing had failed;
+     these are the strings that replaced it. */
+  'account.section.profile': 'Profile',
+  'account.section.password': 'Password',
+  'account.section.twoFactor': 'Two-step verification',
+  'account.section.sessions': 'Active sessions',
+  'account.section.permissions': 'What your role can do',
+
+  /* Verb-first, and specific: §5.7 wants the verb of the thing, not `Edit`. */
+  'account.action.password': 'Change password',
+  'account.action.twoFactor': 'Re-enrol',
+
+  'account.field.role': 'Role',
+  'account.field.permissionCount': 'Permissions',
+  'account.field.permissionSummary': '{granted} of {total} granted',
+  'account.field.lastLogin': 'Last signed in',
+  /* The team record could not be read. Distinct from `never signed in`, which
+     is a fact about the operator rather than about the request. */
+  'account.field.unavailable': "Couldn't be read",
+  'account.field.neverSignedIn': 'Not yet',
+
+  /* The one real commit in this layer. `requestPasswordReset` answers the same
+     way for every address (§6.2), so the confirmation says a link was sent and
+     never whether it landed. */
+  'account.password.resting': 'Change your password by email.',
+  'account.password.expanded': 'A reset link goes to {email}. The link expires in 60 minutes.',
+  'account.password.consequence':
+    'You stay signed in here. Your other sessions end when the new password is set.',
+  'account.password.send': 'Send reset link',
+  'account.password.sent': 'Reset link sent to {email}',
+
+  /* §11.2 — the refusal is a sentence naming what is missing and what the
+     operator can do instead. It is rendered as text beside the disabled
+     control, never as a tooltip. */
+  'account.twoFactor.reenrol': 'Re-enrol',
+  'account.twoFactor.blocked':
+    'Re-enrolling needs your password proved again, which only happens at sign in. Sign out and back in to change your second factor.',
+  'account.twoFactor.error': "Couldn't load your second factor.",
+  /* `secondFactor: null` is enrolment PENDING, not opted out — the console
+     requires a second factor and no setting turns it off (§4.2). */
+  'account.twoFactor.pending': 'No second factor is enrolled yet. You will be asked to enrol at your next sign in.',
+  'account.twoFactor.enrolled': 'Enrolled',
+  'account.twoFactor.method.sms': 'Text message',
+  'account.twoFactor.method.totp': 'Authenticator app',
+
+  /* The thirteen. All of them render, held or not: a list of only the granted
+     ones answers "what can I do" and not "why can I not do this", and the
+     second question is the one that brings an operator to this card. */
+  'account.permission.granted': 'Granted',
+  'account.permission.withheld': 'Not granted',
+  /* The five workspace READ keys D17 minted. `view_finance` already was one. */
+  'account.permission.view_analytics': 'See the Management workspace',
+  'account.permission.view_operations': 'See the Operations workspace',
+  'account.permission.view_finance': 'See the Financials workspace',
+  'account.permission.view_support': 'See the Customer Support workspace',
+  'account.permission.view_admin': 'See the Admin workspace',
+  'account.permission.view_profiles': 'Open 360° profiles and see personal details',
+  /* Write keys. */
+  'account.permission.approve_drivers': 'Approve and reject captain applications',
+  'account.permission.manage_subscriptions': 'Freeze, cancel and reassign subscriptions',
+  'account.permission.live_ops': 'Dispatch trips and act on live requests',
+  'account.permission.manage_plans': 'Edit plans, pricing and cancellation rules',
+  'account.permission.process_payouts': 'Pay captains and record repayments',
+  'account.permission.release_escrow': 'Release plan escrow',
+  'account.permission.apply_deductions': 'Apply and waive captain deductions',
+  'account.permission.manage_tickets': 'Claim, reply to and resolve tickets',
+  'account.permission.contact_users': 'Message riders and captains',
+  'account.permission.manage_team': 'Invite operators and change their roles',
+  'account.permission.manage_ops_policy': 'Set dispatch radius, cities, limits and SLA policy',
+  'account.permission.manage_workspace': 'Change branding, legal text and communications',
+  'account.permission.manage_data_governance': 'Run retention, erasure, integrity and exports',
+  'account.permission.manage_security_policy': 'Set second-factor and session policy',
+  /* @deprecated D17 — retired and Owner-only, and it gates no row. It is listed
+     because it is still a member of the union and the summary lists the union;
+     the label says what it now means rather than what it used to do. */
+  'account.permission.manage_settings': 'Legacy settings access (being retired)',
 
   /* §11.6 row 23 `language-switching` — the control that fires it.
      `shell.account.language` is a GROUP HEADING, not an action, so it is a
@@ -340,6 +481,13 @@ const shell: Dictionary = {
   'shell.search.scopedPrompt': 'Search {scope}',
   'shell.search.prompt': 'Search captains, trips, plans and pages',
   'shell.search.noMatch': 'No matches for "{query}".',
+  /* **A failed read is not "no matches".** The two are opposite instructions:
+     one says the spelling is wrong, the other says the request never got an
+     answer. AC-39 — imperative, names the fix, no blame and no `failed`. */
+  'shell.search.error': "Search didn't answer. Nothing was searched.",
+  'shell.search.retry': 'Try again',
+  /* Labels the skeleton's busy region. Never rendered as visible copy. */
+  'shell.search.searching': 'Searching',
   'shell.search.removeScope': 'Remove {scope} scope',
   'shell.search.everywhere': 'everywhere',
 
@@ -439,6 +587,8 @@ const states: Dictionary = {
   /* 21 role-switched · 23 language-switching — toasts (R9, ≤60 chars) */
   'state.roleSwitched.toast': 'Now acting as {role}',
   'state.languageSwitched.toast': 'Interface language set to {language}',
+  'state.userSwitched.toast': 'Now signed in as {name} · {role}',
+  'state.userSwitched.failed': "Couldn't switch user",
   'state.navPinned.toast': 'Sub-tabs pinned open',
 
   /* the shell's own boot error (§9.1) */
@@ -467,6 +617,14 @@ const table: Dictionary = {
   'table.addFilter': 'Add filter',
   'table.filter': 'Filter',
   'table.clear': 'Clear',
+  /* **D21's escape hatch.** The count is `formatCount(...)`, never `String(n)`,
+     so a locale asking for Arabic-Indic digits gets them here too. */
+  'table.bulk.selectEligible': 'Select only the {count} eligible',
+  /* Only when two refused actions carry DIFFERENT sentences — one refusal, or
+     several sharing a reason, renders unprefixed. The em dash is in the
+     template rather than in JSX so a translator can make it `: ` or an Arabic
+     colon; a concatenation here would not survive bidi. */
+  'table.bulk.refusalLabelled': '{action} — {reason}',
   'table.columns': 'Columns',
   'table.openingBalance': 'Opening balance',
   'table.closingBalance': 'Closing balance',
@@ -507,6 +665,12 @@ const table: Dictionary = {
      one refusal sentence, and it never states the pixel figure the
      refusal object carries. */
   'table.pin.blocked': 'Not enough room to pin another column',
+  /* The other two refusals the column popover can render. They exist because
+     §11.2 asks a disabled control to say why, and `pinDisabled` was true for
+     three distinct reasons while the operator was shown none of them. Same
+     rule as above: state the condition, never the pixel figure. */
+  'table.pin.hidden': 'Show this column before pinning it',
+  'table.pin.unpinnable': 'This column cannot be pinned',
 
   'table.filter.open': 'Filter…',
   'table.filter.clear': 'Clear filter',
@@ -572,6 +736,7 @@ export const EN: Dictionary = {
   ...states,
   ...table,
   ...SLA_MESSAGES_EN,
+  ...COMMANDS_EN,
   ...PEOPLE_EN,
   ...OVERVIEW_EN,
   ...QUEUE_SHARED_EN,
@@ -582,12 +747,25 @@ export const EN: Dictionary = {
   ...FAIRNESS_EN,
   ...AUTH_EN,
   ...ONBOARDING_EN,
+  ...PROFILE_EN,
   ...FINANCIALS_EN,
   ...ZONES_EN,
   ...REPORTS_EN,
+  ...ADMIN_DATA_EN,
+  ...ADMIN_TEAM_EN,
+  ...ADMIN_WORKSPACE_EN,
+  ...ADMIN_ACTIVITY_EN,
+  ...TICKETS_EN,
+  ...DISPUTES_EN,
+  ...POLICY_EN,
+  ...COMMUNICATIONS_EN,
+  ...CONVERSATIONS_EN,
 }
 
 /** See the file header. Empty on purpose; it is AC-74's fixture, not a gap in the build. */
 export const AR: Dictionary = {}
 
-export const DICTIONARIES: Readonly<Record<Language, Dictionary>> = { en: EN, ar: AR }
+export const DICTIONARIES: Readonly<Record<Language, Dictionary>> = {
+  en: EN,
+  ar: AR,
+}

@@ -59,11 +59,12 @@ import { describeAlertRule, evaluateAlertRule, listAlertRules } from '@/data/cli
 import type { AlertEvaluation, AlertRule } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { AlertRuleDialog } from './AlertRuleDialog'
+import { reportsViewTabs, type ReportsView } from './views'
 
 export interface AlertsViewProps {
   title: string
-  activeView?: 'reports' | 'alerts'
-  onSelectView?: (view: 'reports' | 'alerts') => void
+  activeView?: ReportsView
+  onSelectView?: (view: ReportsView) => void
   views?: React.ReactNode
   /** The day a `Test this rule` and the form's series resolution run against. */
   today: string
@@ -275,12 +276,9 @@ export function AlertsView({
           language={language}
           tableId="management-reports-alerts"
           view={activeView}
-          tabs={[
-            { id: 'reports', label: t('rb.view.reports') },
-            { id: 'alerts', label: t('rb.view.alerts') },
-          ]}
+          tabs={reportsViewTabs(t)}
           activeTab={activeView}
-          onSelectTab={(id) => onSelectView?.(id as 'reports' | 'alerts')}
+          onSelectTab={(id) => onSelectView?.(id as ReportsView)}
           searchPlaceholder={t('rb.alerts.search')}
           rowActions={rowActions}
           skeletonPattern="P1"

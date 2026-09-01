@@ -14,8 +14,10 @@
  */
 
 import type { CorporateAccount } from '../types/corporateAccount'
+import { cycle, cycleRecord } from './cycle'
+import { riderFixtures } from './riders'
 
-export const corporateAccountFixtures: CorporateAccount[] = [
+const namedCorporateAccounts: CorporateAccount[] = [
   {
     id: 'CORP-001',
     companyName: 'Al-Dossari Logistics',
@@ -218,4 +220,101 @@ export const corporateAccountFixtures: CorporateAccount[] = [
     },
     createdAt: '2026-06-25T08:55:00+03:00',
   },
+]
+
+/* ── volume ──────────────────────────────────────────────────────────── */
+
+/**
+ * Company names and their contacts as **one record each**, because a corporate
+ * row denormalises four related facts — company, contact name, contact email,
+ * contact phone — and cycling four lists is precisely the pattern `cycle.ts`
+ * documents going wrong. The email is derived from the same object the name
+ * comes from, so a contact cannot end up with a colleague's address.
+ */
+const FILLER_COMPANIES: ReadonlyArray<{
+  readonly id: string
+  readonly name: string
+  readonly contact: string
+  readonly domain: string
+}> = [
+  { id: 'najd-tech', name: 'Najd Technologies', contact: 'Ibrahim Al-Sudairi', domain: 'najdtech.example' },
+  { id: 'rawabi-med', name: 'Rawabi Medical Group', contact: 'Dalal Al-Muhaideb', domain: 'rawabimed.example' },
+  { id: 'thumamah', name: 'Thumamah Contracting', contact: 'Saleh Al-Qahtani', domain: 'thumamah.example' },
+  { id: 'lulwa-edu', name: 'Lulwa Education Trust', contact: 'Munirah Al-Fadhli', domain: 'lulwa.example' },
+  { id: 'sadara-log', name: 'Sadara Logistics Partners', contact: 'Waleed Al-Turki', domain: 'sadaralog.example' },
+  { id: 'faisaliah-re', name: 'Faisaliah Real Estate', contact: 'Reem Al-Nafisi', domain: 'faisaliahre.example' },
+  { id: 'anwar-food', name: 'Anwar Food Services', contact: 'Tariq Al-Balawi', domain: 'anwarfood.example' },
+  { id: 'qassim-agri', name: 'Qassim Agricultural Holding', contact: 'Hessa Al-Duwaish', domain: 'qassimagri.example' },
+  { id: 'hail-transport', name: 'Hail Transport Company', contact: 'Fahd Al-Shammari', domain: 'hailtransport.example' },
+]
+
+/**
+ * Volume for Operations › Corporate — 45 accounts, so the table pages and its
+ * status, billing-type and overdue facets have populations rather than one row
+ * each.
+ *
+ * Two things kept true across all of them:
+ *
+ *  - **`riderIds` resolve.** Every employee id is taken from `riderFixtures`,
+ *    so `corpForRider` (`:4910`) walks in both directions and an employee list
+ *    never links to a profile that 404s. `employeeCount` is `riderIds.length`,
+ *    derived rather than stated, because a count beside a list that disagrees
+ *    with it is the same defect as a `totalTrips` with no trips.
+ *  - **`invoiceOverdue` is computed, not asserted** — `isCorpInvoiceDue`
+ *    (`:6463`) is *"monthly invoice, the day has passed, and nothing was
+ *    generated this cycle"*, and the flag here is exactly that expression. A
+ *    row cannot claim an overdue badge its own dates deny.
+ */
+export const fillerCorporateAccounts: CorporateAccount[] = Array.from({ length: 45 }, (_, i) => {
+  const company = cycleRecord(FILLER_COMPANIES, i)
+  const suffix = Math.floor(i / FILLER_COMPANIES.length) + 1
+  const monthly = i % 3 !== 2
+  const invoiceDay = (i % 27) + 1
+  /* Six accounts have never been invoiced; the rest were billed this cycle. */
+  const neverInvoiced = i % 7 === 0
+  const status = i % 11 === 0 ? 'Trial' : i % 13 === 0 ? 'Pending' : 'Active'
+  /* Employees are real riders, spread so no two consecutive accounts claim the
+     same person. */
+  const riderIds =
+    status === 'Pending'
+      ? []
+      : Array.from({ length: 1 + (i % 5) }, (_, e) => cycleRecord(riderFixtures, i * 5 + e).id)
+  return {
+    id: `CORP-${String(100 + i)}`,
+    companyName: suffix === 1 ? company.name : `${company.name} ${suffix}`,
+    contactName: company.contact,
+    contactEmail: `${company.contact.split(' ')[0]!.toLowerCase()}@${company.domain}`,
+    contactPhone: i % 8 === 0 ? null : `+966 5${i % 10} ${String(400 + i).padStart(3, '0')} ${String(7000 + i * 23).slice(-4)}`,
+    status,
+    billingType: monthly ? 'Monthly invoice' : 'Prepaid balance',
+    expectedEmployees: 5 + ((i * 7) % 120),
+    invoiceDayOfMonth: invoiceDay,
+    lastInvoiceGeneratedAt: neverInvoiced ? null : `2026-06-${String(invoiceDay).padStart(2, '0')}T02:00:00+03:00`,
+    riderIds,
+    employeeCount: riderIds.length,
+    totalSpendHalalas: status === 'Pending' ? 0 : 4_150 * (1 + (i % 60)) + i * 90,
+    /* Monthly billing, the day has passed against the fixed clock (the 25th),
+       and nothing was generated — legacy's own predicate, written out. */
+    invoiceOverdue: monthly && invoiceDay <= 25 && neverInvoiced,
+    nextInvoiceOn: monthly ? `2026-07-${String(invoiceDay).padStart(2, '0')}` : null,
+    usagePolicy: {
+      monthlyCapHalalas: i % 4 === 0 ? null : 20_000 + (i % 9) * 5_000,
+      vehicleTier: cycle(['Economy', 'Comfort', 'any'] as const, i),
+      workHoursOnly: i % 3 !== 0,
+      workHoursStart: '07:00',
+      workHoursEnd: '19:00',
+      officeDistrict: i % 5 === 0 ? null : cycle(['Olaya / KAFD', 'Al Malqa', 'Al Sahafa', 'Al Malaz'], i),
+      geoRestrictKm: i % 6 === 0 ? null : 8 + (i % 20),
+      requireApprovalAboveHalalas: i % 9 === 0 ? 15_000 : null,
+      approverName: i % 9 === 0 ? company.contact : null,
+      approverEmail: i % 9 === 0 ? `${company.contact.split(' ')[0]!.toLowerCase()}@${company.domain}` : null,
+    },
+    createdAt: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}T09:00:00+03:00`,
+  } satisfies CorporateAccount
+})
+
+/** 51 rows — six hand-written accounts and forty-five of volume. */
+export const corporateAccountFixtures: CorporateAccount[] = [
+  ...namedCorporateAccounts,
+  ...fillerCorporateAccounts,
 ]

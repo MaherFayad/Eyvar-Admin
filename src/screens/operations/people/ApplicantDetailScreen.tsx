@@ -1,10 +1,62 @@
+/**
+ * **The captain application record** — `/operations/people/applications/:id`.
+ *
+ * ## What was missing, and why the gap mattered
+ *
+ * `Applicant` carries 29 fields. This pane rendered **13**, and the sixteen it
+ * dropped were not incidental: `device`, `lastIp`, `ipLocation`, `movementLog`
+ * and `claim`.
+ *
+ * **This is the fraud-screening surface.** Two applications from one device, or
+ * two from one IP in a city neither applicant lives in, is the signal the
+ * screening exists to find — and it was the one thing an operator could not
+ * see. `movementLog` is the same fact over time. `claim` is worse in a
+ * different way: §4.2's whole ownership contract is that an operator can tell
+ * whether somebody else is already working an item, and this pane, the surface
+ * where the decision is actually taken, showed nothing.
+ *
+ * The other eleven — `email`, `address`, `gender`, `hasPhoto`, `appLanguage`,
+ * `acceptedTrips`, `cancelledTrips`, `approvedDriverId`, `rejectionReason`,
+ * `decidedAt`, `decidedByUserId` — are the record's own outcome and its
+ * contact detail, and half of them only exist *after* a decision, which is
+ * exactly when somebody comes back to read the page.
+ *
+ * ## The other three fixes
+ *
+ * **`not-found` was collapsed into `error`.** `applicant.status === 'error' ||
+ * !data` rendered *"Application not found"* for a failed READ as well as for a
+ * missing record, so a network failure told the operator the application did
+ * not exist. They are different facts with different next actions — retry, or
+ * check the id — and §11.2 gives them different states. All four are now here.
+ *
+ * **§11.2 — the decision bar was HIDDEN.** `canWrite && status === 'pending'`
+ * removed `Approve` and `Reject` from the page entirely, so an operator without
+ * `approve_drivers` saw a read-only record with no sign that deciding is a
+ * thing this page does, and one looking at a decided application saw the same.
+ * Both render now, disabled, with the reason — which is also how the page
+ * states the decision that was already taken.
+ *
+ * **P8-T1** — `approvedDriverId` is the captain this applicant became, and it
+ * is a real link into the 360° layer.
+ *
+ * Rules applied
+ *   AC-36        four states, and `not-found` is its own (§9.2).
+ *   §11.2        every action is gated at RENDER and disabled in place with its
+ *                reason. Never hidden, never checked at commit.
+ *   R5a          `Reject` is a destructive button, which is red use (1) of the
+ *                four R5a permits. Nothing else on the page is red.
+ *   §8.3.1       `—` is not-applicable only. `0` accepted trips is a real zero
+ *                and reads as `0`.
+ *   AC-73        `<bdi>` on the numeric and date runs.
+ */
+
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { approveApplicant, getApplicant, rejectApplicant } from '@/data/clients/applicants'
 import type { Applicant } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { formatDate } from '@/lib'
+import { ABSENT, formatCount, formatDate } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
@@ -16,7 +68,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { CheckCircle2, FileCheck, ShieldAlert, UserCheck, XCircle, Car, CreditCard } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
+import { CheckCircle2, FileCheck, Fingerprint, MapPin, ShieldAlert, UserCheck, XCircle, Car, CreditCard } from 'lucide-react'
 
 export function ApplicantDetailScreen() {
   const shell = useShell()
@@ -37,6 +90,22 @@ export function ApplicantDetailScreen() {
   const data = applicant.data
   const currentStatus = localStatus ?? data?.status ?? 'pending'
   const canWrite = shell.permissions.permissions.includes('approve_drivers')
+
+  /**
+   * §11.2 — one sentence per refusal, and the control renders disabled beside
+   * it rather than disappearing. The role refusal outranks the state one (D17):
+   * telling an operator *this is already approved* when the real answer is
+   * *you may not approve anything* wastes their time twice.
+   */
+  const decisionRefusal =
+    !canWrite
+      ? t('people.action.noPermission')
+      : currentStatus !== 'pending'
+        ? t('applicant.action.decided', {
+            defaultValue: 'This application has already been {status}.',
+            status: currentStatus,
+          })
+        : null
 
   const handleApprove = async () => {
     if (!data) return
@@ -77,16 +146,46 @@ export function ApplicantDetailScreen() {
     )
   }
 
-  if (applicant.status === 'error' || !data) {
+  /* **AC-36 — the READ failed, which is not the same fact as the record not
+     existing.** This branch used to be `error || !data` and rendered
+     *"Application not found"* for both, so a dropped connection told the
+     operator the application does not exist. The next action differs: retry
+     here, check the id below. */
+  if (applicant.status === 'error') {
     return (
       <DetailPage
         header={<PageHeader title={applicantId} onBack={() => navigate(-1)} t={t} dir={dir} />}
         main={
           <ErrorState
             scope="page"
-            heading={t('applicant.error.notFound', { defaultValue: 'Application not found' })}
-            message={t('applicant.error.notFoundDesc', { defaultValue: 'Application {id} does not exist.', id: applicantId })}
-            action={{ label: t('action.goBack', { defaultValue: 'Back to People' }), onClick: () => navigate(-1) }}
+            heading={t('state.pageError.title', { resource: applicantId })}
+            message={t('state.pageError.body')}
+            action={{ label: t('state.pageError.action'), onClick: applicant.refetch }}
+          />
+        }
+        rail={[]}
+      />
+    )
+  }
+
+  /* §9.2 — the record is not on file. The sentence NAMES the id that was looked
+     for, so a typo is distinguishable from a deletion, and the action goes back
+     to the queue rather than offering a retry that cannot help. */
+  if (!data) {
+    return (
+      <DetailPage
+        header={<PageHeader title={applicantId} onBack={() => navigate(-1)} t={t} dir={dir} />}
+        main={
+          <EmptyState
+            kind="no-match"
+            message={t('applicant.error.notFoundDesc', {
+              defaultValue: 'Application {id} is not on file.',
+              id: applicantId,
+            })}
+            action={{
+              label: t('action.goBack', { defaultValue: 'Back to applications' }),
+              onClick: () => navigate('/operations/people?view=applications'),
+            }}
           />
         }
         rail={[]}
@@ -99,14 +198,13 @@ export function ApplicantDetailScreen() {
       title={data.name}
       meta={`${data.id} · ${data.city} · ${data.vehicleClass} · ${formatDate(data.appliedAt, { language })}`}
       onBack={() => navigate('/operations/people?view=applications')}
-      primaryAction={
-        canWrite && currentStatus === 'pending'
-          ? {
-              label: t('applicant.action.approve', { defaultValue: 'Approve Captain' }),
-              onClick: handleApprove,
-            }
-          : undefined
-      }
+      /* §11.2 — R3's one primary, RENDERED and refused rather than removed. An
+         operator who cannot approve still needs to know approving exists. */
+      primaryAction={{
+        label: t('applicant.action.approve', { defaultValue: 'Approve captain' }),
+        onClick: () => void handleApprove(),
+        disabled: decisionRefusal !== null || busy,
+      }}
       t={t}
       dir={dir}
     />
@@ -147,8 +245,40 @@ export function ApplicantDetailScreen() {
               <span className="font-medium text-foreground">{data.city}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.dob', { defaultValue: 'Date of Birth' })}</span>
-              <span className="font-medium text-foreground">{data.dateOfBirth ? formatDate(data.dateOfBirth, { language }) : '—'}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.dob', { defaultValue: 'Date of birth' })}</span>
+              <span className="font-medium text-foreground">
+                <bdi>{data.dateOfBirth ? formatDate(data.dateOfBirth, { language }) : ABSENT}</bdi>
+              </span>
+            </div>
+            {/* The four contact and profile fields the pane dropped. `email` is
+                nullable because the applicant flow does not require one, and
+                `—` is the honest rendering of a field that was never asked for
+                (§8.3.1). */}
+            <div>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.email', { defaultValue: 'Email' })}</span>
+              <span className="font-medium text-foreground">{data.email ?? ABSENT}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.gender', { defaultValue: 'Gender' })}</span>
+              <span className="font-medium text-foreground">{data.gender}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.appLanguage', { defaultValue: 'App language' })}</span>
+              <span className="font-medium text-foreground">{data.appLanguage}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.photo', { defaultValue: 'Profile photo' })}</span>
+              <span className="font-medium text-foreground">
+                {t(data.hasPhoto ? 'applicant.photo.yes' : 'applicant.photo.no', {
+                  defaultValue: data.hasPhoto ? 'Submitted' : 'Not submitted',
+                })}
+              </span>
+            </div>
+            {/* The measure is a full row: an address truncated to a column
+                width is not an address. */}
+            <div className="col-span-2 md:col-span-4">
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.address', { defaultValue: 'Address' })}</span>
+              <span className="font-medium text-foreground">{data.address}</span>
             </div>
           </div>
         </CardContent>
@@ -222,28 +352,190 @@ export function ApplicantDetailScreen() {
         </CardContent>
       </Card>
 
-      {/* 4. Decision Actions Bar if Pending */}
-      {canWrite && currentStatus === 'pending' && (
-        <div className="flex items-center justify-end gap-3 p-4 rounded-lg border border-border bg-muted/30">
-          <Button
-            variant="destructive"
-            size="xs"
-            onClick={() => setRejectModalOpen(true)}
-            disabled={busy}
-          >
-            <XCircle className="h-4 w-4 mr-1.5" />
-            {t('applicant.action.reject', { defaultValue: 'Reject Application' })}
-          </Button>
-          <Button
-            size="xs"
-            onClick={handleApprove}
-            disabled={busy}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-1.5" />
-            {busy ? t('action.saving', { defaultValue: 'Approving...' }) : t('applicant.action.approve', { defaultValue: 'Approve Captain' })}
-          </Button>
-        </div>
-      )}
+      {/* **4. Device, network and movement — the fraud-screening half, and it
+              was not on the page at all.** Two applications from one device, or
+              two from one IP in a city neither applicant lives in, is the
+              signal this screening exists to find. `ipLocation` is placed
+              beside `city` deliberately: the two disagreeing is the finding. */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Fingerprint className="h-4 w-4 text-muted-foreground" />
+            {t('applicant.screening', { defaultValue: 'Device, network and movement' })}
+          </CardTitle>
+          <CardDescription className="text-xs">
+            {t('applicant.screeningDesc', {
+              defaultValue:
+                'Where the application came from. A device or an address shared with another applicant is worth opening before deciding.',
+            })}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.device', { defaultValue: 'Device' })}</span>
+              <span className="font-medium text-foreground">{data.device}</span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.lastIp', { defaultValue: 'Last IP' })}</span>
+              <span className="font-mono font-medium text-foreground"><bdi>{data.lastIp}</bdi></span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.ipLocation', { defaultValue: 'IP location' })}</span>
+              <span className="font-medium text-foreground">{data.ipLocation}</span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.appliedAt', { defaultValue: 'Applied on' })}</span>
+              <span className="font-medium text-foreground">
+                <bdi>{formatDate(data.appliedAt, { style: 'day-month-time', language })}</bdi>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              {t('applicant.movementLog', { defaultValue: 'Movement log' })}
+            </span>
+            {/* R8 — an empty movement log is a card-sized empty: one grey
+                sentence naming WHY it is empty, no illustration, no action. */}
+            {data.movementLog.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t('applicant.movementLog.empty', {
+                  defaultValue: 'Nothing recorded for this applicant yet.',
+                })}
+              </p>
+            ) : (
+              <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border text-xs">
+                {data.movementLog.map((entry, index) => (
+                  <li
+                    key={`${entry.at}-${index}`}
+                    className="flex items-center justify-between gap-3 bg-card p-2.5"
+                  >
+                    <span className="min-w-0 truncate font-medium text-foreground">{entry.action}</span>
+                    <span className="flex shrink-0 items-center gap-3 text-muted-foreground">
+                      <span className="truncate">{entry.location}</span>
+                      <bdi className="tabular-nums">{formatDate(entry.at, { language })}</bdi>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* **5. The outcome, and who is working it.** Half of these fields only
+             exist AFTER a decision, which is exactly when somebody comes back
+             to read this page — and `claim` is §4.2's ownership contract
+             reaching the surface where the decision is actually taken. */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            {t('applicant.outcome', { defaultValue: 'Ownership and outcome' })}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('queue.col.owner', { defaultValue: 'Owner' })}</span>
+              <span className="font-medium text-foreground">
+                {/* §4.2 Q-6 — only a LIVE claim is ownership. A released or
+                    done claim is history, and a record still carrying one is
+                    unclaimed. */}
+                {data.claim && data.claim.state === 'claimed'
+                  ? data.claim.ownerName
+                  : t('queue.owner.unclaimed', { defaultValue: 'Unclaimed' })}
+              </span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.acceptedTrips', { defaultValue: 'Accepted trips' })}</span>
+              {/* §8.3.1 — `0` is a real zero here and reads as `0`, never `—`. */}
+              <span className="font-medium tabular-nums text-foreground">
+                <bdi>{formatCount(data.acceptedTrips, language)}</bdi>
+              </span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.cancelledTrips', { defaultValue: 'Cancelled trips' })}</span>
+              <span className="font-medium tabular-nums text-foreground">
+                <bdi>{formatCount(data.cancelledTrips, language)}</bdi>
+              </span>
+            </div>
+            <div>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.decidedAt', { defaultValue: 'Decided' })}</span>
+              <span className="font-medium text-foreground">
+                {data.decidedAt === null ? (
+                  ABSENT
+                ) : (
+                  <bdi>{formatDate(data.decidedAt, { style: 'day-month-time', language })}</bdi>
+                )}
+              </span>
+            </div>
+            {/* **P8-T1** — the captain this applicant became. The single most
+                useful link on the page after an approval, and it did not
+                exist. */}
+            {data.approvedDriverId !== null && (
+              <div>
+                <span className="mb-0.5 block text-muted-foreground">{t('applicant.approvedDriver', { defaultValue: 'Captain record' })}</span>
+                <Link
+                  to={`/operations/people?view=captains&entity=${data.approvedDriverId}`}
+                  className="rounded-sm font-medium tabular-nums text-foreground hover:underline"
+                >
+                  {data.approvedDriverId}
+                </Link>
+              </div>
+            )}
+            {data.rejectionReason !== null && (
+              <div className="col-span-2 md:col-span-4">
+                <span className="mb-0.5 block text-muted-foreground">{t('applicant.rejectionReason', { defaultValue: 'Rejection reason' })}</span>
+                {/* The one line here allowed to wrap: a reason that has been
+                    truncated explains nothing. */}
+                <span className="whitespace-normal font-medium text-foreground">
+                  {data.rejectionReason}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 6. The decision bar */}
+      {/* §11.2 — the bar RENDERS whatever the role and whatever the state, and
+          refuses in place with its reason. Hiding it taught an operator without
+          `approve_drivers` that this page decides nothing, and taught one
+          looking at a decided application the same. */}
+      <div className="flex items-center justify-end gap-3 rounded-lg border border-border bg-muted/30 p-4">
+        {decisionRefusal !== null && (
+          <span id="applicant-decision-refusal" className="me-auto text-2xs text-muted-foreground">
+            {decisionRefusal}
+          </span>
+        )}
+        {/* R5a use (1) — a destructive button. Rejecting an application cannot
+            be undone from this console, which is what makes it one of the four
+            places red is permitted. */}
+        <Button
+          variant="destructive"
+          size="xs"
+          onClick={() => setRejectModalOpen(true)}
+          disabled={busy || decisionRefusal !== null}
+          aria-describedby={decisionRefusal === null ? undefined : 'applicant-decision-refusal'}
+        >
+          <XCircle className="me-1.5 h-4 w-4" />
+          {t('applicant.action.reject', { defaultValue: 'Reject application' })}
+        </Button>
+        <Button
+          size="xs"
+          onClick={() => void handleApprove()}
+          disabled={busy || decisionRefusal !== null}
+          aria-describedby={decisionRefusal === null ? undefined : 'applicant-decision-refusal'}
+        >
+          <CheckCircle2 className="me-1.5 h-4 w-4" />
+          {busy
+            ? t('action.saving', { defaultValue: 'Approving…' })
+            : t('applicant.action.approve', { defaultValue: 'Approve captain' })}
+        </Button>
+      </div>
     </div>
   )
 

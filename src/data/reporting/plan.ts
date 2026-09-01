@@ -30,19 +30,47 @@
  * If §12 **D-12** is ever signed and a categorical palette is minted, the
  * change is `panelIdFor` in `resolve.ts` returning one id for two measures.
  * Nothing else moves: not this file's rules, not a type, not a saved report.
+ *
+ * ## Per-mode legality — P7-T2
+ *
+ * The same argument, one level up. `mode` is in the query as of P7-T1, and each
+ * mode has a shape it cannot be asked in: **a funnel needs ordered steps, a
+ * cohort needs an anchor event and a window long enough to reach its horizon, a
+ * journey needs a root.** `trend` and `table` keep today's rules exactly.
+ *
+ * Every one of those refusals comes back as a `QueryViolation` in the shape
+ * `LegalityOptions.tsx` already renders — `{ code, field, reasonKey,
+ * reasonParams }` — so the component needs no change and did not get one. The
+ * new `field` values (`mode`, `funnel`, `cohort`, `journey`) say which control
+ * the sentence belongs beside; that is the only thing that grew.
+ *
+ * Two rules the modes impose on controls that already existed, rather than on
+ * new ones:
+ *
+ *   **the mode picks the chart** — a funnel is a bar cascade and a cohort is a
+ *   heat matrix, so `MODE_CHART` fixes it and the other three options are
+ *   disabled in place with the reason, never removed (AC-836);
+ *
+ *   **the mode picks the grain** where its x-axis is not a calendar. A funnel's
+ *   x-axis is its steps, a cohort's is age, a journey's is depth. Each collapses
+ *   the window to one period, which `grain: 'none'` already means.
  */
 
-import { GRAIN_RANK, pairRefusal, type Dimension, type Measure } from '../types/measure'
+import { GRAIN_RANK, pairRefusal, type Dimension, type Measure, type MeasureKey } from '../types/measure'
+import { reportMode } from '../types/report'
 import type {
   ChartType,
+  CohortGrain,
   OptionLegality,
   QueryPlan,
   QueryViolation,
   ReportGrain,
+  ReportMode,
   ReportQuery,
 } from '../types/report'
 import type { IsoDate } from '../types/common'
 import { countBuckets, resolveWindow } from './buckets'
+import { subjectKindOf } from './subjects'
 
 /* ─────────────────────────── the constants ─────────────────────────────── */
 
@@ -67,6 +95,82 @@ export const CHART_TYPES: ChartType[] = ['line', 'bar', 'pie', 'table']
 /** Offered in this order. `'hour'` is here so its reason is readable, not so it works (R4-1 §4.4). */
 export const GRAINS: ReportGrain[] = ['hour', 'day', 'week', 'month', 'none']
 
+/* ─────────────────────── the per-mode constants ────────────────────────── */
+
+/**
+ * §P7-T2. **A funnel with fewer than two rungs is a number, not a funnel** —
+ * there is no conversion between one step and nothing.
+ */
+export const MIN_FUNNEL_STEPS = 2
+
+/**
+ * `ReportStudio.tsx:210` refused a seventh event (`if (events.length >= 6)
+ * return`). Carried over rather than reinvented: six rungs is already a funnel
+ * whose last bar is a rounding error, and the number came from the screen that
+ * had operators in front of it.
+ */
+export const MAX_FUNNEL_STEPS = 6
+
+/**
+ * How far a cohort matrix reaches: `M0 … M12`. Twelve is where a retention
+ * matrix stops being a matrix and becomes a spreadsheet — the same argument
+ * `MAX_GROUPS` makes about eight series, applied to columns.
+ */
+export const MAX_COHORT_HORIZON = 12
+
+/** `M0` alone is a column of 100 %s. A cohort report reaches at least `M1`. */
+export const MIN_COHORT_HORIZON = 1
+
+/**
+ * All three offered, and two disabled with a reason rather than removed.
+ * See `CohortGrain` for why only `'month'` computes today.
+ */
+export const COHORT_GRAINS: CohortGrain[] = ['day', 'week', 'month']
+
+/**
+ * The only cohort grain `reporting/cohorts.ts` measures age at — its `monthDiff`
+ * and its `YYYY-MM` cohort key. **This constant is the wiring**: change the
+ * engine and this list grows; nothing else in the plan moves.
+ */
+const COMPUTED_COHORT_GRAINS: readonly CohortGrain[] = ['month']
+
+/** A journey deeper than this is a diagram nobody reads. `ReportStudio` drew two. */
+export const MAX_JOURNEY_DEPTH = 5
+export const MIN_JOURNEY_DEPTH = 1
+
+/**
+ * **The mode decides the chart, and in four of five cases the operator does
+ * not.** A funnel is a cascade of bars, a cohort is a heat matrix, a journey is
+ * a tree, a data table is a table. Only `trend` puts the choice in the
+ * operator's hands, and §7.1's matrix is about that mode.
+ *
+ * `null` means "the operator chooses" — `trend`, and only `trend`.
+ */
+const MODE_CHART: Record<ReportMode, ChartType | null> = {
+  trend: null,
+  funnel: 'bar',
+  table: 'table',
+  cohort: 'table',
+  journey: 'table',
+}
+
+/**
+ * **Which modes have a calendar x-axis.** A funnel's x-axis is its steps, a
+ * cohort's is age, a journey's is depth — none of them is time, so each
+ * collapses the window into one period, which is exactly what `grain: 'none'`
+ * already means (§3.5: *"a legal grain, not an absence of one"*).
+ *
+ * `table` keeps the grain because a data table of daily numbers is the whole
+ * point of a data table.
+ */
+const MODE_FIXES_GRAIN_TO_NONE: Record<ReportMode, boolean> = {
+  trend: false,
+  table: false,
+  funnel: true,
+  cohort: true,
+  journey: true,
+}
+
 /** §7.3. *Nearest* is defined, not inferred: line → bar → table, and pie → bar. */
 const NEAREST: Record<ChartType, ChartType[]> = {
   line: ['bar', 'table'],
@@ -78,6 +182,68 @@ const NEAREST: Record<ChartType, ChartType[]> = {
 export interface Catalogue {
   measures: readonly Measure[]
   dimensions: readonly Dimension[]
+}
+
+/* ─────────────────────── switching mode, legally ───────────────────────── */
+
+/**
+ * **The query the operator gets when they change the question they are asking.**
+ *
+ * Switching mode is not editing a field: four of the five modes decide the
+ * chart and three of them collapse the grain, so a raw `{ ...query, mode }`
+ * produces a query the planner immediately refuses — a funnel still asking for
+ * a daily line — and the operator's first sight of a new mode is two
+ * violations they did not cause. §3.2's rule is to **validate by disabling the
+ * primary, not by an error after the fact**; this is the same rule one level
+ * up.
+ *
+ * It reads `MODE_CHART` and `MODE_FIXES_GRAIN_TO_NONE` — the constants the
+ * legality above is written from — so the switch and the refusal cannot
+ * disagree. A screen that hardcoded *"a funnel is bars"* would be a second copy
+ * of that rule, and the day a mode's chart changed the two would drift.
+ *
+ * **Nothing already configured is thrown away.** A funnel's steps survive a
+ * trip through `cohort` and back, because an operator comparing two shapes of
+ * one question should not have to retype it — and because `serialiseReportQuery`
+ * carries all three configurations regardless of which one the mode reads.
+ * The only fields that change are the ones the new mode decides.
+ */
+export function applyReportMode(query: ReportQuery, mode: ReportMode): ReportQuery {
+  const next: ReportQuery = { ...query, mode }
+
+  const chart = MODE_CHART[mode]
+  if (chart !== null) next.chartType = chart
+  if (MODE_FIXES_GRAIN_TO_NONE[mode]) next.grain = 'none'
+  /* Coming BACK to a series mode from one that collapsed the grain: `none` is
+     a legal grain and a legitimate choice, so it is left alone. The operator
+     picks a grain in a control that is now enabled, which is the whole point
+     of disabling it in place rather than hiding it. */
+
+  /* An unstarted configuration, not an empty one. `FunnelSpec` with no steps
+     reads as "no rungs chosen yet" and the planner says exactly that
+     (`funnel-needs-steps`); leaving `funnel` undefined would render a panel
+     with no controls to start from. The defaults are the ones the constants
+     above already justify, and none of them is a business rule invented here. */
+  if (mode === 'funnel' && !next.funnel) {
+    next.funnel = { steps: [], conversionWindowDays: null }
+  }
+  if (mode === 'cohort' && !next.cohort) {
+    next.cohort = {
+      anchorMeasureKey: null,
+      returnMeasureKey: null,
+      /* The only grain the retention engine measures age at. The other two are
+         offered by the picker and disabled with the reason (`CohortGrain`). */
+      cohortGrain: 'month',
+      /* `M0…M3` — the same four columns the seeded cohort report uses, and the
+         narrowest matrix that is still a matrix. */
+      horizon: 3,
+    }
+  }
+  if (mode === 'journey' && !next.journey) {
+    next.journey = { rootMeasureKey: null, depth: 2 }
+  }
+
+  return next
 }
 
 /* ─────────────────────────── the planner ───────────────────────────────── */
@@ -92,43 +258,62 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
   const violations: QueryViolation[] = []
   const byKey = new Map(catalogue.measures.map((m) => [m.key, m]))
 
+  /* ── the mode, first, because four of the blocks below depend on it ───── */
+  const mode = reportMode(query)
+  /* `trend` and `table` are one shape asked two ways: the same measures, the
+     same grain, the same groups, drawn as a chart or listed as rows. Everywhere
+     below that says "today's rules", this is the predicate that says so. */
+  const isSeriesMode = mode === 'trend' || mode === 'table'
+
   /* ── measures ─────────────────────────────────────────────────────────── */
+  /* Which keys this mode measures over, and which control owns the reason when
+     one of them does not resolve. In a funnel the steps are the measures; in a
+     cohort the anchor and the return event are; in a journey the root is. They
+     all feed the dimension and filter-field intersections below identically,
+     which is why there is one list and not four code paths. */
+  const measureSource = measureKeysForMode(query, mode)
+
   const measures: Measure[] = []
-  for (const ref of query.measures) {
-    const m = byKey.get(ref.key)
+  for (const key of measureSource.keys) {
+    const m = byKey.get(key)
     if (!m) {
       violations.push({
         code: 'unknown-measure',
-        field: 'measures',
+        field: measureSource.field,
         reasonKey: 'rb.violation.unknownMeasure',
-        reasonParams: { key: ref.key },
+        reasonParams: { key },
       })
       continue
     }
     measures.push(m)
   }
 
-  if (query.measures.length === 0) {
-    violations.push({
-      code: 'no-measure',
-      field: 'measures',
-      reasonKey: 'rb.violation.noMeasure',
-      reasonParams: {},
-    })
-  }
-  if (query.measures.length > MAX_MEASURES) {
-    violations.push({
-      code: 'too-many-measures',
-      field: 'measures',
-      reasonKey: 'rb.violation.tooManyMeasures',
-      reasonParams: { max: MAX_MEASURES },
-    })
+  /* §6.1's cap and §6.2's pairing rule are about **two series on one canvas**,
+     which is the series modes' question. A five-rung funnel is not five series
+     and is not capped at two; its own ceiling is `MAX_FUNNEL_STEPS`. */
+  if (isSeriesMode) {
+    if (query.measures.length === 0) {
+      violations.push({
+        code: 'no-measure',
+        field: 'measures',
+        reasonKey: 'rb.violation.noMeasure',
+        reasonParams: {},
+      })
+    }
+    if (query.measures.length > MAX_MEASURES) {
+      violations.push({
+        code: 'too-many-measures',
+        field: 'measures',
+        reasonKey: 'rb.violation.tooManyMeasures',
+        reasonParams: { max: MAX_MEASURES },
+      })
+    }
   }
 
   /* §6.2's refusal, applied wherever a pair arrives from — the picker, a saved
      report, or a hand-edited URL. AC-825. */
   const [first, second] = measures
-  if (first && second) {
+  if (isSeriesMode && first && second) {
     const refusal = pairRefusal(first, second)
     if (refusal === 'different-temporality') {
       violations.push({
@@ -197,7 +382,16 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
       : measures.reduce((worst, m) => (GRAIN_RANK[m.minGrain] > GRAIN_RANK[worst.minGrain] ? m : worst))
           .minGrain
 
+  /* A mode whose x-axis is not a calendar collapses the window to one period.
+     Every other grain is offered and disabled with the reason — the operator
+     sees that the control exists and why it is off, rather than watching it
+     disappear when they switch mode (D9 CQ-3, AC-816). */
+  const grainFixed = MODE_FIXES_GRAIN_TO_NONE[mode]
+
   const grains: OptionLegality<ReportGrain>[] = GRAINS.map((g) => {
+    if (grainFixed) {
+      return g === 'none' ? legal(g) : illegal(g, 'rb.grain.modeFixed', { grain: g, mode })
+    }
     if (g === 'none') return legal(g)
     if (GRAIN_RANK[g] < coarsestMin) {
       return illegal(g, 'rb.grain.belowMin', { grain: g, minGrain: minGrainName })
@@ -212,7 +406,7 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
   const grainOption = grains.find((o) => o.value === query.grain)
   if (grainOption && !grainOption.legal) {
     violations.push({
-      code: grainOption.reasonKey === 'rb.grain.tooManyBuckets' ? 'too-many-buckets' : 'grain-below-min',
+      code: GRAIN_VIOLATION[grainOption.reasonKey ?? 'rb.grain.belowMin'] ?? 'grain-below-min',
       field: 'grain',
       reasonKey: grainOption.reasonKey ?? 'rb.grain.belowMin',
       reasonParams: grainOption.reasonParams,
@@ -224,20 +418,30 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
   /* ── chart type ───────────────────────────────────────────────────────── */
   const hasSplit = query.groupBy !== null
   const splitParts = hasSplit ? expectedGroupCount(query.groupBy!, catalogue) : 1
-  const chartTypes = CHART_TYPES.map((c) =>
-    chartLegality(c, {
-      measures,
-      hasSplit,
-      splitParts,
-      grain: query.grain,
-      bucketCount,
-    }),
-  )
+  const modeChart = MODE_CHART[mode]
+
+  const chartTypes =
+    modeChart === null
+      ? CHART_TYPES.map((c) =>
+          chartLegality(c, { measures, hasSplit, splitParts, grain: query.grain, bucketCount }),
+        )
+      : /* The mode already answered this question. The other three stay on
+           screen, disabled, saying which mode decided and what it decided —
+           because an option that vanishes teaches nobody the rule (AC-836). */
+        CHART_TYPES.map((c) =>
+          c === modeChart ? legal(c) : illegal(c, 'rb.chart.modeFixed', { chart: modeChart, mode }),
+        )
 
   const chosen = chartTypes.find((o) => o.value === query.chartType)
   const effectiveChartType = chosen?.legal
     ? query.chartType
-    : nearestLegal(query.chartType, chartTypes)
+    : modeChart ?? nearestLegal(query.chartType, chartTypes)
+
+  /* ── the per-mode configuration ───────────────────────────────────────── */
+  const cohortGrains = mode === 'cohort' ? planCohortGrains() : []
+  if (mode === 'funnel') violations.push(...funnelViolations(query))
+  if (mode === 'cohort') violations.push(...cohortViolations(query, window, byKey))
+  if (mode === 'journey') violations.push(...journeyViolations(query, byKey))
 
   return {
     violations,
@@ -250,9 +454,252 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     legalFilterFields,
     /* One panel per measure per group. `splitParts` is the catalogue's hint, so
        this is a forecast — the resolved result is authoritative. It is enough
-       to tell the operator "this will draw four panels" before they run it. */
-    panelCount: Math.max(1, measures.length) * Math.min(splitParts, MAX_GROUPS + 1),
+       to tell the operator "this will draw four panels" before they run it.
+
+       **The other three modes are one panel by construction.** A funnel is one
+       cascade, a cohort is one matrix, a journey is one tree; R4-1's small
+       multiples answer a question about two y-axes, and none of the three has
+       a y-axis in that sense. */
+    panelCount: isSeriesMode
+      ? Math.max(1, measures.length) * Math.min(splitParts, MAX_GROUPS + 1)
+      : 1,
+    mode,
+    cohortGrains,
+    cohortIntervals: mode === 'cohort' ? cohortIntervals(query.cohort?.horizon) : [],
+    funnelStepKeys: mode === 'funnel' ? (query.funnel?.steps ?? []).map((s) => s.measureKey) : [],
   }
+}
+
+/* ──────────────────────── mode legality ────────────────────────────────── */
+
+/** Which reason maps to which violation code, so the grain block reads as a table. */
+const GRAIN_VIOLATION: Record<string, QueryViolation['code']> = {
+  'rb.grain.tooManyBuckets': 'too-many-buckets',
+  'rb.grain.belowMin': 'grain-below-min',
+  'rb.grain.modeFixed': 'mode-fixes-grain',
+}
+
+/**
+ * The measure keys a mode is asked over, and the control that owns the reason
+ * when one of them does not resolve.
+ *
+ * Deliberately one function and one shape: the dimension intersection, the
+ * filter-field intersection and the unknown-measure check are the same rules in
+ * all five modes, and a mode that got its own copy of them would be a mode
+ * where a filter silently applies to some steps and not others — the exact
+ * failure §3.4 refuses.
+ */
+function measureKeysForMode(
+  query: ReportQuery,
+  mode: ReportMode,
+): { keys: MeasureKey[]; field: QueryViolation['field'] } {
+  if (mode === 'funnel') {
+    return { keys: (query.funnel?.steps ?? []).map((s) => s.measureKey), field: 'funnel' }
+  }
+  if (mode === 'cohort') {
+    const c = query.cohort
+    return {
+      keys: [c?.anchorMeasureKey, c?.returnMeasureKey].filter((k): k is MeasureKey => Boolean(k)),
+      field: 'cohort',
+    }
+  }
+  if (mode === 'journey') {
+    const root = query.journey?.rootMeasureKey
+    return { keys: root ? [root] : [], field: 'journey' }
+  }
+  return { keys: query.measures.map((m) => m.key), field: 'measures' }
+}
+
+/** *A funnel needs ordered steps.* The array order **is** the order (`FunnelSpec`). */
+function funnelViolations(query: ReportQuery): QueryViolation[] {
+  const out: QueryViolation[] = []
+  const steps = query.funnel?.steps ?? []
+
+  if (steps.length < MIN_FUNNEL_STEPS) {
+    out.push({
+      code: 'funnel-needs-steps',
+      field: 'funnel',
+      reasonKey: 'rb.funnel.needsSteps',
+      reasonParams: { steps: steps.length, min: MIN_FUNNEL_STEPS },
+    })
+  }
+  if (steps.length > MAX_FUNNEL_STEPS) {
+    out.push({
+      code: 'funnel-too-many-steps',
+      field: 'funnel',
+      reasonKey: 'rb.funnel.tooManySteps',
+      reasonParams: { steps: steps.length, max: MAX_FUNNEL_STEPS },
+    })
+  }
+
+  /* Two rungs with the same population and the same filters convert at 100 %
+     by construction. It is not a drop-off of zero; it is a measurement of
+     nothing, and it is easy to reach by adding a step and forgetting to change
+     it. The **second** occurrence is the one named, because the first is the
+     one the operator meant. */
+  const seen = new Set<string>()
+  steps.forEach((step, index) => {
+    const signature = `${step.measureKey}|${JSON.stringify(step.filters ?? [])}`
+    if (seen.has(signature)) {
+      out.push({
+        code: 'funnel-duplicate-step',
+        field: 'funnel',
+        reasonKey: 'rb.funnel.duplicateStep',
+        reasonParams: { key: step.measureKey, position: index + 1 },
+      })
+      return
+    }
+    seen.add(signature)
+  })
+
+  return out
+}
+
+/**
+ * *A cohort needs an anchor event and a window.*
+ *
+ * The window rule is arithmetic, not policy: a 30-day window holds one calendar
+ * month, and one month cannot show an `M6` column. Saying so before the run is
+ * the difference between a disabled control with a reason and a matrix of empty
+ * cells the operator has to interpret (AC-817's discipline, applied to columns).
+ */
+function cohortViolations(
+  query: ReportQuery,
+  window: { from: IsoDate; to: IsoDate },
+  byKey: Map<MeasureKey, Measure>,
+): QueryViolation[] {
+  const out: QueryViolation[] = []
+  const spec = query.cohort
+
+  if (!spec || spec.anchorMeasureKey === null) {
+    out.push({
+      code: 'cohort-needs-anchor',
+      field: 'cohort',
+      reasonKey: 'rb.cohort.needsAnchor',
+      reasonParams: {},
+    })
+  }
+  if (!spec) return out
+
+  /* A cohort is people, and `reporting/subjects.ts` is the table that says
+     which stores hold people. A measure that resolves but names none of them
+     gets the reason beside the anchor control rather than an empty matrix.
+     An UNRESOLVED measure is left alone: `unknown-measure` already named it,
+     and two reasons for one mistake is one reason too many. */
+  for (const key of [spec.anchorMeasureKey, spec.returnMeasureKey]) {
+    if (key === null) continue
+    const measure = byKey.get(key)
+    if (!measure) continue
+    if (subjectKindOf(measure.population.resource) === null) {
+      out.push({
+        code: 'cohort-anchor-not-subject',
+        field: 'cohort',
+        reasonKey: 'rb.cohort.anchorNotSubject',
+        reasonParams: { measure: measure.labelKey },
+      })
+    }
+  }
+
+  const grainOption = planCohortGrains().find((o) => o.value === spec.cohortGrain)
+  if (grainOption && !grainOption.legal) {
+    out.push({
+      code: 'cohort-grain-unavailable',
+      field: 'cohort',
+      reasonKey: grainOption.reasonKey ?? 'rb.cohort.grainUnavailable',
+      reasonParams: grainOption.reasonParams,
+    })
+  }
+
+  if (spec.horizon < MIN_COHORT_HORIZON || spec.horizon > MAX_COHORT_HORIZON) {
+    out.push({
+      code: 'cohort-horizon-out-of-range',
+      field: 'cohort',
+      reasonKey: 'rb.cohort.horizonOutOfRange',
+      reasonParams: { horizon: spec.horizon, min: MIN_COHORT_HORIZON, max: MAX_COHORT_HORIZON },
+    })
+    return out
+  }
+
+  /* `M0 … M{horizon}` is `horizon + 1` periods of the cohort grain. */
+  const periods = countBuckets(window.from, window.to, spec.cohortGrain)
+  const needed = spec.horizon + 1
+  if (periods < needed) {
+    out.push({
+      code: 'cohort-window-too-short',
+      field: 'window',
+      reasonKey: 'rb.cohort.windowTooShort',
+      reasonParams: { periods, needed, grain: spec.cohortGrain },
+    })
+  }
+
+  return out
+}
+
+/** *A journey needs a root.* */
+function journeyViolations(query: ReportQuery, byKey: Map<MeasureKey, Measure>): QueryViolation[] {
+  const out: QueryViolation[] = []
+  const spec = query.journey
+
+  if (!spec || spec.rootMeasureKey === null) {
+    out.push({
+      code: 'journey-needs-root',
+      field: 'journey',
+      reasonKey: 'rb.journey.needsRoot',
+      reasonParams: {},
+    })
+  }
+  if (!spec) return out
+
+  /* Same rule as the cohort anchor, same table, same reason to state it before
+     a request exists: a journey follows one subject forward, and a store whose
+     rows name nobody has no forward. */
+  const root = spec.rootMeasureKey === null ? null : byKey.get(spec.rootMeasureKey) ?? null
+  if (root && subjectKindOf(root.population.resource) === null) {
+    out.push({
+      code: 'journey-root-not-subject',
+      field: 'journey',
+      reasonKey: 'rb.journey.rootNotSubject',
+      reasonParams: { measure: root.labelKey },
+    })
+  }
+
+  if (spec.depth < MIN_JOURNEY_DEPTH || spec.depth > MAX_JOURNEY_DEPTH) {
+    out.push({
+      code: 'journey-depth-out-of-range',
+      field: 'journey',
+      reasonKey: 'rb.journey.depthOutOfRange',
+      reasonParams: { depth: spec.depth, min: MIN_JOURNEY_DEPTH, max: MAX_JOURNEY_DEPTH },
+    })
+  }
+
+  return out
+}
+
+/** All three offered; the two the engine cannot measure are disabled with the reason. */
+function planCohortGrains(): OptionLegality<CohortGrain>[] {
+  return COHORT_GRAINS.map((g) =>
+    COMPUTED_COHORT_GRAINS.includes(g)
+      ? legal(g)
+      : illegal(g, 'rb.cohort.grainUnavailable', { grain: g }),
+  )
+}
+
+/**
+ * `['M0', 'M1', … 'M{horizon}']` — **`buildCohortMatrix`'s fourth argument, in
+ * its own vocabulary.**
+ *
+ * The retention maths does not move for P7. `reporting/cohorts.ts` already
+ * computes a matrix from `(joinedAt, lastActiveAt)` at these exact interval
+ * keys and is already tested; the plan's job is to hand it its columns and to
+ * refuse, in advance, a horizon the window cannot reach.
+ *
+ * Clamped rather than trusted: an out-of-range horizon is already a violation
+ * above, and generating ten thousand column headers for a hand-edited URL on
+ * the way to reporting that violation is how a legality check becomes a hang.
+ */
+export function cohortIntervals(horizon: number | undefined): string[] {
+  const n = Math.min(Math.max(Math.trunc(horizon ?? MIN_COHORT_HORIZON), 0), MAX_COHORT_HORIZON)
+  return Array.from({ length: n + 1 }, (_, i) => `M${i}`)
 }
 
 /* ───────────────────────── chart legality ──────────────────────────────── */

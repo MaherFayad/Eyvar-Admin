@@ -18,7 +18,9 @@ import {
 } from '../fixtures/teamUsers'
 import { claimFixtures } from '../fixtures/claims'
 import type { PermissionKey, WorkspaceId } from '../types/navigation'
+import { effectivePermissions } from '../types/session'
 import type { Session, TeamUser, UserPreferences } from '../types/session'
+import { subTabViewPermissions } from './routes'
 import { http } from './http'
 
 export const SESSION_OPERATIONS = {
@@ -142,18 +144,55 @@ export async function switchMockUser(userId: string, signal?: AbortSignal): Prom
  *
  * Added for `reports.run`, which resolves each series against the **requesting**
  * session (§13.1) and must therefore know who is asking while it is building a
- * response. Reading `CURRENT_USER_ID` instead — as some older clients do —
- * would make `switchMockUser` invisible to it, and §8.3 states 9 and 15 are
- * both reachable only through `switchMockUser`.
+ * response. Reading `CURRENT_USER_ID` instead — as every client below this one
+ * once did — would make `switchMockUser` invisible to it, and §8.3 states 9 and
+ * 15 are both reachable only through `switchMockUser`.
  *
  * **Mock-only.** In http mode the server reads the auth cookie and this is
  * never called; the report client guards on `DATA_SOURCE` before it gets here.
  */
 export function currentMockPermissions(): readonly PermissionKey[] {
-  return teamUserFixtures.find((u) => u.id === mockUserId)?.permissions ?? []
+  /**
+   * **Resolved the way `buildSession` resolves it — role baseline plus the
+   * signed delta — and NOT read off `TeamUser.permissions`.**
+   *
+   * That field is the legacy *absolute* set D17 retired, and `types/session.ts`
+   * marks it `@deprecated`. Reading it made this function disagree with the
+   * session the console is actually showing: `USR-1` is an Owner holding all
+   * twenty keys on `Session.permissions`, while this returned the thirteen
+   * legacy strings — no `view_analytics`, no `manage_workspace`.
+   *
+   * Anything gating on it therefore gated on a set the operator is never shown,
+   * and `clients/reports.ts` is a live caller. Found by the Integrations build,
+   * which worked around it with a local copy of this resolution rather than
+   * inherit the disagreement; that workaround can now be deleted.
+   *
+   * One resolution, in `types/session.ts`, called from both places — because
+   * two implementations of "what may this operator do" is how they drift, which
+   * is the whole of D17's §8.2.
+   */
+  const user = teamUserFixtures.find((u) => u.id === mockUserId)
+  return user === undefined ? [] : effectivePermissions(user.role, user.permissionDelta)
 }
 
-/** The signed-in mock operator's id, synchronously. Same rationale as above. */
+/**
+ * The signed-in mock operator's id, synchronously. Same rationale as above.
+ *
+ * **The one answer to "who is acting right now" in the mock data layer.** Every
+ * client that stamps an actor, filters a `mine`/`heldByMe` view, decides a
+ * take-over 409, or scopes an authority by role reads this. It replaced
+ * `fixtures/teamUsers.CURRENT_USER_ID` in twenty clients: two thirds of the
+ * layer resolved the actor against that constant and one third against this
+ * session, and **the two halves disagreed** — `nextClaim` wrote
+ * `ownerId: CURRENT_USER_ID` while `conversations.ts` read `view: 'mine'` off
+ * the session, so a claim made after `switchMockUser('USR-3')` landed on
+ * `USR-1` and the `mine` view never saw it.
+ *
+ * `CURRENT_USER_ID` is still correct for exactly one thing — the **seeded
+ * default**, which is what `mockUserId` is initialised to and what
+ * `resetMockSession` restores. If a new use of it answers "who is acting", it
+ * is a defect; see `identity.test.ts`.
+ */
 export function currentMockUserId(): string {
   return mockUserId
 }
@@ -177,13 +216,17 @@ function buildSession(userId: string): Session {
     email: user.email,
     photoUrl: user.photoUrl,
     role: user.role,
-    permissions: user.permissions,
+    /* **D17 — the role baseline plus the signed per-user delta, resolved.**
+       Not `user.permissions`: the legacy seed stores an absolute set per
+       operator, which is the free-floating permission set D17 rules out. The
+       server computes this and delivers it resolved, so nothing in the UI ever
+       re-derives its own authority (§8.2). */
+    permissions: effectivePermissions(user.role, user.permissionDelta),
     landingRoute: landing.path,
     landingWorkspaceId: landing.workspaceId as WorkspaceId,
-    /* 34 entries required (§11.3). Empty because **Q4 is open** and every
-       route-table `permission` is null — there is nothing to derive from, and
-       fabricating a map here would ship an answer nobody gave. */
-    subTabPermissions: {},
+    /* One entry per sub-tab, derived from the route table's `viewPermission`
+       column so the map and the table cannot disagree (§11.3, D17). */
+    subTabPermissions: subTabViewPermissions(),
     isImpersonating: false,
     impersonatedUser: null,
     claimedCount: claimFixtures.filter((c) => c.state === 'claimed' && c.ownerId === user.id).length,

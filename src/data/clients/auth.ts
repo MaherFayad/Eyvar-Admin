@@ -50,7 +50,9 @@ import { claimFixtures } from '../fixtures/claims'
 import type { IsoDateTime } from '../types/common'
 import { ApiError } from '../types/common'
 import type { WorkspaceId } from '../types/navigation'
+import { effectivePermissions } from '../types/session'
 import type { Session } from '../types/session'
+import { subTabViewPermissions } from './routes'
 import type {
   AuthIdentity,
   DeviceSession,
@@ -229,13 +231,17 @@ function buildSessionFor(userId: string): Session {
     email: user.email,
     photoUrl: user.photoUrl,
     role: user.role,
-    permissions: user.permissions,
+    /* **D17 — the role baseline plus the signed per-user delta, resolved.**
+       Not `user.permissions`: the legacy seed stores an absolute set per
+       operator, which is the free-floating permission set D17 rules out. The
+       server computes this and delivers it resolved, so nothing in the UI ever
+       re-derives its own authority (§8.2). */
+    permissions: effectivePermissions(user.role, user.permissionDelta),
     landingRoute: landing.path,
     landingWorkspaceId: landing.workspaceId as WorkspaceId,
-    /* Still empty — **Q4**. See `clients/session.ts`; nothing about auth
-       landing changes that, and fabricating the 34 entries here would ship an
-       answer nobody gave. */
-    subTabPermissions: {},
+    /* One entry per sub-tab, derived from the route table's `viewPermission`
+       column so the map and the table cannot disagree (§11.3, D17). */
+    subTabPermissions: subTabViewPermissions(),
     isImpersonating: false,
     impersonatedUser: null,
     claimedCount: claimFixtures.filter((c) => c.state === 'claimed' && c.ownerId === user.id).length,
@@ -944,22 +950,38 @@ export async function setDeviceTrust(
  * **D-A9**; the confirmation expands in the row, because §5.5 forbids a modal
  * nested inside a no-scrim drawer.
  *
- * **409 on the current device.** Legacy simply omits the button (`:3032`);
- * an API has to answer, and *"sign yourself out of the session you are using"*
- * is `signOut`, not this.
+ * **409 on the current device — but only on the caller's own list.** Legacy
+ * simply omits the button (`:3032`); an API has to answer, and *"sign yourself
+ * out of the session you are using"* is `signOut`, not this.
+ *
+ * **`userId` is optional and defaults to the caller (P6-T8).** Admin › Team
+ * needs to end *another* operator's session, and without this parameter the row
+ * was resolved against the caller's own device list, so every administered
+ * device 404'd. `listDevices(userId)` already took the id — AC-661/662
+ * anticipated this surface — so only revocation was blocked. Omitting the
+ * argument keeps every existing call site on `/me/devices/:id` unchanged.
  */
 export async function revokeDevice(
   deviceId: string,
+  userId?: string,
   signal?: AbortSignal,
 ): Promise<{ revoked: true }> {
+  const targetId = userId ?? signedInUserId ?? CURRENT_USER_ID
+  const ownList = targetId === (signedInUserId ?? CURRENT_USER_ID)
   if (DATA_SOURCE === 'http') {
-    return http.delete<{ revoked: true }>(`/me/devices/${deviceId}`, { signal })
+    return ownList
+      ? http.delete<{ revoked: true }>(`/me/devices/${deviceId}`, { signal })
+      : http.delete<{ revoked: true }>(`/team/${targetId}/devices/${deviceId}`, { signal })
   }
   return mockMutation(DEVICE_OPERATIONS.revoke, signal, () => {
-    const userId = signedInUserId ?? CURRENT_USER_ID
-    const row = devicesFor(userId).find((d) => d.id === deviceId)
+    const row = devicesFor(targetId).find((d) => d.id === deviceId)
     if (!row) throw new ApiError({ status: 404, message: `No device ${deviceId}` })
-    if (row.isCurrent) {
+    /* **The 409 applies only to the caller's OWN list.** "Sign yourself out of
+       the session you are using" is `signOut`; signing an *administered*
+       operator out of the device they are sitting at is the entire point of
+       P6-T8, and refusing it would make the admin surface unable to do the one
+       thing it exists for. */
+    if (row.isCurrent && ownList) {
       throw new ApiError({
         status: 409,
         code: 'current_device',

@@ -68,3 +68,76 @@ describe('formatDuration', () => {
     }
   })
 })
+
+/* ═══════════════ the seconds tier — Q-13 / AC-215 ═══════════════ */
+
+describe('formatDuration — seconds tier', () => {
+  const seconds = { precision: 'second' } as const
+
+  it('renders sub-minute magnitudes in seconds, so D22’s 45s promise can be watched', () => {
+    // The whole life of a 45-second chat first-response clock. Under the minute
+    // tier every one of these reads `1m`, and then the item is breached.
+    expect(formatDuration(45_000, seconds)).toBe('45s')
+    expect(formatDuration(44_000, seconds)).toBe('44s')
+    expect(formatDuration(9_000, seconds)).toBe('9s')
+    expect(formatDuration(1_000, seconds)).toBe('1s')
+  })
+
+  it('truncates, so the number never claims more time than there is', () => {
+    // 44.9 seconds left is 44 seconds an operator can rely on, not 45.
+    expect(formatDuration(44_900, seconds)).toBe('44s')
+    expect(formatDuration(999, seconds)).toBe('0s')
+    expect(formatDuration(59_999, seconds)).toBe('59s')
+  })
+
+  it('switches to the minute tier exactly at 60 seconds', () => {
+    expect(formatDuration(59_000, seconds)).toBe('59s')
+    expect(formatDuration(minutes(1), seconds)).toBe('1m')
+    expect(formatDuration(minutes(12), seconds)).toBe('12m')
+  })
+
+  it('leaves the three existing tiers untouched above the boundary', () => {
+    for (const ms of [minutes(12), hours(3) + minutes(20), days(2) + hours(4), days(365)]) {
+      expect(formatDuration(ms, seconds)).toBe(formatDuration(ms))
+    }
+  })
+
+  it('is a magnitude here too, so an overdue caller need not negate', () => {
+    expect(formatDuration(-20_000, seconds)).toBe('20s')
+    expect(formatDuration(-0, seconds)).toBe('0s')
+  })
+
+  it('renders zero as 0s, not 0m — inside this tier the unit is seconds', () => {
+    expect(formatDuration(0, seconds)).toBe('0s')
+    expect(formatDuration(0)).toBe('0m')
+  })
+
+  it('carries no sign and no word', () => {
+    for (const ms of [0, 20_000, -20_000, minutes(90)]) {
+      const out = formatDuration(ms, seconds)
+      expect(out).not.toContain('-')
+      expect(out).not.toContain('−')
+      expect(out).not.toContain('left')
+    }
+  })
+
+  it('throws on non-finite input regardless of precision', () => {
+    expect(() => formatDuration(Number.NaN, seconds)).toThrow(/finite/)
+    expect(() => formatDuration(Number.NEGATIVE_INFINITY, seconds)).toThrow(/finite/)
+  })
+})
+
+describe('formatDuration — the default is unchanged', () => {
+  /**
+   * The regression this guards: a 4-hour ticket clock must not start rendering
+   * `47s` in its last minute. Seconds are a property of the promise, not of the
+   * number, so nothing renders them unless the caller asks.
+   */
+  it('never renders seconds without being asked', () => {
+    for (const ms of [0, 1, 20_000, 44_900, 59_999, minutes(1) + 1]) {
+      expect(formatDuration(ms)).not.toContain('s')
+      expect(formatDuration(ms, { precision: 'minute' })).toBe(formatDuration(ms))
+    }
+    expect(formatDuration(47_000)).toBe('1m')
+  })
+})

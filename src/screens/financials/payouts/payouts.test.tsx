@@ -59,7 +59,13 @@ const payoutsRow = (): SubTabRoute => {
  */
 const readOnlyRow = (): SubTabRoute => ({
   ...payoutsRow(),
-  permission: { key: 'view_finance', level: 'read' },
+  /* **D17.** `writePermission: null` is the new shape's own definition of a row
+     that declares no write actions, and `canWriteSubTab` returns `false` for
+     it — which is exactly the read-only sub-tab §11.2 describes: it renders,
+     with its write actions disabled in place and the reason named.
+     This replaces `permission: { level: 'read' }`, which stopped type-checking
+     when `SubTabRoute` gained `viewPermission` / `writePermission`. */
+  writePermission: null,
 })
 
 beforeEach(() => {
@@ -687,5 +693,335 @@ describe('AC-430 / AC-431 — a mutation that fails changes nothing and says so 
       )
       expect(after?.state).toBe('paid')
     })
+  })
+})
+
+
+/* ══════════ P4-T1 / D21 — the bulk bar, and the set semantics ═════════════ */
+
+/**
+ * **What these tests are for, and what they deliberately do not use.**
+ *
+ * The refusals below are constructed from **domain state I control** — a
+ * captain with no bank account, a captain whose net payable is not positive —
+ * and never from `gate.canWrite`. Every route-table row carries
+ * `permission: null` today, so `canWrite` is `true` for every operator and a
+ * test that refused through it would be asserting against a gate that cannot
+ * currently fail. The one permission test below uses `readOnlyRow()`, which
+ * constructs the permission explicitly, and says so.
+ *
+ * Each assertion also states its **non-vacuity** first, read from the client:
+ * that the fixtures really do contain an eligible captain and a refused one. A
+ * bulk bar over a set that happens to be uniform proves nothing about a rule
+ * whose whole content is what happens when it is not.
+ */
+
+/** A row's own selection checkbox, whatever primitive `DataTable` rendered. */
+async function selectRow(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const box = rowFor(name).querySelector('input[type="checkbox"], [role="checkbox"]')
+  if (!box) throw new Error(`No selection checkbox on the row for ${name}`)
+  await user.click(box)
+}
+
+/** The inverted bulk bar. Its accessible name is the count it will act on. */
+function bulkBar(): HTMLElement {
+  return screen.getByRole('group', { name: /selected/i })
+}
+
+const PAY = EN['fin.payout.action.pay'] as string
+
+/** Read the live rows, so the test never assumes a fixture the ledger overrode. */
+async function payoutState() {
+  const { items } = await listCaptainPayouts({ pageSize: 100 })
+  const eligible = items.filter(
+    (each) => each.bankAccountLast4 !== null && each.payableHalalas - each.cashDebtHalalas > 0,
+  )
+  const noBank = items.filter((each) => each.bankAccountLast4 === null)
+  const nothing = items.filter(
+    (each) => each.bankAccountLast4 !== null && each.payableHalalas - each.cashDebtHalalas <= 0,
+  )
+  return { items, eligible, noBank, nothing }
+}
+
+describe('P4-T1 — Payouts gains selection and a bulk bar', () => {
+  it('the payouts index carries a checkbox column, and selecting raises the bar', async () => {
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    expect(
+      screen.getByRole('checkbox', { name: EN['table.selectAll'] as string }),
+      'the index carries a select-all',
+    ).toBeTruthy()
+
+    await selectRow(user, 'Ahmed Salem')
+    expect(within(bulkBar()).getByRole('button', { name: PAY })).toBeTruthy()
+    /* D10b — the bar carries its own exit. */
+    expect(within(bulkBar()).getByRole('button', { name: EN['table.clear'] as string })).toBeTruthy()
+  })
+
+  /**
+   * **AC-335 stays intact and this is where it is guarded.** The spec forbids a
+   * bulk-reverse affordance anywhere in Financials. Selection arriving on this
+   * screen is exactly the change that could smuggle one in, so the bar's whole
+   * command list is enumerated rather than checked for an absence.
+   */
+  it('AC-335 — the bar offers Pay and nothing else; no reversal is bulk', async () => {
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+    await selectRow(user, 'Ahmed Salem')
+
+    const commands = within(bulkBar())
+      .getAllByRole('button')
+      .map((control) => control.textContent?.trim())
+    expect(commands).toEqual([PAY, EN['table.clear']])
+  })
+})
+
+describe('D21 — a bulk payout is refused if any selected captain would be', () => {
+  /**
+   * **AC-958's shape, on money.** A mixed selection: the bar refuses, the
+   * sentence is real text above it rather than a tooltip, and the disabled
+   * control points at that sentence with `aria-describedby`.
+   */
+  it('a mixed selection disables Pay and names how many are blocked', async () => {
+    const { eligible, noBank } = await payoutState()
+    /* Non-vacuity: the fixtures must actually hold both kinds. */
+    expect(eligible.length, 'some captain is payable').toBeGreaterThan(1)
+    expect(noBank.length, 'some captain has no bank account').toBe(1)
+
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await selectRow(user, eligible[0]!.captainName)
+    await selectRow(user, eligible[1]!.captainName)
+    await selectRow(user, noBank[0]!.captainName)
+
+    const pay = within(bulkBar()).getByRole('button', { name: PAY })
+    expect(pay).toBeDisabled()
+
+    /* The `.other` sentence, with the blocked count in it. */
+    const sentence = (EN['fin.bulk.pay.noBank.other'] as string).replace('{count}', '1')
+    expect(screen.getByText(sentence)).toBeTruthy()
+
+    /* §11.2 / §8.4.4 — reachable from the control, not merely near it. */
+    const describedBy = pay.getAttribute('aria-describedby') ?? ''
+    expect(document.getElementById(describedBy)?.textContent).toContain('bank account')
+  })
+
+  /**
+   * **AC-960.** Every selected captain refused: the sentence changes to `.all`
+   * and there is no escape hatch, because there is nothing to narrow to.
+   */
+  it('AC-960 — a wholly refused selection takes the `.all` sentence and offers no narrowing', async () => {
+    const { noBank, nothing } = await payoutState()
+    expect(noBank.length + nothing.length, 'more than one refused captain exists').toBeGreaterThan(1)
+
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await selectRow(user, noBank[0]!.captainName)
+    await selectRow(user, nothing[0]!.captainName)
+
+    expect(within(bulkBar()).getByRole('button', { name: PAY })).toBeDisabled()
+    /* The count is the WHOLE blocked subset (D21 rendering rule 4), which over
+       a two-cause selection is both of them — so the sentence and the absent
+       hatch agree about the size of the problem. */
+    const sentence = (EN['fin.bulk.pay.noBank.all'] as string).replace('{count}', '2')
+    expect(screen.getByText(sentence)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Select only/ })).toBeNull()
+  })
+
+  /** **D21's `.one` form** — one record selected and refused has no subset to name. */
+  it('a single refused captain takes the `.one` sentence', async () => {
+    const { noBank } = await payoutState()
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await selectRow(user, noBank[0]!.captainName)
+    expect(screen.getByText(EN['fin.bulk.pay.noBank.one'] as string)).toBeTruthy()
+  })
+
+  /**
+   * **AC-959 and AC-961 together, which is the pair that matters on money.**
+   * Narrowing is not a partial apply: the selection changes, the bar's count
+   * changes with it, **nothing has been paid at that point**, and what the
+   * command then acts on is exactly what the bar said.
+   */
+  it('AC-959 / AC-961 — `Select only the N eligible` narrows, runs nothing, and the payout matches the bar', async () => {
+    const { eligible, noBank } = await payoutState()
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await selectRow(user, eligible[0]!.captainName)
+    await selectRow(user, eligible[1]!.captainName)
+    await selectRow(user, noBank[0]!.captainName)
+    expect(bulkBar().getAttribute('aria-label')).toContain('3')
+
+    await user.click(screen.getByRole('button', { name: 'Select only the 2 eligible' }))
+
+    expect(bulkBar().getAttribute('aria-label')).toContain('2')
+    expect(within(bulkBar()).getByRole('button', { name: PAY })).toBeEnabled()
+    /* Narrowing is a selection change and nothing else. */
+    expect(auditLogSize(), 'narrowing must not pay anybody').toBe(0)
+
+    await user.click(within(bulkBar()).getByRole('button', { name: PAY }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(
+      within(dialog).getByRole('button', { name: EN['fin.bulk.pay.confirm.confirm'] as string }),
+    )
+
+    /* **AC-961** — two on the bar, two paid, and one audit entry each. */
+    await waitFor(() => expect(auditLogSize()).toBe(2))
+  })
+
+  /**
+   * **AC-962** — the permission sentence outranks the domain one. Built from
+   * `readOnlyRow()`, which declares the permission explicitly, because the
+   * shipped route rows carry `permission: null` and nothing can fail the gate.
+   */
+  it('AC-962 — a read-only role is refused with the role sentence, not the domain one', async () => {
+    const { eligible, noBank } = await payoutState()
+    const user = userEvent.setup()
+    mount(readOnlyRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await selectRow(user, eligible[0]!.captainName)
+    await selectRow(user, noBank[0]!.captainName)
+
+    expect(within(bulkBar()).getByRole('button', { name: PAY })).toBeDisabled()
+    const sentence = (EN['fin.bulk.pay.permission.all'] as string).replace('{count}', '2')
+    expect(screen.getByText(sentence)).toBeTruthy()
+    /* And the domain sentence is NOT what it says, even though one row is also
+       refused on domain grounds. */
+    expect(screen.queryByText(/bank account is on file/)).toBeNull()
+  })
+})
+
+describe('a bulk payout reaches the data layer once per captain', () => {
+  /**
+   * The whole point of a bulk command: it is N real acts, each with its own
+   * posting and its own audit entry (**AC-362**, **AC-437**). Asserted against
+   * the audit log and the payable ledgers rather than against a toast.
+   */
+  it('pays every selected captain, writes one entry each, and moves each payable', async () => {
+    const { eligible } = await payoutState()
+    const targets = eligible.slice(0, 2)
+    expect(targets.length).toBe(2)
+
+    const before = await Promise.all(
+      targets.map((each) => getCaptainPayableLedger(each.captainId)),
+    )
+
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+    for (const target of targets) await selectRow(user, target.captainName)
+
+    await user.click(within(bulkBar()).getByRole('button', { name: PAY }))
+    const dialog = await screen.findByRole('dialog')
+    /* §9.1 — the confirmation states the verb and the amount, and the primary
+       repeats the verb. The three labelled lines are the SET's totals. */
+    expect(within(dialog).getByText(EN['fin.payout.col.net'] as string)).toBeTruthy()
+    await user.click(
+      within(dialog).getByRole('button', { name: EN['fin.bulk.pay.confirm.confirm'] as string }),
+    )
+
+    await waitFor(() => expect(auditLogSize()).toBe(2))
+    const entries = await listAuditEntries({ pageSize: 10 })
+    const subjects = entries.items.slice(0, 2).map((entry) => entry.subjectId).sort()
+    expect(subjects).toEqual(targets.map((each) => each.captainId).sort())
+
+    /* Each payable moved by its own net, so a posting really landed on each. */
+    const after = await Promise.all(
+      targets.map((each) => getCaptainPayableLedger(each.captainId)),
+    )
+    for (const [index, ledger] of after.entries()) {
+      expect(
+        ledger.postings.length,
+        `${targets[index]!.captainId} gained a posting`,
+      ).toBeGreaterThan(before[index]!.postings.length)
+    }
+  })
+})
+
+/* ══════════════ P8-T1 — 360° reach from every name on the row ════════════ */
+
+describe('P8-T1 — a cell that names an entity opens that entity', () => {
+  /**
+   * **The link is a real link.** `getByRole('link')` plus an `href` is the
+   * assertion, because that is the difference the criterion is about: a
+   * `<span onClick>` has the same text and none of the behaviour.
+   */
+  it('the captain name on a payout row links to the 360° profile', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    const link = await screen.findByRole('link', {
+      name: (EN['fin.a11y.openProfile'] as string).replace('{name}', 'Ahmed Salem'),
+    })
+    expect(link.getAttribute('href')).toContain('entity=DRV-0101')
+    /* The MONEY view is a separate, separately-labelled control — the name
+       never silently means "open the payable ledger". */
+    expect(link.getAttribute('href')).not.toContain('captain=')
+  })
+
+  it('an escrow row links its captain, its rider and its subscription', async () => {
+    const { items } = await listEscrowHolds({ pageSize: 100 })
+    const hold = items.find((each) => each.id === 'ESC-1052')
+    expect(hold).toBeTruthy()
+
+    mount(payoutsRow(), '/financials/payouts?view=escrow')
+    await waitFor(() => expect(screen.getByText('ESC-1052')).toBeTruthy())
+
+    const row = rowFor('ESC-1052')
+    await waitFor(() =>
+      expect(within(row).getAllByRole('link').length, 'three names, three links').toBe(3),
+    )
+    const hrefs = within(row)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href') ?? '')
+    expect(hrefs.some((href) => href.includes(`entity=${hold!.captainId}`))).toBe(true)
+    expect(hrefs.some((href) => href.includes(`entity=${hold!.riderId}`))).toBe(true)
+    expect(hrefs.some((href) => href.includes(`entity=${hold!.subscriptionId}`))).toBe(true)
+
+    /* And the hold's own id is NOT a link: an escrow hold has no profile, and a
+       link that resolves to nothing is a guess about the route table (AC-474). */
+    expect(within(row).getByText('ESC-1052').closest('a')).toBeNull()
+  })
+
+  /**
+   * A deduction names a captain and the trip it was raised against, and both
+   * open.
+   *
+   * **The negative — a reference that resolves to nothing rendering as text —
+   * is asserted in `shared/entityLinks.test.tsx` and not here, on purpose.**
+   * Every entity reference on every Financials fixture currently resolves, so
+   * a DOM test of the unresolvable branch would be vacuous: it would pass just
+   * as well against a component that linked everything. The unit test drives
+   * the resolver with an id that is not on any record, which is the only way to
+   * exercise it until a fixture carries one. Raised with mock-data-engineer.
+   */
+  it('a deduction row links its captain and its trip', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=deductions')
+    await waitFor(() => expect(screen.getByText('DED-01')).toBeTruthy())
+
+    const row = rowFor('DED-01')
+    await waitFor(() =>
+      expect(within(row).getAllByRole('link').length, 'the captain and the trip').toBe(2),
+    )
+    const hrefs = within(row)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href') ?? '')
+    expect(hrefs.some((href) => href.includes('entity=TRP-7742'))).toBe(true)
+    expect(hrefs.some((href) => href.includes('entity=DRV-'))).toBe(true)
+
+    /* The deduction id itself is a document, not an entity, and is not a link. */
+    expect(within(row).getByText('DED-01').closest('a')).toBeNull()
   })
 })

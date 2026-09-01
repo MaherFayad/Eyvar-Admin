@@ -18,7 +18,7 @@ import {
   RETIRED_LEGACY_PAGE_IDS,
 } from '../fixtures/legacyPages'
 import { REPORTS_SUB_TAB_ID, REPORTS_VIEWS } from '@/screens/reports'
-import { findSubTabByPath, resolveLegacyPage } from './routes'
+import { findSubTabByPath, resolveLegacyPage, subTabViewPermissions } from './routes'
 import { WORKSPACE_IDS } from '../types/navigation'
 
 describe('AC-01/AC-02 — the rail', () => {
@@ -180,14 +180,29 @@ describe('§3.10 — page shapes', () => {
    * §3.4 named five. **D1a adds two** — `report` and `dashboard` — because a
    * saved report and a dashboard each address one named record, which `?view=`
    * cannot carry (§3.8 rule 3).
+   *
+   * **D19 adds an eighth, `conversation`, and it arrived by correcting a
+   * mistake worth recording.** The conversation pane was first built as a
+   * drawer — not on a design argument, but because this row declared
+   * `detailRoutes: []` and `routes.tsx` has a single owner, so a drawer was the
+   * only surface reachable without touching another agent's file. A
+   * file-ownership constraint had decided a page shape.
+   *
+   * On the design: `--ev-drawer-w` is 406px and cannot hold a thread, a 320px
+   * rail and a pinned composer at once — and the rail carries §8.4.2's
+   * countdown, which both D22's SLA and its concurrent-chat cap are read from.
+   * §5.0's drawer is *"a surface consulted against the page behind it"*, and at
+   * a 45-second first-response promise an operator is in the conversation for
+   * twenty minutes.
    */
-  it('declares exactly the seven level-3 routes — §3.4’s five, plus D1a’s two', () => {
+  it('declares exactly the eight level-3 routes — §3.4’s five, D1a’s two, D19’s one', () => {
     const kinds = [
       ...SUB_TABS.flatMap((r) => r.detailRoutes.map((d) => d.kind)),
       ...SHELL_LAYERS.filter((l) => l.fullPagePath).map(() => 'entity' as const),
     ]
     expect(kinds.sort()).toEqual([
       'applicant',
+      'conversation',
       'corporate',
       'dashboard',
       'entity',
@@ -311,21 +326,105 @@ describe('§4.3.4 — global search resolves legacy names', () => {
   })
 })
 
-describe('recorded gaps — these fail on purpose until a human answers', () => {
+describe('AC-61 / AC-919 — every row carries its two permission keys (D17)', () => {
   /**
-   * AC-61: every one of the 35 sub-tabs needs a permission. **Q4 is open** —
-   * the rule is decided (§11.3), the values are not. This test asserts the
-   * *current, recorded* state so the gap cannot be forgotten; when Q4 lands,
-   * invert it to `toBe(0)` and it becomes AC-61 proper.
+   * **This test used to assert the gap.** It read *"Q4: all 35 sub-tab
+   * permissions are still null"* and passed. D17 closed Q4, so it is inverted
+   * here rather than deleted: the shape of the old assertion is the record of
+   * what was wrong.
    */
-  it('Q4: all 35 sub-tab permissions are still null', () => {
-    const unresolved = SUB_TABS.filter((r) => r.permission === null)
-    expect(unresolved).toHaveLength(35)
+  it('leaves no row unresolved: 34 of 35 carry a view key', () => {
+    const unresolved = SUB_TABS.filter((r) => r.viewPermission === null)
+    expect(unresolved.map((r) => r.subTabId)).toEqual(['admin-activity'])
   })
 
-  it('the 360° profile layer is the one permission the spec already fixed', () => {
+  /** **AC-919** — asserted as an exact identity, not as a count. */
+  it('names admin-activity as the ONLY row with no view key, and says why', () => {
+    /* Every authenticated operator can open the Activity Log; its rows are
+       filtered server-side to entities the operator can otherwise see. An audit
+       trail only the accused can hide is not a control. */
+    const activity = SUB_TABS.find((r) => r.subTabId === 'admin-activity')
+    expect(activity?.viewPermission).toBeNull()
+    expect(activity?.writePermission).toBeNull()
+    expect(SUB_TABS.filter((r) => r.viewPermission === null)).toHaveLength(1)
+  })
+
+  it('declares a write key on every row that has write actions, and null on the boards', () => {
+    /* `writePermission: null` is a claim — "this sub-tab has nothing to write" —
+       and `canWriteSubTab` returns FALSE for it. The rows entitled to make that
+       claim are the four Overview boards plus Performance and the Activity Log;
+       anything else with a null write key is a row missing its key. */
+    const noWrite = SUB_TABS.filter((r) => r.writePermission === null).map((r) => r.subTabId)
+    expect(noWrite).toEqual([
+      'management-overview',
+      'management-performance',
+      'operations-overview',
+      'financials-overview',
+      'support-overview',
+      'admin-overview',
+      'admin-activity',
+    ])
+  })
+
+  it('gates admin-team on its own write key, not on view_admin', () => {
+    /* Read-only access to Team & Access exposes the operator roster, everyone's
+       second-factor state and the whole permission matrix. There is no useful
+       read-only for it (D17). */
+    const team = SUB_TABS.find((r) => r.subTabId === 'admin-team')
+    expect(team?.viewPermission).toBe('manage_team')
+    expect(team?.writePermission).toBe('manage_team')
+  })
+
+  it('keeps the two self-gating rows self-gating', () => {
+    const selfGating = SUB_TABS.filter(
+      (r) => r.writePermission !== null && r.writePermission === r.viewPermission,
+    ).map((r) => r.subTabId)
+    expect(selfGating.sort()).toEqual(['admin-team', 'management-reports', 'operations-my-work'])
+  })
+
+  it('gates every row on its own workspace read key, bar admin-team and admin-activity', () => {
+    const expected: Record<string, string> = {
+      management: 'view_analytics',
+      operations: 'view_operations',
+      financials: 'view_finance',
+      support: 'view_support',
+      admin: 'view_admin',
+    }
+    for (const row of SUB_TABS) {
+      if (row.subTabId === 'admin-team' || row.subTabId === 'admin-activity') continue
+      expect(row.viewPermission, row.subTabId).toBe(expected[row.workspaceId])
+    }
+  })
+
+  it('the 360° profile layer is gated on view_profiles', () => {
     const profile = SHELL_LAYERS.find((l) => l.layerId === 'entity')
-    expect(profile?.permission).toEqual({ key: 'view_profiles', level: 'full' })
+    expect(profile?.viewPermission).toBe('view_profiles')
+    /* The other three layers open for every authenticated operator. */
+    const open = SHELL_LAYERS.filter((l) => l.viewPermission === null).map((l) => l.layerId)
+    expect(open.sort()).toEqual(['account', 'notifications', 'onboarding'])
+  })
+
+  it('AC-925 — no route-table row is gated on the retired manage_settings', () => {
+    const keys = SUB_TABS.flatMap((r) => [r.viewPermission, r.writePermission])
+    expect(keys).not.toContain('manage_settings')
+  })
+})
+
+describe('subTabViewPermissions — the derived §8.2 map', () => {
+  it('has one entry per sub-tab and cannot disagree with the table', () => {
+    const map = subTabViewPermissions()
+    expect(Object.keys(map).sort()).toEqual(SUB_TABS.map((r) => r.subTabId).sort())
+    for (const row of SUB_TABS) {
+      expect(map[row.subTabId], row.subTabId).toEqual(
+        row.viewPermission === null ? [] : [row.viewPermission],
+      )
+    }
+  })
+
+  it('gives admin-activity an EMPTY array, which means ungated and not absent', () => {
+    /* §8.2's contract: `[]` = the server says this row is open; a missing key =
+       the server did not say, and `isSubTabVisible` falls back to the row. */
+    expect(subTabViewPermissions()['admin-activity']).toEqual([])
   })
 })
 

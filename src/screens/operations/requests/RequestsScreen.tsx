@@ -79,7 +79,10 @@ import type {
   SubTabRoute,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { toast } from 'sonner'
+import { setRefusal } from '../bulkRefusal'
+import { EntityLink, useEntityLinks } from '../EntityLink'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -150,6 +153,17 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
        without a second pass, and a breached row's deadline is by definition
        earlier than a healthy one's. */
     initialSort: { field: 'slaDueAt', dir: 'asc' },
+    /**
+     * **§9.3 / P4-T1 — the checkbox column, and the one command allowed behind
+     * it.** A queue gets a selection **only** where every bulk action offered is
+     * a claim or an assign; `bulkClaim: true` is how this file says so, and
+     * without it `table.selectedIds` is not on the returned type at all. Bulk
+     * disposition is forbidden outright (`DESIGN.md:5328`), which is why
+     * `Assign captain` and `Close` stay row-only however many rows are ticked:
+     * assigning a captain captures a rider's authorisation hold, and twelve
+     * captures from one pill is exactly the act §9.3 exists to prevent.
+     */
+    bulkClaim: true,
   })
 
   /* The view tab and the client's `view` param are the same value. Passing it
@@ -192,7 +206,17 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
     { deps: [] },
   )
 
+  /* **P8-T1** — every id the page names, asked once each. */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () => (data.data?.items ?? []).flatMap((r) => [r.riderId, r.offeredToDriverId, r.assignedDriverId]),
+      [data.data?.items],
+    ),
+  )
+
   const actions = useRowActions<RideRequest>({ t })
+  /** True while a bulk claim is in flight; the bar's command is not re-entrant. */
+  const [claimingMany, setClaimingMany] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const rows = actions.rows(data.data?.items ?? [])
@@ -314,13 +338,66 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
     )
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  /** The selection as RECORDS, which is what the predicate takes. */
+  const selected = rows.filter((request) => table.selectedIds.has(request.id))
+
+  /**
+   * **D21 over a set.** Refused if ANY selected request would be refused on its
+   * own row, in one of three sentences, with the permission refusal first.
+   *
+   * A row already held by somebody is **blocked, not taken over**: AC-203 makes
+   * a take-over a confirmed act that NAMES the operator losing the item, and
+   * over a set it would strip N owners and name none of them. A decided row has
+   * nothing left to claim. Both are `.blocked`, and `Select only the N
+   * eligible` is how the operator gets past them in one click.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (request) => request.id,
+    isBlocked: (request) => isTerminal(request) || request.claim?.state === 'claimed',
+    roleReason: canWrite ? null : t('requests.action.noPermission'),
+    blockedKeyPrefix: 'requests.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /**
+   * **Every bulk action reaches the data layer.** One `claimRequest` per
+   * record — the same call the row's own `Claim` makes, so the projection, the
+   * queue and My Work cannot disagree about who holds what. A bulk action that
+   * only fired a toast would be worse than none.
+   */
+  async function claimSelected(ids: ReadonlySet<string>) {
+    setClaimingMany(true)
+    try {
+      await Promise.all([...ids].map((id) => claimRequest(id, { takeOver: false })))
+      table.clearSelection()
+      toast(
+        ids.size === 1
+          ? t('queue.toast.claimed')
+          : t('requests.toast.claimed.other', { count: formatCount(ids.size, language) }),
+      )
+    } catch {
+      toast(t('requests.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = requestColumns({
     t,
     language,
     now,
     canWrite,
     currentUserId,
-    profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+  profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    /* **P8-T1 — resolution is ASKED, not assumed.** A captain the resolver
+       cannot find renders as text with its reason rather than as a link into
+       the overlay's own not-found state. */
+    hrefFor,
     failure: actions.failure,
     onClaim: (request) => claim(request, false),
     onRelease: release,
@@ -360,6 +437,19 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
         now={now}
         searchPlaceholder={t('requests.search')}
         extraFilters={BREACH_FILTER(t)}
+        /* §9.3 — claims only. `Assign` and `Close` are dispositions and stay on
+           the row, however many rows are ticked. */
+        bulkActions={[
+          {
+            label: t('requests.bulk.claim'),
+            onClick: (ids) => void claimSelected(ids),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            /* D21's escape hatch — a narrowing of the SELECTION, not a partial
+               apply. Empty when every selected request is blocked. */
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         cleared={{
           heading: t('requests.empty.cleared.heading'),
           body: t(CLEARED_BODY[activeTab] ?? 'requests.empty.cleared.all'),
@@ -432,6 +522,8 @@ export interface ColumnDeps {
   canWrite: boolean
   currentUserId: string
   profileHref: (id: string) => string
+  /** **P8-T1** — `null` when the id names nothing this console can open. */
+  hrefFor: (id: string | null | undefined) => string | null
   failure: (id: string) => RowFailure | undefined
   onClaim: (row: RideRequest) => void
   onRelease: (row: RideRequest) => void
@@ -676,15 +768,33 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
            The cell is informational and offers no assign; legacy renders an
            assign control here that cannot work (`:9954`). */
         if (row.status === 'offered') {
-          const offered =
-            row.offeredToDriverName === null
-              ? t('requests.offered.unnamed')
-              : t('requests.offered.withCaptain', { name: row.offeredToDriverName })
-          return (
-            <MutedCell title={offered}>
-              {offered}
-            </MutedCell>
-          )
+          /* **P8-T1** — the offer names a captain, so the cell opens that
+             captain. It used to be one muted sentence with the name buried in
+             it, which is a cell that names an entity and reaches none: an
+             operator asking *"who is this and why have they not answered"* had
+             nowhere to go from here.
+
+             The sentence and the link are separate elements rather than one
+             interpolated string with an `<a>` inside it, because AC-75 forbids
+             assembling a sentence around a component and a link inside a
+             translated template cannot be moved by a translator. */
+          if (row.offeredToDriverId !== null && row.offeredToDriverName !== null) {
+            return (
+              <Cell className="flex items-center gap-1 text-xs text-muted-foreground">
+                <EntityLink
+                  href={deps.hrefFor(row.offeredToDriverId)}
+                  label={t('requests.a11y.openCaptain', { name: row.offeredToDriverName })}
+                  reason={t('requests.entity.unresolved')}
+                  reasonId={`req-${row.id}-captain-unresolved`}
+                >
+                  {row.offeredToDriverName}
+                </EntityLink>
+                <span className="truncate">{t('requests.offered.waiting')}</span>
+              </Cell>
+            )
+          }
+          const offered = t('requests.offered.unnamed')
+          return <MutedCell title={offered}>{offered}</MutedCell>
         }
 
         /* §5.5's disposition set, narrowed to what the client offers. R3: no

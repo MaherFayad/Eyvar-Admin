@@ -3,11 +3,42 @@ import { EYVAR_NOW, EYVAR_TODAY } from '@/data/clients'
 import { RIYADH_TIME_ZONE, formatDate, toDate } from './date'
 
 describe('formatDate', () => {
-  it('renders the five styles in English', () => {
+  it('renders the styles in English', () => {
     expect(formatDate(EYVAR_NOW, { style: 'day-month' })).toBe('25 Jun')
     expect(formatDate(EYVAR_NOW, { style: 'day-month-year' })).toBe('25 Jun 2026')
     expect(formatDate(EYVAR_NOW, { style: 'time' })).toBe('09:14')
     expect(formatDate(EYVAR_NOW, { style: 'weekday-day-month-year' })).toContain('Thursday')
+  })
+
+  /* ── month-year: a cohort row is a month, not the first of it ── */
+
+  it('renders month-year without a day', () => {
+    expect(formatDate('2026-03-01', { style: 'month-year' })).toBe('Mar 2026')
+    expect(formatDate('2026-03-17T14:05:00+03:00', { style: 'month-year' })).toBe('Mar 2026')
+    expect(formatDate(EYVAR_NOW, { style: 'month-year' })).toBe('Jun 2026')
+  })
+
+  it('claims no day precision a monthly cohort does not have', () => {
+    // The defect: a cohort header reading `1 Mar 2026` states a day the row
+    // does not have. Every day of March must render identically.
+    const march = ['2026-03-01', '2026-03-15', '2026-03-31'].map((d) =>
+      formatDate(d, { style: 'month-year' }),
+    )
+    expect(new Set(march).size).toBe(1)
+    expect(march[0]).not.toMatch(/\b(1|15|31)\b/)
+  })
+
+  it('is locale-built in Arabic too — the month name translates, the digits do not', () => {
+    const arabic = formatDate('2026-03-01', { style: 'month-year', language: 'ar' })
+    expect(arabic).toContain('2026')
+    expect(arabic).not.toMatch(/[٠-٩]/)
+    expect(arabic).not.toContain('Mar')
+  })
+
+  it('respects the Riyadh boundary, so a cohort does not slip a month', () => {
+    // 21:30 UTC on 28 February is 00:30 on 1 March in Riyadh.
+    expect(formatDate('2026-02-28T21:30:00Z', { style: 'month-year' })).toBe('Mar 2026')
+    expect(formatDate('2026-02-28T20:30:00Z', { style: 'month-year' })).toBe('Feb 2026')
   })
 
   it('joins date and time with a plain space, as §9.3 words it', () => {

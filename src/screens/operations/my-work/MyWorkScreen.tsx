@@ -73,7 +73,9 @@ import type {
   WorkQueueId,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { type Language, type Translate } from '@/lib'
+import { formatCount, type Language, type Translate } from '@/lib'
+import { toast } from 'sonner'
+import { setRefusal } from '../bulkRefusal'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import type { DataColumn, ExtraFilterSpec, RowAction } from '@/components/DataTable'
@@ -166,6 +168,14 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
      * means by *"it reduces what is shown; it never hides work"*.
      */
     initialFilters: [{ field: 'routedToMyRole', op: 'eq', value: true }],
+    /**
+     * **§9.3 / P4-T1, and this projection is the queue that most needs it.**
+     * §7.2 says My Work never decides anything — it claims, releases and routes
+     * — so `Claim` is not merely the only bulk action §9.3 permits here, it is
+     * the only bulk action that exists on this screen at all. Picking up the
+     * next ten unassigned items is the act the whole surface is for.
+     */
+    bulkClaim: true,
   })
 
   /* `includeOtherRoles: true` **always**, because the routing decision has moved
@@ -274,6 +284,58 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
     })
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  const visibleRows = data.data?.items ?? []
+  const selected = visibleRows.filter((item) => table.selectedIds.has(item.key))
+
+  /**
+   * D21 over a set, with **three** blocking causes on this screen rather than
+   * two: an item already held (a bulk take-over would strip N owners and name
+   * none of them — AC-203), and an item whose source queue this wave did not
+   * build, which is §7.5's `source-queue-unavailable` (**AC-292**) reaching the
+   * bulk bar the same way it already reaches the row's own claim control.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (item) => item.key,
+    isBlocked: (item) =>
+      item.claim?.state === 'claimed' || CLAIM_CLIENTS[item.queue] === undefined,
+    blockedKeyPrefix: 'myWork.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /**
+   * **The write goes to the SOURCE queue's own client, one call per record** —
+   * never to a My Work client, because there is not one and there must not be.
+   * `clients/myWork.ts` is a routing layer with no fixture, deliberately: a
+   * second independently-seeded copy is how My Work ends up showing a claim the
+   * owning queue disagrees with. **AC-288** holds over a set for the same
+   * reason it holds over a row — it is the same claim.
+   */
+  const [claimingMany, setClaimingMany] = useState(false)
+  async function claimSelected(keys: ReadonlySet<string>) {
+    const targets = visibleRows.filter((item) => keys.has(item.key))
+    setClaimingMany(true)
+    try {
+      await Promise.all(
+        targets.map((item) => CLAIM_CLIENTS[item.queue]?.claim(item.id, false) ?? Promise.resolve()),
+      )
+      table.clearSelection()
+      toast(
+        targets.length === 1
+          ? t('queue.toast.claimed')
+          : t('myWork.toast.claimed.other', { count: formatCount(targets.length, language) }),
+      )
+    } catch {
+      toast(t('myWork.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = workColumns({
     t,
     language,
@@ -328,6 +390,18 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
         searchPlaceholder={t('myWork.search')}
         extraFilters={FILTERS(t)}
         rowActions={rowActions}
+        /* §7.2 — My Work claims, releases and routes; it never decides. `Claim`
+           is therefore both the only bulk action §9.3 permits and the only one
+           this screen has. */
+        bulkActions={[
+          {
+            label: t('myWork.bulk.claim'),
+            onClick: (keys) => void claimSelected(keys),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         /* §7.8 — `12 + label + 12`, declared per view because a label's width is
            a translation question. `Open` is the shortest verb in the product. */
         rowActionsWidth={88}

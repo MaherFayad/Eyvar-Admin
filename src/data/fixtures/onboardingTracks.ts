@@ -27,10 +27,18 @@
  * 3 common + 4 + 5 + 5 + 4 = **21 rows**. Thirty *track memberships*, 21 rows.
  *
  * **AC-624 and AC-603 measure different things and a QA engineer who conflates
- * them files a defect against a correct screen** (spec §19.3). An Ops Manager
- * sees **eight** step rows in the DOM — no step is hidden (AC-611) — and the
- * progress line reads out of **seven**, because `ops.dispatch` is unbuilt and
- * excluded from `total` (AC-603, AC-609).
+ * them files a defect against a correct screen** (spec §19.3). `steps` carries
+ * every row in the track — no step is ever hidden (AC-611) — and `total` counts
+ * only the reachable ones.
+ *
+ * **They currently agree, and that is a fact about today's route table, not
+ * about the rule.** `UNBUILT_SUB_TAB_IDS` in `clients/routes.ts` is `[]` since
+ * Live Dispatch and Support › Tickets shipped, so every destination in all four
+ * tracks resolves and is built and **no step is unavailable**. An Ops Manager
+ * sees eight rows and reads `n of 8`. The moment a track points at an unbuilt
+ * destination the two diverge again, and nothing in this file changes when it
+ * does — which is AC-626, and is why the ops.dispatch note below now records a
+ * discharged criterion rather than a pending one.
  *
  * ## `null` twice on every row, and neither is an oversight
  *
@@ -335,16 +343,20 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
   },
   {
     /**
-     * **UNBUILT — wave 6. `available: false` today (AC-609, AC-626).**
+     * **AC-626 — DISCHARGED, and this row is the evidence.**
      *
-     * The row renders **disabled in place** with `Live Dispatch isn't built yet.
-     * This step will open when it is.` — never hidden (AC-611) — and it is
-     * excluded from `totalCount`, which is why an Ops Manager sees eight rows
-     * and a progress line out of seven.
+     * Was *"unbuilt, wave 6"*: `available: false`, rendered disabled in place
+     * with `Live Dispatch isn't built yet. This step will open when it is.`,
+     * and excluded from `totalCount`. Live Dispatch has since shipped
+     * (`screens/operations/dispatch`, routed as `operations-dispatch`), the
+     * route-table owner removed its line from `UNBUILT_SUB_TAB_IDS`, **and not
+     * one character of this row moved** — which is exactly the property AC-626
+     * asks for. `available` was never fixture data; it is derived in
+     * `clients/onboarding.ts`, so there is nothing here to un-set.
      *
-     * **It becomes enabled with no change to this file.** `available` is
-     * derived from `UNBUILT_SUB_TAB_IDS` in `clients/routes.ts`, so registering
-     * the screen removes one line there and this fixture does not move.
+     * The disabled treatment is still the designed behaviour for the next
+     * unbuilt destination, and is covered — labelled **synthetic**, because no
+     * real step reaches it any more — in `screens/onboarding/onboarding.test.tsx`.
      */
     id: 'ops.dispatch',
     order: 7,
@@ -370,7 +382,11 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
 
   /* ── Support — 4 (AC-627) ─────────────────────────────────────────────── */
   {
-    /** **UNBUILT — wave 5. `available: false` today.** Same treatment as `ops.dispatch`. */
+    /**
+     * Was *"unbuilt, wave 5"*. Support › Tickets shipped as `support-tickets`
+     * and left `UNBUILT_SUB_TAB_IDS` with it; same discharge as `ops.dispatch`,
+     * same zero edits here.
+     */
     id: 'support.ticket',
     order: 4,
     titleKey: key('support.ticket', 'title'),
