@@ -694,7 +694,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3.9**. Recorded — `Driver.rating` is a current
+     * average with no per-day history behind it.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3.9,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'drivers',
@@ -749,7 +758,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **6.9** complaints per 100 trips. Recorded, and a
+     * rate, so the fall to 5.8 survives the population difference.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 6.9,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'drivers',
@@ -766,7 +784,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **58.1 %** of late trips concentrated in the worst
+     * three captains. Recorded.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 58.1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'trips',
@@ -809,7 +836,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **SAR 1,624.00** of subscription revenue at risk.
+     * Recorded. The value above is itself a legacy literal (Q-102, M-2), so the
+     * baseline is the same kind of number and no better sourced.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 162_400,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'subscriptions',
@@ -836,7 +873,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3**. Recorded — nothing in the subscription fixture
+     * encodes a churn prediction, so neither side of this delta is derivable.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: null,
@@ -855,7 +901,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **2** captains carrying a risk signal. Recorded. */
+    comparison: {
+      kind: 'previous-period',
+      value: 2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'drivers',
@@ -888,7 +940,18 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **one** phone number was shared by a rider account
+     * and a captain account at the close of 10 Jun, and it has since been
+     * resolved. Zero today, so the tile reads −100 % — the one delta on this
+     * board that is good news, and the case `higherIsBetter: false` exists for.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.phoneOnly',
     sourceResource: 'riders',
@@ -908,7 +971,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-05-25',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **2** captains with a repeat incident in the trailing
+     * thirty days. Recorded — the safety fixture holds incidents, not the rolling
+     * window that was true on a past date.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'safety',
@@ -931,7 +1004,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **4** renewals on an instrument that had already
+     * failed. Recorded; the payment fixture keeps no per-renewal failure history.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: null,
@@ -948,7 +1030,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **10.4 %** of MRR at risk. Recorded, and a rate. */
+    comparison: {
+      kind: 'previous-period',
+      value: 10.4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'subscriptions',
@@ -965,7 +1053,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **17 days** of median runway before the at-risk
+     * subscriptions renew. Recorded. Thirteen today, which is the direction that
+     * matters: less time to save them, on a tile where up is better.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 17,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'subscriptions',
@@ -1001,7 +1099,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-01-01',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **1.1x**. Recorded — there is no promotions store, so
+     * the value above is a legacy literal and the baseline is one too. Both go if
+     * product-owner rules the tile out under §11.2.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1.1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: 'caption.attributedAtPlanPrice',
     sourceResource: null,
@@ -1047,7 +1155,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-01-01',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **168**. Recorded, same store, same caveat. */
+    comparison: {
+      kind: 'previous-period',
+      value: 168,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: null,
@@ -1153,7 +1267,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **4 %** of riders with no trip and no subscription.
+     * Recorded — `joinedAt` exists but dormancy is evaluated against today only.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.dormancyProxy',
     sourceResource: 'riders',
@@ -1180,7 +1303,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-01-01',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **SAR 82.00**. Recorded; no referrals store. */
+    comparison: {
+      kind: 'previous-period',
+      value: 8_200,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: null,
@@ -1197,7 +1326,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **1.5 %** of riders took a first trip inside seven
+     * days of joining. Recorded, and a rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1.5,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'riders',
@@ -1214,7 +1352,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **8.6 %** of quick-ride riders held a subscription.
+     * Recorded, and a rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 8.6,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'riders',
@@ -1231,7 +1378,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **SAR 159.00** per subscription. Recorded. Falling,
+     * which on a cost is the good direction — hence `higherIsBetter: false`.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 15_900,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'subscriptions',
@@ -1248,7 +1404,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **4.4x**. Recorded. */
+    comparison: {
+      kind: 'previous-period',
+      value: 4.4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'riders',
@@ -1285,7 +1447,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **5** captains short across every starved zone.
+     * Recorded — `fixtures/zones.ts` holds one demand/supply reading per zone,
+     * with no dated series behind it.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 5,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.healthyRatio',
     sourceResource: 'zones',
@@ -1315,7 +1487,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3** zones at or past 3.0x demand-to-supply.
+     * Recorded, same fixture.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.demandThreeTimesSupply',
     sourceResource: 'zones',
@@ -1336,7 +1517,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-05-26',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **24** unserved requests in the trailing thirty days.
+     * Recorded.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 24,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'zones',
@@ -1363,7 +1553,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: '2026-05-26',
     periodEnd: '2026-06-25',
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **39 %** mean zone failure rate. Recorded, and a
+     * rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 39,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'zones',
@@ -1389,7 +1588,19 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * **A zero baseline, deliberately kept.** No steer offer was live at the
+     * close of 10 Jun and none is live now. `clients/metrics.ts` refuses to
+     * divide by a zero *period* baseline and re-states the comparison as
+     * `insufficient-data`, so this tile is what keeps that guard — and the third
+     * `NoComparisonReason` — reachable from real fixture data.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 0,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: null,
@@ -1415,7 +1626,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: the worst zone ran at **5.2x**. Recorded. 7.0x today
+     * — the board’s worst movement, and the condition its notice is raised on.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 5.2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'zones',
@@ -1472,7 +1692,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3** applications in flight. Recorded; the derived
+     * count above is a live pipeline depth with no dated equivalent.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'applicants',
@@ -1489,7 +1718,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **71.2 %** of steer offers accepted. Recorded. */
+    comparison: {
+      kind: 'previous-period',
+      value: 71.2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'zones',
@@ -1520,7 +1755,18 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **5** applications sat past the 48-hour window at the
+     * close of 10 Jun against 2 today. Recorded, not reconstructible — the
+     * applicant fixture stamps `slaBreachedAt` as current state and keeps no
+     * record of who was breaching a fortnight ago.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 5,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.window48h',
     /* The breached filter on the applications view does not exist — F-8. */
@@ -1538,7 +1784,18 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * **Reconstructed, and asserted in `metrics.test.ts`:** two applications had
+     * been submitted by 10 Jun and were still undecided on it — `appliedAt` on or
+     * before the window close, `decidedAt` null or after it. Five are pending
+     * today, so the pipeline more than doubled in a fortnight.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     /* Legacy's own sub-line is *"Awaiting review"* (`:10374`) — a status, which
        R4-4 forbids a caption from carrying. The scope is what was worth
@@ -1563,7 +1820,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **9** breached items across every wave-2 queue.
+     * Recorded — `workBacklogByQueue()` reads current state and no queue fixture
+     * carries the depth it had a fortnight ago.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 9,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.acrossFiveQueues',
     sourceResource: 'work-items',
@@ -1595,7 +1862,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **17** items routed to a role and in nobody’s name.
+     * Recorded, for the reason above.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 17,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'work-items',
@@ -1615,7 +1891,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **6** legs with no backup captain eligible. Recorded
+     * — `backupEligible` is a current-state flag with no history behind it.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 6,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'assurance',
@@ -1632,7 +1917,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **6** requests searching, offered or with no drivers.
+     * Recorded rather than reconstructed: every seeded request was raised on or
+     * after 20 Jun, so the fixture cannot see 10 Jun at all.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 6,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
@@ -1655,7 +1950,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3** captains legally off dispatch. Recorded — the
+     * compliance fixture holds each document’s current worst state, not the state
+     * it was in on a past date.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'compliance',
@@ -1682,7 +1987,18 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **46** active captains not on a trip. Recorded, and
+     * it carries the same approximation the Overview’s captain census does:
+     * `status` is current, so a captain suspended yesterday was not counted
+     * active a fortnight ago either.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 46,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: 'caption.notOnATrip',
     sourceResource: 'drivers',
@@ -1699,7 +2015,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: the oldest waiting item was **four days** (5,760
+     * minutes) at the close of 10 Jun. Recorded — request timestamps start on
+     * 20 Jun and cannot see the window.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 5_760,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
@@ -1716,7 +2042,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: a **52-minute** median time to assign. Recorded, for
+     * the same reason.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 52,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
@@ -1733,7 +2068,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **86.2 %** of items resolved inside their promise.
+     * Recorded. A rate, so it is level-independent, and the fall to 80.4 % is the
+     * movement this tile exists to show.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 86.2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'requests',
@@ -1750,7 +2095,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **4.9 %** of requests cancelled or unserved.
+     * Recorded, and also a rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 4.9,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
@@ -1802,7 +2156,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **1**. Recorded — every incident opened before 10 Jun
+     * in `fixtures/safety.ts` was closed the same day, so a reconstruction reads
+     * zero, and a zero baseline has no percentage to take.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'safety',
@@ -1819,7 +2183,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **4** incidents open at the close of 10 Jun.
+     * Recorded, for the reason above.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'safety',
@@ -1920,7 +2293,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * **Reconstructed, and asserted in `metrics.test.ts`:** three fairness cases
+     * had been opened by 10 Jun and were still undecided on it. Four are open
+     * today.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'fairness',
@@ -1955,7 +2338,21 @@ export const metricSeeds: MetricSeed[] = [
      * decision either way swings the rate by 25 points, so a delta on it would
      * be noise wearing a caret.
      */
-    comparison: { kind: 'none', reason: 'insufficient-data' },
+    /**
+     * **Reconstructed, and it replaces a `reason: insufficient-data` that had
+     * gone stale.** That reason was written when three cases had been decided;
+     * `fixtures/fairness.ts` now holds **42** decided cases, 13 of them inside
+     * 27 May – 10 Jun, of which 9 were overturned — **69 %**. Against 67 % today,
+     * so the appeal route is catching bad calls at a steady rate. Both sides come
+     * from the same fixture over two windows, which is what keeps it off the L-3
+     * shape.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 69,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: 'caption.overturnIsNotFailure',
     sourceResource: 'fairness',
@@ -1972,7 +2369,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: an **11-minute** median first response. Recorded. */
+    comparison: {
+      kind: 'previous-period',
+      value: 11,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'safety',
@@ -1989,7 +2392,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **2.4 %** of riders contacted us more than once.
+     * Recorded, and a rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 2.4,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'riders',
@@ -2065,7 +2477,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **2** erasure requests past their statutory deadline.
+     * Recorded — there is no erasure-request store, so both numbers are literals
+     * and both go together if the tile does.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.statutoryThirtyDays',
     sourceResource: null,
@@ -2093,7 +2515,19 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * **42 then, 42 now, and the flat delta is the finding.** All forty-two rota
+     * slots are empty and have been for a fortnight: nobody is on call at any
+     * hour of any day, and nothing has moved. `0.0 %` with `direction: flat` says
+     * that. The em-dash said only that we had not looked. This is the one tile in
+     * the product that exercises the flat arm.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 42,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: 'caption.rotaSlots',
     sourceResource: null,
@@ -2139,7 +2573,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3** operators with an active account. Recorded —
+     * `TeamUser` carries no created-at, so a fourth operator joining cannot be
+     * dated from the fixture.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'team-users',
@@ -2156,7 +2600,13 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /* Prior-window reading: **4.1** items an operator-hour. Recorded. */
+    comparison: {
+      kind: 'previous-period',
+      value: 4.1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'team-users',
@@ -2173,7 +2623,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **1.2x** between the busiest and the quietest
+     * operator. Recorded.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1.2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'team-users',
@@ -2219,7 +2678,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **SAR 3.92** an hour at the 10th percentile.
+     * Recorded — `monthEarningsHalalas` is a running month total, not a series.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 392,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'drivers',
@@ -2236,7 +2704,17 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **SAR 15.18** an hour at the 90th percentile.
+     * Recorded. Falling while P10 rises: the spread is narrowing, which is what
+     * this pair of tiles is read for.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 1_518,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'drivers',
@@ -2253,7 +2731,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **3.5** suspensions per 100 active captains.
+     * Recorded, and a rate.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 3.5,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'drivers',
@@ -2270,7 +2757,18 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * **Reconstructed — the same population and the same two windows as the
+     * Support Overview tile of this name.** Two boards may not disagree about one
+     * number; Q-103 will eventually keep it on one board, and until then they
+     * agree by construction.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 69,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: 'caption.overturnIsNotFailure',
     sourceResource: 'fairness',
@@ -2288,7 +2786,16 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **2** captains suspended. Recorded — `suspended` is a
+     * flag with no stamp, so no date can be reconstructed from it.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: false,
     caption: null,
     sourceResource: 'drivers',

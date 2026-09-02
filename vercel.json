@@ -2,17 +2,14 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
-      "//": "THE KILL SWITCH MUST NOT BE CACHEABLE. A kill switch behind a CDN cache is a kill switch that takes an hour to arrive, which on the day it is needed is the same as not having one. See src/pwa/killSwitch.ts.",
       "source": "/pwa-kill-switch.json",
       "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]
     },
     {
-      "//": "The worker script itself. A stale sw.js is a stale cache policy, and the browser only re-checks it on navigation. `no-cache` (revalidate every time) rather than `no-store`, so an unchanged worker still costs a 304 and not a full download.",
       "source": "/sw.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
-      "//": "The manifest changes with the build and is small. Revalidate rather than pin.",
       "source": "/manifest.webmanifest",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" },
@@ -20,7 +17,6 @@
       ]
     },
     {
-      "//": "Content-hashed filenames are immutable by construction, so this is the one place a year-long max-age is honest. The service worker precaches them anyway; this is for the first visit and for anyone who never installs.",
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }

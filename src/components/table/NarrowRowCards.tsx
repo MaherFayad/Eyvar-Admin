@@ -129,7 +129,26 @@ export function NarrowRowCards<T>({
      so computing it inside the row loop would do the same work n times and
      invite someone to reach for the row while they were in there. */
   const heading = visible.find((column) => emphasisOf(column, declared) === 'primary')
-  const body = visible.filter((column) => emphasisOf(column, declared) === 'data')
+  const declaredData = visible.filter((column) => emphasisOf(column, declared) === 'data')
+
+  /**
+   * **`meta` is a DEMOTION, and only where a screen has said what it is
+   * demoting from.** Measured across the 29 files that declare columns: **ten
+   * of them declare no `emphasis` at all** — `PeopleTable`, `QueuePage`,
+   * `LedgerCard`, both Admin Workspace logs and five more. On those,
+   * `emphasisOf` falls back to *"the first declared column is primary,
+   * everything else is meta"*, which is a sensible default for INK and a
+   * catastrophic one for a card: taken literally it renders a heading and
+   * nothing under it, on ten screens.
+   *
+   * The fallback is not a statement that those columns are worthless; it is the
+   * absence of a statement. So where a screen has made none, the card shows
+   * every visible column, and where it has made one, the card obeys it exactly.
+   * A screen gets a shorter, sharper card by DECLARING the tier — which also
+   * sharpens its desktop scan path, since the same declaration drives the ink.
+   */
+  const body =
+    declaredData.length > 0 ? declaredData : visible.filter((column) => column !== heading)
 
   return (
     /* The bounded scroller, exactly as band 4's table container is — so band 2
@@ -197,9 +216,12 @@ export function NarrowRowCards<T>({
                   </span>
 
                   {renderRowActions && (
-                    /* At the card's inline-end, not pinned. `min-h-tap` because
-                       an icon-only trigger is exactly the case the tap floor
-                       exists for — it has no height token of its own to raise. */
+                    /* At the card's inline-end, not pinned, and carrying the
+                       tap floor: an icon-only trigger is exactly the case that
+                       floor exists for, because it has no height token of its
+                       own for the compact query to raise. The utility is not
+                       spelled in this comment — Tailwind v4 scans comments as
+                       plain text and mints what it finds. */
                     <span className="flex min-h-tap shrink-0 items-center gap-1">
                       {renderRowActions(row, id)}
                     </span>

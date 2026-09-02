@@ -793,9 +793,82 @@ const FILLER_CAPTAIN_NAMES: ReadonlyArray<{ given: string; family: string }> = [
   { given: 'Meshal', family: 'Al-Anazi' },
 ]
 
+/**
+ * **The home city of each filler captain, and the reason this list exists.**
+ *
+ * Every filler captain used to be `city: 'Riyadh'`, which made `City` a dead
+ * column on `/operations/people`: **one distinct value across 25 visible rows,
+ * 128px of table width carrying nothing** (`docs/audit/PAGE-SWEEP.md` §2 S8).
+ * A column that can only say one thing is a column nobody reads, and it is a
+ * fixture fault rather than a table fault.
+ *
+ * **A city on a captain is not a zone.** `fixtures/zones.ts` stays all-Riyadh
+ * on purpose — R4-6b §6.6.5 keeps that as **L-6**'s evidence — and nothing
+ * here contradicts it: a captain registers a home city whether or not we track
+ * a zone in it, and `DB.cities` (`:13946`) already names four. The weighting is
+ * Riyadh-first because the service is: **19 of 44 Riyadh**, a real Jeddah
+ * cluster, and a thin tail through the Eastern Province, the Hejaz and the
+ * north.
+ *
+ * It is also what makes `management.zones.unservedDemandCities` a measurement
+ * rather than a zero. That tile counts riders in cities where we have supply
+ * signal and no service; with one city in the fixture it could only ever read
+ * `0`, and it did.
+ *
+ * Twenty-four entries, cycled over forty-four rows — deterministic, and
+ * hand-editable one row at a time.
+ */
+const FILLER_CAPTAIN_CITIES = [
+  'Riyadh',
+  'Jeddah',
+  'Riyadh',
+  'Dammam',
+  'Riyadh',
+  'Makkah',
+  'Jeddah',
+  'Riyadh',
+  'Al Khobar',
+  'Riyadh',
+  'Madinah',
+  'Jeddah',
+  'Riyadh',
+  'Abha',
+  'Dammam',
+  'Riyadh',
+  'Taif',
+  'Jeddah',
+  'Riyadh',
+  'Buraydah',
+  'Riyadh',
+  'Jeddah',
+  'Tabuk',
+  'Riyadh',
+] as const
+
+/**
+ * A district that exists in that city, so the address, the IP location and the
+ * movement log agree with the `city` beside them. A Riyadh district on a
+ * Jeddah captain is the kind of detail an operator spots immediately and the
+ * kind a generated fixture gets wrong.
+ */
+const CITY_DISTRICTS: Record<string, string> = {
+  Riyadh: 'Al Malaz',
+  Jeddah: 'Al Salamah',
+  Dammam: 'Al Faisaliyah',
+  Makkah: 'Al Aziziyah',
+  'Al Khobar': 'Al Ulaya',
+  Madinah: 'Qurban',
+  Abha: 'Al Sadd',
+  Taif: 'Al Shafa',
+  Buraydah: 'Al Rayyan',
+  Tabuk: 'Al Rawdah',
+}
+
 export const fillerDrivers: Driver[] = Array.from({ length: 44 }, (_, i) => {
   const n = i + 1
   const { given, family } = cycle(FILLER_CAPTAIN_NAMES, i)
+  const city = cycle(FILLER_CAPTAIN_CITIES, i)
+  const district = CITY_DISTRICTS[city] ?? city
   const id = `DRV-${String(300 + n).padStart(4, '0')}`
   const comfort = i % 3 === 0
   return {
@@ -811,12 +884,12 @@ export const fillerDrivers: Driver[] = Array.from({ length: 44 }, (_, i) => {
     joinedAt: `2025-${String((i % 12) + 1).padStart(2, '0')}-01`,
     hasPhoto: i % 2 === 0,
     gender: i % 9 === 0 ? 'Female' : 'Male',
-    city: 'Riyadh',
-    address: `District ${(i % 12) + 1}, Riyadh`,
+    city,
+    address: `${district} District, ${city}`,
     device: comfort ? 'iPhone 14 · iOS 17.4' : 'Samsung Galaxy A54 · Android 13',
     appLanguage: i % 6 === 0 ? 'English' : 'Arabic',
     lastIp: `92.96.${i % 200}.${(i * 3) % 250}`,
-    ipLocation: 'Riyadh, SA',
+    ipLocation: `${city}, SA`,
     bank: {
       bankName: 'Al Rajhi Bank',
       iban: `SA44 8000 0000 ${String(1000 + n)} ${String(2000 + n)} ${String(3000 + n)}`,
@@ -825,7 +898,11 @@ export const fillerDrivers: Driver[] = Array.from({ length: 44 }, (_, i) => {
     },
     bankHistory: [],
     movementLog: [
-      { at: `2025-${String((i % 12) + 1).padStart(2, '0')}-01`, action: 'Account registered', location: 'Riyadh, SA' },
+      {
+        at: `2025-${String((i % 12) + 1).padStart(2, '0')}-01`,
+        action: 'Account registered',
+        location: `${city}, SA`,
+      },
     ],
     activeSubscriptions: i % 6,
     maxSubscriptions: 5,

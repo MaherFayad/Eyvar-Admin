@@ -77,7 +77,7 @@ export function DispatchCard({ draft, onChange, canWrite, blockedReason, t }: Pa
         <CardTitle>{t('policy.dispatch.title')}</CardTitle>
         <CardDescription className="text-xs">{t('policy.dispatch.desc')}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 pt-4 md:grid-cols-3">
+      <CardContent className="grid grid-cols-3 gap-4 pt-4 compact:grid-cols-1">
         <IntegerField
           id="dispatch-radius"
           label={t('policy.dispatch.radius')}
@@ -112,7 +112,7 @@ export function DispatchCard({ draft, onChange, canWrite, blockedReason, t }: Pa
           onCommit={(next) => onChange(setDispatch(draft, { maxSurgePercent: next ?? 0 }))}
         />
         {blockedReason ? (
-          <p className="text-xs text-muted-foreground md:col-span-3">{blockedReason}</p>
+          <p className="col-span-3 text-xs text-muted-foreground compact:col-span-1">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -349,7 +349,7 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
         <CardTitle>{t('policy.limits.title')}</CardTitle>
         <CardDescription className="text-xs">{t('policy.limits.desc')}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 pt-4 md:grid-cols-3">
+      <CardContent className="grid grid-cols-3 gap-4 pt-4 compact:grid-cols-1">
         <IntegerField
           id="limits-driving"
           label={t('policy.limits.drivingHours')}
@@ -384,7 +384,7 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
           }
         />
         {blockedReason ? (
-          <p className="text-xs text-muted-foreground md:col-span-3">{blockedReason}</p>
+          <p className="col-span-3 text-xs text-muted-foreground compact:col-span-1">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -421,7 +421,19 @@ function IntegerField({
   /* G7 — one field shape. The label is 14/400 `--ev-ink` rather than the
      12/500 this file used to draw, which is D22's defect exactly: a label
      smaller and greyer than the value reads as a hint rather than as the
-     field's name. `FieldControl` owns the id and the `aria-describedby`. */
+     field's name. `FieldControl` owns the id and the `aria-describedby`.
+
+     **The BOX is sized to the NUMBER, not to the card. Sweep S7.**
+     Measured at 1440 before this: 998px of input holding `5000`, and 998px
+     holding `3`. Two things were wrong and only one of them was the measure.
+     The card's grid asked for three columns behind a Tailwind breakpoint this
+     product deletes (`globals.css` sets the breakpoint namespace to initial so
+     a screen cannot mint one), so the request was a no-op and every field ran
+     the full card. That is fixed on the grid. This is the other half: an
+     integer in its base unit is at most five digits, so the control takes the
+     six-step width the SLA tier grid in `SlaPolicyCards` already uses for the
+     same kind of value — the field's NAME and its help line keep the column,
+     the box keeps the number. */
   return (
     <Field id={id} disabled={disabled}>
       <FieldLabel>{label}</FieldLabel>
@@ -432,7 +444,7 @@ function IntegerField({
           step={step}
           inputMode="numeric"
           value={String(value)}
-          className="tabular-nums"
+          className="w-24 tabular-nums"
           onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
         />
       </FieldControl>

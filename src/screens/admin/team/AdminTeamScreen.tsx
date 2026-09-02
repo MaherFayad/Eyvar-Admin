@@ -125,6 +125,11 @@ import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { OperatorSessionsDialog } from './OperatorSessionsDialog'
 import { withFallback } from '../../operations/localCopy'
 import { ADMIN_TEAM_EN } from './copy'
+/* A role name is a KEY, never the data layer's English literal. Three sites on
+   this screen rendered `user.role` raw, which reads as English inside an
+   otherwise Arabic table. `roleLabel` lives beside `ROLE_KEYS` in the auth copy
+   so there is one map from the six roles, not two. */
+import { roleLabel } from '@/screens/auth/copy'
 
 /**
  * **Q4 is CLOSED by D17, and this literal is superseded.**
@@ -571,7 +576,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                           user.role === 'Owner' ? 'new' : user.role === 'Ops Manager' ? 'info' : 'neutral'
                         }
                       >
-                        {user.role}
+                        {roleLabel(t, user.role)}
                       </StatusBadge>
                     </td>
                     <td className="p-3">
@@ -668,7 +673,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                   </th>
                   {MATRIX_ROLES.map((role) => (
                     <th key={role} scope="col" className="p-3 text-center">
-                      {role}
+                      {roleLabel(t, role)}
                     </th>
                   ))}
                 </tr>
@@ -693,15 +698,43 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                          column rather than as its baseline. */
                       const granted = ROLE_PERMISSIONS[role].includes(permissionKey)
                       return (
-                        <td key={role} className="p-3 text-center">
-                          {/* §7.5 — the glyph is never the only carrier. */}
+                        <td key={role} className="p-2 text-center">
+                          {/* **Granted carries a SHAPE; withheld carries none.
+                              Sweep S9.**
+
+                              Before this, the two outcomes differed by glyph
+                              colour alone — a 16px check at `--ev-green`
+                              #1d723c against a 16px cross at `--ev-text-2`
+                              #6b7280, on
+                              identical transparent grounds, across 126 cells.
+                              Everything else about the two cells was
+                              byte-identical, so at a glance the matrix read as
+                              one texture and the answer it exists to give could
+                              not be scanned.
+
+                              The fix is a filled marker on the granted cell and
+                              nothing on the withheld one, so the difference is
+                              PRESENCE OF A SHAPE first and colour second. It
+                              spends no new colour: the success tone is the same
+                              pair /operations/subscriptions uses for its live
+                              rows, and the check inside measures 5.332 : 1 on
+                              it. §7.5 holds four ways over — shape, ground,
+                              glyph, and the visually-hidden word that was
+                              already here. */}
                           {granted ? (
-                            <Check
-                              className="mx-auto size-4 text-success-foreground"
+                            <span
+                              className="mx-auto flex size-6 items-center justify-center rounded-md border border-success-foreground/25 bg-success text-success-foreground"
                               aria-hidden="true"
-                            />
+                            >
+                              <Check className="size-4" />
+                            </span>
                           ) : (
-                            <X className="mx-auto size-4 text-muted-foreground" aria-hidden="true" />
+                            <span
+                              className="mx-auto flex size-6 items-center justify-center text-muted-foreground"
+                              aria-hidden="true"
+                            >
+                              <X className="size-4" />
+                            </span>
                           )}
                           <span className="sr-only">
                             {granted ? t('admin.team.matrix.granted') : t('admin.team.matrix.withheld')}
@@ -1013,7 +1046,7 @@ function RotaSelect({
           <SelectItem value={NOBODY}>{t('admin.team.rota.nobody')}</SelectItem>
           {users.map((user) => (
             <SelectItem key={user.id} value={user.id}>
-              {t('admin.team.rota.option', { name: user.name, role: user.role })}
+              {t('admin.team.rota.option', { name: user.name, role: roleLabel(t, user.role) })}
             </SelectItem>
           ))}
         </SelectContent>

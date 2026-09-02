@@ -146,7 +146,10 @@ export function SlaTierDefaultsCard({ draft, onChange, canWrite, blockedReason, 
           </table>
         </div>
 
-        <div className="grid gap-4 border-t border-border p-3 sm:grid-cols-2">
+        {/* Two columns, unprefixed. This asked for them behind a deleted
+            Tailwind breakpoint and therefore never got them — see the note on
+            `IntegerField` in `OperationalCards`. */}
+        <div className="grid grid-cols-2 gap-4 border-t border-border p-3 compact:grid-cols-1">
           <PercentField
             id="sla-at-risk"
             label={t('policy.sla.atRisk')}

@@ -1499,7 +1499,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
           not change** — what changes is what it encloses. F9's four inline-start
           edges collapse to one at the same time, because there is no card
           inset left to inset from. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
+      {/* **The box is capped by the residual, not filled to it — S1.**
+          It used to declare a grow factor, so a three-row table sat in a box
+          sized to the page: measured at 1440 x 900, `/support/tickets` drew
+          221px of table inside a 606px scroll box, **385px of empty white
+          inside a border**, and six more screens between 166 and 353. That one
+          declaration is the largest single source of the "nothing has changed"
+          reading, because five screens are mostly empty card.
+
+          Shrink without grow is the whole fix. When the rows are shorter than
+          the residual there is surplus, nothing claims it, and the border stops
+          where the last row does. When they are longer the deficit is real,
+          this is still the only box here with a zero minimum, and it absorbs
+          all of it — so the bounded scroller, the pinned header and the
+          on-screen pagination row are exactly as they were. */}
+      <div className="flex min-h-0 flex-initial flex-col overflow-hidden rounded-xl border border-border bg-card">
         {status === 'loading' && !refreshing && (
           <div className="p-3">
             <LoadingSkeleton pattern={pattern} />
@@ -2053,7 +2067,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
       )}
 
       {/* V-11 — one centred `Learn more about {resource}.`, outside the card. */}
-      {learnMore && <div className="text-center">{learnMore}</div>}
+      {/* Does not shrink — see the toolbar. Band 4 absorbs every deficit. */}
+      {learnMore && <div className="shrink-0 text-center">{learnMore}</div>}
     </div>
   )
 }

@@ -216,4 +216,6 @@ export const AUTH_AR: Dictionary = {
   'role.opsManager': 'مدير العمليات',
   'role.finance': 'المالية',
   'role.support': 'الدعم',
+  'role.dispatcher': 'مسؤول التوزيع',
+  'role.trustSafety': 'الثقة والسلامة',
 }

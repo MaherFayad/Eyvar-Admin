@@ -135,6 +135,8 @@ import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
+import { DRIVER_TIER } from '@/screens/operations/people/domain'
+import type { DriverTier } from '@/data/types'
 import { bulkRefusalText, localisedText } from '../shared/text'
 import { LedgerCard } from '../shared/LedgerCard'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
@@ -425,7 +427,16 @@ function PayoutsView({
               />
             )
           }
-          return payout.failureReason ? localisedText(t, payout.failureReason) : payout.tier
+          /* **The tier is a machine value, and it reached the row raw** —
+             `gold` sitting in English under an Arabic captain's name (A3). The
+             label already exists as `people.tier.*`; `DRIVER_TIER` is the one
+             map from the three values, so this reads it rather than declaring a
+             second one. `Payout.tier` is typed `string` rather than
+             `DriverTier`, so an unrecognised value keeps rendering itself
+             instead of throwing on a key that does not exist. */
+          if (payout.failureReason) return localisedText(t, payout.failureReason)
+          const tierKey = DRIVER_TIER[payout.tier as DriverTier]
+          return tierKey === undefined ? payout.tier : t(tierKey)
         },
       },
       {

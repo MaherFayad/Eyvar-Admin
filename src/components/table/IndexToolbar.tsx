@@ -95,6 +95,15 @@ export function IndexToolbar(props: IndexToolbarProps) {
        minimum is a flex shrink, not a mode — it never disappears, nothing else
        moves, and the placeholder ellipsises rather than the row wrapping.
 
+       **THE ROW DOES NOT SHRINK VERTICALLY, AND IT HAS TO SAY SO.** Its
+       declared height is 56 and its tallest control is 32, so its automatic
+       minimum size is 32 and a parent short of room is entitled to squeeze it
+       there. Nothing did until `DataTable`'s band 4 started reporting its true
+       height (the S1 fix): the deficit went negative for the first time and was
+       shared out. Measured on `/financials/ledger` at 1440 x 900 in between:
+       this row 56 -> 32, and the table's scroll box 492 -> 516. Band 4 is the
+       one box in that column that may lose height.
+
        **BELOW THE COMPACT BREAKPOINT IT IS NOT ONE ROW, AND IT CANNOT BE.**
        The desktop shape survives by shrinking the search field to a 128px
        floor; a 390px viewport is past every floor at once, and measured before
@@ -103,7 +112,7 @@ export function IndexToolbar(props: IndexToolbarProps) {
        degrades to avoid. So the row wraps and its height becomes a floor
        instead of a fixed 56. Desktop-first: the unprefixed classes are still
        the desktop answer and nothing above 768 reads these overrides. */
-    <div className="flex h-14 items-center gap-2 px-3 compact:h-auto compact:min-h-14 compact:flex-wrap compact:py-2">
+    <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 px-3 py-2">
       {tabs.length > 0 && (
         /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. This was `shrink-0`,
            measured against People's four short labels (375px of track). Wave 2's
@@ -114,15 +123,28 @@ export function IndexToolbar(props: IndexToolbarProps) {
            those two plus Requests. D12 predicted it in writing.
 
            A control off the viewport is UNREACHABLE; a tab behind a scroll is
-           one gesture away. So the track shrinks and scrolls, and the cluster
-           keeps its width. The scrollbar is hidden because a 2px trough inside a
-           32px stadium reads as damage, and the overflow is discoverable the way
-           a horizontal list is — by dragging it. Keyboard reaches every tab
-           regardless: `TabsTrigger` is a focus stop and focus scrolls it in.
+           one gesture away. So the track shrank and scrolled, and the cluster
+           kept its width.
 
-           This is the DEGRADE, not the fix. The root cause is that these labels
-           are sentences where a segmented control wants nouns, and shortening
-           them is a copy decision. */
+           **THAT DEGRADE IS NO LONGER TAKEN FIRST, BECAUSE THE ROW WRAPS.**
+           The degrade traded one bad outcome for a less bad one on the
+           assumption that the row could only ever be one row. It cannot: the
+           audit measured `/financials/ledger` hiding **151px of a 587px strip**
+           at 1440, with the scrollbar hidden by design so nothing signalled the
+           tabs existed — and on `/support/fairness` and `/financials/cash` the
+           FIRST tab was cut at its LEADING edge, which no drag gesture is
+           discoverable from because there is nothing to grab at the start.
+
+           Wrapping only happens when it must: the line breaks BEFORE the
+           shrink, so a screen whose track and cluster both fit is untouched
+           (People's four short labels, 375px + cluster, still one row of 56)
+           and a screen whose do not gets a second line instead of a clipped
+           one. Nothing is unreachable in either case, which was the whole
+           objection to letting the cluster move.
+
+           The root cause is still that these labels are sentences where a
+           segmented control wants nouns, and shortening them is a copy
+           decision this file cannot take. */
         <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 shrink gap-0">
           <TabsList
             variant="segmented"

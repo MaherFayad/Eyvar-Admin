@@ -627,9 +627,27 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
           )
         }
         const acknowledged = incident.firstResponseAt !== null
+        /* **The unacknowledged state is the WARNING tone. Sweep S9.**
+           It used to be the `new` tone — an outline, chosen as "not yet
+           handled". Measured at 1440 that rendered as `--ev-blue-dk` #1b51c4
+           on transparent, the calmest chip in the column, while `Acknowledged`
+           next to it was a solid blue plate: the two rows nobody had answered
+           read quieter than the four somebody had. R7's tone that means *needs
+           attention · blocks something* is `warning`, and this queue is the one
+           where "blocks something" is a person in a moving car.
+
+           R17 is intact and is the reason this is safe: there is ONE warning
+           tone, so a `Critical` severity chip and an `Unacknowledged` status
+           chip share it and are told apart by their WORDS, never by a second
+           fill. The pair reading amber-amber on the two unanswered SOS rows is
+           the intended reading, not a collision.
+
+           Three states, three tones, matching the vocabulary
+           /operations/subscriptions already uses: amber demands action, blue is
+           a promise still running, grey is done. */
         return (
           <Cell>
-            <StatusBadge tone={acknowledged ? 'info' : 'new'}>
+            <StatusBadge tone={acknowledged ? 'info' : 'warning'}>
               {t(acknowledged ? 'safety.status.acknowledged' : 'safety.status.unacknowledged')}
             </StatusBadge>
           </Cell>

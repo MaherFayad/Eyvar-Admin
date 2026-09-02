@@ -54,6 +54,18 @@ const railLabel = (id: string) => en(`nav.rail.${id}`)
 const railTile = (id: string) =>
   screen.getByRole('link', { name: new RegExp(`^${railLabel(id)}\\b`) })
 
+/**
+ * The same tile once Arabic is selected — and it needs its own matcher, not
+ * merely its own label.
+ *
+ * `\b` is an ASCII word boundary in JavaScript, and an Arabic letter is not
+ * `\w`, so a trailing `\b` never matches after one. The five rail labels open
+ * on distinct words, so anchoring at the start is enough on its own.
+ */
+const ar = (key: string) => AR[key] as string
+const arabicRailTile = (id: string) =>
+  screen.getByRole('link', { name: new RegExp(`^${ar(`nav.rail.${id}`)}`) })
+
 beforeEach(() => {
   disableMockLatency()
   resetDataLayer()
@@ -206,8 +218,32 @@ function shellSourceFiles(dir = join(process.cwd(), 'src', 'shell')): string[] {
 /* ═══════════════════════ AC-74 / AC-75 — keys only ══════════════════════ */
 
 describe('AC-74 — "Every operator-facing string in the shell resolves through a key; an empty Arabic dictionary shows the English fallback and no raw key"', () => {
-  it('ships an empty Arabic dictionary, which is AC-74\'s own fixture', () => {
-    expect(Object.keys(AR)).toEqual([])
+  /**
+   * **This asserted `AR = {}` until Arabic shipped, and the criterion it serves
+   * outlived the fixture.**
+   *
+   * AC-74 makes two claims: every string resolves through a key, and a
+   * dictionary that cannot answer falls back rather than printing the key. The
+   * FALLBACK half is still proved, by `src/lib/i18n/i18n.test.ts`, which builds
+   * its own empty dictionary rather than borrowing the shipping one — so the
+   * guard never depended on Arabic staying empty.
+   *
+   * What a shell test can assert and a unit test cannot is the half that
+   * matters now: a shell key Arabic cannot answer renders one English string in
+   * the middle of an Arabic screen, which is the half-Arabic console §9.3
+   * exists to retire.
+   */
+  it('answers, in Arabic, every key the shell source renders', () => {
+    const referenced = new Set<string>()
+    for (const file of shellSourceFiles()) {
+      const text = readFileSync(file, 'utf8')
+      for (const match of text.matchAll(/\bt\(\s*'([a-zA-Z][\w.]*\.[\w.]+)'/g)) {
+        referenced.add(match[1] as string)
+      }
+    }
+    expect(referenced.size).toBeGreaterThan(30)
+    const englishOnly = [...referenced].filter((key) => AR[key] === undefined)
+    expect(englishOnly, 'rendered by the shell, absent from AR').toEqual([])
   })
 
   it('renders the whole shell in Arabic with no raw key visible anywhere', async () => {
@@ -225,9 +261,14 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
       if (text && rawKey.test(text) && Object.hasOwn(EN, text)) offenders.push(text)
     }
     expect(offenders).toEqual([])
-    /* …and the English fallback IS what rendered. The rail's own label under
-       D5 — `Ops` — with its badge composing into the accessible name. */
-    expect(railTile('operations')).toBeInTheDocument()
+    /* …and ARABIC is what rendered, which is the claim this line used to make
+       about the English fallback. The rail's own label under D5, with its badge
+       composing into the accessible name — and the English label gone, which is
+       the assertion that catches a screen rendering both languages at once. */
+    expect(arabicRailTile('operations')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: new RegExp(`^${railLabel('operations')}\\b`) }),
+    ).toBeNull()
   })
 
   it('resolves every key the shell source references — no key is missing from EN', () => {
@@ -419,7 +460,12 @@ describe('AC-71 — "In Arabic the rail and sub-tab list render on the inline-en
     await screen.findByRole('main')
     await user.click(screen.getByRole('button', { name: 'qa-arabic' }))
     await waitFor(() => expect(document.documentElement).toHaveAttribute('dir', 'rtl'))
-    expect(screen.getByRole('heading', { level: 2, name: en('workspace.operations') })).toBeInTheDocument()
+    /* `ar(...)`, not `en(...)`: this line asserted the English fallback while
+       the Arabic dictionary was empty, and the criterion it names — "every
+       string resolved in Arabic" — is only actually tested now. */
+    expect(
+      screen.getByRole('heading', { level: 2, name: ar('workspace.operations') }),
+    ).toBeInTheDocument()
   })
 })
 
@@ -490,7 +536,8 @@ describe('AC-73 — "In Arabic, money values, dates, ids and phone numbers read 
 
     await user.click(screen.getByRole('button', { name: 'qa-arabic' }))
     await waitFor(() => expect(document.documentElement).toHaveAttribute('lang', 'ar'))
-    const arabicBadge = railTile('operations').querySelector('[data-slot="badge"]')?.textContent ?? ''
+    const arabicBadge =
+      arabicRailTile('operations').querySelector('[data-slot="badge"]')?.textContent ?? ''
     expect(arabicBadge).toBe(englishBadge)
     /* Western digits, never Arabic-Indic — the `-nu-latn` locale is what makes
        that true, and the badge is the shell's only numeral surface today. */

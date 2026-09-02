@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 4757,
-    "en": 4570,
-    "ar": 4757,
+    "keys": 4759,
+    "en": 4572,
+    "ar": 4759,
     "arMissing": 0,
     "arExtra": 187,
     "copyFiles": 30,
@@ -81,7 +81,7 @@
       "exports": [
         "AUTH_EN"
       ],
-      "keys": 170,
+      "keys": 172,
       "notInEN": 0
     },
     {

@@ -196,9 +196,29 @@ sw.addEventListener('fetch', (event: FetchEventLike) => {
 
   /* The escape hatch, honoured by the worker itself. `register.ts` also handles
      it, but that code lives in the bundle this worker is serving — so if the
-     bundle is the broken thing, this is the branch that saves the operator. */
+     bundle is the broken thing, this is the branch that saves the operator.
+
+     **`notifyClients: false`, and that is the whole fix for a measured defect:
+     the hatch used to need two attempts.** Broadcasting `MSG_KILLED` here tells
+     every OPEN tab to reload, and `register.ts` reloads them at their own URL —
+     which does not carry `?pwa=off`. That reload is a second navigation, and
+     the browser cancels the first one to service it, so the navigation carrying
+     the escape parameter never lands. `register.ts` therefore never sees
+     `?pwa=off`, never writes the sticky flag, and re-registers the worker the
+     operator was trying to get rid of.
+
+     Measured, at 390x844 against `npm run dev`: after `?pwa=off` the tab ended
+     on `/` with **1 registration, 1 cache and `eyvar.pwa.disabled` unset**.
+     The same script had passed on an earlier run — it is a race, which is worse
+     than a reliable failure, because the hatch appears to work when you test it
+     and fails on the night it is needed.
+
+     There is nothing to notify here anyway. The page that asked is mid-
+     navigation and is about to run `register.ts`'s teardown branch itself. The
+     REMOTE kill file still broadcasts, because in that case no page asked for
+     anything and telling them is the entire point. */
   if (isNavigation && url.searchParams.get(DISABLE_QUERY_PARAM) === DISABLE_QUERY_VALUE) {
-    event.waitUntil(selfDestruct('escape hatch'))
+    event.waitUntil(selfDestruct('escape hatch', false))
     return
   }
 
@@ -350,15 +370,20 @@ async function maybeCheckKillSwitch(): Promise<void> {
 }
 
 /**
- * Delete every cache, unregister, and tell the pages why.
+ * Delete every cache, unregister, and — usually — tell the pages why.
  *
  * Order matters: caches first, because `unregister()` may complete and tear
  * this worker down before a later step runs. `register.ts` decides what to do
  * with `MSG_KILLED` — it reloads once per session, guarded, never in a loop.
+ *
+ * `notifyClients` is `false` for exactly one caller, the `?pwa=off` navigation.
+ * See that branch for the race it fixes. Every other caller — install, activate
+ * and the remote poll — notifies, because in those cases nobody asked and a
+ * page left running on a killed build is the failure being prevented.
  */
-async function selfDestruct(reason: string): Promise<void> {
+async function selfDestruct(reason: string, notifyClients = true): Promise<void> {
   await deleteOwnCaches(sw.caches).catch(() => 0)
-  broadcast({ type: MSG_KILLED, reason })
+  if (notifyClients) broadcast({ type: MSG_KILLED, reason })
   await sw.registration.unregister().catch(() => false)
 }
 

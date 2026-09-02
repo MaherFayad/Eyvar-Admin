@@ -137,8 +137,19 @@ export function MobileNavTrigger({ t }: { t: Translate }) {
            a height token is already finger-sized with no call-site change. An
            icon-only ghost button is sized by `size="icon"` (28px) and is not
            one of them, which is exactly the case `--ev-tap-min` exists for.
-           A floor rather than a height: `h-tap` would shrink a taller control
-           rather than grow a shorter one. */
+           A floor rather than a fixed height, which is why the token is only
+           ever spelled with a `min-` prefix: the unprefixed height form would
+           SHRINK a taller control instead of growing a shorter one, and the
+           token steward flagged it as a bug for that reason.
+
+           **That sentence cannot name the bad utility, and this is why.**
+           Tailwind v4 scans comments as plain text and mints any class it
+           finds there. An earlier draft of this note wrote the unprefixed name
+           in backticks to warn against it, and measured consequence: `dist`
+           gained a real, live rule for exactly the utility the note was
+           warning about, minted out of prose, available to every call site and
+           present in no source file. Do not write a class name in a comment
+           here, not even to forbid it. */
         className="min-h-tap min-w-tap shrink-0"
         aria-label={t('shell.nav.openMenu')}
       >

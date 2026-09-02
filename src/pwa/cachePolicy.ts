@@ -47,6 +47,31 @@
  * cannot do. Enabling the fallback leg later is a real change to this file plus
  * a real staleness surface, which is the correct price for it.
  *
+ * ## The edge headers, which this file does not control
+ *
+ * `vercel.json` sets four `Cache-Control` rules at the CDN. They are stated
+ * here because JSON carries no comments and the reasoning belongs with the
+ * policy:
+ *
+ *   `/pwa-kill-switch.json`  `no-store, max-age=0`
+ *       **The kill switch must not be cacheable.** A kill switch behind a CDN
+ *       cache is a kill switch that takes an hour to arrive, which on the day
+ *       it is needed is the same as not having one. See `killSwitch.ts`.
+ *
+ *   `/sw.js`  `no-cache`
+ *       The worker script itself. A stale `sw.js` is a stale cache policy, and
+ *       the browser only re-checks it on navigation. Revalidate every time
+ *       rather than `no-store`, so an unchanged worker costs a 304 and not a
+ *       full download.
+ *
+ *   `/manifest.webmanifest`  `no-cache`
+ *       Changes with the build and is small. Revalidate rather than pin.
+ *
+ *   `/assets/(.*)`  `public, max-age=31536000, immutable`
+ *       Content-hashed filenames are immutable by construction, so this is the
+ *       one place a year-long `max-age` is honest. The worker precaches them
+ *       anyway; this is for the first visit and for anyone who never installs.
+ *
  * ## How to change a classification
  *
  * Move the prefix between the two lists below and the test tells you what else

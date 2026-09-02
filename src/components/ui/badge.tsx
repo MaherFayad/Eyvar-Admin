@@ -58,8 +58,21 @@ const badgeVariants = cva(
         // inert · terminal factual outcome — `Archived`, `Refunded`, `Rejected`.
         // A rejection is NEUTRAL (§8.4.5, V-07), never red.
         neutral: "bg-neutral text-neutral-foreground",
-        // a new or promotional marker — outline, not a fill (§12.1).
-        new: "border-primary bg-transparent text-info-foreground",
+        /* A new or promotional marker — outline, not a fill (§12.1).
+
+           The outline and the label are ONE FAMILY, and they were not.
+           `globals.css` states the rule beside the tone slots: *"`new` is an
+           outline treatment over --ev-blue, not a fill"*. The border used to
+           bind to the primary slot, which was --ev-blue when this was written
+           and became --ev-brand green under the 2026-09-02 brand ruling. The
+           label never moved, so every `new` badge in the product shipped a blue
+           word inside a green frame — measured on /support/safety as
+           `--ev-blue-dk` #1b51c4 text bordered `--ev-brand` #0c6944, the brand
+           green framing the one state on that screen that needed attention
+           (sweep S9). Binding both ends to the info slot is what the rule
+           said; --ev-blue itself has no layer-2 slot, and --tone-info-foreground
+           (--ev-blue-dk) is the blue that does. 6.584 : 1 on white. */
+        new: "border-info-foreground bg-transparent text-info-foreground",
         /* The NAV's neutral count chip, and only the nav's — V3.
            This is NOT a sixth content tone and R7 is untouched: it is the same
            `neutral` meaning on a different GROUND. `--ev-bg2` is 1.073 : 1

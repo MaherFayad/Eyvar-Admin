@@ -127,7 +127,17 @@ export default defineConfig({
         start_url: '/management/overview',
         scope: '/',
         display: 'standalone',
-        orientation: 'landscape',
+        /**
+         * **`any`, changed from `landscape` on 2026-09-02 under the viewport
+         * ruling.** `landscape` was right for a console that only ran at 1280
+         * and it is wrong now: an installed PWA with a locked orientation is
+         * locked on the DEVICE, so a phone that installed this would rotate
+         * the operator into landscape on every cold launch and refuse to come
+         * back. That is the precise opposite of the requirement the ruling was
+         * made for. The desktop is unaffected — a windowed install has no
+         * orientation to lock.
+         */
+        orientation: 'any',
         theme_color: '#0c6944',
         background_color: '#ffffff',
         lang: 'en',

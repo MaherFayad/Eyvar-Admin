@@ -61,6 +61,23 @@
  * A count does not need a table, and a table of one real row and three absences
  * is not a summary of a market, it is a picture of a seed.
  *
+ * ## `Captains needed` is not a column here, and the trade is the point
+ *
+ * It was 148px wide and **blank on 5 of its 6 rows** — deliberately so, because
+ * a healthy zone has no recruitment target and a `0` would read as a
+ * reassurance. That reasoning was right about the CELL and wrong about the
+ * column: a measure that is absent on five rows in six is not a column, it is a
+ * flag, and this table already flies that flag in words on every row.
+ * `Priority` says `Recruit now` / `Watch` / `Healthy`; the exact figure is the
+ * strip's first tile and the map inspector's own sentence.
+ *
+ * What the 148px bought back is why it is not a close call. The declared widths
+ * summed to **1182 against a 1038px container at 1440**, so the table clipped
+ * 144px and what fell off the inline-end was the **`Actions` column** — `Steer
+ * captains` and `Queue recruitment`, the two controls this screen exists to
+ * offer, and the two that R4-6 §6.4 clause 2 requires be visible at rest. The
+ * sum is now 1034 and nothing clips. A blank column was hiding the buttons.
+ *
  * Rules applied
  *   R4-6 §6.4 clause 1
  *              a zone tile is a **toggle**, not an anchor: same card, same
@@ -374,22 +391,6 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
             {t('zones.unserved.detail', {
               count: formatCount(zone.failures30d, language),
             })}
-          </span>
-        ),
-      },
-      {
-        id: 'captainsNeeded',
-        emphasis: 'data',
-        header: t('zones.col.captainsNeeded'),
-        dataType: 'number',
-        align: 'end',
-        width: 148,
-        sortField: 'captainsNeeded',
-        /* `0` on a healthy zone renders as nothing rather than as a
-           reassurance: there is no recruitment target to act on. */
-        cell: (zone) => (
-          <span className="block text-end tabular-nums">
-            {zone.captainsNeeded === 0 ? '' : formatCount(zone.captainsNeeded, language)}
           </span>
         ),
       },

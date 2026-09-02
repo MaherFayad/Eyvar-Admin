@@ -315,7 +315,18 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* **Two columns, unprefixed. Sweep S7.**
+
+              This asked for two columns behind a Tailwind breakpoint that does
+              not exist in this product: `globals.css` sets the whole breakpoint
+              namespace to initial, on purpose, so that a screen cannot mint a
+              third one. The request compiled to nothing, the grid stayed one
+              column, and six fields ran the full card — measured at 1440, an
+              870px box holding the five characters `Eyvar`, against the 640px
+              form measure D-9 keeps. Desktop is the unprefixed base here and
+              the mobile shell is the override, which is the direction the
+              compact variant is declared in. */}
+          <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <Field
               id="admin-workspace-name"
               label={t('admin.workspace.siteName')}
@@ -406,7 +417,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <Field
               id="admin-workspace-brand-en"
               label={t('admin.workspace.brandEn')}

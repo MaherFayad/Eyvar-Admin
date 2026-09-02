@@ -34,7 +34,7 @@
  * requirement to the non-zero case.
  */
 
-import type { Dictionary } from '@/lib'
+import type { Dictionary, Translate } from '@/lib'
 
 export const AUTH_EN: Dictionary = {
   /* ─────────────────────── shared field labels (§2.2) ─────────────────── */
@@ -368,9 +368,16 @@ export const AUTH_EN: Dictionary = {
 
   /* ────────────────────────── role names ──────────────────────────────── */
   /* Role names are KEYS, never English literals interpolated into Arabic
-     (§11). The four that exist; D4 adding two is two more rows here. */
+     (§11). This block said "the four that exist" and named four; `ROLE_NAMES`
+     (`data/types/session.ts:34`) has always carried SIX, and the two missing
+     ones reached the screen as the raw data value — visible only under Arabic,
+     where `Dispatcher` and `Trust & Safety` sat untranslated in the Admin ›
+     Team role column and in the permission matrix header. The wording is the
+     data layer's own, moved rather than written. */
   'role.owner': 'Owner',
   'role.opsManager': 'Ops Manager',
+  'role.dispatcher': 'Dispatcher',
+  'role.trustSafety': 'Trust & Safety',
   'role.finance': 'Finance',
   'role.support': 'Support',
 }
@@ -393,8 +400,24 @@ export const AUTH_EN: Dictionary = {
 export const ROLE_KEYS: Readonly<Record<string, string>> = {
   Owner: 'role.owner',
   'Ops Manager': 'role.opsManager',
+  Dispatcher: 'role.dispatcher',
+  'Trust & Safety': 'role.trustSafety',
   Finance: 'role.finance',
   Support: 'role.support',
+}
+
+/**
+ * A role name, translated — **the only way a role should reach a screen.**
+ *
+ * `AdminTeamScreen` rendered `{user.role}` at three sites and `OnboardingLayer`
+ * already did this by hand, which is two answers to one question. An unmapped
+ * role falls back to its own name rather than to another role's label: a role
+ * shown in English is a gap, and a role shown as *Support* when it is
+ * *Dispatcher* is a lie about who can do what.
+ */
+export function roleLabel(t: Translate, role: string): string {
+  const key = ROLE_KEYS[role]
+  return key === undefined ? role : t(key)
 }
 
 
