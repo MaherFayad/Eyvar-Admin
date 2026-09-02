@@ -9,8 +9,13 @@
 > The **names** below are all still correct — that was the point of keeping them — and the
 > two-layer model, the name-collision warning and the banned-pattern list are all unchanged.
 > **Only the values moved.** Headlines: the canvas is now `#ffffff`, the nav `#f8fafb`, the
-> one subdued fill `#f5f7f9`, the accent `#2b6ef0`, and **`--primary` maps to `--ev-ink`,
-> not `--ev-blue`** (R3 rewritten, §6.2 D-1 void).
+> one subdued fill `#f5f7f9`, and R3 was rewritten with §6.2 D-1 void.
+>
+> **Superseded again, 2026-09-02 — the brand ruling.** `--primary` no longer maps to
+> `--ev-ink`: it maps to `--ev-brand` `#0C6944`. `--ring`, `--chart-series` and
+> `--chart-comparison` moved off `--ev-blue` onto the same ramp, and `--ev-green` moved to
+> `#1d723c` to separate semantic success from the brand action. `#2b6ef0` now appears
+> **once** in the built CSS — its own declaration. See `DECISIONS.md` D7 §1.2 as amended.
 >
 > This file is regenerated from §1 once fix-list item 1 lands in `src/styles/globals.css`.
 > Until then, read §1, not this.

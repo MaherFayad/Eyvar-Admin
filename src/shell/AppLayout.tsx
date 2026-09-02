@@ -70,16 +70,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getRouteTable } from '@/data/clients'
+import {
+  getOnCallRota,
+  getRouteTable,
+  getTeamUser,
+  markNotificationRead,
+  switchMockUser,
+} from '@/data/clients'
 import type { Notification, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleRail } from './ModuleRail'
 import { PageNav } from './PageNav'
 import { SaveBar } from './SaveBar'
 import { ShellBanner } from './ShellBanner'
 import { SkipToContent, CONTENT_LANDMARK_ID } from './SkipToContent'
 import { TopBar } from './TopBar'
+import { MobileNavPanel, MobileNavRoot, MobileNavTrigger } from './MobileNav'
 import { useShell } from './ShellContext'
 import { visibleSubTabs, visibleWorkspaces } from './permissions'
 import { useRouteState, withOverlay } from './routeState'
@@ -91,8 +99,9 @@ import { Banner } from '@/components/Banner'
 import { ReauthModal } from '@/components/auth/ReauthModal'
 import { SignOutDirtyDialog } from './SignOutDirtyDialog'
 import { FROZEN_REASON_ID } from '@/components/auth/AuthCredentialForm'
-import { useFocusCapture, useOnline } from '@/hooks'
-import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from './session'
+import { useAsync, useCompactShell, useDrawerDisclosure, useFocusCapture, useOnline } from '@/hooks'
+import { useDocumentTitle } from './useDocumentTitle'
+import type { SessionExpiryReason } from './session'
 
 export function AppLayout() {
   const shell = useShell()
@@ -100,6 +109,28 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t, dir, language } = shell.language
+
+  /* The tab, the history entry and the screen reader's navigation announcement
+     all read this. Every route said `Eyvar Admin` before. */
+  useDocumentTitle(route, t)
+
+  /**
+   * **The compact shell.** Below `--ev-bp-compact` (768px) the three-column
+   * frame does not narrow — it goes away, and the two nav columns move into a
+   * focus-trapped drawer behind the control in the bar. See `MobileNav.tsx`.
+   *
+   * This is React state and not only a media query because the DIFFERENCE is
+   * structural rather than visual: above the breakpoint the rail and column are
+   * siblings of the content, below it they are children of a dialog. A
+   * `compact:` class could not move them.
+   */
+  const compact = useCompactShell()
+  /* Closed by default, closes on route change, closes when compact mode ends.
+     Escape and the scrim are Radix's, not ours — see the hook. */
+  const drawer = useDrawerDisclosure(location.pathname + location.search, compact)
+  /* Built once per render and handed to whichever bar is in the slot. `null`
+     above the breakpoint, so the desktop bar is byte-identical to before. */
+  const menu = compact ? <MobileNavTrigger t={t} /> : null
 
   const table = getRouteTable()
   /* AC-57 / AC-58 — a FILTER over the route table. Currently passes everything
@@ -170,9 +201,16 @@ export function AppLayout() {
      than a modal over a page the operator was not editing. */
   useEffect(() => {
     registerCleanExpiry((reason: SessionExpiryReason) => {
-      navigate('/signin', { replace: true, state: { condition: endedCondition(reason) } })
+      /* **The window that actually expired, not the module constant.** The
+         lifecycle hook already resolved and clamped it from
+         `SecurityPolicy.idleTimeoutMinutes`; quoting the default here would
+         tell an admin who set 60 minutes that they had been idle for 30. */
+      navigate('/signin', {
+        replace: true,
+        state: { condition: endedCondition(reason, lifecycle.idleTimeoutMinutes) },
+      })
     })
-  }, [registerCleanExpiry, navigate])
+  }, [registerCleanExpiry, navigate, lifecycle.idleTimeoutMinutes])
 
   /**
    * **AC-565** — the element that had focus at freeze time is recorded and
@@ -251,7 +289,10 @@ export function AppLayout() {
   const setLanguage = useCallback(
     (next: Language) => {
       shell.language.setLanguage(next)
-      toast(
+      /* G9 — `info`. Switching language changed a preference, not an
+         object, so it is not a `success` in R9's sense; and a bare `toast()`
+         is no longer a kind this product has. */
+      toast.info(
         shell.language.t('state.languageSwitched.toast', {
           language: shell.language.t(`shell.language.${next}`),
         }),
@@ -260,20 +301,131 @@ export function AppLayout() {
     [shell.language],
   )
 
+  /**
+   * **Opening a notification marks it read**, which it did not.
+   *
+   * `markNotificationRead` (`clients/notifications.ts`) had **zero callers**,
+   * so the bell's badge never decremented: an operator could work through every
+   * notification and the count would still read 3. §6.3's third listed defect is
+   * that legacy loses every read flag on reload; the rebuild had gone one worse
+   * and never set one.
+   *
+   * Both entry points route through here — the bell popover
+   * (`NotificationBell`) and the layer (`NotificationsLayer`) — so one call
+   * covers both, which is why it is here and not duplicated in each.
+   *
+   * **Navigation does not wait for the write.** The operator asked to go
+   * somewhere; a bookkeeping flag must not put a request between them and it.
+   * The summary is refreshed either way, so the badge shows whatever the server
+   * actually holds rather than an optimistic decrement that could be wrong —
+   * and a failed write leaves a count that is high, which is the safe direction
+   * to be wrong in. No toast: R9 spends a toast on something the operator did,
+   * and this is bookkeeping they did not ask for.
+   */
+  /**
+   * **Who is on call, from the rota rather than from `null`.**
+   *
+   * The chip shipped `onCallName={null}` with a comment saying the rota was
+   * Admin › Team & Access's data and did not exist yet. It does now
+   * (`getOnCallRota`), and the asymmetry while it did not was the worse of the
+   * two failure modes: an admin could set the rota, get a confirmation that the
+   * setting took, and watch the top bar go on reading `On call: unassigned`
+   * forever.
+   *
+   * Two reads, one dependent on the other, because the rota stores an **id**
+   * and the chip needs a **name** — and `getTeamUser` is the operation that
+   * turns one into the other. `null` all the way through is still a real
+   * answer: `primaryUserId: null` is the gap the chip exists to show, and
+   * `TopBar` already renders `On call: unassigned` for it.
+   *
+   * Read once, at the shell, like the nav counts. It does not revalidate when
+   * an admin edits the rota on another route — that is P8-T2's job (revalidate
+   * on route change plus a slow poll) and it applies to every shell read at
+   * once, not to this one specially. Noted in the handoff rather than solved
+   * here with a poll nobody asked for.
+   */
+  const onCall = useAsync<string | null>(async (signal) => {
+    const rota = await getOnCallRota(signal)
+    if (rota.primaryUserId === null) return null
+    return (await getTeamUser(rota.primaryUserId, signal)).name
+    /* **Deliberately NOT cached (P3-13).** Two reasons, either sufficient: the
+       shell mounts once so nothing would read the entry, and this fetcher calls
+       *two* operations (`team.rota` then `team.get`) so neither id names what
+       is stored. */
+  }, { deps: [] })
+
   const openNotificationTarget = useCallback(
     (notification: Notification) => {
+      if (!notification.read) {
+        void markNotificationRead(notification.id)
+          .catch(() => undefined)
+          .finally(() => shell.refreshNotifications())
+      }
       if (notification.entityId) {
         setLayer('entity', notification.entityId)
         return
       }
       if (notification.route) navigate(notification.route)
     },
-    [navigate, setLayer],
+    [navigate, setLayer, shell],
+  )
+
+  /**
+   * **`Switch user` switches user.** It called `navigate('/admin/team')` — a
+   * menu item that took the operator somewhere unrelated and left them to work
+   * out that it had not done what its label said.
+   *
+   * `switchMockUser` returns the new session, so the landing route comes from
+   * the server's own answer rather than from a role→route map recomputed here
+   * (§3.3, §8.2). Navigating matters: the role decides which workspaces are
+   * visible, and staying put would leave the operator on a sub-tab their new
+   * role may not hold — `route-forbidden` is the correct render for that
+   * (**AC-56**), but it is a poor place to arrive.
+   *
+   * `shell.retry` re-reads the session, which is what repaints the rail, the
+   * sub-tab column, the permission summary and the `mine` chip.
+   *
+   * **Mock-only**, by the client's own contract: in `http` mode this is
+   * impersonation and belongs to an audited endpoint. `AccountMenu` disables
+   * the control there with the reason stated (§11.2), so this handler is not
+   * reachable — the `catch` is for a switch that legitimately fails, and it
+   * says so rather than leaving the menu looking as if it worked.
+   */
+  const switchUser = useCallback(
+    (userId: string) => {
+      void switchMockUser(userId)
+        .then((next) => {
+          shell.retry()
+          navigate(next.landingRoute)
+          /* R9/R10 — a transient confirmation of something that already
+             happened: one line, names who, no action. Same register as the
+             language toast (§11.6 row 23). */
+          toast.success(t('state.userSwitched.toast', { name: next.name, role: next.role }))
+        })
+        .catch(() => {
+          toast.error(t('state.userSwitched.failed'))
+        })
+    },
+    [navigate, shell, t],
   )
 
   return (
-    /* AC-19 — the frame never scrolls; each region does. */
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+    /* The dialog root wraps the WHOLE frame because the drawer's trigger is
+       inside the bar and Radix restores focus to the trigger on close. See
+       `MobileNavRoot`. It renders no DOM and, above the breakpoint, its `open`
+       can never become true. */
+    <MobileNavRoot open={drawer.open} onOpenChange={drawer.setOpen}>
+    {/* AC-19 — the frame never scrolls; each region does. */}
+    <div
+      /* The device insets, on the OUTERMOST element, once. `viewport-fit=cover`
+         puts the document under the notch and the home indicator, and this is
+         the only element every region is inside — padding it means no region
+         has to know. `env()` resolves to 0 where it does not apply, so this is
+         measured to change nothing at 1440x900. Box-sizing is border-box from
+         the preflight, so `h-screen` still means the viewport height and the
+         padding comes out of the content box rather than adding to it. */
+      className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground pt-safe-top pb-safe-bottom ps-safe-start pe-safe-end"
+    >
       {/* AC-62 — first focusable element in the document. */}
       <SkipToContent t={t} />
 
@@ -324,6 +476,12 @@ export function AppLayout() {
       )}
 
       <div className="flex min-h-0 flex-1">
+        {/* Below the breakpoint these two are rendered by `MobileNavPanel`
+            instead, with the same props. They are not hidden here and not
+            duplicated — there is exactly one `ModuleRail` and one `PageNav` in
+            the document on every viewport, so the two navigation landmarks
+            stay unique and a screen reader is never offered a second copy. */}
+        {!compact && (
         <ModuleRail
           workspaces={workspaces}
           visibleRows={rows}
@@ -333,9 +491,12 @@ export function AppLayout() {
           landingRoute={shell.session?.landingRoute ?? '/operations/overview'}
           t={t}
         />
+        )}
 
-        {/* D5 — always rendered. The column is the level-2 navigation and it
-            does not go away; there is no branch here any more. */}
+        {/* D5 — always rendered ABOVE the breakpoint. The column is the level-2
+            navigation and it does not go away; what changes below 768 is where
+            it lives, not whether it exists. */}
+        {!compact && (
         <PageNav
           workspace={route.workspace}
           rows={workspaceRows}
@@ -344,6 +505,7 @@ export function AppLayout() {
           activeSubTabId={route.subTabId}
           t={t}
         />
+        )}
 
         {/* The content region: top bar (or save bar) + `<main>`. */}
         <div className="flex min-w-0 flex-1 flex-col">
@@ -365,6 +527,9 @@ export function AppLayout() {
                     ? WRITE_REVOKED_BANNER_ID
                     : null
               }
+              /* AC-51's *"both nav columns stay mounted"* has to keep meaning
+                 something below the breakpoint. See `SaveBarProps.menu`. */
+              menu={menu}
             />
           ) : (
             <TopBar
@@ -381,7 +546,7 @@ export function AppLayout() {
                  literal `1`, not an id. */
               onOpenOnboarding={() => setLayer('onboarding', '1')}
               onOpenNotification={openNotificationTarget}
-              onSwitchUser={() => navigate('/admin/team')}
+              onSwitchUser={switchUser}
               onSignOut={() => {
                 /* Nothing dirty, nothing to confirm — a dialog that asks about
                    work that does not exist is a dialog an operator learns to
@@ -390,10 +555,13 @@ export function AppLayout() {
                 else signOut()
               }}
               onSetLanguage={setLanguage}
-              /* The rota is Admin › Team & Access's data. Until that sub-tab is
-                 built the chip shows the gap, which is the state it exists for
-                 — and a wrong name would be worse than an honest `unassigned`. */
-              onCallName={null}
+              /* `null` covers three situations that all render as the honest
+                 `On call: unassigned` — nobody is rostered, the read has not
+                 landed, and the read failed. A wrong name would be worse than
+                 any of them, and a skeleton on a 28px chip would be noise. */
+              onCallName={onCall.data ?? null}
+              menu={menu}
+              compact={compact}
             />
           )}
 
@@ -443,7 +611,46 @@ export function AppLayout() {
                     />
                   </div>
                 )}
-                <Outlet />
+                {/* **P1-8 — the route-level boundary.** It is INSIDE `<main>`
+                    and outside nothing else, which is the whole design: a
+                    throw in a screen replaces the content region and leaves
+                    the rail, the sub-tab column and the top bar mounted and
+                    interactive, exactly as `route-not-found` and
+                    `route-forbidden` already do (**AC-24**). A boundary in
+                    `App.tsx` or around `<Routes>` would take all three down
+                    with the screen and there would be nothing left to
+                    navigate with.
+
+                    `resetKeys` carries the location, so a crashed screen does
+                    not follow the operator to the next route — no reload, no
+                    press. `name` is the route's own title from the route
+                    table, so the state names WHAT failed rather than saying
+                    "this page". */}
+                <ErrorBoundary
+                  scope="page"
+                  t={t}
+                  name={route.subTab ? t(route.subTab.titleKey) : undefined}
+                  resetKeys={[location.pathname, location.search]}
+                  /* The same target `NotFoundScreen` uses: the workspace the
+                     operator is still in when the path named one, their
+                     landing route otherwise. A control they choose, never a
+                     redirect (§11.2) — the URL of the crash stays in the bar
+                     so they can tell you what they clicked.
+
+                     The LABEL is not built here: see `ErrorBoundary.onEscape`.
+                     Resolving a key on every healthy render for a string only
+                     a crashed page shows is how a copy typo becomes a white
+                     screen, which is the defect this boundary exists to end. */
+                  onEscape={() =>
+                    navigate(
+                      route.workspace
+                        ? `${route.workspace.routePrefix}/overview`
+                        : (shell.session?.landingRoute ?? '/operations/overview'),
+                    )
+                  }
+                >
+                  <Outlet />
+                </ErrorBoundary>
               </>
             )}
           </main>
@@ -461,6 +668,11 @@ export function AppLayout() {
             navigate(path)
           }}
           t={t}
+          /* The card stack formats dates and counts. Passed, not read from a
+             context inside the cards, for the same reason `DeviceList` takes
+             it: a formatter that reads the language itself is a second source
+             for the one the shell already owns. */
+          language={language}
         />
       )}
       {route.overlay === 'notifications' && (
@@ -513,6 +725,22 @@ export function AppLayout() {
           (R4-3): a no-scrim layer does not trap, so `Tab` would walk the
           operator out of the only working control on screen into the frozen
           console behind it. It has no route and no URL param. */}
+      {/* The drawer. Its content is portalled to the end of `body`, so this
+          renders nothing in place; it is here, at the end of the frame, so the
+          reading order of the DOM matches the reading order of the page. */}
+      <MobileNavPanel
+        workspaces={workspaces}
+        visibleRows={rows}
+        workspaceRows={workspaceRows}
+        workspace={route.workspace}
+        navCounts={shell.navCounts}
+        navCountsLoading={shell.navCountsLoading}
+        activeWorkspaceId={route.workspaceId}
+        activeSubTabId={route.subTabId}
+        landingRoute={shell.session?.landingRoute ?? '/operations/overview'}
+        t={t}
+      />
+
       {lifecycle.frozenReason !== null && (
         <ReauthModal
           open
@@ -537,6 +765,7 @@ export function AppLayout() {
         />
       )}
     </div>
+    </MobileNavRoot>
   )
 }
 
@@ -547,8 +776,8 @@ export function AppLayout() {
 const WRITE_REVOKED_BANNER_ID = 'write-revoked-reason'
 
 /** §3.2 / **AC-560** — idle and absolute are visibly distinct reasons. */
-function endedCondition(reason: SessionExpiryReason) {
+function endedCondition(reason: SessionExpiryReason, idleTimeoutMinutes: number) {
   return reason === 'absolute'
     ? ({ kind: 'session-ended-absolute' } as const)
-    : ({ kind: 'session-ended-idle', minutes: DEFAULT_IDLE_TIMEOUT_MINUTES } as const)
+    : ({ kind: 'session-ended-idle', minutes: idleTimeoutMinutes } as const)
 }

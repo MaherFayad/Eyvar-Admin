@@ -39,10 +39,14 @@
  * `FC-0008`  withdrawn by the captain — a disposition with no decision.
  */
 
-import type { FairnessCase } from '../types/fairness'
+import { offsetFromNow } from '../mock/clock'
+import type { FairnessCase, FairnessCaseKind, FairnessReasonCode } from '../types/fairness'
 import { FAIRNESS_RESOLVE_MINUTES } from '../types/fairness'
+import { cycle, cycleRecord, cycleRef, refsFor, type FixtureRef } from './cycle'
+import { driverFixtures } from './drivers'
+import { riderFixtures } from './riders'
 
-export const fairnessCaseFixtures: FairnessCase[] = [
+const namedFairnessCases: FairnessCase[] = [
   {
     /* Filed 24 minutes ago against a 24-hour window. The comfortable row —
        there has to be one, or the SLA column only ever renders red. */
@@ -230,6 +234,16 @@ export const fairnessCaseFixtures: FairnessCase[] = [
      * timestamp and **never writes `rationale`** (`:15597`–`:15599`), so every
      * decided case in the legacy app is unexplained. Only `FC-0007` has one,
      * to prove the populated state renders.
+     *
+     * **Raised as an invariant violation — "an overturn with no stated reason"
+     * — and left alone deliberately.** It is not a fixture slip; it is the
+     * defect this fixture was written to make visible, and the type's own field
+     * note says so: *"whether the UI should require it is a product
+     * decision"*. Filling it in here would close the question by fiat and
+     * remove the only evidence that the legacy decision path drops the reason
+     * on the floor. `FC-0007` (upheld) and `FC-0009` (overturned) both carry
+     * one, so the populated state renders on both dispositions and nothing is
+     * untestable.
      */
     rationale: null,
     tripId: 'TRP-9008',
@@ -355,4 +369,224 @@ export const fairnessCaseFixtures: FairnessCase[] = [
     firstResponseAt: '2026-06-20T13:31:00+03:00',
     firstResponseBreachedAt: null,
   },
+  {
+    /**
+     * **`DRV_DEDUCTION_DISPUTE` — the sixth reason code, and the first case to
+     * carry it.** Every other code in `FairnessReasonCode` had a row; this one
+     * had none, so its filter facet had never matched and its 24-hour window
+     * had never been rendered.
+     *
+     * **Finding for product-owner, not something a fixture may settle.**
+     * `FairnessReasonCode` has six members and `FairnessCaseKind` has three,
+     * and this code maps onto none of them. A deduction dispute is a captain
+     * contesting a decision **Eyvar** made against them, which is structurally
+     * the `suspension-appeal` shape — counterparty is Eyvar, so `subjectId` is
+     * `null` (`commitDriverAppeal`, `:15583`) — and that is the kind used here,
+     * because leaving the code unrepresented is worse than representing it
+     * imperfectly. But the queue view will label this row *"Suspension
+     * appeal"* when no suspension is in question. Either the kind enum needs a
+     * fourth member or the code needs to move; both are product decisions.
+     *
+     * It also carries a **rationale on an overturn**, which nothing else does:
+     * `FC-0007` proves the populated state on `upheld` and this proves it on
+     * `overturned`, without touching `FC-0005`/`FC-0006`, whose empty
+     * rationales are the legacy defect being documented.
+     */
+    id: 'FC-0009',
+    kind: 'suspension-appeal',
+    status: 'overturned',
+    driverId: 'DRV-0103',
+    driverName: 'Khalid Mansour',
+    subjectId: null,
+    subjectName: null,
+    detail:
+      'DED-01 charges me for a late pickup on TRP-7742. The rider changed the destination twice while I was waiting and the app never re-timed the leg.',
+    reasonCode: 'DRV_DEDUCTION_DISPUTE',
+    openedAt: '2026-06-23T11:20:00+03:00',
+    decidedAt: '2026-06-24T08:05:00+03:00',
+    decidedByUserId: 'USR-2',
+    decidedByUserName: 'Fahad Al-Dosari',
+    rationale:
+      'Trip log confirms two destination changes during the wait. The lateness is not attributable to the captain; DED-01 is to be waived and the on-time percentage recomputed for the period.',
+    tripId: 'TRP-7742',
+    disputedRating: null,
+    averageAdjusted: null,
+    suspensionReason: null,
+    reinstatedAt: null,
+    claim: null,
+    slaStartedAt: '2026-06-23T11:20:00+03:00',
+    slaDueAt: '2026-06-24T11:20:00+03:00',
+    slaTargetMinutes: FAIRNESS_RESOLVE_MINUTES.DRV_DEDUCTION_DISPUTE,
+    slaBreachedAt: null,
+    slaSource: 'legacy-reason-code',
+    firstResponseDueAt: '2026-06-23T11:35:00+03:00',
+    firstResponseAt: '2026-06-23T11:29:00+03:00',
+    firstResponseBreachedAt: null,
+  },
 ]
+
+/* ── volume ──────────────────────────────────────────────────────────── */
+
+/**
+ * The captains and riders the decided archive is spread across, resolved from
+ * the canonical records once. `refsFor` throws at module load on an id that no
+ * longer exists, so a decided case can never name a captain who is not there.
+ */
+const FAIRNESS_CAPTAINS: readonly FixtureRef[] = refsFor(driverFixtures, [
+  'DRV-0101',
+  'DRV-0102',
+  'DRV-0103',
+  'DRV-0104',
+  'DRV-0105',
+  'DRV-0106',
+  'DRV-0202',
+  'DRV-0204',
+  'DRV-0206',
+  'DRV-0207',
+])
+
+const FAIRNESS_SUBJECTS: readonly FixtureRef[] = refsFor(riderFixtures, [
+  'RDR-1041',
+  'RDR-1044',
+  'RDR-1045',
+  'RDR-1046',
+  'RDR-1048',
+  'RDR-1049',
+  'RDR-1052',
+  'RDR-1075',
+])
+
+/**
+ * Each reason code with the kind it belongs to, **as one record**. The kind and
+ * the code are two halves of one classification and are never cycled apart.
+ */
+const FAIRNESS_CLASSES: ReadonlyArray<{
+  readonly id: FairnessReasonCode
+  readonly kind: FairnessCaseKind
+  readonly detail: string
+}> = [
+  {
+    id: 'DRV_RATING_DISPUTE',
+    kind: 'rating-dispute',
+    detail: 'Captain contests a low score left after a leg the app itself re-routed.',
+  },
+  {
+    id: 'DRV_RIDER_NOSHOW',
+    kind: 'rider-report',
+    detail: 'Rider did not appear at the pickup point and did not answer two calls.',
+  },
+  {
+    id: 'DRV_RIDER_CONDUCT',
+    kind: 'rider-report',
+    detail: 'Rider smoked in the vehicle and refused to stop when asked.',
+  },
+  {
+    id: 'DRV_VEHICLE_DAMAGE',
+    kind: 'rider-report',
+    detail: 'Torn seat cover reported at the end of the leg, with photographs attached.',
+  },
+  {
+    id: 'DRV_SUSPENSION_APPEAL',
+    kind: 'suspension-appeal',
+    detail: 'Captain appeals a suspension served while the renewed document was already on file.',
+  },
+  {
+    id: 'DRV_DEDUCTION_DISPUTE',
+    kind: 'suspension-appeal',
+    detail: 'Captain disputes a cleanliness deduction raised without a photograph.',
+  },
+]
+
+/**
+ * Volume for Captain Fairness — 44 decided cases, so the queue pages, sorts and
+ * has an archive worth reading.
+ *
+ * **Every row is decided, and the open queue is deliberately not grown.**
+ * `fixtures/navCounts.ts` pins `support-fairness` to the size of the live
+ * `open` view and `navCounts.test.ts` asserts the two against each other; a
+ * forty-fifth open case would falsify a number reasoned about in another file.
+ * It is also the honest shape — four cases open, forty-four decided is what an
+ * appeals queue looks like.
+ *
+ * **Every timestamp descends from one offset per row.** `openedMinutesAgo` is
+ * the single source; the deadline, the first response and the decision are all
+ * that number plus a literal, so a row cannot claim a breach its own dates
+ * deny — `slaBreachedAt` is computed from the comparison, not asserted.
+ */
+export const fillerFairnessCases: FairnessCase[] = Array.from({ length: 44 }, (_, i) => {
+  const captain = cycleRef(FAIRNESS_CAPTAINS, i)
+  const subject = cycleRef(FAIRNESS_SUBJECTS, i)
+  const klass = cycleRecord(FAIRNESS_CLASSES, i)
+  const target = FAIRNESS_RESOLVE_MINUTES[klass.id]
+  const openedMinutesAgo = 1_440 * (3 + (i % 38)) + ((i * 53) % 1_380)
+  const decideAfter = 90 + ((i * 271) % 4_600)
+  const operator = cycleRecord(
+    [
+      { id: 'USR-1', name: 'Sarah Al-Rashid' },
+      { id: 'USR-2', name: 'Fahad Al-Dosari' },
+      { id: 'USR-5', name: 'Yousef Al-Balawi' },
+    ],
+    i,
+  )
+  /* Overturned twice as often as upheld, with one withdrawal in seven. The
+     page's own empty state says a high overturn rate is the appeal route
+     working (`:15690`), so the archive should not read as a rubber stamp. */
+  const status = i % 7 === 6 ? 'withdrawn' : i % 3 === 0 ? 'upheld' : 'overturned'
+  const isRating = klass.kind === 'rating-dispute'
+  const isAppeal = klass.kind === 'suspension-appeal'
+  return {
+    id: `FC-1${String(100 + i).padStart(3, '0')}`,
+    kind: klass.kind,
+    status,
+    driverId: captain.id,
+    driverName: captain.name,
+    subjectId: isAppeal ? null : subject.id,
+    subjectName: isAppeal ? null : subject.name,
+    detail: klass.detail,
+    reasonCode: klass.id,
+    openedAt: offsetFromNow({ minutes: -openedMinutesAgo }),
+    decidedAt: offsetFromNow({ minutes: -openedMinutesAgo + decideAfter }),
+    /* A withdrawal has no decider — the captain dropped it (`FC-0008`). */
+    decidedByUserId: status === 'withdrawn' ? null : operator.id,
+    decidedByUserName: status === 'withdrawn' ? null : operator.name,
+    /* Two in five decisions state a reason. The rest are legacy's shape:
+       `decideFairness` never writes one (`:15597`). */
+    rationale:
+      status !== 'withdrawn' && i % 5 < 2
+        ? cycle(
+            [
+              'Telemetry and the trip log corroborate the captain’s account; the score is voided.',
+              'The document was on file before the suspension was served. Reinstated with the period restored.',
+            ],
+            i,
+          )
+        : null,
+    tripId: isRating ? cycle(['TRP-8004', 'TRP-8007', 'TRP-8010', 'TRP-8016'], i) : null,
+    disputedRating: isRating ? 1 + (i % 3) : null,
+    /**
+     * Only meaningful on an overturned rating dispute, and `false` on a third
+     * of those: the score is voided but the historical average had no
+     * denominator to reverse against (`:15606`). `null` everywhere else.
+     */
+    averageAdjusted: isRating && status === 'overturned' ? i % 3 !== 1 : null,
+    suspensionReason: isAppeal ? 'Rating below the 3.5 review threshold for two consecutive weeks' : null,
+    reinstatedAt:
+      isAppeal && status === 'overturned'
+        ? offsetFromNow({ minutes: -openedMinutesAgo + decideAfter })
+        : null,
+    /* Decided cases are in nobody's name. The take-over case is `FC-0002`. */
+    claim: null,
+    slaStartedAt: offsetFromNow({ minutes: -openedMinutesAgo }),
+    slaDueAt: offsetFromNow({ minutes: -openedMinutesAgo + target }),
+    slaTargetMinutes: target,
+    slaBreachedAt:
+      decideAfter > target ? offsetFromNow({ minutes: -openedMinutesAgo + target }) : null,
+    slaSource: 'legacy-reason-code',
+    firstResponseDueAt: offsetFromNow({ minutes: -openedMinutesAgo + 15 }),
+    firstResponseAt: offsetFromNow({ minutes: -openedMinutesAgo + 4 + (i % 40) }),
+    firstResponseBreachedAt: null,
+  } satisfies FairnessCase
+})
+
+/** 53 rows — nine hand-written, forty-four of archive. */
+export const fairnessCaseFixtures: FairnessCase[] = [...namedFairnessCases, ...fillerFairnessCases]

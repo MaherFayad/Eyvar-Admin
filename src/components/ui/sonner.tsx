@@ -14,10 +14,37 @@
  *   R15         rounded rectangle, radius 8px. Never a stadium.
  *   R9 / §5.7   ONE LINE, names the object exactly, <= 60 characters.
  *               Formula: `<object> <past-participle>`, sentence case.
- *               NO period, NO exclamation mark, NO emoji, NO "successfully",
- *               and NO ACTION LINK — a toast never carries an action the
- *               operator must take (§13.1 "Never"). The action slot is
- *               disabled below, not merely left unused.
+ *               NO period, NO exclamation mark, NO emoji, NO "successfully".
+ *
+ *   §6.2 D-16   **THE ACTION SLOT IS NO LONGER BLANKET-FORBIDDEN, AND THIS
+ *               PARAGRAPH IS THE ONE THAT WOULD OTHERWISE DELETE A REQUIRED
+ *               CONTROL.** It used to read *"NO ACTION LINK — a toast never
+ *               carries an action the operator must take (§13.1 Never). The
+ *               action slot is disabled below, not merely left unused."*
+ *
+ *               Then **D18 made undo a real inverse operation whose ten-second
+ *               window IS the toast's life**, which requires an `Undo` in the
+ *               toast — so by §6.2's own rule the toast this register mandates
+ *               was a defect against the file implementing the prohibition.
+ *
+ *               D-16 replaces the ban with the reason behind it, as a test:
+ *
+ *                 > A toast may carry an action **if and only if** either
+ *                 > (a) missing the action is harmless, or
+ *                 > (b) the toast does not auto-dismiss.
+ *
+ *               The original prohibition was right because a toast is
+ *               transient, so an action inside one carries a deadline the
+ *               operator did not set and the failure mode is **missing it**.
+ *               `Undo` passes (a): missing it means the act stands, which is
+ *               what the operator asked for. `Try again` / `Open the record` on
+ *               a **critical** toast pass (b), because that toast does not
+ *               auto-dismiss — a critical toast is not a red toast, it is a
+ *               toast that has stopped being transient.
+ *
+ *               **An action on an ordinary 5-second toast whose omission loses
+ *               something remains forbidden.** That is legacy defect D7 and it
+ *               keeps its name.
  *   R5a / R7    no status icon set. Sonner ships success/info/warning/error
  *               glyphs; a toast is a transient confirmation of something that
  *               already happened, so a warning or error glyph here is R10's
@@ -57,11 +84,12 @@ function Toaster({ toastOptions, ...props }: ToasterProps) {
       duration={5000}
       // A trailing ✕, and nothing else, is the only control (§11.5).
       closeButton
-      // R9 — a toast carries no action link. Sonner still renders `action` if a
-      // caller passes one, so this is enforced at the call site by review and
-      // by the `toast()` wrapper in 0.7, not here; the class below at least
-      // makes a stray action visually identical to the label rather than a
-      // second affordance.
+      // §6.2 D-16 — an action is admissible under the two-part test in the
+      // header, and the header explains why the blanket ban was replaced rather
+      // than carved out. `Undo` (D18) and a critical toast's `Try again` both
+      // qualify; an action on an ordinary 5s toast whose omission loses
+      // something does not, and that remains a call-site rule enforced by
+      // review, because Sonner cannot tell the two apart from here.
       icons={{}}
       className="toaster group"
       toastOptions={{

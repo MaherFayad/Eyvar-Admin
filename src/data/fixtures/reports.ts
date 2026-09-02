@@ -23,6 +23,11 @@
  * | `RPT-3` money, 90 days | a mostly-gap window **and** a series a Support operator may not see |
  * | `RPT-4` pinned to two dashboards | §11.3's refused delete, with both dashboards named |
  * | `RPT-5` an Arabic name | AC-898 — user content, never translated, correct direction inside an English UI |
+ * | `RPT-6` a three-rung funnel | `mode: 'funnel'`, with a filter on one rung only |
+ * | `RPT-7` monthly cohorts, `M0…M3` | `mode: 'cohort'`, over a window long enough to reach `M3` |
+ * | `RPT-8` a journey rooted at signup | `mode: 'journey'`, and `mode-not-resolved` on the wire |
+ * | `RPT-9` a daily data table | `mode: 'table'` — a real grain and a real split, unlike the other three |
+ * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
  * | `DSH-1` two tiles | a rendered dashboard |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
  * | `DSH-3` a dangling `reportId` | §11.3's missing tile, which cannot be created through the UI |
@@ -113,6 +118,142 @@ const cancellationTrend: ReportQuery = {
   chartType: 'line',
 }
 
+/* ───────────────── the four modes that are not `trend` ─────────────────── */
+
+/**
+ * **None of the five queries above names a mode, and that is the fixture.**
+ *
+ * They were written before `mode` existed and they are left untouched: they
+ * carry no `mode` field, `reportMode()` resolves them to `'trend'`, and
+ * `serialiseReportQuery` writes no `mo` into their URLs. Every link an operator
+ * already holds to one of them still produces the identical bytes and the
+ * identical report (AC-853). The regression test for that is
+ * `serialise.mode.test.ts`, which pins the exact base64 of `RPT-1`'s link.
+ *
+ * The four below name theirs, so every mode P7-T1 declares has a saved report
+ * behind it and QA never hand-edits data to reach one.
+ */
+
+/**
+ * A funnel over the one subject that crosses all three stores: a rider joins,
+ * takes a trip, buys a subscription. Three rungs, ordered, no duplicate.
+ *
+ * Query-level `filters` is empty and has to be: `planQuery` intersects the
+ * filterable fields of every step, and `rider.*`, `trip.*` and
+ * `subscription.*` share none. A filter that applied to one rung and not the
+ * others would be the §3.4 failure, so the plan refuses it rather than the
+ * fixture pretending otherwise. Per-step filters are where a funnel narrows.
+ */
+const riderActivationFunnel: ReportQuery = {
+  measures: [],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-90d' },
+  /* A funnel has no calendar x-axis, so the window collapses to one period.
+     `planQuery` disables every other grain with the reason. */
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'bar',
+  mode: 'funnel',
+  funnel: {
+    steps: [
+      { measureKey: 'riders.joined', filters: [] },
+      /* Narrowed at the rung, not at the query: *joined anywhere, then took a
+         Quick Ride*. This is the shape a query-level filter cannot express. */
+      { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
+      { measureKey: 'subscriptions.started', filters: [] },
+    ],
+    /* Unset, so the funnel's window is the report's window. No conversion
+       window has been specified by the business and none is invented (AC-453). */
+    conversionWindowDays: null,
+  },
+}
+
+/**
+ * Monthly rider cohorts, four columns — `M0 … M3`.
+ *
+ * `last-365d` rather than `last-30d` on purpose: `M3` needs four calendar
+ * months in the window, and a 30-day window holds one. `planQuery` refuses the
+ * short version with `cohort-window-too-short`, which is a state QA reaches by
+ * changing this one preset.
+ */
+const riderRetentionCohort: ReportQuery = {
+  measures: [],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-365d' },
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'table',
+  mode: 'cohort',
+  cohort: {
+    anchorMeasureKey: 'riders.joined',
+    /* Unset: *still here* means the anchor subject's own activity, which is
+       what `buildCohortMatrix`'s `getLastActiveAt` reads. A return event
+       distinct from the anchor is legal in the type and unused here. */
+    returnMeasureKey: null,
+    /* The only grain the retention engine measures age at. `day` and `week`
+       are offered by the picker and disabled with the reason (`CohortGrain`). */
+    cohortGrain: 'month',
+    horizon: 3,
+  },
+}
+
+/** A journey rooted at the rider signup, two steps forward. */
+const riderJourney: ReportQuery = {
+  measures: [],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-90d' },
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'table',
+  mode: 'journey',
+  journey: { rootMeasureKey: 'riders.joined', depth: 2 },
+}
+
+/**
+ * `table` mode — the same question `tripsByDistrict` asks, listed instead of
+ * drawn. It keeps a real grain and a real split, because that is the whole
+ * difference between `table` and the three modes that collapse the window.
+ */
+const tripsByDistrictTable: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: 'trip.pickup',
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'table',
+  mode: 'table',
+}
+
+/**
+ * **Deliberately illegal, and deliberately not a `SavedReport`.**
+ *
+ * A funnel with one rung is a number, not a funnel, and `planQuery` returns
+ * `funnel-needs-steps` for it. It is exported as a bare query rather than
+ * seeded into the library because §4.2 refuses to save a query with
+ * violations, so a seeded illegal `SavedReport` would contradict the rule it
+ * exists to demonstrate.
+ *
+ * The path it does exist for is the one AC-825 names: a **hand-edited URL**.
+ * `reportQueryPath(oneRungFunnel)` produces a link that parses, plans, and
+ * comes back refused with the reason beside the funnel control — which is the
+ * only way to reach that state without editing a fixture.
+ */
+export const oneRungFunnel: ReportQuery = {
+  measures: [],
+  groupBy: null,
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'bar',
+  mode: 'funnel',
+  funnel: { steps: [{ measureKey: 'riders.joined', filters: [] }], conversionWindowDays: null },
+}
+
 /* ───────────────────────── saved reports ───────────────────────────────── */
 
 export const savedReportFixtures: SavedReport[] = [
@@ -161,6 +302,53 @@ export const savedReportFixtures: SavedReport[] = [
     /* Pinned to two dashboards, so §11.3's refused delete has two names to put
        in its confirmation (AC-868). */
     pinnedToDashboardIds: ['DSH-1', 'DSH-3'],
+  },
+  {
+    id: 'RPT-6',
+    name: 'Rider activation funnel — 90 days',
+    description: 'Joined, rode, subscribed. Three rungs, and the drop-off between them.',
+    query: riderActivationFunnel,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -4 }),
+    updatedAt: offsetFromNow({ days: -4 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-7',
+    name: 'Rider retention by joining month — M0 to M3',
+    description: 'A year of monthly cohorts, four columns wide.',
+    query: riderRetentionCohort,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -8 }),
+    updatedAt: offsetFromNow({ days: -8 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-8',
+    /* A journey whose root is a signup. The mode resolves to no data today —
+       `mode-not-resolved` on the wire — and the report exists so that state is
+       reachable from the library rather than only from a hand-typed URL. */
+    name: 'Where riders go after signing up',
+    description: null,
+    query: riderJourney,
+    ownerId: 'USR-5',
+    visibility: 'private',
+    createdAt: offsetFromNow({ days: -2 }),
+    updatedAt: offsetFromNow({ days: -2 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-9',
+    name: 'Completed trips by district — daily table',
+    description: 'The same numbers as RPT-2, listed rather than drawn.',
+    query: tripsByDistrictTable,
+    ownerId: 'USR-3',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -6 }),
+    updatedAt: offsetFromNow({ days: -6 }),
+    pinnedToDashboardIds: [],
   },
   {
     id: 'RPT-5',

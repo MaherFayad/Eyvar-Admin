@@ -120,7 +120,18 @@ export const teamUserFixtures: TeamUser[] = [
   },
 ]
 
-/** Legacy `CURRENT_USER_ID = 'USR-1'` (`:2841`). The single-session demo's one operator. */
+/**
+ * Legacy `CURRENT_USER_ID = 'USR-1'` (`:2841`). The single-session demo's one
+ * operator.
+ *
+ * **The seeded default, and nothing else.** It answers *"who is signed in
+ * before anybody switches"*, which is why `clients/session.ts` initialises
+ * `mockUserId` from it and `resetMockSession` restores it. It does **not**
+ * answer *"who is acting right now"* — that is `currentMockUserId()`, and a
+ * client reading this constant to stamp an actor, filter a `mine` view or
+ * decide a take-over is invisible to `switchMockUser`. Twenty clients did, and
+ * `clients/identity.test.ts` is the guard that keeps them from doing it again.
+ */
 export const CURRENT_USER_ID = 'USR-1'
 
 /**

@@ -12,7 +12,6 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
-import { measureFixtures, dimensionFixtures } from '../fixtures/measures'
 import { mock } from '../mock/delay'
 import { paginate } from '../mock/query'
 import { planQuery, type Catalogue } from '../reporting/plan'
@@ -21,6 +20,18 @@ import type { Dimension, Measure } from '../types/measure'
 import { pairableWith, pairRefusal } from '../types/measure'
 import type { QueryPlan, ReportQuery } from '../types/report'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let measureFixtures!: Fixtures['measureFixtures']
+let dimensionFixtures!: Fixtures['dimensionFixtures']
+onFixturesLoaded((f) => {
+  measureFixtures = f.measureFixtures
+  dimensionFixtures = f.dimensionFixtures
+})
 
 export const CATALOGUE_OPERATIONS = {
   measures: 'catalogue.measures',

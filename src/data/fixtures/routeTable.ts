@@ -5,11 +5,22 @@
  * layers. Boring and greppable on purpose: someone will need to hand-edit a row
  * to reproduce a bug, and a clever factory would make that impossible.
  *
- * **Every `permission` is `null`.** Q4 (§12.2) is open — the *rule* that all 35
- * sub-tabs get an entry is decided; the 35 *values* are not, and 19 legacy pages
- * had nothing to inherit. Inventing them here would ship an answer the business
- * owner has not given. AC-61 fails against this table today, deliberately and
- * visibly.
+ * **Every row carries a `viewPermission` and a `writePermission` — DECISIONS.md
+ * D17, which closes Q4 and AC-61.** The 35-row table below is D17's, verbatim.
+ *
+ * Read it as `● = view + write · ◐ = view only · ○ = not rendered`, where the
+ * disc is a fact about the OPERATOR and not about the row: a row is `◐` for an
+ * operator who holds its `viewPermission` and not its `writePermission`. The
+ * old single `permission: PermissionRef` could not say that — `level` was a
+ * property of the row, so a sub-tab was read-only for everybody or for nobody,
+ * and Operations › People has to be `●` for Ops Manager and `◐` for Finance at
+ * the same time.
+ *
+ * **Three rows are irregular and each carries its reason inline**:
+ * `admin-team` (gated on its own write key), `admin-activity` (no view key at
+ * all) and the two self-gating rows, `operations-my-work` and
+ * `management-reports`. **Eight cells deviate from §10.3's matrix** — six
+ * widenings and two narrowings — and each deviation is noted on its row.
  *
  * `titleKey` / `subtitleKey` are i18n keys, not strings — §7.5 requires Arabic
  * from day one, not as a phase two.
@@ -107,6 +118,16 @@ const APPLICANT_DETAIL: DetailRoute = {
   patterns: ['P2'],
 }
 
+const CONVERSATION_DETAIL: DetailRoute = {
+  kind: 'conversation',
+  path: '/support/contact-centre/:conversationId',
+  parentSubTabId: 'support-contact-centre',
+  paramName: 'conversationId',
+  titleKey: 'route.contacts.conversation',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
 const TICKET_DETAIL: DetailRoute = {
   kind: 'ticket',
   path: '/support/tickets/:ticketId',
@@ -145,7 +166,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_analytics',
+    writePermission: null,
     hasBacklog: false,
   },
   {
@@ -161,7 +183,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_analytics',
+    writePermission: null,
     hasBacklog: false,
   },
   {
@@ -179,7 +202,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_analytics',
+    writePermission: 'approve_drivers',
     hasBacklog: true,
   },
   {
@@ -195,7 +219,11 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5', 'P1'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation** — `◐` → `●` for Finance, who hold `manage_plans`
+       for Pricing. "May edit a plan but not a promotion" is a distinction
+       nobody can defend. */
+    viewPermission: 'view_analytics',
+    writePermission: 'manage_plans',
     hasBacklog: false,
   },
   {
@@ -211,7 +239,10 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation** — `○` → `◐` for Finance. A zone map is not
+       sensitive and `view_analytics` is one key. */
+    viewPermission: 'view_analytics',
+    writePermission: 'manage_ops_policy',
     hasBacklog: true,
   },
   {
@@ -242,8 +273,9 @@ export const SUB_TABS: SubTabRoute[] = [
      * each row to claim one.
      *
      * **`hasBacklog: false`** (§12.6) — a report is a question, not a queue, so
-     * there is no count to badge. **`permission: null`** keeps it with the
-     * other 34 under the still-open **Q4**; it is not a decision made here.
+     * there is no count to badge. It is **self-gating** under D17 —
+     * `writePermission` is its own `viewPermission` — because saving your own
+     * report needs no authority beyond being able to see the screen.
      */
     subTabId: 'management-reports',
     workspaceId: 'management',
@@ -284,7 +316,12 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    /* **Self-gating** (D17): saving your own report needs no authority beyond
+       being able to see the screen. A SHARED report is still safe, because a
+       report is a stored QUESTION and its measures resolve against the
+       VIEWER's permissions at run time (D13, closed by D17). */
+    viewPermission: 'view_analytics',
+    writePermission: 'view_analytics',
     hasBacklog: false,
   },
 
@@ -302,7 +339,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: null,
     hasBacklog: false,
   },
   {
@@ -322,7 +360,11 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P10', 'P8'],
     shape: 'single',
-    permission: null,
+    /* **Self-gating** (D17): claiming your own work needs no authority beyond
+       being able to see the screen. Without this My Work is `◐` for the
+       Dispatcher and §10.4's "● on 5 of 9" is unmeetable. */
+    viewPermission: 'view_operations',
+    writePermission: 'view_operations',
     hasBacklog: true,
   },
   {
@@ -340,7 +382,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P6'],
     shape: 'monitor',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
     hasBacklog: false,
   },
   {
@@ -363,7 +406,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
     hasBacklog: true,
   },
   {
@@ -386,7 +430,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'manage_subscriptions',
     hasBacklog: true,
   },
   {
@@ -402,37 +447,70 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P1', 'P2'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation** — `○` → `◐` for Support, who answer calls about
+       corporate rides. */
+    viewPermission: 'view_operations',
+    writePermission: 'manage_subscriptions',
     hasBacklog: true,
   },
+  /* **Two sub-tabs, on the owner's ruling — see `DECISIONS.md` D1b.**
+     D1 made quick rides "the same table with a different filter". The business
+     owner overruled it: a quick ride and a subscription leg are different work,
+     and an operator should not have to remember which view tab they were on.
+
+     `kind` stays ONE type on ONE collection. What separated is the operator's
+     entry point, not the domain model — which is why both rows carry the same
+     `patterns`, `viewPermission` and `writePermission`, and the same screen
+     renders both. The `all` view of each is now `kind`-scoped, so the two view
+     tabs that did the filtering are gone: they became the sub-tabs. */
   {
-    subTabId: 'operations-trips',
+    subTabId: 'operations-quick-rides',
     workspaceId: 'operations',
-    path: '/operations/trips',
+    path: '/operations/quick-rides',
     order: 7,
-    titleKey: 'subtab.operations.trips',
-    subtitleKey: 'subtab.operations.trips.sub',
+    titleKey: 'subtab.operations.quickRides',
+    subtitleKey: 'subtab.operations.quickRides.sub',
     views: views(
       ['all', 'view.trips.all'],
-      ['quick-rides', 'view.trips.quickRides'],
-      ['subscription-legs', 'view.trips.subscriptionLegs'],
       ['flagged', 'view.trips.flagged'],
       ['low-rating', 'view.trips.lowRating'],
       ['route-history', 'view.trips.routeHistory'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['trips', 'quickrides', 'live'],
+    legacyPageIds: ['quickrides', 'live'],
     legacySettingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
+    hasBacklog: false,
+  },
+  {
+    subTabId: 'operations-subscription-trips',
+    workspaceId: 'operations',
+    path: '/operations/subscription-trips',
+    order: 8,
+    titleKey: 'subtab.operations.subscriptionTrips',
+    subtitleKey: 'subtab.operations.subscriptionTrips.sub',
+    views: views(
+      ['all', 'view.trips.all'],
+      ['flagged', 'view.trips.flagged'],
+      ['low-rating', 'view.trips.lowRating'],
+    ),
+    detailRoutes: [],
+    legacyPageIds: ['trips'],
+    legacySettingsPanes: [],
+    patterns: ['P1'],
+    shape: 'single',
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
     hasBacklog: false,
   },
   {
     subTabId: 'operations-assurance',
     workspaceId: 'operations',
     path: '/operations/assurance',
-    order: 8,
+    order: 9,
     titleKey: 'subtab.operations.assurance',
     subtitleKey: 'subtab.operations.assurance.sub',
     views: views(
@@ -446,14 +524,15 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
     hasBacklog: true,
   },
   {
     subTabId: 'operations-people',
     workspaceId: 'operations',
     path: '/operations/people',
-    order: 9,
+    order: 10,
     titleKey: 'subtab.operations.people',
     subtitleKey: 'subtab.operations.people.sub',
     /* The widest merge — 5 legacy pages, 4 views, 3 patterns, on one route.
@@ -471,7 +550,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P1', 'P8', 'P2'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_operations',
+    writePermission: 'approve_drivers',
     hasBacklog: true,
   },
 
@@ -489,7 +569,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_finance',
+    writePermission: null,
     hasBacklog: false,
   },
   {
@@ -505,7 +586,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_finance',
+    writePermission: 'apply_deductions',
     hasBacklog: false,
   },
   {
@@ -521,7 +603,12 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation from §10.3, and one of the eight named ones.** §10.3
+       gave Ops Manager `○` here; D17 rules `◐`. A workspace read key cannot
+       hide two rows inside the workspace it opens, and read-only money is not
+       a risk — a second key for it is. */
+    viewPermission: 'view_finance',
+    writePermission: 'process_payouts',
     hasBacklog: true,
   },
   {
@@ -537,7 +624,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P7', 'P8'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_finance',
+    writePermission: 'apply_deductions',
     hasBacklog: true,
   },
   {
@@ -553,7 +641,13 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
-    permission: null,
+    /* **A D17 narrowing.** §10.3 gave Support `◐*` here; D17 rules `○` —
+       Support does not hold `view_finance` at all, so this row does not
+       render for them. The compensation credit Support genuinely needs
+       mid-call is a COMMAND on the rider's 360° profile, gated on
+       `manage_tickets` plus the `compPolicy` cap, not a Financials screen. */
+    viewPermission: 'view_finance',
+    writePermission: 'apply_deductions',
     hasBacklog: false,
   },
   {
@@ -575,7 +669,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['pricing', 'cancelpolicy'],
     patterns: ['P1', 'P3'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_finance',
+    writePermission: 'manage_plans',
     hasBacklog: false,
   },
   {
@@ -591,7 +686,10 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['ledger', 'gateways'],
     patterns: ['P7', 'P4'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation from §10.3** — `○` → `◐` for Ops Manager, for the
+       same reason as Payouts. */
+    viewPermission: 'view_finance',
+    writePermission: 'release_escrow',
     hasBacklog: false,
   },
 
@@ -609,7 +707,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_support',
+    writePermission: null,
     hasBacklog: false,
   },
   {
@@ -631,7 +730,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P9'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_support',
+    writePermission: 'manage_tickets',
     hasBacklog: true,
   },
   {
@@ -647,7 +747,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P9'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_support',
+    writePermission: 'manage_tickets',
     hasBacklog: true,
   },
   {
@@ -668,7 +769,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5', 'P8'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_support',
+    writePermission: 'manage_tickets',
     hasBacklog: true,
   },
   {
@@ -688,7 +790,12 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P9'],
     shape: 'single',
-    permission: null,
+    /* **The important D17 narrowing.** §10.3 gave Support `●`; its own R5 says
+       the Support role "is not equipped for a suspension decision". Trust &
+       Safety now exists and holds `approve_drivers`, so Support is `◐` here.
+       This is R5 applied, not overridden (AC-916, AC-917). */
+    viewPermission: 'view_support',
+    writePermission: 'approve_drivers',
     hasBacklog: true,
   },
   {
@@ -699,12 +806,13 @@ export const SUB_TABS: SubTabRoute[] = [
     titleKey: 'subtab.support.contactCentre',
     subtitleKey: 'subtab.support.contactCentre.sub',
     views: [],
-    detailRoutes: [],
+    detailRoutes: [CONVERSATION_DETAIL],
     legacyPageIds: ['contacts', 'support'],
     legacySettingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_support',
+    writePermission: 'contact_users',
     hasBacklog: true,
   },
 
@@ -726,7 +834,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_admin',
+    writePermission: null,
     hasBacklog: true,
   },
   {
@@ -744,7 +853,11 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['general', 'branding', 'legal'],
     patterns: ['P4'],
     shape: 'single',
-    permission: null,
+    /* **A D17 deviation** — `○` → `◐` for Ops Manager. Read-only branding
+       harms nobody; `admin-team` is the row that needed protecting and it has
+       its own key. */
+    viewPermission: 'view_admin',
+    writePermission: 'manage_workspace',
     hasBacklog: false,
   },
   {
@@ -760,7 +873,14 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['team', 'permissions', 'security', 'rota'],
     patterns: ['P4'],
     shape: 'single',
-    permission: null,
+    /* **The one Admin row gated on its own write key** (D17). Read-only access
+       to Team & Access exposes the full operator roster, everyone's
+       second-factor state and the whole permission matrix. There is no useful
+       `◐` for it: either you administer operators or you have no business
+       reading the list. This is why Finance and Dispatcher see an Admin tile
+       containing only the Activity Log. */
+    viewPermission: 'manage_team',
+    writePermission: 'manage_team',
     hasBacklog: true,
   },
   {
@@ -776,7 +896,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['dispatch', 'cities', 'limits', 'reasons'],
     patterns: ['P4'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_admin',
+    writePermission: 'manage_ops_policy',
     hasBacklog: false,
   },
   {
@@ -794,7 +915,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['notifications', 'push', 'emails'],
     patterns: ['P4'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_admin',
+    writePermission: 'manage_workspace',
     hasBacklog: true,
   },
   {
@@ -810,7 +932,8 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['integrity', 'export'],
     patterns: ['P4'],
     shape: 'single',
-    permission: null,
+    viewPermission: 'view_admin',
+    writePermission: 'manage_data_governance',
     hasBacklog: true,
   },
   {
@@ -830,7 +953,16 @@ export const SUB_TABS: SubTabRoute[] = [
     legacySettingsPanes: ['activity'],
     patterns: ['P1'],
     shape: 'single',
-    permission: null,
+    /* **The only row in the table with NO view key** (D17, AC-919). Every
+       authenticated operator can open the Activity Log; **the rows are
+       filtered server-side to entities the operator can otherwise see**, and
+       that filtering is not optional — a client-side filter over a full log
+       is a leak in the network tab (AC-920). §10.3 gave all four legacy roles
+       `◐` here, and an audit trail only the accused can hide is not a
+       control. `writePermission: null` — a log is not written from its own
+       screen. */
+    viewPermission: null,
+    writePermission: null,
     hasBacklog: false,
   },
 ]
@@ -846,10 +978,16 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     fullPagePath: '/entity/:entityId',
     legacyPageIds: ['profile'],
     patterns: ['P2'],
-    /* §4.3.1 — gated on `view_profiles`, the permission enforced at **zero**
-       call sites today. This is the one permission the spec states outright,
-       so it is not a Q4 invention. */
-    permission: { key: 'view_profiles', level: 'full' },
+    /* §4.3.1 and D17 — gated on `view_profiles`, the permission that was
+       enforced at **zero** call sites before D17 made it a real gate. Every one
+       of the six roles holds it, so the layer opens for everybody today; what
+       changes is that a role created WITHOUT it can no longer read a rider's
+       personal details by opening a profile. `writePermission` is the same key:
+       the 360° layer's own commands (contact, compensate, suspend) carry their
+       own keys through the command registry, so there is no separate "edit the
+       profile" authority to name here. */
+    viewPermission: 'view_profiles',
+    writePermission: 'view_profiles',
   },
   {
     layerId: 'notifications',
@@ -859,7 +997,8 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     legacyPageIds: ['notifications-all'],
     patterns: ['P10'],
     /* §11.2 — every authenticated operator. Row visibility is per-notification. */
-    permission: null,
+    viewPermission: null,
+    writePermission: null,
   },
   {
     layerId: 'account',
@@ -870,7 +1009,8 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     patterns: ['P4'],
     /* §11.2 — every operator, for their own record only. Administering others
        is Admin › Team & Access under `manage_team`. */
-    permission: null,
+    viewPermission: null,
+    writePermission: null,
   },
   {
     /**
@@ -882,7 +1022,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
      * AC-04 counts the union over every row rather than requiring one per row,
      * so nothing breaks.
      *
-     * `permission: null` — every operator, every role, permanently reachable
+     * `viewPermission: null` — every operator, every role, permanently reachable
      * from the account menu (**AC-598**). A checklist an operator cannot open
      * is a checklist they will not finish.
      *
@@ -896,7 +1036,8 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     legacyPageIds: [],
     /* Guided checklist — the §6.4 row R4-2 §2.2 minted. No new page shape. */
     patterns: ['P4'],
-    permission: null,
+    viewPermission: null,
+    writePermission: null,
   },
 ]
 

@@ -50,76 +50,216 @@
  * with no change here.
  */
 
-import type { ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { METRIC_BOARD_SUB_TABS, getRouteTable } from '@/data/clients'
 import type { DetailRoute, SubTabRoute } from '@/data/types'
+import { LoadingSkeleton, type SkeletonPattern } from '@/components/LoadingSkeleton'
+import { REPORTS_SUB_TAB_ID } from '@/screens/reports/ids'
 import { AppLayout } from '@/shell/AppLayout'
 import { useShell } from '@/shell/ShellContext'
 import { forbiddenReason } from '@/shell/permissions'
 import { DEFAULT_IDLE_TIMEOUT_MINUTES, type SessionExpiryReason } from '@/shell/session'
 import type { AuthCondition } from '@/components/auth/authContract'
+/* -------------------- Route-level code splitting --------------------
+   Every screen below is a SEPARATE CHUNK. Before this, `routes.tsx` had 36
+   static screen imports and zero `React.lazy`, so the whole product shipped as
+   one 2.71 MB chunk on first paint - an operator waited for the Report Builder
+   in order to sign in.
+
+   **Barrels are kept, deliberately.** `import('@/screens/financials')` chunks
+   all seven financials screens together, which matches how an operator moves:
+   they enter a workspace and stay in it. Splitting per screen would trade one
+   wait for seven on the same journey.
+
+   **`SubTabScreen` and `RouteStates` stay eager.** `SubTabScreen` is the
+   fallback for every unmapped route and `NotFoundScreen` is the catch-all - a
+   lazy fallback can fail to load, and a fallback that can fail is not one.
+
+   `lazy` needs a default export and these are named, hence the `.then` shim.
+   ------------------------------------------------------------------- */
+
 import { SubTabScreen } from '@/screens/SubTabScreen'
-import { ApplicantDetailScreen, PeopleScreen } from '@/screens/operations/people'
-import { SubscriptionsScreen } from '@/screens/operations/subscriptions'
-import { TripsScreen } from '@/screens/operations/trips'
-import { CorporateDetailScreen, CorporateScreen } from '@/screens/operations/corporate'
-import { DispatchScreen } from '@/screens/operations/dispatch'
-/* Wave 2 — the five §8.4 work queues. Five sub-tabs, two workspaces, one
-   shared contract (`specs/02-work-queues.md` §4, `src/screens/queues/`). */
-import { RequestsScreen } from '@/screens/operations/requests'
-import { AssuranceScreen } from '@/screens/operations/assurance'
-import { MyWorkScreen } from '@/screens/operations/my-work'
-import { TicketDetailScreen, TicketsScreen } from '@/screens/support/tickets'
-import { DisputesScreen } from '@/screens/support/disputes'
-import { SafetyScreen } from '@/screens/support/safety'
-import { FairnessScreen } from '@/screens/support/fairness'
-import { ContactCentreScreen } from '@/screens/support/contacts'
-import { AdminWorkspaceScreen } from '@/screens/admin/workspace'
-import { AdminTeamScreen } from '@/screens/admin/team'
-import { AdminPolicyScreen } from '@/screens/admin/policy'
-import { AdminCommunicationsScreen } from '@/screens/admin/communications'
-import { AdminDataScreen } from '@/screens/admin/data'
-import { AdminActivityScreen } from '@/screens/admin/activity'
-/* Wave 4 — ONE screen for all eight §3.7 metric-tile sub-tabs. */
-import { MetricBoardScreen } from '@/screens/metrics'
-/* Wave 3 — the seven Financials sub-tabs and the one full-bleed editor. */
-import {
-  CashScreen,
-  LedgerControlsScreen,
-  OverviewScreen as FinancialsOverviewScreen,
-  PayoutsScreen,
-  PlanEditorScreen as FinancialsPlanEditorScreen,
-  PricingScreen,
-  RevenueScreen,
-  WalletsScreen,
-} from '@/screens/financials'
-/* R4-6b — Market & Zones is a P1 table with a P5 strip above it, and the strip
+import { ForbiddenScreen, NotFoundScreen } from '@/screens/RouteStates'
+
+/* Operations */
+const PeopleScreen = lazy(() =>
+  import('@/screens/operations/people').then((m) => ({ default: m.PeopleScreen })),
+)
+const ApplicantDetailScreen = lazy(() =>
+  import('@/screens/operations/people').then((m) => ({ default: m.ApplicantDetailScreen })),
+)
+const SubscriptionsScreen = lazy(() =>
+  import('@/screens/operations/subscriptions').then((m) => ({ default: m.SubscriptionsScreen })),
+)
+const TripsScreen = lazy(() =>
+  import('@/screens/operations/trips').then((m) => ({ default: m.TripsScreen })),
+)
+const CorporateScreen = lazy(() =>
+  import('@/screens/operations/corporate').then((m) => ({ default: m.CorporateScreen })),
+)
+const CorporateDetailScreen = lazy(() =>
+  import('@/screens/operations/corporate').then((m) => ({ default: m.CorporateDetailScreen })),
+)
+const DispatchScreen = lazy(() =>
+  import('@/screens/operations/dispatch').then((m) => ({ default: m.DispatchScreen })),
+)
+
+/* Wave 2 - the five section 8.4 work queues. Five sub-tabs, two workspaces, one
+   shared contract (`specs/02-work-queues.md` section 4, `src/screens/queues/`). */
+const RequestsScreen = lazy(() =>
+  import('@/screens/operations/requests').then((m) => ({ default: m.RequestsScreen })),
+)
+const AssuranceScreen = lazy(() =>
+  import('@/screens/operations/assurance').then((m) => ({ default: m.AssuranceScreen })),
+)
+const MyWorkScreen = lazy(() =>
+  import('@/screens/operations/my-work').then((m) => ({ default: m.MyWorkScreen })),
+)
+
+/* Customer Support */
+const TicketsScreen = lazy(() =>
+  import('@/screens/support/tickets').then((m) => ({ default: m.TicketsScreen })),
+)
+const TicketDetailScreen = lazy(() =>
+  import('@/screens/support/tickets').then((m) => ({ default: m.TicketDetailScreen })),
+)
+const DisputesScreen = lazy(() =>
+  import('@/screens/support/disputes').then((m) => ({ default: m.DisputesScreen })),
+)
+const SafetyScreen = lazy(() =>
+  import('@/screens/support/safety').then((m) => ({ default: m.SafetyScreen })),
+)
+const FairnessScreen = lazy(() =>
+  import('@/screens/support/fairness').then((m) => ({ default: m.FairnessScreen })),
+)
+const ContactCentreScreen = lazy(() =>
+  import('@/screens/support/contacts').then((m) => ({ default: m.ContactCentreScreen })),
+)
+
+/* Admin / Settings */
+const AdminWorkspaceScreen = lazy(() =>
+  import('@/screens/admin/workspace').then((m) => ({ default: m.AdminWorkspaceScreen })),
+)
+const AdminTeamScreen = lazy(() =>
+  import('@/screens/admin/team').then((m) => ({ default: m.AdminTeamScreen })),
+)
+const AdminPolicyScreen = lazy(() =>
+  import('@/screens/admin/policy').then((m) => ({ default: m.AdminPolicyScreen })),
+)
+const AdminCommunicationsScreen = lazy(() =>
+  import('@/screens/admin/communications').then((m) => ({ default: m.AdminCommunicationsScreen })),
+)
+const AdminDataScreen = lazy(() =>
+  import('@/screens/admin/data').then((m) => ({ default: m.AdminDataScreen })),
+)
+const AdminActivityScreen = lazy(() =>
+  import('@/screens/admin/activity').then((m) => ({ default: m.AdminActivityScreen })),
+)
+
+/* Wave 4 - ONE screen for all eight section 3.7 metric-tile sub-tabs. */
+const MetricBoardScreen = lazy(() =>
+  import('@/screens/metrics').then((m) => ({ default: m.MetricBoardScreen })),
+)
+
+/* Wave 3 - the seven Financials sub-tabs and the one full-bleed editor. */
+const FinancialsOverviewScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.OverviewScreen })),
+)
+const RevenueScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.RevenueScreen })),
+)
+const PayoutsScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.PayoutsScreen })),
+)
+const CashScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.CashScreen })),
+)
+const WalletsScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.WalletsScreen })),
+)
+const PricingScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.PricingScreen })),
+)
+const LedgerControlsScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.LedgerControlsScreen })),
+)
+const FinancialsPlanEditorScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.PlanEditorScreen })),
+)
+
+/* R4-6b - Market & Zones is a P1 table with a P5 strip above it, and the strip
    filters the table. It is in `METRIC_BOARD_SUB_TABS` because the board half is
    real; the ruling makes the TABLE primary, so this screen renders both and the
    board screen does not mount here. */
-import { ZonesScreen } from '@/screens/management/zones'
-/* Wave 6 — the Report Builder (`specs/06-report-builder.md`, D13).
-   **This mount point is deliberately unreachable today.** See `screenFor`. */
-import {
-  REPORTS_SUB_TAB_ID,
-  ReportsScreen,
-  SavedReportScreen,
-} from '@/screens/reports'
-import { ForbiddenScreen, NotFoundScreen } from '@/screens/RouteStates'
-import { EntityPageScreen } from '@/screens/EntityPageScreen'
-/* Wave 5 — the six auth screens. **Siblings of the layout, never children**:
-   AC-500 requires that no rail, no sub-tab column and no top bar is IN THE
-   DOM, and a `hidden` class would leave all three in it. Same structural
-   argument as the plan editor's `bleed` route (AC-13). */
-import {
-  ActivateScreen,
-  EnrollScreen,
-  ForgotPasswordScreen,
-  ResetPasswordScreen,
-  SignInScreen,
-  VerifyScreen,
-} from '@/screens/auth'
+const ZonesScreen = lazy(() =>
+  import('@/screens/management/zones').then((m) => ({ default: m.ZonesScreen })),
+)
+
+/* Wave 6 - the Report Builder (`specs/06-report-builder.md`, D13).
+   `REPORTS_SUB_TAB_ID` is imported from `./ids`, NOT from the barrel: keying the
+   router on a symbol declared inside `ReportsScreen` would pull the whole
+   builder into the entry chunk and undo the split. */
+const ReportsScreen = lazy(() =>
+  import('@/screens/reports').then((m) => ({ default: m.ReportsScreen })),
+)
+const SavedReportScreen = lazy(() =>
+  import('@/screens/reports').then((m) => ({ default: m.SavedReportScreen })),
+)
+const DashboardDetailScreen = lazy(() =>
+  import('@/screens/reports').then((m) => ({ default: m.DashboardDetailScreen })),
+)
+
+const EntityPageScreen = lazy(() =>
+  import('@/screens/EntityPageScreen').then((m) => ({ default: m.EntityPageScreen })),
+)
+
+/* Wave 5 - the six auth screens. **Siblings of the layout, never children**:
+   AC-500 requires that no rail, no sub-tab column and no top bar is IN THE DOM,
+   and a `hidden` class would leave all three in it. Same structural argument as
+   the plan editor's `bleed` route (AC-13).
+
+   Split too, and the win runs both ways: a signed-in operator never downloads
+   them, and a signed-out one never downloads the console. */
+const SignInScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.SignInScreen })),
+)
+const VerifyScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.VerifyScreen })),
+)
+const EnrollScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.EnrollScreen })),
+)
+const ForgotPasswordScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.ForgotPasswordScreen })),
+)
+const ResetPasswordScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.ResetPasswordScreen })),
+)
+const ActivateScreen = lazy(() =>
+  import('@/screens/auth').then((m) => ({ default: m.ActivateScreen })),
+)
+
+/**
+ * The Suspense boundary for a lazy screen chunk.
+ *
+ * **It sits BELOW `AppLayout`, never above it.** A boundary above the layout
+ * blanks the rail, the sub-tab column and the top bar on the first visit to
+ * every route - the operator watches the whole shell disappear in order to load
+ * one screen. Below it, the shell stays painted and only the content waits.
+ *
+ * The fallback is the same skeleton family the screen's own loading state uses,
+ * so the chunk fetch and the data fetch read as one continuous shape rather than
+ * two different ones flashing in sequence. `LoadingSkeleton` has no generic
+ * block by design (AC-35: "no centred spinner anywhere"), so the pattern is
+ * named per route family: index screens P1, details P2, forms P3.
+ *
+ * A chunk that 404s after a deploy throws during render and is caught by the
+ * `ErrorBoundary` inside `AppLayout`'s `<main>`, which offers `Try again`.
+ */
+function Chunk({ pattern, children }: { pattern: SkeletonPattern; children: ReactNode }) {
+  return <Suspense fallback={<LoadingSkeleton pattern={pattern} />}>{children}</Suspense>
+}
 
 export function AppRoutes() {
   const table = getRouteTable()
@@ -135,18 +275,26 @@ export function AppRoutes() {
   return (
     <Routes>
       {bleedRoutes.map((detail) => (
-        <Route key={detail.path} path={detail.path} element={<FinancialsPlanEditorScreen />} />
+        <Route
+          key={detail.path}
+          path={detail.path}
+          element={
+            <Chunk pattern="P3">
+              <FinancialsPlanEditorScreen />
+            </Chunk>
+          }
+        />
       ))}
 
       {/* **AC-658** — the six auth screens require no permission and are
           reachable while unauthenticated. They are also the only routes in the
           product that are, which is why they sit outside `RequireSession`. */}
-      <Route path="/signin" element={<SignInScreen />} />
-      <Route path="/signin/verify" element={<VerifyScreen />} />
-      <Route path="/signin/enroll" element={<EnrollScreen />} />
-      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-      <Route path="/reset-password" element={<ResetPasswordScreen />} />
-      <Route path="/activate" element={<ActivateScreen />} />
+      <Route path="/signin" element={<Chunk pattern="P3"><SignInScreen /></Chunk>} />
+      <Route path="/signin/verify" element={<Chunk pattern="P3"><VerifyScreen /></Chunk>} />
+      <Route path="/signin/enroll" element={<Chunk pattern="P3"><EnrollScreen /></Chunk>} />
+      <Route path="/forgot-password" element={<Chunk pattern="P3"><ForgotPasswordScreen /></Chunk>} />
+      <Route path="/reset-password" element={<Chunk pattern="P3"><ResetPasswordScreen /></Chunk>} />
+      <Route path="/activate" element={<Chunk pattern="P3"><ActivateScreen /></Chunk>} />
 
       <Route element={<RequireSession />}>
       <Route element={<AppLayout />}>
@@ -159,7 +307,11 @@ export function AppRoutes() {
           <Route
             key={row.path}
             path={row.path}
-            element={<RouteGuard row={row}>{screenFor(row)}</RouteGuard>}
+            element={
+              <RouteGuard row={row}>
+                <Chunk pattern="P1">{screenFor(row)}</Chunk>
+              </RouteGuard>
+            }
           />
         ))}
 
@@ -177,7 +329,9 @@ export function AppRoutes() {
                   /* A detail inherits its PARENT sub-tab's permission — the
                      route table has no separate key for one, and a detail the
                      role cannot see is a sub-tab the role cannot see. */
-                  <RouteGuard row={row}>{detailScreenFor(row, detail)}</RouteGuard>
+                  <RouteGuard row={row}>
+                    <Chunk pattern="P2">{detailScreenFor(row, detail)}</Chunk>
+                  </RouteGuard>
                 }
               />
             )),
@@ -185,7 +339,14 @@ export function AppRoutes() {
 
         {/* §6.2 — the 360° profile's deep-review escape. `main + right rail`
             shape, reachable from every workspace, belonging to none. */}
-        <Route path="/entity/:entityId" element={<EntityPageScreen />} />
+        <Route
+          path="/entity/:entityId"
+          element={
+            <Chunk pattern="P2">
+              <EntityPageScreen />
+            </Chunk>
+          }
+        />
 
         {/* AC-12 — NOT a redirect. Shell intact, URL untouched. */}
         <Route path="*" element={<NotFoundScreen />} />
@@ -302,7 +463,10 @@ function screenFor(row: SubTabRoute) {
   /* Operations */
   if (row.subTabId === 'operations-people') return <PeopleScreen row={row} />
   if (row.subTabId === 'operations-subscriptions') return <SubscriptionsScreen row={row} />
-  if (row.subTabId === 'operations-trips') return <TripsScreen row={row} />
+  /* One screen, two sub-tabs. `TripsScreen` reads `row.subTabId` and scopes
+     itself to a `kind`; see `DECISIONS.md` D1b. */
+  if (row.subTabId === 'operations-quick-rides') return <TripsScreen row={row} />
+  if (row.subTabId === 'operations-subscription-trips') return <TripsScreen row={row} />
   if (row.subTabId === 'operations-corporate') return <CorporateScreen row={row} />
   if (row.subTabId === 'operations-dispatch') return <DispatchScreen row={row} />
   if (row.subTabId === 'operations-requests') return <RequestsScreen row={row} />
@@ -345,8 +509,41 @@ function screenFor(row: SubTabRoute) {
 
 /**
  * A level-3 detail's screen. Same registry rule as `screenFor`, one level down.
+ *
+ * **Keyed on `detail.kind` first, `row.subTabId` second — and the order is the
+ * fix, not a preference.** The Reports row declares *two* detail routes
+ * (`routeTable.ts:259`): `kind: 'report'` at `/management/reports/:reportId` and
+ * `kind: 'dashboard'` at `/management/reports/dashboards/:dashboardId`. Keying
+ * on the sub-tab alone cannot tell them apart, so **both resolved to
+ * `SavedReportScreen`** — which reads `useParams().reportId`, gets `''` from a
+ * route whose param is named `dashboardId`, and hands the operator the
+ * read-only *"this report was deleted"* builder for a dashboard that exists.
+ *
+ * A sub-tab with one detail route is unaffected: its `kind` falls through to the
+ * same branch it always took. The rule generalises — the moment a second row
+ * declares two details, this dispatch already handles it.
  */
-function detailScreenFor(row: SubTabRoute, _detail: DetailRoute) {
+function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
+  if (detail.kind === 'dashboard') {
+    return <DashboardDetailScreen />
+  }
+  /**
+   * **The conversation pane is a PAGE, and the first answer was a drawer for a
+   * reason worth recording: this row declared `detailRoutes: []` and this file
+   * has a single owner, so a drawer was the only surface reachable without
+   * touching it.** A file-ownership constraint had decided a page shape.
+   *
+   * On the design: `--ev-drawer-w` is 406px and cannot hold a thread, a 320px
+   * rail and a pinned composer at once — and the rail is where §8.4.2 puts the
+   * countdown that both D22's SLA and its concurrent-chat cap are read from, so
+   * keeping the drawer would have traded the screen's instrument for its
+   * container. §5.0's drawer is also *"a surface consulted against the page
+   * behind it"*, and at a 45-second first response an operator is IN the
+   * conversation for twenty minutes rather than consulting it.
+   */
+  if (detail.kind === 'conversation') {
+    return <ContactCentreScreen row={row} />
+  }
   if (row.subTabId === REPORTS_SUB_TAB_ID) {
     return <SavedReportScreen row={row} />
   }

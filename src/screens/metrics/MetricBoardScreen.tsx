@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 /**
  * **The screen behind all eight metric-tile sub-tabs** — `DESIGN.md` §3.7,
  * `specs/00-foundation.md` §3.4.
@@ -77,7 +78,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { getMetricBoard } from '@/data/clients'
 import type { BoardNotice, MetricBoard, SubTabRoute } from '@/data/types'
-import { formatDate, type Translate } from '@/lib'
+import { formatDate, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 import {
   BreakdownList,
@@ -93,6 +94,8 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
+import { withFallback } from '../operations/localCopy'
+import { OVERVIEW_EN } from './copy'
 
 /**
  * **Which kind of empty, decided mechanically** (AC-37 / AC-38).
@@ -233,10 +236,25 @@ function noticeTitle(notice: BoardNotice, t: Translate): string {
 export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, OVERVIEW_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const board = useAsync<MetricBoard>((signal) => getMetricBoard(row.subTabId, signal), {
+    /* `subTabId` picks the board and is the fetcher's only input, so each
+       metrics sub-tab keys separately - switching between two and back paints
+       the second board's own rows instead of a skeleton. */
     deps: [row.subTabId],
+    cacheKey: 'metrics.board',
     isEmpty: isBoardEmpty,
   })
 
@@ -285,145 +303,181 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
           heading={t('overview.empty.heading')}
           body={t('overview.empty.body')}
           actions={[
-            { label: t('overview.empty.action'), onClick: () => navigate('/operations/trips') },
+            { label: t('overview.empty.action'), onClick: () => navigate('/operations/quick-rides') },
           ]}
         />
       ) : (
-        <BoardContent board={data} />
+        <BoardContent board={data} t={t} language={language} navigate={navigate} />
       )}
     </SingleColumnPage>
   )
 
-  function BoardContent({ board: loaded }: { board: MetricBoard }) {
-    const notice = selectNotice(loaded.notices)
+}
 
-    return (
-      <div className="flex flex-col gap-4">
-        {/* R4-4 §4.3 — the page banner slot, **between the page header and the
-            tile grid**, holding exactly one notice however many the board
-            declared. §11.4 puts a banner first in the content block, spanning
-            the full width, above every card, and that is this position.
+/**
+ * **Declared at module scope, and that is a bug fix rather than tidiness.**
+ *
+ * This lived inside `MetricBoardScreen`'s render body, so every parent render
+ * produced a NEW function identity and React unmounted and remounted the whole
+ * subtree. The visible consequence: the critical banner's button never fired.
+ * `mousedown` and `mouseup` both dispatched, the node was `isConnected === false`
+ * by `mouseup`, and `click` -- which the browser only synthesises when both land
+ * on the SAME element -- never happened. Six reproductions out of six, on the
+ * landing screen of three of the five roles. The tiles kept working because they
+ * are anchors, which navigate on `mousedown`.
+ *
+ * Everything it used to close over is now a prop. Nothing else changed.
+ */
+function BoardContent({
+  board: loaded,
+  t,
+  language,
+  navigate,
+}: {
+  board: MetricBoard
+  t: Translate
+  language: Language
+  navigate: (to: string) => void
+}) {
+  const notice = selectNotice(loaded.notices)
 
-            No dismiss: every one of these names a STANDING condition — an
-            unacknowledged SOS, a statutory deadline already passed — and
-            §11.4 reserves dismissal for a completed action. An operator must
-            not be able to dismiss a breached statutory clock. */}
-        {notice && (
-          <Banner
-            banner={{
-              id: notice.key,
-              tone: notice.tone,
-              title: noticeTitle(notice, t),
-              actions: notice.action
-                ? [
-                    {
-                      label: t(notice.action.labelKey),
-                      /* `Banner`'s action is a button, so the route is
-                         followed with the router rather than by an anchor.
-                         `Banner` is not this role's file and its shape is
-                         §11.4's; raised in the handoff, because a destination
-                         an operator cannot open in a new tab is a small loss
-                         worth someone deciding on rather than absorbing. */
-                      onClick: () => navigate(notice.action?.route ?? ''),
-                    },
-                  ]
-                : [],
-            }}
-          />
-        )}
+  return (
+    /* **The gap between SECTIONS, and it is deliberately double the gap between
+       tiles.** It was 16px against the tile row's own 12px — a ratio of 1.33,
+       so moving from the last tile to the chart board that summarises something
+       else read as barely wider than moving between two neighbouring tiles.
+       Grouping was being done by borders alone.
 
-        {loaded.metrics.length > 0 && (
-          <MetricTileRow>
-            {loaded.metrics.map((metric) => (
-              <MetricTileItem key={metric.key}>
-                <MetricTile
-                  metric={metric}
-                  boardAsOf={loaded.asOf}
-                  t={t}
-                  language={language}
-                />
-              </MetricTileItem>
-            ))}
-          </MetricTileRow>
-        )}
+       24px restores the rhythm the tile already keeps internally: 6px within a
+       tile to 12px between tiles is exactly 2.0, and 12px between tiles to 24px
+       between sections is the same step again. The two-column grid INSIDE a
+       section stays at 16px, because a chart and its breakdown are siblings
+       under one heading, not a change of subject. */
+    <div className="flex flex-col gap-6">
+      {/* R4-4 §4.3 — the page banner slot, **between the page header and the
+          tile grid**, holding exactly one notice however many the board
+          declared. §11.4 puts a banner first in the content block, spanning
+          the full width, above every card, and that is this position.
 
-        {/* **R4-4 §4.5 — ONE section grid, two columns, charts then
-            breakdowns, each at half the content width.** R5-8.
+          No dismiss: every one of these names a STANDING condition — an
+          unacknowledged SOS, a statutory deadline already passed — and
+          §11.4 reserves dismissal for a completed action. An operator must
+          not be able to dismiss a breached statutory clock. */}
+      {notice && (
+        <Banner
+          banner={{
+            id: notice.key,
+            tone: notice.tone,
+            title: noticeTitle(notice, t),
+            actions: notice.action
+              ? [
+                  {
+                    label: t(notice.action.labelKey),
+                    /* `Banner`'s action is a button, so the route is
+                       followed with the router rather than by an anchor.
+                       `Banner` is not this role's file and its shape is
+                       §11.4's; raised in the handoff, because a destination
+                       an operator cannot open in a new tab is a small loss
+                       worth someone deciding on rather than absorbing. */
+                    onClick: () => navigate(notice.action?.route ?? ''),
+                  },
+                ]
+              : [],
+          }}
+        />
+      )}
 
-            The order is `05-metrics-content.md`'s and is unchanged: tiles,
-            then charts, then breakdowns, on all eight boards. A tile is a
-            summary, a chart is its shape over time, and a list is which rows
-            are responsible; reading them in the other order is reading the
-            answer before the question. What changes is that charts and
-            breakdowns are no longer two grids that each decide their own
-            width — they are **one grid**, so a lone breakdown lands in a half
-            beside a chart instead of taking the page.
+      {loaded.metrics.length > 0 && (
+        <MetricTileRow>
+          {loaded.metrics.map((metric) => (
+            <MetricTileItem key={metric.key}>
+              <MetricTile
+                metric={metric}
+                boardAsOf={loaded.asOf}
+                t={t}
+                language={language}
+              />
+            </MetricTileItem>
+          ))}
+        </MetricTileRow>
+      )}
 
-            **The defect this closes (V-3).** Measured at 1440 on
-            `management/zones`: `Riyadh` at x = 368 and its `6` at x = 1326 —
-            **958px of white between a name and its number**. Five of the six
-            boards that carry a breakdown carry exactly one, so five of six
-            rendered that. The reference never gives a breakdown a row of its
-            own: `Online store conversion rate` sits in the same three-across
-            row as two charts, sharing their top and bottom edges, at ~200px
-            label-to-value.
+      {/* **R4-4 §4.5 — ONE section grid, two columns, charts then
+          breakdowns, each at half the content width.** R5-8.
 
-            **Halves, not thirds, and Eyvar's own content is the reason.**
-            Content width at 1440 is ~990px; thirded that is ~320px, and an
-            Eyvar row carries a label, a sub-label that now holds a phrase
-            (R5-5) and a numeric column — at 13px an entity name truncates at
-            ~320px, and V-4 proves truncation is destructive in Arabic. Half is
-            ~490px, which is what `management/risk` already rendered and what
-            measured at ~140px label-to-value. The product contained its own
-            worked counter-example and it read correctly.
+          The order is `05-metrics-content.md`'s and is unchanged: tiles,
+          then charts, then breakdowns, on all eight boards. A tile is a
+          summary, a chart is its shape over time, and a list is which rows
+          are responsible; reading them in the other order is reading the
+          answer before the question. What changes is that charts and
+          breakdowns are no longer two grids that each decide their own
+          width — they are **one grid**, so a lone breakdown lands in a half
+          beside a chart instead of taking the page.
 
-            **The trailing cell of an odd row is page ground.** Not filled, not
-            stretched, not padded — no placeholder and no spanning last child.
-            That is not V-6: a tile grid is a row of LIKE objects, so a gap in
-            it reads as a missing sibling, and a section grid is a two-column
-            layout, where a short last row is simply how one ends.
+          **The defect this closes (V-3).** Measured at 1440 on
+          `management/zones`: `Riyadh` at x = 368 and its `6` at x = 1326 —
+          **958px of white between a name and its number**. Five of the six
+          boards that carry a breakdown carry exactly one, so five of six
+          rendered that. The reference never gives a breakdown a row of its
+          own: `Online store conversion rate` sits in the same three-across
+          row as two charts, sharing their top and bottom edges, at ~200px
+          label-to-value.
 
-            **Arabic:** the grid mirrors and the first cell is at the
-            inline-start. Nothing here depends on anything being on the left. */}
-        {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (() => {
-          const count = loaded.charts.length + loaded.breakdowns.length
-          const colsClass =
-            count === 3
-              ? 'grid-cols-3'
-              : count === 2
+          **Halves, not thirds, and Eyvar's own content is the reason.**
+          Content width at 1440 is ~990px; thirded that is ~320px, and an
+          Eyvar row carries a label, a sub-label that now holds a phrase
+          (R5-5) and a numeric column — at 13px an entity name truncates at
+          ~320px, and V-4 proves truncation is destructive in Arabic. Half is
+          ~490px, which is what `management/risk` already rendered and what
+          measured at ~140px label-to-value. The product contained its own
+          worked counter-example and it read correctly.
+
+          **The trailing cell of an odd row is page ground.** Not filled, not
+          stretched, not padded — no placeholder and no spanning last child.
+          That is not V-6: a tile grid is a row of LIKE objects, so a gap in
+          it reads as a missing sibling, and a section grid is a two-column
+          layout, where a short last row is simply how one ends.
+
+          **Arabic:** the grid mirrors and the first cell is at the
+          inline-start. Nothing here depends on anything being on the left. */}
+      {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (() => {
+        const count = loaded.charts.length + loaded.breakdowns.length
+        const colsClass =
+          count === 3
+            ? 'grid-cols-3'
+            : count === 2
+              ? 'grid-cols-2'
+              : count >= 4
                 ? 'grid-cols-2'
-                : count >= 4
-                  ? 'grid-cols-2'
-                  : 'grid-cols-1'
-          return (
-            <div className={cn('grid gap-4 items-start', colsClass)}>
-              {loaded.charts.map((chart) => (
-                <ChartCard
-                  key={chart.key}
-                  series={chart}
-                  /* §3.7's report icon. `TimeSeries` carries no route, so it
-                     borrows the one from the metric with the same key — which is
-                     the surface that owns the number, by definition. `null` when
-                     the series has no tile beside it. */
-                  reportHref={
-                    loaded.metrics.find((metric) => metric.key === chart.key)?.drilldownRoute ?? null
-                  }
-                  t={t}
-                  language={language}
-                />
-              ))}
-              {loaded.breakdowns.map((breakdown) => (
-                <BreakdownList
-                  key={breakdown.key}
-                  breakdown={breakdown}
-                  t={t}
-                  language={language}
-                />
-              ))}
-            </div>
-          )
-        })()}
-      </div>
-    )
-  }
+                : 'grid-cols-1'
+        return (
+          <div className={cn('grid gap-4 items-start', colsClass)}>
+            {loaded.charts.map((chart) => (
+              <ChartCard
+                key={chart.key}
+                series={chart}
+                /* §3.7's report icon. `TimeSeries` carries no route, so it
+                   borrows the one from the metric with the same key — which is
+                   the surface that owns the number, by definition. `null` when
+                   the series has no tile beside it. */
+                reportHref={
+                  loaded.metrics.find((metric) => metric.key === chart.key)?.drilldownRoute ?? null
+                }
+                t={t}
+                language={language}
+              />
+            ))}
+            {loaded.breakdowns.map((breakdown) => (
+              <BreakdownList
+                key={breakdown.key}
+                breakdown={breakdown}
+                t={t}
+                language={language}
+              />
+            ))}
+          </div>
+        )
+      })()}
+    </div>
+  )
 }

@@ -62,7 +62,10 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
   })
 
   const data = useAsync<Paginated<Rider>>((signal) => listRiders({ ...table.params }, signal), {
+    /* Keyed by the whole table query, which serialises to an object - it cannot
+       collide with the corporate riders reads, which key by a joined id list. */
     deps: [table.params],
+    cacheKey: 'riders.list',
   })
 
   const profileHref = (id: string) =>
@@ -95,6 +98,8 @@ export function RidersView({ chrome, t, language }: ViewChrome) {
         {
           label: t('people.action.view'),
           onSelect: (rider) => navigate(profileHref(rider.id)),
+          /* **P0-2 — the declared row-click target.** */
+          rowClick: true,
         },
       ]}
       /* §7.8's default. `View` / `عرض` both fit 88 − 24 = 64. */
@@ -145,6 +150,8 @@ export function riderColumns(
   return [
     {
       id: 'rider',
+      emphasis: 'primary',
+      csv: (r) => r.name,
       header: t('people.col.rider'),
       /* AC-104 — the identity: implicitly pinned, never hidden, never unpinned. */
       alwaysVisible: true,
@@ -161,6 +168,7 @@ export function riderColumns(
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('people.col.status'),
       width: 112,
       dataType: 'enum',
@@ -222,6 +230,7 @@ export function riderColumns(
     },
     {
       id: 'wallet',
+      emphasis: 'data',
       header: t('people.col.wallet'),
       align: 'end',
       width: 128,
@@ -283,6 +292,7 @@ export function riderColumns(
     },
     {
       id: 'trips',
+      emphasis: 'data',
       header: t('people.col.trips'),
       align: 'end',
       width: 88,
@@ -385,6 +395,9 @@ export function riderColumns(
       header: t('people.col.phone'),
       width: 144,
       dataType: 'text',
+      /* §9.2 / A2 — see `CaptainsView`: the leading `+` is neutral and the
+         run has no strong character to hold it in place. */
+      isolate: true,
       defaultHidden: true,
       cell: (r) => <DateCell className="tabular-nums">{r.phone}</DateCell>,
     },

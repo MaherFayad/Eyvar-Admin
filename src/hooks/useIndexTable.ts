@@ -27,16 +27,38 @@
  * assign action. Otherwise no checkbox column."* Same mechanism: without the
  * literal `true`, the selection members are not on the returned type.
  *
+ * ## The question lives in the URL (P1-T1)
+ *
+ * `q`, `sort`, `page` and `filter` are **read out of `location.search`**, not
+ * held in `useState`. `useUrlTableState` owns that, its header carries the
+ * grammar and the push-vs-replace rule, and every screen inherits the fix
+ * without a line changing: opening a record from a filtered, sorted, page-3
+ * list and pressing Back returns to that list, a refresh keeps it, and the
+ * address can be pasted into a runbook.
+ *
+ * Three things stay out of the address on purpose:
+ *
+ * - **Selection.** A selected set is ephemeral working state, not an address.
+ *   It stays in `useState`; restoring it across a back-navigation is P1-T2.
+ * - **`view`.** `?view=` has exactly one writer, `routeState.withView`. This
+ *   hook reads it as a scope and never sets it.
+ * - **A ledger's `q` and `page`,** unless the screen asks. §8.3.3 makes a ledger
+ *   a card *inside* another surface (`LedgerCard`) rather than the surface
+ *   itself, and the ledger a rider's wallet opens shares its address with the
+ *   wallet index behind it — so an unasked-for sync would hand the index's
+ *   `?page=3` to the ledger. `urlKey` opts a ledger in with a namespace of its
+ *   own.
+ *
  * What this hook does **not** do: fetch (that is `useAsync` plus a client), sort
  * or filter rows in memory (the server does it; `src/data/mock/query.ts` is the
  * mock's implementation of the same contract), or render anything.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FilterSpec, QueryParams, SortDirection, SortSpec } from '@/data/types/common'
 import { DEFAULT_PAGE_SIZE } from '@/data/types/common'
-import { useDebouncedValue, DEFAULT_DEBOUNCE_MS } from './useDebouncedValue'
-import { useFilters } from './useFilters'
+import { DEFAULT_DEBOUNCE_MS } from './useDebouncedValue'
+import { useUrlTableState } from './useUrlTableState'
 
 export type TableMode = 'index' | 'ledger' | 'queue'
 
@@ -49,6 +71,21 @@ interface BaseTableOptions {
   initialFilters?: readonly FilterSpec[]
   /** 0 disables debouncing — for a test that does not want to advance timers. */
   searchDebounceMs?: number
+  /**
+   * **P1-T1.** Whether the table's question lives in the URL. Defaults to `true`
+   * for `index` and `queue` and to `false` for `ledger` (see the file header).
+   *
+   * It also falls back to `false` with no `<Router>` above, so a component test
+   * that renders a table bare keeps the pre-P1-T1 behaviour instead of throwing.
+   */
+  urlState?: boolean
+  /**
+   * A namespace, for the rare screen that mounts two tables on one address at
+   * the same time. `urlKey: 'lf'` under `?view=disputes` gives `?disputes.lf.q=`.
+   * Omitted, the parameters are scoped by `?view=` alone — which is already
+   * enough for the common case of one table per view tab.
+   */
+  urlKey?: string
 }
 
 export interface IndexTableOptions<T> extends BaseTableOptions {
@@ -105,6 +142,12 @@ export interface TableCore {
   clearAll: () => void
   /** Drives `Clear all`, and `no-match` vs `first-run` empty (**AC-37** / **AC-38**). */
   isFiltered: boolean
+  /**
+   * **P1-T1.** True when this table's question is in the address bar, so a
+   * screen can offer `Copy link to this view` honestly. False means no
+   * `<Router>` above, `urlState: false`, or a ledger that did not opt in.
+   */
+  isUrlBacked: boolean
 }
 
 export interface TableSorting {
@@ -128,6 +171,22 @@ export interface TableSelection<T> {
   toggleAllOnPage: (rows: readonly T[]) => void
   pageSelectionState: (rows: readonly T[]) => PageSelectionState
   clearSelection: () => void
+  /**
+   * **D21's escape hatch — narrow the selection to a named set.**
+   *
+   * A bulk command is refused when *any* selected record would be refused, and
+   * the way out is `Select only the N eligible`: the operator's selection
+   * changes, **visibly and by their own act**, and only then does the command
+   * become available. That is what makes it not a partial apply — the bulk
+   * bar's count updates before the command runs, so the outcome toast can never
+   * name a different number from the bar (AC-961).
+   *
+   * Intersects rather than assigns. The caller passes the command's eligible
+   * set, which may include rows the operator never selected; selecting those
+   * would be the same silent surprise the all-or-nothing rule exists to
+   * prevent.
+   */
+  selectOnly: (ids: Iterable<string>) => void
 }
 
 export interface IndexTable<T> extends TableCore, TableSorting, TableSelection<T> {
@@ -177,25 +236,67 @@ export function useIndexTable<T>(
     pageSize = DEFAULT_PAGE_SIZE,
     initialQuery = '',
     initialView = null,
-    initialFilters = [],
+    initialFilters,
     searchDebounceMs = DEFAULT_DEBOUNCE_MS,
+    urlKey,
   } = options
 
   const getRowId = mode === 'ledger' ? undefined : options.getRowId
   const sortable = mode !== 'ledger'
   const selectable = mode === 'index' || (mode === 'queue' && options.bulkClaim === true)
 
-  const filterState = useFilters({ initialQuery, initialView, initialFilters })
-  const [page, setPageState] = useState(1)
-  const [sort, setSort] = useState<SortSpec | null>(
-    mode === 'ledger' ? null : (options.initialSort ?? null),
-  )
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set())
+  /* A ledger is a card inside another surface and shares that surface's
+     address, so it stays out of the URL unless the screen names a namespace. */
+  const urlState = options.urlState ?? mode !== 'ledger'
 
-  const debouncedQuery = useDebouncedValue(filterState.query, searchDebounceMs)
+  const state = useUrlTableState({
+    urlState,
+    urlKey,
+    initialQuery,
+    initialView,
+    initialFilters,
+    /* §8.3.3: a ledger has no sort to carry, in the URL or anywhere else. */
+    initialSort: mode === 'ledger' ? null : (options.initialSort ?? null),
+    searchDebounceMs,
+  })
+
+  /* Destructured rather than used through `state`, so a callback's identity
+     tracks the one function it wraps instead of a fresh object per render. */
+  const {
+    page,
+    sort,
+    filters,
+    view,
+    query,
+    committedQuery,
+    isFiltered,
+    isUrlBacked,
+    setPage,
+    nextPage,
+    previousPage,
+    setSort,
+    setQuery: pushQuery,
+    setView: pushView,
+    setFilter: pushFilter,
+    removeFilter: dropFilter,
+    clearAll: clearAllState,
+  } = state
+
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set())
 
   const clearSelection = useCallback(() => {
     setSelectedIds((current) => (current.size === 0 ? current : new Set<string>()))
+  }, [])
+
+  /* Intersection, not assignment — see `TableSelection.selectOnly`. Returns the
+     identical set when nothing would change, so a no-op cannot re-render. */
+  const selectOnly = useCallback((ids: Iterable<string>) => {
+    const keep = ids instanceof Set ? (ids as ReadonlySet<string>) : new Set(ids)
+    setSelectedIds((current) => {
+      const next = new Set<string>()
+      for (const id of current) if (keep.has(id)) next.add(id)
+      return next.size === current.size ? current : next
+    })
   }, [])
 
   /**
@@ -204,69 +305,77 @@ export function useIndexTable<T>(
    * effect keyed to `revision`, so no render ever shows `3 selected` over rows
    * that are already gone. Route change is covered by the hook unmounting.
    */
-  const resetOnQueryChange = useCallback(() => {
-    setPageState(1)
-    clearSelection()
-  }, [clearSelection])
-
   const setQuery = useCallback(
     (next: string) => {
-      filterState.setQuery(next)
-      resetOnQueryChange()
+      pushQuery(next)
+      clearSelection()
     },
-    [filterState, resetOnQueryChange],
+    [pushQuery, clearSelection],
   )
 
   const setView = useCallback(
     (next: string | null) => {
-      filterState.setView(next)
-      resetOnQueryChange()
+      pushView(next)
+      clearSelection()
     },
-    [filterState, resetOnQueryChange],
+    [pushView, clearSelection],
   )
 
   const setFilter = useCallback(
     (filter: FilterSpec) => {
-      filterState.setFilter(filter)
-      resetOnQueryChange()
+      pushFilter(filter)
+      clearSelection()
     },
-    [filterState, resetOnQueryChange],
+    [pushFilter, clearSelection],
   )
 
   const removeFilter = useCallback(
     (field: string) => {
-      filterState.removeFilter(field)
-      resetOnQueryChange()
+      dropFilter(field)
+      clearSelection()
     },
-    [filterState, resetOnQueryChange],
+    [dropFilter, clearSelection],
   )
 
   const clearAll = useCallback(() => {
-    filterState.clearAll()
-    resetOnQueryChange()
-  }, [filterState, resetOnQueryChange])
+    clearAllState()
+    clearSelection()
+  }, [clearAllState, clearSelection])
 
-  const setPage = useCallback((next: number) => {
-    setPageState(Math.max(1, Math.trunc(next)))
-  }, [])
+  /**
+   * The other half of **AC-25**, now that the query can change without anyone
+   * calling a setter: Back, Forward and a pasted link all move the result set
+   * underneath a selection made against the old one. Keyed to the *committed*
+   * question — page is excluded, because §9.1 keeps a selection while paging.
+   */
+  const resultSetKey = useMemo(
+    () => JSON.stringify([committedQuery.trim(), view, filters]),
+    [committedQuery, view, filters],
+  )
+  useEffect(() => {
+    clearSelection()
+  }, [resultSetKey, clearSelection])
 
-  const nextPage = useCallback(() => setPageState((current) => current + 1), [])
-  const previousPage = useCallback(() => setPageState((current) => Math.max(1, current - 1)), [])
+  /**
+   * All three take the updater form, because `DataTable`'s sort menu calls
+   * `setSortField` and then `setSortDirection` **in one handler** (`Sort high to
+   * low` is one menu item and two calls). Reading `sort` out of the render
+   * closure would give the second call the value from before the first.
+   */
+  const setSortField = useCallback(
+    (field: string) => setSort((current) => ({ field, dir: current?.dir ?? 'asc' })),
+    [setSort],
+  )
 
-  const setSortField = useCallback((field: string) => {
-    setSort((current) => ({ field, dir: current?.dir ?? 'asc' }))
-    setPageState(1)
-  }, [])
+  const setSortDirection = useCallback(
+    (dir: SortDirection) =>
+      /* §9.1: direction is a property of the sorted column. With nothing
+         sorted there is no column to give it to, so this is a no-op. */
+      setSort((current) => (current === null ? null : { ...current, dir })),
+    [setSort],
+  )
 
-  const setSortDirection = useCallback((dir: SortDirection) => {
-    setSort((current) => (current === null ? null : { ...current, dir }))
-    setPageState(1)
-  }, [])
-
-  const clearSort = useCallback(() => {
-    setSort(null)
-    setPageState(1)
-  }, [])
+  const clearSort = useCallback(() => setSort(() => null), [setSort])
 
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds])
 
@@ -317,17 +426,17 @@ export function useIndexTable<T>(
   )
 
   const params = useMemo<QueryParams>(() => {
-    const trimmed = debouncedQuery.trim()
+    const trimmed = committedQuery.trim()
     return {
       page,
       pageSize,
       q: trimmed === '' ? undefined : trimmed,
       // §8.3.3: a ledger's order is posting order and is never a request parameter.
       sort: sortable ? sort : null,
-      filters: [...filterState.filters],
-      view: filterState.view,
+      filters: [...filters],
+      view,
     }
-  }, [debouncedQuery, page, pageSize, sortable, sort, filterState.filters, filterState.view])
+  }, [committedQuery, page, pageSize, sortable, sort, filters, view])
 
   const core: TableCore = {
     params,
@@ -336,25 +445,44 @@ export function useIndexTable<T>(
     setPage,
     nextPage,
     previousPage,
-    query: filterState.query,
+    query,
     setQuery,
-    view: filterState.view,
+    view,
     setView,
-    filters: filterState.filters,
+    filters,
     setFilter,
     removeFilter,
     clearAll,
-    isFiltered: filterState.isFiltered,
+    isFiltered,
+    isUrlBacked,
   }
 
   if (mode === 'ledger') {
-    return { ...core, mode: 'ledger', canSelect: false, canSort: false, canRowAction: false }
+    return {
+      ...core,
+      mode: 'ledger',
+      canSelect: false,
+      canSort: false,
+      canRowAction: false,
+    }
   }
 
-  const sorting: TableSorting = { sort, setSortField, setSortDirection, clearSort }
+  const sorting: TableSorting = {
+    sort,
+    setSortField,
+    setSortDirection,
+    clearSort,
+  }
 
   if (!selectable) {
-    return { ...core, ...sorting, mode: 'queue', canSelect: false, canSort: true, canRowAction: true }
+    return {
+      ...core,
+      ...sorting,
+      mode: 'queue',
+      canSelect: false,
+      canSort: true,
+      canRowAction: true,
+    }
   }
 
   const selection: TableSelection<T> = {
@@ -366,6 +494,7 @@ export function useIndexTable<T>(
     toggleAllOnPage,
     pageSelectionState,
     clearSelection,
+    selectOnly,
   }
 
   if (mode === 'queue') {

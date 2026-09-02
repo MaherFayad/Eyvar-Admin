@@ -70,6 +70,14 @@ export interface IndexToolbarProps {
   filterCount: number
   columnsControl: ReactNode
   sortControl: ReactNode
+  /**
+   * P3-12 — `Export`, built by `DataTable` because only `DataTable` knows the
+   * visible column set, the live filters and the rows currently on screen.
+   * Last in the cluster: it acts on whatever the three controls before it have
+   * narrowed the view to, and reading the row left to right is the order the
+   * operator performs it in.
+   */
+  exportControl?: ReactNode
 }
 
 export function IndexToolbar(props: IndexToolbarProps) {
@@ -85,8 +93,17 @@ export function IndexToolbar(props: IndexToolbarProps) {
        rather than estimated: at `min-w-40` the cluster was **11px over** the 912
        content column, so the floor is `min-w-32` (128). The field reaching its
        minimum is a flex shrink, not a mode — it never disappears, nothing else
-       moves, and the placeholder ellipsises rather than the row wrapping. */
-    <div className="flex h-14 items-center gap-2 px-3">
+       moves, and the placeholder ellipsises rather than the row wrapping.
+
+       **BELOW THE COMPACT BREAKPOINT IT IS NOT ONE ROW, AND IT CANNOT BE.**
+       The desktop shape survives by shrinking the search field to a 128px
+       floor; a 390px viewport is past every floor at once, and measured before
+       this override the `Columns` control ran off the inline-end edge — an
+       UNREACHABLE control, which is the exact failure the tab-track note below
+       degrades to avoid. So the row wraps and its height becomes a floor
+       instead of a fixed 56. Desktop-first: the unprefixed classes are still
+       the desktop answer and nothing above 768 reads these overrides. */
+    <div className="flex h-14 items-center gap-2 px-3 compact:h-auto compact:min-h-14 compact:flex-wrap compact:py-2">
       {tabs.length > 0 && (
         /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. This was `shrink-0`,
            measured against People's four short labels (375px of track). Wave 2's
@@ -152,7 +169,10 @@ export function IndexToolbar(props: IndexToolbarProps) {
           disables the min-content floor, which is what let a shrink factor
           crush the cluster to 298px while its children spilled 190px outside
           it — `Sort` off the viewport, which is the defect all of this fixes. */}
-      <div className="ms-auto flex items-center gap-1.5">
+      {/* The cluster keeps its inline-end alignment on the desktop; wrapped, an
+          auto inline-start margin would push it to the far edge of its own row
+          and split the controls across the width for no reason. */}
+      <div className="ms-auto flex items-center gap-1.5 compact:ms-0 compact:flex-wrap">
         {/* ONE control, ONE focus ring. The previous construction was a
             bordered wrapper with `focus-within:ring-2` around an `Input` that
             still carried its own `focus-visible:ring-2 ring-offset-2` — so
@@ -214,6 +234,7 @@ export function IndexToolbar(props: IndexToolbarProps) {
 
         {props.columnsControl}
         {props.sortControl}
+        {props.exportControl}
       </div>
     </div>
   )

@@ -18,12 +18,21 @@ export { AlertsView, type AlertsViewProps } from './AlertsView'
 export { EMPTY_QUERY, ReportBuilder, type ReportBuilderProps } from './ReportBuilder'
 export { ReportLibrary, type ReportLibraryProps } from './ReportLibrary'
 export {
-  DashboardDetailScreen,
   REPORTS_SUB_TAB_ID,
   REPORTS_VIEWS,
   ReportsScreen,
   SavedReportScreen,
   type ReportsScreenProps,
 } from './ReportsScreen'
+
+/* `routes.tsx` imports this name from the barrel and dispatches to it on
+   `detail.kind === 'dashboard'`. It moved out of `ReportsScreen.tsx` — where it
+   returned `null` — into a screen of its own; the name did not change, so the
+   route did not have to. */
+export { DashboardDetailScreen } from './DashboardDetailScreen'
+export { DashboardsView, type DashboardsViewProps } from './DashboardsView'
+export { ModeField, ReportModePanel, type ReportModePanelProps } from './ReportModePanel'
+export { ReportModeCanvas, type ReportModeCanvasProps } from './ReportModeCanvas'
+export { REPORTS_VIEWS as REPORTS_VIEW_IDS, reportsViewTabs, type ReportsView } from './views'
 export { SaveReportDialog } from './SaveReportDialog'
 export { downloadCsv, reportCsvToText } from './csv'

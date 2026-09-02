@@ -33,10 +33,26 @@
  *               `aria-checked` is what tells a screen reader which one is live.
  *               It sits ABOVE the `Sign out` separator so the destructive item
  *               stays last (§5.4).
+ *
+ * ## `Switch user` now switches user
+ *
+ * It called `navigate('/admin/team')` — a menu item that took the operator to
+ * an unrelated screen and left them to work out that it had not done what it
+ * said. `switchMockUser` (`clients/session.ts`) existed with **zero callers**
+ * and is exactly this control's operation, so the item is now a submenu of the
+ * seeded operators and choosing one re-reads the session.
+ *
+ * **It is mock-only by contract**, and the client says so: in `http` mode this
+ * is impersonation and belongs to a real, audited endpoint that does not exist.
+ * §11.2 governs the difference — the item is **disabled in place with the
+ * reason rendered as a second line**, never hidden, because absence is not an
+ * explanation and an operator looking for the control needs to know it exists
+ * and why it will not work.
  */
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useRef, useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,9 +61,14 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { Session } from '@/data/types'
+import { DATA_SOURCE, listTeamUsers } from '@/data/clients'
+import type { Session, TeamUser } from '@/data/types'
+import { useAsync } from '@/hooks'
 import { isLanguage, type Language, type Translate } from '@/lib'
 
 export interface AccountMenuProps {
@@ -58,7 +79,12 @@ export interface AccountMenuProps {
   /** AC-70's only production entry point. `AppLayout` forwards `setLanguage`. */
   onSetLanguage: (language: Language) => void
   onOpenMyProfile: () => void
-  onSwitchUser: () => void
+  /**
+   * **Takes the id now.** It used to take nothing, because it navigated
+   * somewhere instead of switching anybody. `AppLayout` calls
+   * `switchMockUser` with it.
+   */
+  onSwitchUser: (userId: string) => void
   onSignOut: () => void
   /**
    * §10.4's account-menu entry — **present at all times, for every role**
@@ -95,8 +121,25 @@ export function AccountMenu({
 }: AccountMenuProps) {
   const name = session?.name ?? ''
 
+  /* The roster is only read while the menu is open. A list of operators is not
+     something the top bar needs at boot, and `enabled` is what keeps it off the
+     critical path. */
+  const [menuOpen, setMenuOpen] = useState(false)
+  const canSwitch = DATA_SOURCE === 'mock'
+  const operators = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), {
+    deps: [],
+    /* `listTeamUsers` takes no argument but the signal, so `[]` is the whole
+       key — and it is deliberately the same key `ApplicationsView` uses for the
+       same parameterless roster read. Re-opening the menu is then free. */
+    cacheKey: 'session.teamUsers',
+    enabled: menuOpen && canSwitch,
+  })
+
+  /* Set only by an item that opens a layer. See the D-11 note below. */
+  const handedOff = useRef(false)
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label={t('shell.topbar.account')}>
           {/* R15 — a rounded square. `avatar.tsx` ships `rounded-lg`; the size
@@ -108,7 +151,37 @@ export function AccountMenu({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="min-w-48">
+      {/**
+        * **D-11 — the layer wins.** A menu that hands off does not take focus back.
+        *
+        * Radix returns focus to the trigger in `onCloseAutoFocus`, which is right
+        * for an item that acts in place and wrong for one that opens a layer:
+        * measured in the production build, focus lands on the sheet title at t=0,
+        * on `body` at ~50ms, and back on this trigger at ~150ms **while the drawer
+        * is still open**. The operator is then tabbing through the page behind the
+        * thing they just opened.
+        *
+        * **Conditional, never blanket.** Suppressing the restore for every close
+        * would break Escape and every item that acts in place — those must return
+        * the operator to where they were. The ref is set only by an item that
+        * hands off. `02-shell-fixes.md` §13 left this open for a ruling; the
+        * ruling is that the layer wins.
+        *
+        * **The braces are load-bearing.** Without them this block is a JSX CHILD,
+        * and React renders the comment as text — it shipped as a 376x880px slab
+        * of prose inside `<header>` on 35 of 35 routes, covering Export CSV on
+        * every index screen and the first KPI tile on the management board.
+        * Caught by the visual audit, not by `tsc`, and not by 3,075 tests.
+        */}
+      <DropdownMenuContent
+        align="end"
+        className="min-w-48"
+        onCloseAutoFocus={(event) => {
+          if (!handedOff.current) return
+          handedOff.current = false
+          event.preventDefault()
+        }}
+      >
         {/* Identity, not an action. `DropdownMenuLabel` is not focusable. */}
         <DropdownMenuLabel className="flex flex-col gap-0.5">
           <span className="text-sm font-semibold text-foreground">{name}</span>
@@ -119,7 +192,7 @@ export function AccountMenu({
             the design's menu sketch has it. The count sits at the inline-end,
             12px `--ev-text-2`, and disappears when there is nothing outstanding
             (**AC-599**) rather than reading `7 / 7`. */}
-        <DropdownMenuItem onSelect={onOpenOnboarding}>
+        <DropdownMenuItem onSelect={() => { handedOff.current = true; onOpenOnboarding() }}>
           {t('onboarding.menuEntry')}
           {onboardingProgress !== null && (
             <span className="ms-auto text-xs text-muted-foreground">
@@ -127,8 +200,61 @@ export function AccountMenu({
             </span>
           )}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onOpenMyProfile}>{t('shell.account.myProfile')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onSwitchUser}>{t('shell.account.switchUser')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { handedOff.current = true; onOpenMyProfile() }}>{t('shell.account.myProfile')}</DropdownMenuItem>
+        {canSwitch ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('shell.account.switchUser')}</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-56">
+              {/* The submenu's own four states. A roster that will not load
+                  must not render as an empty menu that looks like "there is
+                  nobody else" (§5.4 — an end of list is stated in words). */}
+              {operators.status === 'loading' && (
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  {t('shell.account.switchLoading')}
+                </DropdownMenuLabel>
+              )}
+              {operators.status === 'error' && (
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  {t('shell.account.switchError')}
+                </DropdownMenuLabel>
+              )}
+              {operators.status === 'empty' && (
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  {t('shell.account.switchEmpty')}
+                </DropdownMenuLabel>
+              )}
+              {/* Exclusive, and `aria-checked` is what says which operator is
+                  live — the same reason the language control is a radio group
+                  and not two items. */}
+              {operators.status === 'content' && operators.data !== null && (
+                <DropdownMenuRadioGroup
+                  value={session?.userId ?? ''}
+                  onValueChange={(next) => {
+                    if (next !== session?.userId) onSwitchUser(next)
+                  }}
+                >
+                  {operators.data.map((operator) => (
+                    <DropdownMenuRadioItem key={operator.id} value={operator.id}>
+                      <span className="flex flex-col gap-0.5">
+                        <span>{operator.name}</span>
+                        <span className="text-xs text-muted-foreground">{operator.role}</span>
+                      </span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              )}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : (
+          /* §11.2 — disabled IN PLACE, with the reason on a second line inside
+             the item (§8.4.4). Not a tooltip (§5.7), and not hidden. */
+          <DropdownMenuItem disabled className="flex-col items-start gap-0.5">
+            <span>{t('shell.account.switchUser')}</span>
+            <span className="text-xs text-muted-foreground">
+              {t('shell.account.switchUnavailable')}
+            </span>
+          </DropdownMenuItem>
+        )}
 
         {/* AC-70 — the language control. `onValueChange` hands Radix's string
             back through `isLanguage` rather than casting it: the radio group's

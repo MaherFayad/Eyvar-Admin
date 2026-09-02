@@ -1,0 +1,13 @@
+src/screens/admin/communications/communications.test.tsx > the screen > sends a push broadcast through the client and shows the recorded count — AC-C13
+src/screens/admin/team/adminTeam.test.tsx > the lifecycle reaches the data layer > invites an operator who is still there after a re-mount
+src/screens/admin/workspace/adminWorkspace.test.tsx > the save is real > persists a changed support email across a re-mount, and audits it
+src/screens/admin/workspace/integrations.test.tsx > the reveal surface makes the consequence unmissable > shows the secret once, refuses to close until acknowledged, and leaves nothing behind
+src/screens/financials/cash/cash.test.tsx > AC-375 / AC-376 — rendering and opening the queue change nothing > two renders write no audit entry — and a claim proves the counter is live
+src/screens/financials/cash/cash.test.tsx > the captain debt index > AC-379 — a partial repayment leaves the remainder owed and visible
+src/screens/financials/pricing/pricing.test.tsx > the plan editor > AC-401 — every editable control survives a save and a reload
+src/screens/financials/wallets/wallets.test.tsx > the compensation authority, which no reason may route around > AC-384 — an amount above the ceiling is refused in the dialog, naming the cap in SAR
+src/screens/operations/corporate/corporate.test.tsx > CorporateScreen — AC-24: a failed list read renders the page error state > keeps the shell interactive, so the operator can navigate away without a reload
+src/screens/operations/corporate/corporate.test.tsx > CorporateScreen — AC-24: a failed list read renders the page error state > names what failed, names the fix, and offers a retry
+src/screens/operations/corporate/corporate.test.tsx > CorporateScreen — AC-24: a failed list read renders the page error state > recovers when the retry re-runs the request — the retry is bound to refetch
+src/screens/operations/trips/trips.test.tsx > P8-T1 — every cell that names an entity opens that entity > opens the rider and the captain from their own cells
+src/screens/operations/trips/trips.test.tsx > P8-T1 — every cell that names an entity opens that entity > renders the trip id as a real link into the 360° layer, not a button

@@ -114,7 +114,22 @@ export function DashboardTile({
   )
 
   const tileData = useAsync<Resolved | null>(load, {
-    deps: [tile.reportId],
+    /**
+     * **P3-13 fix: `today` was missing.**
+     *
+     * `load` closes over it and threads it into `runReport`, and `useCallback`
+     * already listed it — but `useAsync`'s `deps` did not, so a tile that was
+     * on screen across a midnight rollover kept resolving `Today` against
+     * yesterday's date. The parent derives `today` from `useNowIso`, so the
+     * value really does change under a long-lived board. This is a bug
+     * independent of caching; it would only have become worse with one.
+     *
+     * With both inputs present the key is complete. `reports.run` is the
+     * operation whose output is stored — `reports.get` runs first, to turn the
+     * tile's `reportId` into the definition to run.
+     */
+    deps: [tile.reportId, today],
+    cacheKey: 'reports.run',
     /* `null` is a real answer here — the tile is missing — so it must not be
        folded into `empty`, which would render the wrong sentence. */
     isEmpty: () => false,

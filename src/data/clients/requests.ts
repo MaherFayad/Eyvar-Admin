@@ -10,16 +10,28 @@
  * costs the endpoint comment above each function.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { allRequestFixtures } from '../fixtures/requests'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
-import { OWNERSHIP_STALE_MINUTES } from '../fixtures/claims'
 import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { RequestChannel, RequestStatus, RideRequest } from '../types/request'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let allRequestFixtures!: Fixtures['allRequestFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let OWNERSHIP_STALE_MINUTES!: Fixtures['OWNERSHIP_STALE_MINUTES']
+onFixturesLoaded((f) => {
+  allRequestFixtures = f.allRequestFixtures
+  teamUserFixtures = f.teamUserFixtures
+  OWNERSHIP_STALE_MINUTES = f.OWNERSHIP_STALE_MINUTES
+})
 
 export const REQUEST_OPERATIONS = {
   facets: 'requests.facets',
@@ -30,6 +42,13 @@ export const REQUEST_OPERATIONS = {
   assign: 'requests.assign',
   expire: 'requests.expire',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(REQUEST_OPERATIONS))
 
 export interface RequestQuery extends QueryParams {
   channel?: RequestChannel
@@ -139,7 +158,7 @@ const requestShape: QueryShape<RideRequest> = {
 
     /* Not tab views — filter and cross-link targets. `mine` and `unassigned`
        back the My Work links; `breached` backs the SLA chip. */
-    mine: (r) => r.claim?.state === 'claimed' && r.claim.ownerId === CURRENT_USER_ID,
+    mine: (r) => r.claim?.state === 'claimed' && r.claim.ownerId === currentMockUserId(),
     unassigned: (r) => r.claim === null || r.claim.state !== 'claimed',
     breached: (r) => r.slaBreachedAt !== null,
   },
@@ -273,7 +292,7 @@ export async function assignRequest(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     return {
       ...row,
       status: 'assigned' as const,
@@ -329,6 +348,20 @@ export async function getRequestFacets(
  * one rule — a claim is not a lock, a take-over is deliberate and recorded, a
  * claim idle past `OWNERSHIP_STALE_MINUTES` is already free (`:18866`). The
  * endpoint comments stay per-client; only the state machine is shared.
+ *
+ * **The owner it stamps is the signed-in operator, read from the session.**
+ * It used to write `ownerId: CURRENT_USER_ID`, the module constant, while the
+ * `mine` views that read ownership back had moved to `currentMockUserId()` —
+ * so **the two halves of ownership disagreed about who is acting.** A claim
+ * made after `switchMockUser('USR-3')` landed on `USR-1` and `USR-3`'s `mine`
+ * never saw it; the take-over 409 fired against the wrong holder for the same
+ * reason. This function is imported by five wave-2 queues and by
+ * `conversations.ts`, so the disagreement was not one screen's.
+ *
+ * `clients/session.ts` states the rule: *"Reading `CURRENT_USER_ID` instead —
+ * as some older clients do — would make `switchMockUser` invisible to it."*
+ * Mock-only, and every caller is inside a `DATA_SOURCE === 'mock'` branch; in
+ * http mode the server resolves the claimant from the auth cookie.
  */
 export function nextClaim(
   entityType: string,
@@ -337,7 +370,7 @@ export function nextClaim(
   takeOver: boolean | undefined,
 ): Claim {
   const held = liveClaim(current)
-  if (held && held.ownerId !== CURRENT_USER_ID && !takeOver) {
+  if (held && held.ownerId !== currentMockUserId() && !takeOver) {
     throw new ApiError({
       status: 409,
       kind: 'conflict',
@@ -346,7 +379,7 @@ export function nextClaim(
       retryable: false,
     })
   }
-  const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+  const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
   return {
     key: `${entityType}:${entityId}`,
     entityType,

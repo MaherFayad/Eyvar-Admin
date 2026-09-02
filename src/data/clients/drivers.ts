@@ -9,15 +9,25 @@
  * data set is a union too, not a fusion.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { allDriverFixtures } from '../fixtures/drivers'
-import { complianceFixtures } from '../fixtures/compliance'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { Driver, DriverCompliance, DriverStatus } from '../types/driver'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let allDriverFixtures!: Fixtures['allDriverFixtures']
+let complianceFixtures!: Fixtures['complianceFixtures']
+onFixturesLoaded((f) => {
+  allDriverFixtures = f.allDriverFixtures
+  complianceFixtures = f.complianceFixtures
+})
 
 export const DRIVER_OPERATIONS = {
   complianceFacets: 'compliance.facets',
@@ -29,6 +39,13 @@ export const DRIVER_OPERATIONS = {
   complianceList: 'compliance.list',
   complianceGet: 'compliance.get',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(DRIVER_OPERATIONS))
 
 export interface DriverQuery extends QueryParams {
   status?: DriverStatus
@@ -281,7 +298,7 @@ export async function getDriverCompliance(
 }
 
 /**
- * GET /api/v1//drivers/facets
+ * GET /api/v1/drivers/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *
@@ -304,7 +321,7 @@ export async function getDriverFacets(
 }
 
 /**
- * GET /api/v1//compliance/drivers/facets
+ * GET /api/v1/compliance/drivers/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

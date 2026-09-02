@@ -32,6 +32,12 @@ Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 | [`rtl.md`](../../docs/ref/rtl.md) | what mirrors in Arabic and what does not |
 | [`screenshots.md`](../../docs/ref/screenshots.md) | where to find a real example |
 | [`defects.md`](../../docs/ref/defects.md) | the 24 known legacy defects vs a new one |
+| [`verify.md`](../../docs/ref/verify.md) | **the nine audit claims that were wrong, and how** |
+| [`motion.md`](../../docs/ref/motion.md) | the ambient-loop ban and the reduced-motion defence |
+| [`table.md`](../../docs/ref/table.md) | the four live `DataTable` defects — do not re-report them as new |
+
+Keyboard, focus and screen-reader semantics are the **accessibility-auditor**'s verdict,
+not yours. Refer them rather than ruling on them.
 
 ## What you own
 

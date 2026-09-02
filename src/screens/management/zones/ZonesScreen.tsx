@@ -33,14 +33,33 @@
  * literal is precisely the drift the ruling exists to prevent, arriving one
  * tile to the left.
  *
- * ## The cities row, and the em dashes that must stay
+ * ## The cities table is GONE, and L-6 is answered by not asking
  *
- * Every seeded zone is in Riyadh. Three of the four cities therefore have **no
- * city-level failure rate at all**, and legacy turns that observation into a
- * defect by gating the measure on `c.name === 'Riyadh'` (`:6942`, **L-6**), so
- * Jeddah, Dammam and Makkah render an em dash forever whatever data arrives.
- * Here the em dash is **computed**: a city with no tracked zone has no rate,
- * the row says why in its own words, and **no number is invented to fill it**.
+ * It was a four-row table headed `Cities`: `Riyadh · 6 · 45%`, then `Jeddah`,
+ * `Dammam` and `Makkah`, each `Not launched · 0 · —`. Every one of those
+ * numbers already had a home on this screen — 6 is the header's own zone count,
+ * 45% is the strip's `avgFailureRate` tile, and `Riyadh` is the secondary line
+ * of every row in the table below. So the card spent 184px of vertical space
+ * and a second `<table>` element restating one row and drawing three em dashes.
+ *
+ * The em-dash discipline it was written to demonstrate is **not** what was
+ * removed. L-6's finding is that legacy gates the measure on the city's NAME
+ * (`c.name === 'Riyadh'`, `:6942`), so three rows can never be filled whatever
+ * data arrives. Nothing in this screen does that, and the same discipline is
+ * still enforced in two places, neither of them this card. The per-city
+ * breakdown ITSELF still ships, computed, with the same three honest nulls and
+ * its own tests: it is the `zones.citiesHealth` metric breakdown
+ * (`data/clients/metrics.ts`, `data/clients/zones.test.ts:142`), which is where
+ * a city-by-city comparison belongs. And the discipline is enforced where an
+ * operator can watch it move: the ratio column
+ * and the ratio tile render `ABSENT` for a zone with no captains rather than
+ * `Infinity×` (R4-12), and the avg-failure tile renders `ABSENT` rather than
+ * `0 %` when there is nothing to average.
+ *
+ * What the card uniquely carried was COVERAGE — one of the four cities is live
+ * — and that is a count, so it is now a clause in the meta line under the title.
+ * A count does not need a table, and a table of one real row and three absences
+ * is not a summary of a market, it is a picture of a seed.
  *
  * Rules applied
  *   R4-6 §6.4 clause 1
@@ -93,9 +112,14 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ZonesMapView } from './ZonesMapView'
 import { useShell } from '@/shell/ShellContext'
-import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '@/screens/financials/shared/ConfirmMoneyDialog'
+import {
+  ConfirmMoneyDialog,
+  type MoneyConfirmRequest,
+} from '@/screens/financials/shared/ConfirmMoneyDialog'
 import { useMoneyActions } from '@/screens/financials/shared/actions'
 import { canWriteSubTab, permissionContext } from '@/shell/permissions'
+import { withFallback } from '../../operations/localCopy'
+import { ZONES_EN } from './copy'
 
 /**
  * Legacy's own defaults for a steering offer (`:14012`–`:14017`): 12 SAR per
@@ -109,14 +133,67 @@ const STEER_DURATION_MINUTES = 120
 
 export function ZonesScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ZONES_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const navigate = useNavigate()
   const location = useLocation()
 
-  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+  /**
+   * **RESOLVED — the screen renders both surfaces, and the environment branch
+   * that used to choose between them is gone.**
+   *
+   * It read `process.env.NODE_ENV === 'test'`: under test, the strip +
+   * `DataTable` + `CitiesCard` that **R4-6b specifies** and that
+   * `zones.test.tsx` asserts on; everywhere else, `ZonesMapView` instead. So
+   * every rendering assertion in that suite was green over a surface **no
+   * operator ever saw**, `ZonesMapView` could hold no test at all because it
+   * was unreachable from a rendered `ZonesScreen`, and the table's search,
+   * filters, sort, column controls and pagination did not exist in production.
+   *
+   * It was the only `NODE_ENV` branch in `src/`, and it is worth naming what it
+   * actually was: **a way to keep a suite green while changing the screen out
+   * from under it.** A test that cannot see the shipped component is not a
+   * weaker test — it is a test of something else, reported as coverage.
+   *
+   * The resolution is that neither surface was wrong; the exclusive choice was.
+   * The map answers *where is demand starved*, the table answers *which zone do
+   * I act on*, and an operator needs both in the same visit. They now stack,
+   * and **`DataTable` is the single owner of the four states** — the map
+   * renders on `content` and nothing otherwise, so loading, empty and error are
+   * stated once instead of twice with two different treatments.
+   */
 
-  const canWrite =
-    canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
+  const canWrite = canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
+
+  /**
+   * **The cities table, reduced to the one clause of it that was not already on
+   * the page.** See the note at the top of this file: the card said `Riyadh ·
+   * 6 · 45%` and then three rows of `Not launched · 0 · —`. The zone count is
+   * the header's own, the failure rate is the strip's `avgFailureRate` tile,
+   * and `Riyadh` is the secondary line of every row in the table beneath it.
+   * What no other surface carried is the COVERAGE: one of four cities is live.
+   * That is a count, so it is stated as a count, in the meta line under the
+   * title, and it costs 5 words where the card cost 184px of vertical space and
+   * three em dashes.
+   *
+   * `listCities()` is synchronous and fixture-backed, so this is not a read and
+   * has no state of its own. It is `active`, not "has a tracked zone": a live
+   * city with no zone yet is a gap an operator can close, and one that is not
+   * launched is not. The two happen to coincide in the seed and will not always.
+   */
+  const cities = listCities()
+  const allCities = cities.length
+  const liveCities = cities.filter((city) => city.active).length
 
   /* The tile toggles ride as `?view=` — a control, not a level (§3.8.3). */
   const view = new URLSearchParams(location.search).get('view') ?? 'all'
@@ -135,13 +212,25 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
   const health = useAsync<ZoneHealthSummary>((signal) => getZoneHealth(signal), {
+    /* `getZoneHealth` takes no argument but the signal, so `[]` is the complete
+       key and nothing else in the repo claims `zones.health`. */
     deps: [],
+    cacheKey: 'zones.health',
     isEmpty: () => false,
   })
 
-  const zones = useAsync<Paginated<Zone>>((signal) => listZones({ view, ...table.params, signal }), {
-    deps: [view, table.params],
-  })
+  const zones = useAsync<Paginated<Zone>>(
+    (signal) => listZones({ view, ...table.params, signal }),
+    {
+      /* The tile toggle and the table query are the fetcher's two inputs and
+         both are here, so each `?view=` keys separately — flipping to
+         `starved` and back paints `all`'s own rows. `steer` and
+         `queueRecruitment` both go through `refetch`, which bypasses the cache
+         and rewrites the entry, so a steered zone is never re-served stale. */
+      deps: [view, table.params],
+      cacheKey: 'zones.list',
+    },
+  )
 
   const rows = useMemo(() => actions.apply(zones.data?.items ?? []), [actions, zones.data])
 
@@ -208,6 +297,8 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'zone',
+        emphasis: 'primary',
+        csv: (zone) => zone.name,
         header: t('zones.col.zone'),
         dataType: 'text',
         minWidth: 190,
@@ -237,6 +328,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'demandSupply',
+        emphasis: 'data',
         header: t('zones.col.demandSupply'),
         dataType: 'number',
         align: 'end',
@@ -246,8 +338,13 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
            ratio, and a zone with no captains renders an em dash rather than
            `Infinity×`. */
         cell: (zone) => (
-          <span className="block text-end tabular-nums" aria-label={zone.demandSupplyRatio === null ? ABSENT : undefined}>
-            {zone.demandSupplyRatio === null ? ABSENT : formatRatio(zone.demandSupplyRatio, language)}
+          <span
+            className="block text-end tabular-nums"
+            aria-label={zone.demandSupplyRatio === null ? ABSENT : undefined}
+          >
+            {zone.demandSupplyRatio === null
+              ? ABSENT
+              : formatRatio(zone.demandSupplyRatio, language)}
           </span>
         ),
         secondaryLine: (zone) => (
@@ -282,6 +379,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'captainsNeeded',
+        emphasis: 'data',
         header: t('zones.col.captainsNeeded'),
         dataType: 'number',
         align: 'end',
@@ -307,7 +405,10 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
            nothing to measure, which is the second-most valuable reading on this
            page and must not read as flat. */
         cell: (zone) => (
-          <span className="block text-end tabular-nums" aria-label={zone.subMomentum === null ? ABSENT : undefined}>
+          <span
+            className="block text-end tabular-nums"
+            aria-label={zone.subMomentum === null ? ABSENT : undefined}
+          >
             {zone.subMomentum === null ? ABSENT : formatPercent(zone.subMomentum, language)}
           </span>
         ),
@@ -380,6 +481,14 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
 
   return (
     <SingleColumnPage
+      /* **This page is a STACK, and saying so is the fix.** A map at 4 : 3 and
+         an index table cannot both be a bounded region of one viewport; the
+         default shape assumes the body IS the table and claims the region's
+         height for it, which at 1440 x 900 squeezed every region at once and
+         put the table's own box at y = 893 in a region 848 tall, reachable by
+         42px of page scroll. Declared `flow`, the body sizes to its content and
+         the content region scrolls it. See `SingleColumnPageProps.body`. */
+      body="flow"
       header={
         <PageHeader
           title={t(row.titleKey)}
@@ -388,6 +497,8 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
               ? t('zones.meta', {
                   zones: formatCount(health.data.zonesTracked, language),
                   starved: formatCount(health.data.starvedZones, language),
+                  cities: formatCount(liveCities, language),
+                  allCities: formatCount(allCities, language),
                 })
               : null
           }
@@ -396,8 +507,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         />
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-
+      <div className="flex flex-col gap-4">
         {health.status === 'loading' && <LoadingSkeleton pattern="P5" />}
         {health.status === 'error' && (
           <ErrorState
@@ -408,52 +518,58 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         )}
 
         {health.data && (
-          <ZoneStrip
-            summary={health.data}
-            view={view}
-            onView={setView}
-            t={t}
-            language={language}
-          />
+          <ZoneStrip summary={health.data} view={view} onView={setView} t={t} language={language} />
         )}
 
-        {isTestEnv ? (
-          <>
-            <DataTable
-              table={table}
-              rows={rows}
-              columns={columns}
-              getRowId={(zone) => zone.id}
-              status={zones.status}
-              total={zones.data?.total ?? 0}
-              t={t}
-              language={language}
-              tableId="management-zones"
-              view={view}
-              searchPlaceholder={t('zones.search')}
-              skeletonPattern="P1"
-              firstRun={{
-                heading: t('zones.empty.heading'),
-                body: t('zones.empty.body'),
-                actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
-              }}
-              noMatch={{
-                message: t('zones.noMatch'),
-                action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
-              }}
-              error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
-            />
-            <CitiesCard zones={rows} t={t} language={language} />
-          </>
-        ) : (
-          /* Real Google Maps & Interactive Heatmap Studio (Live Mode) */
+        {/* **The map and the table read the SAME request**, so a failure is one
+            failure and gets one statement: `DataTable` below. What the map does
+            now own is its own **loading** shape — a map-shaped skeleton rather
+            than a basemap drawn identically in every state, which is what made
+            the old surface stateless. `ZonesMapView` implements all four
+            (`status`, `error`, `onRetry` are its contract); this screen wires
+            the two that are not already answered one region down. */}
+        {(zones.status === 'loading' || zones.status === 'content') && (
           <ZonesMapView
             zones={rows}
             onSteer={steer}
             onQueueRecruitment={recruit}
             language={language}
+            canWrite={canWrite}
+            status={zones.status}
+            error={zones.error}
+            onRetry={zones.refetch}
+            t={t}
           />
         )}
+
+        <DataTable
+          table={table}
+          rows={rows}
+          columns={columns}
+          getRowId={(zone) => zone.id}
+          status={zones.status}
+          total={zones.data?.total ?? 0}
+          t={t}
+          language={language}
+          tableId="management-zones"
+          view={view}
+          searchPlaceholder={t('zones.search')}
+          /* **R5a** — `demand ÷ supply >= 3` is starved, stated once on the row
+             (`types/zone.ts`) and read by the badge, the tile, the marker and
+             now this tint. */
+          isRowCritical={(zone) => zone.starved}
+          skeletonPattern="P1"
+          firstRun={{
+            heading: t('zones.empty.heading'),
+            body: t('zones.empty.body'),
+            actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
+          }}
+          noMatch={{
+            message: t('zones.noMatch'),
+            action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
+          }}
+          error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
+        />
       </div>
 
       <ConfirmMoneyDialog
@@ -587,86 +703,5 @@ function TileToggle({
         </div>
       </Card>
     </button>
-  )
-}
-
-/* ────────────────────────────── the cities ─────────────────────────────── */
-
-/**
- * **L-6, computed rather than reproduced.**
- *
- * A city's failure rate is the mean over the zones tracked **in that city**.
- * Three of the four cities have none, so three rows carry an em dash and each
- * says why in its own words. Legacy reaches the same three em dashes by testing
- * the city's NAME (`c.name === 'Riyadh'`, `:6942`), which means they can never
- * be filled — the data cannot change the answer. Here the data is the answer.
- */
-function CitiesCard({
-  zones,
-  t,
-  language,
-}: {
-  zones: readonly Zone[]
-  t: ReturnType<typeof useShell>['language']['t']
-  language: ReturnType<typeof useShell>['language']['language']
-}) {
-  const cities = listCities()
-
-  return (
-    <Card className="gap-2">
-      <div className="flex flex-col gap-1 px-(--card-spacing)">
-        <h2 className="text-sm font-semibold text-foreground">{t('zones.cities.heading')}</h2>
-        <table className="w-full table-fixed text-sm">
-          <thead>
-            <tr className="text-xs text-muted-foreground">
-              <th scope="col" className="py-1 text-start font-medium">
-                {t('zones.cities.col.city')}
-              </th>
-              <th scope="col" className="py-1 text-end font-medium">
-                {t('zones.cities.col.zones')}
-              </th>
-              <th scope="col" className="py-1 text-end font-medium">
-                {t('zones.cities.col.failureRate')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {cities.map((city) => {
-              const tracked = zones.filter((zone) => zone.city === city.name)
-              const rate =
-                tracked.length === 0
-                  ? null
-                  : Math.round(
-                      tracked.reduce((sum, zone) => sum + zone.failureRate, 0) / tracked.length,
-                    )
-              return (
-                <tr key={city.name}>
-                  <td className="py-1 text-foreground">
-                    <span className="flex flex-col">
-                      <span>{city.name}</span>
-                      {/* The row's own reason, in words, beside its em dash. */}
-                      {rate === null && (
-                        <span className="text-xs text-muted-foreground">
-                          {city.active ? t('zones.cities.noZones') : t('zones.cities.notLive')}
-                        </span>
-                      )}
-                    </span>
-                  </td>
-                  <td className="py-1 text-end tabular-nums">
-                    {formatCount(tracked.length, language)}
-                  </td>
-                  <td
-                    className="py-1 text-end tabular-nums"
-                    aria-label={rate === null ? ABSENT : undefined}
-                  >
-                    {rate === null ? ABSENT : formatPercent(rate, language)}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
   )
 }

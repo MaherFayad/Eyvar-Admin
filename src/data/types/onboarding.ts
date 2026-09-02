@@ -116,7 +116,14 @@ export interface OnboardingStep {
   completion: OnboardingCompletion
   /** A named domain event id — `queue.item.claimed`. `null` on a `manual` step. */
   autoSignal: string | null
-  /** **`null` on all 21 — Q4.** See the file header. */
+  /**
+   * The permission the step's DESTINATION requires, so a track never sends an
+   * operator somewhere their role forbids. Derived from the route table, not
+   * hand-written — `fixtures/onboardingGates.test.ts` keeps the two equal.
+   *
+   * `null` only where the destination genuinely has no permission: a shell
+   * layer, or `admin-activity`, which every authenticated operator may open.
+   */
   requiredPermission: PermissionKey | null
 
   /* ── derived server-side; a component never recomputes either ── */
@@ -142,8 +149,22 @@ export interface OnboardingStep {
   reachable: boolean
 }
 
-/** One role's track: the ordered step ids it includes. D4 is a new entry here and nothing else. */
-export type OnboardingTracks = Readonly<Record<RoleName, readonly string[]>>
+/**
+ * One role's track: the ordered step ids it includes. D4 is a new entry here and
+ * nothing else.
+ *
+ * **`Partial` since D17**, which minted `Dispatcher` and `Trust & Safety`. The
+ * map is *meant* to be total and `resolveSteps` still throws `notFound` on a
+ * missing track (**AC-617 — no default and no fallback**: a role with no track
+ * is a bug and must read as one). But an exhaustive `Record` makes the fixture
+ * itself a compile error the moment a role is added, which converts a data gap
+ * into a build break for whoever adds the role, and the gap is not theirs.
+ *
+ * **The two new roles have no track and `getOnboardingChecklist` throws for
+ * them.** That is the honest state: the track content is a product decision, not
+ * something the role model may invent. Owner: `fixtures/onboardingTracks.ts`.
+ */
+export type OnboardingTracks = Readonly<Partial<Record<RoleName, readonly string[]>>>
 
 /* ─────────────────────────── the state ──────────────────────── */
 

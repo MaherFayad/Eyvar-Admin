@@ -79,20 +79,22 @@ import type {
   Paginated,
   SubTabRoute,
 } from '@/data/types'
+import { toast } from 'sonner'
 import { useAsync, useIndexTable } from '@/hooks'
+import { setRefusal } from '../bulkRefusal'
+import { EntityLink, useEntityLinks } from '../EntityLink'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { RefusalLine } from '@/components/table/rowActions'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import {
-  Absent,
   BreachBanner,
   Cell,
-  ConfirmDialog,
   DateCell,
   Identity,
   MutedCell,
@@ -107,10 +109,12 @@ import {
   useQueueMeta,
   useQueueViews,
   useRowActions,
-  type ConfirmRequest,
   type QueueClockResult,
   type RowFailure,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { withFallback } from '../localCopy'
+import { ASSURANCE_EN } from './copy'
 
 /**
  * **Q-32 / §6.3** — the default is the ops manager's opening question
@@ -121,12 +125,37 @@ import {
  * because §4.6 says a queue's default is its open work, not because index 0
  * happened to be right.
  */
+/**
+ * The captain picker's query, hoisted to module scope so it can be a **cache
+ * dependency**.
+ *
+ * `useAsync`'s contract (`useAsync.ts:66-72`): with a `cacheKey`, everything the
+ * fetcher varies on must be in `deps`. `status` and `pageSize` were literals
+ * inside the closure and therefore invisible to the key, so this read and every
+ * other `deps: []` read of `drivers.list` in the app would have shared one entry
+ * and the first one to resolve would have decided the page size for all of them.
+ * Naming the query and depending on it puts those two values in the key, so a
+ * site that asks a different question gets a different entry by construction.
+ */
+const ACTIVE_CAPTAINS_QUERY = { status: 'active', pageSize: 50 } as const
+
 const DEFAULT_VIEW = 'departing-24h'
 const VIEW_ABSENCES = 'absences'
 
 export function AssuranceScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ASSURANCE_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
 
   /* §9.4 — **one mode at a time.** The absences view is a different RESOURCE
@@ -171,11 +200,28 @@ function LegsView({
        nulls last on `asc`, so Q-59's out-of-window legs land at the bottom
        without a second pass. */
     initialSort: { field: 'slaDueAt', dir: 'asc' },
+    /**
+     * **§9.3 / P4-T1.** A queue gets a checkbox column **only** where every
+     * bulk action is a claim or an assign, and `bulkClaim: true` is how this
+     * file declares it — without it `table.selectedIds` is not on the returned
+     * type. `Confirm` and `Offer backup` are dispositions and stay row-only:
+     * confirming twelve legs from one pill would attest to twelve phone calls
+     * nobody made, and §6.4 requires a note *"so the risk has a name attached
+     * to it"*.
+     *
+     * The **absences** view below declares no `bulkClaim` and therefore has no
+     * checkbox, which is correct and is Q-60 rather than an omission: an
+     * `AbsenceEvent` is a recorded fact with no claim and no clock.
+     */
+    bulkClaim: true,
   })
 
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
   const data = useAsync<Paginated<AssuranceTrip>>((signal) => listAssuranceTrips(params, signal), {
+    /* `params` carries the table query AND the view tab, so each sub-tab keys
+       separately and switching back paints its own rows. */
     deps: [params],
+    cacheKey: 'assurance.list',
   })
 
   /* R5a (a) — the whole queue, and the stamp. `AssuranceTrip` has no terminal
@@ -187,15 +233,32 @@ function LegsView({
         { pageSize: 1, filters: [{ field: 'breached', op: 'eq', value: true }] },
         signal,
       ),
-    { deps: [] },
+    /* A constant one-row count query; `deps: []` serialises to `[]`, which the
+       keyed read above (`[{...params}]`) can never collide with. */
+    { deps: [], cacheKey: 'assurance.list' },
   )
 
   const captains = useAsync<Paginated<Driver>>(
-    (signal) => listDrivers({ status: 'active', pageSize: 50 }, signal),
-    { deps: [] },
+    (signal) => listDrivers(ACTIVE_CAPTAINS_QUERY, signal),
+    { deps: [ACTIVE_CAPTAINS_QUERY], cacheKey: 'drivers.list' },
+  )
+
+  /* **P8-T1** — every id the page names, asked once each. */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () =>
+        (data.data?.items ?? []).flatMap((trip) => [
+          trip.subscriptionId,
+          trip.riderId,
+          trip.driverId,
+        ]),
+      [data.data?.items],
+    ),
   )
 
   const actions = useRowActions<AssuranceTrip>({ t })
+  /** True while a bulk claim is in flight; the bar's command is not re-entrant. */
+  const [claimingMany, setClaimingMany] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const rows = actions.rows(data.data?.items ?? [])
@@ -323,6 +386,45 @@ function LegsView({
     )
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  const selected = rows.filter((trip) => table.selectedIds.has(trip.id))
+
+  /**
+   * D21 over a set. A leg already held is **blocked, not taken over** —
+   * AC-203's take-over names the operator losing it, and over a set it would
+   * name none of them.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (trip) => trip.id,
+    isBlocked: (trip) => trip.claim?.state === 'claimed',
+    roleReason: canWrite ? null : t('assurance.action.noPermission'),
+    blockedKeyPrefix: 'assurance.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /** One `claimAssuranceTrip` per record — the same call the row's own `Claim`
+      makes, so the queue and My Work cannot disagree about who holds what. */
+  async function claimSelected(ids: ReadonlySet<string>) {
+    setClaimingMany(true)
+    try {
+      await Promise.all([...ids].map((id) => claimAssuranceTrip(id, { takeOver: false })))
+      table.clearSelection()
+      toast(
+        ids.size === 1
+          ? t('queue.toast.claimed')
+          : t('assurance.toast.claimed.other', { count: formatCount(ids.size, language) }),
+      )
+    } catch {
+      toast(t('assurance.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = legColumns(activeTab, {
     t,
     language,
@@ -330,6 +432,8 @@ function LegsView({
     canWrite,
     currentUserId,
     profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    /* **P8-T1 — resolution is ASKED, not assumed.** */
+    hrefFor,
     failure: actions.failure,
     onClaim: (trip) => claim(trip, false),
     onRelease: (trip) =>
@@ -374,6 +478,23 @@ function LegsView({
         now={now}
         searchPlaceholder={t('assurance.search.legs')}
         extraFilters={BREACH_FILTER(t)}
+        /* **R5a — the row tint, from the SAME clock as the marker and the
+           pill.** The table used to look for a `breached` field on the row and
+           there is none: a leg's breach is `slaBreachedAt` read through
+           `legClock`, so every breached leg rendered the marker over an
+           untinted row. */
+        isRowCritical={(trip) => legClock(trip, now).breached}
+        /* §9.3 — claims only. `Confirm` and `Offer backup` are dispositions and
+           stay on the row. */
+        bulkActions={[
+          {
+            label: t('assurance.bulk.claim'),
+            onClick: (ids) => void claimSelected(ids),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         /* **AC-274** — each view's cleared sentence names THAT view's scope. */
         cleared={{
           heading: t('assurance.empty.cleared.heading'),
@@ -430,6 +551,7 @@ function AbsencesView({ row, tabs, activeTab, onSelectTab }: ViewProps) {
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
   const data = useAsync<Paginated<AbsenceEvent>>((signal) => listAbsences(params, signal), {
     deps: [params],
+    cacheKey: 'assurance.absences',
   })
 
   const actions = useRowActions<AbsenceEvent>({ t })
@@ -580,6 +702,8 @@ export interface LegDeps {
   canWrite: boolean
   currentUserId: string
   profileHref: (id: string) => string
+  /** **P8-T1** — `null` when the id names nothing this console can open. */
+  hrefFor: (id: string | null | undefined) => string | null
   failure: (id: string) => RowFailure | undefined
   onClaim: (row: AssuranceTrip) => void
   onRelease: (row: AssuranceTrip) => void
@@ -602,26 +726,38 @@ export interface LegDeps {
  * Every one inside the Arabic budget of 870. The trailing visible column is
  * `enum` in all three, so §7.3 rule 5 holds.
  */
+/**
+ * **The leg's clock — module level, because TWO carriers read it.**
+ *
+ * R5a (b) is the leading-edge marker inside the identity cell and (c) is the
+ * countdown pill; the row's TINT is a third reading of the same fact, declared
+ * on `QueueTable` where the columns are not in scope. Hoisted out of
+ * `legColumns` so all three call one expression rather than three that agree
+ * today.
+ */
+export function legClock(trip: AssuranceTrip, now: IsoDateTime): QueueClockResult {
+  return queueClock(
+    {
+      startedAt: trip.slaStartedAt,
+      dueAt: trip.slaDueAt,
+      /* **`null` on every row, and it stays null.** Q8-b is open: the
+         confirmation DEADLINE is a policy constant (21:00) but the window's
+         START is undefined, so there is no denominator and no track. */
+      targetMinutes: trip.slaTargetMinutes,
+      breachedAt: trip.slaBreachedAt,
+    },
+    now,
+    /* A leg has no terminal status in the data layer. `autoHandedOff` is the
+       nearest thing — the system disposed of it — and F-8's `Departed`
+       conversion has no field behind it. Recorded, not faked. */
+    { terminal: false },
+  )
+}
+
 export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColumn<AssuranceTrip>> {
   const { t, language, now } = deps
 
-  const clockFor = (trip: AssuranceTrip): QueueClockResult =>
-    queueClock(
-      {
-        startedAt: trip.slaStartedAt,
-        dueAt: trip.slaDueAt,
-        /* **`null` on every row, and it stays null.** Q8-b is open: the
-           confirmation DEADLINE is a policy constant (21:00) but the window's
-           START is undefined, so there is no denominator and no track. */
-        targetMinutes: trip.slaTargetMinutes,
-        breachedAt: trip.slaBreachedAt,
-      },
-      now,
-      /* A leg has no terminal status in the data layer. `autoHandedOff` is the
-         nearest thing — the system disposed of it — and F-8's `Departed`
-         conversion has no field behind it. Recorded, not faked. */
-      { terminal: false },
-    )
+  const clockFor = (trip: AssuranceTrip): QueueClockResult => legClock(trip, now)
 
   const identity: DataColumn<AssuranceTrip> = {
     id: 'leg',
@@ -656,6 +792,7 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
 
   const sla: DataColumn<AssuranceTrip> = {
     id: 'sla',
+    emphasis: 'data',
     header: t('queue.col.sla'),
     /* 160, measured. This queue's SLA cell carries the LONGEST of the three
        readings — `Due 24 Jun 21:00`, a full instant rather than a duration —
@@ -872,6 +1009,8 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
     /* ── behind the column control (§7.4) ─────────────────────────────── */
     {
       id: 'id',
+      emphasis: 'primary',
+      csv: (trip) => trip.id,
       header: t('queue.col.id'),
       width: 112,
       dataType: 'id',
@@ -886,7 +1025,21 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
       dataType: 'text',
       defaultHidden: true,
       sortField: 'riderName',
-      cell: (trip) => <Cell>{trip.riderName}</Cell>,
+      /* **P8-T1** — a cell that names a rider opens that rider. It was plain
+         text, so an operator reading a leg could not reach the person it is
+         for without going through global search. */
+      cell: (trip) => (
+        <Cell>
+          <EntityLink
+            href={deps.hrefFor(trip.riderId)}
+            label={t('assurance.a11y.openRider', { name: trip.riderName })}
+            reason={t('assurance.entity.unresolved')}
+            reasonId={`leg-${trip.id}-rider-unresolved`}
+          >
+            {trip.riderName}
+          </EntityLink>
+        </Cell>
+      ),
     },
     {
       id: 'captain',
@@ -903,19 +1056,41 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
           label: t(CAPTAIN_STATE[value].key),
         })),
       },
-      cell: (trip) =>
-        trip.driverName === null ? (
-          <Absent />
-        ) : (
-          <Cell title={trip.captainUnavailableReason ?? undefined}>
+      /**
+       * The committed captain's READINESS is the badge; the captain's NAME is
+       * the link beside it (**P8-T1**). Before this the column carried only a
+       * state, so the one cell on the row that is about a person named nobody
+       * and opened nobody.
+       *
+       * §11.2 — an uncommitted leg has no captain to open, so the name is plain
+       * muted text with its reason rather than a dead link.
+       */
+      cell: (trip) => (
+        <Cell title={trip.captainUnavailableReason ?? undefined}>
+          <span className="flex min-w-0 items-center gap-1.5">
             <StatusBadge tone={CAPTAIN_STATE[trip.captainDepartureState].tone}>
               {t(CAPTAIN_STATE[trip.captainDepartureState].key)}
             </StatusBadge>
-          </Cell>
-        ),
+            <EntityLink
+              href={deps.hrefFor(trip.driverId)}
+              label={t('assurance.a11y.openCaptain', { name: trip.driverName ?? '' })}
+              reason={
+                trip.driverId === null
+                  ? t('assurance.captain.none.reason')
+                  : t('assurance.entity.unresolved')
+              }
+              reasonId={`leg-${trip.id}-captain-absent`}
+              className="min-w-0"
+            >
+              {trip.driverName ?? t('assurance.captain.none')}
+            </EntityLink>
+          </span>
+        </Cell>
+      ),
     },
     {
       id: 'departs',
+      emphasis: 'data',
       header: t('assurance.col.departs'),
       width: 136,
       dataType: 'date',
@@ -927,6 +1102,7 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
     },
     {
       id: 'nearby',
+      emphasis: 'data',
       header: t('assurance.col.nearby'),
       align: 'end',
       width: 136,
@@ -1044,6 +1220,7 @@ export function absenceColumns(deps: AbsenceDeps): ReadonlyArray<DataColumn<Abse
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('queue.col.status'),
       width: 128,
       dataType: 'enum',
@@ -1093,16 +1270,28 @@ export function absenceColumns(deps: AbsenceDeps): ReadonlyArray<DataColumn<Abse
             </MutedCell>
           )
         }
+        const waiveRefusalId = `assurance-waive-refusal-${event.id}`
         return (
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={() => deps.onWaive(event)}
-            disabled={!deps.canWrite}
-            title={deps.canWrite ? t('assurance.action.waive.help') : t('queue.action.noPermission')}
-          >
-            {t('assurance.action.waive')}
-          </Button>
+          <span className="flex flex-col gap-1">
+            <Button
+              variant="secondary"
+              size="xs"
+              onClick={() => deps.onWaive(event)}
+              disabled={!deps.canWrite}
+              /* The HELP text may be a tooltip — it is supplementary, and an
+                 operator who can act does not need it to act. **The REFUSAL may
+                 not** (D17 clause 3, §8.4.4, §5.7): it is the only thing that
+                 explains why the control is dead, and a tooltip hides it from
+                 keyboard, touch and assistive tech alike. */
+              title={deps.canWrite ? t('assurance.action.waive.help') : undefined}
+              aria-describedby={deps.canWrite ? undefined : waiveRefusalId}
+            >
+              {t('assurance.action.waive')}
+            </Button>
+            {!deps.canWrite && (
+              <RefusalLine id={waiveRefusalId}>{t('queue.action.noPermission')}</RefusalLine>
+            )}
+          </span>
         )
       },
     },

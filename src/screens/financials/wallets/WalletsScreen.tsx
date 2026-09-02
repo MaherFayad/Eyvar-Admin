@@ -20,11 +20,43 @@
  * was charged back cannot appear in it on the strength of that chargeback
  * alone — there is no path in this file that could put them there.
  *
+ * ## P4-T1 — why this sub-tab gets NO bulk bar, and what that leaves open
+ *
+ * The only act on the index is `Adjust`, and three things about it are
+ * per-rider rather than per-set:
+ *
+ *   - **AC-387** requires a reason code on every adjustment. Nine riders
+ *     sharing one reason is the blanket justification the field exists to stop
+ *     — and unlike a bulk *waiver*, where the act is one decision about one
+ *     policy, a goodwill credit is a decision about **what happened to that
+ *     rider**.
+ *   - **The daily ceiling is consumed as the set is applied.** `checkAdjustment
+ *     Authority` measures `dailyUsed + amount` against the role cap, so a set
+ *     of nine identical credits can be permitted for the first six and refused
+ *     for the last three. There is no reservation and no batch endpoint, so
+ *     *"refused if any selected record would be refused"* cannot be answered
+ *     honestly before the run — and a half-applied set of money movements is
+ *     the reconciliation incident P4-T1 is written to prevent.
+ *   - **AC-386**'s second-approval flag is computed from **that rider's own**
+ *     30-day history, so one set would split into committed and pending
+ *     postings with nothing at commit time able to say which.
+ *
+ * > **⚠ That leaves the checkbox column doing nothing, and it is AC-382 that
+ * > puts it there** (*"selection … works per foundation §7.1"*). A selection
+ * > with no command is furniture. **Product-owner has to pick one**: give this
+ * > index a bulk command that is genuinely set-shaped — an export, or an
+ * > adjustment behind a batch endpoint that can reserve the daily ceiling — or
+ * > amend AC-382 so the index carries sort and filters without selection.
+ * > Raised in the handoff; it is not an engineer's call.
+ *
  * Rules applied
  *   §7.1 / AC-382
- *              the index is `mode: 'index'` — the one Financials table that
- *              carries a checkbox column, because foundation §7.1 says an index
- *              table has one and this is the only true index here.
+ *              the index is `mode: 'index'` — selection, sort and filters all
+ *              apply here, and none of the three exists on the ledger behind
+ *              the identity link. **Payouts, Escrow and Deductions are now
+ *              indexes too** (P4-T1); the sentence that used to call this the
+ *              only one in Financials is no longer true and has been removed
+ *              rather than left to mislead.
  *   §8.3.2 / AC-383
  *              a negative balance renders with U+2212 in ordinary ink, from
  *              `Money`. Never a badge, never parentheses, never colour.
@@ -41,7 +73,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   adjustWallet,
   checkAdjustmentAuthority,
@@ -66,6 +98,7 @@ import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
+import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
@@ -102,6 +135,18 @@ function walletExtraFilters(t: Translate): ExtraFilterSpec[] {
       falseLabel: t('fin.wallet.filter.neverUsed.false'),
     },
   ]
+}
+
+/**
+ * `?rider=<id>` — the wallet ledger's own address on this route, which is what
+ * lets the identity be a `<Link>` rather than a `<button>`. Everything else in
+ * the query survives, so opening a ledger from a filtered, sorted page and
+ * pressing Back returns to that page.
+ */
+function walletLedgerSearch(search: string, riderId: string): string {
+  const next = new URLSearchParams(search)
+  next.set('rider', riderId)
+  return `?${next.toString()}`
 }
 
 const VIEWS: readonly ScreenView[] = [
@@ -198,9 +243,9 @@ function WalletIndex({
 }) {
   const shell = useShell()
   const { t, language } = shell.language
-  /* **AC-382** — the one `index` table in Financials. Selection, sort and
-     filters all apply here, and none of them exists on the ledger behind the
-     identity link. */
+  const location = useLocation()
+  /* **AC-382** — an `index` table: selection, sort and filters all apply here,
+     and none of them exists on the ledger behind the identity link. */
   const table = useIndexTable<WalletSummary>({
     mode: 'index',
     getRowId: (wallet) => wallet.riderId,
@@ -210,15 +255,28 @@ function WalletIndex({
   const [authority, setAuthority] = useState<AuthorityCheck | null>(null)
 
   const wallets = useAsync<Paginated<WalletSummary>>(
-    (signal) => listWallets({ view: activeTab, ...table.params }, signal),
-    { deps: [activeTab, table.params] },
+    (signal) => listWallets({ ...table.params, view: activeTab }, signal),
+    { deps: [activeTab, table.params], cacheKey: 'wallets.list' },
   )
 
   const rows = useMemo(() => actions.apply(wallets.data?.items ?? []), [actions, wallets.data])
 
+  /**
+   * **P8-T1, and the one place the answer is not "the name opens the profile".**
+   *
+   * §5 of the spec: *"Rider Wallets is an index **of** ledgers … the second
+   * level, reached by the identity link, is that rider's ledger … **the
+   * boundary is the identity link**"*, and **AC-382** tests it. So here the
+   * **name** stays the money view and the **rider id**, on the cell's second
+   * line, carries the 360° profile. Two names for one entity, one going to each
+   * destination, and neither guessed.
+   */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((wallet) => wallet.riderId), [rows]))
+
   const negative = useAsync<Paginated<WalletSummary>>(
     (signal) => listWallets({ view: 'negative-balances', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the index read's `[s:tab,{...}]`. */
+    { deps: [], cacheKey: 'wallets.list' },
   )
   const negativeTotal = negative.data?.total ?? 0
   useEffect(() => {
@@ -302,6 +360,8 @@ function WalletIndex({
     () => [
       {
         id: 'rider',
+        emphasis: 'primary',
+        csv: (wallet) => wallet.riderName,
         header: t('fin.wallet.col.rider'),
         dataType: 'text',
         minWidth: 200,
@@ -318,13 +378,23 @@ function WalletIndex({
             {/* **AC-383** — a negative wallet carries the row's structural
                 signal; the balance itself is U+2212 in ink, never a red pill. */}
             {wallet.balanceHalalas < 0 && <RowCriticalMarker />}
-            <button
-              type="button"
-              onClick={() => onOpenLedger(wallet.riderId)}
-              className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            {/* **A LINK, not a button** — §9.1 / AC-43. The ledger is a view of
+                this route (`?rider=<id>`), so it has an address, and an
+                identity with an address must be openable in a new tab,
+                middle-clickable and copyable. The `<button>` this replaces was
+                none of those, and it carried its own `focus-visible:` ring
+                because it had killed the default outline; this carries
+                `globals.css`'s ring untouched. */}
+            <Link
+              to={{
+                pathname: location.pathname,
+                search: walletLedgerSearch(location.search, wallet.riderId),
+              }}
+              aria-label={t('fin.a11y.openWallet', { name: wallet.riderName })}
+              className="block truncate rounded-sm font-medium text-foreground underline-offset-2 group-hover/row:underline"
             >
               {wallet.riderName}
-            </button>
+            </Link>
           </span>
         ),
         secondaryLine: (wallet) => {
@@ -338,11 +408,15 @@ function WalletIndex({
               />
             )
           }
-          return wallet.riderId
+          /* **P8-T1** — the id is the entity, and it opens the 360° profile.
+             The name beside it is the ledger; see the note on `hrefFor`. */
+          return <EntityName href={hrefFor(wallet.riderId)} name={wallet.riderId} t={t} code />
         },
       },
       {
         id: 'balance',
+        emphasis: 'data',
+        csv: (wallet) => wallet.balanceHalalas,
         header: t('fin.wallet.col.balance'),
         dataType: 'money',
         align: 'end',
@@ -356,6 +430,8 @@ function WalletIndex({
       },
       {
         id: 'pending',
+        emphasis: 'data',
+        csv: (wallet) => wallet.pendingHalalas,
         header: t('fin.wallet.col.pending'),
         dataType: 'money',
         align: 'end',
@@ -417,7 +493,7 @@ function WalletIndex({
         ),
       },
     ],
-    [t, language, gate, actions, onOpenLedger, openAdjust],
+    [t, language, gate, actions, onOpenLedger, openAdjust, hrefFor, location],
   )
 
   return (
@@ -437,6 +513,10 @@ function WalletIndex({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.wallet.search')}
+        /* **R5a** — `isNegative` is derived, not a field (`types/financials.ts`),
+           and the derivation lives here so the tint and the leading-edge marker
+           read one comparison. */
+        isRowCritical={(wallet) => wallet.balanceHalalas < 0}
         skeletonPattern="P1"
         /* §6.4 — the two derived facts no column carries. See the function. */
         extraFilters={walletExtraFilters(t)}
@@ -472,7 +552,10 @@ function RiderWalletLedger({ riderId, onBack }: { riderId: string; onBack: () =>
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>((signal) => getWalletLedger(riderId, undefined, signal), {
+    /* `riderId` is the fetcher's only variable input - the second argument is
+       the literal `undefined`. One rider's ledger cannot serve under another's. */
     deps: [riderId],
+    cacheKey: 'wallets.ledger',
     isEmpty: (data) => data.postings.length === 0,
   })
 

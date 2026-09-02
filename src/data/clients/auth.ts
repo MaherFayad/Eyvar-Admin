@@ -27,30 +27,15 @@
  * fixture asserts and nothing produces.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, offsetFromNow, toEpochMs } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  AUTH_BREACHED_PASSWORDS,
-  AUTH_FIXTURE_CODES,
-  AUTH_FIXTURE_PASSWORD,
-  AUTH_FIXTURE_TOTP,
-  CHALLENGE_LOCKOUT_MINUTES,
-  CODE_LIFETIME_MINUTES,
-  MAX_CODES_PER_CHALLENGE,
-  MAX_CODE_ATTEMPTS,
-  RESEND_COOLDOWN_SECONDS,
-  TRUSTED_DEVICE_DAYS,
-  authIdentityFixtures,
-  authTokenFixtures,
-  deviceSessionFixtures,
-} from '../fixtures/authIdentities'
-import { CURRENT_USER_ID, DEFAULT_LANDING, ROLE_LANDING, teamUserFixtures } from '../fixtures/teamUsers'
-import { claimFixtures } from '../fixtures/claims'
 import type { IsoDateTime } from '../types/common'
 import { ApiError } from '../types/common'
 import type { WorkspaceId } from '../types/navigation'
+import { effectivePermissions } from '../types/session'
 import type { Session } from '../types/session'
+import { subTabViewPermissions } from './routes'
 import type {
   AuthIdentity,
   DeviceSession,
@@ -68,6 +53,48 @@ import type {
   VerifyFailureReason,
 } from '../types/auth'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { AUTH_FIXTURE_CODES, AUTH_FIXTURE_PASSWORD } from '../mock/credentials'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let AUTH_BREACHED_PASSWORDS!: Fixtures['AUTH_BREACHED_PASSWORDS']
+let AUTH_FIXTURE_TOTP!: Fixtures['AUTH_FIXTURE_TOTP']
+let CHALLENGE_LOCKOUT_MINUTES!: Fixtures['CHALLENGE_LOCKOUT_MINUTES']
+let CODE_LIFETIME_MINUTES!: Fixtures['CODE_LIFETIME_MINUTES']
+let MAX_CODES_PER_CHALLENGE!: Fixtures['MAX_CODES_PER_CHALLENGE']
+let MAX_CODE_ATTEMPTS!: Fixtures['MAX_CODE_ATTEMPTS']
+let RESEND_COOLDOWN_SECONDS!: Fixtures['RESEND_COOLDOWN_SECONDS']
+let TRUSTED_DEVICE_DAYS!: Fixtures['TRUSTED_DEVICE_DAYS']
+let authIdentityFixtures!: Fixtures['authIdentityFixtures']
+let authTokenFixtures!: Fixtures['authTokenFixtures']
+let deviceSessionFixtures!: Fixtures['deviceSessionFixtures']
+let DEFAULT_LANDING!: Fixtures['DEFAULT_LANDING']
+let ROLE_LANDING!: Fixtures['ROLE_LANDING']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let claimFixtures!: Fixtures['claimFixtures']
+onFixturesLoaded((f) => {
+  AUTH_BREACHED_PASSWORDS = f.AUTH_BREACHED_PASSWORDS
+  AUTH_FIXTURE_TOTP = f.AUTH_FIXTURE_TOTP
+  CHALLENGE_LOCKOUT_MINUTES = f.CHALLENGE_LOCKOUT_MINUTES
+  CODE_LIFETIME_MINUTES = f.CODE_LIFETIME_MINUTES
+  MAX_CODES_PER_CHALLENGE = f.MAX_CODES_PER_CHALLENGE
+  MAX_CODE_ATTEMPTS = f.MAX_CODE_ATTEMPTS
+  RESEND_COOLDOWN_SECONDS = f.RESEND_COOLDOWN_SECONDS
+  TRUSTED_DEVICE_DAYS = f.TRUSTED_DEVICE_DAYS
+  authIdentityFixtures = f.authIdentityFixtures
+  authTokenFixtures = f.authTokenFixtures
+  deviceSessionFixtures = f.deviceSessionFixtures
+  DEFAULT_LANDING = f.DEFAULT_LANDING
+  ROLE_LANDING = f.ROLE_LANDING
+  teamUserFixtures = f.teamUserFixtures
+  claimFixtures = f.claimFixtures
+  AUTH_FIXTURE_TOKENS.length = 0
+  AUTH_FIXTURE_TOKENS.push(...authTokenFixtures.map((t) => t.token))
+})
 
 export const AUTH_OPERATIONS = {
   signIn: 'auth.signIn',
@@ -84,6 +111,13 @@ export const AUTH_OPERATIONS = {
   signOutEverywhere: 'auth.signOutEverywhere',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(AUTH_OPERATIONS))
+
 /**
  * **Re-exported from the client, not reachable from the fixture.**
  *
@@ -92,13 +126,25 @@ export const AUTH_OPERATIONS = {
  * is off limits above this directory (`seam.test.ts` §4 fails the build for it).
  * So it leaves through the seam, where every other fixture-driven constant does.
  */
-export { AUTH_FIXTURE_PASSWORD, AUTH_FIXTURE_CODES, AUTH_FIXTURE_TOKENS } from '../fixtures/authIdentities'
+export { AUTH_FIXTURE_PASSWORD, AUTH_FIXTURE_CODES }
+
+/**
+ * The reset-token ids, **filled when the fixture chunk lands** rather than at
+ * module load: they are derived from `authTokenFixtures`, which is seeded data
+ * and no longer statically imported (`mock/fixtures.ts` says why). The exported
+ * array is stable and populated in place, so the barrel's re-export and any
+ * `import` of it keep working. Empty in http mode, which is correct — token
+ * validity is the server's answer, and `validateResetToken` is how to ask.
+ */
+export const AUTH_FIXTURE_TOKENS: string[] = []
 
 export const DEVICE_OPERATIONS = {
   list: 'session.devices',
   trust: 'session.trustDevice',
   revoke: 'session.revokeDevice',
 } as const
+
+registerOperations(...Object.values(DEVICE_OPERATIONS))
 
 /* ──────────────────────── in-memory challenge store ───────────────────── */
 
@@ -229,13 +275,17 @@ function buildSessionFor(userId: string): Session {
     email: user.email,
     photoUrl: user.photoUrl,
     role: user.role,
-    permissions: user.permissions,
+    /* **D17 — the role baseline plus the signed per-user delta, resolved.**
+       Not `user.permissions`: the legacy seed stores an absolute set per
+       operator, which is the free-floating permission set D17 rules out. The
+       server computes this and delivers it resolved, so nothing in the UI ever
+       re-derives its own authority (§8.2). */
+    permissions: effectivePermissions(user.role, user.permissionDelta),
     landingRoute: landing.path,
     landingWorkspaceId: landing.workspaceId as WorkspaceId,
-    /* Still empty — **Q4**. See `clients/session.ts`; nothing about auth
-       landing changes that, and fabricating the 34 entries here would ship an
-       answer nobody gave. */
-    subTabPermissions: {},
+    /* One entry per sub-tab, derived from the route table's `viewPermission`
+       column so the map and the table cannot disagree (§11.3, D17). */
+    subTabPermissions: subTabViewPermissions(),
     isImpersonating: false,
     impersonatedUser: null,
     claimedCount: claimFixtures.filter((c) => c.state === 'claimed' && c.ownerId === user.id).length,
@@ -777,7 +827,7 @@ export async function reauthenticate(
     /* (c) — the session that comes back is the session that expired. The user
        is read from the server's own record of who was signed in, never from
        anything the form sent. */
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     /**
      * **Wrong password, and here the copy may say so.** Design §8.2's row is
      * `That password is wrong` — unlike §3.2's deliberately generic rejection,
@@ -857,7 +907,7 @@ export async function signOutEverywhere(signal?: AbortSignal): Promise<{ session
     return http.post<{ sessionsEnded: number }>('/auth/sign-out-everywhere', undefined, { signal })
   }
   return mockMutation(AUTH_OPERATIONS.signOutEverywhere, signal, () => {
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     const others = devicesFor(userId).filter((d) => !d.isCurrent)
     revokedDeviceIds = [...revokedDeviceIds, ...others.map((d) => d.id)]
     return { sessionsEnded: others.length }
@@ -900,7 +950,7 @@ export async function listDevices(
     return res.items
   }
   return mock(DEVICE_OPERATIONS.list, signal, () =>
-    devicesFor(userId ?? signedInUserId ?? CURRENT_USER_ID),
+    devicesFor(userId ?? signedInUserId ?? currentMockUserId()),
   )
 }
 
@@ -929,7 +979,7 @@ export async function setDeviceTrust(
   }
   return mockMutation(DEVICE_OPERATIONS.trust, signal, () => {
     trustOverrides[deviceId] = trusted ? offsetFromNow({ days: TRUSTED_DEVICE_DAYS }) : null
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     const row = devicesFor(userId).find((d) => d.id === deviceId)
     if (!row) throw new ApiError({ status: 404, message: `No device ${deviceId}` })
     return row
@@ -944,22 +994,38 @@ export async function setDeviceTrust(
  * **D-A9**; the confirmation expands in the row, because §5.5 forbids a modal
  * nested inside a no-scrim drawer.
  *
- * **409 on the current device.** Legacy simply omits the button (`:3032`);
- * an API has to answer, and *"sign yourself out of the session you are using"*
- * is `signOut`, not this.
+ * **409 on the current device — but only on the caller's own list.** Legacy
+ * simply omits the button (`:3032`); an API has to answer, and *"sign yourself
+ * out of the session you are using"* is `signOut`, not this.
+ *
+ * **`userId` is optional and defaults to the caller (P6-T8).** Admin › Team
+ * needs to end *another* operator's session, and without this parameter the row
+ * was resolved against the caller's own device list, so every administered
+ * device 404'd. `listDevices(userId)` already took the id — AC-661/662
+ * anticipated this surface — so only revocation was blocked. Omitting the
+ * argument keeps every existing call site on `/me/devices/:id` unchanged.
  */
 export async function revokeDevice(
   deviceId: string,
+  userId?: string,
   signal?: AbortSignal,
 ): Promise<{ revoked: true }> {
+  const targetId = userId ?? signedInUserId ?? currentMockUserId()
+  const ownList = targetId === (signedInUserId ?? currentMockUserId())
   if (DATA_SOURCE === 'http') {
-    return http.delete<{ revoked: true }>(`/me/devices/${deviceId}`, { signal })
+    return ownList
+      ? http.delete<{ revoked: true }>(`/me/devices/${deviceId}`, { signal })
+      : http.delete<{ revoked: true }>(`/team/${targetId}/devices/${deviceId}`, { signal })
   }
   return mockMutation(DEVICE_OPERATIONS.revoke, signal, () => {
-    const userId = signedInUserId ?? CURRENT_USER_ID
-    const row = devicesFor(userId).find((d) => d.id === deviceId)
+    const row = devicesFor(targetId).find((d) => d.id === deviceId)
     if (!row) throw new ApiError({ status: 404, message: `No device ${deviceId}` })
-    if (row.isCurrent) {
+    /* **The 409 applies only to the caller's OWN list.** "Sign yourself out of
+       the session you are using" is `signOut`; signing an *administered*
+       operator out of the device they are sitting at is the entire point of
+       P6-T8, and refusing it would make the admin surface unable to do the one
+       thing it exists for. */
+    if (row.isCurrent && ownList) {
       throw new ApiError({
         status: 409,
         code: 'current_device',

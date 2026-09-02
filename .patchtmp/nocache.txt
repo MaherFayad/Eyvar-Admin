@@ -1,0 +1,34 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Users/Admin/Documents/GitHub/Eyvar Admin[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 9 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/screens/admin/communications/communications.test.tsx[2m [ src/screens/admin/communications/communications.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/admin/team/adminTeam.test.tsx[2m [ src/screens/admin/team/adminTeam.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/admin/workspace/adminWorkspace.test.tsx[2m [ src/screens/admin/workspace/adminWorkspace.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/admin/workspace/integrations.test.tsx[2m [ src/screens/admin/workspace/integrations.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/financials/cash/cash.test.tsx[2m [ src/screens/financials/cash/cash.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/financials/pricing/pricing.test.tsx[2m [ src/screens/financials/pricing/pricing.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/financials/wallets/wallets.test.tsx[2m [ src/screens/financials/wallets/wallets.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/operations/corporate/corporate.test.tsx[2m [ src/screens/operations/corporate/corporate.test.tsx ][22m
+[41m[1m FAIL [22m[49m src/screens/operations/trips/trips.test.tsx[2m [ src/screens/operations/trips/trips.test.tsx ][22m
+[31m[1mReferenceError[22m: CASH_COMMISSION_PERCENT is not defined[39m
+[36m [2m❯[22m src/data/fixtures/financials.ts:[2m1008:53[22m[39m
+    [90m1006| [39mexport const fillerCashReports: CashReport[] = Array.from({ length: 44…
+    [90m1007| [39m  [35mconst[39m trip [33m=[39m [34mcycleRecord[39m([33mCASHABLE_TRIPS[39m[33m,[39m i [33m*[39m [34m3[39m [33m+[39m [34m1[39m)
+    [90m1008| [39m  const commission = Math.round(trip.fareHalalas * (CASH_COMMISSION_PE…
+    [90m   | [39m                                                    [31m^[39m
+    [90m1009| [39m  [35mconst[39m operator [33m=[39m [34mcycleRecord[39m(
+    [90m1010| [39m    [
+[90m [2m❯[22m src/data/fixtures/financials.ts:[2m1006:54[22m[39m
+[90m [2m❯[22m src/data/clients/ledger.ts:[2m26:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m9 failed[39m[22m[90m (9)[39m
+[2m      Tests [22m [2mno tests[22m
+[2m   Start at [22m 01:25:47
+[2m   Duration [22m 40.55s[2m (transform 16.88s, setup 0ms, collect 0ms, tests 0ms, environment 55.21s, prepare 6.96s)[22m
+

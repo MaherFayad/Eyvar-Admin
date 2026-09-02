@@ -27,16 +27,27 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
-import { dimensionFixtures, measureFixtures } from '../fixtures/measures'
-import {
-  dashboardFixtures,
-  savedReportFixtures,
-} from '../fixtures/reports'
 import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
-import { resolveReport, resetReportRowCap, useTruncatedReports } from '../mock/resolveReport'
-import { planQuery, type Catalogue } from '../reporting/plan'
+/* **The seams come from `mock/rowCap`, the resolver does not come from here at
+   all.** `resolveReport.ts` statically imports six fixture modules, so a static
+   import of it — even one only the mock branch calls — put seeded rows and the
+   Arabic name pool into the entry chunk of the `VITE_DATA_SOURCE=http` build,
+   where the resolver can never run. It is now reached by `await import()` inside
+   the branch that uses it. */
+import { resetReportRowCap, useTruncatedReports } from '../mock/rowCap'
+import {
+  MAX_COHORT_HORIZON,
+  MAX_FUNNEL_STEPS,
+  MAX_JOURNEY_DEPTH,
+  MIN_COHORT_HORIZON,
+  MIN_FUNNEL_STEPS,
+  MIN_JOURNEY_DEPTH,
+  applyReportMode,
+  planQuery,
+  type Catalogue,
+} from '../reporting/plan'
 import { resolveWindow } from '../reporting/buckets'
 import { serialiseReportQuery } from '../reporting/serialise'
 import type { IsoDate, Paginated, QueryParams, Single } from '../types/common'
@@ -55,6 +66,26 @@ import {
 } from '../types/report'
 import { currentMockPermissions, currentMockUserId } from './session'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let dimensionFixtures!: Fixtures['dimensionFixtures']
+let measureFixtures!: Fixtures['measureFixtures']
+let dashboardFixtures!: Fixtures['dashboardFixtures']
+let savedReportFixtures!: Fixtures['savedReportFixtures']
+onFixturesLoaded((f) => {
+  dimensionFixtures = f.dimensionFixtures
+  measureFixtures = f.measureFixtures
+  dashboardFixtures = f.dashboardFixtures
+  savedReportFixtures = f.savedReportFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  CATALOGUE = { measures: measureFixtures, dimensions: dimensionFixtures }
+  reports = savedReportFixtures.map((r) => ({ ...r }))
+})
 
 export const REPORT_OPERATIONS = {
   run: 'reports.run',
@@ -72,10 +103,10 @@ export const REPORT_OPERATIONS = {
    listed the moment the module is imported. */
 registerOperations(...Object.values(REPORT_OPERATIONS))
 
-const CATALOGUE: Catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
+let CATALOGUE!: Catalogue
 
 /** Mutable copies, so a save is observable within a session. **Not persistence** — see `fixtures/reports.ts`. */
-let reports: SavedReport[] = savedReportFixtures.map((r) => ({ ...r }))
+let reports!: SavedReport[]
 
 /* ───────────────────────────── run ─────────────────────────────────────── */
 
@@ -118,6 +149,8 @@ export async function runReport(
     const result = await http.post<ReportResult>('/reports/run', query, { signal })
     return { status: 'ok', result }
   }
+  /* The resolver and its fixtures arrive with this chunk, not with the app. */
+  const { resolveReport: resolve } = await import('../mock/resolveReport')
   return mock(REPORT_OPERATIONS.run, signal, () => {
     const today = options.today ?? EYVAR_TODAY
     const plan = planQuery(query, CATALOGUE, today)
@@ -129,7 +162,7 @@ export async function runReport(
     }
     return {
       status: 'ok' as const,
-      result: resolveReport(query, CATALOGUE, {
+      result: resolve(query, CATALOGUE, {
         permissions: currentMockPermissions() as readonly PermissionKey[],
         today,
         failMeasureKeys: options.failMeasureKeys,
@@ -372,9 +405,10 @@ export async function exportReport(
   if (DATA_SOURCE === 'http') {
     return http.post<ReportCsv>('/reports/export', query, { signal })
   }
+  const { resolveReport: resolve } = await import('../mock/resolveReport')
   return mock(REPORT_OPERATIONS.export, signal, () => {
     const today = options.today ?? EYVAR_TODAY
-    const outcome = resolveReport(query, CATALOGUE, {
+    const outcome = resolve(query, CATALOGUE, {
       permissions: currentMockPermissions() as readonly PermissionKey[],
       today,
     })
@@ -397,7 +431,41 @@ export { useTruncatedReports }
 /** The shareable link for a query, for a QA engineer pinning a state from the URL. */
 export { serialiseReportQuery }
 
+/* ─────────────── the mode, and the bounds its controls need ────────────── */
+
+/**
+ * Re-exported here rather than imported from `reporting/plan` by a screen, so
+ * **the panel reaches the query model through the same door `reports.run`
+ * does**. `applyReportMode` is the one function that may change a query's mode:
+ * four of the five modes decide the chart and three collapse the grain, and a
+ * screen doing that itself would be a second copy of the legality rules this
+ * client validates against.
+ *
+ * The six bounds come with it because a stepper that lets an operator reach a
+ * horizon the planner then refuses is a control that lies about its own range.
+ * One declaration, read by the picker and by the refusal.
+ */
+export {
+  MAX_COHORT_HORIZON,
+  MAX_FUNNEL_STEPS,
+  MAX_JOURNEY_DEPTH,
+  MIN_COHORT_HORIZON,
+  MIN_FUNNEL_STEPS,
+  MIN_JOURNEY_DEPTH,
+  applyReportMode,
+}
+
+/**
+ * §3.2's nine presets, from the query model, so the range control this module's
+ * mode panel needs offers the same nine in the same order as `QueryPanel`.
+ */
+export { REPORT_PRESETS } from '../types/report'
+
 export function resetReports(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   reports = savedReportFixtures.map((r) => ({ ...r }))
   resetReportRowCap()
 }

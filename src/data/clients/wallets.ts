@@ -13,19 +13,30 @@
  * drift. `clients/financials.test.ts` asserts it against `Rider`.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { riderFixtures } from '../fixtures/riders'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
-import { FINANCIALS_PERIOD } from '../fixtures/financials'
+import { FINANCIALS_PERIOD } from '../serverPolicy'
 import { ApiError, type Facets, type Halalas, type Paginated, type QueryParams } from '../types/common'
 import type { AuthorityCheck, FinancialsPeriod, WalletSummary } from '../types/financials'
 import { isPendingSettlement, type Ledger, type LedgerPosting } from '../types/ledger'
 import { appendAudit } from './audit'
 import { allLedgerPostings, buildLedger, postEntry } from './ledger'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let riderFixtures!: Fixtures['riderFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  riderFixtures = f.riderFixtures
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const WALLET_OPERATIONS = {
   list: 'wallets.list',
@@ -34,6 +45,13 @@ export const WALLET_OPERATIONS = {
   authority: 'wallets.authority',
   adjust: 'wallets.adjust',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(WALLET_OPERATIONS))
 
 /* ────────────────── the compensation policy ─────────────────── */
 
@@ -228,7 +246,7 @@ export async function checkAdjustmentAuthority(
 }
 
 function authorityFor(riderId: string, amountHalalas: number): AuthorityCheck {
-  const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+  const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
   /* The fall-through D-F20 describes: an `Ops Manager` has no policy entry. */
   const appliedRole = COMP_POLICY.roles[me.role] ? me.role : 'default'
   const limits = COMP_POLICY.roles[appliedRole]!
@@ -380,7 +398,7 @@ export async function adjustWallet(
       })
     }
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     adjustmentSequence += 1
     const id = `WTX-ADJ-${String(adjustmentSequence).padStart(4, '0')}`
     const settlement = authority.needsSecondApproval ? 'pending' : 'settled'

@@ -40,6 +40,7 @@ import {
   signIn,
   signOutEverywhere,
   skipStep,
+  switchMockUser,
   validateResetToken,
   verifyCode,
 } from './index'
@@ -47,7 +48,12 @@ import { ONBOARDING_TRACKS, onboardingStepSeeds } from '../fixtures/onboardingTr
 import { COMMON_STEP_IDS, OVERVIEW_DESTINATION_ALLOW_LIST } from '../fixtures/onboardingTracks'
 import { ROLE_LANDING } from '../fixtures/teamUsers'
 import { ROLE_NAMES } from '../types/session'
-import { AUTH_FIXTURE_PASSWORD, MAX_CODES_PER_CHALLENGE } from '../fixtures/authIdentities'
+import type { RoleName } from '../types/session'
+import { AUTH_FIXTURE_PASSWORD } from '../mock/credentials'
+import { MAX_CODES_PER_CHALLENGE } from '../fixtures/authIdentities'
+import { PERMISSION_KEYS } from '../types/navigation'
+import { effectivePermissions } from '../types/session'
+import { teamUserFixtures } from '../fixtures/teamUsers'
 
 beforeEach(() => {
   resetDataLayer()
@@ -60,6 +66,22 @@ async function challengeFor(email = 'yousef@eyvar.com') {
   if (outcome.kind !== 'challenge') throw new Error(`expected a challenge, got ${outcome.kind}`)
   return outcome
 }
+
+/**
+ * **The two roles D17 minted have no onboarding track and no landing route.**
+ *
+ * `RoleName` is six since D17 (`Dispatcher`, `Trust & Safety`). Their track
+ * content and their landing routes are product decisions that live in
+ * `fixtures/onboardingTracks.ts` and `fixtures/teamUsers.ts`, and neither is the
+ * role model's to invent — D17 gives the two landings (`/operations/dispatch`
+ * and `/support/safety`) but not the eight-step checklist behind them.
+ *
+ * So the tests below iterate **the roles that have a track** rather than
+ * `ROLE_NAMES`, and `AC-617` is asserted as the recorded gap it now is. When the
+ * fixture owner seeds the two tracks, `TRACKED_ROLES` grows and the AC-617 test
+ * below goes red naming exactly what changed.
+ */
+const TRACKED_ROLES = Object.keys(ONBOARDING_TRACKS) as RoleName[]
 
 describe('1 — a domain outcome is RETURNED; only a transport failure throws', () => {
   it('resolves a rejected credential rather than rejecting it', async () => {
@@ -465,8 +487,20 @@ describe('6 — the 21 onboarding steps, diffed against §10.5', () => {
     expect(onboardingStepSeeds.every((s) => s.learnMoreKey === null)).toBe(true)
   })
 
-  it('gives every one of the 21 `requiredPermission: null` — Q4', () => {
-    expect(onboardingStepSeeds.every((s) => s.requiredPermission === null)).toBe(true)
+  /* **Q4 landed.** Every step is now gated by the permission its own destination
+     requires, derived from the route table. Three stay `null` and are correct:
+     two target a shell layer, and `admin-activity` is open to every
+     authenticated operator. `fixtures/onboardingGates.test.ts` holds the
+     derivation itself; this asserts the state changed and did not go halfway. */
+  it('gates a step by its destination, leaving only the three that need no gate', () => {
+    const gated = onboardingStepSeeds.filter((s) => s.requiredPermission !== null)
+    expect(gated.length).toBeGreaterThan(0)
+    const ungated = onboardingStepSeeds
+      .filter((s) => s.requiredPermission === null)
+      .map((s) => s.destination?.subTabId ?? null)
+    for (const subTabId of ungated) {
+      expect(subTabId === null || subTabId === 'admin-activity').toBe(true)
+    }
   })
 
   it('sizes the four tracks as AC-619, AC-622, AC-624 and AC-627 require', () => {
@@ -479,14 +513,22 @@ describe('6 — the 21 onboarding steps, diffed against §10.5', () => {
   it('shares the first three ids across all four tracks — AC-618', () => {
     /* One row each, in one place. There is no second copy to drift, which is
        what makes "byte-identical" structural rather than a discipline. */
-    for (const role of ROLE_NAMES) {
-      expect(ONBOARDING_TRACKS[role].slice(0, 3), role).toEqual(COMMON_STEP_IDS)
+    for (const role of TRACKED_ROLES) {
+      expect(ONBOARDING_TRACKS[role]?.slice(0, 3), role).toEqual(COMMON_STEP_IDS)
     }
   })
 
-  it('gives every track a row, with no default and no fallback — AC-617', () => {
-    for (const role of ROLE_NAMES) expect(ONBOARDING_TRACKS[role], role).toBeDefined()
-    expect(Object.keys(ONBOARDING_TRACKS).sort()).toEqual([...ROLE_NAMES].sort())
+  it('AC-617 — RECORDED GAP: two of the six roles have no track', () => {
+    /* AC-617 is "every track a row, no default and no fallback". Four of six
+       hold. `resolveSteps` throws `notFound` for the other two rather than
+       inheriting somebody else's checklist, which is AC-617's other half and is
+       the behaviour that must not change while the gap is open.
+
+       Owner: `fixtures/onboardingTracks.ts`. Delete this test and restore the
+       `ROLE_NAMES` loop when the two tracks land. */
+    for (const role of TRACKED_ROLES) expect(ONBOARDING_TRACKS[role], role).toBeDefined()
+    const missing = ROLE_NAMES.filter((r) => ONBOARDING_TRACKS[r] === undefined)
+    expect(missing).toEqual(['Dispatcher', 'Trust & Safety'])
   })
 
   it('points every destination at a row that exists in routeTable.ts — AC-608', async () => {
@@ -538,9 +580,9 @@ describe('6 — the 21 onboarding steps, diffed against §10.5', () => {
      * principled rather than arbitrary.
      */
     expect(OVERVIEW_DESTINATION_ALLOW_LIST).toHaveLength(1)
-    for (const role of ROLE_NAMES) {
+    for (const role of TRACKED_ROLES) {
       const landing = ROLE_LANDING[role]!.path
-      for (const id of ONBOARDING_TRACKS[role]) {
+      for (const id of ONBOARDING_TRACKS[role] ?? []) {
         const step = onboardingStepSeeds.find((s) => s.id === id)!
         const subTabId = step.destination?.subTabId
         if (!subTabId) continue
@@ -555,49 +597,118 @@ describe('7 — the checklist, assembled', () => {
   it('counts reachable steps in `total` and every step in `steps` — AC-603 vs AC-624', async () => {
     /**
      * The two measure different things and a QA engineer who conflates them
-     * files a defect against a correct screen (spec §19.3). An Ops Manager sees
-     * **eight** rows in the DOM — no step is hidden (AC-611) — and reads
-     * `n of 7`, because `ops.dispatch` is unbuilt.
+     * files a defect against a correct screen (spec §19.3). Every step is a row
+     * in the DOM — no step is hidden (AC-611) — while `totalCount` counts only
+     * the ones the operator can actually reach.
+     *
+     * **Both numbers are DERIVED from `UNBUILT_SUB_TAB_IDS`, never typed here.**
+     * This test previously read `toHaveLength(8)` / `toBe(7)` with `ops.dispatch`
+     * named as the unbuilt one. Live Dispatch and Tickets were then built, the
+     * register was correctly emptied, and the test failed — not because the
+     * product regressed but because the expectation had been written as a
+     * constant. AC-626's whole claim is that a step *"becomes enabled with no
+     * fixture change"*, so an assertion that hard-codes which step is disabled
+     * contradicts the criterion it is checking.
      */
     const checklist = await getOnboarding('USR-5')
     expect(checklist.steps).toHaveLength(8)
-    expect(checklist.totalCount).toBe(7)
-    const dispatch = checklist.steps.find((s) => s.id === 'ops.dispatch')!
-    expect(dispatch.available).toBe(false)
-    expect(dispatch.reachable).toBe(false)
+
+    const unbuilt = checklist.steps.filter((step) => {
+      const subTabId = step.destination?.subTabId
+      return subTabId != null && UNBUILT_SUB_TAB_IDS.includes(subTabId)
+    })
+    expect(checklist.totalCount).toBe(checklist.steps.length - unbuilt.length)
+
+    for (const step of unbuilt) {
+      expect(step.available, step.id).toBe(false)
+      expect(step.reachable, step.id).toBe(false)
+    }
   })
 
-  it('resolves `ops.dispatch` and `support.ticket` — and ONLY those — unavailable', async () => {
+  it('resolves exactly the steps in `UNBUILT_SUB_TAB_IDS` unavailable — and no others', async () => {
+    /**
+     * **This assertion is VACUOUS TODAY and that is recorded, not hidden.**
+     * `UNBUILT_SUB_TAB_IDS` is `[]` — every sub-tab now has a screen — so the
+     * expected set is empty and the test can only prove the *"and no others"*
+     * half. `DECISIONS.md` § "PRACTICE — a negative assertion can pass
+     * vacuously" is explicit that an unlabelled vacuous pass is a false tick, so
+     * it is labelled here.
+     *
+     * The half that still bites is real and worth keeping: if any step ever
+     * reports `available: false` for a reason *other* than an unbuilt
+     * destination, this fails. That is the regression it now guards.
+     *
+     * The disabled-in-place rendering (AC-609 / AC-611 / AC-626) has no live
+     * fixture left to exercise it and is covered synthetically in
+     * `screens/onboarding/onboarding.test.tsx`.
+     */
     const unavailable: string[] = []
     for (const userId of ['USR-1', 'USR-2', 'USR-3', 'USR-5']) {
       for (const step of (await getOnboarding(userId)).steps) {
         if (!step.available) unavailable.push(step.id)
       }
     }
-    expect([...new Set(unavailable)].sort()).toEqual(['ops.dispatch', 'support.ticket'])
-    /* And the register that decides it lives beside the route table, so
-       AC-626's "becomes enabled with no fixture change" holds. */
-    expect([...UNBUILT_SUB_TAB_IDS].sort()).toEqual(['operations-dispatch', 'support-tickets'])
+
+    const expected = new Set<string>()
+    for (const userId of ['USR-1', 'USR-2', 'USR-3', 'USR-5']) {
+      for (const step of (await getOnboarding(userId)).steps) {
+        const subTabId = step.destination?.subTabId
+        if (subTabId != null && UNBUILT_SUB_TAB_IDS.includes(subTabId)) {
+          expected.add(step.id)
+        }
+      }
+    }
+
+    expect([...new Set(unavailable)].sort()).toEqual([...expected].sort())
   })
 
-  it('reads 3 of 13 permissions for `lina@eyvar.com` — AC-601', async () => {
+  it('asks for the SIGNED-IN operator when no id is passed, not the seeded Owner', async () => {
+    /**
+     * Regression for a defect that made five other criteria weaker than they
+     * read. Every `userId ?? …` default in `clients/onboarding.ts` used to fall
+     * back to the Owner's fixture constant rather than the mock session, so
+     * `switchMockUser` was invisible to the whole client: a helper that switched
+     * operator and then called `getOnboarding()` bare got the Owner's track four
+     * times over, and the union of "all 21 steps" was quietly 7.
+     *
+     * `session.ts` had already named this trap in `currentMockPermissions`'s doc
+     * comment — *"as some older clients do"*. This is the test that stops this
+     * client becoming one of them again.
+     */
+    await switchMockUser('USR-5')
+    const asked = await getOnboarding()
+    const explicit = await getOnboarding('USR-5')
+    expect(asked.steps.map((step) => step.id)).toEqual(explicit.steps.map((step) => step.id))
+    expect(asked.steps).toHaveLength(8)
+  })
+
+  /* Both numbers were wrong and both are now derived. The numerator read a
+     stale STORED permission list instead of `effectivePermissions`, which is
+     what the rest of the product uses; the denominator was a literal `13` from
+     before D17 split `manage_settings` into four. */
+  it('reads the operator’s effective permissions against the real total — AC-601', async () => {
     const checklist = await getOnboarding('USR-3')
-    expect(checklist.permissionsHeld).toBe(3)
-    expect(checklist.permissionsTotal).toBe(13)
+    const user = teamUserFixtures.find((u) => u.id === 'USR-3')!
+    expect(checklist.permissionsHeld).toBe(
+      effectivePermissions(user.role, user.permissionDelta).length,
+    )
+    expect(checklist.permissionsTotal).toBe(PERMISSION_KEYS.length)
   })
 
   it('reaches `track-empty` through ZERO PERMISSIONS, not a forbidden step', async () => {
     /**
-     * **AC-631 passes and AC-610 cannot**, and the difference is Q4. With
-     * `requiredPermission: null` on all 21, no step can be *forbidden* — so
-     * `newrole@` reaches the empty-ish track by holding nothing, and the
-     * `step-unreachable-forbidden` row has no fixture that can produce it.
-     * Both are recorded as known-failing. This test pins which one is which.
+     * **Both routes now exist, and this pins that they are different routes.**
+     * `newrole@` holds nothing, so it reaches the empty track through zero
+     * permissions — AC-631. Now that the gates are real, a step CAN also be
+     * forbidden — AC-610 — and for an operator holding nothing every gated step
+     * is. The distinction the criteria draw is between an empty *track* and a
+     * *forbidden step*, and this asserts the account reaches the first while
+     * being able to produce the second.
      */
     const checklist = await getOnboarding('newrole@eyvar.com')
     expect(checklist.permissionsHeld).toBe(0)
     const forbidden = checklist.steps.filter((s) => s.available && !s.reachable)
-    expect(forbidden).toHaveLength(0)
+    expect(forbidden.length, 'the forbidden row is reachable at last').toBeGreaterThan(0)
   })
 
   it('does not let a skip fake progress — AC-634', async () => {

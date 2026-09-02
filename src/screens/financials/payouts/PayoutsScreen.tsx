@@ -46,8 +46,63 @@
  *   R5a / AC-367
  *              a returned payout takes the row marker, the words in its own
  *              cell and ONE page banner with a count. There is no red badge.
- *   §9.3       no bulk action exists on any of these tables, so none renders a
- *              checkbox column.
+ *   §7.1 / P4-T1
+ *              **all three views are `mode: 'index'` and carry a bulk bar.**
+ *              See the two notes below — this is a deliberate change to what
+ *              this file used to say, not a drift.
+ *
+ * ## P4-T1 — selection, and the one criterion it contradicts
+ *
+ * `OPERATOR-EXPERIENCE-PLAN.md` **P4-T1** names Payouts among the ten screens
+ * that gain selection and a bulk bar, and paying a captain, releasing a hold
+ * and applying a deduction are all set-shaped work: an operator settles a
+ * period, not a captain.
+ *
+ * The three tables move from `mode: 'queue'` to **`mode: 'index'`**, which is
+ * what they always were — an index of captains and of documents, with no claim
+ * contract, no owner chip and no closed set of dispositions. §9.3's checkbox
+ * restriction is a rule about **queues** (*"only if every bulk action offered
+ * is a claim or assign action"*), and `Pay` is not a claim; the sanctioned
+ * shape for a bulk command that is not a claim is an index table, which
+ * `design/00-shell.md` §9.4 lists as *"checkbox column, kebab, sort popover,
+ * bulk bar"*.
+ *
+ * > **⚠ This contradicts AC-476 as written, and product-owner has to settle
+ * > it.** *"The three index tables that gain a `Reverse` row action **do not
+ * > gain selection**: no header checkbox, no row checkbox, no bulk bar at any
+ * > selection state."* Those three tables are these three. The criterion sits
+ * > inside the **reversal** flow (AC-468–476), which has not shipped, and its
+ * > own last sentence gives its reason: *"Acquiring selection as a side effect
+ * > of gaining a row action fails."* That reason is intact here — selection
+ * > arrives with four declared bulk commands and their refusals, not as a side
+ * > effect of anything. **AC-335 is untouched and must stay so: `Reverse` is
+ * > not among the bulk commands, and no Financials surface selects postings.**
+ * > Raised in the handoff; AC-476 needs re-wording or P4-T1 needs to lose this
+ * > screen, and an engineer must not pick.
+ *
+ * ## The set semantics, in one sentence
+ *
+ * **D21, ratified.** A bulk command is refused if **any** selected record would
+ * be refused, the refusal names the count, and there is **no partial apply**:
+ * on a money surface, paying the eligible five and silently leaving four is a
+ * reconciliation incident. The predicate is the row action's own
+ * (`payWithheldFrom`, `releaseWithheldFrom`, `deductionWithheldFrom`), read
+ * over the selection by `bulkRefusal`, so the two surfaces cannot disagree
+ * about the same record — the divergence **D9** records.
+ *
+ * The one way out is the bar's own **`Select only the N eligible`**, fed by
+ * `eligibleIds` below. **It is not a partial apply**: the selection changes
+ * visibly, by the operator's act, and the bar's count updates *before* the
+ * command can run — so the number in the outcome toast is always the number
+ * that was on the bar (**AC-961**). Every refused command here declares the
+ * eligible subset **of the current selection**, and declares nothing when the
+ * whole selection is refused, which is the case that takes D21's `.all`
+ * sentence and no control (**AC-960**).
+ *
+ * **A permission refusal outranks a domain one** (**AC-962**) — the order the
+ * three `*_REFUSAL_ORDER` arrays declare. Telling a Finance associate that four
+ * captains have no bank account, when the real answer is that their role moves
+ * no money at all, wastes their time twice.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -74,24 +129,76 @@ import type {
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatMoney, type Translate } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
-import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
+import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
-import { localisedText } from '../shared/text'
+import { bulkRefusalText, localisedText } from '../shared/text'
 import { LedgerCard } from '../shared/LedgerCard'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
+import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { useMoneyActions } from '../shared/actions'
 import {
+  bulkRefusal,
   deductionWithheldFrom,
   netPayableHalalas,
   payWithheldFrom,
   releaseWithheldFrom,
 } from '../shared/derive'
 import { useScreenViews, type ScreenView } from '../shared/views'
+
+/**
+ * **§11.2 over a set reads differently from §11.2 over a row**, so each cause
+ * carries a second sentence and these three maps are where the two are paired.
+ *
+ * The keys are the row predicate's own return type, so a fourth refusal added
+ * to `payWithheldFrom` fails to compile here until its set sentence is written
+ * — the same guard `derive.ts` puts on the row sentence, extended to the bar.
+ *
+ * The **order** is the precedence: a role that cannot move money is refused on
+ * the whole set, and naming a subset underneath that would be misleading.
+ */
+const PAY_REFUSAL_ORDER = [
+  'fin.payout.blocked.permission',
+  'fin.payout.blocked.noBank',
+  'fin.payout.blocked.nothing',
+] as const
+
+const PAY_REFUSAL_COPY = {
+  'fin.payout.blocked.permission': 'fin.bulk.pay.permission',
+  'fin.payout.blocked.noBank': 'fin.bulk.pay.noBank',
+  'fin.payout.blocked.nothing': 'fin.bulk.pay.nothing',
+} as const
+
+const RELEASE_REFUSAL_ORDER = [
+  'fin.payout.blocked.permission',
+  'fin.escrow.blocked.state',
+  'fin.escrow.blocked.trips',
+] as const
+
+const RELEASE_REFUSAL_COPY = {
+  'fin.payout.blocked.permission': 'fin.bulk.release.permission',
+  'fin.escrow.blocked.state': 'fin.bulk.release.state',
+  'fin.escrow.blocked.trips': 'fin.bulk.release.trips',
+} as const
+
+const DEDUCTION_REFUSAL_ORDER = [
+  'fin.payout.blocked.permission',
+  'fin.deduction.blocked.decided',
+] as const
+
+const APPLY_REFUSAL_COPY = {
+  'fin.payout.blocked.permission': 'fin.bulk.apply.permission',
+  'fin.deduction.blocked.decided': 'fin.bulk.apply.decided',
+} as const
+
+const WAIVE_REFUSAL_COPY = {
+  'fin.payout.blocked.permission': 'fin.bulk.waive.permission',
+  'fin.deduction.blocked.decided': 'fin.bulk.waive.decided',
+} as const
 
 const VIEWS: readonly ScreenView[] = [
   { id: 'payouts', titleKey: 'fin.payouts.view.payouts' },
@@ -208,8 +315,10 @@ function PayoutsView({
 }: ViewProps & { onOpenLedger: (id: string) => void; onFailedCount: (count: number) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
+  /* **P4-T1** — an index, which is what it always was: no claim, no owner chip,
+     no dispositions. See the file header for the AC-476 conflict this opens. */
   const table = useIndexTable<CaptainPayout>({
-    mode: 'queue',
+    mode: 'index',
     getRowId: (payout) => payout.captainId,
   })
   const actions = useMoneyActions<CaptainPayout>({ keyOf: (payout) => payout.captainId })
@@ -217,7 +326,7 @@ function PayoutsView({
 
   const payouts = useAsync<Paginated<CaptainPayout>>(
     (signal) => listCaptainPayouts({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.list' },
   )
 
   const rows = useMemo(
@@ -225,11 +334,17 @@ function PayoutsView({
     [actions, payouts.data],
   )
 
+  /* **P8-T1** — the captain name opens the captain. `useEntityLinks` asks
+     whether each id resolves before it renders a link, so a captain the product
+     cannot open stays as text (see `entityLinks.tsx`). */
+  const hrefFor = useEntityLinks(useMemo(() => rows.map((p) => p.captainId), [rows]))
+
   /* The banner counts the whole population, not the page: a count of what is on
      screen understates the moment there are two pages (**AC-367**). */
   const failed = useAsync<Paginated<CaptainPayout>>(
     (signal) => listCaptainPayouts({ view: 'failed', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the index read's `[{...}]`. */
+    { deps: [], cacheKey: 'payouts.list' },
   )
   const failedTotal = failed.data?.total ?? 0
   useEffect(() => {
@@ -278,6 +393,8 @@ function PayoutsView({
     () => [
       {
         id: 'captain',
+        emphasis: 'primary',
+        csv: (payout) => payout.captainName,
         header: t('fin.payout.col.captain'),
         dataType: 'text',
         minWidth: 200,
@@ -286,7 +403,13 @@ function PayoutsView({
           <span className="relative block font-medium">
             {/* R5a use #3 — a returned payout, in the leading edge. */}
             {payout.state === 'failed' && <RowCriticalMarker />}
-            {payout.captainName}
+            {/* **P8-T1** — the identity opens the 360° profile. The captain
+                **payable ledger** keeps its own labelled `View ledger` control
+                in the action lane: this sub-tab is an index of ledgers and the
+                captain has two of them (payable and receivable), so no single
+                money view can claim the name. Rider Wallets is the one place
+                the name IS the ledger, and that is AC-382, not a preference. */}
+            <EntityName href={hrefFor(payout.captainId)} name={payout.captainName} t={t} />
           </span>
         ),
         secondaryLine: (payout) => {
@@ -318,6 +441,8 @@ function PayoutsView({
       },
       {
         id: 'payable',
+        emphasis: 'data',
+        csv: (payout) => payout.payableHalalas,
         header: t('fin.payout.col.payable'),
         dataType: 'money',
         align: 'end',
@@ -327,6 +452,7 @@ function PayoutsView({
       },
       {
         id: 'debt',
+        csv: (payout) => payout.cashDebtHalalas,
         header: t('fin.payout.col.debt'),
         dataType: 'money',
         align: 'end',
@@ -336,6 +462,8 @@ function PayoutsView({
       },
       {
         id: 'net',
+        emphasis: 'data',
+        csv: (payout) => netPayableHalalas(payout.payableHalalas, payout.cashDebtHalalas),
         header: t('fin.payout.col.net'),
         dataType: 'money',
         align: 'end',
@@ -348,6 +476,7 @@ function PayoutsView({
       },
       {
         id: 'state',
+        emphasis: 'data',
         header: t('fin.payout.col.state'),
         dataType: 'enum',
         width: 168,
@@ -370,7 +499,7 @@ function PayoutsView({
         },
       },
     ],
-    [t, language, actions],
+    [t, language, actions, hrefFor],
   )
 
   const rowActions = useMemo<RowAction<CaptainPayout>[]>(
@@ -394,9 +523,117 @@ function PayoutsView({
       {
         label: t('fin.payout.action.ledger'),
         onSelect: (payout) => onOpenLedger(payout.captainId),
+        /* **P0-2 — the declared row-click target.** The only action on this
+           table that opens something rather than moving money: `Pay` is one
+           click from a real payout and must never be reachable by a stray
+           click on a row. */
+        rowClick: true,
       },
     ],
     [t, gate.canWrite, confirmPay, onOpenLedger],
+  )
+
+  /* ── the bulk bar ── */
+
+  const selected = useMemo(
+    () => rows.filter((payout) => table.selectedIds.has(payout.captainId)),
+    [rows, table.selectedIds],
+  )
+
+  /**
+   * **§11.2 over the set, decided at REST** — before the click, from the same
+   * predicate the row kebab reads. `bulkRefusal` returns the first cause any
+   * selected row carries, in the declared precedence, with how many carry it.
+   */
+  const payRefusal = useMemo(
+    () =>
+      bulkRefusalText(
+        t,
+        language,
+        bulkRefusal(
+          selected.map((payout) => payWithheldFrom(payout, gate.canWrite)),
+          PAY_REFUSAL_ORDER,
+        ),
+        PAY_REFUSAL_COPY,
+      ),
+    [selected, gate.canWrite, t, language],
+  )
+
+  /**
+   * **D21's escape hatch** — the ids **in the current selection** this command
+   * would accept, from the same predicate the refusal read.
+   *
+   * `undefined` rather than an empty set when nothing is eligible: there is
+   * nothing to narrow to, the sentence is already the `.all` form, and a
+   * `Select only the 0 eligible` control is a dead end (**AC-960**).
+   */
+  const payEligible = useMemo(() => {
+    const ids = selected
+      .filter((payout) => payWithheldFrom(payout, gate.canWrite) === null)
+      .map((payout) => payout.captainId)
+    return ids.length === 0 ? undefined : new Set(ids)
+  }, [selected, gate.canWrite])
+
+  /**
+   * **AC-366 over a set.** The three lines are the sums of the same three
+   * per-row values, and the net is summed from `netPayableHalalas` per captain
+   * rather than as `Σpayable − Σdebt` — those agree today and stop agreeing the
+   * moment one captain has a negative payable, and the committed amount is
+   * per-captain either way.
+   */
+  const confirmPayMany = useCallback(() => {
+    const payable = selected.reduce((sum, payout) => sum + payout.payableHalalas, 0)
+    const debt = selected.reduce((sum, payout) => sum + payout.cashDebtHalalas, 0)
+    const net = selected.reduce(
+      (sum, payout) => sum + netPayableHalalas(payout.payableHalalas, payout.cashDebtHalalas),
+      0,
+    )
+    const keys = selected.map((payout) => payout.captainId)
+    setRequest({
+      title: t.plural('fin.bulk.pay.confirm.title', {
+        count: keys.length,
+        net: formatMoney(net),
+      }),
+      body: t('fin.bulk.pay.confirm.body'),
+      confirmLabel: t('fin.bulk.pay.confirm.confirm'),
+      lines: [
+        { label: t('fin.payout.col.payable'), amountHalalas: payable },
+        { label: t('fin.payout.col.debt'), amountHalalas: debt },
+        { label: t('fin.payout.col.net'), amountHalalas: net, emphasis: true },
+      ],
+      onConfirm: () => {
+        void actions
+          .runMany({
+            keys,
+            errorMessage: t('fin.error.row'),
+            toastMessage: t('fin.bulk.pay.toast'),
+            /* Every captain is paid through the SAME client call the row action
+               uses, so each writes its own posting and its own audit entry
+               (**AC-362**, **AC-437**). There is no batch write anywhere in the
+               data layer and this must not pretend otherwise. */
+            action: (captainId) => payCaptain(captainId, 'payout.scheduled'),
+          })
+          .then(() => {
+            setRequest(null)
+            table.clearSelection()
+          })
+      },
+    })
+  }, [selected, actions, table, t])
+
+  const bulkActions = useMemo<BulkAction[]>(
+    () => [
+      {
+        /* §13.4 — the inverted strip takes the compact label. `Pay` already is
+           one, so the row action and the bar name the act identically. */
+        label: t('fin.payout.action.pay'),
+        onClick: confirmPayMany,
+        disabled: payRefusal !== null,
+        reason: payRefusal,
+        eligibleIds: payRefusal === null ? undefined : payEligible,
+      },
+    ],
+    [t, confirmPayMany, payRefusal, payEligible],
   )
 
   return (
@@ -416,8 +653,13 @@ function PayoutsView({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.payout.search')}
+        /* **R5a / AC-367** — a returned payout, declared once and read by both
+           carriers: this tint and the leading-edge marker in the identity
+           cell. */
+        isRowCritical={(payout) => payout.state === 'failed'}
         skeletonPattern="P1"
         rowActions={rowActions}
+        bulkActions={bulkActions}
         firstRun={{
           heading: t('fin.payout.empty.heading'),
           body: t('fin.payout.empty.body'),
@@ -441,21 +683,34 @@ function PayoutsView({
 function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
-  const table = useIndexTable<EscrowHold>({ mode: 'queue', getRowId: (hold) => hold.id })
+  const table = useIndexTable<EscrowHold>({ mode: 'index', getRowId: (hold) => hold.id })
   const actions = useMoneyActions<EscrowHold>({ keyOf: (hold) => hold.id })
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
   const holds = useAsync<Paginated<EscrowHold>>(
     (signal) => listEscrowHolds({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.escrow' },
   )
 
   const rows = useMemo(() => actions.apply(holds.data?.items ?? []), [actions, holds.data])
+
+  /* **P8-T1** — three entities on one row: the captain who is owed, the rider
+     who bought the plan, and the subscription the hold belongs to. The **hold
+     id** is not one: an escrow hold has no profile and no route, so it stays
+     text (**AC-474**'s rule, applied to a document rather than a posting). */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () => rows.flatMap((hold) => [hold.captainId, hold.riderId, hold.subscriptionId]),
+      [rows],
+    ),
+  )
 
   const columns = useMemo<DataColumn<EscrowHold>[]>(
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (hold) => hold.id,
         header: t('fin.escrow.col.id'),
         dataType: 'id',
         minWidth: 180,
@@ -479,7 +734,16 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
           /* **Q-F4, visible rather than absent.** A hold on a cancelled
              subscription is neither held nor releasable under any rule anybody
              has written, and the row says so instead of implying it is fine. */
-          return hold.subscriptionCancelled ? t('fin.escrow.cancelled') : hold.subscriptionId
+          if (hold.subscriptionCancelled) return t('fin.escrow.cancelled')
+          /* **P8-T1** — the subscription this hold belongs to, as a code. */
+          return (
+            <EntityName
+              href={hrefFor(hold.subscriptionId)}
+              name={hold.subscriptionId}
+              t={t}
+              code
+            />
+          )
         },
       },
       {
@@ -487,17 +751,19 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         header: t('fin.escrow.col.captain'),
         dataType: 'text',
         width: 170,
-        cell: (hold) => <span className="truncate">{hold.captainName}</span>,
+        cell: (hold) => <EntityName href={hrefFor(hold.captainId)} name={hold.captainName} t={t} />,
       },
       {
         id: 'rider',
         header: t('fin.escrow.col.rider'),
         dataType: 'text',
         width: 170,
-        cell: (hold) => <span className="truncate">{hold.riderName}</span>,
+        cell: (hold) => <EntityName href={hrefFor(hold.riderId)} name={hold.riderName} t={t} />,
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (hold) => hold.amountHalalas,
         header: t('fin.escrow.col.amount'),
         dataType: 'money',
         align: 'end',
@@ -523,6 +789,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'state',
+        emphasis: 'data',
         header: t('fin.escrow.col.state'),
         dataType: 'enum',
         width: 132,
@@ -544,7 +811,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         },
       },
     ],
-    [t, language, actions],
+    [t, language, actions, hrefFor],
   )
 
   const rowActions = useMemo<RowAction<EscrowHold>[]>(
@@ -587,6 +854,77 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     [t, gate.canWrite, actions],
   )
 
+  /* ── the bulk bar ── */
+
+  const selected = useMemo(
+    () => rows.filter((hold) => table.selectedIds.has(hold.id)),
+    [rows, table.selectedIds],
+  )
+
+  const releaseRefusal = useMemo(
+    () =>
+      bulkRefusalText(
+        t,
+        language,
+        bulkRefusal(
+          selected.map((hold) => releaseWithheldFrom(hold, gate.canWrite)),
+          RELEASE_REFUSAL_ORDER,
+        ),
+        RELEASE_REFUSAL_COPY,
+      ),
+    [selected, gate.canWrite, t, language],
+  )
+
+  const releaseEligible = useMemo(() => {
+    const ids = selected
+      .filter((hold) => releaseWithheldFrom(hold, gate.canWrite) === null)
+      .map((hold) => hold.id)
+    return ids.length === 0 ? undefined : new Set(ids)
+  }, [selected, gate.canWrite])
+
+  const confirmReleaseMany = useCallback(() => {
+    const amount = selected.reduce((sum, hold) => sum + hold.amountHalalas, 0)
+    const keys = selected.map((hold) => hold.id)
+    setRequest({
+      title: t.plural('fin.bulk.release.confirm.title', {
+        count: keys.length,
+        amount: formatMoney(amount),
+      }),
+      body: t('fin.bulk.release.confirm.body'),
+      confirmLabel: t('fin.bulk.release.confirm.confirm'),
+      lines: [{ label: t('fin.escrow.col.amount'), amountHalalas: amount }],
+      onConfirm: () => {
+        void actions
+          .runMany({
+            keys,
+            errorMessage: t('fin.error.row'),
+            toastMessage: t('fin.bulk.release.toast'),
+            /* **AC-364** — each hold transitions and stays on the list, and
+               each credits its own captain payable ledger. Same reason code as
+               the row action, because it is the same act. */
+            action: (id) => releaseEscrow(id, 'escrow.tripsDelivered'),
+          })
+          .then(() => {
+            setRequest(null)
+            table.clearSelection()
+          })
+      },
+    })
+  }, [selected, actions, table, t])
+
+  const bulkActions = useMemo<BulkAction[]>(
+    () => [
+      {
+        label: t('fin.escrow.action.release'),
+        onClick: confirmReleaseMany,
+        disabled: releaseRefusal !== null,
+        reason: releaseRefusal,
+        eligibleIds: releaseRefusal === null ? undefined : releaseEligible,
+      },
+    ],
+    [t, confirmReleaseMany, releaseRefusal, releaseEligible],
+  )
+
   return (
     <>
       <DataTable
@@ -606,6 +944,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         searchPlaceholder={t('fin.escrow.search')}
         skeletonPattern="P1"
         rowActions={rowActions}
+        bulkActions={bulkActions}
         rowActionsWidth={96}
         firstRun={{
           heading: t('fin.escrow.empty.heading'),
@@ -647,13 +986,13 @@ function deductionRefusal(
 function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
-  const table = useIndexTable<Deduction>({ mode: 'queue', getRowId: (deduction) => deduction.id })
+  const table = useIndexTable<Deduction>({ mode: 'index', getRowId: (deduction) => deduction.id })
   const actions = useMoneyActions<Deduction>({ keyOf: (deduction) => deduction.id })
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
   const deductions = useAsync<Paginated<Deduction>>(
     (signal) => listDeductions({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.deductions' },
   )
 
   const rows = useMemo(
@@ -661,10 +1000,23 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     [actions, deductions.data],
   )
 
+  /* **P8-T1** — the captain, and the trip the deduction was raised against.
+     `tripId` is nullable AND, in the fixtures, sometimes names a trip that does
+     not exist (`TRP-8043`); both render as text rather than as a link into a
+     not-found state. The deduction id itself is a document, not an entity. */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () => rows.flatMap((deduction) => [deduction.captainId, deduction.tripId]),
+      [rows],
+    ),
+  )
+
   const columns = useMemo<DataColumn<Deduction>[]>(
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (deduction) => deduction.id,
         header: t('fin.deduction.col.id'),
         dataType: 'id',
         minWidth: 190,
@@ -702,21 +1054,28 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         dataType: 'text',
         width: 180,
         sortField: 'captainName',
-        cell: (deduction) => <span className="truncate">{deduction.captainName}</span>,
+        cell: (deduction) => (
+          <EntityName href={hrefFor(deduction.captainId)} name={deduction.captainName} t={t} />
+        ),
       },
       {
         id: 'trip',
         header: t('fin.deduction.col.trip'),
         dataType: 'id',
         width: 132,
-        cell: (deduction) => (
-          <span className="tabular-nums">
-            <bdi>{deduction.tripId ?? ''}</bdi>
-          </span>
-        ),
+        /* §8.3.1 — a deduction raised against no trip renders nothing here, as
+           it always has. It is the ABSENCE of a reference, not an unknown one. */
+        cell: (deduction) =>
+          deduction.tripId === null ? (
+            <span className="tabular-nums" />
+          ) : (
+            <EntityName href={hrefFor(deduction.tripId)} name={deduction.tripId} t={t} code />
+          ),
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (deduction) => deduction.amountHalalas,
         header: t('fin.deduction.col.amount'),
         dataType: 'money',
         align: 'end',
@@ -726,6 +1085,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('fin.deduction.col.status'),
         dataType: 'enum',
         width: 132,
@@ -744,7 +1104,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         },
       },
     ],
-    [t, actions],
+    [t, actions, hrefFor],
   )
 
   const rowActions = useMemo<RowAction<Deduction>[]>(
@@ -816,6 +1176,132 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     [t, gate.canWrite, actions],
   )
 
+  /* ── the bulk bar ── */
+
+  const selected = useMemo(
+    () => rows.filter((deduction) => table.selectedIds.has(deduction.id)),
+    [rows, table.selectedIds],
+  )
+
+  /**
+   * `Apply` and `Waive` refuse on the SAME predicate and differ only in the
+   * sentence, exactly as their row actions do — so the refusal is computed once
+   * and worded twice, and the two can never disagree about which rows they
+   * would refuse.
+   */
+  const deductionSetRefusal = useMemo(
+    () =>
+      bulkRefusal(
+        selected.map((deduction) => deductionWithheldFrom(deduction, gate.canWrite)),
+        DEDUCTION_REFUSAL_ORDER,
+      ),
+    [selected, gate.canWrite],
+  )
+
+  /* One eligible set for both commands, because both read one predicate. */
+  const deductionEligible = useMemo(() => {
+    const ids = selected
+      .filter((deduction) => deductionWithheldFrom(deduction, gate.canWrite) === null)
+      .map((deduction) => deduction.id)
+    return ids.length === 0 ? undefined : new Set(ids)
+  }, [selected, gate.canWrite])
+
+  const totalHalalas = useMemo(
+    () => selected.reduce((sum, deduction) => sum + deduction.amountHalalas, 0),
+    [selected],
+  )
+
+  const confirmApplyMany = useCallback(() => {
+    const keys = selected.map((deduction) => deduction.id)
+    setRequest({
+      title: t.plural('fin.bulk.apply.confirm.title', {
+        count: keys.length,
+        amount: formatMoney(totalHalalas),
+      }),
+      body: t('fin.bulk.apply.confirm.body'),
+      confirmLabel: t('fin.bulk.apply.confirm.confirm'),
+      lines: [{ label: t('fin.deduction.col.amount'), amountHalalas: totalHalalas }],
+      onConfirm: () => {
+        void actions
+          .runMany({
+            keys,
+            errorMessage: t('fin.error.row'),
+            toastMessage: t('fin.bulk.apply.toast'),
+            action: (id) => applyDeduction(id, 'deduction.applied'),
+          })
+          .then(() => {
+            setRequest(null)
+            table.clearSelection()
+          })
+      },
+    })
+  }, [selected, totalHalalas, actions, table, t])
+
+  /**
+   * **AC-369 over a set.** A waiver requires a reason, and the bulk waiver asks
+   * for it **once** — one act, one justification, written onto every record it
+   * touched. That is the honest shape: an operator waiving nine deductions has
+   * one reason, and asking nine times would produce nine copies of it.
+   */
+  const confirmWaiveMany = useCallback(() => {
+    const keys = selected.map((deduction) => deduction.id)
+    setRequest({
+      title: t.plural('fin.bulk.waive.confirm.title', {
+        count: keys.length,
+        amount: formatMoney(totalHalalas),
+      }),
+      body: t('fin.bulk.waive.confirm.body'),
+      confirmLabel: t('fin.bulk.waive.confirm.confirm'),
+      lines: [{ label: t('fin.deduction.col.amount'), amountHalalas: totalHalalas }],
+      reason: {
+        label: t('fin.deduction.waive.reason.label'),
+        help: t('fin.deduction.waive.reason.help'),
+        message: t('fin.deduction.waive.reason.message'),
+      },
+      onConfirm: ({ reason }) => {
+        void actions
+          .runMany({
+            keys,
+            errorMessage: t('fin.error.row'),
+            toastMessage: t('fin.bulk.waive.toast'),
+            action: (id) => waiveDeduction(id, reason),
+          })
+          .then(() => {
+            setRequest(null)
+            table.clearSelection()
+          })
+      },
+    })
+  }, [selected, totalHalalas, actions, table, t])
+
+  const bulkActions = useMemo<BulkAction[]>(() => {
+    const apply = bulkRefusalText(t, language, deductionSetRefusal, APPLY_REFUSAL_COPY)
+    const waive = bulkRefusalText(t, language, deductionSetRefusal, WAIVE_REFUSAL_COPY)
+    return [
+      {
+        label: t('fin.deduction.action.apply'),
+        onClick: confirmApplyMany,
+        disabled: apply !== null,
+        reason: apply,
+        eligibleIds: apply === null ? undefined : deductionEligible,
+      },
+      {
+        label: t('fin.deduction.action.waive'),
+        onClick: confirmWaiveMany,
+        disabled: waive !== null,
+        reason: waive,
+        eligibleIds: waive === null ? undefined : deductionEligible,
+      },
+    ]
+  }, [
+    t,
+    language,
+    deductionSetRefusal,
+    deductionEligible,
+    confirmApplyMany,
+    confirmWaiveMany,
+  ])
+
   return (
     <>
       <DataTable
@@ -835,6 +1321,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         searchPlaceholder={t('fin.deduction.search')}
         skeletonPattern="P1"
         rowActions={rowActions}
+        bulkActions={bulkActions}
         firstRun={{
           heading: t('fin.deduction.empty.heading'),
           body: t('fin.deduction.empty.body'),
@@ -876,7 +1363,14 @@ function CaptainPayableLedger({
 
   const ledger = useAsync<Ledger>(
     (signal) => getCaptainPayableLedger(captainId, period, signal),
-    { deps: [captainId, period.start, period.end], isEmpty: (data) => data.postings.length === 0 },
+    /* `FinancialsPeriod` is exactly `{ start, end }`, so decomposing it is
+       exhaustive - and `captainId` is here, so one captain's payable ledger
+       cannot serve under another's. */
+    {
+      deps: [captainId, period.start, period.end],
+      cacheKey: 'payouts.ledger',
+      isEmpty: (data) => data.postings.length === 0,
+    },
   )
 
   const rows = useMemo<LedgerPosting[]>(() => {

@@ -108,6 +108,37 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.offer.choice.placeholder': 'Choose a captain',
   'assurance.offer.choice.empty': 'No active captain is available to take this leg.',
 
+
+  /* ── the bulk bar (P4-T1, §9.3, D21) ────────────────────────────────── */
+  /* §9.3 permits a queue a selection checkbox **only** where every bulk action
+     is a claim or an assign, and forbids bulk disposition outright. `Claim` is
+     the one command offered, and it is the one an operator working a queue
+     reaches for twenty times an hour: take the next ten and start.
+
+     A bulk TAKE-OVER is deliberately absent. AC-203 makes a take-over a
+     confirmed act that NAMES the operator losing the item; over a set it would
+     strip N owners at once and name none of them, so a row already held is
+     BLOCKED rather than silently taken. */
+  /* ── 360° reach (P8-T1) ─────────────────────────────────────────────── */
+  'assurance.a11y.openRider': 'Open the 360° profile for {name}',
+  'assurance.a11y.openCaptain': 'Open the 360° profile for {name}',
+  /* §11.2 — a name whose entity cannot be resolved is PLAIN TEXT with the
+     reason available, never a dead link. */
+  'assurance.captain.none': 'No captain committed',
+  'assurance.captain.none.reason':
+    'No captain has committed to this leg yet, so there is no captain record to open.',
+  /* §11.2 — the id is on the row but the resolver says it names nothing. */
+  'assurance.entity.unresolved': 'There is no record on file for this reference.',
+
+  'assurance.bulk.claim': 'Claim',
+  'assurance.action.claim.blocked.one': 'This leg is already claimed.',
+  'assurance.action.claim.blocked.other': '{count} of the selected legs are already claimed.',
+  'assurance.action.claim.blocked.all': 'All {count} selected legs are already claimed.',
+  'assurance.toast.claimed.other': '{count} legs claimed',
+
+  'assurance.action.noPermission':
+    'You cannot claim a leg. Ask an Owner for the “Subscription control” permission.',
+
   'assurance.toast.confirmed': 'Confirmation recorded',
   'assurance.toast.offered': 'Offer sent',
 

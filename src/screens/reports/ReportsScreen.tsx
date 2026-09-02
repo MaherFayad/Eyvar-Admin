@@ -39,7 +39,7 @@
  * by two dictionaries agreeing today (AC-844).
  */
 
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
@@ -47,23 +47,38 @@ import { useShell } from '@/shell/ShellContext'
 import { EYVAR_TODAY, REPORT_QUERY_PARAM, getReport, localDayOf } from '@/data/clients'
 import type { SavedReport, SubTabRoute } from '@/data/types'
 import { AlertsView } from './AlertsView'
+import { DashboardsView } from './DashboardsView'
 import { ReportBuilder } from './ReportBuilder'
 import { ReportLibrary } from './ReportLibrary'
+import { REPORTS_VIEWS, type ReportsView } from './views'
+import { withFallback } from '../operations/localCopy'
+import { REPORTS_EN } from './copy'
 
 /**
- * The id the route table will carry once **Q-RB-1** is answered. Declared here
- * so `routes.tsx` has one symbol to key its mount point on and no string to get
- * out of step with this file.
+ * The id the route table carries. **Moved to `./ids.ts`** when route-level code
+ * splitting landed: `routes.tsx` keys its Reports branch on this id, and a
+ * static import of a symbol declared *here* would drag this screen — and through
+ * the barrel, the whole Report Builder — back into the entry chunk.
+ *
+ * Re-exported so every existing importer is unaffected. There is still exactly
+ * one declaration and no string to get out of step.
  */
-export const REPORTS_SUB_TAB_ID = 'management-reports'
-
-type View = 'reports' | 'alerts'
+export { REPORTS_SUB_TAB_ID } from './ids'
 
 /**
- * The `?view=` values, in tab order, with `reports` first as the default.
+ * **Three, and the list lives in `views.ts`.**
+ *
+ * This file declared two — `'reports' | 'alerts'` — against the route table's
+ * three, and the mismatch was silent: `?view=dashboards` failed the `find`
+ * below and fell back to `reports`, so the Dashboards view was *unreachable*
+ * rather than broken and nothing on screen said so. That is the assertion
+ * failing at `clients/routes.test.ts:225`.
+ *
+ * `REPORTS_VIEWS` is re-exported unchanged, because `routes.test.ts` imports it
+ * from here and the route table is what it is held against.
  */
-export const REPORTS_VIEWS = ['reports', 'alerts'] as const
-const VIEWS: View[] = [...REPORTS_VIEWS]
+const VIEWS: ReportsView[] = [...REPORTS_VIEWS]
+export { REPORTS_VIEWS }
 
 export interface ReportsScreenProps {
   /** The route-table row, once one exists. Absent today; the screen names itself. */
@@ -74,12 +89,23 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   const shell = useShell()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, REPORTS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
   /* Passed down, never read from an ambient clock inside a control. */
   const today = now ? localDayOf(now) : EYVAR_TODAY
   const params = new URLSearchParams(location.search)
-  const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as View
+  const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as ReportsView
   const composed = params.get(REPORT_QUERY_PARAM)
 
   const title = row ? t(row.titleKey) : t('rb.page.title')
@@ -96,7 +122,7 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   )
 
   const selectView = useCallback(
-    (v: 'reports' | 'alerts') => {
+    (v: ReportsView) => {
       navigate({ pathname: location.pathname, search: v === 'reports' ? '' : `?view=${v}` })
     },
     [navigate, location.pathname],
@@ -115,6 +141,22 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
         language={language}
         dir={dir}
         onSaved={openReport}
+      />
+    )
+  }
+
+  if (view === 'dashboards') {
+    return (
+      <DashboardsView
+        title={title}
+        activeView={view}
+        onSelectView={selectView}
+        /* §3.8 rule 2 — a named record is a LEVEL, not a `?view=`. Opening a
+           dashboard is a navigation, and Back returns to the list. */
+        onOpen={(dashboard) => navigate(`/management/reports/dashboards/${dashboard.id}`)}
+        t={t}
+        language={language}
+        dir={dir}
       />
     )
   }
@@ -174,7 +216,16 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
          the shell intact; neither rewrites the address bar. */
       return { report: null, deleted: true }
     }
-  }, { deps: [reportId], isEmpty: () => false })
+  }, {
+    /* **Deliberately NOT cached (P3-13).** The `catch` above turns *any*
+       failure - including a transient transport error - into
+       `{ report: null, deleted: true }`, which `useAsync` would then store as a
+       success. A blip would become a sticky "this report was deleted" for the
+       full TTL across remounts. Cacheable once the catch is narrowed to
+       `isApiError(e) && e.kind === 'not-found'`. */
+    deps: [reportId],
+    isEmpty: () => false,
+  })
 
   const title = report.data?.report?.name ?? (row ? t(row.titleKey) : t('rb.page.title'))
 
@@ -194,7 +245,6 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
   )
 }
 
-/** `/management/reports/dashboards/:dashboardId` fallback */
-export function DashboardDetailScreen() {
-  return null
-}
+/* `DashboardDetailScreen` used to live here and return `null`. It is a real
+   screen now — `DashboardDetailScreen.tsx` — and `routes.tsx` dispatches to it
+   on `detail.kind === 'dashboard'`. The barrel keeps the export name. */

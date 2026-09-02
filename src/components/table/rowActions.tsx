@@ -77,6 +77,46 @@ export interface RowAction<T> {
    * error code: this is read by the operator, not by the person who wrote it.
    */
   reason?: (row: T) => string | null
+  /**
+   * **The row-click target, declared — P0-2 (`17-reconciled-findings.md` §1).**
+   *
+   * `true` means: *a plain click anywhere on the row that is not on a control
+   * performs this action.* Exactly one action per table may declare it;
+   * `DataTable` takes the first and ignores any later one.
+   *
+   * ## Why this is a declared field and not a guess
+   *
+   * `DataTable` used to pick the row-click target by regex-matching the
+   * **translated display label** —
+   * `/view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i` — and to fall
+   * through to `declaredActions[0]` when nothing matched. Both halves are
+   * defects, and the second is the dangerous one: a screen whose only action is
+   * destructive got that action wired to a plain row click. `EmailLogCard`
+   * declares one action, `Resend`, with no confirm, so **clicking an email-log
+   * row re-sent a message to a customer.** API-key rotation and webhook replay
+   * had the same shape. A label is content — it is translated, it is rewritten
+   * by copy edits, and `Claim` matched the pattern while meaning *mutate this
+   * record*. Nothing about a string can carry intent.
+   *
+   * ## The rule for declaring it
+   *
+   * Set it **only on an action that opens the record** — navigates to a detail
+   * route, opens the record's drawer or 360° layer, or opens the ledger for the
+   * row. Never on an action that mutates, sends, rotates, replays, claims,
+   * resolves, applies or deletes, even behind a confirm: a confirm dialog that
+   * the operator did not ask for is still a defect, and a stray click on a
+   * table row must never be able to reach one.
+   *
+   * **Omitting it is a valid and safe answer.** A table whose actions are all
+   * mutations gets no row click at all — no `cursor-pointer`, no `onClick` —
+   * and its identity cell remains the way into the record.
+   *
+   * Honoured only when the action is enabled for that row: `disabled` is
+   * evaluated first, and a refused action is not silently run by a row click.
+   * A ledger declares no row actions at all (§8.3.3), so this never applies
+   * there.
+   */
+  rowClick?: boolean
 }
 
 /** The reason a caller supplies, resolved once, for a single row. */
@@ -88,10 +128,50 @@ export function refusalFor<T>(action: RowAction<T>, row: T): string | null {
 /**
  * The second line itself. Muted, small, and the only thing in the action lane
  * permitted to wrap (§7.3 rule 5 is about values, and this is a sentence).
+ *
+ * **BOUNDED, and the bound is R20.** Unbounded, this line was the largest row-
+ * pitch defect in the product. Measured at 1280x800 on `/admin/communications`:
+ * the lane is 88px, which is 64px of inside after the cell's inline padding, so
+ * *"This message did not fail, so there is nothing to send again"* wrapped to
+ * **96px of text** and the rows ran **141px** — with 205, 105 and 73 among
+ * them, because a row's height then depended on whether that row happened to
+ * be refused. §3.1's Rules block says row height *"MUST be uniform within a
+ * table"*, and R20 makes the height the TABLE's; a sentence in a fixed-width
+ * lane cannot satisfy either.
+ *
+ * The clamp bounds the paint and **not the text**: the full sentence is still
+ * the node's only child, so the `aria-describedby` on the refused control still
+ * resolves to the whole thing, and a screen reader still reads it whole. What a
+ * sighted operator loses is the tail of a sentence that, on the screen where
+ * this was measured, was **identical on all twenty-two rows** — the bulk bar
+ * one file over already treats a reason repeated across a selection as one
+ * fact, not N.
+ *
+ * **This is a bound, not the fix.** At 64px of wrap width two lines is a few
+ * words, so the honest reading is that a sentence does not belong in a lane
+ * this narrow at all. The two real fixes are a caller declaring a
+ * `rowActionsWidth` wide enough to hold one, or the sentence moving off the row
+ * the way the bulk bar moved it off the pill — both design decisions with an
+ * owner, recorded here rather than taken in passing.
  */
-function RefusalLine({ id, children }: { id: string; children: string }) {
+/**
+ * A refusal, **rendered**. D17 clause 3, §8.4.4 and §5.7 all forbid putting one in a
+ * `title=` tooltip: it is invisible until hover, unreachable by keyboard and by touch,
+ * and unreadable by a screen reader as anything but a label. Exported because the
+ * hand-rolled `title={canWrite ? undefined : t('…noPermission')}` shape had spread to
+ * screens outside this file.
+ */
+export function RefusalLine({ id, children }: { id: string; children: string }) {
   return (
-    <span id={id} className="block text-2xs font-normal whitespace-normal text-muted-foreground">
+    <span
+      id={id}
+      /* No display utility beside the clamp: the clamp IS one — it sets a
+         `-webkit-box` — and a block declaration next to it is a second rule in
+         the same property whose winner is stylesheet order rather than class
+         order. That is what made the first attempt at this measure identically
+         to the defect. */
+      className="line-clamp-2 text-2xs font-normal whitespace-normal text-muted-foreground"
+    >
       {children}
     </span>
   )

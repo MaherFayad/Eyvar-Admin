@@ -354,12 +354,17 @@ describe('AC-67 (amended) — "Opening a shell layer moves focus into it … Foc
    * dropdown-menu — which includes the account menu's `My profile`, i.e. two of
    * the three ways an operator reaches a shell layer from the top bar.
    *
-   * `it.fails` because AC-67 makes it a criterion failure, not a nicety.
-   * **Owner: product-designer** — who owns focus when a popover hands off to a
-   * layer is a design ruling, and `02-shell-fixes.md` §13 raised it there.
+   * **Round 3 — D-11 is RULED and FIXED, so this test is inverted.** The ruling
+   * that `02-shell-fixes.md` §13 was waiting for: **the layer wins.** A menu that
+   * hands off does not take focus back. The mechanism is a conditional
+   * `preventDefault()` in `onCloseAutoFocus`, set only by an item that opens a
+   * layer — blanket suppression would break Escape and every in-place action.
+   *
+   * Kept, and now asserting the fix, because the failure is invisible until
+   * someone tabs after opening a drawer and lands in the page behind it.
    */
-  it.fails(
-    'DEFECT D-11 — a layer opened from inside a popover does NOT receive focus',
+  it(
+    'D-11 — a layer opened from inside a popover receives focus and keeps it',
     async () => {
       const user = userEvent.setup()
       renderShell('/operations/people')

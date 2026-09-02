@@ -13,8 +13,10 @@
  *
  * The not-started circle uses **`--ev-hairline`, not `--ev-hairline-strong`**,
  * because the step's state is carried by the **`✓` glyph and the ink weight**,
- * never by the circle's boundary. `--ev-green` on white is 7.098 : 1, so the
- * meaningful graphic clears 3 : 1 with room. R19 licences
+ * never by the circle's boundary. `--ev-green` on white is **5.958 : 1** (it was
+ * 7.098 before the 2026-09-02 brand ruling moved `--ev-green` to `#1d723c` to
+ * separate semantic success from the brand action), so the meaningful graphic
+ * still clears 3 : 1 with room. R19 licences
  * `--ev-hairline-strong` for an unchecked checkbox/radio boundary and *"any
  * second use needs a §6.2 row"* — no second use is taken here.
  *
@@ -52,6 +54,7 @@ import { findSubTabById } from '@/data/clients'
 import type { OnboardingStep } from '@/data/types/onboarding'
 import type { Translator } from '@/lib'
 import { cn } from '@/lib/utils'
+import { permissionName } from '@/shell/permissions'
 
 export interface OnboardingStepRowProps {
   step: OnboardingStep
@@ -176,13 +179,23 @@ export function OnboardingStepRow({
            from `total`"*. The reason is beneath the row and always visible; it
            is not behind an expansion the row refuses to open. */
         <p className="ms-6 pb-2 text-xs text-muted-foreground">
-          {step.requiredPermission !== null
-            ? /* **AC-610 / AC-666** — designed, keyed, and **unreachable
-                 today**: every `requiredPermission` is `null` until foundation
-                 Q4 lands, so this branch cannot be entered. Known-failing on
-                 arrival, named as such, and **not** to be made reachable by
-                 inventing a permission model. */
-              t('onboarding.step.forbidden', { permission: step.requiredPermission })
+          {/* **Two different unavailable states, and the test is `available`, not
+              `requiredPermission`.** This asked whether the step *declared* a
+              permission — which was a serviceable proxy only while every step
+              declared `null`. Now that the gates are real (AC-610 is reachable),
+              nearly every step has one, so an **unbuilt** destination would have
+              rendered the *forbidden* sentence: an operator told they lack a
+              permission for a screen that does not exist.
+
+              `available` is whether the destination is built. `reachable` is
+              that AND the operator holding the gate. So: not built → unbuilt;
+              built but not held → forbidden. */}
+          {step.available
+            ? t('onboarding.step.forbidden', {
+                /* A built-but-unreachable step always has a gate; the fallback is
+                   for the type, not for a state that can occur. */
+                permission: permissionName(t, step.requiredPermission ?? ''),
+              })
             : t('onboarding.step.unbuilt', { subTab: destinationName ?? '' })}
         </p>
       )}

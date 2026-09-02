@@ -117,7 +117,11 @@ describe('one shape — every queue satisfies the same contract', () => {
       ] as const) {
         expect(row, `${row.id}.${field}`).toHaveProperty(field)
       }
-      expect(['legacy-policy', 'legacy-reason-code', 'unset']).toContain(row.slaSource)
+      /* Mirrors `SlaSource` in `types/workQueue.ts`. `chat-policy` (D22) is
+         reachable only from `conversations`, which is not one of the five
+         queues below — it is listed so this stays an exhaustive mirror of the
+         union rather than a list that silently lags it. */
+      expect(['legacy-policy', 'legacy-reason-code', 'chat-policy', 'unset']).toContain(row.slaSource)
     }
   })
 

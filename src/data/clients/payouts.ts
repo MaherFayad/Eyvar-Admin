@@ -31,17 +31,11 @@
  * beside it, so agreement is structural rather than remembered.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  captainPayoutFixtures,
-  deductionFixtures,
-  escrowHoldFixtures,
-  FINANCIALS_PERIOD,
-} from '../fixtures/financials'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
+import { FINANCIALS_PERIOD } from '../serverPolicy'
 import { ApiError, type Facets, type Halalas, type Paginated, type QueryParams } from '../types/common'
 import type {
   CaptainPayout,
@@ -59,6 +53,28 @@ import {
   subjectClosingBalance,
 } from './ledger'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let captainPayoutFixtures!: Fixtures['captainPayoutFixtures']
+let deductionFixtures!: Fixtures['deductionFixtures']
+let escrowHoldFixtures!: Fixtures['escrowHoldFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  captainPayoutFixtures = f.captainPayoutFixtures
+  deductionFixtures = f.deductionFixtures
+  escrowHoldFixtures = f.escrowHoldFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  payoutState = captainPayoutFixtures.map((p) => ({ ...p }))
+  escrowState = escrowHoldFixtures.map((e) => ({ ...e }))
+  deductionState = deductionFixtures.map((d) => ({ ...d }))
+})
 
 export const PAYOUT_OPERATIONS = {
   list: 'payouts.list',
@@ -72,11 +88,22 @@ export const PAYOUT_OPERATIONS = {
   waiveDeduction: 'payouts.waiveDeduction',
 } as const
 
-let payoutState: CaptainPayout[] = captainPayoutFixtures.map((p) => ({ ...p }))
-let escrowState: EscrowHold[] = escrowHoldFixtures.map((e) => ({ ...e }))
-let deductionState: Deduction[] = deductionFixtures.map((d) => ({ ...d }))
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(PAYOUT_OPERATIONS))
+
+let payoutState!: CaptainPayout[]
+let escrowState!: EscrowHold[]
+let deductionState!: Deduction[]
 
 export function resetPayouts(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   payoutState = captainPayoutFixtures.map((p) => ({ ...p }))
   escrowState = escrowHoldFixtures.map((e) => ({ ...e }))
   deductionState = deductionFixtures.map((d) => ({ ...d }))
@@ -235,7 +262,13 @@ export async function getCaptainPayableLedger(
 
 /**
  * POST /api/v1/payouts/:captainId
- *   body: { amountHalalas, reasonCode }
+ *   body: { reasonCode }
+ *
+ * **The amount is NOT in the body and must not be.** It is derived server-side
+ * as payable minus outstanding cash debt (`netHalalas`, below). This block used
+ * to document `amountHalalas`, which `payCaptain` has never had a parameter for
+ * -- so a backend built to the old annotation would have 422'd every real payout
+ * on the money path, and one that trusted a client-sent amount would be worse.
  *   -> CaptainPayout
  *   409 when there is nothing payable
  *   422 when the amount exceeds the net payable
@@ -310,7 +343,7 @@ export async function payCaptain(
       })
     }
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const reference = nextPayoutReference()
 
     postEntry({
@@ -464,7 +497,7 @@ export async function releaseEscrow(
     const next: EscrowHold = { ...hold, settlement: 'released', releasedAt: EYVAR_NOW }
     escrowState = escrowState.map((e) => (e.id === id ? next : e))
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     postEntry({
       type: 'escrow_release',
       reference: `escrow_release|${id}`,
@@ -611,7 +644,7 @@ export async function applyDeduction(
     const next: Deduction = { ...row, status: 'applied', appliedAt: EYVAR_NOW }
     deductionState = deductionState.map((d) => (d.id === id ? next : d))
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const payableHalalas = subjectClosingBalance('liability.driver', row.captainId)
     const fromPayable = Math.min(Math.max(payableHalalas, 0), row.amountHalalas)
     /* The excess becomes receivable, not a clamp. */
@@ -708,7 +741,7 @@ export async function waiveDeduction(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const next: Deduction = {
       ...row,
       status: 'waived',

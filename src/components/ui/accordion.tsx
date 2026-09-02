@@ -16,6 +16,15 @@
  *              the 254th.
  *   §7.6       the height transition is suppressed under
  *              `prefers-reduced-motion` by the global guard in `globals.css`.
+ *   §7.6       `transition-colors`, and NOT the blanket `all` variant (whose
+ *              class name is deliberately not spelled here, because Tailwind
+ *              v4 scans comments as plain text and would emit it). `all`
+ *              reached the focus ring on `box-shadow` (§7.2), and because
+ *              Inter Variable is declared `font-weight: 100 900` it would
+ *              interpolate any weight change on the trigger. `motion.md`
+ *              licenses no motion here: the trigger's hover and focus are
+ *              colour, and the content's height change below is the
+ *              disclosure itself.
  *   R15        radius 8px on the trigger's focus surface.
  */
 import * as React from "react"
@@ -60,7 +69,7 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "group/accordion-trigger relative flex flex-1 items-start justify-between rounded-lg border border-transparent py-2.5 text-start text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:after:border-ring disabled:pointer-events-none disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ms-auto **:data-[slot=accordion-trigger-icon]:size-4 **:data-[slot=accordion-trigger-icon]:text-muted-foreground",
+          "group/accordion-trigger relative flex flex-1 items-start justify-between rounded-lg border border-transparent py-2.5 text-start text-sm font-medium transition-colors outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:after:border-ring disabled:pointer-events-none disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ms-auto **:data-[slot=accordion-trigger-icon]:size-4 **:data-[slot=accordion-trigger-icon]:text-muted-foreground",
           className
         )}
         {...props}

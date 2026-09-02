@@ -78,3 +78,25 @@ export function indexModeHasTheFurniture(): void {
   const canSelect: true = index.canSelect
   void canSelect
 }
+
+/**
+ * **P1-T1 must not have opened a door.** The URL options are shared by all
+ * three modes, and a ledger that opts into the address must still be a ledger:
+ * `urlState` decides *where* the state lives, never *what* state exists.
+ */
+export function urlStateDoesNotGiveALedgerASort(): void {
+  const ledger = useIndexTable({ mode: 'ledger', urlState: true, urlKey: 'postings' })
+
+  // @ts-expect-error a ledger in the URL is still a ledger: no sort
+  void ledger.sort
+  // @ts-expect-error ...no sort control
+  void ledger.setSortField
+  // @ts-expect-error ...and no selection
+  void ledger.selectedIds
+
+  const canSort: false = ledger.canSort
+  void canSort
+
+  // @ts-expect-error and it still cannot declare one, whatever the store is
+  useIndexTable({ mode: 'ledger', urlState: true, initialSort: { field: 'date', dir: 'asc' } })
+}

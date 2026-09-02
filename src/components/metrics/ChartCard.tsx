@@ -53,6 +53,7 @@
 import { ArrowUpRightIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { TrendChart } from './TrendChart'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import {
   Card,
   CardAction,
@@ -117,7 +118,19 @@ export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
       </CardHeader>
 
       <CardContent className="min-w-0">
-        <Body series={series} t={t} language={language} />
+        {/* **P1-8 — the panel-level boundary.** A plot is the pane most likely
+            to throw on its own: recharts reaches into point shapes at render
+            time, and a series that is legal to the type checker can still be
+            illegal to a scale. The boundary is around the BODY only, so the
+            card keeps its title, its as-of line and its report link — which is
+            the difference between "this measure could not be drawn" and a
+            board that lost eight cards to one bad point.
+
+            `card={false}` because this already sits inside `Card`; the state
+            owns the body, not a second box. */}
+        <ErrorBoundary scope="card" card={false} t={t} name={title}>
+          <Body series={series} t={t} language={language} />
+        </ErrorBoundary>
       </CardContent>
 
       {series.current.points.length > 0 && (

@@ -7,16 +7,28 @@
  * reuse, so they are modelled once and properly rather than per screen.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { applicantFixtures } from '../fixtures/applicants'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
-import { OWNERSHIP_STALE_MINUTES } from '../fixtures/claims'
 import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { Applicant, ApplicantStatus } from '../types/applicant'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let applicantFixtures!: Fixtures['applicantFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let OWNERSHIP_STALE_MINUTES!: Fixtures['OWNERSHIP_STALE_MINUTES']
+onFixturesLoaded((f) => {
+  applicantFixtures = f.applicantFixtures
+  teamUserFixtures = f.teamUserFixtures
+  OWNERSHIP_STALE_MINUTES = f.OWNERSHIP_STALE_MINUTES
+})
 
 export const APPLICANT_OPERATIONS = {
   facets: 'applicants.facets',
@@ -27,6 +39,13 @@ export const APPLICANT_OPERATIONS = {
   approve: 'applicants.approve',
   reject: 'applicants.reject',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(APPLICANT_OPERATIONS))
 
 export interface ApplicantQuery extends QueryParams {
   status?: ApplicantStatus
@@ -104,7 +123,7 @@ const applicantShape: QueryShape<Applicant> = {
   ],
   views: {
     applications: () => true,
-    mine: (a) => a.claim?.state === 'claimed' && a.claim.ownerId === CURRENT_USER_ID,
+    mine: (a) => a.claim?.state === 'claimed' && a.claim.ownerId === currentMockUserId(),
     unassigned: (a) => a.claim === null || a.claim.state !== 'claimed',
     /**
      * SLA breached — **the server's stamp**, not `slaDueAt < now`.
@@ -182,7 +201,7 @@ export async function claimApplicant(
     const row = applicantFixtures.find((a) => a.id === id)
     if (!row) throw notFound('application', id)
     const held = liveClaim(row.claim)
-    if (held && held.ownerId !== CURRENT_USER_ID && !opts.takeOver) {
+    if (held && held.ownerId !== currentMockUserId() && !opts.takeOver) {
       throw new ApiError({
         status: 409,
         kind: 'conflict',
@@ -191,7 +210,7 @@ export async function claimApplicant(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const claim: Claim = {
       key: `application:${id}`,
       entityType: 'application',
@@ -273,7 +292,7 @@ export async function approveApplicant(id: string, signal?: AbortSignal): Promis
       status: 'approved' as const,
       approvedDriverId: `DRV-${id.slice(-4)}`,
       decidedAt: EYVAR_NOW,
-      decidedByUserId: CURRENT_USER_ID,
+      decidedByUserId: currentMockUserId(),
     }
   })
 }
@@ -310,7 +329,7 @@ export async function rejectApplicant(
       status: 'rejected' as const,
       rejectionReason: reason,
       decidedAt: EYVAR_NOW,
-      decidedByUserId: CURRENT_USER_ID,
+      decidedByUserId: currentMockUserId(),
     }
   })
 }
@@ -323,7 +342,7 @@ function liveClaim(claim: Claim | null): Claim | null {
 }
 
 /**
- * GET /api/v1//applications/facets
+ * GET /api/v1/applications/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

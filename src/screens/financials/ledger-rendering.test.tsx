@@ -641,7 +641,7 @@ describe('AC-427 — a quiet period is not a first run', () => {
     expect(screen.getByText(EN['fin.empty.noMatch'] as string)).toBeTruthy()
     expect(
       screen.queryByText(EN['fin.empty.firstRun.heading'] as string),
-      '`No money has moved here yet` beside a carried-in balance',
+      'the first-run heading beside a carried-in balance',
     ).toBeNull()
   })
 })

@@ -124,10 +124,15 @@ export const OVERVIEW_EN: Dictionary = {
 
   /* ── the whole-board empty state (R8, AC-38) ─────────────────────────
      The heading names what the section is FOR, never the absence of data. */
-  'overview.empty.heading': 'Nothing to report yet',
+  'overview.empty.heading': 'Captains, riders, trips and subscriptions, on one board',
   'overview.empty.body':
     'This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count.',
-  'overview.empty.action': 'Go to Trips',
+  /* D1b — `Trips` is no longer a destination; it split into `Quick rides` and
+     `Subscription trips`. This button navigates to `/operations/quick-rides`,
+     so it now names where it actually goes. Caught by the copy audit, not by
+     a test: a label naming a sub-tab that no longer exists still compiles,
+     still renders, and is the first control a new operator is offered. */
+  'overview.empty.action': 'Go to quick rides',
 
   /* ══════════════════ metric labels — one per `Metric.key` ═════════════
      A tile label is a fragment and takes no period (R6). It names WHAT the

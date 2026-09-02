@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client"
 import "@/styles/globals.css"
 import { App } from "@/App"
 import { seedMockFailuresFromLocation } from "@/data/clients"
+import { bootstrapPwa } from "@/pwa"
 
 /**
  * `?mockFail=drivers.list,trips.list` — seeded HERE, and only here.
@@ -27,6 +28,26 @@ import { seedMockFailuresFromLocation } from "@/data/clients"
  * function, not duplicated here.
  */
 seedMockFailuresFromLocation()
+
+/**
+ * The PWA layer — service worker registration, the kill switch, and the capture
+ * of `beforeinstallprompt`. `docs/ref/pwa.md`, P1 and P2.
+ *
+ * Here rather than in a component or an effect, for two reasons that pull the
+ * same way. **`beforeinstallprompt` fires once and is never replayed**, often
+ * before React has mounted, so a listener attached on mount misses it and the
+ * install affordance silently never appears. And registration is a
+ * document-level side effect that must happen exactly once — a component doing
+ * it would do it twice under `StrictMode`.
+ *
+ * It does not await, and it never throws: a worker that fails to install must
+ * not delay or prevent the first paint of an operations console.
+ *
+ * The **kill switch runs inside this call, before anything is registered**, so
+ * `?pwa=off` works on a build whose worker is the broken thing. See
+ * `src/pwa/killSwitch.ts`.
+ */
+bootstrapPwa()
 
 const root = document.getElementById("root")
 if (!root) throw new Error("Root element #root is missing from index.html")

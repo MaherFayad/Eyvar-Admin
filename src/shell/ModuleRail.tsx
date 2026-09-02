@@ -164,7 +164,12 @@ export function ModuleRail({
         <Link
           to={landingRoute}
           aria-label="Eyvar"
-          className="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          /* 32px is right for a mouse and is the one target in the rail with
+             no height token behind it, so the compact query cannot reach it the
+             way it reaches `--ev-navrow-h`. `min-*` under `compact:` only: a
+             floor below the breakpoint, unchanged above it. Measured: it was
+             the single sub-44px target left in the drawer. */
+          className="flex size-8 compact:min-h-tap compact:min-w-tap items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >
           <EyvarMark />
         </Link>

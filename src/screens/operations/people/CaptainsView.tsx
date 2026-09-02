@@ -46,7 +46,8 @@
  *   §11.2       `Suspend` and `Reinstate` are gated **at render**: without
  *               `approve_drivers` they are disabled in place with the reason,
  *               never hidden and never checked at commit (`:10237` is the
- *               systemic legacy defect).
+ *               systemic legacy defect). The predicate and the sentence both
+ *               come from `@/commands` now — see below.
  *   §9.1/§5.3   the bulk confirmation names the verb and the count, says what
  *               will NOT change, and its primary repeats the verb. **Blue, not
  *               red** — a suspension is reversible and R5a spends red only on
@@ -54,12 +55,55 @@
  *   AC-25       selection resets on any view, filter or query change —
  *               `useIndexTable` does it synchronously, and switching People's
  *               view tab unmounts this component entirely.
+ *
+ * **This screen declares no action — CM-1 (D9, `design/05-command-centre.md`
+ * §2, phase C-1).** It names a scope and renders what the registry returns.
+ *
+ * Before C-1, `Suspend captain` was declared here twice: once in `rowActions`
+ * with a `disabled` predicate and once in `bulkActions` with none. The bulk bar
+ * therefore suspended a captain the kebab on that same row refused — the
+ * four-way duplication D9 exists to remove, caught in the act. Both lists now
+ * come from `CAPTAIN_COMMANDS` through `resolveCommands`, the refusal comes
+ * from `unavailableReason`, and every mutation goes through `runCommand`, so
+ * the two surfaces cannot answer differently because there is only one answer.
+ *
+ * What stays here is what belongs to a screen and not to a command: **where the
+ * question is asked** (the modal — §3 records that the palette will eventually
+ * ask it in the palette instead) and **what to do with the result** (overlay
+ * the returned rows, clear the selection, toast). The command owns the copy,
+ * the predicate and the write.
+ *
+ * **That shortfall is closed (P4-T1).** `BulkAction` had no `disabled` and no
+ * `reason`, so the bulk bar could only refuse **after** the click, as a toast -
+ * gating at commit, which is the legacy behaviour §11.2 exists to replace. Both
+ * fields now exist on `BulkAction`, `PeopleTable` no longer strips them, and
+ * the bulk bar asks `unavailableReason` over the WHOLE SELECTION at render.
+ *
+ * The set reading is the strict one `captains.ts` already documents: **refused
+ * if any selected captain would be refused on its own row**, with the sentence
+ * naming how many. Acting on the eligible subset would silently drop records
+ * the operator picked; refusing only when every target is ineligible would let
+ * the bulk bar suspend a captain the kebab refuses, which is the divergence D9
+ * records. `runCommand`'s check at dispatch stays as a backstop - the gate is
+ * now at render, and the toast is what a refusal that slipped past it produces.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { listDrivers, reinstateDriver, suspendDriver } from '@/data/clients'
+import {
+  CAPTAIN_COMMANDS,
+  resolveCommands,
+  runCommand,
+  toastOutcome,
+  unavailableReason,
+  usePublishCommandSelection,
+  type Command,
+  type CommandContext,
+  type CommandHost,
+  type CommandResult,
+} from '@/commands'
+import { listDrivers } from '@/data/clients'
 import type { Driver, Paginated } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
@@ -67,12 +111,22 @@ import { Money } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { DRIVER_STATUS, DRIVER_TIER, VEHICLE_CLASS } from './domain'
 import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import type { ViewChrome } from './views'
 import { useRowOverrides } from './useRowOverrides'
+
+/**
+ * The two lists, resolved once at module scope because they depend on nothing
+ * the screen holds — **CM-1**. `plural: false` is the row kebab and gets every
+ * captain command; `plural: true` is the bulk bar and gets only the ones that
+ * declared they mean something over a set, which is why `Open 360° profile`
+ * appears in one and not the other without this file saying so.
+ */
+const ROW_COMMANDS = resolveCommands(CAPTAIN_COMMANDS, { entityType: 'driver', plural: false })
+const BULK_COMMANDS = resolveCommands(CAPTAIN_COMMANDS, { entityType: 'driver', plural: true })
 
 export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
   const location = useLocation()
@@ -84,14 +138,39 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
     initialSort: { field: 'name', dir: 'asc' },
   })
 
+  /**
+   * **P3-T7 — what is selected here IS the palette's target.**
+   *
+   * Without this the palette's selection pre-seed has no production caller and
+   * exists only in its own test: an operator ticks two captains, presses ⌘K,
+   * and the palette asks them to pick a target they have already picked. With
+   * it the chip reads `2 captains` before a key is pressed and the target step
+   * is skipped — which is the whole reason the palette is faster than the bulk
+   * bar rather than a second route to it.
+   *
+   * `selectOnly` is passed so D21's `Select only the N eligible` narrows **this
+   * table's** selection too: the bulk bar behind the palette visibly updates,
+   * and the count in the outcome toast is still the count the operator saw
+   * (AC-961). Never a partial apply.
+   */
+  usePublishCommandSelection('driver', table.selectedIds, table.selectOnly)
+
   const data = useAsync<Paginated<Driver>>(
     (signal) => listDrivers({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'drivers.list' },
   )
 
   const overrides = useRowOverrides<Driver>()
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [busy, setBusy] = useState(false)
+  /**
+   * The pending confirmation's resolver. `CommandHost.confirm` is a promise so
+   * a command can read the operator's answer inline — `ConfirmDialog` is a
+   * callback surface, and this ref is the whole of the adaptation between them.
+   * Cleared on the way out either way, so a dismissed dialog can never resolve
+   * twice.
+   */
+  const answer = useRef<((reason: string | null) => void) | null>(null)
 
   const rows = overrides.apply(data.data?.items ?? [])
   const profileHref = (id: string) => ({
@@ -99,72 +178,92 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
     search: withOverlay(location.search, 'entity', id),
   })
 
-  /* ── the mutations. The mock returns the updated record and does not write
-        it back to the fixture array, so the row is held here for the life of
-        the view — see the handoff's note to mock-data-engineer. ─────────── */
-  async function runSuspend(ids: readonly string[], reason: string) {
-    setBusy(true)
+  function settle(reason: string | null) {
+    const resolve = answer.current
+    answer.current = null
+    resolve?.(reason)
+  }
+
+  /**
+   * **CQ-4** — the only things a command may reach the screen for. Everything
+   * it writes, it writes through `@/data/clients` inside its own `run`.
+   */
+  const host: CommandHost = {
+    /* A captain has no detail route of its own, so this is an overlay param on
+       the current route (AC-21, AC-22), same as the identity cell's link. */
+    openProfile: (_entityType, id) => navigate(profileHref(id)),
+    confirm: (request) =>
+      new Promise<string | null>((resolve) => {
+        answer.current = resolve
+        setConfirm({
+          ...request,
+          /**
+           * **`destructive` cannot be answered here, and it is deliberately
+           * not guessed.** `CommandConfirmRequest` (`commands/registry.ts`)
+           * carries no such field, so every command-driven confirmation on
+           * this screen renders the ordinary primary. That is the right answer
+           * for both captain commands today - `captains.ts:275` declares
+           * `affordance: 'default'` for suspend with R5a's reasoning, and
+           * reinstate is its inverse - but it is right by luck, not by wiring.
+           * The fix is one field: `CommandConfirmRequest.destructive`, fed from
+           * the command's own `affordance`, spread through here with the rest.
+           * `src/commands/` belongs to another owner; raised in the G5 handoff.
+           */
+          onConfirm: ({ reason }) => {
+            /* Busy from the moment they commit until the command settles — the
+               dialog stays up and un-dismissable while the write is in flight,
+               which is what it did before. */
+            setBusy(true)
+            settle(reason)
+          },
+        })
+      }),
+  }
+
+  const context = (targets: readonly Driver[]): CommandContext<Driver> => ({
+    targets,
+    t,
+    language,
+    /* CQ-7 / Q4 — one boolean, read only by `roleRefusal`. */
+    session: { canWrite },
+    host,
+  })
+
+  /**
+   * **The one dispatch path** — every surface on this screen goes through it,
+   * which is half of CM-3 (the other half is `unavailableReason`, below).
+   *
+   * The mock clients return the updated record and do **not** write it back to
+   * the fixture array, so `outcome.changed` is held over the list for the life
+   * of the view — see `useRowOverrides` and the handoff's note to
+   * mock-data-engineer.
+   */
+  async function dispatch(command: Command<Driver>, targets: readonly Driver[]) {
+    let result: CommandResult<Driver>
     try {
-      const updated = await Promise.all(ids.map((id) => suspendDriver(id, reason)))
-      updated.forEach(overrides.record)
-      table.clearSelection()
-      toast(
-        ids.length === 1
-          ? t('people.toast.suspended.one')
-          : t('people.toast.suspended.other', { count: formatCount(ids.length, language) }),
-      )
-      setConfirm(null)
+      result = await runCommand(command, context(targets))
     } finally {
       setBusy(false)
     }
-  }
 
-  async function runReinstate(ids: readonly string[]) {
-    setBusy(true)
-    try {
-      const updated = await Promise.all(ids.map((id) => reinstateDriver(id)))
-      updated.forEach(overrides.record)
-      table.clearSelection()
-      toast(
-        ids.length === 1
-          ? t('people.toast.reinstated.one')
-          : t('people.toast.reinstated.other', { count: formatCount(ids.length, language) }),
-      )
-      setConfirm(null)
-    } finally {
-      setBusy(false)
+    /* §11.2's weaker half: the bulk bar has no field to carry a disabled state
+       or a reason, so its refusal is stated after the click. See the header. */
+    if (result.kind === 'refused') {
+      toast(result.reason)
+      return
     }
-  }
 
-  function askSuspend(ids: readonly string[]) {
-    setConfirm({
-      title:
-        ids.length === 1
-          ? t('people.confirm.suspend.title.one')
-          : t('people.confirm.suspend.title.other', { count: formatCount(ids.length, language) }),
-      body: t('people.confirm.suspend.body'),
-      confirmLabel: t('people.confirm.suspend.confirm'),
-      reason: {
-        label: t('people.confirm.suspend.reason'),
-        help: t('people.confirm.suspend.reasonHelp'),
-        message: t('people.confirm.suspend.reasonHelp'),
-      },
-      onConfirm: (reason) => void runSuspend(ids, reason),
-    })
-  }
-
-  function askReinstate(ids: readonly string[]) {
-    setConfirm({
-      title:
-        ids.length === 1
-          ? t('people.confirm.reinstate.title.one')
-          : t('people.confirm.reinstate.title.other', {
-              count: formatCount(ids.length, language),
-            }),
-      body: t('people.confirm.reinstate.body'),
-      confirmLabel: t('people.confirm.reinstate.confirm'),
-      onConfirm: () => void runReinstate(ids),
-    })
+    setConfirm(null)
+    if (result.kind === 'cancelled' || result.outcome === null) return
+    result.outcome.changed?.forEach(overrides.record)
+    table.clearSelection()
+    /* **`toastOutcome`, not `toast` — otherwise the row kebab drops the undo
+       handle on the floor.** `CommandOutcome` carries D18's inverse operation,
+       and a bare `toast(message)` renders the sentence and discards it. The
+       command was undoable from ⌘K and not from the surface it belongs to,
+       which is D9's divergence in a third place: one predicate, two surfaces,
+       two different answers about the same act. */
+    toastOutcome(result.outcome, t)
   }
 
   const columns = captainColumns(t, language, profileHref)
@@ -184,26 +283,61 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
         {...chrome}
         searchPlaceholder={t('people.search.captains')}
         extraFilters={captainExtraFilters(t)}
-        rowActions={[
-          {
-            label: t('people.action.viewProfile'),
-            onSelect: (driver) => navigate(profileHref(driver.id)),
-          },
-          {
-            label: t('people.action.suspend'),
-            onSelect: (driver) => askSuspend([driver.id]),
-            disabled: (driver) => !canWrite || driver.suspended,
-          },
-          {
-            label: t('people.action.reinstate'),
-            onSelect: (driver) => askReinstate([driver.id]),
-            disabled: (driver) => !canWrite || !driver.suspended,
-          },
-        ]}
-        bulkActions={[
-          { label: t('people.bulk.suspend'), onClick: (ids) => askSuspend([...ids]) },
-          { label: t('people.bulk.reinstate'), onClick: (ids) => askReinstate([...ids]) },
-        ]}
+        /* CM-1 — three ids, no declarations. CM-2 — the label is `titleKey`,
+           rendered here and named nowhere. §11.2 / AC-368 — `disabled` and
+           `reason` are the same call, so a dead control cannot lose its
+           sentence on the way to the screen. */
+        rowActions={ROW_COMMANDS.map((command) => ({
+          label: t(command.titleKey),
+          onSelect: (driver: Driver) => void dispatch(command, [driver]),
+          disabled: (driver: Driver) => unavailableReason(command, context([driver])) !== null,
+          reason: (driver: Driver) => unavailableReason(command, context([driver])),
+          /* **P0-2 — the declared row-click target, read from the command's
+             own `section`.** `go` is the registry's word for a command that
+             navigates and decides nothing, and `captain.openProfile` is the
+             only `go` on this table; `suspend` and `reinstate` are `do`. Keyed
+             off the declaration rather than the translated label, which is the
+             defect this replaces. */
+          rowClick: command.section === 'go',
+        }))}
+        /* §13.4 — the inverted strip takes the compact form (`Suspend`), which
+           the command declares beside its full one so the two cannot drift. */
+        bulkActions={BULK_COMMANDS.map((command) => {
+          /* The selection, as records. `unavailable` takes the same array
+             whether it holds one captain or twelve, which is exactly why the
+             row menu and the bulk bar cannot answer differently. */
+          const targets = rows.filter((driver) => table.selectedIds.has(driver.id))
+          const refusal = targets.length === 0 ? null : unavailableReason(command, context(targets))
+          /* **D21's escape hatch**, derived from the SAME predicate rather than
+             from a second copy of it: a captain is eligible exactly when the
+             command would accept them on their own row. `unavailable` takes the
+             same array shape whether it holds one record or twelve, which is
+             what makes asking it per row legitimate here.
+
+             **Reported, not worked around:** `captains.ts` declares `.one` and
+             `.other` and not D21's third sentence, so a selection in which
+             EVERY captain is already suspended still reads `3 of the selected
+             captains are already suspended`. The `.all` key belongs beside the
+             other two in the domain registry, which this task does not own. */
+          const eligibleIds = new Set(
+            targets
+              .filter((driver) => unavailableReason(command, context([driver])) === null)
+              .map((driver) => driver.id),
+          )
+          return {
+            label: t(command.compactTitleKey ?? command.titleKey),
+            onClick: (ids: ReadonlySet<string>) =>
+              void dispatch(
+                command,
+                rows.filter((driver) => ids.has(driver.id)),
+              ),
+            /* §11.2 - disabled IN PLACE, at rest, with its reason as real text
+               above the pill. Not a tooltip, and not a toast after the click. */
+            disabled: refusal !== null,
+            reason: refusal,
+            eligibleIds: eligibleIds.size === targets.length ? undefined : eligibleIds,
+          }
+        })}
         firstRun={{
           heading: t('people.empty.captains.heading'),
           body: t('people.empty.captains.body'),
@@ -222,7 +356,17 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
         error={{ message: t('people.error.captains'), onRetry: data.refetch }}
       />
 
-      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={busy} t={t} />
+      <ConfirmDialog
+        request={confirm}
+        /* Dismissing answers the command with `null`, which is how `run`
+           learns it was cancelled and returns without writing anything. */
+        onClose={() => {
+          settle(null)
+          setConfirm(null)
+        }}
+        busy={busy}
+        t={t}
+      />
     </>
   )
 }
@@ -278,6 +422,8 @@ export function captainColumns(
   return [
     {
       id: 'captain',
+      emphasis: 'primary',
+      csv: (d) => d.name,
       header: t('people.col.captain'),
       /* AC-104 — column index 0 is the identity: pinned implicitly and
          permanently, never hideable, never unpinnable. */
@@ -302,6 +448,7 @@ export function captainColumns(
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('people.col.status'),
       width: 112,
       dataType: 'enum',
@@ -327,6 +474,7 @@ export function captainColumns(
     },
     {
       id: 'rating',
+      emphasis: 'data',
       header: t('people.col.rating'),
       align: 'end',
       width: 80,
@@ -357,6 +505,7 @@ export function captainColumns(
     },
     {
       id: 'earned',
+      emphasis: 'data',
       header: t('people.col.earned'),
       align: 'end',
       width: 128,
@@ -500,9 +649,14 @@ export function captainColumns(
       header: t('people.col.phone'),
       width: 144,
       dataType: 'text',
+      /* §9.2 / A2 — a phone value is a single LTR token with no strong
+         character in it, so without isolation the leading `+` takes the
+         paragraph's direction and jumps sides under `dir="rtl"`. `dataType`
+         says `text` because it sorts and filters like text; this says what it
+         READS like. `DateCell` already isolates the value it renders — this
+         makes the column say so, for the day the cell changes. */
+      isolate: true,
       defaultHidden: true,
-      /* §9.2 — a phone value is a single LTR token: without isolation a
-         leading `+` jumps sides under `dir="rtl"`. */
       cell: (d) => <DateCell className="tabular-nums">{d.phone}</DateCell>,
     },
     {

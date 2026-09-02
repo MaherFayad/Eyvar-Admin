@@ -46,3 +46,62 @@ export function isWideViewport(win: Window | null = globalThis.window ?? null): 
   if (!win) return true
   return win.innerWidth >= readWideBreakpointPx(win.document)
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE COMPACT BREAKPOINT — added 2026-09-02 under the owner's viewport ruling.
+
+   The header above says "nobody adds a second breakpoint", and until this date
+   that was the whole law: `index.html` declared `width=1280`, so a phone was
+   handed a 1280px layout viewport scaled to 0.305x and no max-width query could
+   ever match. The tag is now `width=device-width`, the ruling is recorded in
+   `index.html`, and `globals.css` §0.1 is amended under it.
+
+   `globals.css` owns both halves and they are declared beside each other so
+   they cannot drift:
+
+     @custom-variant compact (@media (width < 768px));
+     --ev-bp-compact: 768px;
+
+   This module is the JS half of the second line. It is deliberately the SAME
+   SHAPE as the wide breakpoint above — read from CSS, fallback documented as
+   stale-not-authoritative — so there is one way to ask "which side of a
+   breakpoint am I on" in this product rather than two.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Matches `--ev-bp-compact` in `src/styles/globals.css`.
+ *
+ * As with `WIDE_BREAKPOINT_FALLBACK_PX`, this is not a second source of truth.
+ * It is what to answer when there is no stylesheet yet — jsdom, a unit test,
+ * the first paint. If it disagrees with `globals.css`, the CSS is right.
+ */
+export const COMPACT_BREAKPOINT_FALLBACK_PX = 768
+
+/**
+ * `--ev-bp-compact` in CSS pixels, read from the document element's computed
+ * style. Returns the fallback when the custom property is absent or
+ * unparseable.
+ */
+export function readCompactBreakpointPx(doc: Document | null = globalThis.document ?? null): number {
+  if (!doc?.documentElement) return COMPACT_BREAKPOINT_FALLBACK_PX
+  const raw = getComputedStyle(doc.documentElement).getPropertyValue('--ev-bp-compact').trim()
+  const parsed = Number.parseFloat(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : COMPACT_BREAKPOINT_FALLBACK_PX
+}
+
+/**
+ * The media query the compact shell subscribes to.
+ *
+ * **`width < N`, character for character the `compact:` variant's own query**,
+ * and not the `max-width: N-1` form. Range syntax is exclusive, so the two
+ * agree at every fractional width — a 767.5px viewport (a zoomed browser, a
+ * split-screen tablet) matches both. `max-width: 767px` would match the CSS
+ * variant and not this query on that exact viewport, and the symptom of that
+ * disagreement is the worst one available: the CSS hides the rail while the JS
+ * still thinks it is desktop, so nothing renders the control that brings it
+ * back. Range syntax is supported wherever `env()` and `dvh` are, which this
+ * shell already depends on.
+ */
+export function compactMediaQuery(doc: Document | null = globalThis.document ?? null): string {
+  return `(width < ${readCompactBreakpointPx(doc)}px)`
+}

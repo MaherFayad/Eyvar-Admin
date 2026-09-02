@@ -108,6 +108,11 @@ export function NewPasswordCard({ purpose }: { purpose: NewPasswordPurpose }) {
      request that cannot succeed is a request that should not be made. */
   const check = useAsync<ValidateTokenOutcome>(
     (signal) => validateResetToken(token ?? '', signal),
+    /* **Deliberately NOT cached (P3-13).** A reset token's validity is a fact
+       about *now*: it is single-use and it expires. A warm `valid` would put an
+       operator in front of a live password form for a token the server has
+       already burnt, and the refusal would then arrive on submit instead of on
+       arrival — which is precisely what AC-544's read exists to prevent. */
     { deps: [token], enabled: token !== null },
   )
 

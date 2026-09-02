@@ -16,6 +16,11 @@
  *              blank surface.
  *   §9.1       replaces the ~20 legacy `max-height + overflow-y:auto` regions.
  *   §7.2       the viewport keeps a visible focus ring when it is focusable.
+ *   §7.6       NO TRANSITION ON THE VIEWPORT. It carried
+ *              `transition-[color,box-shadow]` while changing no colour at
+ *              all, so the only thing it animated was the focus ring fading
+ *              in over 150ms. `motion.md` does not license it and §7.2 wants
+ *              the ring present the instant focus lands.
  */
 import * as React from "react"
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
@@ -35,7 +40,7 @@ function ScrollArea({
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full transition-[color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1"
+        className="size-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

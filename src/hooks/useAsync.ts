@@ -15,9 +15,18 @@
  * It also does not distinguish `no-match` from `first-run` empty (**AC-37** vs
  * **AC-38**). That difference is "are there filters applied", which the table
  * knows and the request does not — `useIndexTable` exposes `isFiltered` for it.
+ *
+ * ## Caching (P1-T3)
+ *
+ * Opt in with `cacheKey`. Without it nothing is cached and the hook behaves
+ * exactly as it always has — which is what the ~40 existing call sites get. With
+ * it, a warm mount paints content immediately and revalidates behind
+ * `isRefreshing`; a cold mount still shows the skeleton. See `requestCache.ts`
+ * for the key scheme, the TTL and the invalidation API.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { deleteCache, readCache, requestCacheKey, writeCache } from './requestCache'
 
 export type AsyncStatus = 'loading' | 'error' | 'empty' | 'content'
 
@@ -48,6 +57,22 @@ export interface UseAsyncOptions<T> {
   isEmpty?: (data: T) => boolean
   /** `false` holds the hook in `loading` without firing a request. For a dependent read. */
   enabled?: boolean
+  /**
+   * Opt in to the stale-while-revalidate cache. **Omit it and nothing is cached**
+   * — that is the safe default, and it is what every call site written before
+   * P1-T3 gets.
+   *
+   * Pass the data-layer operation id the fetcher calls: `'drivers.list'`,
+   * `'pricing.rules'`. The full key is that id plus a structural serialisation of
+   * `deps`, so the contract is: **everything the fetcher varies on must be in
+   * `deps`.** If it is not, this hook already fails to re-run when it changes;
+   * with a `cacheKey` it will also serve the wrong rows. `requestCacheKey` in
+   * `requestCache.ts` states that failure mode in full.
+   *
+   * The hook always revalidates in the background, so a hit is a head start, not
+   * a substitute for the request.
+   */
+  cacheKey?: string
 }
 
 interface PaginatedLike {
@@ -83,7 +108,12 @@ export function useAsync<T>(
   run: (signal: AbortSignal) => Promise<T>,
   options: UseAsyncOptions<T> = {},
 ): AsyncResult<T> {
-  const { deps = [], isEmpty = defaultIsEmpty as (data: T) => boolean, enabled = true } = options
+  const {
+    deps = [],
+    isEmpty = defaultIsEmpty as (data: T) => boolean,
+    enabled = true,
+    cacheKey,
+  } = options
 
   const [state, setState] = useState<AsyncState<T>>({
     status: 'loading',
@@ -103,7 +133,13 @@ export function useAsync<T>(
 
   const [reloadToken, setReloadToken] = useState(0)
 
+  // A `refetch` is someone pressing `Try again` or a refresh control. Serving it
+  // from the cache would make the button appear to do nothing, so the next effect
+  // run skips the read. Consumed once, by that run.
+  const bypassCacheRef = useRef(false)
+
   const refetch = useCallback(() => {
+    bypassCacheRef.current = true
     setReloadToken((token) => token + 1)
   }, [])
 
@@ -116,18 +152,42 @@ export function useAsync<T>(
     const runId = ++runIdRef.current
     const controller = new AbortController()
 
-    setState((previous) => ({
-      status: 'loading',
-      data: null,
-      error: null,
-      // A refetch with rows already on screen is a refresh, not a first load.
-      isRefreshing: previous.status === 'content' || previous.status === 'empty',
-    }))
+    // `null` whenever caching is off, opted out of, or cannot be keyed honestly.
+    const key = cacheKey === undefined ? null : requestCacheKey(cacheKey, deps)
+    const bypassCache = bypassCacheRef.current
+    bypassCacheRef.current = false
+    const hit = key !== null && !bypassCache ? readCache<T>(key) : null
+
+    if (hit) {
+      // Warm: content is on screen this tick, and `isRefreshing` puts the same
+      // subtle bar over it that a manual refresh does. Never a skeleton — there
+      // is nothing to wait for before painting.
+      setState({
+        status: isEmptyRef.current(hit.data) ? 'empty' : 'content',
+        data: hit.data,
+        error: null,
+        isRefreshing: true,
+      })
+    } else {
+      // Cold: unchanged from before P1-T3, skeleton included. A first load must
+      // never be dressed up as a refresh.
+      setState((previous) => ({
+        status: 'loading',
+        data: null,
+        error: null,
+        // A refetch with rows already on screen is a refresh, not a first load.
+        isRefreshing: previous.status === 'content' || previous.status === 'empty',
+      }))
+    }
 
     runRef
       .current(controller.signal)
       .then((data) => {
+        // Aborted or superseded: do not write. A response nobody is waiting for
+        // may be for a stale set of deps, and caching it would leak it into a
+        // later mount as if it were current.
         if (runId !== runIdRef.current || controller.signal.aborted) return
+        if (key !== null) writeCache(key, data)
         setState({
           status: isEmptyRef.current(data) ? 'empty' : 'content',
           data,
@@ -137,6 +197,11 @@ export function useAsync<T>(
       })
       .catch((thrown: unknown) => {
         if (runId !== runIdRef.current || controller.signal.aborted) return
+        // Errors are never cached, and a read that just failed invalidates what
+        // it was revalidating: the next mount must make a real attempt and reach
+        // the error state again. Failure injection (`mockFailures`, `?mockFail=`)
+        // depends on this — AC-24 / AC-36.
+        if (key !== null) deleteCache(key)
         setState({ status: 'error', data: null, error: toError(thrown), isRefreshing: false })
       })
 
@@ -144,7 +209,7 @@ export function useAsync<T>(
       controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` is the caller's dependency array by design.
-  }, [enabled, reloadToken, ...deps])
+  }, [enabled, reloadToken, cacheKey, ...deps])
 
   return { ...state, refetch }
 }

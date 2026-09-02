@@ -1,0 +1,87 @@
+# Why this exists: three independent audits of this tree all reported "the build is
+# red", and each got a DIFFERENT error set, because nothing enforced the gate and the
+# tree is under concurrent edit. A green run on one machine is not a gate. This is.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `api:check` regenerates the backend handover and diffs it against the
+      # committed copy. It is a Python script, not a Node one.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: npm ci
+
+      # ---- the gate ----------------------------------------------------
+      # `tsc -b` is incremental and will happily report success from a stale
+      # .tsbuildinfo. --force is the whole point: this must be a full check.
+      - name: Typecheck
+        run: npx tsc -b --force
+
+      # `--maxWorkers=4` deliberately. At the default count these suites produce
+      # 2-6 failures per run with DIFFERENT membership each time - every one a
+      # 7-13s "element never rendered" timeout that passes in isolation. It is CPU
+      # contention, and a gate that fails randomly is not a gate.
+      - name: Tests
+        run: npx vitest run --maxWorkers=4
+
+      # Fails when a client's endpoint docblock is malformed, or when
+      # docs/07-api/ is stale relative to src/data/clients/. The backend
+      # handover cannot silently drift from the code it describes.
+      - name: API contract is current
+        run: npm run api:check
+
+      # ---- the string layer ---------------------------------------------
+      # Two gates in one script.
+      #
+      # THE RATCHET. `t(key, { defaultValue: 'Trips' })` renders correctly and
+      # is invisible to every extractor, because `translate.ts:98` resolves it
+      # as a third fallback the missing-key guard never sees. There is no way to
+      # find one by running the app. `scripts/i18n-budget.json` holds a ceiling,
+      # this fails when the count exceeds it, and the generator refuses to raise
+      # it — so the number can only ever fall. Removing one means moving its
+      # string into the owning screen's `copy.ts`;
+      # `src/screens/operations/dispatch/copy.ts` is the worked example.
+      #
+      # THE INVENTORY. `docs/08-i18n/KEYS.md` is generated. It also owns the key
+      # count quoted in `src/i18n/dictionaries.ts`, which read "200" while the
+      # real figure was over four thousand — an order of magnitude, and plans
+      # were sized against it.
+      - name: String layer inventory and defaultValue ratchet
+        run: npm run i18n:check
+
+      - name: Build
+        run: npm run build
+
+      # The pseudo-locale (`src/lib/i18n/pseudo.ts`) marks and lengthens every
+      # keyed string by 35%. `AR` is deliberately empty and Arabic runs 4–8%
+      # wider than English, so this is the only build that can fail on an
+      # Arabic-shaped defect BEFORE a translator writes a word — which matters,
+      # because otherwise the first Arabic release gets blamed for layout bugs
+      # that predate it. Building it proves the mode compiles and ships; the
+      # string-level assertions are in `src/lib/i18n/pseudo.test.ts`, which
+      # sweeps all ~4,500 English keys through the transform.
+      - name: Build (pseudo-locale)
+        run: npm run build:pseudo

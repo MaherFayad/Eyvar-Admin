@@ -42,13 +42,21 @@ export const RIYADH_TIME_ZONE = 'Asia/Riyadh'
  * | `day-month` | `25 Jun` | table cells, ledger date column (§8.3.3) |
  * | `day-month-time` | `25 Jun 09:14` | decided-row timestamps (§9.3), audit rows |
  * | `day-month-year` | `25 Jun 2026` | detail pages, expiry dates |
+ * | `month-year` | `Mar 2026` | cohort row headers (Report Builder) |
  * | `time` | `09:14` | the ledger's second line, live surfaces |
  * | `weekday-day-month-year` | `Thursday 25 Jun 2026` | dashboard subtitle (`:2169`) |
+ *
+ * **`month-year` is a precision claim, not a shorter `day-month-year`.** A
+ * monthly cohort is a whole month; rendering its header as `1 Mar 2026` states
+ * a day the row does not have and invites an operator to read the first of the
+ * month as the cohort's date. The day is dropped because it is not known, and
+ * that is the same reason `formatDate` refuses to accept `null`.
  */
 export type DateStyle =
   | 'day-month'
   | 'day-month-time'
   | 'day-month-year'
+  | 'month-year'
   | 'time'
   | 'weekday-day-month-year'
 
@@ -66,6 +74,7 @@ const STYLE_OPTIONS: Readonly<Record<DateStyle, Intl.DateTimeFormatOptions>> = {
   // decided-row timestamp is `19 Jul 09:14` with a plain space.
   'day-month-time': { day: 'numeric', month: 'short' },
   'day-month-year': { day: 'numeric', month: 'short', year: 'numeric' },
+  'month-year': { month: 'short', year: 'numeric' },
   time: { hour: '2-digit', minute: '2-digit', hour12: false },
   'weekday-day-month-year': { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' },
 }

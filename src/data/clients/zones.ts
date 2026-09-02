@@ -22,18 +22,11 @@
  * reads it).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  cityFixtures,
-  zoneRecruitmentQueueFixtures,
-  zoneSeeds,
-  zoneSteerOfferFixtures,
-  type ZoneSeed,
-} from '../fixtures/zones'
-import { allRequestFixtures } from '../fixtures/requests'
+import { cityFixtures, zoneSeeds, type ZoneSeed } from '../fixtures/zones'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import {
   HEALTHY_DEMAND_PER_CAPTAIN,
@@ -44,6 +37,24 @@ import {
   type RecruitmentPriority,
 } from '../types/zone'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let zoneRecruitmentQueueFixtures!: Fixtures['zoneRecruitmentQueueFixtures']
+let zoneSteerOfferFixtures!: Fixtures['zoneSteerOfferFixtures']
+let allRequestFixtures!: Fixtures['allRequestFixtures']
+onFixturesLoaded((f) => {
+  zoneRecruitmentQueueFixtures = f.zoneRecruitmentQueueFixtures
+  zoneSteerOfferFixtures = f.zoneSteerOfferFixtures
+  allRequestFixtures = f.allRequestFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  steerOffers = [...zoneSteerOfferFixtures]
+  recruitmentQueue = [...zoneRecruitmentQueueFixtures]
+})
 
 export const ZONE_OPERATIONS = {
   list: 'zones.list',
@@ -54,13 +65,24 @@ export const ZONE_OPERATIONS = {
   queueRecruitment: 'zones.queueRecruitment',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(ZONE_OPERATIONS))
+
 /* ───────────────── mutable mock state, reset between tests ────────────── */
 
-let steerOffers: ZoneSteerOffer[] = [...zoneSteerOfferFixtures]
-let recruitmentQueue = [...zoneRecruitmentQueueFixtures]
+let steerOffers!: ZoneSteerOffer[]
+let recruitmentQueue!: typeof zoneRecruitmentQueueFixtures
 let seedOverride: ZoneSeed[] | null = null
 
 export function resetZones(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   steerOffers = [...zoneSteerOfferFixtures]
   recruitmentQueue = [...zoneRecruitmentQueueFixtures]
   seedOverride = null

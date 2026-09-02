@@ -11,7 +11,9 @@
  */
 
 import { offsetFromNow } from '../mock/clock'
-import { cycle } from './cycle'
+import { cycle, cycleRef, refsFor } from './cycle'
+import { driverFixtures } from './drivers'
+import { riderFixtures } from './riders'
 import type { Subscription } from '../types/subscription'
 
 export const subscriptionFixtures: Subscription[] = [
@@ -264,18 +266,56 @@ export const subscriptionFixtures: Subscription[] = [
   },
 ]
 
+/**
+ * The nine riders and six captains the filler subscriptions are spread across,
+ * **resolved from the canonical records once**.
+ *
+ * This block used to be four parallel `cycle` calls — an id built by string
+ * arithmetic with period 9, a name list of period 4, an id of period 6, a name
+ * list of period 4 — and the periods walked out of phase immediately. **40 of
+ * the 70 subscriptions carried a `driverName` that contradicted
+ * `fixtures/drivers.ts`**: `SUB-3107` called `DRV-0101` "Khalid Mansour" while
+ * the captain record calls him "Ahmed Salem".
+ *
+ * `refsFor` resolves each id against the canonical array and throws at module
+ * load if one is missing, so the periods below still control the *distribution*
+ * — nine riders, six captains, exactly as before — while the name can only
+ * come off the record the id names. There is no second sequence left to drift.
+ */
+const FILLER_SUB_RIDERS = refsFor(riderFixtures, [
+  'RDR-1041',
+  'RDR-1042',
+  'RDR-1043',
+  'RDR-1044',
+  'RDR-1045',
+  'RDR-1046',
+  'RDR-1047',
+  'RDR-1048',
+  'RDR-1049',
+])
+const FILLER_SUB_CAPTAINS = refsFor(driverFixtures, [
+  'DRV-0101',
+  'DRV-0102',
+  'DRV-0103',
+  'DRV-0104',
+  'DRV-0105',
+  'DRV-0106',
+])
+
 /** Volume for pagination — 60 rows, deterministic by index. */
 export const fillerSubscriptions: Subscription[] = Array.from({ length: 60 }, (_, i) => {
   const n = i + 1
   const comfort = i % 3 === 0
   const planKey = cycle(['weekly', 'biweekly', 'monthly'] as const, i)
   const included = planKey === 'weekly' ? 5 : planKey === 'biweekly' ? 10 : 22
+  const rider = cycleRef(FILLER_SUB_RIDERS, i)
+  const captain = cycleRef(FILLER_SUB_CAPTAINS, i)
   return {
     id: `SUB-3${String(100 + n).padStart(3, '0')}`,
-    riderId: `RDR-${1041 + (i % 9)}`,
-    riderName: cycle(['Nora Al-Harbi', 'Tariq Al-Saud', 'Khaled Al-Zahrani', 'Reem Al-Dosari'], i),
-    driverId: `DRV-0${101 + (i % 6)}`,
-    driverName: cycle(['Ahmed Salem', 'Omar Farouk', 'Khalid Mansour', 'Hassan Al-Ghamdi'], i),
+    riderId: rider.id,
+    riderName: rider.name,
+    driverId: captain.id,
+    driverName: captain.name,
     status: i % 9 === 0 ? 'cancelled' : i % 5 === 0 ? 'expiring' : 'active',
     planKey,
     planName: `${planKey === 'biweekly' ? 'Bi-weekly' : planKey === 'weekly' ? 'Weekly' : 'Monthly'} ${comfort ? 'Comfort' : 'Economy'}`,

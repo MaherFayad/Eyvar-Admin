@@ -53,11 +53,12 @@ import { useAsync, useIndexTable } from '@/hooks'
 import { deleteReport, listReports } from '@/data/clients'
 import type { SavedReport } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { reportsViewTabs, type ReportsView } from './views'
 
 export interface ReportLibraryProps {
   title: string
-  activeView?: 'reports' | 'alerts'
-  onSelectView?: (view: 'reports' | 'alerts') => void
+  activeView?: ReportsView
+  onSelectView?: (view: ReportsView) => void
   onOpen: (report: SavedReport) => void
   onNew: () => void
   views?: React.ReactNode
@@ -87,7 +88,9 @@ export function ReportLibrary({
   const [pending, setPending] = useState<PendingDelete | null>(null)
 
   const reports = useAsync((signal) => listReports({ ...table.params, view: table.view }, signal), {
+    /* Both of the fetcher's inputs are here; delete calls `reports.refetch`. */
     deps: [JSON.stringify(table.params), table.view],
+    cacheKey: 'reports.list',
   })
 
   const rows = reports.data?.items ?? []
@@ -138,7 +141,9 @@ export function ReportLibrary({
   ]
 
   const rowActions: Array<RowAction<SavedReport>> = [
-    { label: t('rb.library.open'), onSelect: onOpen },
+    /* **P0-2 — the declared row-click target.** `Delete` is the other
+       action on this table and must stay unreachable from a row click. */
+    { label: t('rb.library.open'), onSelect: onOpen, rowClick: true },
     {
       label: t('rb.library.delete'),
       onSelect: (row) => setPending({ report: row, dashboards: [], failed: false }),
@@ -188,12 +193,12 @@ export function ReportLibrary({
           language={language}
           tableId="management-reports-library"
           view={activeView}
-          tabs={[
-            { id: 'reports', label: t('rb.view.reports') },
-            { id: 'alerts', label: t('rb.view.alerts') },
-          ]}
+          /* All three, from one declaration. Two of the three tab strips
+             used to list two views each, and the third view was unreachable
+             because nothing rendered a tab for it (`views.ts`). */
+          tabs={reportsViewTabs(t)}
           activeTab={activeView}
-          onSelectTab={(id) => onSelectView?.(id as 'reports' | 'alerts')}
+          onSelectTab={(id) => onSelectView?.(id as ReportsView)}
           searchPlaceholder={t('rb.library.search')}
           rowActions={rowActions}
           skeletonPattern="P1"

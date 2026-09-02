@@ -114,6 +114,26 @@ export interface DataColumn<T> {
 
   /** §5.4 / §6.1 — the sort labels, and the alignment default. */
   dataType?: ColumnDataType
+  /**
+   * **A2 — does this column's value need bidi isolation?**
+   * (`docs/ref/i18n.md` "Bidi isolation", `docs/ref/rtl.md` "Does it mirror?".)
+   *
+   * Defaults from `dataType`, because the declaration already knows: `date`,
+   * `money` and `number` are **numeral runs inside a translated line** and are
+   * isolated; `text`, `enum`, `boolean` and `id` are not. See
+   * `ISOLATED_DATA_TYPES` for why `id` is on the second list.
+   *
+   * Declare it for the value a data type cannot see: a plate or a phone number
+   * typed `text` because it sorts and filters like text, or a bare id column
+   * that carries no second line. Never from the value — a regex over
+   * `row.plate` is exactly the class of defect `emphasis` and the row-click
+   * intent were introduced to remove.
+   *
+   * **Do not declare it on a composite cell.** A `<bdi>` resolves its own
+   * direction from its first strong character, so an avatar, a flex row or an
+   * Arabic second line inside one can mirror to the wrong edge.
+   */
+  isolate?: boolean
   /** §15 — presence means filterable. */
   filter?: ColumnFilterSpec
   /**
@@ -140,6 +160,75 @@ export interface DataColumn<T> {
   alwaysVisible?: boolean
   /** Off on first render; `Reset columns` restores exactly this. */
   defaultHidden?: boolean
+  /**
+   * **H1 — which emphasis tier this column's VALUE belongs to**
+   * (`design/15-hierarchy-and-scannability.md` §1).
+   *
+   * | tier | treatment | what belongs here |
+   * |---|---|---|
+   * | `primary` | ink, `font-medium` | the identity of the thing. One per row |
+   * | `data` | ink, `font-normal` | **what the operator came to read** — amounts, counts, ratings, statuses, deadlines |
+   * | `meta` | `--ev-text-2` | everything else: ids, cities, timestamps, provenance |
+   *
+   * The whole change is that **Data was merged into Meta**, so a fifteen-column
+   * table gave the operator no scan path: every value was the same grey and the
+   * two they came for were indistinguishable from the thirteen they did not.
+   *
+   * **This replaces `columnIndex === 0`, and that is the point rather than a
+   * side effect.** Emphasis was keyed off the column's position in the
+   * *visible* array, so hiding or reordering a column moved the row's ink onto
+   * whatever landed first — the same class of defect as P0-2's label regex, one
+   * directory over. A tier is a property of what the column MEANS, so it
+   * travels with the declaration and nothing an operator does in the columns
+   * popover can move it.
+   *
+   * Undeclared, it falls back to `primary` for the FIRST DECLARED column and
+   * `meta` for the rest (`emphasisOf`), which is exactly today's rendering. The
+   * fallback is anchored to the declaration array and never to the rendered
+   * one, so it cannot move either.
+   */
+  emphasis?: ColumnEmphasis
+  /**
+   * **P3-12 — what this column contributes to a CSV export.**
+   *
+   * `cell` returns a `ReactNode` and a `ReactNode` is not a value: a badge, a
+   * link, an avatar and a formatted amount all flatten to something a
+   * spreadsheet reads differently from what the operator sees. So a column that
+   * exports a *value* rather than a *rendering* declares it here.
+   *
+   * **Money returns integer HALALAS, and this is the rule the export exists
+   * for.** `formatMoney` produces `1,234.00 SAR`; a spreadsheet reads the comma
+   * as a separator, the trailing `SAR` as text, and the column as unusable.
+   * §8.3.1's integer-minor-unit rule holds all the way to the file — the
+   * conversion belongs to whoever opens it, and `reports/csv.ts` documents the
+   * one deliberate exception, which is a *reporting* surface and not this one.
+   *
+   * Omitted, `tableCsv` falls back to the flattened text of `cell` — correct
+   * for text, ids, enums and dates. **A `money` column with no `csv` is
+   * exported EMPTY and named in the file's header block** rather than exported
+   * wrong, on `reports/csv.ts`'s AC-890 precedent: a partial export that cannot
+   * be told from a complete one is worse than one that says what it left out.
+   */
+  csv?: (row: T) => string | number | null
+}
+
+/** H1's three tiers. See `DataColumn.emphasis`. */
+export type ColumnEmphasis = 'primary' | 'data' | 'meta'
+
+/**
+ * The tier a column renders at.
+ *
+ * `columns` is the **declared** set, in declaration order — never the visible
+ * one. That is the whole fix: the fallback anchors to a column the operator
+ * cannot move, so hiding the identity column removes the row's ink rather than
+ * lending it to whatever slid into position 0.
+ */
+export function emphasisOf<T>(
+  column: DataColumn<T>,
+  columns: ReadonlyArray<DataColumn<T>>,
+): ColumnEmphasis {
+  if (column.emphasis !== undefined) return column.emphasis
+  return columns[0]?.id === column.id ? 'primary' : 'meta'
 }
 
 /** §6.4 — a filter bound to no visible column. Same shape, no header. */
@@ -216,6 +305,48 @@ const SORT_KEYS: Readonly<Record<ColumnDataType, { asc: string; desc: string }>>
 /** §15 — `align: 'end'` implies `number` unless the column says otherwise. */
 export function dataTypeOf<T>(column: DataColumn<T>): ColumnDataType {
   return column.dataType ?? (column.align === 'end' ? 'number' : 'text')
+}
+
+/**
+ * **A2 — the three data types whose value is a numeral run, and nothing else.**
+ *
+ * `number` is here for `4 / 5`: UBA rule N1 treats a European number as R, so
+ * the neutral between two digit runs takes the paragraph direction and the
+ * pair renders `5 / 4` inside an Arabic line. `money` and `date` are here for
+ * the same class of reason — a value made of digits and neutrals has no strong
+ * character of its own to hold it together, so anything else in the cell
+ * decides its order.
+ *
+ * **`id` is NOT here, and that is a measured decision rather than an
+ * oversight.** A record identifier begins with a strong Latin character
+ * (`TRP-9104`, `EYV-CN-2026-000012`), so the bidi algorithm already keeps it
+ * contiguous and correct inside an Arabic line — it is the one item on
+ * `i18n.md`'s list that needs no help. Meanwhile `id` is overwhelmingly the
+ * IDENTITY column, whose cell is a composite: an avatar, a link and a prose
+ * second line. Isolating that composite resolves the whole cell's direction
+ * from its first strong character, which moved the Trips avatar from x=816 to
+ * x=709 under `dir="rtl"` — off the inline-start edge — and took an Arabic
+ * route with it. Measured at 1280 before it shipped. A bare id column that
+ * wants isolation declares `isolate: true`.
+ *
+ * `text`, `enum` and `boolean` are absent for the opposite reason: they hold
+ * prose and translated labels, and isolating Arabic prose from the line it
+ * belongs to is the same bug with the sign flipped.
+ */
+const ISOLATED_DATA_TYPES: ReadonlySet<ColumnDataType> = new Set<ColumnDataType>([
+  'date',
+  'money',
+  'number',
+])
+
+/**
+ * **A2 — whether `DataTable` wraps this column's value in an LTR `<bdi>`.**
+ *
+ * Declared meaning only: the column's own `isolate`, else its `dataType`. The
+ * value is never inspected.
+ */
+export function isolatesValue<T>(column: DataColumn<T>): boolean {
+  return column.isolate ?? ISOLATED_DATA_TYPES.has(dataTypeOf(column))
 }
 
 /**

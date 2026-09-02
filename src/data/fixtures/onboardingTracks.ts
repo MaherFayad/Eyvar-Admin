@@ -27,10 +27,18 @@
  * 3 common + 4 + 5 + 5 + 4 = **21 rows**. Thirty *track memberships*, 21 rows.
  *
  * **AC-624 and AC-603 measure different things and a QA engineer who conflates
- * them files a defect against a correct screen** (spec §19.3). An Ops Manager
- * sees **eight** step rows in the DOM — no step is hidden (AC-611) — and the
- * progress line reads out of **seven**, because `ops.dispatch` is unbuilt and
- * excluded from `total` (AC-603, AC-609).
+ * them files a defect against a correct screen** (spec §19.3). `steps` carries
+ * every row in the track — no step is ever hidden (AC-611) — and `total` counts
+ * only the reachable ones.
+ *
+ * **They currently agree, and that is a fact about today's route table, not
+ * about the rule.** `UNBUILT_SUB_TAB_IDS` in `clients/routes.ts` is `[]` since
+ * Live Dispatch and Support › Tickets shipped, so every destination in all four
+ * tracks resolves and is built and **no step is unavailable**. An Ops Manager
+ * sees eight rows and reads `n of 8`. The moment a track points at an unbuilt
+ * destination the two diverge again, and nothing in this file changes when it
+ * does — which is AC-626, and is why the ops.dispatch note below now records a
+ * discharged criterion rather than a pending one.
  *
  * ## `null` twice on every row, and neither is an oversight
  *
@@ -38,11 +46,28 @@
  *     unmet, recorded as **Q-82** with a named content owner (**F-2**). Design
  *     §10.2 renders no link on any step ever, and **AC-605 fails if one is
  *     rendered** (spec §19.3 C-5). *Not to be filled in by guessing.*
- *   - **`requiredPermission: null` × 21**, until **D4/Q4**. Every
- *     `SubTabRoute.permission` in the route table is `null`, so there is nothing
- *     to gate against. Consequence: `newrole@eyvar.com` reaches `track-empty`
- *     through holding **zero permissions**, not through a forbidden step, so
- *     **AC-631 passes and AC-610 cannot**. Both known-failing, both recorded.
+ *   - ~~**`requiredPermission: null` × 21**, until **D4/Q4**~~ — **CLOSED
+ *     2026-09-02.** That blocker was cleared when the route table gained real
+ *     permissions (35 of 36 rows now carry a `viewPermission`) and nobody closed
+ *     the loop here. Every step is now gated by the permission its own
+ *     destination requires, **derived from the route table**, and
+ *     `onboardingGates.test.ts` asserts they stay equal.
+ *
+ *     It was not cosmetic. Support's step 6 sent them into
+ *     `financials-rider-wallets` (`view_finance`) and Finance's step 2 into
+ *     `operations-my-work` (`view_operations`) — two of four tracks walking an
+ *     operator into a workspace their role forbids.
+ *
+ *     Three steps stay `null` and are correct: two target a shell layer, which
+ *     has no route permission, and `common.audit` targets `admin-activity`,
+ *     the one route deliberately open to every authenticated operator.
+ *
+ *     **Consequence to weigh, and it is the owner's call:** gating means a
+ *     Finance or Support operator no longer sees the `My Work` step at all,
+ *     because that queue lives in Operations. The alternative is granting them
+ *     `view_operations` — a permission-model change, not a fixture edit. Gating
+ *     is the safe direction: a missing step costs a little guidance, a broken
+ *     one costs trust in the whole track.
  *
  * ## English copy — owed by `src/screens/…/copy.ts`, which is not this file
  *
@@ -155,7 +180,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-my-work', view: 'unassigned', layer: null },
     completion: 'auto',
     autoSignal: 'queue.item.claimed',
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     id: 'common.audit',
@@ -180,7 +205,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'admin-team', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'manage_team',
   },
   {
     id: 'owner.policy',
@@ -194,7 +219,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'admin-policy', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_admin',
   },
   {
     /**
@@ -217,7 +242,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-overview', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     /** **AC-621.** */
@@ -229,7 +254,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-pricing', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
 
   /* ── Finance — 5 (AC-622) ─────────────────────────────────────────────── */
@@ -243,7 +268,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-revenue', view: 'all-postings', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     id: 'finance.escrow',
@@ -254,7 +279,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-payouts', view: 'escrow', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     id: 'finance.reconciliation',
@@ -265,7 +290,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-cash', view: 'reconciliation', layer: null },
     completion: 'auto',
     autoSignal: 'queue.item.disposed',
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     id: 'finance.goodwill',
@@ -276,7 +301,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-rider-wallets', view: 'goodwill', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     id: 'finance.routing',
@@ -288,7 +313,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-my-work', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
 
   /* ── Ops Manager — 5 (AC-624) ─────────────────────────────────────────── */
@@ -302,7 +327,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-people', view: 'applications', layer: null },
     completion: 'auto',
     autoSignal: 'application.decided',
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     /** **AC-625.** */
@@ -314,7 +339,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-requests', view: null, layer: null },
     completion: 'auto',
     autoSignal: 'queue.item.disposed',
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     /**
@@ -331,20 +356,24 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-assurance', view: 'no-backup-captain', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     /**
-     * **UNBUILT — wave 6. `available: false` today (AC-609, AC-626).**
+     * **AC-626 — DISCHARGED, and this row is the evidence.**
      *
-     * The row renders **disabled in place** with `Live Dispatch isn't built yet.
-     * This step will open when it is.` — never hidden (AC-611) — and it is
-     * excluded from `totalCount`, which is why an Ops Manager sees eight rows
-     * and a progress line out of seven.
+     * Was *"unbuilt, wave 6"*: `available: false`, rendered disabled in place
+     * with `Live Dispatch isn't built yet. This step will open when it is.`,
+     * and excluded from `totalCount`. Live Dispatch has since shipped
+     * (`screens/operations/dispatch`, routed as `operations-dispatch`), the
+     * route-table owner removed its line from `UNBUILT_SUB_TAB_IDS`, **and not
+     * one character of this row moved** — which is exactly the property AC-626
+     * asks for. `available` was never fixture data; it is derived in
+     * `clients/onboarding.ts`, so there is nothing here to un-set.
      *
-     * **It becomes enabled with no change to this file.** `available` is
-     * derived from `UNBUILT_SUB_TAB_IDS` in `clients/routes.ts`, so registering
-     * the screen removes one line there and this fixture does not move.
+     * The disabled treatment is still the designed behaviour for the next
+     * unbuilt destination, and is covered — labelled **synthetic**, because no
+     * real step reaches it any more — in `screens/onboarding/onboarding.test.tsx`.
      */
     id: 'ops.dispatch',
     order: 7,
@@ -354,7 +383,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'operations-dispatch', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     id: 'ops.fairness',
@@ -365,12 +394,16 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'support-fairness', view: 'suspension-appeals', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_support',
   },
 
   /* ── Support — 4 (AC-627) ─────────────────────────────────────────────── */
   {
-    /** **UNBUILT — wave 5. `available: false` today.** Same treatment as `ops.dispatch`. */
+    /**
+     * Was *"unbuilt, wave 5"*. Support › Tickets shipped as `support-tickets`
+     * and left `UNBUILT_SUB_TAB_IDS` with it; same discharge as `ops.dispatch`,
+     * same zero edits here.
+     */
     id: 'support.ticket',
     order: 4,
     titleKey: key('support.ticket', 'title'),
@@ -379,7 +412,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'support-tickets', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_support',
   },
   {
     /** The `profile` shell layer, reached from any rider or captain row. */
@@ -406,7 +439,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'financials-rider-wallets', view: 'goodwill', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_finance',
   },
   {
     /** **AC-628** — read-only, and the body says so rather than the data. */
@@ -418,7 +451,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     destination: { subTabId: 'support-safety', view: 'open', layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_support',
   },
 ]
 

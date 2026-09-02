@@ -213,8 +213,8 @@ describe('AC-11 — "Browser Back after three navigations returns through the th
       name: (en('shell.nav.subTabsFor') as string).replace('{workspace}', en('workspace.operations')),
     })
 
-    await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
-    await screen.findByText('screen: operations-trips')
+    await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.quickRides')) }))
+    await screen.findByText('screen: operations-quick-rides')
     await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.people')) }))
     await screen.findByText('screen: operations-people')
     await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.requests')) }))
@@ -228,12 +228,12 @@ describe('AC-11 — "Browser Back after three navigations returns through the th
       'page',
     )
     await user.click(back)
-    expect(await screen.findByText('screen: operations-trips')).toBeInTheDocument()
+    expect(await screen.findByText('screen: operations-quick-rides')).toBeInTheDocument()
     await user.click(back)
     expect(await screen.findByText('screen: operations-overview')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'qa-forward' }))
-    expect(await screen.findByText('screen: operations-trips')).toBeInTheDocument()
+    expect(await screen.findByText('screen: operations-quick-rides')).toBeInTheDocument()
   })
 
   it('leaves the destination highlighted, never the origin, on a Back (AC-08, fifth kind)', async () => {
@@ -306,9 +306,13 @@ describe('AC-14 — "On /operations/dispatch the rail, the sub-tab list, the app
       screen.getByRole('heading', { level: 2, name: en('workspace.operations') }),
     ).toBeInTheDocument()
     expect(screen.getByRole('banner')).toBeInTheDocument()
-    /* The page header carries the sub-tab title as an h1 — §8 slot 2. */
+    /* The page header carries the sub-tab title as an h1 — §8 slot 2.
+       `findBy`, not `getBy`: routes are `React.lazy` chunks now (P3-11), so the
+       shell paints before the screen's chunk resolves. That is the point of the
+       split — the rail, sub-tab column and top bar above are all still
+       synchronous, which is what this assertion is actually about. */
     expect(
-      screen.getByRole('heading', { level: 1, name: en('subtab.operations.dispatch') }),
+      await screen.findByRole('heading', { level: 1, name: en('subtab.operations.dispatch') }),
     ).toBeInTheDocument()
   })
 })
@@ -432,26 +436,38 @@ describe('AC-23 — "A toast raised on /operations/people is still visible after
 
 describe('AC-24 — "When a sub-tab\'s data load fails it renders its error state AND the rail, sub-tab list and top bar remain interactive"', () => {
   /**
-   * **Round 2 — re-pointed from `/operations/people` to `/operations/trips`.**
+   * **Round 3 — and the last time this can be re-pointed, so it now tests the
+   * criterion instead of an implementation detail.**
    *
-   * `/operations/people` is no longer `SubTabScreen`: the parallel people work
-   * put a real `PeopleScreen` there, and it does not read `navCounts`, so
-   * `mockFailures.always('navCounts.list')` produced no page error and these
-   * two tests failed for a reason that was not the criterion. `trips` is still
-   * on the shared placeholder, so it exercises the shell's own error path,
-   * which is what AC-24 is about.
+   * Round 1 ran against `/operations/people` and injected `navCounts.list`,
+   * because that route was `SubTabScreen` and the placeholder's only read was
+   * the nav counts. When `PeopleScreen` shipped, the injection stopped producing
+   * a page error and the test was re-pointed to `/operations/quick-rides` — *"still on
+   * the shared placeholder"*. `TripsScreen` has since shipped too.
    *
-   * **Recorded as a coverage note, not worked around:** whether the built
-   * `PeopleScreen` honours the same failure contract is a real question and it
-   * is people-QA's, against `applicants.list` rather than `navCounts.list`.
-   * The shell's shared `ErrorState` path is unchanged either way.
+   * **There is no fourth route to run away to.** Every one of the 35 sub-tabs
+   * now has a real screen; `SubTabScreen` is unreachable. So the fix is not
+   * another re-point: it is to inject the failure into **the read the screen
+   * under test actually performs** — `trips.list` — which is what AC-24 says in
+   * the first place. *"A sub-tab's data load"* means the sub-tab's, not the
+   * shell's.
+   *
+   * This is strictly stronger than what it replaces. The old form proved the
+   * shared placeholder's error path; this proves a **built screen** honours the
+   * contract, which is what the round-2 comment recorded as an open coverage
+   * question and could not itself answer.
+   *
+   * `TripsScreen` had no error branch at all when this was written — the read
+   * failed and the operator got a live toolbar above a list that never arrived.
+   * That was the ninth of the nine failing tests in the remediation plan, and
+   * fixing the screen is what makes this pass.
    */
   it('renders the page error and still navigates to another sub-tab without a reload', async () => {
     const user = userEvent.setup()
-    mockFailures.always('navCounts.list')
-    renderApp('/operations/trips')
+    mockFailures.always('trips.list')
+    renderApp('/operations/quick-rides')
 
-    const title = en('subtab.operations.trips')
+    const title = en('subtab.operations.quickRides')
     expect(
       await screen.findByText((en('state.pageError.title') as string).replace('{resource}', title)),
     ).toBeInTheDocument()
@@ -471,8 +487,8 @@ describe('AC-24 — "When a sub-tab\'s data load fails it renders its error stat
   })
 
   it('names a retry action on the failed sub-tab (AC-36)', async () => {
-    mockFailures.always('navCounts.list')
-    renderApp('/operations/trips')
+    mockFailures.always('trips.list')
+    renderApp('/operations/quick-rides')
     expect(
       await screen.findByRole('button', { name: en('state.pageError.action') }),
     ).toBeInTheDocument()
@@ -586,7 +602,7 @@ describe('AC-28 — "Exactly one setInterval is registered by the application"',
     renderShell('/operations/overview')
     await screen.findByText('screen: operations-overview')
     for (const id of [
-      'operations-trips',
+      'operations-quick-rides',
       'operations-people',
       'operations-requests',
       'operations-overview',
@@ -794,13 +810,28 @@ describe('AC-59 — "Switching the acting user re-derives the rail and sub-tab l
       ),
     )
     expect(screen.getByText('screen: operations-people')).toBeInTheDocument()
-    /* And the rail still lists every workspace the new role can see. */
+    /**
+     * **And the rail is RE-DERIVED — which this assertion could not show until
+     * D17.** Edited by mock-data-engineer on the D17 pass; owner: qa-engineer.
+     *
+     * It used to expect 5, and it passed, because every route-table row carried
+     * `permission: null` and the rail was five tiles for everybody. Owner → a
+     * Support operator was 5 → 5 and the criterion's own verb — *"re-derives"* —
+     * was unobservable.
+     *
+     * Under D17 the Support baseline is `view_operations`, `view_support`,
+     * `view_profiles`, `manage_tickets`, `contact_users`: **no `view_analytics`
+     * and no `view_finance`**, so Management and Financials do not render, and
+     * Admin survives on the Activity Log alone. 5 → 3, and the number changing
+     * is the evidence.
+     *
+     * The Owner half of the pair is asserted above and in `permissions.test.ts`.
+     */
     const rail = screen.getByRole('navigation', { name: railName() })
-    expect(
-      within(rail)
-        .getAllByRole('link')
-        .filter((l) => l.getAttribute('aria-label') !== 'Eyvar'),
-    ).toHaveLength(5)
+    const tiles = within(rail)
+      .getAllByRole('link')
+      .filter((l) => l.getAttribute('aria-label') !== 'Eyvar')
+    expect(tiles).toHaveLength(3)
   })
 })
 
@@ -883,8 +914,8 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
     await waitFor(() => expect(column()).toBe(before))
 
     /* …and it is still there after the next render at the narrow width. */
-    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
-    await screen.findByText('screen: operations-trips')
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.quickRides')) }))
+    await screen.findByText('screen: operations-quick-rides')
     expect(column()).toBeInTheDocument()
   })
 
@@ -899,8 +930,8 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
     window.dispatchEvent(new Event('resize'))
     await waitFor(() => expect(column()).toBe(before))
 
-    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.trips')) }))
-    await screen.findByText('screen: operations-trips')
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.quickRides')) }))
+    await screen.findByText('screen: operations-quick-rides')
     expect(column()).toBeInTheDocument()
   })
 

@@ -15,6 +15,12 @@
  *   §8.4.1     the takeover confirmation NAMES THE CURRENT OWNER and states that
  *              they lose the item without being asked.
  *   §7.3.3     scrimmed, therefore trapped. Correct here.
+ *   §7.6       A MODAL IS A LAYER, AND A LAYER ARRIVES AT `duration-200`, per
+ *              `motion.md`'s licensed table. It shipped at `duration-100`, the
+ *              popover value. Overlay and content share it so the scrim and
+ *              the panel arrive together. Durations come from Tailwind's own
+ *              scale; there is no `--ev-duration-*` token and adding one is
+ *              the defect.
  *   §11.6 #10  `navigate-away-dirty` uses this shape with a BLUE primary.
  *
  * Removed on arrival: the centred / second-breakpoint-conditional header layout (there is one
@@ -56,7 +62,7 @@ function AlertDialogOverlay({
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-foreground/20 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-foreground/20 duration-200 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -78,7 +84,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "group/alert-dialog-content fixed top-1/2 start-1/2 z-50 grid -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-popover-foreground border border-border duration-100 outline-none w-110 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "group/alert-dialog-content fixed top-1/2 start-1/2 z-50 grid -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-popover-foreground border border-border duration-200 outline-none w-110 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}

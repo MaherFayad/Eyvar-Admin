@@ -49,6 +49,36 @@ export interface MoneyActions<T> {
     toastMessage?: string
     action: () => Promise<T>
   }) => Promise<boolean>
+  /**
+   * **P4-T1** — one bulk command over a selected set.
+   *
+   * Sequential, not `Promise.all`, and that is the whole design of it. Every
+   * mutation behind this hook is stateful on the server: a payout run reads the
+   * captain's receivable, an authority envelope consumes a daily ceiling, and
+   * the audit log is an ordered record of what an operator did. Firing twelve
+   * at once makes the order of twelve audit entries an accident of scheduling.
+   *
+   * **The refusal is pre-flight and belongs to the caller** (`bulkRefusal` in
+   * `derive.ts`): by the time this runs, every key in the set has been checked.
+   * What can still go wrong here is a *failure* — a dropped request, an
+   * injected fault — and that is per row: it lands in `failures` and renders on
+   * its own row with a retry (**AC-431**), exactly as a single-row failure
+   * does. `committed` and `failed` are returned so the caller can decide the
+   * surface; **R10** is why it must not raise a toast when something failed,
+   * because the rows are already carrying that standing condition.
+   *
+   * > **Not atomic, and no client seam can make it so today.** There is no
+   * > batch endpoint on any Financials client, so N commands are N writes. A
+   * > mid-set failure leaves the set half-applied with the remainder marked on
+   * > their rows. Raised in the handoff.
+   */
+  runMany: (options: {
+    keys: readonly string[]
+    errorMessage: string
+    /** Emitted once, only when **nothing** failed. */
+    toastMessage?: string
+    action: (key: string) => Promise<T>
+  }) => Promise<{ committed: number; failed: number }>
 }
 
 /**
@@ -69,6 +99,40 @@ export function useMoneyActions<T>({ keyOf }: { keyOf: (row: T) => string }): Mo
     [held, keyOf],
   )
 
+  /**
+   * One mutation, with no `busy` window and no toast of its own — those are
+   * decisions about a whole *act*, and an act is one row for `run` and a whole
+   * set for `runMany`. Sharing this is what keeps **AC-430** and **AC-431**
+   * identical on both paths: nothing is written optimistically, and a failure
+   * lands on the row it belongs to with a retry that re-runs the same call.
+   */
+  const runOne = useCallback(
+    async (options: {
+      key: string
+      errorMessage: string
+      action: () => Promise<T>
+      /** What the row's own `Retry` re-runs. The two paths retry ONE row. */
+      retry: () => void
+    }): Promise<boolean> => {
+      const { key, errorMessage, action, retry } = options
+      setFailures((current) => {
+        if (!current.has(key)) return current
+        const next = new Map(current)
+        next.delete(key)
+        return next
+      })
+      try {
+        const result = await action()
+        setHeld((current) => new Map(current).set(key, result))
+        return true
+      } catch {
+        setFailures((current) => new Map(current).set(key, { message: errorMessage, retry }))
+        return false
+      }
+    },
+    [],
+  )
+
   const run = useCallback(
     async ({
       key,
@@ -82,31 +146,65 @@ export function useMoneyActions<T>({ keyOf }: { keyOf: (row: T) => string }): Mo
       action: () => Promise<T>
     }): Promise<boolean> => {
       setBusy(true)
-      setFailures((current) => {
-        if (!current.has(key)) return current
-        const next = new Map(current)
-        next.delete(key)
-        return next
-      })
       try {
-        const result = await action()
-        setHeld((current) => new Map(current).set(key, result))
-        /* R10 — the transient confirmation, and nothing else. */
-        if (toastMessage) toast(toastMessage)
-        return true
-      } catch {
-        setFailures((current) =>
-          new Map(current).set(key, {
-            message: errorMessage,
-            retry: () => void run({ key, errorMessage, toastMessage, action }),
-          }),
-        )
-        return false
+        const committed = await runOne({
+          key,
+          errorMessage,
+          action,
+          retry: () => void run({ key, errorMessage, toastMessage, action }),
+        })
+        /* R10 + G9 — the transient confirmation, and nothing else. It is
+           `success` because it only fires when the write committed. */
+        if (committed && toastMessage) toast.success(toastMessage)
+        return committed
       } finally {
         setBusy(false)
       }
     },
-    [],
+    [runOne],
+  )
+
+  const runMany = useCallback(
+    async ({
+      keys,
+      errorMessage,
+      toastMessage,
+      action,
+    }: {
+      keys: readonly string[]
+      errorMessage: string
+      toastMessage?: string
+      action: (key: string) => Promise<T>
+    }): Promise<{ committed: number; failed: number }> => {
+      setBusy(true)
+      let committed = 0
+      let failed = 0
+      try {
+        for (const key of keys) {
+          const ok = await runOne({
+            key,
+            errorMessage,
+            action: () => action(key),
+            /* The retry is that ONE row's, not the set's. Re-running twelve
+               payouts because one of them failed is how a bulk command pays a
+               captain twice. */
+            retry: () => void run({ key, errorMessage, action: () => action(key) }),
+          })
+          if (ok) committed += 1
+          else failed += 1
+        }
+        /* **R10, and it is the reason `failed` is counted.** A set that
+           committed whole is a transient confirmation and gets one toast. A set
+           with a failure in it is a STANDING condition on the rows that failed,
+           they are already carrying it, and a toast on top would be the second
+           surface for one event. */
+        if (failed === 0 && toastMessage) toast.success(toastMessage)
+        return { committed, failed }
+      } finally {
+        setBusy(false)
+      }
+    },
+    [runOne, run],
   )
 
   return {
@@ -114,6 +212,7 @@ export function useMoneyActions<T>({ keyOf }: { keyOf: (row: T) => string }): Mo
     failure: (key) => failures.get(key),
     busy,
     run,
+    runMany,
   }
 }
 

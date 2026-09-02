@@ -73,7 +73,9 @@ import type {
   WorkQueueId,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { type Language, type Translate } from '@/lib'
+import { formatCount, type Language, type Translate } from '@/lib'
+import { toast } from 'sonner'
+import { setRefusal } from '../bulkRefusal'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import type { DataColumn, ExtraFilterSpec, RowAction } from '@/components/DataTable'
@@ -81,7 +83,6 @@ import { useShell } from '@/shell/ShellContext'
 import {
   BreachBanner,
   Cell,
-  ConfirmDialog,
   MutedCell,
   OwnerChip,
   QueuePage,
@@ -89,11 +90,14 @@ import {
   SlaCell,
   SubjectIdentity,
   queueClock,
+  type QueueClockResult,
   useNowIso,
   useQueueMeta,
   useQueueViews,
-  type ConfirmRequest,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { withFallback } from '../localCopy'
+import { MY_WORK_EN } from './copy'
 
 /**
  * **Q-61 — the default view depends on the operator's live claims.**
@@ -113,7 +117,18 @@ const VIEW_UNASSIGNED = 'unassigned'
 export function MyWorkScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, MY_WORK_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
 
   /* Q-61's probe. `deps: []` — it answers a question about the session, not
@@ -121,7 +136,9 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
      default flicker under the operator. */
   const held = useAsync<Paginated<WorkItem>>(
     (signal) => listWorkItems({ view: VIEW_MINE, includeOtherRoles: true, pageSize: 1 }, signal),
-    { deps: [] },
+    /* A constant probe. Its `[]` key cannot collide with the list read below
+       (`[{...params}]`) or with `breached` (`[b:true|false]`). */
+    { deps: [], cacheKey: 'work.list' },
   )
   const defaultView = (held.data?.total ?? 0) > 0 ? VIEW_MINE : VIEW_UNASSIGNED
 
@@ -166,6 +183,14 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
      * means by *"it reduces what is shown; it never hides work"*.
      */
     initialFilters: [{ field: 'routedToMyRole', op: 'eq', value: true }],
+    /**
+     * **§9.3 / P4-T1, and this projection is the queue that most needs it.**
+     * §7.2 says My Work never decides anything — it claims, releases and routes
+     * — so `Claim` is not merely the only bulk action §9.3 permits here, it is
+     * the only bulk action that exists on this screen at all. Picking up the
+     * next ten unassigned items is the act the whole surface is for.
+     */
+    bulkClaim: true,
   })
 
   /* `includeOtherRoles: true` **always**, because the routing decision has moved
@@ -178,6 +203,7 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
 
   const data = useAsync<Paginated<WorkItem>>((signal) => listWorkItems(params, signal), {
     deps: [params],
+    cacheKey: 'work.list',
   })
 
   /* R5a (a). The scope is *what this operator can see*, which is why the banner
@@ -197,14 +223,37 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
    * *"Every count on this screen respects every active filter."* Legacy computes
    * its tab counts and KPI tiles from the unfiltered set (`:19242`–`:19245`)
    * while rendering rows from the filtered one, so a tab can read
-   * `Everything · 9` above zero rows. So the banner counts inside the routing
-   * scope the operator is actually looking at, and switching routing off widens
-   * both the list and the number together.
+   * `Everything · 9` above zero rows.
+   *
+   * **This banner was doing the same thing, one level up.** It asked for
+   * `view: 'breached'`, which is a view of its own — so it counted breaches
+   * across every view rather than inside the one on screen. On the `Mine` tab
+   * that put three different numbers for one screen in front of the operator at
+   * once: the rail badge read 22, the header read 2 items, and the banner read
+   * 13 past their deadline, above two rows whose deadlines were `1d 1h left`
+   * and `No clock`. Neither visible row was overdue. A banner that names a
+   * number the list cannot account for teaches the operator to stop believing
+   * the list.
+   *
+   * It now runs the table's own query with `breached` added, so the number is
+   * by construction a subset of what is on screen: change the tab, the filters
+   * or the routing scope, and the count moves with them. Asking for the count
+   * separately is what let the two drift.
    */
+  const breachedParams = useMemo(
+    () => ({
+      ...params,
+      filters: [...(params.filters ?? []), { field: 'breached', op: 'eq' as const, value: true }],
+      pageSize: 1,
+    }),
+    [params],
+  )
+
   const breached = useAsync<Paginated<WorkItem>>(
-    (signal) =>
-      listWorkItems({ view: 'breached', includeOtherRoles: !routed, pageSize: 1 }, signal),
-    { deps: [routed] },
+    (signal) => listWorkItems(breachedParams, signal),
+    /* `requestCacheKey` serialises deps into the key, so this cannot collide
+       with the table's own read against the same operation id. */
+    { deps: [breachedParams], cacheKey: 'work.list' },
   )
   const scoped = table.filters.some((filter) => filter.field === 'breached')
 
@@ -274,6 +323,58 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
     })
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  const visibleRows = data.data?.items ?? []
+  const selected = visibleRows.filter((item) => table.selectedIds.has(item.key))
+
+  /**
+   * D21 over a set, with **three** blocking causes on this screen rather than
+   * two: an item already held (a bulk take-over would strip N owners and name
+   * none of them — AC-203), and an item whose source queue this wave did not
+   * build, which is §7.5's `source-queue-unavailable` (**AC-292**) reaching the
+   * bulk bar the same way it already reaches the row's own claim control.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (item) => item.key,
+    isBlocked: (item) =>
+      item.claim?.state === 'claimed' || CLAIM_CLIENTS[item.queue] === undefined,
+    blockedKeyPrefix: 'myWork.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /**
+   * **The write goes to the SOURCE queue's own client, one call per record** —
+   * never to a My Work client, because there is not one and there must not be.
+   * `clients/myWork.ts` is a routing layer with no fixture, deliberately: a
+   * second independently-seeded copy is how My Work ends up showing a claim the
+   * owning queue disagrees with. **AC-288** holds over a set for the same
+   * reason it holds over a row — it is the same claim.
+   */
+  const [claimingMany, setClaimingMany] = useState(false)
+  async function claimSelected(keys: ReadonlySet<string>) {
+    const targets = visibleRows.filter((item) => keys.has(item.key))
+    setClaimingMany(true)
+    try {
+      await Promise.all(
+        targets.map((item) => CLAIM_CLIENTS[item.queue]?.claim(item.id, false) ?? Promise.resolve()),
+      )
+      table.clearSelection()
+      toast(
+        targets.length === 1
+          ? t('queue.toast.claimed')
+          : t('myWork.toast.claimed.other', { count: formatCount(targets.length, language) }),
+      )
+    } catch {
+      toast(t('myWork.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = workColumns({
     t,
     language,
@@ -294,7 +395,9 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
    * `:14970`) — **F-26**, a `new Function()` call over record ids.
    */
   const rowActions: ReadonlyArray<RowAction<WorkItem>> = [
-    { label: t('myWork.action.open'), onSelect: (item) => navigate(item.route) },
+    /* **P0-2 — the declared row-click target.** It routes; it does not
+       decide (§7.2), which is exactly what a row click is allowed to do. */
+    { label: t('myWork.action.open'), onSelect: (item) => navigate(item.route), rowClick: true },
   ]
 
   return (
@@ -327,7 +430,21 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
         now={now}
         searchPlaceholder={t('myWork.search')}
         extraFilters={FILTERS(t)}
+        /* **R5a** — one expression behind the marker, the pill and the tint. */
+        isRowCritical={(item) => workClock(item, now).breached}
         rowActions={rowActions}
+        /* §7.2 — My Work claims, releases and routes; it never decides. `Claim`
+           is therefore both the only bulk action §9.3 permits and the only one
+           this screen has. */
+        bulkActions={[
+          {
+            label: t('myWork.bulk.claim'),
+            onClick: (keys) => void claimSelected(keys),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         /* §7.8 — `12 + label + 12`, declared per view because a label's width is
            a translation question. `Open` is the shortest verb in the product. */
         rowActionsWidth={88}
@@ -485,29 +602,39 @@ export interface WorkDeps {
  * beyond it holds exactly one control, and that control opens the item where
  * the context is.
  */
+/**
+ * **The item's clock — module level, because THREE carriers read it**: R5a's
+ * leading-edge marker, the countdown pill, and the row tint declared on
+ * `QueueTable`, where the columns are out of scope.
+ */
+export function workClock(item: WorkItem, now: IsoDateTime): QueueClockResult {
+  return queueClock(
+    {
+      startedAt: item.slaStartedAt,
+      dueAt: item.dueAt,
+      targetMinutes: item.slaTargetMinutes,
+      /* The projection carries `breached` as a cheap boolean **and** the stamp
+         it was derived from, and `clients/workQueues.test.ts` asserts the two
+         agree with the source queue in both directions. The stamp is the one
+         `queueClock` takes, so My Work and the domain queue cannot disagree
+         about whether a row is late. */
+      breachedAt: item.slaBreachedAt,
+    },
+    now,
+    { terminal: false },
+  )
+}
+
 export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>> {
   const { t, language, now } = deps
 
-  const clockFor = (item: WorkItem) =>
-    queueClock(
-      {
-        startedAt: item.slaStartedAt,
-        dueAt: item.dueAt,
-        targetMinutes: item.slaTargetMinutes,
-        /* The projection carries `breached` as a cheap boolean **and** the stamp
-           it was derived from, and `clients/workQueues.test.ts` asserts the two
-           agree with the source queue in both directions. The stamp is the one
-           `queueClock` takes, so My Work and the domain queue cannot disagree
-           about whether a row is late. */
-        breachedAt: item.slaBreachedAt,
-      },
-      now,
-      { terminal: false },
-    )
+  const clockFor = (item: WorkItem) => workClock(item, now)
 
   return [
     {
       id: 'item',
+      emphasis: 'primary',
+      csv: (item) => item.title,
       header: t('myWork.col.item'),
       alwaysVisible: true,
       minWidth: 176,
@@ -551,6 +678,7 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
     },
     {
       id: 'severity',
+      emphasis: 'data',
       header: t('queue.col.severity'),
       width: 104,
       dataType: 'enum',
@@ -581,6 +709,7 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
     },
     {
       id: 'sla',
+      emphasis: 'data',
       header: t('queue.col.sla'),
       width: 160,
       dataType: 'date',

@@ -87,7 +87,6 @@ import {
   Absent,
   BreachBanner,
   Cell,
-  ConfirmDialog,
   DecisionBadge,
   Identity,
   MutedCell,
@@ -100,10 +99,12 @@ import {
   useQueueMeta,
   useQueueViews,
   useRowActions,
-  type ConfirmRequest,
   type QueueClockResult,
   type RowFailure,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { withFallback } from '../../operations/localCopy'
+import { FAIRNESS_EN } from './copy'
 
 /**
  * **§9.3 / Q-32 — the default is `Suspension appeals`**, and the reason is not
@@ -116,7 +117,18 @@ const VIEW_ECONOMICS = 'captain-economics'
 
 export function FairnessScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, FAIRNESS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
 
   /* §9.4 — **one mode at a time.** The economics view is P5 and mounts a board;
@@ -180,7 +192,10 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
 
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
   const data = useAsync<Paginated<FairnessCase>>((signal) => listFairnessCases(params, signal), {
+    /* `params` is the table query with the view tab merged in and is the
+       fetcher's only argument, so each tab keys separately. */
     deps: [params],
+    cacheKey: 'fairness.list',
   })
 
   /* R5a (a) — open cases only. Q-18: a case decided after its deadline is
@@ -197,7 +212,11 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
         },
         signal,
       ),
-    { deps: [] },
+    /* Constant query, named in `deps` so the key describes the request: the
+       list read above is `fairness.list::[{…}]`, the profile card's is
+       `fairness.list::[s:DRV-…]`, and this count is `fairness.list::[s:breached]`.
+       A bare `[]` would be a slot any other constant read could claim. */
+    { deps: ['breached'], cacheKey: 'fairness.list' },
   )
 
   const actions = useRowActions<FairnessCase>({ t })
@@ -337,6 +356,8 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
         onTotal={onTotal}
         now={now}
         searchPlaceholder={t('fairness.search')}
+        /* **R5a** — one expression behind the marker, the pill and the tint. */
+        isRowCritical={(row) => caseClock(row, now).breached}
         extraFilters={BREACH_FILTER(t)}
         /* **AC-343** — each of the three case views names its own scope. */
         cleared={{
@@ -375,7 +396,11 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
  */
 function EconomicsView({ row, tabs, activeTab, onSelectTab, t, dir, language }: ViewProps) {
   const board = useAsync<MetricBoard>((signal) => getMetricBoard(row.subTabId, signal), {
+    /* `subTabId` picks the board and is the fetcher's only input — the same key
+       `MetricBoardScreen` uses for the same call, deliberately, so the two
+       surfaces share one read of the same board rather than two. */
     deps: [row.subTabId],
+    cacheKey: 'metrics.board',
   })
 
   return (
@@ -537,26 +562,36 @@ export interface CaseDeps {
  * rider-reports       176 + 152 + 160 + 176 + 176 = 840
  * ```
  */
+/**
+ * **The case's clock — module level, because THREE carriers read it**: R5a's
+ * leading-edge marker, the countdown pill, and the row tint declared on
+ * `QueueTable`, where the columns are out of scope. `terminal` is part of the
+ * expression: a case decided inside its window keeps `slaBreachedAt: null` and
+ * a case decided late has a stopped clock, so neither is tinted.
+ */
+export function caseClock(row: FairnessCase, now: IsoDateTime): QueueClockResult {
+  return queueClock(
+    {
+      startedAt: row.slaStartedAt,
+      dueAt: row.slaDueAt,
+      /* **The per-row denominator, and the reason this queue exists in §9.1's
+         first sentence.** `slaTargetMinutes` is `rcTargets(reasonCode).res` —
+         1440 or 2880 — so two rows in one view draw different fills at the
+         same remaining time (**AC-213**). */
+      targetMinutes: row.slaTargetMinutes,
+      breachedAt: row.slaBreachedAt,
+    },
+    now,
+    { terminal: row.status !== 'open' },
+  )
+}
+
 export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataColumn<FairnessCase>> {
   const { t, language, now } = deps
 
   const isDecided = (row: FairnessCase) => row.status !== 'open'
 
-  const clockFor = (row: FairnessCase): QueueClockResult =>
-    queueClock(
-      {
-        startedAt: row.slaStartedAt,
-        dueAt: row.slaDueAt,
-        /* **The per-row denominator, and the reason this queue exists in §9.1's
-           first sentence.** `slaTargetMinutes` is `rcTargets(reasonCode).res` —
-           1440 or 2880 — so two rows in one view draw different fills at the
-           same remaining time (**AC-213**). */
-        targetMinutes: row.slaTargetMinutes,
-        breachedAt: row.slaBreachedAt,
-      },
-      now,
-      { terminal: isDecided(row) },
-    )
+  const clockFor = (row: FairnessCase): QueueClockResult => caseClock(row, now)
 
   const middle: DataColumn<FairnessCase> =
     view === 'rating-disputes'
@@ -624,6 +659,8 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
   return [
     {
       id: 'captain',
+      emphasis: 'primary',
+      csv: (row) => row.driverName,
       header: t('fairness.col.captain'),
       alwaysVisible: true,
       minWidth: 176,
@@ -648,6 +685,7 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
     middle,
     {
       id: 'sla',
+      emphasis: 'data',
       header: t('queue.col.sla'),
       width: 160,
       dataType: 'date',
@@ -791,6 +829,7 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('queue.col.status'),
       width: 136,
       dataType: 'enum',

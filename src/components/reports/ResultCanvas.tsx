@@ -56,6 +56,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import type { Measure, QueryViolation, ReportResult } from '@/data/types'
@@ -339,17 +340,26 @@ function Body({
     <ul role="list" className={cn('grid list-none gap-3', columns)}>
       {result.panels.map((panel) => (
         <li key={panel.panelId} className="min-w-0">
-          <PanelCard
-            panel={panel}
-            result={result}
-            measure={measureOf(panel.panelId)}
-            kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
-            coercedFrom={coercedFrom}
-            onRetrySeries={onRetrySeries}
-            noDataSentence={noDataSentence}
-            t={t}
-            language={language}
-          />
+          {/* **P1-8 — one boundary per panel, so a panel fails alone.** The
+              grid is a set of small multiples over one run: if the third one
+              throws inside recharts, the other five are still correct and
+              still worth reading. Carded (the default), because the boundary
+              replaces the whole card here rather than its body — the title
+              lives inside `PanelCard` and is not reachable once it has
+              thrown. Generic copy for the same reason. */}
+          <ErrorBoundary scope="card" t={t}>
+            <PanelCard
+              panel={panel}
+              result={result}
+              measure={measureOf(panel.panelId)}
+              kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
+              coercedFrom={coercedFrom}
+              onRetrySeries={onRetrySeries}
+              noDataSentence={noDataSentence}
+              t={t}
+              language={language}
+            />
+          </ErrorBoundary>
         </li>
       ))}
     </ul>

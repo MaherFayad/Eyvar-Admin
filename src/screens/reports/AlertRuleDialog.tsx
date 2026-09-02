@@ -83,6 +83,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ErrorState } from '@/components/ErrorState'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { Switch } from '@/components/ui/switch'
 import { useAsync } from '@/hooks'
 import { listReports, runReport, saveAlertRule } from '@/data/clients'
 import { REPORT_NAME_MAX } from '@/data/types'
@@ -94,8 +97,12 @@ import type {
   SaveInvalidReason,
   SavedReport,
 } from '@/data/types'
-import { formatMetricValue } from '@/components/metrics'
-import { parseMoneyInput, parseNumericInput, type Translator } from '@/lib'
+/* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
+   `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
+   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
+   no React in it. */
+import { formatMetricValue } from '@/components/metrics/formatMetric'
+import { formatDate, parseMoneyInput, parseNumericInput, type Translator } from '@/lib'
 
 /** The four, and deliberately the same four names `FilterOperator` already uses. */
 const COMPARATORS: AlertComparator[] = ['gt', 'gte', 'lt', 'lte']
@@ -128,28 +135,62 @@ export function AlertRuleDialog({
   const [comparator, setComparator] = useState<AlertComparator>(rule?.comparator ?? 'gt')
   const [thresholdText, setThresholdText] = useState('')
   const [grain, setGrain] = useState<MeasureGrain>(rule?.evaluationGrain ?? 'day')
+  const [enabled, setEnabled] = useState(true)
+  const [mutedUntil, setMutedUntil] = useState<string | null>(null)
   const [reasons, setReasons] = useState<readonly SaveInvalidReason[]>([])
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const reports = useAsync(async (signal) => (await listReports({ pageSize: 100 }, signal)).items, {
-    deps: [],
+  /**
+   * **Settled: `reports.list` holds the client's native `Paginated` envelope.**
+   *
+   * This fetcher used to unwrap to `SavedReport[]` while
+   * `DashboardDetailScreen`'s picker stored the envelope under the same
+   * operation id. The cache is untyped — `useAsync` casts the stored `unknown`
+   * to `T` — so one id holding two shapes is a `.find is not a function`
+   * waiting for the two keys to meet. Found by the P3-13 deps audit and left
+   * uncached rather than papered over with a distinguishing dep, which is the
+   * right call: a dep would have hidden the collision, not removed it.
+   *
+   * This side changed because the envelope is what the client actually returns;
+   * unwrapping at the *consumer* keeps one shape per operation id, which is the
+   * invariant the cache needs. The two callers now genuinely share an entry.
+   */
+  const reports = useAsync((signal) => listReports({ pageSize: 100 }, signal), {
+    cacheKey: 'reports.list',
+    deps: [open],
     isEmpty: () => false,
     enabled: open,
   })
+  const reportItems = reports.data?.items ?? []
 
   /* Choosing a report RESOLVES it, because which series exist is a property of
      the result and not of the query. One request, caused by one choice. */
   const resolved = useAsync<readonly ReportSeries[]>(
     async (signal) => {
-      const report = (reports.data ?? []).find((r) => r.id === reportId)
+      const report = reportItems.find((r) => r.id === reportId)
       if (!report) return []
       const outcome = await runReport(report.query, { today, signal })
       return outcome.status === 'ok'
         ? outcome.result.series.filter((s) => s.role === 'current' && !s.blocked)
         : []
     },
-    { deps: [reportId, reports.data?.length], isEmpty: () => false, enabled: reportId !== null },
+    {
+      /* P3-13 fix: `today` is threaded into `runReport` above and was NOT a
+         dependency, so the resolved series list did not re-resolve across a
+         midnight rollover - the parent derives `today` from a ticking clock.
+         Deliberately NOT given a `cacheKey`: `reports.data?.length` is a proxy
+         for the report list, and a saved report edited in place keeps the same
+         length and the same id, so the key would collide with the pre-edit
+         series. Needs a memoised `query` dep before it can be cached. */
+      deps: [reportId, reportItems.length, today],
+      /* A report that resolves to no readable series is a REAL answer — every
+         series blocked, or a run that returned nothing — and it has to be
+         distinguishable from *still loading*, or the picker sits enabled over
+         an empty list and silently offers nothing. */
+      isEmpty: (rows) => rows.length === 0,
+      enabled: reportId !== null,
+    },
   )
 
   const series = (resolved.data ?? []).find((s) => s.id === seriesId) ?? null
@@ -161,6 +202,8 @@ export function AlertRuleDialog({
     setSeriesId(rule?.seriesId ?? '')
     setComparator(rule?.comparator ?? 'gt')
     setGrain(rule?.evaluationGrain ?? 'day')
+    setEnabled(rule?.enabled ?? true)
+    setMutedUntil(rule?.mutedUntil ?? null)
     /* An existing money threshold is halalas on the record and SAR in the
        field — the same asymmetry, read the other way. */
     setThresholdText(
@@ -192,9 +235,13 @@ export function AlertRuleDialog({
         evaluationGrain: grain,
         /* **Unset, and passed as unset.** See the file header. */
         cadence: null,
+        /* **Blocked on D4, and passed through rather than reset.** See the
+           file header: *can user X see measure M* has no answer today, so this
+           form may not compose a recipient list. Editing a rule must not
+           silently clear the one it already has. */
         recipientIds: rule?.recipientIds ?? [],
-        enabled: rule?.enabled ?? true,
-        mutedUntil: rule?.mutedUntil ?? null,
+        enabled,
+        mutedUntil,
       })
       if (outcome.status === 'invalid') {
         setReasons(outcome.reasons)
@@ -208,11 +255,11 @@ export function AlertRuleDialog({
     }
   }
 
-  const noSavedReports = reports.status === 'content' && (reports.data ?? []).length === 0
+  const noSavedReports = reports.status === 'content' && reportItems.length === 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>{rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}</DialogTitle>
           {/* AC-878 — what will happen, in words, as one key with named
@@ -244,25 +291,41 @@ export function AlertRuleDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="rb-alert-report">{t('rb.alert.form.report')}</Label>
-            <Select
-              value={reportId ?? ''}
-              disabled={noSavedReports}
-              onValueChange={(value) => {
-                setReportId(value)
-                setSeriesId('')
-              }}
-            >
-              <SelectTrigger id="rb-alert-report" className="w-full">
-                <SelectValue placeholder={t('rb.alert.form.report')} />
-              </SelectTrigger>
-              <SelectContent>
-                {(reports.data ?? []).map((report: SavedReport) => (
-                  <SelectItem key={report.id} value={report.id}>
-                    <bdi>{report.name}</bdi>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* **Four states, on a picker.** A trigger that stays enabled
+                while its list is still arriving — or after it failed — opens a
+                menu that silently offers nothing, and the operator reads that
+                as *there are no reports*. The same defect `ManualDispatchModal`
+                fixed for its captain picker. */}
+            {reports.status === 'loading' ? (
+              <LoadingSkeleton pattern="P1" rows={2} label={t('rb.alert.form.report.loading')} />
+            ) : reports.status === 'error' ? (
+              <ErrorState
+                scope="card"
+                card={false}
+                message={t('rb.alert.form.report.error')}
+                action={{ label: t('rb.library.error.retry'), onClick: reports.refetch }}
+              />
+            ) : (
+              <Select
+                value={reportId ?? ''}
+                disabled={noSavedReports}
+                onValueChange={(value) => {
+                  setReportId(value)
+                  setSeriesId('')
+                }}
+              >
+                <SelectTrigger id="rb-alert-report" className="w-full">
+                  <SelectValue placeholder={t('rb.alert.form.report')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {reportItems.map((report: SavedReport) => (
+                    <SelectItem key={report.id} value={report.id}>
+                      <bdi>{report.name}</bdi>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {/* AC-874 — disabled in place, with the reason. */}
             {noSavedReports && (
               <p className="text-xs text-muted-foreground">{t('rb.alert.form.report.unsaved')}</p>
@@ -271,22 +334,53 @@ export function AlertRuleDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="rb-alert-series">{t('rb.alert.form.series')}</Label>
-            <Select value={seriesId} disabled={reportId === null} onValueChange={setSeriesId}>
-              <SelectTrigger id="rb-alert-series" className="w-full">
-                <SelectValue placeholder={t('rb.alert.form.series')} />
-              </SelectTrigger>
-              <SelectContent>
-                {(resolved.data ?? []).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.groupValue === null ? (
-                      t(`rb.measure.${s.measureKey}`)
-                    ) : (
-                      <bdi>{s.groupValue}</bdi>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* The unstarted case FIRST: with no report chosen the hook is
+                held in `loading` without firing, so branching on status alone
+                would show a skeleton for a request that is not happening. */}
+            {reportId === null ? (
+              <>
+                <Select value="" disabled onValueChange={setSeriesId}>
+                  <SelectTrigger id="rb-alert-series" className="w-full">
+                    <SelectValue placeholder={t('rb.alert.form.series')} />
+                  </SelectTrigger>
+                  <SelectContent />
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('rb.alert.form.series.unstarted')}
+                </p>
+              </>
+            ) : resolved.status === 'loading' ? (
+              <LoadingSkeleton pattern="P1" rows={2} label={t('rb.alert.form.series.loading')} />
+            ) : resolved.status === 'error' ? (
+              <ErrorState
+                scope="card"
+                card={false}
+                message={t('rb.alert.form.series.error')}
+                action={{ label: t('rb.library.error.retry'), onClick: resolved.refetch }}
+              />
+            ) : resolved.status === 'empty' ? (
+              /* Stated, not an empty menu. §13.1's redaction can empty this
+                 list, and *you may not read any of its series* is a different
+                 fact from *it has none*. */
+              <p className="text-xs text-muted-foreground">{t('rb.alert.form.series.empty')}</p>
+            ) : (
+              <Select value={seriesId} onValueChange={setSeriesId}>
+                <SelectTrigger id="rb-alert-series" className="w-full">
+                  <SelectValue placeholder={t('rb.alert.form.series')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(resolved.data ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.groupValue === null ? (
+                        t(`rb.measure.${s.measureKey}`)
+                      ) : (
+                        <bdi>{s.groupValue}</bdi>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -348,6 +442,68 @@ export function AlertRuleDialog({
             <Label htmlFor="rb-alert-cadence">{t('rb.alert.form.cadence')}</Label>
             <Input id="rb-alert-cadence" disabled readOnly value={t('rb.alert.cadence.unset')} />
             <p className="text-xs text-muted-foreground">{t('rb.alert.cadence.explain')}</p>
+          </div>
+
+          {/* **On or off, and it is a real control.** `enabled` is on the
+              record and `alerts.save` takes it; leaving it out meant an
+              operator could not turn a rule off from the form that made it. */}
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="rb-alert-enabled">{t('rb.alert.form.enabled')}</Label>
+            <Switch id="rb-alert-enabled" checked={enabled} onCheckedChange={setEnabled} />
+          </div>
+
+          {/* **Muted, said out loud.** A muted rule keeps evaluating and stops
+              notifying, so a form that did not show the mute would let someone
+              wonder why a firing rule told nobody. Un-muting is here; muting
+              *for a duration* is not, because no durations have been specified
+              and inventing three would be AC-453. */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rb-alert-muted">{t('rb.alert.form.muted')}</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="rb-alert-muted"
+                disabled
+                readOnly
+                value={
+                  mutedUntil === null
+                    ? t('rb.alert.form.muted.none')
+                    : t('rb.alert.muted', {
+                        time: formatDate(mutedUntil, { style: 'day-month-time', language }),
+                      })
+                }
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                /* §11.2 — disabled in place while there is nothing to un-mute,
+                   never hidden. */
+                disabled={mutedUntil === null}
+                onClick={() => setMutedUntil(null)}
+              >
+                {t('rb.alert.form.muted.clear')}
+              </Button>
+            </div>
+          </div>
+
+          {/* **AC-891 is blocked on D4, and the form says so** rather than
+              omitting the field. §13.3's rule is that an operator who cannot
+              see the rule's measure is not a legal recipient, and *can user X
+              see measure M* has no answer today: every measure permission that
+              is set is one of the thirteen broad keys. A picker offering
+              everyone would ship the leak the rule exists to close; one
+              offering nobody would look broken. Whatever the rule already has
+              is preserved on save. */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rb-alert-recipients">{t('rb.alert.form.recipients')}</Label>
+            <Input
+              id="rb-alert-recipients"
+              disabled
+              readOnly
+              value={t('rb.alert.form.recipients.count', {
+                count: rule?.recipientIds.length ?? 0,
+              })}
+            />
+            <p className="text-xs text-muted-foreground">{t('rb.alert.form.recipients.blocked')}</p>
           </div>
 
           {reasons.length > 0 && (

@@ -36,6 +36,14 @@
  *               paint the same plate as the critical banner §4.4 puts on screen
  *               at the same time, so the summary and the items would be one
  *               surface.
+ *
+ *               **`AuthFieldError` is gone (doc 14 G7).** Its treatment is now
+ *               `ui/field.tsx`'s `FieldError` and this file consumes the shared
+ *               one. The comment that used to sit here said the duplicate
+ *               existed because "three other screens are being built against
+ *               `FieldError` right now"; that was checked before acting on it
+ *               and `ui/field` had **zero** consumers, so nothing could be
+ *               regressed. Auth's treatment won on the merits, not by seniority.
  *   AC-678      the error is `aria-describedby` from its field, with
  *               `aria-invalid="true"`, so it is announced and not merely drawn.
  *   AC-679      `autocomplete` on all four field kinds, so a password manager
@@ -46,54 +54,19 @@
  *   R6          full sentences take a period; labels and titles do not.
  */
 
-import { useId, type ReactNode, type Ref } from 'react'
+import { type ReactNode, type Ref } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
-
-/* ─────────────────────────── the inline field error ──────────────────────── */
-
-/**
- * **Two signals, and the second one is words.**
- *
- * `ui/field.tsx`'s `FieldError` renders 13 px with no glyph, which is the
- * *form* vocabulary; §4.4 asks for 12 px with a filled circle-exclamation. This
- * is deliberately a local composition rather than an edit to the shared
- * primitive: three other screens are being built against `FieldError` right now
- * and changing its size under them would be a regression they did not ask for.
- * **Recorded as a divergence to reconcile** — one of the two has to lose, and
- * that is a design call, not mine.
- *
- * WCAG 1.4.1 passes on the message alone; `--ev-red` on white is 6.574 : 1, so
- * the border clears non-text 3 : 1 with room, and the focus ring is a separate
- * channel so an invalid focused field composes both without collision.
- */
-export function AuthFieldError({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <p id={id} className="mt-1 flex items-start gap-1 text-xs text-destructive">
-      <ErrorGlyph />
-      <span>{children}</span>
-    </p>
-  )
-}
-
-/** Filled circle-exclamation, 12 px, `currentColor`. A mark: it does not mirror. */
-function ErrorGlyph() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="mt-0.5 size-3 shrink-0"
-      fill="currentColor"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M8 1.5A6.5 6.5 0 1 0 8 14.5 6.5 6.5 0 0 0 8 1.5Zm.75 3.25v4.5h-1.5v-4.5h1.5ZM8 12a.9.9 0 1 1 0-1.8A.9.9 0 0 1 8 12Z" />
-    </svg>
-  )
-}
 
 /* ─────────────────────────────── the text field ──────────────────────────── */
 
@@ -126,47 +99,28 @@ export interface AuthTextFieldProps {
 }
 
 export function AuthTextField(props: AuthTextFieldProps) {
-  const generatedId = useId()
-  const id = props.id ?? generatedId
-  const helperId = `${id}-helper`
-  const errorId = `${id}-error`
-
-  const describedBy = [
-    props.helper ? helperId : null,
-    props.error ? errorId : null,
-    props.describedBy ?? null,
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   return (
-    <div className={cn('flex flex-col', props.className)}>
-      <Label htmlFor={id} className="mb-1">
-        {props.label}
-      </Label>
-      <Input
-        id={id}
-        type={props.type ?? 'text'}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-        readOnly={props.readOnly}
-        placeholder={props.placeholder}
-        autoComplete={props.autoComplete}
-        autoFocus={props.autoFocus}
-        inputMode={props.inputMode}
-        dir={props.dir}
-        aria-invalid={props.error ? true : undefined}
-        aria-describedby={describedBy === '' ? undefined : describedBy}
-        /* §2.2 — 40 px, the one field height on this surface (A-9). */
-        className="h-control-lg"
-      />
-      {props.helper ? (
-        <p id={helperId} className="mt-1 text-xs text-muted-foreground">
-          {props.helper}
-        </p>
-      ) : null}
-      {props.error ? <AuthFieldError id={errorId}>{props.error}</AuthFieldError> : null}
-    </div>
+    <Field id={props.id} invalid={Boolean(props.error)} className={cn(props.className)}>
+      <FieldLabel>{props.label}</FieldLabel>
+      <FieldControl>
+        <Input
+          type={props.type ?? 'text'}
+          value={props.value}
+          onChange={(event) => props.onChange(event.target.value)}
+          readOnly={props.readOnly}
+          placeholder={props.placeholder}
+          autoComplete={props.autoComplete}
+          autoFocus={props.autoFocus}
+          inputMode={props.inputMode}
+          dir={props.dir}
+          aria-describedby={props.describedBy}
+          /* §2.2 — 40 px, the one field height on this surface (A-9). */
+          className="h-control-lg"
+        />
+      </FieldControl>
+      {props.helper ? <FieldDescription>{props.helper}</FieldDescription> : null}
+      <FieldError>{props.error}</FieldError>
+    </Field>
   )
 }
 
@@ -196,39 +150,24 @@ export interface AuthPasswordFieldProps
  * Two overrides against one is not a saving.
  */
 export function AuthPasswordField(props: AuthPasswordFieldProps) {
-  const generatedId = useId()
-  const id = props.id ?? generatedId
-  const helperId = `${id}-helper`
-  const errorId = `${id}-error`
-
-  const describedBy = [
-    props.helper ? helperId : null,
-    props.error ? errorId : null,
-    props.describedBy ?? null,
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   return (
-    <div className={cn('flex flex-col', props.className)}>
-      <Label htmlFor={id} className="mb-1">
-        {props.label}
-      </Label>
+    <Field id={props.id} invalid={Boolean(props.error)} className={cn(props.className)}>
+      <FieldLabel>{props.label}</FieldLabel>
       <div className="relative">
-        <Input
-          id={id}
-          type={props.revealed ? 'text' : 'password'}
-          value={props.value}
-          onChange={(event) => props.onChange(event.target.value)}
-          readOnly={props.readOnly}
-          autoComplete={props.autoComplete}
-          autoFocus={props.autoFocus}
-          aria-invalid={props.error ? true : undefined}
-          aria-describedby={describedBy === '' ? undefined : describedBy}
-          /* `pe-10` leaves the 32 px control plus its inset clear of the value
-             in both directions — logical, so it mirrors. */
-          className="h-control-lg pe-10"
-        />
+        <FieldControl>
+          <Input
+            type={props.revealed ? 'text' : 'password'}
+            value={props.value}
+            onChange={(event) => props.onChange(event.target.value)}
+            readOnly={props.readOnly}
+            autoComplete={props.autoComplete}
+            autoFocus={props.autoFocus}
+            aria-describedby={props.describedBy}
+            /* `pe-10` leaves the 32 px control plus its inset clear of the value
+               in both directions — logical, so it mirrors. */
+            className="h-control-lg pe-10"
+          />
+        </FieldControl>
         <Button
           type="button"
           variant="ghost"
@@ -242,13 +181,9 @@ export function AuthPasswordField(props: AuthPasswordFieldProps) {
           {props.revealed ? <EyeOffIcon /> : <EyeIcon />}
         </Button>
       </div>
-      {props.helper ? (
-        <p id={helperId} className="mt-1 text-xs text-muted-foreground">
-          {props.helper}
-        </p>
-      ) : null}
-      {props.error ? <AuthFieldError id={errorId}>{props.error}</AuthFieldError> : null}
-    </div>
+      {props.helper ? <FieldDescription>{props.helper}</FieldDescription> : null}
+      <FieldError>{props.error}</FieldError>
+    </Field>
   )
 }
 

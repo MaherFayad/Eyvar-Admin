@@ -187,34 +187,11 @@ export const authIdentityFixtures: AuthIdentity[] = [
 
 /* ───────────────────────── codes and tokens ─────────────────── */
 
-/**
- * §10.3's five codes. **Any other six digits is `wrong`** — which is the case
- * that counts against `attemptsRemaining`, and the only one that does.
- */
-export const AUTH_FIXTURE_CODES = {
-  correct: '123456',
-  expired: '000000',
-  superseded: '111111',
-  challengeLocked: '999999',
-} as const
+/* `AUTH_FIXTURE_CODES` and `AUTH_FIXTURE_PASSWORD` moved to
+   `src/data/mock/credentials.ts`, which says why: they are the two values in
+   this file a test holds as a value, and re-exporting them through the seam
+   was a static edge that pinned every seeded identity into the http build. */
 
-/**
- * **The one password every seeded identity accepts** — **AC-505**'s *"the
- * fixture password"*, which the spec's §10.3 table names nowhere.
- *
- * > **This is what makes AC-506's fourth cause reachable.** The criterion wants
- * > four inputs to produce byte-identical copy: an unknown identifier,
- * > `suspended@eyvar.com`, `noura.f@eyvar.com`, and **`sarah@eyvar.com` with a
- * > wrong password**. `signIn` never read `input.password`, so the fourth was
- * > unreachable and the guarantee could only be asserted structurally — *"they
- * > all take the same branch"* — which is a test of the code rather than of the
- * > behaviour. Now the branch can be reached from the outside, which is where
- * > an operator reaches it from.
- *
- * 14 characters, so it clears `PASSWORD_MIN_LENGTH` (12) and nothing in the
- * fixtures depends on a password the reset form would itself refuse.
- */
-export const AUTH_FIXTURE_PASSWORD = 'eyvar-ops-2026'
 
 /**
  * **Refused by the server's breach list** — **AC-548**, spec §11.1's *"cannot

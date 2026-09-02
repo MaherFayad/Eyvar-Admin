@@ -18,6 +18,19 @@
  *
  * Pagination volume comes from `fillerDrivers` at the bottom — deliberately
  * separated so the interesting rows above stay hand-editable.
+ *
+ * ## A lifetime total larger than the trips we hold is expected — not a defect
+ *
+ * Same reading as `fixtures/riders.ts`, which states it in full: `totalTrips`
+ * is lifetime, `fixtures/trips.ts` is a 137-row sample, and
+ * `agree.aggregate-vs-records` reporting the difference is the level mismatch
+ * rather than a fault. Legacy's own reclassification says so (`:20441`) — *"a
+ * total larger than the window is expected and must not shout"* — and
+ * `clients/integrity.test.ts:215` asserts only the half that matters: nobody
+ * **with** trips on file may be flagged.
+ *
+ * The half that is a fault — a non-zero `totalTrips` beside a `null`
+ * `lastTripAt` — is asserted in `denormalisation.test.ts`.
  */
 
 import { offsetFromNow } from '../mock/clock'
@@ -32,7 +45,8 @@ export const driverFixtures: Driver[] = [
     email: 'ahmed.salem86@gmail.com',
     rating: 4.9,
     tier: 'gold',
-    status: 'active',
+    /* Derived from `openComplaints: 1` below — see the note there. */
+    status: 'under-review',
     vehicle: 'Corolla 2022 · White',
     vehicleClass: 'Economy',
     joinedAt: '2025-02-01',
@@ -64,7 +78,18 @@ export const driverFixtures: Driver[] = [
     planFrozenUntil: null,
     flaggedForDeclines: false,
     manualFlag: false,
-    openComplaints: 0,
+    /**
+     * **Was `0`, and the driver record was the wrong witness.** `CMP-330` is
+     * `status: 'Open'` in legacy (`:2711`) and notification **N6** names it
+     * *"CMP-330 against Ahmed Salem"*, so two independent records said this
+     * captain had an open complaint while this one said he had none.
+     *
+     * The count carries a consequence: `types/driver.ts` states the legacy
+     * derivation — `open complaints ∨ flaggedForDeclines ∨ manualFlag` →
+     * **Under review** (`:6394`) — so `status` moves with it. Leaving `active`
+     * beside a non-zero count would have traded one contradiction for another.
+     */
+    openComplaints: 1,
     totalTrips: 412,
     monthEarningsHalalas: 284_000,
     onTimePercent: 96,
@@ -72,7 +97,9 @@ export const driverFixtures: Driver[] = [
     lastTripAt: '2026-06-25T07:00:00+03:00',
     tripIds: ['TRP-7741', 'TRP-9005', 'TRP-7720'],
     paymentIds: ['PAY-W640'],
-    complaintIds: [],
+    /* Filed against this account and held by `fixtures/complaints.ts`. The id list
+       was empty beside a non-zero count until that collection existed. */
+    complaintIds: ['CMP-330'],
   },
   {
     id: 'DRV-0102',
@@ -320,11 +347,23 @@ export const driverFixtures: Driver[] = [
     monthEarningsHalalas: 218_000,
     onTimePercent: 97,
     openSubscriptionSlots: 2,
-    /* 145 lifetime trips and **no trip ids** — the seeded contradiction at
-       `:2671`. Preserved: the profile's trips card must handle a captain whose
-       history is not loadable, and today it renders an empty card with a
-       non-zero counter above it. */
-    lastTripAt: null,
+    /**
+     * 145 lifetime trips and **no trip ids** — the seeded contradiction at
+     * `:2671`. Preserved: the profile's trips card must handle a captain whose
+     * history is not loadable, and today it renders an empty card with a
+     * non-zero counter above it.
+     *
+     * **`lastTripAt` is not part of that contradiction and no longer shares in
+     * it.** Legacy has no such field — there is no `lastTrip` anywhere in
+     * `DB.drivers` (`:2633`–`:2673`) — so it is ours, and `types/driver.ts`
+     * defines `null` as *"has never driven"*. A row saying 145 trips and never
+     * driven is not a preserved legacy defect, it is this layer contradicting
+     * its own field definition, and it makes `lastTripAt`-based sorting and
+     * date filtering silently wrong for the row. The value below is the
+     * captain's last recorded activity; the empty `tripIds` stays exactly as
+     * it was.
+     */
+    lastTripAt: '2026-06-22T17:35:00+03:00',
     tripIds: [],
     paymentIds: [],
     complaintIds: [],
@@ -428,9 +467,14 @@ export const driverFixtures: Driver[] = [
     onTimePercent: 71,
     openSubscriptionSlots: 0,
     lastTripAt: '2026-06-18T14:20:00+03:00',
-    tripIds: [],
+    /* The leg `INC-019` is about, and the one `lastTripAt` names. It was an
+       empty array beside a non-null timestamp until `TRP-9108` was given a
+       record. */
+    tripIds: ['TRP-9108'],
     paymentIds: [],
-    complaintIds: [],
+    /* Filed against this account and held by `fixtures/complaints.ts`. The id list
+       was empty beside a non-zero count until that collection existed. */
+    complaintIds: ['CMP-343', 'CMP-344'],
   },
   {
     id: 'DRV-0203',
@@ -528,7 +572,9 @@ export const driverFixtures: Driver[] = [
     lastTripAt: '2026-06-23T18:10:00+03:00',
     tripIds: [],
     paymentIds: [],
-    complaintIds: [],
+    /* Filed against this account and held by `fixtures/complaints.ts`. The id list
+       was empty beside a non-zero count until that collection existed. */
+    complaintIds: ['CMP-350', 'CMP-351', 'CMP-352'],
   },
   {
     id: 'DRV-0205',
@@ -688,25 +734,68 @@ export const driverFixtures: Driver[] = [
  * Kept separate from the literals above so nobody has to read a generator to
  * hand-edit an interesting row.
  */
-const FILLER_FAMILY_NAMES = [
-  'Al-Zahrani',
-  'Al-Otaibi',
-  'Al-Ghamdi',
-  'Al-Shehri',
-  'Al-Qahtani',
-  'Al-Dosari',
-  'Al-Harbi',
-  'Al-Mutairi',
-  'Al-Subaie',
-  'Al-Balawi',
-  'Al-Anazi',
+/**
+ * **One list of whole names, not two lists cycled apart.**
+ *
+ * This was a given-name list of four cycled against a family-name list of
+ * eleven. Nothing on a captain row contradicted itself as a result — the id is
+ * generated per index and the email and bank holder are both derived from the
+ * same two locals — but it is the identical pattern that put the wrong
+ * `driverName` on 80 filler trips, and leaving it here is leaving the pattern
+ * in the codebase as an example to copy. The 44 pairs below are exactly the 44
+ * the two cycles produced, written out: boring, greppable, and hand-editable
+ * when somebody needs to reproduce a bug on one row.
+ */
+const FILLER_CAPTAIN_NAMES: ReadonlyArray<{ given: string; family: string }> = [
+  { given: 'Fahad', family: 'Al-Zahrani' },
+  { given: 'Bandar', family: 'Al-Otaibi' },
+  { given: 'Sultan', family: 'Al-Ghamdi' },
+  { given: 'Meshal', family: 'Al-Shehri' },
+  { given: 'Fahad', family: 'Al-Qahtani' },
+  { given: 'Bandar', family: 'Al-Dosari' },
+  { given: 'Sultan', family: 'Al-Harbi' },
+  { given: 'Meshal', family: 'Al-Mutairi' },
+  { given: 'Fahad', family: 'Al-Subaie' },
+  { given: 'Bandar', family: 'Al-Balawi' },
+  { given: 'Sultan', family: 'Al-Anazi' },
+  { given: 'Meshal', family: 'Al-Zahrani' },
+  { given: 'Fahad', family: 'Al-Otaibi' },
+  { given: 'Bandar', family: 'Al-Ghamdi' },
+  { given: 'Sultan', family: 'Al-Shehri' },
+  { given: 'Meshal', family: 'Al-Qahtani' },
+  { given: 'Fahad', family: 'Al-Dosari' },
+  { given: 'Bandar', family: 'Al-Harbi' },
+  { given: 'Sultan', family: 'Al-Mutairi' },
+  { given: 'Meshal', family: 'Al-Subaie' },
+  { given: 'Fahad', family: 'Al-Balawi' },
+  { given: 'Bandar', family: 'Al-Anazi' },
+  { given: 'Sultan', family: 'Al-Zahrani' },
+  { given: 'Meshal', family: 'Al-Otaibi' },
+  { given: 'Fahad', family: 'Al-Ghamdi' },
+  { given: 'Bandar', family: 'Al-Shehri' },
+  { given: 'Sultan', family: 'Al-Qahtani' },
+  { given: 'Meshal', family: 'Al-Dosari' },
+  { given: 'Fahad', family: 'Al-Harbi' },
+  { given: 'Bandar', family: 'Al-Mutairi' },
+  { given: 'Sultan', family: 'Al-Subaie' },
+  { given: 'Meshal', family: 'Al-Balawi' },
+  { given: 'Fahad', family: 'Al-Anazi' },
+  { given: 'Bandar', family: 'Al-Zahrani' },
+  { given: 'Sultan', family: 'Al-Otaibi' },
+  { given: 'Meshal', family: 'Al-Ghamdi' },
+  { given: 'Fahad', family: 'Al-Shehri' },
+  { given: 'Bandar', family: 'Al-Qahtani' },
+  { given: 'Sultan', family: 'Al-Dosari' },
+  { given: 'Meshal', family: 'Al-Harbi' },
+  { given: 'Fahad', family: 'Al-Mutairi' },
+  { given: 'Bandar', family: 'Al-Subaie' },
+  { given: 'Sultan', family: 'Al-Balawi' },
+  { given: 'Meshal', family: 'Al-Anazi' },
 ]
-const FILLER_GIVEN_NAMES = ['Fahad', 'Bandar', 'Sultan', 'Meshal']
 
 export const fillerDrivers: Driver[] = Array.from({ length: 44 }, (_, i) => {
   const n = i + 1
-  const given = cycle(FILLER_GIVEN_NAMES, i)
-  const family = cycle(FILLER_FAMILY_NAMES, i)
+  const { given, family } = cycle(FILLER_CAPTAIN_NAMES, i)
   const id = `DRV-${String(300 + n).padStart(4, '0')}`
   const comfort = i % 3 === 0
   return {

@@ -39,11 +39,28 @@
  *   §7.5        an error is never carried by colour: it is carried by words.
  *               There is no red anywhere in this component (R5a).
  *   R-3 §1.3    no elevation.
+ *
+ * ## `Try again` is offered only when a retry can succeed (P1-8)
+ *
+ * `ApiError.retryable` is the data layer's own word for *"a bare retry is worth
+ * offering"* — false for 401, 403, 404, 409 and 422, true for a network drop, a
+ * timeout, a 429 and every 5xx. A forbidden read that offers `Try again` is a
+ * **lie told to an operator under time pressure**: they press it, it fails
+ * identically, and they press it again.
+ *
+ * **The gate is here, not at the 78 call sites.** A caller passes the action it
+ * would offer and passes `cause` — the thrown error — and this component drops
+ * the action when the cause says a retry cannot help. That keeps the `card`
+ * scope's *"an action is REQUIRED"* type rule intact (a caller still may not
+ * forget one) while making the suppression a system decision. A caller that
+ * passes no `cause` is unchanged: the action renders, because an unknown
+ * failure is retryable by default, exactly as `isRetryableStatus` treats one.
  */
 
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { isApiError } from '@/data/types'
 import { cn } from '@/lib/utils'
 
 export type ErrorScope = 'page' | 'card' | 'row'
@@ -53,32 +70,73 @@ interface ErrorAction {
   onClick: () => void
 }
 
-interface PageErrorProps {
+/**
+ * Whether this failure is worth offering a retry for.
+ *
+ * Exported because a few call sites decide the SHAPE of the surface (a banner
+ * with an action vs one without) before they reach `ErrorState`, and they must
+ * reach the same answer this component does rather than a second one.
+ */
+export function canRetry(cause: unknown): boolean {
+  return !isApiError(cause) || cause.retryable
+}
+
+/**
+ * The thrown failure, when the caller has one.
+ *
+ * Read for exactly one thing: `ApiError.retryable`. Nothing in it is ever
+ * rendered — the message an operator sees is copy and comes from a key.
+ */
+interface RetryGate {
+  cause?: unknown
+}
+
+interface PageErrorProps extends RetryGate {
   scope: 'page'
   /** An imperative naming what could not be loaded. Phrase, no period (R6). */
   heading?: string
   message: string
   /** `Try again`. Omit only where a retry genuinely cannot help. */
   action?: ErrorAction
+  /**
+   * The way OUT, beside the retry — `Go to overview`, `Close`. Ghost, because
+   * R3 allows one primary and the retry already is it. A page-scoped error on
+   * a screen the operator cannot leave by any other control needs this; one
+   * inside the shell, where the rail and the sub-tab list are still working,
+   * usually does not.
+   */
+  secondaryAction?: ErrorAction
+  /**
+   * A DEVELOPMENT-ONLY diagnostic. The caller decides whether to build one;
+   * this component only places it, last, below the actions. Never build one in
+   * production — the operator cannot act on a stack and the string can carry
+   * record data.
+   */
+  detail?: ReactNode
   /** §4 — carded by default. Opt out only inside a card that already exists. */
   card?: boolean
   className?: string
 }
 
-interface CardErrorProps {
+interface CardErrorProps extends RetryGate {
   scope: 'card'
   message: string
   /**
    * **REQUIRED** in this scope — `02-visual-refinement.md` V8 / §4.5. A failed
    * card with no retry is a dead end, and every caller was omitting it. The
    * type is the enforcement; a review is not.
+   *
+   * It is still dropped when `cause` says a retry cannot succeed. The rule is
+   * *"never a dead end you could have escaped"*, not *"always a button"*.
    */
   action: ErrorAction
+  /** Development-only. See `PageErrorProps.detail`. */
+  detail?: ReactNode
   card?: boolean
   className?: string
 }
 
-interface RowErrorProps {
+interface RowErrorProps extends RetryGate {
   scope: 'row'
   message: string
   action?: ErrorAction
@@ -112,7 +170,10 @@ function StateCard({ children }: { children: ReactNode }) {
 }
 
 export function ErrorState(props: ErrorStateProps) {
-  const { scope, message, action, className } = props
+  const { scope, message, className } = props
+  /* THE GATE. `action` is read through this from here down, so there is no
+     branch below that can render a retry the failure has already ruled out. */
+  const action = canRetry(props.cause) ? props.action : undefined
 
   if (scope === 'page') {
     const body = (
@@ -131,11 +192,21 @@ export function ErrorState(props: ErrorStateProps) {
           <h2 className="text-base font-semibold text-foreground">{props.heading}</h2>
         )}
         <p className="max-w-96 text-sm text-muted-foreground">{message}</p>
-        {action && (
-          <Button variant="default" onClick={action.onClick} className="mt-2">
-            {action.label}
-          </Button>
+        {(action || props.secondaryAction) && (
+          <div className="mt-2 flex items-center gap-2">
+            {action && (
+              <Button variant="default" onClick={action.onClick}>
+                {action.label}
+              </Button>
+            )}
+            {props.secondaryAction && (
+              <Button variant="ghost" onClick={props.secondaryAction.onClick}>
+                {props.secondaryAction.label}
+              </Button>
+            )}
+          </div>
         )}
+        {props.detail}
       </div>
     )
     return (props.card ?? true) ? <StateCard>{body}</StateCard> : body
@@ -145,9 +216,12 @@ export function ErrorState(props: ErrorStateProps) {
     const body = (
       <div role="alert" className={cn('flex flex-col items-center gap-2 px-3 py-8 text-center', className)}>
         <p className="text-sm text-muted-foreground">{message}</p>
-        <Button variant="ghost" onClick={action.onClick}>
-          {action.label}
-        </Button>
+        {action && (
+          <Button variant="ghost" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        )}
+        {props.detail}
       </div>
     )
     return (props.card ?? true) ? <StateCard>{body}</StateCard> : body

@@ -47,6 +47,7 @@
  *    `financialsOverviewFixture` and the gap is a finding for product-owner.
  */
 
+import { cycle } from './cycle'
 import type {
   AccountLine,
   JournalEntry,
@@ -756,6 +757,65 @@ export const journalEntryFixtures: JournalEntry[] = [
     totalHalalas: 50_000,
     meta: { migration: 'wallet-balances-2026-06', source: 'legacy-import' },
   },
+  {
+    /**
+     * A corporate rider's plan invoiced on account in **May**, and voided in
+     * June. The pair `JE-00061` / `JE-00062` exists to give `SettlementState`
+     * its `voided` member a posting, and the two dates are deliberate:
+     *
+     *  - the raise sits **outside** `FINANCIALS_PERIOD` (June), so its
+     *    `revenue.fares` credit cannot inflate `grossBookingsHalalas`, which
+     *    `clients/financialsOverview.ts` reads as in-window **credits only**
+     *    and AC-347 pins to `revenueByPlanFixtures`;
+     *  - the void is a **debit** of the same accounts inside June, which that
+     *    same credits-only read ignores.
+     *
+     * Net effect on every account, and on the trial balance, is exactly zero.
+     * 86.50 gross → net 75.22 + VAT 11.28, the residual arithmetic every other
+     * pair in this file uses.
+     */
+    id: 'JE-00063',
+    postedAt: '2026-05-22T12:00:00+03:00',
+    type: 'payout',
+    reference: 'payout|PO-0007',
+    lines: [dr('liability.driver', 30_000), cr('cash.gateway', 30_000)],
+    totalHalalas: 30_000,
+    meta: { captainId: 'DRV-0207', payoutId: 'PO-0007' },
+  },
+  {
+    /**
+     * The claw-back. `PO-0007` was released against a payable that was already
+     * zero, so `liability.driver` went to −300.00 and this entry returns it.
+     * The pair nets to zero on both accounts, which is what lets the payout
+     * summary carry `state: 'reversed'` without moving the AC-348 total.
+     */
+    id: 'JE-00064',
+    postedAt: '2026-05-24T10:15:00+03:00',
+    type: 'payout_reversal',
+    reference: 'payout_reversal|PO-0007',
+    lines: [dr('cash.gateway', 30_000), cr('liability.driver', 30_000)],
+    totalHalalas: 30_000,
+    meta: { captainId: 'DRV-0207', payoutId: 'PO-0007' },
+  },
+  {
+    id: 'JE-00061',
+    postedAt: '2026-05-28T09:00:00+03:00',
+    type: 'invoice_raised',
+    reference: 'invoice|RDR-1045|EYV-2026-001180',
+    lines: [dr('ar.rider', 8_650), cr('revenue.fares', 7_522), cr('tax.vat_output', 1_128)],
+    totalHalalas: 8_650,
+    meta: { riderId: 'RDR-1045', invoice: 'EYV-2026-001180' },
+  },
+  {
+    /* The void. Same three accounts, opposite sides — see `JE-00061`. */
+    id: 'JE-00062',
+    postedAt: '2026-06-24T15:40:00+03:00',
+    type: 'invoice_voided',
+    reference: 'invoice_void|RDR-1045|EYV-2026-001180',
+    lines: [dr('revenue.fares', 7_522), dr('tax.vat_output', 1_128), cr('ar.rider', 8_650)],
+    totalHalalas: 8_650,
+    meta: { riderId: 'RDR-1045', invoice: 'EYV-2026-001180' },
+  },
 ]
 
 /**
@@ -820,6 +880,59 @@ export const refusedPostingFixtures: RefusedPosting[] = [
     attemptedAt: '2026-06-22T11:22:00+03:00',
     lines: [dr('expense.goodwill', 12_000), cr('cash.gateway', 12_000)],
   },
+
+  /**
+   * Ten more refusals, so the panel is a **log** rather than two examples.
+   *
+   * Two rows could not page, could not be sorted by date and — the part that
+   * matters — could not show a *pattern*. A refusal log's whole value is that
+   * the same integration fails the same way forty times in a week; with two
+   * rows an operator cannot tell a one-off from a broken caller, which is the
+   * only question the panel answers.
+   *
+   * Both reasons alternate, and every unbalanced row is genuinely unbalanced:
+   * `debits !== credits` in `reason.params` **and** in `lines`, so a screen
+   * that renders the arithmetic is rendering the refusal rather than repeating
+   * a claim about it. `postLedger` refuses these at write time (`:19926`),
+   * which is the one thing the legacy money module gets unambiguously right.
+   */
+  ...Array.from({ length: 10 }, (_, i) => {
+    const unbalanced = i % 2 === 0
+    const debits = 5_000 + i * 1_450
+    const credits = debits - (100 + i * 25)
+    const day = String(8 + i).padStart(2, '0')
+    const attemptedAt = `2026-06-${day}T${String(9 + (i % 9)).padStart(2, '0')}:${String((i * 13) % 60).padStart(2, '0')}:00+03:00`
+    return unbalanced
+      ? {
+          reference: `payout|PO-1${String(100 + i).padStart(3, '0')}`,
+          type: 'payout',
+          reason: {
+            key: 'fin.refused.unbalanced',
+            params: { debitsHalalas: debits, creditsHalalas: credits },
+          },
+          attemptedAt,
+          lines: [dr('liability.driver', debits), cr('cash.gateway', credits)],
+        }
+      : {
+          reference: `adjustment|ADJ-${String(400 + i)}`,
+          type: 'adjustment',
+          /* Accounts a caller keeps reaching for and the chart does not carry.
+             Each is a plausible cost line with no defined home — the same kind
+             of absence `expense.marketing` is above, and the same signal: an
+             integration written against a chart nobody read. */
+          reason: {
+            key: 'fin.refused.unknownAccount',
+            params: {
+              account: cycle(
+                ['expense.fuel_subsidy', 'expense.training', 'liability.tips', 'revenue.subscriptions'],
+                i,
+              ),
+            },
+          },
+          attemptedAt,
+          lines: [dr('expense.goodwill', debits), cr('cash.gateway', debits)],
+        }
+  }),
 ]
 
 /* ───────────────────── subject-ledger postings ──────────────── */
@@ -1081,6 +1194,32 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     journalEntryId: null,
   }),
 
+  /* ══ liability.wallet — RDR-1044 · Fatimah Al-Qurashi ══════════════════
+     **`pending`.** A card top-up submitted forty minutes ago and not yet
+     confirmed by the gateway. Like `reconciling` it is in
+     `PENDING_SETTLEMENTS`, so `balanceAfterHalalas` is `null`, no journal entry
+     exists, and the wallet's closing balance stays at 0.00 while the index row
+     shows 42.00 on the `Pending` line beside it.
+
+     That divergence is the entire point of AC-312, and it was untestable: every
+     wallet in the set was either settled or empty, so the `Pending` line had no
+     data and the "balance excludes pending" rule had never been exercised. */
+  posting({
+    id: 'WTX-1044-1',
+    subjectAccount: 'liability.wallet',
+    subjectId: 'RDR-1044',
+    postedAt: '2026-06-25T08:34:00+03:00',
+    direction: 'credit',
+    amountHalalas: 4_200,
+    descriptionKey: 'fin.posting.walletTopup',
+    reference: 'TOP-4412',
+    sourceType: 'payment',
+    sourceId: null,
+    settlement: 'pending',
+    balanceAfterHalalas: null,
+    journalEntryId: null,
+  }),
+
   /* ══ liability.wallet — RDR-2087 · Layla Al-Faraj ═══════════════════════ */
   posting({
     id: 'WTX-2087-1',
@@ -1162,6 +1301,87 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     journalEntryId: 'JE-00036',
   }),
 
+  /* ══ ar.rider — RDR-1045 · Youssef Abdelrahman El-Sayed Farag ═══════════
+     **`voided`.** A plan invoiced on account in May and cancelled before it was
+     ever paid: the receivable is raised, then written back in full. Both legs
+     are real journal entries (`JE-00061`, `JE-00062`) and the pair nets to zero
+     on every account it touches, which is why adding it disturbs no
+     cross-screen total.
+
+     `voided` is **not** in `PENDING_SETTLEMENTS`, so both rows carry a real
+     `balanceAfterHalalas` and the chain closes back at zero.
+
+     **A finding for whoever owns `types/ledger.ts`, raised here because this is
+     the row that exposes it.** `PENDING_SETTLEMENTS` excludes `authorised` but
+     includes `voided`. An authorisation that is later voided therefore moves
+     from *outside* the balance to *inside* it, and the void adds money to a
+     balance the authorisation never contributed to. That is unreachable in this
+     fixture only because the void modelled here is of an **invoice**, which was
+     inside the balance to begin with. A voided *authorisation* has no
+     representable shape today. */
+  posting({
+    id: 'ARR-1045-1',
+    subjectAccount: 'ar.rider',
+    subjectId: 'RDR-1045',
+    postedAt: '2026-05-28T09:00:00+03:00',
+    direction: 'debit',
+    amountHalalas: 8_650,
+    descriptionKey: 'fin.posting.invoiceRaised',
+    descriptionParams: { reference: 'EYV-2026-001180' },
+    reference: 'EYV-2026-001180',
+    sourceType: 'payment',
+    sourceId: null,
+    balanceAfterHalalas: 8_650,
+    journalEntryId: 'JE-00061',
+  }),
+  posting({
+    id: 'ARR-1045-2',
+    subjectAccount: 'ar.rider',
+    subjectId: 'RDR-1045',
+    postedAt: '2026-06-24T15:40:00+03:00',
+    direction: 'credit',
+    amountHalalas: 8_650,
+    descriptionKey: 'fin.posting.invoiceVoided',
+    descriptionParams: { reference: 'EYV-2026-001180' },
+    reference: 'EYV-2026-001180',
+    sourceType: 'adjustment',
+    sourceId: null,
+    kind: 'adjustment',
+    reasonCode: 'PAY_INCORRECT_CHARGE',
+    actorId: 'USR-2',
+    settlement: 'voided',
+    balanceAfterHalalas: 0,
+    journalEntryId: 'JE-00062',
+  }),
+
+  /* ══ ar.rider — RDR-1046 · Noura Al-Harbi ═══════════════════════════════
+     **`reconciling`.** The gateway has confirmed the capture and the settlement
+     file has not been matched to it yet — the state between `authorised` and
+     `settled` that a payments operator spends most of their day in, and that
+     nothing seeded.
+
+     `reconciling` **is** in `PENDING_SETTLEMENTS`, so: `balanceAfterHalalas` is
+     `null` (AC-312), the row is excluded from the running balance and from the
+     subject-ledger-versus-GL agreement, and it has **no journal entry** —
+     nothing has moved yet. It shows in the separate `Pending` line beneath the
+     card-header balance, never inside it. */
+  posting({
+    id: 'ARR-1046-1',
+    subjectAccount: 'ar.rider',
+    subjectId: 'RDR-1046',
+    postedAt: '2026-06-25T07:40:00+03:00',
+    direction: 'debit',
+    amountHalalas: 4_200,
+    descriptionKey: 'fin.posting.gatewaySettlementPending',
+    descriptionParams: { reference: 'STL-2026-06-25-A' },
+    reference: 'STL-2026-06-25-A',
+    sourceType: 'payment',
+    sourceId: null,
+    settlement: 'reconciling',
+    balanceAfterHalalas: null,
+    journalEntryId: null,
+  }),
+
   /* ══ ar.driver — DRV-0103 · Khalid Mansour ══════════════════════════════
      The account that replaces `DB.driverCashDebt` (`:12081`). Note the sign:
      on a debit-normal account, **debt is positive**. Legacy stores it negative
@@ -1193,6 +1413,24 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     reference: 'CASH-0002',
     sourceType: 'cash-report',
     sourceId: 'CASH-0002',
+    /**
+     * **`escalated` — and this is where it belongs, not on a row invented for
+     * it.** `CASH-0002` is already `status: 'escalated'` in
+     * `fixtures/financials.ts`: a captain who never reported, twice, referred
+     * to Trust & Safety. The posting stayed `settled` while the document it
+     * sources said otherwise, so the two disagreed about the same event.
+     *
+     * It is one of only **two** states `SETTLEMENT_BADGE_TONE` returns `null`
+     * for — R5 leaves no red badge, so `failed` and `escalated` owe the
+     * three-part R5a critical treatment instead of a sixth tone — and `failed`
+     * was the only one of the two any row reached. The critical row treatment
+     * was therefore half-testable.
+     *
+     * `escalated` is **not** in `PENDING_SETTLEMENTS`, so the amount stays
+     * inside the balance and the running chain is untouched. The money is
+     * owed; who is chasing it is the part that escalated.
+     */
+    settlement: 'escalated',
     balanceAfterHalalas: 12_837,
     journalEntryId: 'JE-00033',
   }),
@@ -1676,6 +1914,51 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     journalEntryId: 'JE-00019',
   }),
 
+  /* ══ liability.driver — DRV-0207 · Saud Al-Harbi ════════════════════════
+     **The reversed payout.** 300.00 released on 22 May against a payable of
+     zero, and returned on the 24th. The balance goes negative and comes back,
+     which is the only honest way to render a payout that should never have run:
+     `reversedByPostingId` on the first row is what lets the drawer walk from the
+     erroneous payment to its correction rather than leaving an operator to
+     match two amounts by eye. */
+  posting({
+    id: 'PAY-0207-1',
+    subjectAccount: 'liability.driver',
+    subjectId: 'DRV-0207',
+    postedAt: '2026-05-22T12:00:00+03:00',
+    direction: 'debit',
+    amountHalalas: 30_000,
+    descriptionKey: 'fin.posting.payoutReleased',
+    descriptionParams: { reference: 'PO-0007' },
+    reference: 'PO-0007',
+    sourceType: 'payout',
+    sourceId: 'PO-0007',
+    settlement: 'reversed',
+    reversedByPostingId: 'PAY-0207-2',
+    actorId: 'USR-2',
+    balanceAfterHalalas: -30_000,
+    journalEntryId: 'JE-00063',
+  }),
+  posting({
+    id: 'PAY-0207-2',
+    subjectAccount: 'liability.driver',
+    subjectId: 'DRV-0207',
+    postedAt: '2026-05-24T10:15:00+03:00',
+    direction: 'credit',
+    amountHalalas: 30_000,
+    descriptionKey: 'fin.posting.payoutReversed',
+    descriptionParams: { reference: 'PO-0007' },
+    reference: 'PO-0007',
+    sourceType: 'reversal',
+    sourceId: 'PAY-0207-1',
+    kind: 'reversal',
+    reversesPostingId: 'PAY-0207-1',
+    reasonCode: 'PAY_INCORRECT_CHARGE',
+    actorId: 'USR-2',
+    balanceAfterHalalas: 0,
+    journalEntryId: 'JE-00064',
+  }),
+
   /* ══ liability.driver — DRV-0201 ════════════════════════════════════════
      The captain whose name is 62 characters of Arabic. Included so a payouts
      table has to survive it in the identity column. */
@@ -1824,6 +2107,40 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     reasonCode: 'BKG_NO_SUPPLY',
     actorId: 'USR-2',
     balanceAfterHalalas: 6_391,
+    journalEntryId: 'JE-00017',
+  }),
+  posting({
+    /**
+     * **`sourceType: 'credit-note'` — the twelfth source type, and the first
+     * posting to carry it.**
+     *
+     * `PostingSourceType` lists `credit-note` and three credit notes exist, and
+     * **none of them sourced a posting**: every refund row pointed at the
+     * refund, so the tax document that reverses the output VAT had no ledger
+     * evidence of its own. The filter facet has never matched and the drill
+     * from a credit note to its posting has never had a target.
+     *
+     * The subject account is `tax.vat_output`, which is not a subject ledger,
+     * so this row is outside the six-account agreement check and adds nothing
+     * to any of them. It shares `JE-00017` with `REF-0001-P` — one entry, two
+     * subject views of it, which is exactly what a subject ledger is for. The
+     * 959 halalas is `CN-0001.vatHalalas`, the residual on a 73.50 note.
+     */
+    id: 'CN-0001-P',
+    subjectAccount: 'tax.vat_output',
+    subjectId: null,
+    postedAt: '2026-06-18T14:10:00+03:00',
+    direction: 'debit',
+    amountHalalas: 959,
+    descriptionKey: 'fin.posting.creditNoteVatReversal',
+    descriptionParams: { noteNumber: 'EYV-CN-2026-000041' },
+    reference: 'CN-0001',
+    sourceType: 'credit-note',
+    sourceId: 'CN-0001',
+    kind: 'refund',
+    reasonCode: 'BKG_NO_SUPPLY',
+    actorId: 'USR-2',
+    balanceAfterHalalas: -959,
     journalEntryId: 'JE-00017',
   }),
   posting({

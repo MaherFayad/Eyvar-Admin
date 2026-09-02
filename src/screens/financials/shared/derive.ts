@@ -177,3 +177,98 @@ export function deductionWithheldFrom(
   if (deduction.status !== 'pending') return 'fin.deduction.blocked.decided'
   return null
 }
+
+/**
+ * Why `Claim` is refused on this cash report — **P4-T1's queue case**.
+ *
+ * §9.3 lets a queue carry a checkbox column *"only if every bulk action offered
+ * is a claim or assign action"*, and `design/00-shell.md` §9.3 adds the other
+ * half in one line: ***"Bulk disposition must not ship."*** So the
+ * reconciliation queue's one bulk command is `Claim`, and this is the predicate
+ * behind it — the same shape as the three above, so the row control and the
+ * bulk bar cannot word a refusal differently.
+ */
+export function claimWithheldFrom(
+  report: {
+    status: 'pending' | 'resolved' | 'escalated'
+    /* Structural, and `readonly`-friendly: the two fields this decision reads,
+       and no more. `ClaimState` carries a third member (`done`) that is not a
+       claim on this queue, so it is not named here either. */
+    claim: { state: string; ownerId: string } | null
+  },
+  canWrite: boolean,
+  currentUserId: string,
+):
+  | 'fin.payout.blocked.permission'
+  | 'fin.cash.blocked.decided'
+  | 'fin.cash.blocked.mine'
+  | 'fin.cash.blocked.heldByOther'
+  | null {
+  if (!canWrite) return 'fin.payout.blocked.permission'
+  if (report.status !== 'pending') return 'fin.cash.blocked.decided'
+  if (report.claim?.state === 'claimed') {
+    return report.claim.ownerId === currentUserId
+      ? 'fin.cash.blocked.mine'
+      : 'fin.cash.blocked.heldByOther'
+  }
+  return null
+}
+
+/* ───────────────── §11.2 over a SET rather than a row ───────────────── */
+
+/**
+ * **The set rule, in one function (D21, ratified): a bulk command is refused if
+ * ANY selected record would be refused, and the refusal names the count.**
+ *
+ * No partial apply. On a money surface a half-applied bulk payout is a
+ * reconciliation incident, so the command refuses the whole set rather than
+ * quietly paying the eligible five and leaving four behind with nothing on
+ * screen to say so. The way out is the bar's own `Select only the N eligible`,
+ * which changes the **selection** — not what the command does with it.
+ *
+ * ## Why the count and the cause are two different numbers
+ *
+ * `blocked` is every refused row, whatever refused it. `key` is the **one**
+ * cause the sentence names.
+ *
+ * A selection can trip more than one cause — a captain with no bank account
+ * beside a captain with nothing payable — and D21's rendering rule 4 is
+ * explicit that the count is `blocked.length`. That is also what keeps the
+ * sentence and the escape hatch consistent: `blocked + eligible === total`, so
+ * *"2 of the selected payouts cannot be paid"* sits beside *"Select only the 3
+ * eligible"* over a selection of five and the two agree.
+ *
+ * **The named cause is then the first one in the declared order, and it may not
+ * be the only one true of the set.** That is a known limit of a one-sentence
+ * refusal and is raised with product-designer: the alternative is a sentence
+ * assembled from fragments, which AC-443 forbids outright. The order puts the
+ * most general cause first, so what is named is never the *narrower* truth.
+ *
+ * @param withheld one entry per SELECTED row — the value that row's own
+ *   `…WithheldFrom` returned. Passing the row predicates' output rather than
+ *   the rows is what stops the bulk bar and the row kebab drifting: there is
+ *   one predicate per command in this file and both surfaces read it.
+ * @param order which cause to name, most general first. Declared by the caller
+ *   because precedence is a copy decision — **AC-962**: *"your role cannot move
+ *   money"* outranks *"no bank account"*, and no ordering of a union type could
+ *   know that.
+ *
+ * @returns the named cause, how many rows are refused **in total**, and how
+ *   many were selected; `null` when every selected row is permitted.
+ */
+export function bulkRefusal<K extends string>(
+  withheld: ReadonlyArray<K | null>,
+  order: readonly K[],
+): { key: K; blocked: number; total: number } | null {
+  const total = withheld.length
+  const blocked = withheld.filter((each) => each !== null).length
+  if (blocked === 0) return null
+  for (const key of order) {
+    if (withheld.includes(key)) return { key, blocked, total }
+  }
+  /* A cause the caller did not order is still a refusal — returning `null` here
+     would enable a command over rows their own row action refuses, which is the
+     exact divergence D9 records. Name the first one found. */
+  const unordered = withheld.find((each): each is K => each !== null)
+  return unordered === undefined ? null : { key: unordered, blocked, total }
+}

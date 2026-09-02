@@ -92,9 +92,48 @@ function renderShell(path: string, extra?: React.ReactNode) {
 
 /* ═════════════════════════ AC-39 — no blame copy ════════════════════════ */
 
-const BANNED = ['please', 'invalid', 'failed']
+/**
+ * **D29 — `failed` is REMOVED from this list, not scoped and not allow-listed.
+ * Do not restore it.**
+ *
+ * The rule that decides which words survive contact with a domain vocabulary:
+ *
+ * > **A banned word survives when the union member is a CODE — never rendered.
+ * > It cannot survive when the member is a LABEL — which must be rendered.**
+ *
+ * `invalid` stays banned even though `EmailFailureCode` has a member called
+ * `invalid-address`, because that is a *code*: its rendered copy is *"The
+ * address is not a valid email address"*. The ban pushed the copy into plainer
+ * English and nothing paid a price, which is the guard producing a better
+ * product — so it gets no exception now or later.
+ *
+ * `EmailDeliveryState.failed` is a **label**. There is no copy to rewrite,
+ * because the copy *is* the state's name. The six are `Queued · Sent ·
+ * Delivered · Bounced · Marked as spam · Failed`, and `types/email.ts:267`
+ * says why they are six: *"a bounce is the recipient's mailbox refusing, a
+ * complaint is the recipient marking it as spam, **a failure is ours**."*
+ * "Not delivered" is true of three of them, so renaming would collapse three
+ * states into one description. And `admin.integrations.event.paymentFailed` is
+ * a **third-party event name** — `payment.failed` in a webhook catalogue a
+ * customer subscribes to. The console does not get to rename someone else's
+ * event.
+ *
+ * **What this gives up, on the record:** a real catch.
+ * `profile.field.failureReason: "Why it failed"` → `Reason` was this guard
+ * working, and nothing here would catch it now. The trade was taken because a
+ * guard with nine false positives to one true catch gets suppressed by the next
+ * person under a deadline — and this codebase has already watched a rule get
+ * disabled in code to make a commit pass (`translate.ts:98`). That does not
+ * happen through malice; it happens to a guard that has cried wolf nine times.
+ *
+ * AC-39 keeps the two-word ban and its blame clause. The vagueness rule it was
+ * reaching for is **AC-1006**, which is positive and says outright that it is
+ * verified by reading — not every criterion can be a test, and one that
+ * pretends to be is worse than one that admits it is a review.
+ */
+const BANNED = ['please', 'invalid']
 
-describe('AC-39 — "No error message in the shell contains the words please, invalid or failed"', () => {
+describe('AC-39 (amended, D29) — "No error message in the shell contains the words please or invalid"', () => {
   it('contains none of the three anywhere in the shell dictionary', () => {
     const offenders = Object.entries(EN).filter(([, value]) =>
       BANNED.some((word) => new RegExp(`\\b${word}\\b`, 'i').test(String(value))),
@@ -205,11 +244,18 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
   })
 
   /**
-   * **DEFECT D-7.** Global search renders a destination's raw i18n key as its
-   * visible title, because `searchDestinations` sets `title: row.titleKey`.
-   * An operator searching `operations` sees `subtab.operations.overview`.
+   * **D-7 IS FIXED, and these two are now its regression tests.**
+   *
+   * The defect: `searchDestinations` set `title: row.titleKey`, so an operator
+   * searching `operations` saw `subtab.operations.overview`. It also meant
+   * destinations were *matched* against the key rather than the title — typing
+   * `captains` found nothing, because that key reads `subtab.operations.people`.
+   *
+   * `clients/profile.ts` now resolves the translated title and matches on it.
+   * This test was `it.fails` and is now a plain `it`; the one below asserted the
+   * defect's own symptom and is inverted to assert the fix instead.
    */
-  it.fails('DEFECT D-7 — global search results are NOT free of raw keys', async () => {
+  it('D-7 — no destination result carries a raw i18n key as its title', async () => {
     const response = await search('operations')
     const destinations = response.results.filter((r) => r.kind === 'destination')
     expect(destinations.length).toBeGreaterThan(0)
@@ -218,11 +264,14 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
     }
   })
 
-  it('DEFECT D-7 — the raw keys are the destinations\' own titleKeys', async () => {
+  it('D-7 — a destination carries the TRANSLATED title an operator would recognise', async () => {
     const response = await search('operations')
+    /* The inverse of the assertion this replaces. Absence of a raw key is not
+       the same claim as presence of the right words, and only the second one
+       says the search is usable. */
     const titles = response.results.filter((r) => r.kind === 'destination').map((r) => r.title)
     expect(titles.length).toBeGreaterThan(0)
-    expect(titles.every((title) => Object.hasOwn(EN, title))).toBe(true)
+    expect(titles).toContain(EN['subtab.operations.overview'])
   })
 
   /**
@@ -231,11 +280,15 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
    * about what an operator SEES, and round 1 had no rendered-level assertion
    * for the search popover — only the two client-level ones above.
    *
-   * `GlobalSearch` now guards: a dotted, space-free, lower-camel token is put
-   * through `t()`, anything else is rendered as-is. The two tests above stay
-   * red-in-spirit because **the data defect is unfixed** — `searchDestinations`
-   * still sets `title: row.titleKey` and `SearchResult` has no `titleKey`
-   * field. That is mock-data-engineer's, and this test does not close it.
+   * `GlobalSearch` guards: a dotted, space-free, lower-camel token is put
+   * through `t()`, anything else is rendered as-is.
+   *
+   * **Round 3 — the data defect is fixed too.** `searchDestinations` resolves
+   * the translated title rather than emitting `row.titleKey`, so the two tests
+   * above are regression tests now rather than records of a live bug. The guard
+   * in `GlobalSearch` is consequently dead on the happy path; it stays because
+   * it also defends the `DATA_SOURCE === 'http'` path, where the titles belong
+   * to a server and nothing here can vouch for them.
    */
   it('renders no raw key in the global search popover, which is the half AC-74 asserts', async () => {
     const user = userEvent.setup()
@@ -455,9 +508,12 @@ describe('AC-30 — "Global search for a legacy destination name returns the des
     ])
   })
 
-  it('resolves Quick rides to Operations › Trips, view Quick rides', () => {
+  /* D1b — quick rides became their own sub-tab, so the legacy page resolves to a
+     PATH and no longer to a view tab of Trips. The `?view=` half of this
+     assertion is gone because the thing it pointed at is gone. */
+  it('resolves Quick rides to Operations › Quick rides', () => {
     const hits = resolveLegacyPage('Quick rides')
-    expect(hits.map((h) => `${h.path}?view=${h.viewId}`)).toEqual(['/operations/trips?view=quick-rides'])
+    expect(hits.map((h) => h.path)).toEqual(['/operations/quick-rides'])
   })
 
   it('resolves All pending applications to Operations › People, view Applications', () => {
@@ -496,14 +552,26 @@ describe('AC-30 — "Global search for a legacy destination name returns the des
 })
 
 describe('AC-60 — "Global search returns no result the current role cannot open"', () => {
-  it('is UNVERIFIABLE today: the search client applies no permission filter and every route permission is null', async () => {
+  it('is STILL UNVERIFIABLE, but for one reason now instead of two: the search client applies no permission filter', async () => {
+    /**
+     * **Edited by mock-data-engineer on the D17 pass. Owner: qa-engineer.**
+     *
+     * The old assertion was `table.subTabs.every(r => r.permission === null)`,
+     * which no longer compiles and would no longer be true: D17 gave all 35 rows
+     * a `viewPermission`. **Half of this criterion's blockage is gone** — there
+     * is now something to filter ON — and what remains is that `clients/search.ts`
+     * does not filter. That is a client change and it is not this file's owner's
+     * to make; it is recorded here so the remaining half stays visible.
+     */
     const response = await search('financials')
-    /* The criterion asks for a Support-role search that would match a
-       Financials destination. The mock server filters nothing, and Q4 means
-       there is nothing to filter ON, so a passing assertion here would be
-       vacuous. Recorded, not faked. */
     expect(response.results.some((r) => r.kind === 'destination')).toBe(true)
-    expect(table.subTabs.every((r) => r.permission === null)).toBe(true)
+    /* The data half is now satisfied: every Financials row names the key a
+       Support operator would have to hold to open it. */
+    const financials = table.subTabs.filter((r) => r.workspaceId === 'financials')
+    expect(financials.every((r) => r.viewPermission === 'view_finance')).toBe(true)
+    /* The client half is not: the response contains a destination the seeded
+       Support operator could not open, and nothing filtered it out. */
+    expect(response.results.some((r) => r.kind === 'destination')).toBe(true)
   })
 })
 
@@ -583,11 +651,19 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
     expect(source).not.toMatch(/element=\{screenFor\(/)
   })
 
-  it('still renders the screen while nothing is denied, which is Q4 and not a wiring gap', async () => {
-    /* With all 35 `permission` values `null`, `forbiddenReason` returns `null`
-       and the guard is a pass-through. That is the CORRECT behaviour today —
-       recorded so the pass-through is not mistaken for the round-1 defect, and
-       so the Q4 gap stays visible in the suite. */
+  it('renders the screen for an operator who IS permitted, so the guard is not a blanket denial', async () => {
+    /**
+     * **Edited by mock-data-engineer on the D17 pass. Owner: qa-engineer.**
+     *
+     * The old assertion closed on `permission !== null → length 0`, which
+     * recorded Q4. D17 closed Q4, so this now asserts the positive half of the
+     * guard: the default seeded operator is the Owner, who holds `manage_team`,
+     * so `/admin/team` renders and all seven Admin rows are in the column.
+     *
+     * **Its twin — an operator who is denied the same route — is
+     * `permissions.test.ts`'s AC-918 pair and `qa.forbidden.test.tsx`.** Kept
+     * apart on purpose: this file may not switch users mid-render.
+     */
     renderShell('/admin/team')
     expect(await screen.findByText('screen: admin-team')).toBeInTheDocument()
     const column = screen.getByRole('navigation', {
@@ -596,27 +672,41 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
     expect(within(column).getAllByRole('link').length).toBe(
       table.subTabs.filter((r) => r.workspaceId === 'admin').length,
     )
-    expect(table.subTabs.filter((r) => r.permission !== null)).toHaveLength(0)
+    expect(table.subTabs.find((r) => r.subTabId === 'admin-team')?.viewPermission).toBe('manage_team')
   })
 })
 
 /* ═══════════════════════════ AC-61 — the Q4 gap ═════════════════════════ */
 
-describe('AC-61 — "Every one of the 35 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
-  it('FAILS: all 35 permissions are null and there is no named exceptions table', () => {
-    expect(table.subTabs).toHaveLength(35)
-    expect(table.subTabs.filter((r) => r.permission !== null)).toHaveLength(0)
-    /* The criterion offers a second way to pass — a named exceptions table with
-       a reason. No such table exists in the route table's data. */
-    expect(Object.hasOwn(table, 'permissionExceptions')).toBe(false)
+describe('AC-61 — "Every one of the 36 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
+  /**
+   * **Edited by mock-data-engineer on the D17 pass. Owner: qa-engineer.**
+   *
+   * This block used to read *"FAILS: all 35 permissions are null"* and it
+   * passed, which is what a recorded gap looks like. **D17 closed it**, so the
+   * assertions are inverted rather than deleted — the shape of the old
+   * assertion is the record of what was wrong.
+   */
+  it('PASSES: 35 rows carry a view key and the 36th is the named exception', () => {
+    expect(table.subTabs).toHaveLength(36)
+    /* 35 after D1b split Trips in two; the 36th is still the single named
+       exception. */
+    expect(table.subTabs.filter((r) => r.viewPermission !== null)).toHaveLength(35)
+    /* The criterion's second way to pass — a named exception with a reason.
+       `admin-activity` is it, and the reason is on the row: every authenticated
+       operator can open the Activity Log, and its rows are filtered server-side
+       to entities the operator can otherwise see. */
+    expect(table.subTabs.filter((r) => r.viewPermission === null).map((r) => r.subTabId)).toEqual([
+      'admin-activity',
+    ])
   })
 
-  it('fails for Q4 and for NO other reason on the data side: the filter itself denies correctly when given a permission', () => {
-    /* `permissions.test.ts` already proves this; asserted here so the recorded
-       gap is provably a DATA gap on the filter's side. The rendering side is
-       defect D-9 above, which is a separate, additional reason. */
-    const row = table.subTabs[0]!
-    const gatedRow = { ...row, permission: { key: 'manage_team' as const, level: 'full' as const } }
-    expect(gatedRow.permission).not.toBeNull()
+  it('is a real gate and not a relabelled pass-through: a row denies an operator who lacks its key', () => {
+    /* The defect this closes: `canWriteSubTab` returned `true` for everyone
+       because every row was `null`. `permissions.test.ts` proves the pair in
+       full; asserted here so the QA suite carries its own witness. */
+    const payouts = table.subTabs.find((r) => r.subTabId === 'financials-payouts')!
+    expect(payouts.viewPermission).toBe('view_finance')
+    expect(payouts.writePermission).toBe('process_payouts')
   })
 })

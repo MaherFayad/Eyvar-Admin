@@ -3,7 +3,7 @@
 > **Why this section exists.** §1–§5 derive their rules from 159 screenshots of the Shopify
 > admin, which is a merchant CRUD tool: records are created, edited, listed and archived by
 > one person at a time, on their own schedule, against data that does not move while they
-> look at it. Eyvar Admin is an operations console. Five of its surface types have no
+> look at it. Eyvar Admin is an operations console. Six of its surface types have no
 > Shopify equivalent, or no *governed* Shopify equivalent, and together they are roughly
 > half the product:
 >
@@ -14,6 +14,7 @@
 > | Money and ledgers | `p-wallets`, `p-rwallets`, `p-finance` | §4.2 says how to render a currency *input*. Nothing says how to render money as *output*. |
 > | Work queues and SLA | `p-fraud`, `p-all-pending`, `p-requests`, `p-interventions`, `p-readiness`, `p-renewal` | §3.1 governs a list of records. A queue is a list of *work*: claimed, timed, decided, gone. |
 > | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[Polaris]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
+> | **A composer that sends** | `contacts` (Support › Contact Centre), `ticket-detail` | §4 governs a form that **saves** — dirty state, a save bar, a discard, a primary you may press twice. A composer has none of those, its primary is irreversible on the first press, and its outcome arrives *after* the interaction is over. §3.8's composer is right in anatomy and posts an **internal comment**: nothing in §1–§5 leaves the building. |
 >
 > **Claim marking, extended.** §1–§5 use `[observed]` (visible in a cited screenshot) and
 > `[Polaris]` (recalled, unverified). This section adds a third tag:
@@ -31,6 +32,12 @@
 > §8.2. **§8.5 introduces no new ruling.** R1–R19 are untouched by it: its one collision
 > with §1–§5 — interactive header cells — is settled where the precedence ladder already
 > settles that class of collision, by a row in §6.2 (**D-6**), not by a twentieth ruling.
+> **§8.6 introduces no new ruling either, and needs none.** §3.8's *"the composer sits above
+> the feed"* MUST is **overridden** in §8.6 for a conversation thread and upheld everywhere
+> else — the same shape as §8.2's override of §4.2. R5 and R5a are **upheld**: a failed
+> message is marked by shape and words, so red stays at four uses. R7 is upheld: an internal
+> note takes the **neutral** tone, and there is still no critical badge. R10's lifetime test
+> is what decides which messages render a delivery state at all.
 
 ---
 
@@ -992,3 +999,368 @@ competing source of truth for something §3.1 already governs.
 - Any test for horizontal scroll offset MUST normalise the sign, because a right-to-left container's `scrollLeft` is negative.
 - Changing `dir` MUST NOT change which columns are pinned or their order, and MUST reset the horizontal scroll offset to the inline-start.
 - A persisted column layout MUST store each pin as a column id plus a **logical** edge (`start` / `end`). It MUST NOT store a physical edge or a pixel offset, and it MUST NOT store a render order — render order comes from the column declaration.
+
+---
+
+### 8.6 The message composer — a form that sends
+
+**What was tried and why it does not fit.** §6.4 had no row for this surface at all, and the
+two candidates both fail. **§4** governs a form that **saves**: it has a dirty state, a
+contextual save bar, a discard, and a primary the operator may press twice with the same
+result. **§3.8** governs the timeline composer, and its anatomy is right — Shopify ships one
+and it is fully `[observed]` — but every Shopify composer posts an **internal comment**
+(*"Only you and other staff can see comments"*,
+`02-orders/order-detail-timeline-comment-composer.webp`) and therefore never leaves the
+building. Neither section has a rule for the thing that makes this surface dangerous: **the
+primary sends a message to a customer, and it cannot be unsent.** Raised as finding
+**F-R5-1** by `DECISIONS.md` **D19** and answered here.
+
+**What §4 has that a composer does not**
+
+| §4 apparatus | Why a composer has none of it |
+|---|---|
+| **Dirty state** | Unsent text is not a pending change to a record. Nothing on the server disagrees with the screen, so there is nothing to reconcile. |
+| **A discard** | You cannot discard something that was never staged. The inverse of typing is deleting, and the operator already has it. |
+| **A reversible primary** | Save is idempotent and correctable — press it twice, edit, press again. **Send is irreversible on the first press.** `DECISIONS.md` **D18** puts *"anything that sends"* in the not-undoable column and it is right. |
+| **An outcome known at press time** | A save either succeeded or it did not. A send acquires a **delivery state after the interaction is over** — `queued · sent · delivered · read · failed`, forward-only except into `failed`, which any state can enter hours later. No §4 form has to render an outcome that arrives late and can reverse itself. |
+
+`[ruling]` **A composer MUST NOT raise a save bar, MUST NOT register an unsaved-changes
+guard, and MUST NOT prompt on navigation away.** A screen that treats a half-typed reply as
+an unsaved change teaches the operator to dismiss that prompt, and the next one it shows is
+about a plan edit.
+
+#### 8.6.1 Where it sits
+
+`[ruling]` **At the foot of the thread, inside the thread pane, pinned to the pane's bottom
+edge — and this overrides §3.8's *"MUST place the composer above the feed, newest entries
+first"* for a conversation thread only.** §3.8 is upheld everywhere else: an activity
+timeline on `applicant-detail` or `corp-detail` keeps its composer on top.
+
+Two reasons, and the second is mechanical:
+
+1. A thread is **read in time order**, oldest at the top. The message the operator is
+   answering is the last one, so the composer belongs adjacent to it. A timeline is
+   *scanned*, not read, which is why newest-first works there.
+2. `clients/conversations.ts` pages the thread **newest-first** and `Conversation.messages`
+   is *"the most recent page, oldest-first within the page"* `[code]`. **Page 1 is the
+   bottom of the thread.** Earlier pages load upward behind `hasMoreBefore`, so the bottom
+   edge is the only stable anchor; a composer at the top would sit against content that
+   moves every time earlier messages load.
+
+The page shape is **main + right rail** (§2.2). The main column is thread + composer; the
+rail carries the customer, the ticket link and the claim history (§3.8).
+
+```
++-- main ----------------------------------------------++-- rail --------+
+|           [ Load earlier messages ]                  || Customer       |
+|  +---------------------------+                       || Ticket         |
+|  | inbound - inline-start    |                       || History        |
+|  +---------------------------+                       ||                |
+|                    +-------------------------------+ ||                |
+|                    | outbound - inline-end         | ||                |
+|                    +-------------------------------+ ||                |
+|                                          Delivered   ||                |
++------------------------------------------------------+|                |
+| [ Reply | Internal note ]                            ||                |
+| +--------------------------------------------------+ ||                |
+| | Write a reply...                                 | ||                |
+| +--------------------------------------------------+ ||                |
+| (attach) (canned)   [Reply by email]      [ Send ]   ||                |
+| Enter sends - Shift + Enter adds a line              ||                |
++------------------------------------------------------++----------------+
+```
+
+**Arabic.** Nothing in the composer is anchored to a physical edge. The register switch is at
+the **inline-start** of its row, `Send` at the **inline-end** of its row, inbound bubbles
+`self-start` and outbound `self-end`. In Arabic the whole assembly mirrors and `Send` lands
+on the left, which is correct: the send affordance sits where the sentence ends in the
+reading direction, in both languages. **A composer with a physically-anchored send control
+is a defect, not a style choice** (§9.1).
+
+#### 8.6.2 The register switch — the one control that stops the worst mistake
+
+The single most dangerous confusion on this surface is an **internal note sent to the
+customer**, or a customer reply filed as a note and never answered. `types/conversation.ts`
+already refuses the weak solutions: visibility is *"one field, two values, on the message,
+set at compose time and never inferred"* `[code]`, and `ReplyInput` states outright that the
+console *"must render the two as visibly different controls, never one checkbox nobody
+notices"* `[code]`.
+
+`[ruling]` **The register is a two-segment control at rest above the field — never a
+checkbox, never a menu item, and never a modifier on the send button.** Segments: `Reply` ·
+`Internal note`. It is always visible, including when the composer is refused.
+
+**Five carriers, none of which is a colour.** A register this consequential may not rest on
+one signal, and it may not rest on hue at all — the operator sees this screen for eight hours
+and hue habituates:
+
+| # | Carrier | `Reply` | `Internal note` |
+|---|---|---|---|
+| 1 | The segment at rest | selected | selected |
+| 2 | The field's ground | `--ev-surface` | **`--ev-bg2`** — the composer visibly changes material |
+| 3 | The placeholder | `Write a reply…` | `Write a note for your team…` |
+| 4 | The send label | `Send` | **`Add note`** |
+| 5 | The line under the composer | `Enter sends · Shift + Enter adds a line` | `Only your team can see this. Enter adds the note · Shift + Enter adds a line.` |
+
+Carrier 5 is `[observed]` in structure: Shopify puts exactly this notice immediately below
+and outside its composer (`Only you and other staff can see comments`,
+`02-orders/order-detail-timeline-comment-composer.webp`). The wording is Eyvar's, because
+Eyvar's composer can also send and Shopify's cannot — *"can see"* alone does not say *"and
+nothing was sent"*.
+
+**§3.8's `[observed]` label `Post` does not bind.** §3.8's rule is about the *behaviour* —
+the control is disabled until there is content — and `Post` is an observation of Shopify's
+label. `Send` and `Add note` are verb + object and they say which register fired.
+
+**A posted note is a different shape in the thread, not a different colour.** `[ruling]`
+
+| Message | Shape in the thread |
+|---|---|
+| Inbound, customer-visible | Bubble, `self-start`, `--ev-bg2` ground |
+| Outbound, customer-visible | Bubble, `self-end`, `--ev-surface` ground with a 1px `--ev-hairline-control` border |
+| **Internal note** | **Full width, not a bubble and not aligned to either edge**, `--ev-bg2` ground, 1px `--ev-hairline-control` border, an `Internal note` badge in the **neutral** tone (R7) in its header, **and no delivery line at any time** |
+| System | Full width, centred, `--ev-text-2`, no ground, no author |
+
+Four shapes, four grounds already in the token set, no new colour, and every one of them
+survives greyscale and mirrors correctly. **The note is the only message that is not a
+bubble**, which is the difference an operator reads at a glance from across a desk.
+
+`deliveryIsWellFormed()` already asserts that a note carries `delivery: null` `[code]`. **The
+UI MUST NOT draw a tick, a word, or a placeholder in the note's DELIVERY position** — not an
+em dash, not `Not sent`, nothing. An absence is the correct rendering of a fact that does not
+exist.
+
+`[ruling]` **The note's not-sent-ness is stated in its HEADER, beside the badge, never in the
+delivery position:** `Not sent to the customer`, `--ev-text-2`. The reason is a collision, not
+a preference. In the delivery position that line sits two messages away from
+`Not delivered — no email address on file`, in the same slot, at the same size, both opening
+on the same word, meaning **opposite** things — one is *this was never going to be sent* and
+the other is *this was sent and did not arrive*. Moving it into the header separates them by
+position as well as by wording, which is the only separation that survives a scan.
+
+#### 8.6.3 The send control, and every reason it is refused
+
+`[ruling]` **`Send` is disabled in place, at rest, never hidden, with its reason as real text
+beneath the composer and `aria-describedby` pointing at it.** This is §11.2 applied, and
+`DECISIONS.md` **D17** confirms it product-wide. A `title=` attribute is not a reason.
+
+| Condition | Composer | `Send` | Reason rendered |
+|---|---|---|---|
+| Field empty | normal | disabled | **none** — self-evident, and a sentence here would be noise on every keystroke |
+| Customer has no handle on the composer's channel | normal | disabled | `No email address on file for this rider.` — see §8.6.5 |
+| Send in flight | field cleared, message already in the thread as `Sending…` | busy, not disabled | none |
+| Operator lacks the sub-tab's write key | **renders, fully disabled** | disabled | D17's two sentences, once for the whole screen (§8.6.8) |
+| Conversation is not claimed by this operator | renders, disabled | disabled | `Grab this conversation before replying.` |
+| Conversation is `closed` | renders, disabled | disabled | `This conversation is closed. Reopen it to reply.` |
+| Thread failed to load | renders, disabled | disabled | `Couldn't load this conversation. Try again before replying.` |
+| Channel is `phone` | **note register only** — the `Reply` segment is absent | `Add note` only | `A call has no message to send. Log a note instead.` |
+| Channel is `whatsapp` | **no composer at all** | — | one grey sentence in the composer's place: `WhatsApp isn't connected yet. This conversation is read-only.` |
+
+The two channel rows are `DECISIONS.md` **D19** verbatim: phone is *"read-only. Call notes,
+logged from the console. No compose"*; WhatsApp is *"modelled, no rows, no compose"* because
+*"a compose box for a pipe that does not exist is the worst possible state."* **The
+difference between them is that phone has notes and WhatsApp has nothing** — an operator
+shown a note field on a WhatsApp row will assume the customer can be reached.
+
+**The concurrent-chat cap (D22) never refuses `Send`.** It refuses `Grab`. Once a
+conversation is held, its composer is never rate-limited — a cap that stopped an operator
+mid-conversation would strand the customer they are already talking to.
+
+**A send fires no toast.** R10 — one event, one surface. The message appearing at the foot of
+the thread is the confirmation, and it is a better one than a toast because it persists, it
+carries the delivery state, and it is where the operator is already looking.
+
+#### 8.6.4 The confirmation question, answered narrowly
+
+§5.0's decision table sends an irreversible act to a **modal**, and **D18** puts *"anything
+that sends — chat reply, email, push, SMS"* in the column headed *"Not undoable — confirms."*
+
+`[ruling]` **A composer send does not confirm.** D18's rule governs **commands in the command
+registry** — it is written in terms of `arity`, `affordance: 'destructive'` and
+`CommandOutcome.undo`, and its own clarification scopes the skip to *"`immediate` and
+`needs-target` only"*. A composer send is not a registry command: it has no arity, no
+affordance, and it never appears in the palette. Reading D18 to cover it makes **D22
+unmeetable** — a 45-second first-response promise held across three concurrent chats leaves
+roughly fifteen seconds of attention per chat per minute, and a dialog on every message
+spends it.
+
+**What §5.0's row was protecting is carried by three other things instead**, all at rest and
+none of them a dialog:
+
+1. The **register switch** is visible and selected before the operator starts typing.
+2. The **send label names the register** — `Send` or `Add note`.
+3. The **recipient and channel are stated in the composer footer** before the press, and
+   `Reply by email` names the address it will use.
+
+**This reading is recorded as finding F-3 to product-owner.** If the owner reads D18 broadly
+instead, D18 and D22 collide and the reconciliation is theirs, not a designer's — the
+cheapest one available is a short **`queued` hold** with an `Undo send` on the message, which
+the model already supports (`queued` is defined as *"accepted by us, not yet handed to the
+transport"* `[code]`) but for which the seam has no operation.
+
+#### 8.6.5 Channel selection
+
+**D19:** one conversation, one primary channel, many message channels, and the switch is
+*"one control — `Reply by email` — which stamps `message.channel = 'email'`."*
+
+`[ruling]` **`Reply by email` is a toggle in the composer footer, carrying `aria-pressed`,
+and its label never changes.** A stable label is what lets a refusal attach to it: a control
+that renames itself cannot carry a reason that stays true.
+
+- It **renders only** when the conversation's primary channel is not already `email` and the
+  conversation can carry a second one — so it is absent on an email conversation, absent on
+  `phone`, and absent on `whatsapp`.
+- **Pressed:** the next message goes by email. A line appears in the footer naming the
+  address — `This reply goes by email to nora@example.com.` The address is bidi-isolated
+  (§9.4); unisolated, its `@` moves in Arabic.
+- **Pressed again:** back to the primary channel. The toggle is the whole mechanism; there is
+  no second control and no menu.
+`[ruling]` **The console refuses to send on a channel where the customer has no handle, and
+the refusal lands on whichever control chose that channel.**
+
+| The composer's channel is… | The refusal is on | Reason |
+|---|---|---|
+| the conversation's own primary channel | **`Send`** | `No email address on file for this rider.` |
+| chosen by `Reply by email` | **`Reply by email`**, and `Send` stays enabled — the conversation's own channel still works | same sentence |
+
+`CNV-110` is the first row: an **email** conversation whose customer has `handle: null`
+`[code]`, where the fixture's own comment reads *"it was never going anywhere, and the
+console should have refused the send rather than queued it."* There is no channel to switch
+to, so there is no `Reply by email` control to disable and the refusal belongs on `Send`.
+**AC-943's substance holds — a reason naming the missing address, and no message queued — but
+its wording names the wrong control and is raised for amendment.**
+- Each message carries the channel it actually went down. `[ruling]` **The channel is named
+  on a message only where it differs from the message above it** — one line in `--ev-text-2`
+  reading `Sent by email`. Stamping every bubble with its channel turns a two-channel thread
+  into a two-column report.
+
+#### 8.6.6 Delivery state, without a status board
+
+A thread of forty messages, each carrying a settled delivery word, is a status board with a
+conversation buried in it. But `MessageDelivery` exists precisely because *"a failed send
+that looks identical to a delivered one"* is the defect the model was built to prevent
+`[code]`.
+
+`[ruling]` **Delivery renders on exactly one message — the newest outbound customer-visible
+message in the thread. Every older message renders its delivery state only when that state is
+`failed`.**
+
+The reasoning is the lifetime test R10 already uses. A delivery state in flight is
+**transient**: it resolves within seconds, and no operator re-reads the tick on a message from
+twenty minutes ago. `failed` is a **standing condition**: it never resolves on its own, and it
+is still true tomorrow.
+
+**One word, no glyph, no timestamp**, on a line beneath the bubble, aligned to the bubble's
+own edge, `--ev-text-2`:
+
+| `state` | Renders |
+|---|---|
+| `queued` | `Sending…` |
+| `sent` | `Sent` |
+| `delivered` | `Delivered` |
+| `read` | `Read` |
+| `failed` | §8.6.7 |
+
+No timestamp, because the bubble already carries `sentAt` and `delivery.updatedAt` differs
+from it by seconds. No tick glyph: §5.7 forbids emoji, and a single-versus-double tick is an
+idiom borrowed from a consumer app that this console has never taught. **Words are the only
+carrier that translates.**
+
+`read` is seeded in the fixtures (`CNV-105`, `CNV-111`) but `scriptDelivery()` never advances
+a newly sent message into it — the mock goes `queued → sent → delivered` `[code]`. So `read`
+renders from stored data and is never reached live in mock mode. It renders by the same rule
+as the rest. Recorded, not hidden.
+
+#### 8.6.7 A failed message
+
+```
+                    +-------------------------------------------+
+                    | Hi Nora, your refund is on its way.       |   <- outline, no fill
+                    +-------------------------------------------+
+                    Not delivered - no email address on file
+                                     [ Send again ]  [ Add an email address ]
+```
+
+`[ruling]` **A failed message is marked by shape and by words, not by red.** R5a enumerates
+four uses of red and a failed message is not among them; a fifth needs a §6.2 entry, and this
+one is not worth spending. The carriers:
+
+- **The bubble loses its fill and becomes an outline** — 1px `--ev-hairline-control`, no
+  ground. It is the only bubble in the thread that does not sit on a surface, which reads,
+  correctly, as *this did not land*.
+- **The line beneath is `--ev-ink`, not `--ev-text-2`** — the only delivery line in the
+  thread rendered at full strength.
+- **The words say it**: `Not delivered — ` then `delivery.failureMessage`. **Never
+  `failureCode`, and never as a fallback either** — a code is a fact about the software
+  (D17 clause 1, applied). Where `failureMessage` is null the line is `Not delivered` alone.
+- **No badge.** R5 — there is no red badge — and R7 has no critical tone. A failure is not a
+  lifecycle state of the message; it is what happened to it.
+
+**What it offers.** `Send again`, always, on every `failed` message (**AC-945**) — and
+`[ruling]` **`Send again` restores the message body into the composer, focused, caret at the
+end, and does not send.** It is then one press from sending and one press from correcting,
+which is what a failed send actually needs: on `no_handle`, an unchanged retry is guaranteed
+to fail again. A line under the composer says so: `Restored from a message that didn't send.`
+The seam has no retry operation, and minting a second message through `replyConversation`
+would duplicate the body in the thread under a new id — recorded as a seam gap, not designed
+around silently.
+
+**On `failureCode === 'no_handle'` only**, a second control: `Add an email address`, opening
+the 360° profile layer at the customer. It is the actual fix, and offering only `Send again`
+would loop the operator through a refusal they cannot clear from this screen.
+
+**A message in `sent`, `delivered` or `read` offers no such control** (**AC-945**), and
+neither does an internal note or an inbound message.
+
+#### 8.6.8 No write permission, and the refusal that renders once
+
+`[ruling]` **The composer renders. It is never hidden.** A hidden composer is
+indistinguishable from a product that has no reply feature, and the operator cannot tell
+whether to ask for access. The field is disabled, the register switch is disabled, `Send` is
+disabled, and D17's two sentences render as real text beneath it.
+
+`[ruling]` **Where several controls on one screen are refused for the same reason, the
+sentence renders once and every refused control points `aria-describedby` at it.** On a
+conversation with no write key that is `Send`, `Grab`, `Create ticket`, `Transfer` and
+`Close` — five controls and one sentence, not five copies of it. Printing the same two
+sentences five times does not make the refusal clearer; it makes the screen unreadable and
+buries the one sentence that matters.
+
+#### 8.6.9 The four states, and the draft
+
+| State | Thread | Composer |
+|---|---|---|
+| **Content** | Messages, oldest at top; `Load earlier messages` when `hasMoreBefore` | Normal |
+| **Empty** | `CNV-107` — a real conversation with no messages. **One grey sentence, no illustration** (R8): `No messages yet.` | Normal — this is the state in which the operator writes the first message |
+| **Loading** | Skeleton bubbles alternating inline-start and inline-end; never a centred spinner | Rendered and disabled, with no reason line |
+| **Error** | `ErrorState scope="card"` in the thread region | Disabled: `Couldn't load this conversation. Try again before replying.` |
+
+`[ruling]` **Unsent text is held per conversation, in memory, for the life of the session, and
+is not persisted.** Returning to a conversation restores what was typed; a reload discards it;
+nothing anywhere indicates that a draft exists. `DECISIONS.md` **D16**'s three persistence
+classes do not cover a composer draft — it is not URL-expressible, it is not a preference, and
+it is not a named artefact — and this is the answer that costs least to reverse. Recorded as a
+question for product-owner rather than assumed.
+
+**Rules**
+
+- A composer MUST NOT raise a save bar, register an unsaved-changes guard, or prompt on navigation away. It has no dirty state and no discard; §4 does not govern it.
+- A conversation composer MUST sit at the foot of the thread, pinned to the pane's bottom edge. This overrides §3.8 for a conversation thread and for nothing else.
+- The register — customer reply or internal note — MUST be a control at rest above the field. It MUST NOT be a checkbox, a menu item, or a modifier on the send control.
+- The register MUST be carried by at least three signals that are not colour, and one of them MUST be the send control's own label.
+- An internal note MUST render in the thread with a shape no customer-visible message uses, and MUST NOT render a delivery line, a tick, or a placeholder in the delivery position. Its not-sent-ness MUST be stated in its header instead.
+- A `failed` message's reason MUST NOT be worded so that it can be mistaken for a note's not-sent line, and the two MUST NOT occupy the same position.
+- The send control MUST be disabled in place with its reason as real text and `aria-describedby` — never a tooltip — and MUST NOT be hidden (§11.2, D17).
+- An empty field MUST disable the send control and MUST NOT render a reason.
+- A composer send MUST NOT open a confirmation dialog. §5.0's irreversible-action row does not reach the act a conversation screen exists to perform.
+- A send MUST NOT fire a toast. The message in the thread is the confirmation (R10).
+- A channel with no compose path MUST render no composer at all, and MUST say so in one sentence in its place. A channel with notes but no customer-visible send MUST render the note register only.
+- The channel switch MUST be one control whose label does not change, and MUST render disabled in place with its reason when the customer has no handle on that channel.
+- A send MUST be refused where the customer has no handle on the composer's channel. The refusal MUST land on the control that chose the channel — the switch where a switch chose it, `Send` where the conversation's own channel did — and no message MUST be queued.
+- A message's channel MUST be named only where it differs from the message above it.
+- Delivery state MUST render on the newest outbound customer-visible message only, and on any message in `failed`. It MUST be a word, never a tick or any other glyph, and it MUST NOT carry a timestamp.
+- A `failed` message MUST be marked by shape and words — never by red, never by a badge — and MUST render `failureMessage`, never `failureCode`.
+- A `failed` message MUST offer `Send again`. A message in `sent`, `delivered` or `read` MUST NOT.
+- Where several controls on one screen are refused for the same reason, the reason MUST render once and every refused control MUST reference it.
+- Unsent text MUST NOT be persisted, and its presence MUST NOT be indicated anywhere outside the composer.
+- Nothing in the composer MAY be anchored to a physical edge. The send control sits at the inline-end of its row in both languages (§9.1).

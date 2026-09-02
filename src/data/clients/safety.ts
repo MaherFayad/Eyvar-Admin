@@ -11,12 +11,10 @@
  * protocol, and `closeIncident` refuses while any step is unticked (`:13483`).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { safetyIncidentFixtures, safetyIncidentFixturesAllClosed } from '../fixtures/safety'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type {
   SafetyIncident,
@@ -26,7 +24,22 @@ import type {
 } from '../types/safety'
 import { SAFETY_PROTOCOL_STEPS } from '../types/safety'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
+let safetyIncidentFixturesAllClosed!: Fixtures['safetyIncidentFixturesAllClosed']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  safetyIncidentFixtures = f.safetyIncidentFixtures
+  safetyIncidentFixturesAllClosed = f.safetyIncidentFixturesAllClosed
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const SAFETY_OPERATIONS = {
   facets: 'safety.facets',
@@ -38,6 +51,13 @@ export const SAFETY_OPERATIONS = {
   suspend: 'safety.suspend',
   close: 'safety.close',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(SAFETY_OPERATIONS))
 
 export interface SafetyQuery extends QueryParams {
   status?: SafetyIncidentStatus
@@ -150,7 +170,7 @@ const safetyShape: QueryShape<SafetyIncident> = {
     closed: (i) => i.status === 'closed',
 
     all: () => true,
-    mine: (i) => i.claim?.state === 'claimed' && i.claim.ownerId === CURRENT_USER_ID,
+    mine: (i) => i.claim?.state === 'claimed' && i.claim.ownerId === currentMockUserId(),
     unassigned: (i) => i.claim === null || i.claim.state !== 'claimed',
     breached: (i) => i.slaBreachedAt !== null || i.firstResponseBreachedAt !== null,
   },
@@ -317,7 +337,7 @@ export async function setSafetyProtocolStep(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const respondingNow = done && row.firstResponseAt === null
     return {
       ...row,
@@ -342,7 +362,12 @@ export async function setSafetyProtocolStep(
 
 /**
  * POST /api/v1/incidents/:id/precautionary-suspension
- *   body: { driverId: string, reason: string }
+ *   body: { reason: string }
+ *
+ * `driverId` is NOT sent: the incident already names its counterparty and the
+ * server resolves it, which is also why the 422 below is the server's to raise.
+ * A client-supplied id would let a caller suspend somebody the incident does
+ * not name.
  *   -> SafetyIncident   (with `act` ticked and `precautionarySuspension` set)
  *   403 without `approve_drivers`
  *   422 when the incident has no counterparty to suspend
@@ -372,7 +397,7 @@ export async function precautionarilySuspend(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     return {
       ...row,
       precautionarySuspension: {
@@ -425,7 +450,7 @@ export async function closeSafetyIncident(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     return {
       ...row,
       status: 'closed' as const,

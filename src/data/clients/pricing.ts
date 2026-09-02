@@ -31,18 +31,9 @@
  * live rate card they read, and computes nothing itself.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  cancellationRuleFixtures,
-  quickRideTypeFixtures,
-  rateCardFixtures,
-  subscriptionPlanFixtures,
-  surgeSuspensionFixtures,
-  surgeWindowFixtures,
-} from '../fixtures/pricing'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError } from '../types/common'
 import type {
   CancellationRule,
@@ -56,6 +47,34 @@ import { SURGE_SUSPENSION_MAX_HOURS } from '../types/pricing'
 import type { PlanKey } from '../types/subscription'
 import { appendAudit } from './audit'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let cancellationRuleFixtures!: Fixtures['cancellationRuleFixtures']
+let quickRideTypeFixtures!: Fixtures['quickRideTypeFixtures']
+let rateCardFixtures!: Fixtures['rateCardFixtures']
+let subscriptionPlanFixtures!: Fixtures['subscriptionPlanFixtures']
+let surgeSuspensionFixtures!: Fixtures['surgeSuspensionFixtures']
+let surgeWindowFixtures!: Fixtures['surgeWindowFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  cancellationRuleFixtures = f.cancellationRuleFixtures
+  quickRideTypeFixtures = f.quickRideTypeFixtures
+  rateCardFixtures = f.rateCardFixtures
+  subscriptionPlanFixtures = f.subscriptionPlanFixtures
+  surgeSuspensionFixtures = f.surgeSuspensionFixtures
+  surgeWindowFixtures = f.surgeWindowFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  planState = subscriptionPlanFixtures.map((p) => ({ ...p }))
+  suspensionState = surgeSuspensionFixtures.map((s) => ({ ...s }))
+  suspensionSequence = surgeSuspensionFixtures.length
+})
 
 export const PRICING_OPERATIONS = {
   plans: 'pricing.plans',
@@ -69,11 +88,22 @@ export const PRICING_OPERATIONS = {
   suspendSurge: 'pricing.suspendSurge',
 } as const
 
-let planState: SubscriptionPlan[] = subscriptionPlanFixtures.map((p) => ({ ...p }))
-let suspensionState: SurgeSuspension[] = surgeSuspensionFixtures.map((s) => ({ ...s }))
-let suspensionSequence = surgeSuspensionFixtures.length
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(PRICING_OPERATIONS))
+
+let planState!: SubscriptionPlan[]
+let suspensionState!: SurgeSuspension[]
+let suspensionSequence = 0
 
 export function resetPricing(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   planState = subscriptionPlanFixtures.map((p) => ({ ...p }))
   suspensionState = surgeSuspensionFixtures.map((s) => ({ ...s }))
   suspensionSequence = surgeSuspensionFixtures.length
@@ -351,7 +381,7 @@ export async function suspendSurge(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     suspensionSequence += 1
     const suspension: SurgeSuspension = {
       id: `SUS-${String(suspensionSequence).padStart(4, '0')}`,

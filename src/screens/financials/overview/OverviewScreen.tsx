@@ -56,7 +56,9 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
 
   const overview = useAsync<FinancialsOverview>(
     (signal) => getFinancialsOverview({ period, signal }),
-    { deps: [period.start, period.end], isEmpty: () => false },
+    /* AC-353: changing the period changes every figure, so both ends of the
+       window are dependencies and the key carries them. */
+    { deps: [period.start, period.end], cacheKey: 'financials.overview', isEmpty: () => false },
   )
 
   const data = overview.data

@@ -11,11 +11,12 @@
  * so the two can never disagree.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { mock } from '../mock/delay'
 import { LEGACY_PAGE_TITLES } from '../fixtures/legacyPages'
 import { ROUTE_TABLE } from '../fixtures/routeTable'
 import type {
+  PermissionKey,
   RouteTable,
   ShellLayerRoute,
   SubTabRoute,
@@ -87,6 +88,30 @@ export function isSubTabBuilt(subTabId: string): boolean {
 
 export function findShellLayer(layerId: ShellLayerRoute['layerId']): ShellLayerRoute | null {
   return ROUTE_TABLE.shellLayers.find((l) => l.layerId === layerId) ?? null
+}
+
+/**
+ * **`Session.subTabPermissions`, derived — §8.2, §11.3, D17.**
+ *
+ * One entry per sub-tab: the keys that let an operator SEE it. In production
+ * the server computes this and delivers it resolved on the session; this is the
+ * mock server's implementation of the same thing, and both `clients/session.ts`
+ * and `clients/auth.ts` call it rather than each writing their own map.
+ *
+ * **Derived from the route table's `viewPermission` column and not hand-written
+ * beside it**, which is the only way the two can never disagree — and they must
+ * not, because `isSubTabVisible` prefers this map over the row.
+ *
+ * `admin-activity` gets `[]` — the one row with no view key. §8.2's contract is
+ * that an **empty array means ungated** and an **absent key means the server did
+ * not say**; only the second falls back to the row.
+ */
+export function subTabViewPermissions(): Record<string, PermissionKey[]> {
+  const out: Record<string, PermissionKey[]> = {}
+  for (const row of ROUTE_TABLE.subTabs) {
+    out[row.subTabId] = row.viewPermission === null ? [] : [row.viewPermission]
+  }
+  return out
 }
 
 function matchesDetailPath(pattern: string, path: string): boolean {
@@ -172,6 +197,13 @@ const LEGACY_PAGE_TO_VIEW: Record<string, string> = {
 export const ROUTE_OPERATIONS = {
   table: 'routes.table',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(ROUTE_OPERATIONS))
 
 /**
  * GET /api/v1/routes

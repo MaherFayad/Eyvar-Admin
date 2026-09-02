@@ -68,10 +68,19 @@
  * re-read per attempt. Neither number appears here.
  */
 
+import { clearCachedUiState, setUiStateOwner } from '@/lib/persistence'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNow } from '@/hooks'
 
-/** Spec §7.1, adopted from `opsConfig.security.sessionTimeoutMin`. */
+/**
+ * Spec §7.1, adopted from `opsConfig.security.sessionTimeoutMin`.
+ *
+ * **The FALLBACK, not the policy.** `SecurityPolicy.idleTimeoutMinutes`
+ * (`clients/securityPolicy.ts`) is the real number and `ShellContext` passes
+ * it in; this is what the hook uses in the moment before that read lands, and
+ * on the code path where a caller supplies nothing. The client is seeded to the
+ * same 30, so the two agree today and the setting is real tomorrow.
+ */
 export const DEFAULT_IDLE_TIMEOUT_MINUTES = 30
 /** Spec §7.1's clamp, `Math.min(240, Math.max(5, …))` at `:8027`. Kept, so the same numbers bind. */
 export const MIN_IDLE_TIMEOUT_MINUTES = 5
@@ -116,6 +125,14 @@ export interface SessionLifecycle {
    * warning. `0` renders `in less than a minute.`
    */
   idleWarningMinutes: number | null
+  /**
+   * The window actually in force, clamped — **the number a message may quote.**
+   *
+   * `AppLayout` was rendering `session-ended-idle` with the module constant, so
+   * an admin who set the console to 60 minutes got signed out at 60 and told it
+   * had been 30. The hook already resolved it; it just was not returning it.
+   */
+  idleTimeoutMinutes: number
   /** **AC-559** — only this extends the session, and it removes the banner. */
   staySignedIn: () => void
   /** The auth screens call this after a code step produces a session. */
@@ -265,6 +282,26 @@ export function useSessionLifecycle(options: UseSessionLifecycleOptions): Sessio
   }, [])
 
   const signOut = useCallback((reason: SessionExpiryReason | null = null) => {
+    /**
+     * **D16 — the cached UI state goes with the operator, and it is dropped
+     * HERE rather than in an effect watching the session.**
+     *
+     * `setUiStateOwner(null)` alone would only stop future writes; the entries
+     * already in `localStorage` would sit there under the outgoing operator's
+     * namespace waiting for them to sign back in. On a shared operations
+     * machine that is the shift-change failure the per-operator namespace
+     * exists to prevent — the next person does not read them, but the previous
+     * person's column layout survives their sign-out, which is not what
+     * signing out means.
+     *
+     * An effect keyed on `session.data?.userId` cannot do this: it cannot tell
+     * a sign-out from a refetch that has not resolved yet, and clearing on a
+     * transient `null` would wipe the cache on every reconnect. Only the
+     * deliberate act knows it is deliberate.
+     */
+    setUiStateOwner(null)
+    clearCachedUiState()
+
     setStatus('signed-out')
     setFrozenReason(null)
     setWarning(false)
@@ -284,6 +321,7 @@ export function useSessionLifecycle(options: UseSessionLifecycleOptions): Sessio
     endedReason,
     frozenReason,
     idleWarningMinutes,
+    idleTimeoutMinutes,
     staySignedIn,
     signedIn,
     signOut,

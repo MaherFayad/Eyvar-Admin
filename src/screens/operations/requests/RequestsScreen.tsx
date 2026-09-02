@@ -79,7 +79,10 @@ import type {
   SubTabRoute,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { toast } from 'sonner'
+import { setRefusal } from '../bulkRefusal'
+import { EntityLink, useEntityLinks } from '../EntityLink'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -90,7 +93,6 @@ import {
   Absent,
   BreachBanner,
   Cell,
-  ConfirmDialog,
   DateCell,
   DecisionBadge,
   Identity,
@@ -104,10 +106,12 @@ import {
   useQueueMeta,
   useQueueViews,
   useRowActions,
-  type ConfirmRequest,
   type QueueClockResult,
   type RowFailure,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { withFallback } from '../localCopy'
+import { REQUESTS_EN } from './copy'
 
 /**
  * **Q-32 — a work queue's default view is its open work, not `All`.**
@@ -123,6 +127,20 @@ import {
  * legacy grouping — and it is why the breach banner counts through the `open`
  * boolean rather than through this view.
  */
+/**
+ * The captain picker's query, hoisted to module scope so it can be a **cache
+ * dependency**.
+ *
+ * `useAsync`'s contract (`useAsync.ts:66-72`): with a `cacheKey`, everything the
+ * fetcher varies on must be in `deps`. `status` and `pageSize` were literals
+ * inside the closure and therefore invisible to the key, so this read and every
+ * other `deps: []` read of `drivers.list` in the app would have shared one entry
+ * and the first one to resolve would have decided the page size for all of them.
+ * Naming the query and depending on it puts those two values in the key, so a
+ * site that asks a different question gets a different entry by construction.
+ */
+const ACTIVE_CAPTAINS_QUERY = { status: 'active', pageSize: 50 } as const
+
 const DEFAULT_VIEW = 'pending'
 
 /** §5.5 — the statuses after which nothing is owed. `no-drivers` is NOT one. */
@@ -135,7 +153,18 @@ function isTerminal(row: RideRequest): boolean {
 export function RequestsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const location = useLocation()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, REQUESTS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
 
   const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
@@ -150,6 +179,17 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
        without a second pass, and a breached row's deadline is by definition
        earlier than a healthy one's. */
     initialSort: { field: 'slaDueAt', dir: 'asc' },
+    /**
+     * **§9.3 / P4-T1 — the checkbox column, and the one command allowed behind
+     * it.** A queue gets a selection **only** where every bulk action offered is
+     * a claim or an assign; `bulkClaim: true` is how this file says so, and
+     * without it `table.selectedIds` is not on the returned type at all. Bulk
+     * disposition is forbidden outright (`DESIGN.md:5328`), which is why
+     * `Assign captain` and `Close` stay row-only however many rows are ticked:
+     * assigning a captain captures a rider's authorisation hold, and twelve
+     * captures from one pill is exactly the act §9.3 exists to prevent.
+     */
+    bulkClaim: true,
   })
 
   /* The view tab and the client's `view` param are the same value. Passing it
@@ -158,7 +198,9 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
 
   const data = useAsync<Paginated<RideRequest>>((signal) => listRequests(params, signal), {
+    /* `params` carries the table query and the view tab. */
     deps: [params],
+    cacheKey: 'requests.list',
   })
 
   /**
@@ -180,7 +222,8 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
         },
         signal,
       ),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the list read's `[{...}]`. */
+    { deps: [], cacheKey: 'requests.list' },
   )
 
   /* The captain picker's options. Read once: §5.2 calls for *the shared
@@ -188,11 +231,21 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
      honest reduction — active captains, named, chosen deliberately. Recorded in
      the handoff as a narrowing rather than a substitution. */
   const captains = useAsync<Paginated<Driver>>(
-    (signal) => listDrivers({ status: 'active', pageSize: 50 }, signal),
-    { deps: [] },
+    (signal) => listDrivers(ACTIVE_CAPTAINS_QUERY, signal),
+    { deps: [ACTIVE_CAPTAINS_QUERY], cacheKey: 'drivers.list' },
+  )
+
+  /* **P8-T1** — every id the page names, asked once each. */
+  const hrefFor = useEntityLinks(
+    useMemo(
+      () => (data.data?.items ?? []).flatMap((r) => [r.riderId, r.offeredToDriverId, r.assignedDriverId]),
+      [data.data?.items],
+    ),
   )
 
   const actions = useRowActions<RideRequest>({ t })
+  /** True while a bulk claim is in flight; the bar's command is not re-entrant. */
+  const [claimingMany, setClaimingMany] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const rows = actions.rows(data.data?.items ?? [])
@@ -314,13 +367,66 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
     )
   }
 
+  /* ── the bulk bar (§9.3, D21) ─────────────────────────────────────── */
+
+  /** The selection as RECORDS, which is what the predicate takes. */
+  const selected = rows.filter((request) => table.selectedIds.has(request.id))
+
+  /**
+   * **D21 over a set.** Refused if ANY selected request would be refused on its
+   * own row, in one of three sentences, with the permission refusal first.
+   *
+   * A row already held by somebody is **blocked, not taken over**: AC-203 makes
+   * a take-over a confirmed act that NAMES the operator losing the item, and
+   * over a set it would strip N owners and name none of them. A decided row has
+   * nothing left to claim. Both are `.blocked`, and `Select only the N
+   * eligible` is how the operator gets past them in one click.
+   */
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (request) => request.id,
+    isBlocked: (request) => isTerminal(request) || request.claim?.state === 'claimed',
+    roleReason: canWrite ? null : t('requests.action.noPermission'),
+    blockedKeyPrefix: 'requests.action.claim.blocked',
+    t,
+    language,
+  })
+
+  /**
+   * **Every bulk action reaches the data layer.** One `claimRequest` per
+   * record — the same call the row's own `Claim` makes, so the projection, the
+   * queue and My Work cannot disagree about who holds what. A bulk action that
+   * only fired a toast would be worse than none.
+   */
+  async function claimSelected(ids: ReadonlySet<string>) {
+    setClaimingMany(true)
+    try {
+      await Promise.all([...ids].map((id) => claimRequest(id, { takeOver: false })))
+      table.clearSelection()
+      toast(
+        ids.size === 1
+          ? t('queue.toast.claimed')
+          : t('requests.toast.claimed.other', { count: formatCount(ids.size, language) }),
+      )
+    } catch {
+      toast(t('requests.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
   const columns = requestColumns({
     t,
     language,
     now,
     canWrite,
     currentUserId,
-    profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+  profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    /* **P8-T1 — resolution is ASKED, not assumed.** A captain the resolver
+       cannot find renders as text with its reason rather than as a link into
+       the overlay's own not-found state. */
+    hrefFor,
     failure: actions.failure,
     onClaim: (request) => claim(request, false),
     onRelease: release,
@@ -360,6 +466,21 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
         now={now}
         searchPlaceholder={t('requests.search')}
         extraFilters={BREACH_FILTER(t)}
+        /* **R5a** — one expression behind the marker, the pill and the tint. */
+        isRowCritical={(row) => requestClock(row, now).breached}
+        /* §9.3 — claims only. `Assign` and `Close` are dispositions and stay on
+           the row, however many rows are ticked. */
+        bulkActions={[
+          {
+            label: t('requests.bulk.claim'),
+            onClick: (ids) => void claimSelected(ids),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            /* D21's escape hatch — a narrowing of the SELECTION, not a partial
+               apply. Empty when every selected request is blocked. */
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
         cleared={{
           heading: t('requests.empty.cleared.heading'),
           body: t(CLEARED_BODY[activeTab] ?? 'requests.empty.cleared.all'),
@@ -432,6 +553,8 @@ export interface ColumnDeps {
   canWrite: boolean
   currentUserId: string
   profileHref: (id: string) => string
+  /** **P8-T1** — `null` when the id names nothing this console can open. */
+  hrefFor: (id: string | null | undefined) => string | null
   failure: (id: string) => RowFailure | undefined
   onClaim: (row: RideRequest) => void
   onRelease: (row: RideRequest) => void
@@ -470,24 +593,36 @@ const STATUS: Readonly<Record<RequestStatus, { tone: 'success' | 'warning' | 'in
  * `16n`. One number across five queues, so an operator moving between them
  * finds the same control in the same place.
  */
+/**
+ * **The request's clock — module level, because THREE carriers read it**: R5a's
+ * leading-edge marker, the countdown pill, and the row tint declared on
+ * `QueueTable`, where the columns are out of scope. `isTerminal` is part of the
+ * expression, not a detail of the marker: a request decided inside its window
+ * is not late and must not be tinted.
+ */
+export function requestClock(row: RideRequest, now: IsoDateTime): QueueClockResult {
+  return queueClock(
+    {
+      startedAt: row.slaStartedAt,
+      dueAt: row.slaDueAt,
+      targetMinutes: row.slaTargetMinutes,
+      breachedAt: row.slaBreachedAt,
+    },
+    now,
+    { terminal: isTerminal(row) },
+  )
+}
+
 export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideRequest>> {
   const { t, language, now } = deps
 
-  const clockFor = (row: RideRequest): QueueClockResult =>
-    queueClock(
-      {
-        startedAt: row.slaStartedAt,
-        dueAt: row.slaDueAt,
-        targetMinutes: row.slaTargetMinutes,
-        breachedAt: row.slaBreachedAt,
-      },
-      now,
-      { terminal: isTerminal(row) },
-    )
+  const clockFor = (row: RideRequest): QueueClockResult => requestClock(row, now)
 
   return [
     {
       id: 'rider',
+      emphasis: 'primary',
+      csv: (row) => row.riderName,
       header: t('requests.col.rider'),
       /* AC-104 / AC-106 — the identity is implicitly pinned and R5a's marker
          rides it, which is what keeps a breached row's marker visible at every
@@ -518,8 +653,13 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
     },
     {
       id: 'type',
+      emphasis: 'data',
       header: t('requests.col.type'),
-      width: 104,
+      /* 104 -> 128. The old measure was sized for an 11px BADGE LABEL, and with
+         the badge gone `Subscription` truncated to `Subscripti…` at 14px —
+         verified at 1512 in the browser, not reasoned about. A width derived
+         from a chip does not survive the chip's removal unchanged. */
+      width: 128,
       dataType: 'enum',
       sortField: 'channel',
       filter: {
@@ -533,20 +673,42 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
       /* **AC-240** — the type is legible without opening the row, and it is a
          visible column rather than a filter, because §5.1's whole point is that
          these two are not variants of each other. */
+      /**
+       * **H7 — the badge budget, and this column was over it.** A default row
+       * on this queue carried FOUR tone fills: type, status, SLA and owner.
+       * `globals.css` states the rule — *"at most one tone-filled badge per
+       * row, and it lives in the ONE status column"* — and the reason: colour
+       * is a channel with a fixed capacity, so a fourth chip does not add a
+       * fourth signal, it removes the first three.
+       *
+       * Type is the one to give up, and not by elimination.
+       * `design/15-hierarchy-and-scannability.md` §2.1 names this queue's DATA
+       * tier as *"**type** · clock · status"* — DATA is `--ev-ink`,
+       * `--text-sm`, 400. So the type was already specified as ink text; the
+       * badge was the thing that disagreed with the spec, and AC-240's
+       * requirement (*"legible without opening the row"*) is a requirement on
+       * the COLUMN, which survives untouched. The precedent is on this
+       * product's own `AssuranceScreen`, §9.1 / D-21: *"a value may be a badge
+       * only if it is a lifecycle state the operator can act on"*. A channel
+       * is neither a lifecycle nor actionable.
+       */
       cell: (row) => (
+        /* No colour class: the column already declares `emphasis: 'data'`, so
+           `DataTable` gives the cell ink. Writing it again here would be a
+           second source for one decision, and the tier is the one that
+           survives a column being hidden or reordered. */
         <Cell>
-          <StatusBadge tone="neutral">
-            {t(
-              row.channel === 'instant'
-                ? 'requests.channel.instant'
-                : 'requests.channel.subscription',
-            )}
-          </StatusBadge>
+          {t(
+            row.channel === 'instant'
+              ? 'requests.channel.instant'
+              : 'requests.channel.subscription',
+          )}
         </Cell>
       ),
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('queue.col.status'),
       width: 104,
       dataType: 'enum',
@@ -567,6 +729,7 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
     },
     {
       id: 'sla',
+      emphasis: 'data',
       header: t('queue.col.sla'),
       width: 136,
       dataType: 'date',
@@ -676,15 +839,33 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
            The cell is informational and offers no assign; legacy renders an
            assign control here that cannot work (`:9954`). */
         if (row.status === 'offered') {
-          const offered =
-            row.offeredToDriverName === null
-              ? t('requests.offered.unnamed')
-              : t('requests.offered.withCaptain', { name: row.offeredToDriverName })
-          return (
-            <MutedCell title={offered}>
-              {offered}
-            </MutedCell>
-          )
+          /* **P8-T1** — the offer names a captain, so the cell opens that
+             captain. It used to be one muted sentence with the name buried in
+             it, which is a cell that names an entity and reaches none: an
+             operator asking *"who is this and why have they not answered"* had
+             nowhere to go from here.
+
+             The sentence and the link are separate elements rather than one
+             interpolated string with an `<a>` inside it, because AC-75 forbids
+             assembling a sentence around a component and a link inside a
+             translated template cannot be moved by a translator. */
+          if (row.offeredToDriverId !== null && row.offeredToDriverName !== null) {
+            return (
+              <Cell className="flex items-center gap-1 text-xs text-muted-foreground">
+                <EntityLink
+                  href={deps.hrefFor(row.offeredToDriverId)}
+                  label={t('requests.a11y.openCaptain', { name: row.offeredToDriverName })}
+                  reason={t('requests.entity.unresolved')}
+                  reasonId={`req-${row.id}-captain-unresolved`}
+                >
+                  {row.offeredToDriverName}
+                </EntityLink>
+                <span className="truncate">{t('requests.offered.waiting')}</span>
+              </Cell>
+            )
+          }
+          const offered = t('requests.offered.unnamed')
+          return <MutedCell title={offered}>{offered}</MutedCell>
         }
 
         /* §5.5's disposition set, narrowed to what the client offers. R3: no
@@ -822,9 +1003,30 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
        * here, because "no rating yet" is a KNOWN fact and not an absent one, so
        * it reads in words.
        */
+      /**
+       * **H7 — three tone fills in ONE cell, and the worst of the three was a
+       * number.** The budget's fourth clause is explicit: *"a count is not a
+       * status. `3 open` is H1's DATA tier — `--ev-ink`, `--text-sm`, tabular
+       * figures — and never a chip. Most of the over-budget rows are counts
+       * wearing badges."* A rider's rating is that sentence exactly.
+       *
+       * What the cell keeps, and why each:
+       *   · the **rating** becomes DATA-tier text. Reading `4.8` off a chip and
+       *     off ink are the same act; the chip only spent a colour.
+       *   · **VIP** stays a badge because `new` is an OUTLINE, not a fifth fill
+       *     (`ui/badge.tsx`, §12.1) — it costs no tone from the budget — and it
+       *     qualifies the IDENTITY, which is clause 1's one licensed exception.
+       *   · **Subscriber** demotes to clause 3's route: text in the tone's own
+       *     foreground. `--ev-blue-dk` #1b51c4 measures 6.95 : 1 on white and
+       *     **6.26 : 1 on `--ev-row-critical-emphasis`**, which is the ground a
+       *     breached row on this queue takes — the case the clause warns is the
+       *     one a reviewer forgets, because a badge used to bring its own
+       *     ground with it. Neutral is the tone that fails there (4.35) and no
+       *     neutral is demoted here.
+       */
       cell: (row) => (
-        <span className="flex min-w-0 items-center gap-1">
-          <StatusBadge tone="neutral">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="tabular-nums text-foreground">
             {row.riderRating === null
               ? t('requests.rider.newRating')
               : /* `formatCount` refuses a non-integer by design — *"a count is
@@ -833,10 +1035,12 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
                    system every other number on the page uses. Requested from
                    utilities-engineer in the handoff rather than written here. */
                 t('requests.rider.rating', { rating: row.riderRating.toFixed(1) })}
-          </StatusBadge>
+          </span>
           {row.vip && <StatusBadge tone="new">{t('requests.tag.vip')}</StatusBadge>}
           {row.riderHasPriorSubscription && (
-            <StatusBadge tone="info">{t('requests.tag.subscriber')}</StatusBadge>
+            <span className="font-medium text-info-foreground">
+              {t('requests.tag.subscriber')}
+            </span>
           )}
         </span>
       ),

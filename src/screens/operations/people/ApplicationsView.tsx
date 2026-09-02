@@ -70,8 +70,9 @@ import { Banner } from '@/components/Banner'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { RefusalLine } from '@/components/table/rowActions'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { APPLICANT_STATUS } from './domain'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import { DecisionBadge, OwnerChip, SlaCountdown } from './queue'
@@ -104,7 +105,7 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
 
   const data = useAsync<Paginated<Applicant>>(
     (signal) => listApplicants({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'applicants.list' },
   )
 
   /* R5a (a) — the banner states the count across the WHOLE queue, not the
@@ -128,13 +129,21 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
         },
         signal,
       ),
-    { deps: [] },
+    /* Constant query, restated in `deps` so the key names the request rather
+       than the operation: the list read above is `applicants.list::[{…}]` and
+       this breached count is `applicants.list::[s:breached]`. */
+    { deps: [BREACHED_VIEW], cacheKey: 'applicants.list' },
   )
 
   /* The decision's actor is an id on the wire. A real API joins it; the mock
      does not, so the team list is read once and mapped here. Named in the
      handoff as a request for a `decidedBy: { id, name }` on the record. */
-  const team = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), { deps: [] })
+  /* A parameterless lookup used only to name a decision's actor - the cheapest
+     read on the page to stop re-paying for. */
+  const team = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), {
+    deps: [],
+    cacheKey: 'session.teamUsers',
+  })
   const actorName = (id: string | null) =>
     team.data?.find((user) => user.id === id)?.name ?? id ?? ''
 
@@ -205,12 +214,31 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
       title: t('people.reject.title', { name: row.name }),
       body: t('people.reject.body'),
       confirmLabel: t('people.reject.confirm'),
+      /**
+       * **Destructive - and this is the defect G5 was hiding.** The dialog
+       * this screen used had no `destructive` prop at all, so a rejection
+       * confirmed with the ordinary primary by construction rather than by
+       * ruling.
+       *
+       * Two independent grounds, either one sufficient under DESIGN.md's
+       * *"reserve red for irreversible actions confirmed in a modal"*:
+       * `ApplicantStatus` has **no transition out of `rejected`** - the
+       * clients write `approved` and `rejected` and nothing writes back - so
+       * the console cannot undo it; and the act **tells the applicant why**
+       * (`people.reject.body`), which has left the console the moment it is
+       * pressed. *"They can apply again"* is a new application, not a reversal
+       * of this one, exactly as re-creating a deleted record is not an undo.
+       *
+       * Contrast the suspension in `ComplianceView`, which keeps the ordinary
+       * primary because `Reinstate` is one click away on the same screen.
+       */
+      destructive: true,
       reason: {
         label: t('people.reject.reason'),
         help: t('people.reject.reasonHelp'),
         message: t('people.reject.reasonHelp'),
       },
-      onConfirm: (reason) => void reject(row, reason),
+      onConfirm: ({ reason }) => void reject(row, reason),
     })
   }
 
@@ -220,6 +248,10 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
       title: t('people.takeOver.title', { name: owner }),
       body: t('people.takeOver.body', { name: owner }),
       confirmLabel: t('people.takeOver.confirm'),
+      /* A claim moves; it does not destroy. The previous owner can take it
+         back the same way, and AC-203 is explicit that cancelling leaves the
+         claim where it was. */
+      destructive: false,
       onConfirm: () => void claim(row, true),
     })
   }
@@ -279,6 +311,8 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
         getRowId={(applicant) => applicant.id}
         columns={columns}
         skeletonPattern="P8"
+        /* **R5a** — see `isBreached`. */
+        isRowCritical={(row) => isBreached(row, now)}
         {...chrome}
         searchPlaceholder={t('people.search.applications')}
         scope={
@@ -346,6 +380,20 @@ function isDecided(row: Applicant): boolean {
   return row.status === 'approved' || row.status === 'rejected' || row.status === 'withdrawn'
 }
 
+/**
+ * **R5a — the one expression behind all three carriers**: the leading-edge
+ * marker in the identity cell, the `overdue` countdown pill, and the row tint
+ * declared on `PeopleTable`, where the columns are out of scope.
+ *
+ * `!isDecided` is part of it, not a refinement of it: this queue's `breached`
+ * VIEW is `slaDueAt < now` regardless of status, so it includes applications
+ * decided days ago. A stopped clock is not a backlog and must not be tinted.
+ */
+function isBreached(row: Applicant, now: IsoDateTime): boolean {
+  return slaClock({ dueAt: row.slaDueAt, startedAt: row.appliedAt }, now).kind === 'breached'
+    && !isDecided(row)
+}
+
 export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn<Applicant>> {
   const { t, language, now } = deps
 
@@ -355,6 +403,8 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
   return [
     {
       id: 'applicant',
+      emphasis: 'primary',
+      csv: (row) => row.name,
       header: t('people.col.applicant'),
       /* AC-104 / AC-106 — the identity is implicitly pinned, and R5a's
          leading-edge marker rides it. That is what keeps a breached row's
@@ -373,7 +423,7 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
               `<tr>` relative). Not a badge: no pill, no fill-plus-text, no
               label, outside the row's content box. At most ONE red carrier per
               row, and this is it. */}
-          {clockFor(row).kind === 'breached' && !isDecided(row) && <RowCriticalMarker />}
+          {isBreached(row, now) && <RowCriticalMarker />}
           {/* §7.7 — line 2 is `Applied 24 Jun`, which is what retires the
               `Applied` COLUMN to the hidden set below. */}
           <Identity
@@ -398,6 +448,7 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('people.col.status'),
       width: 112,
       dataType: 'enum',
@@ -437,6 +488,7 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     },
     {
       id: 'sla',
+      emphasis: 'data',
       header: t('people.col.sla'),
       width: 120,
       dataType: 'date',
@@ -559,26 +611,39 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
           )
         }
 
+        const refusalId = `applicant-refusal-${row.id}`
         return (
-          <span className="flex items-center gap-1">
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={() => deps.onApprove(row)}
-              disabled={!deps.canWrite}
-              title={deps.canWrite ? undefined : t('people.action.noPermission')}
-            >
-              {t('people.queue.approve')}
-            </Button>
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={() => deps.onReject(row)}
-              disabled={!deps.canWrite}
-              title={deps.canWrite ? undefined : t('people.action.noPermission')}
-            >
-              {t('people.queue.reject')}
-            </Button>
+          <span className="flex flex-col gap-1">
+            <span className="flex items-center gap-1">
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => deps.onApprove(row)}
+                disabled={!deps.canWrite}
+                aria-describedby={deps.canWrite ? undefined : refusalId}
+              >
+                {t('people.queue.approve')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => deps.onReject(row)}
+                disabled={!deps.canWrite}
+                aria-describedby={deps.canWrite ? undefined : refusalId}
+              >
+                {t('people.queue.reject')}
+              </Button>
+            </span>
+            {/* **The refusal is rendered, not hovered.** Both buttons carried
+                `title={canWrite ? undefined : t('people.action.noPermission')}` —
+                which D17 clause 3, §8.4.4 and §5.7 all forbid: a tooltip is
+                invisible until hover, unreachable by keyboard and touch, and heard
+                by a screen reader as a label rather than a reason. One line for
+                both controls, because they are refused by the same permission and
+                saying it twice is noise. */}
+            {!deps.canWrite && (
+              <RefusalLine id={refusalId}>{t('people.action.noPermission')}</RefusalLine>
+            )}
           </span>
         )
       },
@@ -588,6 +653,10 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
       header: t('people.col.plate'),
       width: 128,
       dataType: 'text',
+      /* A2 — a plate sorts and filters like text but READS like an id: a
+         single LTR token inside a translated line. `dataType` cannot see
+         that, so the column declares it. */
+      isolate: true,
       defaultHidden: true,
       cell: (row) => <DateCell>{row.plate}</DateCell>,
     },

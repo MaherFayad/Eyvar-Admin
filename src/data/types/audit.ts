@@ -39,6 +39,67 @@ export type AuditAction =
   | 'gateway.toggle'
   | 'gateway.setDefault'
   | 'plan.save'
+  /* P6-T3 — Admin › Policy. `policy.save` carries the changed field paths in
+     `detail.params.fields`, which is what makes a save that flattens tier
+     inheritance (legacy F-014) visible in the log rather than silent. */
+  | 'policy.save'
+  | 'reasonCode.create'
+  | 'reasonCode.save'
+  | 'reasonCode.retire'
+  | 'reasonCode.restore'
+  /* P6-T5 / P6-T8 — Admin › Team & Access, and P6-T1 for Admin › Workspace.
+     The lifecycle transitions and the two admin panes that write. The union is
+     closed on purpose — *"an audit log whose `action` is free text cannot be
+     filtered"* — so a new mutating surface adds its verbs here rather than
+     casting past the type. `amountHalalas` is `null` on every one of them:
+     none moves money, which is exactly what the Activity table's `—` means. */
+  | 'team.invite'
+  | 'team.inviteResend'
+  | 'team.inviteRevoke'
+  | 'team.suspend'
+  | 'team.reinstate'
+  | 'team.offboard'
+  | 'team.permissions'
+  | 'team.sessionRevoke'
+  | 'team.securityPolicy'
+  | 'team.rota'
+  | 'workspace.update'
+  | 'workspace.logo'
+  | 'legal.reconsent'
+  /* P6-T2 / P6-T4 — Admin › Communications and Admin › Data & Integrity. Both
+     panes shipped their writes before this union had an arm for them, so the
+     acts below are **currently unaudited at the call site**: the members exist,
+     the `appendAudit` calls do not. That is a gap, not a completed handoff.
+
+     `senderIdentity.setDefault` matters most of the three. Changing which
+     address the product sends as is invisible to everyone except the recipient,
+     and it is the one act on that screen whose blast radius is every
+     transactional email the system sends afterwards.
+
+     Named `<subject>.<verb>` like every other member — `email.sender.setDefault`
+     was the shape requested, and three segments would have been the only one
+     here. `retention.save` likewise, over `settings.retention`: the subject is
+     the policy, not the pane it is edited on. Legacy calls it
+     `edit_data_window` (`:20520`). */
+  | 'senderIdentity.setDefault'
+  | 'emailTemplate.save'
+  | 'retention.save'
+  /* P6-T10 — Admin › Workspace › Integrations. Seven acts on credentials that
+     authenticate a third party against this product, which is why they are here
+     rather than left for later: a key issued and revoked with no audit row is a
+     credential nobody can prove the lifetime of.
+
+     `apiKey.rotate` carries the most weight. Rotation is the *support path* for
+     a lost secret — the credential is shown exactly once and is not stored — so
+     the log is the only record that the key an integration is failing on today
+     is not the key it was issued with. */
+  | 'apiKey.issue'
+  | 'apiKey.rotate'
+  | 'apiKey.revoke'
+  | 'webhook.create'
+  | 'webhook.update'
+  | 'webhook.rotateSecret'
+  | 'webhook.replay'
   | 'permission.denied'
 
 export interface AuditEntry {

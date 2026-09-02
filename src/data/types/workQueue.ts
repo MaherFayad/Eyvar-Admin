@@ -60,13 +60,34 @@ import type { Claim, IsoDateTime } from './common'
  *                         per-code `fr`/`res` in minutes, falling back to the
  *                         four-tier `DB.slaPolicy` (`:14650`). A real, shipped
  *                         denominator.
+ *   `chat-policy`         **DECISIONS.md D22** — a promise the product *ruled*,
+ *                         for a queue the legacy app never had. Chat: 45 s
+ *                         first response, 20 min resolution. Email and
+ *                         WhatsApp: 4 h and 24 h, which are `T4.firstResponseMin`
+ *                         and `T2.resolveMin` from the shipped `DB.slaPolicy`
+ *                         (`:14650`) reused rather than minted. `phone` makes no
+ *                         promise and stays `unset`.
+ *
+ *                         **It is not `legacy-policy`.** Nothing in the legacy
+ *                         app enforces 45 seconds, and a number a ruling
+ *                         created must not claim a provenance it does not have
+ *                         — that is the entire reason this field exists.
  *   `unset`               **nobody has decided.** `slaTargetMinutes` and
  *                         `slaDueAt` are both `null` and stay null. This is not
  *                         a placeholder to be filled in by whoever ships first;
  *                         it is a product commitment (**Q8**) and the queue
  *                         renders with no countdown until it is made.
+ *
+ * **Six queues read this union** — applications, requests, safety, fairness,
+ * assurance and My Work, which folds all five — plus cash reports and
+ * conversations. Every one of them treats it as an opaque provenance label:
+ * they expose it as a filter and a facet (`clients/{applicants,assurance,cash,
+ * complaints,fairness,myWork,requests,safety}.ts`) and none switches on its
+ * members. Adding a member is therefore additive for all of them; only
+ * `clients/workQueues.test.ts`, which mirrors the union as a literal list, has
+ * to be told.
  */
-export type SlaSource = 'legacy-policy' | 'legacy-reason-code' | 'unset'
+export type SlaSource = 'legacy-policy' | 'legacy-reason-code' | 'chat-policy' | 'unset'
 
 /**
  * The SLA block every work-queue row carries. Flattened onto the row rather

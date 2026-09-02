@@ -1,0 +1,1859 @@
+
+> eyvar-admin@0.0.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Users/Admin/Documents/GitHub/Eyvar Admin
+
+ ✓ src/lib/i18n/inventory.test.ts (4 tests) 1615ms
+ ✓ src/components/ui/dialog.size.test.tsx (4 tests) 1344ms
+ ✓ src/screens/management/zones/ZonesMapView.test.tsx (13 tests) 1338ms
+   ✓ the four states > empty, no match — the search sentence and a clear-search action, not the first-run one  401ms
+stderr | src/shell/qa.shell.test.tsx > AC-07 — "Signing in as each of the four roles lands on that role's workspace" > lands USR-5 on /operations/overview
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/commands/commands.test.tsx > CM-3 in CaptainsView > disables the row action in place and renders its reason
+A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() => ...)
+
+ ✓ src/commands/palette.test.tsx (20 tests) 14445ms
+   ✓ P3-T8 — the palette is populated before a key is pressed > offers live queue counts, each a one-key jump, with nothing typed  352ms
+   ✓ P3-T5 and P3-T6 — root → target → confirm, one field > finds a command by a synonym and descends into its target step  1343ms
+   ✓ P3-T5 and P3-T6 — root → target → confirm, one field > tolerates a typo in the command, because ranking is one score  941ms
+   ✓ P3-T5 and P3-T6 — root → target → confirm, one field > ascends on Backspace in an empty field, and on Escape, and closes only from root  1467ms
+   ✓ P3-T5 and P3-T6 — root → target → confirm, one field > keeps §5 order for a query that is not a leading verb, and flips it for one that is  1955ms
+   ✓ P3-T5 and P3-T6 — root → target → confirm, one field > refuses a candidate in the target list in place, rather than hiding them  2050ms
+   ✓ P3-T9 / D18 — the outcome toast carries a real inverse > states the outcome and offers Undo  1376ms
+   ✓ P3-T9 / D18 — the outcome toast carries a real inverse > runs the inverse THROUGH THE SEAM and confirms with a second toast that offers no undo  1962ms
+   ✓ P3-T9 / D18 — the outcome toast carries a real inverse > turns the toast critical IN PLACE when the inverse fails, and never swallows it  1722ms
+ ✓ src/screens/operations/corporate/corporate.test.tsx (9 tests) 12274ms
+   ✓ CorporateScreen — AC-24: a failed list read renders the page error state > names what failed, names the fix, and offers a retry  6595ms
+   ✓ CorporateScreen — AC-24: a failed list read renders the page error state > keeps the shell interactive, so the operator can navigate away without a reload  316ms
+   ✓ CorporateScreen — AC-24: a failed list read renders the page error state > recovers when the retry re-runs the request — the retry is bound to refetch  520ms
+   ✓ CorporateScreen — AC-24: a failed list read renders the page error state > renders the table on a healthy read — the content branch is unchanged  629ms
+   ✓ CorporateDetailScreen — the linked-employee card reads riders through the seam > renders the linked riders from the client, not from a fixture import  563ms
+   ✓ CorporateDetailScreen — the linked-employee card reads riders through the seam > AC-24 — a failed rider read renders a card error with a working retry  664ms
+   ✓ AddEmployeeModal — the rider picker reads through the seam > excludes the riders already on the account — the `nin` filter runs in the query  1089ms
+   ✓ AddEmployeeModal — the rider picker reads through the seam > AC-24 — a failed picker read renders the card error inside the dialog, with a retry  623ms
+   ✓ AddEmployeeModal — the rider picker reads through the seam > recovers on retry, so the retry is bound to the picker read and not decorative  794ms
+ ✓ src/screens/support/conversations/conversations.test.tsx (37 tests) 11813ms
+   ✓ the queue > opens on Unassigned and paints breached-first, then oldest-waiting  807ms
+   ✓ the queue > states that a conversation with no messages has none  521ms
+   ✓ the queue > claims without a confirmation  775ms
+   ✓ the queue > confirms a take-over and names the operator who holds it  771ms
+   ✓ the concurrent-chat cap > refuses a fourth chat in place with the number, and still allows an email  318ms
+   ✓ the concurrent-chat cap > does not apply the cap to an Owner  351ms
+   ✓ four states > renders an error with a retry when the list fails  497ms
+   ✓ the composer > sends without a confirmation, without a toast, and clears the field  1714ms
+   ✓ the conversation route > returns to the queue it came from, with its view intact  1579ms
+   ✓ the controls the seam unblocked > restores a failed message into the composer, then retries it as one line  512ms
+   ✓ the controls the seam unblocked > sends one reply by email from a chat, and leaves the conversation a chat  1600ms
+stderr | src/commands/commands.test.tsx > CM-3 in CaptainsView > suspends an eligible captain and holds the returned row
+An update to DataTable inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/screens/auth/auth.test.tsx (60 tests) 21298ms
+   ✓ AC-504 — "an identifier that is not a plausible email … does not issue a network request" > shows the inline error and calls nothing  1599ms
+   ✓ AC-506 / AC-508 / AC-578 — four causes, byte-identical copy > renders the same title and body for an unknown identifier  1689ms
+   ✓ AC-506 / AC-508 / AC-578 — four causes, byte-identical copy > renders the same title and body for a suspended account  1271ms
+   ✓ AC-506 / AC-508 / AC-578 — four causes, byte-identical copy > renders the same title and body for an invited account  1308ms
+   ✓ AC-506 / AC-508 / AC-578 — four causes, byte-identical copy > renders the same title and body for a wrong password on a live account  1381ms
+   ✓ AC-507 — "after any credential rejection the identifier still holds what was typed and the password is empty" > keeps the identifier and clears the password  1234ms
+   ✓ AC-509 / §2.5 — "while a submission is in flight … both fields remain readable" > makes the fields readOnly and NOT disabled  858ms
+   ✓ AC-511 — "with ?mockFail=auth.signIn … the identifier is preserved and the password is cleared" > shows the transport error with a retry, and keeps the identifier  803ms
+   ✓ AC-513 — "Forgot password? navigates to /forgot-password carrying whatever identifier was typed" > pre-fills the address on the next card  510ms
+   ✓ AC-514 / AC-515 — the second factor is not optional > sends a correct credential step to the code screen  1074ms
+   ✓ AC-518 — "accepts exactly 6 numeric characters and rejects letters and symbols at input time" > never lets a non-digit land  361ms
+   ✓ AC-535 — "a transport failure preserves the entered digits and the counter does not increase" > keeps the six digits on screen  374ms
+   ✓ §4.3 — the attempt ladder, and the tone that tells the operator whether it counted > names the consequence on the second wrong attempt and not the first  653ms
+   ✓ AC-545 / AC-546 / AC-547 — the policy, the minimum and the match > shows a mismatch under the CONFIRM field, and gates the primary  994ms
+   ✓ AC-556 — activation failure leaves the account unchanged > shows the activation error with a retry and keeps both values  1367ms
+   ✓ AC-548 — a breached password is an inline error, not a dead link > keeps both fields and stays on the form  913ms
+   ✓ AC-548 — a breached password is an inline error, not a dead link > is refused while the meter calls it strong — §7.3's "never gates submission"  324ms
+   ✓ §5.1 — the TOTP branch draws its QR and its secret > renders the key in a mono, LTR-isolated, selectable run  375ms
+ ❯ src/screens/support/tickets/tickets.test.tsx (29 tests | 1 failed) 20542ms
+   ✓ the ticket collection can reach every reading the screen has > carries a breached ticket, so the breached SLA reading is not dead code 4ms
+   ✓ the ticket collection can reach every reading the screen has > carries a ticket with no reply destination at all 1ms
+   ✓ the ticket collection can reach every reading the screen has > carries a ticket with an empty thread, so the empty state is reachable 1ms
+   ✓ the ticket collection can reach every reading the screen has > carries a ticket with a call already logged against it 1ms
+   × an SLA console shows the SLA > shows the first-reply promise, the deadline and how long it has been open 8291ms
+     → Unable to find an element with the text: First reply. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"
+    >
+      <a
+        class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        href="#ev-content"
+      >
+        Skip to content
+      </a>
+      <div
+        class="flex min-h-0 flex-1"
+      >
+        <nav
+          aria-label="Workspaces"
+          class="flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"
+        >
+          <div
+            class="flex h-topbar shrink-0 items-center justify-center"
+          >
+            <a
+              aria-label="Eyvar"
+              class="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              href="/management/overview"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <rect
+                  fill="currentColor"
+                  height="22"
+                  rx="6"
+                  width="22"
+                  x="1"
+                  y="1"
+                />
+                <path
+                  class="fill-none stroke-card"
+                  d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </a>
+          </div>
+          <div
+            class="flex flex-col gap-1 px-1 pt-1"
+          >
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/management/overview"
+              tabindex="0"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M3 3v18h18"
+                />
+                <path
+                  d="M7 15l4-4 3 3 5-6"
+                />
+              </svg>
+              <span
+                class="w-full truncate text-center text-2xs leading-3 font-medium"
+              >
+                Exec
+              </span>
+              <span
+                aria-label="8 items need attention"
+                class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"
+                data-size="count"
+                data-slot="badge"
+                data-tone="nav-neutral"
+              >
+                8
+              </span>
+            </a>
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/operations/overview"
+              tabindex="-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="6.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke-dasharray="...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"
+    >
+      <a
+        class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        href="#ev-content"
+      >
+        Skip to content
+      </a>
+      <div
+        class="flex min-h-0 flex-1"
+      >
+        <nav
+          aria-label="Workspaces"
+          class="flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"
+        >
+          <div
+            class="flex h-topbar shrink-0 items-center justify-center"
+          >
+            <a
+              aria-label="Eyvar"
+              class="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              href="/management/overview"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <rect
+                  fill="currentColor"
+                  height="22"
+                  rx="6"
+                  width="22"
+                  x="1"
+                  y="1"
+                />
+                <path
+                  class="fill-none stroke-card"
+                  d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </a>
+          </div>
+          <div
+            class="flex flex-col gap-1 px-1 pt-1"
+          >
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/management/overview"
+              tabindex="0"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M3 3v18h18"
+                />
+                <path
+                  d="M7 15l4-4 3 3 5-6"
+                />
+              </svg>
+              <span
+                class="w-full truncate text-center text-2xs leading-3 font-medium"
+              >
+                Exec
+              </span>
+              <span
+                aria-label="8 items need attention"
+                class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"
+                data-size="count"
+                data-slot="badge"
+                data-tone="nav-neutral"
+              >
+                8
+              </span>
+            </a>
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/operations/overview"
+              tabindex="-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="6.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke-dasharray="...
+   ✓ an SLA console shows the SLA > says Breached in words on a ticket whose promise was missed  826ms
+   ✓ an SLA console shows the SLA > stops the clock on a resolved ticket instead of counting it overdue  362ms
+   ✓ an SLA console shows the SLA > shows the SLA on the queue as well as on the record  799ms
+   ✓ a reply names where it goes, and refuses when there is nowhere > names the destination above the composer 145ms
+   ✓ a reply names where it goes, and refuses when there is nowhere > shows the channel on the record, not only in the composer 207ms
+   ✓ a reply names where it goes, and refuses when there is nowhere > refuses in place, with the reason, when the ticket has no channel 273ms
+   ✓ a reply names where it goes, and refuses when there is nowhere > never guesses a default channel — an absent one reads as not known 151ms
+   ✓ §11.1 — the thread has an empty state > renders it on a ticket nobody has said anything on 222ms
+   ✓ §11.1 — the thread has an empty state > does not render it on a ticket with a thread 116ms
+   ✓ a logged call is recorded rather than toasted > writes the outcome and the note onto the ticket 10ms
+   ✓ a logged call is recorded rather than toasted > moves the ticket on, because an operator who phoned has worked it 1ms
+   ✓ a logged call is recorded rather than toasted > leaves the ticket where it is when nobody was reached 1ms
+   ✓ a logged call is recorded rather than toasted > mints an id from a counter, not from the clock 1ms
+   ✓ a logged call is recorded rather than toasted > is injectable, so the modal error branch is reachable 1ms
+   ✓ a logged call is recorded rather than toasted > shows the logged call on the timeline, beside the messages 288ms
+   ✓ a logged call is recorded rather than toasted > collects the outcome and the note through the modal and persists them  3459ms
+   ✓ a logged call is recorded rather than toasted > disables the primary with a reason until the operator says what happened  406ms
+   ✓ a logged call is recorded rather than toasted > states what logging the call will do to the ticket, before it is logged  395ms
+   ✓ a logged call is recorded rather than toasted > has a label for every outcome the union declares 1ms
+   ✓ §11.2 — nothing is hidden on either surface > shows Claim on an owned ticket, disabled, naming who has it  328ms
+   ✓ §11.2 — nothing is hidden on either surface > shows the Resolve primary on a resolved ticket rather than removing it 227ms
+   ✓ the four states on the index > renders its own error state and a working retry  378ms
+   ✓ the four states on the index > renders the no-match empty when nothing matches  3381ms
+   ✓ the four states on the index > renders a page error with a way back when the record does not exist 107ms
+ ✓ src/screens/financials/wallets/wallets.test.tsx (8 tests) 11534ms
+   ✓ AC-382 — the index is an index and the ledger behind it is a ledger > selection, sort and filters exist on the index and none of them on the ledger  1612ms
+   ✓ AC-382 — the index is an index and the ledger behind it is a ledger > the index’s Filter control offers at least one field  831ms
+   ✓ the compensation authority, which no reason may route around > AC-384 — an amount above the ceiling is refused in the dialog, naming the cap in SAR  4692ms
+   ✓ the compensation authority, which no reason may route around > AC-385 — the ceiling holds for `Manual top-up`, the reason legacy exempts  2965ms
+   ✓ P8-T1 — the wallet row names its rider twice, deliberately > the identity is an anchor with an href, not a button  427ms
+   ✓ P4-T1 — the wallet index offers no bulk command > offers no selection, because there is no set command behind it  393ms
+ ✓ src/screens/admin/team/adminTeam.test.tsx (13 tests) 22845ms
+   ✓ the four states > renders the roster once all three reads land  863ms
+   ✓ the four states > offers a retry that re-runs all three reads  856ms
+   ✓ §11.2 — refused, not hidden > renders `Suspend operator` on the last holder, disabled, with the F-016 sentence  836ms
+   ✓ §11.2 — refused, not hidden > renders the same three transitions refused, not two of them and one missing  918ms
+   ✓ §11.2 — refused, not hidden > keeps the kebab on `USR-1`, which the old screen removed outright  557ms
+   ✓ §11.2 — refused, not hidden > keeps every control in place for a role that cannot administer the team  747ms
+   ✓ the lifecycle reaches the data layer > suspends an operator, and the change survives a re-mount  4168ms
+   ✓ the lifecycle reaches the data layer > invites an operator who is still there after a re-mount  6209ms
+   ✓ the lifecycle reaches the data layer > keeps the invite dialog open and names the field when the email is taken  5278ms
+   ✓ the security policy and the rota actually save > persists a changed idle timeout across a re-mount  1890ms
+ ✓ src/screens/support/disputes/disputes.test.tsx (32 tests) 21953ms
+   ✓ the four states > renders content from the client, not from a module literal  7758ms
+   ✓ the four states > renders its own error state and a working retry when the read fails  745ms
+   ✓ the four states > renders a first-run empty state when the query matches nothing  7216ms
+   ✓ the four states > renders the lost-and-found view from its own client  470ms
+   ✓ §11.2 — a refused action is disabled in place and says why > shows Resolve on a decided claim, disabled, with the date it was decided  310ms
+   ✓ §11.2 — a refused action is disabled in place and says why > names the operator holding a claim rather than hiding Take  383ms
+   ✓ §11.2 — a refused action is disabled in place and says why > refuses the captain step on a report with no captain, in place  454ms
+   ✓ the resolve modal refuses a settlement that moves nothing > disables the primary with a reason when a partial refund has no amount  1120ms
+   ✓ the resolve modal refuses a settlement that moves nothing > disables the primary when the settlement is above the amount claimed  2439ms
+   ✓ the resolve modal refuses a settlement that moves nothing > states what the verdict will move before the operator commits  892ms
+ ✓ src/screens/operations/trips/trips.test.tsx (9 tests) 22002ms
+   ✓ P8-T1 — every cell that names an entity opens that entity > renders the trip id as a real link into the 360° layer, not a button  8562ms
+   ✓ P8-T1 — every cell that names an entity opens that entity > opens the rider and the captain from their own cells  1120ms
+   ✓ P8-T1 — every cell that names an entity opens that entity > renders a captain that cannot be resolved as plain text with its reason, not a dead link  704ms
+   ✓ P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch > offers the bar with a count and a clear once anything is selected  1504ms
+   ✓ P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch > AC-958 — refuses the whole set when ANY selected trip is blocked, naming the count  2142ms
+   ✓ P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch > AC-960 — an all-blocked selection gets the `.all` sentence and no escape hatch  1816ms
+   ✓ P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch > AC-959 — `Select only the N eligible` changes the SELECTION, and the bar says so  2198ms
+   ✓ P4-T1 — the bulk action reaches the data layer > clears the selection when the write lands, so the bar reflects the record  1826ms
+   ✓ P4-T1 — the bulk action reaches the data layer > keeps the selection when the write is refused, so nothing claims to have happened  1602ms
+stderr | src/screens/admin/policy/policy.test.tsx > four states > renders a loading state before the document arrives
+An update to AdminPolicyScreen inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/shell/qa.keyboard.test.tsx (21 tests) 23655ms
+   ✓ AC-62 — "The first Tab from the document body focuses a visible Skip to content link; activating it moves focus into the content region" > is the first Tab stop and it becomes visible on focus, not merely reachable  829ms
+   ✓ AC-64 (amended, D5) — "the rail's four workspace tiles → the pinned Admin tile → the sub-tab list → top bar → content" > produces exactly that order from the document body, end to end  1949ms
+   ✓ AC-64 (amended, D5) — "the rail's four workspace tiles → the pinned Admin tile → the sub-tab list → top bar → content" > puts no control between the last rail tile and the sub-tab list (D5)  302ms
+   ✓ AC-64 (amended, D5) — "the rail's four workspace tiles → the pinned Admin tile → the sub-tab list → top bar → content" > moves within the rail with arrow keys and reaches the pinned Admin tile with Tab  784ms
+   ✓ AC-66 — "Escape closes the open shell layer, any menu, any sheet and any modal, and returns focus to the control that opened it" > closes the account menu on Escape and returns focus to the avatar  375ms
+   ✓ AC-66 — "Escape closes the open shell layer, any menu, any sheet and any modal, and returns focus to the control that opened it" > closes the notification popover on Escape and returns focus to the bell  420ms
+   ✓ AC-66 — "Escape closes the open shell layer, any menu, any sheet and any modal, and returns focus to the control that opened it" > closes the shell layer on Escape  321ms
+   ✓ AC-67 (amended) — "Opening a shell layer moves focus into it … Focus is NOT trapped" > DEFECT D-11 — a layer opened from inside a popover does NOT receive focus  8611ms
+   ✓ AC-67 (amended) — "Opening a shell layer moves focus into it … Focus is NOT trapped" > Tab past the layer's last control moves into the page behind it, and the layer stays open  2651ms
+   ✓ AC-67 (amended) — "Opening a shell layer moves focus into it … Focus is NOT trapped" > Shift+Tab from the layer's first control also leaves it, and the layer stays open  4369ms
+   ✓ AC-67 (amended) — "Opening a shell layer moves focus into it … Focus is NOT trapped" > leaves the page behind interactive while the layer is open (AC-20)  344ms
+   ✓ AC-63 — "Every rail tile and every sub-tab row is reachable by keyboard and shows a visible focus indicator" > reaches all five rail tiles and all nine Operations rows with the keyboard alone  1420ms
+ ✓ src/screens/admin/communications/communications.test.tsx (30 tests) 15599ms
+   ✓ the screen > renders the outbox by default, off row.views — AC-C11  1171ms
+   ✓ the screen > renders the inbox when the URL asks for it — AC-C11  542ms
+   ✓ the screen > states the failure on a failed row — AC-C9  385ms
+   ✓ the screen > disables Make default on an unverified identity and says why — AC-C7  545ms
+   ✓ the screen > shows which language a template family is missing — AC-C3  462ms
+   ✓ the screen > previews a template with its sample values substituted — AC-C4  794ms
+   ✓ the screen > blocks the save and names the undeclared variable — AC-C5  1649ms
+   ✓ the screen > warns before saving a template that is in use — AC-C6  1626ms
+   ✓ the screen > reaches all four states of the log without editing a fixture — AC-C12  999ms
+   ✓ the screen > sends a push broadcast through the client and shows the recorded count — AC-C13  6873ms
+ ❯ src/commands/commands.test.tsx (29 tests | 1 failed) 23500ms
+   ✓ the Command shape > gives every command a unique, dotted, untranslated id 4ms
+   ✓ the Command shape > resolves every declared label through a real dictionary key — CM-2 1ms
+   ✓ the Command shape > carries Arabic match tokens on every command 1ms
+   ✓ the Command shape > does not mark a reversible captain action destructive 1ms
+   ✓ the Command shape > declares the arity each command actually has 1ms
+   ✓ CM-4 — every id is in the palette or says why not > accounts for every command 1ms
+   ✓ CM-4 — every id is in the palette or says why not > requires a real sentence, not an empty string standing in for true 1ms
+   ✓ CM-4 — every id is in the palette or says why not > keeps both mutating commands reachable by keyboard 2ms
+   ✓ resolveCommands > gives the row menu every captain command, in declaration order 2ms
+   ✓ resolveCommands > gives the bulk bar only the commands that mean something over a set 1ms
+   ✓ resolveCommands > offers nothing captain-shaped over another entity type 1ms
+   ✓ resolveCommands > matches the two scope kinds no captain command uses yet 1ms
+   ✓ CM-3 — the row menu, the bulk bar and the palette agree > returns one answer per command, record and role 3ms
+   ✓ CM-3 — the row menu, the bulk bar and the palette agree > refuses a suspended captain in the bulk bar exactly as in the row menu 1ms
+   ✓ CM-3 — the row menu, the bulk bar and the palette agree > refuses a mixed selection and names how many are blocked 1ms
+   ✓ CM-3 — the row menu, the bulk bar and the palette agree > lets an eligible selection through 1ms
+   ✓ CM-3 — the row menu, the bulk bar and the palette agree > routes the role refusal through the one seam, ahead of domain state 1ms
+   ✓ runCommand > refuses before the confirmation is ever asked 1ms
+   ✓ runCommand > reports a dismissed confirmation as cancelled, with no write 2ms
+   ✓ runCommand > asks §5.3’s question and returns the record the client returned 2ms
+   ✓ runCommand > counts the selection in the question and in the toast 1ms
+   ✓ runCommand > asks for no reason where the domain requires none 1ms
+   ✓ runCommand > navigates without an outcome 1ms
+   ✓ CM-1 — CaptainsView declares no action inline > names command ids instead of building action objects 1ms
+   ✓ CM-1 — CaptainsView declares no action inline > holds no action label, predicate or confirmation copy of its own 1ms
+   ✓ CM-2 — a label exists in exactly one place > names the literal in one dictionary entry and in no .tsx 3ms
+   ✓ CM-3 in CaptainsView > disables the row action in place and renders its reason  5850ms
+   ✓ CM-3 in CaptainsView > refuses the same record in the bulk bar, with the same sentence  6069ms
+   × CM-3 in CaptainsView > suspends an eligible captain and holds the returned row 11420ms
+     → Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+<body
+  style=""
+>
+  <div>
+    <div
+      class="flex min-h-0 w-full flex-1 flex-col gap-3"
+    >
+      <div
+        class="flex h-14 items-center gap-2 px-3"
+      >
+        <div
+          class="group/tabs flex data-horizontal:flex-col min-w-0 shrink gap-0"
+          data-orientation="horizontal"
+          data-slot="tabs"
+          dir="ltr"
+        >
+          <div
+            aria-orientation="horizontal"
+            class="group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-0 rounded-full border border-border-control bg-muted p-0.5 max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-orientation="horizontal"
+            data-slot="tabs-list"
+            data-variant="segmented"
+            role="tablist"
+            style="outline: none;"
+            tabindex="0"
+          >
+            <button
+              aria-selected="true"
+              class="relative inline-flex h-full flex-1 items-center justify-center gap-1.5 border py-0.5 font-medium whitespace-nowrap text-muted-foreground transition-all group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pe-1 has-data-[icon=inline-start]:ps-1 group-data-[variant=default]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent data-active:text-foreground data-active:font-semibold after:absolute after:bg-primary after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:-bottom-1 group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-end-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100 rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+              data-orientation="horizontal"
+              data-radix-collection-item=""
+              data-slot="tabs-trigger"
+              data-state="active"
+              id="radix-_r_4u_-trigger-captains"
+              role="tab"
+              tabindex="-1"
+              type="button"
+            >
+              Captains
+            </button>
+          </div>
+        </div>
+        <div
+          class="ms-auto flex items-center gap-1.5"
+        >
+          <div
+            class="relative min-w-32 shrink basis-60"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <input
+              aria-label="Search captains"
+              class="h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background read-only:bg-muted read-only:cursor-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive ps-8 pe-8"
+              data-slot="input"
+              placeholder="Search captains"
+              value="Ahmed Salem"
+            />
+            <button
+              aria-label="Clear"
+              class="group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap select-none transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent size-6 [&_svg:not([class*='size-'])]:size-3 absolute end-1 top-1/2 -translate-y-1/2"
+              data-size="icon-xs"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-x"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"...
+
+Ignored nodes: comments, script, style
+<body
+  style=""
+>
+  <div>
+    <div
+      class="flex min-h-0 w-full flex-1 flex-col gap-3"
+    >
+      <div
+        class="flex h-14 items-center gap-2 px-3"
+      >
+        <div
+          class="group/tabs flex data-horizontal:flex-col min-w-0 shrink gap-0"
+          data-orientation="horizontal"
+          data-slot="tabs"
+          dir="ltr"
+        >
+          <div
+            aria-orientation="horizontal"
+            class="group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-0 rounded-full border border-border-control bg-muted p-0.5 max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-orientation="horizontal"
+            data-slot="tabs-list"
+            data-variant="segmented"
+            role="tablist"
+            style="outline: none;"
+            tabindex="0"
+          >
+            <button
+              aria-selected="true"
+              class="relative inline-flex h-full flex-1 items-center justify-center gap-1.5 border py-0.5 font-medium whitespace-nowrap text-muted-foreground transition-all group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pe-1 has-data-[icon=inline-start]:ps-1 group-data-[variant=default]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent data-active:text-foreground data-active:font-semibold after:absolute after:bg-primary after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:-bottom-1 group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-end-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100 rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+              data-orientation="horizontal"
+              data-radix-collection-item=""
+              data-slot="tabs-trigger"
+              data-state="active"
+              id="radix-_r_4u_-trigger-captains"
+              role="tab"
+              tabindex="-1"
+              type="button"
+            >
+              Captains
+            </button>
+          </div>
+        </div>
+        <div
+          class="ms-auto flex items-center gap-1.5"
+        >
+          <div
+            class="relative min-w-32 shrink basis-60"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <input
+              aria-label="Search captains"
+              class="h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background read-only:bg-muted read-only:cursor-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive ps-8 pe-8"
+              data-slot="input"
+              placeholder="Search captains"
+              value="Ahmed Salem"
+            />
+            <button
+              aria-label="Clear"
+              class="group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap select-none transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent size-6 [&_svg:not([class*='size-'])]:size-3 absolute end-1 top-1/2 -translate-y-1/2"
+              data-size="icon-xs"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-x"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"...
+stderr | src/screens/admin/policy/policy.test.tsx > an inherited SLA target has no field to read back > saves only the target the operator overrode
+An update to AdminPolicyScreen inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ShellProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/shell/qa.shell.test.tsx (43 tests) 31875ms
+   ✓ AC-06 — "Every workspace's first sub-tab is Overview, and selecting the workspace tile navigates to it" > points every one of the five rail tiles at that workspace's Overview route  331ms
+   ✓ AC-06 — "Every workspace's first sub-tab is Overview, and selecting the workspace tile navigates to it" > actually lands on that route when the tile is activated  440ms
+   ✓ AC-07 — "Signing in as each of the four roles lands on that role's workspace" > lands USR-1 on /management/overview  748ms
+   ✓ AC-07 — "Signing in as each of the four roles lands on that role's workspace" > lands USR-2 on /financials/overview  2280ms
+   ✓ AC-07 — "Signing in as each of the four roles lands on that role's workspace" > lands USR-3 on /support/overview  502ms
+   ✓ AC-07 — "Signing in as each of the four roles lands on that role's workspace" > lands USR-5 on /operations/overview  5688ms
+   ✓ AC-11 — "Browser Back after three navigations returns through the three previous routes in order; Forward returns to the deepest" > walks back through three routes with both nav columns following  1309ms
+   ✓ AC-11 — "Browser Back after three navigations returns through the three previous routes in order; Forward returns to the deepest" > leaves the destination highlighted, never the origin, on a Back (AC-08, fifth kind)  490ms
+   ✓ AC-14 — "On /operations/dispatch the rail, the sub-tab list, the app top bar and the page header are all present" > keeps all four, unlike the bleed route  384ms
+   ✓ AC-17 — "The top bar, rail and sub-tab list are present on every route except the plan editor" > renders all three on all 34 sub-tab routes  2564ms
+   ✓ AC-17 — "The top bar, rail and sub-tab list are present on every route except the plan editor" > renders all three on each of the five level-3 detail routes that are not bleed  700ms
+   ✓ AC-18 — "The rail, sub-tab list and top bar are not remounted by navigation" > keeps the same DOM nodes after twenty route changes  4673ms
+   ✓ AC-21 — "Browser Back with a shell layer open closes the layer and stays on the same underlying route" > closes the layer on the first Back and leaves the route on the second  982ms
+   ✓ AC-23 — "A toast raised on /operations/people is still visible after navigating to /financials/revenue" > survives the route change within its dismiss window  332ms
+   ✓ AC-24 — "When a sub-tab's data load fails it renders its error state AND the rail, sub-tab list and top bar remain interactive" > renders the page error and still navigates to another sub-tab without a reload  1022ms
+   ✓ AC-36 — "With the mock client forced to fail, every shell region that reads data renders an error state naming a retry action" > recovers on retry when the failure is injected once  1093ms
+   ✓ AC-28 — "Exactly one setInterval is registered by the application" > registers NONE from application code across a boot and four navigations  1052ms
+   ✓ AC-51 — "the save bar replaces the top bar at the same height; the content below does not move" > replaces the top bar in the SAME slot — one bar, never two  302ms
+   ✓ AC-52 — "With the form dirty and invalid, Save is disabled and Discard is enabled" > disables Discard for the duration of a save in flight (§9.2 #7)  324ms
+   ✓ D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible" > does not hide the column when the window is narrowed across the breakpoint  531ms
+   ✓ D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible" > does not change the column when the window is widened across the breakpoint  400ms
+   ✓ D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible" > keeps the column on every one of the 34 sub-tab routes, at the 1280 floor  2371ms
+ ✓ src/screens/financials/cash/cash.test.tsx (21 tests) 28801ms
+   ✓ AC-374 — the owner chip and a closed set of exactly two dispositions > a pending row offers Resolve and Escalate and nothing else  814ms
+   ✓ AC-374 — the owner chip and a closed set of exactly two dispositions > the three owner states are all reachable, and another operator is NAMED  466ms
+   ✓ AC-374 — the owner chip and a closed set of exactly two dispositions > claiming a row moves the chip to Yours  946ms
+   ✓ AC-375 / AC-376 — rendering and opening the queue change nothing > two renders write no audit entry — and a claim proves the counter is live  4876ms
+   ✓ AC-375 / AC-376 — rendering and opening the queue change nothing > following a row out and back leaves the owner chip exactly as it was  1115ms
+   ✓ a decided report, and an escalated one > AC-377 — deciding converts the row in place, naming the decider  4446ms
+   ✓ the captain debt index > AC-379 — a partial repayment leaves the remainder owed and visible  4127ms
+   ✓ the captain debt index > AC-379 — the repayment appears as a credit on the receivable ledger  4149ms
+   ✓ the captain debt index > AC-380 — over the cap says so, from the cap the client serves  723ms
+   ✓ the captain debt index > AC-381 — the total is the signed sum, so the captain in credit is in it  447ms
+   ✓ AC-432 — no Financials surface renders a `0` badge > a zero count renders no badge, on either view  771ms
+   ✓ P4-T1 — the reconciliation queue claims in bulk, and does nothing else in bulk > the queue carries a checkbox column and the debt index does not  630ms
+   ✓ P4-T1 — the reconciliation queue claims in bulk, and does nothing else in bulk > the bar offers Claim and nothing else — no bulk Resolve, no bulk Escalate  349ms
+   ✓ P4-T1 — the reconciliation queue claims in bulk, and does nothing else in bulk > a report already held by this operator refuses the whole set, naming the count  1835ms
+   ✓ P4-T1 — the reconciliation queue claims in bulk, and does nothing else in bulk > claiming a clean selection claims every report in it  976ms
+   ✓ P8-T1 — a cash row names a captain, and the name opens them > the queue and the debt index both link the captain to the 360° profile  750ms
+   ✓ P8-T1 — a cash row names a captain, and the name opens them > and the receivable ledger still opens from its own labelled control  378ms
+stderr | src/shell/qa.remediation.test.tsx > `Switch user` switches the operator, and does not navigate to Team & Access > signs the console in as the chosen operator and lands on their workspace
+An update to ForwardRef(MenuItemImpl) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ForwardRef(MenuItemImpl) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ForwardRef(MenuContentImpl) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/components/auth/reauth.test.tsx (32 tests) 8227ms
+   ✓ AC-567 (a) — "the complete set of controls inside the modal is exactly this list" > sends a payload with no operator-supplied identity — AC-567 (b)  509ms
+   ✓ §8.3 — "Sign out while dirty swaps the modal's own body, in place" > returns to the password body on Cancel, with the field cleared  741ms
+   ✓ AC-574 — "a transport failure keeps the app mounted and the dirty form intact" > shows the error with a retry inside the modal  384ms
+   ✓ §2.5 — the in-flight state, in the modal too > makes the password readOnly and NOT disabled  419ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > swaps the SAME modal's body, with no second dialog and no route change  708ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > renders ONE centred LTR input, not six boxes, and the masked hint  327ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > keeps `Sign out` in the footer — §8.2's named path to a different account  562ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > verifies through the ORDINARY verifyCode, and resumes on success  818ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > does not submit on a paste — it hands over the button instead  450ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > returns to the CODE body after cancelling a sign-out, not to the password body  690ms
+   ✓ AC-573 — an untrusted device asks for the password AND a code > takes the password-only arm on a trusted device — the code step never renders  589ms
+ ✓ src/screens/admin/policy/policy.test.tsx (11 tests) 12625ms
+   ✓ four states > renders an error with a retry when the document fails to load  1239ms
+   ✓ four states > renders every pane once the document arrives  1248ms
+   ✓ four states > renders the first-run empty when no reason code is defined  613ms
+   ✓ an inherited SLA target has no field to read back > renders text and an Override button, and no spinbutton  541ms
+   ✓ an inherited SLA target has no field to read back > renders a field and a revert control on a queue that overrides  644ms
+   ✓ an inherited SLA target has no field to read back > override then revert leaves the screen clean  2273ms
+   ✓ an inherited SLA target has no field to read back > saves only the target the operator overrode  2573ms
+   ✓ the reason-code registry > shows a retired code in the table, badged and dated  824ms
+   ✓ the reason-code registry > renders both labels, with the Arabic one in its own direction  917ms
+   ✓ a role that cannot write > disables the controls rather than hiding them, and states why  1560ms
+stderr | src/screens/reports/reports.mode.test.tsx > AC-853, AC-855 — every one of the five modes survives the URL > opens a trend from a link alone, in that mode
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/shell/qa.copy.test.tsx (33 tests) 8309ms
+   ✓ AC-76 — "No operator-facing string in the shell contains an emoji character" > renders no emoji anywhere in the shell DOM  596ms
+   ✓ AC-74 — "Every operator-facing string in the shell resolves through a key; an empty Arabic dictionary shows the English fallback and no raw key" > renders the whole shell in Arabic with no raw key visible anywhere  559ms
+   ✓ AC-74 — "Every operator-facing string in the shell resolves through a key; an empty Arabic dictionary shows the English fallback and no raw key" > renders no raw key in the global search popover, which is the half AC-74 asserts  2360ms
+   ✓ AC-70 — "dir=rtl is set on the document element, not on a subtree" > with the production DirectionProvider in place, no subtree contradicts the document  315ms
+   ✓ AC-71 — "In Arabic the rail and sub-tab list render on the inline-end side, and no shell element retains a physical left or right offset" > uses no physical-direction utility anywhere in the rendered shell  467ms
+   ✓ AC-73 — "In Arabic, money values, dates, ids and phone numbers read in the same character order as in English" > renders nav count numerals identically in both languages  418ms
+   ✓ AC-30 — "Global search for a legacy destination name returns the destination it moved to. Four searches, four correct destinations" > shows the resolved destination in the global search popover, not just in the client  1995ms
+ ✓ src/shell/qa.remediation.test.tsx (10 tests) 9532ms
+   ✓ a search that fails says so, and does not report "no matches" > renders the failure with a retry, and never the no-match sentence  1885ms
+   ✓ a search that fails says so, and does not report "no matches" > still says "no matches" when the read SUCCEEDS and matched nothing  1272ms
+   ✓ the escape hatch goes to a screen that reads the operator's query > navigates to an index route with `q` on it, not to a metric board that drops it  2140ms
+   ✓ opening a notification marks it read, so the badge decrements > reduces the unread count by one  836ms
+   ✓ `Switch user` switches the operator, and does not navigate to Team & Access > signs the console in as the chosen operator and lands on their workspace  955ms
+   ✓ the account layer renders five sections and no dead Save > renders all five headings and none of them claims to have failed  458ms
+   ✓ the account layer renders five sections and no dead Save > shows the identity the session already carried — name, email and role  325ms
+   ✓ the account layer renders five sections and no dead Save > gives the password section a Save that actually commits  782ms
+   ✓ the account layer renders five sections and no dead Save > refuses 2FA re-enrolment IN PLACE, with the reason as text (§11.2)  534ms
+stderr | src/screens/financials/pricing/pricing.test.tsx > the plan editor > AC-401 — every editable control survives a save and a reload
+An update to PlanEditorForm inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ForwardRef(SelectItem) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ForwardRef(SelectContentImpl) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/screens/financials/pricing/pricing.test.tsx > the plan editor > AC-401 — every editable control survives a save and a reload
+A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() => ...)
+
+stderr | src/screens/reports/reports.mode.test.tsx > AC-853, AC-855 — every one of the five modes survives the URL > runs a trend that arrived composed, without a second click
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/screens/admin/data/adminData.test.tsx (15 tests) 12528ms
+   ✓ the integrity pane — the four states > starts on the first-run empty, which names what the pane is FOR  832ms
+   ✓ the integrity pane — the four states > renders findings after an explicit run  879ms
+   ✓ the integrity pane — the four states > reaches the error state when the scan is rigged to fail, and offers the retry  727ms
+   ✓ the integrity pane — the four states > reaches the catalogue error state, with the shell and the other cards intact  441ms
+   ✓ the rule — every finding names the check that produced it > renders a check title on every single finding row  1137ms
+   ✓ the rule — every finding names the check that produced it > puts TKT-501’s contradiction in front of the operator, in English  1853ms
+   ✓ "not run" and "found nothing" are different words > says Passed for a check that ran and found nothing  619ms
+   ✓ the findings table can be grouped two ways > regroups the same findings by check and by record type  1685ms
+   ✓ retention actually saves > persists a change and reads it back on a fresh mount  1797ms
+   ✓ retention actually saves > disables the save in place, with a reason, while nothing has changed  365ms
+   ✓ the export offers only what it can produce > keeps the unbuildable dataset visible and disabled with its reason  379ms
+   ✓ the export offers only what it can produce > builds a real CSV, with the header block that makes the numbers attributable  472ms
+   ✓ Arabic and RTL > renders under dir=rtl with no physical-direction utility anywhere in the pane  844ms
+stderr | src/screens/reports/reports.mode.test.tsx > AC-853, AC-855 — every one of the five modes survives the URL > writes a link from trend that deserialises back to the same question
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.mode.test.tsx > AC-853, AC-855 — every one of the five modes survives the URL > writes a link from trend that deserialises back to the same question
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.mode.test.tsx > AC-853, AC-855 — every one of the five modes survives the URL > writes a link from trend that deserialises back to the same question
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/screens/admin/workspace/integrations.test.tsx (20 tests) 9547ms
+   ✓ the reveal surface makes the consequence unmissable > shows the secret once, refuses to close until acknowledged, and leaves nothing behind  7425ms
+   ✓ the four states > renders the keys and the endpoints the CLIENTS return  470ms
+   ✓ the four states > reaches the API key error state without editing a fixture  332ms
+   ✓ the four states > reaches the webhook error state without editing a fixture  454ms
+   ✓ the four states > reaches the delivery log error state without editing a fixture  371ms
+   ✓ the four states > states the read-only refusal in place rather than hiding the controls  331ms
+ ✓ src/screens/admin/workspace/adminWorkspace.test.tsx (10 tests) 15713ms
+   ✓ the four states > renders the settings the CLIENT returns, not a literal  901ms
+   ✓ the four states > offers a retry that re-runs the read  818ms
+   ✓ the save is real > persists a changed support email across a re-mount, and audits it  6029ms
+   ✓ the save is real > puts a 422 under the field the server named, and does not save  4466ms
+   ✓ the logo button, which had no handler at all > uploads a file into the ONE logo store, and audits it  1151ms
+   ✓ the logo button, which had no handler at all > refuses an over-sized file without writing anything  480ms
+   ✓ re-consent states a number instead of claiming one > queues the pending accounts and reports how many  800ms
+   ✓ re-consent states a number instead of claiming one > refuses in place, with its reason, when everybody is already current  419ms
+   ✓ §11.2 — a role that cannot configure the workspace > states the refusal once and disables every write in place  459ms
+stderr | src/screens/financials/keyboard.test.tsx > the money confirmation, from the keyboard > Escape closes the confirmation and leaves the record untouched
+An update to DataTable inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/screens/financials/pricing/pricing.test.tsx (11 tests) 14461ms
+   ✓ AC-389 — four views on one route, as view tabs > the four views are tabs, the default is Subscription plans, and the path never moves  1002ms
+   ✓ AC-390 — the plan editor is outside the app layout > the rail and sub-tab column are gone in the editor and back on exit  2144ms
+   ✓ the plan editor > AC-396 — a dependent derived value moves on the input event  891ms
+   ✓ the plan editor > AC-394 — a cleared number blocks Save and puts the error on the input  521ms
+   ✓ the plan editor > AC-399 — the worked example states its literal inputs and excludes surge  577ms
+   ✓ the plan editor > AC-401 — every editable control survives a save and a reload  5770ms
+   ✓ the plan editor > AC-448 — the Arabic name field is right-to-left in both document directions  350ms
+   ✓ surge — operations may only suspend > AC-411 — the suspension primary is disabled until a reason is entered  2713ms
+ ✓ src/screens/financials/payouts/payouts.test.tsx (27 tests) 37321ms
+   ✓ AC-362 — paying a captain writes a debit posting on their payable ledger > the payable ledger carries a new debit for the amount paid  2046ms
+   ✓ AC-362 — paying a captain writes a debit posting on their payable ledger > AC-363 — the payable moves by the amount paid and is never assigned to zero  1921ms
+   ✓ AC-362 — paying a captain writes a debit posting on their payable ledger > AC-366 / AC-437 — one audit entry, for the NET, naming the captain  1108ms
+   ✓ AC-364 — releasing escrow > the hold transitions to Released and stays on the list  1808ms
+   ✓ AC-364 — releasing escrow > a credit posting appears on the captain’s payable ledger  1516ms
+   ✓ AC-364 — releasing escrow > AC-365 — an unfinished hold disables Release in place and states the progress  797ms
+   ✓ a returned payout, and one the role may not perform > AC-367 — a returned payout takes the marker, the words and a banner, never a badge  546ms
+   ✓ a returned payout, and one the role may not perform > AC-368 — a read-only role sees Pay disabled in place, and no commit path at all  435ms
+   ✓ a returned payout, and one the role may not perform > AC-368 — a captain with no bank account and one with nothing net payable are both disabled  544ms
+   ✓ a returned payout, and one the role may not perform > AC-368 — the disabled Pay states why  513ms
+   ✓ waiving a deduction > AC-369 — the confirmation names the amount and the captain and refuses without a reason  4320ms
+   ✓ waiving a deduction > AC-370 — a waived deduction stays on the list with its actor and reason  499ms
+   ✓ waiving a deduction > AC-371 — the excess goes to the receivable rather than clamping  1248ms
+   ✓ waiving a deduction > AC-371 — and both postings are shown on the two ledgers  2484ms
+   ✓ AC-430 / AC-431 — a mutation that fails changes nothing and says so on its row > the payable is untouched, the row carries the error, and the table stays usable  1328ms
+   ✓ AC-430 / AC-431 — a mutation that fails changes nothing and says so on its row > AC-431 — the row’s retry re-runs the same call  2046ms
+   ✓ P4-T1 — Payouts gains selection and a bulk bar > the payouts index carries a checkbox column, and selecting raises the bar  850ms
+   ✓ P4-T1 — Payouts gains selection and a bulk bar > AC-335 — the bar offers Pay and nothing else; no reversal is bulk  739ms
+   ✓ D21 — a bulk payout is refused if any selected captain would be > a mixed selection disables Pay and names how many are blocked  1804ms
+   ✓ D21 — a bulk payout is refused if any selected captain would be > AC-960 — a wholly refused selection takes the `.all` sentence and offers no narrowing  1279ms
+   ✓ D21 — a bulk payout is refused if any selected captain would be > a single refused captain takes the `.one` sentence  852ms
+   ✓ D21 — a bulk payout is refused if any selected captain would be > AC-959 / AC-961 — `Select only the N eligible` narrows, runs nothing, and the payout matches the bar  3258ms
+   ✓ D21 — a bulk payout is refused if any selected captain would be > AC-962 — a read-only role is refused with the role sentence, not the domain one  1441ms
+   ✓ a bulk payout reaches the data layer once per captain > pays every selected captain, writes one entry each, and moves each payable  2378ms
+   ✓ P8-T1 — a cell that names an entity opens that entity > the captain name on a payout row links to the 360° profile  480ms
+   ✓ P8-T1 — a cell that names an entity opens that entity > an escrow row links its captain, its rider and its subscription  450ms
+   ✓ P8-T1 — a cell that names an entity opens that entity > a deduction row links its captain and its trip  494ms
+stderr | src/screens/reports/reports.mode.test.tsx > P7-T3 — each mode renders its own answer, not a trend > keeps the trend on the chart canvas, unchanged
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.mode.test.tsx > P7-T3 — the mode switcher does not compose an illegal query > moves a trend to a funnel and asks for steps, not for a chart type
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.mode.test.tsx > P7-T3 — the mode switcher does not compose an illegal query > moves a trend to a funnel and asks for steps, not for a chart type
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/financials/keyboard.test.tsx > the money confirmation, from the keyboard > the same confirmation, committed from the keyboard, releases the hold
+An update to DataTable inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/screens/reports/reports.mode.test.tsx > P7-T3 — the mode switcher does not compose an illegal query > moves a trend to a funnel and asks for steps, not for a chart type
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.mode.test.tsx > P7-T5 — the third view exists and is reachable > renders one dashboard’s tiles, and the missing one says what it used to be
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/screens/reports/reports.mode.test.tsx (25 tests) 10228ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > opens a trend from a link alone, in that mode  1003ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > opens a table from a link alone, in that mode  793ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > opens a funnel from a link alone, in that mode  441ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > opens a cohort from a link alone, in that mode  449ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > runs a trend that arrived composed, without a second click  557ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > runs a table that arrived composed, without a second click  503ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > runs a funnel that arrived composed, without a second click  596ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > runs a cohort that arrived composed, without a second click  436ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > runs a journey that arrived composed, without a second click  381ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > writes a link from trend that deserialises back to the same question  708ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > writes a link from table that deserialises back to the same question  637ms
+   ✓ AC-853, AC-855 — every one of the five modes survives the URL > writes a link from journey that deserialises back to the same question  434ms
+   ✓ P7-T3 — each mode renders its own answer, not a trend > draws a cohort matrix with a column per interval and a size per row  332ms
+   ✓ P7-T3 — each mode renders its own answer, not a trend > keeps the trend on the chart canvas, unchanged  347ms
+   ✓ P7-T3 — the mode switcher does not compose an illegal query > moves a trend to a funnel and asks for steps, not for a chart type  735ms
+ ✓ src/components/table/bulkSelection.test.tsx (5 tests) 9151ms
+   ✓ D21 — a bulk command is refused if any selected record would be > AC-958 — twelve selected, three blocked: disabled, with the count named  3693ms
+   ✓ D21 — a bulk command is refused if any selected record would be > AC-959 — `Select only the 9 eligible` narrows the selection and runs nothing  3086ms
+   ✓ D21 — a bulk command is refused if any selected record would be > AC-960 — all three blocked: the `.all` sentence, and no escape hatch  623ms
+   ✓ D21 — a bulk command is refused if any selected record would be > offers no escape hatch when nothing is refused  633ms
+   ✓ D21 — a bulk command is refused if any selected record would be > narrowing never adds a row the operator had not selected  989ms
+ ✓ src/components/profile/profile.test.tsx (13 tests) 5665ms
+   ✓ a resolved profile renders content, not nine cards claiming to have failed > renders one card per declared section for a captain, and none of them is an error  1896ms
+   ✓ a captain gets nine sections and a rider eight, from the data and not from a branch > renders exactly `ProfileRef.sections`, whatever length that is  315ms
+   ✓ a failed section fails alone > renders the wallet card in error with a retry, and every other card in content  946ms
+   ✓ payments and complaints resolve to real records > renders a complaint, and says why its ticket and dispute cards are empty  435ms
+   ✓ every section carries all four states > renders one grey sentence when a section read succeeds with nothing in it  1213ms
+ ✓ src/screens/financials/keyboard.test.tsx (6 tests) 10456ms
+   ✓ AC-450 — every interactive element declares a focus ring > no focusable element on Payouts, Cash or Rider Wallets is missing one  2502ms
+   ✓ AC-450 — every interactive element declares a focus ring > a ledger’s source link takes focus from the keyboard alone  1890ms
+   ✓ AC-450 — every interactive element declares a focus ring > both row actions are reachable and operable from the keyboard alone  920ms
+   ✓ the money confirmation, from the keyboard > Escape closes the confirmation and leaves the record untouched  1692ms
+   ✓ the money confirmation, from the keyboard > the same confirmation, committed from the keyboard, releases the hold  1455ms
+   ✓ the money confirmation, from the keyboard > AC-437 — each act through the UI writes one entry naming actor, amount, subject and reason  1872ms
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-605 / A-7 — "no step renders a Learn more link, in any state" > renders no such link in the expanded step
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+ ✓ src/shell/qa.forbidden.test.tsx (9 tests) 5585ms
+   ✓ AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required" > renders the forbidden state, and it NAMES the permission  629ms
+   ✓ AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required" > names the route the operator asked for, rather than an anonymous page  391ms
+   ✓ AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required" > is not a redirect: the URL the operator opened is still the URL  348ms
+   ✓ AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required" > renders the screen, not the forbidden state, the moment the decision says permitted  678ms
+   ✓ AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required" > is evaluated on every navigation, not only on first load  2435ms
+ ✓ src/hooks/useAsync.test.ts (36 tests) 5171ms
+   ✓ the request cache — errors are never cached > reaches the error state on every attempt while a failure is injected  368ms
+   ✓ the request cache — errors are never cached > drops the cached rows when a revalidation fails, so the next mount is a real attempt  406ms
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-600 / AC-601 / AC-602 — the intro and the progress line > states the role, the accountability sentence, the permission count and My Work
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+ ✓ src/shell/AppLayout.test.tsx (15 tests) 4000ms
+   ✓ AC-20, AC-22, AC-66 — the shell layers > opens the 360° profile from ?entity= over a still-visible route  590ms
+   ✓ AC-20, AC-22, AC-66 — the shell layers > closes on Escape — AC-66  321ms
+   ✓ AC-67 — focus enters the layer, and Tab is NOT trapped > Tab past the layer’s last control reaches the page behind it, and the layer stays open  1371ms
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-604 — "at most one step is expanded at a time" > collapses the first when a second is expanded
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-605 / AC-606 — only the expanded step shows its controls, and every step can be marked done > shows the description, the action and the skip control on the expanded step only
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-609 / AC-611 / AC-626 — an unbuilt destination renders disabled IN PLACE > SYNTHETIC — shows the Live Dispatch step, disabled, with the reason named
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-609 / AC-611 / AC-626 — an unbuilt destination renders disabled IN PLACE > SYNTHETIC — renders eight rows and a progress line out of seven — AC-603 vs AC-624
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-615 — "no coach mark, no spotlight, no tooltip tour, no modal wizard" > renders no dialog and no scrim anywhere in the flow
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+ ✓ src/screens/admin/activity/adminActivity.test.tsx (7 tests) 8359ms
+   ✓ the four states still hold with selection turned on > shows the first-run empty when nothing has happened yet  476ms
+   ✓ the four states still hold with selection turned on > reaches the error state and retries  899ms
+   ✓ D21 — the bulk bar > offers the two commands once rows are selected, and neither is refused for an operator who can see financials  1283ms
+   ✓ D21 — the bulk bar > refuses the whole set when any selected entry is refused, and names the count  1229ms
+   ✓ D21 — the bulk bar > offers `Select only the N eligible`, which narrows the selection and runs nothing  1908ms
+   ✓ D21 — the bulk bar > uses the `.all` sentence and offers no escape hatch when every entry is blocked  1105ms
+   ✓ D21 — the bulk bar > clears the selection through the bar’s own exit  1338ms
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-634 / AC-646 — skipping does not fake progress, and a failure is row-scoped > keeps the numerator on completions only
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/reports/reports.test.tsx > R5-15 — the operator can read the population, not just the number > renders the measure’s own population sentence, and it moves with the measure
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-634 / AC-646 — skipping does not fake progress, and a failure is row-scoped > returns the step to not-done and offers an inline retry when marking fails
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/reports/reports.test.tsx > AC-810 — an edited query keeps the previous answer, visibly marked > keeps the panels on screen and says the result is from an earlier run
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/reports/reports.test.tsx > AC-810 — an edited query keeps the previous answer, visibly marked > keeps the panels on screen and says the result is from an earlier run
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > AC-636 — "Dismiss is available at any time, not only at completion" > renders the footer control on an untouched track
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+stderr | src/screens/reports/reports.test.tsx > AC-810 — an edited query keeps the previous answer, visibly marked > keeps the panels on screen and says the result is from an earlier run
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/screens/onboarding/onboarding.test.tsx > §10.4 — "no confirmation modal on skip, dismiss or restart" > restarts with no dialog in between
+Accordion is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+ ✓ src/screens/onboarding/onboarding.test.tsx (21 tests) 4165ms
+   ✓ AC-605 / A-7 — "no step renders a Learn more link, in any state" > renders no such link in the expanded step  444ms
+   ✓ AC-604 — "at most one step is expanded at a time" > collapses the first when a second is expanded  736ms
+   ✓ AC-634 / AC-646 — skipping does not fake progress, and a failure is row-scoped > keeps the numerator on completions only  543ms
+   ✓ AC-634 / AC-646 — skipping does not fake progress, and a failure is row-scoped > returns the step to not-done and offers an inline retry when marking fails  424ms
+   ✓ §10.4 — "no confirmation modal on skip, dismiss or restart" > restarts with no dialog in between  338ms
+ ✓ src/data/clients/search.test.ts (49 tests) 2021ms
+   ✓ all eleven entity types are searchable > opens every type it finds — a search hit is never a 404  325ms
+stderr | src/screens/reports/reports.test.tsx > AC-851 — a failed leg fails alone > gives the failed panel its own retry and leaves the other panel drawn
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/data/clients/financials.test.ts (196 tests) 413ms
+ ✓ src/screens/financials/smoke.test.tsx (37 tests) 6398ms
+   ✓ every Financials surface mounts and every string resolves > Revenue & Refunds · refunds renders  379ms
+   ✓ every Financials surface mounts and every string resolves > Payouts & Escrow · payouts renders  477ms
+   ✓ every Financials surface mounts and every string resolves > Cash & Captain Debt · captain-debt-ledger renders  400ms
+ ✓ src/screens/financials/financials.test.tsx (29 tests) 5690ms
+   ✓ AC-453 — no cash report carries an SLA, and shipping one is the failure > the reconciliation queue renders no countdown, no breach banner and no breach control  754ms
+   ✓ AC-427 — the two kinds of empty, and the caller decides which > a wallet with history narrowed to nothing renders the no-match sentence  3788ms
+ ✓ src/components/qa.states.test.tsx (28 tests) 1530ms
+   ✓ AC-37 — "An index table filtered to zero results shows the no-match empty state … and shows no illustration and no heading" > carries a clear-filters action when one is given, and nothing else  334ms
+ ✓ src/screens/reports/reports.test.tsx (19 tests) 6933ms
+   ✓ AC-807, AC-809 — nothing but the measure picker, and nothing runs > enables the measure picker and disables every other control, in place  593ms
+   ✓ AC-807, AC-809 — nothing but the measure picker, and nothing runs > shows one grey sentence, not the first-run illustration (AC-843)  338ms
+   ✓ AC-807, AC-809 — nothing but the measure picker, and nothing runs > issues no query when a control changes — the canvas stays unstarted  1467ms
+   ✓ R5-15 — the operator can read the population, not just the number > renders the measure’s own population sentence, and it moves with the measure  612ms
+   ✓ AC-810 — an edited query keeps the previous answer, visibly marked > keeps the panels on screen and says the result is from an earlier run  761ms
+   ✓ AC-851 — a failed leg fails alone > gives the failed panel its own retry and leaves the other panel drawn  892ms
+   ✓ AC-846, AC-847 — an error keeps the question > renders the run failure inside the canvas with a retry, panel still usable  469ms
+   ✓ AC-853, AC-855 — a link reproduces the question > restores measures, split, grain, comparison and chart type from the URL alone  373ms
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > an ALL-ZERO window says the values are zero — not that the data is missing
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > a window with GAPS counts them in words and does not call itself zero
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > an ALL-NULL window is a full house of gaps, not an empty range
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > keeps the comparison legend chip and says why it is empty (§3.7)
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > names BOTH periods with dates when a comparison exists (§3.7)
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > gives the plot a text alternative naming the metric and the range (§7.5)
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+stderr | src/components/metrics/metrics.test.tsx > ChartCard — the four states of a window (§3.7, SeriesWindow) > pins the plot LTR so the time axis does not reverse in Arabic (§9.2)
+The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+
+ ✓ src/data/clients/revenue.test.ts (10 tests) 1437ms
+ ✓ src/components/metrics/metrics.test.tsx (64 tests) 1624ms
+ ✓ src/shell/nav.test.tsx (20 tests) 2272ms
+   ✓ PageNav — AC-05, AC-19, AC-58 > marks the active row from the prop, never from a click (AC-08, AC-09)  413ms
+ ✓ src/data/clients/seam.test.ts (102 tests) 1230ms
+ ✓ src/data/clients/integrity.test.ts (21 tests) 412ms
+ ✓ src/screens/financials/ledger/controls.test.tsx (8 tests) 3573ms
+   ✓ AC-416 — debits equal credits, or the page says so in SAR > the balanced case renders no banner  590ms
+   ✓ AC-416 — debits equal credits, or the page says so in SAR > the unbalanced case renders one critical banner naming the difference in SAR  364ms
+   ✓ AC-418 — every journal line reads Dr/Cr, and every entry balances > each line names its side, its account and its amount, and the sides agree  573ms
+   ✓ AC-419 — a refused posting is kept, with its reason in words > every refused posting is listed with its reason as a sentence  365ms
+   ✓ AC-419 — a refused posting is kept, with its reason in words > the refused count is stated in a page banner on the sub-tab that owns the view  304ms
+   ✓ the payment gateways > AC-422 — the default cannot be disabled, and its switch does not move  846ms
+ ✓ src/screens/financials/ledger-rendering.test.tsx (14 tests) 3625ms
+   ✓ a posting moves the subject balance in the direction its column names > AC-306 — a payout debits the captain payable and lowers what Eyvar owes  1018ms
+   ✓ a posting moves the subject balance in the direction its column names > AC-307 — a cash commission debits the receivable and raises what the captain owes  667ms
+   ✓ AC-426 — a ledger loads as its own six columns, never as a spinner > renders the P7 ledger skeleton — six columns, no spinner  333ms
+ ✓ src/screens/financials/shared/entityLinks.test.tsx (3 tests) 732ms
+   ✓ a name opens its entity, and only when there is one to open > names the link with one interpolated key  303ms
+ ✓ src/screens/financials/overview/overview.test.tsx (4 tests) 900ms
+ ✓ src/lib/a11y/announcer.test.ts (9 tests) 646ms
+ ✓ src/components/table/tableControls.test.tsx (16 tests) 4785ms
+   ✓ the identity column and `useColumnPinning`s width guard > renders without throwing when the identity column declares no width  538ms
+   ✓ the header cell — one control, or none > renders exactly ONE interactive element per controllable header (AC-80)  486ms
+   ✓ the header cell — one control, or none > renders the menu caret AT REST — no hover, no focus (AC-81)  411ms
+   ✓ the header cell — one control, or none > puts `aria-sort` on exactly one `th`, and only once sorted (AC-92, AC-86)  820ms
+   ✓ the header cell — one control, or none > labels the direction pair from the column dataType, never with date words (AC-88)  401ms
+   ✓ a ledger header (AC-113) > offers Filter… and Pin column, and never a sort item  496ms
+   ✓ a column filter is one filter (AC-93, AC-95, AC-96) > writes one chip and one header summary, from the same string  1100ms
+ ✓ src/hooks/useForm.test.ts (47 tests) 464ms
+ ✓ src/screens/management/zones/zones.test.tsx (8 tests) 2741ms
+   ✓ R4-6b §6.6.4 — the strip derives from the table > changing the zone data changes the strip  988ms
+   ✓ the table > R4-6 §6.4 clause 2 — two row actions, both labelled and visible at rest  692ms
+   ✓ the table > the five tiles render, and two of them are toggles that narrow the table  506ms
+   ✓ L-6 — three cities have no failure rate, and the row says why > renders an em dash and a reason rather than a fabricated number  428ms
+ ✓ src/hooks/useIndexTable.test.ts (111 tests) 908ms
+ ✓ src/data/clients/conversations.test.ts (81 tests) 270ms
+ ✓ src/components/table/rowActions.test.tsx (3 tests) 1084ms
+   ✓ the labelled shape > renders each refused row its OWN reason, and a payable row none  448ms
+   ✓ the menu shape > puts the reason inside the item without folding it into the item’s name  502ms
+ ✓ src/hooks/useCooldown.test.ts (24 tests) 359ms
+ ✓ src/data/clients/metrics.test.ts (61 tests) 474ms
+ ✓ src/components/reports/reports.test.ts (17 tests) 544ms
+   ✓ R4-1 — two measures never share a y-axis > gives two different measures two different panels, for every legal pair  355ms
+ ✓ src/hooks/useTick.test.ts (12 tests) 195ms
+ ✓ src/data/clients/workQueues.test.ts (63 tests) 535ms
+ ✓ src/hooks/uiStatePersistence.test.tsx (2 tests) 263ms
+ ✓ src/screens/financials/revenue/revenue.test.tsx (3 tests) 1146ms
+   ✓ AC-355 — `Revenue by plan` is computed, and its total is its rows > every column of the total equals the sum of the rows above it  440ms
+   ✓ AC-356 — a credit note with no matched invoice > AC-360 — two notes issued on different days render different dates  323ms
+ ✓ src/data/clients/filters.test.ts (44 tests) 403ms
+ ✓ src/hooks/useFocusCapture.test.ts (12 tests) 254ms
+ ✓ src/hooks/useColumnPinning.test.ts (50 tests) 521ms
+ ✓ src/screens/auth/legal.test.tsx (3 tests) 418ms
+ ✓ src/hooks/useLanguage.test.ts (14 tests) 201ms
+ ✓ src/data/mock/resolveReport.mode.test.ts (35 tests) 343ms
+stderr | src/hooks/useColumnVisibility.test.ts > an empty column list > resolves to nothing rather than throwing
+An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/hooks/useColumnVisibility.test.ts (25 tests) 407ms
+ ✓ src/lib/search/fuzzy.test.ts (60 tests) 205ms
+ ✓ src/i18n/localisedKeys.test.ts (7 tests) 266ms
+ ✓ src/lib/persistence.test.ts (46 tests) 168ms
+ ✓ src/shell/permissions.test.ts (53 tests) 185ms
+ ✓ src/hooks/useFocusEntry.test.ts (21 tests) 410ms
+ ✓ src/data/clients/auth.test.ts (78 tests) 502ms
+ ✓ src/commands/domains.test.ts (37 tests) 329ms
+ ✓ src/pwa/cachePolicy.test.ts (16 tests) 211ms
+ ✓ src/data/clients/zones.test.ts (30 tests) 197ms
+ ✓ src/pwa/freshness.test.ts (9 tests) 177ms
+ ✓ src/lib/i18n/pseudo.test.ts (15 tests) 224ms
+ ✓ src/screens/admin/policy/policyDraft.test.ts (35 tests) 238ms
+ ✓ src/data/clients/team.test.ts (23 tests) 166ms
+ ✓ src/lib/breakpoint.test.ts (7 tests) 261ms
+ ✓ src/hooks/useFilters.test.ts (19 tests) 187ms
+ ✓ src/data/reporting/subjects.test.ts (18 tests) 171ms
+ ✓ src/data/reporting/cohorts.test.ts (2 tests) 130ms
+ ✓ src/data/clients/realtime.test.ts (23 tests) 166ms
+ ✓ src/screens/metrics/board.test.ts (14 tests) 155ms
+ ✓ src/data/clients/preferences.test.ts (29 tests) 164ms
+ ✓ src/screens/metrics/copy.test.ts (14 tests) 167ms
+ ✓ src/data/fixtures/navCounts.test.ts (21 tests) 158ms
+ ✓ src/lib/columnFilter.test.ts (39 tests) 167ms
+ ✓ src/lib/i18n/i18n.test.ts (20 tests) 168ms
+ ✓ src/data/clients/identity.test.ts (11 tests) 168ms
+ ✓ src/components/auth/qrMatrix.test.ts (15 tests) 230ms
+ ✓ src/lib/format/money.test.ts (15 tests) 146ms
+ ✓ src/i18n/vocabulary/vocabulary.test.ts (7 tests) 130ms
+ ✓ src/lib/format/number.test.ts (31 tests) 162ms
+ ✓ src/lib/i18n/plural.test.ts (32 tests) 170ms
+ ✓ src/lib/sla.test.ts (33 tests) 157ms
+ ✓ src/data/reporting/plan.mode.test.ts (37 tests) 163ms
+ ✓ src/hooks/requestCache.test.ts (40 tests) 168ms
+ ✓ src/lib/format/date.test.ts (18 tests) 160ms
+ ✓ src/pwa/killSwitch.test.ts (20 tests) 163ms
+ ✓ src/shell/navBadges.test.ts (11 tests) 159ms
+ ✓ src/data/reporting/serialise.test.ts (20 tests) 153ms
+ ✓ src/shell/routeState.test.ts (23 tests) 160ms
+ ✓ src/lib/parse/input.test.ts (27 tests) 154ms
+ ✓ src/lib/pagination.test.ts (9 tests) 134ms
+ ✓ src/lib/i18n/isolate.test.ts (11 tests) 149ms
+ ✓ src/lib/format/localisedText.test.ts (13 tests) 148ms
+ ✓ src/lib/format/duration.test.ts (17 tests) 163ms
+ ✓ src/data/reporting/distribution.test.ts (4 tests) 147ms
+ ✓ src/lib/equality.test.ts (22 tests) 138ms
+ ✓ src/data/fixtures/denormalisation.test.ts (16 tests) 92ms
+ ✓ src/components/table/columnBudget.test.ts (13 tests) 90ms
+ ✓ src/data/clients/routes.test.ts (48 tests) 91ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/commands/commands.test.tsx > CM-3 in CaptainsView > suspends an eligible captain and holds the returned row
+TestingLibraryElementError: Unable to find role="dialog"
+
+Ignored nodes: comments, script, style
+<body
+  style=""
+>
+  <div>
+    <div
+      class="flex min-h-0 w-full flex-1 flex-col gap-3"
+    >
+      <div
+        class="flex h-14 items-center gap-2 px-3"
+      >
+        <div
+          class="group/tabs flex data-horizontal:flex-col min-w-0 shrink gap-0"
+          data-orientation="horizontal"
+          data-slot="tabs"
+          dir="ltr"
+        >
+          <div
+            aria-orientation="horizontal"
+            class="group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-0 rounded-full border border-border-control bg-muted p-0.5 max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-orientation="horizontal"
+            data-slot="tabs-list"
+            data-variant="segmented"
+            role="tablist"
+            style="outline: none;"
+            tabindex="0"
+          >
+            <button
+              aria-selected="true"
+              class="relative inline-flex h-full flex-1 items-center justify-center gap-1.5 border py-0.5 font-medium whitespace-nowrap text-muted-foreground transition-all group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pe-1 has-data-[icon=inline-start]:ps-1 group-data-[variant=default]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent data-active:text-foreground data-active:font-semibold after:absolute after:bg-primary after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:-bottom-1 group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-end-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100 rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+              data-orientation="horizontal"
+              data-radix-collection-item=""
+              data-slot="tabs-trigger"
+              data-state="active"
+              id="radix-_r_4u_-trigger-captains"
+              role="tab"
+              tabindex="-1"
+              type="button"
+            >
+              Captains
+            </button>
+          </div>
+        </div>
+        <div
+          class="ms-auto flex items-center gap-1.5"
+        >
+          <div
+            class="relative min-w-32 shrink basis-60"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <input
+              aria-label="Search captains"
+              class="h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background read-only:bg-muted read-only:cursor-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive ps-8 pe-8"
+              data-slot="input"
+              placeholder="Search captains"
+              value="Ahmed Salem"
+            />
+            <button
+              aria-label="Clear"
+              class="group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap select-none transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent size-6 [&_svg:not([class*='size-'])]:size-3 absolute end-1 top-1/2 -translate-y-1/2"
+              data-size="icon-xs"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-x"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"...
+
+Ignored nodes: comments, script, style
+<body
+  style=""
+>
+  <div>
+    <div
+      class="flex min-h-0 w-full flex-1 flex-col gap-3"
+    >
+      <div
+        class="flex h-14 items-center gap-2 px-3"
+      >
+        <div
+          class="group/tabs flex data-horizontal:flex-col min-w-0 shrink gap-0"
+          data-orientation="horizontal"
+          data-slot="tabs"
+          dir="ltr"
+        >
+          <div
+            aria-orientation="horizontal"
+            class="group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-0 rounded-full border border-border-control bg-muted p-0.5 max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-orientation="horizontal"
+            data-slot="tabs-list"
+            data-variant="segmented"
+            role="tablist"
+            style="outline: none;"
+            tabindex="0"
+          >
+            <button
+              aria-selected="true"
+              class="relative inline-flex h-full flex-1 items-center justify-center gap-1.5 border py-0.5 font-medium whitespace-nowrap text-muted-foreground transition-all group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pe-1 has-data-[icon=inline-start]:ps-1 group-data-[variant=default]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent data-active:text-foreground data-active:font-semibold after:absolute after:bg-primary after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:-bottom-1 group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-end-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100 rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+              data-orientation="horizontal"
+              data-radix-collection-item=""
+              data-slot="tabs-trigger"
+              data-state="active"
+              id="radix-_r_4u_-trigger-captains"
+              role="tab"
+              tabindex="-1"
+              type="button"
+            >
+              Captains
+            </button>
+          </div>
+        </div>
+        <div
+          class="ms-auto flex items-center gap-1.5"
+        >
+          <div
+            class="relative min-w-32 shrink basis-60"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <input
+              aria-label="Search captains"
+              class="h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background read-only:bg-muted read-only:cursor-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive ps-8 pe-8"
+              data-slot="input"
+              placeholder="Search captains"
+              value="Ahmed Salem"
+            />
+            <button
+              aria-label="Clear"
+              class="group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap select-none transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent size-6 [&_svg:not([class*='size-'])]:size-3 absolute end-1 top-1/2 -translate-y-1/2"
+              data-size="icon-xs"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-x"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/commands/commands.test.tsx:545:33
+    543|     await user.click(await screen.findByRole('menuitem', { name: 'Susp…
+    544| 
+    545|     const dialog = await screen.findByRole('dialog')
+       |                                 ^
+    546|     expect(within(dialog).getByText('Suspend 1 captain?')).toBeInTheDo…
+    547|     await user.type(within(dialog).getByLabelText('Reason'), 'Expired …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/screens/support/tickets/tickets.test.tsx > an SLA console shows the SLA > shows the first-reply promise, the deadline and how long it has been open
+TestingLibraryElementError: Unable to find an element with the text: First reply. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"
+    >
+      <a
+        class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        href="#ev-content"
+      >
+        Skip to content
+      </a>
+      <div
+        class="flex min-h-0 flex-1"
+      >
+        <nav
+          aria-label="Workspaces"
+          class="flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"
+        >
+          <div
+            class="flex h-topbar shrink-0 items-center justify-center"
+          >
+            <a
+              aria-label="Eyvar"
+              class="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              href="/management/overview"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <rect
+                  fill="currentColor"
+                  height="22"
+                  rx="6"
+                  width="22"
+                  x="1"
+                  y="1"
+                />
+                <path
+                  class="fill-none stroke-card"
+                  d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </a>
+          </div>
+          <div
+            class="flex flex-col gap-1 px-1 pt-1"
+          >
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/management/overview"
+              tabindex="0"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M3 3v18h18"
+                />
+                <path
+                  d="M7 15l4-4 3 3 5-6"
+                />
+              </svg>
+              <span
+                class="w-full truncate text-center text-2xs leading-3 font-medium"
+              >
+                Exec
+              </span>
+              <span
+                aria-label="8 items need attention"
+                class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"
+                data-size="count"
+                data-slot="badge"
+                data-tone="nav-neutral"
+              >
+                8
+              </span>
+            </a>
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/operations/overview"
+              tabindex="-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="6.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke-dasharray="...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"
+    >
+      <a
+        class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        href="#ev-content"
+      >
+        Skip to content
+      </a>
+      <div
+        class="flex min-h-0 flex-1"
+      >
+        <nav
+          aria-label="Workspaces"
+          class="flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"
+        >
+          <div
+            class="flex h-topbar shrink-0 items-center justify-center"
+          >
+            <a
+              aria-label="Eyvar"
+              class="flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              href="/management/overview"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-6"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <rect
+                  fill="currentColor"
+                  height="22"
+                  rx="6"
+                  width="22"
+                  x="1"
+                  y="1"
+                />
+                <path
+                  class="fill-none stroke-card"
+                  d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.8"
+                />
+              </svg>
+            </a>
+          </div>
+          <div
+            class="flex flex-col gap-1 px-1 pt-1"
+          >
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/management/overview"
+              tabindex="0"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M3 3v18h18"
+                />
+                <path
+                  d="M7 15l4-4 3 3 5-6"
+                />
+              </svg>
+              <span
+                class="w-full truncate text-center text-2xs leading-3 font-medium"
+              >
+                Exec
+              </span>
+              <span
+                aria-label="8 items need attention"
+                class="inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"
+                data-size="count"
+                data-slot="badge"
+                data-tone="nav-neutral"
+              >
+                8
+              </span>
+            </a>
+            <a
+              class="group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              data-discover="true"
+              data-roving-item=""
+              href="/operations/overview"
+              tabindex="-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="size-5"
+                fill="none"
+                focusable="false"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="6.5"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke-dasharray="...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/screens/support/tickets/tickets.test.tsx:86:18
+     84|   it('shows the first-reply promise, the deadline and how long it has …
+     85|     renderApp(detail('TKT-501'))
+     86|     await screen.findByText(en('ticket.sla.heading'))
+       |                  ^
+     87|     /* The three fields the screen dropped: the deadline, the age, and…
+     88|        opening timestamp in the meta card. */
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 117 passed (119)
+      Tests  2 failed | 3059 passed (3061)
+   Start at  03:22:09
+   Duration  94.24s (transform 47.02s, setup 152.01s, collect 261.74s, tests 542.00s, environment 280.50s, prepare 37.06s)
+

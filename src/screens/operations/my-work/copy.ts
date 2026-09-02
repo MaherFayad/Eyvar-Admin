@@ -54,13 +54,33 @@ export const MY_WORK_EN: Dictionary = {
   /* §7.2 — **My Work never decides anything.** It claims, releases and routes.
      `Decide`, `Approve`, `Advance` and `Cover it` (`:19138`–`:19211`) all become
      `Open`, and the decision happens where the context is (**AC-281**). */
+
+  /* ── the bulk bar (P4-T1, §9.3, D21) ────────────────────────────────── */
+  /* §9.3 permits a queue a selection checkbox **only** where every bulk action
+     is a claim or an assign, and forbids bulk disposition outright. `Claim` is
+     the one command offered, and it is the one an operator working a queue
+     reaches for twenty times an hour: take the next ten and start.
+
+     A bulk TAKE-OVER is deliberately absent. AC-203 makes a take-over a
+     confirmed act that NAMES the operator losing the item; over a set it would
+     strip N owners at once and name none of them, so a row already held is
+     BLOCKED rather than silently taken. */
+  'myWork.bulk.claim': 'Claim',
+  'myWork.action.claim.blocked.one':
+    'This item is already claimed, or its queue is not connected yet.',
+  'myWork.action.claim.blocked.other':
+    '{count} of the selected items are already claimed, or their queue is not connected yet.',
+  'myWork.action.claim.blocked.all':
+    'All {count} selected items are already claimed, or their queue is not connected yet.',
+  'myWork.toast.claimed.other': '{count} items claimed',
+
   'myWork.claim.unavailable': 'Claim this from {queue}. It is not built yet.',
 
   /* ── states (§4.7, §7.5) ────────────────────────────────────────────── */
   'myWork.empty.cleared.heading': 'Nothing owed',
   'myWork.empty.cleared.mine': 'You are holding nothing. Unassigned has work waiting to be picked up.',
   'myWork.empty.cleared.unassigned': 'Every open item across the queues has somebody working it.',
-  'myWork.empty.cleared.everything': 'Nothing is open in any queue.',
+  'myWork.empty.cleared.everything': 'Every queue is clear.',
 
   /* §7.5 `routed-to-zero` — **not E1 and not E2.** It names the filter, and it
      offers to switch routing off **in place** (**AC-287**). Legacy shows this

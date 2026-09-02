@@ -6,14 +6,23 @@
  * `?view=` params on one route, not separate endpoints (§3.8 rule 3).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { allTripFixtures } from '../fixtures/trips'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { Trip, TripKind, TripStatus } from '../types/trip'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let allTripFixtures!: Fixtures['allTripFixtures']
+onFixturesLoaded((f) => {
+  allTripFixtures = f.allTripFixtures
+})
 
 export const TRIP_OPERATIONS = {
   facets: 'trips.facets',
@@ -21,6 +30,13 @@ export const TRIP_OPERATIONS = {
   get: 'trips.get',
   flag: 'trips.flag',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(TRIP_OPERATIONS))
 
 export interface TripQuery extends QueryParams {
   kind?: TripKind
@@ -147,7 +163,14 @@ export async function getTrip(id: string, signal?: AbortSignal): Promise<Trip> {
 
 /**
  * POST /api/v1/trips/:id/flag
- *   body: { flagged: boolean, reason?: string }
+ *   body: { flagged: boolean }
+ *
+ * **`reason` is discarded, and that looks like a bug rather than a decision.**
+ * `flagTrip(id, _reason?)` takes it, the underscore says it is unused, and the
+ * request omits it -- while the flag dialog makes the investigation note
+ * REQUIRED. So an operator is compelled to explain a flag, and the explanation
+ * is dropped between the dialog and the server. Raised, not silently fixed:
+ * whether the note belongs on the trip or on an audit line is a product call.
  *   -> Trip
  */
 export async function setTripFlag(
@@ -174,7 +197,7 @@ export async function unflagTrip(id: string, signal?: AbortSignal): Promise<Trip
 }
 
 /**
- * GET /api/v1//trips/facets
+ * GET /api/v1/trips/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

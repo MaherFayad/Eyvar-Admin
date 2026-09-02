@@ -8,9 +8,20 @@
 
 export { announce, currentAnnouncement, getLiveRegion, resetAnnouncer } from './a11y/announcer'
 export { isWideViewport, readWideBreakpointPx, WIDE_BREAKPOINT_FALLBACK_PX } from './breakpoint'
+export { compactMediaQuery, readCompactBreakpointPx, COMPACT_BREAKPOINT_FALLBACK_PX } from './breakpoint'
 export { formatDate, toDate, RIYADH_TIME_ZONE, type DateStyle, type FormatDateOptions } from './format/date'
-export { formatDuration } from './format/duration'
+export {
+  formatDuration,
+  type DurationPrecision,
+  type FormatDurationOptions,
+} from './format/duration'
 export { ABSENT, MINUS_SIGN, formatMoney, type FormatMoneyOptions } from './format/money'
+export {
+  formatLocalisedText,
+  isMoneyParam,
+  moneyParamsIn,
+  type LocalisedTextLike,
+} from './format/localisedText'
 export {
   MULTIPLICATION_SIGN,
   formatCount,
@@ -75,13 +86,32 @@ export { invariant, isDevEnvironment } from './invariant'
 export { pageRange, type PageRange } from './pagination'
 export { parseMoneyInput, parseNumericInput, toLatinDigits } from './parse/input'
 export {
+  UI_STATE_CACHE_PREFIX,
   UI_STATE_KEYS,
+  UI_STATE_SCHEMA_VERSION,
+  clearCachedUiState,
+  createCachedStore,
   createMemoryStore,
   createNullStore,
+  currentUiStateOwner,
   defaultUiStore,
   resetDefaultUiStores,
+  setUiStateOwner,
+  uiStateCacheKey,
+  type CachedStoreOptions,
+  type StorageLike,
   type UiStateStore,
+  type UiStateValidator,
 } from './persistence'
+export {
+  MIN_MATCH_SCORE,
+  editDistance,
+  matchDetail,
+  matchScore,
+  normalizeSearchText,
+  type MatchDetail,
+  type MatchRange,
+} from './search/fuzzy'
 export {
   NO_CLOCK,
   SLA_MESSAGES_EN,
@@ -90,6 +120,7 @@ export {
   slaBand,
   slaClock,
   slaLabelDescriptor,
+  slaPrecision,
   slaSortKey,
   slaTrackPercent,
   type SlaBand,

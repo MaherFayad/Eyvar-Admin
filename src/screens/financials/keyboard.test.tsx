@@ -114,22 +114,50 @@ describe('AC-450 — every interactive element declares a focus ring', () => {
          above did not quietly drop them. */
       expect(found.some((control) => control.getAttribute('role') === 'tab')).toBe(true)
 
-      const bare = found.filter((control) => {
-        const own = control.className ?? ''
-        /* A control may inherit the ring from a wrapper it is `asChild` of, so
-           the ancestor chain is checked too — three levels is enough for every
-           composition in this product and keeps a genuinely bare control from
-           hiding behind a distant parent. */
-        const ancestry = [control, control.parentElement, control.parentElement?.parentElement]
+      /**
+       * **The rule, corrected to what §7.2 / D20 actually says.**
+       *
+       * This used to require every control to *declare* a `focus-visible:` ring.
+       * That is a proxy, and it is the wrong one: `globals.css:1222` ships
+       * `:focus-visible { outline: 2px solid var(--ring) }` as the product
+       * default, and D20's sentence is *"components opt into a stronger one —
+       * **they never opt out**"*. A control that declares nothing is therefore
+       * **correct**, and is how `queues/cells.tsx` and `people/cells.tsx` have
+       * always written an identity link.
+       *
+       * The defect §7.2 names is `outline-none` **with no replacement**. So that
+       * is what is asserted: suppressing the default without declaring a ring.
+       * Under the old predicate, adding a link that relies on the default failed
+       * — while a control that killed the outline and declared a ring in a
+       * fourth-level ancestor passed. Both were the wrong answer.
+       */
+      const ancestryOf = (control: HTMLElement) =>
+        [control, control.parentElement, control.parentElement?.parentElement]
           .map((node) => (node?.className as string) ?? '')
           .join(' ')
-        return !/focus-visible:(ring|outline)/.test(`${own} ${ancestry}`)
+
+      const bare = found.filter((control) => {
+        const classes = ancestryOf(control)
+        const suppresses = /\boutline-none\b/.test(classes)
+        const declares = /focus-visible:(ring|outline)/.test(classes)
+        return suppresses && !declares
       })
 
       expect(
         bare.map((control) => control.textContent?.trim() || control.tagName),
-        `${name} has a control with no focus ring`,
+        `${name} has a control that suppresses the outline and declares no ring`,
       ).toEqual([])
+
+      /* **Non-vacuity**, because the predicate above can only fire on a control
+         that opts out: at least one swept control must actually be in the
+         opting-out family, or this sweep proves nothing. Every shadcn primitive
+         in `src/components/ui` ships `outline-none` plus its own ring, so this
+         holds on all three surfaces and fails loudly if the sweep ever stops
+         reaching real controls. */
+      expect(
+        found.some((control) => /\boutline-none\b/.test(ancestryOf(control))),
+        `${name}: nothing swept opts out of the default, so the rule was not exercised`,
+      ).toBe(true)
       unmount()
     }
   })

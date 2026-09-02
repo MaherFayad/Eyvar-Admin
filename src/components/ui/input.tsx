@@ -2,7 +2,8 @@
  * Input - restyled for Eyvar.
  *
  * Rules applied
- *   §10.2      `--ev-control-h` 28px (32px in Arabic), radius 8px, 1px
+ *   §10.2      `--ev-control-h` 32px (36px in Arabic — `globals.css:946`,
+ *              `:1112`), radius 8px, 1px
  *              `--ev-hairline`, WHITE fill, 10px inline padding, 13px value.
  *              ONE HEIGHT for input, select and combobox. The stock `h-8` and
  *              `text-base` are replaced; the transparent field fill becomes `bg-card`,
@@ -15,7 +16,17 @@
  *   §7.2 / D20 2px `--ev-blue` ring at 2px offset; THE FILL DOES NOT CHANGE on
  *              focus. `outline: none` with no replacement is a defect - 11
  *              occurrences in the legacy app, six inline inside JS templates.
- *   §4.6       disabled = `--ev-bg2` fill + hairline, and it means "not yet".
+ *   §4.6       disabled = `--ev-bg2` fill + hairline + `opacity-50`, and it
+ *              means "not yet".
+ *   §2.5       READ-ONLY IS NOT DISABLED, and the difference is load-bearing.
+ *              A read-only field keeps the `--ev-bg2` fill and the border but
+ *              its value stays at FULL INK, it stays focusable and it stays in
+ *              the assistive-technology tree. `disabled` greys the value and
+ *              drops out of some AT trees, which loses the operator the one
+ *              thing a frozen or in-flight field exists to protect (AC-562,
+ *              AC-563, AC-586). `AuthTextField` has no `disabled` prop at all
+ *              for this reason. Two carriers separate the two states: opacity,
+ *              and whether Tab reaches it.
  *              A DERIVED VALUE MUST NOT USE IT (§8.2.1) - a derived value has no
  *              box at all. Reusing this treatment for a computed field asks the
  *              border to mean two opposite things, and it resolves the wrong way.
@@ -49,7 +60,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive",
+        "h-control w-full min-w-0 rounded-lg border border-input bg-card px-2.5 py-1 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background read-only:bg-muted read-only:cursor-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50 aria-invalid:border-destructive",
         className
       )}
       {...props}

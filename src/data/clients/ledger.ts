@@ -14,23 +14,9 @@
  * cannot be faked, and changing a fixture changes the tile (AC-346, AC-423).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  journalEntryFixtures,
-  ledgerPostingFixtures,
-  outOfBalanceEntryFixture,
-  refusedPostingFixtures,
-} from '../fixtures/ledger'
-import {
-  captainDebtFixtures,
-  invoiceSequenceFixture,
-  paymentGatewayFixtures,
-  refundFixtures,
-  vatConfigFixture,
-} from '../fixtures/financials'
-import { riderFixtures } from '../fixtures/riders'
 import { ApiError, type Halalas, type LocalisedText, type Paginated } from '../types/common'
 import type { InvoiceSequence, PaymentGateway, VatConfig } from '../types/financials'
 import {
@@ -52,8 +38,41 @@ import {
   type TrialBalance,
 } from '../types/ledger'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { appendAudit } from './audit'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let journalEntryFixtures!: Fixtures['journalEntryFixtures']
+let ledgerPostingFixtures!: Fixtures['ledgerPostingFixtures']
+let outOfBalanceEntryFixture!: Fixtures['outOfBalanceEntryFixture']
+let refusedPostingFixtures!: Fixtures['refusedPostingFixtures']
+let captainDebtFixtures!: Fixtures['captainDebtFixtures']
+let invoiceSequenceFixture!: Fixtures['invoiceSequenceFixture']
+let paymentGatewayFixtures!: Fixtures['paymentGatewayFixtures']
+let refundFixtures!: Fixtures['refundFixtures']
+let vatConfigFixture!: Fixtures['vatConfigFixture']
+let riderFixtures!: Fixtures['riderFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  journalEntryFixtures = f.journalEntryFixtures
+  ledgerPostingFixtures = f.ledgerPostingFixtures
+  outOfBalanceEntryFixture = f.outOfBalanceEntryFixture
+  refusedPostingFixtures = f.refusedPostingFixtures
+  captainDebtFixtures = f.captainDebtFixtures
+  invoiceSequenceFixture = f.invoiceSequenceFixture
+  paymentGatewayFixtures = f.paymentGatewayFixtures
+  refundFixtures = f.refundFixtures
+  vatConfigFixture = f.vatConfigFixture
+  riderFixtures = f.riderFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  gatewayState = paymentGatewayFixtures.map((g) => ({ ...g }))
+})
 
 export const LEDGER_OPERATIONS = {
   postings: 'ledger.postings',
@@ -71,6 +90,13 @@ export const LEDGER_OPERATIONS = {
   invoiceSequence: 'ledger.invoiceSequence',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(LEDGER_OPERATIONS))
+
 /* ─────────────────── mutable mock state ─────────────────────── */
 
 /**
@@ -80,10 +106,14 @@ export const LEDGER_OPERATIONS = {
  */
 let sessionPostings: LedgerPosting[] = []
 let sessionEntries: JournalEntry[] = []
-let gatewayState: PaymentGateway[] = paymentGatewayFixtures.map((g) => ({ ...g }))
+let gatewayState!: PaymentGateway[]
 let outOfBalance = false
 
 export function resetLedger(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   sessionPostings = []
   sessionEntries = []
   gatewayState = paymentGatewayFixtures.map((g) => ({ ...g }))
@@ -605,7 +635,7 @@ export async function reversePosting(
       })
     }
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
 
     /* Held or authorised: release, no new posting, no money moved. */
     if (original.settlement === 'held' || original.settlement === 'authorised') {

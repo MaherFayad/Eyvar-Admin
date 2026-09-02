@@ -32,6 +32,13 @@ import {
 } from '@/lib/i18n/direction'
 import { createTranslator, type Dictionary, type Translator } from '@/lib/i18n/translate'
 import { defaultUiStore, UI_STATE_KEYS, type UiStateStore } from '@/lib/persistence'
+/* **D16 — the validator is what turns `defaultUiStore` into a cached store.**
+   Without one it stays the pre-D16 in-memory store, deliberately: caching an
+   unvalidated `JSON.parse` result means casting `unknown` to `T`, and the
+   half-parsed object then surfaces three screens away from the storage read
+   that produced it. A type guard is a pure function, so this import crosses no
+   layer the hook does not already cross for `@/data/types`. */
+import { isUiLanguage } from '@/data/clients/preferences'
 
 export interface LanguageState {
   language: Language
@@ -79,7 +86,7 @@ export function useLanguageState(options: UseLanguageStateOptions): LanguageStat
   const {
     initialLanguage,
     dictionaries,
-    store = defaultUiStore<Language>(UI_STATE_KEYS.language),
+    store = defaultUiStore(UI_STATE_KEYS.language, isUiLanguage),
     applyToDocument = true,
     document: doc,
   } = options

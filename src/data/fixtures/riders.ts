@@ -12,12 +12,43 @@
  *             render it without lying.
  *   RDR-4002  a long Arabic name, high churn risk, no trips
  *   RDR-4003  a corporate-account employee (the `corporateAccountId` link)
+ *
+ * `RDR-1042` … `RDR-1049` were **referenced by 80 % of the trip fixtures and by
+ * `CASH-0006` and did not exist**. They are real records now; the block above
+ * them says why that resolution was chosen over repointing the fillers.
+ *
+ * `fillerRiders` at the bottom takes the population to 55, which is what the
+ * riders index and Financials › Rider Wallets need to page at all.
+ *
+ * ## A lifetime total larger than the trips we hold is expected — not a defect
+ *
+ * `stats.totalTrips` is a **lifetime** figure; `fixtures/trips.ts` serves a
+ * 137-row **sample**. Most riders here therefore store a total the trip table
+ * cannot account for, and `clients/integrity.ts`'s `agree.aggregate-vs-records`
+ * reports each one. **That is the level mismatch, not a data fault**, and it is
+ * the same reading legacy itself settled on (`:20441`):
+ *
+ * > *"A gap is only an ALERT when the window itself is empty — that means a
+ * > failed import or a duplicate profile. A total larger than the window is
+ * > expected and must not shout, or the alert stops being read."*
+ *
+ * `RDR-1041` below is the worked example: 42 stored trips against a handful on
+ * file, and correct. Closing the gap honestly would need roughly five thousand
+ * trip rows; closing it by flattening the totals would corrupt real data to
+ * satisfy a check, which is the move `rebuildAllHistory()` (`:18605`) makes and
+ * that this layer refused to port.
+ *
+ * The half that **is** a fault is asserted, in `denormalisation.test.ts`: a
+ * non-zero `totalTrips` beside a `null` `lastTripAt`. `null` there is defined
+ * as *"has never taken a trip"*, so that pair is this layer contradicting its
+ * own field definition rather than describing a sample.
  */
 
 import { offsetFromNow } from '../mock/clock'
+import { cycle } from './cycle'
 import type { NewRider, Rider } from '../types/rider'
 
-export const riderFixtures: Rider[] = [
+const namedRiders: Rider[] = [
   {
     id: 'RDR-1041',
     name: 'Nora Al-Harbi',
@@ -51,7 +82,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: ['SUB-1041'],
     tripIds: ['TRP-7741'],
     paymentIds: ['PAY-5510'],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-350'],
     corporateAccountId: null,
   },
   {
@@ -125,7 +157,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: ['SUB-1052'],
     tripIds: ['TRP-9008'],
     paymentIds: ['PAY-5491', 'PAY-6008'],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-301'],
     corporateAccountId: null,
   },
   {
@@ -158,7 +191,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: [],
     tripIds: ['TRP-9005'],
     paymentIds: ['PAY-6010'],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-351'],
     corporateAccountId: null,
   },
   {
@@ -226,7 +260,16 @@ export const riderFixtures: Rider[] = [
     renewalRatePercent: 25,
     quickRides: 1,
     /* 13 lifetime trips, zero trip ids — the seeded contradiction at `:2622`. */
-    lastTripAt: null,
+    /**
+     * **A non-null last trip beside an empty `tripIds`.** The empty array is the
+     * preserved legacy contradiction; `lastTripAt` is not part of it. Legacy
+     * carries no such field (`DB.riders`, `:2593`–`:2632`) and
+     * `types/rider.ts` defines `null` as *"a rider who has never taken a
+     * trip"*, so `null` on a row with 13 recorded trips is this layer
+     * contradicting its own field definition — and it makes every
+     * `lastTripAt` sort and date filter wrong for the row.
+     */
+    lastTripAt: '2026-06-23T07:50:00+03:00',
     subscriptionIds: ['SUB-1075'],
     tripIds: [],
     paymentIds: [],
@@ -264,7 +307,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: ['SUB-1060'],
     tripIds: ['TRP-7735'],
     paymentIds: ['PAY-5480'],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-344'],
     corporateAccountId: null,
   },
   {
@@ -291,7 +335,16 @@ export const riderFixtures: Rider[] = [
     lifetimeValueHalalas: 12_250,
     renewalRatePercent: 30,
     quickRides: 0,
-    lastTripAt: null,
+    /**
+     * **A non-null last trip beside an empty `tripIds`.** The empty array is the
+     * preserved legacy contradiction; `lastTripAt` is not part of it. Legacy
+     * carries no such field (`DB.riders`, `:2593`–`:2632`) and
+     * `types/rider.ts` defines `null` as *"a rider who has never taken a
+     * trip"*, so `null` on a row with 8 recorded trips is this layer
+     * contradicting its own field definition — and it makes every
+     * `lastTripAt` sort and date filter wrong for the row.
+     */
+    lastTripAt: '2026-06-20T18:05:00+03:00',
     subscriptionIds: ['SUB-1052b'],
     tripIds: [],
     paymentIds: [],
@@ -322,11 +375,22 @@ export const riderFixtures: Rider[] = [
     lifetimeValueHalalas: 164_000,
     renewalRatePercent: 91,
     quickRides: 2,
-    lastTripAt: null,
+    /**
+     * **A non-null last trip beside an empty `tripIds`.** The empty array is the
+     * preserved legacy contradiction; `lastTripAt` is not part of it. Legacy
+     * carries no such field (`DB.riders`, `:2593`–`:2632`) and
+     * `types/rider.ts` defines `null` as *"a rider who has never taken a
+     * trip"*, so `null` on a row with 30 recorded trips is this layer
+     * contradicting its own field definition — and it makes every
+     * `lastTripAt` sort and date filter wrong for the row.
+     */
+    lastTripAt: '2026-06-18T14:20:00+03:00',
     subscriptionIds: [],
-    tripIds: [],
+    /* `TRP-9108` -- the cancelled leg behind `INC-019`. */
+    tripIds: ['TRP-9108'],
     paymentIds: [],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-322'],
     corporateAccountId: null,
   },
   {
@@ -354,7 +418,16 @@ export const riderFixtures: Rider[] = [
     lifetimeValueHalalas: 154_000,
     renewalRatePercent: 85,
     quickRides: 0,
-    lastTripAt: null,
+    /**
+     * **A non-null last trip beside an empty `tripIds`.** The empty array is the
+     * preserved legacy contradiction; `lastTripAt` is not part of it. Legacy
+     * carries no such field (`DB.riders`, `:2593`–`:2632`) and
+     * `types/rider.ts` defines `null` as *"a rider who has never taken a
+     * trip"*, so `null` on a row with 20 recorded trips is this layer
+     * contradicting its own field definition — and it makes every
+     * `lastTripAt` sort and date filter wrong for the row.
+     */
+    lastTripAt: '2026-06-11T20:15:00+03:00',
     subscriptionIds: [],
     tripIds: [],
     paymentIds: [],
@@ -424,7 +497,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: [],
     tripIds: [],
     paymentIds: [],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-380'],
     corporateAccountId: null,
   },
   {
@@ -459,7 +533,8 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: [],
     tripIds: [],
     paymentIds: [],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-343'],
     corporateAccountId: null,
   },
   {
@@ -493,11 +568,398 @@ export const riderFixtures: Rider[] = [
     subscriptionIds: [],
     tripIds: [],
     paymentIds: [],
-    complaintIds: [],
+    /* The complaint this rider filed, now that `fixtures/complaints.ts` holds it. */
+    complaintIds: ['CMP-372'],
     /* An employee on a corporate account — the link `corpForRider` walks (`:4910`). */
     corporateAccountId: 'CORP-002',
   },
+
+  /* ── RDR-1042 … RDR-1049: the eight riders the fillers already linked to ──
+     These ids were referenced by **106 of 132 trips (80 %)**, **53 of 70
+     subscriptions (76 %)** and `CASH-0006`, and none of them existed. Four in
+     five trip rows opened a 360° profile that 404s.
+
+     Two honest resolutions: invent eight riders, or repoint the fillers at the
+     thirteen that exist. **These eight are real records** because repointing
+     would have changed every trips-per-rider distribution the metric baselines
+     are derived against, and because `riderFixtures` at thirteen rows could not
+     page at `DEFAULT_PAGE_SIZE = 25` — the riders index and Rider Wallets were
+     both stuck on one page. One change, two findings.
+
+     Every one of them: `walletBalanceHalalas: 0`, because the wallet balance on
+     the index is read from the ledger's last settled posting
+     (`clients/wallets.ts:79`) and these riders have no postings. A non-zero
+     literal here would be a number the ledger cannot corroborate, which is the
+     defect `financials.test.ts:423` exists to catch. */
+  {
+    id: 'RDR-1042',
+    /* 47 characters, full Arabic naming convention. The rider-side counterpart
+       of DRV-0201 — bidirectional text in one column is the normal case. */
+    name: 'محمد بن عبد العزيز بن ناصر آل سعيّد الشمري',
+    phone: '+966 55 812 4409',
+    rating: 4.7,
+    tier: 'gold',
+    status: 'on-demand',
+    churnRisk: 'low',
+    joinedAt: '2025-09-01',
+    hasPhoto: true,
+    gender: 'Male',
+    driverGenderPreference: null,
+    city: 'Riyadh',
+    address: 'حي الياسمين، طريق أنس بن مالك، الرياض',
+    device: 'iPhone 15 Pro Max · iOS 17.5',
+    appLanguage: 'Arabic',
+    lastIp: '92.96.88.17',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2025-09-01', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 216,
+    lifetimeValueHalalas: 412_600,
+    renewalRatePercent: 96,
+    quickRides: 44,
+    lastTripAt: '2026-06-24T19:12:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1043',
+    name: 'Abdulrahman Al-Zahrani',
+    phone: '+966 56 118 9042',
+    /* Three trips and **nobody has rated him** — `null`, not 0. The rating
+       column has to render an em dash beside a non-zero trip count. */
+    rating: null,
+    tier: 'new',
+    status: 'on-demand',
+    churnRisk: 'medium',
+    joinedAt: '2026-06-08',
+    hasPhoto: false,
+    gender: 'Male',
+    driverGenderPreference: null,
+    city: 'Riyadh',
+    address: 'Al Izdihar District, Riyadh',
+    device: 'Samsung Galaxy A15 · Android 14',
+    appLanguage: 'Arabic',
+    lastIp: '46.31.60.140',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2026-06-08', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 3,
+    lifetimeValueHalalas: 4_820,
+    renewalRatePercent: null,
+    quickRides: 3,
+    lastTripAt: '2026-06-19T07:40:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1044',
+    name: 'Fatimah Al-Qurashi',
+    phone: '+966 50 334 6612',
+    rating: 4.1,
+    /* The only `bronze` rider besides RDR-4001 — the tier the badge palette has
+       a tone for and the data almost never reaches. */
+    tier: 'bronze',
+    status: 'on-demand',
+    churnRisk: 'medium',
+    joinedAt: '2026-02-01',
+    hasPhoto: true,
+    gender: 'Female',
+    driverGenderPreference: 'female',
+    city: 'Riyadh',
+    address: 'Al Rabwah District, Riyadh',
+    device: 'iPhone 12 mini · iOS 17.1',
+    appLanguage: 'Arabic',
+    lastIp: '185.45.22.71',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [
+      { at: '2026-02-01', action: 'Account registered', location: 'Riyadh, SA' },
+      { at: '2026-06-17', action: 'App opened', location: 'Riyadh, SA' },
+    ],
+    totalTrips: 34,
+    lifetimeValueHalalas: 41_900,
+    renewalRatePercent: 62,
+    quickRides: 34,
+    lastTripAt: '2026-06-17T16:05:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1045',
+    /* 34 characters of Latin text — long enough to break a name column without
+       any of the Arabic shaping that usually gets the blame for it. */
+    name: 'Youssef Abdelrahman El-Sayed Farag',
+    phone: '+966 59 002 7788',
+    rating: 3.4,
+    tier: 'silver',
+    status: 'on-demand',
+    churnRisk: 'high',
+    joinedAt: '2025-10-01',
+    hasPhoto: false,
+    gender: 'Male',
+    driverGenderPreference: null,
+    city: 'Riyadh',
+    address: 'Al Suwaidi District, Riyadh',
+    device: 'Oppo Reno 10 · Android 14',
+    appLanguage: 'English',
+    lastIp: '37.36.19.204',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2025-10-01', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 91,
+    lifetimeValueHalalas: 118_300,
+    renewalRatePercent: 38,
+    quickRides: 78,
+    lastTripAt: '2026-06-15T21:30:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1046',
+    /**
+     * **"Noura Al-Harbi", one letter from RDR-1041's "Nora Al-Harbi", and a
+     * different person.** `CASH-0006` carried this id with *Nora's* name on it
+     * — the denormalisation defect in its purest form, on a hand-written row
+     * rather than a generated one. Two near-identical names is the ordinary
+     * case in a city of five million, and search, disambiguation and the
+     * "are you sure this is the right rider?" moment all have to survive it.
+     */
+    name: 'Noura Al-Harbi',
+    phone: '+966 53 447 1902',
+    rating: 4.8,
+    tier: 'gold',
+    status: 'on-demand',
+    churnRisk: 'low',
+    joinedAt: '2025-12-01',
+    hasPhoto: true,
+    gender: 'Female',
+    driverGenderPreference: 'female',
+    city: 'Riyadh',
+    address: 'Al Malqa District, Riyadh',
+    device: 'iPhone 14 · iOS 17.4',
+    appLanguage: 'Arabic',
+    lastIp: '92.96.14.202',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 128,
+    lifetimeValueHalalas: 233_400,
+    renewalRatePercent: 88,
+    quickRides: 12,
+    lastTripAt: '2026-06-24T21:00:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1047',
+    name: 'Salman Al-Dossari',
+    phone: '+966 50 771 3355',
+    rating: 4.5,
+    tier: 'silver',
+    status: 'on-demand',
+    churnRisk: 'low',
+    joinedAt: '2026-01-15',
+    hasPhoto: false,
+    gender: 'Male',
+    driverGenderPreference: null,
+    city: 'Riyadh',
+    address: 'KAFD, Riyadh',
+    device: 'Pixel 7a · Android 14',
+    appLanguage: 'English',
+    lastIp: '92.96.14.78',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2026-01-15', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 57,
+    lifetimeValueHalalas: 96_400,
+    renewalRatePercent: 74,
+    quickRides: 9,
+    lastTripAt: '2026-06-23T08:15:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    /* A second employee on CORP-002, so the corporate profile's employee list
+       has more than one row and its "remove employee" case is reachable. */
+    corporateAccountId: 'CORP-002',
+  },
+  {
+    id: 'RDR-1048',
+    name: 'Maryam Al-Anazi',
+    phone: '+966 56 220 8134',
+    rating: 4.4,
+    tier: 'silver',
+    status: 'on-demand',
+    churnRisk: 'high',
+    joinedAt: '2025-08-01',
+    hasPhoto: false,
+    gender: 'Female',
+    driverGenderPreference: 'female',
+    city: 'Riyadh',
+    address: 'Al Shifa District, Riyadh',
+    device: 'Huawei nova 12 · HarmonyOS 4',
+    appLanguage: 'Arabic',
+    lastIp: '160.156.30.11',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [{ at: '2025-08-01', action: 'Account registered', location: 'Riyadh, SA' }],
+    totalTrips: 62,
+    lifetimeValueHalalas: 71_500,
+    renewalRatePercent: 20,
+    quickRides: 62,
+    /* Nine weeks since the last trip. The dormancy proxy
+       (`management.growth.dormantRiderShare`) is measured on rows like this
+       one, and until now the only dormant rows were riders with `null`. */
+    lastTripAt: '2026-04-19T18:22:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  },
+  {
+    id: 'RDR-1049',
+    name: 'Ali Al-Balawi',
+    phone: '+966 54 663 2077',
+    rating: 2.6,
+    tier: 'bronze',
+    status: 'on-demand',
+    churnRisk: 'high',
+    joinedAt: '2025-07-01',
+    hasPhoto: false,
+    gender: 'Male',
+    driverGenderPreference: null,
+    city: 'Riyadh',
+    address: 'Al Batha District, Riyadh',
+    device: 'Redmi 12C · Android 13',
+    appLanguage: 'Arabic',
+    lastIp: '46.31.11.4',
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [
+      { at: '2025-07-01', action: 'Account registered', location: 'Riyadh, SA' },
+      { at: '2026-06-21', action: 'Complaint filed', location: 'Riyadh, SA' },
+    ],
+    totalTrips: 45,
+    lifetimeValueHalalas: 38_900,
+    renewalRatePercent: null,
+    quickRides: 45,
+    lastTripAt: '2026-06-21T22:48:00+03:00',
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    /* **The only rider with more than one complaint.**
+       `management.churn.repeatComplaintRate` divides this population by the
+       whole rider base and, with nobody in it, has only ever read 0.0 %.
+       Complaint ids follow the established shape — legacy carries them as ids
+       on the party, with no complaints collection of their own (`:2597`). */
+    complaintIds: ['CMP-341', 'CMP-347'],
+    corporateAccountId: null,
+  },
 ]
+
+/**
+ * Volume rows for pagination — the riders index and Financials › Rider Wallets
+ * are the same population and both were stuck on one page at thirteen rows.
+ *
+ * **Built the paired way** (`cycle.ts`): the id, the name and the phone are all
+ * functions of the same `i` and are assembled in one object literal, so there
+ * is no second sequence to fall out of phase with the first.
+ *
+ * Two constraints that are not decoration:
+ *
+ *  - `walletBalanceHalalas: 0` on every row. The wallet index reads the balance
+ *    from the ledger, and these riders have no postings.
+ *  - `joinedAt` is never later than `2026-06-19`. `management.growth.newRiders`
+ *    is a measured **zero** for the current window (AC-606) and its baseline is
+ *    the three days before it; a filler that joined inside either window would
+ *    silently destroy the one measured-zero tile in the set.
+ */
+const FILLER_RIDER_GIVEN = ['Sultan', 'Danah', 'Rakan', 'Jawaher', 'Ziyad', 'Munirah', 'Talal']
+const FILLER_RIDER_FAMILY = [
+  'Al-Harthi',
+  'Al-Sudairi',
+  'Al-Rasheed',
+  'Al-Suwailem',
+  'Al-Nafisi',
+  'Al-Turki',
+  'Al-Fadhli',
+  'Al-Muhaideb',
+]
+const FILLER_RIDER_DISTRICTS = [
+  'Al Malqa',
+  'Hittin',
+  'Al Yasmin',
+  'Qurtubah',
+  'Al Nakheel',
+  'Olaya',
+  'Al Wurud',
+  'Al Rabwah',
+  'Al Sahafa',
+]
+
+export const fillerRiders: Rider[] = Array.from({ length: 34 }, (_, i) => {
+  const n = i + 1
+  const given = cycle(FILLER_RIDER_GIVEN, i)
+  const family = cycle(FILLER_RIDER_FAMILY, i)
+  const female = i % 3 === 1
+  const trips = 2 + ((i * 11) % 90)
+  return {
+    id: `RDR-5${String(100 + n).padStart(3, '0')}`,
+    name: `${given} ${family}`,
+    phone: `+966 5${i % 10} ${String(300 + n).padStart(3, '0')} ${String(4000 + n * 13).slice(-4)}`,
+    rating: i % 8 === 0 ? null : Number((3.2 + ((i * 3) % 18) / 10).toFixed(1)),
+    tier: i % 7 === 0 ? 'gold' : i % 5 === 0 ? 'bronze' : i % 2 === 0 ? 'silver' : 'new',
+    status: 'on-demand',
+    churnRisk: i % 4 === 0 ? 'high' : i % 3 === 0 ? 'medium' : 'low',
+    joinedAt: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}`,
+    hasPhoto: i % 2 === 0,
+    gender: female ? 'Female' : 'Male',
+    driverGenderPreference: female && i % 6 === 1 ? 'female' : null,
+    city: 'Riyadh',
+    address: `${cycle(FILLER_RIDER_DISTRICTS, i)} District, Riyadh`,
+    device: i % 2 === 0 ? 'iPhone 14 · iOS 17.4' : 'Samsung Galaxy A54 · Android 13',
+    appLanguage: i % 5 === 0 ? 'English' : 'Arabic',
+    lastIp: `92.96.${(i * 7) % 200}.${(i * 11) % 250}`,
+    ipLocation: 'Riyadh, SA',
+    walletBalanceHalalas: 0,
+    movementLog: [
+      {
+        at: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}`,
+        action: 'Account registered',
+        location: 'Riyadh, SA',
+      },
+    ],
+    totalTrips: trips,
+    lifetimeValueHalalas: 1_200 * trips + i * 90,
+    renewalRatePercent: i % 3 === 0 ? null : 25 + ((i * 9) % 70),
+    quickRides: Math.max(0, trips - (i % 12)),
+    lastTripAt: offsetFromNow({ days: -(i % 40), hours: -(i % 17), minutes: -(i % 51) }),
+    subscriptionIds: [],
+    tripIds: [],
+    paymentIds: [],
+    complaintIds: [],
+    corporateAccountId: null,
+  } satisfies Rider
+})
+
+/** 55 rows — three pages at the default 25, for the index and for Rider Wallets. */
+export const riderFixtures: Rider[] = [...namedRiders, ...fillerRiders]
 
 /**
  * New riders — legacy `DB.newRiders` (`:2744`–`:2748`), verbatim. A separate

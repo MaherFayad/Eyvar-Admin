@@ -22,27 +22,49 @@
  * names them, so a missing source is a compile error the day someone tries.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { allRequestFixtures } from '../fixtures/requests'
-import { assuranceTripFixtures } from '../fixtures/assurance'
-import { applicantFixtures } from '../fixtures/applicants'
-import { fairnessCaseFixtures } from '../fixtures/fairness'
-import { safetyIncidentFixtures } from '../fixtures/safety'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { WorkItem } from '../types/work'
 import { WORK_QUEUE_ROUTE, WORK_ROUTING } from '../types/work'
 import type { WorkQueueId } from '../types/workQueue'
 import type { RoleName } from '../types/session'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let allRequestFixtures!: Fixtures['allRequestFixtures']
+let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
+let applicantFixtures!: Fixtures['applicantFixtures']
+let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
+let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  allRequestFixtures = f.allRequestFixtures
+  assuranceTripFixtures = f.assuranceTripFixtures
+  applicantFixtures = f.applicantFixtures
+  fairnessCaseFixtures = f.fairnessCaseFixtures
+  safetyIncidentFixtures = f.safetyIncidentFixtures
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const WORK_OPERATIONS = {
   list: 'work.list',
   facets: 'work.facets',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(WORK_OPERATIONS))
 
 export interface WorkQuery extends QueryParams {
   queue?: WorkQueueId
@@ -277,7 +299,7 @@ const workShape: QueryShape<WorkItem> = {
     /* booleans */
     breached: (w) => w.breached,
     unclaimed: (w) => w.claim === null || w.claim.state !== 'claimed',
-    heldByMe: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === CURRENT_USER_ID,
+    heldByMe: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === currentMockUserId(),
     routedToMyRole: (w) => w.routedToMyRole,
     /** An item with no clock. Sorts last and is not a breach — §8.4's neutral band. */
     hasDeadline: (w) => w.dueAt !== null,
@@ -297,7 +319,7 @@ const workShape: QueryShape<WorkItem> = {
   facetable: ['queue', 'severity', 'entityType', 'slaSource', 'claimedBy'],
   views: {
     /* The three the route table declares (`fixtures/routeTable.ts:236`). */
-    mine: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === CURRENT_USER_ID,
+    mine: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === currentMockUserId(),
     unassigned: (w) => w.claim === null || w.claim.state !== 'claimed',
     everything: () => true,
 
@@ -305,9 +327,9 @@ const workShape: QueryShape<WorkItem> = {
   },
 }
 
-/** The role the mock scopes to. Reads the same `CURRENT_USER_ID` the claim logic does. */
+/** The role the mock scopes to. Reads the same signed-in session the claim logic does. */
 function currentRole(): RoleName {
-  return teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)?.role ?? 'Support'
+  return teamUserFixtures.find((u) => u.id === currentMockUserId())?.role ?? 'Support'
 }
 
 /**
@@ -384,7 +406,7 @@ export function myWorkBacklogSize(): number {
   return buildWorkItems(currentRole()).filter(
     (w) =>
       w.routedToMyRole &&
-      (w.claim === null || w.claim.state !== 'claimed' || w.claim.ownerId === CURRENT_USER_ID),
+      (w.claim === null || w.claim.state !== 'claimed' || w.claim.ownerId === currentMockUserId()),
   ).length
 }
 

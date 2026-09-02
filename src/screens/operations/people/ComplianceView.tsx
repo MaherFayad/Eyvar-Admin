@@ -36,7 +36,16 @@
  *              index table, so an expired document is neutral-toned and
  *              carries the word `Expired`. Raised as a finding: the type file
  *              suggests the marker and §8.4 does not grant it.
- *   §11.2      `Suspend` / `Reinstate` gate at render on `approve_drivers`.
+ *   §11.2      `Suspend` / `Reinstate` gate at render on `approve_drivers` -
+ *              **in the bulk bar as well as the row kebab.** Before P4-T1 the
+ *              two disagreed: the kebab checked `canWrite` and
+ *              `suspendedReason`, and the bulk bar checked nothing and ran
+ *              `askSuspend` regardless. Selecting an already-suspended captain
+ *              and using the bulk bar therefore suspended them a second time,
+ *              while the kebab on that same row was dead. One predicate now
+ *              answers for both - `suspendRefusal` / `reinstateRefusal` below -
+ *              and over a SET it refuses if **any** selected row would be
+ *              refused, naming how many of how many.
  *   §8.3.1     days-remaining is computed by the UI from `expiresOn` against a
  *              clock it is PASSED (`useNowIso`), never from a module-scope
  *              `Date.now()`, and never returned by the server.
@@ -62,10 +71,11 @@ import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell } from './cells'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { WORST_STATE } from './domain'
 import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
+import { setRefusal, type SetRefusal } from '../bulkRefusal'
 import { useNowIso } from './useNowIso'
 import { VIEW_CAPTAINS, type ViewChrome } from './views'
 
@@ -91,7 +101,7 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
 
   const data = useAsync<Paginated<DriverCompliance>>(
     (signal) => listDriverCompliance({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'compliance.list' },
   )
 
   /* The compliance row and the driver record hold the SAME fact — legacy
@@ -153,6 +163,52 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
     }
   }
 
+  /**
+   * **D21 over a set, and the rule is the strict one.**
+   *
+   * A bulk command is refused if **any** selected record would be refused on
+   * its own row; the refusal names the count in one of three sentences; there
+   * is no partial apply; and the way out is `Select only the N eligible`, which
+   * changes the SELECTION and not the command. Running on the eligible subset
+   * would silently drop records the operator picked and told nobody; refusing
+   * only when *every* target is ineligible would let the bulk bar act on a row
+   * the kebab refuses, which is the divergence this pass exists to remove.
+   *
+   * The same two functions answer for the row menu (`targets` of length 1) and
+   * for the bulk bar, so there is no single-record code path for them to
+   * disagree in. `setRefusal` supplies D21's shape, including the third
+   * sentence a hand-written predicate forgets.
+   */
+  const roleReason = canWrite ? null : t('people.action.noPermission')
+
+  function suspendRefusal(targets: readonly DriverCompliance[]): SetRefusal {
+    return setRefusal({
+      targets,
+      getId: (row) => row.driverId,
+      isBlocked: (row) => row.suspendedReason !== null,
+      roleReason,
+      blockedKeyPrefix: 'people.action.suspend.blocked',
+      t,
+      language,
+    })
+  }
+
+  /** The mirror. Reinstating a captain who is not suspended does nothing. */
+  function reinstateRefusal(targets: readonly DriverCompliance[]): SetRefusal {
+    return setRefusal({
+      targets,
+      getId: (row) => row.driverId,
+      isBlocked: (row) => row.suspendedReason === null,
+      roleReason,
+      blockedKeyPrefix: 'people.action.reinstate.blocked',
+      t,
+      language,
+    })
+  }
+
+  /** The selection as RECORDS, which is what both predicates take. */
+  const selected = rows.filter((row) => table.selectedIds.has(row.driverId))
+
   function askSuspend(ids: readonly string[]) {
     setConfirm({
       title:
@@ -161,12 +217,20 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
           : t('people.confirm.suspend.title.other', { count: formatCount(ids.length, language) }),
       body: t('people.confirm.suspend.body'),
       confirmLabel: t('people.confirm.suspend.confirm'),
+      /* **Not destructive, and this is the ruling not an omission.** DESIGN.md
+         names `deactivate` as the reversible case that MUST keep the ordinary
+         primary, `askReinstate` below is the inverse one click away, the body
+         says so in words - "You can reinstate them at any time" - and
+         `commands/captains.ts:275` reached the same answer independently
+         (`affordance: 'default'`). Red here would be R5a use #1 spent on a
+         recoverable act, which is what teaches operators to ignore it. */
+      destructive: false,
       reason: {
         label: t('people.confirm.suspend.reason'),
         help: t('people.confirm.suspend.reasonHelp'),
         message: t('people.confirm.suspend.reasonHelp'),
       },
-      onConfirm: (reason) => void runSuspend(ids, reason),
+      onConfirm: ({ reason }) => void runSuspend(ids, reason),
     })
   }
 
@@ -180,6 +244,8 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
             }),
       body: t('people.confirm.reinstate.body'),
       confirmLabel: t('people.confirm.reinstate.confirm'),
+      /* The undo of the act above. Nothing is lost and nothing leaves. */
+      destructive: false,
       onConfirm: () => void runReinstate(ids),
     })
   }
@@ -199,25 +265,54 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
         {...chrome}
         searchPlaceholder={t('people.search.compliance')}
         extraFilters={complianceExtraFilters(t)}
+        /* §11.2 / **AC-368** - `disabled` and `reason` are the SAME call, so a
+           dead control cannot lose its sentence on the way to the screen. The
+           row menu previously disabled both with no explanation at all. */
         rowActions={[
           {
             label: t('people.action.viewProfile'),
             onSelect: (row) => navigate(profileHref(row.driverId)),
+            /* **P0-2 — the declared row-click target.** `Suspend` and
+               `Reinstate` mutate, so neither may carry this. */
+            rowClick: true,
           },
           {
             label: t('people.action.suspend'),
             onSelect: (row) => askSuspend([row.driverId]),
-            disabled: (row) => !canWrite || row.suspendedReason !== null,
+            disabled: (row) => suspendRefusal([row]).refused,
+            reason: (row) => suspendRefusal([row]).reason,
           },
           {
             label: t('people.action.reinstate'),
             onSelect: (row) => askReinstate([row.driverId]),
-            disabled: (row) => !canWrite || row.suspendedReason === null,
+            disabled: (row) => reinstateRefusal([row]).refused,
+            reason: (row) => reinstateRefusal([row]).reason,
           },
         ]}
+        /* **The bulk bar asks the same two functions over the whole
+           selection.** It used to ask nothing and run `askSuspend` regardless
+           of `canWrite` or the row's own state. */
         bulkActions={[
-          { label: t('people.bulk.suspend'), onClick: (ids) => askSuspend([...ids]) },
-          { label: t('people.bulk.reinstate'), onClick: (ids) => askReinstate([...ids]) },
+          {
+            label: t('people.bulk.suspend'),
+            onClick: (ids) => askSuspend([...ids]),
+            disabled: suspendRefusal(selected).refused,
+            reason: suspendRefusal(selected).reason,
+            /* **D21's escape hatch.** The ids in the current selection this
+               command would accept — `DataTable` renders `Select only the N
+               eligible` and narrows the SELECTION, so the bar's count changes
+               before the command runs and the toast cannot name a different
+               number. Empty when every selected captain is blocked, and no
+               control renders then (AC-960). */
+            eligibleIds: suspendRefusal(selected).eligibleIds,
+          },
+          {
+            label: t('people.bulk.reinstate'),
+            onClick: (ids) => askReinstate([...ids]),
+            disabled: reinstateRefusal(selected).refused,
+            reason: reinstateRefusal(selected).reason,
+            eligibleIds: reinstateRefusal(selected).eligibleIds,
+          },
         ]}
         firstRun={{
           heading: t('people.empty.compliance.heading'),

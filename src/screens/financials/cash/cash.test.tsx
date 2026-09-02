@@ -433,7 +433,13 @@ describe('the captain debt index', () => {
     mount('/financials/cash?view=captain-debt-ledger')
     await waitFor(() => expect(screen.getByText('Ibrahim Diarra Coulibaly')).toBeTruthy())
 
-    const debts = await listCaptainDebts({ pageSize: 100 })
+    /* **The screen's own page, not `pageSize: 100`.** This read used to fetch a
+       hundred rows and then assert every one of them was on screen; the debt
+       fixture has since grown past one page, so the loop below started looking
+       for a captain the table had correctly not rendered. A test that compares
+       a screen against a *different* query than the screen ran is asserting the
+       fixture's size, not the screen's behaviour. */
+    const debts = await listCaptainDebts({ view: 'captain-debt-ledger' })
     const overCap = debts.items.filter((each) => each.balanceHalalas >= each.capHalalas)
     const underCap = debts.items.filter((each) => each.balanceHalalas < each.capHalalas)
     expect(overCap.length).toBeGreaterThan(0)
@@ -528,5 +534,235 @@ describe('AC-432 — no Financials surface renders a `0` badge', () => {
     )
     expect(zeroCell).toBeTruthy()
     expect(zeroCell?.querySelector('[data-slot="badge"]')).toBeNull()
+  })
+})
+
+/* ═══════════ the view filter is actually applied — a regression ═══════════ */
+
+/**
+ * **DEFECT §4.6-1, fixed 2026-09-01.** The three money surfaces called their
+ * client as `list({ view: activeTab, ...table.params })`. `table.params` carries
+ * its own `view`, which is `null` on any screen that declares no `initialView`
+ * — so the spread **overwrote the tab with null** and every view rendered the
+ * unfiltered set. `Over cap` showed all five captains; one was over the cap.
+ *
+ * Nothing caught it, and the reason is worth stating: every existing assertion
+ * in this file either reads the client directly (where the filter always
+ * worked) or mounts the **default** view, where "unfiltered" and "correct"
+ * happen to coincide. The bug lived in exactly the gap between the two.
+ *
+ * So this test mounts a **non-default** view and compares the rows on screen to
+ * the rows the client returns for that view — the two halves that were never
+ * joined. The subset assertion below is what makes it non-vacuous: if `over-cap`
+ * and `all` returned the same rows, this test would pass over the broken code.
+ */
+describe('a non-default view filters the rows it renders', () => {
+  it('the `over-cap` view shows the over-cap captains and no others', async () => {
+    /* Both reads use the screen's default page size for the same reason AC-380
+       above does: the assertions below compare what the client returns against
+       what the table rendered, and the two are only comparable when the query
+       is the same one. `pageSize: 500` made this test grow a false failure the
+       moment the fixture passed a page. */
+    const [all, overCap] = await Promise.all([
+      listCaptainDebts({ view: 'captain-debt-ledger' }),
+      listCaptainDebts({ view: 'over-cap' }),
+    ])
+
+    /* Non-vacuity, asserted before the screen is touched: the view has to
+       actually exclude somebody, or rendering "everything" would pass. */
+    expect(overCap.total, 'the over-cap view is a proper subset').toBeLessThan(all.total)
+    expect(overCap.total, 'and it is not empty').toBeGreaterThan(0)
+
+    mount('/financials/cash?view=over-cap')
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(1))
+
+    for (const debt of overCap.items) {
+      expect(screen.queryByText(debt.captainName), `${debt.captainName} is over cap`).toBeTruthy()
+    }
+    const excluded = all.items.filter(
+      (each) => !overCap.items.some((over) => over.captainId === each.captainId),
+    )
+    expect(excluded.length).toBeGreaterThan(0)
+    for (const debt of excluded) {
+      expect(
+        screen.queryByText(debt.captainName),
+        `${debt.captainName} is under the cap and must not render on the over-cap view`,
+      ).toBeNull()
+    }
+  })
+})
+
+
+/* ═════════ P4-T1 / §9.3 — one bulk command on the queue, none on the index ═════════ */
+
+/**
+ * **The rule this block holds, and the two halves of it.**
+ *
+ * §9.3: a queue carries a checkbox column *"only if every bulk action offered
+ * is a claim or assign action"*, and `design/00-shell.md` §9.3 in the same
+ * table: ***"Bulk disposition must not ship."*** So the reconciliation queue
+ * offers `Claim` and nothing else, and the captain debt index — whose only act
+ * is a **partial** repayment against one balance (**AC-379**) — offers no bulk
+ * command and therefore has no checkbox at all.
+ *
+ * Both halves are asserted, because the presence test alone would pass against
+ * a screen that put checkboxes on everything.
+ */
+
+async function selectReport(user: ReturnType<typeof userEvent.setup>, id: string) {
+  const box = rowFor(id).querySelector('input[type="checkbox"], [role="checkbox"]')
+  if (!box) throw new Error(`No selection checkbox on the row for ${id}`)
+  await user.click(box)
+}
+
+function bulkBar(): HTMLElement {
+  return screen.getByRole('group', { name: /selected/i })
+}
+
+const CLAIM = EN['queue.claim'] as string
+
+describe('P4-T1 — the reconciliation queue claims in bulk, and does nothing else in bulk', () => {
+  it('the queue carries a checkbox column and the debt index does not', async () => {
+    const queue = mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+    expect(
+      screen.getByRole('checkbox', { name: EN['table.selectAll'] as string }),
+      'the queue offers bulk claim, so §9.3 permits the column',
+    ).toBeTruthy()
+    queue.unmount()
+
+    /* The other half, on the same route: no bulk command, so no column. */
+    mount('/financials/cash?view=captain-debt-ledger')
+    await waitFor(() => expect(screen.getByText('Khalid Mansour')).toBeTruthy())
+    expect(
+      screen.queryAllByRole('checkbox'),
+      'a partial repayment is not a set command, so there is nothing to select for',
+    ).toHaveLength(0)
+  })
+
+  /**
+   * ***"Bulk disposition must not ship."*** The bar's whole command list is
+   * enumerated rather than checked for the absence of `Resolve`, so a third
+   * command added later fails this rather than slipping past it.
+   */
+  it('the bar offers Claim and nothing else — no bulk Resolve, no bulk Escalate', async () => {
+    const user = userEvent.setup()
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+    await selectReport(user, 'CASH-0001')
+
+    const commands = within(bulkBar())
+      .getAllByRole('button')
+      .map((control) => control.textContent?.trim())
+    expect(commands).toEqual([CLAIM, EN['table.clear']])
+  })
+
+  /**
+   * **D21 over a queue.** A report already claimed by this operator is refused
+   * — not silently skipped, which would be the partial apply the ruling rules
+   * out — and the sentence names how many of the selection carry it.
+   */
+  it('a report already held by this operator refuses the whole set, naming the count', async () => {
+    const user = userEvent.setup()
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+
+    /* Construct the blocked state from domain state, not from `canWrite`:
+       claim one row through its own control first. */
+    await user.click(within(rowFor('CASH-0001')).getByRole('button', { name: CLAIM }))
+    await waitFor(() =>
+      expect(within(rowFor('CASH-0001')).getByRole('button', { name: EN['queue.release'] as string })).toBeTruthy(),
+    )
+
+    const pending = await listCashReports({ view: 'reconciliation-queue', pageSize: 100 })
+    const other = pending.items.find((each) => each.id !== 'CASH-0001' && each.status === 'pending')
+    expect(other, 'a second claimable report exists').toBeTruthy()
+
+    await selectReport(user, 'CASH-0001')
+    await selectReport(user, other!.id)
+
+    const claim = within(bulkBar()).getByRole('button', { name: CLAIM })
+    expect(claim).toBeDisabled()
+    expect(
+      screen.getByText((EN['fin.bulk.claim.mine.other'] as string).replace('{count}', '1')),
+    ).toBeTruthy()
+
+    /* **AC-959** — the escape hatch narrows to the one that is still claimable,
+       and claiming then acts on exactly that. */
+    await user.click(screen.getByRole('button', { name: 'Select only the 1 eligible' }))
+    expect(bulkBar().getAttribute('aria-label')).toContain('1')
+    await user.click(within(bulkBar()).getByRole('button', { name: CLAIM }))
+
+    await waitFor(async () => {
+      const after = await listCashReports({ pageSize: 100 })
+      expect(after.items.find((each) => each.id === other!.id)?.claim?.state).toBe('claimed')
+    })
+  })
+
+  /** A clean set claims every report in it, through the real client. */
+  it('claiming a clean selection claims every report in it', async () => {
+    const user = userEvent.setup()
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+
+    const before = await listCashReports({ view: 'reconciliation-queue', pageSize: 100 })
+    const claimable = before.items.filter((each) => each.status === 'pending' && each.claim === null)
+    expect(claimable.length, 'two unclaimed reports exist').toBeGreaterThan(1)
+    const targets = claimable.slice(0, 2)
+
+    for (const target of targets) await selectReport(user, target.id)
+    expect(within(bulkBar()).getByRole('button', { name: CLAIM })).toBeEnabled()
+    await user.click(within(bulkBar()).getByRole('button', { name: CLAIM }))
+
+    await waitFor(async () => {
+      const after = await listCashReports({ pageSize: 100 })
+      for (const target of targets) {
+        expect(
+          after.items.find((each) => each.id === target.id)?.claim?.state,
+          `${target.id} is claimed`,
+        ).toBe('claimed')
+      }
+    })
+  })
+})
+
+/* ═══════════ P8-T1 — the captain name opens the captain ═══════════ */
+
+describe('P8-T1 — a cash row names a captain, and the name opens them', () => {
+  it('the queue and the debt index both link the captain to the 360° profile', async () => {
+    /* `getAllBy…` on purpose: the queue holds more than one report against the
+       same captain, and every one of them must carry the link. */
+    for (const view of ['reconciliation-queue', 'captain-debt-ledger']) {
+      const { unmount } = mount(`/financials/cash?view=${view}`)
+      await waitFor(() => expect(screen.getAllByText('Khalid Mansour').length).toBeGreaterThan(0))
+
+      const links = await screen.findAllByRole('link', {
+        name: (EN['fin.a11y.openProfile'] as string).replace('{name}', 'Khalid Mansour'),
+      })
+      expect(links.length, `${view} links every mention`).toBeGreaterThan(0)
+      for (const link of links) {
+        expect(link.getAttribute('href'), `${view} links the captain`).toContain('entity=DRV-0103')
+        /* The MONEY view is a separate, labelled control and the name is not it. */
+        expect(link.getAttribute('href')).not.toContain('captain=')
+      }
+      unmount()
+    }
+  })
+
+  /**
+   * The receivable ledger is still reachable, from its own control — the split
+   * this screen makes deliberately. Without this, the test above would be
+   * consistent with having lost the ledger entirely.
+   */
+  it('and the receivable ledger still opens from its own labelled control', async () => {
+    const user = userEvent.setup()
+    mount('/financials/cash?view=captain-debt-ledger')
+    await waitFor(() => expect(screen.getAllByText('Khalid Mansour').length).toBeGreaterThan(0))
+
+    const row = screen.getAllByText('Khalid Mansour')[0]?.closest('tr') as HTMLElement
+    await user.click(
+      within(row).getByRole('button', { name: EN['fin.debt.action.ledger'] as string }),
+    )
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
   })
 })

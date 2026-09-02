@@ -192,6 +192,36 @@ export const notificationFixtures: Notification[] = [
     entityId: 'ALR-1',
     entityType: 'alert-rule',
   },
+  {
+    /**
+     * **`success` — the tenth `NotificationType`, and the first row to reach
+     * it.** `notifIcon` covers ten types (`:2171`) and nine had a seed;
+     * `success` had none, so the `success` filter matched nothing, its icon had
+     * never rendered, and §8.3's four-tone notification list was three-tone in
+     * practice.
+     *
+     * It is the only *good news* row in the set — every other notification is a
+     * problem — which matters for the list's visual rhythm: a panel where every
+     * row is a warning teaches an operator to stop reading it.
+     *
+     * **`read: true`, deliberately.** The unread count drives a badge that
+     * `clients/notifications.ts` summarises and other fixtures reason about; a
+     * new unread row would move a number this fixture does not own.
+     * `notificationFixturesAllRead` still reaches the all-read state, and the
+     * unread population is unchanged.
+     */
+    id: 'N12',
+    type: 'success',
+    priority: 'low',
+    title: 'Payout run completed — 24 Jun',
+    body: '38 captains paid, 902.40 SAR released. One payout reversed (PO-0007).',
+    createdAt: offsetFromNow({ days: -1, hours: -3 }),
+    read: true,
+    /* The payouts sub-tab, at the period the run covered. */
+    route: '/financials/payouts',
+    entityId: 'PO-0007',
+    entityType: 'payout',
+  },
 ]
 
 /** The `notif-unread-zero` state (§8.3): **no badge, not a `0`**. Reached without hand-editing. */

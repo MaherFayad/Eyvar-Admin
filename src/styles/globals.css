@@ -22,8 +22,19 @@
        one disagree, the declared value wins**, and the comment beside the
        token says `[css]`. Sampling still owns geometry and anything undeclared.
 
+   ...and ONE AMENDMENT ON TOP OF D7, ruled during remediation:
+     docs/05-restructure/design/13-plane-refresh.md   **PHASE 1 — THE BRAND.**
+       `--primary` is BRAND GREEN #0C6944, not near-black; `--ring` and
+       `--chart-series` come off blue onto the same stop. This **amends D7
+       §1.2** and the amendment is recorded in DECISIONS.md under D7. R3 stays
+       killed and D-1 stays void — primary did not go back to blue. Doc 13
+       §1.2's ratio of 8.42:1 is WRONG; it is 6.731:1, recomputed at
+       `--ev-brand`. Reversible by pointing `--primary` back at `--ev-ink`.
+
    WHAT D7 CHANGED, in one breath: every colour value; the primary action is
-   NEAR-BLACK, not blue (R3 is killed, D-1 is void); the typeface is INTER, not
+   NEAR-BLACK, not blue (R3 is killed, D-1 is void — **and see the brand
+   amendment above: near-black has since been replaced by brand green, which
+   is a different change from the one D7 forbade**); the typeface is INTER, not
    Geist; there is no grey canvas — the ladder is content #FFFFFF over nav and
    strips #F6F8F9, i.e. the nav is the DARKER surface and the tonal direction
    does NOT invert; both nav seams get their 1px hairline BACK (D6 bullet 2 is
@@ -197,14 +208,80 @@
    error instead of a no-op. */
 @custom-variant dark (&:is(.dark *));
 
-/* THE one responsive variant in the product. Design spec §0.1: "There is no
-   second breakpoint anywhere in the product. If a screen needs one, that is a
-   finding against this document, not a local decision." Its three uses are
-   fixed: the sub-tab list's first-run default (§3.3), the detail right-rail
-   drop (§7.2), and the metric-tile grid (§0.1). See the note beside
-   `--breakpoint-*: initial` below for why this is a variant and not a
-   breakpoint token. */
+/* ── §0.1 AS AMENDED, 2026-09-02. THE PRODUCT NOW HAS TWO BREAKPOINTS. ─────
+   §0.1 read: *"There is no second breakpoint anywhere in the product. If a
+   screen needs one, that is a finding against this document, not a local
+   decision."* The finding was raised and the owner ruled on it: *"PWA should
+   work whenever I refresh in mobile dimensions by default."*
+
+   What that rule was actually protecting is still protected, and it is worth
+   being precise about which half survives:
+     THE HALF THAT IS RETIRED — "there is exactly one".  There are two.
+     THE HALF THAT BINDS, UNCHANGED — **a screen may not mint its own.** Both
+     breakpoints are declared here, as named variants, and `--breakpoint-*`
+     stays `initial` below so the rest of Tailwind's scale cannot appear. A
+     third one is still a finding against this file, not a local decision.
+
+   The defect that forced it: `index.html` shipped `width=1280` as its viewport,
+   which a phone honours literally — a 390pt screen laid out at 1280px and
+   scaled to 0.305x, putting 14px body text at about 4.3pt of rendered type.
+   Nothing broke; it shrank. Every screen was technically present and none of
+   it was readable, which is the worst of the failure modes because no test
+   sees it. The tag is fixed; these variants are what a screen uses to respond
+   to it. -------------------------------------------------------------------- */
+
+/* THE WIDE VARIANT — unchanged. Its three uses are fixed: the sub-tab list's
+   first-run default (§3.3), the detail right-rail drop (§7.2), and the
+   metric-tile grid (§0.1). See the note beside `--breakpoint-*: initial`
+   below for why this is a variant and not a breakpoint token. */
 @custom-variant wide (@media (min-width: 1344px));
+
+/* THE COMPACT VARIANT — the mobile shell, below 768px. Paired with
+   `--ev-bp-compact` on `:root`, which JS reads; the two move together or the
+   layout and the runtime disagree, exactly as with the wide pair.
+
+   ── THREE THINGS ABOUT IT ARE DELIBERATE. ──────────────────────────────────
+   **(1) IT IS A max-width QUERY, NOT A MIN-WIDTH ONE, AND THE PRODUCT STAYS
+   DESKTOP-FIRST.** Mobile-first is the better default for a product being
+   written now; this one is written. Nineteen index screens, a three-column
+   shell and a nine-column table are all authored for 1280 and up, and
+   inverting the base would mean re-deriving every one of them rather than
+   adding a mobile shell to them. So the unprefixed class stays the desktop
+   answer and `compact:` overrides below 768. It also means the invariant the
+   old §0.1 was enforced with survives literally: **there is still exactly ONE
+   `@media (min-width:)` in `dist`**, and it is still the wide one.
+
+   **(2) THE BOUNDARY IS RANGE SYNTAX, NOT AN EPSILON.** `(width < 768px)`
+   rather than `(max-width: 767.98px)`. A phone at 767.5 CSS px — which a
+   fractional device-pixel-ratio produces — matches neither `max-width: 767px`
+   nor `min-width: 768px`, and that dead zone is a real rendering bug that is
+   invisible on every device a reviewer owns. The range form has no boundary to
+   get wrong. Baseline is Chrome 104 / Firefox 63 / Safari 16.4, all at or
+   below Tailwind v4's own floor of Chrome 111 / Safari 16.4, so it costs
+   nothing in support.
+
+   **WHAT IT COMPILES TO, AND A WARNING FOR WHOEVER GREPS FOR BREAKPOINTS.**
+   Lightning CSS emits this as `not all and (min-width:768px)` — the exact
+   negation, still with no epsilon, and the build was checked rather than
+   assumed. So `dist` contains the SUBSTRING `min-width:768px` while containing
+   no second min-width BREAKPOINT: the only unnegated one is still 1344. A
+   check that counts occurrences of the substring will now report two and be
+   wrong. Count `@media(min-width:` at the start of a query, not `min-width`
+   anywhere. Do not "fix" this by rewriting the variant as `max-width:
+   767.98px` to make a grep happy — that reintroduces the dead zone the range
+   form exists to close.
+
+   **(3) 768, AND IT IS A DEVICE BOUNDARY RATHER THAN A ROUND NUMBER.** It is
+   the point below which the three-column shell cannot be laid out at all:
+   the rail is 80 and the sub-tab column 224, which is 304px of chrome before
+   any content, and §7.3 needs 910px of table beside it. It is also the
+   portrait width of every tablet in the iPad line (768 / 810 / 820 / 834) —
+   so a portrait tablet is the SMALLEST device that still gets the desktop
+   shell, and every phone in portrait (390 / 393 / 402 / 430) is comfortably
+   below it. Landscape phones (844 / 852 / 932) stay on the desktop shell,
+   which is correct: they have the width and lack the height, and height is
+   not what this breakpoint is about. */
+@custom-variant compact (@media (width < 768px));
 
 /* ==========================================================================
    1. --ev-* — the Eyvar tokens. THE source of truth.
@@ -481,6 +558,14 @@
        on --ev-surface  #ffffff   3.441 : 1   PASS
        on --ev-bg2      #f6f8f9   3.231 : 1   PASS  (a checkbox in a tinted row)
        on --ev-bg-nav   #f6f8f9   3.231 : 1   PASS  (the same declared tint)
+       on --ev-row-critical           #fff7f6   3.259 : 1   PASS
+       on --ev-row-critical-emphasis  #fef0ee   3.099 : 1   PASS
+     The last two were ADDED with the breached-row grounds, and the second of
+     them is the reason that ground stops where it does: this token is what
+     PINS the dark end of the red tint band. One shade past #feecea (3.015)
+     the checkbox in a breached row's select cell drops below 3:1 and R19
+     fails silently, with nothing on screen to show it. See
+     --ev-row-critical-emphasis for the walk.
      #8c95a3 was tried first and fails on two of the three (2.816, 2.889).
      Stays lighter than --ev-text-2 (3.231 vs 4.538 on the worst ground) so it
      cannot be read as a text colour. It has NO counterpart in the reference's
@@ -540,14 +625,53 @@
      Retiring this token is a separate, deliberate change. a11y.md. */
   --ev-text-3: #9ca3b0;
 
+  /* ── H5 · THE INK AXIS IS TWO RUNGS AND CANNOT BE THREE. ────────────────
+     Recorded here once so the next hierarchy round does not re-derive it, and
+     does not reach for --ev-text-3 to make a third tier. Ratios recomputed
+     independently of the comments above; they agree to three decimals.
+
+       ink            on #ffffff  on #f6f8f9  on #e9edf1   verdict
+       --ev-ink       17.411      16.344      14.798       the display rung
+       --ev-text-2     4.834       4.538       4.109       the muted rung
+       --ev-text-3     2.536       2.381       2.156       not a text colour
+
+     **THERE IS NO ROOM BELOW --ev-text-2.** It clears 4.5 by 0.334 on white
+     and by **0.038** on the tinted ground it must also clear, which is the
+     binding case. Any ink lighter than it fails AA on that tint, and §7.1.1
+     gives no 3:1 large-text tier to fall back on. So a third tier CANNOT be
+     bought with a lighter grey, and the hierarchy has to come from size and
+     weight — which is why H5 spent its whole budget on the size ramp.
+
+     The room that does exist is ABOVE --ev-text-2, in the 4.834-to-17.411 gap
+     — the reference itself runs two dark rungs there (`text-default` #384252
+     at 10.148 on white, 9.527 on the tint) where we run one. Taking it is not
+     a token edit: --foreground is both the body default and the title colour,
+     and splitting them means a new slot plus a decision at each of the 333
+     live `text-foreground` sites. **A token declared here for that would have
+     no consumer, and this file's own rule is that a step with no consumer
+     drifts.** So it is measured, not declared. */
+
   /* --- Accent. §1.3. ---------------------------------------------------- */
   /* M — sampled EXACTLY, twice, over 3 550px of flat bar fill in `04592c4f`.
-     ITS ROLES ARE: THE FOCUS RING, THE CHART SERIES, SELECTION, AND A LINK ON
-     WHITE ONLY. **It is NOT the primary-action fill.** D-1 is void and R3 is
-     killed: 4.574:1 on white is AA text on white and nothing else — 4.259 on
-     #f5f7f9 and 4.006 on #eaf0fe both FAIL. As a non-text object (the 2px
-     focus ring) it passes everywhere: 4.574 white, 4.259 --ev-bg2, 4.369 nav,
-     3.807 on --primary itself. */
+     **ITS ROLE LIST SHRANK TO ONE UNDER THE BRAND RULING (Phase 1 of
+     `13-plane-refresh.md`).** It was the focus ring, the chart series,
+     selection and a link on white. --ring and --chart-series/-comparison have
+     moved to --ev-brand; what is left is the INFO tone, which reaches the
+     product through --ev-blue-lt and --ev-blue-dk below, and a link on white
+     through --ev-blue-dk.
+
+     **--ev-blue ITSELF NOW HAS NO SLOT IN LAYER 2, AND IT IS KEPT ANYWAY** —
+     the --ev-text-3 reason: deleting a name is a rename, and it is still the
+     parent of the two blues that ARE consumed, so retiring it would leave
+     --ev-blue-lt and --ev-blue-dk as orphan literals with no family. It is
+     NOT a licence to reach for blue: a component that wants it wants
+     --tone-info, and if --tone-info is wrong the answer is a ruling, not this
+     token.
+
+     It was never the primary-action fill and still is not: 4.574:1 on white
+     is AA text on white and nothing else — 4.259 on #f5f7f9 and 4.006 on
+     #eaf0fe both FAIL. (D-1 remains void; R3 remains killed. The primary
+     action did not go back to blue, it went to green.) */
   --ev-blue: #2b6ef0;
   --ev-blue-lt: #eaf0fe; /* D — --ev-blue at 10% on white. Cross-check: the
                             measured chart area fill is #F0F5FA / #ECF2FB
@@ -559,9 +683,134 @@
      --ev-blue cannot carry 13px text on a tint. */
   --ev-blue-dk: #1b51c4;
 
-  --ev-green: #15653c; /* D — success label. --ev-green-lt 6.351, white 7.098 */
+  /* --- THE BRAND. `13-plane-refresh.md` Phase 1, §0.4, §1.1, §1.2. --------
+     **THIS AMENDS D7 §1.2.** The ruling doc 13 was blocked on has been made
+     during remediation: brand green replaces near-black as --primary. The
+     amendment is recorded in `docs/05-restructure/DECISIONS.md` under D7, and
+     it is reversible by reverting this token and the four layer-2 lines that
+     read it — no component changes, which is the entire argument for the
+     token discipline.
+
+     NOT EYEDROPPED — the brand's own AUTHORED axis. `eyvar.com/en` declares
+     `--brand-hue: 156 / --brand-saturation: 80% / --brand-lightness: 37%`
+     (-> #13AA6D) and spends **#0C6944** on ten inline uses and on the whole
+     `logo2.svg` wordmark stroke. #0C6944 is that axis's dark stop.
+     Recomputed here rather than carried over: rgb(12 105 68) -> hsl
+     **156.1 / 79.5% / 22.9%**, which is the extraction to a decimal place.
+
+     **CORRECTION — DOC 13 §1.2's RATIO IS WRONG BY A THIRD.** It states white
+     on #0C6944 = 8.42:1 and "clears AAA". From relative luminance:
+       L(#0C6944) = 0.2126(0.003672) + 0.7152(0.141315) + 0.0722(0.057805)
+                  = 0.10601
+       (1.0 + 0.05) / (0.10601 + 0.05) = **6.731 : 1**
+     6.731 clears the product's target — WCAG 2.2 **AA**, 4.5:1, per
+     `docs/ref/a11y.md` — with margin, and it does NOT clear AAA. Do not cite
+     8.42 again.
+
+     WHAT IT COSTS, STATED PLAINLY: --primary-foreground on --primary falls
+     from 17.411:1 (white on --ev-ink) to 6.731:1. AA is the binding level and
+     no §7 rule asks for AAA, so this is a spend rather than a defect — but it
+     is the largest single ratio reduction in the re-brand, so it is written
+     down here instead of being discovered by an audit later.
+
+     THE FOUR RAMP STOPS DOC 13 §1.1 LISTS THAT ARE **NOT** DECLARED, AND WHY
+     — a value with no consumer is a value that drifts, and this file's own
+     exception (--ev-drawerhead-h) was licensed by a spec item NAMING its
+     future consumer, which none of these have:
+       -900 #03160F  a SECOND near-black. --ev-ink owns that role at hue 222;
+                     two near-blacks is how a ramp starts disagreeing with
+                     itself, and D7 already spent a paragraph killing an
+                     off-hue ink.
+       -300 #9EDDC4  the MINT, for a dark ground. **There is no dark ground**
+                     — see `@custom-variant dark` at the head of this file —
+                     and Phase 1.5's wordmark is not vendored.
+       -500 #13AA6D  the axis midpoint. **3.001 : 1 on white**: it clears the
+                     3:1 non-text floor by one thousandth. It cannot be the
+                     ring, it cannot be a mark, it cannot be anything.
+       -50 / -100    the pale tints. They land within dE76 ~2 of --ev-green-lt
+                     — the exact collision the block below exists to prevent.
+                     --ev-brand-lt is derived instead, by the method
+                     --ev-blue-lt already used, and it has consumers.
+     A fifth stop needs a consumer named in a spec, not a place in a ramp. */
+  --ev-brand: #0c6944;
+
+  /* D — --ev-brand at 10% on white, EXACTLY the method --ev-blue-lt used, so
+     the chart's area fill moves with its series instead of leaving a green
+     line over a blue wash:
+       0.10 x rgb(12 105 68) + 0.90 x rgb(255 255 255) = rgb(231 240 236)
+     = **#e7f0ec**, 1.162 : 1 on white (--ev-blue-lt was 1.142 — the wash
+     keeps its weight, so §3.7's "very pale area fill" is unchanged).
+
+     THE SERIES READS BETTER ON IT THAN THE OLD PAIR DID:
+       --ev-brand on --ev-brand-lt   **5.793 : 1**
+       --ev-blue  on --ev-blue-lt      4.006 : 1   (what this replaces)
+
+     TWO LIVE CONSUMERS: --chart-fill, and any `bg-primary/10` chip a
+     component paints — --ev-brand on it is 5.793:1, AA even at 11px.
+
+     dE76 to --ev-green-lt is **4.05**. That is a real but small distance
+     between two PALE WASHES and it is accepted rather than hidden: an area
+     fill always carries a line and a success badge always carries a label,
+     so under §7.5's two-carrier rule neither is ever the only thing telling
+     them apart. If it has to widen later, widen THIS token — --ev-green-lt
+     is a D7 measurement and --ev-brand is the brand; neither of those moves
+     for a chart. */
+  --ev-brand-lt: #e7f0ec;
+
+  /* --- THE SUCCESS / PRIMARY HUE COLLISION, RESOLVED. ---------------------
+     Doc 13 §1.4 left this open for the owner: "this succeeded" must not read
+     as "this is the primary action". Measured before the fix:
+       --ev-green  #15653c   hsl 149.3 / 65.6% / 23.9%
+       --ev-brand  #0C6944   hsl 156.1 / 79.5% / 22.9%
+       -> 6.8 deg of hue, 1.0 pp of lightness, **dE76 = 3.33**
+     dE76 3.3 between two dark saturated greens is about "same colour, other
+     monitor". And the collision is not theoretical: --ev-green is spent BARE,
+     not only as a badge label — `OnboardingStepRow` draws a 16px check glyph
+     in it and `StrengthMeter` fills its strong bar with it, both directly on
+     white, where a --primary button can sit alongside.
+
+     RESOLVED BY MOVING SUCCESS, NOT THE BRAND, because the brand is given.
+     Doc 13 proposed "push --ev-green to hsl(150 ...)" — that is where it
+     ALREADY WAS (149.3), and hue alone is not enough: hsl(142 55% 26%) still
+     only reaches dE76 5.9. **So all three axes move, deliberately:**
+
+       --ev-green  #15653c -> #1d723c = hsl(142 60% 28%)
+         hue         149.3 -> 141.9    **14.2 deg** from the brand (was 6.8)
+         lightness    23.9 -> 28.0     **5.1 pp LIGHTER** (was 1.0)
+         saturation   65.6 -> 59.4     **20.1 pp LESS** saturated (was 13.9)
+         dE76 to --ev-brand   3.33 -> **10.09**
+         luminance ratio      1.054 -> **1.130 : 1**
+
+     dE76 ~10 is unambiguous at a glance, and the DIRECTION is the
+     semantically right one: success is the lighter, softer, yellower green;
+     the brand action is the darker, deeper, bluer one. Visual weight now
+     reads as authority, which is what a primary action should carry and a
+     status label should not.
+
+     IT ALSO CLOSES AN INCOHERENCE THAT WAS ALREADY THERE. --ev-green-lt is
+     hue 140 and the label sitting on it was hue 149 — the success FAMILY
+     disagreed with itself by 9 deg. At 141.9 the label and its own fill are
+     1.9 deg apart. **--ev-green-lt is therefore UNCHANGED**: it is already
+     16 deg off the brand, it is a D7 measurement, and moving it buys nothing.
+
+     EVERY RATIO RECOMPUTED. It is a text colour on two grounds and a
+     meaningful graphic on a third, so all three are stated:
+       on --ev-green-lt #e7f6ec   6.351 -> **5.332**  AA ✓  badge label, 12px
+       on white         #ffffff   7.098 -> **5.958**  AA ✓  bare check glyph
+                                                            and strength bar
+                                                            (3:1 needed, §7.5)
+       on --ev-bg2      #f6f8f9   6.663 -> **5.593**  AA ✓  tinted strip
+     All three clear 4.5:1. The old value cleared AAA on white and this does
+     not; `docs/ref/a11y.md` sets the target at **WCAG 2.2 AA** and no §7 rule
+     asks for AAA, so that was headroom, not a requirement. **Two comments in
+     `src/` still quote the old 7.098** — `OnboardingStepRow.tsx:16` and
+     `StrengthMeter.tsx:9`. They belong to their owners; this file cannot fix
+     them and they are reported rather than left to rot. */
+  --ev-green: #1d723c;
   --ev-green-lt: #e7f6ec; /* D — re-hued out of Shopify's olive into the
-                             reference's cool-neutral family */
+                             reference's cool-neutral family. UNCHANGED by the
+                             brand ruling: hue 140 is already 16 deg off
+                             --ev-brand, which is why only the label moved. */
 
   /* D — AND THIS CLOSES A REAL §7 DEFECT. The old value (#e8a33d) was 1.88:1
      and carried a comment saying "graphic only — never a text colour", which
@@ -584,6 +833,126 @@
   --ev-red: #b42318;
   --ev-red-lt: #fef0ee; /* D — critical banner fill */
 
+  /* --- THE BREACHED ROW'S TWO GROUNDS AND ITS OWN INK. R5a use #1. --------
+     `DataTable.tsx` tinted the breached row with `bg-rose-50/95` /
+     `bg-rose-100/95` — off-token AND below AA. Measured on the blend those
+     palette classes actually paint:
+       --ev-text-2 #6b7280 on white                       4.834 : 1  AA ✓
+       --ev-text-2 on rose-50            #fff1f2          4.401 : 1  ✗
+       --ev-text-2 on rose-50/95 o/white #fff2f3          4.431 : 1  ✗
+       --ev-text-2 on rose-100/95        #ffe5e7          4.055 : 1  ✗
+     and the obvious remedy is WORSE, not better:
+       --ev-text-2 on --ev-red-lt        #fef0ee          4.354 : 1  ✗
+     **Every ordinary cell in a breached row was failing AA, in both states.**
+     `TableCell` defaults to --muted-foreground and the 12px second line takes
+     it too, so this is most of the text in the row, not an edge case.
+
+     THIS IS THE --ev-text-2-rail SITUATION EXACTLY, and it takes the same
+     answer: `Darkening a surface without re-deriving the ink on it is how a
+     re-skin quietly drops below AA` (see --ev-bg-rail). A tint the operator
+     can actually see costs a text token. There is no ground that both READS
+     as a tint and keeps --ev-text-2 legal: --ev-text-2 does not reach 4.5 : 1
+     until hsl(6 90% 98%) = #fef6f5, which is 1.042 : 1 against white — below
+     the product's own smallest accepted tonal step. So the ink moves.
+
+     ── WHAT PINS THE DARK END: R19, NOT THE TEXT. ───────────────────────────
+     An unchecked checkbox sits in the select cell of a breached row, and R19
+     requires --ev-hairline-strong #828b99 to clear 3 : 1 on EVERY surface a
+     control can sit on. Walking hsl(6 90% L) down:
+       L = 96.50  #fef0ee   3.0993 : 1   PASS
+       L = 96.25  #feefed   3.0782 : 1   PASS
+       L = 95.75  #feecea   3.0154 : 1   PASS — the true floor
+       L = 95.50  #feebe9   2.9947 : 1   FAIL
+     #feecea clears by 0.015, which is not a margin. **The darkest defensible
+     red tint in the product is therefore #fef0ee, and that is already a token
+     — --ev-red-lt.** The row's ACTIVE ground and the critical banner's fill
+     land on the same value from two independent derivations. The literal is
+     repeated rather than aliased for the --ev-bg2 / --ev-bg-nav reason: two
+     live names, one value, separable in one file. Do not collapse them, and
+     do not darken either past #feecea without re-deriving R19 first. */
+
+  /* THE RESTING GROUND. Derived, not chosen: one step lighter than the
+     emphasis ground, and the step size is the product's OWN accepted hover
+     step rather than a new opinion —
+       --ev-bg-nav #f6f8f9 -> --ev-nav-hover #f0f2f4   =  1.0535 : 1
+       --ev-row-critical -> --ev-row-critical-emphasis =  1.0515 : 1
+     Solving that ratio against #fef0ee on the same hsl(6 90% L) axis gives
+     L = 98.2 -> **#fff7f6** (hsl 6.7 / 100% / 98.2%). 1.0560 : 1 on white.
+
+     IT IS PARITY WITH WHAT SHIPPED, ON-TOKEN. The blends the palette classes
+     painted were 1.0690 : 1 (rose-50/70) at rest and 1.1598 : 1
+     (rose-100/80) active; these are 1.0560 and 1.1104. The re-skin does not
+     change how the table LOOKS — it changes whether the text on it is legal.
+
+     Against the ordinary hovered row (--ev-bg2, 1.0653 : 1 on white) it is
+     1.0094 : 1 in luminance but dE76 3.58 in hue, so the two separate by
+     TINT, not by weight — which is correct: `this row is breached` and `your
+     pointer is here` are different facts and must not be the same signal.
+     The 3px --ev-red marker (§7.5's second carrier) reads 6.226 : 1 on it. */
+  --ev-row-critical: #fff7f6;
+  /* THE ACTIVE GROUND — hover, focus-within, and selected, one value for all
+     three because they are one fact: `you are acting on this row`. Equal to
+     --ev-red-lt today; see the derivation above for why that is a boundary
+     and not a coincidence. */
+  --ev-row-critical-emphasis: #fef0ee;
+
+  /* THE ROW'S OWN MUTED INK — the --ev-text-2-rail precedent, re-derived
+     against the BINDING (darker) of the two grounds above, because one ink
+     serves both states or the row flickers colour on hover.
+     Same family as --ev-text-2 (hue 220, s 9%) so it stays a NEUTRAL: the
+     ramp is blue-grey end to end, and a warm-grey ink here would make
+     ordinary cell values read as faintly red, which is the R5 `there is no
+     red badge` failure wearing a different hat. Only lightness moves —
+     46.1% -> 43.9% — and no further than it has to:
+       hsl(220 9% 45.0%) #686f7d   4.548 on #fef0ee   margin 0.048, too thin
+       hsl(220 9% 44.0%) #666d7a   **4.689**          CHOSEN
+       hsl(220 9% 43.0%) #646a78   4.881              darker than needed
+     0.189 of margin, the same shape of margin --ev-text-2-rail took (4.666
+     on --ev-bg-rail).
+
+     EVERY INK THAT SITS ON EITHER GROUND, COMPUTED — this is the whole point
+     of the token and an unstated ratio here is the defect it exists to fix:
+
+       ink                             on #fff7f6   on #fef0ee   verdict
+       --ev-ink        #171a21           16.488       15.680     AAA ✓ identity cell
+       THIS TOKEN      #666d7a            4.931        4.689     AA  ✓ ordinary cell
+                                                                     + 12px 2nd line
+       --ev-text-2     #6b7280            4.578        4.354     ✗ ON THE ACTIVE
+                                                                 GROUND. Do not
+                                                                 leave a cell on
+                                                                 --muted-foreground.
+       --ev-red        #b42318            6.226        5.921     3:1 ✓ the 3px marker
+       --ev-hairline-strong #828b99       3.259        3.099     3:1 ✓ R19 checkbox
+       --ev-blue-dk    #1b51c4            6.584        6.261     AA  ✓ a link in a cell
+       --primary       #0c6944            6.375        6.062     3:1 ✓ checked checkbox
+
+     THE OPACITY GOES AWAY. `bg-rose-50/95` carried a `/95` only because a
+     palette class had to blend down onto the white beneath it, and the pinned
+     lane needed `/95` where the row needed `/70` to end up looking the same.
+     These tokens ARE the blended value, so both consumers take the same flat
+     utility and AC-111's opaque pinned cell stops depending on an alpha.
+
+     ── THE DARK HALF IS DELIBERATELY NOT DECLARED, AND THAT IS ESCALATED. ───
+     `DataTable` also carries `dark:bg-rose-950/70` at all three sites. Those
+     classes are **dead code today**: `@custom-variant dark` at the head of
+     this file exists only so a residual `dark:` utility compiles, `.dark` is
+     never applied to any element, `shadcn/tailwind.css` ships no `.dark`
+     block either (checked), and there is no dark value anywhere below.
+     Doc 13 P8 lists the dark theme as NOT BUILT.
+
+     So a `.dark { --row-critical: ... }` block would be **the only dark
+     values in the product**, and it would paint a dark red row inside a table
+     that is still white — worse than the literal it replaced. Deriving one
+     honestly needs a dark TABLE SURFACE to derive against, and inventing that
+     surface is a new tier: a §6.2 entry and doc 13 P8's owner decision, not a
+     token steward's. A ratio computed against a ground this file invented
+     would be exactly the kind of asserted number this token exists to fix.
+
+     **THEREFORE: the correct disposition of `dark:bg-rose-950/*` is DELETION,
+     not tokenisation**, and the dark stop is owed by whoever lands P8 —
+     against the whole ladder at once, not two tokens at a time. */
+  --ev-text-2-row-critical: #666d7a;
+
   /* --- Geometry. D7 §1.4. Every value is on the 4px grid (D15).
      D-2 IS RETIRED — see `03-navattic-language.md` §5. Its type half was not a
      deviation (13px IS the reference's body size), its spacing half was not a
@@ -592,7 +961,65 @@
      the reference and is now being LOOSENED toward it. Do not cite D-2 for
      density again; §7.7's 24x24 hit target could never be argued down by it
      and now there is nothing left to argue with. --------------------------- */
-  --ev-bp-wide: 1344px; /* THE breakpoint. There is no second one. §0.1 */
+  --ev-bp-wide: 1344px; /* The upper breakpoint. §0.1 as amended. */
+  /* The lower breakpoint, added by the 2026-09-02 mobile ruling. Paired with
+     the `compact:` variant at the head of this file — a media query cannot
+     read a custom property, so 768 is written twice and THE TWO MOVE TOGETHER,
+     the same standing hazard `--ev-bp-wide` carries. This copy exists so JS
+     can read it through `getComputedStyle` the way `breakpoint.ts` already
+     reads the wide one, rather than hard-coding a second number in TypeScript.
+     The derivation is at the variant. */
+  --ev-bp-compact: 768px;
+
+  /* ── THE TAP FLOOR. §7.7 IS A POINTER MINIMUM; THIS IS A FINGER ONE. ─────
+     §7.7's 24x24 is WCAG 2.2 SC 2.5.8 (Target Size, Minimum) and it is a
+     MOUSE figure — it is what a cursor needs, and it is why every desktop
+     control in this file is allowed to be 32. A finger is not a cursor, and
+     below `--ev-bp-compact` every control in the product is being pressed by
+     one.
+
+     44 is the intersection of the two independent floors, not a preference:
+       WCAG 2.2 SC 2.5.5 (Target Size, Enhanced)   44 x 44 CSS px
+       Apple HIG, every iOS release since iOS 7    44 x 44 pt
+     Material's 48dp is larger; 44 is the value that satisfies both of the
+     above with nothing to spare, and it is on the 4px grid (D15).
+
+     **IT IS A FLOOR, NOT A HEIGHT.** A 44px token on a control that is already
+     48 is a bug. Its job is `min-height` / `min-width` on anything pressable
+     that the compact overrides below do not already reach — an icon-only
+     button inside a row, a chart legend toggle, a chip's dismiss cross. The
+     controls that DO have a height token get it raised under the compact query
+     instead, so their call sites need no second class. */
+  --ev-tap-min: 44px;
+
+  /* ── SAFE AREAS. FOUR NAMES, AND TWO OF THEM ARE LOGICAL. ────────────────
+     `index.html` now ships `viewport-fit=cover`, which is what lets the shell
+     paint edge to edge behind a notch and a home indicator — and which is also
+     what makes it possible to put a control underneath one. These are the only
+     sanctioned expression of that; a component writing `env(...)` inline is
+     the same defect class as a raw hex.
+
+     **THE BLOCK PAIR IS PHYSICAL AND THAT IS CORRECT** — top is top in every
+     language. The INLINE pair is not: `env(safe-area-inset-left)` is a
+     PHYSICAL edge, and in Arabic the inline start is the right-hand one. So
+     the two inline names are remapped under `[dir="rtl"]` below.
+
+     **THAT `[dir="rtl"]` SELECTOR IS NOT A VIOLATION OF THE LANGUAGE-HOOK
+     RULE, AND THE DISTINCTION IS THE WHOLE POINT OF THE RULE.** The hook rule
+     says a value that varies by LANGUAGE goes under `:root:lang(ar)` and never
+     under a parallel direction selector. A safe-area inset does not vary by
+     language — it varies by DIRECTION, which is a different question, and
+     direction is what `[dir]` expresses. The elevation tokens are the mirror
+     case already recorded in this file: they are pinned to `offset-x: 0`
+     precisely so they never become a direction question.
+
+     The `0px` fallback is load-bearing: on a desktop browser `env()` resolves
+     to nothing without it, and `calc()` against nothing is invalid, which
+     silently drops the whole declaration rather than falling back to zero. */
+  --ev-safe-top: env(safe-area-inset-top, 0px);
+  --ev-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ev-safe-start: env(safe-area-inset-left, 0px);
+  --ev-safe-end: env(safe-area-inset-right, 0px);
 
   --ev-rail-w: 80px; /* Untouched by D7, and it survives on its OWN reasoning
                         rather than on the reference's. Navattic's rail is
@@ -811,6 +1238,27 @@
     0 20px 48px -12px rgb(16 24 40 / 0.24), 0 6px 12px -6px rgb(16 24 40 / 0.10);
 }
 
+/* --- The single DIRECTION hook, and it is the only one. -------------------
+   Read this beside the language hook below, because the two look alike and
+   answer different questions. **Direction moves exactly four numbers in this
+   file and they are all here**: the two inline safe-area insets, because
+   `env(safe-area-inset-left)` names a physical edge and the inline start is
+   the right-hand edge in Arabic. Nothing else in the product is direction-
+   dependent by design — every physical spacing utility is banned in favour of
+   its logical form, and all three elevation tiers are pinned to `offset-x: 0`
+   so they never become a direction question either.
+
+   **ANY OTHER VALUE THAT WANTS TO LIVE HERE IS ALMOST CERTAINLY A LANGUAGE
+   QUESTION AND BELONGS UNDER THE HOOK BELOW.** A type floor, a row height, a
+   line box: those move because Arabic SETS differently, not because it reads
+   right to left, and a Latin string inside an Arabic UI still needs the Arabic
+   value. If a proposed entry here would be wrong for an English string in an
+   Arabic workspace, it is a language value in the wrong hook. */
+[dir="rtl"] {
+  --ev-safe-start: env(safe-area-inset-right, 0px);
+  --ev-safe-end: env(safe-area-inset-left, 0px);
+}
+
 /* --- The single language hook. §9.7 / §14. -------------------------------
    A dimension or a type size that varies by language is a custom property
    redefined HERE, under ONE hook, and nowhere else. Never a second selector,
@@ -837,9 +1285,39 @@
 
   /* §14 type floors. These raise the Tailwind scale itself, so every
      `text-xs` / `text-sm` in every component moves without a second class.
-     `--text-xl` gains a floor under D7 for the same reason every other step
-     has one — it is the page title now and it was previously Tailwind's own
-     20/28 default, which no floor reached. */
+
+     ── H5 (2026-09-02) · ONE RULE, AND IT REPLACES A BLANKET +2. ───────────
+     The block below used to lift every step by +1 or +2, top to bottom. That
+     produced **two collisions in Arabic that Latin did not have** — the base
+     and large steps both landed on 18, and the page title and the KPI numeral
+     both landed on 24 — because a fixed lift applied on top of a ramp that
+     already has its own steps compresses the ramp from the bottom. Arabic was
+     therefore FLATTER than Latin, on a screen that ranks nothing in either.
+
+     What §9.4 actually binds is one clause and it is quoted below: *"MUST set
+     Arabic body text to at least 14 px with a line-height of at least 1.7."*
+     There is no clause above the body. The lifts above it were convention.
+
+     And the convention runs against the measurement. Ink extents read off the
+     two shipped faces with canvas TextMetrics, per 1em:
+
+                                   ink asc  ink desc  ink total  font box
+       Inter 600 `1,234.56 SAR`      0.74      0.19      0.93      1.21
+       Noto Naskh `ريال سعودي`       0.80      0.21      1.01      1.70
+
+     **At the same nominal size Naskh already sets 8.6% taller than Inter.**
+     Arabic does not need a larger SIZE above the body; it needs a taller LINE
+     BOX, because its font box is 1.70em against Inter's 1.21em. So:
+
+       below the body   the SIZE is floored, +1  (small-detail legibility,
+                        and the 11px chip step must still fit a 20px pill)
+       at and above     the size is Latin's, and the LINE BOX takes +4
+
+     One rule, stated once. The Arabic size ramp is now identical to Latin
+     from the body up, which means the two languages rank identically — and
+     the collisions are gone from both. The visible consequence, reported
+     rather than buried: an Arabic card, dialog, drawer or nav-column title
+     goes 18 -> 16, and its line box stays at 28. */
   --text-2xs: 12px; /* badge label      11 → 12 */
   --text-2xs--line-height: 18px;
   --text-xs: 13px; /* secondary line   12 → 13 */
@@ -850,13 +1328,156 @@
      already met is met. What it still buys is the LINE-HEIGHT: 24/14 = 1.71,
      against the Latin 20/14 = 1.43. Do not delete it as a no-op. */
   --text-sm: 14px;
-  --text-sm--line-height: 24px; /* ≥ 1.7 for body — the binding half now */
-  --text-base: 18px; /* 16 → 18, one step, matching the Latin ramp */
+  --text-sm--line-height: 24px; /* ≥ 1.7 for body — the binding half now.
+                                   20 → 24 is the +4 the rule above states;
+                                   24/14 = 1.714, which is §9.4's clause. */
+  /* SURFACE TITLE — card, dialog, drawer, nav column, empty and error state.
+     18 → 16: the size floor is met by the Latin value and there is no §9.4
+     clause above the body, so what is left is the box. 28/16 = 1.750. */
+  --text-base: 16px;
   --text-base--line-height: 28px;
-  --text-lg: 18px;
-  --text-lg--line-height: 28px;
-  --text-xl: 24px; /* page title       22 → 24 */
-  --text-xl--line-height: 32px;
+  /* SUB-DISPLAY — the ledger balance, the zone figures, the OTP code. 18 → 20
+     is the Latin value; the collision with the step above it is gone. 32/20 =
+     1.600. */
+  --text-lg: 20px;
+  --text-lg--line-height: 32px;
+  /* PAGE TITLE. The size is unchanged at 24 and that is the point: the LATIN
+     ramp moved up to meet it (22 → 24), so the floor is now met rather than
+     raising, exactly as --text-sm's is. Do not read the unchanged number as a
+     no-op — the box moved, 32 → 36, 1.500. */
+  --text-xl: 24px;
+  --text-xl--line-height: 36px;
+  /* HEADLINE NUMERAL. 24 → 28, tracking Latin, and the size does NOT take the
+     Arabic lift — every digit run sets in Inter in both languages (R-5 /
+     AC-73), so there is no Naskh glyph in the numeral to lift for. Only the
+     unit or currency word beside it is Naskh, and that is a LINE BOX problem:
+     1.01em of ink at 28px is 28.28px, which needs more than a 32px box to
+     breathe, so 36. Holding the size at Latin's is also what keeps the value
+     inside the tile — see --text-kpi's geometry table; 30px would have
+     overflowed the 225px value box at six figures. */
+  --text-kpi: 28px;
+  --text-kpi--line-height: 36px;
+
+  /* ── LETTER-SPACING IS A LATIN DEVICE, AND IT IS NEUTRALISED HERE. ───────
+     Arabic is a CURSIVE script: `letter-spacing` inserts gaps between joined
+     forms and **breaks the joins**. That is a rendering defect, not a style
+     choice, and §14 has no clause licensing it. It belongs at the token under
+     this one language hook for exactly the reason the type floors do —
+     Tailwind v4's `tracking-*` utilities emit `letter-spacing:
+     var(--tracking-*)`, so zeroing the variable moves every call site with no
+     second class, no `[dir="rtl"]` selector and no component edit. Direction
+     and language are different questions and only LANGUAGE moves this one: a
+     Latin string inside an Arabic UI is still Arabic-language chrome.
+
+     **TEN LIVE SITES AND SEVEN OF THEM ARE TRANSLATABLE STRINGS.** `CardTitle`
+     at `DispatchScreen:504`, `InterventionsCard:66` and `TicketDetailScreen`
+     :258 / :426 / :471 / :556 all carry `uppercase tracking-wide|wider` on
+     text that renders in Arabic. (`uppercase` is itself a no-op there —
+     Arabic has no case — so in Arabic those labels lose nothing but the
+     defect.) The other three are Latin-only runs: `OtpField:176`'s digits and
+     the two shortcut hints in `ui/command.tsx` and `ui/dropdown-menu.tsx`.
+     They lose a little air and nothing else.
+
+     H4's KPI LABEL DEPENDS ON THIS. §H4 specifies the label above the value
+     as `text-2xs uppercase tracking-wider`; without this block that is a
+     broken Arabic eyebrow on every metric board in the product.
+
+     The whole scale is listed, negative steps included — a NEGATIVE
+     letter-spacing on a cursive script crashes the joins rather than opening
+     them, which is worse. `--tracking-normal` is already 0 and is omitted
+     rather than restated. */
+  --tracking-tighter: 0em;
+  --tracking-tight: 0em;
+  --tracking-wide: 0em;
+  --tracking-wider: 0em;
+  --tracking-widest: 0em;
+}
+
+/* --- The single COMPACT hook. §0.1 as amended, 2026-09-02. ----------------
+   Everything below 768 that is a DIMENSION lives here, in one block, for the
+   reason the language hook exists: a value that varies by viewport is a custom
+   property redefined once, under one condition, and never a second class at a
+   call site. **The whole point of doing it here is that no component changes.**
+   `h-control` is already written 200-odd times; raising the token moves all of
+   them to a finger-sized target with nothing to review.
+
+   IT IS A max-width QUERY, SO `dist` STILL HOLDS EXACTLY ONE `@media
+   (min-width:)`. See the `compact:` variant at the head of this file.
+
+   ── WHAT MOVES, AND WHY EACH ONE IS A TAP TARGET AND NOT A TASTE CHANGE. ──
+   Every height below is something a finger presses, so every one of them is
+   floored at --ev-tap-min (44). Two are raised past it to 48 to preserve the
+   step that separated them on desktop — a ramp that collapses under a
+   breakpoint is the same defect the type ramp had.
+
+     token              desktop  compact  what the finger is pressing
+     --ev-control-h        32      44     button, input, filter chip
+     --ev-control-h-lg     40      48     the large control, still a step above
+     --ev-navrow-h         32      48     a row in the off-canvas nav drawer
+     --ev-row-h            40      48     a table row; on mobile the ROW is the
+                                          press target that opens the detail
+     --ev-row-h-media      60      64     the two-line identity row
+     --ev-row-h-head       36      40     NOT a tap target - a header label is
+                                          not pressed except to sort, and the
+                                          sort control carries --ev-tap-min of
+                                          its own. It rises only to stay under
+                                          the body row, which D-10 requires.
+
+   ── AND THE ONE THING THAT SHRINKS. ───────────────────────────────────────
+   --ev-page-pad 32 -> 16. Derived on the narrowest device the product claims:
+   at 390pt (the iPhone 13/14/15 logical width, and the narrowest in the
+   current line) a 32px gutter leaves **326px** of content, and a two-column
+   compact row — identity plus one value — needs about 320 before it wraps. A
+   16px gutter leaves **358px**, a 9.8% gain on the binding device, and it
+   costs nothing: the gutter has one consumer, `PAGE_BLOCK` in `PageShell.tsx`,
+   and no other measurement is solved against it. 16 is also the gutter the
+   platform guidelines converge on (iOS 16pt margins, Material 16dp).
+   `--ev-page-pad-wide` is untouched — it is the other end of the same axis and
+   1344 and 768 cannot both apply.
+
+   NOT HERE, DELIBERATELY: `--ev-rail-w` and `--ev-subnav-w`. Below 768 the
+   three-column shell does not narrow, it goes AWAY — the rail and sub-tab
+   column become an off-canvas drawer, which is a layout decision and the
+   pwa-engineer's. Shrinking their tokens would offer a fourth, worse option
+   (a squeezed three-column shell) and someone would take it. */
+@media (width < 768px) {
+  :root {
+    --ev-control-h: 44px;
+    --ev-control-h-lg: 48px;
+    --ev-navrow-h: 48px;
+    --ev-row-h: 48px;
+    --ev-row-h-media: 64px;
+    --ev-row-h-head: 40px;
+    --ev-page-pad: 16px;
+  }
+
+  /* Arabic keeps its +4, measured off the compact values rather than the
+     desktop ones — the reason for the step (Naskh sets a taller ink box in the
+     same line, so a row needs more of it) does not stop applying because the
+     viewport got smaller.
+
+     ── EVERY ONE OF THE SIX IS REPEATED HERE, AND OMITTING ANY IS A BUG. ───
+     This is a cascade trap and it is worth stating rather than discovering.
+     **A media query adds no specificity.** `:root` inside this block is
+     (0,1,0); the language hook above it is `:root:lang(ar)`, which is (0,2,0)
+     and therefore WINS regardless of source order. So a token raised only on
+     the `:root` above would silently keep its DESKTOP Arabic value on a phone
+     — `--ev-control-h` would sit at 36px, well under the tap floor, in one
+     language and not the other, which is precisely the class of defect that
+     ships. The rule for this block: **if the compact `:root` above touches a
+     token that the language hook also touches, it is repeated here.** All six
+     are, including the two whose Arabic value happens to equal the Latin one.
+
+     THIS BLOCK MUST STAY BELOW `:root:lang(ar)` IN THE FILE. Equal specificity
+     means source order decides, and moving it up reverts every value here. */
+  :root:lang(ar) {
+    --ev-control-h: 48px;
+    --ev-control-h-lg: 52px;
+    --ev-navrow-h: 52px;
+    --ev-row-h: 52px;
+    --ev-row-h-media: 68px;
+    --ev-row-h-head: 44px;
+  }
 }
 
 /* ==========================================================================
@@ -894,19 +1515,34 @@
   --popover: var(--ev-surface);
   --popover-foreground: var(--ev-ink);
 
-  /* **R3 IS KILLED AND D-1 IS VOID.** The primary action is NEAR-BLACK, not
-     blue, and a stale blue primary is now a DEFECT rather than a legacy. The
-     reference's primary button samples #0C1116 (`6a08206b`, `862c7e14`) — a
-     large flat area, so the sample is trustworthy — which is Shopify's own
-     answer arrived at independently. The arithmetic that forces it: --ev-blue
-     #2b6ef0 is 4.574:1 on white and 4.259:1 on #f5f7f9, so it is not a
-     compliant fill-with-white-text on any tinted ground.
-     THIS NEEDS NO NEW TOKEN: --primary maps to --ev-ink. White on #171a21 is
-     17.411:1. Blue keeps the focus ring, the chart series, selection, and a
-     link on white (via --ev-blue-dk). R2 is amended by one colour name only:
-     Save is still THE SAME PRIMARY as every other primary, still never green
-     and never white-on-white. */
-  --primary: var(--ev-ink);
+  /* **D7 §1.2 IS AMENDED HERE: THE PRIMARY ACTION IS BRAND GREEN.**
+     R3 stays killed and D-1 stays void — the primary action did not go back
+     to blue. It went to the brand. D7's own arithmetic against --ev-blue is
+     untouched and still disqualifies it (4.574:1 on white, 4.259 on a tint,
+     so it is not a compliant fill-with-white-text on any tinted ground).
+
+     What changed is the ruling doc 13 §0.4 was blocked on. D7 pinned primary
+     to NEAR-BLACK from the Navattic reference (#0C1116, `6a08206b`), and that
+     was correct as a reading of the reference — but the reference is not the
+     brand, and doc 13 §0.2's finding is the one that decides it: **the admin
+     contained zero Eyvar green.** A product with a green identity shipped a
+     blue-and-black console. This is the fix, and it costs four lines because
+     every consumer already reads a slot.
+
+     THE SPEND, COMPUTED: white on #0c6944 is **6.731 : 1**, against 17.411:1
+     for white on --ev-ink. AA (4.5:1) is the binding level per
+     `docs/ref/a11y.md`; nothing in §7 asks for AAA. Doc 13's claimed 8.42 is
+     wrong — see --ev-brand for the luminance arithmetic.
+
+     R2 is amended by one colour name and no behaviour: Save is still THE SAME
+     PRIMARY as every other primary. **It is now green, and that is not "Save
+     is green" — it is "primary is green".** A success badge must still never
+     be mistaken for it; see --ev-green for the 14.2 deg / dE76 10.09
+     separation that keeps them apart.
+
+     REVERSIBLE IN ONE LINE: point this back at var(--ev-ink) and the ruling
+     is undone without touching a component. */
+  --primary: var(--ev-brand);
   --primary-foreground: var(--ev-surface);
 
   --secondary: var(--ev-surface); /* secondary button: white + hairline */
@@ -936,7 +1572,32 @@
      bounded by a stroke that faint has no boundary at all. The reference
      splits here too and declares the value — see --ev-hairline-control. */
   --input: var(--ev-hairline-control);
-  --ring: var(--ev-blue); /* §7.2 — 2px ring at 2px offset, always */
+  /* §7.2 — 2px ring at 2px offset, always. Doc 13 Phase 1.2: OFF BLUE, onto
+     the brand ramp. Every input, select, checkbox, switch and toggle inherits
+     it with no component edit, which is the whole argument for layer 2.
+
+     3:1 is the floor for a focus indicator (`a11y.md`), and it clears on
+     every ground a focusable thing sits on — comfortably better than the blue
+     it replaces, on all of them:
+       on --ev-bg      #ffffff   **6.731**   (was 4.574)
+       on --ev-bg2     #f6f8f9   **6.319**   (was 4.294)
+       on --ev-bg-rail #e9edf1   **5.721**   (was 3.887)
+       on --ev-nav-chip #e5e7eb  **5.437**   (was 3.694)
+       on --ev-nav-hover #f0f2f4 **5.998**   (was 4.076)
+       on --ev-row-critical      **6.375** / emphasis **6.062**
+
+     ONE CONSEQUENCE, AND IT IS THE `outline-offset` THAT SAVES IT: --ring and
+     --primary are now THE SAME COLOUR, so a focused primary button is a green
+     ring around a green fill. What separates them is the 2px offset gap,
+     which paints the PAGE GROUND — so the ring's adjacent colours are white
+     on both sides (6.731:1) and WCAG 1.4.11 is satisfied. **Never remove
+     `outline-offset: 2px` from the base rule below, and never let a primary
+     button take an inset ring.** The nav's `ring-inset` carve-out is for
+     zero-gap sub-tab rows, which are never primary.
+     A distinct ring stop was considered and rejected: --ev-brand at
+     hsl(156 80% 37%) = #13AA6D is 3.001:1 on white — one thousandth of
+     margin is not a margin. */
+  --ring: var(--ev-brand);
 
   --radius: var(--ev-radius-control);
 
@@ -948,9 +1609,26 @@
   --tone-warning: var(--ev-amber-lt); /* ONE warning tone — R17 */
   --tone-warning-foreground: var(--ev-amber-dk);
   /* The warning tone's MEANINGFUL GRAPHIC, as distinct from its label.
-     --ev-amber #b45309 is 4.623:1 on the warning fill and 3.982:1 on white, so
-     it clears §7's 3:1 for a non-text graphic and does NOT clear 4.5:1 for
-     text — which is exactly why the label is --ev-amber-dk and this is not it.
+
+     **RATIO CORRECTED, 2026-09-02.** This comment carried "3.982:1 on white"
+     and used it to argue that --ev-amber cannot be text. Recomputed from
+     relative luminance, --ev-amber #b45309 on white is **5.022 : 1** — it
+     DOES clear AA on white, and 3.982 was never true of this value. The
+     number is corrected rather than quoted forward; the RULE it was used to
+     justify is unchanged, and now rests on something that is:
+
+       --ev-amber #b45309   on --ev-amber-lt #fff4e6   4.623   AA ✓
+                            on white         #ffffff   5.022   AA ✓
+                            on --ev-bg2      #f6f8f9   4.714   AA ✓
+                            on --ev-row-critical-emphasis      4.523   +0.023
+                            on --ev-bg-rail  #e9edf1   4.268   **FAIL**
+
+     It clears 4.5 on three grounds, misses on the rail, and clears the
+     breached row's active ground by 0.023 — which is not a margin, it is a
+     rounding. **A token that is legal on some grounds and not others is not a
+     text colour**, because no call site checks which ground it landed on.
+     That is why the label is --ev-amber-dk (7.068 on the worst of those) and
+     this is the graphic weight.
      R17 is untouched: this is the SAME warning tone, exposed at its graphic
      weight, not a sixth tone and not a second amber.
 
@@ -969,14 +1647,116 @@
   --tone-critical: var(--ev-red-lt); /* banners only (R5a use #2) */
   --tone-critical-foreground: var(--ev-red);
 
+  /* ── H7 · THE BADGE BUDGET. A RULE, NOT A TOKEN — AND IT LIVES HERE
+     BECAUSE THIS IS WHERE THE FIVE TONES ARE SPENT. ───────────────────────
+     R7 closes the palette at five tones. A screen that paints a badge in
+     every row of every column has spent the budget and nothing stands out.
+     Counted in `src/`: `screens/queues/queue.tsx` declares **8** tone sites,
+     `operations/people/queue.tsx` 6, `RequestsScreen` and `AssuranceScreen` 5
+     each, and eight more files carry 3-4. Colour is a channel with a fixed
+     capacity; a fifth chip in a row does not add a fifth signal, it removes
+     the first four. This is §0's thesis at the tone layer — you do not make
+     an item stand out by adding emphasis, you make it stand out by removing
+     emphasis from everything around it.
+
+     ── THE BUDGET, AS AN ENGINEER CAN FOLLOW IT ────────────────────────────
+
+       1. **AT MOST ONE TONE-FILLED BADGE PER ROW**, and it lives in the ONE
+          status column. A second is permitted only in the IDENTITY column,
+          and only when it qualifies the identity itself (`Suspended`,
+          `Corporate`) rather than restating a value that is already in the
+          row. Ceiling TWO; the normal number is ONE.
+       2. **AT MOST ONE PER CARD HEADER**, per metric tile, and per drawer
+          header. A card that needs two is two cards, or one card whose second
+          fact is a line of text.
+       3. **EVERYTHING ELSE THAT WAS A BADGE BECOMES TEXT IN THE TONE'S OWN
+          FOREGROUND** — `text-success-foreground`, `text-warning-foreground`,
+          `text-info-foreground`, `text-critical-foreground`. Same five tones,
+          same word, no plate. The tone keeps its meaning and stops competing
+          for the eye. §7.5 is untouched by the demotion: the WORD was always
+          the second carrier and `StatusBadge` types it as required, so
+          removing the fill removes the decoration, not the meaning.
+       4. **A COUNT IS NOT A STATUS.** `3 open` is H1's DATA tier — --ev-ink,
+          --text-sm, tabular figures — and never a chip. Most of the over-
+          budget rows in the count above are counts wearing badges.
+
+     ── THE DEMOTION ROUTE IS SAFE FOR FOUR TONES AND UNSAFE FOR ONE, AND
+        THIS IS THE MEASUREMENT THAT SAYS WHICH. ───────────────────────────
+     Bare toned text has no plate under it, so it inherits whatever ground the
+     row is on — INCLUDING a breached row's two, which is the case a reviewer
+     will not think to check because the badge used to bring its own ground
+     with it. Every tone foreground on every ground a row can take, computed
+     here rather than carried over:
+
+       tone foreground                white  --ev-bg2  row-crit  row-crit-emph
+       success  --ev-green    #1d723c  5.958   5.593     5.643      5.366  ✓
+       warning  --ev-amber-dk #7a3e12  8.316   7.806     7.875      7.489  ✓
+       info     --ev-blue-dk  #1b51c4  6.952   6.526     6.584      6.261  ✓
+       critical --ev-red      #b42318  6.574   6.172     6.226      5.921  ✓
+       neutral  --ev-text-2   #6b7280  4.834   4.538     4.578    **4.354 ✗**
+
+     **A DEMOTED `neutral` INSIDE A BREACHED ROW FAILS AA** — on exactly the
+     rows the product most needs an operator to read. It is the same 4.354
+     that made --ev-text-2-row-critical necessary in the first place, arriving
+     from a second direction, which is the strongest evidence that token was
+     right. **It needs no new token:** inside a breached row a demoted neutral
+     takes `text-row-critical-foreground` (#666d7a, **4.689** on the darker
+     ground). Stated as a rule so it is not rediscovered by an axe run:
+     **`text-neutral-foreground` is never written inside a row that can be
+     breached.** `text-muted-foreground` in the same place is the same defect.
+
+     ── WHY THIS IS NOT MECHANISED IN CSS, said rather than left as a gap. ───
+     The failure is "too many tone fills across the CELLS OF ONE ROW", and CSS
+     can only count siblings within one parent. A `:nth-*` rule scoped to a
+     cell would catch the rare two-chips-in-one-cell case, miss the real one,
+     and silently restyle a badge a designer meant — which is worse than a
+     lint, because it is invisible. Defence 2 below is mechanised because
+     Recharts' defaults are a CLOSED, enumerable set of literals; a badge
+     budget is a judgement about a row, and this file does not have the row.
+     It is enforced by review and by `/token-audit`, not by cascade. */
+
+  /* --- THE BREACHED ROW. R5a use #1, and a DIFFERENT SURFACE from
+     --tone-critical above, which is R5a use #2 (the banner). Two names
+     because R5a licenses two uses; they happen to share a value in one of the
+     row's two states and that is derived, not lazy — see
+     --ev-row-critical-emphasis.
+
+     -foreground is the ORDINARY CELL ink on this row, i.e. what
+     --muted-foreground would have been. It is NOT --tone-critical-foreground
+     and it is not red: the row's redness is carried by the tint and by the
+     3px --ev-red marker (§7.5's two carriers), never by turning the data red.
+     R5 still holds — there is no red badge and there is no red table.
+
+     The identity cell keeps `text-foreground` (--ev-ink, 15.680:1 on the
+     darker ground). Only the muted level moves. */
+  --row-critical: var(--ev-row-critical);
+  --row-critical-emphasis: var(--ev-row-critical-emphasis);
+  --row-critical-foreground: var(--ev-text-2-row-critical);
+
   /* --- Charts. DESIGN.md §3.7: single-hue line, very pale area fill,
      comparison series the SAME hue dotted, no gridlines beyond the axis
      baseline. There is therefore no categorical chart palette and no
      --chart-3. shadcn's --chart-1…5 neutral ramp is deleted, not remapped:
      leaving five slots invites a categorical read R7 does not sanction. */
-  --chart-series: var(--ev-blue);
-  --chart-comparison: var(--ev-blue); /* differs by DASH, never by hue */
-  --chart-fill: var(--ev-blue-lt);
+  /* Doc 13 Phase 1.2: OFF BLUE, onto the brand ramp. Non-text marks need 3:1
+     and the move improves every one of them —
+       series on --card / --ev-bg white   **6.731** (was 4.574)
+       series on --chart-fill             **5.793** (was 4.006)
+     which also fixes a real weakness: the old line was only 4.006:1 against
+     its own area fill, and it is now 5.793.
+     `BreakdownList`'s 4px share bar takes --chart-series directly on card
+     white: 6.731:1. */
+  --chart-series: var(--ev-brand);
+  /* **R7 — comparison differs by DASH, NEVER by hue.** This has been filed as
+     a defect by three separate audits and it is not one. It shares the series
+     colour deliberately, and moving the series to green does not reopen it:
+     the two are the same token because they are the same hue by rule. */
+  --chart-comparison: var(--ev-brand);
+  /* Moves WITH the series or the chart is a green line over a blue wash.
+     --ev-brand-lt is --ev-brand at 10% on white, the same derivation
+     --ev-blue-lt had, so §3.7's "very pale area fill" keeps its weight
+     (1.162:1 on white against the old 1.142). */
+  --chart-fill: var(--ev-brand-lt);
   --chart-axis: var(--ev-text-2);
   --chart-grid: var(--ev-hairline);
 }
@@ -1028,6 +1808,13 @@
   --color-critical: var(--tone-critical);
   --color-critical-foreground: var(--tone-critical-foreground);
 
+  /* The breached row — `bg-row-critical`, `bg-row-critical-emphasis`,
+     `text-row-critical-foreground`. Exposed so `DataTable` can drop
+     `bg-rose-50/95` and friends for a semantic utility with no alpha. */
+  --color-row-critical: var(--row-critical);
+  --color-row-critical-emphasis: var(--row-critical-emphasis);
+  --color-row-critical-foreground: var(--row-critical-foreground);
+
   --color-chart-series: var(--chart-series);
   --color-chart-comparison: var(--chart-comparison);
   --color-chart-fill: var(--chart-fill);
@@ -1057,6 +1844,22 @@
   /* D-2' amended — the `wide:` step. Same one consumer. */
   --spacing-page-pad-wide: var(--ev-page-pad-wide);
   --spacing-drawerhead: var(--ev-drawerhead-h);
+  /* ── THE MOBILE SET, 2026-09-02. ────────────────────────────────────────
+     The tap floor is a MIN, so its call sites are `min-h-tap` and `min-w-tap`
+     — never `h-tap`, which would make a floor into a height and break the
+     controls that are already taller. It is NOT redefined under the compact
+     query: it is a constant that only ever applies there, and a value that
+     changes with the viewport is one someone will read at the wrong width. */
+  --spacing-tap: var(--ev-tap-min);
+  /* Safe areas. Exposing them in the spacing namespace is what makes the
+     logical pair usable — `ps-safe-start` and `pe-safe-end` resolve through
+     the direction hook, where a component writing `pl-[env(...)]` would paint
+     the wrong edge in Arabic and pass review in English. The block pair are
+     the shell's, for the top bar and for anything docked to the bottom. */
+  --spacing-safe-top: var(--ev-safe-top);
+  --spacing-safe-bottom: var(--ev-safe-bottom);
+  --spacing-safe-start: var(--ev-safe-start);
+  --spacing-safe-end: var(--ev-safe-end);
   --container-page: var(--ev-page-max);
 
   /* The two two-pane grids, as tokens rather than as arbitrary values. Both
@@ -1129,14 +1932,254 @@
      `@media (min-width:)` in `dist`, and it is this one. */
   --breakpoint-*: initial;
 
-  --text-2xs: 11px; /* count badge numeral, status badge label */
+  /* ── H2 / H3 — WHAT EACH STEP IS FOR, AND WHICH WEIGHT GOES WITH IT. ─────
+     `design/15-hierarchy-and-scannability.md` §0.1 measured the ramp in use
+     and found it consumed from the BOTTOM: `text-xs` (12px) outnumbers the
+     declared 14px body nearly 2:1, with 175 uses of the 11px step under that.
+     When body text is 12px a 14px item is not emphasis, it is merely normal —
+     the ramp has been eaten from below, so the top has nowhere to go.
+
+     **NO SIZE IS ADDED FOR EMPHASIS AT A CALL SITE.** That is H2's ruling and
+     it stands. It is not, and was never, a rule that the ramp's own steps may
+     not be re-derived here — H5 does exactly that below, and the distinction
+     matters: emphasis invented at a call site drifts; a step derived in this
+     file does not. What was also missing is a written ROLE per step, so that
+     the next call site has something to be wrong against. Recounted here
+     rather than quoted from the doc — grep over the source tree, tests
+     excluded (the glob is spelled out in prose on purpose: writing it
+     literally puts a comment-closing sequence inside this comment, which ends
+     it early and leaves the rest as raw CSS. That broke the build once
+     already). Counts re-run 2026-09-02:
+
+       step         px  uses  declared role                        verdict
+       --text-2xs   11    50  badge label + count numeral          correct now
+       --text-xs    12   577  secondary line, helper text          OVER-SPENT
+       --text-sm    14   255  THE BODY (set on `body` below)       under-used
+       --text-base  16    18  card/dialog/drawer title, nav title  correct
+       --text-lg    17     5  card title + stat value              HALF DEAD
+       --text-xl    22     6  THE page title                       correct
+
+     ── H5 · WHAT THE RAMP ACTUALLY RENDERS, WHICH IS NOT WHAT IT DECLARES. ─
+     H2 counted CLASSES. H5 measured PIXELS, in Chromium at 1440x900, over
+     `/management/overview`, `/management/zones`, `/operations/quick-rides`,
+     `/admin/overview` and `/financials/overview`. **Four sizes render on any
+     of them**: 22, 16, 14, 12. The declared seven-step ramp is a four-step
+     ramp on screen, and two of those four are one step apart:
+
+       declared  rendered   ratio to the step below   verdict
+       11        11 (badge only)     —                inside chips
+       12        12                1.091              META
+       14        14                1.167              BODY - and card titles
+       16        16                1.143              nav column title only
+       17        NEVER RENDERS     1.0625             a rounding error, not a step
+       22        22                1.294              page title AND KPI - COLLIDED
+       22        22                1.000              the collision
+
+     Two failures, and neither is fixable at a call site.
+     **(a) 16 and 17 are a 1.0625 ratio.** That is not a step, it is two names
+     for one size, and it is why the middle of the ramp is empty.
+     **(b) 22 and 22 are a 1.000 ratio.** Page title and headline numeral, at
+     the same weight and the same ink. Nothing on a metric board is first.
+
+     H5 rewrites the top three steps to **16 / 20 / 24 / 28**, with the
+     derivation on each token below. Resulting Latin ramp and its ratios:
+
+       11  16    (badge, chip geometry, licensed exception)
+       12  16    1.091
+       14  20    1.167
+       16  24    1.143
+       20  28    1.250
+       24  32    1.200
+       28  32    1.167
+
+     No collision, and no ratio below 1.143 outside the licensed chip step.
+     Arabic is the same ramp from the body up — see the language hook above.
+
+     **THE ONE THING H5 COULD NOT FIX FROM THIS FILE — REPORTED, AND SINCE
+     LANDED BY ITS OWNER.** `ui/card.tsx` rendered `CardTitle` at `text-sm`, so
+     every card title in the product was body size, separated from the
+     paragraph beneath it by one weight step — the boundary this file's own
+     measurement below calls the weakest in the system. Measured before:
+     14px/600 against a 14px/400 body. It now renders at `--text-base`, where
+     every dialog, drawer, nav-column and empty-state heading already sat, so
+     it joined an established step rather than inventing one.
+
+     Recorded here because the reason it could not be done from this file is
+     structural and will come up again: **a utility beats a base-layer rule**,
+     so a size written as a class at a call site is out of this file's reach
+     whatever the token says. When a component's declared step and its class
+     disagree, the class wins and the token is decoration. That is the failure
+     mode to watch for — grep for the class, not for the token.
+
+     ── WHAT FIVE SCREENS RENDER AFTER H5, MEASURED, NOT INTENDED. ──────────
+     Chromium 1440x900, `/management/overview`, `/management/zones`,
+     `/operations/quick-rides`, `/admin/overview`, `/financials/overview`:
+
+       KPI numeral     28 / 600 / rgb(23 26 33)     was 22 / 600 / same
+       page title      24 / 600 / rgb(23 26 33)     was 22 / 600 / same
+       card title      16 / 600 / rgb(23 26 33)     was 14 / 600 / same
+       nav col title   16 / 600 / rgb(23 26 33)     unchanged
+       column header   14 / 500 / rgb(107 114 128)  unchanged
+       body            14 / 400 / rgb(23 26 33)     unchanged
+       meta            12 / 400 / rgb(107 114 128)  unchanged
+
+     **Four rendered sizes became six, and the two that were equal are not.**
+
+     TWO OF THOSE VERDICTS ARE NOT WHAT THEY LOOK LIKE, AND BOTH MATTER:
+
+     **`--text-xl`'s four uses are CORRECT, not a shortfall**, and a report
+     that counts them as under-use has miscounted. `PageHeader.tsx:148`
+     centralises it for every screen in the product — one site, forty-odd
+     titles. The other three are `AuthCard.tsx:105`'s h1, and
+     `CorporateDetailScreen.tsx:612`, which is the ramp's one real weight
+     defect: `text-xl font-bold` (700) where the rank below says 600, and the
+     only `font-bold` on a title anywhere in `src/`.
+
+     **`--text-lg`'s role list is HALF FICTION.** Its declared role is "card /
+     drawer-section title, stat VALUE" and the TITLE half has **zero
+     consumers** — card titles render at `--text-base` (`ui/card.tsx`), and so
+     do dialog and drawer titles. Every live non-OTP use of `text-lg` is a
+     NUMBER: `MetricTile:192`, `Figures:54`, `LedgerCard:267`,
+     `ZonesScreen:584` and `:621`. The step the product actually uses as its
+     display numeral is this one, at 17px — which is precisely §0.4's finding,
+     "the one KPI number in the product is 17px". `--text-kpi` below takes that
+     role off it explicitly, rather than leaving a step whose name and job
+     disagree. A card title returning to `text-lg` is the other half, and it
+     belongs to `ui/card.tsx`, not to this file.
+
+     ── HOW WEIGHT AND SIZE COMBINE (H3). ───────────────────────────────────
+     Weight is the cheapest of the three emphasis channels and §0.3 measured
+     it spent almost everywhere. Recounted: `font-medium` 222, `font-semibold`
+     170, `font-bold` 5 — **397 weighted against 39 explicitly normal.** A
+     channel spent on everything carries nothing. The rank below is what makes
+     `font-medium` mean something again.
+
+     **NO WEIGHT TOKEN IS ADDED, AND THAT IS A RULING RATHER THAN AN
+     OMISSION.** Tailwind's `--font-weight-*` scale IS the token set — the
+     same reasoning `docs/ref/motion.md` records for duration, and a second
+     source here would drift in the same way. Inter Variable's `wght` axis is
+     continuous (verified in the vendored `inter-latin-wght-normal.woff2`: one
+     axis, `wght` 100 / 400 / 900), so 400, 500 and 600 all resolve from the
+     one file with no synthesis and no extra request.
+
+     ── H5 REORDERS THIS TABLE AND FIXES ITS ONE INVERSION. ────────────────
+     The rank below used to put the section title (17) UNDER the card title
+     (16) while giving it a larger number — a contradiction that survived
+     because 16 and 17 are indistinguishable. With --text-lg at 20 the two are
+     separable, and the sub-display step sits where its consumers already are.
+
+       rank                  weight  size    px  colour           per surface
+       KPI numeral             600   kpi     28  --ev-ink         1 / tile
+       page title              600   xl      24  --ev-ink         1 / screen
+       sub-display figure      600   lg      20  --ev-ink         1-2 / card
+       card · dialog title     600   base    16  --ev-ink         1 / card
+       column header           500   sm      14  --ev-text-2      header strip
+       PRIMARY · the identity  500   sm      14  --ev-ink         1 / row
+       DATA · the values       400   sm      14  --ev-ink + tnum  2-4 / row
+       META · everything else  400   xs      12  --ev-text-2      the rest
+       badge label             600   2xs     11  --tone-*-fg      H7's budget
+
+     **THE KPI OUTRANKS THE PAGE TITLE, AND THAT IS THE RULING.** A page title
+     says where you are; a metric board's numeral is what the operator opened
+     the screen to read. D7's worry — "the h1 smaller than the numbers beneath
+     it" — is about the h1 losing to ORDINARY figures in a table, which it
+     still does not: it outranks every one of them by 10px. It loses to exactly
+     one thing per tile, deliberately.
+
+     **THE LAW: SIZE AND WEIGHT MOVE IN THE SAME DIRECTION.** Nothing larger
+     is ever lighter than the thing above it in rank, so the two channels
+     reinforce instead of competing. The badge label is the one inversion
+     (11px at 600 sitting under 12px at 400) and it is licensed by §12.1 /
+     R15 geometry — a chip's label has to survive its own fill and its own 4px
+     radius — and §14's Arabic floor already lifts it to 12px.
+
+     ── MEASURED: WHAT ONE WEIGHT STEP IS WORTH AT 14px. ────────────────────
+     PRIMARY / DATA is the only boundary in the rank where two tiers share a
+     size AND a colour and are separated by weight alone, so what that buys is
+     worth knowing rather than assuming. Inter's `wght` axis moves the vertical
+     stem of `l` linearly, 40 units per 100 weight on a 2048 upem — measured by
+     instancing the vendored variable file at each stop:
+
+       wght 400   stem 180u = 0.0879em   1.230px at 14px
+       wght 500   stem 220u = 0.1074em   1.504px   **+0.273px, +22.2%**
+       wght 600   stem 260u = 0.1269em   1.777px     +0.546px, +44.4%
+       wght 700   stem 300u = 0.1464em   2.050px     +0.819px, +66.6%
+
+     **One step is +0.273px — under a third of a device pixel at 1x.** It
+     renders as a change in stem DENSITY, not stem width, and `body` below
+     sets `-webkit-font-smoothing: antialiased`, which thins strokes further
+     and narrows the gap again. So one weight step is the MINIMUM viable tier
+     separation and it is the weakest boundary in the system. PRIMARY survives
+     on it only because it carries a second, non-typographic carrier —
+     **POSITION**: the identity value is always the first column of a row and
+     the first line of its cell. **Do not reuse a one-step weight difference
+     anywhere that position does not also separate the two tiers.** Two steps
+     (400 -> 600, +44.4%) is the one that is visible on its own, which is why
+     every TITLE rank above is 600 and not 500.
+     The cost, for the record: 400 -> 500 widens a 16-character identity
+     string by **1.49%**, which no column `min-w` in the product notices.
+
+     ── H5 · WHERE THAT ONE-STEP RULE IS BEING SPENT, MEASURED ON SCREEN. ───
+     Every leaf text node in the first three body rows of `/management/zones`
+     and `/operations/quick-rides`, Chromium 1440x900, as size/weight/colour:
+
+       column header    14 / 500 / rgb(107 114 128)   the header strip
+       ordinary cell    14 / 400 / rgb(107 114 128)   6 of 24 leaves, the mode
+
+     **Those two differ by one weight step and by nothing else** — same size,
+     same ink. The rule above permits that only where POSITION also separates
+     the tiers, and here it just barely does (the header strip is its own band
+     above the body), so this is legal and it is the weakest legal instance in
+     the product. It is worth knowing that the table's strongest typographic
+     boundary is its thinnest one.
+
+     Two live deviations from the rank, found in the same sweep and reported
+     rather than fixed here, since both are call-site classes:
+       `TRP-9105` — the identity cell — renders **14 / 600**, where the rank
+       says PRIMARY is 500. Weight is the only channel the identity column
+       has, and spending 600 on it collapses the gap to the card title.
+       `Riyadh` — an identity second line — renders 12 / 500, where META is
+       400. A muted second line at 500 is emphasis on the thing being muted.
+
+     ── H5 · GROUPING, WHICH IS THE THIRD CHANNEL AND THE ONE NOBODY OWNS. ──
+     Measured on `/management/overview`: within a tile, value to label is
+     **6px**; between tiles, **12px**; between the metric board and the chart
+     board, **16px**. Within-group to between-group is 6:12, a clean 2.0 and
+     the tile reads as one object. **Between-group to between-SECTION is
+     12:16, a ratio of 1.33** — a whole change of subject is 4px wider than
+     the gap between two tiles, so eleven tiles and two charts read as one
+     undifferentiated field of cards. Spacing is doing no grouping work above
+     the tile. The fix is a screen class, not a token: Tailwind's scale IS the
+     spacing token set (the standing ruling, see `docs/ref/motion.md` for the
+     same reasoning applied to duration), so the section gap wants the next
+     real step up rather than a new `--ev-*` name. Reported to the screen
+     owner; adding a spacing token here would be the drift, not the fix. */
+
+  /* 11px. **BADGE LABEL AND COUNT-BADGE NUMERAL, AND NOTHING ELSE** (H2).
+     175 uses against a declared job that two components own, which makes this
+     the most over-spent step in the ramp. Its other uses — notably the
+     `font-mono text-2xs` id lines across the five `admin/communications`
+     cards — belong at --text-xs. An 11px step exists to let a CHIP fit inside
+     a 20px pill; it is not a size for prose, and the product reads two steps
+     below its own declared body largely because this step and --text-xs were
+     available. */
+  --text-2xs: 11px;
   --text-2xs--line-height: 16px;
   /* Secondary line and helper text. **NOT the table column header any more:**
      the audit measures their header labels at ~14px/500 with ink heights
      matching the body text, i.e. a column header is the SAME optical size as
      the cell beneath it, where ours was two steps smaller than its own body.
      That is a class change in `table.tsx` (`text-xs` -> `text-sm font-medium`)
-     and it belongs to the table engineer, not to this token. */
+     and it belongs to the table engineer, not to this token.
+
+     **H2 — THE META TIER, AND THE MOST OVER-SPENT STEP BY VOLUME.** 477 uses
+     make this the dominant size in the product, ahead of the 14px body it is
+     meant to sit under. That is the whole of §0.1's diagnosis in one number:
+     `text-xs` has become the body size, so the body size has become emphasis
+     and the ramp above it has nothing left to say. Its correct role list is
+     closed — ids, cities, timestamps, provenance, helper text, the identity
+     cell's second line — and a VALUE the operator scans for is never in it.
+     The 477 get triaged: values to --text-sm, metadata stays. */
   --text-xs: 12px;
   --text-xs--line-height: 16px;
   /* **BODY — 14px, not 13.** nav row, table body, button, input.
@@ -1151,26 +2194,269 @@
 
      This is the widest-reaching single number in the file: `text-sm` is the
      body default on `<body>` and the size of every nav row, cell, button and
-     input. */
+     input.
+
+     **H2 — IT IS BOTH THE PRIMARY AND THE DATA TIER, AND IT IS THE DEFAULT.**
+     Its 248 explicit uses are not the measure of it: `body` below already sets
+     it, so most body text should carry NO size class at all and those 248 are
+     largely sites climbing back up to a default something else knocked them
+     off. The number that matters is the 477 at --text-xs sitting under it.
+     Row content — every value the operator came to read — is this step. */
   --text-sm: 14px;
   --text-sm--line-height: 20px;
   /* 15 -> 16. Their declared `--text-base` is 1rem, and the audit solves their
      nav TITLE at ~15.5px against our 13. Also the first-run empty-state
-     heading. */
+     heading.
+
+     **H2 — THE ONLY STEP IN THE RAMP USED AT ITS DECLARED SIZE.** 18 uses
+     against a role list of nav title, card title, dialog title, drawer title
+     and empty-state heading, which is about the number of those there are.
+     Nothing to reclaim here. Two comments in `src/` still describe it as
+     "15px" (`AuthWordmark.tsx:4`, `EmptyState.tsx:49`) — stale prose against a
+     live token; they belong to their owners and are reported, not edited. */
   --text-base: 16px;
   --text-base--line-height: 24px;
-  --text-lg: 17px; /* card / drawer-section title, stat VALUE. D7 NARROWS its
-                      role: it is no longer the page title. `04592c4f` card
-                      title cap 6.5 destination px -> 16.8; `79a31934` stat
-                      value figure height 6.75 -> 17.4. */
-  --text-lg--line-height: 24px;
+  /* 17px. Card / drawer-SECTION title. D7 narrowed its role once — it is no
+     longer the page title — and H4 narrows it again: **`stat VALUE` leaves
+     this step for --text-kpi below.** `04592c4f` card title cap 6.5
+     destination px -> 16.8; `79a31934` stat value figure height 6.75 -> 17.4.
+
+     **H2 — WHAT IS LEFT OF ITS ROLE HAS NO CONSUMERS, AND THAT IS THE
+     FINDING.** All six live non-OTP uses were numbers, not titles; with the
+     KPI moved off, this step is at risk of having no consumer at all until
+     card and section titles come back to it from --text-base. That is a class
+     change in `ui/card.tsx` and the drawer sections, owned by their engineers.
+     **A step with no consumer is a step that drifts** — if the title role does
+     not return, the honest next move is to retire the step, not to keep it
+     warm with a number.
+
+     ── H5 (2026-09-02) · 17 -> 20, AND THE ROLE IS RENAMED TO ITS CONSUMERS. ──
+     17 next to --text-base's 16 is a **1.0625 ratio**, which is not a step —
+     it is two names for one size with a rounding error between them, and it
+     is half of why the ramp reads flat. Measured in Chromium at 1440x900,
+     only FOUR distinct sizes render on any screen in the product (22 / 16 /
+     14 / 12); 17 renders on none of the five screens sampled, because its
+     five call sites are a ledger balance, two zone figures and an OTP field.
+
+     The role above says "title, stat value" and predicted the step would die
+     if the title half never arrived. It never arrived. So the honest move is
+     the one that comment named — **give the step the role its consumers
+     already have** — rather than keeping a name warm: this is the SUB-DISPLAY
+     step, a figure or a code that must outrank body text but is NOT the
+     board's headline numeral. `OtpField:176` (a six-digit code in a 40px
+     control), `LedgerCard:267` (closing balance), `ZonesScreen:614` and `:651`.
+     A section title inside a card is welcome here too; nothing is at 20 now.
+
+     **20, NOT 18 OR 22.** It must clear --text-base by a real step and leave
+     --text-xl a real step above it. 16 -> 20 -> 24 is 1.250 / 1.200; 16 -> 18
+     -> 24 would be 1.125 / 1.333, which puts the weak step at the boundary
+     that matters more (a section title against a card title, adjacent on
+     screen) and the wide one where nothing is ever adjacent. 20 is also on the
+     4px grid, and 20/28 keeps the line box on it. */
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
   /* THE PAGE TITLE, and the one real change to the ramp under D7. It
      REDEFINES an existing Tailwind name (stock 20/28) and adds no --ev-*
      token. `Visitors` (`82923d3f`): cap 9 destination px -> 23.2, x-height
-     7 -> 24.0. `Members` (`6a08206b`): cap 8.75 -> 22.6. Band 22-24; 22
-     chosen. Its Arabic floor is 24/32, under the :lang(ar) hook above. */
-  --text-xl: 22px;
-  --text-xl--line-height: 28px;
+     7 -> 24.0. `Members` (`6a08206b`): cap 8.75 -> 22.6. Band 22-24.
+
+     ── H5 (2026-09-02) · 22 -> 24. RE-SELECTED INSIDE THE DERIVED BAND. ──────
+     This is NOT a new derivation and it does not touch the reference
+     measurements above: the band they solve is **22-24**, one of the three
+     figures lands on 24.0 exactly, and D7 chose the bottom of the band. H5
+     chooses the top of it. The reason is the collision recorded below — the
+     page title and the KPI numeral were byte-identical on size, weight AND
+     ink, so a metric board rendered eleven glyphs at page-title rank and
+     nothing on it was first. Resolving that from one side only would have made
+     the h1 smaller than the numbers beneath it, which D7 already named as a
+     different defect; resolving it from both keeps the h1 above every title on
+     its screen and still below the one numeral the board exists for.
+
+     Cost, measured: `Market & Zones` at 600 weight grows from 167px to 182px
+     of a 1440px page. No page title in the product is near its container.
+     Line box 28 -> 32, on the 4px grid; the Arabic box is 36. */
+  --text-xl: 24px;
+  --text-xl--line-height: 32px;
+
+  /* ── H4 · THE KPI NUMERAL. THIS AMENDS `03-navattic-language.md` §4.9. ────
+     A metric tile's number is the single most-read glyph on an overview
+     screen and before H4 it got no treatment at all: the tile rendered it at
+     `text-lg` — **17px, over a 12px label** — so the number the board exists
+     for was five pixels larger than its own caption. §4.9's
+     derivation is faithful to the reference, which is a marketing-analytics
+     stat strip where the number is a supporting element; Eyvar's metric
+     boards answer a different question, and doc 15 §0.4 is the argument.
+
+     **THE AMENDMENT IS TAKEN, AS OF H5 (2026-09-02).** It was held open for
+     one round on the grounds that §4.9 is D-numbered. The owner has since
+     ruled that the hierarchy is to be made real and asked for the ruling to be
+     taken rather than returned, which is the amendment. The step is live, its
+     consumers are `MetricTile.tsx:225` and `Figures.tsx:67`, and both already
+     carry the class — so the value below moves them with no component edit.
+
+     ── WHY IT IS ITS OWN NAME AND NOT `text-xl`. ───────────────────────────
+     They were equal, and being separable in one file is exactly what let H5
+     move them apart with no component edit. `--text-xl` is **THE PAGE TITLE,
+     one per screen**; this is **THE HEADLINE NUMERAL, one per tile and up to
+     eleven per board**. A 4-up metric row sharing the title's step put eleven
+     glyphs at page-title rank on one screen — the H1 failure (nothing is
+     first) wearing H4's clothes, which is precisely what shipped and what the
+     H5 block below records as measured. Separate names also mean a later move
+     of the page title cannot silently drag every KPI in the product with it.
+
+     ── DERIVED ON FIGURE HEIGHT, NOT ON THE SIZE NUMBER. ───────────────────
+     A numeral's presence is its CAP HEIGHT; the em box is invisible. That
+     half of H4 is right and H5 keeps it. **H4's arithmetic was wrong twice**,
+     and both corrections are carried in the H5 block below: it used 0.7275em
+     from the OS/2 table where the RENDERED digit cap at 600 weight measures
+     **0.740em**, and it compared against an 11px label where
+     `MetricTile.tsx:229` renders 12px. Its stated 1.46 : 1 was 1.357 : 1 on
+     screen. The claim "no step above 22 exists and H2 forbids adding one" was
+     also not a constraint: H2 forbids adding a step *for emphasis at a call
+     site*, and this is the top of the ramp being derived, in the file whose
+     job is to derive it.
+
+     ── THE LINE BOX IS NOT TIGHTENED, AND H5 MEASURES WHY. ────────────────
+     The tile renders `<bdi>{formatMetricValue(...)}</bdi>` — user-formatted
+     text that carries a unit or a currency word beside the digits, and in
+     Arabic that word sets in Naskh. H4 asserted a deep descender; H5 measured
+     it, and the numbers are in the H5 block below. The assertion was right in
+     conclusion and wrong in mechanism: it is the Naskh **ink box** at 1.01em
+     against Inter's 0.93em that constrains the line box, not the font box's
+     1.70em, because only ink can collide with anything.
+
+     TABULAR FIGURES DO NOT TRAVEL WITH THIS STEP AND THAT IS DELIBERATE.
+     `@utility text-kpi` was written first and REMOVED: declaring `--text-kpi`
+     in the `--text-*` namespace already generates a `.text-kpi` rule, so the
+     custom utility emitted the class a SECOND time and the tabular property
+     survived only because the later rule happened not to reset it. A
+     guarantee that depends on emission order is not a guarantee. The figures
+     are pinned in `@layer base` instead, on the numeric defence that already
+     exists — see `table, [data-numeric], [data-slot="metric-value"]` below,
+     which also carries the font measurement. **`text-kpi` alone does NOT give
+     you tabular figures; the slot does.** */
+  /* ── H5 · THE COLLISION, RESOLVED (2026-09-02). 22 -> 28. ───────────────
+     The escalation this comment used to carry is withdrawn. It was wrong on
+     one fact and wrong in principle. Wrong on the fact: it derived 1.46:1
+     against an 11px label, but `MetricTile.tsx:229` renders the label at 12px,
+     so the shipped ratio was **1.357 : 1**, not 1.46. Wrong in principle:
+     "the step above does not exist" is not a constraint on the file that
+     declares the steps.
+
+     Measured in Chromium at 1440x900 before this change, on
+     `/management/overview`, `/admin/overview` and `/financials/overview`:
+
+       h1 page title    22px  600  rgb(23 26 33)
+       KPI numeral      22px  600  rgb(23 26 33)   <- identical on all three
+
+     Eleven tiles at page-title rank, and the h1 above them indistinguishable
+     from any one of them. That is the whole of the owner's "nothing ranks" on
+     one screen, and it is this token's fault.
+
+     ── 28 IS DERIVED TWICE, AND THE TWO DERIVATIONS AGREE. ─────────────────
+     (1) ANGULAR LEGIBILITY AT THE STATED GLANCE DISTANCE. The requirement is
+     that the numeral read at a metre. ISO 9241-303 / ANSI-HFES 100 put the
+     legibility floor for a glanced character at a **cap height of 16
+     arcminutes**, preferred band 20-22'. Inter's rendered digit cap height at
+     600 weight measures **0.740em** — read off the shipped face with canvas
+     TextMetrics on the vendored variable file, not assumed from the OS/2 table
+     (which reports 0.7275 at 400). Worst-case display is the one with the
+     smallest pixels a reviewer is likely to use, a 27in 2560x1440 panel at 1x,
+     pitch 0.2331mm:
+
+       28px -> cap 20.72px -> 4.830mm -> **16.61' at 1000mm**   clears the floor
+       28px -> cap 20.72px -> 4.830mm ->   27.7' at  600mm      inside preferred
+       22px -> cap 16.28px -> 3.795mm ->   13.05' at 1000mm     BELOW the floor
+
+     So the shipped 22 does not meet the glance requirement at a metre and 28
+     does, by 0.61 of an arcminute. On a 24in 1080p panel (pitch 0.2745mm) 28px
+     gives 19.6' at a metre, so 27in/1440p is the binding case.
+
+     (2) CAP HEIGHT AGAINST THE TILE'S OWN LABEL, WHICH IS 12px AND NOT 11px.
+       at 17px  figure 12.58px  vs a 12px label = 1.048 : 1   not a hierarchy
+       at 22px  figure 16.28px  vs a 12px label = 1.357 : 1   the shipped state
+       at 28px  figure 20.72px  vs a 12px label = **1.727 : 1**
+     1.727 is a display-to-caption relationship. 1.357 is two lines of similar
+     text, which is what the board looked like.
+
+     ── AND 28 IS THE CEILING, WHICH IS GEOMETRY AND NOT TASTE. ─────────────
+     The 4-up tile grid gives the value **225px** of width at 1440 (251px tile,
+     12px gaps, measured). Widths measured in the browser with the shipped
+     face, 600 weight, tabular figures on:
+
+       string                22px    24px    26px    28px    30px
+       8,075.70 SAR         147.6   161.0   174.4   187.8   201.2
+       123,456.78 SAR       176.0   192.0   208.0   **224.0**  240.0  X
+       1,281,432.86 SAR     196.2   214.0   231.8 X 249.7 X  267.5  X
+
+     A six-figure riyal value fits at 28 with 1.0px to spare and does not fit
+     at 30. **28 is therefore both the derived answer and the last step the
+     grid carries.** The seven-figure case overflows at 26 and above and is
+     reported to the tile owner rather than solved here — the tile has no
+     truncation and the value would wrap, changing tile height. Nothing in the
+     product's data reaches it today: the widest value rendered on any of the
+     five sampled screens is `8,075.70 SAR` at 187.8px of 225.
+
+     ── AND IT IS NOT REDEFINED UNDER THE COMPACT QUERY. TWO REASONS. ──────
+     **(1) A PHONE IS HELD THREE TIMES CLOSER, SO 28 IS ALREADY GENEROUS
+     THERE.** At a 300mm phone viewing distance, on an iPhone-class 3x display
+     (1 CSS px = 0.1656mm), 28px gives a cap of 3.43mm = **39.3 arcminutes**,
+     against the 16' floor the desktop case is solved to. There is room to
+     shrink it. What forbids shrinking it is that --text-xl would have to come
+     down with it or the KPI drops back under the page title — which is the
+     collision this whole block exists to remove, re-created upside down.
+
+     **(2) IT IS NOT WHAT CLIPS ON A PHONE, AND THAT WAS TESTED RATHER THAN
+     ARGUED.** At 390px the metric row is still `grid-cols-4`, giving an
+     **80.5px** tile. Values clipped, measured at three sizes on that grid:
+
+       28px (shipped)     8 of 11 tiles clip
+       22px (pre-H5)      4 of 11
+       17px (pre-H4)      3 of 11
+
+     **An 80.5px tile cannot hold `1,281.86 SAR` at any size in the ramp** —
+     its ink is 147.6px at 22px and 114px at 17px. So the size makes the count
+     worse and is not the cause; a 4-up grid at 390 is. The content column at
+     390 is 358px after the compact gutter, which carries the widest value the
+     product renders (188px at 28px) one-up with 170px spare, and two-up at
+     173px per tile with 15px short of the widest — so one-up clears it and
+     two-up needs the value to be allowed to wrap. That is a `grid-cols-4` on
+     `MetricTileRow.tsx:72` and it belongs to the metric board's owner.
+
+     ── WHY THE PAGE TITLE MOVED TOO, AND WHY WEIGHT AND INK DID NOT. ───────
+     Both ends moved because moving one produced a worse defect (see
+     --text-xl). The result is 24 -> 28, ratio 1.167, plus the tile's own
+     grouping: one h1 against a 4-up row of numerals each 4px taller than it.
+     INK could not be the differentiator and that is arithmetic, not
+     preference: the product has exactly two AA-passing inks (--ev-ink 17.411:1
+     and --ev-text-2 4.834:1 on white) and --ev-text-2 sits 0.038 above the AA
+     floor on the tinted ground it must also clear, so there is no room for a
+     third rung below it. WEIGHT is available — 600 -> 700 is a further +22.2%
+     stem by this file's own measurement — but it is written at the call site
+     (`MetricTile.tsx:225`, `Figures.tsx:67`) and is therefore reported, not
+     taken here. Size alone is sufficient at 1.167 plus 4px absolute.
+
+     ── LINE BOX 32, AND IT IS MEASURED THIS TIME. ──────────────────────────
+     The previous comment declined to tighten on the grounds that an Arabic
+     unit word "hangs a deep descender". That is true of the FONT box and not
+     of the INK box, and only the ink box can collide with anything. Measured
+     with canvas TextMetrics against the two shipped faces, per 1em:
+
+                                  ink asc   ink desc   ink total   font box
+       Inter 600 `1,234.56 SAR`      0.74       0.19      0.93       1.21
+       Noto Naskh `ريال سعودي`       0.80       0.21      1.01       1.70
+
+     At 28px the worst ink box is 1.01 x 28 = **28.28px**, which sits inside a
+     32px line box with 1.86px of leading each side and cannot clip. 32 is on
+     the 4px grid and gives ratio 1.143, inside the 1.1-1.2 display band once
+     the 8% ink-box excess is counted. The Arabic box is 36 — the +4 the whole
+     Arabic ramp now takes, under the language hook above, for the 1.70em font
+     box rather than for the size.
+
+     TABULAR FIGURES STILL DO NOT TRAVEL WITH THIS STEP. See the base rule on
+     `[data-slot="metric-value"]` below; the split is unchanged by H5. */
+  --text-kpi: 28px;
+  --text-kpi--line-height: 32px;
 
   /* R-5, amended by the match audit. **INTER** FIRST in both languages: it
      has no Arabic glyphs, so Arabic characters fall through to Naskh per
@@ -1218,16 +2504,69 @@
 
   /* §7.2 / D20. `outline: none` with no replacement is a defect, so the
      product ships a correct default ring and components opt into a stronger
-     one — they never opt out. 2px at 2px offset, --ev-blue. */
+     one — they never opt out. 2px at 2px offset, --ev-brand since Phase 1.
+     **The 2px offset is load-bearing now, not cosmetic:** --ring and
+     --primary are the same colour, so the offset gap is what paints page
+     ground between them and keeps 1.4.11 satisfiable. See --ring. */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
   /* R4 + §9.2. Every number in the product is tabular and Western, in both
-     languages. `ar-SA` alone would switch to Arabic-Indic digits. */
+     languages. `ar-SA` alone would switch to Arabic-Indic digits.
+
+     **HALF THIS DEFENCE HAS NO CONSUMERS, AND THAT IS REPORTED RATHER THAN
+     QUIETLY DELETED.** `table` covers every cell, which is 19 index screens
+     and most of the product's numbers. `[data-numeric]` has **zero** uses in
+     `src/` (grepped 2026-09-02) — so every number OUTSIDE a table reaches
+     tabular figures only through a hand-written `tabular-nums` class, of which
+     there are 148. That is the mechanism H4 declines to rely on: see
+     `@utility text-kpi` above, where the third and strongest route puts the
+     property on the SIZE STEP so the call site cannot omit it. The attribute
+     is kept because it is the correct hook for a number outside a table, a
+     drawer's summary figure or a chart's axis label among them.
+
+     ── H4 ADDS THE THIRD SELECTOR, AND THE FONT WAS VERIFIED, NOT ASSUMED. ──
+     `[data-slot="metric-value"]` is the KPI numeral, and it is pinned here
+     rather than on the `text-kpi` size utility because that utility is
+     generated by the `--text-*` namespace and a second definition of the same
+     class is a guarantee that depends on emission order. `data-slot` is
+     already this file's hook of choice — Defence 2 below is scoped to
+     `[data-slot="chart"]` — so this is an existing mechanism reused, not a
+     new one invented. **`MetricTile.tsx:192` must carry the attribute; the
+     size class alone does not carry the figures.**
+
+     Read out of the vendored
+     `@fontsource-variable/inter/files/inter-latin-wght-normal.woff2`:
+
+       GSUB features present   calt ccmp dnom frac locl numr pnum **tnum**
+       `tnum` lookup           type 1, `zero`..`nine` to `zero.tf`..`nine.tf`
+       DEFAULT digit advances  833 (`1`) .. 1323 (`4`) /2048  PROPORTIONAL
+       under `tnum`            1328 for all ten = 0.6484em    flat
+
+     **Inter's default figures are proportional by a 58.8% spread**, so this
+     property does real work rather than restating a default. At 22px a
+     seven-digit figure of all `1`s sets 62.64px and all `4`s sets 99.48px —
+     **36.85px of jitter across a 4-up tile row**, and the same digits down a
+     table column beneath it. It costs width: `1,234,567` grows 9.69px at 22px
+     (+9.5%), which the tile has and which is R4's accepted price.
+
+     `lining-nums` is deliberately NOT added. Inter ships no `onum` (checked in
+     the same table), so its figures are already lining and the keyword would
+     request a feature the font cannot answer — a claim this file could not
+     verify, which is the one thing a token comment must never contain.
+
+     THE FALLBACK IS BOUNDED AND STATED: during the `font-display: swap` window
+     the Latin face is `Segoe UI`, whose digits are also proportional, and the
+     property still applies to it — so the window costs one frame of imperfect
+     alignment, not a permanent misalignment. `Noto Naskh Arabic`'s latin
+     subset ships **no** `tnum` and needs none, all ten of its digits already
+     advancing 559/1000, and Inter leads the stack in both languages anyway
+     (R-5), so every numeral run is Inter's in Arabic too (AC-73). */
   table,
-  [data-numeric] {
+  [data-numeric],
+  [data-slot="metric-value"] {
     font-variant-numeric: tabular-nums;
   }
 }
@@ -1244,6 +2583,29 @@
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* --- Defence 3: muted ink nested inside a breached row. -------------------
+
+   The derived critical ink is applied by `DataTable` per CELL, scoped to the
+   `meta` emphasis tier — a `data` column at position 4 must keep its ink. That
+   scoping cannot reach a span INSIDE a cell that sets its own colour, and two
+   do: the disabled-action refusal line and the queue's secondary identity line.
+   Both resolve `--muted-foreground` #6b7280, which measures **4.354:1** on the
+   active critical ground #fef0ee — failing AA in the one state the operator is
+   actually in while reading it. At rest on #fff7f6 it is 4.578 and passes, so
+   it is invisible to a screenshot and to any audit that does not hover.
+
+   Walking the GROUND lighter is not the fix: #feecea puts the R19 checkbox
+   boundary at 3.015 and #feebe9 at 2.995, so the ground is already at its
+   darkest defensible value. The ink is what moves, and it already exists.
+
+   Scoped to a marked row rather than fixed at the two call sites, because the
+   next component to hard-code `text-muted-foreground` in a cell will not know
+   to ask. `:where()` keeps specificity at zero so a deliberate override still
+   wins. -------------------------------------------------------------------- */
+[data-row-critical] :where(.text-muted-foreground) {
+  color: var(--row-critical-foreground);
 }
 
 /* --- Defence 2: Recharts' hard-coded colour literals. Q5. ----------------

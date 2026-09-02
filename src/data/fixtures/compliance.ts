@@ -15,9 +15,12 @@
  * normal case and the screen has to say so rather than showing five green pills.
  */
 
-import type { DriverCompliance } from '../types/driver'
+import type { IsoDate } from '../types/common'
+import type { ComplianceDocState, ComplianceDocType, DriverCompliance } from '../types/driver'
+import { cycleRecord } from './cycle'
+import { fillerDrivers } from './drivers'
 
-export const complianceFixtures: DriverCompliance[] = [
+const namedCompliance: DriverCompliance[] = [
   {
     driverId: 'DRV-0101',
     driverName: 'Ahmed Salem',
@@ -148,4 +151,127 @@ export const complianceFixtures: DriverCompliance[] = [
     worstState: null,
     suspendedReason: null,
   },
+  {
+    /**
+     * **The first captain whose `worstState` is `critical`.**
+     *
+     * `critical` existed at document level — `DRV-0202` carries two — but that
+     * captain's operating card is *expired*, so their worst is `expired` and
+     * the `critical` **row** badge had never rendered. A state that exists on a
+     * child and never on the parent is invisible: the index shows one badge per
+     * captain, the filter facets on `worstState`, and the sort orders by it.
+     *
+     * The distinction is the entire point of the bucket. `expired` means the
+     * captain should not be driving today. `critical` means they will be
+     * illegal within the week and **nothing has happened yet** — it is the only
+     * bucket where an operator can still act in time, which is why it needs to
+     * be reachable more than any of the other three.
+     *
+     * Six days out on the insurance, seven on the inspection: the `≤ 7`
+     * boundary from `docState` (`:13291`) sits on that second document, so this
+     * row also pins the off-by-one.
+     */
+    driverId: 'DRV-0204',
+    driverName: 'Turki Al-Mutairi',
+    vehicle: 'Sunny 2021 · White',
+    docs: [
+      { type: 'license', expiresOn: '2027-11-02', state: 'valid' },
+      { type: 'vehicle_reg', expiresOn: '2026-08-28', state: 'valid' },
+      /* 7 days exactly — the `critical` boundary. */
+      { type: 'inspection', expiresOn: '2026-07-02', state: 'critical' },
+      /* 6 days. */
+      { type: 'insurance', expiresOn: '2026-07-01', state: 'critical' },
+      { type: 'operating_card', expiresOn: '2026-10-30', state: 'valid' },
+    ],
+    worstState: 'critical',
+    suspendedReason: null,
+  },
 ]
+
+/* ── volume ──────────────────────────────────────────────────────────── */
+
+const DOC_TYPES: readonly ComplianceDocType[] = [
+  'license',
+  'vehicle_reg',
+  'inspection',
+  'insurance',
+  'operating_card',
+]
+
+/**
+ * `docState(days)` (`:13291`), verbatim: `< 0` expired · `≤ 7` critical ·
+ * `≤ 30` expiring · else valid.
+ *
+ * Written out here rather than reused from a client because the `state` on a
+ * document is a **stored** field — the server buckets it once so three screens
+ * cannot bucket it three ways — and a fixture that computed it at read time
+ * would be modelling a different contract from the one the type declares.
+ */
+function docStateFor(daysOut: number): ComplianceDocState {
+  if (daysOut < 0) return 'expired'
+  if (daysOut <= 7) return 'critical'
+  if (daysOut <= 30) return 'expiring'
+  return 'valid'
+}
+
+/** `2026-06-25` plus `daysOut`, as a bare date. No host clock; the base is the fixed one. */
+function expiryFor(daysOut: number): IsoDate {
+  const d = new Date(Date.UTC(2026, 5, 25) + daysOut * 86_400_000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`
+}
+
+const WORST_ORDER: readonly ComplianceDocState[] = ['expired', 'critical', 'expiring', 'valid']
+
+/**
+ * Volume for the Compliance view — 43 more captains, so it pages and its
+ * `worstState` filter has a population to divide.
+ *
+ * **The captain and their vehicle come off one `Driver` record.** A compliance
+ * row denormalises three fields — id, name, vehicle — and reading them from the
+ * canonical captain is the same rule the trip and subscription fillers now
+ * follow. A compliance file describing a car the captain does not drive is a
+ * dispute waiting to happen.
+ *
+ * `worstState` is **derived from the documents rather than asserted**, so a row
+ * cannot claim a badge its own dates deny — which is exactly the defect that
+ * kept `critical` unreachable at row level.
+ */
+export const fillerCompliance: DriverCompliance[] = Array.from({ length: 43 }, (_, i) => {
+  const captain = cycleRecord(fillerDrivers, i)
+  const docs = DOC_TYPES.map((type, d) => {
+    /**
+     * One document in roughly six is inside thirty days; the rest are months
+     * out. The offsets are a pure function of the row and the slot, so the
+     * distribution is fixed and a snapshot can be diffed.
+     *
+     * **Never negative, and that is a constraint from another file.**
+     * `fixtures/navCounts.ts` pins `operations-people` to *applications waiting
+     * + captains with a lapsed document*, and `navCounts.test.ts` asserts the
+     * lapsed half is exactly 2 — `DRV-0104`'s inspection and `DRV-0202`'s
+     * operating card, both hand-written and both argued for by name. A filler
+     * that expired a document would move a badge three files reason about and
+     * would drown the two rows the count is *about*. So the volume reaches
+     * `critical` and `expiring` and stops there; `expired` stays the property
+     * of the two captains who earned it.
+     */
+    const daysOut = (i + d) % 6 === 0 ? ((i * 7 + d * 13) % 40) + 1 : 45 + ((i * 29 + d * 41) % 900)
+    return { type, expiresOn: expiryFor(daysOut), state: docStateFor(daysOut) }
+  })
+  const worstState =
+    WORST_ORDER.find((state) => docs.some((doc) => doc.state === state)) ?? null
+  return {
+    driverId: captain.id,
+    driverName: captain.name,
+    vehicle: captain.vehicle,
+    docs,
+    worstState,
+    /* Nobody in the filler population is suspended — `fillerDrivers` are all
+       `status: 'active'`, and a suspension reason here without one there would
+       be two records disagreeing about the same captain. */
+    suspendedReason: null,
+  } satisfies DriverCompliance
+})
+
+/** 52 rows — nine hand-written captains and forty-three of fleet. */
+export const complianceFixtures: DriverCompliance[] = [...namedCompliance, ...fillerCompliance]

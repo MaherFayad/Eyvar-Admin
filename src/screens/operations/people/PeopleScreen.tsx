@@ -55,6 +55,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { commandSession } from '@/commands'
 import type { SubTabRoute } from '@/data/types'
 import { formatCount } from '@/lib'
 import { PageHeader } from '@/components/PageHeader'
@@ -102,7 +103,11 @@ export function PeopleScreen({ row }: { row: SubTabRoute }) {
     language,
     /* §11.2 — gate at RENDER. Resolved once and passed down, so two views
        cannot disagree about what the operator may do. */
-    canWrite: shell.permissions.permissions.includes('approve_drivers'),
+    /* **One home for the permission name.** Spelling it here as well as in
+       `src/commands/session.ts` meant the palette and this screen could
+       disagree about who may act — the same divergence the command registry
+       exists to remove, reintroduced one level up. */
+    ...commandSession(shell.permissions.permissions),
     currentUserId: shell.session?.userId ?? '',
   }
 

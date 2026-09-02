@@ -6,7 +6,7 @@
  * ```
  *  ┌──────────────────────────────┐   white, 1px --ev-hairline, r8, no shadow
  *  │ ⛁                            │   16px icon, --ev-text-2, ABOVE the value
- *  │ 47                           │   17px/600 --ev-ink  (--text-lg)
+ *  │ 47                           │   22px/600 --ev-ink  (--text-kpi, H4)
  *  │ Active subscriptions         │   12px --ev-text-2, BELOW the value
  *  │ Excludes pending applicants. │   12px --ev-text-2, R4-4 §4.2's caption
  *  │ ↑ +8.1%  vs 1–25 May         │   neutral chip + grey trailing phrase
@@ -51,9 +51,27 @@
  *               (V-8). The `none` branch already satisfied that — its reason is
  *               visible text. The `target` branch hid its em dash with nothing
  *               replacing it, so it takes a companion phrase for a reader.
- *   §4.9        icon above, value 17px/600 (`--text-lg`, **not** a display
- *               size — the reference solves 13-17 and 17 is chosen so the
- *               value out-weighs its label), label 12px below, delta in a chip.
+ *   §4.9 / H4   icon above, value **22px/600 (`--text-kpi`)**, label 12px
+ *               below, delta in a chip.
+ *
+ *               **This is the amendment `design/15-hierarchy-and-scannability.md`
+ *               §H4 asks for, and §4.9's original derivation is left in place
+ *               above rather than deleted.** §4.9 solved 13-17 and chose 17 so
+ *               the value out-weighs its label — faithful to a reference whose
+ *               stat strip is a supporting element beside a chart. Eyvar's
+ *               metric boards answer a different question: the number IS the
+ *               page. `globals.css` carries the arithmetic on Inter's cap
+ *               height (1490/2048 = 0.7275em) — at 17px the figure is 12.37px
+ *               against an 11px label, **1.12 : 1**, which is a rounding error
+ *               the operator reads as two lines of similar text; at 22px it is
+ *               16.01px, **1.46 : 1**, which is a hierarchy. 22 is also the
+ *               ceiling: no step above it exists and H2 forbids adding one.
+ *
+ *               **`--text-kpi` is its own name and not `text-xl`** even though
+ *               the two are equal today. `--text-xl` is THE PAGE TITLE, one per
+ *               screen; a 4-up tile row sharing it would put four glyphs at
+ *               page-title rank on one screen, and any later move of the page
+ *               title would silently drag every KPI in the product with it.
  *   §4.9 / V6   **the delta chip is NEUTRAL and never takes the success or
  *               critical tone.** A number going up is not, by itself, good
  *               news; R7's tones carry status and a delta is a quantity. The
@@ -189,7 +207,22 @@ export function MetricTile({ metric, boardAsOf, t, language }: MetricTileProps) 
             normally. */}
         <span
           aria-hidden={metric.value === null || undefined}
-          className="text-lg font-semibold tabular-nums text-foreground"
+          /* **H4 — the KPI numeral, and it takes BOTH halves.** `text-kpi`
+             (22/28) is the size step; `data-slot="metric-value"` is what
+             carries the font measurement. `globals.css` states the split in
+             terms: *"`text-kpi` alone does NOT give you tabular figures; the
+             slot does"* — the `@utility text-kpi` that once carried
+             `font-variant-numeric` was removed because declaring `--text-kpi`
+             in the `--text-*` namespace already emits a `.text-kpi` rule, so
+             a second definition of the same class made the guarantee depend on
+             emission order. The property is pinned in `@layer base` on
+             `[data-slot="metric-value"]` instead, beside `table` and
+             `[data-numeric]`. **Neither half is optional and `tabular-nums` is
+             deliberately NOT written here** — a hand-written class beside the
+             slot would restate the guarantee at a call site that is free to
+             omit it, which is the mechanism H4 declines to rely on. */
+          data-slot="metric-value"
+          className="text-kpi font-semibold text-foreground"
         >
           <bdi>{formatMetricValue(metric.value, metric.unit, language)}</bdi>
         </span>

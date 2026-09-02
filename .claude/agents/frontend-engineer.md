@@ -25,6 +25,13 @@ Index: [`docs/ref/README.md`](../../docs/ref/README.md).
 | [`a11y.md`](../../docs/ref/a11y.md) | required ratios and which tokens fail |
 | [`rtl.md`](../../docs/ref/rtl.md) | what mirrors in Arabic and what does not |
 | [`defects.md`](../../docs/ref/defects.md) | the 24 known legacy defects vs a new one |
+| [`table.md`](../../docs/ref/table.md) | **read before touching `DataTable` — it lands on forty screens** |
+| [`i18n.md`](../../docs/ref/i18n.md) | why a string needs a key, and never a `defaultValue` |
+| [`motion.md`](../../docs/ref/motion.md) | may this move, and for how long |
+
+Deeper work belongs to a specialist: the table layer to the **table-density-engineer**,
+`globals.css` to the **design-token-steward**, keys and bidi to the
+**i18n-arabic-engineer**, offline to the **pwa-engineer**. Do not edit `globals.css`.
 
 ## Stack
 

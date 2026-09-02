@@ -45,7 +45,7 @@
  *   §9.1        logical utilities only. Nothing here reads `dir`.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode, useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { DEFAULT_DEBOUNCE_MS } from '@/hooks'
 import {
@@ -59,7 +59,20 @@ import {
 } from '@/lib'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+/**
+ * **Lazy, and it is worth a comment because it is half a chunk.**
+ *
+ * `react-day-picker` plus `date-fns` measured **72 KB raw / 20.5 KB gzip —
+ * 51.9% of the `DataTable` chunk**, which loads at 35 call sites across 23
+ * screens. Every one of those screens paid for a calendar; the handful with a
+ * date filter paid for it again on open.
+ *
+ * `Suspense` sits inside the popover, so the rest of the filter — the presets,
+ * the two inputs, the footer — paints immediately and only the grid waits.
+ */
+const Calendar = lazy(() =>
+  import('@/components/ui/calendar').then((m) => ({ default: m.Calendar })),
+)
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Command,
@@ -425,16 +438,24 @@ function DateRangeFilter({ t, value, onCommit, onClose, today }: ColumnFilterCon
         </div>
       )}
       <Separator />
-      <Calendar
-        mode="range"
-        numberOfMonths={2}
-        defaultMonth={toLocalDate(from) ?? toLocalDate(today ?? null)}
-        selected={{ from: toLocalDate(from), to: toLocalDate(to) }}
-        onSelect={(range) => {
-          setFrom(toIsoDay(range?.from))
-          setTo(toIsoDay(range?.to))
-        }}
-      />
+      <Suspense
+        fallback={
+          /* The grid's own footprint, so the popover does not resize under the
+             pointer when the chunk lands. Two months at the calendar's height. */
+          <div className="h-62 w-full" aria-hidden />
+        }
+      >
+        <Calendar
+          mode="range"
+          numberOfMonths={2}
+          defaultMonth={toLocalDate(from) ?? toLocalDate(today ?? null)}
+          selected={{ from: toLocalDate(from), to: toLocalDate(to) }}
+          onSelect={(range) => {
+            setFrom(toIsoDay(range?.from))
+            setTo(toIsoDay(range?.to))
+          }}
+        />
+      </Suspense>
       <div className="flex items-center justify-end gap-2">
         <Button variant="ghost" size="xs" onClick={onClose}>
           {t('table.filter.cancel')}

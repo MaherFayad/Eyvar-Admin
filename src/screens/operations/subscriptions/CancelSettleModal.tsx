@@ -1,123 +1,238 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+/**
+ * **Cancel and settle a subscription** — Operations › Subscriptions.
+ *
+ * ## What changed
+ *
+ * **The fake latency is gone.** This ran `setTimeout(…, 200)` and closed before
+ * `cancelSubscription` had been called, so a rejection could only surface as a
+ * toast over a dialog the operator had already left. `onConfirm` is awaited
+ * now, the dialog stays open for the round trip, and a refusal renders in place
+ * with the reason and the note intact (§11.2).
+ *
+ * **The refund figure was labelled `Calculated refund`, and it is not.** It is
+ * `paidHalalas / tripsIncluded × unused`, computed in this component. The
+ * settlement is computed by the **server** and returned on `refundedHalalas`,
+ * and `clients/subscriptions.ts` says so in as many words: *"computing it
+ * client-side is how two screens end up offering two refunds."* The two can
+ * disagree, and a label claiming otherwise is a promise this screen cannot
+ * keep.
+ *
+ * Two changes follow, and neither invents a policy:
+ *
+ *   - **the line reads `Estimated refund`**, with a sentence saying Finance
+ *     calculates the settlement on confirmation;
+ *   - **the toast quotes the SERVER's figure**, not this one (see
+ *     `SubscriptionsScreen.runCancel`).
+ *
+ * Reported to product-owner: the honest fix is a quote endpoint, so the
+ * operator sees the real number **before** committing rather than after.
+ *
+ * **The reason list is keys, not strings.** Five `<SelectItem>`s with English
+ * hardcoded in JSX became a list the screen passes and `./copy.ts` owns
+ * (**AC-74**).
+ *
+ * Rules applied
+ *   §9.1 / §5.3  the title states the verb and the object; the body states the
+ *                consequence **and that it cannot be undone from here**; the
+ *                primary repeats the verb, never `Confirm`.
+ *   R5a          **blue, not red.** R5a spends red on four things and a
+ *                subscription cancellation with a refund behind it is a
+ *                recoverable commercial act, not one of them. The gravity is
+ *                carried by the confirmation itself and by the money on screen.
+ *   §10.4        validated in the modal: the primary is dead until a reason is
+ *                chosen, rather than surfacing a 422 the operator must decode.
+ *   AC-73        every figure is `<bdi>`-isolated through `Money` / `bdi`.
+ */
+
+import { useEffect, useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Money } from '@/components/Money'
-import type { Subscription } from '@/data/types'
-import type { Translate } from '@/lib'
+import { isApiError, type Subscription } from '@/data/types'
+import { formatCount, type Language, type Translate } from '@/lib'
 
 interface CancelSettleModalProps {
   subscription: Subscription | null
+  /** The termination reasons, as copy KEYS. The screen owns the list. */
+  reasonKeys: readonly string[]
   open: boolean
   onClose: () => void
-  onConfirm: (subId: string, reason: string) => void
+  /** Awaited. The screen owns the write; this owns busy, failure and closing. */
+  onConfirm: (subId: string, reason: string) => Promise<void>
+  language: Language
   t: Translate
 }
 
-export function CancelSettleModal({ subscription, open, onClose, onConfirm, t }: CancelSettleModalProps) {
-  const [reasonCategory, setReasonCategory] = useState<string>('driver_unavailable')
-  const [customNote, setCustomNote] = useState<string>('')
+export function CancelSettleModal({
+  subscription,
+  reasonKeys,
+  open,
+  onClose,
+  onConfirm,
+  language,
+  t,
+}: CancelSettleModalProps) {
+  const [category, setCategory] = useState('')
+  const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  /** §11.2 — the last write's refusal, as real text inside this dialog. */
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  /* Hooks first, guard second — the early return must never change the hook
+     order between renders. Each opening is a fresh question. */
+  const subscriptionId = subscription?.id ?? null
+  useEffect(() => {
+    setCategory('')
+    setNote('')
+    setSubmitError(null)
+  }, [subscriptionId])
 
   if (!subscription) return null
 
-  const unusedTrips = Math.max(0, subscription.tripsIncluded - subscription.tripsCompleted)
-  const estimatedRefundHalalas =
+  const unused = Math.max(0, subscription.tripsIncluded - subscription.tripsCompleted)
+  /* An ESTIMATE, and the label says so. See the header. */
+  const estimateHalalas =
     subscription.tripsIncluded > 0
-      ? Math.round((subscription.paidHalalas / subscription.tripsIncluded) * unusedTrips)
+      ? Math.round((subscription.paidHalalas / subscription.tripsIncluded) * unused)
       : 0
 
-  const handleConfirm = () => {
-    const fullReason = `${reasonCategory}${customNote ? `: ${customNote}` : ''}`
+  const handleConfirm = async () => {
+    if (category === '') return
+    const reason = note.trim() === '' ? category : `${category}|${note.trim()}`
     setBusy(true)
-    setTimeout(() => {
-      onConfirm(subscription.id, fullReason)
-      setBusy(false)
+    setSubmitError(null)
+    try {
+      await onConfirm(subscription.id, reason)
       onClose()
-    }, 200)
+    } catch (error: unknown) {
+      setSubmitError(isApiError(error) ? error.message : t('subs.settle.saveError'))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[460px]">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent size="default">
         <DialogHeader>
-          <DialogTitle>{t('sub.settle.title', { defaultValue: 'Cancel & Settle Subscription' })}</DialogTitle>
-          <DialogDescription>
-            {t('sub.settle.desc', {
-              defaultValue: 'Early termination settlement for {id} ({rider}).',
-              id: subscription.id,
-              rider: subscription.riderName,
-            })}
-          </DialogDescription>
+          <DialogTitle>{t('subs.settle.title', { id: subscription.id })}</DialogTitle>
+          <DialogDescription>{t('subs.settle.body')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-3">
-          <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs flex flex-col gap-2">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.paidAmount', { defaultValue: 'Paid Package Price' })}:</span>
-              <span className="font-medium text-foreground"><Money amount={subscription.paidHalalas} /></span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.tripsRatio', { defaultValue: 'Completed / Total' })}:</span>
-              <span className="font-medium text-foreground">{subscription.tripsCompleted} / {subscription.tripsIncluded} trips</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.unusedTrips', { defaultValue: 'Unused Trips Remaining' })}:</span>
-              <span className="font-medium text-foreground">{unusedTrips} trips</span>
-            </div>
-            <div className="h-[1px] bg-border my-0.5" />
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-medium text-foreground">{t('sub.calculatedRefund', { defaultValue: 'Calculated Refund' })}:</span>
-              <span className="font-semibold text-foreground"><Money amount={estimatedRefundHalalas} /></span>
-            </div>
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
+            <SummaryRow label={t('subs.settle.paid')}>
+              <Money amount={subscription.paidHalalas} />
+            </SummaryRow>
+            <SummaryRow label={t('subs.settle.tripsRatio')}>
+              <bdi>
+                {t('subs.trips.ratio', {
+                  completed: formatCount(subscription.tripsCompleted, language),
+                  included: formatCount(subscription.tripsIncluded, language),
+                })}
+              </bdi>
+            </SummaryRow>
+            <SummaryRow label={t('subs.settle.unused')}>
+              <bdi>{formatCount(unused, language)}</bdi>
+            </SummaryRow>
+            <span aria-hidden="true" className="my-0.5 h-px bg-border" />
+            <SummaryRow label={t('subs.settle.estimate')} strong>
+              <Money amount={estimateHalalas} />
+            </SummaryRow>
+            {/* The sentence that stops a browser-side arithmetic result from
+                reading as a settlement Finance has agreed to. */}
+            <p className="text-2xs text-muted-foreground">{t('subs.settle.estimateHelp')}</p>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="settle-category" className="text-xs font-medium">
-              {t('sub.settle.reasonCategory', { defaultValue: 'Termination Reason' })}
-            </Label>
-            <Select value={reasonCategory} onValueChange={setReasonCategory}>
-              <SelectTrigger id="settle-category">
-                <SelectValue />
-              </SelectTrigger>
+          <Field id="settle-category">
+            <FieldLabel>{t('subs.settle.reason')}</FieldLabel>
+            <Select value={category} onValueChange={setCategory}>
+              <FieldControl>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('subs.settle.reasonPlaceholder')} />
+                </SelectTrigger>
+              </FieldControl>
               <SelectContent>
-                <SelectItem value="driver_unavailable">{t('sub.reason.noDriver', { defaultValue: 'No replacement captain available' })}</SelectItem>
-                <SelectItem value="service_failure">{t('sub.reason.serviceFailure', { defaultValue: 'Service quality failure / repeated missed trips' })}</SelectItem>
-                <SelectItem value="rider_relocated">{t('sub.reason.relocated', { defaultValue: 'Rider relocated outside service zone' })}</SelectItem>
-                <SelectItem value="vehicle_breakdown">{t('sub.reason.vehicleBreakdown', { defaultValue: 'Vehicle breakdown / prolonged maintenance' })}</SelectItem>
-                <SelectItem value="rider_violation">{t('sub.reason.riderViolation', { defaultValue: 'Rider policy violation' })}</SelectItem>
+                {reasonKeys.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {t(key)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="settle-note" className="text-xs font-medium">
-              {t('sub.settle.additionalNote', { defaultValue: 'Internal Notes (optional)' })}
-            </Label>
-            <Input
-              id="settle-note"
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
-              placeholder={t('sub.settle.notePlaceholder', { defaultValue: 'e.g. Approved by ops supervisor' })}
-            />
-          </div>
+          <Field id="settle-note" invalid={submitError !== null}>
+            <FieldLabel optional={t('field.optional')}>{t('subs.settle.note')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t('subs.settle.notePlaceholder')}
+              />
+            </FieldControl>
+            {/* §11.2 / §8.4.4 — a refusal is real text, in the surface that
+                made the request. */}
+            <FieldError>{submitError}</FieldError>
+          </Field>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
-            {t('action.cancel', { defaultValue: 'Cancel' })}
+            {t('table.cancel')}
           </Button>
-          <Button
-            size="xs"
-            onClick={handleConfirm}
-            disabled={busy}
-          >
-            {busy ? t('action.saving', { defaultValue: 'Processing...' }) : t('sub.confirmCancel', { defaultValue: 'Confirm Cancellation' })}
+          <Button size="xs" onClick={() => void handleConfirm()} disabled={busy || category === ''}>
+            {t('subs.settle.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** A label and a figure on one line. R4: the figure takes the inline-END. */
+function SummaryRow({
+  label,
+  strong = false,
+  children,
+}: {
+  label: string
+  strong?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={
+          strong
+            ? 'text-end font-semibold tabular-nums text-foreground'
+            : 'text-end tabular-nums text-foreground'
+        }
+      >
+        {children}
+      </span>
+    </div>
   )
 }
