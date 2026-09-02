@@ -130,8 +130,8 @@
  *
  * **Two divergences are legitimate and must not be forced equal.** People's 7
  * is 5 applications plus 2 lapsed documents against an `Applications waiting`
- * tile of 5 (AC-721); My Work's 22 is the backlog against a `Work items past
- * their SLA` tile of 12 (AC-723). Both are asserted by name in
+ * tile of 5 (AC-721); My Work's 25 is the backlog against a `Work items past
+ * their SLA` tile of 13 (AC-723). Both are asserted by name in
  * `navCounts.test.ts` so that a later "fix" to make them agree fails the build.
  */
 
@@ -200,10 +200,16 @@ export const navCountFixtures: SubTabCount[] = [
   /* Operations */
   { subTabId: 'operations-overview', count: null, tone: 'neutral' },
   /**
-   * **Derived, not chosen.** Twenty-two is `myWorkBacklogSize()` — items routed
+   * **Derived, not chosen.** Twenty-five is `myWorkBacklogSize()` — items routed
    * to this operator's role that nobody else is holding — and
    * `navCounts.test.ts` asserts the two are equal, so the badge cannot drift
    * away from the screen it opens.
+   *
+   * **Was 22.** It moved because the fairness queue did: ten filler cases became
+   * live, three of the open ones are now claimed, and My Work counts what is
+   * open and in nobody's name. That is the assertion doing its job — one
+   * fixture changed and the badge that depends on it failed until it agreed
+   * again.
    *
    * Legacy would tone this `attention`: `updateInboxBadge` sets `.a` whenever
    * *anything* in the inbox is breached (`:19314`), and three things are. Under
@@ -211,7 +217,7 @@ export const navCountFixtures: SubTabCount[] = [
    * failure the tone was re-scoped to avoid. The count is the backlog; the tone
    * is the escalation, and they are separate decisions.
    */
-  { subTabId: 'operations-my-work', count: 22, tone: 'neutral' },
+  { subTabId: 'operations-my-work', count: 25, tone: 'neutral' },
   { subTabId: 'operations-dispatch', count: null, tone: 'neutral' },
   /**
    * Seven open requests — four instant, three subscription — of which **three
@@ -303,16 +309,30 @@ export const navCountFixtures: SubTabCount[] = [
   { subTabId: 'support-tickets', count: 3, tone: 'neutral' },
   { subTabId: 'support-disputes', count: 0, tone: 'neutral' },
   /**
-   * Four open cases: one suspension appeal, one rating dispute, two rider
-   * reports. `FC-0003` is 64 minutes past a 24-hour window and `FC-0004` is
-   * four and a half days past one **with no first response at all** — the
-   * appeal route not answering is the failure the appeal route exists to
-   * prevent.
+   * **Fourteen open cases — was four, and the move is deliberate.**
+   *
+   * Ten of `fillerFairnessCases` are now live rather than decided. That file
+   * says why in full: `Deadline` and `Owner` are columns only a live case can
+   * fill, the landing view is a *kind* filter rather than a status one, and the
+   * result was a queue whose first screen was 16 rows of archive and one row of
+   * work — 336px of a 1038px table carrying one value between two columns
+   * (`docs/audit/PAGE-SWEEP.md` §2 S8).
+   *
+   * This literal and that generator are pinned to each other by
+   * `navCounts.test.ts` — *"support-fairness equals the open case queue"* —
+   * which is exactly the coupling that made the old comment warn against
+   * growing the queue. The warning was right; the answer is to move both
+   * numbers in one pass, not to leave the queue empty.
+   *
+   * The named cases still carry the reasons the badge is worth reading:
+   * `FC-0003` is 64 minutes past a 24-hour window and `FC-0004` is four and a
+   * half days past one **with no first response at all** — the appeal route not
+   * answering is the failure the appeal route exists to prevent.
    *
    * Neutral, under the same rule as Requests: bad, visible in the count,
    * recoverable. It is the second candidate if the cap ever moves.
    */
-  { subTabId: 'support-fairness', count: 4, tone: 'neutral' },
+  { subTabId: 'support-fairness', count: 14, tone: 'neutral' },
   /**
    * **Attention 1 of 2, and the only one currently visible. The cross-fixture
    * inconsistency this file recorded is now closed.**

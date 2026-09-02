@@ -193,7 +193,7 @@ export function RetentionCard() {
 
         {policy.status === 'content' && draft !== null && server !== null && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-3 gap-4 compact:grid-cols-1">
               <Field label={t('adminData.retention.audit')}>
                 <Select
                   value={String(draft.auditRetentionDays)}

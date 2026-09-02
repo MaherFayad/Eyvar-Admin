@@ -294,7 +294,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '92.96.33.6',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 5_000,
     movementLog: [
       { at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-25', action: 'App opened', location: 'Riyadh, SA' },
@@ -369,7 +369,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '92.96.5.18',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 20_000,
     movementLog: [{ at: '2026-01-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 30,
     lifetimeValueHalalas: 164_000,
@@ -520,7 +520,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '92.96.201.90',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 20_000,
     movementLog: [{ at: '2026-06-22', action: 'Account registered', location: 'Riyadh, SA' }],
     /* Registered three days ago, never taken a trip. Every card on the profile
        is empty at once — the whole-page first-run empty (R8), not eight
@@ -558,7 +558,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'English',
     lastIp: '92.96.14.77',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 3_500,
     movementLog: [{ at: '2026-04-15', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 74,
     lifetimeValueHalalas: 132_000,
@@ -611,7 +611,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '92.96.88.17',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 20_000,
     movementLog: [{ at: '2025-09-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 216,
     lifetimeValueHalalas: 412_600,
@@ -644,7 +644,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '46.31.60.140',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 5_000,
     movementLog: [{ at: '2026-06-08', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 3,
     lifetimeValueHalalas: 4_820,
@@ -713,7 +713,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'English',
     lastIp: '37.36.19.204',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 10_000,
     movementLog: [{ at: '2025-10-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 91,
     lifetimeValueHalalas: 118_300,
@@ -752,7 +752,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '92.96.14.202',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 2_500,
     movementLog: [{ at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 128,
     lifetimeValueHalalas: 233_400,
@@ -783,7 +783,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'English',
     lastIp: '92.96.14.78',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 60_000,
     movementLog: [{ at: '2026-01-15', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 57,
     lifetimeValueHalalas: 96_400,
@@ -816,7 +816,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '160.156.30.11',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 7_500,
     movementLog: [{ at: '2025-08-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 62,
     lifetimeValueHalalas: 71_500,
@@ -850,7 +850,7 @@ const namedRiders: Rider[] = [
     appLanguage: 'Arabic',
     lastIp: '46.31.11.4',
     ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    walletBalanceHalalas: 1_000,
     movementLog: [
       { at: '2025-07-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-21', action: 'Complaint filed', location: 'Riyadh, SA' },
@@ -913,14 +913,89 @@ const FILLER_RIDER_DISTRICTS = [
   'Al Sahafa',
 ]
 
+/**
+ * **The city each filler rider lives in.** Every one of the 55 riders used to
+ * be Riyadh, and two boards paid for it: `/operations/people` showed one
+ * distinct `City` across every visible row, and
+ * `management.zones.unservedDemandCities` — riders in a city we have supply
+ * signal in and no service — could only ever report `0`, because there was no
+ * second city for it to count.
+ *
+ * Weighted the way the demand is: Riyadh first, then the two cities
+ * `DB.cities` (`:13946`) names as declared-but-unlaunched, then a tail. It is
+ * **deliberately not the captains' distribution** — riders ask for trips in
+ * places we have no captains, which is the whole content of the unserved-demand
+ * tile.
+ *
+ * `fixtures/zones.ts` stays all-Riyadh and must: R4-6b §6.6.5 keeps that as
+ * **L-6**'s evidence, and a rider's home city is not a tracked zone.
+ */
+const FILLER_RIDER_CITIES = [
+  'Riyadh',
+  'Riyadh',
+  'Jeddah',
+  'Riyadh',
+  'Dammam',
+  'Riyadh',
+  'Jeddah',
+  'Makkah',
+  'Riyadh',
+  'Al Khobar',
+  'Riyadh',
+  'Jeddah',
+  'Madinah',
+  'Riyadh',
+  'Dammam',
+  'Taif',
+  'Riyadh',
+] as const
+
+/** A district that exists in that city, so the address never contradicts it. */
+const RIDER_CITY_DISTRICTS: Record<string, string> = {
+  Jeddah: 'Al Hamra',
+  Dammam: 'Al Shatea',
+  Makkah: 'Al Nuzha',
+  'Al Khobar': 'Al Aqrabiyah',
+  Madinah: 'Al Aqiq',
+  Taif: 'Al Rudaf',
+}
+
+/**
+ * The wallet balance each filler rider closes on — the running sum of that
+ * rider's rows in `walletTopUpSeeds` (`fixtures/ledger.ts`), stated here as a
+ * literal on purpose. **`financials.test.ts` asserts the two agree for every
+ * rider (AC-347)**, and that assertion is only worth running because the two
+ * numbers are written independently. A rider absent from this map has never
+ * topped up and closes at zero, which is a state, not a gap.
+ */
+const FILLER_RIDER_WALLET_BALANCES: Record<string, number> = {
+  'RDR-5101': 5_000,
+  'RDR-5102': 25_000,
+  'RDR-5103': 1_500,
+  'RDR-5104': 12_000,
+  'RDR-5106': 4_000,
+  'RDR-5108': 50_000,
+  'RDR-5110': 2_000,
+  'RDR-5112': 15_000,
+  'RDR-5114': 6_500,
+  'RDR-5117': 9_000,
+  'RDR-5120': 3_000,
+  'RDR-5124': 40_000,
+  'RDR-5128': 1_750,
+  'RDR-5132': 22_500,
+}
+
 export const fillerRiders: Rider[] = Array.from({ length: 34 }, (_, i) => {
   const n = i + 1
   const given = cycle(FILLER_RIDER_GIVEN, i)
   const family = cycle(FILLER_RIDER_FAMILY, i)
   const female = i % 3 === 1
   const trips = 2 + ((i * 11) % 90)
+  const id = `RDR-5${String(100 + n).padStart(3, '0')}`
+  const city = cycle(FILLER_RIDER_CITIES, i)
+  const district = RIDER_CITY_DISTRICTS[city] ?? cycle(FILLER_RIDER_DISTRICTS, i)
   return {
-    id: `RDR-5${String(100 + n).padStart(3, '0')}`,
+    id,
     name: `${given} ${family}`,
     phone: `+966 5${i % 10} ${String(300 + n).padStart(3, '0')} ${String(4000 + n * 13).slice(-4)}`,
     rating: i % 8 === 0 ? null : Number((3.2 + ((i * 3) % 18) / 10).toFixed(1)),
@@ -931,18 +1006,18 @@ export const fillerRiders: Rider[] = Array.from({ length: 34 }, (_, i) => {
     hasPhoto: i % 2 === 0,
     gender: female ? 'Female' : 'Male',
     driverGenderPreference: female && i % 6 === 1 ? 'female' : null,
-    city: 'Riyadh',
-    address: `${cycle(FILLER_RIDER_DISTRICTS, i)} District, Riyadh`,
+    city,
+    address: `${district} District, ${city}`,
     device: i % 2 === 0 ? 'iPhone 14 · iOS 17.4' : 'Samsung Galaxy A54 · Android 13',
     appLanguage: i % 5 === 0 ? 'English' : 'Arabic',
     lastIp: `92.96.${(i * 7) % 200}.${(i * 11) % 250}`,
-    ipLocation: 'Riyadh, SA',
-    walletBalanceHalalas: 0,
+    ipLocation: `${city}, SA`,
+    walletBalanceHalalas: FILLER_RIDER_WALLET_BALANCES[id] ?? 0,
     movementLog: [
       {
         at: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}`,
         action: 'Account registered',
-        location: 'Riyadh, SA',
+        location: `${city}, SA`,
       },
     ],
     totalTrips: trips,

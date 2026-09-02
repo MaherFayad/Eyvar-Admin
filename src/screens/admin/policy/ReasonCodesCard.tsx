@@ -523,7 +523,7 @@ function ReasonCodeDialog({
             />
           </Field>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3 compact:grid-cols-1">
             <Field id="rc-tier" label={t('policy.reasons.field.tier')}>
               <Select
                 value={draft.tier}
@@ -579,7 +579,7 @@ function ReasonCodeDialog({
             <legend className="text-xs font-medium text-foreground">
               {t('policy.reasons.field.surfaces')}
             </legend>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2 compact:grid-cols-1">
               {REASON_SURFACES.map((surface) => (
                 <label key={surface} className="flex items-center gap-2 text-xs text-foreground">
                   <Checkbox

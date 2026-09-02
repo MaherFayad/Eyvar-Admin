@@ -148,7 +148,27 @@ export function IndexToolbar(props: IndexToolbarProps) {
         <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 shrink gap-0">
           <TabsList
             variant="segmented"
-            className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            /* **Aligning to the inline-start is the whole of the compact
+               tab-strip defect.** `TabsList`'s base centres its children, right
+               for a control that always fits and catastrophic for one that can
+               overflow: centred content in a scroll container spills past BOTH
+               edges, and `scrollLeft` cannot go below zero, so the start-side
+               half is unreachable by any gesture. Measured at 390 with
+               `scrollLeft: 0` — `/support/tickets` put its FIRST tab at
+               x = -34 against a strip starting at x = 28, and
+               `/financials/ledger` put `Trial balance` at x = -172. Note
+               `scrollWidth` under-reports this: it counts only the END-side
+               overflow (65px on tickets), so the strip looked 65px over when it
+               was really 124, half of it unreachable.
+
+               Overriding here rather than in the primitive: the base is shared
+               with every other tab strip in the product, and centring is only
+               wrong where the container can scroll. This call site is the one
+               that declares the scroll, three utilities along. At 1440 the
+               change is a no-op — the box hugs its content there (measured 461
+               against 461 on tickets, 738 against 738 on ledger), so there is
+               no free space for either value to distribute. */
+            className="max-w-full justify-start overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {tabs.map((tab) => (
               <TabsTrigger

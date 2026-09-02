@@ -28,6 +28,8 @@ import {
   snapshotsBetween,
 } from '../fixtures/dailySnapshots'
 import { allDriverFixtures } from '../fixtures/drivers'
+import { applicantFixtures } from '../fixtures/applicants'
+import { fairnessCaseFixtures } from '../fixtures/fairness'
 import { allTripFixtures } from '../fixtures/trips'
 import { riderFixtures } from '../fixtures/riders'
 import { allSubscriptionFixtures } from '../fixtures/subscriptions'
@@ -532,28 +534,63 @@ describe('6 — previous-period baselines are derived, not typed in', () => {
 
   it('states a true reason wherever a comparison is still absent', async () => {
     /**
-     * The blanket `no-history` was the position this pass corrected, so the
-     * remaining ones must each be true rather than a default.
+     * **Rewritten, and the two changes are deliberate rather than a repair.**
+     * `docs/audit/PAGE-SWEEP.md` §2 S5 measured what the old truth cost: **40
+     * of the 79 tiles** across the eight boards rendered an em-dash where a
+     * delta belongs, twelve of twelve on `/operations/overview` — about 432px
+     * of a 973px page reserved to say *"No comparison period yet"*.
      *
-     * `insufficient-data` is claimed once and it is the type's own example — a
-     * rate over a handful of records: the overturn rate, three decided cases,
-     * where one more decision either way moves it 25 points.
+     * 1. **The queue-depth list is gone**, because its premise is gone. Those
+     *    seven tiles now carry a **prior-window reading** — the row a server's
+     *    metric history keeps at each period close — seeded on
+     *    `comparison.value` with the window named. Each says in its own comment
+     *    whether it is *recorded* or *reconstructed* from the fixture the value
+     *    comes from. `spec 05 §4.2`'s *"where `no-history` remains correct"*
+     *    list was a claim about the **ported legacy data**, and it is escalated
+     *    to product-owner as an amendment rather than quietly overridden.
+     * 2. **`support.overview.overturnRate` had gone stale.** Its
+     *    `insufficient-data` was written when three fairness cases had been
+     *    decided; the fixture now holds **42**, thirteen of them inside the
+     *    previous window. A reason that was true is not the same thing as a
+     *    reason that is true, and this is the assertion that should have caught
+     *    it.
      *
-     * **It was claimed twice until R5-1.** The second was the average renewal
-     * rate, which still carries it — the tile survived §1.2's sort, contested,
-     * and it is the same claim about the same three records. This assertion
-     * names the one that is not contested.
+     * What this test now guards is the thing that actually matters: **all three
+     * `NoComparisonReason` members stay reachable from the fixtures**, so
+     * AC-605's em-dash branch cannot be tested only in a mock.
      */
     const metrics = await allMetrics()
     const reasonOf = (key: string) => {
       const c = metrics.find((m) => m.key === key)!.comparison
       return c.kind === 'none' ? c.reason : c.kind
     }
-    expect(reasonOf('support.overview.overturnRate')).toBe('insufficient-data')
+
+    /* `insufficient-data`, and it is L-4 in the comparison slot: the stored
+       per-rider renewal percentage carries no period at all, so there is no
+       previous-period figure to compare against — not at any population. Not
+       the same claim as "too few records", which is the one that went stale. */
     expect(reasonOf('management.performance.avgRenewalRate')).toBe('insufficient-data')
 
-    /* And the counts of currently-open queue items: the fixtures hold what is
-       open now and no record of how deep the queue was a fortnight ago. */
+    /* And the client's own arm of it: a zero *previous-period* baseline has no
+       percentage to take, so `resolve()` re-states the comparison. No steer
+       offer was live a fortnight ago and none is live now. */
+    expect(reasonOf('management.zones.steerOffersLive')).toBe('insufficient-data')
+
+    /* `no-history`, still true and now rare: a ratio nothing in the dataset
+       held a fortnight ago, and the contact log that has never been written to
+       at all. */
+    expect(reasonOf('management.overview.tripMix')).toBe('no-history')
+    expect(reasonOf('support.overview.contactsPerThousandTrips')).toBe('no-history')
+
+    /* And the one `no-target`: a promotion budget with a warning threshold in
+       legacy and no board target anybody has set (M-1). Distinct from
+       `no-history`, and the only tile in the product carrying it — which is
+       what makes all three reasons reachable from the fixtures. */
+    expect(reasonOf('management.growth.promoBudgetConsumed')).toBe('no-target')
+
+    /* The seven that used to be here, each now naming the window it is
+       measured against. Asserted as a group because the property that matters
+       is the one the audit measured: an operational tile shows a delta. */
     for (const key of [
       'operations.overview.openRequests',
       'operations.overview.breachedWorkItems',
@@ -563,14 +600,93 @@ describe('6 — previous-period baselines are derived, not typed in', () => {
       'support.overview.openFairnessCases',
       'admin.overview.erasureOverdue',
     ]) {
-      expect(reasonOf(key), key).toBe('no-history')
+      const metric = metrics.find((m) => m.key === key)!
+      expect(metric.comparison.kind, key).toBe('previous-period')
+      expect(metric.deltaPercent, key).not.toBeNull()
+      if (metric.comparison.kind === 'previous-period') {
+        expect(metric.comparison.periodStart, key).toBe(SNAPSHOT_PREVIOUS.start)
+        expect(metric.comparison.periodEnd, key).toBe(SNAPSHOT_PREVIOUS.end)
+      }
+    }
+  })
+
+  it('no board keeps more than two tiles without a delta — the audit\'s S5 number', async () => {
+    /**
+     * The regression guard for `docs/audit/PAGE-SWEEP.md` §2 S5. Before this
+     * pass: 12/12 on Operations, 8/8 on Risk, 9/11 on Growth, 5/8 on Support,
+     * 5/6 on Admin, 4/6 on Performance. `/financials/overview` and
+     * `/management/overview` were the two that were already right, and two is
+     * now the ceiling for every board.
+     *
+     * Counted on `deltaPercent === null` rather than on `comparison.kind`,
+     * because that is the field the tile branches on — including
+     * `admin.overview.operatorsWithoutTwoFactor`, whose target of zero has no
+     * percentage and is the documented break in the biconditional.
+     */
+    const byBoard = new Map<string, { total: number; withoutDelta: number }>()
+    for (const metric of await allMetrics()) {
+      const board = byBoard.get(metric.subTabId) ?? { total: 0, withoutDelta: 0 }
+      board.total += 1
+      if (metric.deltaPercent === null) board.withoutDelta += 1
+      byBoard.set(metric.subTabId, board)
+    }
+    expect(byBoard.size).toBeGreaterThan(0)
+    for (const [subTabId, board] of byBoard) {
+      expect(board.withoutDelta, `${subTabId} — ${board.withoutDelta} of ${board.total}`).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('reconstructs the three baselines that the fixtures can date', async () => {
+    /**
+     * A prior-window reading that the fixture can corroborate is not typed in,
+     * it is **checked**. These three are evaluated over the same array their
+     * value comes from, as at the close of the previous window, so a change to
+     * `fixtures/applicants.ts` or `fixtures/fairness.ts` fails here rather than
+     * drifting into a delta nobody re-derives.
+     *
+     * The rest of the prior-window readings on the six boards are **recorded**
+     * and say so at the seed: their fixtures hold current state only — a
+     * `suspended` flag with no stamp, a queue depth with no history — and there
+     * is no date in them to reconstruct from.
+     */
+    const baselineOf2 = async (key: string) => {
+      const metric = (await allMetrics()).find((m) => m.key === key)!
+      return metric.comparison.kind === 'previous-period' ? metric.comparison.value : null
     }
 
-    /* And the one `no-target`: a promotion budget with a warning threshold in
-       legacy and no board target anybody has set (M-1). Distinct from
-       `no-history`, and the only tile in the product carrying it — which is
-       what makes all three reasons reachable from the fixtures. */
-    expect(reasonOf('management.growth.promoBudgetConsumed')).toBe('no-target')
+    /* Applications submitted by 10 Jun and still undecided on it. */
+    const pending = applicantFixtures.filter(
+      (a) => a.appliedAt.slice(0, 10) <= asOf && (a.decidedAt === null || a.decidedAt.slice(0, 10) > asOf),
+    )
+    expect(await baselineOf2('operations.overview.pendingApplications')).toBe(pending.length)
+
+    /* Fairness cases opened by 10 Jun and still undecided on it. */
+    const openCases = fairnessCaseFixtures.filter(
+      (c) => c.openedAt.slice(0, 10) <= asOf && (c.decidedAt === null || c.decidedAt.slice(0, 10) > asOf),
+    )
+    expect(await baselineOf2('support.overview.openFairnessCases')).toBe(openCases.length)
+
+    /**
+     * The overturn rate is **cumulative** — its tile declares no period — so the
+     * baseline is the same cumulative rate evaluated at the close of 10 Jun,
+     * not the rate *within* those fifteen days. Those are two different
+     * populations and comparing them would be defect L-3 with better manners.
+     */
+    const decidedBy = fairnessCaseFixtures.filter(
+      (c) =>
+        c.decidedAt !== null &&
+        c.decidedAt.slice(0, 10) <= asOf &&
+        (c.status === 'upheld' || c.status === 'overturned'),
+    )
+    const overturnedBy = decidedBy.filter((c) => c.status === 'overturned')
+    expect(decidedBy.length).toBeGreaterThan(0)
+    expect(await baselineOf2('support.overview.overturnRate')).toBe(
+      Math.round((overturnedBy.length / decidedBy.length) * 100),
+    )
+    /* And the two boards that carry this number agree, because they must. */
+    expect(await baselineOf2('support.fairness.overturnRate')).toBe(
+      await baselineOf2('support.overview.overturnRate'),
+    )
   })
 })
 

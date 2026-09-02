@@ -498,7 +498,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
   const activeUsers = users.filter((u) => u.status === 'Active')
 
   const content = (
-    <div className="flex max-w-5xl flex-col gap-6">
+    <div className="flex min-w-0 max-w-5xl flex-col gap-6">
       {/* §11.2 — a page-level refusal is stated ONCE, as a banner, rather than
           repeated on thirty controls. The controls beneath stay disabled in
           place; this is the sentence that explains all of them. */}
@@ -532,7 +532,9 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* **`relative` is load-bearing and is the whole of the 646px bug.**
+              See the note on the matrix scroller below. */}
+          <div className="relative overflow-x-auto">
             <table className="w-full text-start text-xs">
               <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 <tr>
@@ -663,8 +665,42 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
           </CardTitle>
           <CardDescription className="text-xs">{t('admin.team.matrix.desc')}</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        {/* **THE 646px BUG WAS `position: static` ON THIS SCROLLER, NOT THE
+            TABLE'S WIDTH.** This route was the only one of 36 that failed to
+            honour a 390px phone: it reported `innerWidth` 646 and rendered the
+            whole console at about 0.6x.
+
+            The table's own containment was never broken. Measured at 390: the
+            matrix is 610px wide inside a scroller whose right edge is 373, and
+            every ancestor from there to `main` is <= 390. The roster is the
+            same. Nothing in flow escaped, which is why capping the box with a
+            zero minimum width and a full-width maximum changed the number by
+            exactly nothing, and why giving the table a max-content width made
+            it worse (646 -> 790) rather than better.
+
+            What escaped was the visually-hidden text. The utility that hides it
+            uses `position: absolute`, and **a scroll container does not clip an
+            absolutely positioned descendant whose containing block is an
+            ancestor of the scroll container** (CSS Overflow 3). With this box
+            at `position: static` those spans resolved their containing block to
+            `body` -- measured, `offsetParent` was `body` for every one of them
+            -- so they laid out against the document at the table's UNSCROLLED
+            coordinates and pulled the document out with them. The furthest was
+            the roster's `Operator actions` label at x = 645, and
+            `documentElement.scrollWidth` was 646. One pixel of screen-reader-only
+            text, 256px of document overflow.
+
+            `relative` makes this box the containing block, so the spans are laid
+            out and clipped inside it. This is what `DataTable`'s own scroll
+            container has always declared (`ui/table.tsx:102`), which is exactly
+            why none of the twenty index routes has ever shown this and this
+            hand-rolled one did.
+
+            The zero minimum width and full-width maximum below are kept: they
+            are inert against this defect but they are not wrong, and they make
+            the intent explicit. */}
+        <CardContent className="min-w-0 p-0">
+          <div className="relative min-w-0 max-w-full overflow-x-auto">
             <table className="w-full text-start text-xs">
               <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 <tr>
@@ -783,7 +819,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="admin-team-idle">{t('admin.team.security.idle')}</Label>
               <Select
@@ -853,7 +889,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
           <CardDescription className="text-xs">{t('admin.team.rota.desc')}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <RotaSelect
               id="admin-team-rota-primary"
               label={t('admin.team.rota.primary')}

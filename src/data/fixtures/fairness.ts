@@ -498,27 +498,75 @@ const FAIRNESS_CLASSES: ReadonlyArray<{
 ]
 
 /**
- * Volume for Captain Fairness — 44 decided cases, so the queue pages, sorts and
- * has an archive worth reading.
+ * Volume for Captain Fairness — 37 decided cases and **7 live ones**, so the
+ * queue pages, sorts, has an archive worth reading, *and* has work in it.
  *
- * **Every row is decided, and the open queue is deliberately not grown.**
+ * ## Why seven of these are now open — and what it cost to keep them all decided
+ *
+ * This generator used to make every row decided, on the reasoning that *"four
+ * open and forty-four decided is what an appeals queue looks like"*. The shape
+ * was right and the consequence was not. `Deadline` and `Owner` are columns
+ * that only a **live** case can fill — the screen renders `<Absent />` on a
+ * decided row, correctly — and the default view is a **kind** filter
+ * (`suspension-appeals`), not a status one. So the landing view of
+ * `/support/fairness` showed **17 rows with 16 of them decided**, and those two
+ * columns came to **336px of a 1038px table, 32% of its width, carrying one
+ * value between them** (`docs/audit/PAGE-SWEEP.md` §2 S8, measured live).
+ *
+ * A queue whose landing view is 94% archive is a fixture problem before it is a
+ * screen problem. Seven live appeals across the three kinds is still an
+ * archive-heavy ratio — **11 open against 42 decided** — and it is enough for
+ * every queue column to mean something on every view.
+ *
+ * **The `navCounts` coupling is real and is honoured, not sidestepped.**
  * `fixtures/navCounts.ts` pins `support-fairness` to the size of the live
- * `open` view and `navCounts.test.ts` asserts the two against each other; a
- * forty-fifth open case would falsify a number reasoned about in another file.
- * It is also the honest shape — four cases open, forty-four decided is what an
- * appeals queue looks like.
+ * `open` view and `navCounts.test.ts` asserts the two against each other. That
+ * literal moved from `4` to `11` in the same pass, deliberately, and the
+ * assertion is what proves it moved together.
  *
- * **Every timestamp descends from one offset per row.** `openedMinutesAgo` is
- * the single source; the deadline, the first response and the decision are all
- * that number plus a literal, so a row cannot claim a breach its own dates
- * deny — `slaBreachedAt` is computed from the comparison, not asserted.
+ * ## Claims — the state nothing in this fixture could reach
+ *
+ * **Not one of the fifty-three cases outside `FC-0002` carried a claim**, so
+ * `view=mine` returned nothing, `view=unassigned` returned everything, and the
+ * three states `OwnerChip` renders — mine, someone else's, and a claim gone
+ * stale past the thirty-minute window — could only be reached by hand-editing
+ * this file. The seven live rows cycle all four possibilities, including the
+ * stale one, so QA reaches take-over from the seeded data.
+ *
+ * ## Every timestamp still descends from one offset per row
+ *
+ * `openedMinutesAgo` is the single source; the deadline, the first response and
+ * the decision are all that number plus a literal, so a row cannot claim a
+ * breach its own dates deny — `slaBreachedAt` is computed from the comparison,
+ * never asserted. A live row uses a **much smaller** offset (2 hours to ~2
+ * days) than an archived one (3 to 40 days): an appeal opened five weeks ago
+ * and still unanswered is not a queue, it is a scandal.
  */
 export const fillerFairnessCases: FairnessCase[] = Array.from({ length: 44 }, (_, i) => {
   const captain = cycleRef(FAIRNESS_CAPTAINS, i)
   const subject = cycleRef(FAIRNESS_SUBJECTS, i)
   const klass = cycleRecord(FAIRNESS_CLASSES, i)
   const target = FAIRNESS_RESOLVE_MINUTES[klass.id]
-  const openedMinutesAgo = 1_440 * (3 + (i % 38)) + ((i * 53) % 1_380)
+  /**
+   * **The rows that are still live, named by index rather than by a modulus.**
+   *
+   * `i % 6 === 1` was the first attempt and it is the exact defect
+   * `fixtures/cycle.ts` was written about: `FAIRNESS_CLASSES` has **six**
+   * members, so a period-6 predicate selects the *same class every time* — all
+   * seven live rows came out `DRV_RIDER_NOSHOW`, and `suspension-appeals`, the
+   * landing view, gained nothing at all. Two sequences with the same period
+   * walk in lockstep; two with different periods walk out of phase. Neither is
+   * what you want when the distribution is the point.
+   *
+   * So the indices are listed. Six land on a suspension-appeal class (4, 5),
+   * three on a rider-report (1, 2, 3) and one on a rating dispute (0), which
+   * puts live work on all three kind views and the most of it on the one that
+   * opens by default.
+   */
+  const live = [4, 5, 7, 10, 12, 14, 16, 21, 23, 35].includes(i)
+  const openedMinutesAgo = live
+    ? 120 + ((i * 37) % 2_760)
+    : 1_440 * (3 + (i % 38)) + ((i * 53) % 1_380)
   const decideAfter = 90 + ((i * 271) % 4_600)
   const operator = cycleRecord(
     [
@@ -531,7 +579,31 @@ export const fillerFairnessCases: FairnessCase[] = Array.from({ length: 44 }, (_
   /* Overturned twice as often as upheld, with one withdrawal in seven. The
      page's own empty state says a high overturn rate is the appeal route
      working (`:15690`), so the archive should not read as a rubber stamp. */
-  const status = i % 7 === 6 ? 'withdrawn' : i % 3 === 0 ? 'upheld' : 'overturned'
+  const status = live
+    ? ('open' as const)
+    : i % 7 === 6
+      ? ('withdrawn' as const)
+      : i % 3 === 0
+        ? ('upheld' as const)
+        : ('overturned' as const)
+  /**
+   * The four owner states an operator can be looking at, in order: nobody has
+   * it, I have it, somebody else has it, and somebody else has had it open and
+   * untouched past the thirty-minute window. `OwnerChip` renders a different
+   * thing for each and only the first was reachable before.
+   *
+   * `touchedAt` is what makes the fourth one stale, so it is derived from the
+   * same offset as everything else on the row rather than typed as a date.
+   */
+  const claimant = cycle(
+    [
+      null,
+      { id: 'USR-1', name: 'Sarah Al-Rashid', staleMinutes: 0 },
+      { id: 'USR-2', name: 'Fahad Al-Dosari', staleMinutes: 0 },
+      { id: 'USR-5', name: 'Yousef Al-Balawi', staleMinutes: 74 },
+    ],
+    i,
+  )
   const isRating = klass.kind === 'rating-dispute'
   const isAppeal = klass.kind === 'suspension-appeal'
   return {
@@ -545,14 +617,17 @@ export const fillerFairnessCases: FairnessCase[] = Array.from({ length: 44 }, (_
     detail: klass.detail,
     reasonCode: klass.id,
     openedAt: offsetFromNow({ minutes: -openedMinutesAgo }),
-    decidedAt: offsetFromNow({ minutes: -openedMinutesAgo + decideAfter }),
+    /* An open case has not been decided. Every field that describes a decision
+       goes with it — a `decidedAt` on an undecided row is the contradiction the
+       screen's `isDecided` branch reads. */
+    decidedAt: live ? null : offsetFromNow({ minutes: -openedMinutesAgo + decideAfter }),
     /* A withdrawal has no decider — the captain dropped it (`FC-0008`). */
-    decidedByUserId: status === 'withdrawn' ? null : operator.id,
-    decidedByUserName: status === 'withdrawn' ? null : operator.name,
+    decidedByUserId: live || status === 'withdrawn' ? null : operator.id,
+    decidedByUserName: live || status === 'withdrawn' ? null : operator.name,
     /* Two in five decisions state a reason. The rest are legacy's shape:
        `decideFairness` never writes one (`:15597`). */
     rationale:
-      status !== 'withdrawn' && i % 5 < 2
+      !live && status !== 'withdrawn' && i % 5 < 2
         ? cycle(
             [
               'Telemetry and the trip log corroborate the captain’s account; the score is voided.',
@@ -574,13 +649,41 @@ export const fillerFairnessCases: FairnessCase[] = Array.from({ length: 44 }, (_
       isAppeal && status === 'overturned'
         ? offsetFromNow({ minutes: -openedMinutesAgo + decideAfter })
         : null,
-    /* Decided cases are in nobody's name. The take-over case is `FC-0002`. */
-    claim: null,
+    /* Decided cases are in nobody's name; a live one may be in anybody's. */
+    claim:
+      live && claimant !== null
+        ? {
+            key: `fairness:FC-1${String(100 + i).padStart(3, '0')}`,
+            entityType: 'fairness' as const,
+            entityId: `FC-1${String(100 + i).padStart(3, '0')}`,
+            ownerId: claimant.id,
+            ownerName: claimant.name,
+            claimedAt: offsetFromNow({ minutes: -openedMinutesAgo + 20 }),
+            /* Stale is `touchedAt` older than the thirty-minute window, and it
+               is a *derived* condition — never a flag on the row. */
+            touchedAt: offsetFromNow({ minutes: -(claimant.staleMinutes || 6) }),
+            state: 'claimed' as const,
+            releasedAt: null,
+            releaseReason: null,
+            takeovers: [],
+          }
+        : null,
     slaStartedAt: offsetFromNow({ minutes: -openedMinutesAgo }),
     slaDueAt: offsetFromNow({ minutes: -openedMinutesAgo + target }),
     slaTargetMinutes: target,
-    slaBreachedAt:
-      decideAfter > target ? offsetFromNow({ minutes: -openedMinutesAgo + target }) : null,
+    /**
+     * A breach on a decided row is *decided after the deadline*. On a live row
+     * it is *the deadline passed and nobody has decided* — the same fact
+     * measured against now instead of against the decision, which is why this
+     * is two arms and not one.
+     */
+    slaBreachedAt: live
+      ? openedMinutesAgo > target
+        ? offsetFromNow({ minutes: -openedMinutesAgo + target })
+        : null
+      : decideAfter > target
+        ? offsetFromNow({ minutes: -openedMinutesAgo + target })
+        : null,
     slaSource: 'legacy-reason-code',
     firstResponseDueAt: offsetFromNow({ minutes: -openedMinutesAgo + 15 }),
     firstResponseAt: offsetFromNow({ minutes: -openedMinutesAgo + 4 + (i % 40) }),

@@ -240,7 +240,7 @@ export function ApplicantDetailScreen() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
             <div>
               <span className="text-muted-foreground block mb-0.5">{t('applicant.nationalId')}</span>
               <span className="font-mono font-medium text-foreground">{data.nationalId}</span>
@@ -283,7 +283,7 @@ export function ApplicantDetailScreen() {
             </div>
             {/* The measure is a full row: an address truncated to a column
                 width is not an address. */}
-            <div className="col-span-2 md:col-span-4">
+            <div className="col-span-4 compact:col-span-2">
               <span className="text-muted-foreground block mb-0.5">{t('applicant.address')}</span>
               <span className="font-medium text-foreground">{data.address}</span>
             </div>
@@ -300,7 +300,7 @@ export function ApplicantDetailScreen() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
             <div>
               <span className="text-muted-foreground block mb-0.5">{t('applicant.vehicleModel')}</span>
               <span className="font-medium text-foreground">{data.vehicle}</span>
@@ -385,7 +385,7 @@ export function ApplicantDetailScreen() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
+          <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
             <div>
               <span className="mb-0.5 block text-muted-foreground">{t('applicant.device')}</span>
               <span className="font-medium text-foreground">{data.device}</span>
@@ -449,7 +449,7 @@ export function ApplicantDetailScreen() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
+          <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
             <div>
               <span className="mb-0.5 block text-muted-foreground">{t('queue.col.owner')}</span>
               <span className="font-medium text-foreground">
@@ -499,7 +499,7 @@ export function ApplicantDetailScreen() {
               </div>
             )}
             {data.rejectionReason !== null && (
-              <div className="col-span-2 md:col-span-4">
+              <div className="col-span-4 compact:col-span-2">
                 <span className="mb-0.5 block text-muted-foreground">{t('applicant.rejectionReason')}</span>
                 {/* The one line here allowed to wrap: a reason that has been
                     truncated explains nothing. */}

@@ -237,7 +237,29 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
            moves without re-deriving this pair, and the derivation goes in the
            commit message. */
         "h-(--ev-row-h-head) bg-muted px-3 text-start align-middle",
-        "text-sm font-medium whitespace-nowrap text-muted-foreground",
+        /* **A HEADER WRAPS; IT DOES NOT TRUNCATE.** This used to forbid line
+           breaks, and combined with the ellipsis on the label span in
+           `ColumnHeaderCell` it cut column names in both languages: measured
+           at 1440, **six headers truncated in English and six in Arabic**, and
+           the sets are not the same six. The worst single case was ENGLISH
+           (`Subscription momentum`, 29px short of its own column) and two of the
+           English cases were FIXED by the Arabic translation being shorter. So
+           this is not an Arabic defect and a language-aware width would be tuned
+           in the wrong direction on most columns: over 113 headers the median
+           Arabic label is **0.857x** the English one.
+
+           Wrapping is the language-agnostic fix and it spends the one budget
+           that is not contested. Column width is a hard budget under
+           `table-layout: fixed` — six tables already clip horizontally, so
+           widening a column to fit its own header takes the space from another
+           column or pushes the action lane off the edge. Header HEIGHT is
+           spent once per table, is paid only by tables that need it, and is
+           the same fix in every language.
+
+           `h-(--ev-row-h-head)` above stays: on a table cell a specified height
+           is a MINIMUM (CSS 2.1 §17.5.3), so a one-line header row is still
+           exactly 36 and only a table with a long name grows. */
+        "text-sm font-medium break-words whitespace-normal text-muted-foreground",
         "[&:has([role=checkbox])]:w-10 [&:has([role=checkbox])]:px-3",
         className
       )}

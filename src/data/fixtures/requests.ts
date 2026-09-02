@@ -121,7 +121,30 @@ export const requestFixtures: RideRequest[] = [
     assignedAt: null,
     expiredAt: null,
     cancelledAt: null,
-    claim: null,
+    /**
+     * **Claimed by the signed-in operator — `view=mine`'s only row on the
+     * landing view, and the reason it exists.**
+     *
+     * The `Owner` column read `Unclaimed` on all six rows of the default
+     * `pending` view (`docs/audit/PAGE-SWEEP.md` §2): the two seeded claims
+     * both sat on rows that view excludes — one `no-drivers`, one `assigned` —
+     * so the column could only say one thing on the screen an operator
+     * actually opens, and `Release` was unreachable without claiming something
+     * first.
+     */
+    claim: {
+      key: 'request:REQ-502',
+      entityType: 'request',
+      entityId: 'REQ-502',
+      ownerId: 'USR-1',
+      ownerName: 'Sarah Al-Rashid',
+      claimedAt: '2026-06-25T09:13:05+03:00',
+      touchedAt: '2026-06-25T09:13:52+03:00',
+      state: 'claimed',
+      releasedAt: null,
+      releaseReason: null,
+      takeovers: [],
+    },
     slaStartedAt: '2026-06-25T09:12:48+03:00',
     slaDueAt: '2026-06-25T09:15:48+03:00',
     slaTargetMinutes: REQUEST_SLA_MINUTES.instant,
@@ -219,7 +242,22 @@ export const requestFixtures: RideRequest[] = [
     assignedAt: null,
     expiredAt: null,
     cancelledAt: null,
-    claim: null,
+    /* Held by **another** operator, freshly touched — the take-over prompt's
+       row on the landing view, and the second of the three owner states the
+       `pending` view could not previously reach. */
+    claim: {
+      key: 'request:REQ-504',
+      entityType: 'request',
+      entityId: 'REQ-504',
+      ownerId: 'USR-2',
+      ownerName: 'Fahad Al-Dosari',
+      claimedAt: '2026-06-25T09:13:48+03:00',
+      touchedAt: '2026-06-25T09:13:58+03:00',
+      state: 'claimed',
+      releasedAt: null,
+      releaseReason: null,
+      takeovers: [],
+    },
     slaStartedAt: '2026-06-25T09:13:40+03:00',
     slaDueAt: '2026-06-25T09:16:40+03:00',
     slaTargetMinutes: REQUEST_SLA_MINUTES.instant,
@@ -431,7 +469,29 @@ export const requestFixtures: RideRequest[] = [
     assignedAt: null,
     expiredAt: null,
     cancelledAt: null,
-    claim: null,
+    /**
+     * **A claim gone stale** — held for 84 minutes and untouched for 71 of
+     * them, well past the thirty-minute idle window. The third owner state, and
+     * the one that has to be *derived* from `touchedAt` against the clock the
+     * caller passes rather than stored as a flag.
+     *
+     * On a request that is 89 minutes into a 120-minute promise, which is the
+     * combination that makes the state matter: somebody has it, nobody is
+     * working it, and the window is closing.
+     */
+    claim: {
+      key: 'request:SREQ-001',
+      entityType: 'request',
+      entityId: 'SREQ-001',
+      ownerId: 'USR-5',
+      ownerName: 'Yousef Al-Balawi',
+      claimedAt: '2026-06-25T07:50:00+03:00',
+      touchedAt: '2026-06-25T08:03:00+03:00',
+      state: 'claimed',
+      releasedAt: null,
+      releaseReason: null,
+      takeovers: [],
+    },
     slaStartedAt: '2026-06-25T07:45:00+03:00',
     /* 89 of 120 minutes used — past `SUBREQ_REMINDER_HOURS` (`:9578`), inside
        the window. The amber band with something on both sides of it. */

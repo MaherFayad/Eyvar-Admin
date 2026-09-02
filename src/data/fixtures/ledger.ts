@@ -78,6 +78,114 @@ const cr = (account: AccountLine['account'], amountHalalas: number): AccountLine
  * leg independently and lets the two miss by a halala.
  */
 
+/* ─────────────────── seeded wallet top-ups ──────────────────── */
+
+/**
+ * **Wallet history for the riders who had none, and the column it exists for.**
+ *
+ * `/financials/rider-wallets` listed `Last activity` as **empty on 17 of the 25
+ * rows on page one, and on 47 of 55 rows overall** (`docs/audit/PAGE-SWEEP.md`
+ * §2 S8, measured live). A wallet is not wrong for having no history — a rider
+ * who has never topped one up genuinely has none — but two-thirds of a money
+ * screen reading `—` is a fixture that never gave the column anything to say,
+ * and it takes the date-range filter down with it.
+ *
+ * ## Why every row here is a top-up, and nothing here is a spend
+ *
+ * A wallet-funded fare books its gross to `revenue.fares` — legacy's own
+ * recipe, kept with its defect at `JE-00015` — and `revenue.fares` credits
+ * inside June **are** `FinancialsOverview.grossBookingsHalalas`, which
+ * `revenueByPlanFixtures` is asserted to add up to (**AC-347 / AC-355**,
+ * `clients/financials.test.ts`). Seeding twenty-five wallet-funded fares would
+ * have moved the gross-bookings tile without moving the plan rows underneath
+ * it, and the honest way to describe that is: **the plan breakdown would start
+ * lying.** A top-up moves `cash.gateway` and `liability.wallet` and nothing
+ * else, so it is the one wallet event this dataset can add without inventing a
+ * plan row to match.
+ *
+ * The other half of the pair is a **finding, not an omission**: this layer
+ * cannot seed a wallet-funded trip until `revenueByPlanFixtures` is derived
+ * from postings rather than seeded beside them. Raised for whoever owns §6.3.
+ *
+ * ## What is deliberately still empty
+ *
+ * **`RDR-2055` and `RDR-1052` keep zero postings.** The first-run wallet is a
+ * state with its own empty copy (§7.1, **AC-427**) and it must stay reachable
+ * without hand-editing a fixture — `RDR-2055` is the row that test names. Two
+ * never-used wallets on page one is what real operations look like anyway.
+ *
+ * `RDR-4001` keeps the only **negative** balance (−41.50, from a top-up
+ * chargeback, **AC-383**); nothing seeded here may go negative or that view
+ * stops meaning one thing.
+ *
+ * ## The arithmetic, so a hand-edit is caught
+ *
+ * Each row is `Dr cash.gateway · Cr liability.wallet` — the rider hands over
+ * money, the platform owes it back. A rider's balance is the running sum of
+ * their rows below, in `at` order, and it is written onto
+ * `Rider.walletBalanceHalalas` in `fixtures/riders.ts`; `financials.test.ts`
+ * asserts those two agree for **every** rider, so changing an amount here
+ * without changing it there fails immediately, by design.
+ */
+export interface WalletTopUpSeed {
+  riderId: string
+  /** Riyadh local, and inside the June financials period. */
+  at: string
+  amountHalalas: number
+}
+
+export const walletTopUpSeeds: WalletTopUpSeed[] = [
+  { riderId: 'RDR-5104', at: '2026-05-28T17:50:00+03:00', amountHalalas: 10_000 },
+  { riderId: 'RDR-1045', at: '2026-05-29T09:05:00+03:00', amountHalalas: 10_000 },
+  { riderId: 'RDR-4002', at: '2026-05-31T14:26:00+03:00', amountHalalas: 12_000 },
+  { riderId: 'RDR-5112', at: '2026-06-01T12:00:00+03:00', amountHalalas: 15_000 },
+  { riderId: 'RDR-1047', at: '2026-06-02T11:11:00+03:00', amountHalalas: 30_000 },
+  { riderId: 'RDR-1042', at: '2026-06-03T20:14:00+03:00', amountHalalas: 15_000 },
+  { riderId: 'RDR-5124', at: '2026-06-04T07:15:00+03:00', amountHalalas: 40_000 },
+  { riderId: 'RDR-5101', at: '2026-06-05T08:44:00+03:00', amountHalalas: 5_000 },
+  { riderId: 'RDR-1060', at: '2026-06-06T16:30:00+03:00', amountHalalas: 20_000 },
+  { riderId: 'RDR-5132', at: '2026-06-07T10:24:00+03:00', amountHalalas: 22_500 },
+  { riderId: 'RDR-5106', at: '2026-06-08T15:12:00+03:00', amountHalalas: 4_000 },
+  { riderId: 'RDR-1043', at: '2026-06-09T13:40:00+03:00', amountHalalas: 5_000 },
+  { riderId: 'RDR-5117', at: '2026-06-10T18:33:00+03:00', amountHalalas: 9_000 },
+  { riderId: 'RDR-1080', at: '2026-06-11T10:05:00+03:00', amountHalalas: 5_000 },
+  { riderId: 'RDR-5108', at: '2026-06-13T09:19:00+03:00', amountHalalas: 50_000 },
+  { riderId: 'RDR-1048', at: '2026-06-14T07:55:00+03:00', amountHalalas: 7_500 },
+  { riderId: 'RDR-5128', at: '2026-06-15T16:58:00+03:00', amountHalalas: 1_750 },
+  { riderId: 'RDR-5110', at: '2026-06-16T20:40:00+03:00', amountHalalas: 2_000 },
+  { riderId: 'RDR-1046', at: '2026-06-17T21:33:00+03:00', amountHalalas: 2_500 },
+  { riderId: 'RDR-5102', at: '2026-06-18T19:02:00+03:00', amountHalalas: 25_000 },
+  { riderId: 'RDR-4002', at: '2026-06-19T09:41:00+03:00', amountHalalas: 8_000 },
+  { riderId: 'RDR-4003', at: '2026-06-20T12:09:00+03:00', amountHalalas: 3_500 },
+  { riderId: 'RDR-1042', at: '2026-06-21T08:02:00+03:00', amountHalalas: 5_000 },
+  { riderId: 'RDR-5120', at: '2026-06-21T11:47:00+03:00', amountHalalas: 3_000 },
+  { riderId: 'RDR-5103', at: '2026-06-22T13:28:00+03:00', amountHalalas: 1_500 },
+  { riderId: 'RDR-1049', at: '2026-06-23T22:18:00+03:00', amountHalalas: 1_000 },
+  { riderId: 'RDR-5114', at: '2026-06-24T08:26:00+03:00', amountHalalas: 6_500 },
+  { riderId: 'RDR-1047', at: '2026-06-24T18:47:00+03:00', amountHalalas: 30_000 },
+  { riderId: 'RDR-5104', at: '2026-06-25T06:35:00+03:00', amountHalalas: 2_000 },
+]
+
+/**
+ * The closing balance each seeded wallet lands on — the running sum above.
+ *
+ * Exported because `fixtures/riders.ts` states the same number as a literal on
+ * `Rider.walletBalanceHalalas` and a reader deserves to see where it came from.
+ * **It is not imported there**, deliberately: a rider fixture that computed its
+ * own balance from the ledger could never disagree with it, and the whole value
+ * of AC-347's cross-screen assertion is that the two are written independently
+ * and checked against each other.
+ */
+export const seededWalletBalances: Readonly<Record<string, number>> = walletTopUpSeeds.reduce<
+  Record<string, number>
+>((acc, seed) => {
+  acc[seed.riderId] = (acc[seed.riderId] ?? 0) + seed.amountHalalas
+  return acc
+}, {})
+
+/** `JE-00201`+ — a distinct band, so a top-up entry is greppable as one. */
+const walletTopUpEntryId = (i: number): string => `JE-00${201 + i}`
+
 /**
  * Oldest-first. The journal **renders** newest-first (§6.8) — the one exception
  * to oldest-first in this wave, because the journal carries no running balance
@@ -816,6 +924,18 @@ export const journalEntryFixtures: JournalEntry[] = [
     totalHalalas: 8_650,
     meta: { riderId: 'RDR-1045', invoice: 'EYV-2026-001180' },
   },
+  /* The wallet top-ups. One entry a row, two accounts, balanced by
+     construction — see `walletTopUpSeeds` above for why this is the only
+     wallet event the dataset can add today. */
+  ...walletTopUpSeeds.map((seed, i) => ({
+    id: walletTopUpEntryId(i),
+    postedAt: seed.at,
+    type: 'wallet_topup',
+    reference: `wallet_topup|${seed.riderId}|${seed.amountHalalas}|${seed.at.slice(0, 10)}`,
+    lines: [dr('cash.gateway', seed.amountHalalas), cr('liability.wallet', seed.amountHalalas)],
+    totalHalalas: seed.amountHalalas,
+    meta: { riderId: seed.riderId },
+  })),
 ]
 
 /**
@@ -2090,7 +2210,39 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
      no party. The amounts are the **net** legs, because this ledger is the GL
      account's own ledger and its balance must equal the trial balance's. The
      VAT leg of each refund sits on `tax.vat_output`, and the refund
-     *document's* gross is on `Refund.amountHalalas`. */
+     *document's* gross is on `Refund.amountHalalas`.
+
+     ── `Credit (SAR)` is em-dash on every row, and it is blocked, not lazy ──
+
+     `/financials/revenue` opens on this ledger, so the audit measured its
+     `Credit (SAR)` column as **4 of 4 rows em-dash** — a money column carrying
+     nothing (`docs/audit/PAGE-SWEEP.md` §2 S8). A contra-revenue account is
+     debit-normal, so credits to it are genuinely rare; the one thing that
+     produces one is somebody **undoing a refund**, and that is the event worth
+     seeing.
+
+     **It was seeded, measured, and reverted.** A correct reversal — the three
+     legs of `JE-00023` with the sides swapped — breaks two assertions that are
+     both right:
+
+       1. **AC-347 / AC-355.** `grossBookingsHalalas` is `revenue.fares` credits
+          **plus `tax.vat_output` credits** (`clients/financialsOverview.ts:83`),
+          and `revenueByPlanFixtures` is asserted to sum to it. Crediting back
+          903 halalas of output VAT moved the tile by 903 and the plan rows by
+          nothing. Putting a refund's VAT reversal into a *plan's* gross revenue
+          to rebalance it would be worse than the em-dash.
+       2. **AC-420.** The refunds reconciliation compares this ledger against
+          the refund *documents*. `Refund` has no reversed state, so the
+          document still says 69.20 was refunded while the ledger says it came
+          back, and the row breaks by exactly the reversed amount.
+
+     **Both are one finding, and it is not a fixture's to close:** the money
+     model has no way to say *"this refund was reversed"*. It needs a reversal
+     state on `Refund` (or a reversal document), and `revenueByPlanFixtures`
+     derived from postings rather than seeded beside them. Raised for whoever
+     owns `specs/03-financials.md` §6.3. Until then this column is honestly
+     empty, and the same blocker is why the wallet seeds above are top-ups
+     only. */
   posting({
     id: 'REF-0001-P',
     subjectAccount: 'contra.refunds',
@@ -2179,4 +2331,32 @@ export const ledgerPostingFixtures: LedgerPosting[] = [
     balanceAfterHalalas: 15_886,
     journalEntryId: 'JE-00027',
   }),
+  /* ══ liability.wallet — the seeded top-ups ══════════════════════════════
+     One posting per `walletTopUpSeeds` row, carrying that rider's running
+     balance. The fold is here rather than in twenty-nine hand-typed
+     `balanceAfterHalalas` literals because a running balance typed by hand is
+     the field that goes wrong first, and `getWalletLedger` reads it directly. */
+  ...(() => {
+    const runningByRider: Record<string, number> = {}
+    const perRiderIndex: Record<string, number> = {}
+    return walletTopUpSeeds.map((seed, i) => {
+      const running = (runningByRider[seed.riderId] ?? 0) + seed.amountHalalas
+      runningByRider[seed.riderId] = running
+      const n = (perRiderIndex[seed.riderId] ?? 0) + 1
+      perRiderIndex[seed.riderId] = n
+      return posting({
+        id: `WTX-${seed.riderId.slice(4)}-T${n}`,
+        subjectAccount: 'liability.wallet',
+        subjectId: seed.riderId,
+        postedAt: seed.at,
+        direction: 'credit',
+        amountHalalas: seed.amountHalalas,
+        descriptionKey: 'fin.posting.walletTopup',
+        sourceType: 'topup',
+        sourceId: null,
+        balanceAfterHalalas: running,
+        journalEntryId: walletTopUpEntryId(i),
+      })
+    })
+  })(),
 ]

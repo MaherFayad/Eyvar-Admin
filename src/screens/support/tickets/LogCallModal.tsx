@@ -173,7 +173,7 @@ export function LogCallModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('ticket.logCall.cancel')}
           </Button>

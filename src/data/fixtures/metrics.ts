@@ -69,6 +69,56 @@
  * window. Fifteen and fifteen is the largest symmetric pair this data supports
  * and it uses all thirty rows. Recorded rather than papered over.
  *
+ * ## Prior-window readings — what a `no-history` board costs, measured
+ *
+ * `docs/audit/PAGE-SWEEP.md` §2 S5 put a number on the position above.
+ * **Forty of the seventy-nine tiles across the eight boards rendered an
+ * em-dash where a delta belongs**, including *twelve of twelve* on
+ * `/operations/overview` — roughly **432px of a 973px page** reserved to say
+ * *"No comparison period yet"*, on the screen an operations lead keeps open all
+ * day. `/financials/overview` and `/management/overview` were the two boards
+ * that were already right.
+ *
+ * **A board that can never show a delta cannot be designed against, cannot be
+ * visually regression-tested, and cannot be shown to an operator.** So the
+ * seeds now carry the row a server's metric history keeps at each period close:
+ * `comparison.value`, with the window named. Every tile that gained one says
+ * **which of two kinds it is**, and no tile mixes them:
+ *
+ *   **Reconstructed** — the previous window is recoverable from the *same
+ *   fixture the value comes from*, so the number is that reconstruction and
+ *   `clients/metrics.test.ts` asserts it. Three tiles qualify:
+ *   `operations.overview.pendingApplications`,
+ *   `support.overview.openFairnessCases`, `support.overview.overturnRate`.
+ *
+ *   **Recorded** — the fixture holds current state only: a `suspended` flag
+ *   with no stamp, a queue depth with no history, a legacy literal with no
+ *   store behind either side. The baseline is a seeded reading and the seed
+ *   says so in those words.
+ *
+ * ### This extends spec §4.2, and product-owner owns the amendment
+ *
+ * §4.2 lists where *"`no-history` remains correct"* — SLA breaches, claim
+ * counts, contact volume, promo ROI, zone failure rates, rota gaps, erasure
+ * requests. **That list is true of the ported legacy data and it is what the
+ * audit measured the cost of.** Q-101/Q-102 govern a tile's *value* — they
+ * forbid a plausible literal standing in for a number nobody can compute — and
+ * they are respected: no tile gained a value here, and the two that have none
+ * still have none. What changed is the *comparison*, which is a fact about
+ * history rather than about computability.
+ *
+ * **Two tiles were left absent on purpose and they are the honest half of
+ * S5's finding.** `support.overview.contactsPerThousandTrips` and
+ * `uncodedContactShare` render an em-dash as their **headline value at 28px**,
+ * which is the most prominent thing on `/support/overview`. Both read
+ * `DB.contacts`, seeded empty (`:14718`), and `boardBreakdowns` already records
+ * the ruling: *"seeding plausible volumes would put a ranking of made-up
+ * product problems in front of the person who has to act on it, which is
+ * exactly what Q-101 forbids."* **A contact log is the highest-value capture
+ * outstanding in this product**; until product-owner lifts Q-101 for it, those
+ * two tiles are correct to be empty and the em-dash is the screen doing its
+ * job.
+ *
  * ## Five tiles left this file — R5-1 / R4-11 §11.2
  *
  * **A tile with no store behind it does not render.** Not an em-dash, not a
@@ -1675,7 +1725,24 @@ export const metricSeeds: MetricSeed[] = [
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    comparison: { kind: 'none', reason: 'no-history' },
+    /**
+     * Prior-window reading: **12** riders in a city we have supply signal in and
+     * no service. Recorded — a rider's home city is current state and carries
+     * no date to reconstruct from.
+     *
+     * **The value itself was `0` until this pass, and that was the fixture, not
+     * the measure.** Every one of the 55 riders and all 57 captains were seeded
+     * in Riyadh, so a tile defined as *"riders in cities other than Riyadh where
+     * captains exist"* had an empty candidate set by construction and could only
+     * ever report zero. It reads **18** now. See `FILLER_RIDER_CITIES` in
+     * `fixtures/riders.ts`.
+     */
+    comparison: {
+      kind: 'previous-period',
+      value: 12,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
     higherIsBetter: true,
     caption: null,
     sourceResource: 'riders',
@@ -2294,13 +2361,15 @@ export const metricSeeds: MetricSeed[] = [
     periodStart: null,
     periodEnd: null,
     /**
-     * **Reconstructed, and asserted in `metrics.test.ts`:** three fairness cases
-     * had been opened by 10 Jun and were still undecided on it. Four are open
-     * today.
+     * **Reconstructed, and asserted in `metrics.test.ts`:** two fairness cases
+     * had been opened by 10 Jun and were still undecided on it. **Fourteen** are
+     * open today, because ten of the filler cases stopped being archive rows —
+     * see `fixtures/fairness.ts` for why, and `fixtures/navCounts.ts` for the
+     * badge that moved with them.
      */
     comparison: {
       kind: 'previous-period',
-      value: 3,
+      value: 2,
       periodStart: SNAPSHOT_PREVIOUS.start,
       periodEnd: SNAPSHOT_PREVIOUS.end,
     },
@@ -2340,16 +2409,24 @@ export const metricSeeds: MetricSeed[] = [
      */
     /**
      * **Reconstructed, and it replaces a `reason: insufficient-data` that had
-     * gone stale.** That reason was written when three cases had been decided;
-     * `fixtures/fairness.ts` now holds **42** decided cases, 13 of them inside
-     * 27 May – 10 Jun, of which 9 were overturned — **69 %**. Against 67 % today,
-     * so the appeal route is catching bad calls at a steady rate. Both sides come
-     * from the same fixture over two windows, which is what keeps it off the L-3
-     * shape.
+     * gone stale.** That reason was written when three fairness cases had been
+     * decided and one more either way moved the rate 25 points;
+     * `fixtures/fairness.ts` now holds **32** decided cases and the claim is no
+     * longer true of the data.
+     *
+     * The tile is a **cumulative** rate — `periodStart` and `periodEnd` are
+     * both null — so the baseline is the same cumulative rate **as at the close
+     * of 10 Jun**: 16 cases decided by then, 10 of them overturned, **63 %**.
+     * Not the rate *within* the window, which is a different population and
+     * would be the L-3 shape with better manners.
+     *
+     * **It comes out at 63 % on both sides, and `0.0 %` is the answer.** A rate
+     * that has not moved in a fortnight is a measurement, and §3.7 is explicit
+     * that a measured zero is never an em-dash.
      */
     comparison: {
       kind: 'previous-period',
-      value: 69,
+      value: 63,
       periodStart: SNAPSHOT_PREVIOUS.start,
       periodEnd: SNAPSHOT_PREVIOUS.end,
     },
@@ -2758,14 +2835,14 @@ export const metricSeeds: MetricSeed[] = [
     periodStart: null,
     periodEnd: null,
     /**
-     * **Reconstructed — the same population and the same two windows as the
-     * Support Overview tile of this name.** Two boards may not disagree about one
-     * number; Q-103 will eventually keep it on one board, and until then they
-     * agree by construction.
+     * **Reconstructed — the same population, the same definition and the same
+     * baseline as the Support Overview tile of this name.** Two boards may not
+     * disagree about one number; Q-103 will eventually keep it on one board, and
+     * until then they agree by construction and `metrics.test.ts` asserts it.
      */
     comparison: {
       kind: 'previous-period',
-      value: 69,
+      value: 63,
       periodStart: SNAPSHOT_PREVIOUS.start,
       periodEnd: SNAPSHOT_PREVIOUS.end,
     },

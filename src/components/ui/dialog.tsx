@@ -130,6 +130,28 @@ function DialogContent({
   size?: "sm" | "default" | "lg"
   showCloseButton?: boolean
 }) {
+  /*
+   * The three widths become viewport-sized below the breakpoint.
+   *
+   * The scale is 440 / 560 / 800 and all three are wider than a 390px phone,
+   * so every dialog in the product overflowed its viewport the moment the
+   * console became reachable on one. The sizes above the breakpoint are
+   * untouched; below it the box is pinned to both inline edges with the
+   * standard gutter and the centring translate is cancelled, which makes it
+   * span the viewport instead of hanging off it.
+   *
+   * The width override is written per size rather than once, because the size
+   * widths are attribute-qualified: a bare utility loses to them on
+   * specificity and a media query adds none, so the plain form applied the
+   * insets and left the box at its desktop width.
+   *
+   * Logical inline properties plus a separate right-to-left reset, because a
+   * physical-direction utility paints the wrong edge in Arabic and reviews
+   * clean in English.
+   *
+   * Vertical centring is kept and the box scrolls inside itself, so a short
+   * confirmation still sits in the middle rather than being stretched.
+   */
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -137,7 +159,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-size={size}
         className={cn(
-          "fixed top-1/2 start-1/2 z-50 grid w-140 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground border border-border shadow-3 duration-200 outline-none data-[size=sm]:w-110 data-[size=lg]:w-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 start-1/2 z-50 grid w-140 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground border border-border shadow-3 duration-200 outline-none data-[size=sm]:w-110 data-[size=lg]:w-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 compact:start-4 compact:end-4 compact:translate-x-0 compact:rtl:translate-x-0 compact:max-h-svh compact:overflow-y-auto compact:data-[size=sm]:w-auto compact:data-[size=default]:w-auto compact:data-[size=lg]:w-auto",
           className
         )}
         {...props}

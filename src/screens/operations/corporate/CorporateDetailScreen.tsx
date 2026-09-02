@@ -313,7 +313,7 @@ export function CorporateDetailScreen() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
             <div>
               <span className="text-muted-foreground block mb-0.5">{t('corp.contact')}</span>
               <span className="font-medium text-foreground">{data.contactName}</span>
@@ -370,7 +370,7 @@ export function CorporateDetailScreen() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4 compact:grid-cols-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">{t('corp.policy.monthlyCap')}</Label>
               <Input
@@ -429,7 +429,7 @@ export function CorporateDetailScreen() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border compact:grid-cols-1">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
               <div className="space-y-0.5">
                 {/* H2/H3 §2.4 — the settings row is label PRIMARY over helper

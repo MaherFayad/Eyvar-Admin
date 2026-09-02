@@ -321,7 +321,7 @@ export function ResolveDisputeModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('dispute.resolve.cancel')}
           </Button>

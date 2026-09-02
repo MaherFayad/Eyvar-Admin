@@ -210,7 +210,7 @@ export function WebhooksCard({
         {endpoints.map((endpoint) => (
           <li
             key={endpoint.id}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 md:flex-row md:items-start md:justify-between"
+            className="flex flex-row items-start justify-between gap-3 rounded-lg border border-border bg-card p-3 compact:flex-col compact:items-stretch"
           >
             <div className="flex min-w-0 flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">

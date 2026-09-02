@@ -418,6 +418,15 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'riderName',
         header: t('trips.col.rider'),
+        /* **`data`, not the default `meta`.** Neither column declared an
+           emphasis, so both fell to the quietest tier — on a trips table,
+           where the rider and the captain are the two things an operator
+           scans for once they have the trip id. It read as a deliberate
+           demotion of the wrong two columns on the desktop table, and the
+           narrow card mode made it unmissable: the card builds its body
+           from the `data` tier, so a phone showed Status and Fare and
+           neither name. */
+        emphasis: 'data',
         width: 152,
         dataType: 'text',
         sortField: 'riderName',
@@ -439,6 +448,15 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'driverName',
         header: t('trips.col.captain'),
+        /* **`data`, not the default `meta`.** Neither column declared an
+           emphasis, so both fell to the quietest tier — on a trips table,
+           where the rider and the captain are the two things an operator
+           scans for once they have the trip id. It read as a deliberate
+           demotion of the wrong two columns on the desktop table, and the
+           narrow card mode made it unmissable: the card builds its body
+           from the `data` tier, so a phone showed Status and Fare and
+           neither name. */
+        emphasis: 'data',
         width: 152,
         dataType: 'text',
         sortField: 'driverName',

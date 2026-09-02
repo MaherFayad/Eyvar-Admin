@@ -240,7 +240,31 @@ export function ShellProvider({ children }: { children: ReactNode }) {
    * sign-out from a refetch.
    */
   useEffect(() => {
-    setUiStateOwner(session.data?.userId ?? null)
+    /**
+     * **`undefined` means "not resolved yet" and must not be treated as "nobody".**
+     *
+     * This ran as `session.data?.userId ?? null`, so its FIRST pass — before
+     * `getSession` has answered — called `setUiStateOwner(null)`. That is not a
+     * no-op: it clears the remembered owner from storage and drops every default
+     * store. The remembered owner exists for exactly one purpose, stated on
+     * `uiStateOwnerId` itself — *"so the next boot knows the namespace during
+     * its first render rather than one async hop later"* — and this effect was
+     * throwing it away one render before it was needed.
+     *
+     * The cost was a preference that silently would not stick. Every cached read
+     * during that window returns from memory without touching storage, because
+     * a null owner has no namespace to read. `getUiState` lands inside it, finds
+     * an empty cache, seeds the mock bag from defaults, latches `mockHydrated`,
+     * and writes the default back over the cached value. An operator switched to
+     * Arabic, navigated once, and was in English again — with the correct value
+     * still sitting in `localStorage` under the correct key, never read.
+     *
+     * Clearing on sign-out is `signOut`'s job and already handled there, which
+     * the note above already said; the `?? null` contradicted it.
+     */
+    const userId = session.data?.userId
+    if (userId === undefined) return
+    setUiStateOwner(userId)
   }, [session.data?.userId])
 
   /* §8.4 — a NETWORK read, not a constant, which is what makes §9.1's

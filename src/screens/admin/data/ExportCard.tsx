@@ -149,7 +149,7 @@ export function ExportCard() {
       </CardHeader>
 
       <CardContent className="space-y-4 pt-4 text-xs">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-4 compact:grid-cols-1">
           <Field label={t('adminData.export.dataset')}>
             <Select value={dataset} onValueChange={setDataset}>
               <SelectTrigger>

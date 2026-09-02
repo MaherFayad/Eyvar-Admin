@@ -168,7 +168,7 @@ export function TemplateEditorDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="template-subject" className="text-xs font-medium">

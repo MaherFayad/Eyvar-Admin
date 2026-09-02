@@ -76,6 +76,7 @@ import {
   getTeamUser,
   markNotificationRead,
   switchMockUser,
+  updateUiState,
 } from '@/data/clients'
 import type { Notification, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
@@ -282,13 +283,24 @@ export function AppLayout() {
    * ago, which is the one they can definitely read. (While `AR` is empty the
    * two are identical anyway; this comment is here for the day it is not.)
    *
-   * **The choice does not survive reload — Q1, recorded, not hidden.**
-   * `src/lib/persistence.ts` is in-memory by decision; a `localStorage` adapter
-   * here would be answering an open question by writing code.
+   * **The choice now survives reload, and Q1 is closed.** It did not, and the
+   * reason was not the one recorded here: `defaultUiStore` already gives the
+   * language key a `localStorage`-backed cached store, so the write was
+   * happening. What was missing is the other half of a write-through cache —
+   * nobody told the SERVER. On the next load the shell fetched the preference
+   * bag, the seeded `en` came back, and `writeUiStateToCache` overwrote the
+   * cached `ar` with it. The cache was working exactly as designed; *"the
+   * server always wins"* is the rule, and the server had never been told.
+   *
+   * So the mutation goes out alongside the local write, in the shape
+   * `commands/recents.ts` already uses for the same reason: fire-and-forget,
+   * failure swallowed. A language that reverts on refresh is not a preference,
+   * and an operator reading Arabic should not have to reselect it every visit.
    */
   const setLanguage = useCallback(
     (next: Language) => {
       shell.language.setLanguage(next)
+      void updateUiState({ language: next }).catch(() => {})
       /* G9 — `info`. Switching language changed a preference, not an
          object, so it is not a `success` in R9's sense; and a bare `toast()`
          is no longer a kind this product has. */

@@ -190,6 +190,19 @@ export type PostingSourceType =
   | 'chargeback'
   | 'reversal'
   | 'opening'
+  /**
+   * A rider putting money into their own wallet — **the thirteenth member,
+   * added with `walletTopUpSeeds`** (`fixtures/ledger.ts`).
+   *
+   * It is not `'payment'`: a payment is a charge *we* raised and it has a
+   * `Payment` document to link to, while a top-up is money arriving against no
+   * document of ours at all. Filing it under `payment` would give
+   * `sourceId: null` a second meaning on a field whose whole contract is
+   * *"the row's one and only link"*, and `'opening'` already carries the one
+   * legitimate null. Two source types with no document is honest; one source
+   * type that sometimes has one is not.
+   */
+  | 'topup'
 
 /**
  * Where the money has got to. Tones are §7.2's, and **two of the ten have no

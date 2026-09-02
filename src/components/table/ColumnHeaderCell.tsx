@@ -204,7 +204,13 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
   const labelNode = (
     <span
       className={cn(
-        'min-w-0 truncate',
+        /* Clipping WITHOUT the ellipsis and without the line-break ban that
+           the shorthand here used to bundle: the name wraps inside its column
+           instead of being cut. The zero minimum width still lets this flex
+           item be narrower than its content, so the sort arrow and the caret
+           keep their place, and the clip stays as the last line of defence for
+           a single unbreakable word. */
+        'min-w-0 overflow-hidden',
         (isSorted || summary !== null) && 'font-semibold text-foreground',
       )}
     >

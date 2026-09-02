@@ -349,7 +349,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
               body={t('dispatch.empty.trips.body')}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 compact:grid-cols-1">
               {activeTrips.map((trip) => (
                 <Card key={trip.id} className="border-border">
                   <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
@@ -470,7 +470,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
               body={t('dispatch.empty.fleet.body')}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 compact:grid-cols-1">
               {onlineDrivers.slice(0, FLEET_CARDS).map((driver) => (
                 <Card key={driver.id} className="border-border p-3 space-y-2">
                   <div className="flex items-center justify-between">

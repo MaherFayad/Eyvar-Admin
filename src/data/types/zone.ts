@@ -76,10 +76,70 @@ export const RECRUITMENT_PRIORITY_TONE: Readonly<Record<RecruitmentPriority, Bad
   healthy: 'success',
 }
 
-/** `demand ÷ supply >= 3` is *starved* (`:14133`). Stated once, used by the badge, the tile and the row. */
+/**
+ * `demand ÷ supply >= 3` is *starved* (`:14133`). Stated once, used by the
+ * badge, the tile and the row.
+ *
+ * ## The boundary these two constants disagree on — **open, not fixed**
+ *
+ * They are the same number used with **opposite inclusivity**, so a zone at
+ * exactly `3.0×` is *starved* by one and *fully staffed* by the other:
+ *
+ * ```
+ * starved        ratio >= 3                      → 3.0 is starved
+ * captainsNeeded max(0, ceil(demand / 3) − supply) → 3.0 needs 0 captains
+ * ```
+ *
+ * **`ZONE-02` Al Sahafa is that zone** — 9 demand, 3 supply, ratio exactly
+ * `3.00`, `ceil(9 / 3) − 3 = 0`. It renders `Recruit now` with no count under
+ * it, because legacy prints the sub-line only `if(needed>0)` (`:14157`). The
+ * audit read three `Recruit now` badges against one captains-needed count and
+ * asked whether the derivation was wrong (`docs/audit/PAGE-SWEEP.md`).
+ *
+ * **Two of those three are correct and only one is this defect:**
+ *
+ * | Zone | d : s | ratio | needed | why it says `Recruit now` |
+ * |---|---|---|---:|---|
+ * | Al Narjis | 14 : 2 | 7.00 | **+3** | starved, and short of captains. Agrees. |
+ * | Al Sahafa | 9 : 3 | **3.00** | 0 | **the boundary. Starved by one rule, staffed by the other.** |
+ * | Al Yasmin | 11 : 4 | 2.75 | 0 | **not a defect** — `fr >= 50` is the *other* arm of `recruitmentPriority` (`:14153`), and a 64 % failure rate warrants recruitment whatever the headcount says. |
+ *
+ * Al Yasmin is the case that settles what the two numbers mean: **the badge and
+ * the count answer different questions** — *should we recruit here?* against
+ * *how many captains short is this zone?* — so a badge with no count is a
+ * legitimate reading and must stay possible.
+ *
+ * ## Why it is reported rather than fixed
+ *
+ * The one-line change is `ratio > STARVED_RATIO`, and legacy's own comment
+ * beside `needed` is evidence for it: *"healthy target: **≤3** demand per
+ * driver"* (`:14155`). But legacy's **code** writes `>= 3` in three places —
+ * the starved count (`:14133`), the `starved` filter (`:14139`) and the red row
+ * treatment (`:14156`) — against that single comment on the other formula.
+ * Three code sites beat one comment, so *"the fix is what legacy meant"* is not
+ * something this layer can show.
+ *
+ * It is also not free: `> 3` takes `starvedZones` from **2 to 1**, and with it
+ * the `management-zones` nav badge, the `Supply-starved zones` tile, the
+ * `starved` view and one row's red treatment.
+ *
+ * **For product-owner.** Either the starvation threshold is exclusive (and all
+ * four numbers move together), or `captainsNeeded` should target a ratio
+ * strictly below it — which needs a second number nobody has set, and inventing
+ * one is worse than the boundary. `ZONE-02` is kept at exactly `3.00` on
+ * purpose: it is the only row that makes the disagreement observable, and
+ * rounding it away would hide the finding rather than answer it.
+ */
 export const STARVED_RATIO = 3
 
-/** Legacy's healthy target inside `needed` (`:14155`): *"≤3 demand per driver"*. */
+/**
+ * Legacy's healthy target inside `needed` (`:14155`): *"≤3 demand per driver"*.
+ *
+ * **Deliberately a separate constant from `STARVED_RATIO` even though both are
+ * `3`.** They are two decisions that happen to agree on a value, and the
+ * boundary note above is what happens when that goes unnoticed. Collapsing them
+ * into one constant would make the disagreement invisible and unfixable.
+ */
 export const HEALTHY_DEMAND_PER_CAPTAIN = 3
 
 /* ──────────────────────── steering offer ────────────────────── */
