@@ -36,6 +36,12 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.delta.upWorse': 'ارتفاع، وهو أسوأ',
   'overview.delta.downBetter': 'انخفاض، وهو أفضل',
   'overview.delta.downWorse': 'انخفاض، وهو أسوأ',
+  /* The VISIBLE valence word — see the English side for why it exists. One
+     adjective, masdar-free because it qualifies a number rather than naming an
+     action (R6 governs BUTTONS). Comparative forms: أفضل / أسوأ are the same
+     words the long clauses above already end on, so the two registers agree. */
+  'overview.valence.better': 'أفضل',
+  'overview.valence.worse': 'أسوأ',
   'overview.legend.range': '{from} – {to}',
   'overview.legend.current': 'هذه الفترة',
   'overview.legend.comparison': 'الفترة السابقة',

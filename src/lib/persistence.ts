@@ -382,6 +382,20 @@ export const UI_STATE_KEYS = {
   /** foundation spec §8.3 `ui.language`. Legacy reseeds to `en` on every load (`:2570`); that is the defect. */
   language: 'ui.language',
   /**
+   * The colour theme: `light`, `dark`, or `system` (the default).
+   *
+   * Class 2 under D16 — a per-operator display choice with no record in it,
+   * which is why it stores beside `density` rather than going to the server. A
+   * dispatcher on nights and a finance operator on days share a console and
+   * should not share a theme.
+   *
+   * `system` is the default and is a real third value, not the absence of a
+   * choice: it follows `prefers-color-scheme` for the life of the session, so
+   * an operator whose machine flips at sunset flips with it. Storing only
+   * `light | dark` would make "follow my machine" unexpressible.
+   */
+  theme: 'ui.theme',
+  /**
    * **Prefix, not a key.** Column pins are per table *and per view* (§7.6), so
    * `useColumnPinning` stores under `ui.columnPins.<tableId>.<view>`.
    */

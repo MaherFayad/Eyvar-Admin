@@ -77,21 +77,40 @@
  *               news; R7's tones carry status and a delta is a quantity. The
  *               reference renders `0%` neutral beside every metric.
  *
- *               **This overrides §3.7's "deltas MUST be colour-coded", and the
- *               data layer expects the colour**: `Metric.higherIsBetter` says
- *               its purpose is to drive it. D7 is later and narrower and wins
- *               on the visual half; the FIELD is still used, for the direction
- *               phrase a screen reader hears. Raised in the wave-4 handoff so
- *               the disagreement is on the record rather than in this file.
+ *               **STILL TRUE, AND STILL HONOURED — the chip below is
+ *               `tone="neutral"`.** R7's five tones are untouched and R5a's
+ *               "there is no red badge" holds.
+ *
+ *               **AMENDED 2026-09-02, on the half §4.9 did not decide.** The
+ *               rule forbids toning THE CHIP. It was read as forbidding valence
+ *               anywhere, and the consequence was measured: `higherIsBetter` is
+ *               carried on every metric and reached a sighted operator not at
+ *               all, so an eight-tile risk board said nothing about which of
+ *               its numbers were bad news — while a screen-reader user was told
+ *               outright. The paragraph below already recorded the complaint in
+ *               those terms.
+ *
+ *               The valence is now a WORD beside the chip, plus the caret
+ *               tinted to match. §7.5 is satisfied the right way round: the
+ *               word is the carrier, the colour is the redundancy. Nothing new
+ *               is introduced — no tone, no badge, no colour value.
+ *
+ *               **This settles §3.7's "deltas MUST be colour-coded" and the
+ *               data layer's expectation** (`Metric.higherIsBetter` says its
+ *               purpose is to drive exactly this) without reversing D7: D7 is
+ *               later and narrower and still wins on the chip, which is the
+ *               thing it actually named. Raised in the wave-4 handoff; this is
+ *               the resolution, and `metricValence` is where it is decided.
  *   §3.7        every metric with a comparison shows a delta; where none is
  *               possible the delta is an **em dash**, never `0%` and never
  *               blank. `deltaPercent === null` iff `comparison.kind === 'none'`
  *               — the client asserts the biconditional, so branching on either
  *               gives the same answer and this file branches on the union.
- *   §3.7 / §7.5 a delta carries a **direction caret** as well as a number.
- *               Under D7 the chip has no colour at all, so the caret is not
- *               redundancy — it is the only visual carrier, and the direction
- *               and whether it is good news are also words for a screen reader.
+ *   §3.7 / §7.5 a delta carries a **direction caret** as well as a number. The
+ *               caret encodes DIRECTION and its colour encodes VALENCE, and the
+ *               two are not the same fact — a metric can fall and be better.
+ *               Neither is colour-only: the sign is beside the caret and the
+ *               valence word is beside the chip.
  *   §3.7 / D-08 / **AC-16** — the tile deep-links to the surface that owns the
  *               number, from `Metric.drilldownRoute`. The legacy exec tiles are
  *               not clickable at all.
@@ -137,7 +156,7 @@ import {
   type Translate,
 } from '@/lib'
 import type { Metric, MetricCategory, MetricComparison } from '@/data/types'
-import { formatMetricValue, formatSignedPercent } from './formatMetric'
+import { formatMetricValue, formatSignedPercent, metricValence } from './formatMetric'
 
 /**
  * §4.9's leading glyph, chosen by the metric's **category** — the one field on
@@ -419,10 +438,7 @@ function ComparisonLine({
   }
 
   const Caret = deltaPercent > 0 ? ArrowUpIcon : deltaPercent < 0 ? ArrowDownIcon : null
-  /* `higherIsBetter` is the field D7 stopped us spending on colour. It is spent
-     here instead: a screen reader hears "up, better" or "up, worse", which is
-     the whole of what a green or red delta would have said, and it says it in
-     a way that survives §7.5's never-colour-alone rule for free. */
+  /* The LONG clause, still exactly as it was, and still the screen reader's. */
   const direction =
     deltaPercent === 0
       ? t('overview.delta.flat')
@@ -436,20 +452,60 @@ function ComparisonLine({
               : 'overview.delta.downBetter',
         )
 
+  /* **R4-5 AMENDED — `higherIsBetter` now reaches the SIGHTED operator too.**
+     One derivation feeds both carriers, so the word a reader sees and the
+     clause a screen reader hears can never disagree. `null` at zero: nothing
+     moved, so nothing is better or worse. */
+  const valence = metricValence(deltaPercent, metric.higherIsBetter)
+
   return (
     <span className="flex flex-wrap items-center gap-1.5">
+      {/* The chip is STILL `tone="neutral"`. D7 §4.9 forbids toning it and that
+          is honoured — R7's five tones are untouched and R5a's "no red badge"
+          holds, because the valence is not in the badge. What carries it is the
+          caret's colour plus the word beside the chip. */}
       <Badge tone="neutral">
         {/* §3.7's direction caret. A MARK: up and down encode magnitude, not
             reading direction, so it does not mirror (§9.5). Drawn as an icon
             rather than as `▲`, which Inter does not carry — a Unicode
             geometric shape falls through to whatever font does have it, and on
-            Windows that font paints in colour. */}
-        {Caret && <Caret aria-hidden="true" className="size-3" />}
+            Windows that font paints in colour.
+
+            **The caret is the only thing in the chip that takes a colour**, and
+            it is redundancy rather than signal — the word below says the same
+            thing, so §7.5 is met by construction. `--ev-green` and `--ev-red`
+            on the neutral chip's ground clear AA; neither is a new value. */}
+        {Caret && (
+          <Caret
+            aria-hidden="true"
+            className={cn(
+              'size-3',
+              valence === 'better' && 'text-success-foreground',
+              valence === 'worse' && 'text-critical-foreground',
+            )}
+          />
+        )}
         {/* Isolated for the same reason as the value — see the `<bdi>` above.
             `+8.1%` renders `8.1%+` without it under `dir="rtl"`. */}
         <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
         <span className="sr-only">{direction}</span>
       </Badge>
+      {/* THE CARRIER. One word, outside the chip so the chip stays a quantity
+          and this stays a judgement — two different kinds of thing, which is
+          the distinction §4.9 was protecting. `aria-hidden` because the clause
+          inside the chip already said it and a screen reader would otherwise
+          hear "up, which is worse … worse". */}
+      {valence !== null && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'text-xs font-medium',
+            valence === 'better' ? 'text-success-foreground' : 'text-critical-foreground',
+          )}
+        >
+          {t(`overview.valence.${valence}`)}
+        </span>
+      )}
       <span {...againstBox.box}>
         <bdi {...againstBox.run}>{againstLabel(comparison, metric, t, language)}</bdi>
       </span>

@@ -94,3 +94,15 @@ export {
   setClockSource,
   type TickBucket,
 } from './useTick'
+/* The colour theme. One class on `<html>`; the palette itself is a block of
+   `--ev-*` overrides in `globals.css` and no component knows about it. */
+export {
+  useTheme,
+  applyTheme,
+  resolveTheme,
+  systemTheme,
+  isThemeChoice,
+  type ThemeChoice,
+  type ResolvedTheme,
+  type ThemeState,
+} from './useTheme'

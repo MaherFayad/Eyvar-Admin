@@ -129,7 +129,31 @@ export function NarrowRowCards<T>({
      so computing it inside the row loop would do the same work n times and
      invite someone to reach for the row while they were in there. */
   const heading = visible.find((column) => emphasisOf(column, declared) === 'primary')
-  const declaredData = visible.filter((column) => emphasisOf(column, declared) === 'data')
+  /**
+   * **The card's body: `data` columns AND columns that declared nothing.**
+   *
+   * The paragraph below is right and was applied to only half the cases it
+   * covers. It reasons that an ABSENT `emphasis` *"is not a statement that
+   * those columns are worthless; it is the absence of a statement"* — then
+   * acted on that only when a screen declared no emphasis anywhere. Where a
+   * screen declared some, every undeclared column fell to the `meta` fallback
+   * and vanished from the phone.
+   *
+   * The measured consequence, on `/support/disputes` at 390pt: `what is
+   * claimed` and `parties` declare no emphasis, the amount and status do, so
+   * **the card showed a claim id and an amount and never said what the claim
+   * was about**. The one field that identifies the case was not on the phone
+   * at all, and the two action buttons sat above the facts they act on.
+   *
+   * So `meta` demotes a column off the card only when a screen SAID `meta`.
+   * `column.emphasis === undefined` is the absence of a statement everywhere,
+   * not only when it is unanimous.
+   */
+  const declaredData = visible.filter((column) => {
+    if (column === heading) return false
+    if (column.emphasis === undefined) return true
+    return emphasisOf(column, declared) === 'data'
+  })
 
   /**
    * **`meta` is a DEMOTION, and only where a screen has said what it is
@@ -215,17 +239,6 @@ export function NarrowRowCards<T>({
                     )}
                   </span>
 
-                  {renderRowActions && (
-                    /* At the card's inline-end, not pinned, and carrying the
-                       tap floor: an icon-only trigger is exactly the case that
-                       floor exists for, because it has no height token of its
-                       own for the compact query to raise. The utility is not
-                       spelled in this comment — Tailwind v4 scans comments as
-                       plain text and mints what it finds. */
-                    <span className="flex min-h-tap shrink-0 items-center gap-1">
-                      {renderRowActions(row, id)}
-                    </span>
-                  )}
                 </div>
 
                 {body.length > 0 && (
@@ -259,6 +272,25 @@ export function NarrowRowCards<T>({
                       </div>
                     ))}
                   </dl>
+                )}
+
+                {renderRowActions && (
+                  /* **AFTER the facts, not before them.** The actions used to
+                     sit at the head's inline-end, so a Disputes card on a phone
+                     read `DSP-106 · Take claim · Resolve claim` and only then
+                     said what the claim was about — two commitments offered
+                     before the case. On the desktop row the action lane is at
+                     the END of a line the eye has already crossed; the card is
+                     that same order, stacked, and putting the lane at the top
+                     inverted it.
+
+                     Full width and at the card's inline-end, carrying the tap
+                     floor: a trigger with no label has no height token of its
+                     own for the compact query to raise, which is exactly the
+                     case that floor exists for. */
+                  <span className="flex min-h-tap items-center justify-end gap-1 pt-1">
+                    {renderRowActions(row, id)}
+                  </span>
                 )}
               </div>
             </li>

@@ -102,15 +102,37 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.compare.targetNoDelta.sr': 'No percentage change to state',
 
   /* ── the direction, in words ─────────────────────────────────────────
-     Never rendered visually — the caret and the sign carry it there (§7.5).
-     This is what a screen reader hears, and it is where `higherIsBetter` is
-     spent: D7 §4.9 forbids toning the chip, so "better" and "worse" cannot be
-     a colour and become a word instead. */
+     The LONG form, and it is still what a screen reader hears — a full clause
+     reads better in a list of announced tiles than a bare adjective does.
+     Sighted readers get `overview.valence.*` below instead, which is the same
+     judgement in one word beside the chip. Both are driven by the same
+     `higherIsBetter`, so the two can never disagree. */
   'overview.delta.flat': 'unchanged',
   'overview.delta.upBetter': 'up, which is better',
   'overview.delta.upWorse': 'up, which is worse',
   'overview.delta.downBetter': 'down, which is better',
   'overview.delta.downWorse': 'down, which is worse',
+
+  /* ── the VISIBLE valence word. R4-5 amended, 2026-09-02. ──────────────
+     D7 §4.9 forbids TONING THE CHIP, and the chip is still `tone="neutral"` —
+     R7's five tones are untouched and R5a's "there is no red badge" holds,
+     because this is not a badge. What §4.9 could not have intended is the
+     state the visual research measured: `higherIsBetter` is carried on every
+     metric, is announced to a screen reader, and reached a sighted operator
+     not at all — so on an eight-tile risk board nothing said which numbers
+     were bad news. The file's own comment records the same complaint: the
+     rule "left a sighted operator no valence carrier except words".
+
+     So it becomes a word. One adjective, next to the delta, plus the caret
+     tinted to match. §7.5 is satisfied by construction rather than by review:
+     the WORD is the carrier and the colour is the redundancy, which is the
+     opposite of a colour-only signal and is why this needs no new tone.
+
+     A metric whose movement is genuinely neither good nor bad — a
+     cancellation-fee total, the file's own example — reads `unchanged` at zero
+     and otherwise shows no word at all. See `metricValence`. */
+  'overview.valence.better': 'better',
+  'overview.valence.worse': 'worse',
 
   /* ── chart chrome ────────────────────────────────────────────────────
      §3.7: the legend names BOTH periods explicitly with dates. */

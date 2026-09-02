@@ -10,6 +10,9 @@
  */
 
 export { ProfileSections, RAIL_SECTIONS, type ProfileSectionsProps } from './ProfileSections'
+/* The drawer's missing region — the record itself, above any container that
+   can be closed. The full page has the rail instead; see the component. */
+export { IdentityBand } from './IdentityBand'
 export { profileRail, type ProfileRailProps } from './rail'
 export { useProfileRecord, personFacets, type ProfileRecord, type ProfileRecordResult } from './record'
 export {

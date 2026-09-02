@@ -99,6 +99,16 @@ export interface UiState {
   readonly schemaVersion: number
   /** §8.3. Legacy reseeds to `en` on every load (`eyvar_ops_panel_v40_fixed.html:2570`); that is the defect this fixes. */
   readonly language: 'en' | 'ar'
+  /**
+   * The colour theme. `system` follows `prefers-color-scheme` for the life of
+   * the session and is the default; `light` and `dark` are decisions and
+   * outrank the machine in both directions.
+   *
+   * In the bag because `UI_STATE_KEYS` names it and `preferences.test.ts`
+   * asserts the two cannot drift — a key with no field is a namespace the
+   * server would never round-trip.
+   */
+  readonly theme: 'light' | 'dark' | 'system'
   readonly density: UiDensity
   /** Applied when the URL does not name one. The URL still wins — class 1 beats class 2. */
   readonly pageSize: number
@@ -138,6 +148,7 @@ export interface UiStateResult {
 const UI_STATE_DEFAULTS: UiState = {
   schemaVersion: UI_STATE_SCHEMA_VERSION,
   language: 'en',
+  theme: 'system',
   density: 'comfortable',
   pageSize: DEFAULT_PAGE_SIZE,
   columnVisibility: {},
@@ -158,6 +169,11 @@ export const DEFAULT_UI_STATE: UiState = Object.freeze(UI_STATE_DEFAULTS)
 
 export function isUiLanguage(value: unknown): value is UiState['language'] {
   return value === 'en' || value === 'ar'
+}
+
+/** The three settings. `system` is a value, not the absence of a choice. */
+export function isUiTheme(value: unknown): value is UiState['theme'] {
+  return value === 'light' || value === 'dark' || value === 'system'
 }
 
 export function isUiDensity(value: unknown): value is UiDensity {
@@ -216,6 +232,7 @@ export function readUiState(value: unknown): UiState | null {
   return {
     schemaVersion: UI_STATE_SCHEMA_VERSION,
     language: isUiLanguage(raw.language) ? raw.language : DEFAULT_UI_STATE.language,
+    theme: isUiTheme(raw.theme) ? raw.theme : DEFAULT_UI_STATE.theme,
     density: isUiDensity(raw.density) ? raw.density : DEFAULT_UI_STATE.density,
     pageSize: isUiPageSize(raw.pageSize) ? raw.pageSize : DEFAULT_UI_STATE.pageSize,
     columnVisibility: readRecord(raw.columnVisibility, isUiStringList),
@@ -243,9 +260,12 @@ export function cachedUiState(): UiStatePatch {
     density?: UiDensity
     pageSize?: number
     paletteRecents?: readonly string[]
+    theme?: UiState['theme']
   } = {}
   const language = defaultUiStore(UI_STATE_KEYS.language, isUiLanguage).read()
   if (language !== null) patch.language = language
+  const theme = defaultUiStore(UI_STATE_KEYS.theme, isUiTheme).read()
+  if (theme !== null) patch.theme = theme
   const density = defaultUiStore(UI_STATE_KEYS.density, isUiDensity).read()
   if (density !== null) patch.density = density
   const pageSize = defaultUiStore(UI_STATE_KEYS.pageSize, isUiPageSize).read()
@@ -270,6 +290,7 @@ export function cachedUiState(): UiStatePatch {
  */
 function writeUiStateToCache(state: UiState): void {
   defaultUiStore(UI_STATE_KEYS.language, isUiLanguage).write(state.language)
+  defaultUiStore(UI_STATE_KEYS.theme, isUiTheme).write(state.theme)
   defaultUiStore(UI_STATE_KEYS.density, isUiDensity).write(state.density)
   defaultUiStore(UI_STATE_KEYS.pageSize, isUiPageSize).write(state.pageSize)
   defaultUiStore(UI_STATE_KEYS.paletteRecents, isUiStringList).write(state.paletteRecents)

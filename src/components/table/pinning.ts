@@ -184,14 +184,26 @@ function boundary(pinned: PinnedColumn, overflowing: boolean): CSSProperties {
 export function useTableOverflow(direction: Direction): {
   scrollRef: (node: HTMLElement | null) => void
   overflowing: boolean
+  /**
+   * The scroll container's inner width, or `0` before the first measurement.
+   *
+   * Reported alongside `overflowing` rather than measured a second time by the
+   * caller: this hook already owns the `ResizeObserver` on this node, and two
+   * observers on one element is two answers to the same question that can
+   * disagree for a frame. `fitWidths` treats `0` as "not yet known" and leaves
+   * the declared widths alone, which is the correct first frame.
+   */
+  containerWidth: number
 } {
   const nodeRef = useRef<HTMLElement | null>(null)
   const [overflowing, setOverflowing] = useState(false)
+  const [containerWidth, setContainerWidth] = useState(0)
 
   const measure = useCallback(() => {
     const node = nodeRef.current
     if (!node) return
     setOverflowing(node.scrollWidth - node.clientWidth > 1)
+    setContainerWidth(node.clientWidth)
   }, [])
 
   const scrollRef = useCallback(
@@ -224,7 +236,7 @@ export function useTableOverflow(direction: Direction): {
     measure()
   }, [direction, measure])
 
-  return { scrollRef, overflowing }
+  return { scrollRef, overflowing, containerWidth }
 }
 
 /**

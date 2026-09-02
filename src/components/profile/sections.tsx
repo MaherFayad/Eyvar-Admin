@@ -256,7 +256,7 @@ export const IdentitySection: ProfileSectionComponent = ({ record, t, language }
     t={t}
     skeletonRows={5}
   >
-    {(value) => <FieldList t={t} fields={identityFields(value, t, language)} />}
+    {(value) => <FieldList layout="grid" t={t} fields={identityFields(value, t, language)} />}
   </SectionStates>
 )
 
@@ -451,7 +451,7 @@ export const TripsSection: ProfileSectionComponent = ({ entity, record, t, langu
           value.entityType !== 'trip' ? (
             <SectionUnavailable reason={noSource(entity, 'trips', t)} />
           ) : (
-            <FieldList t={t} fields={tripJourneyFields(value.data, t, language)} />
+            <FieldList layout="grid" t={t} fields={tripJourneyFields(value.data, t, language)} />
           )
         }
       </SectionStates>
@@ -566,7 +566,7 @@ export const SubscriptionsSection: ProfileSectionComponent = ({ entity, record, 
           value.entityType !== 'subscription' ? (
             <SectionUnavailable reason={noSource(entity, 'subscriptions', t)} />
           ) : (
-            <FieldList t={t} fields={subscriptionCycleFields(value.data, t, language)} />
+            <FieldList layout="grid" t={t} fields={subscriptionCycleFields(value.data, t, language)} />
           )
         }
       </SectionStates>
@@ -695,6 +695,7 @@ export const ComplianceSection: ProfileSectionComponent = ({ entity, record, t, 
             <SectionUnavailable reason={t('profile.state.emptyCompliance')} />
           ) : (
             <FieldList
+              layout="grid"
               t={t}
               fields={value.data.docs.map(
                 (doc): Field => ({
@@ -730,6 +731,7 @@ export const ComplianceSection: ProfileSectionComponent = ({ entity, record, t, 
         return (
           <div className="flex flex-col gap-2">
             <FieldList
+              layout="grid"
               t={t}
               fields={[
                 { label: t('profile.field.worstState'), value: badge(worst.tone, t(worst.key)) },
@@ -740,6 +742,7 @@ export const ComplianceSection: ProfileSectionComponent = ({ entity, record, t, 
             {row.docs.length > 0 && (
               <div className="border-t border-border pt-2">
                 <FieldList
+                  layout="grid"
                   t={t}
                   fields={row.docs.map(
                     (doc): Field => ({
@@ -800,6 +803,7 @@ export const CommitmentSection: ProfileSectionComponent = ({ entity, t, language
       {(page) => (
         <div className="flex flex-col gap-2">
           <FieldList
+            layout="grid"
             t={t}
             fields={[
               {
@@ -923,7 +927,7 @@ export const PaymentsSection: ProfileSectionComponent = ({ entity, record, t, la
       >
         {(value) =>
           value.entityType === 'corporate-account' ? (
-            <FieldList t={t} fields={corporateBillingFields(value, t, language)} />
+            <FieldList layout="grid" t={t} fields={corporateBillingFields(value, t, language)} />
           ) : (
             <SectionUnavailable reason={noSource(entity, 'payments', t)} />
           )
@@ -1340,6 +1344,7 @@ export const DevicesSection: ProfileSectionComponent = ({ entity, record, t }) =
       if (facets === null) return <SectionUnavailable reason={noSource(entity, 'devices', t)} />
       return (
         <FieldList
+          layout="grid"
           t={t}
           fields={[
             { label: t('profile.field.device'), value: text(facets.device) },

@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **4759** |
-| Reachable from `EN` (what the shell renders) | 4572 |
-| Keys in `AR` | 4759 |
+| **Translatable keys, all dictionaries** | **4765** |
+| Reachable from `EN` (what the shell renders) | 4578 |
+| Keys in `AR` | 4765 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 187 |
 | Plural forms (`key#category`) inside `EN` | 29 |
@@ -43,7 +43,7 @@ None left. Add the lint rule and delete this section.
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 264 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 247 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
-| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 189 |
+| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 191 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |

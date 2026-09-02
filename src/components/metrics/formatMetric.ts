@@ -67,6 +67,33 @@ export function formatSignedPercent(value: number, language: Language): string {
 }
 
 /**
+ * **Is this movement good news or bad news?** The one place that decides, so
+ * the word a reader sees and the clause a screen reader hears are the same
+ * judgement rather than two implementations of it.
+ *
+ * `higherIsBetter` has been on `Metric` since the data layer was written, with
+ * its own doc comment explaining exactly this use — *"Churn up is bad; renewal
+ * up is good"*. D7 §4.9 then forbade toning the delta chip, which spent the
+ * field on a screen-reader phrase and left a sighted operator with no valence
+ * carrier at all. The amendment does not un-forbid the tone: the chip is still
+ * neutral, and this drives a WORD and a caret colour beside it.
+ *
+ * **Zero is `null`, not `'better'`.** Nothing moved, so nothing improved or
+ * worsened — and the tile already renders `unchanged` for that case. Returning
+ * a valence at zero would paint every flat metric green or red, which is the
+ * failure mode people cite when they argue against coloured deltas at all.
+ */
+export type MetricValence = 'better' | 'worse'
+
+export function metricValence(
+  deltaPercent: number,
+  higherIsBetter: boolean,
+): MetricValence | null {
+  if (deltaPercent === 0) return null
+  return deltaPercent > 0 === higherIsBetter ? 'better' : 'worse'
+}
+
+/**
  * The one formatter a tile, an axis tick or a legend calls.
  *
  * `null` returns the em dash — the single place in the metric layer that

@@ -84,6 +84,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleRail } from './ModuleRail'
 import { PageNav } from './PageNav'
+import { useTheme } from '@/hooks'
 import { SaveBar } from './SaveBar'
 import { ShellBanner } from './ShellBanner'
 import { SkipToContent, CONTENT_LANDMARK_ID } from './SkipToContent'
@@ -132,6 +133,11 @@ export function AppLayout() {
   /* Built once per render and handed to whichever bar is in the slot. `null`
      above the breakpoint, so the desktop bar is byte-identical to before. */
   const menu = compact ? <MobileNavTrigger t={t} /> : null
+
+  /* The colour theme. Held here rather than in `ShellContext` because
+     nothing but this menu reads it — the palette itself is a block of
+     `--ev-*` overrides and no component branches on the theme. */
+  const theme = useTheme()
 
   const table = getRouteTable()
   /* AC-57 / AC-58 — a FILTER over the route table. Currently passes everything
@@ -505,10 +511,18 @@ export function AppLayout() {
         />
         )}
 
-        {/* D5 — always rendered ABOVE the breakpoint. The column is the level-2
-            navigation and it does not go away; what changes below 768 is where
-            it lives, not whether it exists. */}
-        {!compact && (
+        {/* D5 — rendered ABOVE the breakpoint, *when the route has a level-2
+            navigation to show*. What changes below 768 is where the column
+            lives, not whether it exists — that half of D5 is unchanged.
+
+            **The `workspaceRows.length` guard is the fix for an empty column.**
+            `route.workspaceId` is `null` on `/entity/:entityId`, which belongs
+            to no workspace by design (`routeState.ts` — "the profile's full-page
+            escape belongs to no workspace"). `workspaceRows` was therefore `[]`
+            and `PageNav` still rendered its full `w-subnav` tinted column with a
+            blank heading band and no rows: a 224px dead grey strip down the
+            whole page, on the one route that most needs the width. */}
+        {!compact && workspaceRows.length > 0 && (
         <PageNav
           workspace={route.workspace}
           rows={workspaceRows}
@@ -567,6 +581,8 @@ export function AppLayout() {
                 else signOut()
               }}
               onSetLanguage={setLanguage}
+              theme={theme.choice}
+              onSetTheme={theme.setTheme}
               /* `null` covers three situations that all render as the honest
                  `On call: unassigned` — nobody is rostered, the read has not
                  landed, and the read failed. A wrong name would be worse than

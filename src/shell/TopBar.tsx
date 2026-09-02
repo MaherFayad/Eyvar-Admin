@@ -8,7 +8,7 @@
  * is on the 4px grid. The sidebar brand row takes the same token and the two
  * still align. The fill is `bg-background`, which is now `#ffffff` — under D-11
  * the content region is white edge to edge, so "white" here is not a special
- * case, it is the ground. The rule below it is `--ev-hairline` `#f0f2f4`, the
+ * case, it is the ground. The rule below it is `--ev-hairline` `#e3e7ea`, the
  * one hairline value on the page.
  *
  * **Why it does not span the viewport.** §2.1 describes a full-width dark bar
@@ -72,6 +72,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { formatCount, mirrorGlyph } from '@/lib'
+import type { ThemeChoice } from '@/hooks'
 import type { Direction, Language, Translate } from '@/lib'
 import type { Notification, Session } from '@/data/types'
 import { AccountMenu } from './AccountMenu'
@@ -103,6 +104,9 @@ export interface TopBarProps {
    * count chip they read every minute.
    */
   onSetLanguage: (language: Language) => void
+  /** Forwarded to `AccountMenu`; the top bar itself never reads it. */
+  theme: ThemeChoice
+  onSetTheme: (next: ThemeChoice) => void
   /** Who is on the rota right now. `null` is the gap the chip exists to show. */
   onCallName: string | null
   /**
@@ -134,6 +138,8 @@ export function TopBar({
   onSwitchUser,
   onSignOut,
   onSetLanguage,
+  theme,
+  onSetTheme,
   onCallName,
   menu = null,
   compact = false,
@@ -239,6 +245,8 @@ export function TopBar({
           t={t}
           language={language}
           onSetLanguage={onSetLanguage}
+        theme={theme}
+        onSetTheme={onSetTheme}
           onOpenMyProfile={onOpenAccount}
           onOpenOnboarding={onOpenOnboarding}
           /* **AC-599** — a count only while the track is incomplete AND

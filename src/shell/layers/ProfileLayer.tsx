@@ -46,7 +46,7 @@ import type { Language, Translate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { ProfileSections, useProfileRecord } from '@/components/profile'
+import { IdentityBand, ProfileSections, useProfileRecord } from '@/components/profile'
 import { ShellLayer } from '../ShellLayer'
 
 export interface ProfileLayerProps {
@@ -161,5 +161,17 @@ function ProfileBody({
   language: Language
 }) {
   const record = useProfileRecord(entity)
-  return <ProfileSections entity={entity} record={record} t={t} language={language} />
+  return (
+    /* **The band is OUTSIDE the section stack and above it**, so the first
+       thing on the surface is the record rather than a closed container. The
+       negative inline margin pulls it out to the drawer's own edges — the body
+       carries `p-3` for the card stack, and a band that stopped 12px short of
+       the seam would read as a card rather than as the header region it is. */
+    <div className="flex flex-col gap-3">
+      <div className="-mx-3 -mt-3">
+        <IdentityBand entity={entity} record={record} t={t} />
+      </div>
+      <ProfileSections entity={entity} record={record} t={t} language={language} />
+    </div>
+  )
 }

@@ -52,6 +52,7 @@ import type {
 import { BreakdownList } from './BreakdownList'
 import { ChartCard } from './ChartCard'
 import { MetricTile } from './MetricTile'
+import { metricValence } from './formatMetric'
 
 const t = createTranslator({ dictionary: EN })
 const AS_OF = '2026-06-25T09:14:00+03:00'
@@ -1137,5 +1138,37 @@ describe('BreakdownList — the bar (R5-6)', () => {
     unmount()
     const media = renderList(breakdown(ranked()))
     expect(media.container.querySelector('.h-row-media')).not.toBeNull()
+  })
+})
+
+/* ══════════ the valence carrier — R4-5 amended, 2026-09-02 ══════════ */
+
+describe('metricValence — `higherIsBetter` reaches the sighted operator', () => {
+  it('reads a rise as better only where rising IS better', () => {
+    /* The file's own example: churn up is bad, renewal up is good. */
+    expect(metricValence(12, true)).toBe('better')
+    expect(metricValence(12, false)).toBe('worse')
+    expect(metricValence(-12, true)).toBe('worse')
+    expect(metricValence(-12, false)).toBe('better')
+  })
+
+  it('has no valence at zero', () => {
+    /* Nothing moved, so nothing improved or worsened. Returning a valence here
+       would paint every flat metric green or red, which is the failure people
+       cite when they argue against coloured deltas at all. */
+    expect(metricValence(0, true)).toBeNull()
+    expect(metricValence(0, false)).toBeNull()
+  })
+
+  it('drives the WORD and the caret from one derivation', () => {
+    /* The point of the amendment: what a reader sees and what a screen reader
+       hears cannot disagree, because they come from the same function. */
+    for (const delta of [-30, -1, 1, 30]) {
+      for (const higherIsBetter of [true, false]) {
+        const valence = metricValence(delta, higherIsBetter)
+        const rising = delta > 0
+        expect(valence).toBe(rising === higherIsBetter ? 'better' : 'worse')
+      }
+    }
   })
 })

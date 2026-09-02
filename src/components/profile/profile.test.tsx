@@ -60,10 +60,15 @@ function Rail({ entity }: { entity: ProfileRef }) {
   return <>{profileRail({ entity, record, t, language: 'en' })}</>
 }
 
-/** Every card, open, so a collapsed body cannot hide a failure from an assertion. */
+/** Every card, open, so a collapsed body cannot hide a failure from an assertion.
+ *
+ * `queryAllByRole`, not `getAllByRole`: since `ProfileSections` opens its first
+ * three cards rather than only its first, an entity with three or fewer
+ * sections arrives here with NOTHING collapsed, and `getAllByRole` throws on an
+ * empty match. "Already open" is a valid state for this helper, not a failure. */
 async function openEveryCard(): Promise<void> {
   const user = userEvent.setup()
-  for (const trigger of screen.getAllByRole('button', { expanded: false })) {
+  for (const trigger of screen.queryAllByRole('button', { expanded: false })) {
     await user.click(trigger)
   }
   await waitFor(() => expect(screen.queryAllByRole('button', { expanded: false })).toHaveLength(0))
@@ -115,16 +120,20 @@ describe('a captain gets nine sections and a rider eight, from the data and not 
     expect(driver.sections).toHaveLength(9)
     expect(rider.sections).toHaveLength(8)
 
+    /* THE DEFAULT-OPEN RULE, asserted rather than assumed. `ProfileSections`
+       opens its first `DEFAULT_OPEN_SECTIONS` cards — three — which is what
+       took the record from seven clicks to four. Both entities here declare
+       more than three sections, so both show exactly three. */
     const driverView = render(<Stack entity={driver} />)
     await waitFor(() =>
-      expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1),
+      expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(3),
     )
     expect(driverView.container.querySelectorAll('[data-slot="collapsible"]')).toHaveLength(9)
     driverView.unmount()
 
     const riderView = render(<Stack entity={rider} />)
     await waitFor(() =>
-      expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1),
+      expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(3),
     )
     expect(riderView.container.querySelectorAll('[data-slot="collapsible"]')).toHaveLength(8)
   })

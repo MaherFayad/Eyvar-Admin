@@ -70,12 +70,16 @@ import { DATA_SOURCE, listTeamUsers } from '@/data/clients'
 import type { Session, TeamUser } from '@/data/types'
 import { useAsync } from '@/hooks'
 import { isLanguage, type Language, type Translate } from '@/lib'
+import { isThemeChoice, type ThemeChoice } from '@/hooks'
 
 export interface AccountMenuProps {
   session: Session | null
   t: Translate
   /** The live language, so the radio group reflects state rather than owning it. */
   language: Language
+  /** The operator's theme choice, and the setter. `AppLayout` forwards both. */
+  theme: ThemeChoice
+  onSetTheme: (next: ThemeChoice) => void
   /** AC-70's only production entry point. `AppLayout` forwards `setLanguage`. */
   onSetLanguage: (language: Language) => void
   onOpenMyProfile: () => void
@@ -108,11 +112,16 @@ export interface AccountMenuProps {
 /** §9.1 — the two the product ships. Ordered `en` first, matching §14's default. */
 const LANGUAGES: readonly Language[] = ['en', 'ar']
 
+/** `system` first: it is the default, and a list should open on its default. */
+const THEMES: readonly ThemeChoice[] = ['system', 'light', 'dark']
+
 export function AccountMenu({
   session,
   t,
   language,
   onSetLanguage,
+  theme,
+  onSetTheme,
   onOpenMyProfile,
   onSwitchUser,
   onSignOut,
@@ -273,6 +282,33 @@ export function AccountMenu({
           {LANGUAGES.map((code) => (
             <DropdownMenuRadioItem key={code} value={code}>
               {t(`shell.language.${code}`)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+
+        {/* The colour theme, built exactly like the language control above it
+            and for the same reasons: a radio group, so the current value is
+            announced rather than inferred from a checkmark, and the string is
+            validated on the way back rather than cast — `isThemeChoice` is the
+            colour half of `isLanguage`.
+
+            **`system` is first and is the default.** It is a real choice, not
+            the absence of one: it follows the machine for the life of the
+            session, which is the only way an operator whose display flips at
+            sunset flips with it. */}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          {t('shell.account.theme')}
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(next) => {
+            if (isThemeChoice(next) && next !== theme) onSetTheme(next)
+          }}
+        >
+          {THEMES.map((choice) => (
+            <DropdownMenuRadioItem key={choice} value={choice}>
+              {t(`shell.theme.${choice}`)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

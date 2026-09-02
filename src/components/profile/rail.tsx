@@ -118,7 +118,12 @@ function RailCard({
 }: ProfileRailProps & { title: string; children: (record: ProfileRecord) => ReactNode }) {
   return (
     <Card className="gap-0 py-0">
-      <CardHeader className="min-h-10 justify-center border-b border-border px-3 py-0">
+      {/* `content-center`, NOT `justify-center`. `CardHeader` is a GRID, so
+          `justify-*` centres its items along the INLINE axis and centred the
+          three rail headings — the only centred card titles in the product.
+          The block axis on a grid is `align-content`, which is what a
+          `min-h-10` band actually wants. */}
+      <CardHeader className="min-h-10 content-center border-b border-border px-3 py-0">
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="px-3 py-3">
@@ -184,7 +189,7 @@ function StatusBody({
   )
 }
 
-function statusOf(
+export function statusOf(
   record: ProfileRecord,
   t: Translate,
 ): { tone: Parameters<typeof StatusBadge>[0]['tone'] | null; label: string } | null {

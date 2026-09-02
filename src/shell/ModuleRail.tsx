@@ -342,13 +342,27 @@ function RailTile({
  * the product, this is its one dependency-free file, and a second copy of a
  * logo is a second logo the day one of them is edited.
  */
-export function EyvarMark(): ReactNode {
+export function EyvarMark({
+  className = 'size-6',
+  /**
+   * The glyph cut out of the square. It is `stroke-card` because the square is
+   * `currentColor` and the mark is normally drawn in ink on a light surface.
+   *
+   * **The override exists for ONE case and it is not a second logo:** the auth
+   * brand panel paints the square in `--primary-foreground` on a
+   * `--primary` field, where a `stroke-card` glyph would be white on white and
+   * the mark would vanish. Same geometry, same file, two grounds — which is the
+   * distinction this file's header was protecting when it refused a second
+   * copy. Do not add a third caller without the same kind of reason.
+   */
+  strokeClassName = 'stroke-card',
+}: { className?: string; strokeClassName?: string } = {}): ReactNode {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
       <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
       <path
         d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
-        className="fill-none stroke-card"
+        className={cn('fill-none', strokeClassName)}
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"

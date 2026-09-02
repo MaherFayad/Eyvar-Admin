@@ -195,7 +195,12 @@ import { tableCsvFilename, tableCsvText } from './table/csv'
    console keeps open all day. The module it lives in imports one TYPE and
    nothing else, so this edge is not a cycle back into the screens layer. */
 import { downloadCsv } from '@/screens/reports/csv'
-import { RowActionMenuItem, SingleRowAction, type RowAction } from './table/rowActions'
+import {
+  RowActionMenuItem,
+  SingleRowAction,
+  refusalFor,
+  type RowAction,
+} from './table/rowActions'
 import {
   ACTION_LANE_WIDTH_PX,
   KEBAB_COLUMN_ID,
@@ -205,6 +210,8 @@ import {
   pinnedStyle,
   useTableOverflow,
 } from './table/pinning'
+import { fitColumnWidths } from './table/fitWidths'
+import { dataTypeOf } from './table/columns'
 
 export type {
   ColumnDataType,
@@ -636,7 +643,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
     })
   }
 
-  const resolvedWidth = (column: DataColumn<T>) => columnWidths[column.id] ?? column.width
 
   /* AC-113 — `null` on a ledger, and not as a flag: `LedgerTable` has no
      `setSortField`, so there is nothing to put in this object. A sort item in a
@@ -647,6 +653,61 @@ export function DataTable<T>(props: DataTableProps<T>) {
   /* §9.1 / §7.6 — per table AND per view, both hooks on the same key. */
   const visibility = useColumnVisibility({ columns, tableId, view })
   const visible = visibility.visible
+
+  const { scrollRef, overflowing, containerWidth } = useTableOverflow(direction)
+
+  /** The declared width, or the operator's resize if they made one. */
+  const declaredWidth = (column: DataColumn<T>) => columnWidths[column.id] ?? column.width
+
+  /**
+   * **§7.3's budget, resolved against the container it is actually in.**
+   *
+   * Four of the product's tables declare more width than the content region
+   * has — Tickets by 140px at 1440 — which is why a header could read `Verdic`.
+   * `fitWidths` takes the overflow out of the columns that can afford it and
+   * leaves the lanes, `money`, `id` and anything the operator resized alone.
+   * See that file for the whole rule and for why this is not `table-layout:
+   * auto`.
+   *
+   * `visibility.visible` is the input, not `columns`: a hidden column costs no
+   * width, so a table with four columns switched off has more to distribute
+   * than its declaration suggests.
+   */
+  const fitted = useMemo(
+    () =>
+      fitColumnWidths(
+        [
+          ...(selectable ? [{ id: SELECT_COLUMN_ID, width: LANE_WIDTH_PX, isLane: true }] : []),
+          ...visible.map((column) => ({
+            id: column.id,
+            width: columnWidths[column.id] ?? column.width ?? column.minWidth ?? 0,
+            /* `dataTypeOf`, not `column.dataType`: the type is DECLARED
+               meaning, and an undeclared column still has one — `align: 'end'`
+               means `number`. Reading the raw field would let a money column
+               that leans on the align default shrink and truncate silently,
+               which is the exact case §7.3 rule 5 exists to prevent. */
+            type: dataTypeOf(column),
+            userResized: columnWidths[column.id] !== undefined,
+            floor: column.minWidth,
+          })),
+          ...(kebabs ? [{ id: KEBAB_COLUMN_ID, width: actionLaneWidth, isLane: true }] : []),
+        ],
+        containerWidth,
+      ),
+    [visible, columnWidths, containerWidth, selectable, kebabs, actionLaneWidth],
+  )
+
+  /**
+   * The width a cell and its header actually render at.
+   *
+   * **The same map has to feed the pin descriptors**, and below it does: a
+   * sticky offset is arithmetic over these widths, so a column that renders at
+   * a fitted width and pins at its declared one is a frozen column in the wrong
+   * place. That is the one way this change could have broken §7.2.
+   */
+  const resolvedWidth = (column: DataColumn<T>) =>
+    fitted?.get(column.id) ?? declaredWidth(column)
+
 
   /* §7.1's three regions. The R5a marker lane rides the identity column, which
      is why there is no fourth entry here: §8.4 draws the marker at the row's
@@ -685,7 +746,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
          so the residual reaching zero and the identity column reaching
          `minWidth` are the same moment, which is what the paragraph above
          always claimed. */
-      const declared = column.width ?? column.minWidth
+      /* **THE FITTED WIDTH, not the declared one, and they must be the same
+         number the cell renders at.** A sticky offset is the sum of the widths
+         inline-start of a column; if a column renders at a fitted width and
+         pins at its declared one, every frozen column after it sits that many
+         pixels off. `resolvedWidth` returns the declaration untouched whenever
+         nothing was fitted, so the common case is byte-identical to before. */
+      const declared = fitted?.get(column.id) ?? column.width ?? column.minWidth
       const sizeable = typeof declared === 'number' && Number.isFinite(declared) && declared > 0
       list.push({
         id: column.id,
@@ -703,10 +770,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
         lockedEdge: 'end',
       })
     return list
-  }, [selectable, kebabs, actionLaneWidth, visible])
+  }, [selectable, kebabs, actionLaneWidth, visible, fitted])
 
   const pins = useColumnPinning({ columns: pinColumns, tableId, view })
-  const { scrollRef, overflowing } = useTableOverflow(direction)
 
   /* ── announcements (§13.6). Never a toast: sorting mutates nothing. ── */
 
@@ -1016,11 +1082,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const tableMinInlineSize = useMemo(() => {
     let total = selectable ? LANE_WIDTH_PX : 0
     for (const column of visible) {
-      total += columnWidths[column.id] ?? column.width ?? column.minWidth ?? 0
+      /* **The FITTED width, for the same reason the pin offsets take it.** This
+         floor is the whole width model under `table-layout: fixed` — a `<col>`
+         narrowed by `fitWidths` is overruled by a `min-inline-size` computed
+         from the declaration, and the table renders at its declared total
+         anyway. That is not a subtle failure: with the floor left on the
+         declared numbers, Tickets stayed 1178px wide in a 1038px box and went
+         on clipping its last header, with the fit silently doing nothing.
+
+         Reading `fitted` here keeps the floor's own contract intact rather than
+         weakening it. It is still "the width below which the table stops
+         shrinking and scrolls instead" — the resolved widths ARE the widths in
+         play, so the floor still lands exactly where the residual reaches zero
+         and §7.2's pinned offsets still agree with the layout. */
+      total +=
+        fitted?.get(column.id) ?? columnWidths[column.id] ?? column.width ?? column.minWidth ?? 0
     }
     if (kebabs) total += actionLaneWidth
     return total
-  }, [selectable, visible, columnWidths, kebabs, actionLaneWidth])
+  }, [selectable, visible, columnWidths, kebabs, actionLaneWidth, fitted])
 
   const entries = useMemo(() => filterEntries(columns, extraFilters), [columns, extraFilters])
 
@@ -1357,6 +1437,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
    * former contents, moved and not rewritten, which is why the column widths
    * and the row pitch measure identical at 1440.
    */
+  /**
+   * **Does any row on THIS page carry a refusal?** If so every row reserves the
+   * refusal line's two lines and the table keeps one row pitch; if not, nothing
+   * is reserved and the page is exactly as dense as before.
+   *
+   * Per page rather than per table, deliberately: `Claim` is refused on the two
+   * disputes someone else already owns and on none of the other twenty-six, so
+   * a table-wide reservation would cost every row height for a condition that
+   * is usually absent. `rows` is the page, so this answers the question the
+   * reader can actually see.
+   */
+  const reserveRefusal =
+    actionShape === 'direct' &&
+    rows.some((row) => declaredActions.some((action) => refusalFor(action, row) !== null))
+
   const rowActionControls = (row: T, id: string): ReactNode =>
     actionShape === 'direct' ? (
       /* One or two, side by side. The lane was sized from the same count
@@ -1366,7 +1461,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
           /* `label` is the key: `RowAction` has no id, and two actions on one
              row with the same label would be a defect in the caller rather
              than a collision here. */
-          <SingleRowAction key={action.label} action={action} row={row} />
+          <SingleRowAction
+            key={action.label}
+            action={action}
+            row={row}
+            reserveRefusal={reserveRefusal}
+          />
         ))}
       </div>
     ) : (
@@ -1833,11 +1933,37 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                   {column.cell(row)}
                                 </CellValue>
                                 {/* §9.1 — a 12px second line INSIDE the identity
-                                      cell. The row grows to fit; never truncates. */}
+                                      cell. The row grows to fit.
+
+                                      **BOUNDED AT TWO LINES, and §9.1's "never
+                                      truncates" is narrowed rather than
+                                      reversed.** Every ordinary second line —
+                                      a phone number, a city, a record id — is
+                                      one line and is untouched by this. What is
+                                      not ordinary is `admin/communications`,
+                                      whose delivery cell puts an SMTP bounce
+                                      message here (`550 5.1.1 The email account
+                                      that you tried to reach…`); it ran to four
+                                      lines and shipped a **105px row beside 77px
+                                      rows in the same table**, which is the
+                                      pitch defect the refusal line's reservation
+                                      exists to prevent, arriving by a second
+                                      door.
+
+                                      Two lines, so nothing an identity cell
+                                      legitimately carries is ever cut, and a
+                                      paragraph that does not belong in a row is
+                                      bounded instead of setting the table's
+                                      pitch. NO `block` BESIDE THE CLAMP: the
+                                      clamp sets `-webkit-box` and a second
+                                      display declaration is decided by
+                                      stylesheet order, not class order —
+                                      `rowActions.tsx` records the same trap
+                                      after shipping it once. */}
                                 {column.secondaryLine && (
                                   <span
                                     className={cn(
-                                      'block text-xs text-muted-foreground',
+                                      'line-clamp-2 text-xs text-muted-foreground',
                                       /* This line names `text-muted-foreground`
                                          itself, so the cell-level override above
                                          cannot reach it — `#6b7280` on the

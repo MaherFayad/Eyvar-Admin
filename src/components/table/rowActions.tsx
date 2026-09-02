@@ -190,7 +190,37 @@ export function RefusalLine({ id, children }: { id: string; children: string }) 
  * candidate and has shipped a real CSS rule out of a doc comment in this repo
  * more than once.
  */
-export function SingleRowAction<T>({ action, row }: { action: RowAction<T>; row: T }) {
+export function SingleRowAction<T>({
+  action,
+  row,
+  reserveRefusal = false,
+}: {
+  action: RowAction<T>
+  row: T
+  /**
+   * **Hold the refusal line's space open even on a row that has no refusal.**
+   *
+   * The defect: a refusal renders as a block under the button, so a row WITH
+   * one is taller than a row without. Measured at 1440, in one table:
+   * `/support/disputes` shipped 54px and 77px rows, `/financials/payouts` the
+   * same, and `/admin/communications` shipped **three** heights — 73, 77 and
+   * 105. A table whose row pitch changes down the page cannot be scanned, and
+   * scanning is the only thing an index screen is for.
+   *
+   * **The obvious fix is forbidden and rightly so.** D17 clause 3, §8.4.4 and
+   * §5.7 all refuse to put a refusal in a hover tooltip: invisible until hover,
+   * unreachable by keyboard and by touch, and announced as a label rather than
+   * as a description. The reason must stay on the row.
+   *
+   * So the pitch is levelled UP instead of the reason being hidden. `DataTable`
+   * asks whether any row on the CURRENT PAGE carries a refusal; if one does,
+   * every row in that page reserves the same two lines and the pitch is
+   * uniform again. A page with nothing refused reserves nothing and is exactly
+   * as dense as it is today — which is most pages, and is why this is a
+   * per-page question rather than a per-table one.
+   */
+  reserveRefusal?: boolean
+}) {
   const disabled = action.disabled?.(row) ?? false
   const reason = refusalFor(action, row)
   const reasonId = useId()
@@ -207,7 +237,16 @@ export function SingleRowAction<T>({ action, row }: { action: RowAction<T>; row:
       >
         {action.label}
       </Button>
-      {reason !== null && <RefusalLine id={reasonId}>{reason}</RefusalLine>}
+      {reason !== null ? (
+        <RefusalLine id={reasonId}>{reason}</RefusalLine>
+      ) : reserveRefusal ? (
+        /* Exactly the box `RefusalLine` occupies and nothing in it: `h-8` is
+           two lines of `--text-2xs` at its 16px line box, which is what
+           `line-clamp-2` bounds the real one to. `aria-hidden` because there is
+           no refusal to announce — a screen reader hears the button and stops,
+           the same as it does today on a row with nothing refused. */
+        <span aria-hidden="true" className="h-8" />
+      ) : null}
     </span>
   )
 }

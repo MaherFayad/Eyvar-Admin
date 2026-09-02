@@ -5,6 +5,8 @@ import "@/styles/globals.css"
 import { App } from "@/App"
 import { seedMockFailuresFromLocation } from "@/data/clients"
 import { bootstrapPwa } from "@/pwa"
+import { applyTheme, isThemeChoice, resolveTheme } from "@/hooks"
+import { UI_STATE_KEYS, defaultUiStore } from "@/lib/persistence"
 
 /**
  * `?mockFail=drivers.list,trips.list` — seeded HERE, and only here.
@@ -48,6 +50,16 @@ seedMockFailuresFromLocation()
  * `src/pwa/killSwitch.ts`.
  */
 bootstrapPwa()
+
+/**
+ * **The theme, before the first paint.** Deliberately here and not in a
+ * component: React has not rendered when this runs, so the `.dark` class is on
+ * `<html>` before any pixel is painted and the console never flashes light and
+ * repaints dark. `useTheme` owns every change after this; this owns the first
+ * frame, exactly as `applyDocumentDirection` does for `dir` and `lang`.
+ */
+const storedTheme = defaultUiStore(UI_STATE_KEYS.theme, isThemeChoice).read()
+applyTheme(resolveTheme(isThemeChoice(storedTheme) ? storedTheme : "system"))
 
 const root = document.getElementById("root")
 if (!root) throw new Error("Root element #root is missing from index.html")

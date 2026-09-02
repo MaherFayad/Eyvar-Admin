@@ -155,7 +155,14 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
         dataType: 'text',
         sortField: 'recipient',
         cell: (delivery) => (
-          <span className="text-xs font-semibold text-foreground">
+          /* `block truncate` — an email address is the one identity value in
+             the product long enough to wrap, and a wrapped one made this table
+             ship THREE row heights (73, 77 and 105 at 1440) where every other
+             identity cell ships one. A table whose pitch changes down the page
+             cannot be scanned. `block` because `truncate` needs a block box to
+             bound; the full address stays selectable and copyable, and the row
+             opens the delivery. */
+          <span className="block truncate text-xs font-semibold text-foreground">
             {delivery.direction === 'inbound' ? delivery.from : delivery.recipient}
           </span>
         ),
@@ -213,13 +220,21 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
             <StatusBadge tone={STATE_TONE[delivery.state]}>{t(STATE_LABEL[delivery.state])}</StatusBadge>
             {delivery.failure !== null && (
               <>
-                <span className="text-xs text-foreground">
+                <span className="truncate text-xs text-foreground">
                   {t(FAILURE_LABEL[delivery.failure.code])}
                 </span>
                 {/* The provider's own words, beside the sentence and never
                     instead of it: untranslatable by construction, and an
                     operator cannot act on it alone. */}
-                <span className="font-mono text-xs text-muted-foreground">
+                {/* **Both bounded at one line.** A delivery cell holding a
+                    badge, a sentence and an SMTP string ran to 88px and shipped
+                    a 105px row beside 77px rows in the same table — a pitch a
+                    reader cannot scan. The provider's raw string is the one that
+                    truly does not belong in a row: it is untranslatable, an
+                    operator cannot act on it alone (this file says so two lines
+                    up), and it is the longest thing here. One line each, and the
+                    row opens the delivery where both are shown in full. */}
+                <span className="truncate font-mono text-xs text-muted-foreground">
                   {delivery.failure.providerMessage}
                 </span>
               </>

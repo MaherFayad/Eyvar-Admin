@@ -58,8 +58,8 @@ const buttonVariants = cva(
         // The everyday secondary: white surface, hairline, ink label.
         //
         // **`border-border-control`, not `border-border` — R23, match audit
-        // N3.** `--ev-hairline-control` #dde0e4 (1.324 : 1) is the CONTROL
-        // weight and `--ev-hairline` #f0f2f4 (1.122 : 1) is structure. The
+        // N3.** `--ev-hairline-control` #d0d7dd (1.454 : 1) is the CONTROL
+        // weight and `--ev-hairline` #e3e7ea (1.244 : 1) is structure. The
         // token was measured, declared and had ZERO consumers; every button in
         // the product wore the structural weight instead, which is how
         // craft-critique F7 found a non-interactive `Pending` badge outlined in

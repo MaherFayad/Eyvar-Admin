@@ -58,6 +58,9 @@ export interface ProfileSectionsProps {
   omit?: readonly ProfileSectionKey[]
 }
 
+/** How many sections start open. See the note at the `defaultOpen` call. */
+const DEFAULT_OPEN_SECTIONS = 3
+
 export function ProfileSections({
   entity,
   record,
@@ -75,13 +78,36 @@ export function ProfileSections({
           <SectionCard
             key={section}
             title={t(SECTION_TITLE_KEYS[section])}
-            /* The first card is open; the rest start collapsed. Opening nine at
+            /* The first `DEFAULT_OPEN` cards are open; the rest start
+               collapsed. Which sections those are is the data layer's ordering
+               decision, not this component's — so this is an index test and not
+               `section === 'identity'`.
+
+               ── WAS `index === 0`. RAISED TO 3, 2026-09-02. ─────────────────
+               The reasoning for collapsing was and is right: opening nine at
                once turns §6.2's stack into the uncollapsible wall it exists to
-               replace, and the operator has to scroll past eight cards to find
-               the one they came for. Which section is first is the data layer's
-               ordering decision, not this component's — so this is `index === 0`
-               and not `section === 'identity'`. */
-            defaultOpen={index === 0}
+               replace. Opening ONE was the overcorrection. Measured on the
+               entity side sheet: eight sections, one open, **seven clicks to
+               read one rider's record** — and because opening does not close a
+               neighbour, the panel grows under the reader instead of swapping,
+               so those seven clicks also cost seven re-scans.
+
+               Three is the number that fits: the drawer is 480 x ~830 and three
+               open sections fill it without a scroll on a typical record, which
+               is the most that can be shown before "open" stops meaning
+               "visible". Measured after the change, on the same side sheet:
+               **seven clicks to five**, and on the nine-section captain page
+               eight to six. A real reduction and not a solved problem — see
+               below.
+
+               **It is not the whole fix and should not be mistaken for it.**
+               The real answer is to open on CONTENT — a section with rows opens,
+               an empty one stays shut and says so on its bar — and that is not
+               derivable here: `record` is the entity's own row, and each
+               section's content is fetched by its own renderer, below this
+               component. Doing it properly means lifting emptiness into the
+               section contract. Left as the next step rather than faked. */
+            defaultOpen={index < DEFAULT_OPEN_SECTIONS}
           >
             <Renderer entity={entity} record={record} t={t} language={language} />
           </SectionCard>

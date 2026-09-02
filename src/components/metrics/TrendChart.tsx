@@ -95,10 +95,26 @@ export function TrendChart({ series, description, t, language }: TrendChartProps
     <div dir="ltr" role="img" aria-label={description}>
       <ChartContainer config={CHART_CONFIG} className="aspect-auto h-48 w-full">
         <AreaChart accessibilityLayer data={rows} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-          {/* §3.7 — NO gridlines beyond the axis baseline. Both are off; the
-              element stays so the intent is visible rather than inferred from
-              an omission. */}
-          <CartesianGrid horizontal={false} vertical={false} />
+          {/* §3.7 said NO gridlines beyond the axis baseline. **The horizontal
+              set is restored, 2026-09-02; the vertical set stays off.**
+
+              The measurement that reopened it: every chart in the product drew
+              ZERO gridlines, so reading a value meant carrying a point across
+              up to 300px of empty plot to a bare axis. A trend line without a
+              grid communicates SHAPE, which is the right answer on a sparkline
+              and the wrong one on a board where the number is the page — three
+              of these charts sit beside tiles whose whole job is a quantity.
+
+              **Horizontal only, and that is the whole of the amendment.** The
+              y-axis is the quantity and the grid is how a reader gets a value
+              off it. The x-axis is time and is already labelled at every tick;
+              vertical rules there would add fourteen lines that answer a
+              question nobody has, which is what §3.7 was protecting against.
+
+              `--chart-grid` is an existing token and no new value is
+              introduced. It sits under the series by construction — Recharts
+              paints the grid before the areas. */}
+          <CartesianGrid horizontal vertical={false} stroke="var(--chart-grid)" />
           <XAxis
             dataKey="label"
             tickLine={false}
@@ -169,8 +185,36 @@ export function TrendChart({ series, description, t, language }: TrendChartProps
             fillOpacity={1}
             /* A one-point window and a window whose neighbours are gaps both
                draw nothing without a dot — a line needs two points and a break
-               either side of a reading leaves it invisible. */
-            dot={{ r: 2, fill: 'var(--color-current)', stroke: 'none' }}
+               either side of a reading leaves it invisible. That reason is
+               unchanged and is why every point still carries one.
+
+               **The LAST point is drawn larger.** Fifteen identical dots rank
+               nothing, and on a trend the reader almost always wants the
+               current value — the one at the end. A larger dot with a ring in
+               the card's own ground reads as "you are here" without a label, a
+               second colour or an annotation layer. It is a function rather
+               than an object because only the final index differs. */
+            dot={(dotProps) => {
+              const { key, cx, cy, index } = dotProps as {
+                key?: string
+                cx?: number
+                cy?: number
+                index?: number
+              }
+              if (typeof cx !== 'number' || typeof cy !== 'number') return <g key={key} />
+              const last = index === rows.length - 1
+              return (
+                <circle
+                  key={key}
+                  cx={cx}
+                  cy={cy}
+                  r={last ? 3.5 : 2}
+                  fill="var(--color-current)"
+                  stroke={last ? 'var(--card)' : 'none'}
+                  strokeWidth={last ? 1.5 : 0}
+                />
+              )
+            }}
             activeDot={{ r: 3, fill: 'var(--color-current)', stroke: 'var(--card)' }}
             /* A gap BREAKS the line. Joining across it would draw a value that
                was never measured. */

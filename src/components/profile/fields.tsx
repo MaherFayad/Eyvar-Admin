@@ -33,6 +33,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import type { BadgeTone, Halalas, Ledger, LedgerPosting } from '@/data/types'
 import { formatDate, formatLocalisedText, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
+import { FactGrid } from '@/components/FactGrid'
 
 /* ────────────────────────────── field list ────────────────────────────── */
 
@@ -50,7 +51,54 @@ export interface Field {
  * A definition list. `<dl>` and not a table: these are pairs, not a grid, and a
  * screen reader announces the association without a header row to invent.
  */
-export function FieldList({ fields, t }: { fields: readonly Field[]; t: Translate }) {
+/**
+ * **`layout` — the same pairs, laid out for the box they are in.**
+ *
+ * `'rows'` is the RAIL's form and the default: a compact column of
+ * `label … value` lines, ~250px across in a 320px rail, which is where the pair
+ * still reads as a pair. Twenty of them stay twenty lines tall.
+ *
+ * `'grid'` is for a pair list inside a CARD, where the row form breaks down.
+ * The entity drawer runs 453px and the full profile page 702px, and at 702px a
+ * `justify-between` row put the chevron of a section header 630px from its own
+ * label — the same geometry, measured, that made `Refunds … 158.86 SAR` 879px
+ * apart on Financials Overview. Past roughly 420px a label and its value stop
+ * being one object. `'grid'` wraps the pairs into auto-fit columns instead, so
+ * the drawer gets two and the page gets three, from one markup and with no
+ * breakpoint.
+ */
+export function FieldList({
+  fields,
+  t,
+  layout = 'rows',
+}: {
+  fields: readonly Field[]
+  t: Translate
+  layout?: 'rows' | 'grid'
+}) {
+  if (layout === 'grid') {
+    return (
+      <FactGrid
+        facts={fields.map((field) => ({
+          label: field.label,
+          /* The null placeholder and the `<bdi>` isolate are the two things
+             this file owns and neither is duplicated in `FactGrid` — the
+             mapping applies both, so a grid-laid field behaves exactly as a
+             row-laid one. See the long note on the row branch for why the
+             isolate cannot move to the call sites. */
+          value:
+            field.value === null ? (
+              <span className="font-normal text-muted-foreground">
+                {t('profile.field.absent')}
+              </span>
+            ) : (
+              <bdi>{field.value}</bdi>
+            ),
+        }))}
+      />
+    )
+  }
+
   return (
     /* **§2.3 / H1 — the properties rail is where the three tiers are most
        legible, and it had none.** Both sides rendered at `--text-sm`, separated

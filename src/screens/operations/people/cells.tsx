@@ -196,7 +196,7 @@ export function Identity({ to, name, secondary = null, code = false, t }: Identi
  * emoji (**AC-76**). Two glyphs at most, taken from the first two words, so it
  * works on `Nora Al-Harbi` and on an Arabic name without a second vocabulary.
  */
-function initialsOf(name: string): string {
+export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
   const first = words[0]?.[0] ?? ''
   const second = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : ''

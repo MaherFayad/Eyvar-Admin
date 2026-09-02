@@ -127,7 +127,26 @@ export function FigureRow({
   return (
     <div
       className={cn(
-        'flex items-baseline justify-between gap-3 py-1',
+        /* **`max-w-md` IS THE FIX, and the row shape is deliberately kept.**
+           A breakdown that sums to a total is a ledger: `label … amount` read
+           down a column with the total ruled off beneath it, and stacking the
+           pairs would destroy the decimal alignment that makes the column
+           addable. So the shape is right and the WIDTH was wrong.
+
+           Measured before this line existed, on `/financials/overview` at 1440:
+           the label `Refunds` ended at x=68 and its value began at x=947 —
+           **879px of empty row inside a 1014px card**, 87% of the row, with no
+           leader and no alignment column to carry the eye across. Fourteen
+           pairs on that page were over 200px apart. `max-w-md` caps the pair at
+           448px, which is the width the ledger idiom actually reads at.
+
+           It is on the ROW rather than on a list wrapper on purpose: every
+           caller renders these into its own container and there is no shared
+           parent to hang it on, so putting it here is what makes the rule true
+           at all five call sites instead of at the ones that remembered. The
+           `emphasis` rule above it then still aligns, because every row in the
+           stack is capped to the same measure. */
+        'flex max-w-md items-baseline justify-between gap-3 py-1',
         emphasis && 'border-t border-border pt-2 font-semibold',
       )}
     >

@@ -185,6 +185,11 @@ describe('the localStorage cache, which is never the truth', () => {
     await getUiState()
     expect(cachedUiState()).toStrictEqual({
       language: 'ar',
+      /* `system` because the populated bag names no theme, so `parseUiState`
+         fills the default — which is itself the assertion worth having: a
+         server that has never heard of the theme still round-trips a usable
+         bag rather than a partial one. */
+      theme: 'system',
       density: 'compact',
       pageSize: 50,
       paletteRecents: ['nav.operations.people', 'command.suspendDriver'],

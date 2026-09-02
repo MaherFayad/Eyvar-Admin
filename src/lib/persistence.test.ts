@@ -131,6 +131,7 @@ describe('the store interface', () => {
     // (D5 removed the collapse; D16 deletes rather than migrates it).
     expect(Object.values(UI_STATE_KEYS)).toEqual([
       'ui.language',
+      'ui.theme',
       'ui.columnPins',
       'ui.columnVisibility',
       'ui.density',

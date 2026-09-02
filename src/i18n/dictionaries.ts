@@ -19,7 +19,7 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 4,572 operator-facing strings
+ * **`ar` IS NO LONGER EMPTY.** The translation of 4,578 operator-facing strings
  * is done and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
@@ -594,6 +594,15 @@ const shell: Dictionary = {
   'shell.account.language': 'Language',
   'shell.language.en': 'English',
   'shell.language.ar': 'Arabic',
+
+  /* The colour theme. `System` names what it follows rather than what it
+     currently shows — an operator choosing it is choosing to be governed by
+     their machine, and a label reading `Automatic` would leave them guessing
+     what is automatic about it. */
+  'shell.account.theme': 'Theme',
+  'shell.theme.system': 'Match my system',
+  'shell.theme.light': 'Light',
+  'shell.theme.dark': 'Dark',
 
   /* §4.1 — the save bar. */
   'shell.saveBar.dirty': 'Unsaved changes',
