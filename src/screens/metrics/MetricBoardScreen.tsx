@@ -83,6 +83,7 @@ import { cn } from '@/lib/utils'
 import {
   BreakdownList,
   ChartCard,
+  MetricLeadRow,
   MetricTile,
   MetricTileItem,
   MetricTileRow,
@@ -340,6 +341,18 @@ function BoardContent({
   navigate: (to: string) => void
 }) {
   const notice = selectNotice(loaded.notices)
+  /* **Partitioned rather than sorted, and the difference matters.** A sort by
+     rank would put the leads first and leave them in one list — so the two
+     ranks would share a grid, and the lead row's three-across geometry could
+     not exist. Two arrays is what lets them be two grids.
+
+     Order is the CLIENT's: `getMetricBoard` sorts the leads into
+     `BOARD_LEADS`' declared sequence before this screen sees them, so the
+     board's first number is its first number. `filter` preserves whatever
+     arrives, which is why the sort has to happen there and not here — a screen
+     that re-derived it would be a second copy of the ranking. */
+  const leads = loaded.metrics.filter((metric) => metric.rank === 'lead')
+  const supporting = loaded.metrics.filter((metric) => metric.rank !== 'lead')
 
   return (
     /* **The gap between SECTIONS, and it is deliberately double the gap between
@@ -387,9 +400,34 @@ function BoardContent({
         />
       )}
 
-      {loaded.metrics.length > 0 && (
-        <MetricTileRow>
-          {loaded.metrics.map((metric) => (
+      {/* **§H4 — the board's own ranking, rendered.** Leads first, three
+          across at `--text-kpi-lead`; everything else four across beneath
+          them. The partition is `Metric.rank`, which `BOARD_LEADS` declares
+          and the client stamps — this screen renders a decision, it does not
+          take one, exactly as it renders rather than chooses which tiles a
+          board carries.
+
+          **Both rows are guarded independently and neither is assumed.** A
+          board that names no leads renders only the supporting grid and looks
+          exactly as it did before this change; a board whose every metric is a
+          lead renders only the lead row. Neither is a state the fixtures
+          reach — `board.test.ts` requires three leads on every board that has
+          metrics at all — but a screen that renders an empty `<ul>` on a
+          fixture defect hides the defect behind a gap, and a screen that
+          crashes on one takes a console down for an editorial mistake. */}
+      {leads.length > 0 && (
+        <MetricLeadRow>
+          {leads.map((metric) => (
+            <MetricTileItem key={metric.key}>
+              <MetricTile metric={metric} boardAsOf={loaded.asOf} t={t} language={language} />
+            </MetricTileItem>
+          ))}
+        </MetricLeadRow>
+      )}
+
+      {supporting.length > 0 && (
+        <MetricTileRow count={supporting.length}>
+          {supporting.map((metric) => (
             <MetricTileItem key={metric.key}>
               <MetricTile
                 metric={metric}
@@ -451,7 +489,22 @@ function BoardContent({
                 ? 'grid-cols-2'
                 : 'grid-cols-1'
         return (
-          <div className={cn('grid gap-4 items-start', colsClass)}>
+          /* **`items-start` REMOVED — the cards in a row align.** With it, each
+             card sized to its own content, so Risk & Signals rendered a chart
+             ending at y=1060 beside a breakdown ending at y=1160 and another at
+             y=1100: three cards in one row with three different bottom edges and
+             no line for the eye to come back along. A row of cards under one
+             heading is one object read across, and the stretch default is what
+             makes it look like one. The cards' own content stays top-aligned —
+             each is already a flex column — so nothing inside them moves.
+
+             **`compact:grid-cols-1` — on a phone the charts stack.** Two or
+             three chart cards share a 358px column below 768px, which is ~115px
+             of plotting area each: a chart too narrow to read beside two more
+             just like it. The tile grids have carried this rule since they were
+             written; this grid never did, so it was the one place the compact
+             layout still divided the width instead of the height. */
+          <div className={cn('grid gap-4 compact:grid-cols-1', colsClass)}>
             {loaded.charts.map((chart) => (
               <ChartCard
                 key={chart.key}

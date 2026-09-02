@@ -46,10 +46,32 @@ export interface FigureProps {
   value?: ReactNode
   /** One line beneath the label. A denominator, a scope limit, never a status. */
   caption?: string | null
+  /**
+   * §H4 — `lead` renders `--text-kpi-lead`, and a lead belongs in
+   * `FigureLeadRow` so it is three across rather than four.
+   *
+   * **The same two ranks `Metric.rank` has, and deliberately the same word.**
+   * This file's opening rule is that a Financials figure is NOT a `Metric` and
+   * must not borrow its component — a contribution margin has no series, no
+   * comparison and no `asOf`, so passing one through `MetricTile` would mean
+   * minting a fake `Metric` per figure. That argument is about the DATA. Rank
+   * is a rendering decision about which numbers a page is for, and a Finance
+   * lead moving from `/management/overview` to `/financials/overview` should
+   * find the same two weights meaning the same thing. Sharing the vocabulary
+   * costs nothing the rule was protecting.
+   */
+  rank?: 'lead' | 'supporting'
   className?: string
 }
 
-export function Figure({ label, amount, value, caption = null, className }: FigureProps) {
+export function Figure({
+  label,
+  amount,
+  value,
+  caption = null,
+  rank = 'supporting',
+  className,
+}: FigureProps) {
   return (
     <Card className={cn('h-full gap-1.5', className)}>
       <div className="flex flex-col gap-1 px-(--card-spacing)">
@@ -64,7 +86,10 @@ export function Figure({ label, amount, value, caption = null, className }: Figu
             alone is not the guarantee. */}
         <span
           data-slot="metric-value"
-          className="text-kpi font-semibold text-foreground"
+          className={cn(
+            'font-semibold text-foreground',
+            rank === 'lead' ? 'text-kpi-lead' : 'text-kpi',
+          )}
         >
           {value !== undefined ? <bdi>{value}</bdi> : <Money amount={amount ?? null} />}
         </span>
@@ -103,6 +128,28 @@ export function FigureItem({ children }: { children: ReactNode }) {
   return <li className="min-w-0">{children}</li>
 }
 
+/**
+ * §H4's lead row for Financials — three across, `--text-kpi-lead`, first.
+ *
+ * `MetricTileRow` carries the reasoning in full; the short version is that a
+ * rank expressed only as a font size is a rank an operator has to look for, so
+ * it is carried by THREE things at once: position (first), width (a third of
+ * the region rather than a quarter) and size.
+ *
+ * The defect on this page specifically: `/financials/overview` rendered
+ * **eleven figures at one size**, six of them a P&L that runs
+ * `gross - earnings - giveback = contribution` and five of them balance-sheet
+ * positions that are not part of that sum at all. Nothing in the layout said
+ * which was which, or which of the eleven a Finance lead opens the page for.
+ */
+export function FigureLeadRow({ children }: { children: ReactNode }) {
+  return (
+    <ul data-numeric role="list" className="grid list-none grid-cols-3 gap-3 compact:grid-cols-1">
+      {children}
+    </ul>
+  )
+}
+
 /* ───────────────────────────── a key-value row ──────────────────────────── */
 
 /**
@@ -113,16 +160,79 @@ export function FigureItem({ children }: { children: ReactNode }) {
  * its components, the net under the payable and the debt. It is weight, never
  * colour (§7.5, R5a).
  */
+/**
+ * §H5 — **the operator that says what this line DOES to the running total.**
+ *
+ * ## The defect
+ *
+ * The margin card rendered six labelled amounts and a bolded seventh, in the
+ * order of a calculation, with nothing stating that it WAS one:
+ *
+ * ```
+ *   Gross bookings          4,432.52        <- the operand
+ *   Captain earnings        3,591.15        <- subtracted. Nothing said so.
+ *   Gross margin              841.37        <- a subtotal. Nothing said so.
+ *   Gross margin %              19.0%       <- not in the sum at all
+ *   Giveback                  462.86        <- subtracted
+ *   Contribution margin       378.51        <- bold, and the only clue
+ * ```
+ *
+ * A reader who already knows the formula can follow it. A reader who does not
+ * cannot tell `Giveback` from `Gross margin %` — one is an operand and the
+ * other is a ratio derived from two lines above it — and there is no reading
+ * of the card that distinguishes them. The owner asked for *"the calculations
+ * to be more clear"*.
+ *
+ * ## Why an operator column and not a formula line
+ *
+ * The alternative is a sentence — `Contribution margin = gross - earnings -
+ * giveback`. It is worse for three reasons: it duplicates the rows rather than
+ * explaining them, it cannot be translated without re-ordering the operands
+ * against the rows, and it goes stale silently the day a line is added. A
+ * glyph in the leading gutter of each row is the same information positioned so
+ * it cannot disagree with the row it is on.
+ *
+ * `'='` also gets `emphasis` for free at the call site — the line a card is
+ * about is the line the sum lands on — so the two are not two decisions.
+ *
+ * **The operator is `aria-hidden` and the row keeps a word.** A screen reader
+ * hearing "minus captain earnings three thousand" would be hearing arithmetic
+ * it cannot see the layout of; the rows are read as a list of labelled amounts,
+ * which is what they are, and §7.5 is satisfied because the glyph adds emphasis
+ * to an order that the reading sequence already carries.
+ */
+export type FigureOperator = 'add' | 'subtract' | 'equals'
+
+const OPERATOR_GLYPH: Record<FigureOperator, string> = {
+  /* U+2212 MINUS, not a hyphen: `Money` already renders the minus sign this way
+     for a negative amount (§8.3.2), and two different dashes for the same idea
+     on one card is exactly the kind of drift the token layer exists to stop. */
+  subtract: '−',
+  add: '+',
+  equals: '=',
+}
+
 export function FigureRow({
   label,
   amount,
   value,
   emphasis = false,
+  operator,
 }: {
   label: string
   amount?: Halalas | null
   value?: ReactNode
   emphasis?: boolean
+  /**
+   * §H5 — what this line does to the running total.
+   *
+   * Three states, and the distinction between the last two matters:
+   *   - an operator  — this line is added, subtracted, or is the result
+   *   - `null`       — this line is IN the calculation and takes no sign,
+   *                    i.e. the first operand. It still reserves the gutter.
+   *   - omitted      — this card is not a calculation. No gutter is drawn.
+   */
+  operator?: FigureOperator | null
 }) {
   return (
     <div
@@ -146,11 +256,33 @@ export function FigureRow({
            at all five call sites instead of at the ones that remembered. The
            `emphasis` rule above it then still aligns, because every row in the
            stack is capped to the same measure. */
-        'flex max-w-md items-baseline justify-between gap-3 py-1',
+        'flex max-w-md items-baseline gap-3 py-1',
         emphasis && 'border-t border-border pt-2 font-semibold',
       )}
     >
-      <span className={cn('text-sm', emphasis ? 'text-foreground' : 'text-muted-foreground')}>
+      {/* **The gutter is present on every row of a card that uses operators at
+          all**, drawn or not — an operand with no sign (the first line of any
+          sum) must still line its label up with the signed ones beneath it, and
+          a gutter that appeared only when a glyph did would step every such
+          label 12px to the inline-start. `null` is therefore a real value here
+          and means *"this row is in the sum and takes no sign"*; `undefined`
+          means *"this card is not a calculation"* and renders no gutter at all,
+          which is what leaves the payout confirmation's three plain lines
+          exactly as they were. */}
+      {operator !== undefined && (
+        <span
+          aria-hidden="true"
+          className="w-3 shrink-0 text-end text-sm tabular-nums text-muted-foreground"
+        >
+          {operator === null ? '' : OPERATOR_GLYPH[operator]}
+        </span>
+      )}
+      <span
+        className={cn(
+          'flex-1 text-sm',
+          emphasis ? 'text-foreground' : 'text-muted-foreground',
+        )}
+      >
         {label}
       </span>
       <span className="text-sm tabular-nums text-foreground">

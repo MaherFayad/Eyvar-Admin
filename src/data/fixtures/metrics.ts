@@ -228,8 +228,17 @@ import type {
 import { EYVAR_NOW } from '../mock/clock'
 import { SNAPSHOT_CURRENT, SNAPSHOT_PREVIOUS, snapshotsBetween } from './dailySnapshots'
 
-/** What a fixture carries. `deltaPercent` and `direction` are the client's. */
-export type MetricSeed = Omit<Metric, 'deltaPercent' | 'direction'>
+/**
+ * What a fixture carries. `deltaPercent` and `direction` are the client's.
+ *
+ * **`rank` is the client's too, and for the same reason those two are.** All
+ * three are *derived* — a seed states what the metric IS, and the client states
+ * what follows from it. `rank` follows from `BOARD_LEADS` below, which is one
+ * table of nine editorial decisions; carrying a `rank` literal on each of the
+ * eighty-nine seeds as well would be the same fact written twice, in two files,
+ * free to disagree. Omitting it here is what makes that impossible.
+ */
+export type MetricSeed = Omit<Metric, 'deltaPercent' | 'direction' | 'rank'>
 
 /** The current chart window: the seven days ending on the fixed clock's day. */
 export const CURRENT_PERIOD = { start: '2026-06-19', end: '2026-06-25' } as const
@@ -3270,6 +3279,119 @@ export const barIsLegal = (rows: readonly MetricBreakdownRow[]): boolean =>
  * zones are not yet a resource in `src/data`. That is a finding, not a fixture
  * decision.
  */
+/**
+ * **What each board is ABOUT** — the three numbers that get the headline
+ * weight, per board (`Metric.rank`, §H4).
+ *
+ * This table is the whole ranking feature. Everything else — a size step, a
+ * grid that runs three across instead of four — is the rendering of a decision
+ * that is taken here, in one place, where it can be read end to end and argued
+ * with. Eighty-nine `rank: 'supporting'` literals scattered through the seeds
+ * above would encode the same thing and could not be reviewed.
+ *
+ * **Read down the right-hand column and you are reading the product's
+ * priorities.** That is the test this shape is chosen for: a Finance lead, a
+ * dispatcher and an on-call engineer should each be able to look at their own
+ * row and say whether those are the three numbers they open the console for.
+ *
+ * ## The choices, and why each board's three
+ *
+ * `operations-overview` — a dispatch board answers *are we keeping our
+ *   promises, what is already broken, and what has nobody picked up*. SLA
+ *   attainment is the promise; breached work items is the failure; unclaimed
+ *   work is the one an operator can act on in the next minute. Captains
+ *   available is supply CONTEXT and reads as such — it is the denominator of
+ *   the other three, not a fourth headline.
+ *
+ * `management-overview` — the exec board is money and scale: what came in,
+ *   what was left after the cost of serving it, and how big the recurring base
+ *   is. ARPA and revenue mix explain those three; they do not replace them.
+ *
+ * `management-performance` — service quality, as volume / failure / quality.
+ *   Trips completed is the work the period actually did, cancellation rate is
+ *   the way it most visibly failed, and captain rating is what riders said
+ *   about the trips that did happen. (An on-time-pickup lead would have been
+ *   the obvious fourth — this board does not carry that metric; Management ›
+ *   Overview does, and leads with money instead.)
+ *
+ * `management-risk` — exposure in MONEY first, then the two populations it is
+ *   exposed through: subscriptions predicted to churn, and captains at risk of
+ *   leaving. Money first is deliberate — a board that leads with a COUNT
+ *   invites triage by count, and the items behind it are not worth the same.
+ *
+ * `management-growth` — the funnel in the order it happens: riders acquired,
+ *   the share that actually started within 7 days, and whether the acquisition
+ *   paid for itself. Promo and referral spend are the INPUTS to those three and
+ *   sit below them; a growth board that leads with what it spent is reporting
+ *   its effort rather than its result.
+ *
+ * `management-zones` — coverage: demand nobody served over 30 days, zones that
+ *   starved, and how many cities are live to serve them at all.
+ *
+ * `support-overview` — safety outranks load, so an unacknowledged critical
+ *   incident leads even when the count is zero: a board whose headline is a
+ *   zero is a board reporting the thing it most wants to be zero.
+ *
+ * `support-fairness` — the overturn rate is the board's reason to exist: it is
+ *   how often the console decided wrongly against a captain. Suspensions is the
+ *   population it decided over; earnings per engaged hour is the consequence.
+ *
+ * `admin-overview` — console integrity. Operators without two-factor is the
+ *   only owned TARGET in the product (`USR-1`, target `0`); overdue erasures
+ *   are statutory; rota gaps are why the first two go unattended.
+ *
+ * **A key here that no longer exists is a defect, not a no-op**, and
+ * `board.test.ts` fails on it rather than silently rendering a board with two
+ * leads — which would degrade quietly and look like a design choice.
+ */
+export const BOARD_LEADS: Record<string, readonly string[]> = {
+  'operations-overview': [
+    'operations.overview.slaAttainmentPercent',
+    'operations.overview.breachedWorkItems',
+    'operations.overview.unclaimedWork',
+  ],
+  'management-overview': [
+    'management.overview.grossRevenue',
+    'management.overview.contributionMargin',
+    'management.overview.activeSubscriptions',
+  ],
+  'management-performance': [
+    'management.performance.tripsCompleted',
+    'management.performance.cancellationRate',
+    'management.performance.avgCaptainRating',
+  ],
+  'management-risk': [
+    'management.risk.revenueAtRisk',
+    'management.risk.churnPredictedSubscriptions',
+    'management.risk.atRiskCaptains',
+  ],
+  'management-growth': [
+    'management.growth.newRiders',
+    'management.growth.activationRate7d',
+    'management.growth.ltvCacRatio',
+  ],
+  'management-zones': [
+    'management.zones.unservedRequests30d',
+    'management.zones.starvedZones',
+    'management.zones.liveCities',
+  ],
+  'support-overview': [
+    'support.overview.unacknowledgedCriticalIncidents',
+    'support.overview.openIncidents',
+    'support.overview.medianTimeToFirstResponse',
+  ],
+  'support-fairness': [
+    'support.fairness.overturnRate',
+    'support.fairness.suspendedCaptains',
+    'support.fairness.earningsPerEngagedHour',
+  ],
+  'admin-overview': [
+    'admin.overview.operatorsWithoutTwoFactor',
+    'admin.overview.erasureOverdue',
+    'admin.overview.rotaGaps',
+  ],
+}
+
 export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
   /**
    * **Spec §6.3 breakdown 1.** Captains ranked by the share of their finished

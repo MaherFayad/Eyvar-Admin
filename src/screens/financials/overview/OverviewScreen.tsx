@@ -43,7 +43,14 @@ import { Card } from '@/components/ui/card'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { useShell } from '@/shell/ShellContext'
-import { Figure, FigureGrid, FigureItem, FigureRow, Percent } from '../shared/Figures'
+import {
+  Figure,
+  FigureGrid,
+  FigureItem,
+  FigureLeadRow,
+  FigureRow,
+  Percent,
+} from '../shared/Figures'
 import { FinancialsPage, periodLabel, usePeriod } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
 import { marginBreakdown } from '../shared/derive'
@@ -135,14 +142,51 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
               <h2 id="fin-overview-period" className="text-sm font-semibold text-foreground">
                 {t('fin.overview.tiles.heading')}
               </h2>
-              <FigureGrid>
+              {/* **§H4 — three lead figures, then three supporting.**
+                  Six figures at one size said nothing about which of them a
+                  Finance lead opens this page for. The three below are the
+                  period's P&L in one line — what came in, what was left after
+                  the whole cost of serving it, and that as a rate — and the
+                  three beneath them are the working that produces the second.
+
+                  **Contribution and not gross margin** is the editorial call
+                  worth stating: gross margin stops at captain earnings, and the
+                  giveback (promos, referrals, refunds, goodwill) is real money
+                  this business spends. The number that answers "did the period
+                  pay for itself" is contribution, so contribution leads and
+                  gross margin supports it. */}
+              <FigureLeadRow>
                 <FigureItem>
                   <Figure
+                    rank="lead"
                     label={t('fin.overview.gross')}
                     amount={data.grossBookingsHalalas}
                     caption={scope}
                   />
                 </FigureItem>
+                <FigureItem>
+                  <Figure
+                    rank="lead"
+                    label={t('fin.overview.contributionMargin')}
+                    amount={margin.contributionMarginHalalas}
+                    caption={scope}
+                  />
+                </FigureItem>
+                <FigureItem>
+                  {/* **AC-361's pair, and AC-342's em dash.** Both percentages
+                      are labelled and neither is presented alone. */}
+                  <Figure
+                    rank="lead"
+                    label={t('fin.overview.contributionPercent')}
+                    value={
+                      <Percent value={margin.contributionMarginPercent} language={language} />
+                    }
+                    caption={scope}
+                  />
+                </FigureItem>
+              </FigureLeadRow>
+
+              <FigureGrid>
                 <FigureItem>
                   <Figure
                     label={t('fin.overview.captainEarnings')}
@@ -161,24 +205,6 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
                   <Figure
                     label={t('fin.overview.giveback')}
                     amount={margin.givebackHalalas}
-                    caption={scope}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.contributionMargin')}
-                    amount={margin.contributionMarginHalalas}
-                    caption={scope}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  {/* **AC-361's pair, and AC-342's em dash.** Both percentages
-                      are labelled and neither is presented alone. */}
-                  <Figure
-                    label={t('fin.overview.contributionPercent')}
-                    value={
-                      <Percent value={margin.contributionMarginPercent} language={language} />
-                    }
                     caption={scope}
                   />
                 </FigureItem>
@@ -237,12 +263,22 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
                     OWN accounts. They were operational figures served beside a
                     trial balance until the chart was opened; a management
                     number is a GL number or it is not auditable. */}
-                <FigureRow label={t('fin.overview.giveback.promo')} amount={data.promoHalalas} />
+                {/* §H5 — the card is a SUM, so every row states its part in
+                    it. The first operand takes `null`: it is in the sum and
+                    carries no sign, and it still reserves the gutter so its
+                    label lines up with the five beneath it. */}
                 <FigureRow
+                  operator={null}
+                  label={t('fin.overview.giveback.promo')}
+                  amount={data.promoHalalas}
+                />
+                <FigureRow
+                  operator="add"
                   label={t('fin.overview.giveback.referral')}
                   amount={data.referralHalalas}
                 />
                 <FigureRow
+                  operator="add"
                   label={t('fin.overview.giveback.incentive')}
                   amount={data.incentiveHalalas}
                 />
@@ -250,18 +286,22 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
                     Legacy books the cancellation path as `refunds` *and* as
                     `goodwill` and subtracts it twice. */}
                 <FigureRow
+                  operator="add"
                   label={t('fin.overview.giveback.refunds')}
                   amount={data.refundsHalalas}
                 />
                 <FigureRow
+                  operator="add"
                   label={t('fin.overview.giveback.goodwill')}
                   amount={data.goodwillHalalas}
                 />
                 <FigureRow
+                  operator="add"
                   label={t('fin.overview.giveback.emergency')}
                   amount={data.emergencyCoverHalalas}
                 />
                 <FigureRow
+                  operator="equals"
                   label={t('fin.overview.giveback')}
                   amount={margin.givebackHalalas}
                   emphasis
@@ -274,12 +314,30 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
                 <h2 className="pb-1 text-sm font-semibold text-foreground">
                   {t('fin.overview.margin.heading')}
                 </h2>
-                <FigureRow label={t('fin.overview.gross')} amount={margin.grossBookingsHalalas} />
+                {/* §H5 — the card IS the calculation
+                    gross − earnings = gross margin − giveback = contribution,
+                    and now says so. Before this it was six labelled amounts in
+                    the order of a sum with nothing marking it as one, so
+                    `Gross margin %` — a ratio derived from the two lines above
+                    it, and not an operand at all — was indistinguishable from
+                    `Giveback`, which is subtracted.
+
+                    The two percentages therefore take NO operator and no
+                    gutter: they are not in the sum, and giving them one would
+                    be the same defect written in glyphs. That is the whole
+                    reason the field distinguishes `null` from omitted. */}
                 <FigureRow
+                  operator={null}
+                  label={t('fin.overview.gross')}
+                  amount={margin.grossBookingsHalalas}
+                />
+                <FigureRow
+                  operator="subtract"
                   label={t('fin.overview.captainEarnings')}
                   amount={margin.captainEarningsHalalas}
                 />
                 <FigureRow
+                  operator="equals"
                   label={t('fin.overview.grossMargin')}
                   amount={margin.grossMarginHalalas}
                 />
@@ -287,8 +345,13 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
                   label={t('fin.overview.grossMarginPercent')}
                   value={<Percent value={margin.grossMarginPercent} language={language} />}
                 />
-                <FigureRow label={t('fin.overview.giveback')} amount={margin.givebackHalalas} />
                 <FigureRow
+                  operator="subtract"
+                  label={t('fin.overview.giveback')}
+                  amount={margin.givebackHalalas}
+                />
+                <FigureRow
+                  operator="equals"
                   label={t('fin.overview.contributionMargin')}
                   amount={margin.contributionMarginHalalas}
                   emphasis

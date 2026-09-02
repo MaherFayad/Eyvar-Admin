@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **4765** |
-| Reachable from `EN` (what the shell renders) | 4578 |
-| Keys in `AR` | 4765 |
+| **Translatable keys, all dictionaries** | **4777** |
+| Reachable from `EN` (what the shell renders) | 4590 |
+| Keys in `AR` | 4777 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 187 |
 | Plural forms (`key#category`) inside `EN` | 29 |
@@ -38,10 +38,10 @@ None left. Add the lint rule and delete this section.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 682 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 693 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 420 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 264 |
-| `src/components/profile/copy.ts` | `PROFILE_EN` | 247 |
+| `src/components/profile/copy.ts` | `PROFILE_EN` | 248 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 191 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |

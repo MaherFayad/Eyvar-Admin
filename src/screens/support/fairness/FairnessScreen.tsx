@@ -73,7 +73,13 @@ import type {
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatDate, type Direction, type Language, type Translate } from '@/lib'
-import { ChartCard, MetricTile, MetricTileItem, MetricTileRow } from '@/components/metrics'
+import {
+  ChartCard,
+  MetricLeadRow,
+  MetricTile,
+  MetricTileItem,
+  MetricTileRow,
+} from '@/components/metrics'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
@@ -477,15 +483,40 @@ function BoardBody({
       />
     )
   }
+  const leads = board.metrics.filter((metric) => metric.rank === 'lead')
+  const supporting = board.metrics.filter((metric) => metric.rank !== 'lead')
+
   return (
     <div className="flex flex-col gap-4">
-      <MetricTileRow>
-        {board.metrics.map((metric) => (
-          <MetricTileItem key={metric.key}>
-            <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
-          </MetricTileItem>
-        ))}
-      </MetricTileRow>
+      {/* **§H4 — the same partition `MetricBoardScreen` renders**, and it has
+          to be here too rather than only there. Fairness is the one metrics
+          board with its own screen (it carries the appeal queue beneath the
+          tiles), so a ranking applied only in `MetricBoardScreen` would give
+          this board seven tiles at one size while its eight siblings had a
+          headline — which is the flat board the ranking exists to replace,
+          surviving on exactly the screen nobody would think to check.
+
+          `BOARD_LEADS` already names its three: the overturn rate first,
+          because it is how often the console decided wrongly against a
+          captain, which is the board's reason to exist. */}
+      {leads.length > 0 && (
+        <MetricLeadRow>
+          {leads.map((metric) => (
+            <MetricTileItem key={metric.key}>
+              <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
+            </MetricTileItem>
+          ))}
+        </MetricLeadRow>
+      )}
+      {supporting.length > 0 && (
+        <MetricTileRow count={supporting.length}>
+          {supporting.map((metric) => (
+            <MetricTileItem key={metric.key}>
+              <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
+            </MetricTileItem>
+          ))}
+        </MetricTileRow>
+      )}
       {board.charts.length > 0 && (
         <div className="grid grid-cols-2 gap-4 items-start">
           {board.charts.map((chart) => (

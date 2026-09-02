@@ -36,6 +36,7 @@ import type {
   MetricBoard,
   MetricBreakdown,
   MetricCategory,
+  MetricRank,
   TimeSeries,
 } from '../types/metrics'
 import { workBacklogByQueue } from './myWork'
@@ -51,6 +52,7 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 let boardBreakdowns!: Fixtures['boardBreakdowns']
 let boardNotices!: Fixtures['boardNotices']
 let metricSeeds!: Fixtures['metricSeeds']
+let BOARD_LEADS!: Fixtures['BOARD_LEADS']
 let timeSeriesFixtures!: Fixtures['timeSeriesFixtures']
 let withShareOfMax!: Fixtures['withShareOfMax']
 let SNAPSHOT_CURRENT!: Fixtures['SNAPSHOT_CURRENT']
@@ -70,6 +72,7 @@ onFixturesLoaded((f) => {
   boardBreakdowns = f.boardBreakdowns
   boardNotices = f.boardNotices
   metricSeeds = f.metricSeeds
+  BOARD_LEADS = f.BOARD_LEADS
   timeSeriesFixtures = f.timeSeriesFixtures
   withShareOfMax = f.withShareOfMax
   SNAPSHOT_CURRENT = f.SNAPSHOT_CURRENT
@@ -497,14 +500,30 @@ const DERIVED: Record<string, () => number | null> = {
  * `deltaPercent === null`, and would say *"No comparison period yet"* beside a
  * target that exists.
  */
+/**
+ * §H4 — the rank `BOARD_LEADS` declares for this metric, `supporting` by
+ * default.
+ *
+ * **Defaulting to `supporting` rather than throwing is deliberate.** A board
+ * that names no leads renders as it always did — one flat grid — which is a
+ * board with no ranking rather than a board that crashes. The obligation to
+ * name three is enforced where obligations belong, in `board.test.ts`, over
+ * the real fixtures; putting it here would turn an editorial omission into a
+ * runtime error on a console someone is trying to read.
+ */
+function rankOf(seed: MetricSeed): MetricRank {
+  return BOARD_LEADS[seed.subTabId]?.includes(seed.key) === true ? 'lead' : 'supporting'
+}
+
 function resolve(seed: MetricSeed): Metric {
   const value = seed.sourceResource !== null && DERIVED[seed.key] ? DERIVED[seed.key]!() : seed.value
+  const rank = rankOf(seed)
 
   if (seed.comparison.kind === 'none' || value === null) {
     /* A metric with no value has no delta either — there is nothing to compare.
        The comparison stays as declared so the legend can still name the period
        it *would* have used. */
-    return { ...seed, value, deltaPercent: null, direction: null }
+    return { ...seed, rank, value, deltaPercent: null, direction: null }
   }
 
   const base = seed.comparison.value
@@ -521,6 +540,7 @@ function resolve(seed: MetricSeed): Metric {
          `Infinity%`. No comparison is the honest answer for a *period*. */
       return {
         ...seed,
+        rank,
         value,
         comparison: { kind: 'none', reason: 'insufficient-data' },
         deltaPercent: null,
@@ -529,12 +549,13 @@ function resolve(seed: MetricSeed): Metric {
     }
     /* A target of zero. The target survives; the percentage does not exist
        unless the value is also zero, in which case it is exactly `0 %`. */
-    return { ...seed, value, deltaPercent: value === 0 ? 0 : null, direction }
+    return { ...seed, rank, value, deltaPercent: value === 0 ? 0 : null, direction }
   }
 
   const deltaPercent = Math.round(((value - base) / Math.abs(base)) * 1000) / 10
   return {
     ...seed,
+    rank,
     value,
     deltaPercent,
     direction: deltaPercent > 0 ? 'up' : deltaPercent < 0 ? 'down' : 'flat',
@@ -880,7 +901,30 @@ export async function getMetricBoard(
     return http.get<MetricBoard>(`/metrics/boards/${subTabId}`, undefined, { signal })
   }
   return mock(METRIC_OPERATIONS.board, signal, () => {
-    const metrics = resolvedMetrics().filter((m) => m.subTabId === subTabId)
+    /* **Leads first, in the order `BOARD_LEADS` declares them.**
+       `resolvedMetrics()` is in fixture-declaration order, and a board's three
+       leads are scattered through it — Operations' SLA attainment is seeded
+       twelfth. Two things follow, and both matter:
+
+         1. The SCREEN partitions by rank and renders two grids. Filtering
+            preserves whatever order arrives here, so if this function does not
+            order them, the lead row renders in fixture order and `BOARD_LEADS`'
+            careful sequence — the board's first number first — is silently
+            discarded.
+         2. `BOARD_LEADS` is written to be READ as a ranking. An ordering it
+            does not actually produce would be a comment, not a contract.
+
+       A metric not in the table sorts after every one that is, keeping its
+       fixture order among its peers — which is what leaves the supporting grid
+       exactly as it rendered before ranking existed. */
+    const leadOrder = BOARD_LEADS[subTabId] ?? []
+    const rankIndex = (m: Metric) => {
+      const at = leadOrder.indexOf(m.key)
+      return at === -1 ? Number.MAX_SAFE_INTEGER : at
+    }
+    const metrics = resolvedMetrics()
+      .filter((m) => m.subTabId === subTabId)
+      .sort((a, b) => rankIndex(a) - rankIndex(b))
     const charts = timeSeriesFixtures.filter((c) => c.subTabId === subTabId)
     if (metrics.length === 0 && charts.length === 0) throw notFound('metric board', subTabId)
     const breakdowns = (boardBreakdowns[subTabId] ?? []).map((b) =>

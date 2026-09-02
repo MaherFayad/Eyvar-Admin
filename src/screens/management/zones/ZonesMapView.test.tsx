@@ -75,22 +75,57 @@ function renderMap(props: Partial<Parameters<typeof ZonesMapView>[0]> = {}) {
 
 /* ───────────────────────── the licensing regression ─────────────────────── */
 
-describe('the map fetches nothing from anybody', () => {
-  it('renders no image, no iframe and no external URL of any kind', () => {
+/**
+ * **The rule this pins changed, and the change is the point of the test.**
+ *
+ * It used to be absolute: no `<img>`, no `<iframe>`, no external URL at all,
+ * on the reasoning that *"an unlicensed basemap arrives as an <img> or an
+ * <iframe> ... so the assertion can be absolute rather than a host allow-list
+ * that the next provider slips past"*. That was the right shape while the
+ * answer was to fetch nothing.
+ *
+ * The owner asked for a real basemap and chose, from the options put to them,
+ * **real tiles that keep the zones**. So the rule narrows from *nothing* to
+ * *nothing unlicensed* — and the allow-list the old note was wary of is now
+ * exactly what is needed, because "no external URL" would forbid the licensed
+ * host along with the unlicensed ones.
+ *
+ * The wariness is answered rather than dismissed: the list is CLOSED and every
+ * entry is named, so a second provider added later fails here rather than
+ * slipping past. `mt*.google.com` — the host this screen's history is about —
+ * is asserted absent by name.
+ */
+const ALLOWED_HOSTS = ['tile.openstreetmap.org', 'www.openstreetmap.org']
+
+describe('the map fetches nothing it is not licensed to fetch', () => {
+  it('addresses only the allowed hosts, and no unlicensed tile server', () => {
     const { container } = renderMap()
 
-    /* An unlicensed basemap arrives as an <img> or an <iframe>. Neither is a
-       shape this component has any use for, so the assertion can be absolute
-       rather than a host allow-list that the next provider slips past. */
-    expect(container.querySelectorAll('img')).toHaveLength(0)
-    expect(container.querySelectorAll('iframe')).toHaveLength(0)
-    expect(container.querySelectorAll('image')).toHaveLength(0)
+    /* `xmlns="http://www.w3.org/2000/svg"` is an XML namespace, not a fetch —
+       the one absolute URL an inline SVG legitimately carries. */
+    const markup = container.innerHTML.replace(/xmlns="[^"]*"/g, '')
+    const urls = markup.match(/https?:\/\/[^"'\s)]+/g) ?? []
 
-    /* And nothing anywhere in the produced markup addresses another origin.
-       `xmlns="http://www.w3.org/2000/svg"` is an XML namespace, not a fetch —
-       it is the one absolute URL an inline SVG legitimately carries. */
-    const addressed = container.innerHTML.replace(/xmlns="[^"]*"/g, '')
-    expect(addressed).not.toMatch(/https?:\/\//)
+    for (const url of urls) {
+      const host = new URL(url).host
+      expect(ALLOWED_HOSTS, `${host} is not a licensed host for this map`).toContain(host)
+    }
+
+    /* Named explicitly, because it is the specific thing this screen's history
+       is about: the surface this replaced pulled `mt1.google.com/vt/` with no
+       key, no billing and no terms accepted. */
+    expect(markup).not.toMatch(/google/i)
+    expect(markup).not.toMatch(/basemaps\.cartocdn|carto\.com/i)
+    /* An iframe is still forbidden outright: nothing can be drawn on top of
+       one, so a basemap in an iframe would cost the zone shading. */
+    expect(container.querySelectorAll('iframe')).toHaveLength(0)
+  })
+
+  it('credits OpenStreetMap, which is the condition of using its tiles', () => {
+    const { container } = renderMap()
+    const credit = container.querySelector('a[href*="openstreetmap.org/copyright"]')
+    expect(credit).toBeTruthy()
+    expect(credit?.textContent).toMatch(/OpenStreetMap/)
   })
 
   it('draws the zones from our own geometry instead', () => {

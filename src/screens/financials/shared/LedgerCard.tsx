@@ -72,6 +72,7 @@ import {
   type LedgerPosting,
 } from '@/data/types'
 import { DataTable, type DataColumn } from '@/components/DataTable'
+import { tableCeiling } from '@/components/table/columns'
 import { EmptyState } from '@/components/EmptyState'
 import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
@@ -149,6 +150,17 @@ export function ledgerColumns(t: Translate, language: Language): DataColumn<Ledg
       /* §7.3 rule 2 — the one flexible column. It is also the only cell §14's
          row anatomy allows to wrap. */
       minWidth: 240,
+      /* **The ceiling, and the number is a measure rather than a taste.** A
+         posting description is prose (`Referral reward for introducing Sara
+         Al-Ghamdi`) plus a secondary line, and prose stops being readable past
+         roughly 90 characters. At `--text-sm` (14px) Inter averages ~7.1px a
+         character, so 90ch is ~640px. Below that the column still wraps rather
+         than truncating, which is what §14 already allows this one cell to do.
+
+         What it buys is measured on `/financials/revenue` at 2400: the column
+         was 1,406px and the table 1,998px, so every `Debit` figure sat ~1,100px
+         from the text it belonged to. */
+      maxWidth: 640,
       cell: (row) => <span className="block">{localisedText(t, row.description)}</span>,
       secondaryLine: (row) => <LedgerRowMeta row={row} t={t} />,
     },
@@ -230,6 +242,15 @@ function LedgerRowMeta({ row, t }: { row: LedgerPosting; t: Translate }) {
 export interface LedgerHeaderProps {
   ledger: Ledger
   t: Translate
+  /**
+   * The width the table beneath this header stops growing at, from
+   * `tableCeiling`. The header ends where the table ends, so the balance sits
+   * over the balance column instead of at the far edge of the viewport.
+   *
+   * `undefined` on a ledger whose columns declare no ceiling, which is the
+   * pre-existing full-width behaviour.
+   */
+  maxInlineSize?: number
 }
 
 /**
@@ -242,7 +263,7 @@ export interface LedgerHeaderProps {
  * a permanent `Pending 0.00 SAR` on every ledger in the product is noise, and
  * §10's *"a count of zero renders no badge"* is the same instinct.
  */
-export function LedgerHeader({ ledger, t }: LedgerHeaderProps) {
+export function LedgerHeader({ ledger, t, maxInlineSize }: LedgerHeaderProps) {
   const definition = accountDefinition(ledger.subjectAccount)
   const subject =
     ledger.subjectName === null
@@ -250,7 +271,21 @@ export function LedgerHeader({ ledger, t }: LedgerHeaderProps) {
       : t('fin.ledger.subject.party', { account: definition.label, name: ledger.subjectName })
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 pb-3">
+    /* **The header is capped to the table's own width.** Measured before this
+       on `/financials/wallets` at 2400: the account name ended at x=689 and its
+       `Balance` block began at x=2400 — **1,711px apart**, the second-worst
+       instance of the defect in the product after the boundary rows. It is not
+       a `justify-between` problem: an account name at one edge and its balance
+       at the other is the right shape for this pair, and it reads correctly at
+       1280. What was wrong is that the pair was allowed to stretch to a width
+       the table beneath it does not use.
+
+       Ending where the table ends puts the balance over the balance column,
+       which is the same argument the boundary rows make one row lower. */
+    <div
+      className="flex flex-wrap items-end justify-between gap-3 pb-3"
+      style={{ maxInlineSize }}
+    >
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="truncate text-sm font-semibold text-foreground">
           <bdi>{subject}</bdi>
@@ -330,6 +365,10 @@ export function LedgerCard({
   banner,
 }: LedgerCardProps) {
   const columns = useMemo(() => ledgerColumns(t, language), [t, language])
+  /* One derivation, two consumers: `DataTable` caps the table and its band with
+     this same function, and the header above the table is capped to match. Two
+     separate sums would be free to drift by a column width. */
+  const ceiling = useMemo(() => tableCeiling(columns), [columns])
 
   /* **AC-319** — the totals are of the RENDERED rows, so a narrowed ledger's
      totals describe what is on screen rather than what is behind it. */
@@ -348,7 +387,7 @@ export function LedgerCard({
   if (status === 'empty' && !hasHistory && !table.isFiltered) {
     return (
       <div className="flex flex-col">
-        {ledger && <LedgerHeader ledger={ledger} t={t} />}
+        {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} />}
         {banner}
         <EmptyState
           kind="first-run"
@@ -362,7 +401,7 @@ export function LedgerCard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {ledger && <LedgerHeader ledger={ledger} t={t} />}
+      {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} />}
       {banner}
       <DataTable
         table={table}
@@ -393,29 +432,39 @@ export function LedgerCard({
             ? {
                 /* **AC-317 / AC-318.** Both rows are labelled and bold on both
                    sides, and the closing figure is the same field the header
-                   renders — one value, two places, no arithmetic between them. */
-                opening: (
-                  <span className="flex items-center justify-between gap-3">
-                    <span>{t('fin.ledger.opening')}</span>
-                    <Money amount={ledger.openingBalanceHalalas} unit="none" />
-                  </span>
-                ),
-                closing: (
-                  <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 font-semibold">
-                    <span>{t('fin.ledger.closing')}</span>
-                    <span className="flex items-center gap-3">
-                      <span className="text-xs font-normal text-muted-foreground">
-                        {/* **AC-322** — the unit is in the column headers and
-                            in nothing beneath them, this summary included. */}
-                        {t('fin.ledger.totals', {
-                          debits: formatMoney(totals.debits, { unit: 'none' }),
-                          credits: formatMoney(totals.credits, { unit: 'none' }),
-                        })}
-                      </span>
-                      <Money amount={ledger.closingBalanceHalalas} unit="none" />
+                   renders — one value, two places, no arithmetic between them.
+
+                   **The layout is no longer written here, and that is the
+                   fix.** This used to hand `DataTable` one node per row and lay
+                   it out with `justify-between` inside a cell spanning every
+                   column — which put 1,828px between `Opening balance` and
+                   `0.00` at 2400px. The screen was describing a POSITION it
+                   could not see the columns of. It now states the three parts
+                   and names the column the figure belongs under; where that
+                   lands is the table's arithmetic, at every width and in both
+                   directions. */
+                alignTo: 'balance',
+                opening: {
+                  label: t('fin.ledger.opening'),
+                  value: <Money amount={ledger.openingBalanceHalalas} unit="none" />,
+                },
+                closing: {
+                  label: t('fin.ledger.closing'),
+                  /* **AC-322** — the unit is in the column headers and in
+                     nothing beneath them, this summary included. It sits beside
+                     the LABEL now: it is a description of the row, and putting
+                     it in the balance column would be a second number in a
+                     column of balances. */
+                  note: (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {t('fin.ledger.totals', {
+                        debits: formatMoney(totals.debits, { unit: 'none' }),
+                        credits: formatMoney(totals.credits, { unit: 'none' }),
+                      })}
                     </span>
-                  </span>
-                ),
+                  ),
+                  value: <Money amount={ledger.closingBalanceHalalas} unit="none" />,
+                },
               }
             : undefined
         }

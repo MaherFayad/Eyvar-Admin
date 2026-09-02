@@ -292,7 +292,69 @@ export interface Metric {
   sourceResource: string | null
   /** Where the rows are. §3.7's report icon target. `null` when there is nothing to drill into. */
   drilldownRoute: string | null
+
+  /**
+   * **How loudly this board says this number** — `lead` or `supporting`.
+   *
+   * ## The defect
+   *
+   * A board rendered every metric it had at one size, in one grid, in fixture
+   * order. Operations Overview is thirteen of them: measured at 2400px, twelve
+   * tiles at **491px wide and 28px of numeral, without exception**. The board
+   * had no opinion about which of `SLA attainment 80.4%` and
+   * `Rider abandonment 3.7%` an operator should read first, so it gave them
+   * identical weight and left the ranking to whoever was looking — which on a
+   * console read under pressure means the ranking does not happen.
+   *
+   * The owner's reading was that these pages are *"so hard to read and get any
+   * info from"*, and the specific ask was that **more important metrics be
+   * bigger than others**. This field is what makes that statable.
+   *
+   * ## Why it is editorial and NOT derived from the value
+   *
+   * The tempting rule is to promote whatever is in a bad state — biggest
+   * breach, worst delta, reddest number. It is the wrong rule, and not
+   * marginally:
+   *
+   *   1. **Rank would then change with the data.** A tile that is 36px on
+   *      Monday and 28px on Tuesday teaches an operator nothing about where to
+   *      look, and the muscle memory a console is read with never forms. Layout
+   *      that moves under you is worse than layout with no hierarchy at all.
+   *   2. **Importance and badness are different facts.** `SLA attainment` is
+   *      the number this board exists to report whether it is 99% or 40%.
+   *      `Identity collisions` is worth a tile and is not the headline even on
+   *      the day it spikes. A board is *about* something, and what it is about
+   *      does not depend on today's reading.
+   *   3. **The urgent case already has its own instrument.** R4-4 §4.3's
+   *      notice is how a board shouts about a condition, capped at one, chosen
+   *      by tone and severity. Valence — the caret and the word beside the
+   *      chip — is how a single tile says its news is bad. Neither needs the
+   *      type ramp, and spending size on them would leave the board with no way
+   *      to say what it is *for*.
+   *
+   * So the rank is declared, per board, in `BOARD_LEADS` — one legible table of
+   * nine editorial decisions rather than eighty-nine scattered flags. It is a
+   * data question answered in the data layer, exactly as *which* tiles a board
+   * carries already is.
+   *
+   * **Three leads per board, and the number is a constraint rather than a
+   * coincidence.** A hierarchy with six things at the top is a hierarchy with
+   * none; three is what the reference's stat strip carries and what a 3-up row
+   * renders at a readable width in both languages. `board.test.ts` holds every
+   * board to it, so a tenth board cannot ship with eight leads and no ranking.
+   */
+  rank: MetricRank
 }
+
+/**
+ * §H4 — the two weights a board renders a number at.
+ *
+ * Deliberately two and not three. A middle tier would have to be readable as
+ * *neither* the headline nor the supporting detail, and at the three sizes the
+ * ramp actually has between 28px and the body there is no room to draw that
+ * distinction — the result would be three sizes an operator reads as noise.
+ */
+export type MetricRank = 'lead' | 'supporting'
 
 /** §3.7's metrics-library categories, mapped onto this product. */
 export type MetricCategory =

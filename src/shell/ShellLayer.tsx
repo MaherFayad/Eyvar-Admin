@@ -10,15 +10,30 @@
  * which is what keeps the three-level ceiling true.
  *
  * Rules applied
- *   §6.1 / §5.5 **NO SCRIM.** The workspace behind stays legible AND
- *               interactive (**AC-20**). `sheet.tsx` deletes the overlay
- *               outright rather than making it transparent, because a
- *               transparent overlay still eats pointer events.
- *   §7.3.3      **NO FOCUS TRAP.** *"The scrim decides the trap. If a surface
- *               dims the page, it owns the keyboard. If it does not, it does
- *               not."* Focus MOVES IN on open and `Tab` leaves the panel and
- *               continues into the page. AC-67 required a trap; §7 outranks an
- *               AC, so the AC was amended (finding F-1).
+ *   §6.1 / §5.5 **NO SCRIM** — for a layer presented as a `drawer`, which is
+ *               the default and is what `notifications` and `account` are. The
+ *               workspace behind stays legible AND interactive (**AC-20**).
+ *
+ *               **The 360° PROFILE is now `presentation="modal"` and takes a
+ *               scrim.** Requested in these words: *"should be full screen no
+ *               need to show me any of the navigation more like popup"*. The
+ *               ruling is not repealed and the other two layers are untouched;
+ *               what changed is that this one layer is no longer a thing you
+ *               consult beside your work. §5.5's own test is whether the page
+ *               behind is still being worked in, and for a record that fills
+ *               the screen the answer is no.
+ *   §7.3.3      **THE SCRIM DECIDES THE TRAP** — *"If a surface dims the page,
+ *               it owns the keyboard. If it does not, it does not."*
+ *
+ *               That rule is the reason the modal presentation traps focus and
+ *               the drawer still does not: the two follow from one condition,
+ *               so `sheet.tsx` derives both from `side === "overlay"` rather
+ *               than taking two independent flags that could disagree. A
+ *               drawer's focus still MOVES IN on open and `Tab` still leaves
+ *               the panel and continues into the page; AC-67 required a trap
+ *               there, §7 outranks an AC, and the AC was amended (finding F-1).
+ *               A modal keeps the trap AC-67 asked for, for §7.3.3's reason
+ *               rather than AC-67's.
  *
  *               **Both halves of this were broken and both are fixed here.**
  *               The 0.8 QA verdict was right and the unit tests could not see
@@ -97,6 +112,37 @@ export interface ShellLayerProps {
   /** §6.1 — present ONLY when the layer commits something. */
   footer?: ReactNode
   children: ReactNode
+  /**
+   * **How the layer sits on the shell.**
+   *
+   * `'drawer'` (the default) is §6.1's inline-end panel: the console stays
+   * visible and interactive beside it, which is right for a layer an operator
+   * consults WHILE working — notifications, the account menu.
+   *
+   * `'modal'` covers the shell behind a scrim. The 360° profile takes it on the
+   * owner's instruction — the record layer should show none of the navigation
+   * and read as a popup — and the reason it is the right call there is that a
+   * record is not something you consult beside your work; for as long as it is
+   * open it IS the work, and a 480px column beside a lit console was making a
+   * full record read like a footnote to the table behind it.
+   */
+  presentation?: 'drawer' | 'modal'
+  /**
+   * Rendered BESIDE the title, inside the one header region — things that
+   * belong to the record rather than to the layer.
+   *
+   * **Two slots, because the two have different places.** `lead` sits before
+   * the name and is for a face and nothing else; `trail` sits at the header's
+   * inline-end and is for what qualifies the record — its kind, its standing.
+   * A single slot produced `Subscription · Expired · SUB-2003`, which puts two
+   * adjectives ahead of the noun.
+   *
+   * **Deliberately not a replacement for the title.** A caller that could
+   * replace the header would produce a surface with two of them, which is
+   * exactly what the profile layer had: `SUB-2003 / Weekly Economy` in this
+   * header and an identity band repeating both strings 8px beneath it.
+   */
+  header?: { lead?: ReactNode; trail?: ReactNode }
   t: Translate
 }
 
@@ -107,6 +153,8 @@ export function ShellLayer({
   subtitle,
   footer,
   children,
+  presentation = 'drawer',
+  header,
   t,
 }: ShellLayerProps) {
   /* CALLBACK REFS HELD IN STATE, not `useRef`, and that is the whole fix for
@@ -148,6 +196,11 @@ export function ShellLayer({
   return (
     <Sheet
       open={open}
+      /* §7.3.3 — the scrim decides the trap, so ONE flag decides both. Radix
+         derives the overlay element, the pointer block and the focus trap from
+         it, which is why the modal presentation does not hand-roll any of the
+         three. */
+      modal={presentation === 'modal'}
       onOpenChange={(next) => {
         /* `Escape` and the ✕ both come through here. AC-66: close, and let
            `useFocusEntry`'s cleanup return focus to the opener. */
@@ -156,7 +209,7 @@ export function ShellLayer({
     >
       <SheetContent
         ref={setContentEl}
-        side="inline-end"
+        side={presentation === 'modal' ? 'overlay' : 'inline-end'}
         tabIndex={-1}
         aria-label={title}
         /* See the header: Radix's non-modal focus restore targets its Trigger,
@@ -166,16 +219,57 @@ export function ShellLayer({
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle ref={setHeadingEl} tabIndex={-1}>
-            {title}
-          </SheetTitle>
-          {/* `null` renders nothing. Radix wants a description for a11y; when
-              there is none, the title alone is the accessible name and
-              `aria-label` above covers it. */}
-          {subtitle ? <SheetDescription>{subtitle}</SheetDescription> : null}
+          {/* **The title is always here, and `header` decorates it rather than
+              replacing it.** A caller passing its own header used to mean the
+              surface had TWO — the profile layer rendered `SUB-2003 / Weekly
+              Economy` in this header and then an identity band repeating both
+              strings 8px below it, which is the first thing the owner meant by
+              *"a lot of redundancy"*. So `header` renders BESIDE the title
+              inside this one region: one header, one title, and the caller adds
+              the avatar and the standing to it. The heading element is still
+              the accessible name and still the focus target. */}
+          {header ? (
+            /* **The NAME leads.** The first cut rendered the caller's mark
+               before the title, and the header came out
+               `Subscription · Expired · SUB-2003` — the record's kind and its
+               standing ahead of the thing they describe. A header is read left
+               to right and the first word should be the record.
+               `headerLead` is for a face, which is the one thing that belongs
+               ahead of a name; everything else trails it. */
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              {header.lead}
+              <div className="flex min-w-0 flex-col">
+                <SheetTitle ref={setHeadingEl} tabIndex={-1}>
+                  {title}
+                </SheetTitle>
+                {subtitle ? <SheetDescription>{subtitle}</SheetDescription> : null}
+              </div>
+              {header.trail && (
+                /* `ms-auto` pushes the standing to the header's inline-end, and
+                   `pe-8` clears the close control that sits there. */
+                <div className="ms-auto flex shrink-0 items-center gap-2 pe-8">
+                  {header.trail}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <SheetTitle ref={setHeadingEl} tabIndex={-1}>
+                {title}
+              </SheetTitle>
+              {/* `null` renders nothing. Radix wants a description for a11y;
+                  when there is none, the title alone is the accessible name and
+                  `aria-label` above covers it. */}
+              {subtitle ? <SheetDescription>{subtitle}</SheetDescription> : null}
+            </>
+          )}
         </SheetHeader>
 
-        {/* The card stack scrolls; the header and footer do not (§6.1). */}
+        {/* The card stack scrolls; the header and footer do not (§6.1).
+            The modal's own width is capped at the page measure in
+            `sheet.tsx`, so the body needs no second cap here — one measure,
+            applied to the panel, rather than a panel and a body that could
+            disagree about it. */}
         <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
 
         {footer}

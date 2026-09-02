@@ -1177,6 +1177,37 @@
      `PAGE_BLOCK` in `PageShell.tsx` is its only consumer. */
   --ev-page-pad-wide: 48px;
   --ev-page-max: 1120px; /* Untouched. ONE consumer: the full-bleed editor. */
+  /* --- THE MEASURE EVERY PAGE STOPS GROWING AT. -------------------------
+     Consumed by `PageShell`'s two page blocks and by nothing else.
+
+     **This does not overturn V5's "one page width"; it is what makes the
+     sentence true above 1440.** V5's rule is that the page header lands in the
+     same place whichever route you are on, and its enforcement is that
+     `SingleColumnPage` has no `width` prop. A single cap applied to every page
+     block keeps that property exactly — every route still has ONE width — and
+     changes only what that width does on a monitor wider than the product was
+     ever measured on.
+
+     **The measurement it answers.** The console was designed around a ~1100px
+     content region: D2's 1280 floor gives 976, and 1440 gives 1038, which is
+     the budget every table's column widths are declared against (§7.3 rule 3
+     caps their sum at 910). On the owner's 2400px screen the same region
+     rendered **1,955px**, so a ledger's flexible column ran to 1,406px, a
+     figure's label sat 313px from its value and a ledger's opening balance sat
+     **1,828px** from the number it names. Nothing was mis-declared; the
+     residual simply had nowhere to stop.
+
+     **1440 rather than 1200 or 1600.** The widest declared table budget is
+     1038px; at 1440 minus the 48px wide gutters a table has 1,344px, which is
+     ~300px of headroom over the widest thing the product renders — so nothing
+     is cramped and no existing declaration has to move. It is also the width
+     the design references were authored at, so a screen at the cap is the
+     screen as it was drawn.
+
+     Below 1440 this is inert: the content region is already narrower than the
+     cap at every width the product supported before today, so no layout at or
+     under a 1440px viewport changes by one pixel. */
+  --ev-page-measure: 1440px;
   --ev-detail-rail-w: 320px; /* X — not evidenced. Untouched: AC-34's
                                 640 + 16 + 320 = 976 depends on it. */
   --ev-monitor-aside-w: 340px; /* X — not evidenced. Untouched (AC-31). */
@@ -1567,6 +1598,13 @@
      overflowed the 225px value box at six figures. */
   --text-kpi: 28px;
   --text-kpi--line-height: 36px;
+  /* LEAD NUMERAL — the +4 box, exactly as --text-kpi above takes it, and for
+     the same reason: the SIZE does not take the Arabic lift (every digit run
+     sets in Inter in both languages, R-5 / AC-73) but the LINE BOX must, for
+     Naskh's 1.70em font box on the unit word beside the numeral. 1.01em of ink
+     at 36px is 36.4px; 40 would leave 1.8px of leading a side and 44 leaves
+     3.8, which is the same headroom 36 gives 28. */
+  --text-kpi-lead--line-height: 44px;
 
   /* ── LETTER-SPACING IS A LATIN DEVICE, AND IT IS NEUTRALISED HERE. ───────
      Arabic is a CURSIVE script: `letter-spacing` inserts gaps between joined
@@ -2076,6 +2114,7 @@
   --spacing-safe-start: var(--ev-safe-start);
   --spacing-safe-end: var(--ev-safe-end);
   --container-page: var(--ev-page-max);
+  --container-measure: var(--ev-page-measure);
 
   /* The two two-pane grids, as tokens rather than as arbitrary values. Both
      are named ratios in the design spec and both restack below the ONE
@@ -2672,6 +2711,32 @@
      `[data-slot="metric-value"]` below; the split is unchanged by H5. */
   --text-kpi: 28px;
   --text-kpi--line-height: 32px;
+
+  /* LEAD NUMERAL — §H4's second rank, and the only step above --text-kpi.
+     `MetricTileRow`'s lead row renders it; nothing else may.
+
+     **This does not overturn --text-kpi's "28 is the ceiling" note, it scopes
+     it.** That note pins 28 against a stated geometry — "30px would have
+     overflowed the 225px value box at six figures" — and that box is the 4-up
+     supporting tile's. A lead tile is 3-up: 306px of value box at 1280 and
+     634px at 2400. The ceiling held for the box it was measured in; this is a
+     different box, and the constraint that set it does not reach here.
+
+     **36 rather than 32 or 40.** Cap height 1490/2048 = 0.7275em, so the ladder
+     in ink is 26.2px against 28's 20.4px, **1.284 : 1** — the same threshold
+     --text-kpi had to clear over its own label when H4 raised it from 17, below
+     which two sizes read as one size set carelessly. 40 clears it further and
+     does not fit: `1,281.86 SAR` sets at 288px of a 306px box at 1280 and the
+     Arabic currency word is wider than `SAR`. At 36 it is 259px, which leaves
+     the Naskh unit inside the tile.
+
+     Box 40 on the 4px grid, ratio 1.111 — the display band, same as 28/32.
+
+     **Tabular figures do not travel with this step either.** The lead value
+     carries `data-slot="metric-value"` exactly as the supporting one does; the
+     base rule below is what pins the figures, and the split is unchanged. */
+  --text-kpi-lead: 36px;
+  --text-kpi-lead--line-height: 40px;
 
   /* R-5, amended by the match audit. **INTER** FIRST in both languages: it
      has no Arabic glyphs, so Arabic characters fall through to Naskh per

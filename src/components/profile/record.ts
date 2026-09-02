@@ -141,9 +141,29 @@ export function personFacets(record: ProfileRecord): PersonFacets | null {
  * not a client-side scan of a list — but it is still a list endpoint answering
  * a record question, and the missing operation is named in the handoff.
  */
-export function useProfileRecord(entity: ProfileRef): ProfileRecordResult {
+/**
+ * **`entity` is nullable, and that is what lets ONE component own the record.**
+ *
+ * It used to require a resolved `ProfileRef`, so `ProfileLayer` had to resolve
+ * the ref, hand it to a child, and let the child read the record. That was
+ * fine while the record was needed only inside the body. It stopped being fine
+ * when the layer's HEADER needed the standing too: the header is rendered by
+ * `ProfileLayer` and the record was owned by its child, so the only ways to
+ * feed it were a second `useProfileRecord` call — two reads of one record,
+ * racing, for one badge — or duplicating `ShellLayer` across a resolved and an
+ * unresolved branch.
+ *
+ * Accepting `null` and staying disabled until there is something to read is the
+ * third option and the honest one: the hook already expresses "not yet" through
+ * `useAsync`, and this is the same idea one step earlier. The read still starts
+ * exactly when there is something to read.
+ */
+export function useProfileRecord(entity: ProfileRef | null): ProfileRecordResult {
   return useAsync<ProfileRecord>(
     async (signal): Promise<ProfileRecord> => {
+      /* Unreachable while `enabled` is false; it is here because the fetcher
+         cannot be typed as only running when it does. */
+      if (entity === null) throw new Error('useProfileRecord ran with no entity')
       const id = entity.entityId
       switch (entity.entityType) {
         case 'rider':
@@ -184,12 +204,15 @@ export function useProfileRecord(entity: ProfileRef): ProfileRecordResult {
       }
     },
     {
-      deps: [entity.entityId, entity.entityType],
+      enabled: entity !== null,
+      deps: [entity?.entityId ?? '', entity?.entityType ?? ''],
       /* Both of the fetcher's inputs are in `deps` above — the id it asks for
          and the type that picks the client — so the key is complete and the
          operation id follows the same switch. Opening the drawer on a record,
          closing it and opening it again paints the header immediately. */
-      cacheKey: RECORD_OPERATIONS[entity.entityType],
+      /* `''` while unresolved. `enabled` is false then, so nothing is read
+         under it and the key is never used to store anything. */
+      cacheKey: entity === null ? '' : RECORD_OPERATIONS[entity.entityType],
       /* The record read has no empty state: it returns a row or it throws. The
          default `isEmpty` treats `null` as empty, and nothing here returns one
          — saying so keeps `status` to the three values this read can produce. */

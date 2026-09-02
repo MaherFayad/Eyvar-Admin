@@ -79,7 +79,7 @@
 
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { emphasisOf, isolatesValue, type DataColumn } from './columns'
+import { emphasisOf, isolatesValue, type DataColumn, type LedgerBoundary } from './columns'
 
 export interface NarrowRowCardsProps<T> {
   rows: readonly T[]
@@ -108,7 +108,7 @@ export interface NarrowRowCardsProps<T> {
   /** A2 — the same `<bdi>` wrapper the desktop cell uses. */
   cellValue: (isolated: boolean, children: ReactNode) => ReactNode
   /** §9.2 / AC-49 — a ledger's opening and closing balance rows. */
-  boundary?: { opening: ReactNode; closing: ReactNode } | null
+  boundary?: { opening: LedgerBoundary; closing: LedgerBoundary } | null
 }
 
 export function NarrowRowCards<T>({
@@ -183,7 +183,7 @@ export function NarrowRowCards<T>({
       <ul role="list" className="m-0 flex list-none flex-col p-0">
         {boundary && (
           <li className="border-b border-border px-3 py-2 text-sm font-semibold text-foreground">
-            {boundary.opening}
+            <BoundaryCard boundary={boundary.opening} />
           </li>
         )}
 
@@ -298,9 +298,39 @@ export function NarrowRowCards<T>({
         })}
 
         {boundary && (
-          <li className="px-3 py-2 text-sm font-semibold text-foreground">{boundary.closing}</li>
+          <li className="px-3 py-2 text-sm font-semibold text-foreground">
+            <BoundaryCard boundary={boundary.closing} />
+          </li>
         )}
       </ul>
     </div>
+  )
+}
+
+/**
+ * §9.2 — a ledger boundary on the compact surface, where **there are no columns
+ * to align under**.
+ *
+ * The wide table puts the figure in the balance column, because that is what
+ * makes a total addable against the figures above it. A card list has one
+ * column, so that instrument does not exist here — and it is not needed: the
+ * card is 358px wide, so `justify-between` puts at most ~250px between the
+ * label and its figure, which is the proximity the desktop row lost by
+ * spanning 1,828px. The same layout is right on one surface and wrong on the
+ * other, and the reason is the width, not the taste.
+ *
+ * The note goes under the label rather than beside it — at 358px the
+ * debit/credit summary and the label together would wrap the figure onto a
+ * third line and break the pair the row exists to make.
+ */
+function BoundaryCard({ boundary }: { boundary: LedgerBoundary }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="flex items-baseline justify-between gap-3">
+        {boundary.label}
+        <span className="tabular-nums">{boundary.value}</span>
+      </span>
+      {boundary.note}
+    </span>
   )
 }

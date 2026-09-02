@@ -202,8 +202,36 @@ export const FINANCIALS_EN: Dictionary = {
      say what they are instead. Raised in the handoff as an AC / data-layer
      mismatch rather than papered over. */
   'fin.overview.asAt': 'Balance to date, outside the period.',
+  /* Still `Previous month` / `Next month`, and still translated: the stepper
+     survived the picker as a pair of chevrons, so these are now the buttons'
+     ACCESSIBLE NAMES rather than their visible labels. Deleting them would
+     have left two unlabelled glyphs. */
   'fin.overview.period.previous': 'Previous month',
   'fin.overview.period.next': 'Next month',
+
+  /* §10.2's range popover. The five presets are the windows a close process
+     recognises, on month boundaries; the calendar beside them is what makes
+     any other window reachable without fifteen clicks of a stepper.
+
+     `lastThreeMonths` INCLUDES the current month — a Finance lead asking for
+     three months in June wants April, May and June, and a window stopping at
+     May would silently exclude the period every other control is showing.
+     `quarterToDate` is the CALENDAR quarter and is named so: Q-F8 is open and
+     no fiscal year has been defined, so the day a close process disagrees with
+     this preset, the label is what makes the disagreement visible. */
+  'fin.period.presets': 'Reporting periods',
+  'fin.period.preset.thisMonth': 'This month',
+  'fin.period.preset.lastMonth': 'Last month',
+  'fin.period.preset.lastThreeMonths': 'Last 3 months',
+  'fin.period.preset.quarterToDate': 'Quarter to date',
+  'fin.period.preset.yearToDate': 'Year to date',
+  /* Announced beside the checked preset, for a reader who cannot see the tick
+     (§7.5 — the check is a mark, so it needs a word). */
+  'fin.period.active': 'Current period',
+  'fin.period.from': 'From',
+  'fin.period.to': 'To',
+  'fin.period.apply': 'Apply',
+  'fin.period.cancel': 'Cancel',
 
   /* **AC-351** — one critical banner, the difference in SAR, a link to the
      refused-postings view. **No tile turns red.** */

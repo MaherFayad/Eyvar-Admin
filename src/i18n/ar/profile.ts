@@ -50,6 +50,7 @@ export const PROFILE_AR: Dictionary = {
   'profile.state.emptyComplaintDispute': 'لم تتصاعد هذه الشكوى إلى مطالبة مالية.',
   'profile.unavailable.noSource': 'سجل {kind} لا يحتوي على ذلك.',
   'profile.field.absent': 'غير مسجَّل',
+  'profile.field.absentMany': 'غير مسجَّل:',
   'profile.field.id': 'رمز الهوية',
   'profile.field.status': 'الحالة',
   'profile.field.kind': 'نوع السجل',

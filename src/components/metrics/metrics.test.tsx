@@ -62,6 +62,9 @@ function metric(over: Partial<Metric> = {}): Metric {
     key: 'management.overview.activeCaptains',
     subTabId: 'management-overview',
     category: 'supply',
+    /* §H4 — the default a tile renders at, so a test that does not care about
+       rank exercises the common case rather than the headline one. */
+    rank: 'supporting',
     value: 52,
     unit: 'count',
     currency: null,

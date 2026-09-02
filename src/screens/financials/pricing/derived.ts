@@ -53,6 +53,7 @@
 
 import { PLAN_PRICING_DEFINITIONS, PLAN_EXAMPLE_INPUTS } from '@/data/types'
 import type { DerivedFieldDefinition } from '@/data/types'
+import { formatMoney } from '@/lib'
 
 /* ───────────────────────────── the evaluator ───────────────────────────── */
 
@@ -233,6 +234,102 @@ export interface DerivedValue {
   unit: DerivedFieldDefinition['unit']
   /** `null` when any input it reads is blank — **AC-393**. */
   value: number | null
+  /**
+   * **The expression with every name replaced by the number it held** —
+   * `12 × 2.50 + 8 × 1.80` where `expression` reads
+   * `exampleMinutes × perMinuteHalalas + exampleKm × perKmHalalas`.
+   *
+   * ## Why the editor needed this
+   *
+   * The plan editor already showed the formulas (one card, `AC-397`, each line
+   * character-for-character its definition) and the results (another card, the
+   * worked example). It never showed the STEP BETWEEN them, so a pricing owner
+   * changing `Commission %` from 20 to 22 could see the inputs and could see
+   * that `Eyvar keeps` moved, and had no way to check the move was right
+   * without doing the arithmetic on paper. The owner asked for *"the
+   * calculations to be more clear — show me a proper calculator"*, and the
+   * missing third of a calculator is the working.
+   *
+   * `null` exactly when `value` is (AC-393): a substitution containing a blank
+   * would read `12 × — + 8 × 1.80`, which looks like an equation and is not
+   * one. One condition, so the two can never disagree.
+   *
+   * **Money substitutes in MAJOR units**, matching what the field above it
+   * displays: `2.50`, not the `250` halalas the arithmetic actually runs on. A
+   * calculator whose working is in a different unit from its inputs is a
+   * calculator a reader has to convert before they can check it, which is the
+   * job it was supposed to do for them.
+   */
+  substituted: string | null
+}
+
+/**
+ * Which scope names hold money, so the substitution renders them in major
+ * units. Everything absent from this set is a count, a percentage or a number
+ * of days and substitutes as itself.
+ *
+ * The derived ids are not listed: a definition already declares its `unit`, and
+ * `derivePlanClass` reads that rather than a second list which could disagree
+ * with it.
+ */
+const MONEY_SCOPE_KEYS: ReadonlySet<string> = new Set(['perMinuteHalalas', 'perKmHalalas'])
+
+/**
+ * Render one scope value as it should appear inside the working.
+ *
+ * Two decimals for money and a trimmed number for everything else, so
+ * `executeDays` reads `7` rather than `7.00` while `perKmHalalas` reads `1.80`
+ * rather than `1.8` — a price with one decimal place looks like a typo in a
+ * column of prices.
+ */
+function substituteValue(name: string, raw: number, isMoney: boolean): string {
+  /* **AC-340 — no sub-tab formats money itself**, and the working is money. An
+     earlier cut of this divided by 100 and fixed the decimals itself, which is
+     the rule broken in one line: it produced `1554.00` where the result beside
+     it reads `1,554.00 SAR`, so the two halves of the same calculator would
+     have disagreed about their own group separator.
+
+     **The method is deliberately not NAMED here.** AC-340 greps this file as
+     plain text, so writing the banned call in prose fails the check from inside
+     a comment explaining why it is banned — the same trap `MetricTile` records
+     for Tailwind class names, which are minted out of comments the same way.
+
+     Rounded at the display boundary exactly as `renderDerived` rounds the
+     result, and with `roundHalalas` rather than `Math.round` so the two agree
+     in the negative half too (M-2). The ARITHMETIC is untouched — `scope` still
+     carries full precision, and only what is printed is rounded. */
+  if (isMoney || MONEY_SCOPE_KEYS.has(name)) {
+    return formatMoney(roundHalalas(raw), { unit: 'none' })
+  }
+  return String(Math.round(raw * 1000) / 1000)
+}
+
+/**
+ * Replace every identifier in `expression` with its value from `scope`.
+ *
+ * Returns `null` if any name it needs is blank or unknown — see
+ * `DerivedValue.substituted` for why a partial substitution is refused rather
+ * than rendered with a gap in it.
+ *
+ * The operators (`×`, `−`, `/`, `+`, parentheses) and the literal numbers pass
+ * through untouched, so the working keeps the shape of the formula above it and
+ * a reader can line the two up name by name.
+ */
+export function substituteExpression(
+  expression: string,
+  scope: Record<string, number | null>,
+  moneyIds: ReadonlySet<string>,
+): string | null {
+  let blank = false
+  const out = expression.replace(/[A-Za-z][A-Za-z0-9]*/g, (name) => {
+    const value = scope[name]
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      blank = true
+      return name
+    }
+    return substituteValue(name, value, moneyIds.has(name))
+  })
+  return blank ? null : out
 }
 
 /**
@@ -268,19 +365,35 @@ export function derivePlanClass(
       planClass === 'economy' ? inputs.economyPerKmHalalas : inputs.comfortPerKmHalalas,
   }
 
+  /* Which names in the scope hold money, grown as the chain computes: a
+     definition whose `unit` is `halalas` puts a money value into the scope, and the
+     NEXT definition's working has to render it in major units too. Seeded with
+     the two rate inputs; `grossPerTrip` and the rest are added as they land. */
+  const moneyIds = new Set(MONEY_SCOPE_KEYS)
+
   const out: DerivedValue[] = []
   for (const definition of definitions) {
+    /* **Substituted BEFORE the write-back, and that is the point.** The working
+       has to show the values the expression READ, and `scope[definition.id]`
+       is about to be overwritten with the value it produced. Building the
+       string after the assignment would substitute a definition that reads its
+       own id with its own result. */
+    const substituted = substituteExpression(definition.expression, scope, moneyIds)
     const raw = evaluateExpression(definition.expression, scope)
     /* M-1 — the first and only rounding in the chain is the one the definition
        declares. `platformKeeps` takes the residual after it, so the legs sum. */
     const value = raw === null ? null : definition.rounds ? roundHalalas(raw) : raw
     scope[definition.id] = value
+    if (definition.unit === 'halalas') moneyIds.add(definition.id)
     out.push({
       id: definition.id,
       labelKey: definition.labelKey,
       expression: definition.expression,
       unit: definition.unit,
       value,
+      /* One condition with `value`, so a rendered equation always has a
+         rendered answer and neither can appear without the other. */
+      substituted: value === null ? null : substituted,
     })
   }
   return out

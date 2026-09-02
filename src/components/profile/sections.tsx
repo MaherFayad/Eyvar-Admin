@@ -332,11 +332,22 @@ export function identityFields(
     }
     case 'subscription': {
       const s = record.data
+      /* **`status` and `plan` are NOT here, and their absence is the point.**
+         Identity answers *who and what is this record*; the Subscriptions
+         section below answers *what is the subscription doing*. Both used to
+         claim the plan, and the standing was claimed by both this card and the
+         layer header, so `SUB-2003` rendered `Expired` twice and
+         `Weekly Economy` three times before a single fact that appeared only
+         once. The owner's word for it was redundancy.
+
+         The standing now lives once, in the header, where it is visible without
+         opening a card. The plan lives once, in Subscriptions, beside the cycle
+         and the legs it governs — which is where a reader looking for it would
+         go, because it is a property of the subscription rather than of the
+         record's identity. */
       return [
-        { label: t('profile.field.status'), value: badge(SUBSCRIPTION_STATUS[s.status].tone, t(SUBSCRIPTION_STATUS[s.status].key)) },
         { label: t('profile.field.rider'), value: text(s.riderName) },
         { label: t('profile.field.captain'), value: text(s.driverName) },
-        { label: t('profile.field.plan'), value: text(s.planName) },
         { label: t('profile.field.vehicleClass'), value: text(s.vehicleClass) },
       ]
     }

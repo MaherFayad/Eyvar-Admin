@@ -307,3 +307,54 @@ describe('isBoardEmpty — a ranked list is content (R4-4 §4.1)', () => {
     expect(isBoardEmpty(board({ notices: [notice()] }))).toBe(true)
   })
 })
+
+/**
+ * **§H4 — the ranking contract, through the CLIENT.**
+ *
+ * `BOARD_LEADS` decides which three numbers each board renders at
+ * `--text-kpi-lead`, three across, above everything else. Three properties have
+ * to hold and none can be enforced by the type system:
+ *
+ *   1. **Every board names leads.** A board that names none renders one flat
+ *      grid — exactly the defect ranking exists to fix, silently reintroduced
+ *      for one board and looking like a design choice.
+ *   2. **Exactly three.** Six leads is not a hierarchy and one is not a row.
+ *      The lead grid is a fixed `grid-cols-3`, so four would render 3 + 1 and
+ *      produce the ragged trailing cell `MetricTileRow` exists to avoid.
+ *   3. **Every named key resolves.** A key that has been renamed or deleted
+ *      silently demotes a headline to a supporting tile — the clause most
+ *      likely to rot, because renaming a metric is a routine change in another
+ *      file entirely. A board that came back with two leads instead of three is
+ *      exactly what that looks like from here, and clause 2 catches it.
+ *
+ * **Read through `getMetricBoard` rather than off the fixture**, which is why
+ * this asserts counts rather than key names. `seam.test.ts` holds every fixture
+ * import inside `src/data`, and it is right to: a test that reaches around the
+ * client can pass while the thing the product actually renders is broken. What
+ * a screen receives is `MetricBoard.metrics` with `rank` already stamped, so
+ * that is what is checked — the same array `MetricBoardScreen` partitions.
+ *
+ * It runs on the shipped data, which is the same choice the severity-uniqueness
+ * test above makes and for the same reason: it cannot go stale, and it fails
+ * when the DATA is wrong rather than when a hand-built example is.
+ */
+describe('§H4 — every board ranks exactly three metrics as leads', () => {
+  it.each(METRIC_BOARD_SUB_TABS)('%s', async (subTabId) => {
+    const board = await getMetricBoard(subTabId)
+    const leads = board.metrics.filter((metric) => metric.rank === 'lead')
+    expect(leads).toHaveLength(3)
+  })
+
+  it('puts the leads first, so the lead row is not assembled out of order', async () => {
+    /* `getMetricBoard` sorts them; `MetricBoardScreen` only filters. If the
+       sort were dropped the screen would still render three leads, in fixture
+       order, and `BOARD_LEADS`' sequence — the board's first number first —
+       would be silently discarded. This is the assertion that notices. */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId)
+      const ranks = board.metrics.map((metric) => metric.rank)
+      expect(ranks.slice(0, 3)).toEqual(['lead', 'lead', 'lead'])
+      expect(ranks.slice(3)).not.toContain('lead')
+    }
+  })
+})

@@ -154,6 +154,35 @@ export interface DataColumn<T> {
    * column renders at precisely this width.
    */
   minWidth?: number
+  /**
+   * **The CEILING on the flexible column, and the fix for a table read on a
+   * 2400px monitor.**
+   *
+   * §7.3 rule 2 gives the flexible column 100% of the residual, which is right
+   * up to the width the product was measured at and wrong past it. Measured on
+   * `/financials/revenue` at 2400: `Description` rendered **1,406px wide** — a
+   * measure of roughly 180 characters, three times the upper bound for
+   * readable prose — while the row's own text ended around x=900 and the
+   * `Debit` figure began at x=1,991. Every row carried ~1,100px of empty cell
+   * between a description and the number describing it, which is the owner's
+   * *"how hard it's to know that the number is related to the titles on the
+   * left"* rendered once per row.
+   *
+   * The residual has to stop somewhere, and the only place it can stop that
+   * moves the figures back TOWARD the text is the table's own width — widening
+   * the money columns instead would push their end-aligned figures further
+   * away, and capping the label/figure pair (`FigureRow`'s fix) does not apply
+   * to a column of addends.
+   *
+   * So a column that declares this caps the whole table: `DataTable` sums the
+   * declared widths against it and sets `max-inline-size`, and what is left
+   * over is **page ground** rather than empty cell.
+   *
+   * **Opt-in, and deliberately so.** A column that declares no `maxWidth`
+   * behaves exactly as it did — no cap, 100% of the residual, §7.3 rule 2
+   * untouched. Thirty-nine screens are unaffected by this field existing.
+   */
+  maxWidth?: number
   /** Default true where a `width` is declared. Never exposes the `end` edge (**AC-107**). */
   pinnable?: boolean
   /** §3.1 / §7.1 — the identity column. Never hideable, never unpinnable. */
@@ -560,4 +589,49 @@ export function halalasToMajorInput(halalas: number): string {
   const major = Math.trunc(magnitude / 100)
   const minor = magnitude % 100
   return `${negative ? '-' : ''}${major}.${String(minor).padStart(2, '0')}`
+}
+
+/**
+ * §9.2 — one ledger boundary row: `Opening balance` / `Closing balance`.
+ *
+ * Three parts rather than one node, because the wide table renders the figure
+ * **in the column it totals** and the compact card list renders it beside its
+ * label — two layouts over the same three pieces. `DataTable`'s
+ * `ledgerBoundaryRows` carries the reasoning and the 1,828px measurement that
+ * produced it.
+ *
+ * It lives here rather than in `DataTable` so `NarrowRowCards` can import it
+ * without the cycle that `DataTable` -> `NarrowRowCards` -> `DataTable` would
+ * otherwise make.
+ */
+export interface LedgerBoundary {
+  label: ReactNode
+  /** Beside the LABEL, never beside the figure — a second number in the balance
+   *  column would break the column the figure was just aligned into. */
+  note?: ReactNode
+  value: ReactNode
+}
+
+/**
+ * **The width at which a table stops growing**, or `undefined` when it never
+ * does — the shared derivation behind `DataTable`'s `max-inline-size` and any
+ * chrome that has to line up with it.
+ *
+ * It exists because two different files need the same number and neither may
+ * compute it separately: `DataTable` caps the `<table>` and its bordered band,
+ * and a ledger's own header — an account name at the inline-start and its
+ * balance at the inline-end — has to end where the table ends, or the balance
+ * floats 600px past the last column it belongs over.
+ *
+ * `undefined` unless some column declares a `maxWidth`, which is what keeps
+ * every table that has not opted in exactly as it was.
+ */
+export function tableCeiling(
+  columns: readonly { width?: number; minWidth?: number; maxWidth?: number }[],
+): number | undefined {
+  if (!columns.some((column) => typeof column.maxWidth === 'number')) return undefined
+  return columns.reduce(
+    (total, column) => total + (column.maxWidth ?? column.width ?? column.minWidth ?? 0),
+    0,
+  )
 }

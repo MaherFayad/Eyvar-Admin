@@ -135,12 +135,26 @@ function Calendar({
           defaultClassNames.day
         ),
         range_start: cn(
-          "relative isolate z-0 rounded-s-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:end-0 after:w-4 after:bg-muted",
+          /* **The range wash is the BRAND at 10%, not `--muted`.**
+             `--muted` on the popover's white measured **rgb(246,248,249) against
+             rgb(255,255,255) — 1.04 : 1**, which is a range that is painted
+             and cannot be seen: thirty middle days carried the class and the
+             selection read as two disconnected endpoints. `bg-primary/10`
+             resolves to `--ev-brand-lt`'s own derivation (brand at 10% on
+             white = #e7f0ec, 1.162 : 1), which `globals.css` names as a live
+             idiom — *"any `bg-primary/10` chip a component paints"* — so this
+             introduces no token and no sixth tone. It is also the semantically
+             right colour: the endpoints are solid brand, and the days between
+             them are the same selection at a wash.
+
+             It composites correctly in dark too, which a hard-coded tint would
+             not: `--primary` is already the dark brand there. */
+          "relative isolate z-0 rounded-s-(--cell-radius) bg-primary/10 after:absolute after:inset-y-0 after:end-0 after:w-4 after:bg-primary/10",
           defaultClassNames.range_start
         ),
-        range_middle: cn("rounded-none", defaultClassNames.range_middle),
+        range_middle: cn("rounded-none bg-primary/10", defaultClassNames.range_middle),
         range_end: cn(
-          "relative isolate z-0 rounded-e-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:start-0 after:w-4 after:bg-muted",
+          "relative isolate z-0 rounded-e-(--cell-radius) bg-primary/10 after:absolute after:inset-y-0 after:start-0 after:w-4 after:bg-primary/10",
           defaultClassNames.range_end
         ),
         today: cn(
@@ -235,7 +249,7 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-ring data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-e-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-s-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground [&>span]:text-xs [&>span]:opacity-70",
+        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-ring data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-e-(--cell-radius) data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-primary/10 data-[range-middle=true]:text-foreground data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-s-(--cell-radius) data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground [&>span]:text-xs [&>span]:opacity-70",
         defaultClassNames.day,
         className
       )}

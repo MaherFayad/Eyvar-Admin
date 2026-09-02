@@ -193,6 +193,12 @@ export function MetricTile({ metric, boardAsOf, t, language }: MetricTileProps) 
   const label = t(`metric.${metric.key}`)
   const Icon = CATEGORY_ICON[metric.category]
   const isStale = new Date(metric.asOf).getTime() < new Date(boardAsOf).getTime()
+  /* §H4 — the ONE thing rank changes inside a tile. Everything else that makes
+     a lead read as a lead is the GRID's: three across instead of four, and
+     first. Anatomy is deliberately identical at both ranks — icon, value,
+     label, caption, delta — because a board an operator has to re-learn the
+     reading order of at each rank would spend the hierarchy it just bought. */
+  const isLead = metric.rank === 'lead'
 
   const tile = (
     <Card
@@ -241,7 +247,10 @@ export function MetricTile({ metric, boardAsOf, t, language }: MetricTileProps) 
              slot would restate the guarantee at a call site that is free to
              omit it, which is the mechanism H4 declines to rely on. */
           data-slot="metric-value"
-          className="text-kpi font-semibold text-foreground"
+          className={cn(
+            'font-semibold text-foreground',
+            isLead ? 'text-kpi-lead' : 'text-kpi',
+          )}
         >
           <bdi>{formatMetricValue(metric.value, metric.unit, language)}</bdi>
         </span>

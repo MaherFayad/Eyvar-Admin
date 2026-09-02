@@ -16,7 +16,7 @@
 export { BreakdownList, type BreakdownListProps } from './BreakdownList'
 export { ChartCard, type ChartCardProps } from './ChartCard'
 export { MetricTile, type MetricTileProps } from './MetricTile'
-export { MetricTileItem, MetricTileRow } from './MetricTileRow'
+export { MetricLeadRow, MetricTileItem, MetricTileRow } from './MetricTileRow'
 export { TrendChart, type TrendChartProps } from './TrendChart'
 export {
   formatDecimal,

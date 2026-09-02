@@ -21,7 +21,8 @@
  *
  * ## One definition, printed and evaluated
  *
- * The formula panel renders `PLAN_PRICING_DEFINITIONS` and the preview strip
+ * The calculator panel renders each definition's expression, its working and
+ * its result on one row (see `PlanCalculator`), and the preview strip
  * evaluates the **same `expression` strings** (`derived.ts`). So **AC-397** —
  * *"each line's expression matches its definition character for character"* —
  * holds by construction: there is no second copy to drift from. Legacy has two
@@ -50,7 +51,8 @@ import { useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getPlan, savePlan } from '@/data/clients'
-import { PLAN_EXAMPLE_INPUTS, PLAN_PRICING_DEFINITIONS } from '@/data/types'
+import { PLAN_EXAMPLE_INPUTS } from '@/data/types'
+import { cn } from '@/lib/utils'
 import type { PlanFeature, PlanKey, SubscriptionPlan } from '@/data/types'
 import { useAsync, useForm, type Field } from '@/hooks'
 import { ABSENT, formatCount, formatMoney, formatPercent, parseNumericInput } from '@/lib'
@@ -320,6 +322,23 @@ function PlanEditorForm({
       onExit={onExit}
       onSave={submit}
       canSave={form.canSave}
+      aside={
+        /* **Section 2.5's inspector, and the answer to "show me a proper
+           calculator".** Three cards that were the last three screens of a
+           scrolling form and are now beside the fields that drive them:
+
+             1. the assumptions the example is computed under,
+             2. the calculation itself, step by step, showing FORMULA →
+                WORKING → RESULT for each of the six definitions,
+             3. what a rider is charged, per class.
+
+           Nothing here is new arithmetic. `derivePlan` already computed every
+           one of these numbers from `PLAN_PRICING_DEFINITIONS`, and AC-397's
+           rule that each expression is its definition's character for character
+           still holds — the substituted line beneath it is generated from the
+           same string and the same scope, so the two cannot drift. */
+        <PlanCalculator form={form} t={t} language={language} />
+      }
       t={t}
       dir={dir}
     >
@@ -549,70 +568,187 @@ function PlanEditorForm({
           </div>
         </Card>
 
-        {/* ── the worked example — DERIVED VALUES ────────────────────── */}
-        <Card className="gap-3">
-          <div className="flex flex-col gap-3 px-(--card-spacing)">
-            <h2 className="text-sm font-semibold text-foreground">
-              {t('fin.planEditor.preview.heading')}
-            </h2>
-            {/* **AC-399** — the column header states its literal inputs, and the
-                note states that surge is excluded, because a plan leg is
-                structurally excluded from surge (D-F4). */}
-            <p className="text-xs text-muted-foreground">
-              {t('fin.planEditor.preview.column', {
-                km: String(PLAN_EXAMPLE_INPUTS.exampleKm),
-                minutes: String(PLAN_EXAMPLE_INPUTS.exampleMinutes),
-                days:
-                  form.values.executeDays === null
-                    ? ABSENT
-                    : formatCount(form.values.executeDays, language),
-              })}
-            </p>
-
-            <div className="grid grid-cols-2 gap-4">
-              <PreviewColumn
-                heading={t('fin.planEditor.preview.class.economy')}
-                values={form.derived.economy}
-                t={t}
-                language={language}
-              />
-              <PreviewColumn
-                heading={t('fin.planEditor.preview.class.comfort')}
-                values={form.derived.comfort}
-                t={t}
-                language={language}
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              {t('fin.planEditor.preview.note.plan')}
-            </p>
-          </div>
-        </Card>
-
-        {/* ── the formula panel — rendered FROM the definitions ──────── */}
-        <Card className="gap-2">
-          <div className="flex flex-col gap-1 px-(--card-spacing)">
-            <h2 className="text-sm font-semibold text-foreground">
-              {t('fin.planEditor.formula.heading')}
-            </h2>
-            {/* **AC-397** — the line count equals the definition count, and each
-                line's expression IS its definition's, character for character.
-                There is no second copy anywhere, in code or in markup. */}
-            <ul role="list" className="flex list-none flex-col gap-1">
-              {PLAN_PRICING_DEFINITIONS.map((definition) => (
-                <li key={definition.id} className="flex flex-wrap items-baseline gap-2 text-sm">
-                  <span className="text-muted-foreground">{t(definition.labelKey)}</span>
-                  <code className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-foreground">
-                    <bdi>{definition.expression}</bdi>
-                  </code>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Card>
       </div>
     </FullBleedEditorShell>
+  )
+}
+
+/* ─────────────────────────────── the calculator ─────────────────────────── */
+
+/**
+ * **§2.5's inspector panel — the plan's arithmetic, beside the fields that
+ * drive it.**
+ *
+ * ## The three defects this replaces
+ *
+ * The editor already computed everything below. What it did with the result was
+ * the problem:
+ *
+ *   1. **The preview was an appendix.** The worked example and the formula
+ *      panel were the last two cards of a ~1,600px scrolling form, so a pricing
+ *      owner changing `Commission %` had to scroll past every field they had
+ *      just filled in to see what it did, then scroll back to make the next
+ *      edit. A preview you cannot see while editing is not a preview.
+ *   2. **The formulas and the numbers were in different cards.** One card said
+ *      `driverEarns = planTotal × (1 − commissionPercent/100)`. Another,
+ *      further down, said `Captain earns  3,591.15 SAR`. Nothing connected the
+ *      two, so checking one against the other meant holding a formula in your
+ *      head while you scrolled to its answer.
+ *   3. **There was no working.** Formula and result, with the substitution —
+ *      the step where a reader can actually check the arithmetic — missing.
+ *      The owner's words: *"the calculations to be more clear — show me a
+ *      proper calculator"*. A calculator has three parts and this had two.
+ *
+ * ## What each row shows
+ *
+ * ```
+ *   Captain earns                                       <- the definition's label
+ *   planTotal × (1 − commissionPercent/100)             <- AC-397's expression
+ *   1,554.00 × (1 − 20/100)                             <- the same, substituted
+ *                                          1,243.20 SAR <- the result
+ * ```
+ *
+ * **AC-397 is not weakened by this and is worth checking against.** Its rule is
+ * that the expression rendered *"IS its definition's, character for character"*
+ * and that *"there is no second copy anywhere, in code or in markup"*. Both
+ * still hold: the expression is `definition.expression` as before, and the
+ * substituted line is generated from that same string against the same scope by
+ * `substituteExpression`, so it cannot say something the formula does not. What
+ * changed is that the formula now sits ON the row it explains rather than in a
+ * separate card, which is strictly less duplication than before, not more.
+ *
+ * **AC-393's em dash survives.** `substituted` is `null` exactly when `value`
+ * is, by one condition in `derivePlanClass`, so a blank input renders the label
+ * and an em dash with no half-written equation under it.
+ *
+ * **AC-399 / D-F4's assumptions move to the top** of the panel rather than
+ * sitting between the two cards: they are the inputs the whole calculation is
+ * conditional on, and a reader needs them before the working rather than after
+ * it.
+ */
+function PlanCalculator({
+  form,
+  t,
+  language,
+}: {
+  form: { values: PlanValues; derived: PlanDerived }
+  t: ReturnType<typeof useShell>['language']['t']
+  language: ReturnType<typeof useShell>['language']['language']
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* AC-399 / D-F4 — what the example assumes, before any of it. */}
+      <Card className="gap-2">
+        <div className="flex flex-col gap-1 px-(--card-spacing)">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t('fin.planEditor.preview.heading')}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {t('fin.planEditor.preview.column', {
+              km: String(PLAN_EXAMPLE_INPUTS.exampleKm),
+              minutes: String(PLAN_EXAMPLE_INPUTS.exampleMinutes),
+              days:
+                form.values.executeDays === null
+                  ? ABSENT
+                  : formatCount(form.values.executeDays, language),
+            })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t('fin.planEditor.preview.note.plan')}
+          </p>
+        </div>
+      </Card>
+
+      {/* The calculation, per vehicle class. Two cards rather than two columns:
+          each row is now four lines deep, and side by side at 416px the
+          expressions would wrap mid-formula. */}
+      <CalculatorCard
+        heading={t('fin.planEditor.preview.class.economy')}
+        values={form.derived.economy}
+        t={t}
+        language={language}
+      />
+      <CalculatorCard
+        heading={t('fin.planEditor.preview.class.comfort')}
+        values={form.derived.comfort}
+        t={t}
+        language={language}
+      />
+    </div>
+  )
+}
+
+/**
+ * One vehicle class's chain, as `formula → working → result` per step.
+ *
+ * `aria-live="polite"` stays on the RESULT and not on the working: the panel
+ * recomputes on every keystroke, and announcing three lines per step per class
+ * would make the editor unusable with a screen reader. The number is what
+ * changed; the formula did not.
+ */
+function CalculatorCard({
+  heading,
+  values,
+  t,
+  language,
+}: {
+  heading: string
+  values: DerivedValue[]
+  t: ReturnType<typeof useShell>['language']['t']
+  language: ReturnType<typeof useShell>['language']['language']
+}) {
+  return (
+    <Card className="gap-2">
+      <div className="flex flex-col gap-2 px-(--card-spacing)">
+        <h3 className="text-sm font-semibold text-foreground">{heading}</h3>
+        <dl className="flex list-none flex-col gap-2">
+          {values.map((value, index) => (
+            <div
+              key={value.id}
+              className={cn(
+                'flex flex-col gap-0.5',
+                /* A rule above every step but the first, so six steps read as
+                   six steps rather than as one block of text. */
+                index > 0 && 'border-t border-border pt-2',
+              )}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sm text-foreground">{t(value.labelKey)}</dt>
+                <dd
+                  aria-readonly
+                  aria-live="polite"
+                  className="shrink-0 text-sm font-semibold tabular-nums text-foreground"
+                >
+                  <bdi>{renderDerived(value, language)}</bdi>
+                </dd>
+              </div>
+              {/* AC-397's expression, character for character. **It WRAPS and
+                  must not truncate**: `exampleMinutes × perMinuteHalalas +
+                  exampleKm × perKmHalalas` is 54 characters and the panel is
+                  416px, so `truncate` cut it at `perKmH…` — a formula with its
+                  last operand missing is worse than no formula, because it
+                  looks complete. Wrapping costs a line and keeps AC-397's
+                  character-for-character promise true on screen rather than
+                  only in the source. `<bdi>` because
+                  it is a Latin formula that must not reorder inside an Arabic
+                  panel — `1 − commissionPercent/100` with its leading digit is
+                  exactly the bidi-neutral run that hops to the far end. */}
+              <code className="block text-xs break-words text-muted-foreground">
+                <bdi>{value.expression}</bdi>
+              </code>
+              {value.substituted !== null && (
+                /* THE WORKING — the third of a calculator that was missing.
+                   Suppressed rather than half-rendered when an input is blank;
+                   see `DerivedValue.substituted`. */
+                <code className="block text-xs break-words tabular-nums text-muted-foreground">
+                  <bdi>{value.substituted}</bdi>
+                </code>
+              )}
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Card>
   )
 }
 
@@ -789,46 +925,6 @@ function SwitchField({
 }
 
 /* ───────────────────────── the derived-value column ────────────────────── */
-
-/**
- * **AC-391** — no border, no fill, not focusable, absent from the tab order,
- * `aria-readonly` and a polite live region. There is no `tabIndex` here, not
- * even `-1`.
- *
- * **AC-393** — a value with no computable result renders an em dash. Never
- * `0.00 SAR`, never blank, never a stale number.
- */
-function PreviewColumn({
-  heading,
-  values,
-  t,
-  language,
-}: {
-  heading: string
-  values: DerivedValue[]
-  t: ReturnType<typeof useShell>['language']['t']
-  language: ReturnType<typeof useShell>['language']['language']
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <h3 className="text-xs font-medium text-muted-foreground">{heading}</h3>
-      <dl className="flex flex-col gap-1">
-        {values.map((value) => (
-          <div key={value.id} className="flex items-baseline justify-between gap-3">
-            <dt className="text-sm text-muted-foreground">{t(value.labelKey)}</dt>
-            <dd
-              aria-readonly
-              aria-live="polite"
-              className="text-sm font-medium tabular-nums text-foreground"
-            >
-              <bdi>{renderDerived(value, language)}</bdi>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  )
-}
 
 function renderDerived(
   value: DerivedValue,

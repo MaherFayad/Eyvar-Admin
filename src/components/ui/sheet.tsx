@@ -1,9 +1,15 @@
 /**
  * Sheet — the shell layer. Restyled on arrival, and the behaviour changed.
  *
- * The stock component arrives with a scrim AND a focus trap. Eyvar's shell
- * layers have NEITHER, and that is not a preference — it is the reason a
+ * The stock component arrives with a scrim AND a focus trap. Eyvar's edge
+ * drawers have NEITHER, and that is not a preference — it is the reason a
  * drawer beat a modal in the first place (design spec §6.1).
+ *
+ * **The fifth side, `overlay`, is the exception and it has both.** It exists
+ * because the 360° profile was asked to be a full-screen popup showing none of
+ * the navigation, and §7.3.3 then supplies the rest: a surface that dims the
+ * page owns the keyboard. See `Sheet` and `SheetContent` below; the four edge
+ * variants are untouched by it.
  *
  * Rules applied
  *   §5.5        NO SCRIM. The workspace behind stays legible AND interactive
@@ -91,13 +97,34 @@ import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
 /**
- * `modal={false}` is load-bearing: it is what turns off both the scrim's
- * pointer blocking and the focus trap. Passing `modal` is not offered.
+ * `modal={false}` is load-bearing and is the DEFAULT: it is what turns off both
+ * the scrim's pointer blocking and the focus trap for an edge drawer.
  */
 function Sheet({
+  modal = false,
   ...props
-}: Omit<React.ComponentProps<typeof SheetPrimitive.Root>, "modal">) {
-  return <SheetPrimitive.Root data-slot="sheet" modal={false} {...props} />
+}: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  /* **`modal` is offered again, and still defaults to `false`.**
+   *
+   * It used to be `Omit`ted outright, on the reasoning quoted above: `false` is
+   * what turns off the scrim's pointer blocking AND the focus trap, both of
+   * which §5.5 and §7.3.3 forbid for an edge drawer. That reasoning is intact
+   * and the default enforces it — a caller that says nothing gets a drawer.
+   *
+   * What the `Omit` also did, unintentionally, was make the modal presentation
+   * unbuildable. `side="overlay"` renders a scrim and traps focus BECAUSE
+   * §7.3.3 says a surface that dims the page owns the keyboard, and Radix
+   * derives all three behaviours — the overlay element, the pointer block and
+   * the trap — from this one flag. Hand-rolling them beside a `modal={false}`
+   * root meant reimplementing three things the primitive already does, and the
+   * first attempt got one of them wrong: `SheetPrimitive.Overlay` renders
+   * nothing at all under a non-modal root, so the "scrim" was absent while the
+   * markup claimed it.
+   *
+   * One flag, three behaviours, no divergence. `ShellLayer` is the only caller
+   * that passes it, and it derives it from `presentation`.
+   */
+  return <SheetPrimitive.Root data-slot="sheet" modal={modal} {...props} />
 }
 
 function SheetTrigger({
@@ -118,7 +145,12 @@ function SheetPortal({
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
-type SheetSide = "inline-start" | "inline-end" | "block-start" | "block-end"
+/**
+ * `overlay` is the fifth, and it is not an edge — it is a MODAL that covers the
+ * shell. See `SheetContent` for the two rulings it deliberately departs from
+ * and why the owner's instruction outranks them here.
+ */
+type SheetSide = "inline-start" | "inline-end" | "block-start" | "block-end" | "overlay"
 
 /**
  * Everything the browser lets you Tab to. Radix's own focus guards are excluded
@@ -204,9 +236,33 @@ function SheetContent({
   side?: SheetSide
   showCloseButton?: boolean
 }) {
+  const isModal = side === "overlay"
   return (
     <SheetPortal>
-      {/* No SheetOverlay. See the header: §5.5 forbids the scrim. */}
+      {/* §5.5 forbids the scrim, and the four EDGE variants still have none —
+          that ruling is about a panel sitting beside a page the operator is
+          still working in, which is what those are.
+
+          **`overlay` takes one, on the owner's instruction**: the record layer
+          should show none of the navigation and read as a popup. A popup that
+          leaves the rail, the nav column and the top bar lit behind it is not a
+          popup, and the scrim is the only thing that says the console is
+          suspended. The departure is scoped to this one side; nothing else in
+          the product gains a scrim by it. */}
+      {isModal && (
+        <SheetPrimitive.Overlay
+          data-slot="sheet-overlay"
+          /* **The same scrim `dialog.tsx` paints, to the class.** The product
+             has one scrim recipe and this is it — `bg-foreground/20` plus the
+             backdrop blur — so a scrimmed record modal and a scrimmed
+             confirmation look like the same kind of surface. A first cut used
+             `/25` and no blur, which was a second recipe and was also wrong in
+             dark: `--foreground` is near-white there, so the wash LIGHTENS the
+             console rather than dimming it, and the blur is what actually
+             separates the two planes. */
+          className="fixed inset-0 isolate z-50 bg-foreground/20 duration-200 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        />
+      )}
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
@@ -215,21 +271,54 @@ function SheetContent({
            gets us. */
         onKeyDown={(event) => {
           onKeyDown?.(event)
-          if (!event.defaultPrevented) releaseTabAtEdges(event)
+          /* AC-67 lets Tab LEAVE an edge layer, because the page behind it is
+             still live and reachable. A modal's page is not: releasing focus
+             into a scrimmed console would put the caret on controls the
+             operator can neither see nor click. So the modal traps, which is
+             what every other dialog in the product already does. */
+          if (!isModal && !event.defaultPrevented) releaseTabAtEdges(event)
         }}
         onPointerDownOutside={(event) => {
-          // AC-20 — the page behind stays interactive, so an outside click is
-          // a click on the page, not a dismissal.
-          event.preventDefault()
+          /* AC-20 — the page behind an EDGE layer stays interactive, so an
+             outside click is a click on the page rather than a dismissal.
+
+             A modal has no interactive outside; its outside is the scrim, and a
+             click there is the ordinary way to dismiss a popup. Preventing it
+             would leave the operator with a full-screen surface closable only
+             from one small control. */
+          if (!isModal) event.preventDefault()
           onPointerDownOutside?.(event)
         }}
         onInteractOutside={(event) => {
-          event.preventDefault()
+          if (!isModal) event.preventDefault()
           onInteractOutside?.(event)
         }}
         className={cn(
           "fixed z-50 flex flex-col bg-popover text-sm text-popover-foreground",
           "shadow-2 transition-transform duration-200 ease-out",
+          /* **`overlay` — a modal over the whole shell, not a panel at an
+             edge.** Inset 24px at and above 768px so it reads as a POPUP: a
+             panel with all four edges visible over a dimmed console. Edge to
+             edge below that, where 24px of scrim on a 390px phone is a border
+             rather than a frame and the record needs every pixel.
+
+             It fades rather than slides. The four edge variants translate
+             because they arrive FROM somewhere; a modal centred over the page
+             arrives from nowhere, and sliding it in from an edge would claim a
+             direction it does not have. */
+          /* Capped at the page measure and centred, not stretched to the
+             viewport. A record stack across 2,352px would put a label and its
+             value at opposite ends of the screen — the exact defect
+             `--ev-page-measure` was added to remove — so the modal obeys the
+             same measure every page does. `inset-6` still sets the block axis
+             and the 24px minimum inset; `mx-auto` centres the surplus. */
+          "data-[side=overlay]:inset-6 data-[side=overlay]:rounded-xl",
+          "data-[side=overlay]:mx-auto data-[side=overlay]:max-w-measure",
+          "data-[side=overlay]:border data-[side=overlay]:border-border",
+          "data-[side=overlay]:compact:inset-0 data-[side=overlay]:compact:rounded-none",
+          "data-[side=overlay]:compact:border-0",
+          "data-[side=overlay]:transition-opacity",
+          "data-[side=overlay]:data-closed:opacity-0",
           // Inline-end: the shell layers. Starts below the top bar so the save
           // bar stays reachable while the layer is open (§6.1).
           "data-[side=inline-end]:top-topbar data-[side=inline-end]:bottom-0",

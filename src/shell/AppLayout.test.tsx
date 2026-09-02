@@ -145,22 +145,70 @@ describe('D5 — the sub-tab column is always rendered', () => {
 })
 
 describe('AC-20, AC-22, AC-66 — the shell layers', () => {
-  it('opens the 360° profile from ?entity= over a still-visible route', async () => {
+  /**
+   * **AC-20 is now split by presentation, and these two tests are the split.**
+   *
+   * The rule used to be one sentence for all three layers: the route behind
+   * stays rendered, visible and interactive, and there is no scrim. It still
+   * holds for the two layers it was written about — notifications and account,
+   * which an operator consults WHILE working — and the test below pins it there
+   * on the account layer so the coverage is not lost.
+   *
+   * The **360° profile** was moved to `presentation="modal"` on the owner's
+   * instruction — it should be full screen and show none of the navigation —
+   * and §7.3.3 supplies the rest: a surface that dims the page owns the
+   * keyboard. So for that one layer the assertions invert, and they are
+   * rewritten rather than deleted: the route must still be MOUNTED behind it
+   * (a layer is still not a destination, and Escape must return to it) while
+   * being hidden from the accessible tree, and the scrim must exist.
+   */
+  it('opens the 360° profile from ?entity= over a route that stays MOUNTED', async () => {
     renderShell('/operations/people?entity=RDR-1041')
-    /* AC-20 — the underlying route is still rendered behind it, and the
-       workspace stays highlighted. A layer is not a destination. */
-    expect(await screen.findByText('screen: operations-people')).toBeInTheDocument()
-    expect(railTile('operations')).toHaveAttribute('aria-current', 'page')
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    /* AC-20's surviving half: the layer is not a destination, so the route
+       behind it is still mounted and its workspace is still the current one.
+       `getByText` reaches it through the DOM rather than the accessible tree,
+       which is exactly the distinction this layer now draws. */
+    expect(screen.getByText('screen: operations-people')).toBeInTheDocument()
+    /* Reached through the DOM rather than by role, deliberately: the rail is
+       `aria-hidden` under the modal, which is the previous assertion's whole
+       point, so a role query would fail here for the RIGHT reason and hide
+       whether the tile is still current. */
+    const opsTile = document.querySelector('a[aria-current="page"]')
+    expect(opsTile?.textContent).toContain(EN['nav.rail.operations'] as string)
   })
 
-  it('renders NO scrim — §5.5, the page behind stays interactive', async () => {
+  it('hides the navigation from the accessible tree — the modal presentation', async () => {
     renderShell('/operations/people?entity=RDR-1041')
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
-    /* `sheet.tsx` deletes `SheetOverlay` outright rather than making it
-       transparent, because a transparent overlay still eats pointer events. */
+    /* *"no need to show me any of the navigation"*. Radix marks everything
+       outside a modal `aria-hidden`, so the rail's links leave the accessible
+       tree while staying in the document — which is the correct reading of the
+       instruction: hidden from the operator, not unmounted from under them. */
+    expect(
+      screen.queryByRole('navigation', { name: EN['shell.nav.workspaces'] as string }),
+    ).toBeNull()
+  })
+
+  it('renders the scrim for the modal profile — §7.3.3, the scrim decides the trap', async () => {
+    renderShell('/operations/people?entity=RDR-1041')
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    expect(document.querySelector('[data-slot="sheet-overlay"]')).not.toBeNull()
+  })
+
+  it('renders NO scrim for a DRAWER layer — §5.5, the page behind stays interactive', async () => {
+    /* The half of §5.5 that is unchanged, pinned on a layer that is still a
+       drawer. `sheet.tsx` renders no overlay at all under `modal={false}`
+       rather than a transparent one, because a transparent overlay still eats
+       pointer events. */
+    renderShell('/operations/people?account=me')
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
     expect(document.querySelector('[data-slot="sheet-overlay"]')).toBeNull()
     expect(document.querySelector('[data-slot="dialog-overlay"]')).toBeNull()
+    /* And the navigation is still reachable beside it. */
+    expect(
+      screen.getByRole('navigation', { name: EN['shell.nav.workspaces'] as string }),
+    ).toBeInTheDocument()
   })
 
   it('closes on Escape — AC-66', async () => {

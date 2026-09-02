@@ -7,6 +7,29 @@
  *               never blank.** `Field.value === null` is the pair that has no
  *               value, and it renders `Not recorded` in `--ev-text-2` rather
  *               than an empty cell. §7.2 repeats the rule for rail cards.
+ *
+ *               **AMENDED — absence is stated ONCE PER CARD, naming the
+ *               fields, when three or more of them are absent together.** The
+ *               ruling's purpose is that a reader must never meet a blank and
+ *               have to guess whether it is missing data or a broken render;
+ *               that is preserved exactly, and nothing is silently dropped. It
+ *               is the REPETITION the ruling did not anticipate.
+ *
+ *               Measured on `SUB-2003`: the Subscriptions card rendered seven
+ *               pairs of which five read `Not recorded`, so the card was
+ *               mostly one sentence printed five times, and `Cycle` and
+ *               `Legs used` — the two facts it exists to carry — were
+ *               outnumbered five to two by their own absence. The owner's
+ *               words for the surface were *"a lot of redundancy"*.
+ *
+ *               Below three, the pairs stay inline: one `Not recorded` beside
+ *               a value is a fact about that field and reads as one. Three is
+ *               where it stops being a fact and starts being a texture.
+ *
+ *               The absent fields are still NAMED, in reading order, in the
+ *               same grey, in one line — so the reader still learns exactly
+ *               which facts are missing, which is the whole of what §3.5 was
+ *               protecting.
  *   §8.3.1      money goes through `Money`, so the ISO code trails, the
  *               negative is U+2212 and the run is bidi-isolated (**AC-73**).
  *   §8.3.1      `—` is reserved for not-applicable. A field whose value is
@@ -48,6 +71,35 @@ export interface Field {
 }
 
 /**
+ * How many absent fields a list tolerates inline before it groups them.
+ *
+ * Two is a pair of facts. Three is a pattern, and by five the card is a
+ * paragraph of the same sentence — see §3.5's amendment above for the
+ * `SUB-2003` measurement that set this.
+ */
+const GROUP_ABSENT_FROM = 3
+
+/**
+ * Split a field list into the pairs that carry a value and the labels that do
+ * not, preserving declaration order in both.
+ *
+ * Returns the ORIGINAL list unsplit when there are too few absences to group,
+ * so the common card — everything recorded, or one thing missing — renders
+ * byte-identically to before this existed.
+ */
+export function splitAbsent(fields: readonly Field[]): {
+  present: readonly Field[]
+  absentLabels: readonly string[]
+} {
+  const absent = fields.filter((field) => field.value === null)
+  if (absent.length < GROUP_ABSENT_FROM) return { present: fields, absentLabels: [] }
+  return {
+    present: fields.filter((field) => field.value !== null),
+    absentLabels: absent.map((field) => field.label),
+  }
+}
+
+/**
  * A definition list. `<dl>` and not a table: these are pairs, not a grid, and a
  * screen reader announces the association without a header row to invent.
  */
@@ -76,10 +128,13 @@ export function FieldList({
   t: Translate
   layout?: 'rows' | 'grid'
 }) {
+  const { present, absentLabels } = splitAbsent(fields)
+
   if (layout === 'grid') {
     return (
+      <div className="flex flex-col gap-2">
       <FactGrid
-        facts={fields.map((field) => ({
+        facts={present.map((field) => ({
           label: field.label,
           /* The null placeholder and the `<bdi>` isolate are the two things
              this file owns and neither is duplicated in `FactGrid` — the
@@ -96,6 +151,8 @@ export function FieldList({
             ),
         }))}
       />
+      <AbsentLine labels={absentLabels} t={t} />
+      </div>
     )
   }
 
@@ -117,7 +174,7 @@ export function FieldList({
        align on the text baseline, not on the top of two different line boxes.
        Without it the 12px label sits 2px proud of its own value. */
     <dl data-numeric className="flex flex-col gap-1.5 text-sm">
-      {fields.map((field) => (
+      {present.map((field) => (
         <div key={field.label} className="flex items-baseline justify-between gap-3">
           <dt className="shrink-0 text-xs text-muted-foreground">{field.label}</dt>
           <dd className="min-w-0 text-end text-foreground">
@@ -165,7 +222,60 @@ export function FieldList({
           </dd>
         </div>
       ))}
+      {absentLabels.length > 0 && (
+        /* Inside the `<dl>` so the association survives: it is still a
+           statement about these pairs, and a screen reader reaching it has
+           just been read the ones that do have values. */
+        <div className="pt-0.5">
+          <AbsentLine labels={absentLabels} t={t} />
+        </div>
+      )}
     </dl>
+  )
+}
+
+/**
+ * §3.5 as amended — **one line, naming every field this record has no value
+ * for.**
+ *
+ * ## What it replaces
+ *
+ * Five pairs each reading `Not recorded`, which is what `SUB-2003`'s
+ * Subscriptions card was: seven fields, five of them absent, so the card said
+ * the same thing five times and the two facts it exists to carry were
+ * outnumbered by their own absence.
+ *
+ * ## Why naming them matters, and why this is not a deletion
+ *
+ * §3.5's rule is that a reader must never meet a blank and have to work out
+ * whether it is missing data or a broken render. That is met here and met
+ * better: a blank would say nothing, five repetitions say one thing five
+ * times, and this says exactly which facts are missing, once, in the order
+ * they were declared.
+ *
+ * The labels are joined with `·` rather than `,` because several of them are
+ * already phrases containing a comma's worth of pause — `Cancellation reason`,
+ * `Renewal likelihood` — and a comma list of noun phrases reads as one long
+ * noun phrase. The separator is decorative and is hidden from a screen reader,
+ * which gets the labels as text.
+ *
+ * **Not a `<details>` and not a toggle.** The point is to spend one line
+ * instead of five, and a control that has to be operated to learn what is
+ * missing costs a click to recover information the reader had before this
+ * change. It is shorter, not hidden.
+ */
+function AbsentLine({ labels, t }: { labels: readonly string[]; t: Translate }) {
+  if (labels.length === 0) return null
+  return (
+    <p className="text-xs text-muted-foreground">
+      <span className="font-medium">{t('profile.field.absentMany')}</span>{' '}
+      {labels.map((label, index) => (
+        <span key={label}>
+          {index > 0 && <span aria-hidden="true"> · </span>}
+          {label}
+        </span>
+      ))}
+    </p>
   )
 }
 

@@ -181,8 +181,10 @@ import {
   filterEntries,
   filterFieldOf,
   isolatesValue,
+  tableCeiling,
   type DataColumn,
   type ExtraFilterSpec,
+  type LedgerBoundary,
 } from './table/columns'
 import { densityClasses, useTableDensity } from './table/density'
 import { tableCsvFilename, tableCsvText } from './table/csv'
@@ -236,6 +238,82 @@ export type { ToolbarTab } from './table/IndexToolbar'
 export type { RowAction } from './table/rowActions'
 
 /* ──────────────────────────── the props ──────────────────────────── */
+
+/**
+ * §9.2 / AC-317 / AC-318 — one ledger boundary row, with the figure **under
+ * the column it totals**.
+ *
+ * ## The defect this replaces
+ *
+ * `<td colSpan={columnCount}>` with `justify-between` inside it. Measured on
+ * `/financials/wallets` at 2400px: `Opening balance` ended at x=530 and its
+ * `0.00` began at x=2358 — **1,828px of empty row** between a label and the
+ * number it names, with no rule, no leader and no column to carry the eye. The
+ * same row at 1440 measured 868px. It is the single worst instance in the
+ * product of the defect the owner described as *"how hard it's to know that the
+ * number is related to the titles on the left"*.
+ *
+ * ## Why alignment beats capping
+ *
+ * The obvious fix is `max-w-md` on the pair — which is what `FigureRow` does,
+ * correctly, for a breakdown that sums to a total inside a card. It is the
+ * wrong fix here, and the reason is what the row IS: this is not a label and a
+ * number, it is the **total of a column**. Capping the pair would put
+ * `Opening balance   0.00` in the leading third of the table with the Balance
+ * column's own figures 1,500px away in the trailing third — the eye would find
+ * the label faster and would still have nothing to add the number to.
+ *
+ * Under the column, the label needs no proximity to its figure at all: the
+ * COLUMN HEADER is the label, the figures above it are the addends, and the
+ * boundary row is the top and bottom of a sum a Finance lead reads down. That
+ * is also why the debit/credit summary moves to sit beside the label rather
+ * than beside the figure — it describes the row, and a second number in the
+ * balance column would break the column it was just aligned into.
+ *
+ * `spans === null` falls back to the old full-span row, which is what happens
+ * when the operator has switched the balance column off. See `boundarySpans`.
+ */
+function BoundaryRow({
+  boundary,
+  spans,
+  columnCount,
+}: {
+  boundary: LedgerBoundary
+  spans: { before: number; after: number } | null
+  columnCount: number
+}) {
+  if (spans === null) {
+    return (
+      <TableRow className="font-semibold">
+        <TableCell colSpan={columnCount}>
+          <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {boundary.label}
+            {boundary.note}
+            <span className="tabular-nums">{boundary.value}</span>
+          </span>
+        </TableCell>
+      </TableRow>
+    )
+  }
+
+  return (
+    <TableRow className="font-semibold">
+      <TableCell colSpan={spans.before}>
+        {/* The note sits beside the label, wrapping under it on a narrow
+            table rather than pushing the label out of the cell. */}
+        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {boundary.label}
+          {boundary.note}
+        </span>
+      </TableCell>
+      {/* `text-end` — a figure under a column of figures takes that column's
+         alignment, and every money column in this product is end-aligned.
+         Logical, so it mirrors with the table under `dir="rtl"`. */}
+      <TableCell className="text-end tabular-nums">{boundary.value}</TableCell>
+      {spans.after > 0 && <TableCell colSpan={spans.after} />}
+    </TableRow>
+  )
+}
 
 export interface DataTableProps<T> {
   /** From `useIndexTable`. **The mode is `table.mode`** — see the header. */
@@ -350,8 +428,42 @@ export interface DataTableProps<T> {
   /** §11.2 — card-scoped error copy. */
   error: { message: string; onRetry: () => void }
 
-  /** §9.2 — ledger only. `Opening balance` / `Closing balance`, bold both sides. */
-  ledgerBoundaryRows?: { opening: ReactNode; closing: ReactNode }
+  /**
+   * §9.2 — ledger only. `Opening balance` / `Closing balance`, bold both sides.
+   *
+   * ## Why this is three parts and not one node
+   *
+   * It used to be one `ReactNode` per boundary, rendered into a single
+   * `<td colSpan={columnCount}>`, and the caller laid it out with
+   * `justify-between`. On a 2400px screen that measured **1,828px between the
+   * words `Opening balance` and the figure `0.00`** — the full width of the
+   * table, with nothing in between and no rule to carry the eye across. The
+   * owner's words: *"see how hard it's to know that the number is related to
+   * the titles on the left"*.
+   *
+   * `justify-between` was not the defect; the SPAN was. A total in a ledger
+   * belongs **under the column it totals** — that is what makes it addable
+   * down the page against the rows above it, and it is the one position that
+   * needs no leader line at any width, because the column header is already
+   * the label. So the boundary row is now real cells:
+   *
+   * ```
+   *   Opening balance                              |        |        |   0.00
+   *   ─────────────────────────────────────────────┴────────┴────────┴───────
+   *    label, spanning the leading columns              alignTo ───────┘
+   * ```
+   *
+   * `alignTo` names the column the figure lands in — `balance` for every
+   * ledger in the product. A `note` renders beside the label rather than beside
+   * the figure, because the debit/credit summary is a description of the row
+   * and not a second number in the balance column.
+   */
+  ledgerBoundaryRows?: {
+    opening: LedgerBoundary
+    closing: LedgerBoundary
+    /** The column id the figure aligns under. */
+    alignTo: string
+  }
   /** V-11 — one centred line, outside the card. */
   learnMore?: ReactNode
   /** §11.3 — which skeleton shape. Defaults from the mode. */
@@ -1049,6 +1161,32 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const columnCount = visible.length + (selectable ? 1 : 0) + (kebabs ? 1 : 0)
 
   /**
+   * §9.2 — where a ledger's opening and closing figures sit, as column spans.
+   *
+   * The figure goes in the `alignTo` column so it lands under the header that
+   * names it and above/below the column of figures it belongs to. Everything
+   * before that column is one cell carrying the label; everything after is one
+   * cell carrying nothing — a ledger's balance is its last column today, so
+   * `after` is 0 and the trailing cell is not rendered at all.
+   *
+   * **A column the operator has switched off is handled rather than assumed.**
+   * If `alignTo` is not in `visible`, `at` is -1 and the row falls back to the
+   * old full-span shape — which is the honest answer: there is no column to
+   * align to, so the figure has no home but the row itself. Silently aligning
+   * to the last visible column would put a balance under `Credit`.
+   */
+  const boundarySpans = useMemo(() => {
+    const alignTo = ledgerBoundaryRows?.alignTo
+    if (alignTo === undefined) return null
+    const at = visible.findIndex((column) => column.id === alignTo)
+    if (at === -1) return null
+    /* The leading lane, if a ledger ever grows one, is part of the label span:
+       it is inline-start of every data column by construction. */
+    const lead = at + (selectable ? 1 : 0)
+    return { before: Math.max(lead, 1), after: columnCount - lead - 1 }
+  }, [ledgerBoundaryRows?.alignTo, visible, selectable, columnCount])
+
+  /**
    * **P0-3 — the identity column's floor, on the element that can enforce it.**
    *
    * `ui/table.tsx` sets `table-fixed`, and under `table-layout: fixed`
@@ -1101,6 +1239,30 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (kebabs) total += actionLaneWidth
     return total
   }, [selectable, visible, columnWidths, kebabs, actionLaneWidth, fitted])
+
+  /**
+   * **The table's CEILING** — the counterpart to `tableMinInlineSize`, and
+   * `null` unless a visible column asks for one.
+   *
+   * `min-inline-size` is the width below which the table stops shrinking and
+   * scrolls. This is the width above which it stops GROWING and hands the rest
+   * back to the page. Both exist for the same reason and neither is a default:
+   * a table with no `maxWidth` anywhere returns `undefined` here and its
+   * inline size is decided exactly as before.
+   *
+   * The sum is the declared widths plus the capped column's ceiling — i.e. the
+   * width at which the flexible column is exactly full. Past that, growing the
+   * table only pushes end-aligned figures away from the text they describe;
+   * see `DataColumn.maxWidth` for the 1,406px measurement that produced this.
+   */
+  const tableMaxInlineSize = useMemo(() => {
+    const body = tableCeiling(visible)
+    if (body === undefined) return undefined
+    /* The lanes are geometry rather than budget (see `fitWidths`), so they are
+       added to the ceiling rather than counted inside it — a table with a
+       checkbox lane is allowed to be exactly that much wider. */
+    return body + (selectable ? LANE_WIDTH_PX : 0) + (kebabs ? actionLaneWidth : 0)
+  }, [selectable, visible, kebabs, actionLaneWidth])
 
   const entries = useMemo(() => filterEntries(columns, extraFilters), [columns, extraFilters])
 
@@ -1537,7 +1699,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
        The zero-PERCENT basis is load-bearing twice over — see the D-19 note in
        the file header. Do not "simplify" it to a content basis. */
-    <div className={cn('flex min-h-0 w-full flex-1 flex-col gap-3', className)}>
+    <div
+      className={cn('flex min-h-0 w-full flex-1 flex-col gap-3', className)}
+      /* **The ceiling is on the WHOLE block, not just the band.** Capping the
+         table alone left the toolbar — search, filters, columns, export —
+         stretching 620px past the last column it operates on, so the ledger
+         read as two objects of different widths stacked on each other. The
+         cap belongs where the table's chrome and the table are one thing.
+
+         `undefined` on every table that declares no `maxWidth`, which is all
+         but the ledger today. */
+      style={{ maxInlineSize: tableMaxInlineSize }}
+    >
       {/* **BAND 2 — the control row.** §7.1 / D-18: there is no card, so this
           sits on the page ground. AC-112 still holds — it is outside the
           horizontal scroll container and does not move when the table scrolls. */}
@@ -1613,6 +1786,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
           this is still the only box here with a zero minimum, and it absorbs
           all of it — so the bounded scroller, the pinned header and the
           on-screen pagination row are exactly as they were. */}
+      {/* The band inherits the ceiling from the block above it. It used to be
+          capped separately, and it does not need to be: what the cap has to
+          prevent is a bordered box wider than the table inside it — 635px of
+          empty white inside a border on `/financials/revenue` at 2400, which is
+          ruling S1's objection turned on its side — and one cap on the shared
+          parent does that for the band and the toolbar at once. */}
       <div className="flex min-h-0 flex-initial flex-col overflow-hidden rounded-xl border border-border bg-card">
         {status === 'loading' && !refreshing && (
           <div className="p-3">
@@ -1737,7 +1916,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                  and changes with the visible set, the resize handles and the
                  actions lane; a utility cannot hold a computed number, and an
                  arbitrary-value class here would be a new class name per screen. */
-              style={{ minInlineSize: tableMinInlineSize }}
+              style={{ minInlineSize: tableMinInlineSize, maxInlineSize: tableMaxInlineSize }}
               onScroll={handleTableScroll}
             >
               {headerRow}
@@ -1749,9 +1928,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
               <TableBody ref={rowRoving.containerRef}>
                 {/* §9.2 / AC-49 — a ledger OPENS with a labelled opening balance. */}
                 {isLedger && ledgerBoundaryRows && (
-                  <TableRow className="font-semibold">
-                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.opening}</TableCell>
-                  </TableRow>
+                  <BoundaryRow
+                    boundary={ledgerBoundaryRows.opening}
+                    spans={boundarySpans}
+                    columnCount={columnCount}
+                  />
                 )}
 
                 {refreshing
@@ -2017,9 +2198,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
               {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
               {isLedger && ledgerBoundaryRows && (
                 <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.closing}</TableCell>
-                  </TableRow>
+                  <BoundaryRow
+                    boundary={ledgerBoundaryRows.closing}
+                    spans={boundarySpans}
+                    columnCount={columnCount}
+                  />
                 </TableFooter>
               )}
             </Table>

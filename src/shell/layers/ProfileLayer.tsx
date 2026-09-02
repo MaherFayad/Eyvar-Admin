@@ -46,7 +46,7 @@ import type { Language, Translate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { IdentityBand, ProfileSections, useProfileRecord } from '@/components/profile'
+import { identityBandSlots, ProfileSections, useProfileRecord } from '@/components/profile'
 import { ShellLayer } from '../ShellLayer'
 
 export interface ProfileLayerProps {
@@ -101,13 +101,29 @@ export function ProfileLayer({
   const notFound = profile.status === 'error' && isApiError(profile.error) && profile.error.kind === 'not-found'
 
   const ref = profile.data
+  /* **One read, feeding both the header and the body.** The standing badge is
+     in the layer's header and the card stack is in its body, and both are the
+     same record — so the read is owned here, above both, rather than in a child
+     that the header could not reach. `useProfileRecord` stays disabled until
+     `ref` resolves, which is the same "start when there is something to read"
+     the child indirection used to buy. */
+  const record = useProfileRecord(ref ?? null)
 
   return (
     <ShellLayer
       open={open}
       onClose={onClose}
+      /* **A modal, not a drawer** — *"should be full screen no need to show me
+         any of the navigation more like popup"*. `ShellLayer`'s header records
+         which two rulings this departs from and why the departure is scoped to
+         this layer alone; the other two stay drawers. */
+      presentation="modal"
       title={ref?.title ?? t('shellLayer.profile')}
       subtitle={ref?.subtitle ?? null}
+      /* The face, the record kind and the standing, beside the title in the ONE
+         header. It used to be a second header inside the body repeating the
+         title and subtitle this component already passes above. */
+      header={ref ? identityBandSlots({ entity: ref, record, t }) : undefined}
       t={t}
       footer={
         ref && (
@@ -136,42 +152,11 @@ export function ProfileLayer({
         />
       )}
 
-      {/* §6.2's card stack. The drawer has no rail, so it omits nothing — the
+      {/* §6.2's card stack. The layer has no rail, so it omits nothing — the
           identity card is its first card. */}
-      {ref && <ProfileBody entity={ref} t={t} language={language} />}
+      {ref && (
+        <ProfileSections entity={ref} record={record} t={t} language={language} />
+      )}
     </ShellLayer>
-  )
-}
-
-/**
- * A child, so `useProfileRecord` is only mounted once a ref exists.
- *
- * Calling it in `ProfileLayer` would mean either a hook that fires with an
- * unresolved id or one held disabled through the whole `resolveProfile`
- * round-trip. A child keyed on the resolved ref is the honest shape: the record
- * read starts when there is something to read.
- */
-function ProfileBody({
-  entity,
-  t,
-  language,
-}: {
-  entity: ProfileRef
-  t: Translate
-  language: Language
-}) {
-  const record = useProfileRecord(entity)
-  return (
-    /* **The band is OUTSIDE the section stack and above it**, so the first
-       thing on the surface is the record rather than a closed container. The
-       negative inline margin pulls it out to the drawer's own edges — the body
-       carries `p-3` for the card stack, and a band that stopped 12px short of
-       the seam would read as a card rather than as the header region it is. */
-    <div className="flex flex-col gap-3">
-      <div className="-mx-3 -mt-3">
-        <IdentityBand entity={entity} record={record} t={t} />
-      </div>
-      <ProfileSections entity={entity} record={record} t={t} language={language} />
-    </div>
   )
 }

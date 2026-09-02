@@ -70,6 +70,10 @@ export const PROFILE_EN: Dictionary = {
 
   /* ── field labels ─────────────────────────────────────────────────── */
   'profile.field.absent': 'Not recorded',
+  /* §3.5 as amended — the header that opens the grouped-absence line. Reads as
+     a label followed by the field names, so it takes a colon rather than a full
+     stop: it introduces a list rather than making a statement. */
+  'profile.field.absentMany': 'Not recorded:',
   'profile.field.id': 'Identity code',
   'profile.field.status': 'Status',
   'profile.field.kind': 'Record type',

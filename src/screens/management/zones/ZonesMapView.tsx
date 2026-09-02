@@ -93,6 +93,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { ErrorState, canRetry } from '@/components/ErrorState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { cn } from '@/lib/utils'
+import { Basemap, BasemapAttribution } from './Basemap'
 import { RECRUITMENT_PRIORITY_TONE, type Zone } from '@/data/types'
 import type { AsyncStatus } from '@/hooks'
 import { ABSENT, formatCount, formatPercent, formatRatio, type Language, type Translate } from '@/lib'
@@ -217,6 +218,17 @@ function mercatorY(lat: number): number {
 
 interface Projection {
   point: (lat: number, lng: number) => { x: number; y: number }
+  /**
+   * The same linear map, as its parameters, for anything that has to agree
+   * with it rather than call it.
+   *
+   * `Basemap` needs to INVERT this — it turns the view box's corners back into
+   * a geographic window in order to work out which tiles cover it — and a
+   * second copy of the arithmetic in that file is a second place for the map
+   * and its basemap to disagree about where a district is. Handing over the
+   * five numbers keeps one derivation.
+   */
+  params: { minX: number; minY: number; scale: number; offsetX: number; offsetY: number }
 }
 
 /**
@@ -253,6 +265,7 @@ function fitProjection(geometries: readonly ZoneGeometry[]): Projection {
       /* Screen y grows downward; north must stay up. */
       y: VIEW_H - offsetY - (mercatorY(lat) - minY) * scale,
     }),
+    params: { minX, minY, scale, offsetX, offsetY },
   }
 }
 
@@ -683,6 +696,18 @@ function MapCanvas({
         dir="ltr"
         className="relative aspect-4/3 w-full overflow-hidden rounded-xl border border-border bg-card"
       >
+        {/* **The basemap, under everything.** Real OpenStreetMap tiles in the
+            same Web Mercator projection the polygons are fitted in, so the
+            districts sit on their own streets rather than on blank ground.
+
+            It is first in the box and the SVG paints over it. It is also the
+            only thing here that can fail: `Basemap` removes itself after three
+            unreachable tiles, and what is left is exactly the self-contained
+            choropleth this screen was before — a map with no streets, never a
+            map with holes in it. See `Basemap` for the licence, which is why
+            these are OSM's tiles and not Google's. */}
+        <Basemap viewW={VIEW_W} viewH={VIEW_H} projection={projection.params} />
+
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           preserveAspectRatio="none"
@@ -792,6 +817,12 @@ function MapCanvas({
 
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-2xs text-muted-foreground">
         <ShadeLegend metric={metric} t={t} />
+        {/* The tile licence. It sits in the figure's caption rather than over
+            the map: OSM asks for the credit to be shown, not for it to be
+            burned into a corner of the image where it competes with a marker.
+            It is outside the `aria-hidden` basemap on purpose — a licence
+            notice a screen reader cannot reach is not a licence notice. */}
+        <BasemapAttribution />
         {unmapped.length > 0 && (
           <span>
             {t('zones.map.unmapped', {

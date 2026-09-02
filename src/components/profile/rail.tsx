@@ -394,15 +394,12 @@ function summaryFields(record: ProfileRecord, t: Translate, language: Language):
     }
     case 'subscription': {
       const s = record.data
+      /* **`legs` is NOT here either**, for the same reason and with the same
+         evidence: the Subscriptions section states `0 of 5` in the main column,
+         and the rail restated it two inches away. What is left is the MONEY,
+         which is what a summary of a subscription is for and which appears
+         nowhere else on the surface. */
       return [
-        {
-          label: t('profile.field.legs'),
-          value: (
-            <NumberValue>
-              {t('profile.value.ratio', { used: s.tripsCompleted, total: s.tripsIncluded })}
-            </NumberValue>
-          ),
-        },
         { label: t('profile.field.paid'), value: <MoneyValue amount={s.paidHalalas} /> },
         { label: t('profile.field.escrow'), value: <MoneyValue amount={s.escrowHeldHalalas} /> },
         { label: t('profile.field.refunded'), value: <MoneyValue amount={s.refundedHalalas} /> },
@@ -548,15 +545,25 @@ function metadataFields(
     }
     case 'subscription': {
       const s = record.data
+      /* **`plan` and `cycle` are NOT here.** The Subscriptions section in the
+         main column carries both, so the page rendered `Weekly Economy` and
+         `1 Jun → 8 Jun` twice, ~1,100px apart, with nothing marking either copy
+         as the authoritative one. §7.2's rule for this rail is *status, summary
+         and metadata* — and a plan and a billing cycle are neither identity nor
+         summary; they are what the subscription IS DOING, which is the section's
+         subject.
+
+         **`vehicleClass` takes their place, and that is a gap being closed
+         rather than a swap.** It is an identity field, and `RAIL_SECTIONS`
+         omits the identity card from the page's main column precisely so the
+         rail can carry those facts — but this list never picked it up, so on
+         the full page the vehicle class of a subscription appeared nowhere at
+         all. */
       return [
         ...common,
         { label: t('profile.field.rider'), value: s.riderName },
         { label: t('profile.field.captain'), value: s.driverName },
-        { label: t('profile.field.plan'), value: s.planName },
-        {
-          label: t('profile.field.cycle'),
-          value: `${formatDate(s.startedOn, { language })} → ${formatDate(s.endsOn, { language })}`,
-        },
+        { label: t('profile.field.vehicleClass'), value: s.vehicleClass },
       ]
     }
     case 'corporate-account': {

@@ -150,9 +150,23 @@ import { Button } from '@/components/ui/button'
  *
  * There is no `width` prop and there is not meant to be one. If a specific
  * block of content needs a measure, it constrains ITSELF (see §7.1 above).
+ *
+ * **The "no cap" clause above is now a cap, and V5 is the reason rather than
+ * the casualty.** V5's rule is that the page header lands in the same place
+ * whichever route you are on, enforced by there being no `width` prop; one
+ * measure applied to every page block keeps that exactly — every route still
+ * has ONE width. What changes is only what that width does above 1440, where
+ * the product had never been measured: the owner's 2400px screen rendered a
+ * 1,955px content region, and the residual had nowhere to stop, so a ledger's
+ * opening balance ended up **1,828px** from the number it names.
+ *
+ * `--ev-page-measure` carries the arithmetic for 1440 and the proof that no
+ * layout at or below a 1440px viewport moves by a pixel. `mx-auto` centres the
+ * surplus rather than pooling it all at the inline-end, which also keeps the
+ * page symmetric under `dir="rtl"` without a second rule.
  */
 const PAGE_BLOCK =
-  'flex min-h-full w-full flex-col px-page-pad py-6 wide:px-page-pad-wide'
+  'mx-auto flex min-h-full w-full max-w-measure flex-col px-page-pad py-6 wide:px-page-pad-wide'
 
 /**
  * The `fill` variant. Its hundred-percent height is what makes the main size
@@ -163,7 +177,7 @@ const PAGE_BLOCK =
  * finds, so a class written here is a rule shipped in `dist`.
  */
 const PAGE_BLOCK_FILL =
-  'flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide'
+  'mx-auto flex h-full min-h-0 w-full max-w-measure flex-col px-page-pad py-6 wide:px-page-pad-wide'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
 
@@ -305,6 +319,13 @@ export interface FullBleedEditorShellProps {
   onSave: () => void
   canSave: boolean
   children: ReactNode
+  /**
+   * Section 2.5's inspector panel — what the edit in progress DOES, shown while
+   * it is being made. Sticky beside the form at and above 1344px; in the flow
+   * beneath it below that. Omit for an editor whose edits have no computable
+   * consequence to show.
+   */
+  aside?: ReactNode
   t: Translate
   dir: Direction
 }
@@ -316,6 +337,7 @@ export function FullBleedEditorShell({
   onSave,
   canSave,
   children,
+  aside,
   t,
   dir,
 }: FullBleedEditorShellProps) {
@@ -342,11 +364,41 @@ export function FullBleedEditorShell({
       {/* §7.3 — capped 1120px, centred. **The one surviving consumer of
           `--ev-page-max`** (V5): the editor is outside `AppLayout` and has no
           sibling route to be inconsistent with, so a centred measure costs
-          nothing here and buys a readable form. No inspector panel: §2.5
-          recommends one for multi-mode editors and the plan editor has one
-          mode. */}
+          nothing here and buys a readable form.
+
+          **§2.5's INSPECTOR PANEL, added.** The note here used to read *"No
+          inspector panel: §2.5 recommends one for multi-mode editors and the
+          plan editor has one mode"*, and the mode count was the wrong test. The
+          plan editor already computed a full worked example and a formula
+          panel — it simply rendered them as the last two cards of a ~1,600px
+          scrolling form, so a pricing owner editing `Commission %` could not
+          see what their edit did to the numbers without scrolling past every
+          field they had just filled in and then scrolling back. A preview below
+          the fold is not a preview; it is an appendix.
+
+          What §2.5 is actually about is whether an edit has CONSEQUENCES the
+          editor can show while you make it. This one does, and they recompute
+          on every keystroke.
+
+          The aside is `sticky` rather than fixed so it scrolls with short
+          content and pins for long, and it is omitted entirely below 1344px —
+          two columns of a 1120px measure would leave the form at ~700px and
+          the plan editor's field pairs are declared at half-width, so they
+          would collapse. Below `wide:` the aside renders in the flow beneath
+          the form, which is where it was before, and nothing is lost. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-page p-4">{children}</div>
+        <div
+          className={
+            aside
+              ? 'mx-auto flex w-full max-w-measure flex-col gap-4 p-4 wide:flex-row wide:items-start'
+              : 'mx-auto w-full max-w-page p-4'
+          }
+        >
+          <div className={aside ? 'min-w-0 flex-1' : undefined}>{children}</div>
+          {aside && (
+            <aside className="w-full shrink-0 wide:sticky wide:top-4 wide:w-104">{aside}</aside>
+          )}
+        </div>
       </div>
     </div>
   )
