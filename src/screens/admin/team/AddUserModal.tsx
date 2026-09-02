@@ -23,6 +23,11 @@
  *   §11.2      the primary is disabled in place while the form is incomplete or
  *              in flight; it is never removed.
  *   §9.1       Arabic — every utility here is logical (`text-start`, `gap`).
+ *   G7         the five fields are `Field`, not five hand-rolled copies of the
+ *              same eight lines. `FieldControl` owns `id`, `aria-describedby`
+ *              and `aria-invalid`; this file no longer spells any of them.
+ *   G6         `sm` — five single-line controls and one decision. See
+ *              `dialog.tsx`'s size table.
  */
 
 import { useEffect, useState } from 'react'
@@ -39,8 +44,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -118,53 +130,45 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
           <DialogDescription>{t('admin.team.invite.desc')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 text-start">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="admin-invite-name">{t('admin.team.invite.name')}</Label>
-            <Input
-              id="admin-invite-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
-          </div>
+        <FieldGroup>
+          <Field id="admin-invite-name">
+            <FieldLabel>{t('admin.team.invite.name')}</FieldLabel>
+            <FieldControl>
+              <Input value={name} onChange={(event) => setName(event.target.value)} required />
+            </FieldControl>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="admin-invite-email">{t('admin.team.invite.email')}</Label>
-            <Input
-              id="admin-invite-email"
-              type="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value)
-                setEmailError(null)
-              }}
-              aria-invalid={emailError !== null}
-              aria-describedby={emailError === null ? undefined : 'admin-invite-email-error'}
-              required
-            />
-            {emailError !== null && (
-              <span id="admin-invite-email-error" className="text-2xs text-destructive">
-                {emailError}
-              </span>
-            )}
-          </div>
+          <Field id="admin-invite-email" invalid={emailError !== null}>
+            <FieldLabel>{t('admin.team.invite.email')}</FieldLabel>
+            <FieldControl>
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setEmailError(null)
+                }}
+                required
+              />
+            </FieldControl>
+            <FieldError>{emailError}</FieldError>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="admin-invite-phone">{t('admin.team.invite.phone')}</Label>
-            <Input
-              id="admin-invite-phone"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-            />
-          </div>
+          <Field id="admin-invite-phone">
+            <FieldLabel optional={t('field.optional')}>{t('admin.team.invite.phone')}</FieldLabel>
+            <FieldControl>
+              <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
+            </FieldControl>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="admin-invite-role">{t('admin.team.invite.role')}</Label>
+          <Field id="admin-invite-role">
+            <FieldLabel>{t('admin.team.invite.role')}</FieldLabel>
             <Select value={role} onValueChange={(value) => setRole(value as RoleName)}>
-              <SelectTrigger id="admin-invite-role">
-                <SelectValue />
-              </SelectTrigger>
+              <FieldControl>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+              </FieldControl>
               <SelectContent>
                 {ROLE_NAMES.map((option) => (
                   <SelectItem key={option} value={option}>
@@ -173,23 +177,21 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="admin-invite-cap">{t('admin.team.invite.cap')}</Label>
-            <Input
-              id="admin-invite-cap"
-              type="number"
-              inputMode="decimal"
-              value={cap}
-              onChange={(event) => setCap(event.target.value)}
-              aria-describedby="admin-invite-cap-help"
-            />
-            <span id="admin-invite-cap-help" className="text-2xs text-muted-foreground">
-              {t('admin.team.invite.capHelp')}
-            </span>
-          </div>
-        </div>
+          <Field id="admin-invite-cap">
+            <FieldLabel optional={t('field.optional')}>{t('admin.team.invite.cap')}</FieldLabel>
+            <FieldControl>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={cap}
+                onChange={(event) => setCap(event.target.value)}
+              />
+            </FieldControl>
+            <FieldDescription>{t('admin.team.invite.capHelp')}</FieldDescription>
+          </Field>
+        </FieldGroup>
 
         <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>

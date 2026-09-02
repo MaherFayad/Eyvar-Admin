@@ -379,6 +379,12 @@ export function LedgerCard({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.ledger.search')}
+        /* **R5a — the same predicate the leading-edge marker uses**, so the
+           row's two carriers cannot disagree. `DataTable` no longer guesses:
+           it tested `row.status`, and a posting's state is `settlement`, so
+           `failed` and `escalated` were the one thing the ledger DOES call
+           critical (`types/ledger.ts`) and the only rows it never tinted. */
+        isRowCritical={isCritical}
         /* §11.3 — the LEDGER skeleton: its own six columns, never a spinner
            (**AC-426**). */
         skeletonPattern="P7"

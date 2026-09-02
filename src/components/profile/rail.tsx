@@ -73,6 +73,7 @@ import {
   TICKET_STATUS,
   TRIP_STATUS,
 } from './domain'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { FieldList, FlagList, MoneyValue, NumberValue, type Field } from './fields'
 import { SectionStates } from './SectionCard'
 import type { ProfileRecord, ProfileRecordResult } from './record'
@@ -118,7 +119,7 @@ function RailCard({
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="min-h-10 justify-center border-b border-border px-3 py-0">
-        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="px-3 py-3">
         <SectionStates
@@ -570,7 +571,8 @@ function metadataFields(
         ...common,
         { label: t('profile.field.about'), value: `${k.entityName} · ${k.entityId}` },
         { label: t('profile.field.category'), value: k.category },
-        { label: t('profile.field.reasonCode'), value: k.reasonCode },
+        /* A3 — the code is a join key, not a label. */
+        { label: t('profile.field.reasonCode'), value: reasonLabel(t, k.reasonCode) },
         { label: t('profile.field.created'), value: formatDate(k.createdAt, { style: 'day-month-time', language }) },
       ]
     }
@@ -603,7 +605,8 @@ function metadataFields(
         ...common,
         { label: t('profile.field.captain'), value: c.driverName },
         { label: t('profile.field.filedBy'), value: c.riderName },
-        { label: t('profile.field.reasonCode'), value: c.reasonCode },
+        /* A3 — the code is a join key, not a label. */
+        { label: t('profile.field.reasonCode'), value: reasonLabel(t, c.reasonCode) },
         {
           label: t('profile.field.created'),
           value: formatDate(c.filedAt, { style: 'day-month-time', language }),

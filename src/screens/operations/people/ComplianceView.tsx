@@ -71,7 +71,7 @@ import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell } from './cells'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { WORST_STATE } from './domain'
 import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
@@ -101,7 +101,7 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
 
   const data = useAsync<Paginated<DriverCompliance>>(
     (signal) => listDriverCompliance({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'compliance.list' },
   )
 
   /* The compliance row and the driver record hold the SAME fact — legacy
@@ -217,12 +217,20 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
           : t('people.confirm.suspend.title.other', { count: formatCount(ids.length, language) }),
       body: t('people.confirm.suspend.body'),
       confirmLabel: t('people.confirm.suspend.confirm'),
+      /* **Not destructive, and this is the ruling not an omission.** DESIGN.md
+         names `deactivate` as the reversible case that MUST keep the ordinary
+         primary, `askReinstate` below is the inverse one click away, the body
+         says so in words - "You can reinstate them at any time" - and
+         `commands/captains.ts:275` reached the same answer independently
+         (`affordance: 'default'`). Red here would be R5a use #1 spent on a
+         recoverable act, which is what teaches operators to ignore it. */
+      destructive: false,
       reason: {
         label: t('people.confirm.suspend.reason'),
         help: t('people.confirm.suspend.reasonHelp'),
         message: t('people.confirm.suspend.reasonHelp'),
       },
-      onConfirm: (reason) => void runSuspend(ids, reason),
+      onConfirm: ({ reason }) => void runSuspend(ids, reason),
     })
   }
 
@@ -236,6 +244,8 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
             }),
       body: t('people.confirm.reinstate.body'),
       confirmLabel: t('people.confirm.reinstate.confirm'),
+      /* The undo of the act above. Nothing is lost and nothing leaves. */
+      destructive: false,
       onConfirm: () => void runReinstate(ids),
     })
   }
@@ -262,6 +272,9 @@ export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
           {
             label: t('people.action.viewProfile'),
             onSelect: (row) => navigate(profileHref(row.driverId)),
+            /* **P0-2 — the declared row-click target.** `Suspend` and
+               `Reinstate` mutate, so neither may carry this. */
+            rowClick: true,
           },
           {
             label: t('people.action.suspend'),

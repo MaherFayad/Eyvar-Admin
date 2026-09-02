@@ -63,19 +63,21 @@ export function InterventionsCard({ items, unavailableReason, t }: Interventions
     <Card className="border-border">
       <CardHeader className="pb-3 border-b border-border bg-muted/20">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <ShieldAlert className="h-4 w-4 text-amber-600" />
-            {t('dispatch.interventions.title', { defaultValue: 'Live Operational Interventions' })}
+          {/* H2/H3 — the card title takes ink; it was the same size and the
+              same grey as the rows beneath it. */}
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+            <ShieldAlert className="h-4 w-4 text-warning-foreground" />
+            {t('dispatch.interventions.title')}
           </CardTitle>
-          <span className="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-900">
-            {items.length} {t('dispatch.activeAlerts', { defaultValue: 'Active' })}
+          <span className="text-xs font-semibold text-warning-foreground bg-warning px-2 py-0.5 rounded-full border border-border">
+            {items.length} {t('dispatch.activeAlerts')}
           </span>
         </div>
       </CardHeader>
       <CardContent className="p-0 divide-y divide-border">
         {items.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground">
-            {t('dispatch.noInterventions', { defaultValue: 'All live trips operating within nominal SLAs.' })}
+            {t('dispatch.noInterventions')}
           </div>
         ) : (
           items.map((item) => (
@@ -86,13 +88,17 @@ export function InterventionsCard({ items, unavailableReason, t }: Interventions
                     {item.kind === 'sos' ? (
                       <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
                     ) : (
-                      <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                      <Clock className="h-3.5 w-3.5 text-warning-foreground shrink-0" />
                     )}
                     <span className="font-semibold text-foreground">{item.title}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{item.subtitle}</p>
+                  {/* H2 — 11px arbitrary, off the ramp. META is `--text-xs`. */}
+                  <p className="text-xs text-muted-foreground">{item.subtitle}</p>
                 </div>
-                <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 shrink-0">
+                {/* H2 — an SLA figure is a VALUE, not a badge label, so it
+                    leaves `--text-2xs`. H7 rule 3 already had it right: toned
+                    text rather than a second chip on a row that carries one. */}
+                <span className="text-xs font-mono text-warning-foreground shrink-0">
                   +{item.elapsedMinutes}m SLA
                 </span>
               </div>
@@ -108,7 +114,7 @@ export function InterventionsCard({ items, unavailableReason, t }: Interventions
                   aria-describedby={blocked ? REFUSAL_ID : undefined}
                   className="h-6 px-2 text-2xs"
                 >
-                  {t('dispatch.dismissAlert', { defaultValue: 'Acknowledge' })}
+                  {t('dispatch.dismissAlert')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -118,7 +124,7 @@ export function InterventionsCard({ items, unavailableReason, t }: Interventions
                   className="h-6 gap-1 px-2 text-2xs"
                 >
                   <RefreshCw className="h-3 w-3" />
-                  {t('dispatch.reassignCaptain', { defaultValue: 'Reassign' })}
+                  {t('dispatch.reassignCaptain')}
                 </Button>
               </div>
             </div>

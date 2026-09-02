@@ -22,6 +22,7 @@ import { isDevEnvironment } from '../invariant'
 import { formatCount } from '../format/number'
 import { type Language } from './direction'
 import { pluralCategory, pluralCountIn, pluralFormKey, selectPluralForm } from './plural'
+import { isPseudoLocaleEnabled, pseudoLocalise } from './pseudo'
 
 export type Dictionary = Readonly<Record<string, string>>
 export type TranslateParams = Readonly<Record<string, string | number>>
@@ -72,6 +73,16 @@ export interface TranslatorOptions {
    * string never blanks an operations console mid-shift.
    */
   onMissingKey?: (key: string) => string
+  /**
+   * Render every resolved template through `pseudoLocalise` — marked and 35%
+   * longer. Defaults to the `VITE_PSEUDO_LOCALE` build flag (see `./pseudo.ts`),
+   * so no call site has to opt in and a test can force it either way.
+   *
+   * Applied **after** lookup and **before** interpolation: a missing key still
+   * reaches `onMissingKey` and still throws in dev, and a `{placeholder}` still
+   * substitutes, because the transform leaves placeholder runs byte-identical.
+   */
+  pseudo?: boolean
 }
 
 const PLACEHOLDER = /\{(\w+)\}/g
@@ -92,12 +103,16 @@ export function createTranslator(options: TranslatorOptions): Translator {
     language = 'en',
     fallbackLanguage = 'en',
     onMissingKey = defaultOnMissingKey,
+    pseudo = isPseudoLocaleEnabled(),
   } = options
+
+  /** The one place a resolved template becomes a rendered string. */
+  const shape = pseudo ? pseudoLocalise : (template: string) => template
 
   function translate(key: string, params?: TranslateParams): string {
     const template = dictionary[key] ?? fallback[key] ?? (params as any)?.defaultValue
     if (template === undefined) return onMissingKey(key)
-    return interpolate(template, key, params)
+    return interpolate(shape(template), key, params)
   }
 
   /**
@@ -123,7 +138,7 @@ export function createTranslator(options: TranslatorOptions): Translator {
       return onMissingKey(pluralFormKey(key, pluralCategory(count, language)))
     }
 
-    return interpolate(template, key, { ...params, [name]: formatCount(count, language) })
+    return interpolate(shape(template), key, { ...params, [name]: formatCount(count, language) })
   }
 
   return Object.assign(translate, { plural })

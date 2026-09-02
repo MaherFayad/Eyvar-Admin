@@ -42,7 +42,29 @@ RETURNS = re.compile(r'^\s*->\s*(.+?)\s*$', re.M)
 PARAMS = re.compile(r'^\s*params:\s*(.+?)\s*$', re.M)
 BODY = re.compile(r'^\s*body:\s*(.+?)\s*$', re.M)
 STATUS = re.compile(r'^\s*(\d{3})\s+(.+?)\s*$', re.M)
-OPS = re.compile(r'^\s*\w+:\s*\'([\w.]+)\',', re.M)
+# Detect the operation-id block by its DECLARATION, not by its entries. The
+# first version of this matched `^\s*key: 'value',` per line, which silently
+# missed `export const AUDIT_OPERATIONS = { list: 'audit.list' } as const` --
+# a one-liner has no line-leading entry and no trailing comma. Two clients had
+# the real defect while reporting clean. Match the name instead: it cannot be
+# written on more or fewer lines.
+OPS = re.compile(r'\b[A-Z][A-Z0-9_]*_OPERATIONS\s*[:=]')
+
+# An exported client function that reaches the transport.
+#
+# **This is the rule that stops the checker lying.** Everything above finds
+# defects in docblocks that EXIST. A function with no docblock at all is
+# invisible to a docblock reader -- and the script then reports a clean
+# contract, which is worse than reporting nothing at all.
+#
+# It happened: `tickets.ts` has eight transport calls and two docblocks, so
+# `listTickets`, `getTicket`, `claimTicket`, `replyTicket`, `resolveTicket` and
+# `reopenTicket` were absent from the backend handover while `--check` exited 0
+# and the prose reported "284 endpoints, no problems". `docs/ref/api.md` warned
+# that breaking the format makes an endpoint vanish; nobody checked for the
+# endpoint that never had a format to break.
+EXPORTED_FN = re.compile(r'^export\s+(?:async\s+)?function\s+(\w+)', re.M)
+CALLS_HTTP = re.compile(r'\bhttp\.(?:get|post|patch|put|delete)\b')
 
 
 def strip_stars(block):
@@ -69,6 +91,21 @@ def collect():
             problems.append((name, 'unregistered',
                              'declares operation ids but never calls registerOperations(), so '
                              '?mockFail= and knownOperations() cannot see them'))
+
+        # Undocumented transport calls. See EXPORTED_FN above for why this is the
+        # rule that keeps the rest of the report honest.
+        documented = {fn for _raw, fn in BLOCK.findall(src)}
+        for m in EXPORTED_FN.finditer(src):
+            fn_name = m.group(1)
+            if fn_name in documented:
+                continue
+            nxt = src.find('\nexport ', m.end())
+            body = src[m.end():nxt if nxt != -1 else len(src)]
+            if CALLS_HTTP.search(body):
+                problems.append((name, 'missing-annotation',
+                                 '`%s()` calls the transport with no route docblock, so its '
+                                 'endpoint is absent from the handover' % fn_name))
+
         for raw, fn in BLOCK.findall(src):
             text = strip_stars(raw)
             # One block may document several routes on the same line, separated
@@ -136,13 +173,23 @@ def render(endpoints, problems):
             out.append('')
     for client in sorted(by_client):
         out += ['## `%s`' % client, '',
-                '| Method | Path | Returns | Request | Function |',
-                '|---|---|---|---|---|']
+                '| Method | Path | Returns | Request | Fails with | Function |',
+                '|---|---|---|---|---|---|']
         for e in by_client[client]:
             req = e['body'] or e['params'] or ''
             req_cell = ('`%s`' % req.replace('|', '\\|')) if req else '-'
-            out.append('| %s | `%s` | `%s` | %s | `%s()` |' % (
-                e['method'], e['path'], e['returns'] or '**missing**', req_cell, e['function']))
+            # **The failure cases, which this file used to drop entirely.** 77 status
+            # codes are documented across the clients and four of them reached the
+            # Markdown -- and only by accident, glued onto the Request cell because
+            # their docblock wrote them on the `body:` line. For a backend engineer
+            # the failure cases ARE the endpoint: a 409 nobody told them about is a
+            # handler that returns 200 on a conflict.
+            fails = '<br>'.join(
+                '**%s** %s' % (st['code'], st['when'].replace('|', '\\|'))
+                for st in e['statuses'])
+            out.append('| %s | `%s` | `%s` | %s | %s | `%s()` |' % (
+                e['method'], e['path'], e['returns'] or '**missing**', req_cell,
+                fails or '-', e['function']))
         out.append('')
     return '\n'.join(out) + '\n'
 

@@ -153,8 +153,9 @@ export function useMoneyActions<T>({ keyOf }: { keyOf: (row: T) => string }): Mo
           action,
           retry: () => void run({ key, errorMessage, toastMessage, action }),
         })
-        /* R10 — the transient confirmation, and nothing else. */
-        if (committed && toastMessage) toast(toastMessage)
+        /* R10 + G9 — the transient confirmation, and nothing else. It is
+           `success` because it only fires when the write committed. */
+        if (committed && toastMessage) toast.success(toastMessage)
         return committed
       } finally {
         setBusy(false)
@@ -197,7 +198,7 @@ export function useMoneyActions<T>({ keyOf }: { keyOf: (row: T) => string }): Mo
            with a failure in it is a STANDING condition on the rows that failed,
            they are already carrying it, and a toast on top would be the second
            surface for one event. */
-        if (failed === 0 && toastMessage) toast(toastMessage)
+        if (failed === 0 && toastMessage) toast.success(toastMessage)
         return { committed, failed }
       } finally {
         setBusy(false)

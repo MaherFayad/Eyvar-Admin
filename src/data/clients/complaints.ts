@@ -15,12 +15,10 @@
  * asked not to evaluate (D-F21).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { complaintFixtures } from '../fixtures/complaints'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import {
   isOpenComplaint,
@@ -32,7 +30,20 @@ import {
   type ComplaintStatus,
 } from '../types/complaint'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let complaintFixtures!: Fixtures['complaintFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  complaintFixtures = f.complaintFixtures
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const COMPLAINT_OPERATIONS = {
   facets: 'complaints.facets',
@@ -43,6 +54,13 @@ export const COMPLAINT_OPERATIONS = {
   release: 'complaints.release',
   resolve: 'complaints.resolve',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(COMPLAINT_OPERATIONS))
 
 export interface ComplaintQuery extends QueryParams {
   category?: ComplaintCategory
@@ -136,7 +154,7 @@ const complaintShape: QueryShape<Complaint> = {
     all: () => true,
     open: (c) => isOpenComplaint(c.status),
     resolved: (c) => c.status === 'resolved',
-    mine: (c) => c.claim?.state === 'claimed' && c.claim.ownerId === CURRENT_USER_ID,
+    mine: (c) => c.claim?.state === 'claimed' && c.claim.ownerId === currentMockUserId(),
     unassigned: (c) => c.claim === null || c.claim.state !== 'claimed',
     breached: (c) => c.slaBreachedAt !== null,
     /** Severity `critical`, whatever the clock says. The triage lane. */
@@ -365,7 +383,7 @@ export async function resolveComplaint(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     return {
       ...row,
       status: 'resolved' as const,

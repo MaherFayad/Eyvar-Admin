@@ -508,9 +508,12 @@ describe('AC-30 — "Global search for a legacy destination name returns the des
     ])
   })
 
-  it('resolves Quick rides to Operations › Trips, view Quick rides', () => {
+  /* D1b — quick rides became their own sub-tab, so the legacy page resolves to a
+     PATH and no longer to a view tab of Trips. The `?view=` half of this
+     assertion is gone because the thing it pointed at is gone. */
+  it('resolves Quick rides to Operations › Quick rides', () => {
     const hits = resolveLegacyPage('Quick rides')
-    expect(hits.map((h) => `${h.path}?view=${h.viewId}`)).toEqual(['/operations/trips?view=quick-rides'])
+    expect(hits.map((h) => h.path)).toEqual(['/operations/quick-rides'])
   })
 
   it('resolves All pending applications to Operations › People, view Applications', () => {
@@ -675,7 +678,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
 
 /* ═══════════════════════════ AC-61 — the Q4 gap ═════════════════════════ */
 
-describe('AC-61 — "Every one of the 35 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
+describe('AC-61 — "Every one of the 36 route-table rows has a non-null permission, or is listed in a named exceptions table"', () => {
   /**
    * **Edited by mock-data-engineer on the D17 pass. Owner: qa-engineer.**
    *
@@ -684,9 +687,11 @@ describe('AC-61 — "Every one of the 35 route-table rows has a non-null permiss
    * assertions are inverted rather than deleted — the shape of the old
    * assertion is the record of what was wrong.
    */
-  it('PASSES: 34 rows carry a view key and the 35th is the named exception', () => {
-    expect(table.subTabs).toHaveLength(35)
-    expect(table.subTabs.filter((r) => r.viewPermission !== null)).toHaveLength(34)
+  it('PASSES: 35 rows carry a view key and the 36th is the named exception', () => {
+    expect(table.subTabs).toHaveLength(36)
+    /* 35 after D1b split Trips in two; the 36th is still the single named
+       exception. */
+    expect(table.subTabs.filter((r) => r.viewPermission !== null)).toHaveLength(35)
     /* The criterion's second way to pass — a named exception with a reason.
        `admin-activity` is it, and the reason is on the row: every authenticated
        operator can open the Activity Log, and its rows are filtered server-side

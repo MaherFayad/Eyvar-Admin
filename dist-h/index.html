@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      DELIBERATE, AND NOT TO BE CHANGED BY THE PWA WORK.
+
+      `globals.css` §0.1: "There is no second breakpoint anywhere in the
+      product. If a screen needs one, that is a finding against this document,
+      not a local decision." A phone-shaped PWA contradicts that head-on, so the
+      PWA layer ships the five benefits that need no responsive work — installable
+      standalone window, offline shell, cached reads, queued mutations, push —
+      and defers the sixth. Changing this line is a design ruling, not an
+      implementation detail. See docs/ref/pwa.md.
+    -->
+    <meta name="viewport" content="width=1280" />
+    <title>Eyvar Admin</title>
+    <!--
+      PWA head assets. The `<link rel="manifest">` is injected at build time by
+      `vite-plugin-pwa`; these three are not, so they are declared here.
+      `theme_color` matches the manifest and `--ev-brand` in globals.css.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+    <meta name="theme-color" content="#0c6944" />
+    <script type="module" crossorigin src="/assets/index-DQhExr7j.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Gp6JzUSx.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

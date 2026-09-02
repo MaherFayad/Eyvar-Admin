@@ -97,7 +97,11 @@ import type {
   SaveInvalidReason,
   SavedReport,
 } from '@/data/types'
-import { formatMetricValue } from '@/components/metrics'
+/* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
+   `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
+   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
+   no React in it. */
+import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, parseMoneyInput, parseNumericInput, type Translator } from '@/lib'
 
 /** The four, and deliberately the same four names `FilterOperator` already uses. */
@@ -137,17 +141,34 @@ export function AlertRuleDialog({
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const reports = useAsync(async (signal) => (await listReports({ pageSize: 100 }, signal)).items, {
-    deps: [],
+  /**
+   * **Settled: `reports.list` holds the client's native `Paginated` envelope.**
+   *
+   * This fetcher used to unwrap to `SavedReport[]` while
+   * `DashboardDetailScreen`'s picker stored the envelope under the same
+   * operation id. The cache is untyped — `useAsync` casts the stored `unknown`
+   * to `T` — so one id holding two shapes is a `.find is not a function`
+   * waiting for the two keys to meet. Found by the P3-13 deps audit and left
+   * uncached rather than papered over with a distinguishing dep, which is the
+   * right call: a dep would have hidden the collision, not removed it.
+   *
+   * This side changed because the envelope is what the client actually returns;
+   * unwrapping at the *consumer* keeps one shape per operation id, which is the
+   * invariant the cache needs. The two callers now genuinely share an entry.
+   */
+  const reports = useAsync((signal) => listReports({ pageSize: 100 }, signal), {
+    cacheKey: 'reports.list',
+    deps: [open],
     isEmpty: () => false,
     enabled: open,
   })
+  const reportItems = reports.data?.items ?? []
 
   /* Choosing a report RESOLVES it, because which series exist is a property of
      the result and not of the query. One request, caused by one choice. */
   const resolved = useAsync<readonly ReportSeries[]>(
     async (signal) => {
-      const report = (reports.data ?? []).find((r) => r.id === reportId)
+      const report = reportItems.find((r) => r.id === reportId)
       if (!report) return []
       const outcome = await runReport(report.query, { today, signal })
       return outcome.status === 'ok'
@@ -155,7 +176,14 @@ export function AlertRuleDialog({
         : []
     },
     {
-      deps: [reportId, reports.data?.length],
+      /* P3-13 fix: `today` is threaded into `runReport` above and was NOT a
+         dependency, so the resolved series list did not re-resolve across a
+         midnight rollover - the parent derives `today` from a ticking clock.
+         Deliberately NOT given a `cacheKey`: `reports.data?.length` is a proxy
+         for the report list, and a saved report edited in place keeps the same
+         length and the same id, so the key would collide with the pre-edit
+         series. Needs a memoised `query` dep before it can be cached. */
+      deps: [reportId, reportItems.length, today],
       /* A report that resolves to no readable series is a REAL answer — every
          series blocked, or a run that returned nothing — and it has to be
          distinguishable from *still loading*, or the picker sits enabled over
@@ -227,11 +255,11 @@ export function AlertRuleDialog({
     }
   }
 
-  const noSavedReports = reports.status === 'content' && (reports.data ?? []).length === 0
+  const noSavedReports = reports.status === 'content' && reportItems.length === 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>{rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}</DialogTitle>
           {/* AC-878 — what will happen, in words, as one key with named
@@ -290,7 +318,7 @@ export function AlertRuleDialog({
                   <SelectValue placeholder={t('rb.alert.form.report')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {(reports.data ?? []).map((report: SavedReport) => (
+                  {reportItems.map((report: SavedReport) => (
                     <SelectItem key={report.id} value={report.id}>
                       <bdi>{report.name}</bdi>
                     </SelectItem>

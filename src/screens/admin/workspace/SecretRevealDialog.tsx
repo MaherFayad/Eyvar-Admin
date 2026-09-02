@@ -190,7 +190,7 @@ export function SecretRevealDialog({
               dir="ltr"
               value={request.secret}
               onFocus={(event) => event.currentTarget.select()}
-              className="flex-1 font-mono text-2xs"
+              className="flex-1 font-mono text-xs"
             />
             <Button size="xs" variant="secondary" onClick={() => void copy()}>
               {copied ? (
@@ -202,7 +202,7 @@ export function SecretRevealDialog({
               {copied ? t('admin.integrations.reveal.copied') : t('admin.integrations.reveal.copy')}
             </Button>
           </div>
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('admin.integrations.reveal.help')}
           </span>
         </div>
@@ -234,7 +234,7 @@ export function SecretRevealDialog({
             {/* §11.2 — the refusal is real text beside the control, never a
                 tooltip and never a hidden button. */}
             {!acknowledged && (
-              <span id={reasonId} className="max-w-80 text-end text-2xs text-muted-foreground">
+              <span id={reasonId} className="max-w-80 text-end text-xs text-muted-foreground">
                 {t('admin.integrations.reveal.blocked')}
               </span>
             )}

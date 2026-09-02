@@ -1,0 +1,4 @@
+{
+  "_": "The defaultValue ceiling. Written by scripts/i18n-inventory.py, which refuses to raise it. See docs/08-i18n/KEYS.md.",
+  "defaultValue": 0
+}

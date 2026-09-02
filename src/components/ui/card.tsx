@@ -69,12 +69,25 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/** 13px/600 `--ev-ink`. A fragment, so no trailing period (R6). */
+/**
+ * 16px/600 `--ev-ink`. A fragment, so no trailing period (R6).
+ *
+ * **Raised from `text-sm` — this was the weakest boundary in the type system.**
+ * A card title rendered at body size, separated from the paragraph beneath it
+ * by one weight step and nothing else: 14px/600 against 14px/400. Fifty call
+ * sites, so fifty cards whose heading did not read as a heading.
+ *
+ * `--text-base` is where every dialog, drawer, nav-column and empty-state
+ * heading already sits, so this joins an established step rather than inventing
+ * one. `globals.css` names it as the largest single hierarchy gain left in the
+ * product and explicitly cannot take it: a utility beats a base-layer rule, so
+ * the fix has to be here, at the one line that decides it for all fifty.
+ */
 function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("text-sm font-semibold text-foreground", className)}
+      className={cn("text-base font-semibold text-foreground", className)}
       {...props}
     />
   )

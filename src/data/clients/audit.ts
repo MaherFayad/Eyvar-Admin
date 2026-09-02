@@ -8,15 +8,31 @@
  * one is a component that will forget.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import type { Paginated } from '../types/common'
 import type { AuditAction, AuditEntry } from '../types/audit'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const AUDIT_OPERATIONS = { list: 'audit.list' } as const
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(AUDIT_OPERATIONS))
 
 /**
  * Session-only. Empty at boot on purpose: AC-437 counts the *delta* around one
@@ -43,7 +59,7 @@ export function appendAudit(input: {
   /** Defaults to the acting session user. */
   actorId?: string
 }): AuditEntry {
-  const actorId = input.actorId ?? CURRENT_USER_ID
+  const actorId = input.actorId ?? currentMockUserId()
   const actor = teamUserFixtures.find((u) => u.id === actorId)
   sequence += 1
   const entry: AuditEntry = {

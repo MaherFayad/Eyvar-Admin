@@ -17,15 +17,10 @@
  * menu's `n / m` about the same track.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  ONBOARDING_TRACKS,
-  onboardingStepSeeds,
-  type OnboardingStepSeed,
-} from '../fixtures/onboardingTracks'
-import { teamUserFixtures } from '../fixtures/teamUsers'
+import type { OnboardingStepSeed } from '../fixtures/onboardingTracks'
 /**
  * **The signed-in operator, not the seeded constant.**
  *
@@ -43,8 +38,7 @@ import { teamUserFixtures } from '../fixtures/teamUsers'
  * to a third of the rows they claimed to cover.
  */
 import { currentMockUserId } from './session'
-import { authIdentityFixtures } from '../fixtures/authIdentities'
-import type { PermissionKey } from '../types/navigation'
+import { PERMISSION_KEYS, type PermissionKey } from '../types/navigation'
 import type { RoleName } from '../types/session'
 import type {
   OnboardingChecklist,
@@ -53,6 +47,23 @@ import type {
 } from '../types/onboarding'
 import { http } from './http'
 import { findShellLayer, isSubTabBuilt } from './routes'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { effectivePermissions } from '../types/session'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let ONBOARDING_TRACKS!: Fixtures['ONBOARDING_TRACKS']
+let onboardingStepSeeds!: Fixtures['onboardingStepSeeds']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let authIdentityFixtures!: Fixtures['authIdentityFixtures']
+onFixturesLoaded((f) => {
+  ONBOARDING_TRACKS = f.ONBOARDING_TRACKS
+  onboardingStepSeeds = f.onboardingStepSeeds
+  teamUserFixtures = f.teamUserFixtures
+  authIdentityFixtures = f.authIdentityFixtures
+})
 
 export const ONBOARDING_OPERATIONS = {
   get: 'onboarding.get',
@@ -63,8 +74,22 @@ export const ONBOARDING_OPERATIONS = {
   markAutoOpened: 'onboarding.markAutoOpened',
 } as const
 
-/** The 13 broad keys that exist today (`:3225`–`:3239`). The intro's denominator. */
-const PERMISSION_TOTAL = 13
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(ONBOARDING_OPERATIONS))
+
+/**
+ * The intro's denominator — *"You hold 3 of N permissions."*
+ *
+ * **Derived, not a literal.** It was hardcoded to `13`, the count from before
+ * D17 split `manage_settings` into four; the model has had **21** since. Every
+ * role's intro therefore quoted a denominator that had been wrong for a whole
+ * decision cycle, on the first screen a new operator reads.
+ */
+const PERMISSION_TOTAL = PERMISSION_KEYS.length
 
 /* ─────────────────────── in-memory operator state ─────────────────────── */
 
@@ -183,11 +208,32 @@ function resolveSteps(role: RoleName, held: readonly PermissionKey[]): Onboardin
   })
 }
 
-/** Every seeded operator plus the three §10.3 identities, by whichever id was used. */
+/**
+ * Every seeded operator plus the three §10.3 identities, by whichever id was used.
+ *
+ * **`effectivePermissions`, not the raw fixture field.** `clients/session.ts`
+ * derives what an operator holds as the D17 role baseline plus their
+ * `permissionDelta`; this read `user.permissions` directly, which is the
+ * *stored* list and predates the five workspace read keys. The two disagreed, so
+ * onboarding gated against a narrower set than the rest of the product — the
+ * Owner, who can open every workspace in the app, was measured holding 14 of 21
+ * here and would have had five of seven track steps hidden from them.
+ *
+ * It was invisible while every `requiredPermission` was `null`. The moment the
+ * gates became real, so did the divergence. One source for "what may this
+ * operator do", and it is `effectivePermissions`.
+ */
 function actorFor(userId: string): { role: RoleName; permissions: PermissionKey[] } {
   const user = teamUserFixtures.find((u) => u.id === userId)
-  if (user) return { role: user.role, permissions: user.permissions }
+  if (user) return { role: user.role, permissions: effectivePermissions(user.role, user.permissionDelta) }
   const found = authIdentityFixtures.find((i) => i.email === userId || i.userId === userId)
+  /* **Auth identities keep their explicit list.** These are deliberate §10.3
+     personas — `newrole@eyvar.com` holds ZERO permissions on purpose, to reach
+     the empty track — and running them through the role baseline would hand
+     that persona a full Owner track and delete the state it exists to test.
+     The divergence being fixed above is about SEEDED OPERATORS, whose stored
+     list had fallen behind the role model; a persona has no such list to fall
+     behind. */
   if (found) return { role: found.role, permissions: found.permissions }
   throw notFound('operator', userId)
 }

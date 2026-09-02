@@ -35,8 +35,6 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
-import { alertFiringFixtures, alertRuleFixtures } from '../fixtures/reports'
-import { measuresByKey } from '../fixtures/measures'
 import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
@@ -52,6 +50,23 @@ import {
 import { getReport, runReport } from './reports'
 import { currentMockUserId } from './session'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let alertFiringFixtures!: Fixtures['alertFiringFixtures']
+let alertRuleFixtures!: Fixtures['alertRuleFixtures']
+let measuresByKey!: Fixtures['measuresByKey']
+onFixturesLoaded((f) => {
+  alertFiringFixtures = f.alertFiringFixtures
+  alertRuleFixtures = f.alertRuleFixtures
+  measuresByKey = f.measuresByKey
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  rules = alertRuleFixtures.map((r) => ({ ...r }))
+})
 
 export const ALERT_OPERATIONS = {
   list: 'alerts.list',
@@ -70,7 +85,7 @@ export const ALERT_OPERATIONS = {
 registerOperations(...Object.values(ALERT_OPERATIONS))
 
 /** Mutable copy. **Not persistence** — Q1 is open, and §9.1 cuts alerts entirely without it. */
-let rules: AlertRule[] = alertRuleFixtures.map((r) => ({ ...r }))
+let rules!: AlertRule[]
 
 /**
  * GET /api/v1/alerts
@@ -336,6 +351,10 @@ export function describeAlertRule(rule: AlertRule): {
 }
 
 export function resetAlerts(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   rules = alertRuleFixtures.map((r) => ({ ...r }))
 }
 

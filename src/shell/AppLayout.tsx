@@ -80,12 +80,14 @@ import {
 import type { Notification, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleRail } from './ModuleRail'
 import { PageNav } from './PageNav'
 import { SaveBar } from './SaveBar'
 import { ShellBanner } from './ShellBanner'
 import { SkipToContent, CONTENT_LANDMARK_ID } from './SkipToContent'
 import { TopBar } from './TopBar'
+import { MobileNavPanel, MobileNavRoot, MobileNavTrigger } from './MobileNav'
 import { useShell } from './ShellContext'
 import { visibleSubTabs, visibleWorkspaces } from './permissions'
 import { useRouteState, withOverlay } from './routeState'
@@ -97,7 +99,8 @@ import { Banner } from '@/components/Banner'
 import { ReauthModal } from '@/components/auth/ReauthModal'
 import { SignOutDirtyDialog } from './SignOutDirtyDialog'
 import { FROZEN_REASON_ID } from '@/components/auth/AuthCredentialForm'
-import { useAsync, useFocusCapture, useOnline } from '@/hooks'
+import { useAsync, useCompactShell, useDrawerDisclosure, useFocusCapture, useOnline } from '@/hooks'
+import { useDocumentTitle } from './useDocumentTitle'
 import type { SessionExpiryReason } from './session'
 
 export function AppLayout() {
@@ -106,6 +109,28 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t, dir, language } = shell.language
+
+  /* The tab, the history entry and the screen reader's navigation announcement
+     all read this. Every route said `Eyvar Admin` before. */
+  useDocumentTitle(route, t)
+
+  /**
+   * **The compact shell.** Below `--ev-bp-compact` (768px) the three-column
+   * frame does not narrow — it goes away, and the two nav columns move into a
+   * focus-trapped drawer behind the control in the bar. See `MobileNav.tsx`.
+   *
+   * This is React state and not only a media query because the DIFFERENCE is
+   * structural rather than visual: above the breakpoint the rail and column are
+   * siblings of the content, below it they are children of a dialog. A
+   * `compact:` class could not move them.
+   */
+  const compact = useCompactShell()
+  /* Closed by default, closes on route change, closes when compact mode ends.
+     Escape and the scrim are Radix's, not ours — see the hook. */
+  const drawer = useDrawerDisclosure(location.pathname + location.search, compact)
+  /* Built once per render and handed to whichever bar is in the slot. `null`
+     above the breakpoint, so the desktop bar is byte-identical to before. */
+  const menu = compact ? <MobileNavTrigger t={t} /> : null
 
   const table = getRouteTable()
   /* AC-57 / AC-58 — a FILTER over the route table. Currently passes everything
@@ -264,7 +289,10 @@ export function AppLayout() {
   const setLanguage = useCallback(
     (next: Language) => {
       shell.language.setLanguage(next)
-      toast(
+      /* G9 — `info`. Switching language changed a preference, not an
+         object, so it is not a `success` in R9's sense; and a bare `toast()`
+         is no longer a kind this product has. */
+      toast.info(
         shell.language.t('state.languageSwitched.toast', {
           language: shell.language.t(`shell.language.${next}`),
         }),
@@ -320,6 +348,10 @@ export function AppLayout() {
     const rota = await getOnCallRota(signal)
     if (rota.primaryUserId === null) return null
     return (await getTeamUser(rota.primaryUserId, signal)).name
+    /* **Deliberately NOT cached (P3-13).** Two reasons, either sufficient: the
+       shell mounts once so nothing would read the entry, and this fetcher calls
+       *two* operations (`team.rota` then `team.get`) so neither id names what
+       is stored. */
   }, { deps: [] })
 
   const openNotificationTarget = useCallback(
@@ -368,18 +400,32 @@ export function AppLayout() {
           /* R9/R10 — a transient confirmation of something that already
              happened: one line, names who, no action. Same register as the
              language toast (§11.6 row 23). */
-          toast(t('state.userSwitched.toast', { name: next.name, role: next.role }))
+          toast.success(t('state.userSwitched.toast', { name: next.name, role: next.role }))
         })
         .catch(() => {
-          toast(t('state.userSwitched.failed'))
+          toast.error(t('state.userSwitched.failed'))
         })
     },
     [navigate, shell, t],
   )
 
   return (
-    /* AC-19 — the frame never scrolls; each region does. */
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+    /* The dialog root wraps the WHOLE frame because the drawer's trigger is
+       inside the bar and Radix restores focus to the trigger on close. See
+       `MobileNavRoot`. It renders no DOM and, above the breakpoint, its `open`
+       can never become true. */
+    <MobileNavRoot open={drawer.open} onOpenChange={drawer.setOpen}>
+    {/* AC-19 — the frame never scrolls; each region does. */}
+    <div
+      /* The device insets, on the OUTERMOST element, once. `viewport-fit=cover`
+         puts the document under the notch and the home indicator, and this is
+         the only element every region is inside — padding it means no region
+         has to know. `env()` resolves to 0 where it does not apply, so this is
+         measured to change nothing at 1440x900. Box-sizing is border-box from
+         the preflight, so `h-screen` still means the viewport height and the
+         padding comes out of the content box rather than adding to it. */
+      className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground pt-safe-top pb-safe-bottom ps-safe-start pe-safe-end"
+    >
       {/* AC-62 — first focusable element in the document. */}
       <SkipToContent t={t} />
 
@@ -430,6 +476,12 @@ export function AppLayout() {
       )}
 
       <div className="flex min-h-0 flex-1">
+        {/* Below the breakpoint these two are rendered by `MobileNavPanel`
+            instead, with the same props. They are not hidden here and not
+            duplicated — there is exactly one `ModuleRail` and one `PageNav` in
+            the document on every viewport, so the two navigation landmarks
+            stay unique and a screen reader is never offered a second copy. */}
+        {!compact && (
         <ModuleRail
           workspaces={workspaces}
           visibleRows={rows}
@@ -439,9 +491,12 @@ export function AppLayout() {
           landingRoute={shell.session?.landingRoute ?? '/operations/overview'}
           t={t}
         />
+        )}
 
-        {/* D5 — always rendered. The column is the level-2 navigation and it
-            does not go away; there is no branch here any more. */}
+        {/* D5 — always rendered ABOVE the breakpoint. The column is the level-2
+            navigation and it does not go away; what changes below 768 is where
+            it lives, not whether it exists. */}
+        {!compact && (
         <PageNav
           workspace={route.workspace}
           rows={workspaceRows}
@@ -450,6 +505,7 @@ export function AppLayout() {
           activeSubTabId={route.subTabId}
           t={t}
         />
+        )}
 
         {/* The content region: top bar (or save bar) + `<main>`. */}
         <div className="flex min-w-0 flex-1 flex-col">
@@ -471,6 +527,9 @@ export function AppLayout() {
                     ? WRITE_REVOKED_BANNER_ID
                     : null
               }
+              /* AC-51's *"both nav columns stay mounted"* has to keep meaning
+                 something below the breakpoint. See `SaveBarProps.menu`. */
+              menu={menu}
             />
           ) : (
             <TopBar
@@ -501,6 +560,8 @@ export function AppLayout() {
                  landed, and the read failed. A wrong name would be worse than
                  any of them, and a skeleton on a 28px chip would be noise. */
               onCallName={onCall.data ?? null}
+              menu={menu}
+              compact={compact}
             />
           )}
 
@@ -550,7 +611,46 @@ export function AppLayout() {
                     />
                   </div>
                 )}
-                <Outlet />
+                {/* **P1-8 — the route-level boundary.** It is INSIDE `<main>`
+                    and outside nothing else, which is the whole design: a
+                    throw in a screen replaces the content region and leaves
+                    the rail, the sub-tab column and the top bar mounted and
+                    interactive, exactly as `route-not-found` and
+                    `route-forbidden` already do (**AC-24**). A boundary in
+                    `App.tsx` or around `<Routes>` would take all three down
+                    with the screen and there would be nothing left to
+                    navigate with.
+
+                    `resetKeys` carries the location, so a crashed screen does
+                    not follow the operator to the next route — no reload, no
+                    press. `name` is the route's own title from the route
+                    table, so the state names WHAT failed rather than saying
+                    "this page". */}
+                <ErrorBoundary
+                  scope="page"
+                  t={t}
+                  name={route.subTab ? t(route.subTab.titleKey) : undefined}
+                  resetKeys={[location.pathname, location.search]}
+                  /* The same target `NotFoundScreen` uses: the workspace the
+                     operator is still in when the path named one, their
+                     landing route otherwise. A control they choose, never a
+                     redirect (§11.2) — the URL of the crash stays in the bar
+                     so they can tell you what they clicked.
+
+                     The LABEL is not built here: see `ErrorBoundary.onEscape`.
+                     Resolving a key on every healthy render for a string only
+                     a crashed page shows is how a copy typo becomes a white
+                     screen, which is the defect this boundary exists to end. */
+                  onEscape={() =>
+                    navigate(
+                      route.workspace
+                        ? `${route.workspace.routePrefix}/overview`
+                        : (shell.session?.landingRoute ?? '/operations/overview'),
+                    )
+                  }
+                >
+                  <Outlet />
+                </ErrorBoundary>
               </>
             )}
           </main>
@@ -625,6 +725,22 @@ export function AppLayout() {
           (R4-3): a no-scrim layer does not trap, so `Tab` would walk the
           operator out of the only working control on screen into the frozen
           console behind it. It has no route and no URL param. */}
+      {/* The drawer. Its content is portalled to the end of `body`, so this
+          renders nothing in place; it is here, at the end of the frame, so the
+          reading order of the DOM matches the reading order of the page. */}
+      <MobileNavPanel
+        workspaces={workspaces}
+        visibleRows={rows}
+        workspaceRows={workspaceRows}
+        workspace={route.workspace}
+        navCounts={shell.navCounts}
+        navCountsLoading={shell.navCountsLoading}
+        activeWorkspaceId={route.workspaceId}
+        activeSubTabId={route.subTabId}
+        landingRoute={shell.session?.landingRoute ?? '/operations/overview'}
+        t={t}
+      />
+
       {lifecycle.frozenReason !== null && (
         <ReauthModal
           open
@@ -649,6 +765,7 @@ export function AppLayout() {
         />
       )}
     </div>
+    </MobileNavRoot>
   )
 }
 

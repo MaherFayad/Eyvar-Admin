@@ -144,6 +144,11 @@ export function AccountLayer({
    */
   const me = useAsync<TeamUser>((signal) => getTeamUser(session?.userId ?? '', signal), {
     deps: [session?.userId],
+    /* The user id is the fetcher's only input, and it is in `deps` — so a
+       switch between operators keys separately and one operator can never be
+       served the other's record. Moving between the layer's sections remounts
+       the cards; this stops each move re-reading the same person. */
+    cacheKey: 'team.get',
     enabled: open && session !== null,
   })
 
@@ -290,7 +295,7 @@ function commitFor(
         /* R9 — one line, names what happened, no period, no action. §6.2's own
            rule holds: the response is the same for every address, so the
            confirmation says a link was sent and never whether it landed. */
-        toast(t('account.password.sent', { email: session.email }))
+        toast.success(t('account.password.sent', { email: session.email }))
       },
     }
   }

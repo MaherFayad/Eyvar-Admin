@@ -73,7 +73,8 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'subs.action.freeze': 'Freeze',
   'subs.action.changeDriver': 'Change captain',
   'subs.action.cancel': 'Cancel and settle',
-  'subs.action.noPermission': 'You need the Subscriptions permission to change a subscription.',
+  'subs.action.noPermission':
+    'You cannot change a subscription. Ask an Owner for the “Subscription control” permission.',
   /* **The one control on this screen with no write behind it.** §11.2 says a
      blocked control is disabled in place with a stated reason, never hidden, so
      it renders and says this rather than quietly reassigning nothing. */
@@ -149,10 +150,44 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'subs.drawer.notFound': 'Subscription {id} is not on file.',
 
   /* ── states (§11.1, §11.5) ──────────────────────────────────────────── */
-  'subs.empty.firstRun.heading': 'No subscriptions yet',
+  'subs.empty.firstRun.heading': 'Standing journeys, and the captain committed to each one',
   'subs.empty.firstRun.body':
     'A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed.',
   'subs.empty.firstRun.action': 'Show every subscription',
   'subs.empty.noMatch': 'No subscription matches this search.',
   'subs.error.list': 'Couldn’t load subscriptions. The filters are unchanged.',
+
+  /* ── change-captain dialog (P4) ─────────────────────────────────────
+     These fourteen strings were `t(key, { defaultValue })` inside the JSX,
+     in Title Case, with `Reassigning...` on the busy label. Relocated here
+     and rewritten to `copy.md`: sentence case, `…` not `...`, and the
+     option line is ONE key with five named placeholders rather than six
+     JSX fragments a translator cannot reorder (AC-75). */
+  'sub.changeDriver.title': 'Change the assigned captain',
+  'sub.changeDriver.desc': 'Reassign subscription {id} ({rider}) to another qualified captain.',
+  'sub.changeDriver.saveError': 'Couldn’t reassign the captain. Nothing was changed.',
+  'sub.changeDriver.error':
+    'Captains didn’t load. Try again, or close this and reassign from the captain’s profile.',
+  'sub.changeDriver.empty':
+    'No other captain is active right now. Reassignment reopens when one comes online.',
+  'sub.currentDriver': 'Current captain',
+  'sub.plan': 'Plan',
+  'sub.progress': 'Trips completed',
+  'sub.selectDriver': 'New captain',
+  'sub.selectDriverLoading': 'Loading captains',
+  'sub.selectDriverPlaceholder': 'Choose an active captain',
+  'sub.driverOption': '{name} — {city} · {rating} · {active}/{max} subs',
+  'sub.confirmChange': 'Reassign captain',
+  'sub.reassigning': 'Reassigning…',
+  'action.cancel': 'Cancel',
+
+  /* §7.4.5 — the settle dialog's reason select used its own LABEL as the
+     placeholder, so the field read `Termination reason` twice. */
+  'subs.settle.reasonPlaceholder': 'Choose a reason',
+
+  /* Moved out of JSX `defaultValue` literals, 2026-09-02. A `defaultValue`
+     resolves as a third fallback the missing-key guard never sees
+     (`lib/i18n/translate.ts:98`), so these strings were invisible to an
+     extractor AND to the copy tests -- an unaudited copy surface, not just
+     an untranslatable one. */
 }

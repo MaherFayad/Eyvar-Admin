@@ -256,7 +256,7 @@ function WalletIndex({
 
   const wallets = useAsync<Paginated<WalletSummary>>(
     (signal) => listWallets({ ...table.params, view: activeTab }, signal),
-    { deps: [activeTab, table.params] },
+    { deps: [activeTab, table.params], cacheKey: 'wallets.list' },
   )
 
   const rows = useMemo(() => actions.apply(wallets.data?.items ?? []), [actions, wallets.data])
@@ -275,7 +275,8 @@ function WalletIndex({
 
   const negative = useAsync<Paginated<WalletSummary>>(
     (signal) => listWallets({ view: 'negative-balances', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the index read's `[s:tab,{...}]`. */
+    { deps: [], cacheKey: 'wallets.list' },
   )
   const negativeTotal = negative.data?.total ?? 0
   useEffect(() => {
@@ -359,6 +360,8 @@ function WalletIndex({
     () => [
       {
         id: 'rider',
+        emphasis: 'primary',
+        csv: (wallet) => wallet.riderName,
         header: t('fin.wallet.col.rider'),
         dataType: 'text',
         minWidth: 200,
@@ -412,6 +415,8 @@ function WalletIndex({
       },
       {
         id: 'balance',
+        emphasis: 'data',
+        csv: (wallet) => wallet.balanceHalalas,
         header: t('fin.wallet.col.balance'),
         dataType: 'money',
         align: 'end',
@@ -425,6 +430,8 @@ function WalletIndex({
       },
       {
         id: 'pending',
+        emphasis: 'data',
+        csv: (wallet) => wallet.pendingHalalas,
         header: t('fin.wallet.col.pending'),
         dataType: 'money',
         align: 'end',
@@ -506,6 +513,10 @@ function WalletIndex({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.wallet.search')}
+        /* **R5a** — `isNegative` is derived, not a field (`types/financials.ts`),
+           and the derivation lives here so the tint and the leading-edge marker
+           read one comparison. */
+        isRowCritical={(wallet) => wallet.balanceHalalas < 0}
         skeletonPattern="P1"
         /* §6.4 — the two derived facts no column carries. See the function. */
         extraFilters={walletExtraFilters(t)}
@@ -541,7 +552,10 @@ function RiderWalletLedger({ riderId, onBack }: { riderId: string; onBack: () =>
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>((signal) => getWalletLedger(riderId, undefined, signal), {
+    /* `riderId` is the fetcher's only variable input - the second argument is
+       the literal `undefined`. One rider's ledger cannot serve under another's. */
     deps: [riderId],
+    cacheKey: 'wallets.ledger',
     isEmpty: (data) => data.postings.length === 0,
   })
 

@@ -20,6 +20,7 @@ import {
   getNavCounts,
   getRouteTable,
   getZoneHealth,
+  listCities,
   listZones,
   resetDataLayer,
   starvedZoneCount,
@@ -27,6 +28,7 @@ import {
   useZeroSupplyZone,
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
+import { ABSENT } from '@/lib'
 import { ShellProvider } from '@/shell/ShellContext'
 import { ZONES_EN } from './copy'
 import { ZonesScreen } from './ZonesScreen'
@@ -81,15 +83,6 @@ function zoneTable(): HTMLElement {
   const table = header?.closest('table')
   if (!table) throw new Error('No zone table on the page')
   return table
-}
-
-function citiesCard(): HTMLElement {
-  const heading = screen.getByRole('heading', {
-    name: ZONES_EN['zones.cities.heading'] as string,
-  })
-  const card = heading.closest('[data-slot="card"]')
-  if (!(card instanceof HTMLElement)) throw new Error('No cities card on the page')
-  return card
 }
 
 /**
@@ -218,23 +211,57 @@ describe('the table', () => {
   })
 })
 
-describe('L-6 — three cities have no failure rate, and the row says why', () => {
-  it('renders an em dash and a reason rather than a fabricated number', async () => {
+describe('the cities table is gone, and what replaced it', () => {
+  /**
+   * **This is not the old assertion edited to pass.** The old one asserted that
+   * a four-row `Cities` card rendered three em dashes and three `Not launched`
+   * reasons. That card no longer exists, so an assertion about its contents
+   * could only be deleted or inverted; what follows asserts the behaviour that
+   * took its place, and the reason the card could go.
+   *
+   * The card carried four facts and three of them were already on the screen:
+   * Riyadh's zone count is the header's own, Riyadh's failure rate is the
+   * `avgFailureRate` tile, and `Riyadh` is the secondary line of every table
+   * row. The fourth — coverage — is now a clause in the meta line.
+   */
+  it('renders no second table, and no card headed Cities', async () => {
     renderZones()
     await zonesReady()
-    const cities = citiesCard()
 
-    /* Riyadh appears once per zone row and once in the cities card. */
-    expect(screen.getAllByText('Riyadh').length).toBeGreaterThan(1)
-    /* The four cities are asserted INSIDE the card. The map sidebar lists cities
-       too, so `getByText('Jeddah')` on the document now finds two — and the one
-       this test is about is the one whose failure rate is an em dash. */
-    for (const city of ['Jeddah', 'Dammam', 'Makkah']) {
-      expect(within(cities).getByText(city)).toBeTruthy()
-    }
-    /* One `Not launched` per city with no tracked zone, and no invented rate. */
-    expect(
-      within(cities).getAllByText(ZONES_EN['zones.cities.notLive'] as string),
-    ).toHaveLength(3)
+    expect(screen.queryByRole('heading', { name: 'Cities' })).toBeNull()
+    /* The zone table is the only table on the page. The cities card was the
+       second `<table>` element and the reason `zoneTable()` had to index. */
+    expect(document.querySelectorAll('table')).toHaveLength(1)
+  })
+
+  it('states coverage as a count in the meta line, derived not typed', async () => {
+    renderZones()
+    await zonesReady()
+
+    /* Four cities in the fixture, one of them `active`. The line is asserted
+       whole so a template that silently dropped a slot would fail here. */
+    const live = listCities().filter((city) => city.active).length
+    const all = listCities().length
+    expect(live).toBe(1)
+    expect(all).toBe(4)
+    expect(screen.getByText(`6 zones · 2 starved · ${live} of ${all} cities live`)).toBeTruthy()
+  })
+
+  /**
+   * **L-6 itself did not go anywhere.** Legacy gates a city's failure rate on
+   * `c.name === 'Riyadh'`, so three rows can never be filled whatever data
+   * arrives. The computed answer still ships — as the `zones.citiesHealth`
+   * metric breakdown, which is where a city-by-city comparison belongs and
+   * which `data/clients/zones.test.ts` already covers — and the em-dash
+   * discipline is still enforced on this screen where an operator sees it move.
+   */
+  it('a zone with no captains still renders an em dash, never a fabricated number', async () => {
+    useZeroSupplyZone()
+    renderZones()
+    const table = await zonesReady()
+
+    expect(within(table).getAllByText(ABSENT).length).toBeGreaterThan(0)
+    expect(document.body.textContent).not.toMatch(/Infinity/)
+    expect(document.body.textContent).not.toMatch(/NaN/)
   })
 })

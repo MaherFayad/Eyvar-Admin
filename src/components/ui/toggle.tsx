@@ -11,6 +11,17 @@
  *              carriers, so it survives greyscale (§7.5).
  *   §7.2       2px `--ev-blue` ring at 2px offset; `aria-pressed` carries the
  *              state to assistive tech.
+ *   §7.6       `transition-colors`, and NOT the blanket `all` variant. With
+ *              `all`, `aria-pressed:font-semibold` INTERPOLATED: `--font-sans`
+ *              leads with Inter Variable declared `font-weight: 100 900`
+ *              (`globals.css` @font-face), so pressing a toggle grew its own
+ *              label from 500 to 600 over 150ms. `motion.md` licenses five
+ *              kinds of motion and text thickening is none of them. `all`
+ *              also transitioned the focus ring on `box-shadow` (§7.2), and
+ *              a ring that fades in is a ring that is not there yet. Arabic
+ *              carries the same axis (Naskh 400-700). The class name is
+ *              deliberately not spelled here - Tailwind v4 scans comments as
+ *              plain text and would emit the utility from this very line.
  *   R15        radius 8px.
  *
  * Use it through `ToggleGroup`. A lone toggle is almost always a checkbox or a
@@ -23,7 +34,7 @@ import { Toggle as TogglePrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-lg text-sm font-medium whitespace-nowrap transition-all outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-pressed:bg-card aria-pressed:font-semibold data-[state=on]:bg-card data-[state=on]:font-semibold [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/toggle inline-flex items-center justify-center gap-1 rounded-lg text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-pressed:bg-card aria-pressed:font-semibold data-[state=on]:bg-card data-[state=on]:font-semibold [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

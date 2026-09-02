@@ -205,6 +205,40 @@ export type PermissionKey =
  *
  * @deprecated D17 — navigation carries `PermissionKey | null` directly.
  */
+
+/**
+ * Every `PermissionKey`, as a value.
+ *
+ * The union is the authority; this is it at runtime, and
+ * `navigation.test.ts` asserts the two cannot diverge. Added because a
+ * literal `13` was serving as the denominator in the onboarding intro —
+ * *"You hold 3 of 13 permissions"* against a model that has had 21 since
+ * D17 split `manage_settings` into four.
+ */
+export const PERMISSION_KEYS: readonly PermissionKey[] = [
+  'view_analytics',
+  'view_operations',
+  'view_finance',
+  'view_support',
+  'view_admin',
+  'view_profiles',
+  'approve_drivers',
+  'manage_subscriptions',
+  'live_ops',
+  'manage_plans',
+  'process_payouts',
+  'release_escrow',
+  'apply_deductions',
+  'manage_tickets',
+  'contact_users',
+  'manage_team',
+  'manage_ops_policy',
+  'manage_workspace',
+  'manage_data_governance',
+  'manage_security_policy',
+  'manage_settings',
+]
+
 export type PermissionLevel = 'full' | 'read'
 
 /** @deprecated D17 — see `PermissionLevel`. Measure catalogue only. */

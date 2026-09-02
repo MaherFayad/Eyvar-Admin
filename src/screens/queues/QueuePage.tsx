@@ -268,6 +268,23 @@ export interface QueueTableProps<T> {
   bulkActions?: ReadonlyArray<BulkAction>
 
   /**
+   * **R5a — which rows are critical, declared by the queue.**
+   *
+   * A third pure passthrough, added the same way and for the same reason
+   * `scope` and `bulkActions` were. `DataTable` used to DUCK-TYPE this —
+   * `r.breached`, `r.status === 'escalated'`, `r.flagged` — and a queue whose
+   * breach is derived from a clock rather than stamped on the row (every queue
+   * that calls `clockFor`) got no tint however plainly it rendered the R5a
+   * leading-edge marker beside it.
+   *
+   * Pass the SAME predicate the marker uses. Two carriers of one fact, one
+   * expression; §8.4.6 (b) and (c) require both and neither may disagree with
+   * the other. Omitted means no row on this queue is critical, which is a
+   * correct answer for a queue with no clock.
+   */
+  isRowCritical?: (row: T) => boolean
+
+  /**
    * §4.7 — **E1**, and the copy names the scope that is clear, per view. This
    * is the prop `DataTable` grew for **F-3**; passing it is what makes
    * **AC-234** pass.
@@ -310,6 +327,7 @@ export function QueueTable<T>({
   rowActions,
   rowActionsWidth,
   bulkActions,
+  isRowCritical,
   cleared,
   firstRun,
   emptyKind = 'cleared',
@@ -353,6 +371,8 @@ export function QueueTable<T>({
       rowActionsWidth={rowActionsWidth}
       /* §9.3 — claims and assignments only. See the prop's doc. */
       bulkActions={bulkActions}
+      /* R5a — the queue's own predicate. See the prop's doc. */
+      isRowCritical={isRowCritical}
       firstRun={firstRun}
       noMatch={noMatch}
       emptyKind={emptyKind}

@@ -136,7 +136,8 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.action.claim.blocked.all': 'All {count} selected legs are already claimed.',
   'assurance.toast.claimed.other': '{count} legs claimed',
 
-  'assurance.action.noPermission': 'You need the Subscriptions permission to claim a leg.',
+  'assurance.action.noPermission':
+    'You cannot claim a leg. Ask an Owner for the “Subscription control” permission.',
 
   'assurance.toast.confirmed': 'Confirmation recorded',
   'assurance.toast.offered': 'Offer sent',

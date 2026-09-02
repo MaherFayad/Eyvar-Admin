@@ -194,6 +194,13 @@ export function ConversationPane({
 
   const thread = useAsync<Paginated<Message>>(
     (signal) => listConversationMessages(id, { page: 1, pageSize: windowSize }, signal),
+    /* **Deliberately NOT cached (P3-13).** `deps` is complete — the id and the
+       window are the fetcher's only inputs — but a reply is *not* written back
+       through `refetch`: it lives in `optimistic` and `live`, which are local
+       state and reset on remount. So a warm entry from before a reply, plus an
+       empty `live`, is the operator's own message disappearing for the ~320 ms
+       until revalidation lands. Cacheable the day `send` ends in
+       `thread.refetch()` or `invalidate('conversations.messages')`. */
     { deps: [id, windowSize] },
   )
 
@@ -866,7 +873,7 @@ function CustomerCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{t('conversations.rail.customer')}</CardTitle>
+        <CardTitle>{t('conversations.rail.customer')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-1 text-sm">
         <Link to={profileHref} className="rounded-sm font-medium text-foreground underline underline-offset-2">
@@ -906,7 +913,7 @@ function ThisConversationCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{t('conversations.rail.thisConversation')}</CardTitle>
+        <CardTitle>{t('conversations.rail.thisConversation')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         {/* §8.4.2's countdown is a property of the work item and lives HERE, not
@@ -1011,7 +1018,7 @@ function HistoryCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{t('conversations.rail.history')}</CardTitle>
+        <CardTitle>{t('conversations.rail.history')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-1 text-xs text-muted-foreground">
         {takeovers.map((takeover, index) => (

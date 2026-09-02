@@ -40,7 +40,7 @@ function readEnv(key: string): string | undefined {
  * class this seam exists to prevent. Tests that need the other mode build the
  * client with an explicit transport instead.
  */
-export const DATA_SOURCE: DataSource = readEnv('VITE_DATA_SOURCE') === 'http' ? 'http' : 'mock'
+export const DATA_SOURCE: DataSource = import.meta.env.VITE_DATA_SOURCE === 'http' ? 'http' : 'mock'
 
 /** Base URL for the http transport. Empty string means same-origin `/api/...`. */
 export const API_BASE_URL: string = readEnv('VITE_API_BASE_URL') ?? ''

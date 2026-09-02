@@ -52,7 +52,7 @@
  *               floating over it.
  */
 
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useAnnounce } from '@/hooks'
@@ -77,9 +77,23 @@ export interface SaveBarProps {
    * neither commit nor leave.
    */
   blockedReasonId?: string | null
+  /**
+   * The compact shell's navigation control, or `null` above the breakpoint.
+   *
+   * It is on THIS bar as well as the top bar, and that is a requirement rather
+   * than symmetry. §4.1 / AC-51: while the save bar is up *"both nav columns
+   * stay mounted and are **not** dimmed"* — the operator can still navigate
+   * with work in progress, and the sign-out and route-change paths are built
+   * around that being possible. Below the breakpoint the nav columns are not on
+   * screen and this control is the only thing that brings them back, so
+   * omitting it here would silently make a dirty form on a phone a state with
+   * no navigation at all: the one place in the product an operator can be
+   * genuinely stuck.
+   */
+  menu?: ReactNode
 }
 
-export function SaveBar({ model, t, blockedReasonId = null }: SaveBarProps) {
+export function SaveBar({ model, t, blockedReasonId = null, menu = null }: SaveBarProps) {
   const announce = useAnnounce()
 
   /* §11.6 row 7 — the live region announces `Saving`. One region, module
@@ -93,6 +107,7 @@ export function SaveBar({ model, t, blockedReasonId = null }: SaveBarProps) {
       /* Identical height to the top bar, in the same slot. AC-51. */
       className="flex h-topbar shrink-0 items-center gap-3 border-b border-border bg-background px-4"
     >
+      {menu}
       {/* §2.3 — the word carries the warning. No glyph. */}
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
         {model.entity

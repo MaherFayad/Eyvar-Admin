@@ -74,10 +74,10 @@ export const DISPUTES_EN: Dictionary = {
   'dispute.action.take': 'Take claim',
   'dispute.action.take.blocked.resolved': 'This claim has already been decided.',
   'dispute.action.take.blocked.owned': '{name} is already working on it.',
-  'dispute.action.take.blocked.permission': 'You cannot take claims. Ask an administrator for the manage-tickets permission.',
+  'dispute.action.take.blocked.permission': 'You cannot take claims. Ask an Owner for the “Ticket handling” permission.',
   'dispute.action.resolve': 'Resolve claim',
   'dispute.action.resolve.blocked.resolved': 'Decided on {date}. A verdict is not reversed here.',
-  'dispute.action.resolve.blocked.permission': 'You cannot resolve claims. Ask an administrator for the manage-tickets permission.',
+  'dispute.action.resolve.blocked.permission': 'You cannot resolve claims. Ask an Owner for the “Ticket handling” permission.',
 
   /* ── the disputes empty and error states ──────────────────────────── */
   'dispute.empty.heading': 'No claims to answer',
@@ -103,11 +103,11 @@ export const DISPUTES_EN: Dictionary = {
   'dispute.lf.action.found': 'Captain has it',
   'dispute.lf.action.found.blocked.noCaptain': 'This report names no captain, so nobody can be asked to check the vehicle.',
   'dispute.lf.action.found.blocked.past': 'This report is already past that step.',
-  'dispute.lf.action.found.blocked.permission': 'You cannot update reports. Ask an administrator for the manage-tickets permission.',
+  'dispute.lf.action.found.blocked.permission': 'You cannot update reports. Ask an Owner for the “Ticket handling” permission.',
   'dispute.lf.action.returned': 'Mark returned',
   'dispute.lf.action.returned.blocked.searching': 'The captain has not confirmed they have it yet.',
   'dispute.lf.action.returned.blocked.done': 'This item is already back with its owner.',
-  'dispute.lf.action.returned.blocked.permission': 'You cannot update reports. Ask an administrator for the manage-tickets permission.',
+  'dispute.lf.action.returned.blocked.permission': 'You cannot update reports. Ask an Owner for the “Ticket handling” permission.',
 
   'dispute.lf.empty.heading': 'Nothing has been left behind',
   'dispute.lf.empty.body': 'Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back.',
@@ -149,7 +149,7 @@ export const DISPUTES_EN: Dictionary = {
   'dispute.resolve.cancel': 'Cancel',
   'dispute.resolve.blocked.amountRequired': 'Enter the amount to settle before confirming.',
   'dispute.resolve.blocked.amountAboveClaim': 'A settlement cannot exceed the {max} claimed.',
-  'dispute.resolve.blocked.permission': 'You cannot resolve claims. Ask an administrator for the manage-tickets permission.',
+  'dispute.resolve.blocked.permission': 'You cannot resolve claims. Ask an Owner for the “Ticket handling” permission.',
   'dispute.resolve.failed': 'The verdict was not recorded and no money moved. {reason}',
 
   /* ── toasts ───────────────────────────────────────────────────────── */

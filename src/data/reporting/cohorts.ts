@@ -38,6 +38,17 @@ export function buildCohortMatrix<T>(
   entities: readonly T[],
   getJoinedAt: (entity: T) => IsoDate | IsoDateTime,
   getLastActiveAt: (entity: T) => IsoDate | IsoDateTime | null,
+  /**
+   * **Today, and it is not optional.** A cohort cell for a month that has not
+   * happened yet is unknown, not zero.
+   *
+   * Without this the June-2026 cohort read `100 / 0 / 0 / 0` on 25 June 2026 —
+   * three of twelve rows wrong on screen, and wrong in the most damaging
+   * direction, because `0%` retention is a business emergency and the truth was
+   * "ask again in a month". The type already allows `null` and the renderer
+   * already blanks it; only the arithmetic was missing.
+   */
+  today: IsoDate,
   intervals = ['M0', 'M1', 'M2', 'M3', 'M6'],
 ): CohortMatrix {
   const cohorts: Record<string, { size: number; activeAtMonth: Record<number, number> }> = {}
@@ -70,7 +81,13 @@ export function buildCohortMatrix<T>(
       const monthNum = Number(intervalStr.replace(/^M/, ''))
       if (Number.isNaN(monthNum)) return
 
-      if (cohort.size === 0) {
+      /* Has this month elapsed for THIS cohort? `M3` is meaningful for a cohort
+         that joined four months ago and unknowable for one that joined last
+         week — so the cut is per row, never per table. */
+      const elapsed = monthDiff(`${cohortKey}-01`, today)
+      if (monthNum > elapsed) {
+        retentionByMonth[intervalStr] = null
+      } else if (cohort.size === 0) {
         retentionByMonth[intervalStr] = null
       } else {
         const active = cohort.activeAtMonth[monthNum] ?? 0

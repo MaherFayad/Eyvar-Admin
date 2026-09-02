@@ -125,7 +125,10 @@ export function ExportCard() {
       toast.success(t('adminData.export.toast', { filename }))
       if (csv.header.omittedSeries.length > 0) {
         /* AC-890 — a redacted export must not read as a complete one. */
-        toast.message(t('adminData.export.omitted', { count: csv.header.omittedSeries.length }))
+        /* G9 — `toast.message` was the FIFTH toast API in the product and the
+           only call site of it. The four kinds are success · error · info ·
+           undo; a statement of fact about a completed export is `info`. */
+        toast.info(t('adminData.export.omitted', { count: csv.header.omittedSeries.length }))
       }
     } catch {
       setFailed(true)
@@ -138,7 +141,7 @@ export function ExportCard() {
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+        <CardTitle className="flex items-center gap-2">
           <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
           {t('adminData.export.title')}
         </CardTitle>
@@ -161,7 +164,7 @@ export function ExportCard() {
               </SelectContent>
             </Select>
             {measures === null && (
-              <p className="text-2xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t('adminData.export.dataset.support.blocked')}
               </p>
             )}
@@ -180,7 +183,7 @@ export function ExportCard() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-2xs text-muted-foreground">{t('adminData.export.format.blocked')}</p>
+            <p className="text-xs text-muted-foreground">{t('adminData.export.format.blocked')}</p>
           </Field>
 
           <Field label={t('adminData.export.range')}>
@@ -216,7 +219,7 @@ export function ExportCard() {
 
         {/* §11.2 — the failure is a sentence naming the next move, not a red
             banner and not a silent toast that has already gone. */}
-        {failed && <p className="text-2xs text-muted-foreground">{t('adminData.export.error')}</p>}
+        {failed && <p className="text-xs text-muted-foreground">{t('adminData.export.error')}</p>}
 
         <div className="flex justify-end pt-1">
           <BlockedButton

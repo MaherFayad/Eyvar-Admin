@@ -150,13 +150,18 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
   const navigate = useNavigate()
   const table = useIndexTable<SubscriptionPlan>({ mode: 'queue', getRowId: (plan) => plan.id })
 
-  const plans = useAsync<SubscriptionPlan[]>((signal) => listPlans(signal), { deps: [] })
+  const plans = useAsync<SubscriptionPlan[]>((signal) => listPlans(signal), {
+    deps: [],
+    cacheKey: 'pricing.plans',
+  })
   const rows = plans.data ?? []
 
   const columns = useMemo<DataColumn<SubscriptionPlan>[]>(
     () => [
       {
         id: 'name',
+        emphasis: 'primary',
+        csv: (plan) => plan.nameEn,
         header: t('fin.pricing.plan.col.name'),
         dataType: 'text',
         minWidth: 200,
@@ -209,6 +214,7 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('fin.pricing.plan.col.status'),
         dataType: 'enum',
         width: 120,
@@ -230,6 +236,9 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
         /* **AC-390** — the editor is a route outside the layout, so entering it
            unmounts the rail, the sub-tab column and the top bar. */
         onSelect: (plan) => navigate(`/financials/pricing/plans/${plan.id}/edit`),
+        /* **P0-2 — the declared row-click target.** A plan's only surface is
+           the editor route, and entering it mutates nothing. */
+        rowClick: true,
       },
     ],
     [t, navigate],
@@ -271,13 +280,18 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
   const { t, language } = shell.language
   const table = useIndexTable<QuickRideType>({ mode: 'queue', getRowId: (type) => type.id })
 
-  const types = useAsync<QuickRideType[]>((signal) => listQuickRideTypes(signal), { deps: [] })
+  const types = useAsync<QuickRideType[]>((signal) => listQuickRideTypes(signal), {
+    deps: [],
+    cacheKey: 'pricing.quickRides',
+  })
   const rows = types.data ?? []
 
   const columns = useMemo<DataColumn<QuickRideType>[]>(
     () => [
       {
         id: 'name',
+        emphasis: 'primary',
+        csv: (type) => type.name,
         header: t('fin.pricing.quick.col.name'),
         dataType: 'text',
         minWidth: 200,
@@ -286,6 +300,8 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'base',
+        emphasis: 'data',
+        csv: (type) => type.baseFareHalalas,
         header: t('fin.pricing.quick.col.base'),
         dataType: 'money',
         align: 'end',
@@ -294,6 +310,8 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'perKm',
+        emphasis: 'data',
+        csv: (type) => type.perKmHalalas,
         header: t('fin.pricing.quick.col.perKm'),
         dataType: 'money',
         align: 'end',
@@ -302,6 +320,8 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'perMin',
+        emphasis: 'data',
+        csv: (type) => type.perMinHalalas,
         header: t('fin.pricing.quick.col.perMin'),
         dataType: 'money',
         align: 'end',
@@ -363,8 +383,27 @@ function RateCardView({
   const { t, language } = shell.language
   const currentUserId = shell.session?.userId ?? ''
 
-  const live = useAsync<RateCard>((signal) => getLiveRateCard(signal), { deps: [] })
-  const cards = useAsync<RateCard[]>((signal) => listRateCards(signal), { deps: [] })
+  /**
+   * **Two reads, one operation id.** `clients/pricing.ts` gives BOTH
+   * `getLiveRateCard` (`:249`) and `listRateCards` (`:236`) the id
+   * `pricing.rateCards`, and both run here with no parameters. Keyed on the
+   * operation id alone they would collide on `pricing.rateCards::[]` while
+   * returning different shapes - a `RateCard` served where a `RateCard[]` is
+   * expected, which is a `.map is not a function` and not merely stale rows.
+   *
+   * So the dep says WHICH rate card is being asked for. It is a constant, and
+   * that is the point: it is the thing that distinguishes the two requests, and
+   * `useAsync.ts:66-72` requires it to be in `deps` for the key to be honest.
+   * `invalidate('pricing.rateCards')` still clears both.
+   */
+  const live = useAsync<RateCard>((signal) => getLiveRateCard(signal), {
+    deps: ['live'],
+    cacheKey: 'pricing.rateCards',
+  })
+  const cards = useAsync<RateCard[]>((signal) => listRateCards(signal), {
+    deps: [],
+    cacheKey: 'pricing.rateCards',
+  })
 
   return (
     <div className="flex flex-col gap-3">
@@ -566,10 +605,19 @@ function SurgeCard({ gate }: { gate: { canWrite: boolean; reason: string } }) {
   const actions = useMoneyActions<SurgeSuspension>({ keyOf: (suspension) => suspension.id })
   const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
 
-  const windows = useAsync<SurgeWindow[]>((signal) => listSurgeWindows(signal), { deps: [] })
+  const windows = useAsync<SurgeWindow[]>((signal) => listSurgeWindows(signal), {
+    deps: [],
+    cacheKey: 'pricing.surgeWindows',
+  })
   const suspensions = useAsync<SurgeSuspension[]>((signal) => listSurgeSuspensions(signal), {
     deps: [],
+    cacheKey: 'pricing.surgeSuspensions',
   })
+  /* **Deliberately NOT cached (P3-13).** `zones.list` is the Zones surface's
+     operation and this is a parameterless read of it, so a `deps: []` key here
+     would be claimed by whichever of the two screens mounts first. Zones is
+     owned elsewhere; keying against a surface I cannot read is how two agents
+     ship incompatible answers to one key. */
   const zones = useAsync<Paginated<Zone>>((signal) => listZones({ signal }), { deps: [] })
 
   /* **AC-409** — a live countdown, against the shared clock. One interval for
@@ -713,6 +761,7 @@ function CancellationView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const rules = useAsync<CancellationRule[]>((signal) => listCancellationRules(signal), {
     deps: [],
+    cacheKey: 'pricing.cancellationRules',
   })
   const rows = rules.data ?? []
 

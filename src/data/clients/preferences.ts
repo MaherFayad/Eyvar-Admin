@@ -39,7 +39,7 @@
  * fetch overwrites it, **the server always wins.**
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { mock, mockMutation } from '../mock/delay'
 import { DEFAULT_PAGE_SIZE } from '../types/common'
 import {
@@ -54,6 +54,13 @@ export const PREFERENCE_OPERATIONS = {
   get: 'preferences.get',
   update: 'preferences.update',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(PREFERENCE_OPERATIONS))
 
 /* ─────────────────────────────── the bag ───────────────────────────────── */
 

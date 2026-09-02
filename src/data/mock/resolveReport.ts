@@ -26,6 +26,7 @@
  * `trips.completed` buckets on `endedAt` reads one line instead of a call graph.
  */
 
+import { currentRowCap } from './rowCap'
 import { dailySnapshotFixtures } from '../fixtures/dailySnapshots'
 import { allDriverFixtures } from '../fixtures/drivers'
 import { riderFixtures } from '../fixtures/riders'
@@ -227,20 +228,8 @@ export const READABLE_RESOURCES: string[] = Object.keys(SOURCES)
  * really are short. A flag with full data behind it would let the caveat's copy
  * ship while the state it describes never occurs.
  */
-const DEFAULT_ROW_CAP = 5_000
-let rowCap = DEFAULT_ROW_CAP
-
-export function useTruncatedReports(cap = 40): void {
-  rowCap = cap
-}
-
-export function resetReportRowCap(): void {
-  rowCap = DEFAULT_ROW_CAP
-}
-
-export function currentRowCap(): number {
-  return rowCap
-}
+/* The cap and its two QA seams live in `./rowCap`, which imports no fixture —
+   see that file for why the split is a bug fix rather than tidiness. */
 
 /* ──────────────────────────── the resolver ─────────────────────────────── */
 
@@ -311,7 +300,7 @@ export function resolveReport(
       ? { code: 'series_failed', retryable: true }
       : null
 
-    const grouping = blocked || failed ? { values: [null], folded: 0, top: [] } : groupsFor(measure, query)
+    const grouping = blocked || failed ? { values: [null], folded: 0, top: [] } : groupsFor(measure, query, window)
     if (grouping.folded > 0) {
       warnings.add('groups-folded')
       foldedGroupCount = (foldedGroupCount ?? 0) + grouping.folded
@@ -386,7 +375,7 @@ export function resolveReport(
     panels,
     series,
     truncated,
-    truncatedAtRows: truncated ? rowCap : null,
+    truncatedAtRows: truncated ? currentRowCap() : null,
     warnings: [...warnings],
     foldedGroupCount,
   }
@@ -466,7 +455,7 @@ function eventsOf(
   const source = SOURCES[measure.population.resource]
   if (!source) return { kind: null, events: [], total: null, truncated: false }
 
-  const capped = source.rows.slice(0, rowCap)
+  const capped = source.rows.slice(0, currentRowCap())
   const truncated = capped.length < source.rows.length
   const subject = source.subject
   const events: SubjectEvent[] = []
@@ -698,7 +687,7 @@ function resolveFunnel(
     panels: [panel],
     series,
     truncated,
-    truncatedAtRows: truncated ? rowCap : null,
+    truncatedAtRows: truncated ? currentRowCap() : null,
     warnings: [...warnings],
     foldedGroupCount: null,
   }
@@ -810,6 +799,7 @@ function resolveCohort(
     entities,
     (e) => e.joinedAt,
     (e) => e.lastActiveAt,
+    ctx.today,
     intervals,
   )
 
@@ -840,7 +830,7 @@ function resolveCohort(
     panels: [cohortPanel(panelId, series.map((s) => s.id), anchor.labelKey)],
     series,
     truncated: anchorSet.truncated,
-    truncatedAtRows: anchorSet.truncated ? rowCap : null,
+    truncatedAtRows: anchorSet.truncated ? currentRowCap() : null,
     warnings: [],
     foldedGroupCount: null,
     /* R5-15's rule applied to a percentage: the base travels with the number.
@@ -1042,7 +1032,7 @@ function resolveJourney(
     panels: [journeyPanel(panelId, series.map((s) => s.id), root.labelKey)],
     series,
     truncated,
-    truncatedAtRows: truncated ? rowCap : null,
+    truncatedAtRows: truncated ? currentRowCap() : null,
     warnings: [],
     foldedGroupCount: foldedPaths.length === 0 ? null : foldedPaths.length,
   }
@@ -1154,7 +1144,7 @@ function buildSeries(args: BuildArgs): { series: ReportSeries; truncated: boolea
     )
   }
 
-  const capped = source.rows.slice(0, rowCap)
+  const capped = source.rows.slice(0, currentRowCap())
   const truncated = capped.length < source.rows.length
   const groupField = query.groupBy === null ? null : source.fields[query.groupBy] ?? null
 
@@ -1276,16 +1266,28 @@ interface Grouping {
  * series, the legend names how many were folded, and the result carries
  * `groups-folded`.
  */
-export function groupsFor(measure: Measure, query: ReportQuery): Grouping {
+export function groupsFor(
+  measure: Measure,
+  query: ReportQuery,
+  window: { from: IsoDate; to: IsoDate },
+): Grouping {
   if (query.groupBy === null) return { values: [null], folded: 0, top: [] }
   const source = SOURCES[measure.population.resource]
   const get = source?.fields[query.groupBy]
   if (!source || !get) return { values: [null], folded: 0, top: [] }
 
   const totals = new Map<string, number>()
-  for (const row of source.rows.slice(0, rowCap)) {
+  for (const row of source.rows.slice(0, currentRowCap())) {
     if (!matchesAll(row, measure.population.predicate, source)) continue
     if (!matchesAll(row, query.filters, source)) continue
+    /* **The window, which this ranking used to ignore.** Without it the top-N
+       groups were chosen over the whole store, so `last-month` and `last-7d`
+       returned byte-identical group membership AND order — and the rank-1 group
+       could contribute 0.00 to the period actually on screen, while the folded
+       `Other` bucket outweighed every named one. Same rule as the trend
+       resolver: a row with no date in this window is not in this question. */
+    const date = source.dateOf(row, measure.population.timeField)
+    if (date === null || date < window.from || date > window.to) continue
     const key = String(get(row) ?? '')
     if (key === '') continue
     totals.set(key, (totals.get(key) ?? 0) + source.valueOf(row, measure.population.valueField))

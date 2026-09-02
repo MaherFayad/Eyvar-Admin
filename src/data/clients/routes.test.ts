@@ -35,25 +35,28 @@ describe('AC-01/AC-02 — the rail', () => {
   })
 })
 
-describe('AC-03 — 35 sub-tabs, distributed 6/9/7/6/7, unique paths', () => {
+describe('AC-03 — 36 sub-tabs, distributed 6/10/7/6/7, unique paths', () => {
   /**
-   * **AC-03 was written for 34 and the table now holds 35.** `D1a` amends D1 to
-   * admit `management-reports` at Management order 6, so Management is 6 and the
-   * total is 35. The numbers are updated here rather than the assertion softened
-   * to `>= 34`: a count test that cannot fail is not a count test.
+   * **AC-03 was written for 34; the table now holds 36.** `D1a` admitted
+   * `management-reports` (Management 6, total 35). **`D1b` splits Operations >
+   * Trips into `operations-quick-rides` and `operations-subscription-trips`** on
+   * the business owner's ruling, so Operations is 10 and the total is 36.
+   *
+   * The numbers are updated rather than the assertion softened to `>= 34`: a
+   * count test that cannot fail is not a count test.
    */
-  it('has exactly 35 sub-tab rows', () => {
-    expect(SUB_TABS).toHaveLength(35)
+  it('has exactly 36 sub-tab rows', () => {
+    expect(SUB_TABS).toHaveLength(36)
   })
 
-  it('distributes them 6 / 9 / 7 / 6 / 7', () => {
+  it('distributes them 6 / 10 / 7 / 6 / 7', () => {
     const counts = WORKSPACE_IDS.map((id) => SUB_TABS.filter((r) => r.workspaceId === id).length)
-    expect(counts).toEqual([6, 9, 7, 6, 7])
+    expect(counts).toEqual([6, 10, 7, 6, 7])
   })
 
   it('gives every sub-tab a unique path and a unique id', () => {
-    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(35)
-    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(35)
+    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(36)
+    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(36)
   })
 
   it('numbers display order 1..n contiguously within each workspace', () => {
@@ -164,8 +167,8 @@ describe('§3.10 — page shapes', () => {
    * the reason it is written as two assertions rather than one: **every sub-tab
    * is single-column except Live Dispatch**, which is a monitor.
    */
-  it('gives 34 of the 35 sub-tabs the single-column shape', () => {
-    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(34)
+  it('gives 35 of the 36 sub-tabs the single-column shape', () => {
+    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(35)
     expect(SUB_TABS.filter((r) => r.shape === 'monitor').map((r) => r.subTabId)).toEqual([
       'operations-dispatch',
     ])

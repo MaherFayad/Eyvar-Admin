@@ -67,12 +67,10 @@
  * running app at all.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, paginate, runQuery, type QueryShape } from '../mock/query'
-import { CNV_108_MESSAGES, agentPresenceFixtures, conversationFixtures } from '../fixtures/conversations'
-import { teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
 import { channelReportsRead } from '../types/conversation'
 import type {
@@ -102,6 +100,25 @@ import {
   type SubscribeOptions,
   type Unsubscribe,
 } from './realtime'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let CNV_108_MESSAGES!: Fixtures['CNV_108_MESSAGES']
+let agentPresenceFixtures!: Fixtures['agentPresenceFixtures']
+let conversationFixtures!: Fixtures['conversationFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  CNV_108_MESSAGES = f.CNV_108_MESSAGES
+  agentPresenceFixtures = f.agentPresenceFixtures
+  conversationFixtures = f.conversationFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  dynamicConversations = [...conversationFixtures]
+})
 
 export const CONVERSATION_OPERATIONS = {
   list: 'conversations.list',
@@ -119,6 +136,13 @@ export const CONVERSATION_OPERATIONS = {
   typing: 'conversations.typing',
   presence: 'conversations.presence',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(CONVERSATION_OPERATIONS))
 
 /* ──────────────────────────── the topics ────────────────────────────── */
 
@@ -142,7 +166,7 @@ export interface ConversationQuery extends QueryParams {
   ticketId?: string
 }
 
-let dynamicConversations: Conversation[] = [...conversationFixtures]
+let dynamicConversations!: Conversation[]
 let scenario: 'default' | 'empty' = 'default'
 
 /**
@@ -1274,6 +1298,10 @@ export function useEmptyConversationQueue(): void {
  * the per-run drift this file exists to avoid.
  */
 export function resetConversations(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   dynamicConversations = [...conversationFixtures]
   scenario = 'default'
   messageSequence = 9_000

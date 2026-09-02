@@ -57,7 +57,11 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import type { CanvasStatus } from '@/components/reports'
 import { OTHER_GROUP } from '@/data/clients'
 import { reportMode, type Measure, type QueryViolation, type ReportResult } from '@/data/types'
-import { formatMetricValue } from '@/components/metrics'
+/* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
+   `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
+   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
+   no React in it. */
+import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, type Language, type Translator } from '@/lib'
 import { Reasons } from './ReportModePanel'
 

@@ -87,9 +87,28 @@ export function pinnedStyle(
   width?: number,
   overflowing = false,
   /**
-   * §7.3 rule 2 — the identity column's floor. It declares no `width`, so it
-   * takes the residual under `table-layout: fixed`; this is what stops the
-   * residual from being zero. Ignored when a `width` is declared.
+   * §7.3 rule 2 — the identity column's declared floor, in px.
+   *
+   * **It does not enforce that floor here, and the comment that said it did was
+   * false.** `ui/table.tsx` sets `table-fixed`, and under
+   * `table-layout: fixed` **`min-width` and `max-width` on a cell are ignored**
+   * — a column is exactly as wide as the first row declares it, and a column
+   * declaring nothing takes the residual, zero included. The previous text
+   * asserted this emission was *"what stops the residual from being zero"*; it
+   * is not, and the measured result was the identity column at 0px at 1152 and
+   * 38px at 1280 (P0-3, `17-reconciled-findings.md` §1).
+   *
+   * The floor is now enforced where it can be: `DataTable` sums the declared
+   * widths plus this number and puts the total on the `<table>` as
+   * `min-inline-size`, so the table stops shrinking and the scroll container
+   * overflows instead of the identity column collapsing. See
+   * `tableMinInlineSize` in `DataTable.tsx`.
+   *
+   * The declaration is still emitted, for two reasons that are not layout: it
+   * is the number §7.3's budget counts and §7.2's pinned offsets are computed
+   * from, and it keeps a `hasSize` style on the cell so an identity column that
+   * is pinned but unsized is not silently styleless. Ignored when a `width` is
+   * declared.
    */
   minWidth?: number,
 ): CSSProperties | undefined {

@@ -92,6 +92,18 @@ export interface PeopleTableProps<T> {
    */
   bulkActions?: ReadonlyArray<BulkAction>
 
+  /**
+   * **R5a — which rows are critical, declared by the view.**
+   *
+   * A passthrough on the same precedent as `bulkActions` above: `DataTable`
+   * used to DUCK-TYPE this off the shape of the row, and an applicant's breach
+   * is a clock the view derives rather than a field on the record, so
+   * Applications rendered the leading-edge marker over an untinted row. Only
+   * Applications is a queue; Captains, Riders and Compliance are indexes and
+   * pass nothing, which correctly means no critical rows.
+   */
+  isRowCritical?: (row: T) => boolean
+
   firstRun: { heading: string; body: string; actions: EmptyAction[] }
   noMatch: { message: string; action?: EmptyAction }
   error: { message: string; onRetry: () => void }
@@ -118,6 +130,7 @@ export function PeopleTable<T>({
   rowActions,
   rowActionsWidth,
   bulkActions,
+  isRowCritical,
   firstRun,
   noMatch,
   error,
@@ -133,6 +146,11 @@ export function PeopleTable<T>({
 
   return (
     <DataTable
+      /* The People views are the ones that actually show an avatar, through
+         `Identity` in `./cells.tsx`, so they take the taller media pitch.
+         Every other table in the product is single-line and no longer pays
+         20px a row for a picture it does not render. */
+      rowMedia
       table={table}
       rows={rows}
       columns={columns}
@@ -154,6 +172,8 @@ export function PeopleTable<T>({
       rowActions={rowActions}
       rowActionsWidth={rowActionsWidth}
       bulkActions={bulkActions}
+      /* R5a — the view's own predicate. See the prop's doc. */
+      isRowCritical={isRowCritical}
       firstRun={firstRun}
       noMatch={noMatch}
       error={error}

@@ -169,6 +169,10 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
   const overlayEntityId = route.overlay === 'entity' ? route.overlayValue : null
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(overlayEntityId ?? '', signal), {
     deps: [overlayEntityId],
+    /* The entity id is the fetcher's only input. Keyed identically to
+       `ProfileLayer` and `EntityPageScreen`, on purpose: opening the 360° layer
+       and then the palette resolves the same ref once, not twice. */
+    cacheKey: 'profile.resolve',
     enabled: overlayEntityId !== null,
   })
 
@@ -207,6 +211,7 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
     /* §8.4 — the same counts the rail badges read. One read at the shell, two
        surfaces, so a queue's number cannot differ between them. */
     navCounts: shell.navCounts,
+    permissions: shell.permissions,
     navigate,
     openProfile,
   })
@@ -240,7 +245,25 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
             ref={anchorRef}
             className={cn(
               'flex h-control w-100 items-center gap-1.5 rounded-lg border border-input bg-card px-2',
-              'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background',
+              /* **400px does not fit in a 390px bar**, and the failure was not a
+                 visual one: the field overflowed its flex slot, sat on top of the
+                 compact shell's navigation control, and swallowed the tap. The
+                 control was visible, enabled, stable and unclickable — which is
+                 the worst shape a defect can take, because it looks fine in a
+                 screenshot. Measured before the fix: Playwright timed out for 30s
+                 clicking the hamburger, reporting the search magnifier as the
+                 element intercepting pointer events.
+                 Below the breakpoint the field takes the slack instead of a fixed
+                 width. Desktop-first, as the variant requires: the unprefixed
+                 `w-100` is still the answer above 768. */
+              'compact:w-auto compact:min-w-0 compact:flex-1',
+              /* A 2px ring on TOP of a 2px offset drew a 4px green halo around
+                 a 28px field — the loudest thing in the top bar, for a control
+                 that is merely focused. The ring keeps its 2px so the indicator
+                 stays unmistakable; only the gap that detached it from the
+                 field is gone, and the border adopts the ring colour so the
+                 focused field reads as one object rather than two. */
+              'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring',
             )}
           >
             {/* §9.5 — a magnifier is an object; it does not mirror. */}
@@ -298,15 +321,32 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
 
             {/* §14 — the chip's position mirrors with the row; the glyph ORDER
               inside it does not, which is why `⌘ K` is one string in one key. */}
-            <Kbd className="shrink-0">{t('shell.topbar.searchShortcut')}</Kbd>
+            {/* A chord hint on a device with no keyboard is decoration that
+                costs width the query needs. Painted away rather than removed
+                from the DOM is right here and wrong for the top bar chips: this
+                is a `<kbd>` with no semantics and no tab stop, so hiding it
+                takes nothing out of the screen reader's or the keyboard's path
+                — there is nothing in either to take. */}
+            <Kbd className="shrink-0 compact:hidden">{t('shell.topbar.searchShortcut')}</Kbd>
           </div>
         </PopoverAnchor>
 
         <PopoverContent
           align="start"
+          sideOffset={6}
+          /**
+           * Wider than the 400px field, and now for a stated reason.
+           *
+           * Every row carries a second line describing what the destination is
+           * FOR, which is the line that replaced one restating the title. At the
+           * field's own width those descriptions truncate mid-word on all five
+           * rows — trading a useless line for an unreadable one. The panel is
+           * anchored `start`, so it grows only to the inside edge and stays
+           * visibly hung off the field it came from.
+           */
           /* `p-1` because the `cmdk` root that used to supply it now sits outside
            the popover; the inner spacing is unchanged. */
-          className="w-120 gap-0 p-1"
+          className="w-140 gap-0 p-1"
           aria-label={t('command.palette.label')}
           /* §7.3.3 — a popover does not trap. Focus stays in the field so the
            operator keeps typing; ↑ ↓ drive the list from there. The confirm

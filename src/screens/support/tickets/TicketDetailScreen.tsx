@@ -35,12 +35,20 @@
  *              past `slaDueAt` with `slaBreached: false` renders as a **date**,
  *              not `overdue 3d` — the promise was kept.
  *   §11.1      the thread has a first-run empty state. `TKT-503` can reach it.
- *   §6.1       tokens only. The guide card was `border-amber-200 bg-amber-50/50
- *              text-amber-800 dark:text-amber-300` — five Tailwind palette
- *              classes on one element, none of them a token.
- *   §9.1       logical properties only. The bubbles were `ml-auto` / `mr-auto`,
- *              which puts the operator's own replies on the wrong side of the
- *              thread in Arabic.
+ *   §6.1       tokens only. The guide card drew its border, its ground and its
+ *              ink from Tailwind's own amber ramp — stops 200, 50 and 800, plus
+ *              a dark-mode variant at 300. Five palette classes on one element,
+ *              none of them a token.
+ *
+ *              **The four are described rather than quoted, and that is not
+ *              fussiness.** Tailwind v4 scans comments as plain text, so a class
+ *              written HERE to say *"we removed this"* is a candidate and ships
+ *              a rule to `dist`. `globals.css` and `MetricTileRow` each record
+ *              an occurrence; this line was a third, and the only place it was
+ *              ever visible was the built stylesheet.
+ *   §9.1       logical properties only. The bubbles used the two PHYSICAL auto
+ *              margins, which puts the operator's own replies on the wrong side
+ *              of the thread in Arabic.
  *   AC-74/75   every string is a key in `./copy`.
  */
 
@@ -64,6 +72,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
@@ -71,6 +80,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { LogCallModal } from './LogCallModal'
 import { PRIORITY_TONE, STATUS_TONE } from './tone'
+import { withFallback } from '../../operations/localCopy'
+import { TICKETS_EN } from './copy'
 
 /** One row of the merged timeline. Messages and calls, in time order. */
 type TimelineEntry =
@@ -82,10 +93,28 @@ export function TicketDetailScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { ticketId = '' } = useParams<{ ticketId: string }>()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, TICKETS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNow(15)
 
-  const ticket = useAsync<Ticket>((signal) => getTicket(ticketId, signal), { deps: [ticketId] })
+  /* `ticketId` is the fetcher's only input. Every mutation on this screen —
+     claim, reply, resolve, log call — ends in `ticket.refetch()`, which bypasses
+     the cache and rewrites the entry, so the timeline is never re-served from
+     before a reply. */
+  const ticket = useAsync<Ticket>((signal) => getTicket(ticketId, signal), {
+    deps: [ticketId],
+    cacheKey: 'tickets.get',
+  })
 
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
@@ -254,7 +283,12 @@ export function TicketDetailScreen() {
            informational block on this page takes. */
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {/* H2/H3 — a card title is INK. All four section titles on this page
+                were 12px grey above 12px grey bodies: same size, same colour,
+                so no card had a first thing to read. Case, tracking and size
+                are unchanged; only the colour comes back, which is the one
+                channel that was free. */}
+            <CardTitle className="text-xs font-semibold tracking-wide text-foreground uppercase">
               {t('ticket.guide.heading', { scenario: data.callGuideScript.scenario })}
             </CardTitle>
           </CardHeader>
@@ -282,7 +316,7 @@ export function TicketDetailScreen() {
 
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="text-sm font-semibold">{t('ticket.thread')}</CardTitle>
+          <CardTitle>{t('ticket.thread')}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 p-4">
           {timeline.length === 0 ? (
@@ -304,8 +338,19 @@ export function TicketDetailScreen() {
                   <li
                     key={entry.message.id}
                     /* Logical properties. `ms-auto` / `me-auto` mirror in
-                       Arabic; `ml-auto` / `mr-auto` do not, and put the
-                       operator's own replies on the wrong side of the thread. */
+                       Arabic; their two PHYSICAL counterparts do not, and put
+                       the operator's own replies on the wrong side of the
+                       thread.
+
+                       **The physical pair is described and not written, and
+                       that is load-bearing.** Tailwind v4 scans comments as
+                       plain text: this line named both, and the built
+                       stylesheet carried `margin-left:auto` and
+                       `margin-right:auto` — two PHYSICAL rules, from no source
+                       file, in a product where every inset is logical. Found by
+                       grepping `dist`, which is the only place it was visible.
+                       `globals.css` and `MetricTileRow` each record the same
+                       occurrence from their own comments. */
                     className={`flex max-w-lg flex-col rounded-lg border p-3 text-xs ${
                       entry.message.senderType === 'agent'
                         ? 'ms-auto border-border bg-muted/40'
@@ -422,7 +467,7 @@ export function TicketDetailScreen() {
   const rail = [
     <Card key="ticket-sla">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <CardTitle className="text-xs font-semibold tracking-wide text-foreground uppercase">
           {t('ticket.sla.heading')}
         </CardTitle>
       </CardHeader>
@@ -467,7 +512,7 @@ export function TicketDetailScreen() {
 
     <Card key="ticket-meta">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <CardTitle className="text-xs font-semibold tracking-wide text-foreground uppercase">
           {t('ticket.details')}
         </CardTitle>
       </CardHeader>
@@ -482,8 +527,32 @@ export function TicketDetailScreen() {
             {t(`ticket.priority.${data.priority}`)}
           </StatusBadge>
         </Row>
+        {/* A3 — the label leads and the code follows.
+            This row printed `fare_dispute` alone, in `font-mono`, under the
+            heading "Reason code": a machine identifier as the primary label,
+            which no dictionary can translate and no operator should have to
+            decode. The sentence is now the label.
+
+            **The raw code is KEPT, as a secondary line**, and only here. A
+            support operator escalating to engineering quotes the code, not the
+            sentence — it is the join key into the ledger, the audit log and
+            every historical record, and `ReasonCodesCard`'s whole retirement
+            rule exists so that it stays quotable forever. `AdminTeamScreen`
+            already shows a permission this way, label over `font-mono` key, so
+            this is the console's established shape for "a human name and the
+            identifier behind it" rather than a new one.
+
+            It does NOT repeat in the queue: 50 rows of mono identifier is the
+            defect, not the handoff. */}
         <Row label={t('ticket.field.reasonCode')}>
-          <span className="font-mono font-medium text-foreground">{data.reasonCode}</span>
+          <span className="flex flex-col items-end gap-0.5 text-end">
+            <span className="font-medium text-foreground">
+              {reasonLabel(t, data.reasonCode)}
+            </span>
+            {/* An identifier, never translated and never mirrored — isolated so
+                a `_`-joined LTR token cannot reorder against Arabic (§9.1). */}
+            <bdi className="font-mono text-xs text-muted-foreground">{data.reasonCode}</bdi>
+          </span>
         </Row>
         <Row label={t('ticket.field.opened')}>
           <span className="text-foreground">
@@ -528,7 +597,7 @@ export function TicketDetailScreen() {
 
     <Card key="requester">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <CardTitle className="text-xs font-semibold tracking-wide text-foreground uppercase">
           {t('ticket.requester')}
         </CardTitle>
       </CardHeader>

@@ -7,18 +7,11 @@
  * rule 3), so they ride as `?view=` and never become a second endpoint.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  creditNoteFixtures,
-  FINANCIALS_PERIOD,
-  refundFixtures,
-  revenueByPlanFixtures,
-} from '../fixtures/financials'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
-import { riderFixtures } from '../fixtures/riders'
+import { FINANCIALS_PERIOD } from '../serverPolicy'
 import {
   ApiError,
   type Facets,
@@ -36,6 +29,25 @@ import type { Ledger } from '../types/ledger'
 import { appendAudit } from './audit'
 import { buildLedger, postEntry } from './ledger'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let creditNoteFixtures!: Fixtures['creditNoteFixtures']
+let refundFixtures!: Fixtures['refundFixtures']
+let revenueByPlanFixtures!: Fixtures['revenueByPlanFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let riderFixtures!: Fixtures['riderFixtures']
+onFixturesLoaded((f) => {
+  creditNoteFixtures = f.creditNoteFixtures
+  refundFixtures = f.refundFixtures
+  revenueByPlanFixtures = f.revenueByPlanFixtures
+  teamUserFixtures = f.teamUserFixtures
+  riderFixtures = f.riderFixtures
+})
 
 export const REVENUE_OPERATIONS = {
   ledger: 'revenue.ledger',
@@ -45,6 +57,13 @@ export const REVENUE_OPERATIONS = {
   byPlan: 'revenue.byPlan',
   issueRefund: 'revenue.issueRefund',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(REVENUE_OPERATIONS))
 
 /* ─────────────────── session state ──────────────────────────── */
 
@@ -283,7 +302,7 @@ export async function issueRefund(
       })
     }
 
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
 
     /* Seeded sequence + skip-what-exists, never `fixtures.length`. See the
        constants at the top of this file for why. */

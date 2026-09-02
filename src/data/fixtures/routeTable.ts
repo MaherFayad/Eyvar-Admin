@@ -453,23 +453,52 @@ export const SUB_TABS: SubTabRoute[] = [
     writePermission: 'manage_subscriptions',
     hasBacklog: true,
   },
+  /* **Two sub-tabs, on the owner's ruling — see `DECISIONS.md` D1b.**
+     D1 made quick rides "the same table with a different filter". The business
+     owner overruled it: a quick ride and a subscription leg are different work,
+     and an operator should not have to remember which view tab they were on.
+
+     `kind` stays ONE type on ONE collection. What separated is the operator's
+     entry point, not the domain model — which is why both rows carry the same
+     `patterns`, `viewPermission` and `writePermission`, and the same screen
+     renders both. The `all` view of each is now `kind`-scoped, so the two view
+     tabs that did the filtering are gone: they became the sub-tabs. */
   {
-    subTabId: 'operations-trips',
+    subTabId: 'operations-quick-rides',
     workspaceId: 'operations',
-    path: '/operations/trips',
+    path: '/operations/quick-rides',
     order: 7,
-    titleKey: 'subtab.operations.trips',
-    subtitleKey: 'subtab.operations.trips.sub',
+    titleKey: 'subtab.operations.quickRides',
+    subtitleKey: 'subtab.operations.quickRides.sub',
     views: views(
       ['all', 'view.trips.all'],
-      ['quick-rides', 'view.trips.quickRides'],
-      ['subscription-legs', 'view.trips.subscriptionLegs'],
       ['flagged', 'view.trips.flagged'],
       ['low-rating', 'view.trips.lowRating'],
       ['route-history', 'view.trips.routeHistory'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['trips', 'quickrides', 'live'],
+    legacyPageIds: ['quickrides', 'live'],
+    legacySettingsPanes: [],
+    patterns: ['P1'],
+    shape: 'single',
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
+    hasBacklog: false,
+  },
+  {
+    subTabId: 'operations-subscription-trips',
+    workspaceId: 'operations',
+    path: '/operations/subscription-trips',
+    order: 8,
+    titleKey: 'subtab.operations.subscriptionTrips',
+    subtitleKey: 'subtab.operations.subscriptionTrips.sub',
+    views: views(
+      ['all', 'view.trips.all'],
+      ['flagged', 'view.trips.flagged'],
+      ['low-rating', 'view.trips.lowRating'],
+    ),
+    detailRoutes: [],
+    legacyPageIds: ['trips'],
     legacySettingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
@@ -481,7 +510,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-assurance',
     workspaceId: 'operations',
     path: '/operations/assurance',
-    order: 8,
+    order: 9,
     titleKey: 'subtab.operations.assurance',
     subtitleKey: 'subtab.operations.assurance.sub',
     views: views(
@@ -503,7 +532,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-people',
     workspaceId: 'operations',
     path: '/operations/people',
-    order: 9,
+    order: 10,
     titleKey: 'subtab.operations.people',
     subtitleKey: 'subtab.operations.people.sub',
     /* The widest merge — 5 legacy pages, 4 views, 3 patterns, on one route.

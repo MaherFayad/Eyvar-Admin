@@ -75,7 +75,10 @@ export function DashboardsView({
   const [pending, setPending] = useState<{ dashboard: Dashboard; failed: boolean } | null>(null)
 
   const dashboards = useAsync((signal) => listDashboards(table.params, signal), {
+    /* `table.params` is the fetcher's only input; create and delete both call
+       `dashboards.refetch`. */
     deps: [JSON.stringify(table.params)],
+    cacheKey: 'dashboards.list',
   })
 
   const rows = dashboards.data?.items ?? []
@@ -115,7 +118,9 @@ export function DashboardsView({
   ]
 
   const rowActions: Array<RowAction<Dashboard>> = [
-    { label: t('rb.dashboards.open'), onSelect: onOpen },
+    /* **P0-2 — the declared row-click target.** `Delete` is the other
+       action on this table and must stay unreachable from a row click. */
+    { label: t('rb.dashboards.open'), onSelect: onOpen, rowClick: true },
     {
       label: t('rb.dashboards.delete'),
       onSelect: (row) => setPending({ dashboard: row, failed: false }),

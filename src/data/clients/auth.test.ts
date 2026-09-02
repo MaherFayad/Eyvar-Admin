@@ -49,7 +49,11 @@ import { COMMON_STEP_IDS, OVERVIEW_DESTINATION_ALLOW_LIST } from '../fixtures/on
 import { ROLE_LANDING } from '../fixtures/teamUsers'
 import { ROLE_NAMES } from '../types/session'
 import type { RoleName } from '../types/session'
-import { AUTH_FIXTURE_PASSWORD, MAX_CODES_PER_CHALLENGE } from '../fixtures/authIdentities'
+import { AUTH_FIXTURE_PASSWORD } from '../mock/credentials'
+import { MAX_CODES_PER_CHALLENGE } from '../fixtures/authIdentities'
+import { PERMISSION_KEYS } from '../types/navigation'
+import { effectivePermissions } from '../types/session'
+import { teamUserFixtures } from '../fixtures/teamUsers'
 
 beforeEach(() => {
   resetDataLayer()
@@ -483,8 +487,20 @@ describe('6 — the 21 onboarding steps, diffed against §10.5', () => {
     expect(onboardingStepSeeds.every((s) => s.learnMoreKey === null)).toBe(true)
   })
 
-  it('gives every one of the 21 `requiredPermission: null` — Q4', () => {
-    expect(onboardingStepSeeds.every((s) => s.requiredPermission === null)).toBe(true)
+  /* **Q4 landed.** Every step is now gated by the permission its own destination
+     requires, derived from the route table. Three stay `null` and are correct:
+     two target a shell layer, and `admin-activity` is open to every
+     authenticated operator. `fixtures/onboardingGates.test.ts` holds the
+     derivation itself; this asserts the state changed and did not go halfway. */
+  it('gates a step by its destination, leaving only the three that need no gate', () => {
+    const gated = onboardingStepSeeds.filter((s) => s.requiredPermission !== null)
+    expect(gated.length).toBeGreaterThan(0)
+    const ungated = onboardingStepSeeds
+      .filter((s) => s.requiredPermission === null)
+      .map((s) => s.destination?.subTabId ?? null)
+    for (const subTabId of ungated) {
+      expect(subTabId === null || subTabId === 'admin-activity').toBe(true)
+    }
   })
 
   it('sizes the four tracks as AC-619, AC-622, AC-624 and AC-627 require', () => {
@@ -666,24 +682,33 @@ describe('7 — the checklist, assembled', () => {
     expect(asked.steps).toHaveLength(8)
   })
 
-  it('reads 3 of 13 permissions for `lina@eyvar.com` — AC-601', async () => {
+  /* Both numbers were wrong and both are now derived. The numerator read a
+     stale STORED permission list instead of `effectivePermissions`, which is
+     what the rest of the product uses; the denominator was a literal `13` from
+     before D17 split `manage_settings` into four. */
+  it('reads the operator’s effective permissions against the real total — AC-601', async () => {
     const checklist = await getOnboarding('USR-3')
-    expect(checklist.permissionsHeld).toBe(3)
-    expect(checklist.permissionsTotal).toBe(13)
+    const user = teamUserFixtures.find((u) => u.id === 'USR-3')!
+    expect(checklist.permissionsHeld).toBe(
+      effectivePermissions(user.role, user.permissionDelta).length,
+    )
+    expect(checklist.permissionsTotal).toBe(PERMISSION_KEYS.length)
   })
 
   it('reaches `track-empty` through ZERO PERMISSIONS, not a forbidden step', async () => {
     /**
-     * **AC-631 passes and AC-610 cannot**, and the difference is Q4. With
-     * `requiredPermission: null` on all 21, no step can be *forbidden* — so
-     * `newrole@` reaches the empty-ish track by holding nothing, and the
-     * `step-unreachable-forbidden` row has no fixture that can produce it.
-     * Both are recorded as known-failing. This test pins which one is which.
+     * **Both routes now exist, and this pins that they are different routes.**
+     * `newrole@` holds nothing, so it reaches the empty track through zero
+     * permissions — AC-631. Now that the gates are real, a step CAN also be
+     * forbidden — AC-610 — and for an operator holding nothing every gated step
+     * is. The distinction the criteria draw is between an empty *track* and a
+     * *forbidden step*, and this asserts the account reaches the first while
+     * being able to produce the second.
      */
     const checklist = await getOnboarding('newrole@eyvar.com')
     expect(checklist.permissionsHeld).toBe(0)
     const forbidden = checklist.steps.filter((s) => s.available && !s.reachable)
-    expect(forbidden).toHaveLength(0)
+    expect(forbidden.length, 'the forbidden row is reachable at last').toBeGreaterThan(0)
   })
 
   it('does not let a skip fake progress — AC-634', async () => {

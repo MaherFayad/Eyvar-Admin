@@ -63,10 +63,10 @@ export const TICKETS_EN: Dictionary = {
   'ticket.action.claim': 'Claim',
   'ticket.action.claim.blocked.owned': '{name} already owns this ticket.',
   'ticket.action.claim.blocked.closed': 'A closed ticket is not claimed. Reopen it first.',
-  'ticket.action.claim.blocked.permission': 'You cannot claim tickets. Ask an administrator for the manage-tickets permission.',
+  'ticket.action.claim.blocked.permission': 'You cannot claim tickets. Ask an Owner for the “Ticket handling” permission.',
   'ticket.action.resolve': 'Resolve',
   'ticket.action.resolve.blocked.done': 'This ticket is already {status}.',
-  'ticket.action.resolve.blocked.permission': 'You cannot resolve tickets. Ask an administrator for the manage-tickets permission.',
+  'ticket.action.resolve.blocked.permission': 'You cannot resolve tickets. Ask an Owner for the “Ticket handling” permission.',
   'ticket.action.open': 'Open',
 
   /* ── the detail page ──────────────────────────────────────────────── */
@@ -125,14 +125,14 @@ export const TICKETS_EN: Dictionary = {
   'ticket.reply.blocked.noChannel': 'This ticket has no reply destination, so there is nowhere to send to.',
   'ticket.reply.blocked.empty': 'Write something before sending.',
   'ticket.reply.blocked.closed': 'A closed ticket does not take replies. Reopen it first.',
-  'ticket.reply.blocked.permission': 'You cannot reply to tickets. Ask an administrator for the manage-tickets permission.',
+  'ticket.reply.blocked.permission': 'You cannot reply to tickets. Ask an Owner for the “Ticket handling” permission.',
 
   'ticket.requester': 'Requester',
   'ticket.requester.viewProfile': 'Open 360° profile',
 
   /* ── the log-call modal ───────────────────────────────────────────── */
   'ticket.logCall': 'Log a call',
-  'ticket.logCall.blocked.permission': 'You cannot log calls. Ask an administrator for the manage-tickets permission.',
+  'ticket.logCall.blocked.permission': 'You cannot log calls. Ask an Owner for the “Ticket handling” permission.',
   'ticket.logCall.title': 'Log a call on {id}',
   'ticket.logCall.desc': 'Record how the call with {name} ended. It goes on the ticket, not to the customer.',
   'ticket.logCall.outcome': 'How it ended',
@@ -153,6 +153,14 @@ export const TICKETS_EN: Dictionary = {
   'ticket.toast.claimFailed': '{id} was not claimed',
   'ticket.toast.replied': 'Sent to {channel}',
   'ticket.toast.replyFailed': 'The reply was not sent',
+  /* The undo D18 traded the confirm away for. `commands/tickets.ts` took that
+     trade — remove the dialog, the reversal is the net — and this screen never
+     adopted the registry, so it got the removal without the net.
+
+     **Its undo copy is NOT duplicated here.** `commands/copy.ts` already owns
+     `ticket.toast.resolved.undone.one` and `.undoFailed.one`; declaring a second
+     pair shadowed the registry's, which `domains.test.ts` caught by name. One
+     vocabulary, owned once. */
   'ticket.toast.resolved': '{id} resolved',
   'ticket.toast.resolveFailed': '{id} was not resolved',
   'ticket.toast.callLogged': 'Call logged on {id}',

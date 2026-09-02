@@ -41,7 +41,7 @@
  *   §9.1       logical utilities only.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Lock } from 'lucide-react'
 
@@ -65,6 +65,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useShell } from '@/shell/ShellContext'
 import { BlockedButton } from './BlockedButton'
+import { withFallback } from '../../operations/localCopy'
+import { ADMIN_DATA_EN } from './copy'
 
 interface Draft {
   auditRetentionDays: AuditRetentionDays
@@ -74,9 +76,29 @@ interface Draft {
 
 export function RetentionCard() {
   const shell = useShell()
-  const { t, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ADMIN_DATA_EN),
+    [shell.language.t],
+  )
+  const { language } = shell.language
   const canWrite = shell.permissions.permissions.includes('manage_settings')
 
+  /**
+   * **Deliberately NOT cached (P3-13).** A save keeps the server's copy in
+   * `saved`, local state that dies with the card - it does NOT `refetch`. So a
+   * fresh mount within the TTL would read the warm PRE-save entry and show the
+   * operator the policy they just replaced.
+   *
+   * Cacheable once the save either calls `refetch()` or invalidates
+   * `'retention.'`.
+   */
   const policy = useAsync<RetentionPolicy>((signal) => getRetentionPolicy(signal), { deps: [] })
 
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -134,7 +156,7 @@ export function RetentionCard() {
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+        <CardTitle className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-muted-foreground" />
           {t('adminData.retention.title')}
         </CardTitle>
@@ -236,16 +258,16 @@ export function RetentionCard() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-2xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {t('adminData.retention.window.help')}
                 </p>
               </Field>
             </div>
 
-            {failed && <p className="text-2xs text-muted-foreground">{t('adminData.retention.error')}</p>}
+            {failed && <p className="text-xs text-muted-foreground">{t('adminData.retention.error')}</p>}
 
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-2xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {server.updatedAt === null
                   ? t('adminData.retention.neverSaved')
                   : t('adminData.retention.lastSaved', {

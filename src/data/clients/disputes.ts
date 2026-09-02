@@ -57,12 +57,10 @@
  * those two files.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { disputeFixtures, lostFoundFixtures } from '../fixtures/disputes'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import {
   nextLostFoundStatus,
@@ -77,9 +75,28 @@ import {
 } from '../types/dispute'
 import type { Refund } from '../types/financials'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { postEntry } from './ledger'
 import { issueRefund } from './revenue'
 import { adjustWallet } from './wallets'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let disputeFixtures!: Fixtures['disputeFixtures']
+let lostFoundFixtures!: Fixtures['lostFoundFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  disputeFixtures = f.disputeFixtures
+  lostFoundFixtures = f.lostFoundFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  dynamicDisputes = [...disputeFixtures]
+  dynamicLostFound = [...lostFoundFixtures]
+})
 
 export const DISPUTE_OPERATIONS = {
   list: 'disputes.list',
@@ -91,6 +108,13 @@ export const DISPUTE_OPERATIONS = {
   lostFoundGet: 'lostFound.get',
   lostFoundAdvance: 'lostFound.advance',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(DISPUTE_OPERATIONS))
 
 export interface DisputeQuery extends QueryParams {
   status?: DisputeStatus
@@ -104,10 +128,14 @@ export interface LostFoundQuery extends QueryParams {
 
 /* ─────────────────── mutable mock state ─────────────────────── */
 
-let dynamicDisputes = [...disputeFixtures]
-let dynamicLostFound = [...lostFoundFixtures]
+let dynamicDisputes!: typeof disputeFixtures
+let dynamicLostFound!: typeof lostFoundFixtures
 
 export function resetDisputes(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   dynamicDisputes = [...disputeFixtures]
   dynamicLostFound = [...lostFoundFixtures]
 }
@@ -198,7 +226,12 @@ export async function listDisputes(
   return mock(DISPUTE_OPERATIONS.list, signal, () => runQuery(dynamicDisputes, params, disputeShape))
 }
 
-/** GET /api/v1/disputes/facets — the Filter control's option sets, from the data (F-6). */
+/**
+ * GET /api/v1/disputes/facets
+ *   -> Facets — field name -> [{ value, count }], count-descending
+ *
+ * The Filter control's option sets, from the data (F-6).
+ */
 export async function getDisputeFacets(signal?: AbortSignal): Promise<Facets> {
   if (DATA_SOURCE === 'http') {
     return http.get<Facets>('/disputes/facets', undefined, { signal })
@@ -208,7 +241,11 @@ export async function getDisputeFacets(signal?: AbortSignal): Promise<Facets> {
   )
 }
 
-/** GET /api/v1/disputes/:id */
+/**
+ * GET /api/v1/disputes/:id
+ *   -> Dispute
+ *   404 when the id does not exist
+ */
 export async function getDispute(id: string, signal?: AbortSignal): Promise<Dispute> {
   if (DATA_SOURCE === 'http') {
     return http.get<Dispute>(`/disputes/${id}`, undefined, { signal })
@@ -222,6 +259,10 @@ export async function getDispute(id: string, signal?: AbortSignal): Promise<Disp
 
 /**
  * POST /api/v1/disputes/:id/claim
+ *   body: { userId }
+ *   -> Dispute
+ *   404 when the id does not exist
+ *   409 when the dispute is already resolved
  *
  * Taking ownership moves an `open` claim to `under-review`, which is the only
  * way that status is reached — it is *"somebody is on it"*, not a separate
@@ -315,21 +356,21 @@ export async function resolveDispute(
   }
 
   /* 3 — the verdict, recorded only now. */
-  const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)
+  const me = teamUserFixtures.find((u) => u.id === currentMockUserId())
   const idx = dynamicDisputes.findIndex((d) => d.id === dispute.id)
   const resolved: Dispute = {
     ...dispute,
     status: 'resolved',
-    ownerId: dispute.ownerId ?? CURRENT_USER_ID,
-    ownerName: dispute.ownerName ?? me?.name ?? CURRENT_USER_ID,
+    ownerId: dispute.ownerId ?? currentMockUserId(),
+    ownerName: dispute.ownerName ?? me?.name ?? currentMockUserId(),
     resolution: {
       outcome: input.outcome,
       refundHalalas: outcomeMovesMoney(input.outcome) ? input.refundHalalas : 0,
       refundId: refund?.id ?? null,
       note: input.note?.trim() ? input.note.trim() : null,
       resolvedAt: EYVAR_NOW,
-      resolvedByUserId: CURRENT_USER_ID,
-      resolvedByUserName: me?.name ?? CURRENT_USER_ID,
+      resolvedByUserId: currentMockUserId(),
+      resolvedByUserName: me?.name ?? currentMockUserId(),
     },
   }
   dynamicDisputes = replaceAt(dynamicDisputes, idx, resolved)
@@ -371,7 +412,7 @@ async function settle(
           sourceType: 'adjustment',
           sourceId: dispute.id,
           kind: 'adjustment',
-          actorId: CURRENT_USER_ID,
+          actorId: currentMockUserId(),
           reasonCode,
         },
       ],
@@ -484,7 +525,11 @@ export async function listLostFound(
   )
 }
 
-/** GET /api/v1/lost-found/:id */
+/**
+ * GET /api/v1/lost-found/:id
+ *   -> LostFoundItem
+ *   404 when the id does not exist
+ */
 export async function getLostFoundItem(id: string, signal?: AbortSignal): Promise<LostFoundItem> {
   if (DATA_SOURCE === 'http') {
     return http.get<LostFoundItem>(`/lost-found/${id}`, undefined, { signal })

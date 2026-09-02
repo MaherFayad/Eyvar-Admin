@@ -121,8 +121,10 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Check, Clock, Key, MoreHorizontal, ShieldCheck, Users, X } from 'lucide-react'
 import { AddUserModal } from './AddUserModal'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { OperatorSessionsDialog } from './OperatorSessionsDialog'
+import { withFallback } from '../../operations/localCopy'
+import { ADMIN_TEAM_EN } from './copy'
 
 /**
  * **Q4 is CLOSED by D17, and this literal is superseded.**
@@ -171,7 +173,18 @@ function refusalSentence(code: TeamGuardCode, t: Translate): string {
 
 export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ADMIN_TEAM_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const canWrite = shell.permissions.permissions.includes('manage_team')
   /**
@@ -196,9 +209,16 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
      part of the same page and a failure in either is a page failure, because a
      security pane that silently renders its defaults is worse than one that
      says it could not load. */
-  const roster = useAsync<Paginated<TeamUser>>((signal) => listOperators({ pageSize: 100 }, signal))
-  const policy = useAsync<SecurityPolicy>((signal) => getSecurityPolicy(signal))
-  const rota = useAsync<OnCallRota>((signal) => getOnCallRota(signal))
+  /* None of the three fetchers takes a varying parameter, so an empty `deps`
+     is complete and the keys are honest. Every mutation on this page calls
+     `refetchAll`, and `refetch` bypasses the cache read. */
+  const roster = useAsync<Paginated<TeamUser>>((signal) => listOperators({ pageSize: 100 }, signal), {
+    cacheKey: 'team.list',
+  })
+  const policy = useAsync<SecurityPolicy>((signal) => getSecurityPolicy(signal), {
+    cacheKey: 'securityPolicy.get',
+  })
+  const rota = useAsync<OnCallRota>((signal) => getOnCallRota(signal), { cacheKey: 'team.rota' })
 
   const users = useMemo(() => roster.data?.items ?? [], [roster.data])
 
@@ -375,6 +395,9 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             title: t('admin.team.confirm.revoke.title', { name: user.name }),
             body: t('admin.team.confirm.revoke.body'),
             confirmLabel: t('admin.team.confirm.revoke.action'),
+            /* An invitation that was never accepted. Re-inviting is the
+               adjacent menu item, so nothing here is unrecoverable. */
+            destructive: false,
             onConfirm: () =>
               void run(
                 async () => void (await revokeInvite(user.id)),
@@ -392,8 +415,15 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             title: t('admin.team.confirm.suspend.title', { name: user.name }),
             body: t('admin.team.confirm.suspend.body'),
             confirmLabel: t('admin.team.confirm.suspend.action'),
-            requireReason: true,
-            onConfirm: (reason) =>
+            /* Reinstatement is one click, on this same menu. R5a's red is for
+               the unrecoverable; a deactivation is not that. */
+            destructive: false,
+            reason: {
+              label: t('admin.team.confirm.reason.label'),
+              help: t('admin.team.confirm.reason.help'),
+              message: t('admin.team.confirm.reason.message'),
+            },
+            onConfirm: ({ reason }) =>
               void run(
                 async () => void (await suspendOperator(user.id, reason)),
                 t('admin.team.toast.suspended', { name: user.name }),
@@ -423,8 +453,12 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             confirmLabel: t('admin.team.confirm.offboard.action'),
             /* R5a use #1 — the record does not come back from this screen. */
             destructive: true,
-            requireReason: true,
-            onConfirm: (reason) =>
+            reason: {
+              label: t('admin.team.confirm.reason.label'),
+              help: t('admin.team.confirm.reason.help'),
+              message: t('admin.team.confirm.reason.message'),
+            },
+            onConfirm: ({ reason }) =>
               void run(
                 async () => void (await offboardOperator(user.id, reason)),
                 t('admin.team.toast.offboarded', { name: user.name }),
@@ -481,7 +515,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         <CardHeader className="border-b border-border pb-3">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <CardTitle className="flex items-center gap-2">
                 <Users className="size-4 text-muted-foreground" aria-hidden="true" />
                 {t('admin.team.roster.title')}
               </CardTitle>
@@ -495,7 +529,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-start text-xs">
-              <thead className="border-b border-border bg-muted/40 text-2xs font-medium text-muted-foreground">
+              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 <tr>
                   <th scope="col" className="p-3 text-start">
                     {t('admin.team.column.operator')}
@@ -526,7 +560,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                     <td className="p-3">
                       <span className="flex flex-col">
                         <span className="font-semibold text-foreground">{user.name}</span>
-                        <span className="text-2xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {user.email} · {user.id}
                         </span>
                       </span>
@@ -618,7 +652,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
       {/* ── 2. the permission matrix ────────────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <Key className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.team.matrix.title')}
           </CardTitle>
@@ -627,7 +661,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-start text-xs">
-              <thead className="border-b border-border bg-muted/40 text-2xs font-medium text-muted-foreground">
+              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 <tr>
                   <th scope="col" className="p-3 text-start">
                     {t('admin.team.matrix.capability')}
@@ -646,7 +680,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                       <span className="block font-medium text-foreground">
                         {t(`account.permission.${permissionKey}`)}
                       </span>
-                      <span className="block font-mono text-2xs text-muted-foreground">
+                      <span className="block font-mono text-xs text-muted-foreground">
                         {permissionKey}
                       </span>
                     </th>
@@ -681,7 +715,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             </table>
           </div>
           {/* §11.2 — the matrix is read-only and says why, in place. */}
-          <p className="border-t border-border p-3 text-2xs text-muted-foreground">
+          <p className="border-t border-border p-3 text-xs text-muted-foreground">
             {t('admin.team.matrix.blocked')}
           </p>
         </CardContent>
@@ -690,7 +724,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
       {/* ── 3. security & session policy ────────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.team.security.title')}
           </CardTitle>
@@ -702,7 +736,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
               <Label htmlFor="admin-team-2fa" className="font-medium text-foreground">
                 {t('admin.team.security.twoFactor')}
               </Label>
-              <span className="text-2xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {t('admin.team.security.twoFactorDesc')}
               </span>
             </span>
@@ -739,7 +773,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                   ))}
                 </SelectContent>
               </Select>
-              <span id="admin-team-idle-help" className="text-2xs text-muted-foreground">
+              <span id="admin-team-idle-help" className="text-xs text-muted-foreground">
                 {t('admin.team.security.idleHelp')}
               </span>
             </div>
@@ -772,14 +806,14 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
           {/* Stated rather than hidden: the value saves, and the shell does not
               read it yet. A pane that quietly saved a number nothing enforces
               is the defect this whole screen is being repaired for. */}
-          <p className="text-2xs text-muted-foreground">{t('admin.team.security.notWired')}</p>
+          <p className="text-xs text-muted-foreground">{t('admin.team.security.notWired')}</p>
         </CardContent>
       </Card>
 
       {/* ── 4. the on-call rota ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.team.rota.title')}
           </CardTitle>
@@ -810,7 +844,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
               }
             />
           </div>
-          <p className="text-2xs text-muted-foreground">{t('admin.team.rota.notWired')}</p>
+          <p className="text-xs text-muted-foreground">{t('admin.team.rota.notWired')}</p>
         </CardContent>
       </Card>
     </div>
@@ -937,7 +971,7 @@ function RefusableMenuItem({
     >
       {label}
       {reason !== null && (
-        <span id={reasonId} className="block max-w-64 text-2xs font-normal text-muted-foreground">
+        <span id={reasonId} className="block max-w-64 text-xs font-normal text-muted-foreground">
           {reason}
         </span>
       )}

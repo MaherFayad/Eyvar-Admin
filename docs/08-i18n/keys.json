@@ -1,0 +1,275 @@
+{
+  "totals": {
+    "keys": 4757,
+    "en": 4570,
+    "ar": 4757,
+    "arMissing": 0,
+    "arExtra": 187,
+    "copyFiles": 30,
+    "unregisteredKeys": 131,
+    "pluralForms": 29,
+    "defaultValue": 0,
+    "defaultValueForwarded": 2
+  },
+  "registered": [
+    {
+      "file": "src/screens/financials/copy.ts",
+      "exports": [
+        "FINANCIALS_EN"
+      ],
+      "keys": 682,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "exports": [
+        "REPORTS_EN"
+      ],
+      "keys": 420,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "exports": [
+        "PEOPLE_EN"
+      ],
+      "keys": 264,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/copy.ts",
+      "exports": [
+        "PROFILE_EN"
+      ],
+      "keys": 247,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "exports": [
+        "ADMIN_WORKSPACE_EN"
+      ],
+      "keys": 238,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "exports": [
+        "OVERVIEW_EN"
+      ],
+      "keys": 189,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "exports": [
+        "ADMIN_DATA_EN"
+      ],
+      "keys": 188,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "exports": [
+        "COMMUNICATIONS_EN"
+      ],
+      "keys": 178,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "exports": [
+        "AUTH_EN"
+      ],
+      "keys": 170,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "exports": [
+        "POLICY_EN"
+      ],
+      "keys": 164,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "exports": [
+        "CONVERSATIONS_EN"
+      ],
+      "keys": 164,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "exports": [
+        "ADMIN_TEAM_EN"
+      ],
+      "keys": 118,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "exports": [
+        "ASSURANCE_EN"
+      ],
+      "keys": 112,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "exports": [
+        "SUBSCRIPTIONS_EN"
+      ],
+      "keys": 110,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "exports": [
+        "TICKETS_EN"
+      ],
+      "keys": 110,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "exports": [
+        "DISPUTES_EN"
+      ],
+      "keys": 104,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/trips/copy.ts",
+      "exports": [
+        "TRIPS_EN"
+      ],
+      "keys": 102,
+      "notInEN": 0
+    },
+    {
+      "file": "src/commands/copy.ts",
+      "exports": [
+        "COMMANDS_EN"
+      ],
+      "keys": 88,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "exports": [
+        "REQUESTS_EN"
+      ],
+      "keys": 81,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "exports": [
+        "ONBOARDING_EN"
+      ],
+      "keys": 78,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "exports": [
+        "ZONES_EN"
+      ],
+      "keys": 63,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "exports": [
+        "FAIRNESS_EN"
+      ],
+      "keys": 63,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "exports": [
+        "SAFETY_EN"
+      ],
+      "keys": 56,
+      "notInEN": 0
+    },
+    {
+      "file": "src/i18n/vocabulary/copy.ts",
+      "exports": [
+        "VOCABULARY_EN"
+      ],
+      "keys": 47,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/queues/copy.ts",
+      "exports": [
+        "QUEUE_SHARED_EN"
+      ],
+      "keys": 46,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "exports": [
+        "MY_WORK_EN"
+      ],
+      "keys": 43,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/admin/activity/copy.ts",
+      "exports": [
+        "ADMIN_ACTIVITY_EN"
+      ],
+      "keys": 22,
+      "notInEN": 0
+    },
+    {
+      "file": "src/pwa/copy.ts",
+      "exports": [
+        "PWA_EN"
+      ],
+      "keys": 4,
+      "notInEN": 0
+    }
+  ],
+  "unregistered": [
+    {
+      "file": "src/screens/operations/corporate/copy.ts",
+      "exports": [
+        "CORPORATE_EN"
+      ],
+      "keys": 92,
+      "notInEN": 91
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "exports": [
+        "DISPATCH_EN"
+      ],
+      "keys": 42,
+      "notInEN": 40
+    }
+  ],
+  "noCopyFile": [
+    {
+      "dir": "src/screens",
+      "screens": [
+        "EntityPageScreen.tsx",
+        "SubTabScreen.tsx"
+      ]
+    },
+    {
+      "dir": "src/screens/support/contacts",
+      "screens": [
+        "ContactCentreScreen.tsx"
+      ]
+    }
+  ],
+  "defaultValueByFile": [],
+  "fragments": []
+}

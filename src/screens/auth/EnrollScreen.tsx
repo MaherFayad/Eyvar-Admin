@@ -108,6 +108,11 @@ export function EnrollScreen() {
      secret to be issued against the account. */
   const totp = useAsync<TotpEnrolment>(
     (signal) => beginTotpEnrolment(handoff?.enrolmentToken ?? '', signal),
+    /* **Deliberately NOT cached (P3-13).** `beginTotpEnrolment` *issues* a
+       secret against the account; it is a read only in shape. A warm entry
+       would re-paint the previously issued secret and hide the fact that
+       picking TOTP again mints a new one, so the QR the operator scans and the
+       secret the server holds could disagree. Never cache a credential. */
     { deps: [handoff?.enrolmentToken], enabled: method === 'totp' && handoff !== null },
   )
   const [phone, setPhone] = useState('')

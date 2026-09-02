@@ -119,7 +119,7 @@ export function AdminCommunicationsScreen({ row }: { row: SubTabRoute }) {
     >
       <div className="flex max-w-5xl flex-col gap-6">
         {/* §11.2 — the refusal that goes with the disabled primary, as text. */}
-        {!canWrite && <p className="text-2xs text-muted-foreground">{t('comms.push.blocked')}</p>}
+        {!canWrite && <p className="text-xs text-muted-foreground">{t('comms.push.blocked')}</p>}
 
         <EmailLogCard row={row} t={t} language={language} canWrite={canWrite} onTotals={onTotals} />
 

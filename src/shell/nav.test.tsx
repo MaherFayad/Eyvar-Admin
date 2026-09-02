@@ -302,7 +302,11 @@ describe('PageNav — AC-05, AC-19, AC-58', () => {
     const user = userEvent.setup()
     renderColumn({ activeSubTabId: 'operations-people' })
     const people = screen.getByRole('link', { name: EN['subtab.operations.people'] as string })
-    const trips = screen.getByRole('link', { name: EN['subtab.operations.trips'] as string })
+    /* D1b — `subtab.operations.trips` is gone; the row is now Quick rides.
+       `getByRole` matched two links under the old substring-y name. */
+    const trips = screen.getByRole('link', {
+      name: EN['subtab.operations.quickRides'] as string,
+    })
     expect(people).toHaveAttribute('aria-current', 'page')
     await user.click(trips)
     /* Clicking navigates; it does NOT move the highlight. The highlight follows

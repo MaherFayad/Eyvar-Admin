@@ -106,7 +106,7 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('comms.identity.title')}</CardTitle>
+        <CardTitle>{t('comms.identity.title')}</CardTitle>
         <CardDescription className="text-xs">{t('comms.identity.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -166,7 +166,7 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold text-foreground">{identity.displayName}</span>
-                      <span className="font-mono text-2xs text-muted-foreground">{identity.address}</span>
+                      <span className="font-mono text-xs text-muted-foreground">{identity.address}</span>
                       <StatusBadge tone={VERIFICATION_TONE[identity.verification]}>
                         {t(VERIFICATION_LABEL[identity.verification])}
                       </StatusBadge>
@@ -174,12 +174,12 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
                         <StatusBadge tone="info">{t('comms.identity.default')}</StatusBadge>
                       )}
                     </div>
-                    <span className="text-2xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {identity.replyTo === null
                         ? t('comms.identity.replyToSelf')
                         : t('comms.identity.replyTo', { address: identity.replyTo })}
                     </span>
-                    <span className="text-2xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {identity.verifiedAt !== null
                         ? t('comms.identity.verifiedOn', {
                             date: formatDate(identity.verifiedAt, { language }),
@@ -193,7 +193,7 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
                     {/* The refusal, as real text under the row it applies to
                         (§8.4.4). Never a tooltip, never a hidden control. */}
                     {defaultRefusal !== null && !identity.isDefault && (
-                      <span className="text-2xs text-muted-foreground">{defaultRefusal}</span>
+                      <span className="text-xs text-muted-foreground">{defaultRefusal}</span>
                     )}
                   </div>
 
@@ -218,7 +218,7 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
                     </Button>
                   </div>
                   {verifyRefusal !== null && canVerify && (
-                    <span className="w-full text-2xs text-muted-foreground">{verifyRefusal}</span>
+                    <span className="w-full text-xs text-muted-foreground">{verifyRefusal}</span>
                   )}
                 </li>
               )

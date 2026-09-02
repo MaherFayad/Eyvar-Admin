@@ -2,8 +2,36 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1280" />
+    <!--
+      CHANGED 2026-09-02 BY OWNER RULING: "PWA should work whenever I refresh in
+      mobile dimensions by default."
+
+      This line used to read `width=1280`, and the note here said changing it was
+      a design ruling rather than an implementation detail. That was right, and
+      the ruling has now been made, so the note is kept rather than deleted — it
+      records what the constraint cost.
+
+      What `width=1280` did on a real phone is easy to miss, because nothing
+      looked broken. The tag is honoured by the device, so a 390pt screen got a
+      1280px layout viewport scaled to 0.305x: nine table columns, no overflow,
+      and 14px body text landing at roughly 4.3pt. The console did not break on a
+      phone. It shrank, and stayed unreadable. No `max-width` breakpoint could
+      fire to fix it, because none ever matched.
+
+      `globals.css` §0.1 — "There is no second breakpoint anywhere in the
+      product" — is the other half of the same constraint and is amended under
+      this ruling. See docs/ref/pwa.md.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Eyvar Admin</title>
+    <!--
+      PWA head assets. The `<link rel="manifest">` is injected at build time by
+      `vite-plugin-pwa`; these three are not, so they are declared here.
+      `theme_color` matches the manifest and `--ev-brand` in globals.css.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+    <meta name="theme-color" content="#0c6944" />
   </head>
   <body>
     <div id="root"></div>

@@ -33,6 +33,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { AppRoutes } from '@/routes'
 import { ShellProvider, useShell } from '@/shell/ShellContext'
+import { InstallAffordance } from '@/pwa'
 
 function App() {
   return (
@@ -42,6 +43,19 @@ function App() {
           <TooltipProvider>
             <AppRoutes />
             <Toaster />
+            {/*
+              The install offer (P1). Mounted here for the same reason `Toaster`
+              is — one per document, above the router outlet, so a route change
+              does not unmount it mid-decision.
+
+              **It renders `null` unless Chromium has actually fired
+              `beforeinstallprompt`**, which never happens in jsdom, so it adds
+              nothing to any existing test's DOM. It is not a `ShellBanner`
+              condition on purpose: R10's one-banner invariant is for standing
+              conditions of the workspace, and an install offer must never be
+              able to suppress an offline warning.
+            */}
+            <InstallAffordance />
           </TooltipProvider>
         </DirectionBridge>
       </ShellProvider>

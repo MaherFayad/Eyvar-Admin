@@ -90,7 +90,7 @@ export function PresenceBar({ presence, currentUserId, t, language, frozen }: Pr
   return (
     <Card className="mb-3">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">
+        <CardTitle>
           {t('conversations.presence.title')}
         </CardTitle>
       </CardHeader>

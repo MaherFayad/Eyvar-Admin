@@ -71,6 +71,11 @@ export const TRIPS_EN: Dictionary = {
   'trips.open.rider': 'Open the 360° profile for {name}',
   'trips.open.captain': 'Open the 360° profile for {name}',
   'trips.open.subscription': 'Open the 360° profile for subscription {id}',
+  /* The payment column reused the SUBSCRIPTION key, so a screen reader
+     announced "Open the 360° profile for subscription PAY-5510" — a
+     payment id described as a subscription. Sighted operators never saw it;
+     the visible text is the id itself. */
+  'trips.open.payment': 'Open the 360° profile for payment {id}',
   /* §11.2 — a name whose entity cannot be resolved is PLAIN TEXT with the
      reason available, never a dead link. */
   'trips.captain.none': 'No captain',
@@ -86,7 +91,8 @@ export const TRIPS_EN: Dictionary = {
   'trips.action.view.help': 'Open the full trip record and its fare breakdown',
   'trips.action.flag': 'Flag',
   'trips.action.unflag': 'Remove flag',
-  'trips.action.noPermission': 'You need the Live Ops permission to flag a trip.',
+  'trips.action.noPermission':
+    'You cannot flag a trip. Ask an Owner for the “Live dispatch” permission.',
 
   /* **D21 — three sentences, not two.** `.other` on a 3-of-3 selection is true
      AND misleading: it invites the operator to deselect a few and try again
@@ -115,6 +121,7 @@ export const TRIPS_EN: Dictionary = {
   'trips.flag.body.other':
     'The trips stay completed and nothing is refunded. Ops review picks them up from the Flagged view.',
   'trips.flag.category': 'Category',
+  'trips.flag.categoryPlaceholder': 'Choose a category',
   'trips.flag.note': 'Investigation note',
   'trips.flag.notePlaceholder': 'What should the reviewer look at first?',
   'trips.flag.confirm': 'Flag trip',
@@ -164,7 +171,7 @@ export const TRIPS_EN: Dictionary = {
   'trips.drawer.close': 'Close',
 
   /* ── states (§11.1, §11.5) ──────────────────────────────────────────── */
-  'trips.empty.firstRun.heading': 'No trips yet',
+  'trips.empty.firstRun.heading': 'Every journey taken, and what it earned',
   'trips.empty.firstRun.body':
     'Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating.',
   'trips.empty.firstRun.action': 'Show every trip',

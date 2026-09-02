@@ -2,76 +2,6 @@
   "endpoints": [
     {
       "method": "GET",
-      "path": "/api/v1//applications/facets",
-      "client": "src/data/clients/applicants.ts",
-      "function": "getApplicantFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//compliance/drivers/facets",
-      "client": "src/data/clients/drivers.ts",
-      "function": "getDriverComplianceFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//corporate-accounts/facets",
-      "client": "src/data/clients/corporateAccounts.ts",
-      "function": "getCorporateFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//drivers/facets",
-      "client": "src/data/clients/drivers.ts",
-      "function": "getDriverFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//riders/facets",
-      "client": "src/data/clients/riders.ts",
-      "function": "getRiderFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//subscriptions/facets",
-      "client": "src/data/clients/subscriptions.ts",
-      "function": "getSubscriptionFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1//trips/facets",
-      "client": "src/data/clients/trips.ts",
-      "function": "getTripFacets",
-      "params": "view",
-      "body": null,
-      "returns": "Facets — field name -> [{ value, count }], count-descending",
-      "statuses": []
-    },
-    {
-      "method": "GET",
       "path": "/api/v1/alerts",
       "client": "src/data/clients/alerts.ts",
       "function": "listAlertRules",
@@ -221,6 +151,16 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/applications/facets",
+      "client": "src/data/clients/applicants.ts",
+      "function": "getApplicantFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/assurance/absences",
       "client": "src/data/clients/assurance.ts",
       "function": "listAbsences",
@@ -300,9 +240,18 @@
       "client": "src/data/clients/assurance.ts",
       "function": "claimAssuranceTrip",
       "params": null,
-      "body": "{ takeOver?: boolean }  ·  409 when another operator holds it",
-      "returns": null,
-      "statuses": []
+      "body": "{ takeOver?: boolean }",
+      "returns": "AssuranceTrip",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the trip does not exist"
+        },
+        {
+          "code": "409",
+          "when": "when another operator holds it"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -311,8 +260,13 @@
       "function": "releaseAssuranceTrip",
       "params": null,
       "body": null,
-      "returns": null,
-      "statuses": []
+      "returns": "AssuranceTrip",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the trip does not exist"
+        }
+      ]
     },
     {
       "method": "GET",
@@ -689,6 +643,16 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/compliance/drivers/facets",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverComplianceFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/conversations",
       "client": "src/data/clients/conversations.ts",
       "function": "listConversations",
@@ -939,6 +903,16 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/corporate-accounts/facets",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "getCorporateFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/credit-notes",
       "client": "src/data/clients/revenue.ts",
       "function": "listCreditNotes",
@@ -1049,8 +1023,13 @@
       "function": "getDispute",
       "params": null,
       "body": null,
-      "returns": null,
-      "statuses": []
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -1058,9 +1037,18 @@
       "client": "src/data/clients/disputes.ts",
       "function": "claimDispute",
       "params": null,
-      "body": null,
-      "returns": null,
-      "statuses": []
+      "body": "{ userId }",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "when the dispute is already resolved"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -1092,7 +1080,7 @@
       "function": "getDisputeFacets",
       "params": null,
       "body": null,
-      "returns": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
       "statuses": []
     },
     {
@@ -1138,6 +1126,16 @@
       "params": null,
       "body": "{ reason: string }",
       "returns": "Driver",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/drivers/facets",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
       "statuses": []
     },
     {
@@ -1484,7 +1482,7 @@
       "client": "src/data/clients/safety.ts",
       "function": "precautionarilySuspend",
       "params": null,
-      "body": "{ driverId: string, reason: string }",
+      "body": "{ reason: string }",
       "returns": "SafetyIncident   (with `act` ticked and `precautionarySuspension` set)",
       "statuses": [
         {
@@ -1779,8 +1777,13 @@
       "function": "getLostFoundItem",
       "params": null,
       "body": null,
-      "returns": null,
-      "statuses": []
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -2112,7 +2115,7 @@
       "client": "src/data/clients/payouts.ts",
       "function": "payCaptain",
       "params": null,
-      "body": "{ amountHalalas, reasonCode }",
+      "body": "{ reasonCode }",
       "returns": "CaptainPayout",
       "statuses": [
         {
@@ -2613,6 +2616,16 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/riders/facets",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRiderFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/riders/new",
       "client": "src/data/clients/riders.ts",
       "function": "listNewRiders",
@@ -2727,7 +2740,7 @@
       "client": "src/data/clients/subscriptions.ts",
       "function": "freezeSubscription",
       "params": null,
-      "body": "{ until: IsoDate, reason?: string }",
+      "body": "{ until: IsoDate }",
       "returns": "Subscription",
       "statuses": [
         {
@@ -2735,6 +2748,16 @@
           "when": "when the subscription is cancelled or expired"
         }
       ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/subscriptions/facets",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "getSubscriptionFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
+      "statuses": []
     },
     {
       "method": "GET",
@@ -2867,7 +2890,7 @@
       "client": "src/data/clients/team.ts",
       "function": "offboardOperator",
       "params": null,
-      "body": "{ reason }",
+      "body": null,
       "returns": "{ offboarded: true }",
       "statuses": []
     },
@@ -2932,6 +2955,16 @@
       "statuses": []
     },
     {
+      "method": "GET",
+      "path": "/api/v1/tickets",
+      "client": "src/data/clients/tickets.ts",
+      "function": "listTickets",
+      "params": "q, view, page, pageSize, sort, filter",
+      "body": null,
+      "returns": "Paginated<Ticket>",
+      "statuses": []
+    },
+    {
       "method": "POST",
       "path": "/api/v1/tickets",
       "client": "src/data/clients/tickets.ts",
@@ -2940,6 +2973,21 @@
       "body": "{ subject, entityId, entityName, entityType, category, reasonCode,",
       "returns": "Ticket",
       "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tickets/:id",
+      "client": "src/data/clients/tickets.ts",
+      "function": "getTicket",
+      "params": null,
+      "body": null,
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        }
+      ]
     },
     {
       "method": "POST",
@@ -2953,6 +3001,78 @@
         {
           "code": "422",
           "when": "on an outcome outside the closed set"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/claim",
+      "client": "src/data/clients/tickets.ts",
+      "function": "claimTicket",
+      "params": null,
+      "body": "{ userId }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "when another operator already holds it"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/reopen",
+      "client": "src/data/clients/tickets.ts",
+      "function": "reopenTicket",
+      "params": null,
+      "body": null,
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "when the ticket is not resolved"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/reply",
+      "client": "src/data/clients/tickets.ts",
+      "function": "replyTicket",
+      "params": null,
+      "body": "{ body }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/resolve",
+      "client": "src/data/clients/tickets.ts",
+      "function": "resolveTicket",
+      "params": null,
+      "body": null,
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "when the ticket is already resolved"
         }
       ]
     },
@@ -2982,8 +3102,18 @@
       "client": "src/data/clients/trips.ts",
       "function": "setTripFlag",
       "params": null,
-      "body": "{ flagged: boolean, reason?: string }",
+      "body": "{ flagged: boolean }",
       "returns": "Trip",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/facets",
+      "client": "src/data/clients/trips.ts",
+      "function": "getTripFacets",
+      "params": "view",
+      "body": null,
+      "returns": "Facets — field name -> [{ value, count }], count-descending",
       "statuses": []
     },
     {
@@ -3172,266 +3302,5 @@
       "statuses": []
     }
   ],
-  "problems": [
-    {
-      "file": "applicants.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "applicants.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//applications/facets` (getApplicantFacets)"
-    },
-    {
-      "file": "assurance.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "assurance.ts",
-      "kind": "no-return",
-      "detail": "POST `/api/v1/assurance/trips/:id/claim` has no return annotation (claimAssuranceTrip)"
-    },
-    {
-      "file": "assurance.ts",
-      "kind": "no-return",
-      "detail": "POST `/api/v1/assurance/trips/:id/release` has no return annotation (releaseAssuranceTrip)"
-    },
-    {
-      "file": "auth.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "cash.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "complaints.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "conversations.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "corporateAccounts.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "corporateAccounts.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//corporate-accounts/facets` (getCorporateFacets)"
-    },
-    {
-      "file": "disputes.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "disputes.ts",
-      "kind": "no-return",
-      "detail": "GET `/api/v1/disputes/facets` has no return annotation (getDisputeFacets)"
-    },
-    {
-      "file": "disputes.ts",
-      "kind": "no-return",
-      "detail": "GET `/api/v1/disputes/:id` has no return annotation (getDispute)"
-    },
-    {
-      "file": "disputes.ts",
-      "kind": "no-return",
-      "detail": "POST `/api/v1/disputes/:id/claim` has no return annotation (claimDispute)"
-    },
-    {
-      "file": "disputes.ts",
-      "kind": "no-return",
-      "detail": "GET `/api/v1/lost-found/:id` has no return annotation (getLostFoundItem)"
-    },
-    {
-      "file": "drivers.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "drivers.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//drivers/facets` (getDriverFacets)"
-    },
-    {
-      "file": "drivers.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//compliance/drivers/facets` (getDriverComplianceFacets)"
-    },
-    {
-      "file": "emails.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "fairness.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "integrations.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "integrity.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "ledger.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "metrics.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "myWork.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "navCounts.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "notifications.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "onboarding.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "payments.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "payouts.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "preferences.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "pricing.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "profile.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "requests.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "retention.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "revenue.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "riders.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "riders.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//riders/facets` (getRiderFacets)"
-    },
-    {
-      "file": "routes.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "safety.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "securityPolicy.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "session.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "subscriptions.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "subscriptions.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//subscriptions/facets` (getSubscriptionFacets)"
-    },
-    {
-      "file": "team.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "tickets.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "trips.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "trips.ts",
-      "kind": "malformed-path",
-      "detail": "double slash in `/api/v1//trips/facets` (getTripFacets)"
-    },
-    {
-      "file": "wallets.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "workspace.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    },
-    {
-      "file": "zones.ts",
-      "kind": "unregistered",
-      "detail": "declares operation ids but never calls registerOperations(), so ?mockFail= and knownOperations() cannot see them"
-    }
-  ]
+  "problems": []
 }

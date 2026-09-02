@@ -20,17 +20,11 @@
  * countdown, and the window is a product decision. Recorded in the handoff.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  CASH_DEBT_CAP_HALALAS,
-  cashReportFixtures,
-  captainDebtFixtures,
-  FINANCIALS_PERIOD,
-} from '../fixtures/financials'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
+import { CASH_DEBT_CAP_HALALAS, FINANCIALS_PERIOD } from '../serverPolicy'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { CaptainDebt, CashReport, FinancialsPeriod } from '../types/financials'
 import type { Ledger } from '../types/ledger'
@@ -45,6 +39,25 @@ import {
 } from './ledger'
 import { nextClaim } from './requests'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let cashReportFixtures!: Fixtures['cashReportFixtures']
+let captainDebtFixtures!: Fixtures['captainDebtFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  cashReportFixtures = f.cashReportFixtures
+  captainDebtFixtures = f.captainDebtFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  reportState = cashReportFixtures.map((r) => ({ ...r }))
+  debtState = captainDebtFixtures.map((d) => ({ ...d }))
+})
 
 export const CASH_OPERATIONS = {
   list: 'cash.list',
@@ -59,10 +72,21 @@ export const CASH_OPERATIONS = {
   repayment: 'cash.repayment',
 } as const
 
-let reportState: CashReport[] = cashReportFixtures.map((r) => ({ ...r }))
-let debtState: CaptainDebt[] = captainDebtFixtures.map((d) => ({ ...d }))
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(CASH_OPERATIONS))
+
+let reportState!: CashReport[]
+let debtState!: CaptainDebt[]
 
 export function resetCash(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   reportState = cashReportFixtures.map((r) => ({ ...r }))
   debtState = captainDebtFixtures.map((d) => ({ ...d }))
 }
@@ -164,7 +188,7 @@ const cashShape: QueryShape<CashReport> = {
     pending: (r) => r.status === 'pending',
     escalated: (r) => r.status === 'escalated',
     resolved: (r) => r.status === 'resolved',
-    mine: (r) => r.claim?.state === 'claimed' && r.claim.ownerId === CURRENT_USER_ID,
+    mine: (r) => r.claim?.state === 'claimed' && r.claim.ownerId === currentMockUserId(),
     unassigned: (r) => r.claim === null || r.claim.state !== 'claimed',
   },
 }
@@ -307,7 +331,7 @@ export async function decideCashReport(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const next: CashReport = {
       ...row,
       status: disposition === 'resolve' ? 'resolved' : 'escalated',
@@ -467,7 +491,7 @@ export async function recordCashRepayment(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const reference = nextRepaymentReference()
 
     /* **The balance moves because the posting moved it.** Never assigned. */

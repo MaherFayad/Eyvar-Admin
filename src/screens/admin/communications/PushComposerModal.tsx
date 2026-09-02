@@ -33,7 +33,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -45,6 +51,7 @@ import {
 import { Banner } from '@/components/Banner'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { AUDIENCE_LABEL } from './PushBroadcastsCard'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 
 export interface PushComposerModalProps {
   open: boolean
@@ -69,6 +76,19 @@ export function PushComposerModal({
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audienceId, setAudienceId] = useState<PushAudienceId>(DEFAULT_AUDIENCE)
+  /**
+   * **The confirm this modal did not have.**
+   *
+   * `Send` was one click to an entire audience — 28,460 devices on the default —
+   * with no confirm, no recall, and no audit row. It is the single widest-blast
+   * action in the product and it was the only one with nothing in front of it.
+   *
+   * `docs/05-restructure/design/12-refusal-and-undo-surfaces.md`'s test is
+   * whether an act can be undone; a push that has left cannot, and the record
+   * lands `queued` with no cancel. That is exactly the case a confirm is for —
+   * and the reason this is a confirm rather than an undo.
+   */
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmRequest | null>(null)
   const [deepLink, setDeepLink] = useState('')
   const [sending, setSending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -76,8 +96,11 @@ export function PushComposerModal({
   /* Held until the dialog opens: a modal that fetches on mount fetches for
      every operator who never opens it. */
   const audiences = useAsync<PushAudience[]>((signal) => listPushAudiences(signal), {
+    /* A fixed audience list the fetcher varies on nothing for; reopening the
+       composer should not re-pay for it. */
     enabled: open,
     deps: [open],
+    cacheKey: 'push.audiences.list',
   })
 
   useEffect(() => {
@@ -119,18 +142,17 @@ export function PushComposerModal({
       : null
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent>
+      <DialogContent size="default">
         <DialogHeader>
           <DialogTitle>{t('comms.push.composer.title')}</DialogTitle>
           <DialogDescription>{t('comms.push.composer.desc')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 py-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="push-audience" className="text-xs font-medium">
-              {t('comms.push.composer.audience')}
-            </Label>
+        <FieldGroup>
+          <Field id="push-audience">
+            <FieldLabel>{t('comms.push.composer.audience')}</FieldLabel>
             {audiences.status === 'loading' ? (
               <LoadingSkeleton pattern="P4" rows={1} label={t('comms.push.composer.audience')} />
             ) : (
@@ -138,9 +160,11 @@ export function PushComposerModal({
                 value={audienceId}
                 onValueChange={(value) => setAudienceId(value as PushAudienceId)}
               >
-                <SelectTrigger id="push-audience">
-                  <SelectValue />
-                </SelectTrigger>
+                <FieldControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FieldControl>
                 <SelectContent>
                   {(audiences.data ?? []).map((audience) => (
                     <SelectItem key={audience.id} value={audience.id}>
@@ -152,44 +176,40 @@ export function PushComposerModal({
             )}
             {/* The size of what is about to happen, before it happens. */}
             {selected !== null && (
-              <span className="text-2xs text-muted-foreground">
+              <FieldDescription>
                 {t('comms.push.devices', { count: formatCount(selected.deviceCount, language) })}
-              </span>
+              </FieldDescription>
             )}
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="push-title" className="text-xs font-medium">
-              {t('comms.push.composer.msgTitle')}
-            </Label>
-            <Input id="push-title" value={title} onChange={(event) => setTitle(event.target.value)} />
-          </div>
+          <Field id="push-title">
+            <FieldLabel>{t('comms.push.composer.msgTitle')}</FieldLabel>
+            <FieldControl>
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+            </FieldControl>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="push-body" className="text-xs font-medium">
-              {t('comms.push.composer.msgBody')}
-            </Label>
-            <Textarea
-              id="push-body"
-              rows={3}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-            />
-          </div>
+          <Field id="push-body">
+            <FieldLabel>{t('comms.push.composer.msgBody')}</FieldLabel>
+            <FieldControl>
+              <Textarea rows={3} value={body} onChange={(event) => setBody(event.target.value)} />
+            </FieldControl>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="push-link" className="text-xs font-medium">
+          <Field id="push-link">
+            <FieldLabel optional={t('field.optional')}>
               {t('comms.push.composer.deepLink')}
-            </Label>
-            <Input
-              id="push-link"
-              value={deepLink}
-              onChange={(event) => setDeepLink(event.target.value)}
-            />
-            <span className="text-2xs text-muted-foreground">
-              {t('comms.push.composer.deepLinkHelp')}
-            </span>
-          </div>
+            </FieldLabel>
+            <FieldControl>
+              {/* §9.2 — a deep link is Latin in both languages. */}
+              <Input
+                value={deepLink}
+                dir="ltr"
+                onChange={(event) => setDeepLink(event.target.value)}
+              />
+            </FieldControl>
+            <FieldDescription>{t('comms.push.composer.deepLinkHelp')}</FieldDescription>
+          </Field>
 
           {audiences.status === 'error' && (
             <Banner
@@ -212,21 +232,57 @@ export function PushComposerModal({
               }}
             />
           )}
-        </div>
+        </FieldGroup>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           {/* §11.2 — the send is disabled in place and says why. */}
           {blockedReason !== null && (
-            <span className="me-auto text-2xs text-muted-foreground">{blockedReason}</span>
+            <span className="me-auto text-xs text-muted-foreground">{blockedReason}</span>
           )}
           <Button size="xs" variant="secondary" onClick={onClose} disabled={sending}>
             {t('comms.push.composer.cancel')}
           </Button>
-          <Button size="xs" onClick={() => void send()} disabled={blockedReason !== null || sending}>
+          <Button
+            size="xs"
+            onClick={() =>
+              setPendingConfirm({
+                title: t('comms.push.confirm.title', {
+                  /* `AUDIENCE_LABEL`, the same map the picker renders — not a key
+                     built from the id. A template key silently produced
+                     `comms.audience.online-captains`, which does not exist, so
+                     `t()` threw inside the handler and the confirm never opened
+                     while the send went through. */
+                  audience: selected ? t(AUDIENCE_LABEL[selected.id]) : '',
+                }),
+                /* The count is the fact that decides it, so it is in the sentence
+                   rather than left on the screen behind the dialog. */
+                body: t('comms.push.confirm.body', {
+                  count: formatCount(selected?.deviceCount ?? 0, language),
+                }),
+                confirmLabel: t('comms.push.confirm.action'),
+                /* Not `destructive`: R5a reserves red for the unrecoverable
+                   DESTRUCTION of something that exists. This creates a message —
+                   irreversible, but not a deletion. */
+                onConfirm: () => void send(),
+              })
+            }
+            disabled={blockedReason !== null || sending}
+          >
             {sending ? t('comms.push.composer.sending') : t('comms.push.composer.send')}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* A SIBLING of the composer, not a child. A `Dialog` nested inside another
+        `Dialog` does not render, which is how the first attempt at this confirm
+        measured as working while never appearing. */}
+    <ConfirmDialog
+      request={pendingConfirm}
+      onClose={() => setPendingConfirm(null)}
+      busy={sending}
+      t={t}
+    />
+    </>
   )
 }

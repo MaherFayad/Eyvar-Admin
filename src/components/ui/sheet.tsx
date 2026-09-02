@@ -39,6 +39,46 @@
  *               and 2FA enrolment expand in place instead (§6.4).
  *   §7.6/AC-69  the transition is suppressed under `prefers-reduced-motion`
  *               by the global guard in `globals.css`.
+ *   §7.6        `duration-200` — `motion.md` licenses exactly one duration for
+ *               a layer arriving or leaving, and a drawer is a layer. The value
+ *               comes from Tailwind's scale, which IS the token set; there is
+ *               no `--ev-duration-*` and adding one is the defect.
+ *
+ * ## G8 "peek" — THIS IS IT. There is no sixth surface.
+ *
+ * `14-system-wide-ux-plan.md` G8 proposes a **peek**: a way to inspect one
+ * record without losing the list. Read the requirement rather than the name and
+ * it is already ruled and already built, here:
+ *
+ *   | peek asks for | this file, today |
+ *   |---|---|
+ *   | inspect a record without losing the list | no scrim, page stays legible AND interactive (§5.5 / AC-20) |
+ *   | keyboard-operable | focus moves in on open |
+ *   | escapable | `Escape` closes (AC-66) |
+ *   | must not trap | `releaseTabAtEdges` below — Tab leaves and continues into the page (§7.3.3 / AC-67) |
+ *   | focus returns to the opener | Radix restores to the trigger on close |
+ *
+ * `surfaces.md` already carries the row verbatim: *"A surface consulted against
+ * the page behind it -> Drawer, no scrim. Not: Modal — it hides the thing being
+ * worked on."* Peek and drawer are the same object under two names, and R10
+ * decides a surface by LIFETIME, not by which screen opened it. **Adding
+ * `peek` to the vocabulary would make six names for five surfaces, and the
+ * first argument about which one to use would be unresolvable.**
+ *
+ * What G8 correctly identifies is a *routing* defect, not a missing component:
+ * screens that NAVIGATE AWAY where they should consult. My Work's `Open` and
+ * Conversations' thread are the two named cases. The fix is to send them here.
+ * That is call-site work; nothing in this file changes to allow it.
+ *
+ * The two modes G8 adds on top are separately refused:
+ *   - **`side` (docked) + a persisted per-operator preference.** A surface that
+ *     differs per operator cannot be specified, tested or supported: no design
+ *     spec could then say what an operator sees, and every bug report would
+ *     start by asking which mode they were in.
+ *   - **`full` (route).** Rendering the same detail component on a route is
+ *     component reuse and is welcome — the four detail routes must keep their
+ *     URLs because deep links are load-bearing — but a page is already its own
+ *     row in `surfaces.md` and does not need to be a *mode* of a drawer.
  *
  * Physical `left-*` / `right-*` side variants are replaced by logical
  * `inline-start` / `inline-end` / `block-start` / `block-end`.

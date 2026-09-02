@@ -43,7 +43,7 @@
  * they say why.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { addCorporateEmployee, getCorporateAccount, listRiders, updateCorporateUsagePolicy } from '@/data/clients'
@@ -58,6 +58,8 @@ import { PageHeader } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
+import { withFallback } from '../localCopy'
+import { CORPORATE_EN } from './copy'
 import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -76,11 +78,14 @@ import { AddEmployeeModal } from './AddEmployeeModal'
  * knows `'Economy'`.
  */
 const VEHICLE_TIERS: Readonly<
-  Record<CorporateAccount['usagePolicy']['vehicleTier'], { key: string; fallback: string }>
+  Record<CorporateAccount['usagePolicy']['vehicleTier'], { key: string }>
 > = {
-  any: { key: 'corp.tier.any', fallback: 'Any tier (Economy, Comfort, Exec)' },
-  Economy: { key: 'corp.tier.economy', fallback: 'Economy only' },
-  Comfort: { key: 'corp.tier.comfort', fallback: 'Comfort and Economy' },
+  /* `fallback` is gone: all three keys exist in `./copy.ts`, and the fallbacks
+     had DRIFTED from them -- `corp.tier.any` reads 'Any tier' there and read
+     'Any tier (Economy, Comfort, Exec)' here. One source, not two. */
+  any: { key: 'corp.tier.any' },
+  Economy: { key: 'corp.tier.economy' },
+  Comfort: { key: 'corp.tier.comfort' },
 }
 
 const VEHICLE_TIER_VALUES = Object.keys(
@@ -92,11 +97,25 @@ export function CorporateDetailScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { corpId = '' } = useParams<{ corpId: string }>()
-  const { t, dir, language } = shell.language
+  /* AC-74 - the copy lives in `./copy.ts`. `withFallback` resolves keys the
+     shell dictionary has not registered yet against that dictionary, so no
+     English literal sits in this file. See `../localCopy`. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, CORPORATE_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const account = useAsync<CorporateAccount>(
     (signal) => getCorporateAccount(corpId, signal),
-    { deps: [corpId] }
+    /* `corpId` is the fetcher's only input - the one dep that must not be
+       missing on a detail read, or one account's record serves under another's
+       id. Policy edits are held in `localPolicy`, which shadows this. */
+    { deps: [corpId], cacheKey: 'corporate.get' }
   )
 
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false)
@@ -153,7 +172,14 @@ export function CorporateDetailScreen() {
         },
         signal,
       ),
-    { deps: [employeeIdKey], enabled: account.status === 'content' },
+    /**
+     * The other half of the collision documented on `AddEmployeeModal`'s read:
+     * same operation id, same `join(',')` dep, opposite filter operator. The
+     * operator is now in `deps` on both sides, so `riders.list::[s:<ids>,s:in]`
+     * here cannot be served `…,s:nin` there. `pageSize` follows the id set and
+     * so is already determined by `employeeIdKey`.
+     */
+    { deps: [employeeIdKey, 'in'], cacheKey: 'riders.list', enabled: account.status === 'content' },
   )
 
   /**
@@ -176,15 +202,9 @@ export function CorporateDetailScreen() {
    */
   const noWrite = canWrite
     ? null
-    : t('corp.action.noPermission', {
-        defaultValue: 'You need the Subscriptions permission to change this account.',
-      })
-  const unlinkUnavailable = t('corp.action.unlink.unavailable', {
-    defaultValue: 'Unlinking an employee is not connected yet. Nothing would be saved.',
-  })
-  const invoiceUnavailable = t('corp.action.invoice.unavailable', {
-    defaultValue: 'Invoice generation is not connected yet. Nothing would be sent.',
-  })
+    : t('corp.action.noPermission')
+  const unlinkUnavailable = t('corp.action.unlink.unavailable')
+  const invoiceUnavailable = t('corp.action.invoice.unavailable')
 
   const handlePolicyChange = (patch: Partial<CorporateAccount['usagePolicy']>) => {
     setLocalPolicy({ ...currentPolicy, ...patch })
@@ -197,9 +217,9 @@ export function CorporateDetailScreen() {
     try {
       await updateCorporateUsagePolicy(data.id, currentPolicy)
       setPolicyDirty(false)
-      toast.success(t('corp.toast.policySaved', { defaultValue: 'Usage policy updated successfully' }))
+      toast.success(t('corp.toast.policySaved'))
     } catch {
-      toast.error(t('corp.toast.policyError', { defaultValue: 'Failed to update usage policy' }))
+      toast.error(t('corp.toast.policyError'))
     } finally {
       setSavingPolicy(false)
     }
@@ -211,7 +231,7 @@ export function CorporateDetailScreen() {
       await addCorporateEmployee(data.id, riderId)
       const next = [...currentEmployees, riderId]
       setLocalEmployees(next)
-      toast.success(t('corp.toast.employeeAdded', { defaultValue: 'Employee rider linked successfully' }))
+      toast.success(t('corp.toast.employeeAdded'))
     } catch (error: unknown) {
       /* Re-thrown, not swallowed: `AddEmployeeModal` awaits this and renders
          the 409 - which names the company already covering the rider - beside
@@ -219,7 +239,7 @@ export function CorporateDetailScreen() {
          the one sentence the operator needs. */
       throw isApiError(error)
         ? error
-        : new Error(t('corp.toast.employeeError', { defaultValue: 'Failed to link employee' }))
+        : new Error(t('corp.toast.employeeError'))
     }
   }
 
@@ -240,9 +260,9 @@ export function CorporateDetailScreen() {
         main={
           <ErrorState
             scope="page"
-            heading={t('corp.error.notFound', { defaultValue: 'Corporate account not found' })}
-            message={t('corp.error.notFoundDesc', { defaultValue: 'Account {id} does not exist or has been removed.', id: corpId })}
-            action={{ label: t('action.goBack', { defaultValue: 'Back to Corporate Accounts' }), onClick: () => navigate(-1) }}
+            heading={t('corp.error.notFound')}
+            message={t('corp.error.notFoundDesc', { id: corpId })}
+            action={{ label: t('corp.action.backToAccounts'), onClick: () => navigate(-1) }}
           />
         }
         rail={[]}
@@ -279,12 +299,12 @@ export function CorporateDetailScreen() {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.companyDetails', { defaultValue: 'Company & Billing Information' })}
+                {t('corp.card.companyDetails')}
               </CardTitle>
               <CardDescription className="text-xs">
-                {t('corp.card.companyDetailsDesc', { defaultValue: 'Primary billing coordinates and representative.' })}
+                {t('corp.card.companyDetailsDesc')}
               </CardDescription>
             </div>
             <StatusBadge tone={data.status === 'Active' ? 'success' : data.status === 'Pending' ? 'info' : 'new'}>
@@ -295,19 +315,19 @@ export function CorporateDetailScreen() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.contact', { defaultValue: 'Contact Person' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('corp.contact')}</span>
               <span className="font-medium text-foreground">{data.contactName}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.email', { defaultValue: 'Billing Email' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('corp.email')}</span>
               <span className="font-medium text-foreground">{data.contactEmail}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.phone', { defaultValue: 'Phone' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('corp.phone')}</span>
               <span className="font-medium text-foreground">{data.contactPhone ?? '—'}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.createdAt', { defaultValue: 'Account Opened' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('corp.createdAt')}</span>
               <span className="font-medium text-foreground">{formatDate(data.createdAt, { language })}</span>
             </div>
           </div>
@@ -319,12 +339,12 @@ export function CorporateDetailScreen() {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.usagePolicy', { defaultValue: 'Employee Ride & Usage Policy' })}
+                {t('corp.card.usagePolicy')}
               </CardTitle>
               <CardDescription className="text-xs">
-                {t('corp.card.usagePolicyDesc', { defaultValue: 'Enforce spend caps, vehicle classes, and manager approval rules.' })}
+                {t('corp.card.usagePolicyDesc')}
               </CardDescription>
             </div>
             {/* §11.2 - the save bar appears when the form is dirty and is
@@ -343,7 +363,7 @@ export function CorporateDetailScreen() {
                   disabled={savingPolicy || !canWrite}
                   aria-describedby={noWrite === null ? undefined : 'corp-policy-refusal'}
                 >
-                  {savingPolicy ? t('action.saving', { defaultValue: 'Saving...' }) : t('action.savePolicy', { defaultValue: 'Save policy' })}
+                  {savingPolicy ? t('corp.action.savingPolicy') : t('action.savePolicy')}
                 </Button>
               </span>
             )}
@@ -352,7 +372,7 @@ export function CorporateDetailScreen() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.monthlyCap', { defaultValue: 'Monthly Spend Cap (SAR)' })}</Label>
+              <Label className="text-xs font-medium">{t('corp.policy.monthlyCap')}</Label>
               <Input
                 type="number"
                 value={currentPolicy.monthlyCapHalalas ? currentPolicy.monthlyCapHalalas / 100 : ''}
@@ -367,7 +387,7 @@ export function CorporateDetailScreen() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.vehicleTier', { defaultValue: 'Allowed Vehicle Tier' })}</Label>
+              <Label className="text-xs font-medium">{t('corp.policy.vehicleTier')}</Label>
               {/* The option values ARE the domain's values. `as any` used to
                   hide `'economy'` being written to a field whose union is
                   `'Economy' | 'Comfort' | 'any'`; the cast is gone and the
@@ -386,7 +406,7 @@ export function CorporateDetailScreen() {
                 <SelectContent>
                   {VEHICLE_TIER_VALUES.map((tier) => (
                     <SelectItem key={tier} value={tier}>
-                      {t(VEHICLE_TIERS[tier].key, { defaultValue: VEHICLE_TIERS[tier].fallback })}
+                      {t(VEHICLE_TIERS[tier].key)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -394,7 +414,7 @@ export function CorporateDetailScreen() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.approvalThreshold', { defaultValue: 'Approval Required Above (SAR)' })}</Label>
+              <Label className="text-xs font-medium">{t('corp.policy.approvalThreshold')}</Label>
               <Input
                 type="number"
                 value={currentPolicy.requireApprovalAboveHalalas ? currentPolicy.requireApprovalAboveHalalas / 100 : ''}
@@ -412,8 +432,11 @@ export function CorporateDetailScreen() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
               <div className="space-y-0.5">
-                <span className="text-xs font-medium text-foreground block">{t('corp.policy.workHoursOnly', { defaultValue: 'Work Hours Restriction' })}</span>
-                <span className="text-[11px] text-muted-foreground block">{t('corp.policy.workHoursDesc', { defaultValue: 'Only allow rides between 08:00 and 18:00 on weekdays.' })}</span>
+                {/* H2/H3 §2.4 — the settings row is label PRIMARY over helper
+                    META. 14px/500 ink over 12px/400 grey; the helper was at an
+                    arbitrary 11px, off the ramp entirely. */}
+                <span className="text-sm font-medium text-foreground block">{t('corp.policy.workHoursOnly')}</span>
+                <span className="text-xs text-muted-foreground block">{t('corp.policy.workHoursDesc')}</span>
               </div>
               <Switch
                 checked={currentPolicy.workHoursOnly}
@@ -423,7 +446,7 @@ export function CorporateDetailScreen() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.approverEmail', { defaultValue: 'Approver Email' })}</Label>
+              <Label className="text-xs font-medium">{t('corp.policy.approverEmail')}</Label>
               <Input
                 type="email"
                 value={currentPolicy.approverEmail ?? ''}
@@ -441,9 +464,9 @@ export function CorporateDetailScreen() {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.linkedEmployees', { defaultValue: 'Linked Employee Riders' })}
+                {t('corp.card.linkedEmployees')}
                 {/* The count comes from the ACCOUNT's `riderIds`, not from the
                     rider read, so the number does not appear, vanish and
                     reappear as the second request resolves (§11.3 — nothing
@@ -451,7 +474,7 @@ export function CorporateDetailScreen() {
                 <span className="text-xs font-normal text-muted-foreground">({currentEmployees.length})</span>
               </CardTitle>
               <CardDescription className="text-xs">
-                {t('corp.card.linkedEmployeesDesc', { defaultValue: 'Employees whose rides are consolidated onto this invoice.' })}
+                {t('corp.card.linkedEmployeesDesc')}
               </CardDescription>
             </div>
             {/* §11.2 - rendered and refused, never removed. */}
@@ -470,7 +493,7 @@ export function CorporateDetailScreen() {
                 className="gap-1"
               >
                 <Plus className="h-3.5 w-3.5" />
-                {t('corp.linkEmployee', { defaultValue: 'Link employee' })}
+                {t('corp.linkEmployee')}
               </Button>
             </span>
           </div>
@@ -496,8 +519,8 @@ export function CorporateDetailScreen() {
             <EmptyState
               kind="cleared"
               card={false}
-              heading={t('corp.noEmployees', { defaultValue: 'No employees linked to this account yet.' })}
-              body={t('corp.noEmployeesBody', { defaultValue: 'Link employee rider accounts to include their rides on monthly consolidated billing.' })}
+              heading={t('corp.noEmployees')}
+              body={t('corp.noEmployeesBody')}
             />
           ) : (
             <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
@@ -516,16 +539,13 @@ export function CorporateDetailScreen() {
                     >
                       {rider.name}
                     </Link>
-                    <span className="truncate font-mono text-2xs text-muted-foreground">
+                    <span className="truncate font-mono text-xs text-muted-foreground">
                       {rider.id} · {rider.phone} · {rider.city}
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-muted-foreground">
-                      {t('corp.activeSubs', {
-                        defaultValue: '{count} active subscriptions',
-                        count: formatCount(rider.subscriptionIds.length, language),
-                      })}
+                      {t('corp.activeSubs', { count: formatCount(rider.subscriptionIds.length, language) })}
                     </span>
                     {/* §11.2 - disabled IN PLACE with its reason. This used to
                         filter a local array and toast success over an unlink
@@ -534,10 +554,7 @@ export function CorporateDetailScreen() {
                       variant="ghost"
                       size="icon-xs"
                       disabled
-                      aria-label={t('corp.unlinkEmployee', {
-                        defaultValue: 'Unlink {name}',
-                        name: rider.name,
-                      })}
+                      aria-label={t('corp.unlinkEmployee', { name: rider.name })}
                       aria-describedby="corp-unlink-refusal"
                       className="text-muted-foreground"
                     >
@@ -566,39 +583,56 @@ export function CorporateDetailScreen() {
   const rail = [
     <Card key="spend-summary">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground">{t('corp.lifetimeSpend', { defaultValue: 'Total Lifetime Spend' })}</CardTitle>
+        {/* H3 — this is a metric tile's LABEL wearing a card title, so it
+            keeps the META rank (12px, --ev-text-2, 400) rather than the card
+            title's. `font-medium` was the decoration H3 exists to take back:
+            weight below the numeral it labels inverts the two channels. */}
+        <CardTitle className="text-xs text-muted-foreground">{t('corp.lifetimeSpend')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-xl font-bold text-foreground">
+        {/* **H4, and this was the ramp's one real weight defect.**
+            `globals.css` names this line by file: `text-xl font-bold` (700)
+            where the rank says 600, and *"the only `font-bold` on a title
+            anywhere in `src/`"*. It is not a title — it is a KPI numeral — so
+            it takes `--text-kpi` at 600 and the `metric-value` slot that pins
+            the tabular figures, exactly as `MetricTile` does. `text-xl` would
+            have been the wrong answer at the right size: that step is THE PAGE
+            TITLE, one per screen, and this screen already has one. */}
+        <div data-slot="metric-value" className="text-kpi font-semibold text-foreground">
           <Money amount={data.totalSpendHalalas} />
         </div>
-        <span className="text-[11px] text-muted-foreground block mt-1">
-          {t('corp.activeRidersCount', { defaultValue: '{count} riders on account', count: currentEmployees.length })}
+        <span className="text-xs text-muted-foreground block mt-1">
+          {t('corp.activeRidersCount', { count: currentEmployees.length })}
         </span>
       </CardContent>
     </Card>,
     <Card key="invoicing-schedule">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        {/* H2/H3 — a card title is ink, never quieter than the body it sits
+            over. This one was 12px grey above 12px grey body: same size, same
+            colour, no scan path into the card. `CardTitle`'s own
+            `text-sm font-semibold text-foreground` is the rank; only the icon
+            layout is overridden here. */}
+        <CardTitle className="flex items-center gap-1.5">
           <CreditCard className="h-3.5 w-3.5" />
-          {t('corp.invoicingSchedule', { defaultValue: 'Invoicing Schedule' })}
+          {t('corp.invoicingSchedule')}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-xs space-y-2">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.method', { defaultValue: 'Method' })}:</span>
+          <span className="text-muted-foreground">{t('corp.method')}:</span>
           <span className="font-medium text-foreground">{data.billingType}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.billingDay', { defaultValue: 'Billing Cycle' })}:</span>
+          <span className="text-muted-foreground">{t('corp.billingDay')}:</span>
           <span className="font-medium text-foreground">Day {data.invoiceDayOfMonth} of month</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.nextInvoice', { defaultValue: 'Next invoice' })}:</span>
+          <span className="text-muted-foreground">{t('corp.nextInvoice')}:</span>
           <span className="font-medium text-foreground">
             {data.nextInvoiceOn
               ? formatDate(data.nextInvoiceOn, { language })
-              : t('corp.nextInvoice.upcoming', { defaultValue: 'Not scheduled' })}
+              : t('corp.nextInvoice.upcoming')}
           </span>
         </div>
 
@@ -613,7 +647,7 @@ export function CorporateDetailScreen() {
             aria-describedby="corp-invoice-refusal"
             className="w-full"
           >
-            {t('corp.sendInvoice', { defaultValue: 'Generate invoice' })}
+            {t('corp.sendInvoice')}
           </Button>
           <span id="corp-invoice-refusal" className="text-2xs text-muted-foreground">
             {noWrite ?? invoiceUnavailable}

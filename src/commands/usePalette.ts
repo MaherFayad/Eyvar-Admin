@@ -85,7 +85,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { findSubTabById, search } from '@/data/clients'
+import { findSubTabById, getSubTabs, search } from '@/data/clients'
+import { visibleSubTabs, type PermissionContext } from '@/shell/permissions'
 import type {
   NavCounts,
   ProfileEntityType,
@@ -206,6 +207,16 @@ export interface UsePaletteOptions {
   openEntityId: string | null
   openEntityType: ProfileEntityType | null
   navCounts: NavCounts | null
+  /**
+   * The shell's own permission filter, handed down rather than re-derived.
+   *
+   * `CommandSession` carries a single `canWrite` boolean — the Q4 seam — which
+   * is enough to refuse a command and nowhere near enough to decide which
+   * destinations a role may be shown. `GlobalSearch` is routed and already
+   * holds the context the nav filters with, so it passes the same one here and
+   * the two surfaces cannot disagree about what exists.
+   */
+  permissions: PermissionContext
   navigate: (path: string) => void
   openProfile: (entityType: ProfileEntityType, entityId: string) => void
 }
@@ -299,8 +310,24 @@ interface RowChrome {
  * Built from the route table, so a row for a page the operator is not on still
  * says where it is.
  */
+/**
+ * The path rendered UNDER a destination row.
+ *
+ * It used to append `route.titleKey` — the row's own title — so every row in
+ * the command centre stated its name twice:
+ *
+ *     Safety & Incidents
+ *     Customer Support · Safety & Incidents
+ *
+ * A second line that restates the first spends a row of the popover and tells
+ * the operator nothing they cannot already read. 35 of the 36 route rows carry
+ * a `subtitleKey` saying what the page is FOR, which is exactly what a name
+ * cannot convey, so that is what belongs here. The one row that has none falls
+ * back to the workspace alone rather than padding the line to look full.
+ */
 function workspacePath(route: SubTabRoute, t: Translate): string {
-  return `${t(`workspace.${route.workspaceId}`)} · ${t(route.titleKey)}`
+  const workspace = t(`workspace.${route.workspaceId}`)
+  return route.subtitleKey === null ? workspace : `${workspace} · ${t(route.subtitleKey)}`
 }
 
 function destinationRow(
@@ -372,6 +399,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     openEntityId,
     openEntityType,
     navCounts,
+    permissions,
     navigate,
     openProfile,
   } = options
@@ -433,6 +461,9 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const seedKey = seed === null ? '' : `${seed.source.entityType}:${seed.ids.join(',')}`
   const seeded = useAsync<readonly unknown[]>(
     (signal) => (seed === null ? Promise.resolve([]) : seed.source.byIds(seed.ids, signal)),
+    /* **Deliberately NOT cached (P3-13)** — same reason as `candidates` below:
+       `seed.source.byIds` is a registry dispatch across several clients, so no
+       honest operation id exists for this read. */
     { deps: [seedKey], enabled: open && seed !== null, isEmpty: () => false },
   )
   const seedRecords = seed === null ? null : (seeded.data ?? null)
@@ -444,6 +475,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   const results = useAsync<SearchResponse>((signal) => search(trimmed, {}, signal), {
     deps: [trimmed],
+    /* `search(q, {})` — the trimmed query is the fetcher's only input, and the
+       options argument is a literal, so `[trimmed]` is the whole key. Typing
+       `dri`, backspacing to `dr` and typing `i` again is one round trip, not
+       three. */
+    cacheKey: 'search.query',
     enabled: open && step === 'root' && trimmed !== '',
     isEmpty: (response) => response.results.length === 0,
   })
@@ -453,6 +489,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     (signal) =>
       targetSource ? targetSource.list(trimmed, signal) : Promise.resolve([] as unknown[]),
     {
+      /* **Deliberately NOT cached (P3-13).** `targetSource.list` dispatches
+         through the command registry to a different client per entity type, so
+         there is no single data-layer operation id to key on and an invented one
+         would break `invalidate('<resource>.')` for every resource it stood in
+         for. Cacheable once the registry declares the operation id it calls. */
       deps: [targetSource?.entityType ?? '', trimmed],
       enabled: open && step === 'target' && targetSource !== null,
       isEmpty: (rows) => rows.length === 0,
@@ -871,6 +912,30 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     })
   }, [candidates.data, context, dispatch, picked])
 
+  /* ── block ⑤ — the rest of this workspace ──────────────────────
+     At rest the surface offered `Queues` and, on a fresh session, nothing else:
+     route commands are undeclared, `Resume` needs work in flight and `Recent`
+     needs a command already run. So pressing the shortcut and typing nothing
+     produced five rows and no route to anywhere — a command centre that cannot
+     navigate until it is told what to look for.
+
+     The filter is `visibleSubTabs`, the shell's own, which is what keeps AC-60
+     intact: a destination the role cannot open is not rendered here for the
+     same reason it is not rendered in the nav. The current sub-tab is dropped
+     because offering the screen already open is a wasted row, and the queue
+     block's own rows are dropped because a duplicate is worse than an absence. */
+  const goToRows = useMemo<PaletteRow[]>(() => {
+    const here = subTabId === null ? null : findSubTabById(subTabId)
+    if (here === null) return []
+    const alreadyOffered = new Set(queueRows.map((row) => row.key.split(':')[1]))
+    /* Through the client, never the fixture — `seam.test.ts` enforces that a
+       component reaches route data the same way in `mock` and in `http`. */
+    return visibleSubTabs(permissions, getSubTabs(here.workspaceId), here.workspaceId)
+      .filter((route) => route.subTabId !== subTabId && !alreadyOffered.has(route.subTabId))
+      .map((route) => destinationRow(route, null, 'goto', chrome))
+      .filter((row): row is PaletteRow => row !== null)
+  }, [chrome, permissions, queueRows, subTabId])
+
   /* ── assembly ─────────────────────────────────────────────────────────── */
 
   const blocks = useMemo<PaletteBlock[]>(() => {
@@ -884,6 +949,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         { id: 'queues', heading: t('command.block.queues'), rows: queueRows },
         { id: 'resume', heading: t('command.block.resume'), rows: resumeRows },
         { id: 'recent', heading: t('command.block.recent'), rows: recentRows },
+        { id: 'goTo', heading: t('command.block.goTo'), rows: goToRows },
       ].filter((block) => block.rows.length > 0)
     }
 
@@ -913,6 +979,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     return ordered.filter((block) => block.rows.length > 0)
   }, [
     doRows,
+    goToRows,
     language,
     onScreenRows,
     queueRows,

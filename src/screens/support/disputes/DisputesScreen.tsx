@@ -52,7 +52,8 @@ import {
   type Paginated,
   type SubTabRoute,
 } from '@/data/types'
-import { useAsync, useIndexTable, useNow } from '@/hooks'
+import { useAsync, useIndexTable } from '@/hooks'
+import { useNowIso } from '@/screens/queues'
 import {
   NO_CLOCK,
   formatDate,
@@ -68,6 +69,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withView } from '@/shell/routeState'
 import { ResolveDisputeModal } from './ResolveDisputeModal'
+import { withFallback } from '../../operations/localCopy'
+import { DISPUTES_EN } from './copy'
 
 const DISPUTE_STATUS_TONE: Record<Dispute['status'], BadgeTone> = {
   open: 'warning',
@@ -88,10 +91,27 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
   const route = useRouteState()
   const location = useLocation()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, DISPUTES_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   /* One clock (`AC-28`). The verdict countdown re-reads it every 15 s, which is
-     §9.3's SLA bucket, not a per-screen interval. */
-  const now = useNow(15)
+     §9.3's SLA bucket, not a per-screen interval.
+
+     **`useNowIso`, not `useNow`.** This screen was the only queue reading the
+     host clock directly, and the fixtures are written against `EYVAR_NOW`
+     (2026-06-25) — so every one of the 28 disputes rendered `overdue 67d` while
+     Safety, on the same data and the same 48-hour SLA, read `overdue 12m`. The
+     15-second bucket is kept; it is the pinning that was missing. */
+  const now = useNowIso(15)
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
   const fallback = views.find((v) => v.isDefault)?.id ?? 'disputes'
@@ -122,7 +142,11 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
 
   const disputes = useAsync<Paginated<Dispute>>(
     (signal) => listDisputes(disputeParams, signal),
-    { deps: [disputeParams], enabled: !onLostFound },
+    /* `disputeParams` is the whole argument, so the key is complete. The two
+       tabs here are two collections and two operations, so switching to Lost
+       and found and back re-paints this table's own rows. `claim` and `resolve`
+       both call `refetch`. */
+    { deps: [disputeParams], cacheKey: 'disputes.list', enabled: !onLostFound },
   )
 
   /* ── lost and found ───────────────────────────────────────────────── */
@@ -137,7 +161,10 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
 
   const lostFound = useAsync<Paginated<LostFoundItem>>(
     (signal) => listLostFound(lfParams, signal),
-    { deps: [lfParams], enabled: onLostFound },
+    /* `lostFound.list` is its own operation, not a view of `disputes.list`, so
+       the two tabs cannot key into each other. `lfParams` is the whole
+       argument; `advance` calls `refetch`. */
+    { deps: [lfParams], cacheKey: 'lostFound.list', enabled: onLostFound },
   )
 
   /* ── mutations ────────────────────────────────────────────────────── */
@@ -210,6 +237,8 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (d) => d.id,
         header: t('dispute.col.case'),
         width: 96,
         dataType: 'text',
@@ -261,6 +290,8 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (d) => d.amountHalalas,
         header: t('dispute.col.amount'),
         width: 116,
         align: 'end',
@@ -270,6 +301,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('dispute.col.status'),
         width: 132,
         dataType: 'enum',
@@ -309,6 +341,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'due',
+        emphasis: 'data',
         header: t('dispute.col.due'),
         width: 124,
         dataType: 'date',
@@ -334,6 +367,8 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (l) => l.id,
         header: t('dispute.lf.col.case'),
         width: 96,
         dataType: 'text',
@@ -375,6 +410,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('dispute.lf.col.status'),
         width: 140,
         dataType: 'enum',

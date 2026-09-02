@@ -10,16 +10,10 @@
  * the healthy state, not a missing fixture. `useAbsenceHistory()` populates it.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  absenceEventFixtures,
-  absenceEventHistoryFixtures,
-  assuranceTripFixtures,
-} from '../fixtures/assurance'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { AbsenceEvent, AssuranceTrip, LegAckSource } from '../types/assurance'
 import {
@@ -28,7 +22,24 @@ import {
   LEG_ACK_WEIGHT,
 } from '../types/assurance'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let absenceEventFixtures!: Fixtures['absenceEventFixtures']
+let absenceEventHistoryFixtures!: Fixtures['absenceEventHistoryFixtures']
+let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  absenceEventFixtures = f.absenceEventFixtures
+  absenceEventHistoryFixtures = f.absenceEventHistoryFixtures
+  assuranceTripFixtures = f.assuranceTripFixtures
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const ASSURANCE_OPERATIONS = {
   facets: 'assurance.facets',
@@ -41,6 +52,13 @@ export const ASSURANCE_OPERATIONS = {
   absences: 'assurance.absences',
   waiveAbsence: 'assurance.waiveAbsence',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(ASSURANCE_OPERATIONS))
 
 export interface AssuranceQuery extends QueryParams {
   subscriptionId?: string
@@ -160,7 +178,7 @@ const assuranceShape: QueryShape<AssuranceTrip> = {
 
     all: () => true,
     uncovered: (t) => t.uncovered,
-    mine: (t) => t.claim?.state === 'claimed' && t.claim.ownerId === CURRENT_USER_ID,
+    mine: (t) => t.claim?.state === 'claimed' && t.claim.ownerId === currentMockUserId(),
     unassigned: (t) => t.claim === null || t.claim.state !== 'claimed',
     breached: (t) => t.slaBreachedAt !== null,
   },
@@ -215,7 +233,10 @@ export async function getAssuranceTrip(id: string, signal?: AbortSignal): Promis
 
 /**
  * POST /api/v1/assurance/trips/:id/claim
- *   body: { takeOver?: boolean }  ·  409 when another operator holds it
+ *   body: { takeOver?: boolean }
+ *   -> AssuranceTrip
+ *   404 when the trip does not exist
+ *   409 when another operator holds it
  */
 export async function claimAssuranceTrip(
   id: string,
@@ -234,6 +255,8 @@ export async function claimAssuranceTrip(
 
 /**
  * POST /api/v1/assurance/trips/:id/release
+ *   -> AssuranceTrip
+ *   404 when the trip does not exist
  */
 export async function releaseAssuranceTrip(
   id: string,
@@ -292,7 +315,7 @@ export async function acknowledgeLeg(
         retryable: false,
       })
     }
-    const me = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)!
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     return {
       ...row,
       acknowledgement: {

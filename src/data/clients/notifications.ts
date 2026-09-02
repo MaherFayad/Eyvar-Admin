@@ -6,10 +6,9 @@
  * sizes — not two datasets that can disagree.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
-import { notificationFixtures, notificationFixturesAllRead } from '../fixtures/notifications'
 import type { Paginated, QueryParams } from '../types/common'
 import {
   NOTIFICATION_PREVIEW_SIZE,
@@ -19,6 +18,21 @@ import {
   type NotificationSummary,
 } from '../types/notifications'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let notificationFixtures!: Fixtures['notificationFixtures']
+let notificationFixturesAllRead!: Fixtures['notificationFixturesAllRead']
+onFixturesLoaded((f) => {
+  notificationFixtures = f.notificationFixtures
+  notificationFixturesAllRead = f.notificationFixturesAllRead
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  rows = seedRows()
+})
 
 export const NOTIFICATION_OPERATIONS = {
   list: 'notifications.list',
@@ -28,8 +42,28 @@ export const NOTIFICATION_OPERATIONS = {
   markAllRead: 'notifications.markAllRead',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(NOTIFICATION_OPERATIONS))
+
 /** Mutable copy so `markRead` is observable in the mock. Reset by `resetNotifications()`. */
-let rows: Notification[] = notificationFixtures.map((n) => ({ ...n }))
+let rows!: Notification[]
+
+/**
+ * Which seeded set `rows` is built from. A **flag rather than a direct write**,
+ * because `useAllReadNotifications()` may be called before the fixture chunk
+ * has landed — the rows it wants do not exist yet. The binder reads this flag,
+ * so the scenario survives whichever order the two happen in.
+ */
+let allRead = false
+
+/** The seeded set this scenario asks for. Only ever called once fixtures exist. */
+function seedRows(): Notification[] {
+  return (allRead ? notificationFixturesAllRead : notificationFixtures).map((n) => ({ ...n }))
+}
 
 export interface NotificationQuery extends QueryParams {
   filter?: NotificationFilter
@@ -126,7 +160,8 @@ export async function markAllNotificationsRead(signal?: AbortSignal): Promise<No
 
 /** Serve the all-read set, so the `notif-unread-zero` state is one call away. */
 export function useAllReadNotifications(): void {
-  rows = notificationFixturesAllRead.map((n) => ({ ...n }))
+  allRead = true
+  if (fixturesLoaded()) rows = seedRows()
 }
 
 /** Serve zero notifications — the empty state of the shell layer, distinct from all-read. */
@@ -135,7 +170,10 @@ export function useNoNotifications(): void {
 }
 
 export function resetNotifications(): void {
-  rows = notificationFixtures.map((n) => ({ ...n }))
+  allRead = false
+  /* Before the fixture chunk lands there is nothing seeded to reset, and the
+     rows this would read are still undefined. The binder seeds fresh state. */
+  if (fixturesLoaded()) rows = seedRows()
 }
 
 /* ─────────────────────────────── helpers ───────────────────────────────── */

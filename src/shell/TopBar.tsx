@@ -66,6 +66,7 @@
  *               §8. Recorded as a divergence, not fixed by a re-skin.
  */
 
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -104,6 +105,19 @@ export interface TopBarProps {
   onSetLanguage: (language: Language) => void
   /** Who is on the rota right now. `null` is the gap the chip exists to show. */
   onCallName: string | null
+  /**
+   * The compact shell's navigation control, or `null` above the breakpoint.
+   *
+   * A NODE rather than a boolean, because the control is a Radix dialog trigger
+   * and has to be rendered inside the dialog root that `AppLayout` wraps the
+   * frame in. Passing `compact` and constructing it here would put the trigger
+   * outside its own context, where it renders but opens nothing.
+   */
+  menu?: ReactNode
+  /**
+   * Below `--ev-bp-compact`. Drops slots 3a and 3b — see the render.
+   */
+  compact?: boolean
 }
 
 export function TopBar({
@@ -121,6 +135,8 @@ export function TopBar({
   onSignOut,
   onSetLanguage,
   onCallName,
+  menu = null,
+  compact = false,
 }: TopBarProps) {
   const navigate = useNavigate()
   const session: Session | null = shell.session
@@ -130,7 +146,19 @@ export function TopBar({
       {/* Slot 1 — the back arrow, and nothing else. V4 deleted the route trail
           that used to sit beside it, so on an index route this half of the bar
           is deliberately empty. */}
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      {/* `flex-1` on both outer slots is what centres the field on the viewport
+          above the breakpoint (§2.1). Below it there is no width to centre
+          anything in, so the two slots shrink to their contents and the field
+          takes the slack — see `GlobalSearch`, where the fixed 400px field used
+          to overflow and cover the navigation control. */}
+      <div className="flex min-w-0 flex-1 compact:flex-none items-center gap-2">
+        {/* Slot 0 — the compact shell's navigation control. FIRST in the bar and
+            first in the tab order after the skip link, because below the
+            breakpoint it is the only route to the rail and the sub-tab column:
+            a keyboard or screen-reader operator must not have to pass the
+            search field and four chips to reach the navigation. Above the
+            breakpoint this is `null` and the bar is unchanged. */}
+        {menu}
         {route.showsBackArrow && (
           <Button
             variant="ghost"
@@ -149,10 +177,10 @@ export function TopBar({
       {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}
       <GlobalSearch t={t} onOpenEntity={onOpenEntity} />
 
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+      <div className="flex min-w-0 flex-1 compact:flex-none items-center justify-end gap-1.5">
         {/* Slot 3a — `Mine`. Renders nothing at zero (AC-26). Routes to
             `/operations/my-work`, which is D-L1's fix. No emoji (AC-76). */}
-        {(session?.claimedCount ?? 0) > 0 && (
+        {!compact && (session?.claimedCount ?? 0) > 0 && (
           <Button
             variant="secondary"
             size="xs"
@@ -169,7 +197,22 @@ export function TopBar({
         )}
 
         {/* Slot 3b — `On call`. A ROTA GAP is the reason this chip exists, so
-            the gap is the state that gets the warning tone. */}
+            the gap is the state that gets the warning tone.
+
+            **3a and 3b are dropped below the breakpoint, and only these two.**
+            390px of bar cannot hold a navigation control, a search field, two
+            text chips, a bell and an avatar; something goes, and the question
+            is what. Both of these are LINKS TO A PAGE that says the same thing
+            at more length — `Mine` to `/operations/my-work`, `On call` to
+            `/admin/team` — so nothing is lost that is not one tap away through
+            the drawer. The bell and the account menu stay: the bell is the only
+            surface that carries unread work at all, and the account menu is the
+            only route to sign-out and to the language switch (AC-70).
+
+            `!compact &&`, not a `hidden` class. A chip that is painted away is
+            still in the tab order and still announced, which on the surface an
+            operator navigates a phone with is worse than absent. */}
+        {!compact && (
         <Button variant="secondary" size="xs" asChild>
           <Link to="/admin/team">
             <span className={cn(onCallName === null && 'text-warning-foreground')}>
@@ -179,6 +222,7 @@ export function TopBar({
             </span>
           </Link>
         </Button>
+        )}
 
         {/* Slot 3c */}
         <NotificationBell

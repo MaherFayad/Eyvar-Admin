@@ -23,34 +23,12 @@
  * categorical palette and **no `--chart-3`**. The type is the enforcement.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import {
-  boardBreakdowns,
-  boardNotices,
-  metricSeeds,
-  timeSeriesFixtures,
-  withShareOfMax,
-  type MetricSeed,
-} from '../fixtures/metrics'
-import {
-  SNAPSHOT_CURRENT,
-  snapshotsBetween,
-  type DailySnapshotWindow,
-} from '../fixtures/dailySnapshots'
-import { allDriverFixtures } from '../fixtures/drivers'
-import { riderFixtures } from '../fixtures/riders'
-import { allSubscriptionFixtures } from '../fixtures/subscriptions'
-import { allTripFixtures } from '../fixtures/trips'
-import { applicantFixtures } from '../fixtures/applicants'
-import { complianceFixtures } from '../fixtures/compliance'
-import { allRequestFixtures } from '../fixtures/requests'
-import { assuranceTripFixtures } from '../fixtures/assurance'
-import { fairnessCaseFixtures } from '../fixtures/fairness'
-import { safetyIncidentFixtures } from '../fixtures/safety'
-import { teamUserFixtures } from '../fixtures/teamUsers'
+import type { MetricSeed } from '../fixtures/metrics'
+import type { DailySnapshotWindow } from '../fixtures/dailySnapshots'
 import type { DailySnapshot } from '../types/metrics'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type {
@@ -64,6 +42,54 @@ import { workBacklogByQueue } from './myWork'
 import { listCities, resolveZones, summariseZones } from './zones'
 import { concentrationShare, median, p10, p90 } from '../reporting/distribution'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let boardBreakdowns!: Fixtures['boardBreakdowns']
+let boardNotices!: Fixtures['boardNotices']
+let metricSeeds!: Fixtures['metricSeeds']
+let timeSeriesFixtures!: Fixtures['timeSeriesFixtures']
+let withShareOfMax!: Fixtures['withShareOfMax']
+let SNAPSHOT_CURRENT!: Fixtures['SNAPSHOT_CURRENT']
+let snapshotsBetween!: Fixtures['snapshotsBetween']
+let allDriverFixtures!: Fixtures['allDriverFixtures']
+let riderFixtures!: Fixtures['riderFixtures']
+let allSubscriptionFixtures!: Fixtures['allSubscriptionFixtures']
+let allTripFixtures!: Fixtures['allTripFixtures']
+let applicantFixtures!: Fixtures['applicantFixtures']
+let complianceFixtures!: Fixtures['complianceFixtures']
+let allRequestFixtures!: Fixtures['allRequestFixtures']
+let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
+let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
+let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  boardBreakdowns = f.boardBreakdowns
+  boardNotices = f.boardNotices
+  metricSeeds = f.metricSeeds
+  timeSeriesFixtures = f.timeSeriesFixtures
+  withShareOfMax = f.withShareOfMax
+  SNAPSHOT_CURRENT = f.SNAPSHOT_CURRENT
+  snapshotsBetween = f.snapshotsBetween
+  allDriverFixtures = f.allDriverFixtures
+  riderFixtures = f.riderFixtures
+  allSubscriptionFixtures = f.allSubscriptionFixtures
+  allTripFixtures = f.allTripFixtures
+  applicantFixtures = f.applicantFixtures
+  complianceFixtures = f.complianceFixtures
+  allRequestFixtures = f.allRequestFixtures
+  assuranceTripFixtures = f.assuranceTripFixtures
+  fairnessCaseFixtures = f.fairnessCaseFixtures
+  safetyIncidentFixtures = f.safetyIncidentFixtures
+  teamUserFixtures = f.teamUserFixtures
+  METRIC_KEYS.length = 0
+  METRIC_KEYS.push(...metricSeeds.map((m) => m.key))
+  METRIC_SERIES_KEYS.length = 0
+  METRIC_SERIES_KEYS.push(...timeSeriesFixtures.map((c) => c.key))
+})
 
 /* ── window arithmetic, shared by the derived metrics below ──────────────
    Flat helpers over fixture arrays. Every one takes its window as an
@@ -99,6 +125,13 @@ export const METRIC_OPERATIONS = {
   series: 'metrics.series',
   facets: 'metrics.facets',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(METRIC_OPERATIONS))
 
 export interface MetricQuery extends QueryParams {
   subTabId?: string
@@ -953,9 +986,21 @@ export async function getMetricFacets(view?: string | null, signal?: AbortSignal
  * catalogue the app is allowed to know, exported through the seam rather than
  * around it.
  */
-export const METRIC_KEYS: readonly string[] = metricSeeds.map((m) => m.key)
+/*
+ * **Filled when the fixture chunk lands, not at module load.** Both lists are
+ * derived from seeded rows, and those rows arrive asynchronously now
+ * (`mock/fixtures.ts`). The exported binding is a stable array that is
+ * populated in place, so the barrel's re-export and every `import` of it keep
+ * working; only a reader that runs before the first client call sees it empty,
+ * and there is no such reader — `npm run api:check` and the two tests that
+ * touch these both await a client call first.
+ *
+ * In http mode both stay empty, which is correct: the catalogue is the
+ * server's, and a screen that needs it must ask for it.
+ */
+export const METRIC_KEYS: string[] = []
 
-export const METRIC_SERIES_KEYS: readonly string[] = timeSeriesFixtures.map((c) => c.key)
+export const METRIC_SERIES_KEYS: string[] = []
 
 /** The sub-tabs that have a board. Every other sub-tab has a table instead. */
 export const METRIC_BOARD_SUB_TABS: readonly string[] = [

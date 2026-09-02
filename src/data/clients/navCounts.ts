@@ -9,17 +9,35 @@
  * the counts are a hard-coded object.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
-import { navCountFixtures, navCountFixturesAllEmpty } from '../fixtures/navCounts'
 import { starvedZoneCount } from './zones'
 import type { NavCounts, SubTabCount } from '../types/navigation'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let navCountFixtures!: Fixtures['navCountFixtures']
+let navCountFixturesAllEmpty!: Fixtures['navCountFixturesAllEmpty']
+onFixturesLoaded((f) => {
+  navCountFixtures = f.navCountFixtures
+  navCountFixturesAllEmpty = f.navCountFixturesAllEmpty
+})
 
 export const NAV_COUNT_OPERATIONS = {
   list: 'navCounts.list',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(NAV_COUNT_OPERATIONS))
 
 /** Which fixture set the mock serves. Switched by QA; never by app code. */
 type NavCountScenario = 'default' | 'all-empty'

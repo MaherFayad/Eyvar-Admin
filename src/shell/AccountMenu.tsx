@@ -52,7 +52,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -128,8 +128,15 @@ export function AccountMenu({
   const canSwitch = DATA_SOURCE === 'mock'
   const operators = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), {
     deps: [],
+    /* `listTeamUsers` takes no argument but the signal, so `[]` is the whole
+       key — and it is deliberately the same key `ApplicationsView` uses for the
+       same parameterless roster read. Re-opening the menu is then free. */
+    cacheKey: 'session.teamUsers',
     enabled: menuOpen && canSwitch,
   })
+
+  /* Set only by an item that opens a layer. See the D-11 note below. */
+  const handedOff = useRef(false)
 
   return (
     <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -144,7 +151,37 @@ export function AccountMenu({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="min-w-48">
+      {/**
+        * **D-11 — the layer wins.** A menu that hands off does not take focus back.
+        *
+        * Radix returns focus to the trigger in `onCloseAutoFocus`, which is right
+        * for an item that acts in place and wrong for one that opens a layer:
+        * measured in the production build, focus lands on the sheet title at t=0,
+        * on `body` at ~50ms, and back on this trigger at ~150ms **while the drawer
+        * is still open**. The operator is then tabbing through the page behind the
+        * thing they just opened.
+        *
+        * **Conditional, never blanket.** Suppressing the restore for every close
+        * would break Escape and every item that acts in place — those must return
+        * the operator to where they were. The ref is set only by an item that
+        * hands off. `02-shell-fixes.md` §13 left this open for a ruling; the
+        * ruling is that the layer wins.
+        *
+        * **The braces are load-bearing.** Without them this block is a JSX CHILD,
+        * and React renders the comment as text — it shipped as a 376x880px slab
+        * of prose inside `<header>` on 35 of 35 routes, covering Export CSV on
+        * every index screen and the first KPI tile on the management board.
+        * Caught by the visual audit, not by `tsc`, and not by 3,075 tests.
+        */}
+      <DropdownMenuContent
+        align="end"
+        className="min-w-48"
+        onCloseAutoFocus={(event) => {
+          if (!handedOff.current) return
+          handedOff.current = false
+          event.preventDefault()
+        }}
+      >
         {/* Identity, not an action. `DropdownMenuLabel` is not focusable. */}
         <DropdownMenuLabel className="flex flex-col gap-0.5">
           <span className="text-sm font-semibold text-foreground">{name}</span>
@@ -155,7 +192,7 @@ export function AccountMenu({
             the design's menu sketch has it. The count sits at the inline-end,
             12px `--ev-text-2`, and disappears when there is nothing outstanding
             (**AC-599**) rather than reading `7 / 7`. */}
-        <DropdownMenuItem onSelect={onOpenOnboarding}>
+        <DropdownMenuItem onSelect={() => { handedOff.current = true; onOpenOnboarding() }}>
           {t('onboarding.menuEntry')}
           {onboardingProgress !== null && (
             <span className="ms-auto text-xs text-muted-foreground">
@@ -163,7 +200,7 @@ export function AccountMenu({
             </span>
           )}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onOpenMyProfile}>{t('shell.account.myProfile')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { handedOff.current = true; onOpenMyProfile() }}>{t('shell.account.myProfile')}</DropdownMenuItem>
         {canSwitch ? (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>{t('shell.account.switchUser')}</DropdownMenuSubTrigger>

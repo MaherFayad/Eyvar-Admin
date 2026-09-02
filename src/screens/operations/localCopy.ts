@@ -43,14 +43,58 @@
  * which language appears.
  */
 
-import type { Dictionary, TranslateParams, Translate } from '@/lib'
+import type { Dictionary, Translate, TranslateParams, Translator } from '@/lib'
 
-export function withFallback(t: Translate, dictionary: Dictionary): Translate {
-  return (key: string, params?: TranslateParams): string => {
+export function withFallback(t: Translator, dictionary: Dictionary): Translator
+export function withFallback(t: Translate, dictionary: Dictionary): Translate
+export function withFallback(t: Translate | Translator, dictionary: Dictionary) {
+  const wrapped = (key: string, params?: TranslateParams): string => {
     const fallback = dictionary[key]
     /* `defaultValue` is only consulted when neither the shell's dictionary nor
        its English fallback has the key, so a registered screen keeps the
        registered copy and this wrapper stops mattering. */
     return fallback === undefined ? t(key, params) : t(key, { ...params, defaultValue: fallback })
   }
+
+  /**
+   * **`plural` has to survive the wrap, or this helper cannot be used at all.**
+   *
+   * `Translator` is `Translate` **plus** a plural selector, and the wrapper
+   * returned only the call signature — so any screen that renders a count lost
+   * `t.plural` the moment it adopted a fallback dictionary. That is most of
+   * them: a queue says how many items are breached, a table says how many rows
+   * matched. It made the helper unusable exactly where the copy is largest.
+   *
+   * The plural forms carry the same fallback, because `#one` / `#other` are
+   * ordinary keys in the screen's own dictionary.
+   */
+  const plural = (t as Translator).plural
+  if (typeof plural === 'function') {
+    return Object.assign(wrapped, {
+      plural: (key: string, params: TranslateParams): string => {
+        const merged: Record<string, string> = {}
+        for (const [k, v] of Object.entries(dictionary)) {
+          if (k === key || k.startsWith(`${key}#`) || k.startsWith(`${key}.`)) merged[k] = v
+        }
+        return Object.keys(merged).length === 0
+          ? plural(key, params)
+          : plural(key, { ...params, ...pluralFallbacks(merged, key) })
+      },
+    })
+  }
+  return wrapped
+}
+
+/**
+ * The `defaultValue` a plural lookup needs, keyed by the form the selector will
+ * ask for. `translate.ts` resolves `<key>#<category>`, so the fallback has to be
+ * offered under the same suffix rather than under the bare key.
+ */
+function pluralFallbacks(merged: Record<string, string>, key: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(merged)) {
+    if (k === key) out.defaultValue = v
+    else out[`defaultValue${k.slice(key.length)}`] = v
+  }
+  return out
 }

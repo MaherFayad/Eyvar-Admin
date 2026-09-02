@@ -82,7 +82,11 @@ export function NotificationsLayer({
 
   const list = useAsync<Paginated<Notification>>(
     (signal) => listNotifications({ filter, pageSize: 50 }, signal),
-    { deps: [filter], enabled: open },
+    /* `filter` is the only varying input — `pageSize` is a literal — so each
+       filter keys separately and switching `All`/`Unread` and back paints the
+       tab's own rows rather than a skeleton. `markAll` goes through `refetch`,
+       which bypasses the cache and rewrites the entry. */
+    { deps: [filter], cacheKey: 'notifications.list', enabled: open },
   )
 
   const markAll = useCallback(async () => {

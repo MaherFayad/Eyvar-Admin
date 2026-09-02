@@ -1,0 +1,5 @@
+{
+  "disabled": false,
+  "reason": null,
+  "_": "THE KILL SWITCH. Set \"disabled\" to true and deploy this one file to disable the service worker for every operator: the worker deletes its caches, unregisters itself, and the app runs straight off the network again. It is checked before the first cache entry is ever written (sw.ts install), at activate, and at most every 5 minutes thereafter. It must be served with no-store — see vercel.json. Nothing reads this file at build time; changing it needs no rebuild. See src/pwa/killSwitch.ts."
+}

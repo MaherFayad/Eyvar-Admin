@@ -85,7 +85,8 @@ export const QUEUE_SHARED_EN: Dictionary = {
   'queue.decided.by': '{actor} · {date}',
   'queue.decided.bySystem': 'Automatic · {date}',
   'queue.confirm.cancel': 'Cancel',
-  'queue.action.noPermission': 'Your role cannot work this queue.',
+  'queue.action.noPermission':
+    'You cannot claim or dispose of work in this queue. Ask an Owner for the permission this queue needs.',
   'queue.error.retry': 'Try again',
 
   /* ── §4.11 states ───────────────────────────────────────────────────── */

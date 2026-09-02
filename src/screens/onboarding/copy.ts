@@ -97,7 +97,7 @@ export const ONBOARDING_EN: Dictionary = {
      foundation Q4 lands: every `requiredPermission` is `null`, so no step can
      enter this state. Known-failing on arrival, and it is not a regression. */
   'onboarding.step.forbidden':
-    'This step needs the "{permission}" permission. An owner can grant it in Admin › Team & Access.',
+    'This step needs the “{permission}” permission. An Owner can grant it in Admin › Team & Access.',
   /* §10.2 — the marker glyph is decorative; the state is carried by the row's
      accessible name. `Check the account that is now yours, completed`. */
   'onboarding.step.a11y.completed': '{title}, completed',
@@ -125,7 +125,7 @@ export const ONBOARDING_EN: Dictionary = {
   'onboarding.stale': 'This step was already completed in another tab.',
   /* **AC-635** — the list collapses to a done line and `Dismiss` takes primary
      emphasis in the footer. */
-  'onboarding.done': 'Done',
+  'onboarding.done': 'Every step is done',
   'onboarding.doneBody':
     "You've finished the {role} checklist. Reopen it any time from your account menu.",
   /* **AC-643** — one `shell` banner, `info`, dismissible. **The layer never

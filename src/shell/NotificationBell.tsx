@@ -30,7 +30,7 @@
  *   R-3 §1.3    tier 2, through `PopoverContent`.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,11 +60,19 @@ export function NotificationBell({
   onOpenNotification,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
+  /* D-11 — set only by `See all`, which hands off to the shell layer. See the
+     note on `onCloseAutoFocus` below. */
+  const handedOff = useRef(false)
 
   /* Fetched only while the popover is open — AC-28's spirit: a surface that is
      not on screen performs no work. */
   const preview = useAsync<Notification[]>((signal) => previewNotifications(signal), {
     deps: [open],
+    /* `previewNotifications` takes no argument, so the request never varies and
+       `[open]` — which is `true` on every run that fires — is a complete key.
+       Re-opening the popover within the TTL paints the last preview and
+       revalidates behind it. */
+    cacheKey: 'notifications.preview',
     enabled: open,
   })
 
@@ -98,9 +106,24 @@ export function NotificationBell({
         </Button>
       </PopoverTrigger>
 
+      {/**
+        * **D-11 — the layer wins.** Radix restores focus to the trigger on close,
+        * which is right for a popover that acts in place and wrong for one that
+        * opens a layer: measured in the production build, focus reaches the sheet
+        * title, then `body`, then comes back to this bell at ~150ms **while the
+        * drawer is still open**.
+        *
+        * Conditional, never blanket — Escape and every in-place action must still
+        * return the operator to the bell. Only `See all` sets the ref.
+        */}
       <PopoverContent
         align="end"
         className="w-88 sm:w-96 max-h-[85vh] flex flex-col gap-0 p-0 bg-popover text-popover-foreground shadow-2xl border border-border rounded-xl overflow-hidden z-50"
+        onCloseAutoFocus={(event) => {
+          if (!handedOff.current) return
+          handedOff.current = false
+          event.preventDefault()
+        }}
       >
         <div className="shrink-0 flex h-11 items-center justify-between border-b border-border px-4 bg-popover">
           <h2 className="text-sm font-bold text-foreground">{t('shell.notifications.title')}</h2>
@@ -144,6 +167,13 @@ export function NotificationBell({
                       notification={notification}
                       language={language}
                       onOpen={() => {
+                        /* D-11, and this is the path the first fix MISSED. Opening a
+                           notification hands off to the shell layer exactly as `See
+                           all` does; without this the bell takes focus back at
+                           ~150ms with the drawer already open — measured at t=1600ms
+                           in the a11y audit. `See all` is the *secondary* route to
+                           that layer; this is the one an operator actually uses. */
+                        handedOff.current = true
                         setOpen(false)
                         onOpenNotification(notification)
                       }}
@@ -167,6 +197,7 @@ export function NotificationBell({
             size="default"
             className="w-full text-xs font-semibold text-foreground hover:bg-accent"
             onClick={() => {
+              handedOff.current = true
               setOpen(false)
               onSeeAll()
             }}
@@ -202,11 +233,28 @@ function NotificationRow({
   const body = (
     <div className="flex flex-col gap-1 w-full text-start">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-2xs font-medium text-muted-foreground tabular-nums">
+        {/* H2/H3 — a timestamp is META: `--text-xs` at 400. `--text-2xs` is
+            a badge label and a count numeral and nothing else, and the weight
+            was decoration on the quietest thing in the row. */}
+        <span className="text-xs text-muted-foreground tabular-nums">
           {formatDate(notification.createdAt, { style: 'day-month-time', language })}
         </span>
         {!notification.read && (
-          <span className="size-1.5 rounded-full bg-blue-500 shrink-0" />
+          /* The unread dot was filled from Tailwind's own blue ramp at stop
+             500 — a palette class, not a token, and the kind that passes a
+             casual review because it looks like one. (Spelled out rather than
+             quoted: a class name in a comment is a candidate Tailwind emits.)
+             `--ev-brand` is the wrong swap — it is #0c6944, a GREEN, and would
+             have changed what the dot means. The informational blue is
+             `--ev-blue-dk` #1b51c4, reached through `bg-info-foreground`:
+             6.95 : 1 on the popover's white, well past the 3 : 1 a meaningful
+             graphic owes §7.5.
+
+             **Reported, not fixed here:** the dot is colour and shape with no
+             word and no accessible name, which is §7.5's never-colour-alone
+             rule. The fix needs a translation key and this pass may not add
+             one — raised to i18n-arabic-engineer in the handoff. */
+          <span className="size-1.5 rounded-full bg-info-foreground shrink-0" />
         )}
       </div>
       <span

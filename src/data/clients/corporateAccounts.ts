@@ -3,14 +3,23 @@
  * `/operations/corporate/:corpId`.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { corporateAccountFixtures } from '../fixtures/corporateAccounts'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { CorporateAccount, CorporateAccountStatus } from '../types/corporateAccount'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let corporateAccountFixtures!: Fixtures['corporateAccountFixtures']
+onFixturesLoaded((f) => {
+  corporateAccountFixtures = f.corporateAccountFixtures
+})
 
 export const CORPORATE_OPERATIONS = {
   facets: 'corporate.facets',
@@ -20,6 +29,13 @@ export const CORPORATE_OPERATIONS = {
   updatePolicy: 'corporate.updatePolicy',
   addEmployee: 'corporate.addEmployee',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(CORPORATE_OPERATIONS))
 
 export interface CorporateQuery extends QueryParams {
   status?: CorporateAccountStatus
@@ -247,7 +263,7 @@ export async function addCorporateEmployee(
 }
 
 /**
- * GET /api/v1//corporate-accounts/facets
+ * GET /api/v1/corporate-accounts/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

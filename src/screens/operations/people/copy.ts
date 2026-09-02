@@ -194,7 +194,8 @@ export const PEOPLE_EN: Dictionary = {
   'people.action.suspend': 'Suspend captain',
   'people.action.reinstate': 'Reinstate captain',
   'people.action.viewCompliance': 'Open compliance file',
-  'people.action.noPermission': 'Needs the approve_drivers permission',
+  'people.action.noPermission':
+    'You cannot decide applications or suspend captains. Ask an Owner for the “Captain applications” permission.',
   'people.bulk.suspend': 'Suspend',
   'people.bulk.reinstate': 'Reinstate',
 
@@ -335,4 +336,81 @@ export const PEOPLE_EN: Dictionary = {
   'people.a11y.rowActions': 'More actions for {name}',
   'people.a11y.openProfile': 'Open the 360° profile for {name}',
   'people.a11y.selectRow': 'Select {name}',
+
+  /* Moved out of JSX `defaultValue` literals, 2026-09-02. A `defaultValue`
+     resolves as a third fallback the missing-key guard never sees
+     (`lib/i18n/translate.ts:98`), so these strings were invisible to an
+     extractor AND to the copy tests -- an unaudited copy surface, not just
+     an untranslatable one.
+
+     **They were relocated, then rewritten** (`docs/ref/copy.md`), because
+     relocating an unaudited string only makes it visible; it does not make it
+     conform. Eleven were Title Case (`Phone Number`, `Operating City`,
+     `Vehicle & Class Specification`) -- rule 1 -- and two opened with
+     `Failed to`, which rule 4 forbids twice over: it blames, and it names no
+     fix. The rewrite is the point of the consolidation, not a follow-up to
+     it. */
+  'action.cancel': 'Cancel',
+  /* Two verbs, two keys. One `action.saving` served BOTH the approve and the
+     reject button, each carrying its own `defaultValue` -- so the collision was
+     invisible until the literals were consolidated here. */
+  'applicant.action.approving': 'Approving…',
+  'applicant.action.rejecting': 'Rejecting…',
+  'applicant.photo.yes': 'Submitted',
+  'applicant.photo.no': 'Not submitted',
+  'applicant.acceptedTrips': 'Accepted trips',
+  'applicant.action.approve': 'Approve captain',
+  'applicant.action.decided': 'This application has already been {status}.',
+  'applicant.action.reject': 'Reject application',
+  'applicant.address': 'Address',
+  'applicant.appLanguage': 'App language',
+  'applicant.appliedAt': 'Applied on',
+  'applicant.approvedDriver': 'Captain record',
+  'applicant.bankDetails': 'IBAN and bank verification',
+  'applicant.bankName': 'Bank',
+  'applicant.bankStatus': 'Verification',
+  'applicant.cancelledTrips': 'Cancelled trips',
+  'applicant.city': 'Operating city',
+  'applicant.confirmReject': 'Reject application',
+  'applicant.decidedAt': 'Decided',
+  'applicant.device': 'Device',
+  'applicant.dob': 'Date of birth',
+  'applicant.documentsChecklist': 'Submitted documents and verification',
+  'applicant.email': 'Email',
+  'applicant.error.notFoundDesc': 'Application {id} is not on file.',
+  'applicant.expiresOn': 'Expires: {date}',
+  'applicant.gender': 'Gender',
+  'applicant.iban': 'IBAN',
+  'applicant.ipLocation': 'IP location',
+  'applicant.lastIp': 'Last IP',
+  'applicant.movementLog': 'Movement log',
+  'applicant.movementLog.empty': 'Nothing recorded for this applicant yet.',
+  'applicant.nationalId': 'National ID',
+  'applicant.outcome': 'Ownership and outcome',
+  'applicant.personalDetails': 'Personal and contact details',
+  'applicant.personalDetailsDesc': 'National identification and applicant profile.',
+  'applicant.phone': 'Phone',
+  'applicant.photo': 'Profile photo',
+  'applicant.plate': 'Plate',
+  'applicant.reject.desc': 'State the rejection reason for {name}. An automated notice will be sent.',
+  'applicant.reject.reason': 'Reason',
+  'applicant.reject.title': 'Reject this application?',
+  'applicant.rejectionReason': 'Rejection reason',
+  'applicant.screening': 'Device, network and movement',
+  'applicant.screeningDesc': 'Where the application came from. A device or an address shared with another applicant is worth opening before deciding.',
+  'applicant.toast.approveError': "Couldn't approve this application",
+  'applicant.toast.approved': 'Captain application {id} approved',
+  'applicant.toast.rejectError': "Couldn't reject this application",
+  'applicant.toast.rejected': 'Application {id} rejected',
+  'applicant.vehicleClass': 'Assigned tier',
+  'applicant.vehicleDetails': 'Vehicle and class',
+  'applicant.vehicleModel': 'Vehicle',
+  'queue.col.owner': 'Owner',
+  'queue.owner.unclaimed': 'Unclaimed',
+  /* Screen-specific, NOT the generic `action.*` key. `action.saving`,
+     `action.goBack` and `sub.selectDriver` each carried a DIFFERENT value in a
+     different screen dictionary, and the last spread into `EN` wins - so
+     registering this dictionary would have silently relabelled three modals.
+     A key that means four things is not a key. */
+  'applicant.action.backToApplications': 'Back to applications',
 }

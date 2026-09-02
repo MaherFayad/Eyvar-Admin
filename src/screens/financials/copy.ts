@@ -164,7 +164,7 @@ export const FINANCIALS_EN: Dictionary = {
 
   'fin.empty.noMatch': 'No postings match these filters.',
   'fin.empty.clear': 'Clear filters',
-  'fin.empty.firstRun.heading': 'No money has moved here yet',
+  'fin.empty.firstRun.heading': 'This account, posting by posting',
   'fin.empty.firstRun.body':
     'Postings appear the moment a fare, a payout or a credit touches this account.',
   'fin.empty.firstRun.action': 'Read the chart of accounts',
@@ -181,7 +181,7 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.overview.contributionMargin': 'Contribution margin',
   'fin.overview.grossMarginPercent': 'Gross margin %',
   'fin.overview.contributionPercent': 'Contribution %',
-  'fin.overview.giveback.heading': 'What we gave back',
+  'fin.overview.giveback.heading': 'What was given back',
   'fin.overview.giveback.promo': 'Promotional discounts',
   'fin.overview.giveback.referral': 'Referral rewards',
   'fin.overview.giveback.incentive': 'Captain incentives',
@@ -296,7 +296,8 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.payout.back': 'Back to payouts',
   'fin.payout.blocked.nothing': 'Nothing is payable after cash debt.',
   'fin.payout.blocked.noBank': 'Add a bank account before paying this captain.',
-  'fin.payout.blocked.permission': 'Your role cannot move money.',
+  'fin.payout.blocked.permission':
+    'You cannot pay a captain. Ask an Owner for the “Captain payouts” permission.',
   'fin.payout.empty.heading': 'No captain has earnings this period',
   'fin.payout.empty.body': 'A captain appears here as soon as a trip accrues earnings to them.',
   'fin.payout.empty.action': 'Read the payable ledger',
@@ -406,11 +407,11 @@ export const FINANCIALS_EN: Dictionary = {
      frame with the row-level refusal interpolated into it — a sentence inside a
      sentence, which is the finding `fin.refused.*` already records. */
 
-  'fin.bulk.pay.permission.one': 'This payout cannot be paid — your role cannot move money.',
+  'fin.bulk.pay.permission.one': 'This payout cannot be paid. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.pay.permission.other':
-    '{count} of the selected payouts cannot be paid — your role cannot move money.',
+    '{count} of the selected payouts cannot be paid. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.pay.permission.all':
-    'All {count} selected payouts cannot be paid — your role cannot move money.',
+    'All {count} selected payouts cannot be paid. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.pay.noBank.one': 'This payout cannot be paid — no bank account is on file.',
   'fin.bulk.pay.noBank.other':
     '{count} of the selected payouts cannot be paid — no bank account is on file.',
@@ -434,11 +435,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.bulk.pay.confirm.confirm': 'Pay',
   'fin.bulk.pay.toast': 'Payouts sent',
 
-  'fin.bulk.release.permission.one': 'This hold cannot be released — your role cannot move money.',
+  'fin.bulk.release.permission.one': 'This hold cannot be released. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.release.permission.other':
-    '{count} of the selected holds cannot be released — your role cannot move money.',
+    '{count} of the selected holds cannot be released. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.release.permission.all':
-    'All {count} selected holds cannot be released — your role cannot move money.',
+    'All {count} selected holds cannot be released. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.release.state.one':
     'This hold cannot be released — it is already released or reversed.',
   'fin.bulk.release.state.other':
@@ -458,11 +459,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.bulk.release.toast': 'Escrow released',
 
   'fin.bulk.apply.permission.one':
-    'This deduction cannot be applied — your role cannot move money.',
+    'This deduction cannot be applied. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.apply.permission.other':
-    '{count} of the selected deductions cannot be applied — your role cannot move money.',
+    '{count} of the selected deductions cannot be applied. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.apply.permission.all':
-    'All {count} selected deductions cannot be applied — your role cannot move money.',
+    'All {count} selected deductions cannot be applied. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.apply.decided.one': 'This deduction cannot be applied — it is already applied or waived.',
   'fin.bulk.apply.decided.other':
     '{count} of the selected deductions cannot be applied — they are already applied or waived.',
@@ -475,11 +476,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.bulk.apply.confirm.confirm': 'Apply',
   'fin.bulk.apply.toast': 'Deductions applied',
 
-  'fin.bulk.waive.permission.one': 'This deduction cannot be waived — your role cannot move money.',
+  'fin.bulk.waive.permission.one': 'This deduction cannot be waived. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.waive.permission.other':
-    '{count} of the selected deductions cannot be waived — your role cannot move money.',
+    '{count} of the selected deductions cannot be waived. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.waive.permission.all':
-    'All {count} selected deductions cannot be waived — your role cannot move money.',
+    'All {count} selected deductions cannot be waived. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.waive.decided.one': 'This deduction cannot be waived — it is already applied or waived.',
   'fin.bulk.waive.decided.other':
     '{count} of the selected deductions cannot be waived — they are already applied or waived.',
@@ -546,11 +547,11 @@ export const FINANCIALS_EN: Dictionary = {
      `CLAIM_REFUSAL_ORDER` (**AC-962**) and carries the same three forms as the
      domain causes, so the refusal an operator most needs to recognise does not
      read differently from the rest. */
-  'fin.bulk.claim.permission.one': 'This report cannot be claimed — your role cannot claim work.',
+  'fin.bulk.claim.permission.one': 'This report cannot be claimed. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.claim.permission.other':
-    '{count} of the selected reports cannot be claimed — your role cannot claim work.',
+    '{count} of the selected reports cannot be claimed. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.claim.permission.all':
-    'All {count} selected reports cannot be claimed — your role cannot claim work.',
+    'All {count} selected reports cannot be claimed. Ask an Owner for the “Captain payouts” permission.',
   'fin.bulk.claim.decided.one': 'This report cannot be claimed — it is already decided.',
   'fin.bulk.claim.decided.other':
     '{count} of the selected reports cannot be claimed — they are already decided.',

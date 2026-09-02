@@ -625,6 +625,19 @@ export {
  * `beforeEach`. Without it, one test's `markAllNotificationsRead` leaks into the
  * next file's assertion about the unread badge.
  */
+/**
+ * **Warm the fixture chunk.** Re-exported here so the one legitimate caller
+ * outside `src/data` — the Vitest setup file — reaches it through the public
+ * seam rather than importing `data/mock/*` directly, which `seam.test.ts`
+ * rightly forbids for everything but the clock.
+ *
+ * Production never needs this: `mock()` and `mockMutation()` await it before
+ * every read. A test needs it because the dynamic `import()` adds a tick the
+ * old static import did not have, and an assertion written against the resolved
+ * shell would otherwise run one tick early.
+ */
+export { loadFixtures } from '../mock/fixtures'
+
 export function resetDataLayer(): void {
   clearFailures()
   resetSession()

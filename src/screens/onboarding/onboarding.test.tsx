@@ -46,6 +46,8 @@ import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { ShellProvider } from '@/shell/ShellContext'
 import { OnboardingLayer } from './OnboardingLayer'
+import { PERMISSION_KEYS } from '@/data/types/navigation'
+import { ROLE_PERMISSIONS } from '@/data/types/session'
 
 const t = createTranslator({ dictionary: EN, fallback: EN })
 const en = (key: string) => EN[key] as string
@@ -195,16 +197,36 @@ describe('AC-605 / A-7 — "no step renders a Learn more link, in any state"', (
   })
 })
 
-describe('AC-610 — KNOWN-FAILING, and it must stay that way', () => {
-  it('has requiredPermission null on all 21 rows, so no step can be forbidden', async () => {
-    /* Foundation **Q4** is unanswered. The forbidden treatment is designed,
-       keyed and copied (design §10.2) and is **unreachable, not unbuilt**.
-       Making this pass needs a permission model, and an invented one is
-       indistinguishable from a real one once it is in a fixture. */
-    for (const step of await allSteps()) {
-      expect(step.requiredPermission, step.id).toBeNull()
+describe('AC-610 — the forbidden step is reachable at last', () => {
+  /**
+   * **This was `KNOWN-FAILING, and it must stay that way`.** It asserted
+   * `requiredPermission: null` on all 21 rows and explained that making it pass
+   * would need a permission model, *"and an invented one is indistinguishable
+   * from a real one once it is in a fixture."* That reasoning was right.
+   *
+   * What changed is that the model is no longer hypothetical: D17 landed 21
+   * permission keys and 35 of 36 route rows now carry a `viewPermission`. So the
+   * gate is **derived** from each step's own destination — nothing invented —
+   * and the forbidden treatment stops being unreachable.
+   *
+   * It was not academic. Support's track sent them into a Financials screen and
+   * Finance's into an Operations queue; both roles hold neither permission.
+   */
+  it('gates each step by the permission its destination actually requires', async () => {
+    const steps = await allSteps()
+    const gated = steps.filter((step) => step.requiredPermission !== null)
+    expect(gated.length, 'no step is gated, so the forbidden state is unreachable').toBeGreaterThan(0)
+
+    /* The three that stay null are correct: two target a shell layer, and
+       `admin-activity` is the one route open to every authenticated operator. */
+    for (const step of steps) {
+      if (step.requiredPermission !== null) continue
+      const subTabId = step.destination?.subTabId ?? null
+      expect(subTabId === null || subTabId === 'admin-activity', step.id).toBe(true)
     }
-    /* The copy exists and is ready for the day Q4 lands. */
+  })
+
+  it('still carries the forbidden copy the treatment renders', () => {
     expect(EN['onboarding.step.forbidden']).toContain('permission')
   })
 })
@@ -280,8 +302,16 @@ describe('AC-600 / AC-601 / AC-602 — the intro and the progress line', () => {
 
     expect(await screen.findByText(en('onboarding.intro.support'))).toBeInTheDocument()
     /* **AC-601** — the count equals the permissions the account actually
-       holds, and it is derived server-side so two screens cannot disagree. */
-    expect(screen.getByText(/You hold 3 of \d+ permissions\./)).toBeInTheDocument()
+       holds, and it is derived server-side so two screens cannot disagree.
+
+       Both numbers are now DERIVED rather than written here. The literals were
+       `3 of 13`, and both were wrong: the numerator read a stale stored list
+       instead of `effectivePermissions`, and the denominator predated D17
+       splitting `manage_settings` into four. Support holds 7 of 21. */
+    const held = ROLE_PERMISSIONS['Support'].length
+    expect(
+      screen.getByText(`You hold ${held} of ${PERMISSION_KEYS.length} permissions.`),
+    ).toBeInTheDocument()
     /* §5.6's required format, exactly. */
     expect(screen.getByText(/of \d+ completed/)).toBeInTheDocument()
   })

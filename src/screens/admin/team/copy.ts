@@ -63,7 +63,8 @@ export const ADMIN_TEAM_EN: Dictionary = {
   'admin.team.refusal.notSuspended': 'Only a suspended operator can be reinstated.',
   'admin.team.refusal.crossOperatorSession':
     'Ending another operator’s session is not built yet. You can end your own from here.',
-  'admin.team.refusal.noPermission': 'Your role cannot administer operators.',
+  'admin.team.refusal.noPermission':
+    'You cannot administer operators. Ask an Owner for the “Team administration” permission.',
 
   /* ── confirmations ──────────────────────────────────────────────────── */
   'admin.team.confirm.revoke.title': 'Revoke {name}’s invitation?',
@@ -148,7 +149,7 @@ export const ADMIN_TEAM_EN: Dictionary = {
     'The top bar’s “on call” chip is hardcoded to nobody and cannot read this yet. Reported; the change is one line in AppLayout.',
 
   /* ── the four states ────────────────────────────────────────────────── */
-  'admin.team.empty.heading': 'No operators yet',
+  'admin.team.empty.heading': 'Everyone who can sign in, and what each may do',
   'admin.team.empty.body':
     'Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap.',
   'admin.team.error': 'The roster, the security policy or the rota could not be loaded.',

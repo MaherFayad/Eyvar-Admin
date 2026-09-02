@@ -45,7 +45,7 @@
  *   §9.1        the tile grid is a logical grid; nothing is placed by a side.
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -78,18 +78,34 @@ import {
 } from '@/data/clients'
 import type { Dashboard, DashboardTile as Tile, SavedReport } from '@/data/types'
 import { isolatedRunProps, type Translator } from '@/lib'
+import { withFallback } from '../operations/localCopy'
+import { REPORTS_EN } from './copy'
 
 export function DashboardDetailScreen() {
   const shell = useShell()
   const navigate = useNavigate()
   const { dashboardId = '' } = useParams()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, REPORTS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
   /* Passed down, never read from an ambient clock inside a tile. */
   const today = now ? localDayOf(now) : EYVAR_TODAY
 
   const dashboard = useAsync(async (signal) => (await getDashboard(dashboardId, signal)).data, {
     deps: [dashboardId],
+    /* Keyed by the record id, which is all the fetcher varies on. Every tile
+       mutation calls `dashboard.refetch`. */
+    cacheKey: 'dashboards.get',
     /* A dashboard with no tiles is a real answer and a valid record (AC-865).
        It is the FIRST-RUN empty for that dashboard, not an empty list of
        dashboards, so it must not be folded into `useAsync`'s `empty`. */
@@ -104,7 +120,14 @@ export function DashboardDetailScreen() {
       ])
       return { measures: measures.items, dimensions: dimensions.items }
     },
-    { deps: [], isEmpty: (data) => data.measures.length === 0 },
+    {
+      deps: [],
+      /* The measure/dimension catalogue takes no parameters and is byte-identical
+         to `ReportBuilder`'s read, so both deliberately share `catalogue.measures::[]`
+         - opening the builder warms the dashboard editor and back. */
+      cacheKey: 'catalogue.measures',
+      isEmpty: (data) => data.measures.length === 0,
+    },
   )
 
   const [adding, setAdding] = useState(false)
@@ -274,7 +297,10 @@ function AddReportDialog({
   t: Translator
 }) {
   const reports = useAsync((signal) => listReports({ pageSize: 100 }, signal), {
+    /* Stores the client's native `Paginated` envelope; `deps: [open]` keeps this
+       key distinct from `ReportLibrary`'s, which is keyed by its table params. */
     deps: [open],
+    cacheKey: 'reports.list',
     isEmpty: (page) => page.items.length === 0,
   })
 

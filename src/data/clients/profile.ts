@@ -8,7 +8,7 @@
  *                           Cancellation Policy went
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
 /**
@@ -33,16 +33,6 @@ import { mock, notFound } from '../mock/delay'
  * three below are the whole of the fix. **If a fixture file grows a `filler*`
  * array, this import list is the second place to change.**
  */
-import { corporateAccountFixtures } from '../fixtures/corporateAccounts'
-import { allDriverFixtures } from '../fixtures/drivers'
-import { applicantFixtures } from '../fixtures/applicants'
-import { subscriptionPlanFixtures } from '../fixtures/pricing'
-import { complaintFixtures } from '../fixtures/complaints'
-import { paymentFixtures } from '../fixtures/payments'
-import { newRiderFixtures, riderFixtures } from '../fixtures/riders'
-import { allSubscriptionFixtures } from '../fixtures/subscriptions'
-import { ticketFixtures } from '../fixtures/tickets'
-import { allTripFixtures } from '../fixtures/trips'
 import { LEGACY_PAGE_TITLES } from '../fixtures/legacyPages'
 import { SUB_TABS } from '../fixtures/routeTable'
 /* Deep import, not the `@/lib` barrel: this module's dependency on the shared
@@ -60,12 +50,49 @@ import type {
 } from '../types/profile'
 import { resolveLegacyPage } from './routes'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let corporateAccountFixtures!: Fixtures['corporateAccountFixtures']
+let allDriverFixtures!: Fixtures['allDriverFixtures']
+let applicantFixtures!: Fixtures['applicantFixtures']
+let subscriptionPlanFixtures!: Fixtures['subscriptionPlanFixtures']
+let complaintFixtures!: Fixtures['complaintFixtures']
+let paymentFixtures!: Fixtures['paymentFixtures']
+let newRiderFixtures!: Fixtures['newRiderFixtures']
+let riderFixtures!: Fixtures['riderFixtures']
+let allSubscriptionFixtures!: Fixtures['allSubscriptionFixtures']
+let ticketFixtures!: Fixtures['ticketFixtures']
+let allTripFixtures!: Fixtures['allTripFixtures']
+onFixturesLoaded((f) => {
+  corporateAccountFixtures = f.corporateAccountFixtures
+  allDriverFixtures = f.allDriverFixtures
+  applicantFixtures = f.applicantFixtures
+  subscriptionPlanFixtures = f.subscriptionPlanFixtures
+  complaintFixtures = f.complaintFixtures
+  paymentFixtures = f.paymentFixtures
+  newRiderFixtures = f.newRiderFixtures
+  riderFixtures = f.riderFixtures
+  allSubscriptionFixtures = f.allSubscriptionFixtures
+  ticketFixtures = f.ticketFixtures
+  allTripFixtures = f.allTripFixtures
+})
 
 export const PROFILE_OPERATIONS = {
   resolve: 'profile.resolve',
   resolveBatch: 'profile.resolveBatch',
   search: 'search.query',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(PROFILE_OPERATIONS))
 
 /**
  * GET /api/v1/entities/:entityId

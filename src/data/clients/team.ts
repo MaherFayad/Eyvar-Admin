@@ -47,11 +47,10 @@
  * **Reported, not worked around.**
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import { teamUserFixtures } from '../fixtures/teamUsers'
 import { ApiError, type LocalisedText, type Paginated, type QueryParams } from '../types/common'
 import type { PermissionKey } from '../types/navigation'
 import { ROLE_PERMISSIONS } from '../types/session'
@@ -70,6 +69,25 @@ import type { DeviceSession } from '../types/auth'
 import { appendAudit } from './audit'
 import { listDevices, revokeDevice } from './auth'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  roster = teamUserFixtures.map((u) => ({ ...u }))
+  /* `invites` is derived from the same late-bound rows. Seeding it at module
+     load read `teamUserFixtures` before the fixture chunk had landed, which
+     threw inside `seedInvites()` and took every suite that imports the
+     `@/data/clients` barrel down at COLLECTION time - 119 of them. */
+  invites = seedInvites()
+})
 
 export const TEAM_OPERATIONS = {
   list: 'team.list',
@@ -86,6 +104,13 @@ export const TEAM_OPERATIONS = {
   sessions: 'team.sessions',
   revokeSession: 'team.revokeSession',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(TEAM_OPERATIONS))
 
 /**
  * **Q4 is closed by D17, and this now reads the ruling's baseline directly.**
@@ -133,8 +158,8 @@ function capForRole(role: RoleName): number | null {
 
 /* ─────────────────────────── mutable mock state ────────────────────────── */
 
-let roster: TeamUser[] = teamUserFixtures.map((u) => ({ ...u }))
-let invites: TeamInvite[] = seedInvites()
+let roster!: TeamUser[]
+let invites: TeamInvite[] = []
 
 /**
  * `USR-901` upward. Seeded at 900 so a session-minted id is greppably distinct
@@ -173,6 +198,10 @@ function seedInvites(): TeamInvite[] {
 
 /** Back to the seed, and back to the first minted id. Both halves, for `tickets.ts:52`'s reason. */
 export function resetTeam(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   roster = teamUserFixtures.map((u) => ({ ...u }))
   invites = seedInvites()
   userSequence = 900
@@ -534,7 +563,14 @@ export async function reinstateOperator(
 
 /**
  * DELETE /api/v1/team/operators/:id
- *   body: { reason }
+ *   (no body -- see below)
+ *
+ * **`reason` is required by the domain and cannot currently be sent.**
+ * `http.delete` takes no body argument, so the audit reason this function
+ * accepts reaches the mock and never the wire. Documenting a body the transport
+ * cannot carry is worse than documenting none: it reads as agreed. The fix is a
+ * transport change or a `POST /offboard`; until then the annotation says what
+ * actually happens. **An irreversible act with an unrecorded reason.**
  *   -> { offboarded: true }
  *
  * **The transition the product did not have.** The plan's own audit of Admin ›
@@ -702,7 +738,7 @@ export async function listOperatorSessions(
      literal made the answer wrong under `switchMockUser`: signed in as
      `USR-3`, your own row said you could not revoke your own session while
      `USR-1`'s row said you could. */
-  const own = userId === 'USR-1'
+  const own = userId === currentMockUserId()
   return {
     items,
     userId,

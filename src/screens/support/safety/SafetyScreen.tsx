@@ -101,7 +101,6 @@ import { withOverlay } from '@/shell/routeState'
 import {
   BreachBanner,
   Cell,
-  ConfirmDialog,
   DecisionBadge,
   MutedCell,
   OwnerChip,
@@ -114,10 +113,12 @@ import {
   useQueueMeta,
   useQueueViews,
   useRowActions,
-  type ConfirmRequest,
   type QueueClockResult,
   type RowFailure,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { withFallback } from '../../operations/localCopy'
+import { SAFETY_EN } from './copy'
 
 /**
  * **Q-32** — the open work, which on this queue is `unacknowledged ∪
@@ -172,7 +173,18 @@ function activeClock(incident: SafetyIncident, now: IsoDateTime): QueueClockResu
 export function SafetyScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const location = useLocation()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, SAFETY_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
 
   const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
@@ -200,7 +212,9 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
   const data = useAsync<Paginated<SafetyIncident>>(
     (signal) => listSafetyIncidents(params, signal),
-    { deps: [params] },
+    /* `params` is the table query with the view tab merged in and is the whole
+       argument, so each tab keys separately. */
+    { deps: [params], cacheKey: 'safety.list' },
   )
 
   /* R5a (a) — open incidents past **either** clock. The client's `breached`
@@ -219,7 +233,12 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
         },
         signal,
       ),
-    { deps: [] },
+    /* **This screen reads `safety.list` three times with three constant
+       queries**, so `deps: []` is not available to any of them: all three would
+       claim `safety.list::[]` and the banner's breach count, the corpus probe
+       and the table would serve each other's envelopes. Each names its own
+       query instead. */
+    { deps: ['breached'], cacheKey: 'safety.list' },
   )
 
   /**
@@ -233,7 +252,9 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
    */
   const corpus = useAsync<Paginated<SafetyIncident>>(
     (signal) => listSafetyIncidents({ view: 'all', pageSize: 1 }, signal),
-    { deps: [] },
+    /* `'all'` is this read's own view, and it is what keeps the key apart from
+       the breach count's — see the note there. */
+    { deps: ['all'], cacheKey: 'safety.list' },
   )
 
   /**
@@ -246,7 +267,12 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
    * rather than offering one that breaks.
    */
   const trips = useAsync<Paginated<Trip>>((signal) => listTrips({ pageSize: 200 }, signal), {
-    deps: [],
+    /* Constant query, restated: `trips.list::[]` would collide with any other
+       unparameterised read of the trips list — `DispatchScreen`'s active feed
+       is one — and this set is only used to decide which `Open trip` links
+       resolve. */
+    deps: ['known-trips', 200],
+    cacheKey: 'trips.list',
   })
   const knownTrips = useMemo(
     () => new Set((trips.data?.items ?? []).map((trip) => trip.id)),
@@ -384,6 +410,12 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
         now={now}
         searchPlaceholder={t('safety.search')}
         extraFilters={BREACH_FILTER(t)}
+        /* **R5a** — the row tint reads `activeClock`, which is also what the
+           leading-edge marker and the countdown pill read. Q-66's two-clock
+           rule therefore governs the tint as well: an incident acknowledged
+           late but resolved on time is late, and one closed inside its window
+           is not. */
+        isRowCritical={(incident) => activeClock(incident, now).breached}
         /* **AC-324** — the only `emptyKind` in wave 2 that is computed. */
         emptyKind={
           corpus.status === 'content' && (corpus.data?.total ?? 0) === 0 ? 'first-run' : 'cleared'
@@ -490,6 +522,8 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
   return [
     {
       id: 'incident',
+      emphasis: 'primary',
+      csv: (incident) => incident.id,
       header: t('safety.col.incident'),
       alwaysVisible: true,
       minWidth: 152,
@@ -527,6 +561,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     },
     {
       id: 'severity',
+      emphasis: 'data',
       header: t('queue.col.severity'),
       width: 96,
       dataType: 'enum',
@@ -555,6 +590,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('queue.col.status'),
       width: 136,
       dataType: 'enum',
@@ -602,6 +638,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     },
     {
       id: 'sla',
+      emphasis: 'data',
       header: t('queue.col.sla'),
       width: 136,
       dataType: 'date',
@@ -802,6 +839,8 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     /* ── behind the column control (§7.4) ─────────────────────────────── */
     {
       id: 'id',
+      emphasis: 'primary',
+      csv: (incident) => incident.id,
       header: t('queue.col.id'),
       width: 112,
       dataType: 'id',

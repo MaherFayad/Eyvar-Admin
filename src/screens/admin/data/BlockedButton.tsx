@@ -62,7 +62,7 @@ export function BlockedButton({
         {children}
       </Button>
       {reason !== null && (
-        <span id={reasonId} className="block text-2xs font-normal whitespace-normal text-muted-foreground">
+        <span id={reasonId} className="block text-xs font-normal whitespace-normal text-muted-foreground">
           {reason}
         </span>
       )}

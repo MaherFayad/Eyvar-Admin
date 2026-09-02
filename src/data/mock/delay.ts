@@ -8,6 +8,7 @@
  */
 
 import { getMockLatency, mockFailures, registerOperations } from '../config'
+import { loadFixtures } from './fixtures'
 import { ApiError } from '../types/common'
 
 /** Latency is deterministic — a fixed value, never jittered. Visual regression cannot diff jitter. */
@@ -56,6 +57,14 @@ function abortError(): ApiError {
  * Order matters: wait first, then fail. Failing before the delay would resolve
  * the error state instantly and hide the fact that a real failure also takes
  * time — which is precisely the case a spinner-to-error transition must handle.
+ *
+ * **`loadFixtures()` comes first, and this is the only place it is awaited.**
+ * The fixtures live in their own chunk (`mock/fixtures.ts` says why), so the
+ * first mock call in a session fetches them. Starting that fetch *before* the
+ * artificial latency rather than after means the two overlap and the delay
+ * stays the delay QA configured. It resolves immediately on every later call,
+ * and it is a no-op in http mode, where the branch that reaches this function
+ * has already been eliminated at build time.
  */
 export async function mock<T>(
   operation: string,
@@ -63,6 +72,7 @@ export async function mock<T>(
   produce: () => T,
 ): Promise<T> {
   registerOperations(operation)
+  await loadFixtures()
   await delayAbortable(signal)
   const injected = mockFailures.take(operation)
   if (injected) throw injected
@@ -76,6 +86,7 @@ export async function mockMutation<T>(
   produce: () => T,
 ): Promise<T> {
   registerOperations(operation)
+  await loadFixtures()
   await delayAbortable(signal, Math.round(getMockLatency() * 1.5))
   const injected = mockFailures.take(operation)
   if (injected) throw injected

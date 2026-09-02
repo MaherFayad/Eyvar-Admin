@@ -106,6 +106,18 @@ Recording these matters as much as the findings — three audits produced three 
 | "Five financials screens have no loading state" | **A (mine)** | **Wrong.** All five forward `status` into `DataTable` |
 | "Critical and High sharing amber is an unnoticed defect" | C | **Half right.** Verified deliberate — `tone.ts:11` explains R7 closes the palette at five tones with no red to escalate into. C's *design critique* stands (the support queue loses its top triage distinction); its framing as an oversight does not |
 
+### Added during execution, 2026-09-02
+
+| Claim | Source | Verdict |
+|---|---|---|
+| "⌘K executes" is a day of work; `GlobalSearch` does not import the registry (`14` G12) | **A (mine)** | **Stale.** Already built: `GlobalSearch.tsx:85/:334` mounts the palette, `:145–146` binds ⌘K, `usePalette.ts:525` calls `runCommand`. The command layer is ~3,300 lines across nine files, not the 539-line registry the claim measured. **Surviving finding:** `src/commands/index.ts` exports one domain registry, `CAPTAIN_COMMANDS` — ⌘K executes but has almost nothing to execute, **one screen of 22**. `14` corrected in place |
+| "`useAsync` cacheKey: 2 of ~250 call sites" (P3-13) | **A (mine)** | **Right finding, wrong denominator, and it understates the difficulty.** Real count: **142 calls across 77 files, 2 with `cacheKey`.** The first recount said 9 calls in 8 files — also wrong, because `grep 'useAsync('` misses the generic form `useAsync<Paginated<Trip>>(`, which is how most sites call it. *Two* successive undercounts from the same too-narrow pattern |
+| "cacheKey is mostly wiring something that already exists" | **A (mine)** | **Wrong, and dangerous if acted on.** `useAsync.ts:69–72` states the precondition: the full cache key is the operation id **plus a structural serialisation of `deps`**, so *everything the fetcher varies on must be in `deps`*. Where deps are already incomplete the hook merely fails to re-run; **add a `cacheKey` and it serves the wrong rows.** So each of the 140 sites needs its `deps` audited before it can be given a key. This is a correctness task, not a sweep |
+
+**The pattern across all three:** a grep that was narrower than the claim it was checking.
+That is failure mode 2 in [`docs/ref/verify.md`](../../ref/verify.md), now recorded three
+more times, twice in a single sitting.
+
 ---
 
 ## 4. Revised sequencing

@@ -59,7 +59,7 @@ import { useAsync, useIndexTable } from '@/hooks'
 import { formatDate, type Language, type Translate } from '@/lib'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { StatusBadge } from '@/components/StatusBadge'
-import { IntegrationsConfirm, type IntegrationsConfirmRequest } from './IntegrationsConfirm'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { eventLabelKey } from './WebhookEndpointDialog'
 
 /** R7's tones, and **no red**: a failed delivery is work to do, not an alarm (R5a). */
@@ -112,12 +112,17 @@ export function WebhookDeliveryLogCard({
   const params = useMemo(() => ({ ...table.params }), [table.params])
   const data = useAsync<Paginated<WebhookDelivery>>(
     (signal) => listWebhookDeliveries(params, signal),
-    { deps: [params, reloadToken] },
+    {
+      /* `params` is the fetcher's only input; `reloadToken` is a superset that
+         moves a replay onto a fresh key. */
+      deps: [params, reloadToken],
+      cacheKey: 'integrations.deliveries.list',
+    },
   )
   const { refetch } = data
 
   const [busy, setBusy] = useState(false)
-  const [confirm, setConfirm] = useState<IntegrationsConfirmRequest | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const endpointName = useCallback(
     (id: string) => endpoints.find((each) => each.id === id)?.name ?? id,
@@ -210,20 +215,20 @@ export function WebhookDeliveryLogCard({
               {delivery.statusCode !== null && (
                 /* AC-952's "failure reason" starts with the status code the
                    endpoint actually returned. */
-                <span className="font-mono text-2xs text-muted-foreground" dir="ltr">
+                <span className="font-mono text-xs text-muted-foreground" dir="ltr">
                   {delivery.statusCode}
                 </span>
               )}
             </span>
             {delivery.failure !== null && (
               <>
-                <span className="text-2xs text-foreground">
+                <span className="text-xs text-foreground">
                   {t(FAILURE_LABEL[delivery.failure.code])}
                 </span>
                 {delivery.failure.responseBody === null ? (
                   /* No response at all is a different fact from an empty one,
                      and this cell refuses to render them the same way. */
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t('admin.integrations.delivery.noResponse')}
                   </span>
                 ) : (
@@ -231,7 +236,7 @@ export function WebhookDeliveryLogCard({
                      instead of it: untranslatable by construction, and an
                      operator cannot act on it alone. */
                   <span
-                    className="truncate font-mono text-2xs text-muted-foreground"
+                    className="truncate font-mono text-xs text-muted-foreground"
                     dir="ltr"
                     title={delivery.failure.responseBody}
                   >
@@ -250,7 +255,7 @@ export function WebhookDeliveryLogCard({
         dataType: 'number',
         sortField: 'durationMs',
         cell: (delivery) => (
-          <span className="text-2xs text-muted-foreground" dir="ltr">
+          <span className="text-xs text-muted-foreground" dir="ltr">
             {delivery.durationMs === null
               ? t('admin.integrations.delivery.noDuration')
               : t('admin.integrations.delivery.ms', { ms: delivery.durationMs })}
@@ -264,7 +269,7 @@ export function WebhookDeliveryLogCard({
         dataType: 'date',
         sortField: 'attemptedAt',
         cell: (delivery) => (
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {formatDate(delivery.attemptedAt, { language, style: 'day-month-time' })}
           </span>
         ),
@@ -276,7 +281,7 @@ export function WebhookDeliveryLogCard({
         dataType: 'id',
         defaultHidden: true,
         cell: (delivery) => (
-          <span className="font-mono text-2xs text-foreground" dir="ltr">
+          <span className="font-mono text-xs text-foreground" dir="ltr">
             {delivery.id}
           </span>
         ),
@@ -310,6 +315,9 @@ export function WebhookDeliveryLogCard({
         language={language}
         tableId="admin-workspace-webhook-deliveries"
         searchPlaceholder={t('admin.integrations.delivery.search')}
+        /* **NO `isRowCritical`.** This card's own header: *R5a — no red
+         anywhere. A failed delivery is `warning` — a fact to work through.*
+         The duck-type tinted every `state === 'failed'` row regardless. */
         skeletonPattern="P1"
         rowActions={[
           {
@@ -322,6 +330,10 @@ export function WebhookDeliveryLogCard({
                   endpoint: endpointName(delivery.endpointId),
                 }),
                 confirmLabel: t('admin.integrations.delivery.replay'),
+                /* A replay ADDS a delivery attempt; it destroys nothing and the
+                   log keeps both. Confirmed only because the receiver sees it
+                   twice, so it is not red. */
+                destructive: false,
                 onConfirm: () => void replay(delivery),
               }),
             disabled: (delivery) => !canWrite || !delivery.canReplay || busy,
@@ -337,7 +349,7 @@ export function WebhookDeliveryLogCard({
         error={{ message: t('admin.integrations.delivery.error'), onRetry: data.refetch }}
       />
 
-      <IntegrationsConfirm request={confirm} busy={busy} onClose={() => setConfirm(null)} t={t} />
+      <ConfirmDialog request={confirm} busy={busy} onClose={() => setConfirm(null)} t={t} />
     </section>
   )
 }

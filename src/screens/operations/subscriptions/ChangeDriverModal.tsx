@@ -129,7 +129,10 @@ export function ChangeDriverModal({
         { status: 'active', filters: excludeCurrent, pageSize: CANDIDATE_PAGE_SIZE },
         signal,
       ),
-    { deps: [currentDriverId], enabled: open },
+    /* `excludeCurrent` is derived from `currentDriverId`, so that one dep is
+       the whole of what the fetcher varies on. The key is `[s:<id>]`, distinct
+       from every other `drivers.list` reader. */
+    { deps: [currentDriverId], enabled: open, cacheKey: 'drivers.list' },
   )
 
   /* Hooks first, guard second — the early return must never change the hook
@@ -155,9 +158,7 @@ export function ChangeDriverModal({
       setSubmitError(
         isApiError(error)
           ? error.message
-          : t('sub.changeDriver.saveError', {
-              defaultValue: "Couldn't reassign the captain. Nothing was changed.",
-            }),
+          : t('sub.changeDriver.saveError'),
       )
     } finally {
       setBusy(false)
@@ -166,53 +167,45 @@ export function ChangeDriverModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>{t('sub.changeDriver.title', { defaultValue: 'Change Assigned Captain' })}</DialogTitle>
+          <DialogTitle>{t('sub.changeDriver.title')}</DialogTitle>
           <DialogDescription>
-            {t('sub.changeDriver.desc', {
-              defaultValue: 'Reassign subscription {id} ({rider}) to another qualified captain.',
-              id: subscription.id,
-              rider: subscription.riderName,
-            })}
+            {t('sub.changeDriver.desc', { id: subscription.id, rider: subscription.riderName })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-3">
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs flex flex-col gap-1.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.currentDriver', { defaultValue: 'Current Captain' })}:</span>
+              <span className="text-muted-foreground">{t('sub.currentDriver')}:</span>
               <span className="font-medium text-foreground">{subscription.driverName ?? '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.plan', { defaultValue: 'Plan' })}:</span>
+              <span className="text-muted-foreground">{t('sub.plan')}:</span>
               <span className="font-medium text-foreground">{subscription.planName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('sub.progress', { defaultValue: 'Trips Completed' })}:</span>
+              <span className="text-muted-foreground">{t('sub.progress')}:</span>
               <span className="font-medium text-foreground">{subscription.tripsCompleted} / {subscription.tripsIncluded}</span>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="driver-select" className="text-xs font-medium">
-              {t('sub.selectDriver', { defaultValue: 'Select New Captain' })}
+              {t('sub.selectDriver')}
             </Label>
 
             {isFailed ? (
               <ErrorState
                 scope="card"
                 card={false}
-                message={t('sub.changeDriver.error', {
-                  defaultValue: "Captains didn't load. Try again, or close this and reassign from the captain's profile.",
-                })}
+                message={t('sub.changeDriver.error')}
                 action={{ label: t('state.pageError.action'), onClick: drivers.refetch }}
               />
             ) : isEmpty ? (
               <p className="text-xs text-muted-foreground">
-                {t('sub.changeDriver.empty', {
-                  defaultValue: 'No other captain is active right now. Reassignment reopens when one comes online.',
-                })}
+                {t('sub.changeDriver.empty')}
               </p>
             ) : (
               <Select
@@ -224,8 +217,8 @@ export function ChangeDriverModal({
                   <SelectValue
                     placeholder={
                       isLoading
-                        ? t('sub.selectDriverLoading', { defaultValue: 'Loading captains' })
-                        : t('sub.selectDriverPlaceholder', { defaultValue: 'Choose an active captain...' })
+                        ? t('sub.selectDriverLoading')
+                        : t('sub.selectDriverPlaceholder')
                     }
                   />
                 </SelectTrigger>
@@ -256,9 +249,9 @@ export function ChangeDriverModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
-            {t('action.cancel', { defaultValue: 'Cancel' })}
+            {t('action.cancel')}
           </Button>
           <Button
             size="xs"
@@ -273,7 +266,7 @@ export function ChangeDriverModal({
             }
             aria-describedby={unavailableReason === null ? undefined : 'change-driver-refusal'}
           >
-            {busy ? t('action.saving', { defaultValue: 'Reassigning...' }) : t('sub.confirmChange', { defaultValue: 'Reassign Captain' })}
+            {busy ? t('sub.reassigning') : t('sub.confirmChange')}
           </Button>
         </DialogFooter>
       </DialogContent>

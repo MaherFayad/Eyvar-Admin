@@ -320,7 +320,7 @@ describe('CM-3 — the row menu, the bulk bar and the palette agree', () => {
       command('captain.suspend'),
       context([activeCaptain()], { canWrite: false }),
     )
-    expect(reason).toBe('Needs the approve_drivers permission')
+    expect(reason).toBe(EN['people.action.noPermission'])
   })
 })
 

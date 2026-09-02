@@ -66,8 +66,69 @@ The static passes missed all three of these, and they were the highest-severity 
 - Correct in place. A doc that carries a wrong finding plus a later correction elsewhere
   will be read wrong by the next person.
 
+## `src` is clean is not `dist` is clean
+
+**Tailwind v4 scans comments as plain text and mints the classes it finds there.** A grep
+of `src/` for palette classes, physical direction utilities or arbitrary values checks the
+code. It does not check the stylesheet you ship.
+
+Measured on this repo, and the shape of it is worth keeping:
+
+- `.mr-auto` and `.ml-auto` were shipping in `dist` — **physical** margin rules, in a
+  product where every inset is logical — emitted from a comment that *warned against
+  physical margins*. The defect performing itself.
+- `text-[10px]` and `text-[11px]` rules were shipping from a comment in `DispatchScreen`.
+- `bg-rose-50/95` is still emitted from prose in `DataTable.tsx`, long after the class
+  itself was replaced by a token.
+
+`globals.css` already carries `source(none)` plus two `@source` lines for exactly this
+reason — automatic detection was harvesting the banned patterns out of `docs/`. The same
+mechanism reaches every comment in every scanned `.tsx`.
+
+**So: name the parts, never the token.** Write "the rose-50 tint at 95%" as words. And when
+you audit for off-system values, grep the **built CSS**, not the source — it is the only
+place this is visible.
+
+## Measure on a quiescent tree, or do not measure
+
+Added after a run in which eleven agents worked this repo concurrently, partitioned by file
+so none could overwrite another. The partitioning worked. **It protected the files and it
+did nothing for the measurements**, which is the failure worth recording:
+
+- `tsc -b --force` returned 40+ errors, then 0, then 0, within minutes — the first run had
+  caught a file mid-write.
+- Two consecutive `npm test` runs failed **disjoint sets** of suites.
+- `globals.css` was briefly broken by a comment containing `*/` inside a `**/*` glob, which
+  ends the comment early. Dev served a **white page behind an HMR overlay** — and several
+  agents were running Playwright at that moment. A screenshot of a blank page is evidence
+  of nothing, and it looks exactly like evidence of something.
+
+So: before quoting a number, establish that nothing else is writing. If you cannot, say the
+number is provisional. A measurement taken during churn is not a weaker measurement, it is
+a different file's.
+
+Two more from the same run, both cheap to remember:
+
+- **`tsc` cannot see CSS.** A green typecheck says nothing about whether the app builds.
+  Run the build.
+- **A test that passes alone and fails in the suite is a wait budget, not a defect** — the
+  signature is that the failing set changes between identical runs. On this machine the
+  default worker count yields **2–6 failures with different membership each run**, all of
+  them 7–13s "element never rendered" timeouts. **`npx vitest run --maxWorkers=4` is a
+  clean 3061/3061.** Use it before you go looking for a logic bug.
+
 ## Known-good baselines
 
-`tsc -b` currently **exits 1**. The error set has shifted three times across runs as the
-tree moves, so **capture the output with your claim** — a bare "there are N type errors" is
-stale by the time it is read.
+Established 2026-09-02 on a quiescent tree, every figure reproduced:
+
+| Gate | Result |
+|---|---|
+| `npx tsc -b --force` | **exit 0** |
+| `npm test` | **3061 / 3061**, two consecutive full runs |
+| `npx vite build` | green |
+| `npm run api:check` | exit 0 — 284 endpoints |
+| `npm run i18n:check` | exit 0 — 4,665 keys, **0 `defaultValue` at ceiling 0** |
+
+Anything short of that is a regression, and it now has a name to be measured against.
+**Capture the output with your claim** — an earlier baseline of "`tsc -b` exits 1" was true
+when written, shifted three times in forty minutes, and was stale by the time it was read.

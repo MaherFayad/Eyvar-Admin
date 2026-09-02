@@ -88,15 +88,18 @@ export function TripDetailDrawer({ tripId, onClose, language, t }: TripDetailDra
      screen for the whole session, so an unconditional read would fetch on every
      page load and hold a stale record by the time one is wanted. */
   const trip = useAsync<Trip>((signal) => getTrip(tripId ?? '', signal), {
+    /* Keyed by the trip id, so one trip's record can never serve under
+       another's - the failure mode `useAsync.ts:66-72` warns about. */
     deps: [tripId],
     enabled: tripId !== null,
+    cacheKey: 'trips.get',
   })
 
   const record = trip.data ?? null
 
   return (
     <Sheet open={tripId !== null} onOpenChange={(next) => !next && onClose()}>
-      <SheetContent className="overflow-y-auto sm:max-w-[460px]">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader className="border-b border-border pb-3">
           <div className="flex items-center justify-between gap-2">
             <SheetTitle className="text-base font-semibold tabular-nums">

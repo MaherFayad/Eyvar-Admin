@@ -453,7 +453,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: true,
     caption: null,
     sourceResource: 'trips',
-    drilldownRoute: '/operations/trips',
+    drilldownRoute: '/operations/quick-rides',
   },
   {
     key: 'management.overview.arpa',
@@ -539,7 +539,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: true,
     caption: null,
     sourceResource: 'trips',
-    drilldownRoute: '/operations/trips',
+    drilldownRoute: '/operations/quick-rides',
   },
 
   /* ── Management › Performance ────────────────────────────────────────────
@@ -736,7 +736,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: true,
     caption: null,
     sourceResource: 'trips',
-    drilldownRoute: '/operations/trips',
+    drilldownRoute: '/operations/quick-rides',
   },
   {
     key: 'management.performance.complaintRatePer100Trips',

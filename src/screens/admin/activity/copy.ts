@@ -26,7 +26,7 @@ export const ADMIN_ACTIVITY_EN: Dictionary = {
   'admin.activity.column.reason': 'Reason code',
   'admin.activity.column.time': 'When',
 
-  'admin.activity.empty.heading': 'Nothing has happened yet',
+  'admin.activity.empty.heading': 'The record of who did what, and when',
   'admin.activity.empty.body':
     'The log is append-only and starts empty. The first payout, suspension or settings change writes the first line.',
   'admin.activity.noMatch': 'No entries match that query.',
@@ -46,11 +46,11 @@ export const ADMIN_ACTIVITY_EN: Dictionary = {
    * case there is nothing to narrow to and no `Select only…` control renders.
    */
   'admin.activity.bulk.export.refused.one':
-    'That entry records a money movement, and your role cannot view financials.',
+    'That entry records a money movement, and you cannot read financials. Ask an Owner for the “Financials access” permission.',
   'admin.activity.bulk.export.refused.other':
-    '{blocked} of {total} selected entries record a money movement, and your role cannot view financials.',
+    '{blocked} of {total} selected entries record a money movement, and you cannot read financials. Ask an Owner for the “Financials access” permission.',
   'admin.activity.bulk.export.refused.all':
-    'All {count} selected entries record a money movement, and your role cannot view financials.',
+    'All {count} selected entries record a money movement, and you cannot read financials. Ask an Owner for the “Financials access” permission.',
   'admin.activity.bulk.exported': 'Exported {count} entries',
   'admin.activity.bulk.copied': 'Copied {count} event IDs',
 }

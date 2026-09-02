@@ -37,7 +37,7 @@
  * because `finding()` will not let it.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
 import type { Halalas, LocalisedText } from '../types/common'
@@ -60,7 +60,6 @@ import type { NewRider, Rider } from '../types/rider'
 import type { Subscription } from '../types/subscription'
 import type { Ticket } from '../types/ticket'
 import type { Trip } from '../types/trip'
-
 import { listCorporateAccounts } from './corporateAccounts'
 import { listDrivers } from './drivers'
 import { journalEntries, allLedgerPostings } from './ledger'
@@ -76,6 +75,13 @@ export const INTEGRITY_OPERATIONS = {
   checks: 'integrity.checks',
   run: 'integrity.run',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(INTEGRITY_OPERATIONS))
 
 /**
  * Big enough to hold every fixture in one page. The checks read **whole

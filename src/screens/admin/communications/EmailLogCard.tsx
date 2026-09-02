@@ -111,7 +111,11 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
 
   const data = useAsync<Paginated<EmailDelivery>>((signal) => listEmailDeliveries(params, signal), {
+    /* `params` is the fetcher's only input and carries the view tab, so a tab
+       round trip is keyed apart. `resend` goes through `refetch`, which
+       bypasses the read. */
     deps: [params],
+    cacheKey: 'emails.deliveries.list',
   })
 
   const { refetch } = data
@@ -185,9 +189,9 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
         },
         cell: (delivery) =>
           delivery.templateKey === null ? (
-            <span className="text-2xs text-muted-foreground">{t('comms.log.noTemplate')}</span>
+            <span className="text-xs text-muted-foreground">{t('comms.log.noTemplate')}</span>
           ) : (
-            <span className="font-mono text-2xs text-foreground">{delivery.templateKey}</span>
+            <span className="font-mono text-xs text-foreground">{delivery.templateKey}</span>
           ),
       },
       {
@@ -209,13 +213,13 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
             <StatusBadge tone={STATE_TONE[delivery.state]}>{t(STATE_LABEL[delivery.state])}</StatusBadge>
             {delivery.failure !== null && (
               <>
-                <span className="text-2xs text-foreground">
+                <span className="text-xs text-foreground">
                   {t(FAILURE_LABEL[delivery.failure.code])}
                 </span>
                 {/* The provider's own words, beside the sentence and never
                     instead of it: untranslatable by construction, and an
                     operator cannot act on it alone. */}
-                <span className="font-mono text-2xs text-muted-foreground">
+                <span className="font-mono text-xs text-muted-foreground">
                   {delivery.failure.providerMessage}
                 </span>
               </>
@@ -230,7 +234,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
         dataType: 'date',
         sortField: 'queuedAt',
         cell: (delivery) => (
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {formatDate(delivery.queuedAt, { language, style: 'day-month-time' })}
           </span>
         ),
@@ -245,7 +249,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
           delivery.ticketId === null ? (
             <span className="text-muted-foreground">—</span>
           ) : (
-            <span className="font-mono text-2xs text-foreground">{delivery.ticketId}</span>
+            <span className="font-mono text-xs text-foreground">{delivery.ticketId}</span>
           ),
       },
     ],
@@ -272,6 +276,10 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
         navigate({ pathname: location.pathname, search: withView(location.search, id) })
       }
       searchPlaceholder={t('comms.log.search')}
+      /* **NO `isRowCritical`.** This card's own header: *R7's five tones, and
+         no red: a bounce is a fact to work through, not an alarm (R5a).*
+         `DataTable` tinted these rows anyway, off a bare `r.state === 'failed'`
+         duck-type, against the screen's stated rule and R5a's closed list. */
       skeletonPattern="P1"
       rowActions={[
         {

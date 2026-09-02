@@ -116,7 +116,6 @@ import {
   Absent,
   BreachBanner,
   Cell,
-  ConfirmDialog,
   DateCell,
   Identity,
   MutedCell,
@@ -129,14 +128,16 @@ import {
   useQueueMeta,
   useQueueViews,
   useRowActions,
-  type ConfirmRequest,
   type RowFailure,
 } from '@/screens/queues'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { ConversationPane } from './ConversationPane'
 import { PresenceBar } from './PresenceBar'
 import { useAutoAway, usePresence, type PresenceModel } from './presence'
 import { compareForQueue, conversationSla, runningClock, type ConversationSla } from './sla'
 import { CHANNEL_KEY, CLOSE_REASONS, CLOSE_REASON_KEY, STATUS_KEY, STATUS_TONE } from './vocabulary'
+import { withFallback } from '../../operations/localCopy'
+import { CONVERSATIONS_EN } from './copy'
 
 /**
  * **D19's six views, declared here because the route table declares none.**
@@ -182,7 +183,18 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const location = useLocation()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, CONVERSATIONS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNowIso()
 
   const currentUserId = shell.session?.userId ?? ''
@@ -208,7 +220,10 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
 
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
   const data = useAsync<Paginated<Conversation>>((signal) => listConversations(params, signal), {
+    /* `params` is the table query with the view tab merged in and is the whole
+       argument, so each queue tab keys separately. */
     deps: [params],
+    cacheKey: 'conversations.list',
   })
 
   /**
@@ -230,7 +245,11 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
    */
   const corpus = useAsync<Paginated<Conversation>>(
     (signal) => listConversations({ pageSize: 200 }, signal),
-    { deps: [] },
+    /* Constant query, restated in `deps` so the key names the request:
+       `conversations.list::[]` would be claimed by any other unparameterised
+       read of the same operation — `presence.ts` has one — and this envelope is
+       the whole corpus, not a one-row count. */
+    { deps: ['corpus', 200], cacheKey: 'conversations.list' },
   )
 
   /* Bumped after every mutation, so the presence counter and the roster re-read
@@ -330,7 +349,12 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
   const openId = useParams().conversationId ?? null
   const openConversation = useAsync<Conversation>(
     (signal) => getConversation(openId as string, signal),
-    { deps: [openId, revision], enabled: openId !== null },
+    /* The id is the fetcher's only argument; `revision` is the screen's own
+       cache-buster, bumped after every claim, transfer and close, so a mutation
+       moves this read to a fresh key rather than re-serving the pre-mutation
+       record. Opening one conversation, pressing Back and opening it again
+       inside the TTL costs nothing. */
+    { deps: [openId, revision], cacheKey: 'conversations.get', enabled: openId !== null },
   )
 
   const openRecord = useCallback(
@@ -628,6 +652,14 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
         onTotal={onTotal}
         now={now}
         searchPlaceholder={t('conversations.search')}
+        /* **R5a — the same predicate as the leading-edge marker, and only
+           that one.** A FIRST-RESPONSE breach tints; a resolution breach does
+           not, because it does not reorder, is not counted in the banner, and
+           marking it would make the banner and the rows disagree (D22,
+           AC-964). */
+        isRowCritical={(conversation) =>
+          conversationSla(conversation).firstResponseBreached
+        }
         scope={
           onlyBreached
             ? {
@@ -641,6 +673,9 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
           {
             label: t('conversations.thread.open'),
             onSelect: (conversation) => openRecord(conversation.id),
+            /* **P0-2 — the declared row-click target.** `Transfer` reassigns a
+               live conversation and must stay unreachable from a row click. */
+            rowClick: true,
           },
           {
             label: t('conversations.transfer'),

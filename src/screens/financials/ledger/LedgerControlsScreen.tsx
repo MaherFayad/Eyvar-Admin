@@ -96,8 +96,12 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
   const gate = useWriteGate(row, t)
 
+  /* Finding 11's screen: nine concurrent parameterless reads at 320 ms each.
+     Every one of them takes only a signal, so `deps: []` is complete, and each
+     carries its OWN operation id - so no two of these share a key. */
   const trial = useAsync<TrialBalance>((signal) => getTrialBalance(signal), {
     deps: [],
+    cacheKey: 'ledger.trialBalance',
     isEmpty: (data) => data.rows.length === 0,
   })
 
@@ -113,7 +117,10 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
    * from `refusedPostingCount` — so the page reads it once and hands the rows
    * down rather than the child reading them and handing a number up.
    */
-  const refused = useAsync<RefusedPosting[]>((signal) => listRefusedPostings(signal), { deps: [] })
+  const refused = useAsync<RefusedPosting[]>((signal) => listRefusedPostings(signal), {
+    deps: [],
+    cacheKey: 'ledger.refused',
+  })
   const refusedCount = refused.data?.length ?? 0
 
   /* **AC-416 / AC-419** — one banner. Out of balance outranks the refused
@@ -243,6 +250,8 @@ function TrialBalanceView({
     () => [
       {
         id: 'account',
+        emphasis: 'primary',
+        csv: (each) => each.label,
         header: t('fin.trial.col.account'),
         dataType: 'text',
         minWidth: 240,
@@ -270,6 +279,8 @@ function TrialBalanceView({
       },
       {
         id: 'balance',
+        emphasis: 'data',
+        csv: (each) => each.balanceHalalas,
         header: t('fin.trial.col.balance'),
         dataType: 'money',
         align: 'end',
@@ -299,6 +310,13 @@ function TrialBalanceView({
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.trial.search')}
+      /* **NO `isRowCritical`, and this is the duck-type's clearest false
+         positive.** `TrialBalanceRow.balanceHalalas` is *signed on the
+         account's normal side* (`types/ledger.ts`), so every credit-normal
+         account carries a negative balance as a matter of accounting, and
+         `balanceHalalas < 0` tinted half a healthy trial balance red. A trial
+         balance has no critical row: an out-of-balance ledger is a PAGE-level
+         fact and §3.7 already refuses to turn a tile red for it. */
       skeletonPattern="P1"
       learnMore={
         trial ? (
@@ -331,7 +349,7 @@ function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const journal = useAsync<Paginated<JournalEntry>>(
     (signal) => listJournalEntries({ ...table.params, signal }),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'ledger.journal' },
   )
 
   const rows = journal.data?.items ?? []
@@ -340,6 +358,8 @@ function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (entry) => entry.id,
         header: t('fin.journal.col.id'),
         dataType: 'id',
         width: 132,
@@ -393,6 +413,8 @@ function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'total',
+        emphasis: 'data',
+        csv: (entry) => entry.totalHalalas,
         header: t('fin.journal.col.total'),
         dataType: 'money',
         align: 'end',
@@ -441,8 +463,14 @@ function ReconciliationView({ tabs, activeTab, onSelectTab }: ViewProps) {
     getRowId: (each) => each.label.key,
   })
 
-  const rows = useAsync<ReconciliationRow[]>((signal) => listReconciliation(signal), { deps: [] })
-  const stats = useAsync<IdempotencyStats>((signal) => getIdempotencyStats(signal), { deps: [] })
+  const rows = useAsync<ReconciliationRow[]>((signal) => listReconciliation(signal), {
+    deps: [],
+    cacheKey: 'ledger.reconciliation',
+  })
+  const stats = useAsync<IdempotencyStats>((signal) => getIdempotencyStats(signal), {
+    deps: [],
+    cacheKey: 'ledger.idempotency',
+  })
 
   const columns = useMemo<DataColumn<ReconciliationRow>[]>(
     () => [
@@ -632,6 +660,11 @@ function RefusedView({
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.refused.search')}
+      /* **NO `isRowCritical`, deliberately.** Every row here is a refusal, so
+         the predicate would be `() => true` and the tint would carry nothing:
+         a table tinted end to end says only that it is this table. The
+         leading-edge marker stays because it is per-row by construction and it
+         survives being scrolled to; a whole-table wash is not a signal. */
       skeletonPattern="P1"
       /* A ledger that has refused nothing is a good state, not a first run —
          but this is an index of documents, and the illustrated state is the
@@ -661,6 +694,14 @@ function GatewaysView({
   const actions = useMoneyActions<PaymentGateway>({ keyOf: (each) => each.id })
   const [refusal, setRefusal] = useState<string | null>(null)
 
+  /**
+   * **Deliberately NOT cached (P3-13).** `toggleGateway` writes back to the
+   * client's `gatewayState`, and this list renders a **switch**. A warm entry
+   * would paint the pre-toggle position for the ~320 ms until revalidation
+   * lands, and the switch would then flip on its own - which is precisely the
+   * appearance AC-422 exists to forbid. A skeleton is honest; a switch in the
+   * wrong position is not.
+   */
   const gateways = useAsync<PaymentGateway[]>((signal) => listGateways(signal), { deps: [] })
   const rows = useMemo(() => actions.apply(gateways.data ?? []), [actions, gateways.data])
 
@@ -814,8 +855,14 @@ function GatewaysView({
 function VatView({ tabs, activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
-  const vat = useAsync<VatConfig>((signal) => getVatConfig(signal), { deps: [] })
-  const sequence = useAsync<InvoiceSequence>((signal) => getInvoiceSequence(signal), { deps: [] })
+  const vat = useAsync<VatConfig>((signal) => getVatConfig(signal), {
+    deps: [],
+    cacheKey: 'ledger.vatConfig',
+  })
+  const sequence = useAsync<InvoiceSequence>((signal) => getInvoiceSequence(signal), {
+    deps: [],
+    cacheKey: 'ledger.invoiceSequence',
+  })
 
   return (
     <div className="flex flex-col gap-3">

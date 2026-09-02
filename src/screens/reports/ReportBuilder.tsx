@@ -174,7 +174,14 @@ export function ReportBuilder({
       ])
       return { measures: measures.items, dimensions: dimensions.items }
     },
-    { deps: [], isEmpty: (data) => data.measures.length === 0 },
+    {
+      deps: [],
+      /* Parameterless catalogue read, shared by key with
+         `DashboardDetailScreen`'s identical fetcher. `failMeasureKeys` is a
+         parameter of the RUN, not of this read, so it is correctly absent. */
+      cacheKey: 'catalogue.measures',
+      isEmpty: (data) => data.measures.length === 0,
+    },
   )
 
   const measures = catalogue.data?.measures ?? []

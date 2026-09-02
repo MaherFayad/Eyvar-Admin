@@ -118,7 +118,14 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
   const { dir, language } = shell.language
   /* AC-74 — the copy lives in `./copy.ts`, not in this file. See `localCopy`
      for why the wrapper exists and what deletes it. */
-  const t = withFallback(shell.language.t, TRIPS_EN)
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, TRIPS_EN),
+    [shell.language.t],
+  )
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
   const fallback = views.find((v) => v.isDefault)?.id ?? 'all'
@@ -130,13 +137,40 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
     initialSort: { field: 'startedAt', dir: 'desc' },
   })
 
+  /**
+   * **The sub-tab decides the kind — `DECISIONS.md` D1b.**
+   *
+   * Quick rides and subscription trips are two sub-tabs now, not two view tabs
+   * of one. One screen still renders both, because they share a `Trip` type, a
+   * client and all fourteen columns; what the owner separated is the operator's
+   * entry point, not the domain model.
+   *
+   * The filter is applied HERE rather than in the client's `views` map, so the
+   * `all`, `flagged`, `low-rating` and `route-history` tabs each stay scoped to
+   * the kind — before this, `flagged` on the Trips tab showed flagged trips of
+   * *both* kinds and there was no way to ask for one.
+   */
+  const kind: Trip['kind'] =
+    row?.subTabId === 'operations-subscription-trips' ? 'Subscription' : 'Quick ride'
+
   const queryParams = useMemo(
-    () => ({ ...table.params, view: activeTab }),
-    [table.params, activeTab],
+    () => ({
+      ...table.params,
+      view: activeTab,
+      filters: [
+        ...(table.params.filters ?? []),
+        { field: 'kind', op: 'eq' as const, value: kind },
+      ],
+    }),
+    [table.params, activeTab, kind],
   )
 
   const data = useAsync<Paginated<Trip>>((signal) => listTrips(queryParams, signal), {
+    /* `queryParams` carries the table query and the view tab. */
     deps: [queryParams],
+    /* `queryParams` now carries the kind, and `requestCacheKey` serialises deps
+       into the key — so the two sub-tabs cannot serve each other's rows. */
+    cacheKey: 'trips.list',
   })
 
   /**
@@ -258,7 +292,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         const updated = await Promise.all(trips.map((trip) => flagTrip(trip.id, reason)))
         record(updated)
         table.clearSelection()
-        toast(
+        toast.success(
           trips.length === 1
             ? t('trips.toast.flagged.one')
             : t('trips.toast.flagged.other', { count: formatCount(trips.length, language) }),
@@ -278,13 +312,13 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         const updated = await Promise.all(trips.map((trip) => unflagTrip(trip.id)))
         record(updated)
         table.clearSelection()
-        toast(
+        toast.success(
           trips.length === 1
             ? t('trips.toast.unflagged.one')
             : t('trips.toast.unflagged.other', { count: formatCount(trips.length, language) }),
         )
       } catch {
-        toast(t('trips.error.unflag'))
+        toast.error(t('trips.error.unflag'))
       }
     },
     [record, table, t, language],
@@ -302,6 +336,8 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (trip) => trip.id,
         header: t('trips.col.id'),
         /* AC-104 / AC-106 — the identity is implicitly pinned, so a flagged
            row's marker stays visible at every horizontal scroll offset. */
@@ -365,28 +401,20 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
           )
         },
       },
-      {
-        id: 'kind',
-        header: t('trips.col.kind'),
-        width: 112,
-        dataType: 'enum',
-        sortField: 'kind',
-        filter: {
-          kind: 'select',
-          field: 'kind',
-          options: [
-            { value: 'Subscription', label: t('trips.kind.subscription') },
-            { value: 'Quick ride', label: t('trips.kind.quickRide') },
-          ],
-        },
-        cell: (trip) => (
-          <Cell>
-            <StatusBadge tone={trip.kind === 'Quick ride' ? 'new' : 'info'}>
-              {t(trip.kind === 'Quick ride' ? 'trips.kind.quickRide' : 'trips.kind.subscription')}
-            </StatusBadge>
-          </Cell>
-        ),
-      },
+      /* **No `kind` column, and no kind filter.** Both were right while one
+         table served both kinds; D1b split that into two sub-tabs, and the
+         screen now scopes every query to a single kind above. What survived the
+         split was a 112px column repeating the same badge on every row of a
+         screen whose own title already says it — "Quick ride" twenty-five times
+         under the heading *Quick rides* — and a select offering to filter a
+         kind-scoped table by kind, whose other option returns nothing.
+
+         The column is not merely redundant, it is the most expensive kind of
+         redundant: this table declares nine columns into 1136px, so the one
+         carrying no information was taking width from `Rider` and `Captain`,
+         both of which truncate names today. `Trip['kind']` is untouched — the
+         field still exists, the client still filters on it, and a combined view
+         would declare its own column. */
       {
         id: 'riderName',
         header: t('trips.col.rider'),
@@ -437,6 +465,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('trips.col.status'),
         width: 112,
         dataType: 'enum',
@@ -459,8 +488,15 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'fareHalalas',
+        emphasis: 'data',
         header: t('trips.col.fare'),
-        width: 112,
+        /* 128, not 112, and the 16px comes from `startedAt` below so the row
+           budget is unchanged. At 112 the cell offers 88px of inner width and
+           `1,284.50 SAR` (TRP-6001, `fareHalalas: 128_450`) needs ~94 — it
+           truncated to `1,284.50 …`, which an operator reads as a different
+           number rather than as a clipped one. A money column must never
+           ellipsis: `1,284.50` and `1,284.50 …` are both plausible fares. */
+        width: 128,
         align: 'end',
         dataType: 'money',
         sortField: 'fareHalalas',
@@ -473,7 +509,10 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'startedAt',
         header: t('trips.col.started'),
-        width: 136,
+        /* 128 — measured widest content is `25 Jun 09:39` at ~84px against
+           104px of inner width, so this had 20px of slack and the fare had
+           none. */
+        width: 128,
         dataType: 'date',
         sortField: 'startedAt',
         /* §7.3 rule 5 — the trailing visible column is a DATE, never a `money`
@@ -556,7 +595,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
               <EntityLink
                 href={hrefFor(trip.paymentId)}
                 code
-                label={t('trips.open.subscription', { id: trip.paymentId })}
+                label={t('trips.open.payment', { id: trip.paymentId })}
                 reason={t('trips.entity.unresolved')}
                 reasonId={`trip-${trip.id}-payment-unresolved`}
               >
@@ -580,6 +619,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'durationMinutes',
+        emphasis: 'data',
         header: t('trips.col.duration'),
         width: 104,
         align: 'end',
@@ -625,6 +665,9 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       {
         label: t('trips.action.view'),
         onSelect: (trip: Trip) => setDrawerTripId(trip.id),
+        /* **P0-2 — the declared row-click target.** `Flag` and `Unflag` both
+           mutate; neither may carry this. */
+        rowClick: true,
       },
       {
         label: t('trips.action.flag'),
@@ -716,7 +759,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         total={total}
         t={t}
         language={language}
-        tableId="operations-trips"
+        tableId={row?.subTabId ?? 'operations-quick-rides'}
         view={activeTab}
         tabs={tabs}
         activeTab={activeTab}
@@ -724,6 +767,14 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
           navigate({ pathname: location.pathname, search: withView(location.search, id) })
         }
         searchPlaceholder={t('trips.search')}
+        /* **NO `isRowCritical`, and that is this screen's own ruling** — see
+           the header: *R5a — no red badge and **no red row**. A flagged trip
+           is `warning`.* The single red carrier a trip row may have is the 3px
+           leading-edge marker in the identity cell (§8.4.6: *a row MUST carry
+           at most one red carrier*), and the `Flagged` column says it in words.
+           `DataTable` used to tint anyway, off a bare `r.flagged` duck-type:
+           audit C read `TRP-8001` tinted and `TRP-9003` not, both `Cancelled`,
+           with nothing in either row to explain the difference. */
         rowActions={rowActions}
         bulkActions={bulkActions}
         /* §9.1 — the identity link is the click target and the row is not. The

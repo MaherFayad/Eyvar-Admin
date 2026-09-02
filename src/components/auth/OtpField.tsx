@@ -67,11 +67,16 @@
  * product that has exactly one.
  */
 
-import { useId, type ClipboardEvent, type RefObject } from 'react'
+import { type ClipboardEvent, type RefObject } from 'react'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { OTP_LENGTH, sanitiseCode } from './authContract'
-import { AuthFieldError } from './AuthFields'
 
 export interface OtpFieldProps {
   label: string
@@ -105,10 +110,6 @@ export function OtpField({
   primaryRef,
   autoFocus = true,
 }: OtpFieldProps) {
-  const id = useId()
-  const helperId = `${id}-helper`
-  const errorId = `${id}-error`
-
   /**
    * **D-OTP-5 — non-digits are rejected at input time, so the keystroke never
    * lands** (**AC-518**). Not "shown as an error afterwards": a letter that
@@ -150,38 +151,33 @@ export function OtpField({
   }
 
   return (
-    <div className="flex flex-col">
-      <Label htmlFor={id} className="mb-1">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        value={value}
-        onChange={(event) => handleChange(event.target.value)}
-        onPaste={handlePaste}
-        readOnly={readOnly}
-        /* D-OTP-6, verbatim. `dir="ltr"` is unconditional — in both languages. */
-        inputMode="numeric"
-        pattern="[0-9]*"
-        autoComplete="one-time-code"
-        maxLength={OTP_LENGTH}
-        spellCheck={false}
-        autoCapitalize="off"
-        autoCorrect="off"
-        dir="ltr"
-        autoFocus={autoFocus}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${helperId} ${errorId}` : helperId}
-        /* D-OTP-7 — 40 px field, 17/24 tabular, CENTRED. `tabular-nums` keeps
-           the six glyphs on a fixed advance so the run does not shuffle as the
-           operator types, and `tracking-wide` separates them without the
-           per-digit boxes this field exists to avoid. */
-        className="h-control-lg text-center text-lg tabular-nums tracking-wide"
-      />
-      <p id={helperId} className="mt-1 text-xs text-muted-foreground">
-        {helper}
-      </p>
-      {error ? <AuthFieldError id={errorId}>{error}</AuthFieldError> : null}
-    </div>
+    <Field invalid={Boolean(error)}>
+      <FieldLabel>{label}</FieldLabel>
+      <FieldControl>
+        <Input
+          value={value}
+          onChange={(event) => handleChange(event.target.value)}
+          onPaste={handlePaste}
+          readOnly={readOnly}
+          /* D-OTP-6, verbatim. `dir="ltr"` is unconditional — in both languages. */
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="one-time-code"
+          maxLength={OTP_LENGTH}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
+          dir="ltr"
+          autoFocus={autoFocus}
+          /* D-OTP-7 — 40 px field, 17/24 tabular, CENTRED. `tabular-nums` keeps
+             the six glyphs on a fixed advance so the run does not shuffle as the
+             operator types, and `tracking-wide` separates them without the
+             per-digit boxes this field exists to avoid. */
+          className="h-control-lg text-center text-lg tabular-nums tracking-wide"
+        />
+      </FieldControl>
+      <FieldDescription>{helper}</FieldDescription>
+      <FieldError>{error}</FieldError>
+    </Field>
   )
 }

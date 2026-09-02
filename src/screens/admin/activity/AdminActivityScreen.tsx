@@ -57,8 +57,11 @@ import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTa
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withView } from '@/shell/routeState'
+import { withFallback } from '../../operations/localCopy'
+import { ADMIN_ACTIVITY_EN } from './copy'
 
 /**
  * A line break, as a named constant rather than as an escape written inline.
@@ -86,7 +89,18 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
   const route = useRouteState()
   const location = useLocation()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ADMIN_ACTIVITY_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
   const fallback = views.find((v) => v.isDefault)?.id ?? 'by-actor'
@@ -99,7 +113,11 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
 
   const data = useAsync<Paginated<AuditEntry>>(
     (signal) => listAuditEntries({ page: table.page, pageSize: table.pageSize, signal }),
-    { deps: [table.page, table.pageSize] },
+    /* `page` and `pageSize` are the fetcher's only inputs — the view tab and
+       the search box are applied to the page below, in `rows`, and never reach
+       the client — so the two of them are the whole key. Switching between the
+       three views re-groups the rows already in hand. */
+    { deps: [table.page, table.pageSize], cacheKey: 'audit.list' },
   )
 
   const rows = useMemo(() => {
@@ -135,6 +153,8 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (item) => item.id,
         header: t('admin.activity.column.event'),
         width: 110,
         dataType: 'id',
@@ -142,18 +162,20 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'actor',
+        emphasis: 'data',
         header: t('admin.activity.column.operator'),
         width: 170,
         dataType: 'text',
         cell: (item) => (
           <div className="flex flex-col text-xs">
             <span className="font-semibold text-foreground">{item.actorName}</span>
-            <span className="text-2xs text-muted-foreground">{item.actorId}</span>
+            <span className="text-xs text-muted-foreground">{item.actorId}</span>
           </div>
         ),
       },
       {
         id: 'action',
+        emphasis: 'data',
         header: t('admin.activity.column.action'),
         width: 160,
         dataType: 'enum',
@@ -207,12 +229,13 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
         cell: (item) => (
           <div className="flex flex-col text-xs">
             <span className="font-mono text-foreground">{item.subjectId}</span>
-            <span className="text-2xs text-muted-foreground">{item.subjectType}</span>
+            <span className="text-xs text-muted-foreground">{item.subjectType}</span>
           </div>
         ),
       },
       {
         id: 'amount',
+        csv: (item) => item.amountHalalas,
         header: t('admin.activity.column.amount'),
         align: 'end',
         width: 120,
@@ -232,11 +255,20 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
         width: 130,
         dataType: 'text',
         defaultHidden: true,
+        /* A3 — the label leads, the code follows. This cell printed
+           `PAY_REFUND_REQ` and nothing else. The audit log is the one surface
+           where the raw code genuinely earns its place — it is what an
+           investigator matches against the ledger posting — so it is kept,
+           demoted to the second line, and isolated so a `_`-joined LTR token
+           cannot reorder against Arabic (§9.1). */
         cell: (item) =>
           item.reasonCode === null ? (
             <span className="text-muted-foreground">—</span>
           ) : (
-            <span className="font-mono text-2xs text-muted-foreground">{item.reasonCode}</span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-xs text-foreground">{reasonLabel(t, item.reasonCode)}</span>
+              <bdi className="font-mono text-xs text-muted-foreground">{item.reasonCode}</bdi>
+            </span>
           ),
       },
       {
@@ -244,7 +276,7 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
         header: t('admin.activity.column.time'),
         width: 140,
         dataType: 'date',
-        cell: (item) => <span className="text-2xs text-muted-foreground">{formatDate(item.at, { language })}</span>,
+        cell: (item) => <span className="text-xs text-muted-foreground">{formatDate(item.at, { language })}</span>,
       },
     ],
     [language, t]

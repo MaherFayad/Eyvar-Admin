@@ -21,36 +21,24 @@ import type {
   CreditNote,
   Deduction,
   EscrowHold,
-  FinancialsPeriod,
   InvoiceSequence,
   PaymentGateway,
   Refund,
   RevenueByPlanRow,
   VatConfig,
 } from '../types/financials'
+import { CASH_COMMISSION_PERCENT, CASH_DEBT_CAP_HALALAS } from '../serverPolicy'
 import { cycleRecord } from './cycle'
 import { fillerDrivers } from './drivers'
 import { fillerSubscriptions } from './subscriptions'
 import { allTripFixtures } from './trips'
 
-/**
- * The default window. **Q-F8 open**: nobody has said whether a period closes.
- * This ships as an open range with no close concept.
- */
-export const FINANCIALS_PERIOD: FinancialsPeriod = { start: '2026-06-01', end: '2026-06-30' }
-
-/**
- * Server policy, per Admin › Operational Policy. `CASH_DEBT_CAP = -300` is a
- * client constant today (`:12080`) and its sign is inverted, because legacy
- * stores captain debt as a negative number.
- */
-export const CASH_DEBT_CAP_HALALAS = 30_000
-
-/** `CASH_TOLERANCE = 2.00` (`:12079`). Server policy; the client never classifies. */
-export const CASH_TOLERANCE_HALALAS = 200
-
-/** `CASH_COMMISSION_RATE = 0.20` (`:12078`) — one of the four commission answers §4.1 lists. */
-export const CASH_COMMISSION_PERCENT = 20
+/* `FINANCIALS_PERIOD` and the three `CASH_*` policy constants used to be
+   declared here. They moved to `src/data/serverPolicy.ts`, which says why: they
+   are policy rather than seeded rows, two screens read them synchronously
+   during render, and a value read synchronously cannot come out of the lazily
+   imported fixture chunk. Keeping them here statically pinned all 1 200 lines
+   of this file into the http build. */
 
 /* ────────────────────────── refunds ─────────────────────────── */
 

@@ -39,7 +39,8 @@ export const POLICY_EN: Dictionary = {
   'policy.loading': 'Loading the operational policy',
   'policy.error.read': 'The operational policy did not load.',
   'policy.error.retry': 'Load again',
-  'policy.blocked.permission': 'Your role cannot change operational policy.',
+  'policy.blocked.permission':
+    'You cannot change operational policy. Ask an Owner for the “Operational policy” permission.',
   'policy.toast.saved': 'Policy saved',
   'policy.toast.discarded': 'Changes discarded',
   'policy.action.cancel': 'Cancel',
@@ -188,7 +189,7 @@ export const POLICY_EN: Dictionary = {
   'policy.reasons.retire.blocked.alreadyRetired': 'This code is already retired.',
   'policy.reasons.restore.blocked.inUse': 'This code is already in use.',
 
-  'policy.reasons.empty.heading': 'No reason code is defined',
+  'policy.reasons.empty.heading': 'One word for each way work ends',
   'policy.reasons.empty.body':
     'A reason code is the closed vocabulary operators pick from when they dispose of work. Without one, every disposition is free text nobody can count.',
   'policy.reasons.empty.action': 'Add the first code',

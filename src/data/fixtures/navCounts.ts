@@ -232,7 +232,8 @@ export const navCountFixtures: SubTabCount[] = [
   { subTabId: 'operations-subscriptions', count: 8, tone: 'neutral' },
   /* One pending corporate account — CORP-001 (`:13847`). */
   { subTabId: 'operations-corporate', count: 1, tone: 'neutral' },
-  { subTabId: 'operations-trips', count: null, tone: 'neutral' },
+  { subTabId: 'operations-quick-rides', count: null, tone: 'neutral' },
+  { subTabId: 'operations-subscription-trips', count: null, tone: 'neutral' },
   /**
    * Four legs departing inside 24 h with **no eligible backup captain** —
    * `listAssuranceTrips({ view: 'no-backup-captain' })`, asserted in

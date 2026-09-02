@@ -11,7 +11,7 @@
  * so the two can never disagree.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { mock } from '../mock/delay'
 import { LEGACY_PAGE_TITLES } from '../fixtures/legacyPages'
 import { ROUTE_TABLE } from '../fixtures/routeTable'
@@ -197,6 +197,13 @@ const LEGACY_PAGE_TO_VIEW: Record<string, string> = {
 export const ROUTE_OPERATIONS = {
   table: 'routes.table',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(ROUTE_OPERATIONS))
 
 /**
  * GET /api/v1/routes

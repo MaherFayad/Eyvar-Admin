@@ -16,7 +16,12 @@
  *               ledger's shape — and it states its own truncation in words
  *               (§5.4: an end-of-list is never silent).
  *   R4          `tabular-nums` on every number, so the column of amounts lines
- *               up and does not shimmer between renders.
+ *               up and does not shimmer between renders. The field list carries
+ *               `data-numeric` for the same guarantee at the LIST level.
+ *   §2.3 / H1   **the three emphasis tiers.** A label is META (12px,
+ *               `--ev-text-2`, 400); a value is DATA (14px, `--ev-ink`, 400,
+ *               tabular). The pair used to render at one size and separate on
+ *               colour alone.
  *   §9.1        logical utilities only. The label/value pair mirrors under
  *               `dir="rtl"` because it is a logical flex row, not a float.
  *   §12.1       a badge is never interactive and always carries a word (§7.5).
@@ -47,16 +52,67 @@ export interface Field {
  */
 export function FieldList({ fields, t }: { fields: readonly Field[]; t: Translate }) {
   return (
-    <dl className="flex flex-col gap-1.5 text-sm">
+    /* **§2.3 / H1 — the properties rail is where the three tiers are most
+       legible, and it had none.** Both sides rendered at `--text-sm`, separated
+       by colour alone, so a twenty-row rail was twenty pairs of equal weight
+       and the eye had nothing to run down. The rail now reads label-META over
+       value-DATA: **12px grey label, 14px ink value.** Size and colour move in
+       the same direction, which is H3's law.
+
+       `data-numeric` — the `globals.css` numeric defence that had zero
+       consumers, on the hook it names for *"a number outside a table"*. A rail
+       is a column of amounts, dates and counts read down; pinning the figures
+       on the list means `MoneyValue` and `NumberValue` are a convenience rather
+       than the only thing standing between the rail and a shimmer.
+
+       `items-baseline` and not `items-start`: two different sizes in one row
+       align on the text baseline, not on the top of two different line boxes.
+       Without it the 12px label sits 2px proud of its own value. */
+    <dl data-numeric className="flex flex-col gap-1.5 text-sm">
       {fields.map((field) => (
-        <div key={field.label} className="flex items-start justify-between gap-3">
-          <dt className="shrink-0 text-muted-foreground">{field.label}</dt>
+        <div key={field.label} className="flex items-baseline justify-between gap-3">
+          <dt className="shrink-0 text-xs text-muted-foreground">{field.label}</dt>
           <dd className="min-w-0 text-end text-foreground">
             {field.value === null ? (
               /* §3.5 — never blank. */
               <span className="text-muted-foreground">{t('profile.field.absent')}</span>
             ) : (
-              field.value
+              /**
+               * **`<bdi>` — AC-73, and the rail was failing it on four kinds of
+               * value at once.** Caught by eye at 1512 under `dir="rtl"` on
+               * `/entity/DRV-0101`, which is how this class of defect is always
+               * caught: no source audit can see it, because every one of these
+               * strings is correct and it is the paragraph around them that is
+               * reordering the run.
+               *
+               *   `4 of 5`            rendered `of 5 4`
+               *   `25 Jun 07:00`      rendered `Jun 07:00 25`
+               *   `+966 53 001 0101`  rendered `0101 001 53 966+`
+               *   `1 Feb`             rendered `Feb 1`
+               *
+               * All four are the same mechanism: a LATIN run whose internal
+               * separators — a space, a `+`, a `:`, the word `of` — are
+               * bidi-NEUTRAL, so the UBA resolves them against the paragraph
+               * and walks the pieces right to left. A phone number that reads
+               * backwards is not a mirrored layout, it is a wrong number.
+               *
+               * **It belongs here and not at the call sites.** `money.ts` sets
+               * the precedent in terms — isolation is the COMPONENT's job,
+               * deliberately, so that embedding U+2068/U+2069 in the string
+               * does not poison copy-paste and test assertions. One `<bdi>` on
+               * the value slot fixes every rail in the product; forty call
+               * sites would each have to remember.
+               *
+               * **Inline, and that is load-bearing.** `<bdi>` derives its own
+               * `direction` from its content, so a STRETCHED one aligns its
+               * text to ITS start rather than the row's end — the defect
+               * `MetricTile` records from its own tile value. `<bdi>` is inline
+               * by default and `<dd>` keeps `text-end`, so the box positions
+               * the run and the isolate only scopes it. An Arabic value still
+               * lays out RTL: `<bdi>` takes its direction from the first STRONG
+               * character, not from its parent.
+               */
+              <bdi>{field.value}</bdi>
             )}
           </dd>
         </div>

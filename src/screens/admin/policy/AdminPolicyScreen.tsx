@@ -53,16 +53,31 @@ import { CitiesCard, DispatchCard, LimitsCard, fleetIndex } from './OperationalC
 import { ReasonCodesCard } from './ReasonCodesCard'
 import { SlaQueueGridCard, SlaTierDefaultsCard } from './SlaPolicyCards'
 import { draftFromPolicy, draftToInput, isDraftDirty, type PolicyDraft } from './policyDraft'
+import { withFallback } from '../../operations/localCopy'
+import { POLICY_EN } from './copy'
 
 export function AdminPolicyScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, POLICY_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const canWrite = canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
   const blockedReason = canWrite ? null : t('policy.blocked.permission')
 
   const policy = useAsync<OperationalPolicy>((signal) => getOperationalPolicy(signal), {
     deps: [],
+    /* No parameters; a save goes through `refetch`, which bypasses the read. */
+    cacheKey: 'policy.get',
     /* A policy document always exists — there is no tenant without one — so
        `empty` is not a state this read can be in. Declared rather than left to
        `defaultIsEmpty`, which would answer `false` by accident. */

@@ -28,6 +28,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { API_KEY_SCOPES } from '@/data/types/integrations'
+import { EN } from '@/i18n/dictionaries'
 import { PERMISSION_KEYS } from '@/shell/permissions'
 
 import {
@@ -316,7 +317,7 @@ describe('the four states', () => {
     const issue = await screen.findByRole('button', { name: 'Issue API key' })
     expect(issue).toBeDisabled()
     expect(issue).toHaveAttribute('aria-describedby')
-    expect((await screen.findAllByText('Your role cannot change integrations.')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(EN['admin.integrations.readOnly'] as string)).length).toBeGreaterThan(0)
   })
 })
 

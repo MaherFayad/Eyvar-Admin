@@ -34,6 +34,48 @@
  *              command menu. Against a 28px kebab it collapsed every row-action
  *              menu to the 128px floor and wrapped `Open 360 profile` onto two
  *              lines. Items are `whitespace-nowrap`; the menu widens instead.
+ *
+ *   §7.6       `duration-100` — the licensed value for a popover, dropdown,
+ *              tooltip or command list (`motion.md`). Tailwind's own scale is
+ *              the token set; there is no `--ev-duration-*` and adding one is
+ *              the defect.
+ *
+ * ## DEFECT D-11 — the design ruling, made
+ *
+ * `02-shell-fixes.md` §13 raised this to product-designer and left it open, and
+ * `shell/qa.keyboard.test.tsx` carries it as an `it.fails`. It is a ruling, not
+ * a bug report, so here is the ruling.
+ *
+ * The defect: a menu item that opens a shell layer leaves focus OUTSIDE the
+ * layer. `See all` (the bell) and `My profile` (this menu) both do it. The
+ * layer moves focus in; the menu then closes, restores focus to its own trigger
+ * asynchronously, and wins because it writes last. Measured in the production
+ * build: focus is on the sheet title at t=0, on `body` at ~50ms, and back on
+ * the menu trigger at ~150ms while the drawer is still open. A keyboard
+ * operator who opens `My profile` from here must Tab the whole page to reach
+ * the panel that just appeared.
+ *
+ * RULING - THE LAYER WINS. A MENU THAT HANDS OFF DOES NOT TAKE FOCUS BACK.
+ *
+ * The reasoning is lifetime (R10). A menu is a transient command surface, and
+ * its focus-restore exists so that dismissing it costs the operator nothing. A
+ * layer is a DESTINATION. Restoring focus to the trigger is right when the menu
+ * closes and nothing replaces it, and wrong the moment the selection produced
+ * somewhere to go: where the operator's eye goes, their focus goes.
+ *
+ * Mechanism, for whoever implements it. Radix fires `onCloseAutoFocus` on the
+ * closing content, and `event.preventDefault()` there suppresses the restore
+ * and nothing else. It must be CONDITIONAL - a menu closed by `Escape`, or on
+ * an item that opens no layer, still owes the trigger its focus, and a menu
+ * used INSIDE an already-open drawer must keep restoring normally. The
+ * condition is "this selection opened a layer", which only the call site knows:
+ * the shell's two hand-off items (`AccountMenu`'s `My profile`,
+ * `NotificationBell`'s `See all`) raise a flag in `onSelect` and read it in
+ * `onCloseAutoFocus`. Do NOT make it unconditional here - that would silently
+ * break every ordinary kebab in the product.
+ *
+ * Flipping `qa.keyboard.test.tsx`'s `it.fails` back to `it` is part of that
+ * change and not a follow-up: the suite goes red either way round otherwise.
  */
 import * as React from "react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"

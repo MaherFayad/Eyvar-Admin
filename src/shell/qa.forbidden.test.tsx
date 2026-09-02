@@ -99,12 +99,22 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
 
     expect(await screen.findByText(en('state.forbidden.title'))).toBeInTheDocument()
     /* The criterion's whole point: the operator is told WHICH permission, so
-       they can ask for it by name rather than describing a screen. */
+       they can ask for it BY NAME rather than describing a screen.
+
+       This asserted the raw key — `…the "manage_settings" permission` — which
+       satisfied the letter of AC-56 and defeated its stated purpose, because
+       `manage_settings` is an identifier and not a name. It now asserts the
+       name, and asserts the identifier is ABSENT, which is the stronger claim
+       and the one the criterion actually makes. */
     expect(
       screen.getByText(
-        (en('state.forbidden.body') as string).replace('{permission}', 'manage_settings'),
+        (en('state.forbidden.body') as string).replace(
+          '{permission}',
+          en('perm.manage_settings.name') as string,
+        ),
       ),
     ).toBeInTheDocument()
+    expect(screen.queryByText(/manage_settings/)).toBeNull()
   })
 
   it('names the route the operator asked for, rather than an anonymous page', async () => {
@@ -158,6 +168,11 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
 
     renderApp(detail!.path.replace(/:[A-Za-z]+/g, 'QA-1'))
     expect(await screen.findByText(en('state.forbidden.title'))).toBeInTheDocument()
+    /* `view_drivers` is NOT a member of `PermissionKey` — this test invents it.
+       That makes it the case that matters: `permissionName()` must fall back to
+       the raw key rather than throwing, or an unknown permission turns a
+       forbidden state into a crashed shell. The assertion is unchanged on
+       purpose; it is now testing the fallback. */
     expect(
       screen.getByText((en('state.forbidden.body') as string).replace('{permission}', 'view_drivers')),
     ).toBeInTheDocument()

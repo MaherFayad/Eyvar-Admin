@@ -80,13 +80,13 @@ export const COMMUNICATIONS_EN: Dictionary = {
      with no way forward is indistinguishable from a broken one (§11.2). */
   'comms.resend.no.hardBounce': 'This address does not exist. Correct it on the account before sending again.',
   'comms.resend.no.invalidAddress': 'This is not a valid address. Correct it on the account before sending again.',
-  'comms.resend.no.spamComplaint': 'The recipient marked our mail as spam. Sending again puts the sending domain at risk.',
+  'comms.resend.no.spamComplaint': 'The recipient marked this mail as spam. Sending again puts the sending domain at risk.',
   'comms.resend.no.unsubscribed': 'The recipient has unsubscribed. Reach them another way.',
   'comms.resend.no.notFailed': 'This message did not fail, so there is nothing to send again.',
   'comms.resend.no.inbound': 'This message arrived from a customer. Reply from the ticket instead.',
-  'comms.resend.no.permission': 'Your role cannot send email.',
-  'comms.toast.resent': 'Queued a new send to {recipient}.',
-  'comms.toast.resendFailed': 'The message could not be queued again.',
+  'comms.resend.no.permission': 'You cannot send email. Ask an Owner for the “Workspace settings” permission.',
+  'comms.toast.resent': 'Email resent to {recipient}',
+  'comms.toast.resendFailed': "Couldn't resend the email",
 
   'comms.log.empty.outbox.heading': 'Every message the system sends lands here',
   'comms.log.empty.outbox.body':
@@ -121,16 +121,17 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.identity.blocked.pending': 'Verification is still running, so this address cannot send yet.',
   'comms.identity.blocked.failed': 'Verification failed for this address. Run it again before sending as it.',
   'comms.identity.blocked.alreadyDefault': 'This is already the default sender.',
-  'comms.identity.blocked.permission': 'Your role cannot change sender identities.',
+  'comms.identity.blocked.permission':
+    'You cannot change a sender identity. Ask an Owner for the “Workspace settings” permission.',
 
   'comms.identity.verify': 'Verify',
   'comms.identity.verifyAgain': 'Verify again',
   'comms.identity.verifyRunning': 'Verification is already running.',
   'comms.identity.verifyDone': 'This address is already verified.',
-  'comms.toast.defaultSet': 'The system now sends as {address}.',
-  'comms.toast.defaultFailed': 'The default sender could not be changed.',
-  'comms.toast.verifyRequested': 'Verification requested for {address}.',
-  'comms.toast.verifyFailed': 'Verification could not be requested.',
+  'comms.toast.defaultSet': '{address} is now the default sender',
+  'comms.toast.defaultFailed': "Couldn't change the default sender",
+  'comms.toast.verifyRequested': 'Verification sent to {address}',
+  'comms.toast.verifyFailed': "Couldn't request verification",
   'comms.identity.empty.heading': 'No address to send from',
   'comms.identity.empty.body':
     'A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email.',
@@ -179,9 +180,10 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.editor.issueWarning': 'Note',
   'comms.editor.declare': 'Declare {variable}',
   'comms.editor.saveBlocked': 'Fix the errors listed above before saving.',
-  'comms.editor.readOnly': 'Your role cannot edit templates.',
+  'comms.editor.readOnly':
+    'You can read every template and change none. Ask an Owner for the “Workspace settings” permission.',
   'comms.editor.error': 'The template could not be saved.',
-  'comms.toast.templateSaved': 'Saved {name} as version {version}.',
+  'comms.toast.templateSaved': '{name} saved as version {version}',
 
   /* The validation sentences. Each names the variable, because "a variable is
      undeclared" is an observation and "declare riderName" is an instruction. */
@@ -216,11 +218,22 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.push.title': 'Push broadcasts',
   'comms.push.desc': 'One message to a whole audience, with what the provider accepted.',
   'comms.push.compose': 'Send push broadcast',
-  'comms.push.blocked': 'Your role cannot send broadcasts.',
+  'comms.push.blocked': 'You cannot send a broadcast. Ask an Owner for the “Workspace settings” permission.',
   'comms.audience.allCaptains': 'All captains',
   'comms.audience.onlineCaptains': 'Captains online now',
   'comms.audience.allRiders': 'All riders',
   'comms.audience.activeSubscriptionRiders': 'Riders with an active subscription',
+  /* The confirm before a broadcast. It names the audience and the exact device
+     count because those are the two facts that decide it, and it states what
+     cannot be undone — a push that has left cannot be recalled, and the record
+     lands `queued` with no cancel. */
+  'comms.push.confirm.title': 'Send this to {audience}?',
+  'comms.push.confirm.body':
+    'It reaches {count} devices immediately and cannot be recalled. Nothing else changes.',
+  /* Deliberately NOT 'Send broadcast': that is the composer's own button, and
+     two live controls with one name is ambiguous to an operator reading fast
+     and to anything querying by accessible name. */
+  'comms.push.confirm.action': 'Send it now',
   'comms.push.devices': '{count} devices',
   'comms.push.openRate': 'Open rate {rate}',
   'comms.push.openRatePending': 'No open rate reported yet',
@@ -245,7 +258,20 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.push.composer.incomplete': 'Enter a title and a message.',
   'comms.push.composer.audiencesError': 'Audiences could not be loaded. Close this and try again.',
   'comms.push.composer.error': 'The broadcast could not be sent.',
-  'comms.toast.broadcastSent': 'Broadcast queued for {count} devices.',
+  'comms.toast.broadcastSent': 'Broadcast queued for {count} devices',
+
+  /* ── Activity Log lines for this screen's two audited acts ──────────────
+     Both acts shipped before they wrote anything to the log. Written in the
+     past tense and naming the subject, like every other `admin.audit.*` line,
+     because the Activity table is read as a sentence about something that
+     already happened rather than as a field dump.
+
+     The sender line names the address that LOST the default as well as the one
+     that gained it: the reader's question is almost always which address just
+     stopped sending. */
+  'admin.audit.email.senderDefault': 'Made {address} the default sender, replacing {previous}',
+  'admin.audit.email.templateSaved': 'Saved the {name} template (v{version})',
+  'admin.audit.email.templateSavedLive': 'Saved the {name} template (v{version}) while it was live',
 }
 
 /**

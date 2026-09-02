@@ -87,7 +87,23 @@ export function AddEmployeeModal({
         },
         signal,
       ),
-    { deps: [excludedKey], enabled: open },
+    /**
+     * **The collision this read used to be skipped for, closed (P3-13).**
+     *
+     * `excludedKey` is `existingRiderIds.join(',')`, and the screen passes
+     * `existingRiderIds={currentEmployees}` — the SAME array that
+     * `CorporateDetailScreen`'s employee read keys on. A bare `cacheKey:
+     * 'riders.list'` here would therefore produce the identical key
+     * `riders.list::[s:<ids>]` for two fetchers that ask OPPOSITE questions
+     * (`op: 'nin'` here, `op: 'in'` there), and this picker would offer exactly
+     * the riders already on the account and no others.
+     *
+     * The fix the earlier note asked for: the filter operator was hard-coded
+     * inside the closure and so invisible to the key. It is now in `deps` as
+     * the stable value it is, and the two reads key apart —
+     * `riders.list::[s:<ids>,s:nin]` against `…,s:in`.
+     */
+    { deps: [excludedKey, 'nin'], cacheKey: 'riders.list', enabled: open },
   )
 
   const availableRiders = riders.data?.items ?? []
@@ -107,9 +123,7 @@ export function AddEmployeeModal({
       setSubmitError(
         isApiError(error)
           ? error.message
-          : t('corp.addEmployee.saveError', {
-              defaultValue: "Couldn't link the rider. Nothing was changed.",
-            }),
+          : t('corp.addEmployee.saveError'),
       )
     } finally {
       setBusy(false)
@@ -118,20 +132,17 @@ export function AddEmployeeModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>{t('corp.addEmployee.title', { defaultValue: 'Link Employee Rider' })}</DialogTitle>
+          <DialogTitle>{t('corp.addEmployee.title')}</DialogTitle>
           <DialogDescription>
-            {t('corp.addEmployee.desc', {
-              defaultValue: 'Add an employee rider to {company} consolidated account.',
-              company: companyName,
-            })}
+            {t('corp.addEmployee.desc', { company: companyName })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-3 space-y-2">
           <Label htmlFor="rider-select" className="text-xs font-medium">
-            {t('corp.selectRider', { defaultValue: 'Select Registered Rider' })}
+            {t('corp.selectRider')}
           </Label>
 
           {/* Four states for the picker's read — loading, error, empty,
@@ -155,16 +166,13 @@ export function AddEmployeeModal({
             <EmptyState
               kind="cleared"
               card={false}
-              heading={t('corp.noRidersAvailable', { defaultValue: 'Every rider is already linked' })}
-              body={t('corp.noRidersAvailableBody', {
-                defaultValue: 'There is no registered rider left to add to {company}.',
-                company: companyName,
-              })}
+              heading={t('corp.noRidersAvailable')}
+              body={t('corp.noRidersAvailableBody', { company: companyName })}
             />
           ) : (
             <Select value={selectedRiderId} onValueChange={setSelectedRiderId}>
               <SelectTrigger id="rider-select">
-                <SelectValue placeholder={t('corp.selectRiderPlaceholder', { defaultValue: 'Choose a rider...' })} />
+                <SelectValue placeholder={t('corp.selectRiderPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {availableRiders.map((r) => (
@@ -186,16 +194,16 @@ export function AddEmployeeModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
-            {t('action.cancel', { defaultValue: 'Cancel' })}
+            {t('action.cancel')}
           </Button>
           <Button
             size="xs"
             onClick={() => void handleConfirm()}
             disabled={!selectedRiderId || busy || riders.status !== 'content'}
           >
-            {busy ? t('action.saving', { defaultValue: 'Linking...' }) : t('corp.linkRider', { defaultValue: 'Link employee' })}
+            {busy ? t('corp.action.linking') : t('corp.linkRider')}
           </Button>
         </DialogFooter>
       </DialogContent>

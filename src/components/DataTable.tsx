@@ -48,11 +48,27 @@
  * pagination row sit on the white content ground outside it.
  *
  * **D-19 — the table is a bounded scroller and the page does not scroll.**
- * Bands 2, 3 and 5 are `flex-none`; band 4 is `flex-1 min-h-0` and owns
- * `overflow: auto` on both axes, with a 216px floor. That is the only
+ * Bands 2, 3 and 5 do not flex; band 4 grows, shrinks, carries a zero minimum
+ * and owns `overflow: auto` on both axes, with a 216px floor. That is the only
  * construction that puts the pagination row, the horizontal scrollbar and the
  * sticky header inside the viewport at once — and each of those was a live
  * defect (N2, S16′, craft-critique F1 part 3).
+ *
+ * **D-19 NOTE — the boundedness is read off the PARENT, and no class here says
+ * so.** The zero-percent flex basis on those three boxes is doing two jobs, and
+ * the second one is invisible: under a parent whose main size is INDEFINITE, a
+ * percentage flex basis resolves to `content` (Flexbox §7.2.3). So the same
+ * declaration that bounds this table inside a page pinned to the viewport makes
+ * it report its true height upward inside a page that sizes to its content —
+ * `SingleColumnPage`'s `body="flow"`, a page that stacks a map above a table.
+ *
+ * **This is why nothing in this file changed when that shape was added, and why
+ * the obvious change was wrong.** Swapping the zero basis for a content basis
+ * looks equivalent and is not: it makes the deficit under a definite parent
+ * negative, and the shrink is then shared with the SIBLINGS of this component.
+ * Measured on `/support/contact-centre` at 1280: the summary card above the
+ * table went from 278px to 221px — a card with `overflow` set, silently clipped
+ * to buy the table 57px it had not asked for. Leave the basis alone.
  *
  * **§7.3 — the width contract.** Every column declares a width; exactly one,
  * the identity, declares `minWidth` and absorbs the residual under
@@ -60,6 +76,11 @@
  * (Arabic — the `:lang(ar)` rail and sub-tab steps are 40px wide between them),
  * and a `money` or `id` column may never be the last visible data column.
  * Asserted per view in `table/columnBudget.test.ts`.
+ *
+ * **The floor is on the `<table>`, not on the cell** — `tableMinInlineSize`,
+ * P0-3. Under `table-fixed` a cell's `min-width` is ignored, so the identity
+ * column's floor has to be carried by the one box that can hold it; below it
+ * the scroll container overflows instead of the column collapsing.
  *
  * Rules applied
  *   §14.4/AC-112
@@ -108,6 +129,7 @@
  */
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Download } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -137,7 +159,13 @@ import {
   type Translate,
 } from '@/lib'
 import type { PinRefusal, PinnableColumn, TableSorting } from '@/hooks'
-import { useAnnounce, useColumnPinning, useColumnVisibility, useRovingFocus } from '@/hooks'
+import {
+  useAnnounce,
+  useColumnPinning,
+  useColumnVisibility,
+  useCompactShell,
+  useRovingFocus,
+} from '@/hooks'
 import type { AnyTable } from '@/hooks'
 import { EmptyState, type EmptyAction } from './EmptyState'
 import { ErrorState } from './ErrorState'
@@ -146,13 +174,27 @@ import { ColumnHeaderCell } from './table/ColumnHeaderCell'
 import { ColumnLayoutPopover } from './table/ColumnLayoutPopover'
 import { AddFilterPopover, FilterChipRow } from './table/FilterChipRow'
 import { IndexToolbar, type ToolbarTab } from './table/IndexToolbar'
+import { NarrowRowCards } from './table/NarrowRowCards'
 import { SortControl } from './table/SortControl'
 import {
+  emphasisOf,
   filterEntries,
   filterFieldOf,
+  isolatesValue,
   type DataColumn,
   type ExtraFilterSpec,
 } from './table/columns'
+import { densityClasses, useTableDensity } from './table/density'
+import { tableCsvFilename, tableCsvText } from './table/csv'
+/* **`downloadCsv` is imported, not re-implemented.** It already serves the
+   Report Builder, Admin › Data and the export card, and it carries two
+   decisions this file must not get to re-take: a blob URL rather than a data
+   URI, because a 3,200-row file is refused as a data URI by more than one
+   browser, and the object URL revoked immediately, because one that is never
+   revoked keeps the whole blob alive for the life of a tab an operations
+   console keeps open all day. The module it lives in imports one TYPE and
+   nothing else, so this edge is not a cycle back into the screens layer. */
+import { downloadCsv } from '@/screens/reports/csv'
 import { RowActionMenuItem, SingleRowAction, type RowAction } from './table/rowActions'
 import {
   ACTION_LANE_WIDTH_PX,
@@ -166,6 +208,7 @@ import {
 
 export type {
   ColumnDataType,
+  ColumnEmphasis,
   ColumnFilterOption,
   ColumnFilterSpec,
   DataColumn,
@@ -306,40 +349,119 @@ export interface DataTableProps<T> {
   learnMore?: ReactNode
   /** §11.3 — which skeleton shape. Defaults from the mode. */
   skeletonPattern?: 'P1' | 'P7' | 'P8'
-  /** Custom predicate for critical / error / breached row styling (red tint). */
+  /**
+   * **R5a — which rows are critical, DECLARED by the screen.**
+   *
+   * Omitted means **no row on this table is critical**, and that is a correct
+   * answer rather than a gap: a row tinted by accident is worse than a row not
+   * tinted at all, because the operator's only available reading of an
+   * inconsistent tint is *"the highlighting is broken."*
+   *
+   * This used to fall back to a duck-typing sweep — `r.flagged`, `r.starved`,
+   * `r.unlinked`, `r.status === 'escalated'`, `r.balanceHalalas < 0`, and a
+   * `r.sourcePaymentId === null && 'refundId' in r` clause that matched no
+   * type in the product. Two audits found it independently and a third read the
+   * symptom off the screen: on `/operations/trips`, `TRP-8001` (Cancelled) is
+   * tinted and `TRP-9003` (Cancelled) is not, because one carries the unrelated
+   * `flagged` bit and nothing in the row says so. The same sweep tinted every
+   * credit-normal account on the trial balance, whose `balanceHalalas` is
+   * *signed on the account's normal side* and negative by design.
+   *
+   * It is the same defect as the row-click label regex and the
+   * `columnIndex === 0` emphasis: **behaviour inferred from the shape of a
+   * value instead of read from a declaration.** The screen knows what critical
+   * means for its own rows; this component cannot.
+   */
   isRowCritical?: (row: T) => boolean
   /** Custom class generator per row. */
   rowClassName?: (row: T) => string | undefined
   /** Handler when any row is clicked to open/view */
   onRowClick?: (row: T) => void
+  /**
+   * **The row carries an avatar or a thumbnail**, and so takes the taller media
+   * pitch (`--ev-row-h-media`, 60px) instead of the single-line one
+   * (`--ev-row-h`, 40px).
+   *
+   * **Defaults to `false`, and the default is the fix.** Every non-ledger table
+   * took media pitch unconditionally — `isLedger ? 'h-row' : 'h-row-media'` —
+   * whether or not it had any media in it. Measured consequence at 1512x900:
+   * 204px of chrome leaves 644px, which is **10.7 rows**. At 40px it is 16.
+   * Four tables actually carry an avatar (the People views, via `Identity` in
+   * `screens/operations/people/cells.tsx`); the other eighteen were paying 20px
+   * a row for a picture they do not show.
+   *
+   * All three independent audits reached this finding, and none of the static
+   * passes could see it — it took running the app and counting rows.
+   */
+  rowMedia?: boolean
   /** Enables infinite scroll instead of manual pagination buttons (defaults to true). */
   infiniteScroll?: boolean
   className?: string
 }
 
-function checkRowCritical<T>(row: T, customIsCritical?: (row: T) => boolean): boolean {
-  if (customIsCritical) return customIsCritical(row)
-  if (!row || typeof row !== 'object') return false
-  const r = row as Record<string, unknown>
-  if (r.starved) return true
-  if (r.state === 'failed') return true
-  if (r.status === 'escalated' || r.status === 'breached') return true
-  if (r.isBreached || r.breached) return true
-  if (r.unlinked) return true
-  if (r.flagged) return true
-  if (typeof r.balanceHalalas === 'number' && r.balanceHalalas < 0) return true
-  if (
-    typeof r.capHalalas === 'number' &&
-    typeof r.balanceHalalas === 'number' &&
-    r.balanceHalalas >= r.capHalalas
-  ) {
-    return true
-  }
-  const clock = r.clock as Record<string, unknown> | undefined
-  if (clock && (clock.breached || clock.kind === 'breached')) return true
-  if (r.sourcePaymentId === null && 'refundId' in r) return true
-  return false
+/**
+ * **A2 — the one place a table cell's value is bidi-isolated** (`docs/ref/i18n.md`).
+ *
+ * Applied here rather than at the ~200 `cell:` call sites, and driven by
+ * `isolatesValue(column)` — declared meaning, never the value. What it buys is
+ * a cell whose value cannot be reordered by the OTHER content in the same
+ * cell: a translated label beside a phone number, `Due` beside a timestamp,
+ * a count beside a word. A cell holding one value alone is its own bidi
+ * paragraph and never needed help.
+ *
+ * ## Why there is no `dir="ltr"` on it, which is the finding
+ *
+ * `lib/i18n/isolate.ts` lists `date` and `money` among the eight runs that must
+ * be PINNED `ltr` because they contain no strong character. That reasoning is
+ * sound for `+966 55…` and wrong for a translated date, and the difference only
+ * shows up in a browser. Measured at 1280 under `dir="rtl"`, on the logical
+ * string `25 يونيو 09:39`:
+ *
+ * | rendering | visual, left to right |
+ * |---|---|
+ * | no isolation | `09:39 يونيو 25` — an RTL line; read right to left it IS `25 يونيو 09:39` |
+ * | `<bdi>` (`auto`) | `09:39 يونيو 25` — identical |
+ * | `<bdi dir="ltr">` | **`25 09:39 يونيو`** — the day and the time adjacent, the month orphaned |
+ *
+ * The third one is wrong in **either** reading direction, and it is what
+ * pinning produces: UBA rule W2 turns the digits following an Arabic letter
+ * into Arabic Numbers, which take a level two higher than the month and jump
+ * over it. A run with no strong character at all — `+966 55 123 4567`,
+ * `4 / 5`, `0.00 SAR` — resolves LTR under `auto` anyway, so `auto` is right
+ * where `ltr` is right and right where `ltr` is not. Recorded against
+ * `isolate.ts`'s `date` member for its owner.
+ *
+ * ## Why the `<bdi>` is an `inline-block` and not the block itself
+ *
+ * `isolate.ts` §5.4: **the `<bdi>` goes INSIDE the box, never as the box.** A
+ * stretched `<bdi>` whose content resolves LTR aligns its own text to *its*
+ * start, so under `dir="rtl"` the value flushes to the wrong edge — the defect
+ * the metric tiles shipped. `inline-block` makes it shrink-to-fit, so the
+ * outer `<span>` keeps the page's direction and does the aligning exactly as
+ * it did before. `max-w-full` caps the shrink-to-fit at the column so
+ * `truncate` still truncates; `align-top` because an `inline-block` containing
+ * an `overflow: hidden` child takes its baseline from its bottom margin edge
+ * (CSS 2.1 §10.8.1) and would otherwise shift every isolated row.
+ *
+ * **`secondaryLine` is deliberately NOT isolated.** Its content is genuinely
+ * mixed across the 30 columns that declare one — an id in Revenue, a plan's
+ * Arabic name in Pricing (already `<bdi dir="rtl">`), a whole translated
+ * sentence in Alerts — and the column's `dataType` describes the *primary*
+ * value, so there is no declaration here to key off. Isolating a translated
+ * sentence from its own line is this defect with the sign flipped.
+ */
+function CellValue({ isolated, children }: { isolated: boolean; children: ReactNode }) {
+  return (
+    <span className="block">
+      {isolated ? (
+        <bdi className="inline-block max-w-full align-top">{children}</bdi>
+      ) : (
+        children
+      )}
+    </span>
+  )
 }
+
 
 export function DataTable<T>(props: DataTableProps<T>) {
   const {
@@ -372,6 +494,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     learnMore,
     skeletonPattern,
     onRowClick,
+    rowMedia = false,
     infiniteScroll = true,
     className,
   } = props
@@ -410,7 +533,33 @@ export function DataTable<T>(props: DataTableProps<T>) {
    * AC-46 inseparable in one line, and a screen that declares no command loses
    * its checkbox with nobody editing it.
    */
-  const selectable = !isLedger && table.canSelect && (bulkActions?.length ?? 0) > 0
+  /**
+   * **The compact render mode's one switch.** `useCompactShell` reads the media
+   * query off `--ev-bp-compact` and subscribes to it, so a rotation crosses
+   * the boundary without a reload, and `src/test/setup.ts` shims `matchMedia`
+   * to report `false` — every existing test sees the desktop table and none of
+   * them change behaviour.
+   *
+   * **A boolean, not a `compact:` variant, and the reason is the DOM.** The
+   * variant would mean rendering both trees on all forty screens and hiding
+   * one, which runs every `column.cell(row)` twice, mints two roving-focus
+   * groups and two elements for every `id`. A branch renders exactly one — and
+   * it is also what makes *"the desktop rendering is unchanged"* provable
+   * rather than asserted: at 768 and above the card subtree is not in the
+   * document at all.
+   */
+  const compact = useCompactShell()
+
+  /**
+   * **`&& !compact` is the whole of the owner's bulk-selection ruling.**
+   * Below the breakpoint bulk selection is ABSENT, not disabled
+   * (`globals.css` §2.3 — *"Disabled does not exist"*). One predicate takes the
+   * lane, the header checkbox, every row checkbox, the selected row state and
+   * the floating bulk bar out together, because all five already read this
+   * flag; four separate suppressions would be four places for one of them to
+   * be forgotten. The reasoning is recorded in `NarrowRowCards`.
+   */
+  const selectable = !isLedger && table.canSelect && (bulkActions?.length ?? 0) > 0 && !compact
 
   /**
    * **D8 — the actions cell's shape comes from the COUNT of declared actions,
@@ -454,6 +603,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
     actionShape === 'direct'
       ? (rowActionsWidth ?? SINGLE_ACTION_LANE_WIDTH_PX * declaredActions.length)
       : ACTION_LANE_WIDTH_PX
+
+  /**
+   * **P0-2 — the row-click target, and the only place it can come from.**
+   *
+   * `RowAction.rowClick` is declared data on the action. It replaces a regex
+   * over the **translated** label with `?? declaredActions[0]` behind it, which
+   * meant a screen declaring one destructive action got that action on a plain
+   * row click — `EmailLogCard`'s unconfirmed `Resend`, `ApiKeysCard`'s rotate,
+   * `WebhookDeliveryLogCard`'s replay. See `rowActions.tsx` for the contract
+   * and the rule for declaring it.
+   *
+   * No match is a legitimate answer and means **no row click**: no handler is
+   * attached and no `cursor-pointer` is painted, so the affordance and the
+   * behaviour cannot disagree. There is deliberately no fallback of any kind —
+   * not the first action, not the first control in the first cell. Both were
+   * inference, and inference is what this defect was.
+   */
+  const primaryRowAction = declaredActions.find((action) => action.rowClick === true)
 
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
 
@@ -508,9 +675,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
          vacuous: **a table that overflows has no residual to distribute, so the
          identity column renders at exactly its `minWidth`.** Pinning only means
          anything while the table overflows, so the offset computed from
-         `minWidth` is exact at every moment it is used. Reported to the
-         designer as a genuine §7.3-rule-2 vs §7.2 conflict rather than fixed
-         silently. */
+         `minWidth` is exact at every moment it is used.
+
+         **P0-3 made that reconciliation true.** It was previously an assertion
+         about a `min-width` the browser was ignoring — under `table-fixed` the
+         identity column could and did render NARROWER than its `minWidth`, at
+         which point every offset below was wrong by the difference. The floor
+         now lives on the `<table>` as `min-inline-size` (`tableMinInlineSize`),
+         so the residual reaching zero and the identity column reaching
+         `minWidth` are the same moment, which is what the paragraph above
+         always claimed. */
       const declared = column.width ?? column.minWidth
       const sizeable = typeof declared === 'number' && Number.isFinite(declared) && declared > 0
       list.push({
@@ -710,7 +884,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
    *
    * A ledger keeps `--ev-row-h`: it is a different table, and R20 is per table.
    */
-  const rowHeightClass = isLedger ? 'h-row' : 'h-row-media'
+  /* A ledger is always single-line; everything else takes media pitch only if
+     it declares media. See `rowMedia`. */
+  /**
+   * **`ui.density`, and this is its first consumer** — see `table/density.ts`
+   * for what compact measures and why it is not the 40px row docs `13` and `15`
+   * assumed.
+   *
+   * The density is read here rather than taken as a prop: it is one preference
+   * for every index in the product, and a prop means twenty-two screens
+   * forwarding a value none of them owns. R20 still holds — the height is the
+   * TABLE's and lands on the row and on every cell, so a cell's line box still
+   * cannot move one row relative to its neighbours.
+   */
+  const density = useTableDensity()
+  const pitch = densityClasses(density, !isLedger && rowMedia)
+  const rowHeightClass = pitch.row
 
   const selectedCount = selectable ? table.selectedCount : 0
   /* `selectOnly` is on the selectable variants only. `selectable` narrows it at
@@ -793,6 +982,46 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const range = pageRange(table.page, table.pageSize, total)
   const columnCount = visible.length + (selectable ? 1 : 0) + (kebabs ? 1 : 0)
 
+  /**
+   * **P0-3 — the identity column's floor, on the element that can enforce it.**
+   *
+   * `ui/table.tsx` sets `table-fixed`, and under `table-layout: fixed`
+   * **`min-width` on a cell is ignored**: a column is exactly as wide as the
+   * first row declares, and a column that declares nothing takes the residual —
+   * including a residual of zero. `pinning.ts` emitted `minWidth` for the
+   * identity column and asserted in a comment that this was *"what stops the
+   * residual from being zero"*. It never did. Audit C measured the consequence
+   * on `/operations/trips`: the `Trip` column at **0px at 1152 and 38px at
+   * 1280**, every row an avatar with no id and no route.
+   *
+   * The floor is a property of the TABLE, which is the box that can carry a
+   * `min-inline-size`, so that is where it goes: Σ of every declared column
+   * width, plus the identity column's `minWidth`, plus the two implicit lanes.
+   * `w-full` still wins whenever the container is wider — the identity column
+   * goes on absorbing 100 % of the residual, which is §7.3 rule 2 — and below
+   * that point the table stops shrinking and the container's existing
+   * `overflow-x-auto` produces a scrollbar instead of a 0px column.
+   *
+   * This is also what makes §7.2's pinned offsets true rather than nearly true.
+   * They are computed from `width ?? minWidth`, which is exact only when there
+   * is no residual to distribute; the floor is precisely the width at which the
+   * residual reaches zero, so the arithmetic and the layout now agree at every
+   * width where pinning is visible.
+   *
+   * `minInlineSize`, not `minWidth`: this table ships Arabic.
+   *
+   * A resized column counts at its resized width, so dragging a column wider
+   * pushes the floor out rather than eating the identity column.
+   */
+  const tableMinInlineSize = useMemo(() => {
+    let total = selectable ? LANE_WIDTH_PX : 0
+    for (const column of visible) {
+      total += columnWidths[column.id] ?? column.width ?? column.minWidth ?? 0
+    }
+    if (kebabs) total += actionLaneWidth
+    return total
+  }, [selectable, visible, columnWidths, kebabs, actionLaneWidth])
+
   const entries = useMemo(() => filterEntries(columns, extraFilters), [columns, extraFilters])
 
   const chipProps = {
@@ -841,11 +1070,34 @@ export function DataTable<T>(props: DataTableProps<T>) {
     )
   const laneClass = (id: string, isCritical?: boolean) =>
     cn(
+      /* The density's cell half. On EVERY body cell, including the two implicit
+         lanes and the skeleton's: `ui/table.tsx` declares `h-row px-3 py-2` on
+         the primitive, so a compact override applied to the data cells alone
+         would leave the checkbox and the kebab holding the comfortable floor
+         and the row would not move. `cn` merges the `h-` and `py-` groups, and
+         `TableCell` takes `className` last, so this wins by construction rather
+         than by ordering luck. */
+      pitch.cell,
       id === KEBAB_COLUMN_ID ? undefined : 'w-10',
       pins.isPinned(id) && [
         'z-10',
+        /* **P1-4 — the critical ground, on token, and OPAQUE.** This was a
+           rose palette literal at 95 % alpha, and the alpha existed only so the
+           class could blend down onto the white beneath it. `--ev-row-critical`
+           IS that blended value, so the alpha leaves with the literal and
+           AC-111's opaque pinned cell stops depending on one — an alpha here is
+           the one thing that lets scrolling content show through a frozen
+           column.
+
+           **The class name is described rather than spelled, and that is not
+           style.** Tailwind v4 scans comments as plain text and has no idea
+           what a comment is: naming the literal in backticks MINTED IT, and the
+           rule for a palette colour this file exists to have removed was
+           shipping in `dist` on the strength of the sentence saying so.
+           `ChartCard.tsx:104` records the same leak and `scratch/prose-class-
+           leak.mjs` is the check. Verify in `dist`, never in `src`. */
         isCritical
-          ? 'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 group-data-[state=selected]/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85 dark:group-focus-within/row:bg-rose-950/85'
+          ? 'bg-row-critical group-hover/row:bg-row-critical-emphasis group-focus-within/row:bg-row-critical-emphasis group-data-[state=selected]/row:bg-row-critical-emphasis'
           : 'bg-card group-hover/row:bg-accent group-focus-within/row:bg-accent group-data-[state=selected]/row:bg-accent',
       ],
     )
@@ -941,7 +1193,38 @@ export function DataTable<T>(props: DataTableProps<T>) {
     </TableHeader>
   )
 
-  const handleTableRowClick = (row: T, e: React.MouseEvent<HTMLTableRowElement>) => {
+  /**
+   * **The row-open contract, and it is ONE function.**
+   *
+   * P0-2 replaced a regex over the translated label with a declared
+   * `rowClick`, and the keyboard path must arrive through the same door or the
+   * defect comes back through the other one: a second resolution would be a
+   * second answer to *"what does opening this row do"*, and the two would
+   * diverge on the first screen that declares an action the mouse path refuses.
+   *
+   * §11.2 gates at RENDER, so an action the operator may not take is dead in
+   * the lane. Neither a click nor an `Enter` may be a second, ungated way to
+   * reach it — which is why the `disabled` predicate is consulted here rather
+   * than only where the button is drawn.
+   */
+  const activateRow = (row: T) => {
+    if (onRowClick) {
+      onRowClick(row)
+      return
+    }
+    /* Only the DECLARED target. There is deliberately no fallback of any kind
+       — not the first action, not the first control in the first cell. Both
+       were inference, and inference is what P0-2 was. */
+    if (!primaryRowAction) return
+    if (primaryRowAction.disabled?.(row) === true) return
+    primaryRowAction.onSelect(row)
+  }
+
+  /* `HTMLElement`, not `HTMLTableRowElement`: the handler reads `e.target` and
+     nothing else, and the compact card is a `<div>` rather than a `<tr>`. One
+     handler for both modes is what makes P0-2 — no destructive action reachable
+     by a row click — true at both widths without a second review. */
+  const handleTableRowClick = (row: T, e: React.MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement | null
     if (
       target?.closest(
@@ -951,33 +1234,47 @@ export function DataTable<T>(props: DataTableProps<T>) {
       return
     }
 
-    if (onRowClick) {
-      onRowClick(row)
-      return
-    }
+    activateRow(row)
+  }
 
-    if (declaredActions.length > 0) {
-      const openAction =
-        declaredActions.find((a) =>
-          /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label),
-        ) ?? declaredActions[0]
-
-      if (openAction) {
-        const isDisabled =
-          typeof openAction.disabled === 'function' ? openAction.disabled(row) : openAction.disabled
-        if (!isDisabled) {
-          openAction.onSelect(row)
-          return
-        }
-      }
-    }
-
-    const firstInteractive = e.currentTarget.querySelector<HTMLElement>(
-      'td:first-of-type button, td:first-of-type a, td:nth-of-type(2) button, td:nth-of-type(2) a',
-    )
-    if (firstInteractive && firstInteractive !== target) {
-      firstInteractive.click()
-    }
+  /**
+   * **P3-12 — export what the operator is looking at.**
+   *
+   * Twenty-two index tables could not export a row while `downloadCsv` had been
+   * serving three other surfaces since wave 3. Finance staff on Payouts,
+   * Ledger, Cash and Wallets had no way to get a figure out except by retyping
+   * it, which is how a console loses the argument to a spreadsheet.
+   *
+   * **The view, not the resource.** `rows` is what the table is holding, in the
+   * order it is holding it; `visible` is the column set the operator chose;
+   * `table.query` and `table.filters` are what narrowed it. A button that
+   * dumped the collection would answer a different question from the one on
+   * screen, and the operator would have two numbers and no way to tell which
+   * one they had asked for. `total` goes in the header block for the same
+   * reason: a file holding page 1 of 4,000 says so.
+   *
+   * The clock is read here and passed in, so `tableCsvText` stays pure and the
+   * filename and the `exported_at` line can never name two different instants.
+   *
+   * §13.6 — announced, never toasted. R9/R10 spend a toast on a mutation of an
+   * object, and an export mutates nothing.
+   */
+  const handleExport = () => {
+    const exportedAt = new Date().toISOString()
+    const text = tableCsvText({
+      tableId,
+      view,
+      columns,
+      visible,
+      rows,
+      query: table.query,
+      filters: table.filters,
+      sort: rawSorting?.sort ?? null,
+      total,
+      exportedAt,
+    })
+    downloadCsv(tableCsvFilename(tableId, view, exportedAt), text)
+    announce(t('table.announce.exported', { count: formatCount(rows.length) }))
   }
 
   const handleTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -990,28 +1287,156 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
   }
 
-  const hasRowClickAction = Boolean(
-    onRowClick ||
-    declaredActions.some((a) =>
-      /view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label),
-    ) ||
-    declaredActions.length > 0,
-  )
+  /* The affordance and the behaviour come from the SAME test, so a row can
+     never paint `cursor-pointer` over nothing, nor act on a click it gave no
+     sign it would take. */
+  const hasRowClickAction = onRowClick !== undefined || primaryRowAction !== undefined
+
+  /**
+   * **P1-5 — the rows are a roving-focus group, and until now they were not a
+   * keyboard destination at all.**
+   *
+   * The body painted `cursor-pointer` on every row of every table with a
+   * declared row action and offered no key that could take it. A pointer-only
+   * affordance on the product's primary navigation gesture is a 2.1.1 failure
+   * on forty screens at once.
+   *
+   * `useRovingFocus` already runs the rail, the sub-tab column and this table's
+   * own header row — every group in the product except the one an operator
+   * spends the day in. The model is the same one those three use, which is what
+   * makes it learnable rather than a fourth convention:
+   *
+   * | key | |
+   * |---|---|
+   * | `Tab` | **one stop for the whole grid**, not one per row — 25 rows contribute a single tabindex 0 |
+   * | `↑` / `↓` | move between rows; `loop: false`, so the ends are the ends and focus does not wrap silently past the last record |
+   * | `Home` / `End` | first and last row |
+   * | `Enter` / `Space` | `activateRow` — the SAME contract the click takes |
+   * | `Escape` | **untouched.** `useRovingFocus` returns from its `default` branch without `preventDefault`, so a row never swallows the key a sheet, a dialog or the command palette above it is listening for |
+   *
+   * `orientation: 'vertical'` takes no `direction`: `ArrowDown` is down in
+   * every language, which is the same reason the rail and the sub-tab list need
+   * no RTL branch and the header row — horizontal — does.
+   *
+   * **The in-row controls keep their own tab stops**, and that is a decision
+   * rather than an omission. A full `role="grid"` would take the checkbox, the
+   * identity link and the kebab out of the tab order until their row is active;
+   * two written accessibility criteria assert the opposite today
+   * (`financials/keyboard.test.tsx` — *"a ledger's source link takes focus from
+   * the keyboard alone"* and *"both row actions are reachable and operable from
+   * the keyboard alone"*), and overturning them is a design decision, not a
+   * refactor. Recorded in the handoff with the measurement.
+   */
+  const rowRoving = useRovingFocus({
+    itemCount: rows.length,
+    orientation: 'vertical',
+    loop: false,
+  })
+
+  /**
+   * **The grid keeps exactly one tab stop even after the row set shrinks.**
+   *
+   * `useRovingFocus` holds its own `activeIndex`, and a filter, a page or a
+   * cleared query can leave that index past the end of `rows` — at which point
+   * no row matches, every row is `tabIndex: -1`, and the grid drops out of the
+   * tab order entirely. Clamping here rather than resetting the hook's state
+   * keeps the operator's place when the list grows back (infinite scroll
+   * appends), and costs nothing when it has not moved.
+   */
+  const activeRowIndex = Math.min(rowRoving.activeIndex, Math.max(0, rows.length - 1))
+
+  /**
+   * **The row's declared actions, built ONCE and rendered in two places.**
+   * The desktop lane puts this inside a pinned `TableCell`; the compact card
+   * puts it at the card's inline-end with no lane to pin to. Extracting it is
+   * what stops the two modes drifting — D8's *"one action is a button, not a
+   * menu"* is a rule about the COUNT of declared actions, and a second copy of
+   * that rule is a second place for it to be got wrong.
+   *
+   * Nothing about the desktop output changes: the JSX below is the lane's
+   * former contents, moved and not rewritten, which is why the column widths
+   * and the row pitch measure identical at 1440.
+   */
+  const rowActionControls = (row: T, id: string): ReactNode =>
+    actionShape === 'direct' ? (
+      /* One or two, side by side. The lane was sized from the same count
+         above, so two never overflow into the cell beside them. */
+      <div className="flex items-center justify-end gap-1">
+        {declaredActions.map((action) => (
+          /* `label` is the key: `RowAction` has no id, and two actions on one
+             row with the same label would be a defect in the caller rather
+             than a collision here. */
+          <SingleRowAction key={action.label} action={action} row={row} />
+        ))}
+      </div>
+    ) : (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('table.rowActions', { row: id })}
+            /* AC-68 / D19 — ALWAYS rendered. Muted at rest; ink plus a fill on
+               the row's hover OR its focus-within. Never zero opacity. */
+            className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
+          >
+            <span aria-hidden="true">⋯</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {declaredActions.map((action) => (
+            /* §11.2 — disabled in place, and with its reason on a second line
+               inside the item (§8.4.4). Never a tooltip. */
+            <RowActionMenuItem key={action.label} action={action} row={row} />
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+
+  const rowItemProps = (index: number, row: T) => {
+    const base = rowRoving.itemProps(index)
+    return {
+      ...base,
+      tabIndex: (index === activeRowIndex ? 0 : -1) as 0 | -1,
+      onKeyDown: (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+        /* **Only while the ROW itself holds focus.** A checkbox, a menu trigger
+           or a link inside the row owns its own keys, and a row that read
+           `ArrowDown` out of a control's own handler would move focus out from
+           under whatever the operator was actually using. */
+        if (event.target !== event.currentTarget) return
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          if (!hasRowClickAction) return
+          /* `Space` scrolls the nearest scroll container by default, and the
+             nearest one here is the table's own — so activating a row would
+             also jump the body a page down. */
+          event.preventDefault()
+          activateRow(row)
+          return
+        }
+
+        base.onKeyDown(event)
+      },
+    }
+  }
 
   return (
     /* **§7.2 / D-19 — the bands, and the page does not scroll.**
        The four bands below are siblings on the white content ground, not a
-       stack inside a card. Bands 2, 3 and 5 are `flex-none`; band 4 is
-       `flex-1 min-h-0` and owns `overflow: auto` on both axes. `gap-3` is
-       §1.2's twelve, declared once: 2→3, 3→4 and 4→5 are all 12 and there is
-       no fourth number in this composition.
+       stack inside a card. Bands 2, 3 and 5 do not flex; band 4 does, carries a
+       zero minimum, and owns `overflow: auto` on both axes. The twelve is
+       §1.2's, declared once: 2→3, 3→4 and 4→5 are all 12 and there is no fourth
+       number in this composition.
 
        Consequences, all of them wanted: the pagination row is always in the
        viewport (it sat at y = 1278 in an 820px one, so the owner had literally
        never seen it — match audit N2); the horizontal scrollbar is always in
        the viewport (craft-critique F1 part 3 put it ~430px below the fold);
        and `<thead>`'s sticky finally works, because the scroller has a height
-       constraint for the first time. The declarations were already correct. */
+       constraint for the first time. The declarations were already correct.
+
+       The zero-PERCENT basis is load-bearing twice over — see the D-19 note in
+       the file header. Do not "simplify" it to a content basis. */
     <div className={cn('flex min-h-0 w-full flex-1 flex-col gap-3', className)}>
       {/* **BAND 2 — the control row.** §7.1 / D-18: there is no card, so this
           sits on the page ground. AC-112 still holds — it is outside the
@@ -1046,6 +1471,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
         }
         sortControl={
           sorting === null ? null : <SortControl t={t} sorting={sorting} columns={columns} />
+        }
+        /* Only where there is something to export. In `loading`, `error` and
+           both empties `rows` is empty, and a control that hands the operator a
+           file with a header block and no records is a control that has to be
+           explained. */
+        exportControl={
+          status === 'content' && rows.length > 0 ? (
+            <Button variant="secondary" onClick={handleExport}>
+              <Download aria-hidden="true" />
+              {t('table.export')}
+            </Button>
+          ) : null
         }
       />
 
@@ -1131,217 +1568,322 @@ export function DataTable<T>(props: DataTableProps<T>) {
             />
           ))}
 
-        {(status === 'content' || refreshing) && (
-          /* §14.4 — ONE scroll container per table, wrapping the `<table>`, and
-             under D-19 it is now the BOUNDED one: `flex-1 min-h-0` with
-             `overflow: auto` on both axes and §7.2's floor guard,
-             `min-block-size: calc(36px + 3 × 60px)` = 216. Below that the page
-              itself scrolls, which is the documented fallback and not a second
-             breakpoint. `overscroll-behavior-inline: contain` so a trackpad
-             flick at the end of a wide table does not trigger the browser's
-             back-navigation gesture. */
-          <Table
-            containerRef={scrollRef}
-            containerClassName="min-h-54 flex-1 overflow-y-auto"
-            onScroll={handleTableScroll}
-          >
-            {headerRow}
+        {(status === 'content' || refreshing) &&
+          /* **The compact render mode.** Below `--ev-bp-compact` a nine-column
+             grid cannot be narrowed into a 390px viewport: under
+             `table-layout: fixed` the width model IS the declared column
+             widths, and `min-width` on a cell does nothing, so there is no
+             width tweak that turns nine columns into three. It is a different
+             rendering or it is nothing. `NarrowRowCards` carries the reasoning,
+             including what is deliberately unavailable there.
 
-            <TableBody>
-              {/* §9.2 / AC-49 — a ledger OPENS with a labelled opening balance. */}
-              {isLedger && ledgerBoundaryRows && (
-                <TableRow className="font-semibold">
-                  <TableCell colSpan={columnCount}>{ledgerBoundaryRows.opening}</TableCell>
-                </TableRow>
+             A ternary and not a variant: at 768 and above the card subtree is
+             not in the document, so the desktop rendering is unchanged by
+             construction rather than by assertion. */
+          (compact ? (
+            <NarrowRowCards
+              rows={rows}
+              /* The VISIBLE set, so the columns popover governs both modes. */
+              visible={visible}
+              /* The DECLARED set — `emphasisOf` anchors to this, never to the
+                 visible one, which is what stops hiding a column moving which
+                 value becomes the card's heading. */
+              declared={columns}
+              getRowId={getRowId}
+              isRowCritical={props.isRowCritical}
+              rowClassName={props.rowClassName}
+              hasRowClickAction={hasRowClickAction}
+              onRowClick={handleTableRowClick}
+              rowItemProps={rowItemProps}
+              renderRowActions={kebabs ? rowActionControls : undefined}
+              cellValue={(isolated, children) => (
+                <CellValue isolated={isolated}>{children}</CellValue>
               )}
+              boundary={isLedger ? ledgerBoundaryRows : null}
+            />
+          ) : (
+            /* §14.4 — ONE scroll container per table, wrapping the `<table>`, and
+               under D-19 it is the BOUNDED one: it flexes on both counts with
+               `overflow: auto` on both axes and §7.2's floor guard,
+               `min-block-size: calc(36px + 3 × 60px)` = 216. Below that the page
+                itself scrolls, which is the documented fallback and not a second
+               breakpoint. `overscroll-behavior-inline: contain` so a trackpad
+               flick at the end of a wide table does not trigger the browser's
+               back-navigation gesture.
 
-              {refreshing
-                ? Array.from({ length: Math.max(rows.length, 5) }, (_, index) => (
-                    <TableRow
-                      key={`skeleton-${index}`}
-                      className={cn('group/row relative', rowHeightClass)}
-                    >
-                      {selectable && (
-                        <TableCell
-                          style={laneStyle(SELECT_COLUMN_ID)}
-                          className={laneClass(SELECT_COLUMN_ID)}
-                        >
-                          <Skeleton className="size-4" />
-                        </TableCell>
-                      )}
-                      {visible.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          style={pinnedStyle(
-                            pins.pinnedColumn(column.id),
-                            resolvedWidth(column),
-                            overflowing,
-                            column.minWidth,
-                          )}
-                          className={laneClass(column.id)}
-                        >
-                          <Skeleton className="h-3 w-full" />
-                        </TableCell>
-                      ))}
-                      {kebabs && (
-                        <TableCell
-                          style={laneStyle(KEBAB_COLUMN_ID)}
-                          className={laneClass(KEBAB_COLUMN_ID)}
-                        >
-                          <Skeleton className="size-4" />
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                : rows.map((row) => {
-                    const id = getRowId(row)
-                    const isCritical = checkRowCritical(row, props.isRowCritical)
-                    return (
+               In a page declared `flow` this same box reports the table's real
+               height instead and there is nothing to scroll INSIDE it, which is
+               the correct reading of "one scroll container": a nested scrollport
+               inside a scrolling page is two ways to move the same rows. */
+            <Table
+              containerRef={scrollRef}
+              containerClassName="min-h-54 flex-1 overflow-y-auto"
+              /* **P0-3** — see `tableMinInlineSize`. A style rather than a class
+                 because the value is arithmetic over the declared column widths
+                 and changes with the visible set, the resize handles and the
+                 actions lane; a utility cannot hold a computed number, and an
+                 arbitrary-value class here would be a new class name per screen. */
+              style={{ minInlineSize: tableMinInlineSize }}
+              onScroll={handleTableScroll}
+            >
+              {headerRow}
+
+              {/* P1-5 — the roving group's container. `useRovingFocus` finds its
+                  items by `[data-roving-item]` scoped to this node, so the body's
+                  rows and the header row's cells are two independent groups on
+                  two independent axes and neither can focus the other's items. */}
+              <TableBody ref={rowRoving.containerRef}>
+                {/* §9.2 / AC-49 — a ledger OPENS with a labelled opening balance. */}
+                {isLedger && ledgerBoundaryRows && (
+                  <TableRow className="font-semibold">
+                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.opening}</TableCell>
+                  </TableRow>
+                )}
+
+                {refreshing
+                  ? Array.from({ length: Math.max(rows.length, 5) }, (_, index) => (
                       <TableRow
-                        key={id}
-                        data-state={selectable && table.isSelected(id) ? 'selected' : undefined}
-                        onClick={(e) => handleTableRowClick(row, e)}
-                        /* `group` so the kebab and the pinned cells can respond
-                             to the row's hover AND its focus-within (AC-68).
-                             `relative` so a `RowCriticalMarker` can position
-                             against it — and because the marker rides the
-                             implicitly pinned first cell, it stays visible at
-                             every horizontal scroll offset (**AC-106**). */
-                        className={cn(
-                          'group/row relative transition-colors',
-                          rowHeightClass,
-                          hasRowClickAction && 'cursor-pointer hover:bg-muted/60',
-                          isCritical &&
-                            'bg-rose-50/70 hover:bg-rose-100/80 focus-within:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 dark:focus-within:bg-rose-950/50',
-                          props.rowClassName?.(row),
-                        )}
+                        key={`skeleton-${index}`}
+                        className={cn('group/row relative', rowHeightClass)}
                       >
                         {selectable && (
                           <TableCell
                             style={laneStyle(SELECT_COLUMN_ID)}
-                            className={laneClass(SELECT_COLUMN_ID, isCritical)}
+                            className={laneClass(SELECT_COLUMN_ID)}
                           >
-                            <Checkbox
-                              aria-label={t('table.selectRow')}
-                              checked={table.isSelected(id)}
-                              onCheckedChange={() => table.toggleRow(id)}
-                            />
+                            <Skeleton className="size-4" />
                           </TableCell>
                         )}
-
-                        {visible.map((column, columnIndex) => {
-                          const pinned = pins.pinnedColumn(column.id)
-                          return (
-                            <TableCell
-                              key={column.id}
-                              style={pinnedStyle(
-                                pinned,
-                                resolvedWidth(column),
-                                overflowing,
-                                column.minWidth,
-                              )}
-                              className={cn(
-                                column.align === 'end' && 'text-end',
-                                /* `03-navattic-language.md` §4.5, and the
-                                     match audit's largest single delta: **ink
-                                     belongs to the identity column; the rest of
-                                     the row is quieter.** Measured `#6b7280`
-                                     against our `#24242f` — about 3× too dark,
-                                     and a large part of why the table read
-                                     heavy. `TableCell` defaults to
-                                     `--ev-text-2` and index 0 takes it back. */
-                                columnIndex === 0 && 'text-foreground',
-                                laneClass(column.id, isCritical),
-                                pinned &&
-                                  isCritical &&
-                                  'bg-rose-50/95 group-hover/row:bg-rose-100/95 group-focus-within/row:bg-rose-100/95 dark:bg-rose-950/70 dark:group-hover/row:bg-rose-950/85',
-                              )}
-                            >
-                              <span className="block">{column.cell(row)}</span>
-                              {/* §9.1 — a 12px second line INSIDE the identity
-                                    cell. The row grows to fit; never truncates. */}
-                              {column.secondaryLine && (
-                                <span className="block text-xs text-muted-foreground">
-                                  {column.secondaryLine(row)}
-                                </span>
-                              )}
-                            </TableCell>
-                          )
-                        })}
-
+                        {visible.map((column) => (
+                          <TableCell
+                            key={column.id}
+                            style={pinnedStyle(
+                              pins.pinnedColumn(column.id),
+                              resolvedWidth(column),
+                              overflowing,
+                              column.minWidth,
+                            )}
+                            className={laneClass(column.id)}
+                          >
+                            <Skeleton className="h-3 w-full" />
+                          </TableCell>
+                        ))}
                         {kebabs && (
                           <TableCell
                             style={laneStyle(KEBAB_COLUMN_ID)}
                             className={laneClass(KEBAB_COLUMN_ID)}
                           >
-                            {/* **D8 — one action is a BUTTON, not a menu.**
-                                  §7.8. Still §11.2-gated: an action the role
-                                  cannot use renders disabled IN PLACE, because
-                                  the count that chose this shape is the count
-                                  of DECLARED actions and does not move per row.
-                                  AC-68 / D19 — visible at rest, never revealed
-                                  by hover. */}
-                            {actionShape === 'direct' ? (
-                              /* One or two, side by side. The lane was sized
-                                   from the same count above, so two never
-                                   overflow into the cell beside them. */
-                              <div className="flex items-center justify-end gap-1">
-                                {declaredActions.map((action) => (
-                                  /* `label` is the key: `RowAction` has no
-                                       id, and two actions on one row with the
-                                       same label would be a defect in the
-                                       caller rather than a collision here. */
-                                  <SingleRowAction key={action.label} action={action} row={row} />
-                                ))}
-                              </div>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    aria-label={t('table.rowActions', {
-                                      row: id,
-                                    })}
-                                    /* AC-68 / D19 — ALWAYS rendered. Muted at
-                                         rest; ink plus a fill on the row's hover
-                                         OR its focus-within. Never `opacity: 0`. */
-                                    className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
-                                  >
-                                    <span aria-hidden="true">⋯</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {declaredActions.map((action) => (
-                                    /* §11.2 — disabled in place, and with its
-                                         reason on a second line inside the item
-                                         (§8.4.4). Never a tooltip. */
-                                    <RowActionMenuItem
-                                      key={action.label}
-                                      action={action}
-                                      row={row}
-                                    />
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                            <Skeleton className="size-4" />
                           </TableCell>
                         )}
                       </TableRow>
-                    )
-                  })}
-            </TableBody>
+                    ))
+                  : rows.map((row, rowIndex) => {
+                      const id = getRowId(row)
+                      const isCritical = props.isRowCritical?.(row) ?? false
+                      return (
+                        <TableRow
+                          key={id}
+                          data-state={selectable && table.isSelected(id) ? 'selected' : undefined}
+                          /* P1-5 — `data-roving-item`, the single tabindex 0,
+                               the arrow handler and Enter/Space. See `rowRoving`. */
+                          {...rowItemProps(rowIndex, row)}
+                          /* P0-2 — no declared target means no handler at all,
+                               not a handler that quietly does nothing. */
+                          onClick={
+                            hasRowClickAction ? (e) => handleTableRowClick(row, e) : undefined
+                          }
+                          /* `group` so the kebab and the pinned cells can respond
+                               to the row's hover AND its focus-within (AC-68).
+                               `relative` so a `RowCriticalMarker` can position
+                               against it — and because the marker rides the
+                               implicitly pinned first cell, it stays visible at
+                               every horizontal scroll offset (**AC-106**). */
+                          /* A row-level hook for Defence 3 in `globals.css`. The
+                             derived critical ink is applied per CELL and scoped to
+                             `tier === 'meta'`, which cannot reach a nested span
+                             that sets its own colour — and two do
+                             (`rowActions.tsx`'s refusal line, `queues/cells.tsx`'s
+                             secondary line), both landing at 4.354:1 on the active
+                             ground. One attribute lets CSS catch every such site,
+                             including ones written after this. */
+                          data-row-critical={isCritical ? '' : undefined}
+                          className={cn(
+                            'group/row relative transition-colors',
+                            rowHeightClass,
+                            /* P1-5 — the ring for the stop that now exists.
+                                 INSET, because the global `:focus-visible` rule
+                                 offsets its outline by 2px and a row's outline
+                                 would then be drawn over its neighbours and
+                                 clipped at the scroll container's edges. 2px of
+                                 `--ring` against the row's own ground, so it is
+                                 visible on the critical tint and on the selected
+                                 fill as well as on white. */
+                            'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                            hasRowClickAction && 'cursor-pointer hover:bg-muted/60',
+                            /* **P1-4 — the critical row's ground, on token.**
+                                 `--ev-row-critical` / `--ev-row-critical-emphasis`
+                                 are the blended values the `/70` and `/80` alphas
+                                 used to produce, so the alphas leave with the
+                                 palette classes. The `dark:` half is DELETED
+                                 rather than tokenised: `.dark` is never applied
+                                 anywhere in this product and there is no dark
+                                 palette, so those classes could only ever have
+                                 painted a dark red row inside a white table. */
+                            isCritical &&
+                              'bg-row-critical hover:bg-row-critical-emphasis focus-within:bg-row-critical-emphasis',
+                            props.rowClassName?.(row),
+                          )}
+                        >
+                          {selectable && (
+                            <TableCell
+                              style={laneStyle(SELECT_COLUMN_ID)}
+                              className={laneClass(SELECT_COLUMN_ID, isCritical)}
+                            >
+                              <Checkbox
+                                aria-label={t('table.selectRow')}
+                                checked={table.isSelected(id)}
+                                onCheckedChange={() => table.toggleRow(id)}
+                              />
+                            </TableCell>
+                          )}
 
-            {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
-            {isLedger && ledgerBoundaryRows && (
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={columnCount}>{ledgerBoundaryRows.closing}</TableCell>
-                </TableRow>
-              </TableFooter>
-            )}
-          </Table>
-        )}
+                          {visible.map((column) => {
+                            const pinned = pins.pinnedColumn(column.id)
+                            const tier = emphasisOf(column, columns)
+                            return (
+                              <TableCell
+                                key={column.id}
+                                style={pinnedStyle(
+                                  pinned,
+                                  resolvedWidth(column),
+                                  overflowing,
+                                  column.minWidth,
+                                )}
+                                className={cn(
+                                  column.align === 'end' && 'text-end',
+                                  /* **H1 — the emphasis tier, declared.**
+                                       `03-navattic-language.md` §4.5 and the
+                                       match audit's largest single delta: **ink
+                                       belongs to the columns the operator came to
+                                       read; the rest of the row is quieter.**
+                                       Measured `#6b7280` against our `#24242f` —
+                                       about 3× too dark, and a large part of why
+                                       the table read heavy. `TableCell` defaults
+                                       to `--ev-text-2`; `primary` and `data` take
+                                       it back.
+
+                                       This was `columnIndex === 0`, which is the
+                                       same class of defect as P0-2's label regex
+                                       one directory over: it keyed the row's ink
+                                       off a position in the VISIBLE array, so
+                                       hiding or reordering a column moved the
+                                       emphasis onto whatever landed first. The
+                                       tier travels with the declaration and
+                                       nothing an operator does can move it. */
+                                  tier !== 'meta' && 'text-foreground',
+                                  tier === 'primary' && 'font-medium',
+                                  /* **P1-4's second half, and the half that
+                                       actually closes the defect.** Moving the
+                                       ground alone leaves every quiet cell on
+                                       `--muted-foreground` `#6b7280`, which
+                                       measures **4.354 : 1** on the active
+                                       critical ground — still under AA. The
+                                       derived ink measures 4.931 / 4.689.
+                                       `globals.css` states the law being broken:
+                                       darkening a surface without re-deriving the
+                                       ink on it is how a re-skin quietly drops
+                                       below AA.
+
+                                       Scoped to the `meta` tier rather than
+                                       ordered before the ink, because `cn` merges
+                                       last-wins and an ink-bearing column's
+                                       `text-foreground` is already 16.488 /
+                                       15.680 on this ground — the override would
+                                       have QUIETENED the columns that carry the
+                                       row's meaning. Following the TIER and not
+                                       the index is what keeps that true after H1:
+                                       a `data` column at position 4 is ink, so it
+                                       must not take the derived muted ink either. */
+                                  isCritical &&
+                                    tier === 'meta' &&
+                                    'text-row-critical-foreground',
+                                  laneClass(column.id, isCritical),
+                                  pinned &&
+                                    isCritical &&
+                                    'bg-row-critical group-hover/row:bg-row-critical-emphasis group-focus-within/row:bg-row-critical-emphasis',
+                                )}
+                              >
+                                {/* A2 — see `CellValue`. */}
+                                <CellValue isolated={isolatesValue(column)}>
+                                  {column.cell(row)}
+                                </CellValue>
+                                {/* §9.1 — a 12px second line INSIDE the identity
+                                      cell. The row grows to fit; never truncates. */}
+                                {column.secondaryLine && (
+                                  <span
+                                    className={cn(
+                                      'block text-xs text-muted-foreground',
+                                      /* This line names `text-muted-foreground`
+                                         itself, so the cell-level override above
+                                         cannot reach it — `#6b7280` on the
+                                         critical ground, 4.354 : 1. It takes the
+                                         derived ink directly. */
+                                      isCritical && 'text-row-critical-foreground',
+                                    )}
+                                  >
+                                    {column.secondaryLine(row)}
+                                  </span>
+                                )}
+                              </TableCell>
+                            )
+                          })}
+
+                          {kebabs && (
+                            <TableCell
+                              style={laneStyle(KEBAB_COLUMN_ID)}
+                              /* **`isCritical`, which this lane alone was not
+                                   passing.** The selection lane two blocks up has
+                                   always passed it; the actions lane did not, so
+                                   on a critical row the pinned end lane painted
+                                   `bg-card` — a white notch at the end of a
+                                   tinted row, and under AC-111 an OPAQUE white
+                                   one, so it stayed white at every scroll offset.
+                                   Found while measuring P1-4: the ground was the
+                                   only thing wrong with it, and tokenising the
+                                   other three sites would have left this one
+                                   white against the new tint. */
+                              className={laneClass(KEBAB_COLUMN_ID, isCritical)}
+                            >
+                              {/* **D8 — one action is a BUTTON, not a menu.**
+                                    §7.8. Still §11.2-gated: an action the role
+                                    cannot use renders disabled IN PLACE, because
+                                    the count that chose this shape is the count
+                                    of DECLARED actions and does not move per row.
+                                    AC-68 / D19 — visible at rest, never revealed
+                                    by hover.
+
+                                    The controls themselves are built by
+                                    `rowActionControls`, which the compact card
+                                    also calls. */}
+                              {rowActionControls(row, id)}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      )
+                    })}
+              </TableBody>
+
+              {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
+              {isLedger && ledgerBoundaryRows && (
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={columnCount}>{ledgerBoundaryRows.closing}</TableCell>
+                  </TableRow>
+                </TableFooter>
+              )}
+            </Table>
+          ))}
       </div>
 
       {/* **BAND 5 — the status/pagination row, OUTSIDE the table.** */}
@@ -1371,7 +1913,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           ) : (
             range.hasNext && (
               <span className="text-2xs text-muted-foreground">
-                {t('table.scrollMore', { defaultValue: 'Scroll for more' })}
+                {t('table.scrollMore')}
               </span>
             )
           )}

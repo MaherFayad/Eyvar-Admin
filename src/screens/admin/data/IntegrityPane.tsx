@@ -109,6 +109,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import { BlockedButton } from './BlockedButton'
+import { withFallback } from '../../operations/localCopy'
+import { ADMIN_DATA_EN } from './copy'
 
 /**
  * How many findings render before the operator asks for the rest.
@@ -138,7 +140,18 @@ type RunPhase = { kind: 'idle' } | { kind: 'running'; only: IntegrityCheckId | n
 
 export function IntegrityPane() {
   const shell = useShell()
-  const { t, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ADMIN_DATA_EN),
+    [shell.language.t],
+  )
+  const { language } = shell.language
   const location = useLocation()
   const announce = useAnnounce()
 
@@ -149,7 +162,13 @@ export function IntegrityPane() {
   const canRun = shell.permissions.permissions.includes('manage_settings')
   const blockedReason = canRun ? null : t('adminData.integrity.blocked.permission')
 
-  const catalogue = useAsync<IntegrityCheck[]>((signal) => listIntegrityChecks(signal), { deps: [] })
+  /* A static catalogue of check definitions; the fetcher takes only a signal.
+     After a run the pane prefers `run.checks`, so a warm entry can never
+     shadow a result the operator just produced. */
+  const catalogue = useAsync<IntegrityCheck[]>((signal) => listIntegrityChecks(signal), {
+    deps: [],
+    cacheKey: 'integrity.checks',
+  })
 
   const [run, setRun] = useState<IntegrityRun | null>(null)
   const [phase, setPhase] = useState<RunPhase>({ kind: 'idle' })
@@ -200,7 +219,7 @@ export function IntegrityPane() {
       <CardHeader className="gap-2 border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
               {t('adminData.integrity.title')}
             </CardTitle>
@@ -230,7 +249,7 @@ export function IntegrityPane() {
         </div>
 
         {ranChecks.length > 0 && (
-          <p className="text-2xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t(
               totalFindings === 0
                 ? 'adminData.integrity.runSummary.clean'
@@ -331,7 +350,7 @@ function CheckList({
           if (rows.length === 0) return []
           return [
             <TableRow key={`group-${group}`} className="bg-muted/40 hover:bg-muted/40">
-              <TableCell colSpan={5} className="py-1.5 text-2xs font-semibold text-muted-foreground">
+              <TableCell colSpan={5} className="py-1.5 text-xs font-semibold text-muted-foreground">
                 {t(groupKey(group))}
               </TableCell>
             </TableRow>,
@@ -340,10 +359,10 @@ function CheckList({
                 <TableCell className="align-top">
                   <span className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-foreground">{t(check.titleKey)}</span>
-                    <span className="max-w-xl text-2xs text-muted-foreground">{t(check.descriptionKey)}</span>
+                    <span className="max-w-xl text-xs text-muted-foreground">{t(check.descriptionKey)}</span>
                   </span>
                 </TableCell>
-                <TableCell className="align-top text-2xs text-muted-foreground">
+                <TableCell className="align-top text-xs text-muted-foreground">
                   {check.lastRunAt === null ? (
                     t('adminData.integrity.neverRun')
                   ) : (
@@ -496,7 +515,7 @@ function FindingsSection({
           {t('adminData.integrity.findings.title')}
         </h3>
         <span className="flex items-center gap-2">
-          <span className="text-2xs text-muted-foreground" id="integrity-grouping-label">
+          <span className="text-xs text-muted-foreground" id="integrity-grouping-label">
             {t('adminData.integrity.groupBy')}
           </span>
           <ToggleGroup
@@ -531,7 +550,7 @@ function FindingsSection({
             budget -= rows.length
             return [
               <TableRow key={`g-${group.key}`} className="bg-muted/40 hover:bg-muted/40">
-                <TableCell colSpan={4} className="py-1.5 text-2xs font-semibold text-muted-foreground">
+                <TableCell colSpan={4} className="py-1.5 text-xs font-semibold text-muted-foreground">
                   {t(
                     grouping === 'check'
                       ? 'adminData.integrity.groupHeading.check'
@@ -557,7 +576,7 @@ function FindingsSection({
       </Table>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2.5">
-        <span className="text-2xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {t('adminData.integrity.findings.showing', {
             shown: formatCount(shown, language),
             total: formatCount(flat.length, language),
@@ -594,7 +613,7 @@ function FindingRow({
           <span className="text-xs font-medium text-foreground">
             <bdi>{finding.entityLabel}</bdi>
           </span>
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             <bdi>{finding.entityId}</bdi>
             {' · '}
             {t('adminData.integrity.findings.field', { field: finding.field })}
@@ -605,7 +624,7 @@ function FindingRow({
       {/* Provenance. The reason this pane exists. */}
       <TableCell className="align-top">
         <span className="flex flex-col gap-1">
-          <span className="text-2xs text-foreground">{t(`integrity.check.${finding.checkId}.title`)}</span>
+          <span className="text-xs text-foreground">{t(`integrity.check.${finding.checkId}.title`)}</span>
           <span>
             <StatusBadge tone={INTEGRITY_SEVERITY_TONE[finding.severity]}>
               {t(`adminData.integrity.severity.${finding.severity}`)}
@@ -614,7 +633,7 @@ function FindingRow({
         </span>
       </TableCell>
 
-      <TableCell className="align-top text-2xs text-foreground">
+      <TableCell className="align-top text-xs text-foreground">
         <span className="flex flex-col gap-0.5">
           {/* §8.3 — the sentence carries integer halalas as named params and
               `formatLocalisedText` is the only thing that turns one into money.
@@ -638,14 +657,14 @@ function FindingRow({
                link and a button focus identically. Scale utilities only: the
                3px arbitrary value that shipped here first is exactly the class
                of drift `/token-audit` exists to catch. */
-            className="rounded-xs text-2xs font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+            className="rounded-xs text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
           >
             {t('adminData.integrity.findings.open')}
           </Link>
         ) : (
           /* §8.3.1 — stated in words, never an em dash on a state that has a
              cause. The record is real; nothing in the product opens it yet. */
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('adminData.integrity.findings.unopenable')}
           </span>
         )}

@@ -60,7 +60,10 @@ export function EntityPageScreen() {
   const { t, dir } = shell.language
 
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(entityId, signal), {
+    /* `entityId` is the only thing the fetcher varies on, so the key is honest
+       and Back out of a profile and into it again paints instead of skeletons. */
     deps: [entityId],
+    cacheKey: 'profile.resolve',
   })
 
   const notFound =

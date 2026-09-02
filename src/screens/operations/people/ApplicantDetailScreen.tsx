@@ -50,7 +50,7 @@
  *   AC-73        `<bdi>` on the numeric and date runs.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { approveApplicant, getApplicant, rejectApplicant } from '@/data/clients/applicants'
@@ -63,6 +63,8 @@ import { PageHeader } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
+import { withFallback } from '../localCopy'
+import { PEOPLE_EN } from './copy'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -75,11 +77,24 @@ export function ApplicantDetailScreen() {
   const shell = useShell()
   const navigate = useNavigate()
   const { applicantId = '' } = useParams<{ applicantId: string }>()
-  const { t, dir, language } = shell.language
+  /* AC-74 - the copy lives in `./copy.ts`. `withFallback` resolves keys the
+     shell dictionary has not registered yet against that dictionary, so no
+     English literal sits in this file. See `../localCopy`. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, PEOPLE_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const applicant = useAsync<Applicant>(
     (signal) => getApplicant(applicantId, signal),
-    { deps: [applicantId] }
+    /* `applicantId` is the fetcher's only input; a decision is held in
+       `localStatus`, which shadows a warm entry. */
+    { deps: [applicantId], cacheKey: 'applicants.get' }
   )
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
@@ -101,10 +116,7 @@ export function ApplicantDetailScreen() {
     !canWrite
       ? t('people.action.noPermission')
       : currentStatus !== 'pending'
-        ? t('applicant.action.decided', {
-            defaultValue: 'This application has already been {status}.',
-            status: currentStatus,
-          })
+        ? t('applicant.action.decided', { status: currentStatus })
         : null
 
   const handleApprove = async () => {
@@ -113,9 +125,9 @@ export function ApplicantDetailScreen() {
     try {
       await approveApplicant(data.id)
       setLocalStatus('approved')
-      toast.success(t('applicant.toast.approved', { defaultValue: 'Captain application {id} approved', id: data.id }))
+      toast.success(t('applicant.toast.approved', { id: data.id }))
     } catch {
-      toast.error(t('applicant.toast.approveError', { defaultValue: 'Failed to approve application' }))
+      toast.error(t('applicant.toast.approveError'))
     } finally {
       setBusy(false)
     }
@@ -128,9 +140,9 @@ export function ApplicantDetailScreen() {
       await rejectApplicant(data.id, rejectReason.trim())
       setLocalStatus('rejected')
       setRejectModalOpen(false)
-      toast.success(t('applicant.toast.rejected', { defaultValue: 'Application {id} rejected', id: data.id }))
+      toast.success(t('applicant.toast.rejected', { id: data.id }))
     } catch {
-      toast.error(t('applicant.toast.rejectError', { defaultValue: 'Failed to reject application' }))
+      toast.error(t('applicant.toast.rejectError'))
     } finally {
       setBusy(false)
     }
@@ -178,12 +190,9 @@ export function ApplicantDetailScreen() {
         main={
           <EmptyState
             kind="no-match"
-            message={t('applicant.error.notFoundDesc', {
-              defaultValue: 'Application {id} is not on file.',
-              id: applicantId,
-            })}
+            message={t('applicant.error.notFoundDesc', { id: applicantId })}
             action={{
-              label: t('action.goBack', { defaultValue: 'Back to applications' }),
+              label: t('applicant.action.backToApplications'),
               onClick: () => navigate('/operations/people?view=applications'),
             }}
           />
@@ -201,7 +210,7 @@ export function ApplicantDetailScreen() {
       /* §11.2 — R3's one primary, RENDERED and refused rather than removed. An
          operator who cannot approve still needs to know approving exists. */
       primaryAction={{
-        label: t('applicant.action.approve', { defaultValue: 'Approve captain' }),
+        label: t('applicant.action.approve'),
         onClick: () => void handleApprove(),
         disabled: decisionRefusal !== null || busy,
       }}
@@ -217,12 +226,12 @@ export function ApplicantDetailScreen() {
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
-                {t('applicant.personalDetails', { defaultValue: 'Personal & Contact Information' })}
+                {t('applicant.personalDetails')}
               </CardTitle>
               <CardDescription className="text-xs">
-                {t('applicant.personalDetailsDesc', { defaultValue: 'National identification and applicant profile.' })}
+                {t('applicant.personalDetailsDesc')}
               </CardDescription>
             </div>
             <StatusBadge tone={currentStatus === 'approved' ? 'success' : currentStatus === 'rejected' ? 'neutral' : 'warning'}>
@@ -233,19 +242,19 @@ export function ApplicantDetailScreen() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.nationalId', { defaultValue: 'National ID' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.nationalId')}</span>
               <span className="font-mono font-medium text-foreground">{data.nationalId}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.phone', { defaultValue: 'Phone Number' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.phone')}</span>
               <span className="font-medium text-foreground">{data.phone}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.city', { defaultValue: 'Operating City' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.city')}</span>
               <span className="font-medium text-foreground">{data.city}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.dob', { defaultValue: 'Date of birth' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.dob')}</span>
               <span className="font-medium text-foreground">
                 <bdi>{data.dateOfBirth ? formatDate(data.dateOfBirth, { language }) : ABSENT}</bdi>
               </span>
@@ -255,29 +264,27 @@ export function ApplicantDetailScreen() {
                 `—` is the honest rendering of a field that was never asked for
                 (§8.3.1). */}
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.email', { defaultValue: 'Email' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.email')}</span>
               <span className="font-medium text-foreground">{data.email ?? ABSENT}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.gender', { defaultValue: 'Gender' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.gender')}</span>
               <span className="font-medium text-foreground">{data.gender}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.appLanguage', { defaultValue: 'App language' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.appLanguage')}</span>
               <span className="font-medium text-foreground">{data.appLanguage}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.photo', { defaultValue: 'Profile photo' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.photo')}</span>
               <span className="font-medium text-foreground">
-                {t(data.hasPhoto ? 'applicant.photo.yes' : 'applicant.photo.no', {
-                  defaultValue: data.hasPhoto ? 'Submitted' : 'Not submitted',
-                })}
+                {t(data.hasPhoto ? 'applicant.photo.yes' : 'applicant.photo.no')}
               </span>
             </div>
             {/* The measure is a full row: an address truncated to a column
                 width is not an address. */}
             <div className="col-span-2 md:col-span-4">
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.address', { defaultValue: 'Address' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.address')}</span>
               <span className="font-medium text-foreground">{data.address}</span>
             </div>
           </div>
@@ -287,27 +294,27 @@ export function ApplicantDetailScreen() {
       {/* 2. Vehicle Verification */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <Car className="h-4 w-4 text-muted-foreground" />
-            {t('applicant.vehicleDetails', { defaultValue: 'Vehicle & Class Specification' })}
+            {t('applicant.vehicleDetails')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.vehicleModel', { defaultValue: 'Vehicle' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.vehicleModel')}</span>
               <span className="font-medium text-foreground">{data.vehicle}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.plate', { defaultValue: 'Plate Number' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.plate')}</span>
               <span className="font-mono font-semibold text-foreground">{data.plate}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.vehicleClass', { defaultValue: 'Assigned Tier' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.vehicleClass')}</span>
               <span className="font-medium text-foreground capitalize">{data.vehicleClass}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block mb-0.5">{t('applicant.appliedAt', { defaultValue: 'Applied On' })}</span>
+              <span className="text-muted-foreground block mb-0.5">{t('applicant.appliedAt')}</span>
               <span className="font-medium text-foreground">{formatDate(data.appliedAt, { language })}</span>
             </div>
           </div>
@@ -317,9 +324,9 @@ export function ApplicantDetailScreen() {
       {/* 3. KYC Documents Verification Checklist */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <FileCheck className="h-4 w-4 text-muted-foreground" />
-            {t('applicant.documentsChecklist', { defaultValue: 'Submitted Documents & Verification' })}
+            {t('applicant.documentsChecklist')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -334,16 +341,26 @@ export function ApplicantDetailScreen() {
                     </StatusBadge>
                   </div>
                   {doc.expiresOn && (
-                    <span className="text-[11px] text-muted-foreground block">
-                      {t('applicant.expiresOn', { defaultValue: 'Expires: {date}', date: formatDate(doc.expiresOn, { language }) })}
+                    <span className="text-xs text-muted-foreground block">
+                      {t('applicant.expiresOn', { date: formatDate(doc.expiresOn, { language }) })}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* **Palette classes, and a meaningful graphic.** The two
+                      icons drew from Tailwind's own emerald and amber ramps at
+                      stop 600 — not our palette, and not a token. The icon is
+                      not decoration either: it restates the badge's tone beside
+                      it, so §7.5's 3 : 1 floor for a meaningful graphic applies.
+                      The tone foregrounds clear it with room — `--ev-green`
+                      #1d723c at 5.96 : 1, `--ev-amber-dk` #7a3e12 at 8.32 : 1,
+                      both on white. (The ramp and stop are spelled out rather
+                      than quoted: a class name in a comment is a candidate
+                      Tailwind will emit a rule for.) */}
                   {doc.status === 'verified' ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success-foreground" />
                   ) : (
-                    <ShieldAlert className="h-4 w-4 text-amber-600" />
+                    <ShieldAlert className="h-4 w-4 text-warning-foreground" />
                   )}
                 </div>
               </div>
@@ -359,33 +376,30 @@ export function ApplicantDetailScreen() {
               beside `city` deliberately: the two disagreeing is the finding. */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <Fingerprint className="h-4 w-4 text-muted-foreground" />
-            {t('applicant.screening', { defaultValue: 'Device, network and movement' })}
+            {t('applicant.screening')}
           </CardTitle>
           <CardDescription className="text-xs">
-            {t('applicant.screeningDesc', {
-              defaultValue:
-                'Where the application came from. A device or an address shared with another applicant is worth opening before deciding.',
-            })}
+            {t('applicant.screeningDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.device', { defaultValue: 'Device' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.device')}</span>
               <span className="font-medium text-foreground">{data.device}</span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.lastIp', { defaultValue: 'Last IP' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.lastIp')}</span>
               <span className="font-mono font-medium text-foreground"><bdi>{data.lastIp}</bdi></span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.ipLocation', { defaultValue: 'IP location' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.ipLocation')}</span>
               <span className="font-medium text-foreground">{data.ipLocation}</span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.appliedAt', { defaultValue: 'Applied on' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.appliedAt')}</span>
               <span className="font-medium text-foreground">
                 <bdi>{formatDate(data.appliedAt, { style: 'day-month-time', language })}</bdi>
               </span>
@@ -395,15 +409,13 @@ export function ApplicantDetailScreen() {
           <div className="flex flex-col gap-1.5">
             <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              {t('applicant.movementLog', { defaultValue: 'Movement log' })}
+              {t('applicant.movementLog')}
             </span>
             {/* R8 — an empty movement log is a card-sized empty: one grey
                 sentence naming WHY it is empty, no illustration, no action. */}
             {data.movementLog.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                {t('applicant.movementLog.empty', {
-                  defaultValue: 'Nothing recorded for this applicant yet.',
-                })}
+                {t('applicant.movementLog.empty')}
               </p>
             ) : (
               <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border text-xs">
@@ -431,39 +443,39 @@ export function ApplicantDetailScreen() {
              reaching the surface where the decision is actually taken. */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-muted-foreground" />
-            {t('applicant.outcome', { defaultValue: 'Ownership and outcome' })}
+            {t('applicant.outcome')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-4">
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('queue.col.owner', { defaultValue: 'Owner' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('queue.col.owner')}</span>
               <span className="font-medium text-foreground">
                 {/* §4.2 Q-6 — only a LIVE claim is ownership. A released or
                     done claim is history, and a record still carrying one is
                     unclaimed. */}
                 {data.claim && data.claim.state === 'claimed'
                   ? data.claim.ownerName
-                  : t('queue.owner.unclaimed', { defaultValue: 'Unclaimed' })}
+                  : t('queue.owner.unclaimed')}
               </span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.acceptedTrips', { defaultValue: 'Accepted trips' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.acceptedTrips')}</span>
               {/* §8.3.1 — `0` is a real zero here and reads as `0`, never `—`. */}
               <span className="font-medium tabular-nums text-foreground">
                 <bdi>{formatCount(data.acceptedTrips, language)}</bdi>
               </span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.cancelledTrips', { defaultValue: 'Cancelled trips' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.cancelledTrips')}</span>
               <span className="font-medium tabular-nums text-foreground">
                 <bdi>{formatCount(data.cancelledTrips, language)}</bdi>
               </span>
             </div>
             <div>
-              <span className="mb-0.5 block text-muted-foreground">{t('applicant.decidedAt', { defaultValue: 'Decided' })}</span>
+              <span className="mb-0.5 block text-muted-foreground">{t('applicant.decidedAt')}</span>
               <span className="font-medium text-foreground">
                 {data.decidedAt === null ? (
                   ABSENT
@@ -477,7 +489,7 @@ export function ApplicantDetailScreen() {
                 exist. */}
             {data.approvedDriverId !== null && (
               <div>
-                <span className="mb-0.5 block text-muted-foreground">{t('applicant.approvedDriver', { defaultValue: 'Captain record' })}</span>
+                <span className="mb-0.5 block text-muted-foreground">{t('applicant.approvedDriver')}</span>
                 <Link
                   to={`/operations/people?view=captains&entity=${data.approvedDriverId}`}
                   className="rounded-sm font-medium tabular-nums text-foreground hover:underline"
@@ -488,7 +500,7 @@ export function ApplicantDetailScreen() {
             )}
             {data.rejectionReason !== null && (
               <div className="col-span-2 md:col-span-4">
-                <span className="mb-0.5 block text-muted-foreground">{t('applicant.rejectionReason', { defaultValue: 'Rejection reason' })}</span>
+                <span className="mb-0.5 block text-muted-foreground">{t('applicant.rejectionReason')}</span>
                 {/* The one line here allowed to wrap: a reason that has been
                     truncated explains nothing. */}
                 <span className="whitespace-normal font-medium text-foreground">
@@ -522,7 +534,7 @@ export function ApplicantDetailScreen() {
           aria-describedby={decisionRefusal === null ? undefined : 'applicant-decision-refusal'}
         >
           <XCircle className="me-1.5 h-4 w-4" />
-          {t('applicant.action.reject', { defaultValue: 'Reject application' })}
+          {t('applicant.action.reject')}
         </Button>
         <Button
           size="xs"
@@ -532,8 +544,8 @@ export function ApplicantDetailScreen() {
         >
           <CheckCircle2 className="me-1.5 h-4 w-4" />
           {busy
-            ? t('action.saving', { defaultValue: 'Approving…' })
-            : t('applicant.action.approve', { defaultValue: 'Approve captain' })}
+            ? t('applicant.action.approving')
+            : t('applicant.action.approve')}
         </Button>
       </div>
     </div>
@@ -542,22 +554,26 @@ export function ApplicantDetailScreen() {
   const rail = [
     <Card key="bank-verification">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+        {/* H2/H3 — the rail card's title takes ink. At 12px grey over a 12px
+            grey body it was indistinguishable from the pairs beneath it. */}
+        <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           <CreditCard className="h-3.5 w-3.5" />
-          {t('applicant.bankDetails', { defaultValue: 'IBAN & Bank Status' })}
+          {t('applicant.bankDetails')}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-xs space-y-2">
         <div>
-          <span className="text-muted-foreground block text-[10px] uppercase">{t('applicant.iban', { defaultValue: 'IBAN' })}</span>
+          {/* §2.3 / H2 — a properties-rail LABEL is META: `--text-xs`, grey.
+              10px is below the ramp entirely and there is no token at it. */}
+          <span className="text-muted-foreground block text-xs uppercase">{t('applicant.iban')}</span>
           <span className="font-mono text-foreground font-medium">{data.bank.iban}</span>
         </div>
         <div>
-          <span className="text-muted-foreground block text-[10px] uppercase">{t('applicant.bankName', { defaultValue: 'Bank' })}</span>
+          <span className="text-muted-foreground block text-xs uppercase">{t('applicant.bankName')}</span>
           <span className="text-foreground">{data.bank.bankName}</span>
         </div>
         <div className="pt-1 flex justify-between items-center">
-          <span className="text-muted-foreground">{t('applicant.bankStatus', { defaultValue: 'Verification' })}:</span>
+          <span className="text-muted-foreground">{t('applicant.bankStatus')}:</span>
           <StatusBadge tone={data.bank.status === 'Verified' ? 'success' : 'warning'}>
             {data.bank.status}
           </StatusBadge>
@@ -571,19 +587,16 @@ export function ApplicantDetailScreen() {
       <DetailPage header={header} main={main} rail={rail} />
 
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>{t('applicant.reject.title', { defaultValue: 'Reject Application' })}</DialogTitle>
+            <DialogTitle>{t('applicant.reject.title')}</DialogTitle>
             <DialogDescription>
-              {t('applicant.reject.desc', {
-                defaultValue: 'State the rejection reason for {name}. An automated notice will be sent.',
-                name: data.name,
-              })}
+              {t('applicant.reject.desc', { name: data.name })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-3 space-y-2">
-            <Label className="text-xs font-medium">{t('applicant.reject.reason', { defaultValue: 'Rejection Reason' })}</Label>
+            <Label className="text-xs font-medium">{t('applicant.reject.reason')}</Label>
             <Input
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
@@ -593,7 +606,7 @@ export function ApplicantDetailScreen() {
 
           <DialogFooter>
             <Button variant="secondary" size="xs" onClick={() => setRejectModalOpen(false)}>
-              {t('action.cancel', { defaultValue: 'Cancel' })}
+              {t('action.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -601,7 +614,7 @@ export function ApplicantDetailScreen() {
               onClick={handleRejectConfirm}
               disabled={!rejectReason.trim() || busy}
             >
-              {busy ? t('action.saving', { defaultValue: 'Rejecting...' }) : t('applicant.confirmReject', { defaultValue: 'Reject Application' })}
+              {busy ? t('applicant.action.rejecting') : t('applicant.confirmReject')}
             </Button>
           </DialogFooter>
         </DialogContent>

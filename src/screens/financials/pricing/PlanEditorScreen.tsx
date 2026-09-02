@@ -127,7 +127,10 @@ export function PlanEditorScreen() {
   const { planId = '' } = useParams<{ planId: string }>()
 
   const plan = useAsync<SubscriptionPlan>((signal) => getPlan(planId as PlanKey, signal), {
+    /* `planId` is the fetcher's only input, so one plan cannot be edited under
+       another plan's id. */
     deps: [planId],
+    cacheKey: 'pricing.plan',
   })
 
   const exit = useCallback(() => navigate('/financials/pricing'), [navigate])
@@ -271,7 +274,10 @@ function PlanEditorForm({
         economyActive: values.economyActive,
         comfortActive: values.comfortActive,
       })
-      toast(t('fin.planEditor.toast.saved'))
+      /* G9 — a completed mutation is `success`, never a bare `toast()`.
+         A bare call renders the iconless neutral toast, which is the
+         `info` register, for something that succeeded. */
+      toast.success(t('fin.planEditor.toast.saved'))
     },
   })
 

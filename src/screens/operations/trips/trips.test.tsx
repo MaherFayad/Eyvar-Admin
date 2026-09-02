@@ -40,7 +40,7 @@ import { TRIPS_EN } from './copy'
 const t = (key: string, params: Record<string, string> = {}) =>
   Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, v), TRIPS_EN[key] as string)
 
-const INDEX = '/operations/trips'
+const INDEX = '/operations/quick-rides'
 
 beforeEach(() => {
   disableMockLatency()
@@ -73,7 +73,16 @@ let flagged: Trip[]
 let unflagged: Trip[]
 
 beforeAll(async () => {
-  page = (await listTrips({ view: 'all', sort: { field: 'startedAt', dir: 'desc' } })).items
+  /* D1b — the sub-tab under test is Quick rides, and the screen now scopes its
+     query to `kind`. The expectations have to be scoped the same way or they
+     name subscription legs the table will never render. */
+  page = (
+    await listTrips({
+      view: 'all',
+      sort: { field: 'startedAt', dir: 'desc' },
+      filters: [{ field: 'kind', op: 'eq', value: 'Quick ride' }],
+    })
+  ).items
   flagged = page.filter((trip) => trip.flagged)
   unflagged = page.filter((trip) => !trip.flagged)
   /* Throw rather than assert non-null: if the fixtures stop carrying both a

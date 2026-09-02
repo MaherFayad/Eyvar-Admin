@@ -110,6 +110,7 @@ import {
   TICKET_STATUS,
   TRIP_STATUS,
 } from './domain'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { SectionStates, SectionUnavailable } from './SectionCard'
 import {
   FieldList,
@@ -145,13 +146,24 @@ const CARD_ROWS = MINI_LEDGER_ROWS
 
 /* ───────────────────────────── small helpers ─────────────────────────── */
 
-/** One related-collection read, with the section's own four states. */
+/**
+ * One related-collection read, with the section's own four states.
+ *
+ * `cacheKey` is the data-layer operation id the section's fetcher calls, and it
+ * is **per call site** rather than one id for all of them, because these nine
+ * sections call nine different operations. Every one of them keys on the
+ * entity's id and type, which is all their queries vary on (P3-13) — so a
+ * profile closed and re-opened inside the TTL paints its cards instead of nine
+ * skeletons. Omit it and the section is simply uncached, which is the safe
+ * default `useAsync` documents.
+ */
 function useSection<T>(
   run: (signal: AbortSignal) => Promise<T>,
   deps: readonly unknown[],
   enabled = true,
+  cacheKey?: string,
 ): AsyncResult<T> {
-  return useAsync<T>(run, { deps, enabled })
+  return useAsync<T>(run, { deps, enabled, cacheKey })
 }
 
 /** `null` means §3.5's empty pair. A present value is rendered as text. */
@@ -346,7 +358,8 @@ export function identityFields(
         { label: t('profile.field.status'), value: badge(TICKET_STATUS[k.status].tone, t(TICKET_STATUS[k.status].key)) },
         { label: t('profile.field.about'), value: text(`${k.entityName} · ${k.entityId}`) },
         { label: t('profile.field.category'), value: text(k.category) },
-        { label: t('profile.field.reasonCode'), value: text(k.reasonCode) },
+        /* A3 — the code is a join key, not a label. */
+        { label: t('profile.field.reasonCode'), value: text(reasonLabel(t, k.reasonCode)) },
         { label: t('profile.field.priority'), value: text(k.priority) },
         { label: t('profile.field.owner'), value: text(k.ownerName) },
         { label: t('profile.field.created'), value: date(k.createdAt, language, 'day-month-time') },
@@ -391,7 +404,8 @@ export function identityFields(
         { label: t('profile.field.captain'), value: text(cmp.driverName) },
         { label: t('profile.field.rider'), value: text(cmp.riderName) },
         { label: t('profile.field.category'), value: t(`profile.complaintCategory.${cmp.category}`) },
-        { label: t('profile.field.reasonCode'), value: text(cmp.reasonCode) },
+        /* A3 — the code is a join key, not a label. */
+        { label: t('profile.field.reasonCode'), value: text(reasonLabel(t, cmp.reasonCode)) },
         { label: t('profile.field.created'), value: date(cmp.filedAt, language, 'day-month-time') },
         { label: t('profile.field.detail'), value: text(cmp.detail) },
       ]
@@ -421,6 +435,7 @@ export const TripsSection: ProfileSectionComponent = ({ entity, record, t, langu
     (signal) => listTrips({ ...query, pageSize: CARD_ROWS, sort: { field: 'startedAt', dir: 'desc' } }, signal),
     [entity.entityId, entity.entityType],
     query !== null,
+    'trips.list',
   )
 
   if (entity.entityType === 'trip') {
@@ -535,6 +550,7 @@ export const SubscriptionsSection: ProfileSectionComponent = ({ entity, record, 
     (signal) => listSubscriptions({ ...params, pageSize: CARD_ROWS, sort: { field: 'endsOn', dir: 'desc' } }, signal),
     [entity.entityId, entity.entityType, (riderIds ?? []).join(',')],
     params !== null,
+    'subscriptions.list',
   )
 
   if (entity.entityType === 'subscription') {
@@ -660,6 +676,7 @@ export const ComplianceSection: ProfileSectionComponent = ({ entity, record, t, 
     (signal) => getDriverCompliance(entity.entityId, signal),
     [entity.entityId],
     entity.entityType === 'driver',
+    'compliance.get',
   )
 
   if (entity.entityType === 'applicant') {
@@ -765,6 +782,7 @@ export const CommitmentSection: ProfileSectionComponent = ({ entity, t, language
       ),
     [entity.entityId],
     entity.entityType === 'driver',
+    'assurance.absences',
   )
 
   if (entity.entityType !== 'driver') {
@@ -842,6 +860,10 @@ export const WalletSection: ProfileSectionComponent = ({ entity, t, language }) 
         : getCaptainPayableLedger(entity.entityId, undefined, signal),
     [entity.entityId, entity.entityType],
     supported,
+    /* Two operations behind one card, chosen by `entityType` — which is in
+       `deps`, so a rider's wallet and a captain's payable can never share a
+       key. The id follows the same branch the fetcher takes. */
+    entity.entityType === 'rider' ? 'wallets.ledger' : 'payouts.ledger',
   )
 
   if (!supported) return <SectionUnavailable reason={noSource(entity, 'wallet', t)} />
@@ -887,6 +909,7 @@ export const PaymentsSection: ProfileSectionComponent = ({ entity, record, t, la
     (signal) => listPaymentsForEntity(entity.entityId, { pageSize: CARD_ROWS }, signal),
     [entity.entityId],
     !isCorporate,
+    'payments.listForEntity',
   )
 
   if (isCorporate) {
@@ -990,6 +1013,7 @@ export const TicketsSection: ProfileSectionComponent = ({ entity, record, t, lan
       ),
     [entity.entityId, entity.entityType, raisedFrom ?? ''],
     params !== null,
+    'tickets.list',
   )
 
   if (entity.entityType === 'ticket') {
@@ -1114,6 +1138,7 @@ export const DisputesSection: ProfileSectionComponent = ({ entity, record, t, la
       ),
     [entity.entityId, entity.entityType, link ?? ''],
     params !== null,
+    'disputes.list',
   )
 
   /* The record arrived and said this complaint never escalated. An answer. */
@@ -1203,6 +1228,7 @@ export const FairnessSection: ProfileSectionComponent = ({ entity, t, language }
       ),
     [entity.entityId],
     entity.entityType === 'driver',
+    'fairness.list',
   )
 
   if (entity.entityType !== 'driver') {

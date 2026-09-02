@@ -326,7 +326,7 @@ function PayoutsView({
 
   const payouts = useAsync<Paginated<CaptainPayout>>(
     (signal) => listCaptainPayouts({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.list' },
   )
 
   const rows = useMemo(
@@ -343,7 +343,8 @@ function PayoutsView({
      screen understates the moment there are two pages (**AC-367**). */
   const failed = useAsync<Paginated<CaptainPayout>>(
     (signal) => listCaptainPayouts({ view: 'failed', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the index read's `[{...}]`. */
+    { deps: [], cacheKey: 'payouts.list' },
   )
   const failedTotal = failed.data?.total ?? 0
   useEffect(() => {
@@ -392,6 +393,8 @@ function PayoutsView({
     () => [
       {
         id: 'captain',
+        emphasis: 'primary',
+        csv: (payout) => payout.captainName,
         header: t('fin.payout.col.captain'),
         dataType: 'text',
         minWidth: 200,
@@ -438,6 +441,8 @@ function PayoutsView({
       },
       {
         id: 'payable',
+        emphasis: 'data',
+        csv: (payout) => payout.payableHalalas,
         header: t('fin.payout.col.payable'),
         dataType: 'money',
         align: 'end',
@@ -447,6 +452,7 @@ function PayoutsView({
       },
       {
         id: 'debt',
+        csv: (payout) => payout.cashDebtHalalas,
         header: t('fin.payout.col.debt'),
         dataType: 'money',
         align: 'end',
@@ -456,6 +462,8 @@ function PayoutsView({
       },
       {
         id: 'net',
+        emphasis: 'data',
+        csv: (payout) => netPayableHalalas(payout.payableHalalas, payout.cashDebtHalalas),
         header: t('fin.payout.col.net'),
         dataType: 'money',
         align: 'end',
@@ -468,6 +476,7 @@ function PayoutsView({
       },
       {
         id: 'state',
+        emphasis: 'data',
         header: t('fin.payout.col.state'),
         dataType: 'enum',
         width: 168,
@@ -514,6 +523,11 @@ function PayoutsView({
       {
         label: t('fin.payout.action.ledger'),
         onSelect: (payout) => onOpenLedger(payout.captainId),
+        /* **P0-2 — the declared row-click target.** The only action on this
+           table that opens something rather than moving money: `Pay` is one
+           click from a real payout and must never be reachable by a stray
+           click on a row. */
+        rowClick: true,
       },
     ],
     [t, gate.canWrite, confirmPay, onOpenLedger],
@@ -639,6 +653,10 @@ function PayoutsView({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.payout.search')}
+        /* **R5a / AC-367** — a returned payout, declared once and read by both
+           carriers: this tint and the leading-edge marker in the identity
+           cell. */
+        isRowCritical={(payout) => payout.state === 'failed'}
         skeletonPattern="P1"
         rowActions={rowActions}
         bulkActions={bulkActions}
@@ -671,7 +689,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
 
   const holds = useAsync<Paginated<EscrowHold>>(
     (signal) => listEscrowHolds({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.escrow' },
   )
 
   const rows = useMemo(() => actions.apply(holds.data?.items ?? []), [actions, holds.data])
@@ -691,6 +709,8 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (hold) => hold.id,
         header: t('fin.escrow.col.id'),
         dataType: 'id',
         minWidth: 180,
@@ -742,6 +762,8 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (hold) => hold.amountHalalas,
         header: t('fin.escrow.col.amount'),
         dataType: 'money',
         align: 'end',
@@ -767,6 +789,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'state',
+        emphasis: 'data',
         header: t('fin.escrow.col.state'),
         dataType: 'enum',
         width: 132,
@@ -969,7 +992,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
 
   const deductions = useAsync<Paginated<Deduction>>(
     (signal) => listDeductions({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'payouts.deductions' },
   )
 
   const rows = useMemo(
@@ -992,6 +1015,8 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (deduction) => deduction.id,
         header: t('fin.deduction.col.id'),
         dataType: 'id',
         minWidth: 190,
@@ -1049,6 +1074,8 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (deduction) => deduction.amountHalalas,
         header: t('fin.deduction.col.amount'),
         dataType: 'money',
         align: 'end',
@@ -1058,6 +1085,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('fin.deduction.col.status'),
         dataType: 'enum',
         width: 132,
@@ -1335,7 +1363,14 @@ function CaptainPayableLedger({
 
   const ledger = useAsync<Ledger>(
     (signal) => getCaptainPayableLedger(captainId, period, signal),
-    { deps: [captainId, period.start, period.end], isEmpty: (data) => data.postings.length === 0 },
+    /* `FinancialsPeriod` is exactly `{ start, end }`, so decomposing it is
+       exhaustive - and `captainId` is here, so one captain's payable ledger
+       cannot serve under another's. */
+    {
+      deps: [captainId, period.start, period.end],
+      cacheKey: 'payouts.ledger',
+      isEmpty: (data) => data.postings.length === 0,
+    },
   )
 
   const rows = useMemo<LedgerPosting[]>(() => {

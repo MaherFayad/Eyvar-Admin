@@ -54,7 +54,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -129,7 +134,7 @@ export function CancelSettleModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent size="default">
         <DialogHeader>
           <DialogTitle>{t('subs.settle.title', { id: subscription.id })}</DialogTitle>
           <DialogDescription>{t('subs.settle.body')}</DialogDescription>
@@ -160,14 +165,14 @@ export function CancelSettleModal({
             <p className="text-2xs text-muted-foreground">{t('subs.settle.estimateHelp')}</p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="settle-category" className="text-xs font-medium">
-              {t('subs.settle.reason')}
-            </Label>
+          <Field id="settle-category">
+            <FieldLabel>{t('subs.settle.reason')}</FieldLabel>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="settle-category">
-                <SelectValue placeholder={t('subs.settle.reason')} />
-              </SelectTrigger>
+              <FieldControl>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('subs.settle.reasonPlaceholder')} />
+                </SelectTrigger>
+              </FieldControl>
               <SelectContent>
                 {reasonKeys.map((key) => (
                   <SelectItem key={key} value={key}>
@@ -176,30 +181,24 @@ export function CancelSettleModal({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="settle-note" className="text-xs font-medium">
-              {t('subs.settle.note')}
-            </Label>
-            <Input
-              id="settle-note"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder={t('subs.settle.notePlaceholder')}
-            />
-          </div>
-
-          {/* §11.2 / §8.4.4 — a refusal is real text, in the surface that made
-              the request. */}
-          {submitError !== null && (
-            <p role="alert" className="text-xs text-destructive">
-              {submitError}
-            </p>
-          )}
+          <Field id="settle-note" invalid={submitError !== null}>
+            <FieldLabel optional={t('field.optional')}>{t('subs.settle.note')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t('subs.settle.notePlaceholder')}
+              />
+            </FieldControl>
+            {/* §11.2 / §8.4.4 — a refusal is real text, in the surface that
+                made the request. */}
+            <FieldError>{submitError}</FieldError>
+          </Field>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('table.cancel')}
           </Button>

@@ -27,7 +27,7 @@
 import { useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { claimTicket, listTickets, resolveTicket } from '@/data/clients'
+import { claimTicket, listTickets, reopenTicket, resolveTicket } from '@/data/clients'
 import type { Paginated, SubTabRoute, Ticket } from '@/data/types'
 import { useAsync, useIndexTable, useNow } from '@/hooks'
 import { NO_CLOCK, formatDate, formatSlaLabel, slaClock } from '@/lib'
@@ -35,16 +35,31 @@ import { DataTable, type DataColumn, type RowAction } from '@/components/DataTab
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withView } from '@/shell/routeState'
 import { PRIORITY_TONE, STATUS_TONE } from './tone'
+import { toastOutcome } from '@/commands'
+import { withFallback } from '../../operations/localCopy'
+import { TICKETS_EN } from './copy'
 
 export function TicketsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const route = useRouteState()
   const location = useLocation()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, TICKETS_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
   const now = useNow(15)
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
@@ -65,7 +80,12 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
   )
 
   const data = useAsync<Paginated<Ticket>>((signal) => listTickets(queryParams, signal), {
+    /* `queryParams` is the table query with the view tab merged in, and it is
+       the fetcher's only argument — so each tab keys separately and moving
+       between `Open` and `Mine` and back paints that tab's own rows. Claim and
+       resolve both call `refetch`, which bypasses the cache. */
     deps: [queryParams],
+    cacheKey: 'tickets.list',
   })
 
   const currentUserId = shell.session?.userId ?? 'USR-1'
@@ -90,11 +110,39 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
     [currentUserId, currentUserName, data, t],
   )
 
+  /**
+   * **Resolve, with the undo D18 traded the confirm away for.**
+   *
+   * `commands/tickets.ts` declares `ticket.resolve` with an inverse and takes
+   * D18's trade — drop the dialog, because the reversal is the net. This screen
+   * never adopted the registry, so it got the removal without the net: resolving
+   * the wrong ticket had no confirm, no undo, no `Reopen` on either screen, and
+   * no audit line.
+   *
+   * `toastOutcome` is the same window the palette uses — ten seconds, hover
+   * pauses it, and the inverse runs **through the data seam** rather than
+   * flipping local state, so a second operator editing the record inside the
+   * window is discovered rather than overwritten.
+   */
   const handleResolve = useCallback(
     async (ticket: Ticket) => {
       try {
         await resolveTicket(ticket.id)
-        toast.success(t('ticket.toast.resolved', { id: ticket.id }))
+        toastOutcome(
+          {
+            message: t('ticket.toast.resolved', { id: ticket.id }),
+            undo: {
+              label: t('command.undo'),
+              run: async () => {
+                await reopenTicket(ticket.id)
+                data.refetch()
+              },
+              doneMessage: t('ticket.toast.resolved.undone.one', { id: ticket.id }),
+              failedMessage: t('ticket.toast.resolved.undoFailed.one', { id: ticket.id }),
+            },
+          },
+          t,
+        )
         data.refetch()
       } catch {
         toast.error(t('ticket.toast.resolveFailed', { id: ticket.id }))
@@ -107,6 +155,8 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (tk) => tk.id,
         header: t('ticket.col.ticket'),
         width: 104,
         dataType: 'text',
@@ -148,11 +198,30 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'category',
         header: t('ticket.col.category'),
+        /* Left at 150 deliberately, and the measurement is why. The reason line
+           below is now a SENTENCE, so widening to 230 looked obviously right —
+           but the row measured **93px at both widths**, because its height is
+           set by the SUBJECT column (240px) wrapping a long ticket subject, not
+           by this cell. Widening here spends 80px of a 1280px viewport and buys
+           nothing.
+
+           The real finding is §9.1's rule — *"the row grows to fit; never
+           truncates"* — which was written for a short second line (an id, a
+           route) and does not survive sentence-length content: the support
+           queue runs at 93px a row against 49px for a single-line table. That is
+           a hierarchy decision, not a width tweak. See `19-execution-log.md`. */
         width: 150,
         dataType: 'enum',
         cell: (tk) => <span className="text-xs text-foreground">{tk.category}</span>,
+        /* A3 — the reason code, as a SENTENCE. This line printed
+           `fare_dispute` in `font-mono`: a machine identifier, untranslatable
+           by construction, and unreadable in either language. The code itself
+           is one click away on the detail pane, which is where a
+           support-to-engineering handoff needs it; a 150px queue cell is not. */
         secondaryLine: (tk) => (
-          <span className="block font-mono text-xs text-muted-foreground">{tk.reasonCode}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {reasonLabel(t, tk.reasonCode)}
+          </span>
         ),
       },
       {
@@ -169,6 +238,7 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('ticket.col.status'),
         width: 140,
         dataType: 'enum',
@@ -186,6 +256,7 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'sla',
+        emphasis: 'data',
         header: t('ticket.col.sla'),
         width: 124,
         dataType: 'date',

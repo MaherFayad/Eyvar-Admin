@@ -116,7 +116,14 @@ export interface OnboardingStep {
   completion: OnboardingCompletion
   /** A named domain event id — `queue.item.claimed`. `null` on a `manual` step. */
   autoSignal: string | null
-  /** **`null` on all 21 — Q4.** See the file header. */
+  /**
+   * The permission the step's DESTINATION requires, so a track never sends an
+   * operator somewhere their role forbids. Derived from the route table, not
+   * hand-written — `fixtures/onboardingGates.test.ts` keeps the two equal.
+   *
+   * `null` only where the destination genuinely has no permission: a shell
+   * layer, or `admin-activity`, which every authenticated operator may open.
+   */
   requiredPermission: PermissionKey | null
 
   /* ── derived server-side; a component never recomputes either ── */

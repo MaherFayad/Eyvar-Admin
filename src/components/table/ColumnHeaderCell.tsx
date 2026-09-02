@@ -251,7 +251,7 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
       aria-orientation="vertical"
       onMouseDown={handleResizeMouseDown}
       onDoubleClick={handleResizeDoubleClick}
-      title={t('table.resizeColumn', { defaultValue: 'Drag to resize column, double click to reset' })}
+      title={t('table.resizeColumn')}
       className={cn(
         'absolute inset-y-0 end-0 w-3 cursor-col-resize select-none touch-none z-30 flex items-center justify-center group/resizer',
         isResizing && 'bg-primary/20',

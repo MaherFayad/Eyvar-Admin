@@ -4,12 +4,12 @@ Full handover: [`docs/07-api/`](../07-api/README.md). This is the one-page versi
 
 ## The shape of the problem
 
-**284 endpoints, 46 client modules, ~64,000 lines under `src/data/`.** A backend engineer
+**290 endpoints, 46 client modules, ~64,000 lines under `src/data/`.** A backend engineer
 cannot read that, so the contract is consolidated into **four files** they read instead:
 
 | File | Written by | Content |
 |---|---|---|
-| [`07-api/CONTRACT.md`](../07-api/CONTRACT.md) | hand | conventions that apply to all 284 |
+| [`07-api/CONTRACT.md`](../07-api/CONTRACT.md) | hand | conventions that apply to all 290 |
 | [`07-api/ENDPOINTS.md`](../07-api/ENDPOINTS.md) | **generated** | every endpoint |
 | [`07-api/endpoints.json`](../07-api/endpoints.json) | **generated** | the same, machine-readable |
 | [`07-api/OPEN-QUESTIONS.md`](../07-api/OPEN-QUESTIONS.md) | hand | what we guessed and need confirmed |
@@ -71,9 +71,38 @@ src/data/clients/realtime.ts  subscription transport. Same invariants
 builds the API** — if the server disagrees, one function changes. Do not defend the format
 as if it were decided.
 
+## The checker's one blind spot, and how it was closed
+
+`api:check` reported **"284 endpoints, no problems"** while six ticket endpoints were
+absent from the handover entirely — `listTickets`, `getTicket`, `claimTicket`,
+`replyTicket`, `resolveTicket`, `reopenTicket`. A checker that reads docblocks cannot see
+a function that has none, so it validated the endpoints it could see and reported clean on
+the ones it could not.
+
+The `missing-annotation` rule now flags any exported client function that reaches the
+transport with no route docblock. The real count is **290**.
+
+**The general lesson is the one already in [verify.md](verify.md): a check that matches
+formatting rather than meaning reports clean on the defect it exists to find.** This is the
+second instance in this file's own tooling — the first was a one-line `_OPERATIONS` block
+the entry regex could not match.
+
 ## Known problems in the contract itself
 
-`npm run api:check` currently reports **52**: 7 facet paths with a double slash
-(`/api/v1//drivers/facets`), 6 endpoints with no return annotation, and 39 clients that
-declare operation ids but never call `registerOperations()` — so `?mockFail=` and the QA
-panel can see almost none of them.
+**None.** `npm run api:check` exits 0: 290 endpoints, no problems, and `ENDPOINTS.md` has
+no Problems section. The 52 that stood here — 7 double-slash facet paths, 6 endpoints with
+no return annotation, 39 clients that never called `registerOperations()` — are closed;
+`07-api/OPEN-QUESTIONS.md` keeps the record of what each one was.
+
+Two of those cost nothing to re-introduce, so know where they came from:
+
+- **A one-line operations block used to be invisible to the checker** — it matched
+  `key: 'value',` at line ends, so `export const X_OPERATIONS = { list: 'x.list' } as const`
+  declared ids and still reported clean. Two clients were unregistered that way.
+  **Closed 2026-09-02:** the checker now matches the *declaration name*
+  (`\b[A-Z][A-Z0-9_]*_OPERATIONS\s*[:=]`), which cannot be written on more or fewer lines.
+  The lesson stands even though the hole does not — a checker that matches formatting
+  rather than meaning reports clean on the defect it exists to find.
+- **Registration must be at module load, beside the constant block**, not on first call.
+  `mock()` registers when it runs, so an operation nobody has invoked yet is missing from
+  `knownOperations()` and from any validation of `?mockFail=`.

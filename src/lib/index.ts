@@ -8,6 +8,7 @@
 
 export { announce, currentAnnouncement, getLiveRegion, resetAnnouncer } from './a11y/announcer'
 export { isWideViewport, readWideBreakpointPx, WIDE_BREAKPOINT_FALLBACK_PX } from './breakpoint'
+export { compactMediaQuery, readCompactBreakpointPx, COMPACT_BREAKPOINT_FALLBACK_PX } from './breakpoint'
 export { formatDate, toDate, RIYADH_TIME_ZONE, type DateStyle, type FormatDateOptions } from './format/date'
 export {
   formatDuration,

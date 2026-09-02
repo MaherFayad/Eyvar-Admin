@@ -1,0 +1,1650 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Users/Admin/Documents/GitHub/Eyvar Admin[39m
+
+ [32m✓[39m src/screens/admin/data/adminData.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 25627[2mms[22m[39m
+   [33m[2m✓[22m[39m the integrity pane — the four states[2m > [22mstarts on the first-run empty, which names what the pane is FOR [33m 2400[2mms[22m[39m
+   [33m[2m✓[22m[39m the integrity pane — the four states[2m > [22mrenders findings after an explicit run [33m 2411[2mms[22m[39m
+   [33m[2m✓[22m[39m the integrity pane — the four states[2m > [22mreaches the error state when the scan is rigged to fail, and offers the retry [33m 1463[2mms[22m[39m
+   [33m[2m✓[22m[39m the integrity pane — the four states[2m > [22mreaches the catalogue error state, with the shell and the other cards intact [33m 524[2mms[22m[39m
+   [33m[2m✓[22m[39m the rule — every finding names the check that produced it[2m > [22mrenders a check title on every single finding row [33m 1430[2mms[22m[39m
+   [33m[2m✓[22m[39m the rule — every finding names the check that produced it[2m > [22mputs TKT-501’s contradiction in front of the operator, in English [33m 3794[2mms[22m[39m
+   [33m[2m✓[22m[39m "not run" and "found nothing" are different words[2m > [22msays Passed for a check that ran and found nothing [33m 2098[2mms[22m[39m
+   [33m[2m✓[22m[39m the findings table can be grouped two ways[2m > [22mregroups the same findings by check and by record type [33m 4220[2mms[22m[39m
+   [33m[2m✓[22m[39m retention actually saves[2m > [22mpersists a change and reads it back on a fresh mount [33m 3428[2mms[22m[39m
+   [33m[2m✓[22m[39m retention actually saves[2m > [22mdisables the save in place, with a reason, while nothing has changed [33m 895[2mms[22m[39m
+   [33m[2m✓[22m[39m the export offers only what it can produce[2m > [22mkeeps the unbuildable dataset visible and disabled with its reason [33m 827[2mms[22m[39m
+   [33m[2m✓[22m[39m the export offers only what it can produce[2m > [22mstates that only CSV is produced rather than silently renaming the file [33m 402[2mms[22m[39m
+   [33m[2m✓[22m[39m the export offers only what it can produce[2m > [22mbuilds a real CSV, with the header block that makes the numbers attributable [33m 668[2mms[22m[39m
+   [33m[2m✓[22m[39m Arabic and RTL[2m > [22mrenders under dir=rtl with no physical-direction utility anywhere in the pane [33m 764[2mms[22m[39m
+[90mstderr[2m | src/screens/admin/workspace/integrations.test.tsx[2m > [22m[2mthe four states[2m > [22m[2mstates the read-only refusal in place rather than hiding the controls
+[22m[39mAn update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popper inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Presence inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to Popover inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [31m❯[39m src/screens/admin/workspace/integrations.test.tsx [2m([22m[2m20 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 21630[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mserves no secret on any API key read, before or after an issue[32m 23[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mmints a different secret every time, so no two keys share a credential[32m 30[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mkeeps the key identity across a rotation and replaces only the credential[32m 7[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mrefuses to rotate a revoked key rather than resurrecting a dead credential[32m 30[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mrefuses a scope the issuer does not hold — the escalation ceiling[32m 11[2mms[22m[39m
+   [32m✓[39m AC-951 — a key secret is shown once and has no re-read path[2m > [22mwrites one audit entry per key act, and none of them carries the secret[32m 9[2mms[22m[39m
+[31m   [31m×[31m the reveal surface makes the consequence unmissable[2m > [22mshows the secret once, refuses to close until acknowledged, and leaves nothing behind[39m[33m 15189[2mms[22m[39m
+[31m     → Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mcarries the status code and the response body on a failed attempt[32m 3[2mms[22m[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mreplays into a NEW pending row and leaves the failed attempt exactly as it was[32m 3[2mms[22m[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mrefuses a replay on a disabled endpoint, and offers it again once enabled[32m 18[2mms[22m[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mrefuses a replay of an attempt that did not fail[32m 14[2mms[22m[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mderives the endpoint failure streak from the log rather than storing it[32m 15[2mms[22m[39m
+   [32m✓[39m AC-952 — a failed delivery is in the log with its reason and can be replayed[2m > [22mwrites an audit entry naming the original and the replay[32m 17[2mms[22m[39m
+   [33m[2m✓[22m[39m the four states[2m > [22mrenders the keys and the endpoints the CLIENTS return [33m 1137[2mms[22m[39m
+   [33m[2m✓[22m[39m the four states[2m > [22mreaches the API key error state without editing a fixture [33m 638[2mms[22m[39m
+   [33m[2m✓[22m[39m the four states[2m > [22mreaches the webhook error state without editing a fixture [33m 1425[2mms[22m[39m
+   [33m[2m✓[22m[39m the four states[2m > [22mreaches the delivery log error state without editing a fixture [33m 1920[2mms[22m[39m
+   [33m[2m✓[22m[39m the four states[2m > [22mstates the read-only refusal in place rather than hiding the controls [33m 1132[2mms[22m[39m
+   [32m✓[39m D30 — `manage_team` and `manage_security_policy` are not offerable scopes[2m > [22mwithholds exactly three, for two different reasons[32m 4[2mms[22m[39m
+   [32m✓[39m D30 — `manage_team` and `manage_security_policy` are not offerable scopes[2m > [22mstill offers the three `manage_*` keys that do not confer authority[32m 1[2mms[22m[39m
+ [31m❯[39m src/screens/operations/corporate/corporate.test.tsx [2m([22m[2m9 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 34750[2mms[22m[39m
+[31m   [31m×[31m CorporateScreen — AC-24: a failed list read renders the page error state[2m > [22mnames what failed, names the fix, and offers a retry[39m[33m 17683[2mms[22m[39m
+[31m     → Unable to find an element with the text: Couldn't load Corporate Accounts. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[31m
+    [36m>[31m
+      [36m<a[31m
+        [33mclass[31m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[31m
+        [33mhref[31m=[32m"#ev-content"[31m
+      [36m>[31m
+        [0mSkip to content[0m
+      [36m</a>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"flex min-h-0 flex-1"[31m
+      [36m>[31m
+        [36m<nav[31m
+          [33maria-label[31m=[32m"Workspaces"[31m
+          [33mclass[31m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex h-topbar shrink-0 items-center justify-center"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33maria-label[31m=[32m"Eyvar"[31m
+              [33mclass[31m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-6"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<rect[31m
+                  [33mfill[31m=[32m"currentColor"[31m
+                  [33mheight[31m=[32m"22"[31m
+                  [33mrx[31m=[32m"6"[31m
+                  [33mwidth[31m=[32m"22"[31m
+                  [33mx[31m=[32m"1"[31m
+                  [33my[31m=[32m"1"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33mclass[31m=[32m"fill-none stroke-card"[31m
+                  [33md[31m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"1.8"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+            [36m</a>[31m
+          [36m</div>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex flex-col gap-1 px-1 pt-1"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+              [33mtabindex[31m=[32m"0"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M3 3v18h18"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M7 15l4-4 3 3 5-6"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[31m
+              [36m>[31m
+                [0mExec[0m
+              [36m</span>[31m
+              [36m<span[31m
+                [33maria-label[31m=[32m"8 items need attention"[31m
+                [33mclass[31m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[31m
+                [33mdata-size[31m=[32m"count"[31m
+                [33mdata-slot[31m=[32m"badge"[31m
+                [33mdata-tone[31m=[32m"nav-neutral"[31m
+              [36m>[31m
+                [0m8[0m
+              [36m</span>[31m
+            [36m</a>[31m
+            [36m<a[31m
+              [33maria-current[31m=[32m"page"[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/operations/overview"[31m
+              [33mtabindex[31m=[32m"-1"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"2.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"6.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+         ...
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[31m
+    [36m>[31m
+      [36m<a[31m
+        [33mclass[31m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[31m
+        [33mhref[31m=[32m"#ev-content"[31m
+      [36m>[31m
+        [0mSkip to content[0m
+      [36m</a>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"flex min-h-0 flex-1"[31m
+      [36m>[31m
+        [36m<nav[31m
+          [33maria-label[31m=[32m"Workspaces"[31m
+          [33mclass[31m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex h-topbar shrink-0 items-center justify-center"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33maria-label[31m=[32m"Eyvar"[31m
+              [33mclass[31m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-6"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<rect[31m
+                  [33mfill[31m=[32m"currentColor"[31m
+                  [33mheight[31m=[32m"22"[31m
+                  [33mrx[31m=[32m"6"[31m
+                  [33mwidth[31m=[32m"22"[31m
+                  [33mx[31m=[32m"1"[31m
+                  [33my[31m=[32m"1"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33mclass[31m=[32m"fill-none stroke-card"[31m
+                  [33md[31m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"1.8"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+            [36m</a>[31m
+          [36m</div>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex flex-col gap-1 px-1 pt-1"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+              [33mtabindex[31m=[32m"0"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M3 3v18h18"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M7 15l4-4 3 3 5-6"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[31m
+              [36m>[31m
+                [0mExec[0m
+              [36m</span>[31m
+              [36m<span[31m
+                [33maria-label[31m=[32m"8 items need attention"[31m
+                [33mclass[31m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[31m
+                [33mdata-size[31m=[32m"count"[31m
+                [33mdata-slot[31m=[32m"badge"[31m
+                [33mdata-tone[31m=[32m"nav-neutral"[31m
+              [36m>[31m
+                [0m8[0m
+              [36m</span>[31m
+            [36m</a>[31m
+            [36m<a[31m
+              [33maria-current[31m=[32m"page"[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/operations/overview"[31m
+              [33mtabindex[31m=[32m"-1"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"2.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"6.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+         ...[39m
+   [33m[2m✓[22m[39m CorporateScreen — AC-24: a failed list read renders the page error state[2m > [22mkeeps the shell interactive, so the operator can navigate away without a reload [33m 3936[2mms[22m[39m
+   [33m[2m✓[22m[39m CorporateScreen — AC-24: a failed list read renders the page error state[2m > [22mrecovers when the retry re-runs the request — the retry is bound to refetch [33m 2283[2mms[22m[39m
+   [33m[2m✓[22m[39m CorporateScreen — AC-24: a failed list read renders the page error state[2m > [22mrenders the table on a healthy read — the content branch is unchanged [33m 1718[2mms[22m[39m
+   [33m[2m✓[22m[39m CorporateDetailScreen — the linked-employee card reads riders through the seam[2m > [22mrenders the linked riders from the client, not from a fixture import [33m 1554[2mms[22m[39m
+   [33m[2m✓[22m[39m CorporateDetailScreen — the linked-employee card reads riders through the seam[2m > [22mAC-24 — a failed rider read renders a card error with a working retry [33m 1613[2mms[22m[39m
+   [33m[2m✓[22m[39m AddEmployeeModal — the rider picker reads through the seam[2m > [22mexcludes the riders already on the account — the `nin` filter runs in the query [33m 2771[2mms[22m[39m
+   [33m[2m✓[22m[39m AddEmployeeModal — the rider picker reads through the seam[2m > [22mAC-24 — a failed picker read renders the card error inside the dialog, with a retry [33m 920[2mms[22m[39m
+   [33m[2m✓[22m[39m AddEmployeeModal — the rider picker reads through the seam[2m > [22mrecovers on retry, so the retry is bound to the picker read and not decorative [33m 1944[2mms[22m[39m
+ [31m❯[39m src/screens/admin/communications/communications.test.tsx [2m([22m[2m30 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 32285[2mms[22m[39m
+   [32m✓[39m the delivery log fixtures — AC-C1, AC-C2, AC-C3[2m > [22mcarries at least one row in every one of the six states — AC-C1[32m 25[2mms[22m[39m
+   [32m✓[39m the delivery log fixtures — AC-C1, AC-C2, AC-C3[2m > [22mpages at least twice at the default page size — AC-C2[32m 3[2mms[22m[39m
+   [32m✓[39m the delivery log fixtures — AC-C1, AC-C2, AC-C3[2m > [22mcarries a send for every template key — AC-C3[32m 2[2mms[22m[39m
+   [32m✓[39m the delivery log fixtures — AC-C1, AC-C2, AC-C3[2m > [22mreports the template keys that have no Arabic version — AC-C3[32m 2[2mms[22m[39m
+   [32m✓[39m the delivery log fixtures — AC-C1, AC-C2, AC-C3[2m > [22mhas an inbox and an outbox, and a bounce is not an inbox row[32m 12[2mms[22m[39m
+   [32m✓[39m preview and validation — AC-C4, AC-C5, AC-C6[2m > [22mrenders the template with sample values substituted, not the source — AC-C4[32m 58[2mms[22m[39m
+   [32m✓[39m preview and validation — AC-C4, AC-C5, AC-C6[2m > [22mpreviews an Arabic template right-to-left — AC-C4[32m 19[2mms[22m[39m
+   [32m✓[39m preview and validation — AC-C4, AC-C5, AC-C6[2m > [22mnames the undeclared variable and refuses the save — AC-C5[32m 23[2mms[22m[39m
+   [32m✓[39m preview and validation — AC-C4, AC-C5, AC-C6[2m > [22mwarns before saving a template that is in use, and saves once confirmed — AC-C6[32m 2[2mms[22m[39m
+   [32m✓[39m sender identities — AC-C7, AC-C8[2m > [22mserves exactly one default, and every verification state[32m 5[2mms[22m[39m
+   [32m✓[39m sender identities — AC-C7, AC-C8[2m > [22mrefuses an unverified identity as the default, with a reason code — AC-C7[32m 2[2mms[22m[39m
+   [32m✓[39m sender identities — AC-C7, AC-C8[2m > [22mmoves the default and leaves exactly one — AC-C8[32m 1[2mms[22m[39m
+   [32m✓[39m resend — AC-C9[2m > [22mqueues a new row and leaves the failure it retried[32m 2[2mms[22m[39m
+   [32m✓[39m resend — AC-C9[2m > [22mrefuses a resend a retry cannot fix[32m 16[2mms[22m[39m
+   [32m✓[39m the log query — AC-C10[2m > [22mfilters by delivery state[32m 1[2mms[22m[39m
+   [32m✓[39m the log query — AC-C10[2m > [22mfilters by template[32m 1[2mms[22m[39m
+   [32m✓[39m the log query — AC-C10[2m > [22msearches by recipient[32m 13[2mms[22m[39m
+   [32m✓[39m push broadcasts — AC-C13[2m > [22mcounts the audience it went to, and reports no open rate yet[32m 17[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mrenders the outbox by default, off row.views — AC-C11 [33m 2975[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mrenders the inbox when the URL asks for it — AC-C11 [33m 554[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mstates the failure on a failed row — AC-C9 [33m 1082[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mdisables Make default on an unverified identity and says why — AC-C7 [33m 1033[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mshows which language a template family is missing — AC-C3 [33m 786[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mpreviews a template with its sample values substituted — AC-C4 [33m 1163[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mblocks the save and names the undeclared variable — AC-C5 [33m 3441[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mwarns before saving a template that is in use — AC-C6 [33m 2855[2mms[22m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mreaches all four states of the log without editing a fixture — AC-C12 [33m 1913[2mms[22m[39m
+[31m   [31m×[31m the screen[2m > [22mshows a loading state before the log resolves — AC-C12[39m[33m 485[2mms[22m[39m
+[31m     → [2mexpect([22m[31melement[31m[2m).toBeInTheDocument()[22m
+
+[31melement could not be found in the document[31m[39m
+   [33m[2m✓[22m[39m the screen[2m > [22mmounts with the document in Arabic without losing a string [33m 636[2mms[22m[39m
+[31m   [31m×[31m the screen[2m > [22msends a push broadcast through the client and shows the recorded count — AC-C13[39m[33m 15152[2mms[22m[39m
+[31m     → Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+ [31m❯[39m src/screens/operations/trips/trips.test.tsx [2m([22m[2m9 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 52138[2mms[22m[39m
+[31m   [31m×[31m P8-T1 — every cell that names an entity opens that entity[2m > [22mrenders the trip id as a real link into the 360° layer, not a button[39m[33m 17529[2mms[22m[39m
+[31m     → Unable to find role="link" and name "Open the 360° profile for trip TRP-9103"
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[31m
+    [36m>[31m
+      [36m<a[31m
+        [33mclass[31m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[31m
+        [33mhref[31m=[32m"#ev-content"[31m
+      [36m>[31m
+        [0mSkip to content[0m
+      [36m</a>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"flex min-h-0 flex-1"[31m
+      [36m>[31m
+        [36m<nav[31m
+          [33maria-label[31m=[32m"Workspaces"[31m
+          [33mclass[31m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex h-topbar shrink-0 items-center justify-center"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33maria-label[31m=[32m"Eyvar"[31m
+              [33mclass[31m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-6"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<rect[31m
+                  [33mfill[31m=[32m"currentColor"[31m
+                  [33mheight[31m=[32m"22"[31m
+                  [33mrx[31m=[32m"6"[31m
+                  [33mwidth[31m=[32m"22"[31m
+                  [33mx[31m=[32m"1"[31m
+                  [33my[31m=[32m"1"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33mclass[31m=[32m"fill-none stroke-card"[31m
+                  [33md[31m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"1.8"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+            [36m</a>[31m
+          [36m</div>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex flex-col gap-1 px-1 pt-1"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+              [33mtabindex[31m=[32m"0"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M3 3v18h18"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M7 15l4-4 3 3 5-6"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[31m
+              [36m>[31m
+                [0mExec[0m
+              [36m</span>[31m
+              [36m<span[31m
+                [33maria-label[31m=[32m"8 items need attention"[31m
+                [33mclass[31m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[31m
+                [33mdata-size[31m=[32m"count"[31m
+                [33mdata-slot[31m=[32m"badge"[31m
+                [33mdata-tone[31m=[32m"nav-neutral"[31m
+              [36m>[31m
+                [0m8[0m
+              [36m</span>[31m
+            [36m</a>[31m
+            [36m<a[31m
+              [33maria-current[31m=[32m"page"[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/operations/overview"[31m
+              [33mtabindex[31m=[32m"-1"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"2.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"6.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+         ...
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[31m
+    [36m>[31m
+      [36m<a[31m
+        [33mclass[31m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[31m
+        [33mhref[31m=[32m"#ev-content"[31m
+      [36m>[31m
+        [0mSkip to content[0m
+      [36m</a>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"flex min-h-0 flex-1"[31m
+      [36m>[31m
+        [36m<nav[31m
+          [33maria-label[31m=[32m"Workspaces"[31m
+          [33mclass[31m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex h-topbar shrink-0 items-center justify-center"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33maria-label[31m=[32m"Eyvar"[31m
+              [33mclass[31m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-6"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<rect[31m
+                  [33mfill[31m=[32m"currentColor"[31m
+                  [33mheight[31m=[32m"22"[31m
+                  [33mrx[31m=[32m"6"[31m
+                  [33mwidth[31m=[32m"22"[31m
+                  [33mx[31m=[32m"1"[31m
+                  [33my[31m=[32m"1"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33mclass[31m=[32m"fill-none stroke-card"[31m
+                  [33md[31m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"1.8"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+            [36m</a>[31m
+          [36m</div>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex flex-col gap-1 px-1 pt-1"[31m
+          [36m>[31m
+            [36m<a[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/management/overview"[31m
+              [33mtabindex[31m=[32m"0"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M3 3v18h18"[31m
+                [36m/>[31m
+                [36m<path[31m
+                  [33md[31m=[32m"M7 15l4-4 3 3 5-6"[31m
+                [36m/>[31m
+              [36m</svg>[31m
+              [36m<span[31m
+                [33mclass[31m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[31m
+              [36m>[31m
+                [0mExec[0m
+              [36m</span>[31m
+              [36m<span[31m
+                [33maria-label[31m=[32m"8 items need attention"[31m
+                [33mclass[31m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[31m
+                [33mdata-size[31m=[32m"count"[31m
+                [33mdata-slot[31m=[32m"badge"[31m
+                [33mdata-tone[31m=[32m"nav-neutral"[31m
+              [36m>[31m
+                [0m8[0m
+              [36m</span>[31m
+            [36m</a>[31m
+            [36m<a[31m
+              [33maria-current[31m=[32m"page"[31m
+              [33mclass[31m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[31m
+              [33mdata-discover[31m=[32m"true"[31m
+              [33mdata-roving-item[31m=[32m""[31m
+              [33mhref[31m=[32m"/operations/overview"[31m
+              [33mtabindex[31m=[32m"-1"[31m
+            [36m>[31m
+              [36m<svg[31m
+                [33maria-hidden[31m=[32m"true"[31m
+                [33mclass[31m=[32m"size-5"[31m
+                [33mfill[31m=[32m"none"[31m
+                [33mfocusable[31m=[32m"false"[31m
+                [33mstroke[31m=[32m"currentColor"[31m
+                [33mstroke-linecap[31m=[32m"round"[31m
+                [33mstroke-linejoin[31m=[32m"round"[31m
+                [33mstroke-width[31m=[32m"1.5"[31m
+                [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [36m>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"2.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+                  [33mr[31m=[32m"6.5"[31m
+                [36m/>[31m
+                [36m<circle[31m
+                  [33mcx[31m=[32m"12"[31m
+                  [33mcy[31m=[32m"12"[31m
+         ...[39m
+   [33m[2m✓[22m[39m P8-T1 — every cell that names an entity opens that entity[2m > [22mopens the rider and the captain from their own cells [33m 6180[2mms[22m[39m
+   [33m[2m✓[22m[39m P8-T1 — every cell that names an entity opens that entity[2m > [22mrenders a captain that cannot be resolved as plain text with its reason, not a dead link [33m 3228[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch[2m > [22moffers the bar with a count and a clear once anything is selected [33m 2916[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch[2m > [22mAC-958 — refuses the whole set when ANY selected trip is blocked, naming the count [33m 4027[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch[2m > [22mAC-960 — an all-blocked selection gets the `.all` sentence and no escape hatch [33m 5354[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 / D21 — the bulk bar, its three sentences and its escape hatch[2m > [22mAC-959 — `Select only the N eligible` changes the SELECTION, and the bar says so [33m 4691[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 — the bulk action reaches the data layer[2m > [22mclears the selection when the write lands, so the bar reflects the record [33m 3988[2mms[22m[39m
+   [33m[2m✓[22m[39m P4-T1 — the bulk action reaches the data layer[2m > [22mkeeps the selection when the write is refused, so nothing claims to have happened [33m 3791[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 5 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/screens/admin/communications/communications.test.tsx[2m > [22mthe screen[2m > [22mshows a loading state before the log resolves — AC-C12
+[31m[1mError[22m: [2mexpect([22m[31melement[31m[2m).toBeInTheDocument()[22m
+
+[31melement could not be found in the document[31m[39m
+[36m [2m❯[22m src/screens/admin/communications/communications.test.tsx:[2m418:63[22m[39m
+    [90m416| [39m    [34msetMockLatency[39m([34m40[39m)
+    [90m417| [39m    [34mmount[39m()
+    [90m418| [39m    expect(await screen.findByLabelText('Sender identities')).toBeInTh…
+    [90m   | [39m                                                              [31m^[39m
+    [90m419| [39m    [34msetMockLatency[39m([34m0[39m)
+    [90m420| [39m  })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/screens/admin/communications/communications.test.tsx[2m > [22mthe screen[2m > [22msends a push broadcast through the client and shows the recorded count — AC-C13
+[31m[1mError[22m: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m src/screens/admin/communications/communications.test.tsx:[2m445:3[22m[39m
+    [90m443| [39m  })
+    [90m444| [39m
+    [90m445| [39m  it('sends a push broadcast through the client and shows the recorded…
+    [90m   | [39m  [31m^[39m
+    [90m446| [39m    [35mconst[39m user [33m=[39m userEvent[33m.[39m[34msetup[39m()
+    [90m447| [39m    [34mmount[39m()
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/screens/admin/workspace/integrations.test.tsx[2m > [22mthe reveal surface makes the consequence unmissable[2m > [22mshows the secret once, refuses to close until acknowledged, and leaves nothing behind
+[31m[1mError[22m: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+[36m [2m❯[22m src/screens/admin/workspace/integrations.test.tsx:[2m167:3[22m[39m
+    [90m165| [39m
+    [90m166| [39m[34mdescribe[39m([32m'the reveal surface makes the consequence unmissable'[39m[33m,[39m () [33m=>[39m {
+    [90m167| [39m  it('shows the secret once, refuses to close until acknowledged, and …
+    [90m   | [39m  [31m^[39m
+    [90m168| [39m    [35mconst[39m user [33m=[39m userEvent[33m.[39m[34msetup[39m()
+    [90m169| [39m    [34mrenderScreen[39m()
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/screens/operations/corporate/corporate.test.tsx[2m > [22mCorporateScreen — AC-24: a failed list read renders the page error state[2m > [22mnames what failed, names the fix, and offers a retry
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: Couldn't load Corporate Accounts. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[39m
+        [33mhref[39m=[32m"#ev-content"[39m
+      [36m>[39m
+        [0mSkip to content[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 flex-1"[39m
+      [36m>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Workspaces"[39m
+          [33mclass[39m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-topbar shrink-0 items-center justify-center"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-label[39m=[32m"Eyvar"[39m
+              [33mclass[39m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-6"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"22"[39m
+                  [33mrx[39m=[32m"6"[39m
+                  [33mwidth[39m=[32m"22"[39m
+                  [33mx[39m=[32m"1"[39m
+                  [33my[39m=[32m"1"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33mclass[39m=[32m"fill-none stroke-card"[39m
+                  [33md[39m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.8"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-1 px-1 pt-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+              [33mtabindex[39m=[32m"0"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v18h18"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 15l4-4 3 3 5-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[39m
+              [36m>[39m
+                [0mExec[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"8 items need attention"[39m
+                [33mclass[39m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[39m
+                [33mdata-size[39m=[32m"count"[39m
+                [33mdata-slot[39m=[32m"badge"[39m
+                [33mdata-tone[39m=[32m"nav-neutral"[39m
+              [36m>[39m
+                [0m8[0m
+              [36m</span>[39m
+            [36m</a>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/operations/overview"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"2.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"6.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+         ...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[39m
+        [33mhref[39m=[32m"#ev-content"[39m
+      [36m>[39m
+        [0mSkip to content[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 flex-1"[39m
+      [36m>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Workspaces"[39m
+          [33mclass[39m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-topbar shrink-0 items-center justify-center"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-label[39m=[32m"Eyvar"[39m
+              [33mclass[39m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-6"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"22"[39m
+                  [33mrx[39m=[32m"6"[39m
+                  [33mwidth[39m=[32m"22"[39m
+                  [33mx[39m=[32m"1"[39m
+                  [33my[39m=[32m"1"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33mclass[39m=[32m"fill-none stroke-card"[39m
+                  [33md[39m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.8"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-1 px-1 pt-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+              [33mtabindex[39m=[32m"0"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v18h18"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 15l4-4 3 3 5-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[39m
+              [36m>[39m
+                [0mExec[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"8 items need attention"[39m
+                [33mclass[39m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[39m
+                [33mdata-size[39m=[32m"count"[39m
+                [33mdata-slot[39m=[32m"badge"[39m
+                [33mdata-tone[39m=[32m"nav-neutral"[39m
+              [36m>[39m
+                [0m8[0m
+              [36m</span>[39m
+            [36m</a>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/operations/overview"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"2.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"6.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+         ...
+[90m [2m❯[22m waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m86:33[22m[39m
+[36m [2m❯[22m src/screens/operations/corporate/corporate.test.tsx:[2m95:20[22m[39m
+    [90m 93| [39m
+    [90m 94| [39m    [34mexpect[39m(
+    [90m 95| [39m      [35mawait[39m screen[33m.[39m[34mfindByText[39m(
+    [90m   | [39m                   [31m^[39m
+    [90m 96| [39m        fill('state.pageError.title', { resource: en('subtab.operation…
+    [90m 97| [39m      )[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/screens/operations/trips/trips.test.tsx[2m > [22mP8-T1 — every cell that names an entity opens that entity[2m > [22mrenders the trip id as a real link into the 360° layer, not a button
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find role="link" and name "Open the 360° profile for trip TRP-9103"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[39m
+        [33mhref[39m=[32m"#ev-content"[39m
+      [36m>[39m
+        [0mSkip to content[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 flex-1"[39m
+      [36m>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Workspaces"[39m
+          [33mclass[39m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-topbar shrink-0 items-center justify-center"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-label[39m=[32m"Eyvar"[39m
+              [33mclass[39m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-6"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"22"[39m
+                  [33mrx[39m=[32m"6"[39m
+                  [33mwidth[39m=[32m"22"[39m
+                  [33mx[39m=[32m"1"[39m
+                  [33my[39m=[32m"1"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33mclass[39m=[32m"fill-none stroke-card"[39m
+                  [33md[39m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.8"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-1 px-1 pt-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+              [33mtabindex[39m=[32m"0"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v18h18"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 15l4-4 3 3 5-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[39m
+              [36m>[39m
+                [0mExec[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"8 items need attention"[39m
+                [33mclass[39m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[39m
+                [33mdata-size[39m=[32m"count"[39m
+                [33mdata-slot[39m=[32m"badge"[39m
+                [33mdata-tone[39m=[32m"nav-neutral"[39m
+              [36m>[39m
+                [0m8[0m
+              [36m</span>[39m
+            [36m</a>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/operations/overview"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"2.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"6.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+         ...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex h-screen w-full flex-col overflow-hidden bg-background text-foreground"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:start-2 focus-visible:z-50 focus-visible:inline-flex focus-visible:h-control focus-visible:items-center focus-visible:rounded-lg focus-visible:border focus-visible:border-border focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium focus-visible:text-foreground focus-visible:shadow-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"[39m
+        [33mhref[39m=[32m"#ev-content"[39m
+      [36m>[39m
+        [0mSkip to content[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 flex-1"[39m
+      [36m>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Workspaces"[39m
+          [33mclass[39m=[32m"flex h-full w-rail shrink-0 flex-col overflow-hidden border-e border-border bg-nav-rail text-nav-rail-foreground"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex h-topbar shrink-0 items-center justify-center"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-label[39m=[32m"Eyvar"[39m
+              [33mclass[39m=[32m"flex size-8 items-center justify-center rounded-lg text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-6"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"22"[39m
+                  [33mrx[39m=[32m"6"[39m
+                  [33mwidth[39m=[32m"22"[39m
+                  [33mx[39m=[32m"1"[39m
+                  [33my[39m=[32m"1"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33mclass[39m=[32m"fill-none stroke-card"[39m
+                  [33md[39m=[32m"M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.8"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-1 px-1 pt-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/management/overview"[39m
+              [33mtabindex[39m=[32m"0"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 3v18h18"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 15l4-4 3 3 5-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-full truncate text-center text-2xs leading-3 font-medium"[39m
+              [36m>[39m
+                [0mExec[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"8 items need attention"[39m
+                [33mclass[39m=[32m"inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-lg border border-transparent font-semibold whitespace-nowrap tabular-nums [&>svg]:pointer-events-none [&>svg]:size-3 bg-nav-chip text-nav-chip-foreground h-4 min-w-4 px-1 text-2xs absolute top-1 end-1 ring-2 ring-nav"[39m
+                [33mdata-size[39m=[32m"count"[39m
+                [33mdata-slot[39m=[32m"badge"[39m
+                [33mdata-tone[39m=[32m"nav-neutral"[39m
+              [36m>[39m
+                [0m8[0m
+              [36m</span>[39m
+            [36m</a>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"group/tile relative flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 transition-colors outline-hidden hover:bg-nav-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset bg-nav-rail-chip text-foreground"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mdata-roving-item[39m=[32m""[39m
+              [33mhref[39m=[32m"/operations/overview"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"size-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mfocusable[39m=[32m"false"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"1.5"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"2.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+                  [33mr[39m=[32m"6.5"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"12"[39m
+         ...
+[90m [2m❯[22m waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m86:33[22m[39m
+[36m [2m❯[22m src/screens/operations/trips/trips.test.tsx:[2m104:31[22m[39m
+    [90m102| [39m       middle-clickable, has no copyable address, and carried
+    [90m103| [39m       `focus:outline-none` with nothing in its place. */[39m
+    [90m104| [39m    const link = await screen.findByRole('link', { name: t('trips.open…
+    [90m   | [39m                              [31m^[39m
+    [90m105| [39m    expect(link).toHaveAttribute('href', expect.stringContaining(`enti…
+    [90m106| [39m  })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m78 passed[39m[22m[90m (83)[39m
+[2m   Start at [22m 01:07:21
+[2m   Duration [22m 93.79s[2m (transform 32.98s, setup 99.36s, collect 98.49s, tests 166.43s, environment 9.00s, prepare 1.44s)[22m
+

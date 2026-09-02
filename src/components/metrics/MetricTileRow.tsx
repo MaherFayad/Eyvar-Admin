@@ -61,9 +61,29 @@
 
 import type { ReactNode } from 'react'
 
+/**
+ * Four across on the desktop console; **one across below 768px**.
+ *
+ * Four columns of a 390px phone is a 80.5px tile, and 8 of the 11 KPIs on the
+ * Management overview clip inside it. That is not a consequence of the KPI
+ * numeral moving to 28px — forced back to 22px it still clips 4 of 11, and at
+ * the old 17px still 3 of 11. No size in the ramp fits `1,281.86 SAR` into
+ * 80.5px, so this is a column count, not a type problem.
+ *
+ * One-up rather than two-up because the numbers were measured: the compact
+ * column is 358px and the widest tile value renders 188px, so one-up clears it
+ * by 170px while two-up gives 173px and falls 15px short of the same value.
+ * Two-up would fit most tiles and clip the one that matters.
+ */
 export function MetricTileRow({ children }: { children: ReactNode }) {
   return (
-    <ul role="list" className="grid list-none grid-cols-4 gap-3">
+    /* `data-numeric` — the second half of H4's figure guarantee, on the hook
+       `globals.css` already declares for *"a number outside a table"* and which
+       had no consumers at all. A tile's own numeral gets it from
+       `[data-slot="metric-value"]`; this covers everything ELSE in the row that
+       is a number — the delta chip, a caption's denominator — so a 4-up row
+       scans down its digits rather than shimmering between renders. */
+    <ul data-numeric role="list" className="grid list-none grid-cols-4 gap-3 compact:grid-cols-1">
       {children}
     </ul>
   )

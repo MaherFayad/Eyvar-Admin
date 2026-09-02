@@ -36,7 +36,7 @@
  * `src/shell/`, and this 422 is what catches the day the clamp moves.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation } from '../mock/delay'
 import { ApiError } from '../types/common'
@@ -48,6 +48,13 @@ export const SECURITY_POLICY_OPERATIONS = {
   get: 'securityPolicy.get',
   update: 'securityPolicy.update',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(SECURITY_POLICY_OPERATIONS))
 
 /** `shell/session.ts` — `MIN_IDLE_TIMEOUT_MINUTES` / `MAX_IDLE_TIMEOUT_MINUTES`. */
 export const MIN_IDLE_TIMEOUT_MINUTES = 5

@@ -6,7 +6,7 @@ You should not have to open `src/` to build the API, and you should never have t
 
 | Read | File | What it is |
 |---|---|---|
-| 1st | [CONTRACT.md](CONTRACT.md) | The conventions. Envelopes, pagination, sort and filter wire format, errors, money, dates, auth. **Read this once; it applies to all 284 endpoints.** |
+| 1st | [CONTRACT.md](CONTRACT.md) | The conventions. Envelopes, pagination, sort and filter wire format, errors, money, dates, auth. **Read this once; it applies to all 290 endpoints.** |
 | 2nd | [ENDPOINTS.md](ENDPOINTS.md) | Every endpoint: method, path, request, response type, which client calls it. Generated. |
 | as needed | [endpoints.json](endpoints.json) | The same index, machine-readable. Generate stubs, a Postman collection, or a route table from it. |
 | before you start | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | What the frontend assumed and needs you to confirm or overrule. **Answer these first** — some of them change endpoint shapes. |

@@ -111,7 +111,7 @@ import { Money } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
 import { withOverlay } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
-import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { DRIVER_STATUS, DRIVER_TIER, VEHICLE_CLASS } from './domain'
 import type { ExtraFilterSpec } from '@/components/DataTable'
 import { PeopleTable, type PeopleColumn } from './PeopleTable'
@@ -157,7 +157,7 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
 
   const data = useAsync<Paginated<Driver>>(
     (signal) => listDrivers({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'drivers.list' },
   )
 
   const overrides = useRowOverrides<Driver>()
@@ -197,7 +197,19 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
         answer.current = resolve
         setConfirm({
           ...request,
-          onConfirm: (reason) => {
+          /**
+           * **`destructive` cannot be answered here, and it is deliberately
+           * not guessed.** `CommandConfirmRequest` (`commands/registry.ts`)
+           * carries no such field, so every command-driven confirmation on
+           * this screen renders the ordinary primary. That is the right answer
+           * for both captain commands today - `captains.ts:275` declares
+           * `affordance: 'default'` for suspend with R5a's reasoning, and
+           * reinstate is its inverse - but it is right by luck, not by wiring.
+           * The fix is one field: `CommandConfirmRequest.destructive`, fed from
+           * the command's own `affordance`, spread through here with the rest.
+           * `src/commands/` belongs to another owner; raised in the G5 handoff.
+           */
+          onConfirm: ({ reason }) => {
             /* Busy from the moment they commit until the command settles — the
                dialog stays up and un-dismissable while the write is in flight,
                which is what it did before. */
@@ -280,6 +292,13 @@ export function CaptainsView({ chrome, t, language, canWrite }: ViewChrome) {
           onSelect: (driver: Driver) => void dispatch(command, [driver]),
           disabled: (driver: Driver) => unavailableReason(command, context([driver])) !== null,
           reason: (driver: Driver) => unavailableReason(command, context([driver])),
+          /* **P0-2 — the declared row-click target, read from the command's
+             own `section`.** `go` is the registry's word for a command that
+             navigates and decides nothing, and `captain.openProfile` is the
+             only `go` on this table; `suspend` and `reinstate` are `do`. Keyed
+             off the declaration rather than the translated label, which is the
+             defect this replaces. */
+          rowClick: command.section === 'go',
         }))}
         /* §13.4 — the inverted strip takes the compact form (`Suspend`), which
            the command declares beside its full one so the two cannot drift. */
@@ -403,6 +422,8 @@ export function captainColumns(
   return [
     {
       id: 'captain',
+      emphasis: 'primary',
+      csv: (d) => d.name,
       header: t('people.col.captain'),
       /* AC-104 — column index 0 is the identity: pinned implicitly and
          permanently, never hideable, never unpinnable. */
@@ -427,6 +448,7 @@ export function captainColumns(
     },
     {
       id: 'status',
+      emphasis: 'data',
       header: t('people.col.status'),
       width: 112,
       dataType: 'enum',
@@ -452,6 +474,7 @@ export function captainColumns(
     },
     {
       id: 'rating',
+      emphasis: 'data',
       header: t('people.col.rating'),
       align: 'end',
       width: 80,
@@ -482,6 +505,7 @@ export function captainColumns(
     },
     {
       id: 'earned',
+      emphasis: 'data',
       header: t('people.col.earned'),
       align: 'end',
       width: 128,
@@ -625,9 +649,14 @@ export function captainColumns(
       header: t('people.col.phone'),
       width: 144,
       dataType: 'text',
+      /* §9.2 / A2 — a phone value is a single LTR token with no strong
+         character in it, so without isolation the leading `+` takes the
+         paragraph's direction and jumps sides under `dir="rtl"`. `dataType`
+         says `text` because it sorts and filters like text; this says what it
+         READS like. `DateCell` already isolates the value it renders — this
+         makes the column say so, for the day the cell changes. */
+      isolate: true,
       defaultHidden: true,
-      /* §9.2 — a phone value is a single LTR token: without isolation a
-         leading `+` jumps sides under `dir="rtl"`. */
       cell: (d) => <DateCell className="tabular-nums">{d.phone}</DateCell>,
     },
     {

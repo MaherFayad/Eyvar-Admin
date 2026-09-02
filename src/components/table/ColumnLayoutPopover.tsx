@@ -44,10 +44,12 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { PinRefusal } from "@/hooks";
 import type { Translate } from "@/lib";
 import { cn } from "@/lib/utils";
 import type { DataColumn } from "./columns";
+import { setTableDensity, useTableDensity } from "./density";
 
 export interface ColumnLayoutPopoverProps<T> {
   t: Translate;
@@ -79,6 +81,17 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
     onReset,
     showVisibility,
   } = props;
+
+  /* **D16's `ui.density`, and this is the surface that was missing.** The
+     preference has been declared, validated, versioned and cached per operator
+     since P1-T5 with **zero consumers** — two audits found it independently,
+     which is what a fully-built preference with no control looks like from the
+     outside. `toggle-group.tsx`'s own header names table density as its §9.1
+     job, so the control is the one already specified for it rather than a new
+     shape. It lives here because this popover is already "how this table is
+     laid out", and a second toolbar button for one binary would spend a slot
+     the 1280 floor does not have. */
+  const density = useTableDensity();
 
   return (
     <Popover>
@@ -185,6 +198,35 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
               </div>
             );
           })}
+        </div>
+
+        <Separator />
+        {/* Density is per OPERATOR, not per table — it is one `ui.density` for
+            every index in the product, so it is deliberately outside the
+            per-column list above and outside `Reset columns` below, which
+            restores a *column layout* and must not silently change how tall
+            every row in the console is. */}
+        <div className="flex flex-col gap-1">
+          <span id="table-density-label" className="text-xs font-medium text-muted-foreground">
+            {t("table.density.title")}
+          </span>
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={density}
+            aria-labelledby="table-density-label"
+            onValueChange={(next) => {
+              /* Radix emits `''` when the pressed item is pressed again. A
+                 density is not clearable — there is no third state — so an
+                 empty value is a no-op rather than a fall back to the default. */
+              if (next === "comfortable" || next === "compact") setTableDensity(next);
+            }}
+          >
+            <ToggleGroupItem value="comfortable">
+              {t("table.density.comfortable")}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="compact">{t("table.density.compact")}</ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         <Separator />

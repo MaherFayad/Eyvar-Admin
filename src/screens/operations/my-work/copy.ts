@@ -80,7 +80,7 @@ export const MY_WORK_EN: Dictionary = {
   'myWork.empty.cleared.heading': 'Nothing owed',
   'myWork.empty.cleared.mine': 'You are holding nothing. Unassigned has work waiting to be picked up.',
   'myWork.empty.cleared.unassigned': 'Every open item across the queues has somebody working it.',
-  'myWork.empty.cleared.everything': 'Nothing is open in any queue.',
+  'myWork.empty.cleared.everything': 'Every queue is clear.',
 
   /* §7.5 `routed-to-zero` — **not E1 and not E2.** It names the filter, and it
      offers to switch routing off **in place** (**AC-287**). Legacy shows this

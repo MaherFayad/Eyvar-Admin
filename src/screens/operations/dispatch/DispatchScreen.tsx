@@ -38,21 +38,38 @@
  *               buttons are the primary only when content is on screen.
  *   §9.1        logical utilities in everything written here (`ms-`).
  *
- * Known, reported, NOT fixed here (each is a scheduled wave that owns the file
- * class, per `REMEDIATION-PLAN.md`):
- *   §4.1 — the palette classes (`bg-amber-500/10`, `text-emerald-600`) and the
- *          `text-[11px]` arbitrary values below.
- *   §4.2 — the `t(key, { defaultValue })` calls. Existing keys are used where
- *          the dictionary already has one (`state.pageError.*`,
- *          `overview.loading`); a new `dispatch/copy.ts` cannot be registered
- *          without editing `src/i18n/dictionaries.ts`, which has another owner.
- *   §2.2 — the three figures in the Dispatch Velocity card are hardcoded. They
+ * **§4.1 and §4.2 are closed** (2026-09-02):
+ *   §4.1 — the ten palette classes are gone. Warning and success now come from
+ *          the closed five-tone set (`bg-warning`, `text-warning-foreground`,
+ *          `text-success-foreground`), and the two bracketed arbitrary sizes
+ *          (eleven and ten pixels) are back on the ramp — H2 puts the tab count
+ *          pills on the 11px step, whose declared job is exactly a count
+ *          numeral, and everything else on the 12px meta step. The sizes are
+ *          named in words above because a bracketed class written in a comment
+ *          is a candidate Tailwind emits a rule for. **The pickup/destination pins changed shape, not just
+ *          colour**: both were `MapPin` and green-vs-red was the ONLY thing
+ *          telling them apart, so the distinction was invisible to a
+ *          colour-blind operator and it read as good-vs-bad, which the two ends
+ *          of a route are not. Destination is now `Navigation`, and both are
+ *          muted ink.
+ *   §4.2 — the 42 `t(key, { defaultValue })` calls are gone. `./copy.ts` holds
+ *          them as a real dictionary, reached through `withFallback` — the same
+ *          arrangement Trips and Subscriptions use, and it needs no edit to
+ *          `src/i18n/dictionaries.ts`. Consolidating them surfaced **16 copy
+ *          defects** that were unreviewable while scattered through JSX,
+ *          including the US spelling `Fleet Utilization` and eleven Title Case
+ *          headings.
+ *
+ * Known, still NOT fixed here:
+ *   §2.2 — the three figures in the Dispatch velocity card are hardcoded. They
  *          have no type, no fixture and no client. See the note at `telemetry`.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { withFallback } from '../localCopy'
+import { DISPATCH_EN } from './copy'
 import { assignRequest, listDrivers, listRequests, listTrips } from '@/data/clients'
 import type {
   Driver,
@@ -72,6 +89,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { MonitorShell } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
+import { permissionName } from '@/shell/permissions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -99,7 +117,18 @@ const FLEET_CARDS = 9
 export function DispatchScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const navigate = useNavigate()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts`. `withFallback` resolves keys the
+     shell dictionary has not registered yet against that dictionary, so no
+     English literal sits in this file. See `../localCopy`. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, DISPATCH_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   const [activeTab, setActiveTab] = useState<'trips' | 'pending' | 'fleet'>('trips')
 
@@ -114,7 +143,16 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
         },
         signal,
       ),
-    { deps: [] },
+    /**
+     * **The constant query is restated in `deps`, and that is the point.**
+     *
+     * This fetcher varies on nothing, so `deps: []` would be *correct* as a
+     * dependency array and *wrong* as a cache key: `trips.list::[]` is a slot
+     * every other constant-query read of `trips.list` would also claim, and the
+     * two would then serve each other's rows. Naming the query's own constants
+     * makes the key describe the request rather than the operation.
+     */
+    { deps: [ACTIVE_TRIP_STATUSES, FEED_PAGE_SIZE], cacheKey: 'trips.list' },
   )
 
   /* `pending` is the client's own view — `searching ∪ offered`, legacy
@@ -123,12 +161,20 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
      about what "pending" means. */
   const requests = useAsync<Paginated<RideRequest>>(
     (signal) => listRequests({ view: 'pending', pageSize: FEED_PAGE_SIZE }, signal),
-    { deps: [] },
+    /* `requests.list::[]` is **already taken** — `RequestsScreen`'s breached
+       count reads the same operation with its own constant query and keys it on
+       `[]`. Sharing that slot would paint this board's pending column from a
+       one-row breach count. The view and the page size distinguish it. */
+    { deps: ['pending', FEED_PAGE_SIZE], cacheKey: 'requests.list' },
   )
 
   const fleet = useAsync<Paginated<Driver>>(
     (signal) => listDrivers({ status: 'active', pageSize: FEED_PAGE_SIZE }, signal),
-    { deps: [] },
+    /* Same reasoning as the two above: the status and the page size are the
+       whole query, so they are the whole key. `ManualDispatchModal` reads
+       `drivers.list` with the same status and a different page size, and the
+       two must not collide. */
+    { deps: ['active', FEED_PAGE_SIZE], cacheKey: 'drivers.list' },
   )
 
   const activeTrips = trips.data?.items ?? []
@@ -207,10 +253,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
    * renders both and refuses both with this sentence. The model it needs is in
    * the handoff.
    */
-  const interventionsUnavailable = t('dispatch.interventions.unavailable', {
-    defaultValue:
-      'Interventions are read-only until the live alert feed is connected. Acknowledging or reassigning here would save nothing.',
-  })
+  const interventionsUnavailable = t('dispatch.interventions.unavailable')
 
   /**
    * **The write, and it used to not exist.**
@@ -234,11 +277,8 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     driverName: string,
   ) => {
     await assignRequest(requestId, driverId)
-    toast.success(t('dispatch.toast.dispatched', {
-      defaultValue: 'Request {id} assigned to captain {name}',
-      id: requestId,
-      name: driverName,
-    }))
+    toast.success(t('dispatch.toast.dispatched', { id: requestId,
+      name: driverName }))
     /* The board has changed on the server: that request now has a captain, and
        that captain now has a trip. Re-read rather than splice — legacy splices
        the record out of the array (`:11895`) and that is why its counts drift. */
@@ -250,7 +290,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
   /* The meta line names a count, so it only exists once there is a count to
      name. `—` here would be a claim that the number is zero. */
   const metaText = trips.data
-    ? `${formatCount(trips.data.total, language)} ${t('dispatch.inTransit', { defaultValue: 'in-transit' })} · ${t('dispatch.liveConnected', { defaultValue: 'Real-time Telemetry Live' })}`
+    ? `${formatCount(trips.data.total, language)} ${t('dispatch.inTransit')} · ${t('dispatch.liveConnected')}`
     : null
 
   const header = (
@@ -272,22 +312,26 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
           <TabsList className="bg-muted/40 p-1">
             <TabsTrigger value="trips" className="text-xs gap-1.5">
               <Navigation className="h-3.5 w-3.5" />
-              {t('dispatch.feed.activeTrips', { defaultValue: 'Active Trips' })}
-              <span className="ms-1 text-[11px] font-mono rounded-full bg-primary/10 text-primary px-1.5">
+              {t('dispatch.feed.activeTrips')}
+              {/* H2 — the count-badge numeral is `--text-2xs`'s ONE declared
+                  job. Its three siblings were 11px arbitrary, 11px arbitrary
+                  and `text-2xs`: three sizes for one thing, and two of them
+                  off the ramp. */}
+              <span className="ms-1 text-2xs font-mono rounded-full bg-primary/10 text-primary px-1.5">
                 {formatCount(trips.data?.total ?? 0, language)}
               </span>
             </TabsTrigger>
             <TabsTrigger value="pending" className="text-xs gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              {t('dispatch.feed.pendingMatch', { defaultValue: 'Pending Dispatch' })}
-              <span className="ms-1 text-[11px] font-mono rounded-full bg-amber-500/10 text-amber-600 px-1.5">
+              {t('dispatch.feed.pendingMatch')}
+              <span className="ms-1 text-2xs font-mono rounded-full bg-warning text-warning-foreground px-1.5">
                 {formatCount(requests.data?.total ?? 0, language)}
               </span>
             </TabsTrigger>
             <TabsTrigger value="fleet" className="text-xs gap-1.5">
               <Car className="h-3.5 w-3.5" />
-              {t('dispatch.feed.fleet', { defaultValue: 'Fleet Online' })}
-              <span className="ms-1 text-[11px] font-mono rounded-full bg-muted text-muted-foreground px-1.5">
+              {t('dispatch.feed.fleet')}
+              <span className="ms-1 text-2xs font-mono rounded-full bg-muted text-muted-foreground px-1.5">
                 {formatCount(fleet.data?.total ?? 0, language)}
               </span>
             </TabsTrigger>
@@ -301,10 +345,8 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                One sentence naming the scope; no illustration. */
             <EmptyState
               kind="cleared"
-              heading={t('dispatch.empty.trips.heading', { defaultValue: 'Nothing in transit' })}
-              body={t('dispatch.empty.trips.body', {
-                defaultValue: 'No trip is on the road right now. New trips appear here as captains accept them.',
-              })}
+              heading={t('dispatch.empty.trips.heading')}
+              body={t('dispatch.empty.trips.body')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -312,24 +354,31 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                 <Card key={trip.id} className="border-border">
                   <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-foreground">{trip.id}</span>
+                      {/* H3 — PRIMARY is 500. `font-bold` (700) on an id is
+                          two ranks above what an id is worth, and weight spent
+                          here is weight the fare beside it cannot spend. */}
+                      <span className="font-mono text-xs font-medium text-foreground">{trip.id}</span>
                       <StatusBadge tone="info">{trip.kind}</StatusBadge>
                     </div>
-                    <span className="text-xs font-semibold text-foreground"><Money amount={trip.fareHalalas} /></span>
+                    {/* H1/H2 DATA tier — the fare is what an operator scans a
+                        dispatch card FOR, so it is 14px ink with tabular
+                        figures, not 12px semibold. Size carries it; the weight
+                        it used to borrow goes back to the identity rank. */}
+                    <span className="text-sm tabular-nums text-foreground"><Money amount={trip.fareHalalas} /></span>
                   </CardHeader>
                   <CardContent className="p-3 pt-0 text-xs space-y-2.5">
                     <div className="space-y-1 bg-muted/30 p-2.5 rounded border border-border">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
+                        <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="truncate">{trip.pickup}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="h-3 w-3 text-rose-600 shrink-0" />
+                        <Navigation className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="truncate">{trip.destination}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
                         <span className="font-medium text-foreground">{trip.riderName}</span>
@@ -337,7 +386,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                       <div className="flex items-center gap-1">
                         <Car className="h-3 w-3" />
                         <span className="font-medium text-foreground">
-                          {trip.driverName ?? t('dispatch.unassigned', { defaultValue: 'Unassigned' })}
+                          {trip.driverName ?? t('dispatch.unassigned')}
                         </span>
                       </div>
                     </div>
@@ -353,10 +402,8 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
           {pendingRequests.length === 0 ? (
             <EmptyState
               kind="cleared"
-              heading={t('dispatch.empty.pending.heading', { defaultValue: 'Nothing waiting' })}
-              body={t('dispatch.empty.pending.body', {
-                defaultValue: 'Every ride request has a captain. Unmatched requests appear here.',
-              })}
+              heading={t('dispatch.empty.pending.heading')}
+              body={t('dispatch.empty.pending.body')}
             />
           ) : (
             <div className="divide-y divide-border border border-border rounded-lg bg-card overflow-hidden">
@@ -366,9 +413,9 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-semibold text-foreground">{req.id}</span>
                       <StatusBadge tone="warning">{req.channel}</StatusBadge>
-                      <span className="text-[11px] text-muted-foreground">{req.riderName}</span>
+                      <span className="text-xs text-muted-foreground">{req.riderName}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {req.pickup} → {req.destination}
                     </p>
                   </div>
@@ -395,7 +442,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                           })
                         }
                       >
-                        {t('dispatch.assignCaptain', { defaultValue: 'Dispatch Captain' })}
+                        {t('dispatch.assignCaptain')}
                       </Button>
                     </div>
                   </div>
@@ -407,7 +454,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                    permission and who can grant it, so the refusal tells the
                    operator what to do next rather than only that they cannot. */
                 <p id={dispatchDeniedId} className="text-2xs text-muted-foreground">
-                  {t('state.forbidden.body', { permission: 'live_ops' })}
+                  {t('state.forbidden.body', { permission: permissionName(t, 'live_ops') })}
                 </p>
               )}
             </div>
@@ -419,26 +466,24 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
           {onlineDrivers.length === 0 ? (
             <EmptyState
               kind="cleared"
-              heading={t('dispatch.empty.fleet.heading', { defaultValue: 'No captain is online' })}
-              body={t('dispatch.empty.fleet.body', {
-                defaultValue: 'Captains appear here as they come on shift.',
-              })}
+              heading={t('dispatch.empty.fleet.heading')}
+              body={t('dispatch.empty.fleet.body')}
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {onlineDrivers.slice(0, FLEET_CARDS).map((driver) => (
                 <Card key={driver.id} className="border-border p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-xs text-foreground">{driver.name}</span>
+                    <span className="text-sm font-medium text-foreground">{driver.name}</span>
                     <StatusBadge tone="success">
-                      {t('dispatch.fleet.active', { defaultValue: 'Active' })}
+                      {t('dispatch.fleet.active')}
                     </StatusBadge>
                   </div>
-                  <div className="text-[11px] text-muted-foreground flex justify-between">
+                  <div className="text-xs text-muted-foreground flex justify-between">
                     <span>{driver.city} · {driver.vehicleClass}</span>
                     <span className="font-semibold text-foreground">{driver.rating !== null ? `★ ${driver.rating.toFixed(1)}` : '—'}</span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground flex justify-between pt-1 border-t border-border">
+                  <div className="text-xs text-muted-foreground flex justify-between pt-1 border-t border-border">
                     <span>{driver.activeSubscriptions}/{driver.maxSubscriptions} active subs</span>
                     <span className="font-mono">{driver.id}</span>
                   </div>
@@ -470,13 +515,11 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
        Live Dispatch is FOR, and an action that goes where the work starts. */
     <EmptyState
       kind="first-run"
-      heading={t('dispatch.empty.board.heading', { defaultValue: 'Nothing is moving yet' })}
-      body={t('dispatch.empty.board.body', {
-        defaultValue: 'Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts.',
-      })}
+      heading={t('dispatch.empty.board.heading')}
+      body={t('dispatch.empty.board.body')}
       actions={[
         {
-          label: t('dispatch.empty.board.action', { defaultValue: 'Go to requests' }),
+          label: t('dispatch.empty.board.action'),
           onClick: () => navigate('/operations/requests'),
           primary: true,
         },
@@ -498,22 +541,25 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
   const telemetry = (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Activity className="h-4 w-4 text-emerald-600" />
-          {t('dispatch.liveTelemetry', { defaultValue: 'Dispatch Velocity' })}
+        {/* H2/H3 — a card title is INK. This one was 12px grey over a 12px
+            grey body: same size, same colour, so the card had no first thing to
+            read. Case and tracking stay; the colour comes back. */}
+        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+          <Activity className="h-4 w-4 text-success-foreground" />
+          {t('dispatch.liveTelemetry')}
         </CardTitle>
       </CardHeader>
       <CardContent className="text-xs space-y-2">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('dispatch.avgMatchTime', { defaultValue: 'Avg Match Time' })}:</span>
+          <span className="text-muted-foreground">{t('dispatch.avgMatchTime')}:</span>
           <span className="font-semibold text-foreground">42s</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('dispatch.autoMatchRate', { defaultValue: 'Auto-Match Rate' })}:</span>
-          <span className="font-semibold text-emerald-600">96.4%</span>
+          <span className="text-muted-foreground">{t('dispatch.autoMatchRate')}:</span>
+          <span className="font-semibold text-success-foreground">96.4%</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('dispatch.fleetUtilization', { defaultValue: 'Fleet Utilization' })}:</span>
+          <span className="text-muted-foreground">{t('dispatch.fleetUtilization')}:</span>
           <span className="font-semibold text-foreground">78.2%</span>
         </div>
       </CardContent>
@@ -538,9 +584,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
       {failed ? (
         <ErrorState
           scope="card"
-          message={t('dispatch.error.telemetry', {
-            defaultValue: "Dispatch velocity isn't available while the board is down.",
-          })}
+          message={t('dispatch.error.telemetry')}
           action={{ label: t('state.pageError.action'), onClick: retry }}
         />
       ) : (

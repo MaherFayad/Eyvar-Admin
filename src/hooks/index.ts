@@ -83,6 +83,7 @@ export {
    banner since the shell was built and **nothing that ever set it**. Promoted
    out of `src/shell/` once it had three consumers. */
 export { useOnline } from './useOnline'
+export { useCompactShell, useDrawerDisclosure, type DisclosureState } from './useCompactShell'
 export { useRovingFocus, type RovingFocus, type RovingItemProps, type UseRovingFocusOptions } from './useRovingFocus'
 export {
   useNow,

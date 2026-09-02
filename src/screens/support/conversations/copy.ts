@@ -264,7 +264,7 @@ export const CONVERSATIONS_EN: Dictionary = {
      permission and who can grant it — which is why it reads the same on this
      surface as it does in a kebab and in the bulk bar. */
   'conversations.composer.noPermission':
-    'You need the “{permission}” permission. An owner can grant it.',
+    'You cannot send a message. Ask an Owner for the “{permission}” permission.',
   'conversations.composer.permission': 'Contact users',
 
   /* §8.6 §6 — a rejected send removes the optimistic bubble, restores the body,

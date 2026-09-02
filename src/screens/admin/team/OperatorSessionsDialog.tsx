@@ -79,7 +79,13 @@ export function OperatorSessionsDialog({
       userId === null
         ? Promise.resolve({ items: [], canRevoke: false, refusal: null })
         : listOperatorSessions(userId, signal),
-    { deps: [userId], enabled: userId !== null },
+    {
+      /* Keyed by the operator whose sessions these are - the one dependency
+         that must not be missing here. Revoke calls `refetch`. */
+      deps: [userId],
+      enabled: userId !== null,
+      cacheKey: 'team.sessions',
+    },
   )
 
   const [confirming, setConfirming] = useState<string | null>(null)
@@ -109,7 +115,7 @@ export function OperatorSessionsDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>{t('admin.team.sessions.title', { name: operator.name })}</DialogTitle>
           <DialogDescription>{t('admin.team.sessions.desc')}</DialogDescription>
@@ -148,11 +154,11 @@ export function OperatorSessionsDialog({
                           </StatusBadge>
                         )}
                       </span>
-                      <span className="text-2xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {device.location} · <bdi dir="ltr">{device.ip}</bdi> ·{' '}
                         {formatDate(device.lastActiveAt, { language, style: 'day-month-time' })}
                       </span>
-                      <span className="text-2xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {trusted && device.trustedUntil !== null
                           ? t('admin.team.sessions.trusted', {
                               date: formatDate(device.trustedUntil, { language }),
@@ -192,7 +198,7 @@ export function OperatorSessionsDialog({
                         {!canRevoke && refusal !== null && (
                           <span
                             id={`admin-team-session-refusal-${device.id}`}
-                            className="max-w-56 text-end text-2xs text-muted-foreground"
+                            className="max-w-56 text-end text-xs text-muted-foreground"
                           >
                             {refusal}
                           </span>

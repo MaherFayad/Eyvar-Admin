@@ -52,7 +52,7 @@ export function MessagingTemplatesCard({ t }: { t: Translate }) {
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('comms.messaging.title')}</CardTitle>
+        <CardTitle>{t('comms.messaging.title')}</CardTitle>
         <CardDescription className="text-xs">{t('comms.messaging.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -91,7 +91,7 @@ export function MessagingTemplatesCard({ t }: { t: Translate }) {
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-foreground">{template.name}</span>
-                    <span className="font-mono text-2xs text-muted-foreground">{template.code}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{template.code}</span>
                     <StatusBadge tone={CHANNEL_TONE[template.channel]}>
                       {t(CHANNEL_LABEL[template.channel])}
                     </StatusBadge>
@@ -99,12 +99,12 @@ export function MessagingTemplatesCard({ t }: { t: Translate }) {
                       {t(template.status === 'active' ? 'comms.template.inUse' : 'comms.template.draft')}
                     </StatusBadge>
                   </div>
-                  <p className="max-w-xl rounded-md border border-border bg-muted/40 p-2 font-mono text-2xs text-muted-foreground">
+                  <p className="max-w-xl rounded-md border border-border bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
                     {template.sampleText}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-0.5 text-end">
-                  <span className="text-2xs text-muted-foreground">{t('comms.messaging.audience')}</span>
+                  <span className="text-xs text-muted-foreground">{t('comms.messaging.audience')}</span>
                   <span className="text-xs text-foreground">{t(AUDIENCE_LABEL[template.audience])}</span>
                 </div>
               </li>

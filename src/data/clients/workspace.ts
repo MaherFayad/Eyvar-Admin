@@ -36,10 +36,9 @@
  * only in the browser is a limit the next surface skips.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation } from '../mock/delay'
-import { workspaceSettingsFixture } from '../fixtures/workspace'
 import { ApiError } from '../types/common'
 import {
   MAX_LOGO_BYTES,
@@ -50,6 +49,19 @@ import {
 } from '../types/workspace'
 import { appendAudit } from './audit'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let workspaceSettingsFixture!: Fixtures['workspaceSettingsFixture']
+onFixturesLoaded((f) => {
+  workspaceSettingsFixture = f.workspaceSettingsFixture
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  settings = clone(workspaceSettingsFixture)
+})
 
 export const WORKSPACE_OPERATIONS = {
   get: 'workspace.get',
@@ -59,12 +71,23 @@ export const WORKSPACE_OPERATIONS = {
   reconsent: 'workspace.reconsent',
 } as const
 
-let settings: WorkspaceSettings = clone(workspaceSettingsFixture)
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(WORKSPACE_OPERATIONS))
+
+let settings!: WorkspaceSettings
 
 /** How many accounts each document has already been re-prompted for, this session. */
 let reconsentQueued: Record<string, number> = {}
 
 export function resetWorkspace(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   settings = clone(workspaceSettingsFixture)
   reconsentQueued = {}
 }

@@ -88,6 +88,10 @@ export function ProfileLayer({
 }: ProfileLayerProps) {
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(entityId, signal), {
     deps: [entityId],
+    /* `entityId` is the fetcher's only input, so the key is complete. Closing
+       the drawer and re-opening the same record paints the header immediately
+       instead of re-running the resolve. */
+    cacheKey: 'profile.resolve',
     enabled: open,
   })
 

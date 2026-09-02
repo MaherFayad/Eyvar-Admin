@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { configure } from '@testing-library/dom'
-import { beforeEach } from 'vitest'
-import { resetDataLayer } from '@/data/clients'
+import { beforeAll, beforeEach } from 'vitest'
+import { loadFixtures, resetDataLayer } from '@/data/clients'
 import { resetRequestCache } from '@/hooks/requestCache'
 
 /**
@@ -24,7 +24,16 @@ import { resetRequestCache } from '@/hooks/requestCache'
  * *correct* assertion may take to become true, and a genuinely absent element
  * still fails, five seconds later.
  */
-configure({ asyncUtilTimeout: 5_000 })
+/* **Raised 5s -> 8s, 2026-09-02, for a measured reason.** Route-level code
+   splitting (P3-11) made every screen a `React.lazy` chunk, so a screen-level
+   assertion now waits for a Suspense resolution that used to be a static
+   import. Measured: `trips.test.tsx`'s slowest assertion takes 2.9s alone and
+   exceeded 5s under 12-way parallelism, while the same five suites pass 122/122
+   sequentially. Same signature the note above describes - passes individually,
+   passes with `--no-file-parallelism`, failing set changes between identical
+   runs - so it is a wait budget, not a defect. Still a budget: a genuinely
+   absent element fails, eight seconds later. */
+configure({ asyncUtilTimeout: 8_000 })
 
 // Every test starts from a clean data layer: no leaked fixtures, no injected
 // failure, no carried-over latency setting. See src/data/clients/index.ts.
@@ -33,6 +42,27 @@ configure({ asyncUtilTimeout: 5_000 })
 // id, so without this a warm entry from one test file's render would serve the
 // next one's first mount — content where the test expected a skeleton, in a file
 // that never mentions caching.
+/**
+ * **Warm the fixture chunk once, before any test renders.**
+ *
+ * Fixtures are behind a dynamic `import()` so they never reach a
+ * `VITE_DATA_SOURCE=http` build (`src/data/mock/fixtures.ts`). `mock()` awaits
+ * `loadFixtures()`, so the app is correct either way — but in a test the chunk
+ * fetch adds a tick that the old static import did not have, and an assertion
+ * written against the resolved shell now runs one tick early. Ten shell
+ * assertions failed that way, all reading a rail that had not finished filling.
+ *
+ * `loadFixtures()` is idempotent and concurrency-safe, so warming it here costs
+ * one import for the whole file and changes nothing about what is tested. It is
+ * NOT a fix for the underlying behaviour — see the rail note in
+ * `design/19-execution-log.md`: the shell really does paint a
+ * permission-filtered rail before identity resolves, and that is a design
+ * defect to fix in the shell, not in a setup file.
+ */
+beforeAll(async () => {
+  await loadFixtures()
+})
+
 beforeEach(() => {
   resetDataLayer()
   resetRequestCache()

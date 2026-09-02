@@ -1,8 +1,7 @@
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import { ticketFixtures } from '../fixtures/tickets'
 import type { Paginated, QueryParams } from '../types/common'
 import type { ConversationChannel } from '../types/conversation'
 import type {
@@ -14,6 +13,19 @@ import type {
   TicketStatus,
 } from '../types/ticket'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let ticketFixtures!: Fixtures['ticketFixtures']
+onFixturesLoaded((f) => {
+  ticketFixtures = f.ticketFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  dynamicTickets = [...ticketFixtures]
+})
 
 export const TICKET_OPERATIONS = {
   list: 'tickets.list',
@@ -26,13 +38,20 @@ export const TICKET_OPERATIONS = {
   logCall: 'tickets.logCall',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(TICKET_OPERATIONS))
+
 export interface TicketQuery extends QueryParams {
   status?: TicketStatus
   priority?: TicketPriority
   reasonCode?: string
 }
 
-let dynamicTickets = [...ticketFixtures]
+let dynamicTickets!: typeof ticketFixtures
 
 /**
  * Ids for messages minted in this session, `MSG-901` upward.
@@ -75,6 +94,10 @@ function nextCallId(): string {
  * non-determinism this file just removed arriving by another door.
  */
 export function resetTickets(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   dynamicTickets = [...ticketFixtures]
   messageSequence = 900
   callSequence = 900
@@ -113,6 +136,11 @@ const ticketShape: QueryShape<Ticket> = {
   },
 }
 
+/**
+ * GET /api/v1/tickets
+ *   params: q, view, page, pageSize, sort, filter
+ *   -> Paginated<Ticket>
+ */
 export async function listTickets(
   params: TicketQuery = {},
   signal?: AbortSignal,
@@ -125,6 +153,11 @@ export async function listTickets(
   })
 }
 
+/**
+ * GET /api/v1/tickets/:id
+ *   -> Ticket
+ *   404 when the id does not exist
+ */
 export async function getTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
     return http.get<Ticket>(`/tickets/${id}`, undefined, { signal })
@@ -136,6 +169,16 @@ export async function getTicket(id: string, signal?: AbortSignal): Promise<Ticke
   })
 }
 
+/**
+ * POST /api/v1/tickets/:id/claim
+ *   body: { userId }
+ *   -> Ticket
+ *   404 when the id does not exist
+ *   409 when another operator already holds it
+ *
+ * `userName` is a display value the caller already has; the server resolves the
+ * name from `userId` and it is deliberately not on the wire.
+ */
 export async function claimTicket(
   id: string,
   userId: string,
@@ -161,6 +204,15 @@ export async function claimTicket(
   })
 }
 
+/**
+ * POST /api/v1/tickets/:id/reply
+ *   body: { body }
+ *   -> Ticket
+ *   404 when the id does not exist
+ *
+ * `senderId` and `senderName` are not sent: the sender is the authenticated
+ * session, and letting a caller name it would let one operator reply as another.
+ */
 export async function replyTicket(
   id: string,
   body: string,
@@ -194,6 +246,12 @@ export async function replyTicket(
   })
 }
 
+/**
+ * POST /api/v1/tickets/:id/resolve
+ *   -> Ticket
+ *   404 when the id does not exist
+ *   409 when the ticket is already resolved
+ */
 export async function resolveTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
     return http.post<Ticket>(`/tickets/${id}/resolve`, {}, { signal })
@@ -212,6 +270,12 @@ export async function resolveTicket(id: string, signal?: AbortSignal): Promise<T
   })
 }
 
+/**
+ * POST /api/v1/tickets/:id/reopen
+ *   -> Ticket
+ *   404 when the id does not exist
+ *   409 when the ticket is not resolved
+ */
 export async function reopenTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
     return http.post<Ticket>(`/tickets/${id}/reopen`, {}, { signal })

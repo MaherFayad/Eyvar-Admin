@@ -57,12 +57,17 @@ export function PushBroadcastsCard({ t, language, reloadToken }: PushBroadcastsC
     (signal: AbortSignal) => listPushBroadcasts({ pageSize: 10 }, signal),
     [],
   )
-  const data = useAsync<Paginated<PushBroadcast>>(load, { deps: [reloadToken] })
+  /* `reloadToken` is in `deps`, so a send lands on a fresh key rather than on a
+     warm entry that predates it. */
+  const data = useAsync<Paginated<PushBroadcast>>(load, {
+    deps: [reloadToken],
+    cacheKey: 'push.broadcasts.list',
+  })
 
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('comms.push.title')}</CardTitle>
+        <CardTitle>{t('comms.push.title')}</CardTitle>
         <CardDescription className="text-xs">{t('comms.push.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -101,15 +106,15 @@ export function PushBroadcastsCard({ t, language, reloadToken }: PushBroadcastsC
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-foreground">{broadcast.title}</span>
-                    <span className="font-mono text-2xs text-muted-foreground">{broadcast.id}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{broadcast.id}</span>
                     <StatusBadge tone={STATE_TONE[broadcast.state]}>
                       {t(STATE_LABEL[broadcast.state])}
                     </StatusBadge>
                   </div>
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t(AUDIENCE_LABEL[broadcast.audienceId])}
                   </span>
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t('comms.push.sentOn', { date: formatDate(broadcast.sentAt, { language }) })}
                   </span>
                 </div>
@@ -118,7 +123,7 @@ export function PushBroadcastsCard({ t, language, reloadToken }: PushBroadcastsC
                   <span className="text-xs font-medium text-foreground tabular-nums">
                     {t('comms.push.devices', { count: formatCount(broadcast.deliveredCount, language) })}
                   </span>
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {broadcast.openRate === null
                       ? t('comms.push.openRatePending')
                       : t('comms.push.openRate', {

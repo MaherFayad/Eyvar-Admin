@@ -20,18 +20,33 @@
  * copies of `a / b`.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { mock } from '../mock/delay'
-import { FINANCIALS_PERIOD } from '../fixtures/financials'
-import { refusedPostingFixtures } from '../fixtures/ledger'
+import { FINANCIALS_PERIOD } from '../serverPolicy'
 import type { FinancialsOverview, FinancialsPeriod } from '../types/financials'
 import { http } from './http'
 import { accountBalanceFrom, accountFlowFrom, journalEntries } from './ledger'
 import { captainPayoutRows, escrowHoldRows } from './payouts'
 import { captainDebtRows, cashReportRows } from './cash'
 import { allCreditNotes } from './revenue'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let refusedPostingFixtures!: Fixtures['refusedPostingFixtures']
+onFixturesLoaded((f) => {
+  refusedPostingFixtures = f.refusedPostingFixtures
+})
 
 export const OVERVIEW_OPERATIONS = { get: 'financials.overview' } as const
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(OVERVIEW_OPERATIONS))
 
 export interface OverviewQuery {
   /** Defaults to `FINANCIALS_PERIOD` — the month containing `EYVAR_NOW`. */

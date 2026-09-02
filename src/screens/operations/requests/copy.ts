@@ -128,7 +128,8 @@ export const REQUESTS_EN: Dictionary = {
     'All {count} selected requests are already claimed, or already decided.',
   'requests.toast.claimed.other': '{count} requests claimed',
 
-  'requests.action.noPermission': 'You need the Live Ops permission to claim a request.',
+  'requests.action.noPermission':
+    'You cannot claim a request. Ask an Owner for the “Live dispatch” permission.',
 
   'requests.toast.assigned': 'Captain assigned',
   'requests.toast.expired': 'Request closed',

@@ -26,6 +26,11 @@
  *   §7.4.5     a placeholder is never a label.
  *   §7.2       focus is trapped by `dialog.tsx`; nothing mutates until the
  *              primary is pressed.
+ *   G7         `Field` throughout, and the name field's helper is no longer
+ *              overwritten by its own error — §10.4 inserts the message, it
+ *              does not swap the constraint out for it.
+ *   G6         `lg` — twenty scrolling checkboxes beside a text field is a
+ *              second region, and a second region is what `lg` is for.
  */
 
 import { useEffect, useId, useMemo, useState } from 'react'
@@ -42,8 +47,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Field,
+  FieldContent,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 /**
  * The scope's own name, per key. Written out rather than built from a template
@@ -151,76 +166,71 @@ export function IssueApiKeyDialog({
           <DialogDescription>{t('admin.integrations.key.issue.desc')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${dialogId}-name`}>{t('admin.integrations.key.name.label')}</Label>
-          <Input
-            id={`${dialogId}-name`}
-            value={name}
-            disabled={busy}
-            aria-invalid={nameError !== null}
-            aria-describedby={`${dialogId}-name-help`}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={() => setTouched(true)}
-          />
-          <span
-            id={`${dialogId}-name-help`}
-            className={nameError !== null ? 'text-2xs text-destructive' : 'text-2xs text-muted-foreground'}
-          >
-            {nameError ?? t('admin.integrations.key.name.help')}
-          </span>
-        </div>
+        <FieldGroup>
+          <Field id={`${dialogId}-name`} invalid={nameError !== null} disabled={busy}>
+            <FieldLabel>{t('admin.integrations.key.name.label')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onBlur={() => setTouched(true)}
+              />
+            </FieldControl>
+            <FieldDescription>{t('admin.integrations.key.name.help')}</FieldDescription>
+            <FieldError>{nameError}</FieldError>
+          </Field>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs font-semibold text-foreground">
-            {t('admin.integrations.key.scopes.label')}
-          </legend>
-          <p className="text-2xs text-muted-foreground">
-            {t('admin.integrations.key.scopes.help')}
-          </p>
+          <FieldSet aria-describedby={scopeError === null ? undefined : `${dialogId}-scopes-error`}>
+            <FieldLegend>{t('admin.integrations.key.scopes.label')}</FieldLegend>
+            <p className="text-xs text-muted-foreground">
+              {t('admin.integrations.key.scopes.help')}
+            </p>
 
-          {/* §11.2 — the sentence is stated ONCE and every refused checkbox
-              points at it, rather than nineteen identical lines of noise. */}
-          <p id={refusalId} className="text-2xs text-muted-foreground">
-            {t('admin.integrations.key.scopes.ceiling')}
-          </p>
+            {/* §11.2 — the sentence is stated ONCE and every refused checkbox
+                points at it, rather than nineteen identical lines of noise. */}
+            <p id={refusalId} className="text-xs text-muted-foreground">
+              {t('admin.integrations.key.scopes.ceiling')}
+            </p>
 
-          <div className="grid max-h-64 grid-cols-1 gap-1.5 overflow-y-auto rounded-lg border border-border p-2 md:grid-cols-2">
-            {API_KEY_SCOPES.map((scope) => {
-              const allowed = grantable.has(scope)
-              const id = `${dialogId}-scope-${scope}`
-              return (
-                <div key={scope} className="flex items-start gap-2 py-0.5">
-                  <Checkbox
-                    id={id}
-                    checked={scopes.includes(scope)}
+            <div className="grid max-h-64 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-border p-2">
+              {API_KEY_SCOPES.map((scope) => {
+                const allowed = grantable.has(scope)
+                return (
+                  <Field
+                    key={scope}
+                    id={`${dialogId}-scope-${scope}`}
+                    orientation="horizontal"
                     disabled={busy || !allowed}
-                    aria-describedby={allowed ? undefined : refusalId}
-                    onCheckedChange={(value) => toggle(scope, value === true)}
-                  />
-                  <Label
-                    htmlFor={id}
-                    className={
-                      allowed
-                        ? 'text-2xs leading-4 font-normal'
-                        : 'text-2xs leading-4 font-normal text-muted-foreground'
-                    }
+                    className="py-0.5"
                   >
-                    {t(scopeLabelKey(scope))}
-                    {WRITE_SCOPES.includes(scope) && (
-                      /* §7.5 — a word, not a colour. A machine credential that
-                         can move money should say so where it is granted. */
-                      <span className="ms-1 text-muted-foreground">
-                        {t('admin.integrations.key.scopes.writeMarker')}
-                      </span>
-                    )}
-                  </Label>
-                </div>
-              )
-            })}
-          </div>
+                    <FieldControl>
+                      <Checkbox
+                        checked={scopes.includes(scope)}
+                        aria-describedby={allowed ? undefined : refusalId}
+                        onCheckedChange={(value) => toggle(scope, value === true)}
+                      />
+                    </FieldControl>
+                    <FieldContent>
+                      <FieldLabel className="text-xs leading-4">
+                        {t(scopeLabelKey(scope))}
+                        {WRITE_SCOPES.includes(scope) && (
+                          /* §7.5 — a word, not a colour. A machine credential
+                             that can move money should say so where it is
+                             granted. */
+                          <span className="text-muted-foreground">
+                            {t('admin.integrations.key.scopes.writeMarker')}
+                          </span>
+                        )}
+                      </FieldLabel>
+                    </FieldContent>
+                  </Field>
+                )
+              })}
+            </div>
 
-          {scopeError !== null && <span className="text-2xs text-destructive">{scopeError}</span>}
-        </fieldset>
+            <FieldError id={`${dialogId}-scopes-error`}>{scopeError}</FieldError>
+          </FieldSet>
+        </FieldGroup>
 
         <DialogFooter>
           <div className="flex flex-col items-end gap-1">
@@ -241,7 +251,7 @@ export function IssueApiKeyDialog({
               </Button>
             </div>
             {incomplete && (
-              <span id={`${dialogId}-blocked`} className="text-2xs text-muted-foreground">
+              <span id={`${dialogId}-blocked`} className="text-xs text-muted-foreground">
                 {t('admin.integrations.key.issue.blocked')}
               </span>
             )}

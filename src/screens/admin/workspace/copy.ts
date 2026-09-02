@@ -40,8 +40,10 @@ export const ADMIN_WORKSPACE_EN: Dictionary = {
   'admin.workspace.logo.replace': 'Replace logo',
   'admin.workspace.logo.remove': 'Remove logo',
   'admin.workspace.logo.uploading': 'Uploading…',
-  'admin.workspace.logo.tooLarge': 'That file is {size} and the limit is 200 KB. Pick a smaller one.',
-  'admin.workspace.logo.wrongType': 'Pick a PNG, JPG or SVG.',
+  /* R9 — 64 characters, one over. The limit is the fact; the instruction
+     is implied by it. */
+  'admin.workspace.logo.tooLarge': '{size} is over the 200 KB limit',
+  'admin.workspace.logo.wrongType': 'Pick a PNG, JPG or SVG',
   'admin.workspace.logo.uploaded': 'Logo updated',
   'admin.workspace.logo.removed': 'Logo removed',
   'admin.workspace.logo.preview': 'Current logo',
@@ -61,9 +63,11 @@ export const ADMIN_WORKSPACE_EN: Dictionary = {
   'admin.workspace.legal.queue': 'Queue re-consent',
   'admin.workspace.legal.queueing': 'Queueing…',
   'admin.workspace.legal.queued': 'Re-consent queued for {count} accounts',
-  'admin.workspace.legal.nothingToQueue': 'Nobody is on an older version, so nothing was queued.',
+  /* R6 — a toast takes no period, and this one was a full sentence. */
+  'admin.workspace.legal.nothingToQueue': 'No account is on an older version',
   'admin.workspace.legal.refusal.allCurrent': 'Everyone is already on this version.',
-  'admin.workspace.legal.refusal.noPermission': 'Your role cannot change workspace settings.',
+  'admin.workspace.legal.refusal.noPermission':
+    'You cannot change workspace settings. Ask an Owner for the “Workspace settings” permission.',
   'admin.workspace.legal.publishNote':
     'Publishing a new version is not built here. Legacy kept a version history per document; this pane shows the version in force and who has not accepted it.',
 
@@ -75,7 +79,8 @@ export const ADMIN_WORKSPACE_EN: Dictionary = {
   'admin.workspace.error': 'Workspace settings could not be loaded.',
   'admin.workspace.saved': 'Workspace settings saved',
   'admin.workspace.discarded': 'Changes discarded',
-  'admin.workspace.readOnly': 'Your role cannot change workspace settings.',
+  'admin.workspace.readOnly':
+    'You can read every workspace setting and change none. Ask an Owner for the “Workspace settings” permission.',
 
   /* ── LocalisedText minted by clients/workspace.ts ───────────────────── */
   'admin.audit.workspace.updated': 'Workspace settings saved — changed: {fields}',
@@ -110,7 +115,8 @@ export const ADMIN_WORKSPACE_EN: Dictionary = {
   'admin.integrations.title': 'Integrations',
   'admin.integrations.desc':
     'Keys that let other systems call Eyvar, and endpoints Eyvar calls when something happens.',
-  'admin.integrations.readOnly': 'Your role cannot change integrations.',
+  'admin.integrations.readOnly':
+    'You can read every integration and change none. Ask an Owner for the “Workspace settings” permission.',
   'admin.integrations.cancel': 'Cancel',
 
   /* ── API keys ───────────────────────────────────────────────────────── */
@@ -202,7 +208,7 @@ export const ADMIN_WORKSPACE_EN: Dictionary = {
   'admin.integrations.reveal.warning.webhook.title':
     'This is the only time this signing secret is shown',
   'admin.integrations.reveal.warning.webhook.body':
-    'Eyvar stores only the prefix {prefix}. Your receiving system needs the whole secret to verify our signatures. It cannot be shown again — if it is lost, rotate it and update the receiver.',
+    'Eyvar stores only the prefix {prefix}. Your receiving system needs the whole secret to verify an Eyvar signature. It cannot be shown again — if it is lost, rotate it and update the receiver.',
   'admin.integrations.reveal.label': 'Secret',
   'admin.integrations.reveal.copy': 'Copy',
   'admin.integrations.reveal.copied': 'Copied',

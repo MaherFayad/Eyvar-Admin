@@ -59,7 +59,8 @@ export const ADMIN_DATA_EN: Dictionary = {
   'adminData.integrity.scanned': '{count} records read',
   'adminData.integrity.runSummary':
     'Run {run} read {records} records across {checks} checks and found {findings}.',
-  'adminData.integrity.runSummary.clean': 'Run {run} read {records} records across {checks} checks. Every check passed.',
+  'adminData.integrity.runSummary.clean':
+    'Every check passed. Run {run} read {records} records across {checks} checks.',
 
   'adminData.integrity.group.reference': 'Dangling references',
   'adminData.integrity.group.contradiction': 'Records that disagree',
@@ -133,7 +134,8 @@ export const ADMIN_DATA_EN: Dictionary = {
   'adminData.integrity.error.row': 'That check did not finish. Run it again.',
 
   /* §11.2 — an act nobody may take is disabled where it is, with the reason. */
-  'adminData.integrity.blocked.permission': 'Your role cannot run the integrity checks.',
+  'adminData.integrity.blocked.permission':
+    'You cannot run the integrity checks. Ask an Owner for the “Data governance” permission.',
 
   /* ── the check catalogue: one title and one sentence per check ── */
 
@@ -171,7 +173,7 @@ export const ADMIN_DATA_EN: Dictionary = {
 
   'integrity.check.agree.aggregate-vs-records.title': 'A lifetime total has records behind it',
   'integrity.check.agree.aggregate-vs-records.desc':
-    'A rider or captain whose stored trip total is larger than what we hold is expected — we keep a recent window and billing keeps the lifetime. One whose stored total has nothing at all behind it is not, and that is what this check reports.',
+    'A rider or captain whose stored trip total is larger than the trips on file is expected — this console keeps a recent window and billing keeps the lifetime. One whose stored total has nothing at all behind it is not, and that is what this check reports.',
 
   'integrity.check.invariant.status-fields.title': 'A status agrees with the fields that justify it',
   'integrity.check.invariant.status-fields.desc':
@@ -296,8 +298,10 @@ export const ADMIN_DATA_EN: Dictionary = {
   'adminData.export.running': 'Building the file',
   'adminData.export.toast': 'Downloaded {filename}',
   'adminData.export.error': 'The export could not be built. Try again.',
-  'adminData.export.omitted':
-    '{count} series were left out of the file because your role cannot read them. The file names each one.',
+  /* R9 — one line, 60 characters. This was 101 and carried a second
+     sentence explaining that the file names the omitted series; the file
+     does, so the toast does not have to. */
+  'adminData.export.omitted': '{count} series omitted — you cannot read them',
 
   /* ═══════════════════════ retention schedules ══════════════════════ */
 
@@ -326,7 +330,8 @@ export const ADMIN_DATA_EN: Dictionary = {
   'adminData.retention.saving': 'Saving',
   'adminData.retention.saved': 'Retention schedules saved',
   'adminData.retention.unchanged': 'Nothing has changed yet',
-  'adminData.retention.blocked': 'Your role cannot change retention schedules.',
+  'adminData.retention.blocked':
+    'You cannot change a retention schedule. Ask an Owner for the “Data governance” permission.',
   'adminData.retention.error': 'The schedules were not saved. Try again.',
   'adminData.retention.loading': 'Loading the retention schedules',
   'adminData.retention.lastSaved': 'Last saved {when} by {who}',

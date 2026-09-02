@@ -64,7 +64,10 @@ export function IntegrationsSection({
   const [reveal, setReveal] = useState<RevealRequest | null>(null)
 
   const endpointData = useAsync<WebhookEndpoint[]>((signal) => listWebhookEndpoints(signal), {
+    /* No fetcher parameters; `endpointToken` is a superset, and bumping it
+       moves the read onto a fresh key after a mutation. */
     deps: [endpointToken],
+    cacheKey: 'integrations.webhooks.list',
   })
 
   const bumpEndpoints = useCallback(() => setEndpointToken((token) => token + 1), [])

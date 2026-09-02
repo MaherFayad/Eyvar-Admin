@@ -6,14 +6,25 @@
  * they are separate queries with separate cardinality.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { newRiderFixtures, riderFixtures } from '../fixtures/riders'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { ChurnRisk, NewRider, Rider, RiderStatus } from '../types/rider'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let newRiderFixtures!: Fixtures['newRiderFixtures']
+let riderFixtures!: Fixtures['riderFixtures']
+onFixturesLoaded((f) => {
+  newRiderFixtures = f.newRiderFixtures
+  riderFixtures = f.riderFixtures
+})
 
 export const RIDER_OPERATIONS = {
   facets: 'riders.facets',
@@ -21,6 +32,13 @@ export const RIDER_OPERATIONS = {
   get: 'riders.get',
   listNew: 'riders.listNew',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(RIDER_OPERATIONS))
 
 export interface RiderQuery extends QueryParams {
   status?: RiderStatus
@@ -176,7 +194,7 @@ export async function listNewRiders(
 }
 
 /**
- * GET /api/v1//riders/facets
+ * GET /api/v1/riders/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

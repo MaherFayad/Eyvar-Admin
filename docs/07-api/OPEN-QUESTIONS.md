@@ -63,7 +63,7 @@ a find-and-replace in `src/data/clients/`.
 `toSearchParams` in `http.ts` proposes `sort=field:dir` and repeated
 `filter=field:op:value`. **It is a proposal.** If your framework prefers
 `sort[field]=`/`filter[status][in]=`, one function changes and nothing else does. Say so
-before we build 284 handlers around the current form.
+before we build 290 handlers around the current form.
 
 ### Q7. Facet recomputation
 We assume facet counts respect the **other** active filters — filtering to Riyadh changes
@@ -92,13 +92,21 @@ wrong.
 
 ## Ours to fix, not yours
 
-Listed so you do not report them back to us.
+Listed so you do not report them back to us. **All clear as of 2026-09-02** —
+`npm run api:check` exits 0 across all 290 endpoints, and `ENDPOINTS.md` has no Problems
+section. Kept here as the record of what was closed.
 
-| Problem | Count | Where |
-|---|---|---|
-| Facet paths with a double slash — `/api/v1//drivers/facets` | 7 | `ENDPOINTS.md` → Problems → `malformed-path` |
-| Endpoints with no `-> Type` annotation | 6 | `ENDPOINTS.md` → Problems → `no-return` |
-| Clients declaring operation ids but never calling `registerOperations()` | 39 | `ENDPOINTS.md` → Problems → `unregistered` |
+| Problem | Was | Now | Fixed by |
+|---|---|---|---|
+| Facet paths with a double slash — `/api/v1//drivers/facets` | 7 | 0 | docblock typo only. **Every runtime path was already correct** — `http.get('/drivers/facets')` plus the `/api/v1` prefix from `http.ts:57`. No route was ever wrong on the wire |
+| Endpoints with no `-> Type` annotation | 6 | 0 | annotated from the function signature: `assurance.ts` claim/release → `AssuranceTrip`; `disputes.ts` facets → `Facets`, get → `Dispute`, claim → `Dispute`, lost-found get → `LostFoundItem` |
+| Clients declaring operation ids but never calling `registerOperations()` | 39 | 0 | `registerOperations(...Object.values(X_OPERATIONS))` at module load in all 41 clients that needed it |
 
-Run `npm run api:check` to see the current list. The number should reach zero before the
-contract is called final.
+The last row says 41, not 39, on purpose. `audit.ts` and `financialsOverview.ts` declare
+their operations on a single line (`export const AUDIT_OPERATIONS = { list: 'audit.list' }
+as const`), which the checker's old line-oriented regex never matched — so they carried the
+same real defect while reporting clean. Both are registered now, and the checker now
+matches the declaration name rather than its formatting, so the hole is closed at both
+ends.
+
+Run `npm run api:check` to confirm it is still zero.

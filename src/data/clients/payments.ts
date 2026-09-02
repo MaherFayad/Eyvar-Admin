@@ -10,15 +10,24 @@
  * is one shape and four operations rather than five bespoke lookups.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { toInstant } from '../mock/clock'
 import { mock, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { paymentFixtures } from '../fixtures/payments'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import { isPendingSettlement, type SettlementState } from '../types/ledger'
 import type { Payment, PaymentDirection, PaymentKind } from '../types/payment'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let paymentFixtures!: Fixtures['paymentFixtures']
+onFixturesLoaded((f) => {
+  paymentFixtures = f.paymentFixtures
+})
 
 export const PAYMENT_OPERATIONS = {
   facets: 'payments.facets',
@@ -26,6 +35,13 @@ export const PAYMENT_OPERATIONS = {
   get: 'payments.get',
   listForEntity: 'payments.listForEntity',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(PAYMENT_OPERATIONS))
 
 export interface PaymentQuery extends QueryParams {
   kind?: PaymentKind

@@ -92,6 +92,12 @@ import { IsolatedValue } from './IsolatedValue'
  */
 export function DeviceList({ t, language }: { t: Translator; language: Language }) {
   const devices = useAsync<DeviceSession[]>((signal) => listDevices(undefined, signal), {
+    /* **Deliberately NOT cached (P3-13).** `listDevices(undefined)` means *the
+       signed-in operator's* devices, so the acting user is a real input to this
+       request — and this component takes no session prop, so it cannot be put
+       in `deps`. A `[]` key would hand one operator another's sessions list for
+       the TTL after a switch. Cacheable the day the component takes a `userId`.
+       */
     deps: [],
   })
 

@@ -36,7 +36,6 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
-import { dashboardFixtures } from '../fixtures/reports'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
@@ -50,6 +49,19 @@ import {
 } from '../types/report'
 import { currentMockUserId } from './session'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let dashboardFixtures!: Fixtures['dashboardFixtures']
+onFixturesLoaded((f) => {
+  dashboardFixtures = f.dashboardFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  dashboards = dashboardFixtures.map((d) => ({ ...d, tiles: d.tiles.map((t) => ({ ...t })) }))
+})
 
 export const DASHBOARD_OPERATIONS = {
   list: 'dashboards.list',
@@ -66,7 +78,7 @@ export const DASHBOARD_OPERATIONS = {
 registerOperations(...Object.values(DASHBOARD_OPERATIONS))
 
 /** Mutable copy. **Not persistence** — Q1 is open; see `fixtures/reports.ts`. */
-let dashboards: Dashboard[] = dashboardFixtures.map((d) => ({ ...d, tiles: d.tiles.map((t) => ({ ...t })) }))
+let dashboards!: Dashboard[]
 
 /**
  * GET /api/v1/dashboards
@@ -211,5 +223,9 @@ export function moveTile(tiles: readonly DashboardTile[], tileId: string, direct
 }
 
 export function resetDashboards(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   dashboards = dashboardFixtures.map((d) => ({ ...d, tiles: d.tiles.map((t) => ({ ...t })) }))
 }

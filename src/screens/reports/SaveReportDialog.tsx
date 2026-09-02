@@ -44,7 +44,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldContent,
+  FieldControl,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { saveReport } from '@/data/clients'
@@ -116,68 +125,72 @@ export function SaveReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="default">
         <DialogHeader>
           <DialogTitle>{report ? t('rb.save.title') : t('rb.saveAs.title')}</DialogTitle>
           <DialogDescription>{t('rb.save.visibility')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-save-name">{t('rb.save.name')}</Label>
-            <Input
-              id="rb-save-name"
-              autoFocus
-              maxLength={REPORT_NAME_MAX}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
+        <FieldGroup>
+          <Field id="rb-save-name">
+            <FieldLabel>{t('rb.save.name')}</FieldLabel>
+            <FieldControl>
+              <Input
+                autoFocus
+                maxLength={REPORT_NAME_MAX}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </FieldControl>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-save-description">{t('rb.save.description')}</Label>
-            <Textarea
-              id="rb-save-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
+          <Field id="rb-save-description">
+            <FieldLabel optional={t('field.optional')}>{t('rb.save.description')}</FieldLabel>
+            <FieldControl>
+              <Textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </FieldControl>
+          </Field>
 
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="pb-1.5 text-sm font-medium text-foreground">
-              {t('rb.save.visibility')}
-            </legend>
+          <FieldSet>
+            <FieldLegend>{t('rb.save.visibility')}</FieldLegend>
             <RadioGroup
               value={visibility}
               onValueChange={(value) => setVisibility(value as SavedReport['visibility'])}
             >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem id="rb-vis-private" value="private" />
-                <Label htmlFor="rb-vis-private">{t('rb.save.visibility.private')}</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem id="rb-vis-team" value="team" />
-                <Label htmlFor="rb-vis-team">{t('rb.save.visibility.team')}</Label>
-              </div>
+              <Field id="rb-vis-private" orientation="horizontal">
+                <FieldControl>
+                  <RadioGroupItem value="private" />
+                </FieldControl>
+                <FieldContent>
+                  <FieldLabel>{t('rb.save.visibility.private')}</FieldLabel>
+                </FieldContent>
+              </Field>
+              <Field id="rb-vis-team" orientation="horizontal">
+                <FieldControl>
+                  <RadioGroupItem value="team" />
+                </FieldControl>
+                <FieldContent>
+                  <FieldLabel>{t('rb.save.visibility.team')}</FieldLabel>
+                </FieldContent>
+              </Field>
             </RadioGroup>
-          </fieldset>
+          </FieldSet>
 
-          {/* Domain validation, in place, with the input intact. */}
-          {reasons.length > 0 && (
-            <ul role="alert" className="flex list-none flex-col gap-0.5">
-              {reasons.map((reason) => (
-                <li key={reason} className="text-xs text-muted-foreground">
-                  {t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX })}
-                </li>
-              ))}
-            </ul>
-          )}
-          {failed && (
-            <p role="alert" className="text-xs text-muted-foreground">
-              {t('rb.save.failed')}
-            </p>
-          )}
-        </div>
+          {/* Domain validation, in place, with the input intact.
+
+              §10.4 — these used to render at `--ev-text-2`, which is the HELPER
+              tone. A blocking reason drawn in the same ink as a hint is colour
+              carrying no meaning at all; `FieldError` gives it the red and the
+              glyph, and the glyph is the carrier that survives a monochrome
+              screen. */}
+          <FieldError errors={reasons.map((reason) => ({
+            message: t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX }),
+          }))} />
+          {failed ? <FieldError>{t('rb.save.failed')}</FieldError> : null}
+        </FieldGroup>
 
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>

@@ -40,7 +40,12 @@ export function SubTabScreen({ row }: { row: SubTabRoute }) {
   const { t, dir } = shell.language
 
   /* A real read, so the four states are real. AC-36 induces its failure here. */
-  const data = useAsync<NavCounts>((signal) => getNavCounts(signal), { deps: [row.subTabId] })
+  const data = useAsync<NavCounts>((signal) => getNavCounts(signal), {
+    /* `getNavCounts` takes no parameter - `subTabId` is a superset of what the
+       fetcher varies on, which is the safe direction for a cache key. */
+    deps: [row.subTabId],
+    cacheKey: 'navCounts.list',
+  })
 
   const title = t(row.titleKey)
   const header = (

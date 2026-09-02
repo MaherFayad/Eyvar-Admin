@@ -20,7 +20,11 @@
 import type { Dictionary } from '@/lib'
 
 export const ZONES_EN: Dictionary = {
-  'zones.meta': '{zones} zones · {starved} starved',
+  /* **The coverage clause replaces the four-row `Cities` card.** Three of its
+     four rows were an em dash because three of the four cities are not
+     launched; that is one number, not a table. `{cities} of {allCities}` is
+     the whole of what the card carried that nothing else on the screen did. */
+  'zones.meta': '{zones} zones · {starved} starved · {cities} of {allCities} cities live',
   'zones.search': 'Search zones',
 
   /* The five derived tiles. Two of them narrow the table; three state a total. */
@@ -45,15 +49,16 @@ export const ZONES_EN: Dictionary = {
   'zones.priority.watch': 'Watch',
   'zones.priority.healthy': 'Healthy',
 
-  'zones.action.steer': 'Steer drivers',
+  'zones.action.steer': 'Steer captains',
   'zones.action.recruit': 'Queue recruitment',
-  'zones.blocked.permission': 'Your role cannot act on a zone.',
+  'zones.blocked.permission':
+    'You cannot act on a zone. Ask an Owner for the “Operational policy” permission.',
   'zones.steer.blocked.live': 'An offer is already live here. Let it run before raising another.',
   'zones.recruit.blocked.queued': 'A recruitment drive is already queued here.',
 
   /* The offer is an invitation, and the copy says so: captains are independent
      and each one accepts or ignores it (`:14011`). */
-  'zones.steer.title': 'Steer drivers to {zone}?',
+  'zones.steer.title': 'Steer captains to {zone}?',
   'zones.steer.body':
     'Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended.',
   'zones.steer.confirm': 'Send offer',
@@ -69,17 +74,44 @@ export const ZONES_EN: Dictionary = {
 
   'zones.noMatch': 'No zone matches these filters.',
   'zones.noMatch.action': 'Show every zone',
-  'zones.empty.heading': 'No zone is tracked',
+  'zones.empty.heading': 'Where demand and supply meet, district by district',
   'zones.empty.body':
-    'A zone is a district we measure demand and supply in. None is tracked in this city yet.',
+    'A zone is a district where demand and supply are measured. None is tracked in this city yet.',
   'zones.empty.action': 'Show every zone',
 
-  'zones.cities.heading': 'Cities',
-  'zones.cities.col.city': 'City',
-  'zones.cities.col.zones': 'Zones tracked',
-  'zones.cities.col.failureRate': 'Failure rate',
-  /* **L-6's two honest reasons.** A city with no tracked zone has no rate, and
-     the row says which of the two kinds of nothing it is. */
-  'zones.cities.notLive': 'Not launched',
-  'zones.cities.noZones': 'Live, no zone tracked yet',
+  /* ── the zone map ──────────────────────────────────────────────────────
+     The map draws Eyvar's own zone boundaries and fetches nothing. Every
+     string here names what the operator is looking at rather than what drew
+     it: there is no basemap to attribute and no provider to credit. */
+  'zones.map.heading': 'Zone map',
+  'zones.map.a11y.desc':
+    '{count} zones, shaded by {metric}. Every zone is also listed beside the map.',
+  'zones.map.metric.label': 'Shade by',
+  'zones.map.metric.ratio': 'demand to supply',
+  'zones.map.metric.failure': 'failure rate',
+  'zones.map.metric.demand': 'requests',
+  'zones.map.reading.demand': '{count} req',
+  'zones.map.shading.on': 'Hide shading',
+  'zones.map.shading.off': 'Show shading',
+  'zones.map.legend.low': 'Lower',
+  'zones.map.legend.high': 'Higher {metric}',
+  /* A zone we track but hold no boundary for. Stated, never dropped — a zone
+     missing from the picture and a zone missing from the data look identical
+     the moment nobody says which it is. */
+  'zones.map.unmapped': 'No boundary is recorded for {zones}.',
+  'zones.map.list.heading': 'Zones',
+  'zones.map.search': 'Search zones',
+  'zones.map.noMatch': 'No zone matches this search.',
+  'zones.map.noMatch.action': 'Clear search',
+  /* R5-11's third sentence: nothing is captured, so there is nothing to draw.
+     Not "no data for this range" — the range is not what is missing. */
+  'zones.map.empty': 'Nothing is recorded here yet.',
+  'zones.map.loading': 'Drawing the zone map',
+  'zones.map.error': 'Change the filters, then read again to redraw the map.',
+  /* The un-retryable half — a 401, 403, 404, 409 or 422. Rule 4 still applies:
+     name the fix, and the fix here is not the button that would fail again. */
+  'zones.map.error.final': 'The map cannot be drawn with this role and this filter.',
+  'zones.map.inspector.heading': 'Zone detail',
+  'zones.map.inspector.none': 'Pick a zone on the map or in the list to see its detail.',
+  'zones.map.captainsNeeded': '{count} more captains reach 3 requests per captain here.',
 }

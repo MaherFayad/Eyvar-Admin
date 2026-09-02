@@ -72,6 +72,36 @@ export type ProfileRecord =
 export type ProfileRecordResult = AsyncResult<ProfileRecord>
 
 /**
+ * The data-layer operation each arm of `useProfileRecord` actually calls.
+ *
+ * `useAsync`'s cache key is `cacheKey` plus a serialisation of `deps`, and this
+ * fetcher is a switch over eleven clients — so the id has to be chosen the same
+ * way the switch chooses the client, from `entity.entityType`. A single made-up
+ * id would be worse than none: `invalidate('riders.')` would then miss this
+ * read, and the P1-T3 comment in `requestCache.ts` is explicit that a key which
+ * does not name the operation is a lie the cache cannot detect.
+ *
+ * `entityType` is also in `deps`, so two kinds can never collide even if an id
+ * here were wrong — but each one is the id its client registers, checked
+ * against `src/data/clients/*`'s `*_OPERATIONS` maps.
+ */
+const RECORD_OPERATIONS: Record<ProfileRecord['entityType'], string> = {
+  rider: 'riders.get',
+  /* `clients/riders.ts` ships no `getNewRider`; the record is read as a
+     one-row query, so the id is the LIST operation and not a `get`. */
+  'new-rider': 'riders.listNew',
+  driver: 'drivers.get',
+  applicant: 'applicants.get',
+  trip: 'trips.get',
+  subscription: 'subscriptions.get',
+  'corporate-account': 'corporate.get',
+  ticket: 'tickets.get',
+  plan: 'pricing.plan',
+  payment: 'payments.get',
+  complaint: 'complaints.get',
+}
+
+/**
  * The four person-shaped types share five fields, and `movement` and `devices`
  * are built from exactly those five. Pulling them out here is what stops those
  * two renderers growing a four-arm switch each.
@@ -155,6 +185,11 @@ export function useProfileRecord(entity: ProfileRef): ProfileRecordResult {
     },
     {
       deps: [entity.entityId, entity.entityType],
+      /* Both of the fetcher's inputs are in `deps` above — the id it asks for
+         and the type that picks the client — so the key is complete and the
+         operation id follows the same switch. Opening the drawer on a record,
+         closing it and opening it again paints the header immediately. */
+      cacheKey: RECORD_OPERATIONS[entity.entityType],
       /* The record read has no empty state: it returns a row or it throws. The
          default `isEmpty` treats `null` as empty, and nothing here returns one
          — saying so keeps `status` to the three values this read can produce. */

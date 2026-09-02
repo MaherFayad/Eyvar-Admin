@@ -177,7 +177,10 @@ describe('canWriteSubTab CAN return false — which nothing could make it do bef
   it('is not simply always false: the Owner writes every row that declares a write key', () => {
     const owner = asRole('Owner')
     const writable = table.subTabs.filter((r) => r.writePermission !== null)
-    expect(writable.length).toBe(28)
+    /* 29 after D1b: splitting Trips in two produced a second row carrying
+       `live_ops`. The literal is kept rather than derived from the table,
+       because a count asserted against the thing it counts asserts nothing. */
+    expect(writable.length).toBe(29)
     for (const r of writable) expect(canWriteSubTab(owner, r), r.subTabId).toBe(true)
   })
 })
@@ -207,17 +210,24 @@ describe('AC-914 — the Dispatcher sees Operations and a one-row Admin', () => 
   })
 })
 
-describe('AC-915 — the Dispatcher gets nine Operations rows, five writable', () => {
+/* D1b split Trips in two, so the Dispatcher's Operations count is 10 and both
+   halves of the old Trips row are writable — six, not five. */
+describe('AC-915 — the Dispatcher gets ten Operations rows, six writable', () => {
   const dispatcher = () => asRole('Dispatcher')
 
-  it('lists nine sub-tab rows', () => {
-    expect(visibleSubTabs(dispatcher(), table.subTabs, 'operations')).toHaveLength(9)
+  it('lists ten sub-tab rows', () => {
+    expect(visibleSubTabs(dispatcher(), table.subTabs, 'operations')).toHaveLength(10)
   })
 
   it('enables the write actions on Dispatch, Requests, Trips, Assurance and My Work', () => {
-    const enabled = ['dispatch', 'requests', 'trips', 'assurance', 'my-work'].map(
-      (id) => `operations-${id}`,
-    )
+    const enabled = [
+      'dispatch',
+      'requests',
+      'quick-rides',
+      'subscription-trips',
+      'assurance',
+      'my-work',
+    ].map((id) => `operations-${id}`)
     for (const id of enabled) expect(canWriteSubTab(dispatcher(), row(id)), id).toBe(true)
   })
 

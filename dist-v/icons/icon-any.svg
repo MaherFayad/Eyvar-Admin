@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Eyvar">
+  <!--
+    The "any" icon: a rounded brand tile, the form a desktop launcher and the
+    Windows/Chrome shelf render unmasked. Geometry is lifted verbatim from
+    `src/shell/ModuleRail.tsx`'s `EyvarMark` (24x24) and scaled by 20, so the
+    installed icon and the in-app mark are the same drawing rather than two
+    logos that will diverge the first time one is edited.
+
+    Colours are read from `src/styles/globals.css`:
+      --ev-brand   #0c6944   (also --primary)
+      --ev-surface #ffffff   (the mark's stroke, `stroke-card` in the component)
+  -->
+  <rect width="512" height="512" rx="112" fill="#0c6944"/>
+  <g transform="translate(16,11) scale(20)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"/>
+  </g>
+</svg>

@@ -39,20 +39,10 @@
  * when in the meantime. See the handoff note — this is a gap, not a decision.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate, runQuery, type QueryShape } from '../mock/query'
-import {
-  canResendFailure,
-  emailDeliveryFixtures,
-  emailTemplateFixtures,
-  messagingTemplateFixtures,
-  pushAudienceFixtures,
-  pushBroadcastFixtures,
-  senderBlock,
-  senderIdentityFixtures,
-} from '../fixtures/emails'
 import { ApiError, type Paginated, type QueryParams } from '../types/common'
 import {
   EMAIL_LOCALES,
@@ -72,7 +62,38 @@ import {
   type PushBroadcast,
   type SenderIdentity,
 } from '../types/email'
+import { appendAudit } from './audit'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let canResendFailure!: Fixtures['canResendFailure']
+let emailDeliveryFixtures!: Fixtures['emailDeliveryFixtures']
+let emailTemplateFixtures!: Fixtures['emailTemplateFixtures']
+let messagingTemplateFixtures!: Fixtures['messagingTemplateFixtures']
+let pushAudienceFixtures!: Fixtures['pushAudienceFixtures']
+let pushBroadcastFixtures!: Fixtures['pushBroadcastFixtures']
+let senderBlock!: Fixtures['senderBlock']
+let senderIdentityFixtures!: Fixtures['senderIdentityFixtures']
+onFixturesLoaded((f) => {
+  canResendFailure = f.canResendFailure
+  emailDeliveryFixtures = f.emailDeliveryFixtures
+  emailTemplateFixtures = f.emailTemplateFixtures
+  messagingTemplateFixtures = f.messagingTemplateFixtures
+  pushAudienceFixtures = f.pushAudienceFixtures
+  pushBroadcastFixtures = f.pushBroadcastFixtures
+  senderBlock = f.senderBlock
+  senderIdentityFixtures = f.senderIdentityFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  identities = senderIdentityFixtures.map((row) => ({ ...row }))
+  templates = emailTemplateFixtures.map((row) => ({ ...row }))
+  deliveries = emailDeliveryFixtures.map((row) => ({ ...row }))
+  broadcasts = pushBroadcastFixtures.map((row) => ({ ...row }))
+})
 
 export const EMAIL_OPERATIONS = {
   identities: 'emails.identities.list',
@@ -92,12 +113,19 @@ export const EMAIL_OPERATIONS = {
   sendPush: 'push.broadcasts.send',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(EMAIL_OPERATIONS))
+
 /* ─────────────────────────── mutable mock state ────────────────────────── */
 
-let identities: SenderIdentity[] = senderIdentityFixtures.map((row) => ({ ...row }))
-let templates: EmailTemplate[] = emailTemplateFixtures.map((row) => ({ ...row }))
-let deliveries: EmailDelivery[] = emailDeliveryFixtures.map((row) => ({ ...row }))
-let broadcasts: PushBroadcast[] = pushBroadcastFixtures.map((row) => ({ ...row }))
+let identities!: SenderIdentity[]
+let templates!: EmailTemplate[]
+let deliveries!: EmailDelivery[]
+let broadcasts!: PushBroadcast[]
 
 /**
  * Session-minted ids, seeded high so they are greppably distinct from the
@@ -110,6 +138,10 @@ let deliverySequence = 9000
 let broadcastSequence = 900
 
 export function resetEmails(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   identities = senderIdentityFixtures.map((row) => ({ ...row }))
   templates = emailTemplateFixtures.map((row) => ({ ...row }))
   deliveries = emailDeliveryFixtures.map((row) => ({ ...row }))
@@ -275,7 +307,13 @@ export async function listSenderIdentities(
  * the winner has to guess which row lost. `409` when the identity cannot send:
  * an unverified address as the system default is mail that silently stops.
  *
- * **Audited act, audit entry not yet written** — see the file header.
+ * **Audited, as of P6 remediation.** The type's own note called this the one of
+ * the three that matters most: changing which address the product sends as is
+ * invisible to everyone except the recipient, and its blast radius is every
+ * transactional email sent afterwards. It wrote no audit row at all, so the act
+ * with the widest reach on this screen was the one act nobody could prove had
+ * happened. The entry names both sides of the swap, because a log that records
+ * only the winner leaves the reader to guess which address stopped sending.
  */
 export async function setDefaultSenderIdentity(
   id: string,
@@ -297,6 +335,7 @@ export async function setDefaultSenderIdentity(
         retryable: false,
       })
     }
+    const previous = identities.find((row) => row.isDefault && row.id !== id) ?? null
     identities = identities.map((row) =>
       row.id === id
         ? { ...row, isDefault: true, updatedAt: EYVAR_NOW, updatedBy: actorId }
@@ -304,6 +343,19 @@ export async function setDefaultSenderIdentity(
           ? { ...row, isDefault: false, updatedAt: EYVAR_NOW, updatedBy: actorId }
           : row,
     )
+    appendAudit({
+      action: 'senderIdentity.setDefault',
+      subjectType: 'senderIdentity',
+      subjectId: id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      actorId,
+      detail: {
+        key: 'admin.audit.email.senderDefault',
+        params: { address: target.address, previous: previous?.address ?? '—' },
+      },
+    })
     return identities.map((row) => ({ ...row }))
   })
 }
@@ -553,6 +605,23 @@ export async function saveEmailTemplate(
       updatedBy: options.actorId,
     }
     templates[index] = updated
+    /* The version is what makes this row worth reading: a template save is
+       otherwise indistinguishable from any other, and `inUse` records that the
+       operator overrode a live-template warning rather than saving a draft
+       nobody was sending yet. */
+    appendAudit({
+      action: 'emailTemplate.save',
+      subjectType: 'emailTemplate',
+      subjectId: id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      actorId: options.actorId,
+      detail: {
+        key: existing.inUse ? 'admin.audit.email.templateSavedLive' : 'admin.audit.email.templateSaved',
+        params: { name: updated.name, version: String(updated.version) },
+      },
+    })
     return serveTemplate(updated)
   })
 }

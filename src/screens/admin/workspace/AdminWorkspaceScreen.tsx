@@ -81,6 +81,8 @@ import {
 } from '@/components/ui/select'
 import { Building, Palette, ShieldCheck } from 'lucide-react'
 import { IntegrationsSection } from './IntegrationsSection'
+import { withFallback } from '../../operations/localCopy'
+import { ADMIN_WORKSPACE_EN } from './copy'
 
 const TIMEZONES: readonly WorkspaceTimezone[] = ['Asia/Riyadh', 'Asia/Dubai', 'Europe/London']
 const CURRENCIES: readonly WorkspaceCurrency[] = ['SAR', 'AED']
@@ -96,7 +98,18 @@ function formatBytes(bytes: number): string {
 
 export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
+     own chunk. `withFallback` resolves a key the shell dictionary does
+     not carry, so nothing here needs registering there. */
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, ADMIN_WORKSPACE_EN),
+    [shell.language.t],
+  )
+  const { dir, language } = shell.language
 
   /* **D17.** `manage_settings` is retired — it was 39 of the console's 131
      guards, held by one person, and it split into four keys. General, branding,
@@ -105,7 +118,11 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
      Manager, which is one of D17's eight named widenings. */
   const canWrite = shell.permissions.permissions.includes('manage_workspace')
 
-  const data = useAsync<WorkspaceSettings>((signal) => getWorkspaceSettings(signal))
+  /* One settings document; the fetcher takes only a signal. Edits live in
+     `draft` until saved, so a warm entry never overwrites operator input. */
+  const data = useAsync<WorkspaceSettings>((signal) => getWorkspaceSettings(signal), {
+    cacheKey: 'workspace.get',
+  })
 
   const [draft, setDraft] = useState<WorkspaceSettings | null>(null)
   const [saving, setSaving] = useState(false)
@@ -289,7 +306,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
       {/* ── 1. general ──────────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <Building className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.general.title')}
           </CardTitle>
@@ -380,7 +397,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
       {/* ── 2. branding, and the one logo ───────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <Palette className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.branding.title')}
           </CardTitle>
@@ -428,7 +445,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
               </span>
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="font-semibold text-foreground">{t('admin.workspace.logo')}</span>
-                <span className="truncate text-2xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground">
                   {logo === null || logo.dataUrl === null || logo.fileName === null
                     ? t('admin.workspace.logo.none')
                     : t('admin.workspace.logo.meta', {
@@ -436,7 +453,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
                         size: formatBytes(logo.sizeBytes ?? 0),
                       })}
                 </span>
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t('admin.workspace.logo.help')}
                 </span>
               </span>
@@ -488,14 +505,14 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
             </span>
           </div>
 
-          <p className="text-2xs text-muted-foreground">{t('admin.workspace.logo.oneStore')}</p>
+          <p className="text-xs text-muted-foreground">{t('admin.workspace.logo.oneStore')}</p>
         </CardContent>
       </Card>
 
       {/* ── 3. legal & consent ──────────────────────────────────────────── */}
       <Card>
         <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.legal.title')}
           </CardTitle>
@@ -524,13 +541,13 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
               >
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-medium text-foreground">{t(document.labelKey)}</span>
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t('admin.workspace.legal.version', {
                       version: document.currentVersion,
                       date: formatDate(document.publishedOn, { language }),
                     })}
                   </span>
-                  <span className="text-2xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {document.pendingConsentCount === 0
                       ? t('admin.workspace.legal.current')
                       : t('admin.workspace.legal.pending', {
@@ -552,7 +569,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
                   {domainRefusal !== null && (
                     <span
                       id={refusalId}
-                      className="max-w-56 text-end text-2xs text-muted-foreground"
+                      className="max-w-56 text-end text-xs text-muted-foreground"
                     >
                       {domainRefusal}
                     </span>
@@ -561,7 +578,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
               </div>
             )
           })}
-          <p className="text-2xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('admin.workspace.legal.publishNote')}
           </p>
         </CardContent>
@@ -676,11 +693,11 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
       />
       {error !== null ? (
-        <span id={`${id}-error`} className="text-2xs text-destructive">
+        <span id={`${id}-error`} className="text-xs text-destructive">
           {error}
         </span>
       ) : help !== undefined ? (
-        <span id={`${id}-help`} className="text-2xs text-muted-foreground">
+        <span id={`${id}-help`} className="text-xs text-muted-foreground">
           {help}
         </span>
       ) : null}

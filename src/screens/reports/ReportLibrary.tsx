@@ -88,7 +88,9 @@ export function ReportLibrary({
   const [pending, setPending] = useState<PendingDelete | null>(null)
 
   const reports = useAsync((signal) => listReports({ ...table.params, view: table.view }, signal), {
+    /* Both of the fetcher's inputs are here; delete calls `reports.refetch`. */
     deps: [JSON.stringify(table.params), table.view],
+    cacheKey: 'reports.list',
   })
 
   const rows = reports.data?.items ?? []
@@ -139,7 +141,9 @@ export function ReportLibrary({
   ]
 
   const rowActions: Array<RowAction<SavedReport>> = [
-    { label: t('rb.library.open'), onSelect: onOpen },
+    /* **P0-2 — the declared row-click target.** `Delete` is the other
+       action on this table and must stay unreachable from a row click. */
+    { label: t('rb.library.open'), onSelect: onOpen, rowClick: true },
     {
       label: t('rb.library.delete'),
       onSelect: (row) => setPending({ report: row, dashboards: [], failed: false }),

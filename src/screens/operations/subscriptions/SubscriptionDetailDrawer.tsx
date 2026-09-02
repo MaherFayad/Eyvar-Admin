@@ -84,8 +84,12 @@ export function SubscriptionDetailDrawer({
   /* `enabled` holds the read until there is an id: the drawer is mounted for
      the whole session, so an unconditional read would fire on every page load. */
   const record = useAsync<Subscription>((signal) => getSubscription(subscriptionId ?? '', signal), {
+    /* The record id is the only input and it is in `deps`, so reopening the
+       drawer on the same row paints instead of flashing a skeleton - and
+       reopening on a DIFFERENT row can never serve the previous row's record. */
     deps: [subscriptionId],
     enabled: subscriptionId !== null,
+    cacheKey: 'subscriptions.get',
   })
 
   const sub = record.data ?? null
@@ -96,7 +100,7 @@ export function SubscriptionDetailDrawer({
 
   return (
     <Sheet open={subscriptionId !== null} onOpenChange={(next) => !next && onClose()}>
-      <SheetContent className="overflow-y-auto sm:max-w-[460px]">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader className="border-b border-border pb-3">
           <div className="flex items-center justify-between gap-2">
             <SheetTitle className="text-base font-semibold tabular-nums">

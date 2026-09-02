@@ -451,7 +451,37 @@ describe('the screen', () => {
     await user.type(screen.getByLabelText('Message'), 'Complete 20 trips this weekend.')
     await user.click(screen.getByRole('button', { name: 'Send broadcast' }))
 
+    /* **The confirm intercepts, and it names the two facts that decide it.**
+       A broadcast reaches a whole audience, cannot be recalled, and lands
+       `queued` with no cancel — the widest-blast act in the product, and it had
+       nothing in front of it. */
+    expect(await screen.findByText('Send this to Captains online now?')).toBeInTheDocument()
+    /* 317 is the default audience's real size. The point of putting it in the
+       sentence is that the operator decides on the number, not on the label —
+       `all-riders` is 28,460 and one click away in the same picker. */
+    expect(
+      screen.getByText(/reaches 317 devices immediately and cannot be recalled/),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Send it now' }))
+
     /* `online-captains` is 317 devices. Never 142. */
     expect(await screen.findByText('317 devices')).toBeInTheDocument()
+  })
+
+  it('sends nothing when the confirm is dismissed', async () => {
+    const user = userEvent.setup()
+    mount()
+    await user.click(await screen.findByRole('button', { name: 'Send push broadcast' }))
+    await user.type(await screen.findByLabelText('Title'), 'Weekend bonus')
+    await user.type(screen.getByLabelText('Message'), 'Complete 20 trips this weekend.')
+    await user.click(screen.getByRole('button', { name: 'Send broadcast' }))
+
+    await screen.findByText(/cannot be recalled/)
+    await user.keyboard('{Escape}')
+
+    /* The composer stays open with the operator's draft intact — a dismissed
+       confirm must not also throw away the message they just wrote. */
+    expect(screen.getByLabelText('Title')).toHaveValue('Weekend bonus')
   })
 })

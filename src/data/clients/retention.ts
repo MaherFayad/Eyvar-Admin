@@ -18,10 +18,9 @@
  * `settings.retention` is the arm this needs.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation } from '../mock/delay'
-import { CURRENT_USER_ID, teamUserFixtures } from '../fixtures/teamUsers'
 import type { RetentionPolicy, RetentionPolicyInput } from '../types/retention'
 import {
   AUDIT_RETENTION_OPTIONS,
@@ -29,11 +28,29 @@ import {
   TELEMETRY_RETENTION_OPTIONS,
 } from '../types/retention'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  teamUserFixtures = f.teamUserFixtures
+})
 
 export const RETENTION_OPERATIONS = {
   get: 'retention.get',
   save: 'retention.save',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(RETENTION_OPERATIONS))
 
 /**
  * The shipped policy. `730` and `90` are the two values the screen defaulted
@@ -87,12 +104,12 @@ export async function saveRetentionPolicy(
     assertOption('auditRetentionDays', input.auditRetentionDays, AUDIT_RETENTION_OPTIONS)
     assertOption('telemetryRetentionDays', input.telemetryRetentionDays, TELEMETRY_RETENTION_OPTIONS)
     assertOption('operationalWindowMonths', input.operationalWindowMonths, OPERATIONAL_WINDOW_OPTIONS)
-    const actor = teamUserFixtures.find((u) => u.id === CURRENT_USER_ID)
+    const actor = teamUserFixtures.find((u) => u.id === currentMockUserId())
     policy = {
       ...input,
       updatedAt: EYVAR_NOW,
-      updatedByUserId: CURRENT_USER_ID,
-      updatedByUserName: actor?.name ?? CURRENT_USER_ID,
+      updatedByUserId: currentMockUserId(),
+      updatedByUserName: actor?.name ?? currentMockUserId(),
     }
     return { ...policy }
   })

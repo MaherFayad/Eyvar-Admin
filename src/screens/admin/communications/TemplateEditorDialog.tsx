@@ -153,11 +153,11 @@ export function TemplateEditorDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* The scale, not an arbitrary value: the editor is two columns and
           needs the room the default dialog does not give it. */}
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {t('comms.editor.title')}
-            <span className="font-mono text-2xs text-muted-foreground">{template.key}</span>
+            <span className="font-mono text-xs text-muted-foreground">{template.key}</span>
             <StatusBadge tone="neutral">
               {t(template.locale === 'ar' ? 'comms.template.locale.ar' : 'comms.template.locale.en')}
             </StatusBadge>
@@ -198,7 +198,7 @@ export function TemplateEditorDialog({
 
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-foreground">{t('comms.editor.variables')}</span>
-              <p className="text-2xs text-muted-foreground">{t('comms.editor.variablesHelp')}</p>
+              <p className="text-xs text-muted-foreground">{t('comms.editor.variablesHelp')}</p>
               <ul className="flex flex-wrap gap-1.5">
                 {variables.map((variable) => (
                   <li key={variable.name}>
@@ -218,16 +218,16 @@ export function TemplateEditorDialog({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">{t('comms.editor.preview')}</span>
             </div>
-            <p className="text-2xs text-muted-foreground">{t('comms.editor.previewHelp')}</p>
+            <p className="text-xs text-muted-foreground">{t('comms.editor.previewHelp')}</p>
             <div dir={preview?.dir ?? 'ltr'} className="flex flex-col gap-2 text-start">
               <div className="flex flex-col gap-0.5">
-                <span className="text-2xs text-muted-foreground">{t('comms.editor.previewSubject')}</span>
+                <span className="text-xs text-muted-foreground">{t('comms.editor.previewSubject')}</span>
                 <p data-testid="preview-subject" className="text-xs font-semibold text-foreground">
                   {preview?.subject}
                 </p>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="text-2xs text-muted-foreground">{t('comms.editor.previewBody')}</span>
+                <span className="text-xs text-muted-foreground">{t('comms.editor.previewBody')}</span>
                 <p
                   data-testid="preview-body"
                   className="whitespace-pre-wrap text-xs text-foreground"
@@ -248,7 +248,7 @@ export function TemplateEditorDialog({
               .map((issue) => (
                 <li
                   key={`${issue.code}-${issue.variable ?? issue.field ?? 'all'}`}
-                  className="flex items-center gap-2 text-2xs"
+                  className="flex items-center gap-2 text-xs"
                 >
                   <StatusBadge tone={issue.severity === 'error' ? 'warning' : 'neutral'}>
                     {t(
@@ -289,10 +289,10 @@ export function TemplateEditorDialog({
           />
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           {/* §11.2 — the refusal is text beside the control, not a tooltip. */}
           {blockedReason !== null && (
-            <span className="me-auto text-2xs text-muted-foreground">{blockedReason}</span>
+            <span className="me-auto text-xs text-muted-foreground">{blockedReason}</span>
           )}
           <Button
             size="xs"

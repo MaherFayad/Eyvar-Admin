@@ -115,7 +115,7 @@ export function LogCallModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>{t('ticket.logCall.title', { id: ticket.id })}</DialogTitle>
           <DialogDescription>

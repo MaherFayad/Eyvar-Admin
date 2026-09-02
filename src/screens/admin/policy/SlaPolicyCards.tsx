@@ -36,6 +36,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -77,13 +83,13 @@ export function SlaTierDefaultsCard({ draft, onChange, canWrite, blockedReason, 
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('policy.sla.tiers.title')}</CardTitle>
+        <CardTitle>{t('policy.sla.tiers.title')}</CardTitle>
         <CardDescription className="text-xs">{t('policy.sla.tiers.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="border-b border-border bg-muted/40 text-2xs font-medium text-muted-foreground">
+            <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
               <tr>
                 <th scope="col" className="p-3 text-start">{t('policy.sla.col.tier')}</th>
                 <th scope="col" className="p-3 text-end">{t('policy.sla.col.firstResponse')}</th>
@@ -160,7 +166,7 @@ export function SlaTierDefaultsCard({ draft, onChange, canWrite, blockedReason, 
         </div>
 
         {blockedReason ? (
-          <p className="border-t border-border p-3 text-2xs text-muted-foreground">{blockedReason}</p>
+          <p className="border-t border-border p-3 text-xs text-muted-foreground">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -177,7 +183,7 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
       <CardHeader className="border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold">{t('policy.sla.grid.title')}</CardTitle>
+            <CardTitle>{t('policy.sla.grid.title')}</CardTitle>
             <CardDescription className="text-xs">{t('policy.sla.grid.desc')}</CardDescription>
           </div>
           <StatusBadge tone="neutral">
@@ -202,7 +208,7 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="border-b border-border bg-muted/30 text-2xs font-medium text-muted-foreground">
+                <thead className="border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
                   <tr>
                     <th scope="col" className="p-2 text-start">{t('policy.sla.col.tier')}</th>
                     <th scope="col" className="p-2 text-start">{t('policy.sla.col.firstResponse')}</th>
@@ -237,7 +243,7 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
 
             <fieldset className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border p-3">
               <legend className="sr-only">{t('policy.sla.breach.title')}</legend>
-              <span className="text-2xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 {t('policy.sla.breach.title')}
               </span>
 
@@ -299,7 +305,7 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
         ))}
 
         {blockedReason ? (
-          <p className="text-2xs text-muted-foreground">{blockedReason}</p>
+          <p className="text-xs text-muted-foreground">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -372,7 +378,7 @@ function SlaTargetCell({ draft, onChange, queueId, tier, field, canWrite, t, lan
         disabled={!canWrite}
         onCommit={(next) => onChange(setSlaTarget(draft, queueId, tier, field, next))}
       />
-      <p className="text-2xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {t('policy.sla.inherited.value', {
           count: formatCount(view.tierMinutes, language),
           tier,
@@ -435,26 +441,21 @@ function PercentField({
   onCommit,
 }: NumberFieldProps & { help: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-xs font-medium">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        type="number"
-        min={0}
-        max={100}
-        step={1}
-        inputMode="numeric"
-        disabled={disabled}
-        value={String(value)}
-        aria-describedby={`${id}-help`}
-        className="w-24 tabular-nums"
-        onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
-      />
-      <p id={`${id}-help`} className="text-2xs text-muted-foreground">
-        {help}
-      </p>
-    </div>
+    <Field id={id} disabled={disabled}>
+      <FieldLabel>{label}</FieldLabel>
+      <FieldControl>
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          inputMode="numeric"
+          value={String(value)}
+          className="w-24 tabular-nums"
+          onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
+        />
+      </FieldControl>
+      <FieldDescription>{help}</FieldDescription>
+    </Field>
   )
 }

@@ -50,9 +50,9 @@
  *   - **The dialog does not close until the write lands.** `busy` covers the
  *     whole round trip, so a double-submit cannot produce a second assignment.
  *
- * Known, not fixed here: the `t(key, { defaultValue })` calls are §4.2's wave
- * (a `copy.ts` cannot be registered without editing `src/i18n/dictionaries.ts`,
- * which has another owner).
+ * **§4.2 is closed** (2026-09-02): the `defaultValue` calls are gone. The strings
+ * live in `./copy.ts` and reach this component through the `t` its parent builds
+ * with `withFallback`, so nothing here needed to change but the call sites.
  */
 
 import { useEffect, useState } from 'react'
@@ -110,7 +110,12 @@ export function ManualDispatchModal({
      stale list by the time one is needed. Opening it is the trigger. */
   const drivers = useAsync<Paginated<Driver>>(
     (signal) => listDrivers({ status: 'active', pageSize: CANDIDATE_PAGE_SIZE }, signal),
-    { deps: [], enabled: open },
+    /* The query is constant, so it is restated in `deps` to make the key name
+       the request: `DispatchScreen`'s fleet column reads `drivers.list` with the
+       same status and a different page size, and a shared `[]` slot would give
+       the picker that column's rows. Re-opening the modal for a second request
+       then costs nothing. */
+    { deps: ['active', CANDIDATE_PAGE_SIZE], cacheKey: 'drivers.list', enabled: open },
   )
 
   /* Hooks first, guard second — the early return must never change the hook
@@ -139,9 +144,7 @@ export function ManualDispatchModal({
       setSubmitError(
         isApiError(error)
           ? error.message
-          : t('dispatch.manual.assignError', {
-              defaultValue: "Couldn't assign the captain. Nothing was changed.",
-            }),
+          : t('dispatch.manual.assignError'),
       )
     } finally {
       setBusy(false)
@@ -150,12 +153,11 @@ export function ManualDispatchModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>{t('dispatch.manual.title', { defaultValue: 'Manual Captain Assignment' })}</DialogTitle>
+          <DialogTitle>{t('dispatch.manual.title')}</DialogTitle>
           <DialogDescription>
             {t('dispatch.manual.desc', {
-              defaultValue: 'Assign a captain manually for request {id} ({rider}) at {pickup}.',
               id: requestId,
               rider: riderName,
               pickup,
@@ -166,18 +168,18 @@ export function ManualDispatchModal({
         <div className="py-3 space-y-3">
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs flex flex-col gap-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('column.rider', { defaultValue: 'Rider' })}:</span>
+              <span className="text-muted-foreground">{t('column.rider')}:</span>
               <span className="font-medium text-foreground">{riderName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('trip.pickup', { defaultValue: 'Pickup' })}:</span>
+              <span className="text-muted-foreground">{t('trip.pickup')}:</span>
               <span className="font-medium text-foreground">{pickup}</span>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="manual-driver-select" className="text-xs font-medium">
-              {t('sub.selectDriver', { defaultValue: 'Select Available Captain' })}
+              {t('dispatch.selectCaptain')}
             </Label>
 
             {isFailed ? (
@@ -185,9 +187,7 @@ export function ManualDispatchModal({
               <ErrorState
                 scope="card"
                 card={false}
-                message={t('dispatch.manual.error', {
-                  defaultValue: "Captains didn't load. Try again, or close this and dispatch from the queue.",
-                })}
+                message={t('dispatch.manual.error')}
                 action={{ label: t('state.pageError.action'), onClick: drivers.refetch }}
               />
             ) : isEmpty ? (
@@ -195,9 +195,7 @@ export function ManualDispatchModal({
                  the list is empty rather than repeating that it is. No retry:
                  the fix is a captain coming on shift, not another request. */
               <p className="text-xs text-muted-foreground">
-                {t('dispatch.manual.empty', {
-                  defaultValue: 'No captain is on shift. Assignment reopens when one comes online.',
-                })}
+                {t('dispatch.manual.empty')}
               </p>
             ) : (
               <Select
@@ -209,8 +207,8 @@ export function ManualDispatchModal({
                   <SelectValue
                     placeholder={
                       isLoading
-                        ? t('dispatch.manual.loading', { defaultValue: 'Loading captains' })
-                        : t('sub.selectDriverPlaceholder', { defaultValue: 'Choose an active captain...' })
+                        ? t('dispatch.manual.loading')
+                        : t('sub.selectDriverPlaceholder')
                     }
                   />
                 </SelectTrigger>
@@ -236,16 +234,16 @@ export function ManualDispatchModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
-            {t('action.cancel', { defaultValue: 'Cancel' })}
+            {t('action.cancel')}
           </Button>
           <Button
             size="xs"
             onClick={() => void handleConfirm()}
             disabled={!selectedDriverId || busy || isLoading || isFailed || isEmpty}
           >
-            {busy ? t('action.saving', { defaultValue: 'Assigning...' }) : t('dispatch.confirmAssign', { defaultValue: 'Dispatch Captain' })}
+            {busy ? t('dispatch.action.assigning') : t('dispatch.confirmAssign')}
           </Button>
         </DialogFooter>
       </DialogContent>

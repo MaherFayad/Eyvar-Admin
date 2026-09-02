@@ -7,21 +7,35 @@
  * unreachable state does not get built.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  CURRENT_USER_ID,
-  DEFAULT_LANDING,
-  ROLE_LANDING,
-  teamUserFixtures,
-} from '../fixtures/teamUsers'
-import { claimFixtures } from '../fixtures/claims'
 import type { PermissionKey, WorkspaceId } from '../types/navigation'
 import { effectivePermissions } from '../types/session'
 import type { Session, TeamUser, UserPreferences } from '../types/session'
 import { subTabViewPermissions } from './routes'
 import { http } from './http'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let CURRENT_USER_ID!: Fixtures['CURRENT_USER_ID']
+let DEFAULT_LANDING!: Fixtures['DEFAULT_LANDING']
+let ROLE_LANDING!: Fixtures['ROLE_LANDING']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let claimFixtures!: Fixtures['claimFixtures']
+onFixturesLoaded((f) => {
+  CURRENT_USER_ID = f.CURRENT_USER_ID
+  DEFAULT_LANDING = f.DEFAULT_LANDING
+  ROLE_LANDING = f.ROLE_LANDING
+  teamUserFixtures = f.teamUserFixtures
+  claimFixtures = f.claimFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  mockUserId = CURRENT_USER_ID
+})
 
 export const SESSION_OPERATIONS = {
   current: 'session.current',
@@ -31,6 +45,13 @@ export const SESSION_OPERATIONS = {
   switchUser: 'session.switchUser',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(SESSION_OPERATIONS))
+
 /**
  * Which operator the mock is signed in as. **Not `Math.random()` and not
  * persisted** — a module-level variable a devtool and a test can set, so QA can
@@ -38,7 +59,7 @@ export const SESSION_OPERATIONS = {
  * system existing. Resets to `USR-1` between test files because the module is
  * re-evaluated.
  */
-let mockUserId: string = CURRENT_USER_ID
+let mockUserId!: string
 
 /* ─────────────────────────────── reads ─────────────────────────────────── */
 
@@ -199,6 +220,10 @@ export function currentMockUserId(): string {
 
 /** Reset between tests, so one file's `switchMockUser` cannot leak into the next. */
 export function resetMockSession(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   mockUserId = CURRENT_USER_ID
   mockPreferences = { subTabNavCollapsed: false, language: 'en' }
 }

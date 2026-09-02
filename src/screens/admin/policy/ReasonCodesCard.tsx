@@ -68,6 +68,12 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Field as FormField,
+  FieldControl,
+  FieldDescription,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
@@ -129,7 +135,10 @@ export function ReasonCodesCard({ canWrite, blockedReason, t, language }: Props)
   }, [table.params])
 
   const codes = useAsync<Paginated<ReasonCode>>((signal) => listReasonCodes({ ...query, signal }), {
+    /* `query` is the fetcher's whole input, memoised from `table.params`. Every
+       mutation on this card goes through `refresh` (= `refetch`). */
     deps: [query],
+    cacheKey: 'policy.reasonCodes',
   })
 
   const rows = codes.data?.items ?? []
@@ -222,14 +231,14 @@ export function ReasonCodesCard({ canWrite, blockedReason, t, language }: Props)
             <div className="flex flex-col items-start gap-1">
               <StatusBadge tone="neutral">{t('policy.reasons.state.retired')}</StatusBadge>
               {code.retiredAt ? (
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t('policy.reasons.retiredOn', {
                     date: formatDate(code.retiredAt, { style: 'day-month-year', language }),
                   })}
                 </span>
               ) : null}
               {code.supersededByKey ? (
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t('policy.reasons.supersededBy', { code: code.supersededByKey })}
                 </span>
               ) : null}
@@ -251,6 +260,10 @@ export function ReasonCodesCard({ canWrite, blockedReason, t, language }: Props)
       {
         label: t('policy.reasons.action.edit'),
         onSelect: (code) => setEditing({ mode: 'edit', code }),
+        /* **P0-2 — the declared row-click target.** Opens the code's editor
+           and writes nothing until the operator saves. `Retire` and `Restore`
+           both mutate, so neither may carry this. */
+        rowClick: true,
         disabled: () => !canWrite,
         reason: () => blockedReason,
       },
@@ -457,7 +470,7 @@ function ReasonCodeDialog({
 
   return (
     <Dialog open onOpenChange={(next) => (next ? undefined : onClose())}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent size="default">
         <DialogHeader>
           <DialogTitle>
             {isCreate ? t('policy.reasons.new.title') : t('policy.reasons.edit.title', { code: draft.key })}
@@ -595,14 +608,14 @@ function ReasonCodeDialog({
             />
             <span>
               {t('policy.reasons.field.requiresNote')}
-              <span className="block text-2xs text-muted-foreground">
+              <span className="block text-xs text-muted-foreground">
                 {t('policy.reasons.field.requiresNote.help')}
               </span>
             </span>
           </label>
 
           {failure ? (
-            <p role="alert" className="text-2xs text-destructive">
+            <p role="alert" className="text-xs text-destructive">
               {failure}
             </p>
           ) : null}
@@ -648,7 +661,7 @@ function RetireDialog({
 
   return (
     <Dialog open onOpenChange={(next) => (next ? undefined : onClose())}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>{t('policy.reasons.retire.title', { code: code.key })}</DialogTitle>
           <DialogDescription>{t('policy.reasons.retire.body')}</DialogDescription>
@@ -672,7 +685,7 @@ function RetireDialog({
             </SelectContent>
           </Select>
           {failure ? (
-            <p role="alert" className="text-2xs text-destructive">
+            <p role="alert" className="text-xs text-destructive">
               {failure}
             </p>
           ) : null}
@@ -710,6 +723,15 @@ function RetireDialog({
   )
 }
 
+/**
+ * G7 — this used to be a **local `Field`**, the fourth answer in the product to
+ * "how does a field render". It survives as a thin adapter so the six call
+ * sites below keep their shape, but every pixel now comes from
+ * `ui/field.tsx`: 14/400 label, 12px helper, and the id plumbing in one place.
+ *
+ * The child is wrapped in `FieldControl`, so a call site passing an `<Input>`
+ * or a `<SelectTrigger>` no longer has to spell its own `id`.
+ */
 function Field({
   id,
   label,
@@ -722,14 +744,10 @@ function Field({
   children: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-xs font-medium">
-        {label}
-      </Label>
-      {children}
-      {help ? (
-        <p className="text-2xs text-muted-foreground">{help}</p>
-      ) : null}
-    </div>
+    <FormField id={id}>
+      <FieldLabel>{label}</FieldLabel>
+      <FieldControl>{children as React.ReactElement}</FieldControl>
+      {help ? <FieldDescription>{help}</FieldDescription> : null}
+    </FormField>
   )
 }

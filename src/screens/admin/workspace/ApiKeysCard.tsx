@@ -51,7 +51,7 @@ import { DataTable, type DataColumn } from '@/components/DataTable'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { IssueApiKeyDialog, scopeLabelKey } from './IssueApiKeyDialog'
-import { IntegrationsConfirm, type IntegrationsConfirmRequest } from './IntegrationsConfirm'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import type { RevealRequest } from './SecretRevealDialog'
 
 /** R7, and **no red** — a revoked key is `Archived`-shaped, not an alarm (R5a, V-07). */
@@ -89,14 +89,17 @@ export function ApiKeysCard({
   })
 
   const data = useAsync<Paginated<ApiKey>>((signal) => listApiKeys(table.params, signal), {
+    /* `table.params` is passed wholesale and is the fetcher's only input.
+       Issue / rotate / revoke all call `refetch`. */
     deps: [table.params],
+    cacheKey: 'integrations.keys.list',
   })
   const { refetch } = data
 
   const [issuing, setIssuing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [confirm, setConfirm] = useState<IntegrationsConfirmRequest | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const issue = useCallback(
     async (input: { name: string; scopes: PermissionKey[] }) => {
@@ -217,7 +220,7 @@ export function ApiKeysCard({
           <div className="flex flex-col gap-0.5">
             <StatusBadge tone={STATE_TONE[key.state]}>{t(STATE_LABEL[key.state])}</StatusBadge>
             {key.rotatedAt !== null && key.state === 'active' && (
-              <span className="text-2xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {t('admin.integrations.key.rotatedOn', {
                   date: formatDate(key.rotatedAt, { language }),
                 })}
@@ -236,15 +239,15 @@ export function ApiKeysCard({
           key.lastUsedAt === null ? (
             /* `Never used` and `—` are different facts and this column refuses
                to render them the same way. */
-            <span className="text-2xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('admin.integrations.key.neverUsed')}
             </span>
           ) : (
             <div className="flex flex-col gap-0.5">
-              <span className="text-2xs text-foreground">
+              <span className="text-xs text-foreground">
                 {formatDate(key.lastUsedAt, { language, style: 'day-month-time' })}
               </span>
-              <span className="text-2xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {t('admin.integrations.key.requests', { count: key.requestCount })}
               </span>
             </div>
@@ -257,7 +260,7 @@ export function ApiKeysCard({
         dataType: 'date',
         sortField: 'createdAt',
         cell: (key) => (
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {formatDate(key.createdAt, { language })}
           </span>
         ),
@@ -290,7 +293,7 @@ export function ApiKeysCard({
             {t('admin.integrations.key.issue')}
           </Button>
           {!canWrite && (
-            <span id="admin-integrations-keys-blocked" className="text-2xs text-muted-foreground">
+            <span id="admin-integrations-keys-blocked" className="text-xs text-muted-foreground">
               {t('admin.integrations.readOnly')}
             </span>
           )}
@@ -317,6 +320,13 @@ export function ApiKeysCard({
                 title: t('admin.integrations.key.rotate.confirm.title'),
                 body: t('admin.integrations.key.rotate.confirm.body', { name: key.name }),
                 confirmLabel: t('admin.integrations.key.rotate'),
+                /* Not red. Rotation **replaces** a credential - the key keeps
+                   its id, its name and its scopes, and the remedy for a
+                   mis-timed rotation is to rotate again. R5a's red is for the
+                   act nothing walks back, which on this pane is revocation
+                   alone. (Carried from `IntegrationsConfirm.tsx`, deleted by
+                   G5; the ruling is older than this comment.) */
+                destructive: false,
                 onConfirm: () => void rotate(key),
               }),
             disabled: (key) => !canWrite || key.state === 'revoked' || busy,
@@ -367,7 +377,7 @@ export function ApiKeysCard({
         t={t}
       />
 
-      <IntegrationsConfirm
+      <ConfirmDialog
         request={confirm}
         busy={busy}
         onClose={() => setConfirm(null)}

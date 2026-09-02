@@ -27,26 +27,9 @@
  * fixture asserts and nothing produces.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, offsetFromNow, toEpochMs } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import {
-  AUTH_BREACHED_PASSWORDS,
-  AUTH_FIXTURE_CODES,
-  AUTH_FIXTURE_PASSWORD,
-  AUTH_FIXTURE_TOTP,
-  CHALLENGE_LOCKOUT_MINUTES,
-  CODE_LIFETIME_MINUTES,
-  MAX_CODES_PER_CHALLENGE,
-  MAX_CODE_ATTEMPTS,
-  RESEND_COOLDOWN_SECONDS,
-  TRUSTED_DEVICE_DAYS,
-  authIdentityFixtures,
-  authTokenFixtures,
-  deviceSessionFixtures,
-} from '../fixtures/authIdentities'
-import { CURRENT_USER_ID, DEFAULT_LANDING, ROLE_LANDING, teamUserFixtures } from '../fixtures/teamUsers'
-import { claimFixtures } from '../fixtures/claims'
 import type { IsoDateTime } from '../types/common'
 import { ApiError } from '../types/common'
 import type { WorkspaceId } from '../types/navigation'
@@ -70,6 +53,48 @@ import type {
   VerifyFailureReason,
 } from '../types/auth'
 import { http } from './http'
+import { currentMockUserId } from './session'
+import { AUTH_FIXTURE_CODES, AUTH_FIXTURE_PASSWORD } from '../mock/credentials'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let AUTH_BREACHED_PASSWORDS!: Fixtures['AUTH_BREACHED_PASSWORDS']
+let AUTH_FIXTURE_TOTP!: Fixtures['AUTH_FIXTURE_TOTP']
+let CHALLENGE_LOCKOUT_MINUTES!: Fixtures['CHALLENGE_LOCKOUT_MINUTES']
+let CODE_LIFETIME_MINUTES!: Fixtures['CODE_LIFETIME_MINUTES']
+let MAX_CODES_PER_CHALLENGE!: Fixtures['MAX_CODES_PER_CHALLENGE']
+let MAX_CODE_ATTEMPTS!: Fixtures['MAX_CODE_ATTEMPTS']
+let RESEND_COOLDOWN_SECONDS!: Fixtures['RESEND_COOLDOWN_SECONDS']
+let TRUSTED_DEVICE_DAYS!: Fixtures['TRUSTED_DEVICE_DAYS']
+let authIdentityFixtures!: Fixtures['authIdentityFixtures']
+let authTokenFixtures!: Fixtures['authTokenFixtures']
+let deviceSessionFixtures!: Fixtures['deviceSessionFixtures']
+let DEFAULT_LANDING!: Fixtures['DEFAULT_LANDING']
+let ROLE_LANDING!: Fixtures['ROLE_LANDING']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+let claimFixtures!: Fixtures['claimFixtures']
+onFixturesLoaded((f) => {
+  AUTH_BREACHED_PASSWORDS = f.AUTH_BREACHED_PASSWORDS
+  AUTH_FIXTURE_TOTP = f.AUTH_FIXTURE_TOTP
+  CHALLENGE_LOCKOUT_MINUTES = f.CHALLENGE_LOCKOUT_MINUTES
+  CODE_LIFETIME_MINUTES = f.CODE_LIFETIME_MINUTES
+  MAX_CODES_PER_CHALLENGE = f.MAX_CODES_PER_CHALLENGE
+  MAX_CODE_ATTEMPTS = f.MAX_CODE_ATTEMPTS
+  RESEND_COOLDOWN_SECONDS = f.RESEND_COOLDOWN_SECONDS
+  TRUSTED_DEVICE_DAYS = f.TRUSTED_DEVICE_DAYS
+  authIdentityFixtures = f.authIdentityFixtures
+  authTokenFixtures = f.authTokenFixtures
+  deviceSessionFixtures = f.deviceSessionFixtures
+  DEFAULT_LANDING = f.DEFAULT_LANDING
+  ROLE_LANDING = f.ROLE_LANDING
+  teamUserFixtures = f.teamUserFixtures
+  claimFixtures = f.claimFixtures
+  AUTH_FIXTURE_TOKENS.length = 0
+  AUTH_FIXTURE_TOKENS.push(...authTokenFixtures.map((t) => t.token))
+})
 
 export const AUTH_OPERATIONS = {
   signIn: 'auth.signIn',
@@ -86,6 +111,13 @@ export const AUTH_OPERATIONS = {
   signOutEverywhere: 'auth.signOutEverywhere',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(AUTH_OPERATIONS))
+
 /**
  * **Re-exported from the client, not reachable from the fixture.**
  *
@@ -94,13 +126,25 @@ export const AUTH_OPERATIONS = {
  * is off limits above this directory (`seam.test.ts` §4 fails the build for it).
  * So it leaves through the seam, where every other fixture-driven constant does.
  */
-export { AUTH_FIXTURE_PASSWORD, AUTH_FIXTURE_CODES, AUTH_FIXTURE_TOKENS } from '../fixtures/authIdentities'
+export { AUTH_FIXTURE_PASSWORD, AUTH_FIXTURE_CODES }
+
+/**
+ * The reset-token ids, **filled when the fixture chunk lands** rather than at
+ * module load: they are derived from `authTokenFixtures`, which is seeded data
+ * and no longer statically imported (`mock/fixtures.ts` says why). The exported
+ * array is stable and populated in place, so the barrel's re-export and any
+ * `import` of it keep working. Empty in http mode, which is correct — token
+ * validity is the server's answer, and `validateResetToken` is how to ask.
+ */
+export const AUTH_FIXTURE_TOKENS: string[] = []
 
 export const DEVICE_OPERATIONS = {
   list: 'session.devices',
   trust: 'session.trustDevice',
   revoke: 'session.revokeDevice',
 } as const
+
+registerOperations(...Object.values(DEVICE_OPERATIONS))
 
 /* ──────────────────────── in-memory challenge store ───────────────────── */
 
@@ -783,7 +827,7 @@ export async function reauthenticate(
     /* (c) — the session that comes back is the session that expired. The user
        is read from the server's own record of who was signed in, never from
        anything the form sent. */
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     /**
      * **Wrong password, and here the copy may say so.** Design §8.2's row is
      * `That password is wrong` — unlike §3.2's deliberately generic rejection,
@@ -863,7 +907,7 @@ export async function signOutEverywhere(signal?: AbortSignal): Promise<{ session
     return http.post<{ sessionsEnded: number }>('/auth/sign-out-everywhere', undefined, { signal })
   }
   return mockMutation(AUTH_OPERATIONS.signOutEverywhere, signal, () => {
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     const others = devicesFor(userId).filter((d) => !d.isCurrent)
     revokedDeviceIds = [...revokedDeviceIds, ...others.map((d) => d.id)]
     return { sessionsEnded: others.length }
@@ -906,7 +950,7 @@ export async function listDevices(
     return res.items
   }
   return mock(DEVICE_OPERATIONS.list, signal, () =>
-    devicesFor(userId ?? signedInUserId ?? CURRENT_USER_ID),
+    devicesFor(userId ?? signedInUserId ?? currentMockUserId()),
   )
 }
 
@@ -935,7 +979,7 @@ export async function setDeviceTrust(
   }
   return mockMutation(DEVICE_OPERATIONS.trust, signal, () => {
     trustOverrides[deviceId] = trusted ? offsetFromNow({ days: TRUSTED_DEVICE_DAYS }) : null
-    const userId = signedInUserId ?? CURRENT_USER_ID
+    const userId = signedInUserId ?? currentMockUserId()
     const row = devicesFor(userId).find((d) => d.id === deviceId)
     if (!row) throw new ApiError({ status: 404, message: `No device ${deviceId}` })
     return row
@@ -966,8 +1010,8 @@ export async function revokeDevice(
   userId?: string,
   signal?: AbortSignal,
 ): Promise<{ revoked: true }> {
-  const targetId = userId ?? signedInUserId ?? CURRENT_USER_ID
-  const ownList = targetId === (signedInUserId ?? CURRENT_USER_ID)
+  const targetId = userId ?? signedInUserId ?? currentMockUserId()
+  const ownList = targetId === (signedInUserId ?? currentMockUserId())
   if (DATA_SOURCE === 'http') {
     return ownList
       ? http.delete<{ revoked: true }>(`/me/devices/${deviceId}`, { signal })

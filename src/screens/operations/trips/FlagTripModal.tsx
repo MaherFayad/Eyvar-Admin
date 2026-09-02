@@ -52,7 +52,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -116,7 +121,7 @@ export function FlagTripModal({ trips, reasonKeys, onClose, onConfirm, t }: Flag
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>
             {/* §9.1 — the VERB and the COUNT. One trip names itself; twelve
@@ -132,14 +137,16 @@ export function FlagTripModal({ trips, reasonKeys, onClose, onConfirm, t }: Flag
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-category" className="text-xs font-medium">
-              {t('trips.flag.category')}
-            </Label>
+          <Field id="flag-category">
+            <FieldLabel>{t('trips.flag.category')}</FieldLabel>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="flag-category">
-                <SelectValue placeholder={t('trips.flag.category')} />
-              </SelectTrigger>
+              <FieldControl>
+                <SelectTrigger className="w-full">
+                  {/* §7.4.5 — the placeholder was the LABEL repeated, which
+                      told the operator nothing twice. */}
+                  <SelectValue placeholder={t('trips.flag.categoryPlaceholder')} />
+                </SelectTrigger>
+              </FieldControl>
               <SelectContent>
                 {reasonKeys.map((key) => (
                   <SelectItem key={key} value={key}>
@@ -148,30 +155,24 @@ export function FlagTripModal({ trips, reasonKeys, onClose, onConfirm, t }: Flag
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-note" className="text-xs font-medium">
-              {t('trips.flag.note')}
-            </Label>
-            <Input
-              id="flag-note"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder={t('trips.flag.notePlaceholder')}
-            />
-          </div>
-
-          {/* §11.2 / §8.4.4 — the refusal is real text, in the surface that
-              made the request, with the operator's input still on screen. */}
-          {submitError !== null && (
-            <p role="alert" className="text-xs text-destructive">
-              {submitError}
-            </p>
-          )}
+          <Field id="flag-note" invalid={submitError !== null}>
+            <FieldLabel optional={t('field.optional')}>{t('trips.flag.note')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t('trips.flag.notePlaceholder')}
+              />
+            </FieldControl>
+            {/* §11.2 / §8.4.4 — the refusal is real text, in the surface that
+                made the request, with the operator's input still on screen. */}
+            <FieldError>{submitError}</FieldError>
+          </Field>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {/* The shell's own key: `Cancel` is shared vocabulary and this
                 screen has no business minting a second copy of it. */}

@@ -5,14 +5,23 @@
  * the destination global search resolves "Renewal pipeline" to (§4.3.4).
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_TODAY, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import { allSubscriptionFixtures } from '../fixtures/subscriptions'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { PlanKey, Subscription, SubscriptionStatus } from '../types/subscription'
 import { http } from './http'
+import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let allSubscriptionFixtures!: Fixtures['allSubscriptionFixtures']
+onFixturesLoaded((f) => {
+  allSubscriptionFixtures = f.allSubscriptionFixtures
+})
 
 export const SUBSCRIPTION_OPERATIONS = {
   facets: 'subscriptions.facets',
@@ -21,6 +30,13 @@ export const SUBSCRIPTION_OPERATIONS = {
   freeze: 'subscriptions.freeze',
   cancel: 'subscriptions.cancel',
 } as const
+
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(SUBSCRIPTION_OPERATIONS))
 
 export interface SubscriptionQuery extends QueryParams {
   status?: SubscriptionStatus
@@ -154,7 +170,11 @@ export async function getSubscription(id: string, signal?: AbortSignal): Promise
 
 /**
  * POST /api/v1/subscriptions/:id/freeze
- *   body: { until: IsoDate, reason?: string }
+ *   body: { until: IsoDate }
+ *
+ * `reason` is accepted by the function and recorded in the mock's audit line,
+ * but it is not on the wire. Either add it to the request or drop the parameter
+ * -- today it is a value the operator supplies and the server never sees.
  *   -> Subscription
  *   409 when the subscription is cancelled or expired
  */
@@ -215,7 +235,7 @@ export async function cancelSubscription(
 }
 
 /**
- * GET /api/v1//subscriptions/facets
+ * GET /api/v1/subscriptions/facets
  *   params: view
  *   -> Facets — field name -> [{ value, count }], count-descending
  *

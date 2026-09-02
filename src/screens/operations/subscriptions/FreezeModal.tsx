@@ -44,7 +44,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -117,7 +124,7 @@ export function FreezeModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>
             {single
@@ -131,15 +138,15 @@ export function FreezeModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="freeze-duration" className="text-xs font-medium">
-              {t('subs.freeze.duration')}
-            </Label>
+        <FieldGroup>
+          <Field id="freeze-duration">
+            <FieldLabel>{t('subs.freeze.duration')}</FieldLabel>
             <Select value={days} onValueChange={setDays}>
-              <SelectTrigger id="freeze-duration">
-                <SelectValue />
-              </SelectTrigger>
+              <FieldControl>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+              </FieldControl>
               <SelectContent>
                 {DURATIONS.map((option) => (
                   <SelectItem key={option} value={String(option)}>
@@ -151,33 +158,27 @@ export function FreezeModal({
             {/* The consequence, restated as a date rather than as a duration:
                 `Resumes on 2 Jul` is checkable against a rider's message and
                 `14 days` is not. */}
-            <p className="text-2xs text-muted-foreground">
+            <FieldDescription>
               <bdi>{t('subs.freeze.resumeOn', { date: formatDate(untilDate, { language }) })}</bdi>
-            </p>
-          </div>
+            </FieldDescription>
+          </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="freeze-reason" className="text-xs font-medium">
-              {t('subs.freeze.reason')}
-            </Label>
-            <Input
-              id="freeze-reason"
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder={t('subs.freeze.reasonPlaceholder')}
-            />
-          </div>
+          <Field id="freeze-reason" invalid={submitError !== null}>
+            <FieldLabel optional={t('field.optional')}>{t('subs.freeze.reason')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder={t('subs.freeze.reasonPlaceholder')}
+              />
+            </FieldControl>
+            {/* §11.2 / §8.4.4 — a refusal is real text in the surface that made
+                the request, with the operator's input still on screen. */}
+            <FieldError>{submitError}</FieldError>
+          </Field>
+        </FieldGroup>
 
-          {/* §11.2 / §8.4.4 — a refusal is real text in the surface that made
-              the request, with the operator's input still on screen. */}
-          {submitError !== null && (
-            <p role="alert" className="text-xs text-destructive">
-              {submitError}
-            </p>
-          )}
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('table.cancel')}
           </Button>

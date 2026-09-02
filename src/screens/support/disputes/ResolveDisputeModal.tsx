@@ -184,7 +184,7 @@ export function ResolveDisputeModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('dispute.resolve.title', { id: dispute.id })}</DialogTitle>
           <DialogDescription>

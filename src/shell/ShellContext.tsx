@@ -205,6 +205,21 @@ export function ShellProvider({ children }: { children: ReactNode }) {
      could not be loaded" — page-scoped, shell intact, retry as an imperative.
      `useAsync` supplies all four states from one promise; `AC-36` induces the
      failure through the mock's registry without editing source. */
+  /**
+   * **None of this provider's reads carry a `cacheKey` (P3-13), deliberately.**
+   *
+   * `ShellProvider` is mounted once for the session and above the router
+   * (`routes.tsx:17`), so no entry it wrote would ever be read a second time —
+   * the cache would cost a key and buy nothing.
+   *
+   * `session.current` is the one that would also be *wrong*: it is keyed on
+   * `[]` because `getSession` takes no argument, but the answer is
+   * "whoever is signed in". `switchUser` calls `shell.retry()`, which is
+   * `refetch` and bypasses the cache — but any future component that read
+   * `session.current` under the same empty key would inherit the previous
+   * operator's identity for the TTL. Identity is the last thing that may go
+   * stale, so the seam stays closed here.
+   */
   const session = useAsync<Session>((signal) => getSession(signal), { deps: [] })
 
   /**

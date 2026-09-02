@@ -1,7 +1,7 @@
 # The contract
 
-Conventions that apply to **all 284 endpoints**. Read this once and you can read
-[ENDPOINTS.md](ENDPOINTS.md) as a list of paths rather than 284 separate designs.
+Conventions that apply to **all 290 endpoints**. Read this once and you can read
+[ENDPOINTS.md](ENDPOINTS.md) as a list of paths rather than 290 separate designs.
 
 The authority is `src/data/types/common.ts` — it is commented and it is what the screens
 actually compile against. This file is that file in prose, plus the parts that live in
@@ -128,6 +128,21 @@ interface Money { amount: Halalas; currency: 'SAR' }
 - **Negative values are legal and meaningful**: an overdrawn rider wallet, a captain debt, a
   reversed payout. Do not clamp them.
 - `currency` is `'SAR'` only today. The field exists so that stays a choice.
+
+### The one exception, and it is deliberate
+
+**`POST /api/v1/reports/export` returns `ReportCsvRow.value` as decimal SAR, not
+halalas**, with a `currency` column beside it. A CSV is opened by a person in a
+spreadsheet, and `29505` in a revenue column is not a number anybody can read.
+
+This is the only place in the product where money crosses the seam as a decimal.
+It was recorded in `src/data/types/report.ts` and nowhere else, which meant a
+backend engineer reading only this contract would return halalas and **every
+exported revenue figure would be 100x too large** — in a file that goes to
+finance, in a format nothing validates.
+
+Everywhere else, including every field of every JSON response, money is integer
+halalas. If you find yourself adding a second exception, it is probably wrong.
 
 ## 7. Dates and ids
 

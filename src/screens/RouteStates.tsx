@@ -39,6 +39,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
+import { permissionName } from '@/shell/permissions'
 import { useRouteState } from '@/shell/routeState'
 
 /**
@@ -114,8 +115,13 @@ export function ForbiddenScreen({
         scope="page"
         heading={t('state.forbidden.title')}
         /* AC-75 — one key, one named placeholder. Never
-           `'This page needs the "' + permission + '" permission.'` */
-        message={t('state.forbidden.body', { permission })}
+           `'This page needs the "' + permission + '" permission.'`
+
+           **The NAME, not the key.** This interpolated `permission` raw, so an
+           operator read *This page needs the “live_ops” permission.* A refusal
+           that quotes an identifier tells them nothing they can act on and
+           cannot be translated. `perm.<key>.name` is the short noun phrase. */
+        message={t('state.forbidden.body', { permission: permissionName(t, permission) })}
         action={{
           label: t('state.forbidden.action'),
           onClick: () => navigate(shell.session?.landingRoute ?? '/operations/overview'),

@@ -173,6 +173,14 @@ export function usePresence({ currentUserId, role, revision }: UsePresenceOption
      second console changing this operator's state is reflected without a poll. */
   const [announced, setAnnounced] = useState(0)
 
+  /* **Deliberately NOT cached (P3-13), both reads below.** `revision` and
+     `announced` are local counters that reset to `0` on every mount, so the
+     key a fresh console would read — `[0, 0]` — is exactly the entry written
+     *before* the last shift's claims and presence changes. Freshness is the
+     whole content of this hook: `atCap` gates claiming and `transferTargets`
+     decides who may be handed a conversation, and both are wrong the moment
+     they are a shift old. A skeleton on a presence chip costs nothing.
+     Cacheable once presence is keyed on something that survives a remount. */
   const roster = useAsync<AgentPresence[]>((signal) => listAgentPresence(signal), {
     deps: [revision, announced],
     isEmpty: (data) => data.length === 0,

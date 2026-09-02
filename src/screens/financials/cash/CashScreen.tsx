@@ -252,7 +252,7 @@ function ReconciliationQueue({
 
   const reports = useAsync<Paginated<CashReport>>(
     (signal) => listCashReports({ ...table.params, view: activeTab }, signal),
-    { deps: [activeTab, table.params] },
+    { deps: [activeTab, table.params], cacheKey: 'cash.list' },
   )
 
   const rows = useMemo(() => actions.apply(reports.data?.items ?? []), [actions, reports.data])
@@ -263,7 +263,8 @@ function ReconciliationQueue({
 
   const escalated = useAsync<Paginated<CashReport>>(
     (signal) => listCashReports({ view: 'escalated', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the queue read's `[s:tab,{...}]`. */
+    { deps: [], cacheKey: 'cash.list' },
   )
   const escalatedTotal = escalated.data?.total ?? 0
   useEffect(() => {
@@ -314,6 +315,8 @@ function ReconciliationQueue({
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (report) => report.id,
         header: t('fin.cash.col.id'),
         dataType: 'id',
         minWidth: 170,
@@ -344,6 +347,7 @@ function ReconciliationQueue({
       },
       {
         id: 'expected',
+        csv: (report) => report.expectedFareHalalas,
         header: t('fin.cash.col.expected'),
         dataType: 'money',
         align: 'end',
@@ -353,6 +357,7 @@ function ReconciliationQueue({
       },
       {
         id: 'reported',
+        csv: (report) => report.reportedHalalas,
         header: t('fin.cash.col.reported'),
         dataType: 'money',
         align: 'end',
@@ -367,6 +372,8 @@ function ReconciliationQueue({
       },
       {
         id: 'deviation',
+        emphasis: 'data',
+        csv: (report) => deviationHalalas(report),
         header: t('fin.cash.col.deviation'),
         dataType: 'money',
         align: 'end',
@@ -377,6 +384,7 @@ function ReconciliationQueue({
       },
       {
         id: 'classification',
+        emphasis: 'data',
         header: t('fin.cash.col.classification'),
         dataType: 'enum',
         width: 148,
@@ -607,6 +615,11 @@ function ReconciliationQueue({
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.cash.search')}
         bulkActions={bulkActions}
+        /* **R5a / AC-378 — declared, and identical to the leading-edge
+           marker's condition above.** `DataTable` used to infer this from the
+           shape of the row; the screen owns it now, so the tint and the marker
+           are one decision rather than two that happened to agree. */
+        isRowCritical={(report) => report.status === 'escalated'}
         skeletonPattern="P8"
         /* §4.7 **E1** — a queue worked to zero is `cleared`, never the
            illustrated first-run state that tells an operator who just cleared
@@ -654,7 +667,7 @@ function CaptainDebtIndex({
 
   const debts = useAsync<Paginated<CaptainDebt>>(
     (signal) => listCaptainDebts({ ...table.params, view: activeTab }, signal),
-    { deps: [activeTab, table.params] },
+    { deps: [activeTab, table.params], cacheKey: 'cash.debts' },
   )
 
   const rows = useMemo(() => actions.apply(debts.data?.items ?? []), [actions, debts.data])
@@ -674,6 +687,8 @@ function CaptainDebtIndex({
     () => [
       {
         id: 'captain',
+        emphasis: 'primary',
+        csv: (debt) => debt.captainName,
         header: t('fin.debt.col.captain'),
         dataType: 'text',
         minWidth: 200,
@@ -704,6 +719,8 @@ function CaptainDebtIndex({
       },
       {
         id: 'balance',
+        emphasis: 'data',
+        csv: (debt) => debt.balanceHalalas,
         header: t('fin.debt.col.balance'),
         dataType: 'money',
         align: 'end',
@@ -713,6 +730,7 @@ function CaptainDebtIndex({
       },
       {
         id: 'cap',
+        csv: (debt) => debt.capHalalas,
         header: t('fin.debt.col.cap'),
         dataType: 'money',
         align: 'end',
@@ -734,6 +752,7 @@ function CaptainDebtIndex({
       },
       {
         id: 'lastReport',
+        emphasis: 'data',
         header: t('fin.debt.col.lastReport'),
         dataType: 'date',
         width: 148,
@@ -840,6 +859,10 @@ function CaptainDebtIndex({
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.debt.search')}
+        /* **AC-380 / R5a** — over the cap, the same comparison the marker
+           makes. `isOverCap` is derived and not a field (`types/financials.ts`),
+           so it is derived once here and read twice. */
+        isRowCritical={(debt) => debt.balanceHalalas >= debt.capHalalas}
         skeletonPattern="P1"
         learnMore={
           debts.status === 'content' ? (
@@ -884,7 +907,14 @@ function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: (
 
   const ledger = useAsync<Ledger>(
     (signal) => getCaptainDebtLedger(captainId, period, signal),
-    { deps: [captainId, period.start, period.end], isEmpty: (data) => data.postings.length === 0 },
+    /* Both of the fetcher's inputs are here, and `period` is decomposed into
+       the two primitives it is compared on - so one captain's ledger can never
+       serve under another's id, nor one period's under another's. */
+    {
+      deps: [captainId, period.start, period.end],
+      cacheKey: 'cash.ledger',
+      isEmpty: (data) => data.postings.length === 0,
+    },
   )
 
   const rows = useMemo<LedgerPosting[]>(() => {

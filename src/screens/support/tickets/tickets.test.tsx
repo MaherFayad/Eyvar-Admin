@@ -24,6 +24,7 @@ import { TICKET_CALL_OUTCOMES, isApiError } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppRoutes } from '@/routes'
+import { Toaster } from '@/components/ui/sonner'
 
 const en = (key: string) => EN[key] as string
 const fill = (key: string, params: Record<string, string>) =>
@@ -49,6 +50,9 @@ function renderApp(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AppRoutes />
+        {/* Sonner renders nothing without a mounted `Toaster`, so a test that
+            asserts a toast — or the Undo inside one — needs it in the tree. */}
+        <Toaster />
       </ShellProvider>
     </MemoryRouter>,
   )
@@ -342,5 +346,23 @@ describe('the four states on the index', () => {
   it('renders a page error with a way back when the record does not exist', async () => {
     renderApp(detail('TKT-NOPE'))
     expect(await screen.findByText(en('ticket.detail.notFound'))).toBeInTheDocument()
+  })
+})
+
+describe('resolving a ticket is reversible — D18', () => {
+  /* The trade D18 makes is explicit: a command may skip its confirm **because**
+     the inverse is one press away. This screen had taken the removal and not the
+     net, so resolving the wrong ticket was unrecoverable and unrecorded. */
+  it('offers Undo, and the undo reopens the ticket through the client', async () => {
+    const user = userEvent.setup()
+    renderApp(INDEX)
+    await screen.findAllByText(/TKT-/)
+
+    const resolve = await screen.findAllByRole('button', { name: /resolve/i })
+    expect(resolve.length, 'no resolve control to exercise').toBeGreaterThan(0)
+    await user.click(resolve[0]!)
+
+    const undo = await screen.findByRole('button', { name: 'Undo' })
+    expect(undo, 'resolve must offer its inverse, not just report success').toBeInTheDocument()
   })
 })

@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { DATA_SOURCE, EYVAR_NOW } from '@/data/clients'
 import type { IsoDateTime } from '@/data/types'
-import { useNow } from '@/hooks'
+import { type TickBucket, useNow } from '@/hooks'
 import type { Translate } from '@/lib'
 
 /* ─────────────────────────────── the clock ─────────────────────────────── */
@@ -33,8 +33,8 @@ import type { Translate } from '@/lib'
  * one — through `useTick`'s **single** shared interval ("one clock"), never a
  * per-screen `setInterval`. In mock mode the subscription is not even opened.
  */
-export function useNowIso(): IsoDateTime {
-  const live = useNow(60, DATA_SOURCE !== 'mock')
+export function useNowIso(everySeconds: TickBucket = 60): IsoDateTime {
+  const live = useNow(everySeconds, DATA_SOURCE !== 'mock')
   return DATA_SOURCE === 'mock' ? EYVAR_NOW : live
 }
 
@@ -156,7 +156,8 @@ export function useRowActions<T extends { id: string }>({ t }: { t: Translate })
       clearFailure(id)
       try {
         overrides.record(await action())
-        if (toastKey) toast(t(toastKey))
+        /* G9 — the write committed, so the toast is `success`. */
+        if (toastKey) toast.success(t(toastKey))
         return true
       } catch {
         setFailures((current) =>

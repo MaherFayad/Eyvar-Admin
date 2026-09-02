@@ -13,7 +13,12 @@
  */
 
 export { Absent, Cell, DateCell, Identity, MutedCell, NumCell, PairCell, SubjectIdentity } from './cells'
-export { ConfirmDialog, type ConfirmChoiceOption, type ConfirmRequest } from './ConfirmDialog'
+/* **`ConfirmDialog` moved out of this barrel — G5.** The queue implementation
+   was the superset of the four in the product, so it was promoted whole to
+   `@/components/ConfirmDialog` and the other three were deleted. It is not
+   re-exported from here: a queue screen imports it from the same place
+   Admin › Team and Operations › People now do, because a re-export would leave
+   two import paths for one component and that is how the four started. */
 export { useNowIso, useRowActions, useRowOverrides, type RowActions, type RowFailure } from './hooks'
 export {
   BreachBanner,

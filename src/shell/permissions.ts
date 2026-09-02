@@ -48,6 +48,7 @@
  */
 
 import type { PermissionKey, Session, SubTabRoute, Workspace } from '@/data/types'
+import type { Translate } from '@/lib'
 
 /**
  * What the filter reads. A subset of `Session`, so a test can pass two fields
@@ -250,3 +251,30 @@ const PERMISSION_SET: Readonly<Record<PermissionKey, true>> = {
 
 /** Declaration order is the order §6.4's summary renders them in. */
 export const PERMISSION_KEYS = Object.keys(PERMISSION_SET) as readonly PermissionKey[]
+
+/**
+ * A permission's short NAME, for a refusal sentence.
+ *
+ * `account.permission.<key>` holds the capability *sentence* ("Dispatch trips and act on
+ * live requests"), which cannot be quoted inside `the "…" permission` without reading as
+ * a paste. `perm.<key>.name` is the noun phrase — `live_ops` → "Live dispatch".
+ *
+ * **Falls back to the raw key rather than throwing**, deliberately, and the same
+ * reasoning as `reasonLabel()`: an unknown permission must degrade to the pre-fix
+ * behaviour, not take the page down. AC-74's dev guard throws on a missing key, so
+ * without this a permission with no name — one newly added, or one a test invents —
+ * turns a *forbidden state* into a *crashed shell*, which is strictly worse than showing
+ * an identifier. Found exactly that way: `qa.forbidden.test.tsx` denies with
+ * `view_drivers`, which is not a member of `PermissionKey`.
+ */
+export function permissionName(t: Translate, key: string): string {
+  /* `try` rather than `{ defaultValue: key }`: `defaultValue` is exactly the
+     escape hatch the repo has just spent 216 removals closing, and the CI ratchet
+     sits at a ceiling of 0 — adding one here to make a refusal robust would fail
+     the build that the refusal is meant to survive. */
+  try {
+    return t(`perm.${key}.name`)
+  } catch {
+    return key
+  }
+}

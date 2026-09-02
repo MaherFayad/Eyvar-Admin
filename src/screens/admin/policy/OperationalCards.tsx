@@ -38,6 +38,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import { formatCount, type Language, type Translate } from '@/lib'
 import type { OperatingCity } from '@/data/types/policy'
@@ -68,7 +74,7 @@ export function DispatchCard({ draft, onChange, canWrite, blockedReason, t }: Pa
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('policy.dispatch.title')}</CardTitle>
+        <CardTitle>{t('policy.dispatch.title')}</CardTitle>
         <CardDescription className="text-xs">{t('policy.dispatch.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 pt-4 md:grid-cols-3">
@@ -106,7 +112,7 @@ export function DispatchCard({ draft, onChange, canWrite, blockedReason, t }: Pa
           onCommit={(next) => onChange(setDispatch(draft, { maxSurgePercent: next ?? 0 }))}
         />
         {blockedReason ? (
-          <p className="text-2xs text-muted-foreground md:col-span-3">{blockedReason}</p>
+          <p className="text-xs text-muted-foreground md:col-span-3">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -138,7 +144,7 @@ export function CitiesCard({
       <CardHeader className="border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold">{t('policy.cities.title')}</CardTitle>
+            <CardTitle>{t('policy.cities.title')}</CardTitle>
             <CardDescription className="text-xs">{t('policy.cities.desc')}</CardDescription>
           </div>
           <Button
@@ -162,7 +168,7 @@ export function CitiesCard({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="border-b border-border bg-muted/40 text-2xs font-medium text-muted-foreground">
+              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 <tr>
                   <th scope="col" className="p-3 text-start">{t('policy.cities.col.city')}</th>
                   <th scope="col" className="p-3 text-center">{t('policy.cities.col.quickRides')}</th>
@@ -213,7 +219,7 @@ export function CitiesCard({
           </div>
         )}
 
-        <p className="border-t border-border p-3 text-2xs text-muted-foreground">
+        <p className="border-t border-border p-3 text-xs text-muted-foreground">
           {t('policy.cities.fleet.help')}
           {blockedReason ? ` ${blockedReason}` : ''}
         </p>
@@ -274,7 +280,7 @@ function AddCityDialog({
         else onOpenChange(true)
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>{t('policy.cities.add.title')}</DialogTitle>
           <DialogDescription>{t('policy.cities.add.desc')}</DialogDescription>
@@ -293,7 +299,7 @@ function AddCityDialog({
               aria-invalid={duplicate || undefined}
             />
             {duplicate ? (
-              <p id="new-city-error" className="text-2xs text-destructive">
+              <p id="new-city-error" className="text-xs text-destructive">
                 {t('policy.cities.add.duplicate')}
               </p>
             ) : null}
@@ -340,7 +346,7 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle className="text-sm font-semibold">{t('policy.limits.title')}</CardTitle>
+        <CardTitle>{t('policy.limits.title')}</CardTitle>
         <CardDescription className="text-xs">{t('policy.limits.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 pt-4 md:grid-cols-3">
@@ -378,7 +384,7 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
           }
         />
         {blockedReason ? (
-          <p className="text-2xs text-muted-foreground md:col-span-3">{blockedReason}</p>
+          <p className="text-xs text-muted-foreground md:col-span-3">{blockedReason}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -412,29 +418,26 @@ function IntegerField({
   disabled: boolean
   onCommit: (next: number | null) => void
 }) {
+  /* G7 — one field shape. The label is 14/400 `--ev-ink` rather than the
+     12/500 this file used to draw, which is D22's defect exactly: a label
+     smaller and greyer than the value reads as a hint rather than as the
+     field's name. `FieldControl` owns the id and the `aria-describedby`. */
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-xs font-medium">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        type="number"
-        min={0}
-        step={step}
-        inputMode="numeric"
-        disabled={disabled}
-        value={String(value)}
-        aria-describedby={help ? `${id}-help` : undefined}
-        className="tabular-nums"
-        onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
-      />
-      {help ? (
-        <p id={`${id}-help`} className="text-2xs text-muted-foreground">
-          {help}
-        </p>
-      ) : null}
-    </div>
+    <Field id={id} disabled={disabled}>
+      <FieldLabel>{label}</FieldLabel>
+      <FieldControl>
+        <Input
+          type="number"
+          min={0}
+          step={step}
+          inputMode="numeric"
+          value={String(value)}
+          className="tabular-nums"
+          onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
+        />
+      </FieldControl>
+      {help ? <FieldDescription>{help}</FieldDescription> : null}
+    </Field>
   )
 }
 

@@ -290,9 +290,36 @@ export function OwnerChip({
   if (held === null) {
     return (
       <span className="flex min-w-0 items-center gap-1.5" title={expiry}>
-        <StatusBadge tone="neutral" className="min-w-0 shrink justify-start truncate">
-          {t('queue.owner.unclaimed')}
-        </StatusBadge>
+        {/* **H7 — the badge budget, and `Unclaimed` is the chip that had to
+            go.** A resting queue row carried FOUR tone fills: status, the SLA
+            countdown, this owner chip and the decision. `globals.css` states
+            the rule (*"at most one tone-filled badge per row, and it lives in
+            the ONE status column"*) and doc 15 §2.2 licenses the SLA clock as
+            the queue's one extra — *"the one data-tier item that also carries
+            weight"*. That leaves this one over budget on every unclaimed row,
+            which on these five queues is most rows.
+
+            `Unclaimed` is also the column's RESTING value, and
+            `AssuranceScreen`'s D-21 ruling covers exactly that: a resting value
+            drawn as a badge *"spends colour on the rows that need none and
+            flattens the ones that do."*
+
+            **It carries no colour class, and that is the mechanism rather than
+            an omission.** `globals.css` warns that a demoted `neutral` inherits
+            whatever ground the row is on, and measures `--ev-text-2` at
+            **4.354 : 1** on a breached row — a real AA failure, so
+            `text-neutral-foreground` and `text-muted-foreground` are both
+            forbidden here. With no class the word inherits the CELL, and
+            `DataTable` already derives that per row: `--ev-text-2` on a normal
+            row (4.834) and `--ev-text-2-row-critical` #666d7a on a breached one
+            (4.689). The one place the tone is safe on both grounds is the place
+            that already computes it.
+
+            **The two OWNED states keep their chips**, deliberately: a claim by
+            a person is a lifecycle state an operator acts on, it is not the
+            resting value, and both tones clear AA on all four grounds
+            (`--ev-green` 5.37 worst case, `--ev-amber-dk` 7.49). */}
+        <span className="min-w-0 shrink truncate">{t('queue.owner.unclaimed')}</span>
         <Button
           variant="ghost"
           size="xs"

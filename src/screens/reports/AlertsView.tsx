@@ -53,7 +53,11 @@ import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import type { DataColumn } from '@/components/table/columns'
-import { formatMetricValue } from '@/components/metrics'
+/* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
+   `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
+   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
+   no React in it. */
+import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { useAsync, useIndexTable } from '@/hooks'
 import { describeAlertRule, evaluateAlertRule, listAlertRules } from '@/data/clients'
 import type { AlertEvaluation, AlertRule } from '@/data/types'
@@ -104,7 +108,10 @@ export function AlertsView({
   const [formOpen, setFormOpen] = useState(false)
   const table = useIndexTable<AlertRule>({ mode: 'index', getRowId: (row) => row.id })
   const rules = useAsync((signal) => listAlertRules(table.params, signal), {
+    /* `table.params` is the fetcher's only input; saving a rule calls
+       `rules.refetch`, which bypasses the cache read. */
     deps: [JSON.stringify(table.params)],
+    cacheKey: 'alerts.list',
   })
 
   /* `Test this rule`'s answer, per rule. Held on the screen rather than pushed
@@ -124,6 +131,8 @@ export function AlertsView({
   const columns: Array<DataColumn<AlertRule>> = [
     {
       id: 'name',
+      emphasis: 'primary',
+      csv: (row) => row.name,
       header: t('rb.alerts.col.name'),
       alwaysVisible: true,
       minWidth: 240,
@@ -140,6 +149,7 @@ export function AlertsView({
     },
     {
       id: 'state',
+      emphasis: 'data',
       header: t('rb.alerts.col.state'),
       width: 140,
       cell: (row) => (
@@ -192,6 +202,7 @@ export function AlertsView({
     },
     {
       id: 'lastEvaluated',
+      emphasis: 'data',
       header: t('rb.alerts.col.lastEvaluated'),
       width: 160,
       dataType: 'date',
@@ -213,6 +224,10 @@ export function AlertsView({
         setEditing(row)
         setFormOpen(true)
       },
+      /* **P0-2 — the declared row-click target.** It opens the rule's form and
+         writes nothing until the operator saves; `Test` fires a real
+         evaluation and must stay unreachable from a row click. */
+      rowClick: true,
     },
     {
       label: t('rb.alert.test'),

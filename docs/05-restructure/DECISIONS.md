@@ -254,6 +254,9 @@ logical property or a state. Every rule in §7–§9 still binds, and the preced
 unchanged.
 
 **Consequences accepted:**
+- ⚠ **AMENDED — see [D7a](#d7a--brand-green-replaces-near-black-as---primary-amending-d7-12) at
+  the foot of this file.** The primary action is **brand green `#0C6944`**, not near-black.
+  D7's colour method and every other value it set are untouched.
 - **D-1 is void.** Eyvar brand blue (`#185FA5`) is no longer the primary action colour.
   Navattic's accent measures **`#2B6EF0`**.
 - **`--ev-*` token NAMES are kept; their VALUES are replaced.** Everything in the codebase
@@ -4398,3 +4401,152 @@ scope the integration needs, the delegation rule is enforcing an org chart that 
 work — and the fix is to grant that operator the permission, which is auditable, **not to loosen the
 issuer check**, which is not. If withdrawing `manage_team` blocks a genuine provisioning integration,
 that integration wants a purpose-built endpoint with its own audit trail, not a general-purpose key.
+
+---
+
+## Remediation amendment, 2026-09-02
+
+### D7a — Brand green replaces near-black as `--primary`, amending D7 §1.2
+
+**Ruled during remediation.** `design/13-plane-refresh.md` §0.4 held its whole Phase 1 open —
+*"Introducing brand green as `--primary` amends D7 §1.2. That is the owner's call, not mine."*
+The call is made: **`--primary` is the Eyvar brand green `#0C6944`.**
+
+**What changed** — four lines in `src/styles/globals.css`, layer 2 only. No component was
+touched, which is the entire argument for the token discipline.
+
+| Slot | From | To |
+|---|---|---|
+| `--primary` | `--ev-ink` `#171a21` | `--ev-brand` `#0c6944` |
+| `--ring` | `--ev-blue` `#2b6ef0` | `--ev-brand` |
+| `--chart-series` / `--chart-comparison` | `--ev-blue` | `--ev-brand` |
+| `--chart-fill` | `--ev-blue-lt` `#eaf0fe` | `--ev-brand-lt` `#e7f0ec` |
+
+`#0C6944` = `hsl(156 79% 23%)` is the dark stop of the brand's own authored axis
+(`--brand-hue: 156 / --brand-saturation: 80% / --brand-lightness: 37%` → `#13AA6D`), declared
+by `eyvar.com/en` and drawn by the whole `logo2.svg` wordmark. It is not eyedropped.
+
+**What D7 keeps.** Everything else. D7's method, its measurements and its whole ramp stand.
+R3 stays killed and D-1 stays void — the primary action did **not** go back to blue, and
+Eyvar brand *blue* `#185FA5` remains dead. The reason D7 chose near-black was a correct
+reading of Navattic; the reason it is now green is that **the reference is not the brand**,
+and doc 13 §0.2's finding decides it: the admin contained zero Eyvar green, so a product with
+a green identity shipped a blue-and-black console.
+
+**What it costs, computed.** `--primary-foreground` on `--primary` falls from **17.411 : 1**
+(white on `--ev-ink`) to **6.731 : 1**. That clears the product's target — WCAG 2.2 **AA**,
+4.5 : 1 per `docs/ref/a11y.md` — with margin, and it does not clear AAA. Every other affected
+ratio *improved*: the focus ring goes 4.574 → **6.731** on white, 4.294 → **6.319** on
+`--ev-bg2`, 3.887 → **5.721** on the rail; the chart series goes 4.006 → **5.793** against its
+own area fill.
+
+> **`13-plane-refresh.md` §1.2 states white on `#0C6944` = 8.42 : 1 and "clears AAA". It is
+> wrong.** `L(#0C6944) = 0.10601`, so `1.05 / 0.15601` = **6.731 : 1**. Do not cite 8.42.
+
+**The success/primary hue collision (doc 13 §1.4) is resolved, not accepted.** `--ev-green`
+`#15653c` sat 6.8° of hue and 1.0 pp of lightness from the brand — dE76 **3.33**, which is
+"same colour, other monitor" — and it is spent *bare* on white in `OnboardingStepRow` and
+`StrengthMeter`, not only as a badge label. The brand cannot move, so success moved, on all
+three axes at once because hue alone only reached dE76 5.9:
+
+`--ev-green: #15653c → #1d723c` = `hsl(142 60% 28%)` — **14.2°** of hue (was 6.8), **5.1 pp
+lighter** (was 1.0), **20.1 pp less saturated** (was 13.9), **dE76 10.09** (was 3.33).
+Success is now the lighter, softer, yellower green; the brand action is the darker, deeper,
+bluer one, so visual weight reads as authority. It still clears AA everywhere it is used —
+5.332 on `--ev-green-lt`, 5.958 on white, 5.593 on `--ev-bg2` — and it loses AAA on white,
+which was headroom and not a requirement. `--ev-green-lt` is unchanged; it was already 16°
+off the brand, and this incidentally closes a 9° disagreement inside the success family.
+
+**Not taken, and escalated rather than decided.** Doc 13 §1.2 lists a fourth re-map — the
+link colour, `--ev-blue-dk` → brand. It is **not** done here. The task that authorised this
+ruling named three slots, and turning links green removes the last non-brand accent in the
+product and collides with `--tone-info`, which is a semantic change rather than a re-skin.
+Links stay `--ev-blue-dk` pending a separate ruling.
+
+**Reversible.** Point `--primary` back at `var(--ev-ink)`, `--ring` and `--chart-series` back
+at `var(--ev-blue)`, `--chart-fill` back at `var(--ev-blue-lt)`, and `--ev-green` back to
+`#15653c`. Five lines in one file, no component change, no migration.
+
+---
+
+## D-11a — who owns focus when a menu hands off to a layer: **the layer wins**
+
+**Status:** ruled and implemented, 2026-09-02. Supersedes the open question in
+`design/02-shell-fixes.md` §13, which assigned it to product-designer and left it unanswered.
+`shell/qa.keyboard.test.tsx` carried it as an `it.fails`; that test is now inverted.
+
+**The defect, measured in the production build.** Opening *My profile* from the account menu
+puts focus on the sheet title at t=0, on `body` at ~50ms, and **back on the dropdown trigger
+at ~150ms — while the drawer is still open.** Radix restores focus to the trigger in
+`onCloseAutoFocus`, and that async write lands last. The operator then tabs through the page
+behind the thing they just opened. The same shape applies to `NotificationBell`'s *See all*,
+which is two of the three routes to a shell layer from the top bar.
+
+**The ruling.** A menu that hands off does not take focus back. The grounds are lifetime
+(R10): a menu's focus-restore exists so that *dismissing* it costs nothing, and a layer is not
+a dismissal — it is a destination. AC-67 already requires that opening a shell layer move
+focus into it, so this is the shell obeying a criterion it already had.
+
+**The mechanism, and why it is conditional.** A ref set only by an item that opens a layer,
+read once in `onCloseAutoFocus`. **Blanket suppression is wrong and must not be substituted:**
+Escape, and every item that acts in place, must still return the operator to where they were.
+Two call sites — `AccountMenu`'s *My profile* and *Onboarding*, and `NotificationBell`'s *See
+all*. Reasoning is duplicated in `components/ui/dropdown-menu.tsx` so the next audit does not
+refile it.
+
+**Reversible.** Delete the two `onCloseAutoFocus` handlers and the refs that feed them, and
+flip the test back to `it.fails`.
+
+---
+
+## D-12 — peek is the drawer, not a sixth surface
+
+**Status:** ruled, 2026-09-02. Closes `design/14-system-wide-ux-plan.md` G8.
+
+`docs/ref/surfaces.md` already carries the row verbatim: *"a surface consulted against the
+page behind it → drawer, no scrim."* Every requirement G8 states for peek was verified
+against the **built app**, not the source: no scrim, the page behind stays interactive,
+Escape closes, Tab from the last control leaves the drawer while it stays open, focus restores
+to the opener, 200ms direction-aware slide.
+
+Peek and drawer are the same object under two names. Adopting both gives **six names to five
+surfaces**, and the first argument about which one to use has no principled answer.
+
+**G8's real content is a routing defect.** My Work's *Open* and the Conversations thread
+navigate away where they should consult. Send them to `Sheet`; nothing in the component
+changes to allow it.
+
+**Two proposed modes refused.** `side` plus a persisted per-operator preference makes the
+surface a variable — no design spec could then state what an operator sees, and every bug
+report would begin by asking which mode they were in. `full` is component reuse on a route,
+which is welcome, but a page is already its own row in `surfaces.md` and does not need to be a
+mode of a drawer.
+
+---
+
+## D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused
+
+**Status:** ruled and implemented, 2026-09-02.
+
+Doc 13 Phase 4.2 proposes six motion tokens. **Implementing it is the defect.** `globals.css`
+states the reason at the token: Tailwind's duration scale *is* the token set, and a second
+source drifts. `--ev-live-loop: 1800ms` remains the only motion token, because it feeds an
+`animation` shorthand the scale cannot reach.
+
+Motion is licensed by purpose, not taste — a layer at 200ms, a popover at 100ms, a live-queue
+row at 150ms — and `dist` now emits exactly `.duration-100` and `.duration-200`.
+
+**The blanket property transition is banned outright**, and not on principle. `--font-sans`
+leads with Inter Variable declared `font-weight: 100 900`, so `transition: all` interpolates
+the **weight axis**: a 500 → 600 change measured `511 → 592.25` over 150ms, physically
+thickening a label on every tab selection and every toggle press, in both languages. It also
+transitioned the focus ring, which rides on `box-shadow` — and a ring that fades in is a ring
+that is not yet there.
+
+**The sanctioned live-feed loop is deliberately not built.** §7.6 makes a pause/stop/hide
+control a MUST under SC 2.2.2 and explicitly rules an opacity loop of this shape an AA failure
+without one. Where that control lives is a shell decision, and Live Dispatch already says
+"Live connected" in words.
+
+Guarded by `src/components/ui/motion.licence.test.ts`, whose class names are assembled at
+runtime — because a test that greps for a utility by writing it also ships it.

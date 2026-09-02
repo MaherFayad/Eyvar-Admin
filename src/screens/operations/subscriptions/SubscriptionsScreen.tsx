@@ -106,7 +106,14 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
   const { dir, language } = shell.language
   /* AC-74 — the copy lives in `./copy.ts`. See `localCopy` for what deletes
      this wrapper. */
-  const t = withFallback(shell.language.t, SUBSCRIPTIONS_EN)
+  const t = useMemo(
+    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
+       function on every call, and several screens carry `t` in a `deps`
+       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
+       which rebuilt the wrapper. Two suites hung outright. */
+    () => withFallback(shell.language.t, SUBSCRIPTIONS_EN),
+    [shell.language.t],
+  )
 
   const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
   const fallback = views.find((v) => v.isDefault)?.id ?? 'all'
@@ -125,7 +132,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
 
   const data = useAsync<Paginated<Subscription>>(
     (signal) => listSubscriptions(queryParams, signal),
-    { deps: [queryParams] },
+    { deps: [queryParams], cacheKey: 'subscriptions.list' },
   )
 
   /**
@@ -269,6 +276,8 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (sub) => sub.id,
         header: t('subs.col.id'),
         alwaysVisible: true,
         minWidth: 176,
@@ -361,6 +370,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        emphasis: 'data',
         header: t('subs.col.status'),
         width: 112,
         dataType: 'enum',
@@ -383,6 +393,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'paidHalalas',
+        emphasis: 'data',
         header: t('subs.col.paid'),
         width: 112,
         align: 'end',
@@ -396,6 +407,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'endsOn',
+        emphasis: 'data',
         header: t('subs.col.ends'),
         width: 128,
         dataType: 'date',
@@ -518,7 +530,13 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
 
   const rowActions: ReadonlyArray<RowAction<Subscription>> = useMemo(
     () => [
-      { label: t('subs.action.view'), onSelect: (sub: Subscription) => setDrawerId(sub.id) },
+      {
+        label: t('subs.action.view'),
+        onSelect: (sub: Subscription) => setDrawerId(sub.id),
+        /* **P0-2 — the declared row-click target.** `Freeze`, `Change driver`
+           and `Cancel` all mutate; none may carry this. */
+        rowClick: true,
+      },
       {
         label: t('subs.action.freeze'),
         onSelect: (sub: Subscription) => setFreezing([sub]),

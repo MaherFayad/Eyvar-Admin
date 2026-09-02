@@ -74,16 +74,10 @@
  * nothing else in this file moves.
  */
 
-import { DATA_SOURCE } from '../config'
+import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import {
-  apiKeyFixtures,
-  webhookDeliveryFixtures,
-  webhookEndpointFixtures,
-} from '../fixtures/integrations'
-import { teamUserFixtures } from '../fixtures/teamUsers'
 import { effectivePermissions } from '../types/session'
 import type { AuditAction, AuditEntry } from '../types/audit'
 import { ApiError, type Paginated, type QueryParams } from '../types/common'
@@ -103,6 +97,30 @@ import type { PermissionKey } from '../types/navigation'
 import { appendAudit } from './audit'
 import { http } from './http'
 import { currentMockUserId } from './session'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+
+/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
+   import: a static one pins seeded data into every build, including the http
+   build that can never read it. Bound before any mock read, because `mock()`
+   and `mockMutation()` await `loadFixtures()`. */
+let apiKeyFixtures!: Fixtures['apiKeyFixtures']
+let webhookDeliveryFixtures!: Fixtures['webhookDeliveryFixtures']
+let webhookEndpointFixtures!: Fixtures['webhookEndpointFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
+onFixturesLoaded((f) => {
+  apiKeyFixtures = f.apiKeyFixtures
+  webhookDeliveryFixtures = f.webhookDeliveryFixtures
+  webhookEndpointFixtures = f.webhookEndpointFixtures
+  teamUserFixtures = f.teamUserFixtures
+  /* Seeded here rather than at module load: these locals are built from
+     late-bound fixtures, which are undefined until the fixture chunk lands. */
+  keys = apiKeyFixtures.map(cloneKey)
+  endpoints = webhookEndpointFixtures.map(cloneEndpoint)
+  deliveries = webhookDeliveryFixtures.map(cloneDelivery)
+  keySequence = apiKeyFixtures.length
+  endpointSequence = webhookEndpointFixtures.length
+  deliverySequence = webhookDeliveryFixtures.length
+})
 
 export const INTEGRATION_OPERATIONS = {
   keys: 'integrations.keys.list',
@@ -117,19 +135,30 @@ export const INTEGRATION_OPERATIONS = {
   replayDelivery: 'integrations.deliveries.replay',
 } as const
 
+/* Registered at module load, not on first call. `config.ts` says *"each client
+   registers its ids here at module load"*, and `mock()` only registers when it
+   runs — so an operation nobody has invoked yet is missing from a QA panel's
+   list and from any validation of `?mockFail=`. Every id in this module is
+   listed the moment the module is imported. */
+registerOperations(...Object.values(INTEGRATION_OPERATIONS))
+
 /* ────────────────────────────── the store ─────────────────────────────── */
 
-let keys: ApiKey[] = apiKeyFixtures.map(cloneKey)
-let endpoints: WebhookEndpoint[] = webhookEndpointFixtures.map(cloneEndpoint)
-let deliveries: WebhookDelivery[] = webhookDeliveryFixtures.map(cloneDelivery)
+let keys!: ApiKey[]
+let endpoints!: WebhookEndpoint[]
+let deliveries!: WebhookDelivery[]
 
 /** Ids and credentials come from sequences, never from a clock or a random. */
-let keySequence = apiKeyFixtures.length
-let endpointSequence = webhookEndpointFixtures.length
-let deliverySequence = webhookDeliveryFixtures.length
+let keySequence = 0
+let endpointSequence = 0
+let deliverySequence = 0
 let secretSequence = 0
 
 export function resetIntegrations(): void {
+  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
+     state to reset and the rows this would read are still undefined. The
+     binder in this module seeds fresh state when it does land. */
+  if (!fixturesLoaded()) return
   keys = apiKeyFixtures.map(cloneKey)
   endpoints = webhookEndpointFixtures.map(cloneEndpoint)
   deliveries = webhookDeliveryFixtures.map(cloneDelivery)

@@ -56,7 +56,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { IntegrationsConfirm, type IntegrationsConfirmRequest } from './IntegrationsConfirm'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import type { RevealRequest } from './SecretRevealDialog'
 import {
   WebhookEndpointDialog,
@@ -94,7 +94,7 @@ export function WebhooksCard({
   const [editing, setEditing] = useState<{ endpoint: WebhookEndpoint | null } | null>(null)
   const [busy, setBusy] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [confirm, setConfirm] = useState<IntegrationsConfirmRequest | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
 
   const submit = useCallback(
     async (draft: EndpointDraftSubmission, endpoint: WebhookEndpoint | null) => {
@@ -231,7 +231,7 @@ export function WebhooksCard({
                 )}
               </div>
 
-              <span className="truncate font-mono text-2xs text-muted-foreground" dir="ltr">
+              <span className="truncate font-mono text-xs text-muted-foreground" dir="ltr">
                 {endpoint.url}
               </span>
 
@@ -246,7 +246,7 @@ export function WebhooksCard({
                 ))}
               </span>
 
-              <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-2xs text-muted-foreground">
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 <span dir="ltr" className="font-mono">
                   {endpoint.secretPrefix}
                 </span>
@@ -294,6 +294,11 @@ export function WebhooksCard({
                       name: endpoint.name,
                     }),
                     confirmLabel: t('admin.integrations.webhook.rotate'),
+                    /* Confirmed because every receiver still verifying with the
+                       old secret starts failing the moment it lands — but not
+                       red: the endpoint survives and the remedy is to update
+                       the receiver. (Carried from `IntegrationsConfirm.tsx`.) */
+                    destructive: false,
                     onConfirm: () => void rotate(endpoint),
                   })
                 }
@@ -313,6 +318,9 @@ export function WebhooksCard({
                         name: endpoint.name,
                       }),
                       confirmLabel: t('admin.integrations.webhook.disable'),
+                      /* Stops delivery, and enabling it again is the click
+                         below. Reversible, so the ordinary primary. */
+                      destructive: false,
                       onConfirm: () => void setState(endpoint, 'disabled'),
                     })
                   } else {
@@ -356,7 +364,7 @@ export function WebhooksCard({
           </Button>
           {/* §11.2 — the page-level refusal, stated ONCE for this card. */}
           {!canWrite && (
-            <span id={READ_ONLY_ID} className="text-2xs text-muted-foreground">
+            <span id={READ_ONLY_ID} className="text-xs text-muted-foreground">
               {t('admin.integrations.readOnly')}
             </span>
           )}
@@ -378,7 +386,7 @@ export function WebhooksCard({
         t={t}
       />
 
-      <IntegrationsConfirm request={confirm} busy={busy} onClose={() => setConfirm(null)} t={t} />
+      <ConfirmDialog request={confirm} busy={busy} onClose={() => setConfirm(null)} t={t} />
     </section>
   )
 }

@@ -109,18 +109,60 @@ import { Button } from '@/components/ui/button'
  * 0). The inline gutter is a column budget and the block padding is a rhythm;
  * they were the same number by accident, not by derivation.
  *
- * **D-19 — the block is a FLEX COLUMN that fills the content region.**
- * `h-full min-h-0 flex flex-col`, so a page whose body is a bounded scroller
- * (an index table, §7.2) can take `flex-1 min-h-0` and own its own overflow,
- * and the pagination row beneath it is on screen at any page length. A page
- * whose body is ordinary content is unaffected: nothing claims the residual, so
- * everything keeps its natural height and `<main>`'s own `overflow-y-auto`
- * still scrolls it when it is taller than the region.
+ * **D-19 — the block is a FLEX COLUMN that fills the content region.** A page
+ * whose body is a bounded scroller (an index table, §7.2) claims the residual
+ * and owns its own overflow, so the pagination row beneath it is on screen at
+ * any page length.
+ *
+ * **D-19 AMENDED — the height rule is not one constant, and that is the whole
+ * shell defect.** A hundred-percent height pins the block to the content region
+ * exactly, so anything taller than the region has two ways out and both are
+ * wrong: a flex child with a shrink factor is SQUEEZED to fit, and a child that
+ * will not squeeze overflows a box that contributes no scroll height of its own.
+ * Measured on `/management/zones` at 1440 x 900 before the change: the content
+ * region reported `clientHeight` 848 against `scrollHeight` 890 — 42px of
+ * travel — while the zone table's own box sat at y = 893 and ran to 1343.
+ * **The table was 495px below a page that would not scroll.**
+ *
+ * **The naive repair — swap the height for a min-height everywhere — breaks
+ * every index page, and the reason is worth writing down because nothing about
+ * it is visible in the class list.** A `min-height` leaves the block's main size
+ * INDEFINITE, and under an indefinite main size a percentage flex basis resolves
+ * to `content` (Flexbox §7.2.3). The bodies below declare a zero-percent basis
+ * to claim the residual; against an indefinite parent that zero silently becomes
+ * *the full height of the table*, the block grows to it, and the bounded
+ * scroller every index page is built on stops being bounded. Measured after that
+ * one-word change: `/operations/people` went from `scrollHeight` 848 — the
+ * bounded page, pagination on screen — to 1779.
+ *
+ * So the two shapes take two rules, and **which one a page is, is declared**
+ * (`SingleColumnPageProps.body`):
+ *
+ *   fill  a definite height, exactly as before. The body's zero basis resolves
+ *         to zero, it claims the residual, the table owns the overflow.
+ *   flow  a minimum height. The block sizes to its content and `<main>` scrolls
+ *         it. No descendant may claim the residual — there isn't one — which is
+ *         why `flow`'s body declares no flex at all.
+ *
+ * `DetailPage` and `MonitorShell` are `flow`-shaped by construction: their
+ * bodies are grids, nothing claims a residual, and a minimum height is what
+ * lets a long detail page scroll instead of overflowing a pinned box.
  *
  * There is no `width` prop and there is not meant to be one. If a specific
  * block of content needs a measure, it constrains ITSELF (see §7.1 above).
  */
 const PAGE_BLOCK =
+  'flex min-h-full w-full flex-col px-page-pad py-6 wide:px-page-pad-wide'
+
+/**
+ * The `fill` variant. Its hundred-percent height is what makes the main size
+ * DEFINITE, and so is load-bearing for the body's zero basis; its zero minimum
+ * height lets the block be shorter than its content, which is what allows the
+ * body to bound the table rather than being pushed by it. Both are named in
+ * words on purpose — Tailwind v4 scans comments as plain text and mints what it
+ * finds, so a class written here is a rule shipped in `dist`.
+ */
+const PAGE_BLOCK_FILL =
   'flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
@@ -130,6 +172,27 @@ export interface SingleColumnPageProps {
   banner?: ReactNode
   header?: ReactNode
   children: ReactNode
+  /**
+   * **D-19 — which of the two body shapes this page is, DECLARED.** Inferring
+   * it is what produced the `/management/zones` defect: one shape was assumed
+   * for every route, and a page that is a stack of several tall regions got the
+   * bounded-scroller treatment and was squeezed into a region it could not fit.
+   *
+   * `'fill'` (the default, and 32 of the 34 sub-tabs) — **the body IS the
+   * scroller.** An index page whose one body element is a `DataTable`: the body
+   * claims the region's residual height, the table owns its own overflow, and
+   * the pagination row and the horizontal scrollbar are on screen at any page
+   * length. The page itself does not scroll.
+   *
+   * `'flow'` — **the body is a STACK and the page scrolls.** A page that puts
+   * two or more tall regions on top of each other (a map AND a table) has more
+   * content than one viewport by construction; there is no residual to claim
+   * and pretending otherwise squeezes every region at once. The body sizes to
+   * its content and `<main>` scrolls it. A `DataTable` in this position renders
+   * at its full height rather than inside a bounded scroller — it reads the
+   * shape off its parent, so nothing is passed down.
+   */
+  body?: 'fill' | 'flow'
   /** V-11 — one centred `Learn more about {resource}.` OUTSIDE the card. */
   learnMore?: ReactNode
 }
@@ -138,6 +201,7 @@ export function SingleColumnPage({
   banner,
   header,
   children,
+  body = 'fill',
   learnMore,
 }: SingleColumnPageProps) {
   return (
@@ -146,17 +210,21 @@ export function SingleColumnPage({
        are on. The header is INSIDE the cap, so §8's alignment rule — "the
        title's inline-start edge is the first card's inline-start edge" — holds
        by construction rather than by review. */
-    <div className={PAGE_BLOCK}>
+    <div className={body === 'flow' ? PAGE_BLOCK : PAGE_BLOCK_FILL}>
       {/* §1.2 — band 1 takes a declared **20** beneath it: *"a different kind
           of thing starts here"* — identity ends, controls begin. It is the only
           20 in the composition, and `PageHeader` already carries it as its own
           block-end padding, so this slot adds none. */}
       {header && <div className="shrink-0">{header}</div>}
       {banner && <div className="shrink-0">{banner}</div>}
-      {/* D-19 — the body claims the residual. A page whose body is a bounded
-          scroller uses it; one whose body is ordinary content does not grow
-          into it, because nothing inside asks for the height. */}
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      {/* D-19 — `fill` claims the residual so the body can be the bounded
+          scroller; `flow` sizes to its content so the page scrolls instead.
+          The zero-basis growth is what makes the first one bounded, and it is
+          exactly what makes the second one collapse, which is why the two are
+          different declarations rather than one clever class. */}
+      <div className={body === 'flow' ? 'flex flex-col' : 'flex min-h-0 flex-1 flex-col'}>
+        {children}
+      </div>
       {learnMore && <div className="shrink-0 pt-3 text-center">{learnMore}</div>}
     </div>
   )

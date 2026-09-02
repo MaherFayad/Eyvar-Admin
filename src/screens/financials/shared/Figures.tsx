@@ -11,10 +11,12 @@
  * hand-written literal **AC-346** exists to prevent.
  *
  * Rules applied
- *   §3.7 / D7 §4.9
- *              the anatomy is the tile's: value above label, 17px/600 value,
- *              12px label, hairline card, no shadow, no icon. A figure that
- *              looks like a tile and is not one would be worse than either.
+ *   §3.7 / D7 §4.9 / H4
+ *              the anatomy is the tile's: value above label, **22px/600 value
+ *              (`--text-kpi`)**, 12px label, hairline card, no shadow, no icon.
+ *              A figure that looks like a tile and is not one would be worse
+ *              than either — which is why the H4 numeral lands here in the same
+ *              change as `MetricTile` rather than a change later.
  *   §8.3.1 / AC-323
  *              a money value **outside a table** carries the `SAR` code. These
  *              are outside a table, so `Money` keeps its default.
@@ -51,7 +53,19 @@ export function Figure({ label, amount, value, caption = null, className }: Figu
   return (
     <Card className={cn('h-full gap-1.5', className)}>
       <div className="flex flex-col gap-1 px-(--card-spacing)">
-        <span className="text-lg font-semibold tabular-nums text-foreground">
+        {/* **H4 — the same numeral as `MetricTile`, and it has to be.** This
+            file's own rule two paragraphs up is *"the anatomy is the tile's ...
+            a figure that looks like a tile and is not one would be worse than
+            either"*. Leaving this at `--text-lg` while the tile moved to
+            `--text-kpi` would put a 17px figure beside a 22px one on Financials
+            Overview, which is that rule failing in the one place it was written
+            to hold. Both halves travel together: the size step and the slot
+            that pins the tabular figures — see `MetricTile` for why the class
+            alone is not the guarantee. */}
+        <span
+          data-slot="metric-value"
+          className="text-kpi font-semibold text-foreground"
+        >
           {value !== undefined ? <bdi>{value}</bdi> : <Money amount={amount ?? null} />}
         </span>
         <span className="text-xs text-muted-foreground">{label}</span>
@@ -74,7 +88,15 @@ export function Figure({ label, amount, value, caption = null, className }: Figu
  * a screen reader would otherwise get a run of figures with no count.
  */
 export function FigureGrid({ children }: { children: ReactNode }) {
-  return <ul role="list" className="grid list-none grid-cols-3 gap-3">{children}</ul>
+  /* `data-numeric` — `globals.css`'s own numeric defence, which had **zero**
+     consumers in `src/` and says so: *"the correct hook for a number outside a
+     table"*. A figure grid is a column of money read down, so the guarantee
+     belongs on the grid rather than on each figure's class list. */
+  return (
+    <ul data-numeric role="list" className="grid list-none grid-cols-3 gap-3">
+      {children}
+    </ul>
+  )
 }
 
 export function FigureItem({ children }: { children: ReactNode }) {

@@ -24,6 +24,14 @@
  *   §9.1       the URL field is `dir="ltr"` because its CONTENT is a Latin URL
  *              whichever way the page reads.
  *   §7.4.5     a placeholder is never a label.
+ *   G7         `Field` throughout. This closes a real §10.4 defect this file
+ *              carried: the error used to REPLACE the helper sentence by
+ *              recolouring one `<span>`. §10.4 requires the message to be
+ *              INSERTED below the field, replacing nothing — the constraint is
+ *              still true while the field is wrong, and taking it away at the
+ *              moment the operator needs it most is the opposite of help.
+ *   G6         `default` — three controls plus an eight-box checkbox set, all
+ *              single-region.
  */
 
 import { useEffect, useId, useState } from 'react'
@@ -39,8 +47,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Field,
+  FieldContent,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 /** One key per event. Never a prefix plus an interpolated event name. */
 const EVENT_LABEL: Record<WebhookEventKey, string> = {
@@ -128,81 +146,74 @@ export function WebhookEndpointDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${dialogId}-name`}>{t('admin.integrations.webhook.name.label')}</Label>
-          <Input
-            id={`${dialogId}-name`}
-            value={name}
-            disabled={busy}
-            aria-invalid={nameError !== null}
-            aria-describedby={`${dialogId}-name-help`}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={() => setTouched(true)}
-          />
-          <span
-            id={`${dialogId}-name-help`}
-            className={nameError !== null ? 'text-2xs text-destructive' : 'text-2xs text-muted-foreground'}
-          >
-            {nameError ?? t('admin.integrations.webhook.name.help')}
-          </span>
-        </div>
+        <FieldGroup>
+          <Field id={`${dialogId}-name`} invalid={nameError !== null} disabled={busy}>
+            <FieldLabel>{t('admin.integrations.webhook.name.label')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onBlur={() => setTouched(true)}
+              />
+            </FieldControl>
+            <FieldDescription>{t('admin.integrations.webhook.name.help')}</FieldDescription>
+            <FieldError>{nameError}</FieldError>
+          </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${dialogId}-url`}>{t('admin.integrations.webhook.url.label')}</Label>
-          <Input
-            id={`${dialogId}-url`}
-            value={url}
-            dir="ltr"
-            disabled={busy}
-            aria-invalid={urlError !== null}
-            aria-describedby={`${dialogId}-url-help`}
-            onChange={(event) => setUrl(event.target.value)}
-            onBlur={() => setTouched(true)}
-          />
-          <span
-            id={`${dialogId}-url-help`}
-            className={urlError !== null ? 'text-2xs text-destructive' : 'text-2xs text-muted-foreground'}
-          >
-            {urlError ?? t('admin.integrations.webhook.url.help')}
-          </span>
-        </div>
+          <Field id={`${dialogId}-url`} invalid={urlError !== null} disabled={busy}>
+            <FieldLabel>{t('admin.integrations.webhook.url.label')}</FieldLabel>
+            <FieldControl>
+              <Input
+                value={url}
+                dir="ltr"
+                onChange={(event) => setUrl(event.target.value)}
+                onBlur={() => setTouched(true)}
+              />
+            </FieldControl>
+            <FieldDescription>{t('admin.integrations.webhook.url.help')}</FieldDescription>
+            <FieldError>{urlError}</FieldError>
+          </Field>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs font-semibold text-foreground">
-            {t('admin.integrations.webhook.events.label')}
-          </legend>
-          <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-border p-2 md:grid-cols-2">
-            {WEBHOOK_EVENT_KEYS.map((event) => {
-              const id = `${dialogId}-event-${event}`
-              return (
-                <div key={event} className="flex items-start gap-2 py-0.5">
-                  <Checkbox
-                    id={id}
-                    checked={events.includes(event)}
-                    disabled={busy}
-                    onCheckedChange={(value) =>
-                      setEvents((current) =>
-                        value === true
-                          ? [...current, event]
-                          : current.filter((each) => each !== event),
-                      )
-                    }
-                  />
-                  <Label htmlFor={id} className="flex flex-col gap-0.5 text-2xs leading-4 font-normal">
-                    <span>{t(eventLabelKey(event))}</span>
+          {/* A checkbox set answers ONE question, so the refusal describes the
+              `<fieldset>` rather than any single box. */}
+          <FieldSet aria-describedby={eventError === null ? undefined : `${dialogId}-events-error`}>
+            <FieldLegend>{t('admin.integrations.webhook.events.label')}</FieldLegend>
+            <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-border p-2">
+              {WEBHOOK_EVENT_KEYS.map((event) => (
+                <Field
+                  key={event}
+                  id={`${dialogId}-event-${event}`}
+                  orientation="horizontal"
+                  disabled={busy}
+                  className="py-0.5"
+                >
+                  <FieldControl>
+                    <Checkbox
+                      checked={events.includes(event)}
+                      onCheckedChange={(value) =>
+                        setEvents((current) =>
+                          value === true
+                            ? [...current, event]
+                            : current.filter((each) => each !== event),
+                        )
+                      }
+                    />
+                  </FieldControl>
+                  <FieldContent className="gap-0">
+                    <FieldLabel className="text-xs leading-4">{t(eventLabelKey(event))}</FieldLabel>
                     {/* The wire name, beside the sentence and never instead of
                         it: it is what the receiving developer greps for, and it
                         is untranslatable by construction. */}
-                    <span className="font-mono text-muted-foreground" dir="ltr">
+                    <span className="font-mono text-xs text-muted-foreground" dir="ltr">
                       {event}
                     </span>
-                  </Label>
-                </div>
-              )
-            })}
-          </div>
-          {eventError !== null && <span className="text-2xs text-destructive">{eventError}</span>}
-        </fieldset>
+                  </FieldContent>
+                </Field>
+              ))}
+            </div>
+            <FieldError id={`${dialogId}-events-error`}>{eventError}</FieldError>
+          </FieldSet>
+        </FieldGroup>
 
         <DialogFooter>
           <div className="flex flex-col items-end gap-1">
@@ -227,7 +238,7 @@ export function WebhookEndpointDialog({
               </Button>
             </div>
             {incomplete && (
-              <span id={`${dialogId}-blocked`} className="text-2xs text-muted-foreground">
+              <span id={`${dialogId}-blocked`} className="text-xs text-muted-foreground">
                 {t('admin.integrations.webhook.blocked')}
               </span>
             )}

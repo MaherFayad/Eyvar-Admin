@@ -65,6 +65,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Card } from '@/components/ui/card'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
 import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { LedgerCard } from '../shared/LedgerCard'
@@ -174,7 +175,9 @@ function RefundsLedgerView({
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>((signal) => getRefundsLedger(period, signal), {
+    /* `period` is `{ start, end }` and both ends are here. */
     deps: [period.start, period.end],
+    cacheKey: 'revenue.ledger',
     isEmpty: (data) => data.postings.length === 0,
   })
 
@@ -239,6 +242,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const plans = useAsync<RevenueByPlanRow[]>((signal) => listRevenueByPlan(period, signal), {
     deps: [period.start, period.end],
+    cacheKey: 'revenue.byPlan',
   })
 
   const rows = plans.data ?? []
@@ -276,6 +280,8 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
     () => [
       {
         id: 'plan',
+        emphasis: 'primary',
+        csv: (plan) => plan.planName,
         header: t('fin.revenue.byPlan.plan'),
         dataType: 'text',
         minWidth: 160,
@@ -300,6 +306,8 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'gross',
+        emphasis: 'data',
+        csv: (plan) => plan.grossHalalas,
         header: t('fin.revenue.byPlan.gross'),
         dataType: 'money',
         align: 'end',
@@ -308,6 +316,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'platform',
+        csv: (plan) => plan.platformHalalas,
         header: t('fin.revenue.byPlan.platform'),
         dataType: 'money',
         align: 'end',
@@ -316,6 +325,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'givebacks',
+        csv: (plan) => plan.givebacksHalalas ?? 0,
         header: t('fin.revenue.byPlan.givebacks'),
         dataType: 'money',
         align: 'end',
@@ -324,6 +334,8 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'contribution',
+        emphasis: 'data',
+        csv: (plan) => plan.platformHalalas - (plan.givebacksHalalas ?? 0),
         header: t('fin.revenue.byPlan.contribution'),
         dataType: 'money',
         align: 'end',
@@ -348,6 +360,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'arpa',
+        csv: (plan) => (plan.activeSubs === 0 ? null : Math.round(plan.grossHalalas / plan.activeSubs)),
         header: t('fin.revenue.byPlan.arpa'),
         dataType: 'money',
         align: 'end',
@@ -362,6 +375,7 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'captain',
+        csv: (plan) => plan.captainHalalas,
         header: t('fin.revenue.byPlan.captain'),
         dataType: 'money',
         align: 'end',
@@ -457,7 +471,7 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const refunds = useAsync<Paginated<Refund>>(
     (signal) => listRefunds({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'revenue.refunds' },
   )
 
   const rows = refunds.data?.items ?? []
@@ -481,6 +495,8 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
     () => [
       {
         id: 'id',
+        emphasis: 'primary',
+        csv: (refund) => refund.id,
         header: t('fin.refund.col.id'),
         dataType: 'id',
         minWidth: 160,
@@ -493,8 +509,13 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
             <bdi>{refund.id}</bdi>
           </span>
         ),
+        /* A3 — `PAY_REFUND_REQ` was the whole second line. A refund's reason is
+           read here to answer "why did we give this back", which the code
+           cannot answer and the sentence can. */
         secondaryLine: (refund) =>
-          refund.sourcePaymentId === null ? t('fin.refund.unsourced') : refund.reasonCode,
+          refund.sourcePaymentId === null
+            ? t('fin.refund.unsourced')
+            : reasonLabel(t, refund.reasonCode),
       },
       {
         id: 'rider',
@@ -508,6 +529,8 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
       },
       {
         id: 'amount',
+        emphasis: 'data',
+        csv: (refund) => refund.amountHalalas,
         header: t('fin.refund.col.amount'),
         dataType: 'money',
         align: 'end',
@@ -571,6 +594,12 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.refund.search')}
+      /* **§6.3 / R5a** — a refund with no traceable payment. The table used to
+         reach for this itself with `r.sourcePaymentId === null && 'refundId'
+         in r`, a clause that matched NO type in the product: `Refund` has no
+         `refundId` and `CreditNote` has no `sourcePaymentId`. So the marker
+         has been alone on these rows since it shipped. */
+      isRowCritical={(refund) => refund.sourcePaymentId === null}
       skeletonPattern="P1"
       firstRun={{
         heading: t('fin.refund.empty.heading'),
@@ -597,7 +626,7 @@ function CreditNotesView({
 
   const notes = useAsync<Paginated<CreditNote>>(
     (signal) => listCreditNotes({ ...table.params }, signal),
-    { deps: [table.params] },
+    { deps: [table.params], cacheKey: 'revenue.creditNotes' },
   )
 
   const rows = notes.data?.items ?? []
@@ -612,7 +641,8 @@ function CreditNotesView({
      argument §4.4 makes for a queue's breach banner. */
   const unlinked = useAsync<Paginated<CreditNote>>(
     (signal) => listCreditNotes({ view: 'unlinked', pageSize: 1 }, signal),
-    { deps: [] },
+    /* Constant query; `[]` cannot collide with the index read's `[{...}]`. */
+    { deps: [], cacheKey: 'revenue.creditNotes' },
   )
   const unlinkedTotal = unlinked.data?.total ?? 0
   useEffect(() => {
@@ -729,6 +759,9 @@ function CreditNotesView({
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.creditNote.search')}
+      /* **AC-356 / R5a** — the third of the three parts, beside the marker and
+         the page banner, and now declared rather than duck-typed. */
+      isRowCritical={(note) => note.unlinked}
       skeletonPattern="P1"
       firstRun={{
         heading: t('fin.creditNote.empty.heading'),
@@ -756,7 +789,10 @@ function ContributionMarginView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   const overview = useAsync<FinancialsOverview>(
     (signal) => getFinancialsOverview({ period, signal }),
-    { deps: [period.start, period.end], isEmpty: () => false },
+    /* Same operation, same deps and same shape as `OverviewScreen`'s read, so
+       the two deliberately share one entry - moving between the two sub-tabs on
+       the same period paints instead of refetching. */
+    { deps: [period.start, period.end], cacheKey: 'financials.overview', isEmpty: () => false },
   )
 
   const margin = useMemo(

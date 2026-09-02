@@ -106,7 +106,25 @@ Four kinds and no bare `toast()`: `success` · `error` · `info` · `undo`. The 
 `ZonesMapView` (930 lines, 21 raw hex, 64 palette classes) and `DispatchScreen`/`InterventionsCard` (17 palette classes). Detail in Part B. Also strip every `dark:` variant in both — **there is no dark theme, so those are dead branches shipping as live code.**
 
 ### G12 · ⌘K can finally *do* something
-C-2: `GlobalSearch.tsx` imports `commands/registry.ts` and the `Do` verb executes. The registry is built; it is simply not plugged in. **One day, disproportionate payoff** — and it is the single change that most makes the product feel like a tool rather than a website.
+
+> **CORRECTED 2026-09-02 — this was already built, and the finding was stale.** Verified
+> in source: `GlobalSearch.tsx:85` imports `CommandPalette`, mounts it at `:334`, binds
+> ⌘K at `:145–146`, and `usePalette.ts:525` calls `runCommand`. The palette also gained
+> `recents.ts`, `outcomeToast.ts`, `targets.ts` and `selection.ts` — a ~3,300-line command
+> layer, not the 539-line registry the original claim measured. **What produced the wrong
+> claim:** it was written against a tree several weeks older, and never re-checked before
+> being carried into the sequencing table.
+>
+> **The real remaining gap is narrower and different in kind.** `src/commands/index.ts`
+> exports exactly one domain registry — `CAPTAIN_COMMANDS` — and says so in its own
+> header: *"The domain registries are added one per task (P2-T2…T7); only captains exists
+> in C-1."* So ⌘K executes; it simply has almost nothing to execute. **One screen of 22
+> has commands.** The work is populating the registry, not wiring it, and that is a
+> per-domain task rather than a one-day integration.
+
+C-2 as originally written — "wire the registry, ship the `Do` section" — is **done**.
+Superseded by: declare commands for the remaining domains. Still the single change that
+most makes the product feel like a tool rather than a website.
 
 ### G13 · Navigation coherence
 - **Kill the fourth level.** `DispatchScreen` and `FairnessScreen` use in-page `<Tabs>` where the other 33 use the sub-tab view switcher in `IndexToolbar`. Convert both.

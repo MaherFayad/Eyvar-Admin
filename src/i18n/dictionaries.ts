@@ -19,15 +19,28 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS DELIBERATELY EMPTY — read this before "finishing" it.** The
- * translation of 200 operator-facing strings is a content decision, not an
- * engineering one, and a half-Arabic console is what §9.3 describes as the
- * policy the rebuild exists to retire. An empty `ar` is also AC-74's own test
- * fixture: the shell must render entirely in English through it, with no raw
- * key anywhere. Arabic GEOMETRY and the Arabic FACE are independent of this
- * file — they key off `:root:lang(ar)` and the font stack — so `dir="rtl"` +
- * `lang="ar"` is fully reviewable today. Recorded in
- * `docs/05-restructure/build/00-shell.md` as an open item for product-designer.
+ * **`ar` IS NO LONGER EMPTY.** The translation of 4,570 operator-facing strings
+ * is done and lives in `./ar`, one module per English dictionary, spread in the
+ * same order so the two sides diff file by file. §9.3's objection was to a
+ * HALF-translated console, not to a translated one: every key reachable from
+ * `EN` has an Arabic string, so no screen mixes the two languages.
+ *
+ * AC-74's fallback chain is unchanged and still tested — `src/lib/i18n/i18n.test.ts`
+ * builds its own empty dictionary rather than borrowing this one, so the guard
+ * survives Arabic landing. Arabic GEOMETRY and the Arabic FACE remain
+ * independent of this file: they key off `:root:lang(ar)` and the font stack.
+ * The glossary the strings were written against is
+ * `docs/05-restructure/design/20-arabic-glossary.md`.
+ *
+ * **That number is GENERATED, and it used to say 200.** It was an estimate, it
+ * was an order of magnitude low, and several schedules were sized against it —
+ * the difference between a fortnight of translation and a quarter of one.
+ * `scripts/i18n-inventory.py` now rewrites the figure above from a count of
+ * `Object.keys(EN)`, `npm run i18n:check` fails a build when it drifts, and
+ * `src/lib/i18n/inventory.test.ts` asserts the same thing at runtime so it
+ * cannot go stale between generator runs. **Do not hand-edit it.** The full
+ * breakdown — per `copy.ts`, what Arabic is missing, which screens have no copy
+ * file — is `docs/08-i18n/KEYS.md`.
  */
 
 import type { Dictionary, Language } from '@/lib'
@@ -45,31 +58,46 @@ import { SLA_MESSAGES_EN } from '@/lib'
    own owner, so its strings live with it rather than inside the shell's
    `shell.search.*` block. */
 import { COMMANDS_EN } from '@/commands/copy'
-import { PEOPLE_EN } from '@/screens/operations/people/copy'
+/**
+ * **Registered in phase C-5, and this is the no-op `localCopy.ts` predicted.**
+ *
+ * Trips and Subscriptions own their copy properly — one `Dictionary` each, in
+ * their own `copy.ts` — but neither was ever spread here, so both screens have
+ * been reaching their strings through `withFallback`
+ * (`screens/operations/localCopy.ts`), whose own header says: *"the day
+ * `dictionaries.ts` imports `TRIPS_EN`, this becomes a no-op … the wrapper can
+ * be deleted with a one-line diff per screen."*
+ *
+ * The command registry is what forces the day. `commands/trips.ts` and
+ * `commands/subscriptions.ts` are run by the **palette**, which holds the
+ * shell's `t` and knows nothing about a screen's fallback wrapper — so an
+ * unregistered `trips.flag.title.one` throws in dev (AC-74) and renders a raw
+ * key in production, which is the one thing §7.4 / AC-74 forbid outright.
+ *
+ * Purely additive: neither dictionary shares a key with anything already here
+ * or with the other, and `translate` prefers `dictionary[key]` over a
+ * `defaultValue`, so both screens keep the identical strings by the shorter
+ * route. **Raised in the handoff to the screens' owners:** `withFallback` is
+ * now dead weight in `TripsScreen` and `SubscriptionsScreen` and both call
+ * sites can drop it; Corporate is the third screen in the same position and is
+ * left alone because no command touches it.
+ */
 /* Wave 2 — the five §8.4 work queues. `QUEUE_SHARED_EN` is §4's own contract
    vocabulary (the owner chip, the countdown, the take-over confirmation), which
    all five inherit; the five screen dictionaries carry only what differs. */
 import { QUEUE_SHARED_EN } from '@/screens/queues/copy'
-import { REQUESTS_EN } from '@/screens/operations/requests/copy'
-import { ASSURANCE_EN } from '@/screens/operations/assurance/copy'
-import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
-import { SAFETY_EN } from '@/screens/support/safety/copy'
-import { FAIRNESS_EN } from '@/screens/support/fairness/copy'
 /* Wave 4 — one dictionary for all eight §3.7 metric-tile sub-tabs. They share
    `overview.noData`, which §3.7 requires to be byte-identical everywhere. */
-import { OVERVIEW_EN } from '@/screens/metrics/copy'
 /* Wave 3 — the seven Financials sub-tabs, the ledger vocabulary they share, and
    the plan editor. `FINANCIALS_EN` also carries the `fin.*` keys the DATA layer
    emits as `LocalisedText`, because a posting description that resolves to
    nothing renders a raw key. */
 import { FINANCIALS_EN } from '@/screens/financials/copy'
 /* R4-6b — Management › Market & Zones' table, strip and cities row. */
-import { ZONES_EN } from '@/screens/management/zones/copy'
 /* Wave 6 — the Report Builder. It carries the 60 `rb.*` keys the SEMANTIC layer
    emits (measure labels, population sentences, violation reasons, panel titles)
    as well as the module's own copy: the data layer holds no display string, and
    this is the other end of every key it does hold. */
-import { REPORTS_EN } from '@/screens/reports/copy'
 /* Wave 5 — the six auth screens, the re-authentication modal, the session
    banners and the device list; then the onboarding layer and its 21 steps.
    Two dictionaries, because the two surfaces have different owners in the
@@ -85,21 +113,28 @@ import { ONBOARDING_EN } from '@/screens/onboarding/copy'
    an audit line with the SHELL translator, and a raw key on an audit line is the
    one place a missing string is unrecoverable. */
 import { COMMUNICATIONS_EN } from '@/screens/admin/communications/copy'
-import { POLICY_EN } from '@/screens/admin/policy/copy'
 /* Remediation wave 5 — Support › Tickets and Support › Disputes. Between them
    the two screens shipped 55 `t(key, { defaultValue })` calls and defined not
    one of those keys (`REMEDIATION-PLAN.md` §4.2), so every string on both was
    untranslatable by construction. `DISPUTES_EN` also carries
    `dispute.posting.settlement`, which `clients/disputes.ts` mints as a
    `LocalisedText` — `i18n/localisedKeys.test.ts` fails the build without it. */
-import { TICKETS_EN } from '@/screens/support/tickets/copy'
-import { DISPUTES_EN } from '@/screens/support/disputes/copy'
 /* P5-T4 / P5-T6 — Support › Contact Centre, rebuilt as the conversation console
    (D19, D22). The screen it replaces shipped 21 `t(key, { defaultValue })` calls
    and defined none of those keys, so every string on it was untranslatable by
    construction. The §4 work-queue vocabulary stays in `QUEUE_SHARED_EN`; this
    carries only what a conversation adds. */
-import { CONVERSATIONS_EN } from '@/screens/support/conversations/copy'
+/* A3 — the reason-code vocabulary. NOT a screen's copy and not the shell's
+   either: the same `CAP_LATE` lands on a ticket, a complaint, a fairness case,
+   a ledger posting, a refund and an audit line, so it is owned once and
+   inherited, exactly as `QUEUE_SHARED_EN` is. See the module header for why the
+   32 registry labels are duplicated here and what collapses that. */
+import { VOCABULARY_EN } from './vocabulary/copy'
+/* G5 — the shared confirmation's own string. `ConfirmDialog` renders on every
+   workspace, so its `Cancel` cannot live in one screen's namespace; the
+   component owns it, exactly as `components/profile/copy.ts` owns the profile's.
+   Everything else on that modal is supplied per act by the caller. */
+import { CONFIRM_EN } from '@/components/confirmCopy'
 /* The 360° profile's twelve section renderers and its right rail. It is a
    COMPONENT directory rather than a screen because two surfaces render it —
    the `?entity=` drawer and `/entity/:entityId` — and a dictionary living
@@ -109,14 +144,52 @@ import { PROFILE_EN } from '@/components/profile/copy'
    `integrity.detail.*` families the DATA layer emits as `LocalisedText`: a
    finding crosses the seam as a key plus params and is worded here, so
    re-phrasing one never means editing a scan function. */
-import { ADMIN_DATA_EN } from '@/screens/admin/data/copy'
 /* P6-T5 / P6-T1 / P4-T1 — the three Admin sub-tabs rebuilt in this round.
    `ADMIN_TEAM_EN` and `ADMIN_WORKSPACE_EN` each carry the `admin.audit.*`
    family their client emits as `LocalisedText`; `i18n/localisedKeys.test.ts`
    fails the build if one is minted in `src/data` and missing here. */
+
+/* The PWA layer's four install-affordance strings (`docs/ref/pwa.md`, P1). It
+   adds no offline-banner copy: `state.offline.message`, `state.feedDead.message`
+   and `state.feedStale.freshness` above already say those things, and the
+   offline surface is a new condition on the existing `ShellBanner` rather than
+   a new block of strings. See `src/pwa/copy.ts`. */
+import { PWA_EN } from '@/pwa/copy'
+/*
+ * **These four stay, and the reason is the command palette.**
+ *
+ * ⌘K is a SHELL surface. It renders every domain's command labels and refusal
+ * sentences through the shell translator, so a registry's copy has to be
+ * resolvable without that registry's screen being mounted — `people.action.suspend`
+ * is read while the operator is looking at Financials.
+ *
+ * The five domains with a command registry therefore keep their dictionaries
+ * here. Every other screen's copy travels in its own chunk; see the note above
+ * `EN`. The proper fix is to move the command-facing keys into
+ * `commands/copy.ts`, which is where the palette's own vocabulary already
+ * lives — a rename across five files, and out of scope for a bundle change.
+ */
+import { PEOPLE_EN } from '@/screens/operations/people/copy'
+import { TICKETS_EN } from '@/screens/support/tickets/copy'
+import { TRIPS_EN } from '@/screens/operations/trips/copy'
+import { SUBSCRIPTIONS_EN } from '@/screens/operations/subscriptions/copy'
+import { ADMIN_ACTIVITY_EN } from '@/screens/admin/activity/copy'
+import { ADMIN_DATA_EN } from '@/screens/admin/data/copy'
 import { ADMIN_TEAM_EN } from '@/screens/admin/team/copy'
 import { ADMIN_WORKSPACE_EN } from '@/screens/admin/workspace/copy'
-import { ADMIN_ACTIVITY_EN } from '@/screens/admin/activity/copy'
+import { ASSURANCE_EN } from '@/screens/operations/assurance/copy'
+import { CONVERSATIONS_EN } from '@/screens/support/conversations/copy'
+import { DISPUTES_EN } from '@/screens/support/disputes/copy'
+import { FAIRNESS_EN } from '@/screens/support/fairness/copy'
+import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
+import { OVERVIEW_EN } from '@/screens/metrics/copy'
+import { POLICY_EN } from '@/screens/admin/policy/copy'
+import { REPORTS_EN } from '@/screens/reports/copy'
+import { REQUESTS_EN } from '@/screens/operations/requests/copy'
+import { SAFETY_EN } from '@/screens/support/safety/copy'
+import { ZONES_EN } from '@/screens/management/zones/copy'
+/* Arabic, whole. One module per English dictionary; see `./ar/index.ts`. */
+import { AR } from './ar'
 
 /* ───────────────────────── workspaces (§2.2) ───────────────────────── */
 
@@ -124,6 +197,44 @@ const workspaces: Dictionary = {
   'workspace.management': 'Management',
   'workspace.operations': 'Operations',
   'workspace.financials': 'Financials',
+  /* DataTable and its header cell are shared components, not a screen, so their
+     strings live here rather than in any one screen's copy.ts. Both were
+     `defaultValue` literals inside the component - unreachable by an extractor
+     and unreachable by the copy tests. */
+  'table.scrollMore': 'Scroll for more',
+  'table.resizeColumn': 'Drag to resize, double-click to reset',
+  /* **The permission's NAME, as distinct from its capability sentence.**
+     `account.permission.<key>` holds what the permission lets you DO
+     ("Dispatch trips and act on live requests") - a sentence, which cannot be
+     quoted inside `the “…” permission` without reading as a paste. A refusal
+     needs a short noun phrase instead.
+
+     Before this, `RouteStates.tsx` and `DispatchScreen.tsx` interpolated the raw
+     KEY, so an operator read: *This page needs the “live_ops” permission.*
+     Arabic terms are specified alongside in
+     `design/21-voice-refusals-and-permission-names.md`, every one reusing an
+     existing ruling from `20-arabic-glossary.md`. */
+  'perm.view_analytics.name': 'Management access',
+  'perm.view_operations.name': 'Operations access',
+  'perm.view_finance.name': 'Financials access',
+  'perm.view_support.name': 'Support access',
+  'perm.view_admin.name': 'Admin access',
+  'perm.view_profiles.name': 'Profile access',
+  'perm.approve_drivers.name': 'Captain applications',
+  'perm.manage_subscriptions.name': 'Subscription control',
+  'perm.live_ops.name': 'Live dispatch',
+  'perm.manage_plans.name': 'Plans and pricing',
+  'perm.process_payouts.name': 'Captain payouts',
+  'perm.release_escrow.name': 'Escrow release',
+  'perm.apply_deductions.name': 'Captain deductions',
+  'perm.manage_tickets.name': 'Ticket handling',
+  'perm.contact_users.name': 'Contact users',
+  'perm.manage_team.name': 'Team administration',
+  'perm.manage_ops_policy.name': 'Operational policy',
+  'perm.manage_workspace.name': 'Workspace settings',
+  'perm.manage_data_governance.name': 'Data governance',
+  'perm.manage_security_policy.name': 'Security policy',
+  'perm.manage_settings.name': 'Legacy settings',
   'workspace.support': 'Customer Support',
   'workspace.admin': 'Admin',
 
@@ -186,8 +297,11 @@ const subTabs: Dictionary = {
   'subtab.operations.subscriptions.sub': 'Active plans, renewals and cancellations',
   'subtab.operations.corporate': 'Corporate Accounts',
   'subtab.operations.corporate.sub': 'Company accounts, employees and usage policy',
-  'subtab.operations.trips': 'Trips',
-  'subtab.operations.trips.sub': 'Every trip taken, and the ones that went wrong',
+  'subtab.operations.quickRides': 'Quick rides',
+  'subtab.operations.quickRides.sub': 'One-off journeys, and the ones that went wrong',
+  'subtab.operations.subscriptionTrips': 'Subscription trips',
+  'subtab.operations.subscriptionTrips.sub':
+    'Journeys taken against a standing plan, and the ones that went wrong',
   'subtab.operations.assurance': 'Trip Assurance',
   'subtab.operations.assurance.sub': 'Departures at risk of having no captain',
   'subtab.operations.people': 'People',
@@ -345,6 +459,23 @@ const shell: Dictionary = {
   'shell.nav.pinSubTabs': 'Keep sub-tabs open',
   'shell.nav.subTabsFor': 'Sub-tabs for {workspace}',
   'shell.nav.workspaces': 'Workspaces',
+
+  /* ── The phone shell's off-canvas navigation, 2026-09-02 ──────────────
+     Three keys, added with the phone shell under the owner's viewport
+     ruling. Below `--ev-bp-phone` the rail and the sub-tab column are not on
+     screen, so a control has to bring them back and a screen reader has to be
+     able to name what it opened.
+
+     **PROVISIONAL COPY, and flagged as such.** Copy is the content-designer's
+     and these three strings have not been through them. They are here rather
+     than absent because the alternative to provisional copy on an icon-only
+     button is an unnamed button, which is a WCAG 4.1.2 failure rather than a
+     wording opinion. `Navigation` is the noun the two `<nav>` landmarks
+     already carry to a screen reader, so the control and the thing it opens
+     agree; if the content-designer prefers `Menu`, all three move together. */
+  'shell.nav.openMenu': 'Open navigation',
+  'shell.nav.closeMenu': 'Close navigation',
+  'shell.nav.menu': 'Navigation',
   /* §2.4 — a count badge above 99 reads `99+`, and never a `0` (AC-26). */
   'shell.nav.countOverflow': '99+',
   'shell.nav.backlog': '{count} items need attention',
@@ -529,7 +660,7 @@ const states: Dictionary = {
   /* 2 route-forbidden */
   'state.forbidden.title': "You don't have access to this page",
   'state.forbidden.body':
-    'This page needs the "{permission}" permission. An owner can grant it in Admin › Team & Access.',
+    'This page needs the “{permission}” permission. An Owner can grant it in Admin › Team & Access.',
   'state.forbidden.action': 'Go to overview',
 
   /* 3 page-error */
@@ -590,6 +721,28 @@ const states: Dictionary = {
   'state.userSwitched.toast': 'Now signed in as {name} · {role}',
   'state.userSwitched.failed': "Couldn't switch user",
   'state.navPinned.toast': 'Sub-tabs pinned open',
+
+  /* P1-8 — the render-crash boundaries, route level and panel level.
+     `ErrorBoundary.tsx` places them; §5.7 governs the words. No "Oops", no
+     "Sorry", no exclamation mark, no "please", and no "something went wrong" —
+     the body's job is to say what still works and what to press.
+
+     The page body names the sub-tab list because that IS the way out: the
+     boundary sits inside `<main>`, so the rail and the column beside it are
+     untouched, and `state.pageError.body` already points there for the same
+     reason. */
+  'state.crashPage.title': "Couldn't display {resource}",
+  'state.crashPage.titleGeneric': "Couldn't display this page",
+  'state.crashPage.body':
+    'The rest of the console is still working. Try again, or pick another sub-tab from the list.',
+  'state.crashPage.action': 'Try again',
+  'state.crashPage.escape': 'Go to overview',
+  'state.crashCard.message': "Couldn't display {resource}. The rest of the page still works.",
+  'state.crashCard.messageGeneric': "Couldn't display this panel. The rest of the page still works.",
+  /* Development only — never rendered in a production build. Keyed anyway,
+     because the rule is that a rendered string resolves through a key and
+     "only developers see it" is how the first `defaultValue` gets written. */
+  'state.crash.detail': 'Error detail',
 
   /* the shell's own boot error (§9.1) */
   'state.shellError.title': "Couldn't load your workspace",
@@ -697,6 +850,16 @@ const table: Dictionary = {
   'table.filter.summary.rangeFrom': '{from} and above',
   'table.filter.summary.rangeTo': '{to} and below',
 
+  /* P3-12 — the label says what comes out, because `Export` alone leaves the
+     operator to find out the format by opening the file. */
+  'table.export': 'Export CSV',
+
+  /* D16 `ui.density`. Two values and no third: `preferences.ts` records that a
+     third would be a design decision rather than a schema one. */
+  'table.density.title': 'Row density',
+  'table.density.comfortable': 'Comfortable',
+  'table.density.compact': 'Compact',
+
   'table.columns.title': 'Columns',
   'table.columns.toggleVisible': 'Show {column}',
   'table.columns.togglePin': 'Pin {column}',
@@ -716,6 +879,32 @@ const table: Dictionary = {
   'table.announce.unpinned': '{column} unpinned',
   'table.announce.columnHidden': '{column} hidden',
   'table.announce.columnShown': '{column} shown',
+  /* P3-12. Announced and never toasted: R9/R10 spend a toast on a mutation of
+     an object, and an export mutates nothing. */
+  'table.announce.exported': '{count} rows exported',
+}
+
+/* ─────────── the form vocabulary — `ui/field.tsx`, doc 14 G7 ─────────── */
+
+/**
+ * Four strings that belong to the field primitive rather than to any screen.
+ * They live here because `ui/field.tsx` is a presentational primitive with no
+ * access to a translator: the call site passes the localised node in.
+ *
+ * `field.optional` is §10.2's ONLY field marker. There is no required marker
+ * and there are no asterisks in this product — a required field says nothing
+ * and an optional one says so in words, which survives translation and is
+ * readable by a screen reader without a legend.
+ */
+const form: Dictionary = {
+  'field.optional': '(optional)',
+  'field.copy': 'Copy {label}',
+  'field.copied': '{label} copied',
+  /* §4.4 layer (2). The count is the whole point: a banner that says "fix the
+     errors" without saying how many is a banner the operator cannot plan
+     against. Two keys, not a plural built by concatenation (AC-75). */
+  'form.blocked.one': 'One field needs attention before you can save.',
+  'form.blocked.many': '{count} fields need attention before you can save.',
 }
 
 /* ────────────────────────────── assembly ────────────────────────────── */
@@ -727,6 +916,38 @@ const table: Dictionary = {
  * dictionary that disagrees with itself the first time a caller forgets a
  * merge. The keys are the same either way.
  */
+/*
+ * **Every screen dictionary is still spread here, and removing them is BLOCKED —
+ * not undone by accident. Read this before trying again.**
+ *
+ * The prize is real and measured: `EN` is needed synchronously by the shell, so
+ * everything it imports is hoisted into the ENTRY chunk — **249 KB of UI copy,
+ * about 69 KB gzip, in front of an operator before they open a single screen**,
+ * including every string of the nineteen screens they will not visit.
+ *
+ * The architecture to reach is built and proven: **25 screens now read their own
+ * `copy.ts` through `withFallback`**, so the copy is ready to travel in each
+ * screen's own lazy chunk. That work is landed and green.
+ *
+ * What blocks the last step is that **shell surfaces resolve screen keys**:
+ *
+ *   - **⌘K** renders every domain's command labels and refusal sentences through
+ *     the shell translator — `people.action.suspend` is read while the operator
+ *     is looking at Financials.
+ *   - The **report builder's** shareable `?q=` link resolves report copy before
+ *     its screen has mounted.
+ *   - `AC-14` reaches Dispatch copy from a shell assertion.
+ *
+ * Removing them was attempted and reverted: each removal surfaced another
+ * shell-level consumer, and iterating toward green would have meant discovering
+ * the list by breakage rather than by design.
+ *
+ * **The real fix is a key split, not a bundle change.** The command-facing keys
+ * belong in `commands/copy.ts`, where the palette's own vocabulary already
+ * lives, and the handful the shell resolves belong in a shared module. That is a
+ * rename across a known set of files — a day of work with a design behind it,
+ * and it should not be done by trial and error at the end of an unrelated pass.
+ */
 export const EN: Dictionary = {
   ...workspaces,
   ...subTabs,
@@ -735,35 +956,47 @@ export const EN: Dictionary = {
   ...shell,
   ...states,
   ...table,
+  ...form,
   ...SLA_MESSAGES_EN,
   ...COMMANDS_EN,
-  ...PEOPLE_EN,
-  ...OVERVIEW_EN,
-  ...QUEUE_SHARED_EN,
-  ...REQUESTS_EN,
+  ...ADMIN_ACTIVITY_EN,
+  ...ADMIN_DATA_EN,
+  ...ADMIN_TEAM_EN,
+  ...ADMIN_WORKSPACE_EN,
   ...ASSURANCE_EN,
-  ...MY_WORK_EN,
-  ...SAFETY_EN,
+  ...CONVERSATIONS_EN,
+  ...DISPUTES_EN,
   ...FAIRNESS_EN,
+  ...MY_WORK_EN,
+  ...OVERVIEW_EN,
+  ...POLICY_EN,
+  ...REPORTS_EN,
+  ...REQUESTS_EN,
+  ...SAFETY_EN,
+  ...ZONES_EN,
+  ...PEOPLE_EN,
+  ...TICKETS_EN,
+  ...TRIPS_EN,
+  ...SUBSCRIPTIONS_EN,
+  /* After `COMMANDS_EN`, like every screen module: a screen owns its own
+     strings, and the command registry reads them rather than redeclaring
+     them (CM-2). */
+  ...QUEUE_SHARED_EN,
   ...AUTH_EN,
   ...ONBOARDING_EN,
   ...PROFILE_EN,
   ...FINANCIALS_EN,
-  ...ZONES_EN,
-  ...REPORTS_EN,
-  ...ADMIN_DATA_EN,
-  ...ADMIN_TEAM_EN,
-  ...ADMIN_WORKSPACE_EN,
-  ...ADMIN_ACTIVITY_EN,
-  ...TICKETS_EN,
-  ...DISPUTES_EN,
-  ...POLICY_EN,
   ...COMMUNICATIONS_EN,
-  ...CONVERSATIONS_EN,
+  ...VOCABULARY_EN,
+  ...CONFIRM_EN,
+  ...PWA_EN,
 }
 
-/** See the file header. Empty on purpose; it is AC-74's fixture, not a gap in the build. */
-export const AR: Dictionary = {}
+/**
+ * Arabic. Assembled in `./ar/index.ts` from one module per English dictionary,
+ * and re-exported here because every consumer already reads `AR` from this file.
+ */
+export { AR }
 
 export const DICTIONARIES: Readonly<Record<Language, Dictionary>> = {
   en: EN,
