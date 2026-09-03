@@ -130,6 +130,12 @@ describe('the map fetches nothing it is not licensed to fetch', () => {
 
   it('draws the zones from our own geometry instead', () => {
     const { container } = renderMap()
+    /* **One polygon per district and nothing else.** The count used to carry a
+       `+ 1` blamed on the selection highlight; the selection has never been a
+       second shape — it is the same polygon at a heavier stroke and a harder
+       fill. The extra was the `Navigation` glyph inside the panel's `Steer
+       captains` button, which lucide draws as a `<polygon>`. The button lost
+       its icon to match the reference, and the phantom shape went with it. */
     expect(container.querySelectorAll('svg polygon')).toHaveLength(ROWS.length)
     expect(container.querySelector('svg[role="img"]')).toBeTruthy()
   })
@@ -161,17 +167,13 @@ describe('the four states', () => {
     expect(screen.queryByRole('heading')).toBeNull()
   })
 
-  it('empty, no match — the search sentence and a clear-search action, not the first-run one', async () => {
-    const user = userEvent.setup()
+  it('every zone is reachable without a search, because there is no longer one', () => {
     renderMap()
-    await user.type(screen.getByRole('textbox', { name: ZONES_EN['zones.map.search'] as string }), 'zzzz')
 
-    expect(screen.getByText(ZONES_EN['zones.map.noMatch'] as string)).toBeTruthy()
-    expect(screen.queryByText(ZONES_EN['zones.map.empty'] as string)).toBeNull()
-
-    /* The action clears the search rather than pretending there is nothing to
-       find — filtered-to-zero is not first-run. */
-    await user.click(screen.getByRole('button', { name: ZONES_EN['zones.map.noMatch.action'] as string }))
+    /* The panel lists them all, unfiltered — the reference has no field here
+       and neither do we. Each district is reachable twice: as a marker on the
+       canvas and as a row in the panel. */
+    expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.getAllByRole('button', { name: /Al Narjis/ })).toHaveLength(2)
   })
 
@@ -248,13 +250,14 @@ describe('a zone with no boundary', () => {
   it('is named rather than silently dropped from the picture', () => {
     renderMap({ zones: [...ROWS, zone({ id: 'ZONE-99', name: 'Al Aqiq' })] })
 
-    /* It has no polygon… */
+    /* It has no polygon — the count is exactly the drawable zones, and
+       `Al Aqiq` is not one of them. */
     expect(document.querySelectorAll('svg polygon')).toHaveLength(ROWS.length)
     /* …and the caption says which zone that is, in words. */
     const caption = document.querySelector('figcaption')
     expect(caption?.textContent).toContain('Al Aqiq')
     /* It is still reachable in the list, because the DATA is not missing. */
-    const list = screen.getByRole('list', { name: ZONES_EN['zones.map.list.heading'] as string })
+    const list = screen.getByRole('list', { name: 'All zones' })
     expect(within(list).getByRole('button', { name: /Al Aqiq/ })).toBeTruthy()
   })
 })

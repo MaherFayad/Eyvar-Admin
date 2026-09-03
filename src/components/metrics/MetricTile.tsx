@@ -133,19 +133,9 @@
  *               that disagrees with the page is signal.
  */
 
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BanknoteIcon,
-  GaugeIcon,
-  LayersIcon,
-  ShieldAlertIcon,
-  UsersIcon,
-  type LucideIcon,
-} from 'lucide-react'
+import type { ReactNode } from 'react'
+import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
   ABSENT,
@@ -155,31 +145,9 @@ import {
   type Language,
   type Translate,
 } from '@/lib'
-import type { Metric, MetricCategory, MetricComparison } from '@/data/types'
-import { formatMetricValue, formatSignedPercent, metricValence } from './formatMetric'
+import type { Metric, MetricComparison } from '@/data/types'
+import { formatMetricValue, formatSignedPercent, metricValence, splitMetricValue } from './formatMetric'
 
-/**
- * §4.9's leading glyph, chosen by the metric's **category** — the one field on
- * `Metric` that is about what kind of number it is.
- *
- * `lucide-react` is monochrome SVG drawing on `currentColor`, so the icon takes
- * `--ev-text-2` from its parent and cannot introduce a colour. The first cut of
- * this used literal Unicode marks (`◍`, `⚑`, `⌁`) and that was a defect: Inter
- * carries few of them, the browser fell through to `Segoe UI Emoji`, and the
- * tiles painted MULTICOLOUR glyphs — a colour entering the page from a font
- * fallback, which no token audit can see.
- *
- * Six categories, six icons, and the record type means a seventh category is a
- * compile error rather than a blank tile.
- */
-const CATEGORY_ICON: Record<MetricCategory, LucideIcon> = {
-  revenue: BanknoteIcon,
-  subscriptions: LayersIcon,
-  supply: UsersIcon,
-  demand: GaugeIcon,
-  service: GaugeIcon,
-  risk: ShieldAlertIcon,
-}
 
 export interface MetricTileProps {
   metric: Metric
@@ -187,205 +155,387 @@ export interface MetricTileProps {
   boardAsOf: string
   t: Translate
   language: Language
+  /**
+   * Which ground this figure is painted on. Defaults to `page`, so the ~forty
+   * call sites that predate the band keep the surface they already had and a
+   * caller on the band is the one that has to say so.
+   */
+  surface?: MetricSurface
 }
 
-export function MetricTile({ metric, boardAsOf, t, language }: MetricTileProps) {
+/**
+ * **The ground a figure is painted on**, and the only thing that changes
+ * between the two.
+ *
+ * `band` is `--ev-hero` — the deep-green field at the head of a board, which
+ * does not invert (see the token's own derivation). Every colour a figure uses
+ * there comes from the `hero` family, because none of the page's foreground
+ * tokens are legible on it: `--ev-text-2` measures 1.83 : 1 there.
+ *
+ * `page` is `--ev-bg`. It is the default, so a caller that has no opinion gets
+ * the page and a caller on the band has to say so.
+ */
+export type MetricSurface = 'band' | 'page'
+
+export function MetricTile({
+  metric,
+  boardAsOf,
+  t,
+  language,
+  surface = 'page',
+}: MetricTileProps) {
   const label = t(`metric.${metric.key}`)
-  const Icon = CATEGORY_ICON[metric.category]
   const isStale = new Date(metric.asOf).getTime() < new Date(boardAsOf).getTime()
-  /* §H4 — the ONE thing rank changes inside a tile. Everything else that makes
-     a lead read as a lead is the GRID's: three across instead of four, and
-     first. Anatomy is deliberately identical at both ranks — icon, value,
-     label, caption, delta — because a board an operator has to re-learn the
-     reading order of at each rank would spend the hierarchy it just bought. */
-  const isLead = metric.rank === 'lead'
+  const onBand = surface === 'band'
+  /* §H4 — the ONE thing rank changes on the PAGE. On the band every figure is
+     a lead by construction (only leads are painted there), so rank is spent
+     entirely by the surface and this reads `false` for all three of them. */
+  const isLead = !onBand && metric.rank === 'lead'
 
-  const tile = (
-    <Card
-      className={cn('h-full gap-1.5', metric.drilldownRoute && 'transition-colors group-hover/tile:bg-muted')}
-    >
-      <div className="flex flex-col gap-1.5 px-(--card-spacing)">
-        {/* Decoration. It repeats nothing the label does not already say, so
-            it is hidden rather than described (§7.5). 16px, `--ev-text-2`. */}
-        <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
-        {/* R4 — tabular figures, so a row of tiles scans down its digits.
-            **`<bdi>`, and it is not decoration.** `42,186.50 SAR` is two LTR
-            runs, and in an Arabic paragraph the UBA moves the trailing `SAR`
-            to the front — the tile rendered `SAR 42,186.50` before this. The
-            same happens to `+8.1%`, whose leading sign is bidi-neutral and
-            hops to the end. `money.ts` names the isolation as the COMPONENT's
-            job, deliberately, so that embedding U+2068/U+2069 in the string
-            does not poison copy-paste and assertions. This is that job.
+  const { delta, note } = comparisonParts({ metric, t, language, onBand })
+  /* The numeral and the unit beside it — see `splitMetricValue` for why a money
+     value is two runs here and one everywhere else. `unitNode` is `null` on
+     every non-money measure, so nothing but money gains a line. */
+  const shown = splitMetricValue(metric.value, metric.unit, metric.currency, language)
 
-            **The `<bdi>` is INSIDE the box now, and that fixes a defect no
-            source audit could see.** `<bdi>` derives its own `direction` from
-            its content, so a STRETCHED one — this is a child of a column
-            flex, so it is full width — aligned `42` to ITS start. Under
-            `dir="rtl"` the value flushed LEFT while its own label flushed
-            RIGHT, on every tile on all eight boards. The span keeps the
-            page's direction; the `<bdi>` isolates the run and nothing more. */}
-        {/* **The em dash a `null` value renders is `aria-hidden` (R5-1 §10,
-            state D).** It is a MARK standing in for a number, and on its own it
-            says nothing — which is V-2's whole finding. What a reader is given
-            instead is the reason, on the line below, in words. On a tile that
-            has a value this attribute is absent and the number is announced
-            normally. */}
-        <span
-          aria-hidden={metric.value === null || undefined}
-          /* **H4 — the KPI numeral, and it takes BOTH halves.** `text-kpi`
-             (22/28) is the size step; `data-slot="metric-value"` is what
-             carries the font measurement. `globals.css` states the split in
-             terms: *"`text-kpi` alone does NOT give you tabular figures; the
-             slot does"* — the `@utility text-kpi` that once carried
-             `font-variant-numeric` was removed because declaring `--text-kpi`
-             in the `--text-*` namespace already emits a `.text-kpi` rule, so
-             a second definition of the same class made the guarantee depend on
-             emission order. The property is pinned in `@layer base` on
-             `[data-slot="metric-value"]` instead, beside `table` and
-             `[data-numeric]`. **Neither half is optional and `tabular-nums` is
-             deliberately NOT written here** — a hand-written class beside the
-             slot would restate the guarantee at a call site that is free to
-             omit it, which is the mechanism H4 declines to rely on. */
-          data-slot="metric-value"
-          className={cn(
-            'font-semibold text-foreground',
-            isLead ? 'text-kpi-lead' : 'text-kpi',
-          )}
-        >
-          <bdi>{formatMetricValue(metric.value, metric.unit, language)}</bdi>
-        </span>
-        <span className="text-xs text-muted-foreground">{label}</span>
-        {/* R4-4 §4.2 — the caption's slot is the THIRD text line: glyph, value,
-            label, caption, delta chip. It states a scope limit, a denominator,
-            or the direction that counts as good where the label does not make
-            it obvious — and nothing else; ≤38 characters, **one line, truncates
-            and never wraps**, because a caption that wraps changes the tile's
-            height and D7 §4.9's grid is one object read across. Nineteen of
-            the fifty-six seeded tiles carry one and nothing drew them.
+  /* **The label, and its position is the whole difference between the two
+     surfaces.**
+     On the BAND it is an eyebrow: mono, uppercase, above the numeral, in
+     `--ev-hero-fg-3`. Three figures sit side by side there with nothing else
+     between them, and an eyebrow is what lets an operator find the one they
+     want before reading any digits.
 
-            **`value === null` suppresses it, and that is R5-1 §1.3's first
-            named consequence rather than a nicety.** A denominator with no
-            numerator is noise, and a tile must carry ONE explanation. The
-            explanation on such a tile is the absence reason on the line below,
-            which answers the more important question. AC-641 / AC-674 /
-            AC-675's *"cannot ship without a caption"* is an obligation on the
-            tile **in its content state**. */}
-        {metric.value !== null && metric.caption && (
-          /* **`<bdi>`, and it is not decoration** — same reason as the value
-             above. A caption is a *denominator*, so nearly every one of them
-             is a numeral run inside a sentence: `7 days, 3 blocks, 2 tiers.`,
-             `1 of 4 cities is live.`, `Ceiling is 3%.` Under `dir="rtl"` the
-             UBA moved the leading `7` to the far end and the tile read
-             `days, 3 blocks, 2 tiers 7` — caught by eye at 1280 in Arabic,
-             invisible to every source audit. Isolation fixes it in both
-             languages: `<bdi>` takes its direction from the first STRONG
-             character, so an Arabic caption still lays out RTL. */
-          <span className="truncate text-xs text-muted-foreground">
-            <bdi>{t(metric.caption)}</bdi>
-          </span>
-        )}
-        <ComparisonLine metric={metric} t={t} language={language} />
-        {isStale && (
-          <span className="text-xs text-muted-foreground">
-            {t('overview.asOf', {
-              time: formatDate(metric.asOf, { style: 'day-month-time', language }),
-            })}
-          </span>
-        )}
-      </div>
-    </Card>
+     On the PAGE it is beneath the numeral, in body type. The page carries
+     eight to twelve of these under chapter headings that have already said
+     what kind of number is coming, so the numeral leads and the name settles
+     it. This is R5-3's finding about the ledger restated for a figure: the
+     name and the number must be adjacent, and which of them comes first is
+     decided by what the reader is scanning FOR.
+
+     `tracking-wider` is a no-op in Arabic and that is deliberate rather than a
+     loss — `globals.css` zeroes the whole scale under `:root:lang(ar)` because
+     letter-spacing breaks cursive joins. `uppercase` is likewise a no-op
+     there, Arabic having no case. The eyebrow keeps its size, its weight and
+     its colour in both languages, which is what carries it.
+     **The face is the console's own and NOT the reference's.** The reference
+     sets every eyebrow, delta and axis tick in JetBrains Mono. The owner's
+     ruling is to keep the dashboard's font, so what carries these runs is size,
+     case, tracking and colour — the four things the reference was ALSO using —
+     in Inter. Nothing is lost that a monospaced face was the only way to buy:
+     the one thing it uniquely gives is column-aligned digits, and every numeral
+     run in the product already has that from `tabular-nums`, pinned in
+     `@layer base` on `[data-numeric]` and on the value slot. */
+  const labelNode = onBand ? (
+    <span className="text-2xs font-medium uppercase tracking-wider text-hero-label">{label}</span>
+  ) : (
+    <span className={cn('text-sm', isLead ? 'text-foreground' : 'text-muted-foreground')}>
+      {label}
+    </span>
   )
 
-  if (!metric.drilldownRoute) return tile
+  /* R4 — tabular figures, so a column of figures scans down its digits.
+     **`<bdi>`, and it is not decoration.** `42,186.50 SAR` is two LTR runs,
+     and in an Arabic paragraph the UBA moves the trailing `SAR` to the front —
+     the tile rendered `SAR 42,186.50` before this. `money.ts` names the
+     isolation as the COMPONENT's job, deliberately, so that embedding
+     U+2068/U+2069 in the string does not poison copy-paste and assertions.
+
+     **The `<bdi>` is wrapped rather than styled, and that is a defect fix no
+     source audit could see.** `<bdi>` derives its own `direction` from its
+     content, so a STRETCHED one — this is a child of a column flex, so it is
+     full width — aligned `42` to ITS start. Under `dir="rtl"` the value
+     flushed LEFT while its own label flushed RIGHT. The span keeps the page's
+     direction; the `<bdi>` isolates the run and nothing more.
+
+     **The em dash a `null` value renders is `aria-hidden`** (R5-1 §10, state
+     D). It is a MARK standing in for a number, and on its own it says nothing.
+     What a reader is given instead is the reason, in `note`, in words. */
+  const valueNode = (
+    <span
+      aria-hidden={metric.value === null || undefined}
+      /* **Two halves, and neither is optional** — the SIZE is here and the
+         `font-variant-numeric` is pinned in `@layer base` on
+         `[data-slot="metric-value"]`. The tabular utility is deliberately NOT
+         written beside it: a hand-written class would restate the guarantee at
+         a call site free to omit it, which is the mechanism §H4 declines to
+         rely on.
+
+         Three sizes, one per rung, and no surface carries two of them: the
+         band is 40 (`text-kpi-hero`), a page lead is 36, a supporting figure
+         is 28. */
+      data-slot="metric-value"
+      className={cn(
+        'font-semibold',
+        onBand ? 'text-kpi-hero text-hero-foreground' : 'text-foreground',
+        !onBand && (isLead ? 'text-kpi-lead' : 'text-kpi'),
+      )}
+    >
+      <bdi>{shown.value}</bdi>
+    </span>
+  )
+
+  const unitNode = shown.unit ? (
+    <span className={cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}>
+      {shown.unit}
+    </span>
+  ) : null
+
+  /* R4-4 §4.2 — the caption states a scope limit, a denominator, or the
+     direction that counts as good where the label does not make it obvious,
+     and nothing else. ≤38 characters, **one line, truncates and never wraps**,
+     because a figure that wraps changes its own height and the row it sits in
+     is one object read across.
+
+     **It does not render while the value is absent** (R5-1 §1.3): a
+     denominator with no numerator is noise, and a figure carries ONE
+     explanation. The explanation on such a figure is the absence reason, which
+     `note` is already carrying.
+
+     `<bdi>` for the reason given above: nearly every caption is a numeral run
+     inside a sentence — `7 days, 3 blocks, 2 tiers.`, `1 of 4 cities is live.`
+     — and under `dir="rtl"` the UBA moved the leading digit to the far end. */
+  const captionNode =
+    metric.value !== null && metric.caption ? (
+      <span
+        className={cn(
+          'truncate text-2xs',
+          onBand ? 'text-hero-muted' : 'text-muted-foreground',
+        )}
+      >
+        <bdi>{t(metric.caption)}</bdi>
+      </span>
+    ) : null
+
+  const staleNode = isStale ? (
+    <span
+      className={cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
+    >
+      {t('overview.asOf', {
+        time: formatDate(metric.asOf, { style: 'day-month-time', language }),
+      })}
+    </span>
+  ) : null
+
+  /* **The card is gone, and its removal is the change rather than a saving.**
+     Twelve bordered boxes in a grid drew twelve rectangles and no ranking: the
+     border said "these are all the same kind of thing" at exactly the moment
+     the board needed to say which of them to read first. What separates one
+     figure from the next now is SPACE and the chapter heading above it, which
+     is what lets the numeral carry the hierarchy the type ramp gives it. */
+  /* The numeral and its delta **on one baseline**. They are one statement —
+     "8,075.70, up 57%" — and stacking them made the reader carry the first
+     across a line break to reach the second. `items-baseline` so the 12px
+     delta sits on the 40px numeral's baseline rather than floating at its
+     optical centre; wrapping is allowed so a six-figure money value and a
+     delta do not overflow a 3-up column in Arabic. */
+  const quantity = (
+    <span
+      className={cn(
+        'flex flex-wrap items-baseline gap-x-2.5 gap-y-1',
+        /* On a phone the quantity is the row's TRAILING column and flushes to
+           the inline end — which under `dir="rtl"` is the left, without a
+           second rule.
+
+           **It is allowed to shrink, and that is the fix for a real defect
+           rather than a preference.** Held rigid, `1,281.86 SAR` plus its
+           delta claimed 290 of a 358px row and left `Revenue per active
+           captain` a 68px column, which set one word per line and ran the
+           figure eleven lines deep. The container wraps instead: when the two
+           columns will not share a line the quantity takes its own, still
+           flushed to the end, and the figure degrades to the stack it was
+           rather than to a ransom note. Short values — which is most of
+           them — keep the row. */
+        !onBand && 'compact:order-2 compact:justify-end compact:text-end',
+      )}
+    >
+      {valueNode}
+      {delta}
+    </span>
+  )
+
+  /* **The words, grouped, because on a phone they are a column.**
+   *
+     At 390px the reference stops laying a figure out as a stack and lays it
+     out as a ROW: the name on one side, the number on the other, sharing a
+     baseline. That is the right call and it is the same finding R5-3 made
+     about the ledger — a name and a number 300px apart with nothing between
+     them is a pairing the reader has to reconstruct, and on a phone the stack
+     was spending a whole 44px line on each of nine figures.
+   *
+     `order` rather than two DOM orders: the source stays value-first, which is
+     the desktop reading and the one a screen reader gets in both. Flex `order`
+     moves the boxes and touches nothing else. */
+  const words = (
+    <span
+      className={cn(
+        'flex min-w-0 flex-col gap-1.5',
+        !onBand && 'compact:order-1 compact:flex-1 compact:basis-40',
+      )}
+    >
+      {!onBand && labelNode}
+      {unitNode}
+      {captionNode}
+      {note}
+      {staleNode}
+    </span>
+  )
+
+  const figure = (
+    <div
+      className={cn(
+        'flex h-full flex-col gap-1.5',
+        onBand && 'gap-2.5',
+        !onBand &&
+          'compact:flex-row compact:flex-wrap compact:items-baseline compact:justify-between compact:gap-x-4 compact:gap-y-2',
+      )}
+    >
+      {onBand && labelNode}
+      {quantity}
+      {!onBand && words}
+      {/* On the band the words have no group of their own: a lead figure's
+          eyebrow is already above the numeral, so what is left below it is the
+          caption and the note, in source order, at full width. */}
+      {onBand && unitNode}
+      {onBand && captionNode}
+      {onBand && note}
+      {onBand && staleNode}
+    </div>
+  )
+
+  if (!metric.drilldownRoute) return figure
 
   return (
-    /* §7.2 — the ring sits on the anchor and matches the card's own radius, so
-       it traces the tile rather than a rectangle inside it. */
+    /* **The affordance had to change with the card.** A borderless figure has
+       no background to tint on hover, so what moves is the LABEL — it takes
+       the foreground colour and an underline, which is the same signal a link
+       in prose gives. The focus ring traces the figure's own box.
+
+       `h-full` IS LOAD-BEARING, not tidiness: the figure below carries
+       `h-full`, which resolves against THIS anchor, and an anchor that sizes
+       to its content makes that percentage resolve to the content height — so
+       a linked figure stops filling its grid cell and the row goes ragged. */
     <Link
       to={metric.drilldownRoute}
-      /* `h-full` IS LOAD-BEARING, not tidiness. `Card` below carries `h-full`,
-         which resolves against THIS anchor — and an anchor that sizes to its
-         content makes that percentage resolve to the content height, so a
-         linked tile stops filling its grid cell. Measured: a captioned tile
-         142px beside an uncaptioned 120px, ragged on all eight boards at both
-         widths in both languages. Risk's one UNLINKED tile measured
-         `gapBelow = 0`, which is what proved the grid was right and the anchor
-         was wrong. */
-      className="group/tile block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={cn(
+        'group/tile block h-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4',
+        onBand
+          ? 'focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
+          : 'focus-visible:ring-offset-background',
+      )}
     >
-      {tile}
+      {figure}
     </Link>
   )
 }
 
 /**
- * §3.7's delta line, and the three shapes a `MetricComparison` has.
+ * §3.7's comparison, **split into the two places it is now drawn**, and the
+ * three shapes a `MetricComparison` has.
  *
- * The union is why this cannot be got wrong: there is no way to render a
- * comparison without having said which kind it is, and "no comparison period
- * yet" cannot silently become `0%`.
+ * ## Why this returns two nodes instead of rendering one line
+ *
+ * It used to be `ComparisonLine`, a single row beneath the label carrying
+ * `↑ +8.1%  better  vs 1–25 May` all together. That was right while a figure
+ * was a bordered tile read top to bottom; it is wrong now that the numeral is
+ * the thing an operator scans across a row of three. The delta belongs ON THE
+ * NUMERAL'S BASELINE — `8,075.70` and `+57%` are one statement, and a line
+ * break between them made the reader carry the first down to reach the second
+ * — while the phrase saying what the change is measured AGAINST is context and
+ * belongs with the caption, below the name.
+ *
+ * So the union is destructured once, here, and the caller places the two
+ * halves. **The union is still why this cannot be got wrong**: there is no way
+ * to produce a delta without having said which kind of comparison it came
+ * from, and *"no comparison period yet"* cannot silently become `0%`.
+ *
+ * Every branch returns BOTH keys. A branch that has no note returns `null` for
+ * it rather than omitting it, so a caller cannot render a hole by forgetting a
+ * case the type checker never made it think about.
  */
-function ComparisonLine({
+function comparisonParts({
   metric,
   t,
   language,
+  onBand,
 }: {
   metric: Metric
   t: Translate
   language: Language
-}) {
+  onBand: boolean
+}): { delta: ReactNode; note: ReactNode } {
   const { comparison, deltaPercent } = metric
-  /* One bag, both places the trailing phrase is drawn. */
-  const againstBox = isolatedRunProps({ className: 'text-xs text-muted-foreground' })
+  /* One bag, every place the trailing phrase is drawn. `isolatedRunProps`
+     rather than a `<bdi>` carrying the classes itself: the helper's `run` bag
+     types `className` as `never`, so the box is the only place a class can
+     land and §5.4's stretched-`<bdi>` defect cannot be reintroduced by a later
+     edit. */
+  const againstBox = isolatedRunProps({
+    className: cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground'),
+  })
+
+  /* §3.7's em dash, wherever a delta cannot be stated. A MARK, so it is hidden
+     from a reader in every branch and every branch puts words in its place. */
+  const dash = (
+    <span
+      aria-hidden="true"
+      className={cn('text-sm', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
+    >
+      {ABSENT}
+    </span>
+  )
+
+  const reasonLine = (text: string) => (
+    <span className={cn('text-xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}>
+      {text}
+    </span>
+  )
+
+  const againstLine = (
+    <span {...againstBox.box}>
+      <bdi {...againstBox.run}>{againstLabel(comparison, metric, t, language)}</bdi>
+    </span>
+  )
 
   /**
    * **No value at all — R5-1 §1.3, and the reason it lives HERE.**
    *
    * When the value is absent the delta is *entailed* to be absent: you cannot
-   * compute a change from nothing. So the tile has exactly one line on which to
-   * say one thing, and before this it said the less important of the two —
-   * `— No comparison period yet` under a value that was itself an em dash, with
-   * the sentence explaining the LOWER dash and nothing explaining the upper
-   * one. That is V-2, and it is ambiguity by construction rather than by taste:
-   * there is no reading of that tile, including the correct one, in which the
-   * value's absence is explained.
+   * compute a change from nothing. So the figure has exactly one thing to say
+   * and before this it said the less important of the two — `— No comparison
+   * period yet` under a value that was itself an em dash, with the sentence
+   * explaining the LOWER dash and nothing explaining the upper one. That is
+   * V-2, and it is ambiguity by construction rather than by taste: there is no
+   * reading of that tile, including the correct one, in which the value's
+   * absence is explained.
    *
    * `comparison.reason` is not deleted by this and is not shown here. It is
    * still the right thing to say when a value exists and a comparison does not.
    *
-   * `absenceReason` is non-null if and only if `value === null`, so a tile that
-   * breaks the biconditional is a FIXTURE defect and says so by name rather
-   * than resolving to a translation key that never existed — which would send
-   * whoever reads the stack trace to the dictionary, which is the wrong file.
+   * `absenceReason` is non-null if and only if `value === null`, so a metric
+   * that breaks the biconditional is a FIXTURE defect and says so by name
+   * rather than resolving to a translation key that never existed — which
+   * would send whoever reads the stack trace to the dictionary, the wrong file.
    */
   if (metric.value === null) {
     invariant(
       metric.absenceReason !== null,
       `Metric ${metric.key} has no value and no absenceReason (R5-1 §1.3)`,
     )
-    return (
-      <span className="flex flex-wrap items-baseline gap-1.5">
-        <span aria-hidden="true" className="text-sm text-muted-foreground">
-          {ABSENT}
-        </span>
-        {/* Visible text, so V-8 is satisfied without a companion: a reader
-            hears the reason rather than silence where a number would be. */}
-        <span className="text-xs text-muted-foreground">
-          {t(`overview.absent.${metric.absenceReason}`)}
-        </span>
-      </span>
-    )
+    return {
+      /* Nothing beside the numeral: the numeral is ALREADY an em dash in this
+         state, and a second one on the same baseline would read as a range. */
+      delta: null,
+      /* Visible text, so V-8 is satisfied without a companion: a reader hears
+         the reason rather than silence where a number would be. */
+      note: reasonLine(t(`overview.absent.${metric.absenceReason}`)),
+    }
   }
 
   /**
-   * **A target that exists, and no percentage to state against it.** This
-   * branch is new and it fixes a real defect: the test below used to be
-   * `comparison.kind === 'none' || deltaPercent === null`, which printed
-   * *"No comparison period yet"* underneath a number somebody had set an
-   * explicit goal for.
+   * **A target that exists, and no percentage to state against it.**
    *
    * `clients/metrics.ts` documents the one break in the biconditional that
-   * caused it: a value that is not zero against a target of **zero** has no
+   * causes it: a value that is not zero against a target of **zero** has no
    * percentage — there is no percentage change from nothing — so `deltaPercent`
    * is `null` while the comparison survives, on purpose, *"so the tile can
    * still render `vs 0 target`"*.
@@ -393,40 +543,28 @@ function ComparisonLine({
    * The casualty was `admin.overview.operatorsWithoutTwoFactor`: target `0`,
    * set by `USR-1`, **the only owned target on any board**, three of five
    * operators without two-factor including the one who moves money. The tile
-   * said the console had no history when what it had was a goal it was
-   * missing.
+   * said the console had no history when what it had was a goal it was missing.
    *
    * **AC-605 is unaffected and that is the point.** It governs a tile *"whose
    * comparison is `none`"* — em dash plus one of exactly three reason strings —
-   * and this tile's comparison is `target`. It was inside AC-605 by accident;
-   * it is outside it by design.
+   * and this tile's comparison is `target`.
    */
   if (comparison.kind === 'target' && deltaPercent === null) {
-    return (
-      <span className="flex flex-wrap items-baseline gap-1.5">
-        {/* §3.7's em dash. The magnitude of the miss is not statable; the
-            target is, and the value is on the line above it. */}
-        <span aria-hidden="true" className="text-sm text-muted-foreground">
-          {ABSENT}
+    return {
+      delta: (
+        <span className="flex items-baseline gap-1.5">
+          {/* The magnitude of the miss is not statable; the target is, and it
+              is on the note line below. */}
+          {dash}
+          {/* **V-8, and it is the only branch that needed it.** `— vs 0 target`
+              hides its em dash from a reader and puts nothing in its place, so
+              the tile announced the target and said nothing at all about the
+              delta — an absence drawn and not announced. */}
+          <span className="sr-only">{t('overview.compare.targetNoDelta.sr')}</span>
         </span>
-        {/* **V-8, and it is the only branch that needed it.** `— vs 0 target`
-            hides its em dash from a reader and puts nothing in its place, so
-            the tile announced the target and said nothing at all about the
-            delta — an absence drawn and not announced. The `none` branch above
-            and the absent-value branch above that both carry their reason as
-            visible text and are already announced; this one is the hole.
-            R5-2 names it as an obligation on AC-605 rather than leaving it a
-            gap. */}
-        <span className="sr-only">{t('overview.compare.targetNoDelta.sr')}</span>
-        {/* `isolatedRunProps` rather than a `<bdi>` carrying the classes
-            itself: the helper's `run` bag types `className` as `never`, so the
-            box is the only place a class can land and §5.4's stretched-`<bdi>`
-            defect cannot be reintroduced here by a later edit. */}
-        <span {...againstBox.box}>
-          <bdi {...againstBox.run}>{againstLabel(comparison, metric, t, language)}</bdi>
-        </span>
-      </span>
-    )
+      ),
+      note: againstLine,
+    }
   }
 
   /* §3.7 — an em dash, never `0%` and never blank, plus the reason in words.
@@ -434,16 +572,12 @@ function ComparisonLine({
      next month, one is a setting nobody has filled in, and one will not resolve
      until the volume is there. `types/metrics.ts` names all three. */
   if (comparison.kind === 'none' || deltaPercent === null) {
-    return (
-      <span className="flex flex-wrap items-baseline gap-1.5">
-        <span aria-hidden="true" className="text-sm text-muted-foreground">
-          {ABSENT}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {t(`overview.noCompare.${comparison.kind === 'none' ? comparison.reason : 'no-history'}`)}
-        </span>
-      </span>
-    )
+    return {
+      delta: dash,
+      note: reasonLine(
+        t(`overview.noCompare.${comparison.kind === 'none' ? comparison.reason : 'no-history'}`),
+      ),
+    }
   }
 
   const Caret = deltaPercent > 0 ? ArrowUpIcon : deltaPercent < 0 ? ArrowDownIcon : null
@@ -461,65 +595,88 @@ function ComparisonLine({
               : 'overview.delta.downBetter',
         )
 
-  /* **R4-5 AMENDED — `higherIsBetter` now reaches the SIGHTED operator too.**
-     One derivation feeds both carriers, so the word a reader sees and the
-     clause a screen reader hears can never disagree. `null` at zero: nothing
-     moved, so nothing is better or worse. */
+  /* **`higherIsBetter` reaches the SIGHTED operator, and after the chip came
+     off it is the ONLY thing that does.** One derivation feeds the hue a reader
+     sees and the clause a screen reader hears, so the two can never disagree —
+     which matters more now than it did, because the hue is no longer backed by
+     a word. `null` at zero: nothing moved, so nothing is better or worse, and
+     the run then takes the muted colour rather than a verdict. */
   const valence = metricValence(deltaPercent, metric.higherIsBetter)
 
-  return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      {/* The chip is STILL `tone="neutral"`. D7 §4.9 forbids toning it and that
-          is honoured — R7's five tones are untouched and R5a's "no red badge"
-          holds, because the valence is not in the badge. What carries it is the
-          caret's colour plus the word beside the chip. */}
-      <Badge tone="neutral">
-        {/* §3.7's direction caret. A MARK: up and down encode magnitude, not
-            reading direction, so it does not mirror (§9.5). Drawn as an icon
-            rather than as `▲`, which Inter does not carry — a Unicode
-            geometric shape falls through to whatever font does have it, and on
-            Windows that font paints in colour.
+  /* **The valence colour, and the two grounds it has to survive.** On the page
+     it is R7's tone foregrounds, unchanged. On the band NEITHER of them is
+     legible — `--ev-red` measures 1.79 : 1 on `--ev-hero` — so the band has its
+     own pair, derived against that one ground and nothing else. See
+     `--ev-hero-up` for why this does not void R4-5 or R5a: the caret and the
+     word travel together, so the hue is redundancy and never the carrier. */
+  const valenceClass =
+    valence === null
+      ? onBand
+        ? 'text-hero-muted'
+        : 'text-muted-foreground'
+      : onBand
+        ? valence === 'better'
+          ? 'text-hero-up'
+          : 'text-hero-down'
+        : valence === 'better'
+          ? 'text-success-foreground'
+          : 'text-critical-foreground'
 
-            **The caret is the only thing in the chip that takes a colour**, and
-            it is redundancy rather than signal — the word below says the same
-            thing, so §7.5 is met by construction. `--ev-green` and `--ev-red`
-            on the neutral chip's ground clear AA; neither is a new value. */}
-        {Caret && (
-          <Caret
-            aria-hidden="true"
-            className={cn(
-              'size-3',
-              valence === 'better' && 'text-success-foreground',
-              valence === 'worse' && 'text-critical-foreground',
-            )}
-          />
-        )}
-        {/* Isolated for the same reason as the value — see the `<bdi>` above.
-            `+8.1%` renders `8.1%+` without it under `dir="rtl"`. */}
-        <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
-        <span className="sr-only">{direction}</span>
-      </Badge>
-      {/* THE CARRIER. One word, outside the chip so the chip stays a quantity
-          and this stays a judgement — two different kinds of thing, which is
-          the distinction §4.9 was protecting. `aria-hidden` because the clause
-          inside the chip already said it and a screen reader would otherwise
-          hear "up, which is worse … worse". */}
-      {valence !== null && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'text-xs font-medium',
-            valence === 'better' ? 'text-success-foreground' : 'text-critical-foreground',
-          )}
-        >
-          {t(`overview.valence.${valence}`)}
-        </span>
-      )}
-      <span {...againstBox.box}>
-        <bdi {...againstBox.run}>{againstLabel(comparison, metric, t, language)}</bdi>
-      </span>
-    </span>
+  const caret = Caret && (
+    /* §3.7's direction caret. A MARK: up and down encode magnitude, not
+       reading direction, so it does not mirror (§9.5). Drawn as an icon rather
+       than as a Unicode geometric shape, which Inter does not carry — the
+       browser falls through to whatever font does, and on Windows that font
+       paints in colour. */
+    <Caret aria-hidden="true" className="size-3" />
   )
+
+  /* Isolated for the same reason as the value — see the `<bdi>` there.
+     `+8.1%` renders `8.1%+` without it under `dir="rtl"`, its leading sign
+     being bidi-neutral. */
+  const percent = <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
+
+  return {
+    /* **The chip and the valence word are both gone, and this is the owner's
+       ruling rather than a drift.**
+
+       What stood here was `Badge tone="neutral"` carrying the caret and the
+       percent, with the word `better` or `worse` beside it — D7 §4.9's plate,
+       and R4-5's answer to how a tile states valence without toning a badge.
+       The owner's direction is the reference frame, which draws a delta as a
+       small coloured run on the numeral's own baseline and nothing else, and
+       the reason it reads better is visible in the two side by side: three
+       figures in a row carried three plates and three adjectives, so a chapter
+       of five was five rectangles and five judgements competing with the five
+       numbers they were about.
+
+       **§7.5 is met, and it is worth saying exactly how**, because colour is
+       now doing more work than it was:
+
+         - DIRECTION is carried by the caret, which is a shape and not a hue.
+         - The SIGN is in the text: `+57%` and `−15.4%` read as a rise and a
+           fall with the stylesheet switched off.
+         - VALENCE — whether a rise is good news — is carried by hue for a
+           sighted reader and by `overview.delta.*`'s full clause, which is
+           still rendered `sr-only` on every delta, for everyone else. That
+           clause is the same string the chip used to carry and it has not
+           moved.
+
+       So the one carrier that lost a redundant partner is valence, and it is
+       the one the reference is most emphatic about. R4-5's substance — that a
+       BADGE must not be toned — is not contradicted: there is no badge.
+
+       `text-xs` and `font-medium`, so the run is small beside a 28px numeral
+       and still heavier than the caption under it. */
+    delta: (
+      <span className={cn('flex items-center gap-1 text-xs font-medium tabular-nums', valenceClass)}>
+        {caret}
+        {percent}
+        <span className="sr-only">{direction}</span>
+      </span>
+    ),
+    note: againstLine,
+  }
 }
 
 /**

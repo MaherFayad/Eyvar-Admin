@@ -13,10 +13,27 @@
  * seam be swapped for a real endpoint without one of them changing.
  */
 
+export {
+  BoardBand,
+  BoardHero,
+  BoardHeroItem,
+  BoardHeroRow,
+  type BoardHeroProps,
+} from './BoardHero'
 export { BreakdownList, type BreakdownListProps } from './BreakdownList'
+export {
+  Chapter,
+  ChapterFigures,
+  chaptersOf,
+  chapterSummary,
+  PLAIN_FRAME,
+  PLAIN_FRAME_SLOT,
+  SectionHeading,
+  type ChapterProps,
+} from './Chapter'
 export { ChartCard, type ChartCardProps } from './ChartCard'
-export { MetricTile, type MetricTileProps } from './MetricTile'
-export { MetricLeadRow, MetricTileItem, MetricTileRow } from './MetricTileRow'
+export { MetricTile, type MetricSurface, type MetricTileProps } from './MetricTile'
+export { MetricTileItem } from './MetricTileRow'
 export { TrendChart, type TrendChartProps } from './TrendChart'
 export {
   formatDecimal,

@@ -74,11 +74,16 @@ import type {
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatDate, type Direction, type Language, type Translate } from '@/lib'
 import {
+  BoardBand,
+  BoardHeroItem,
+  BoardHeroRow,
+  Chapter,
+  ChapterFigures,
+  chaptersOf,
+  chapterSummary,
   ChartCard,
-  MetricLeadRow,
   MetricTile,
   MetricTileItem,
-  MetricTileRow,
 } from '@/components/metrics'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -401,7 +406,7 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
  * in the fixture, and then this card carries one line instead of three.
  */
 function EconomicsView({ row, tabs, activeTab, onSelectTab, t, dir, language }: ViewProps) {
-  const board = useAsync<MetricBoard>((signal) => getMetricBoard(row.subTabId, signal), {
+  const board = useAsync<MetricBoard>((signal) => getMetricBoard(row.subTabId, undefined, signal), {
     /* `subTabId` picks the board and is the fetcher's only input — the same key
        `MetricBoardScreen` uses for the same call, deliberately, so the two
        surfaces share one read of the same board rather than two. */
@@ -487,7 +492,9 @@ function BoardBody({
   const supporting = board.metrics.filter((metric) => metric.rank !== 'lead')
 
   return (
-    <div className="flex flex-col gap-4">
+    /* 48px, matching `MetricBoardScreen`. With no card edges, space is the only
+       thing that says one chapter has ended and another has begun. */
+    <div className="flex flex-col gap-12">
       {/* **§H4 — the same partition `MetricBoardScreen` renders**, and it has
           to be here too rather than only there. Fairness is the one metrics
           board with its own screen (it carries the appeal queue beneath the
@@ -500,27 +507,60 @@ function BoardBody({
           because it is how often the console decided wrongly against a
           captain, which is the board's reason to exist. */}
       {leads.length > 0 && (
-        <MetricLeadRow>
-          {leads.map((metric) => (
-            <MetricTileItem key={metric.key}>
-              <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
-            </MetricTileItem>
-          ))}
-        </MetricLeadRow>
+        /* **`BoardBand` and not `BoardHero`.** The band's ground and its three
+            figures, without the `<h1>` and the lede — this screen's identity is
+            already set by `QueuePage`'s header and the segmented view row above,
+            and a second page title on one page is the redundancy the band was
+            supposed to remove. */
+        <BoardBand shape="inset">
+          <BoardHeroRow>
+            {leads.map((metric) => (
+              <BoardHeroItem key={metric.key}>
+                <MetricTile
+                  metric={metric}
+                  boardAsOf={board.asOf}
+                  surface="band"
+                  t={t}
+                  language={language}
+                />
+              </BoardHeroItem>
+            ))}
+          </BoardHeroRow>
+        </BoardBand>
       )}
-      {supporting.length > 0 && (
-        <MetricTileRow count={supporting.length}>
-          {supporting.map((metric) => (
-            <MetricTileItem key={metric.key}>
-              <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
-            </MetricTileItem>
-          ))}
-        </MetricTileRow>
-      )}
+      {/* The supporting figures in chapters, exactly as `MetricBoardScreen`
+          renders them. Fairness's seven metrics fall into three categories, so
+          this is the difference between seven equal cells and three named
+          groups on the one board where the grouping matters most: an operator
+          reading it is deciding whether the console has been fair to a captain,
+          and "which of these is about money" is the first question they ask. */}
+      {chaptersOf(supporting).map((chapter) => (
+        <Chapter
+          key={chapter.category}
+          category={chapter.category}
+          summary={chapterSummary(chapter.metrics, t, language)}
+          t={t}
+        >
+          <ChapterFigures>
+            {chapter.metrics.map((metric) => (
+              <MetricTileItem key={metric.key}>
+                <MetricTile metric={metric} boardAsOf={board.asOf} t={t} language={language} />
+              </MetricTileItem>
+            ))}
+          </ChapterFigures>
+        </Chapter>
+      ))}
       {board.charts.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-2 gap-x-11 gap-y-12 border-t border-border pt-12 compact:grid-cols-1">
           {board.charts.map((chart) => (
-            <ChartCard key={chart.key} series={chart} reportHref={null} t={t} language={language} />
+            <ChartCard
+              key={chart.key}
+              series={chart}
+              frame="plain"
+              reportHref={null}
+              t={t}
+              language={language}
+            />
           ))}
         </div>
       )}

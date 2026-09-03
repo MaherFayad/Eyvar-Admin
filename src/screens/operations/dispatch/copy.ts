@@ -52,6 +52,39 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.interventions.unavailable': 'Interventions are read-only until the live alert feed is connected. Acknowledging or reassigning here would save nothing.',
   'dispatch.liveConnected': 'Live telemetry connected',
   'dispatch.liveTelemetry': 'Dispatch velocity',
+  'dispatch.map.a11y.desc': 'A map of Riyadh carrying {trips} trips in flight, {pending} requests waiting for a captain, and {captains} captains online.',
+  'dispatch.map.heading': 'Dispatch map',
+  'dispatch.map.pin.request': 'Request {id}, waiting at {pickup}, going to {destination}',
+  'dispatch.map.pin.trip': 'Trip {id}, picked up at {pickup}, going to {destination}',
+  'dispatch.map.unknownPlace': 'an unrecorded place',
+  'dispatch.map.unplaced': '{count} rows are outside this map',
+  'dispatch.map.zoom.in': 'Zoom in',
+  'dispatch.map.zoom.out': 'Zoom out',
+  'dispatch.layers.captains': 'Captains',
+  'dispatch.layers.pending': 'Pending',
+  'dispatch.layers.title': 'Map layers',
+  'dispatch.layers.trips': 'Trips',
+  'dispatch.legend.captainOnline': 'Captain online',
+  'dispatch.legend.requestWaiting': 'Request waiting',
+  'dispatch.legend.title': 'What the marks mean',
+  'dispatch.legend.tripDestination': 'Trip destination',
+  'dispatch.legend.tripPickup': 'Trip pickup',
+  /* The captain marks are placed from a registered district, not from
+     telemetry. Saying so under the legend is the difference between a board an
+     operator can trust and one they find out about later. See `geo.ts`. */
+  'dispatch.legend.note': 'Captain marks show the district a captain is registered in, not a live position.',
+  'dispatch.feed.collapse': 'Collapse',
+  'dispatch.feed.expand': 'Expand',
+  'dispatch.feed.scope.fleet': '{count} captains on shift',
+  'dispatch.feed.scope.pending': '{count} waiting for a captain',
+  'dispatch.feed.scope.trips': '{count} on the road',
+  'dispatch.fleet.subs': '{active}/{max} subscriptions',
+  'dispatch.interventions.open': 'Open',
+  'dispatch.interventions.strip': '{count} interventions',
+  'dispatch.meta': '{count} in transit · live telemetry connected',
+  'dispatch.reading.autoMatch': 'Auto-match',
+  'dispatch.reading.matchTime': 'Match time',
+  'dispatch.reading.utilisation': 'Utilisation',
   'dispatch.manual.desc': 'Assign a captain to request {id} for {rider}, picking up at {pickup}.',
   'dispatch.manual.assignError': "Couldn't assign the captain. Nothing was changed.",
   'dispatch.manual.empty': 'No captain is on shift. Assignment reopens when one comes online.',
@@ -60,7 +93,23 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.manual.title': 'Assign a captain',
   'dispatch.noInterventions': 'Every live trip is within its SLA.',
   'dispatch.reassignCaptain': 'Reassign',
+  /* The feed's tabs and the map's layers name the same three things and are
+     NOT the same key: a tab is a place to stand and a layer is a thing to
+     draw, and the reference labels the fleet tab `Fleet` while the layer that
+     paints its dots is `Captains`. One key for both would have forced one of
+     the two to read wrong. */
+  'dispatch.tab.fleet': 'Fleet',
+  'dispatch.tab.pending': 'Pending',
+  'dispatch.tab.trips': 'Trips',
   'dispatch.toast.dispatched': 'Request {id} assigned to captain {name}',
+  /* The three active statuses, restated here rather than reached for in
+     `trips/copy.ts`. Two unregistered screen dictionaries importing each
+     other is a coupling neither one declares, and the words are a translation
+     unit either way — the day Dispatch wants `En route to pickup` where the
+     trips table wants `En route`, one shared key would have to serve both. */
+  'dispatch.trip.status.assigned': 'Assigned',
+  'dispatch.trip.status.en-route': 'En route',
+  'dispatch.trip.status.in-trip': 'In trip',
   'dispatch.unassigned': 'Unassigned',
   'sub.selectDriverPlaceholder': 'Choose an active captain',
   'trip.pickup': 'Pickup',

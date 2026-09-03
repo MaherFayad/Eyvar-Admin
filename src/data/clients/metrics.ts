@@ -30,13 +30,14 @@ import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import type { MetricSeed } from '../fixtures/metrics'
 import type { DailySnapshotWindow } from '../fixtures/dailySnapshots'
 import type { DailySnapshot } from '../types/metrics'
-import type { Facets, Paginated, QueryParams } from '../types/common'
+import type { Facets, IsoDate, Paginated, QueryParams } from '../types/common'
 import type {
   Metric,
   MetricBoard,
   MetricBreakdown,
   MetricCategory,
   MetricRank,
+  SeriesWindow,
   TimeSeries,
 } from '../types/metrics'
 import { workBacklogByQueue } from './myWork'
@@ -665,8 +666,28 @@ const metricShape: QueryShape<Metric> = {
  * which screen to open next, and the queue with the breach is that screen.
  */
 function backlogByQueueRows(declared: MetricBreakdown): MetricBreakdown {
+  /**
+   * **Ordered by OPEN ITEMS, which is what the panel's own title says.**
+   *
+   * It sorted breached-first, and the heading above it read
+   * `All 5 queues, by open items` — two claims about one list, and the reader
+   * has only the heading. It also cost the list its bar: R5-12 forbids a bar
+   * whose rows are not ordered by the measure it draws, so a list sorted by
+   * breaches could not draw `open`, and the fractions ran 1, 0.857, 0.571,
+   * 0.714, 0.714 — falling, rising, then flat, which reads as a rendering fault
+   * rather than as a ranking with an exception.
+   *
+   * Sorting by the measure settles both at once: the heading is now true, and
+   * the bar descends, so R5-12's condition is met rather than worked around.
+   *
+   * **The routing intent survives in the sub-label.** The argument for
+   * breached-first was that an overview says which screen to open next. Every
+   * row still names its breaches — `3 past their SLA` — and the board carries
+   * `breachedWorkItems` as a lead figure above. What is lost is breaches
+   * deciding the ORDER of a list that says it is ordered by something else.
+   */
   const queues = [...workBacklogByQueue()].sort(
-    (a, b) => b.breached - a.breached || b.open - a.open,
+    (a, b) => b.open - a.open || b.breached - a.breached,
   )
   const rows = queues.map((q) => ({
     id: q.queue,
@@ -706,6 +727,14 @@ function backlogByQueueRows(declared: MetricBreakdown): MetricBreakdown {
     ...declared,
     rowsTotal: queues.length,
     /**
+     * **`true` now, because the ordering that forbade it is gone.**
+     *
+     * The note below is kept in full because it is the reasoning that made the
+     * ordering defect visible, and because it names the condition this line
+     * still depends on: the bar is legal only where the rows are ordered by the
+     * measure the bar draws. They are, as of the sort above.
+     *
+     * ── the original note ──────────────────────────────────────────────────
      * **`false`, and R5-12 is why: a bar is legal only where the rows are
      * ordered by the measure the bar draws.**
      *
@@ -733,8 +762,8 @@ function backlogByQueueRows(declared: MetricBreakdown): MetricBreakdown {
      * is documented `null` whenever the breakdown's `bar` is false, *so a row
      * cannot draw a bar the list forbids*.
      */
-    bar: false,
-    rows: withShareOfMax(rows).map((row) => ({ ...row, barFraction: null })),
+    bar: true,
+    rows: withShareOfMax(rows),
   }
 }
 
@@ -895,10 +924,21 @@ const WORK_QUEUE_ROUTES: Record<string, string> = {
  */
 export async function getMetricBoard(
   subTabId: string,
+  /**
+   * **The window the board is asked for, or nothing to take the board's own.**
+   *
+   * `undefined` is not "the default window spelled out" — it is *do not filter*,
+   * and it is what every caller sent before the band's pill became a picker. It
+   * has to stay distinguishable, because a board asked for no window returns the
+   * seeded fixtures byte for byte, which is what keeps the 230-odd assertions in
+   * `metrics.test.ts` describing the fixtures rather than describing this
+   * function's arithmetic.
+   */
+  period?: { from: IsoDate; to: IsoDate },
   signal?: AbortSignal,
 ): Promise<MetricBoard> {
   if (DATA_SOURCE === 'http') {
-    return http.get<MetricBoard>(`/metrics/boards/${subTabId}`, undefined, { signal })
+    return http.get<MetricBoard>(`/metrics/boards/${subTabId}`, { ...period }, { signal })
   }
   return mock(METRIC_OPERATIONS.board, signal, () => {
     /* **Leads first, in the order `BOARD_LEADS` declares them.**
@@ -934,7 +974,7 @@ export async function getMetricBoard(
           ? citiesHealthRows(b)
           : b,
     )
-    return {
+    const board: MetricBoard = {
       subTabId,
       asOf: EYVAR_NOW,
       metrics,
@@ -942,7 +982,56 @@ export async function getMetricBoard(
       breakdowns,
       notices: boardNotices[subTabId] ?? [],
     }
+    return period ? windowed(board, period) : board
   })
+}
+
+/**
+ * **The board, restated for a window the operator asked for.**
+ *
+ * ## What this re-derives, and what it cannot
+ *
+ * It slices every series to the window and moves every metric's declared period
+ * onto it. Those are honest: the points are real daily snapshots with real
+ * dates, so taking the ones inside a range is reading rather than inventing.
+ *
+ * It does NOT recompute a metric's `value`. A seeded scalar — `11 %` for
+ * contribution margin — is a number somebody wrote down, not a number this
+ * layer derived from rows it holds, and scaling it by the ratio of two window
+ * lengths would manufacture a figure that has never been measured. **The
+ * backend owns that recomputation** and `docs/07-api` says so; what the mock
+ * gives the screen is the right SHAPE — a board that answers to a range — with
+ * every part it can honestly move, moved.
+ *
+ * The consequence is visible and deliberate: pick `Day` and the charts really do
+ * redraw to one point while the tiles hold their seeded figures. That is a
+ * fixture limit stated on screen rather than a lie told quietly, and it goes
+ * away the moment `DATA_SOURCE === 'http'`.
+ */
+function windowed(board: MetricBoard, period: { from: IsoDate; to: IsoDate }): MetricBoard {
+  const slice = (window: SeriesWindow): SeriesWindow => ({
+    ...window,
+    periodStart: period.from,
+    periodEnd: period.to,
+    points: window.points.filter((point) => point.at >= period.from && point.at <= period.to),
+  })
+
+  return {
+    ...board,
+    metrics: board.metrics.map((metric) =>
+      /* A point-in-time metric keeps its `null`s. "Active captains right now"
+         has no period, and giving it the operator's window would claim the
+         count was taken over one. */
+      metric.periodStart === null || metric.periodEnd === null
+        ? metric
+        : { ...metric, periodStart: period.from, periodEnd: period.to },
+    ),
+    charts: board.charts.map((chart) => ({
+      ...chart,
+      current: slice(chart.current),
+      comparison: chart.comparison ? slice(chart.comparison) : chart.comparison,
+    })),
+  }
 }
 
 /**

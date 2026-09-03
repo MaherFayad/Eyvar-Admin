@@ -2,16 +2,21 @@
   <!--
     The "any" icon: a rounded brand tile, the form a desktop launcher and the
     Windows/Chrome shelf render unmasked. Geometry is lifted verbatim from
-    `src/shell/ModuleRail.tsx`'s `EyvarMark` (24x24) and scaled by 20, so the
+    `src/shell/ModuleRail.tsx`'s `EyvarMark` (24x24) and scaled by 512/24, so the
     installed icon and the in-app mark are the same drawing rather than two
     logos that will diverge the first time one is edited.
+
+    The scale is the whole 24-box onto the whole tile, with no translate: the
+    mark is already centred in its box and already carries the breathing room
+    the brand drawing has. A transform that cropped in would be re-deciding the
+    logo's padding here, in the one file nobody looks at.
 
     Colours are read from `src/styles/globals.css`:
       --ev-brand   #0c6944   (also --primary)
       --ev-surface #ffffff   (the mark's stroke, `stroke-card` in the component)
   -->
   <rect width="512" height="512" rx="112" fill="#0c6944"/>
-  <g transform="translate(16,11) scale(20)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"/>
+  <g transform="scale(21.3333)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.4 5V9.6a4.6 4.6 0 0 0 9.2 0V5M7.9 16.6a4.7 4.7 0 0 0 8.2 0"/>
   </g>
 </svg>

@@ -94,6 +94,7 @@
  * nav, and the reference draws no horizontal rule in its sidebar either.
  */
 
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -120,6 +121,78 @@ export interface PageNavProps {
  * The column. Full height, its own scroll context, a sibling of the rail and of
  * the content region — not a nested menu, and never collapsed.
  */
+/**
+ * **Which sub-tabs belong together, for the workspaces long enough to need
+ * saying.**
+ *
+ * Operations is ten rows. Ten rows in one column is a list an operator reads
+ * top to bottom every time, because nothing in it says that `Quick rides` and
+ * `Subscription trips` are two halves of one question while `My work` is not
+ * about trips at all. The three groups are the product's own shape:
+ *
+ *   **subscriptions** — the plans, the trips they buy, and the corporate
+ *                       accounts that are subscriptions bought in bulk
+ *   **rides**         — a request, the ride it becomes, the captain sent to it,
+ *                       and the assurance that covers it when it fails
+ *   **the desk**      — what this operator owes, and the people behind supply
+ *
+ * **Rules, not titles.** The owner's direction is separators only, and it is
+ * the right call for a nav: a group heading in a 232px column costs a row of
+ * height each and turns a list of destinations into a document with sections.
+ * A hairline says *these belong together* without claiming to name the thing
+ * they have in common — which is what a heading would have to do, in two
+ * languages, for a grouping that is editorial rather than structural.
+ *
+ * **Nothing is dropped.** A row this table does not name still renders, in
+ * route-table order, in a final group of its own — so a sub-tab added tomorrow
+ * appears in the nav that day rather than the day somebody remembers to add it
+ * here. `Overview` is not in the table because it is separated already, above
+ * every group, by the rule §3.1 puts under it.
+ */
+const NAV_GROUPS: Readonly<Record<string, readonly (readonly string[])[]>> = {
+  operations: [
+    ['operations-subscriptions', 'operations-subscription-trips', 'operations-corporate'],
+    ['operations-requests', 'operations-quick-rides', 'operations-dispatch', 'operations-assurance'],
+    ['operations-my-work', 'operations-people'],
+  ],
+}
+
+/**
+ * The rows, in groups, in the order the table declares — and every row exactly
+ * once whether or not the table names it.
+ *
+ * Permission filtering happens before this (`visibleSubTabs`), so a group can
+ * come back empty and an empty group renders nothing rather than a rule with
+ * no rows under it.
+ */
+function groupRows(
+  workspaceId: string | undefined,
+  rows: readonly SubTabRoute[],
+): SubTabRoute[][] {
+  const spec = workspaceId ? NAV_GROUPS[workspaceId] : undefined
+  if (!spec) return rows.length > 0 ? [[...rows]] : []
+
+  const byId = new Map(rows.map((row) => [row.subTabId, row]))
+  const groups: SubTabRoute[][] = []
+  const placed = new Set<string>()
+
+  for (const ids of spec) {
+    const group: SubTabRoute[] = []
+    for (const id of ids) {
+      const row = byId.get(id)
+      if (row) {
+        group.push(row)
+        placed.add(id)
+      }
+    }
+    if (group.length > 0) groups.push(group)
+  }
+
+  const rest = rows.filter((row) => !placed.has(row.subTabId))
+  if (rest.length > 0) groups.push(rest)
+  return groups
+}
+
 export function PageNav({
   workspace,
   rows,
@@ -135,6 +208,15 @@ export function PageNav({
      first row (spec §3.4), and the rule is carried by the route table's own
      ordering, not by a hard-coded id. */
   const [first, ...rest] = rows
+
+  /* The remaining rows, in groups — see `NAV_GROUPS`. The roving index is
+     assigned over the FLATTENED order, because that is the order ↑ and ↓ move
+     through and the order the rows are painted in; a separator is not a stop. */
+  const groups = groupRows(workspace?.id, rest)
+  /* Flattened once, so the roving index is the index a reader's eye and the
+     arrow keys both use. Taking it from `rest` instead would hand ↓ the ROUTE
+     order, and on Operations the two now differ. */
+  const ordered = groups.flat()
 
   return (
     /* A `<nav>` with its OWN accessible name. Two navigation landmarks in one
@@ -189,16 +271,25 @@ export function PageNav({
               below (V1 — measured Shopify 8, and back on the 4px grid).
               Rendered only when there is something to separate. */}
           {first && rest.length > 0 && <Separator className="my-2" />}
-          {rest.map((row, index) => (
-            <NavRow
-              key={row.subTabId}
-              row={row}
-              active={row.subTabId === activeSubTabId}
-              badge={subTabBadge(navCounts, row.subTabId)}
-              badgeLoading={navCountsLoading}
-              t={t}
-              {...roving.itemProps(index + 1)}
-            />
+          {groups.map((group, groupIndex) => (
+            <Fragment key={group[0]?.subTabId ?? groupIndex}>
+              {/* The same hairline and the same 8px either side as the rule
+                  under `Overview`, so the column has one kind of divider rather
+                  than two. Between groups only — never above the first, which
+                  already has Overview's. */}
+              {groupIndex > 0 && <Separator className="my-2" />}
+              {group.map((row) => (
+                <NavRow
+                  key={row.subTabId}
+                  row={row}
+                  active={row.subTabId === activeSubTabId}
+                  badge={subTabBadge(navCounts, row.subTabId)}
+                  badgeLoading={navCountsLoading}
+                  t={t}
+                  {...roving.itemProps(ordered.indexOf(row) + 1)}
+                />
+              ))}
+            </Fragment>
           ))}
         </div>
       </ScrollArea>

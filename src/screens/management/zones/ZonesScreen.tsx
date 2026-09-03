@@ -110,23 +110,25 @@ import {
   queueRecruitment,
 } from '@/data/clients'
 import {
-  RECRUITMENT_PRIORITY_TONE,
   type SubTabRoute,
   type Paginated,
   type Zone,
   type ZoneHealthSummary,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { ABSENT, formatCount, formatMoney, formatPercent, formatRatio } from '@/lib'
-import { DataTable, type DataColumn } from '@/components/DataTable'
+import {
+  ABSENT,
+  formatCount,
+  formatMoney,
+  formatPercent,
+  formatRatio,
+  type Translate,
+} from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { BoardBand } from '@/components/metrics'
 import { ZonesMapView } from './ZonesMapView'
 import { useShell } from '@/shell/ShellContext'
 import {
@@ -161,7 +163,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
     () => withFallback(shell.language.t, ZONES_EN),
     [shell.language.t],
   )
-  const { dir, language } = shell.language
+  const { language } = shell.language
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -251,6 +253,26 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
 
   const rows = useMemo(() => actions.apply(zones.data?.items ?? []), [actions, zones.data])
 
+  /* **The zone the worst ratio belongs to**, for that reading's note.
+     Derived from the same rows the summary is derived from, so the name and
+     the number cannot come from two different reads. `null` when nothing has a
+     ratio at all — a zone with no captains has no ratio, and R4-12 forbids
+     manufacturing one. */
+  /* The one condition the page block exists for. Named, because it is read
+     twice: once to decide whether to render the block's contents and once, by
+     `SingleColumnPage`, to decide whether there is a block at all. */
+  const hasPageState =
+    health.status === 'loading' || health.status === 'error' || zones.status === 'error'
+
+  const worstZone = useMemo(() => {
+    let worst: (typeof rows)[number] | null = null
+    for (const zone of rows) {
+      if (zone.demandSupplyRatio === null) continue
+      if (worst === null || zone.demandSupplyRatio > (worst.demandSupplyRatio ?? 0)) worst = zone
+    }
+    return worst?.name ?? null
+  }, [rows])
+
   const steer = useCallback(
     (zone: Zone) => {
       setRequest({
@@ -310,175 +332,6 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
     [actions, t, zones],
   )
 
-  const columns = useMemo<DataColumn<Zone>[]>(
-    () => [
-      {
-        id: 'zone',
-        emphasis: 'primary',
-        csv: (zone) => zone.name,
-        header: t('zones.col.zone'),
-        dataType: 'text',
-        minWidth: 190,
-        sortField: 'name',
-        alwaysVisible: true,
-        cell: (zone) => (
-          <span className="relative block font-medium">
-            {/* R5a use #3 — a starved zone carries the leading edge, and the
-                priority label beside it carries the words. */}
-            {zone.starved && <RowCriticalMarker />}
-            {zone.name}
-          </span>
-        ),
-        secondaryLine: (zone) => {
-          const failure = actions.failure(zone.id)
-          if (failure) {
-            return (
-              <ErrorState
-                scope="row"
-                message={failure.message}
-                action={{ label: t('zones.error.retry'), onClick: failure.retry }}
-              />
-            )
-          }
-          return zone.city
-        },
-      },
-      {
-        id: 'demandSupply',
-        emphasis: 'data',
-        header: t('zones.col.demandSupply'),
-        dataType: 'number',
-        align: 'end',
-        width: 152,
-        sortField: 'demandSupplyRatio',
-        /* **R4-12** — the operands are in the label, the value is the bare
-           ratio, and a zone with no captains renders an em dash rather than
-           `Infinity×`. */
-        cell: (zone) => (
-          <span
-            className="block text-end tabular-nums"
-            aria-label={zone.demandSupplyRatio === null ? ABSENT : undefined}
-          >
-            {zone.demandSupplyRatio === null
-              ? ABSENT
-              : formatRatio(zone.demandSupplyRatio, language)}
-          </span>
-        ),
-        secondaryLine: (zone) => (
-          <span className="block text-end tabular-nums">
-            {t('zones.demandSupply.detail', {
-              demand: formatCount(zone.demand, language),
-              supply: formatCount(zone.supply, language),
-            })}
-          </span>
-        ),
-      },
-      {
-        id: 'failureRate',
-        header: t('zones.col.failureRate'),
-        dataType: 'number',
-        align: 'end',
-        width: 140,
-        sortField: 'failureRate',
-        /* The table's default order is this column, worst first (`:14132`). */
-        cell: (zone) => (
-          <span className="block text-end tabular-nums">
-            {formatPercent(zone.failureRate, language)}
-          </span>
-        ),
-        secondaryLine: (zone) => (
-          <span className="block text-end">
-            {t('zones.unserved.detail', {
-              count: formatCount(zone.failures30d, language),
-            })}
-          </span>
-        ),
-      },
-      {
-        id: 'subMomentum',
-        header: t('zones.col.subMomentum'),
-        dataType: 'number',
-        align: 'end',
-        width: 152,
-        sortField: 'subMomentum',
-        /* **`null` when no subscription request maps to this zone at all.** A
-           `0` would claim we measured flat growth; the em dash says there is
-           nothing to measure, which is the second-most valuable reading on this
-           page and must not read as flat. */
-        cell: (zone) => (
-          <span
-            className="block text-end tabular-nums"
-            aria-label={zone.subMomentum === null ? ABSENT : undefined}
-          >
-            {zone.subMomentum === null ? ABSENT : formatPercent(zone.subMomentum, language)}
-          </span>
-        ),
-      },
-      {
-        id: 'priority',
-        header: t('zones.col.priority'),
-        dataType: 'enum',
-        width: 150,
-        cell: (zone) => (
-          <StatusBadge tone={RECRUITMENT_PRIORITY_TONE[zone.recruitmentPriority]}>
-            {t(`zones.priority.${zone.recruitmentPriority}`)}
-          </StatusBadge>
-        ),
-        filter: {
-          kind: 'select',
-          field: 'recruitmentPriority',
-          options: (['recruit-now', 'watch', 'healthy'] as const).map((value) => ({
-            value,
-            label: t(`zones.priority.${value}`),
-          })),
-        },
-      },
-      {
-        id: 'actions',
-        header: t('zones.col.actions'),
-        dataType: 'enum',
-        width: 250,
-        /* **R4-6 §6.4 clause 2** — two actions, both direct, both labelled,
-           both visible at rest, plus `View`. Each is disabled in place with its
-           own reason when it cannot be used (§11.2). */
-        cell: (zone) => (
-          <span className="flex items-center gap-1">
-            <Button
-              variant="secondary"
-              size="xs"
-              disabled={!canWrite || zone.activeSteerOffer !== null}
-              title={
-                zone.activeSteerOffer !== null
-                  ? t('zones.steer.blocked.live')
-                  : canWrite
-                    ? undefined
-                    : t('zones.blocked.permission')
-              }
-              onClick={() => steer(zone)}
-            >
-              {t('zones.action.steer')}
-            </Button>
-            <Button
-              variant="secondary"
-              size="xs"
-              disabled={!canWrite || zone.recruitmentQueuedAt !== null}
-              title={
-                zone.recruitmentQueuedAt !== null
-                  ? t('zones.recruit.blocked.queued')
-                  : canWrite
-                    ? undefined
-                    : t('zones.blocked.permission')
-              }
-              onClick={() => recruit(zone)}
-            >
-              {t('zones.action.recruit')}
-            </Button>
-          </span>
-        ),
-      },
-    ],
-    [t, language, canWrite, actions, steer, recruit],
-  )
 
   return (
     <SingleColumnPage
@@ -490,45 +343,60 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
          42px of page scroll. Declared `flow`, the body sizes to its content and
          the content region scrolls it. See `SingleColumnPageProps.body`. */
       body="flow"
-      header={
-        <PageHeader
-          title={t(row.titleKey)}
-          meta={
-            health.data
-              ? t('zones.meta', {
-                  zones: formatCount(health.data.zonesTracked, language),
-                  starved: formatCount(health.data.starvedZones, language),
-                  cities: formatCount(liveCities, language),
-                  allCities: formatCount(allCities, language),
-                })
-              : null
-          }
-          t={t}
-          dir={dir}
-        />
-      }
-    >
-      <div className="flex flex-col gap-4">
-        {health.status === 'loading' && <LoadingSkeleton pattern="P5" />}
-        {health.status === 'error' && (
-          <ErrorState
-            scope="card"
-            message={t('zones.error.read')}
-            action={{ label: t('zones.error.retry'), onClick: health.refetch }}
+      /* **The band, in its `bar` density, and NO `PageHeader`.** Every metrics
+         board opens on the same green field; this one is the same field one
+         step down, because the screen's subject is a map and a tall band would
+         spend the viewport the map needs. §8's slots 1 and 2 — the title and
+         the summary line — are satisfied on it, in order, with the same
+         strings the header carried. There is still exactly one `h1`. */
+      bleed={
+        <>
+        <BoardBand density="bar">
+          {/* **The band carries §8's slots 1 and 2 and no control.** The
+              measure switch stood at its inline-end for a version, which is
+              where the reference draws it; it now sits in the panel directly
+              above the list it orders. The shading toggle beside it is gone
+              outright — see `SHADE_FLOOR`. What is left is what a band is for:
+              the name of the board and one line of scope. */}
+          {/* **The summary is a SUBTITLE, not a tail.** It sat on the title's
+              own baseline, which made `Market & Zones 6 zones · 2 starved` read
+              as one run — and it is the slot every other board fills with its
+              lede, one line under the name in the same quiet tone. Same words,
+              same colour; what changed is that it is now a line of its own. */}
+          <div className="flex min-w-0 flex-col gap-3">
+            <h1 className="text-band font-medium text-hero-foreground">{t(row.titleKey)}</h1>
+            {health.data && (
+              <span className="max-w-prose text-sm text-hero-muted">
+                <bdi>
+                  {t('zones.meta', {
+                    zones: formatCount(health.data.zonesTracked, language),
+                    starved: formatCount(health.data.starvedZones, language),
+                    cities: formatCount(liveCities, language),
+                    allCities: formatCount(allCities, language),
+                  })}
+                </bdi>
+              </span>
+            )}
+          </div>
+        </BoardBand>
+
+        {/* **The strip and the map ride with the band, above the measure.**
+            All three are one object in the reference — a bar, the readings
+            under it, and the map they are about — and putting the strip inside
+            the page block while the bar bled would have drawn a 32px step down
+            the console's inline-start edge between two halves of one header.
+            The TABLE stays in the block below, where a table belongs. */}
+        {health.data && (
+          <ZoneStrip
+            summary={health.data}
+            worstZone={worstZone}
+            view={view}
+            onView={setView}
+            t={t}
+            language={language}
           />
         )}
 
-        {health.data && (
-          <ZoneStrip summary={health.data} view={view} onView={setView} t={t} language={language} />
-        )}
-
-        {/* **The map and the table read the SAME request**, so a failure is one
-            failure and gets one statement: `DataTable` below. What the map does
-            now own is its own **loading** shape — a map-shaped skeleton rather
-            than a basemap drawn identically in every state, which is what made
-            the old surface stateless. `ZonesMapView` implements all four
-            (`status`, `error`, `onRetry` are its contract); this screen wires
-            the two that are not already answered one region down. */}
         {(zones.status === 'loading' || zones.status === 'content') && (
           <ZonesMapView
             zones={rows}
@@ -543,42 +411,62 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
           />
         )}
 
-        <DataTable
-          table={table}
-          rows={rows}
-          columns={columns}
-          getRowId={(zone) => zone.id}
-          status={zones.status}
-          total={zones.data?.total ?? 0}
+        {/* Declared in the bleed because it renders through a portal — where it
+            sits in this tree decides nothing about where it paints, and in the
+            children slot it would be a page block's worth of padding that only
+            exists to hold a dialog that is usually closed. */}
+        <ConfirmMoneyDialog
+          request={request}
+          onClose={() => setRequest(null)}
+          busy={actions.busy}
           t={t}
-          language={language}
-          tableId="management-zones"
-          view={view}
-          searchPlaceholder={t('zones.search')}
-          /* **R5a** — `demand ÷ supply >= 3` is starved, stated once on the row
-             (`types/zone.ts`) and read by the badge, the tile, the marker and
-             now this tint. */
-          isRowCritical={(zone) => zone.starved}
-          skeletonPattern="P1"
-          firstRun={{
-            heading: t('zones.empty.heading'),
-            body: t('zones.empty.body'),
-            actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
-          }}
-          noMatch={{
-            message: t('zones.noMatch'),
-            action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
-          }}
-          error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
         />
-      </div>
+        </>
+      }
+    >
+      {/* **The table is gone, and the screen is the map now.**
+          The owner asked for it removed and the reference has no table on this
+          board: a zone is a SHAPE on a city, and a row in a grid is the one
+          representation that cannot say where it is. What the table carried is
+          carried elsewhere on the page — the panel lists every zone with its
+          ratio and its bar, searchable and selectable, and the inspector holds
+          the two actions each row had.
 
-      <ConfirmMoneyDialog
-        request={request}
-        onClose={() => setRequest(null)}
-        busy={actions.busy}
-        t={t}
-      />
+          **What is genuinely lost, stated rather than buried:** column sorting,
+          the column picker, the filter menu and CSV export. Those are index-
+          table affordances and there is no index table. If an operator needs to
+          export zones or sort by failure rate, that is a case for bringing the
+          table back as a second view on this board rather than for keeping it
+          under a map nobody scrolled past.
+
+          The page block still exists and still carries the load and error
+          states, because those are the SCREEN's states and must not be painted
+          over a map that may not have rendered. */}
+      {/* **`null` in the ordinary content state, and that is load-bearing.**
+          The screen IS the bleed — a band, a strip and a map that fills what is
+          left — so on a healthy read there is no second half of the page, and
+          `SingleColumnPage` skips the padded block entirely rather than drawing
+          64px of ground under the map. The states below are the only thing that
+          ever goes there. */}
+      {hasPageState ? (
+        <div className="flex flex-col gap-4">
+          {health.status === 'loading' && <LoadingSkeleton pattern="P5" />}
+          {health.status === 'error' && (
+            <ErrorState
+              scope="card"
+              message={t('zones.error.read')}
+              action={{ label: t('zones.error.retry'), onClick: health.refetch }}
+            />
+          )}
+          {zones.status === 'error' && (
+            <ErrorState
+              scope="card"
+              message={t('zones.error.read')}
+              action={{ label: t('zones.error.retry'), onClick: zones.refetch }}
+            />
+          )}
+        </div>
+      ) : null}
     </SingleColumnPage>
   )
 }
@@ -593,79 +481,187 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
  * the starved ones. The other three state a total that no filter expresses, and
  * a tile that looks like a control and narrows nothing is worse than a figure.
  */
+/**
+ * **Which end of the strip a cell is at, declared by the caller.**
+ *
+ * A `first:` variant cannot answer this: each cell is the only child of its own
+ * `<li>`, so `first-child` matches every one of them. The strip is the only
+ * thing that knows which is first, and at 1344 the grid goes from three across
+ * to five, so it is not even the same set of cells at both widths — the end
+ * cell of a three-up row is the third, not the fifth.
+ *
+ * The point of it is alignment: the strip carries the page's inline padding so
+ * its outer edge is on the measure, and without this the cells' own padding
+ * would push the first numeral 20px further in than the band's title directly
+ * above it. Both properties are logical, so both mirror under `dir="rtl"`.
+ */
+type Edge = 'start' | 'end' | 'both' | 'mid'
+
+const EDGE_PAD: Record<Edge, string> = {
+  start: 'ps-0',
+  end: 'pe-0',
+  both: 'ps-0 pe-0',
+  mid: '',
+}
+
 function ZoneStrip({
   summary,
+  worstZone,
   view,
   onView,
   t,
   language,
 }: {
   summary: ZoneHealthSummary
+  /** The zone the worst ratio belongs to, for that reading's note. */
+  worstZone: string | null
   view: string
   onView: (view: string) => void
-  t: ReturnType<typeof useShell>['language']['t']
+  t: Translate
   language: ReturnType<typeof useShell>['language']['language']
 }) {
   return (
-    <ul role="list" className="grid list-none grid-cols-3 gap-3 wide:grid-cols-5">
-      <li className="min-w-0">
+    /* **One divided strip, not five cards.** Five bordered boxes in a row drew
+       five rectangles and said nothing about the five numbers in them; the
+       reference runs them as one band under the header with a hairline between,
+       which reads as ONE strip of related readings rather than as five
+       unrelated tiles.
+
+       The rule is a logical inline-start border on every cell, cancelled on the
+       first. **Not the divide helper**, whose horizontal form paints a PHYSICAL
+       edge — in Arabic those rules land on the wrong side of every cell. The
+       logical property mirrors with the document and needs no second class.
+
+       The helper is described rather than named here on purpose: Tailwind v4
+       scans this comment as plain text, and a prose sentence that spells a
+       utility mints it into `dist`. It did, the first time this note was
+       written, and `scratch/prose-class-leak.mjs` is what caught it.
+
+       **Padded and capped exactly as the band above it**, so the first
+       reading's eyebrow sits on the same vertical line as `Market & Zones`. */
+    <ul
+      data-numeric
+      role="list"
+      className="mx-auto grid w-full max-w-measure list-none grid-cols-3 border-b border-border bg-card px-page-pad wide:grid-cols-5 wide:px-page-pad-wide"
+    >
+      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <TileToggle
+          edge="start"
           label={t('zones.tile.captainsNeeded')}
           value={formatCount(summary.captainsNeeded, language)}
+          note={t('zones.tile.captainsNeeded.note')}
           pressed={view === 'needs-captains'}
           onToggle={() => onView(view === 'needs-captains' ? 'all' : 'needs-captains')}
         />
       </li>
-      <li className="min-w-0">
+      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <TileToggle
           label={t('zones.tile.starvedZones')}
           value={formatCount(summary.starvedZones, language)}
+          note={t('zones.tile.starvedZones.note', {
+            total: formatCount(summary.zonesTracked, language),
+          })}
+          tone={summary.starvedZones > 0 ? 'critical' : undefined}
           pressed={view === 'starved'}
           onToggle={() => onView(view === 'starved' ? 'all' : 'starved')}
         />
       </li>
-      <li className="min-w-0">
-        <Tile
+      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+        <Reading
           label={t('zones.tile.unservedRequests30d')}
           value={formatCount(summary.unservedRequests30d, language)}
+          note={t('zones.tile.unservedRequests30d.note')}
         />
       </li>
-      <li className="min-w-0">
-        <Tile
+      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+        <Reading
           label={t('zones.tile.avgFailureRate')}
-          /* `null` with no zones at all — never `0 %`, which would claim a
-             measured perfect month. */
+          /* R4-12 — `null` is not zero. A month with no requests at all has no
+             failure RATE, and printing `0%` would claim a measured perfect
+             month. */
           value={
             summary.avgFailureRate === null
               ? ABSENT
               : formatPercent(summary.avgFailureRate, language)
           }
+          tone={summary.avgFailureRate !== null ? 'critical' : undefined}
         />
       </li>
-      <li className="min-w-0">
-        <Tile
+      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+        <Reading
+          edge="end"
           label={t('zones.tile.worstDemandSupplyRatio')}
           value={
             summary.worstDemandSupplyRatio === null
               ? ABSENT
               : formatRatio(summary.worstDemandSupplyRatio, language)
           }
+          /* The zone the reading belongs to. Data, not copy — there is no
+             honest way to write this one in the dictionary. */
+          note={worstZone}
+          tone={summary.worstDemandSupplyRatio !== null ? 'critical' : undefined}
         />
       </li>
     </ul>
   )
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
+/**
+ * One reading in the strip.
+ *
+ * Numeral over label, which is the order every figure on every board now uses:
+ * a reader scanning a strip is scanning for a QUANTITY and reads the name to
+ * confirm which one it found. The label is an eyebrow above it in the
+ * reference; here it stays below because these five read left to right as one
+ * sentence about supply, and an uppercase eyebrow on each would give the strip
+ * five headings.
+ */
+/**
+ * **One reading of the strip: eyebrow, then numeral, then its note.**
+ *
+ * The order is the reference's and it is the order every figure on every board
+ * now uses on the band — the name above, small and quiet, and the quantity
+ * under it at full size. On the strip specifically it is what lets five
+ * readings sit side by side: the eyebrows form a row an operator scans to find
+ * the one they want, and the numerals form a row they read.
+ *
+ * **`tone` is on the NUMERAL and it is a judgement, not a category.** Three of
+ * the five say something is wrong when they are large — starved zones, failure
+ * rate, worst ratio — and R5a permits red exactly here: a reading that is
+ * itself the bad news. §7.5 is met because the note beside it says the same
+ * thing in words, and because the two toggles carry the state in their pressed
+ * state rather than in a colour.
+ */
+function Reading({
+  label,
+  value,
+  note,
+  tone,
+  edge,
+}: {
+  label: string
+  value: string
+  note?: string | null
+  tone?: 'critical'
+  edge?: Edge
+}) {
   return (
-    <Card className="h-full gap-1.5">
-      <div className="flex flex-col gap-1 px-(--card-spacing)">
-        <span className="text-lg font-semibold tabular-nums text-foreground">
+    <div className={cn('flex h-full flex-col gap-1.5 px-5 py-4', EDGE_PAD[edge ?? 'mid'])}>
+      <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span
+          className={cn(
+            'text-2xl font-medium',
+            tone === 'critical' ? 'text-critical-foreground' : 'text-foreground',
+          )}
+        >
           <bdi>{value}</bdi>
         </span>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-    </Card>
+        {note && <span className="text-xs text-muted-foreground">{note}</span>}
+      </span>
+    </div>
   )
 }
 
@@ -677,32 +673,51 @@ function Tile({ label, value }: { label: string; value: string }) {
 function TileToggle({
   label,
   value,
+  note,
+  tone,
   pressed,
   onToggle,
+  edge,
 }: {
   label: string
   value: string
+  note?: string | null
+  tone?: 'critical'
   pressed: boolean
   onToggle: () => void
+  edge?: Edge
 }) {
   return (
     <button
       type="button"
       aria-pressed={pressed}
       onClick={onToggle}
+      /* **The ring moved INSIDE the cell.** With the card gone the button has no
+         box of its own to trace, and an outward ring on a cell in a divided
+         strip would sit under its neighbour's rule. `-inset` draws it within
+         the cell instead, which is also what makes the pressed state legible
+         against a strip that has no gaps between its cells. */
       className={cn(
-        'group/tile block w-full rounded-xl text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        pressed && 'ring-2 ring-ring',
+        'group/tile relative block h-full w-full text-start transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        pressed && 'bg-muted ring-2 ring-inset ring-ring',
       )}
     >
-      <Card className="h-full gap-1.5 transition-colors group-hover/tile:bg-muted">
-        <div className="flex flex-col gap-1 px-(--card-spacing)">
-          <span className="text-lg font-semibold tabular-nums text-foreground">
+      <span className={cn('flex h-full flex-col gap-1.5 px-5 py-4', EDGE_PAD[edge ?? 'mid'])}>
+        <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span
+            className={cn(
+              'text-2xl font-medium',
+              tone === 'critical' ? 'text-critical-foreground' : 'text-foreground',
+            )}
+          >
             <bdi>{value}</bdi>
           </span>
-          <span className="text-xs text-muted-foreground">{label}</span>
-        </div>
-      </Card>
+          {note && <span className="text-xs text-muted-foreground">{note}</span>}
+        </span>
+      </span>
     </button>
   )
 }

@@ -43,7 +43,7 @@ import {
   formatRatio,
   type Language,
 } from '@/lib'
-import type { MetricUnit } from '@/data/types'
+import type { CurrencyCode, MetricUnit } from '@/data/types'
 
 /* The old path keeps working: `index.ts` re-exports from this file, and
    screens imported these from here before the move. */
@@ -129,6 +129,69 @@ export function formatMetricValue(
  * Money drops the trailing `SAR` — §8.3.1: in a repeated numeric context the
  * unit appears once, and on a chart that place is the card, not every gridline.
  */
+/**
+ * **A metric's value split into the numeral and the unit beside it.**
+ *
+ * `formatMetricValue` returns `8,075.70 SAR` — one string, which is right for
+ * a screen that prints a money value inside a sentence and wrong for one that
+ * sets it at 40px. Two reasons, and the second is the one that forced this:
+ *
+ *   1. **The reference sets the unit on the line below the numeral**, in the
+ *      caption's type, with the comparison phrase. `8,075.70` at 40px beside
+ *      `↑ +57%` is a quantity and its change; `SAR` is neither, and putting it
+ *      between them makes the eye cross a word to get from one to the other.
+ *   2. **It was wrapping, measurably.** At 1440 the band's column is 343px and
+ *      `8,075.70 SAR` at 40px is 270 — so the numeral and its delta needed 350
+ *      and the delta fell to its own line, on the one figure of the three that
+ *      is the board's headline. Arabic is longer still. Taking the unit out
+ *      leaves the numeral at ~150 and the pair fits at every width in both
+ *      languages, rather than fitting until somebody adds a digit.
+ *
+ * **It does NOT format money itself** (AC-340). `formatMoney`'s own
+ * `unit: 'none'` option produces the digits and `Metric.currency` carries the
+ * code — which is the exact string `formatMoney` would have appended. The two
+ * halves recombine to the byte the one-string version returns.
+ *
+ * `unit` is `null` for every non-money measure: a percent, a count and a ratio
+ * carry their unit IN the numeral (`11%`, `0.5×`) and splitting them would
+ * leave a bare number and a stranded sign.
+ */
+export function splitMetricValue(
+  value: number | null,
+  unit: MetricUnit,
+  currency: CurrencyCode | null,
+  language: Language,
+): { value: string; unit: string | null } {
+  if (value !== null && unit === 'money') {
+    return { value: formatMoney(value, { unit: 'none' }), unit: currency ?? 'SAR' }
+  }
+  return { value: formatMetricValue(value, unit, language), unit: null }
+}
+
+/**
+ * The window's one number, by the rule the series declares.
+ *
+ * `null` when the series declares no rule, and also when the rule is declared
+ * but the window has no reading to apply it to — an empty window and a window
+ * of gaps both give `last` nothing to return, and a `sum` over no readings is
+ * not zero, it is unknown. §3.7's distinction between *"we measured and the
+ * answer was 0"* and *"we have no reading"* is the whole reason this returns
+ * `null` rather than `0`.
+ */
+export function seriesWindowTotal(series: {
+  windowTotal?: 'sum' | 'last' | null
+  current: { points: readonly { value: number | null }[] }
+}): number | null {
+  const rule = series.windowTotal
+  if (!rule) return null
+  const readings = series.current.points
+    .map((point) => point.value)
+    .filter((value): value is number => value !== null)
+  if (readings.length === 0) return null
+  if (rule === 'last') return readings[readings.length - 1] ?? null
+  return readings.reduce((total, value) => total + value, 0)
+}
+
 export function formatSeriesValue(value: number, unit: MetricUnit, language: Language): string {
   if (unit === 'money') return formatMoney(value, { unit: 'none' })
   return formatMetricValue(value, unit, language)

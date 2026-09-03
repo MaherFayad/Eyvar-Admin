@@ -1,12 +1,12 @@
 {
   "totals": {
-    "keys": 4777,
-    "en": 4590,
-    "ar": 4777,
+    "keys": 4848,
+    "en": 4625,
+    "ar": 4848,
     "arMissing": 0,
-    "arExtra": 187,
+    "arExtra": 223,
     "copyFiles": 30,
-    "unregisteredKeys": 131,
+    "unregisteredKeys": 167,
     "pluralForms": 29,
     "defaultValue": 0,
     "defaultValueForwarded": 2
@@ -57,7 +57,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 191,
+      "keys": 225,
       "notInEN": 0
     },
     {
@@ -177,7 +177,7 @@
       "exports": [
         "ZONES_EN"
       ],
-      "keys": 63,
+      "keys": 64,
       "notInEN": 0
     },
     {
@@ -251,8 +251,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 42,
-      "notInEN": 40
+      "keys": 78,
+      "notInEN": 76
     }
   ],
   "noCopyFile": [

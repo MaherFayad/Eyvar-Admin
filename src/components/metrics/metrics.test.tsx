@@ -220,8 +220,17 @@ describe('MetricTile — §3.7 delta rules', () => {
 
   it('renders an em dash for a value that could not be computed, not a zero', () => {
     renderTile(metric({ value: null, absenceReason: 'not-captured' }))
-    /* Two em dashes: the value and the delta. Neither may be `0`. */
-    expect(screen.getAllByText('—')).toHaveLength(2)
+    /* **ONE em dash, and it used to be two.** The delta drew its own beside the
+       value's, so an absent metric read `—  — Not captured yet`: two marks
+       for one absence, with nothing distinguishing them. The delta now stands
+       ON the numeral's baseline rather than under it (see `comparisonParts`),
+       and a second dash inside that line would read as a RANGE — `— —` —
+       which is a different claim entirely.
+
+       What R5-1 §1.3 requires is unchanged and is asserted below: the mark is
+       not a zero, and the reason is in words. */
+    expect(screen.getAllByText('—')).toHaveLength(1)
+    expect(screen.getByText('Not captured yet')).toBeVisible()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
 
@@ -521,11 +530,13 @@ describe('MetricTile — a value that is absent says why (R5-1)', () => {
   it('keeps the value’s em dash out of the accessibility tree, and the reason in it', () => {
     const { container } = renderTile(notCaptured)
     const dashes = screen.getAllByText('—')
-    expect(dashes).toHaveLength(2)
+    /* One, not two — see the count's own test above for why the delta stopped
+       drawing a second one. */
+    expect(dashes).toHaveLength(1)
     /* `closest`, not the element itself: the value's mark is an isolated run
        inside its box and the box is what carries the attribute (§5.4 — the
        isolate never carries anything but the isolation). What matters is that
-       neither dash is reachable, not which element says so. */
+       the dash is not reachable, not which element says so. */
     for (const dash of dashes) expect(dash.closest('[aria-hidden="true"]')).not.toBeNull()
     expect(container.querySelector('.sr-only')).toBeNull()
     expect(screen.getByText('Not captured yet')).toBeVisible()

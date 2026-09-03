@@ -19,6 +19,54 @@ import type { Dictionary } from '@/lib'
 
 export const OVERVIEW_AR: Dictionary = {
   'overview.asOf': 'احتُسب {time}',
+
+  /* البند العلوي للوحة — الفترة، والمقدمة، وعناوين الفصول. */
+  'overview.period.label': 'تغيير الفترة',
+  'overview.period.none': 'كل الفترات',
+  'overview.period.presets': 'الفترات',
+  'overview.period.preset.day': 'اليوم',
+  'overview.period.preset.week': 'آخر 7 أيام',
+  'overview.period.preset.twoWeeks': 'آخر 14 يومًا',
+  'overview.period.preset.month': 'آخر 30 يومًا',
+  'overview.period.preset.quarter': 'آخر 90 يومًا',
+  'overview.period.preset.year': 'آخر 365 يومًا',
+  'overview.period.active': 'الفترة الحالية',
+  'overview.period.from': 'من',
+  'overview.period.to': 'إلى',
+  'overview.period.apply': 'تطبيق',
+  'overview.period.cancel': 'إلغاء',
+  'overview.period.inverted': 'تاريخ البداية بعد تاريخ النهاية',
+  'overview.period': '{from} – {to}',
+
+  'overview.lede.management-overview':
+    'هل ينمو النشاط، وهل يفي بالوعدين اللذين يبيعهما؟',
+  'overview.lede.management-performance':
+    'كيف سارت الخدمة فعليًا: الرحلات المنفَّذة، والإلغاءات، والالتزام بالمواعيد، والكباتن وراءها.',
+  'overview.lede.management-risk':
+    'المال والعرض المعرَّضان للخطر في دورة التجديد القادمة، ومَن يقف وراء ذلك من الحسابات والكباتن.',
+  'overview.lede.management-growth':
+    'من أين يأتي الركاب الجدد، وكم يكلّفون، وهل تغطي العروض الترويجية تكلفتها.',
+  'overview.lede.management-zones':
+    'أي الأحياء يطلب أكثر مما يستطيع كباتنه خدمته، وكم كابتنًا يسدّ الفجوة.',
+  'overview.lede.operations-overview':
+    'ما الذي على الوحدة الآن: العمل المُستلَم، والعمل غير المُستلَم، والمهل الجارية عليه.',
+  'overview.lede.support-overview':
+    'كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها.',
+  'overview.lede.support-fairness':
+    'هل تصمد القرارات المتَّخذة بحق الكباتن عند الاعتراض عليها؟',
+  'overview.lede.admin-overview':
+    'الوحدة نفسها: من يصل إليها، وما المتأخر فيها، وأين الفجوات.',
+
+  'overview.category.revenue': 'المال',
+  'overview.category.subscriptions': 'الاشتراكات',
+  'overview.category.supply': 'الكباتن',
+  'overview.category.demand': 'الطلب',
+  'overview.category.service': 'الخدمة',
+  'overview.category.risk': 'المخاطر',
+
+  'overview.chapter.worse': 'تحرّك {worse} من {total} في الاتجاه الخاطئ.',
+  'overview.chapter.steady': 'لم يتحرّك شيء هنا في الاتجاه الخاطئ.',
+  'overview.section.detail': 'ما وراء الأرقام',
   'overview.loading': 'جارٍ تحميل {resource}',
   'overview.noData': 'لم تُوجد بيانات لهذا النطاق الزمني.',
   'overview.allZero': 'كل قيمة في هذا النطاق تساوي صفرًا.',

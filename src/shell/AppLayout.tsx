@@ -442,6 +442,12 @@ export function AppLayout() {
          measured to change nothing at 1440x900. Box-sizing is border-box from
          the preflight, so `h-screen` still means the viewport height and the
          padding comes out of the content box rather than adding to it. */
+      /* **The hook `globals.css` clips the document by** — see the
+         `[data-app-frame]` rule there. It is an attribute rather than a class
+         because it is a fact about the page ("the app frame is mounted"), not a
+         style, and because a class here could be merged away by `cn` at a call
+         site that never meant to. */
+      data-app-frame=""
       className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground pt-safe-top pb-safe-bottom ps-safe-start pe-safe-end"
     >
       {/* AC-62 — first focusable element in the document. */}

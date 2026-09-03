@@ -46,6 +46,111 @@ export const OVERVIEW_EN: Dictionary = {
      `time` is already formatted by the caller — `formatDate` owns the calendar
      and the numbering system (§18). */
   'overview.asOf': 'Computed {time}',
+
+  /* ══════════════════ the board band ══════════════════════════════════
+     `BoardHero`'s three strings. The band carries the board's name (which
+     is a route title and lives in the shell dictionary), its period, its
+     freshness and its lede — so only the last two are new here. */
+
+  /* The window the board's numbers cover, on the band's mono pill. A FACT
+     and not a control: `getMetricBoard` takes a sub-tab and nothing else,
+     so there is no range to change and the pill carries no chevron. Both
+     dates arrive formatted — `formatDate` owns the calendar and the
+     numbering system (§18) — and the dash between them is an EN DASH,
+     which is the range dash R1 uses everywhere else. */
+  'overview.period': '{from} – {to}',
+
+  /* ── THE WINDOW PICKER. ────────────────────────────────────────────────
+     Rolling windows ending today, named for the span rather than for a
+     calendar unit: `Last 7 days` and not `This week`, because the window does
+     not start on a Monday and a reader who assumes it does will read the
+     Monday column as the first one. `periods.ts` carries the same distinction
+     in code. */
+  'overview.period.label': 'Change the period',
+  /* Two jobs, one string, and they are the same claim: the FIRST entry in the
+     picker's list, and the trigger's own label on a board that has not been
+     asked for a window. Both say the one thing — nothing is filtered out. */
+  'overview.period.none': 'All time',
+  'overview.period.presets': 'Periods',
+  'overview.period.preset.day': 'Today',
+  'overview.period.preset.week': 'Last 7 days',
+  'overview.period.preset.twoWeeks': 'Last 14 days',
+  'overview.period.preset.month': 'Last 30 days',
+  'overview.period.preset.quarter': 'Last 90 days',
+  'overview.period.preset.year': 'Last 365 days',
+  'overview.period.active': 'Current period',
+  'overview.period.from': 'From',
+  'overview.period.to': 'To',
+  'overview.period.apply': 'Apply',
+  'overview.period.cancel': 'Cancel',
+  /* Rule 4 — the state, and the fix for it, in one fragment on a disabled
+     control. */
+  'overview.period.inverted': 'The start is after the end',
+
+  /* ── THE BOARD LEDES. ONE SENTENCE, AND IT ANSWERS "A BOARD OF WHAT?" ──
+     Beneath the board's name on the band. It is not a summary of the
+     numbers — those move, and a sentence that described them would be
+     wrong by the next fetch — and it is not a description of the screen.
+     It states the QUESTION the board exists to answer, so an operator who
+     opened the wrong sub-tab knows before reading a single figure.
+
+     R6: full sentences, so all nine take a terminal period. R5-4's
+     prohibitions apply as they do to a caption — never a value, never a
+     status, never an action, never a link. They are keyed by `subTabId`,
+     so a tenth board with no lede renders the band without one rather
+     than printing a missing key. */
+  'overview.lede.management-overview':
+    'Whether the business is growing, and whether it is keeping the two promises it sells.',
+  'overview.lede.management-performance':
+    'How the service actually ran: trips delivered, cancellations, punctuality, and the captains behind them.',
+  'overview.lede.management-risk':
+    'Money and supply exposed in the next renewal cycle, with the accounts and captains driving it.',
+  'overview.lede.management-growth':
+    'Where new riders come from, what they cost, and whether the promotions are paying for themselves.',
+  'overview.lede.management-zones':
+    'Which districts are asking for more than their captains can serve, and how many captains would close the gap.',
+  'overview.lede.operations-overview':
+    'What the console owes right now: work claimed, work unclaimed, and the clocks running against it.',
+  'overview.lede.support-overview':
+    'Everything open in front of a person — incidents, tickets and the response times on them.',
+  'overview.lede.support-fairness':
+    'Whether decisions taken about captains hold up when someone appeals them.',
+  'overview.lede.admin-overview':
+    'The console itself: who can reach it, what is overdue on it, and where the gaps are.',
+
+  /* ── CHAPTER HEADINGS. `Metric.category`, in words. ────────────────────
+     A fragment naming a KIND of number, so no terminal period (R6). It is
+     the same taxonomy §3.7's metrics library groups by, which is why these
+     are not invented here: a seventh heading would need a seventh
+     category, and `MetricCategory` is a closed union. */
+  'overview.category.revenue': 'Money',
+  'overview.category.subscriptions': 'Subscriptions',
+  'overview.category.supply': 'Captains',
+  'overview.category.demand': 'Demand',
+  'overview.category.service': 'Service',
+  'overview.category.risk': 'Risk',
+
+  /* ── THE CHAPTER SUB-LINE, AND IT IS COMPUTED EVERY RENDER. ────────────
+     Not a hand-written sentence about the data — those are true until the
+     data moves. `chapterSummary` counts the figures below the heading
+     whose delta is a change for the WORSE, using the same `metricValence`
+     the deltas themselves use, so the line and the marks under it cannot
+     disagree.
+
+     Full sentences (R6). `worse` and `total` arrive formatted, so the
+     numerals follow §18's numbering system rather than JavaScript's.
+     A chapter with nothing comparable in it borrows
+     `overview.noCompare.no-history` instead of taking a fourth string —
+     the board should say that fact in one voice wherever it says it. */
+  'overview.chapter.worse': '{worse} of {total} moved the wrong way.',
+  'overview.chapter.steady': 'Nothing here moved the wrong way.',
+
+  /* The heading over the charts and the ranked lists — the last section of
+     every board. A fragment naming a KIND of content, so no period (R6), and
+     GENERIC on purpose: the reference titles this per screen, which is a
+     sentence about a chart set that goes stale the moment one is added or
+     removed. What is true of the section on every board is what it is FOR. */
+  'overview.section.detail': 'Behind the numbers',
   /* Labels the busy region while the tiles are skeletons (§11.3). There is no
      shell-wide loading key yet; when one lands this defers to it. */
   'overview.loading': 'Loading {resource}',

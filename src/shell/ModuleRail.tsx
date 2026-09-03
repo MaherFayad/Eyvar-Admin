@@ -361,7 +361,16 @@ export function EyvarMark({
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
       <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
       <path
-        d="M7.5 7.5l4.5 6.2 4.5-6.2M12 13.7V17"
+        /* **The mark: a cup over a smile.** Two subpaths, one stroke.
+             The cup is an exact semicircle — the arc's radius equals half the
+             distance between the two uprights (4.6), so it meets them tangent
+             and no join shows. The smile is a flatter arc: its radius (4.7) is
+             larger than its half-chord (4.1), which is what keeps it a shallow
+             curve rather than a second cup.
+             Both sweep flags are 0. In SVG's y-down space that is the
+             decreasing-angle direction, which passes through the bottom of the
+             circle — sweep 1 on either one silently flips it into a frown. */
+        d="M7.4 5V9.6a4.6 4.6 0 0 0 9.2 0V5M7.9 16.6a4.7 4.7 0 0 0 8.2 0"
         className={cn('fill-none', strokeClassName)}
         strokeWidth="1.8"
         strokeLinecap="round"

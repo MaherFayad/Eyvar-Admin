@@ -1,0 +1,13 @@
+import { chromium } from 'playwright'
+const browser = await chromium.launch()
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+await page.goto('http://localhost:4325/management/overview', { waitUntil: 'networkidle' })
+await page.waitForTimeout(800)
+await page.getByRole('button', { name: /Change the period/ }).click()
+await page.waitForTimeout(900)
+await page.screenshot({ path: './scratch/shots-board/_period.png' })
+await page.getByRole('button', { name: 'Last 7 days' }).click()
+await page.waitForTimeout(1200)
+await page.screenshot({ path: './scratch/shots-board/_period-applied.png' })
+console.log('ok')
+await browser.close()

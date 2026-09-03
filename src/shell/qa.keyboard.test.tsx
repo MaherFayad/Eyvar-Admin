@@ -489,10 +489,23 @@ describe('AC-63 — "Every rail tile and every sub-tab row is reachable by keybo
     railSeen.push(document.activeElement!)
     expect(railSeen).toEqual(table.workspaces.map((w) => railTile(w.id)))
 
-    /* The column: one Tab stop, then arrows through all nine rows. */
-    const rows = table.subTabs
-      .filter((r) => r.workspaceId === 'operations')
-      .sort((a, b) => a.order - b.order)
+    /* The column: one Tab stop, then arrows through all nine rows.
+
+       **Read off the DOM, not off the route table.** Operations' column is
+       painted in three groups (`PageNav`'s `NAV_GROUPS`), so its visual order
+       and its route order differ on purpose. The criterion is REACHABILITY —
+       every row, by keyboard, in the order a sighted operator sees them — and
+       taking the expected sequence from the rendered links is what keeps this
+       testing that rather than testing a constant. */
+    const column = screen.getByRole('navigation', { name: /^Sub-tabs for/ })
+    const rows = within(column)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'))
+      .map((href) => table.subTabs.find((r) => r.path === href))
+      .filter((r): r is NonNullable<typeof r> => r !== undefined)
+    expect(rows).toHaveLength(
+      table.subTabs.filter((r) => r.workspaceId === 'operations').length,
+    )
     await user.tab()
     const rowsSeen = [focusedName()]
     for (let i = 1; i < rows.length; i += 1) {

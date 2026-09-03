@@ -30,9 +30,36 @@ export const ZONES_EN: Dictionary = {
   /* The five derived tiles. Two of them narrow the table; three state a total. */
   'zones.tile.captainsNeeded': 'Captains needed',
   'zones.tile.starvedZones': 'Supply-starved zones',
-  'zones.tile.unservedRequests30d': 'Unserved requests, 30 days',
-  'zones.tile.avgFailureRate': 'Average request failure rate',
-  'zones.tile.worstDemandSupplyRatio': 'Worst demand-to-supply ratio',
+  /* **The window left the label and became the note beside the number.** It
+     read `Unserved requests, 30 days` — a label carrying its own scope in a
+     subordinate clause, which is the thing R4-4 §4.2 has a slot for. The slot
+     is the note below; the label names the measure and nothing else. */
+  'zones.tile.unservedRequests30d': 'Unserved requests',
+  /* **Both lost a word, and the word they lost was the one that wrapped.** The
+     strip is five equal columns of a capped measure, so at 1440 each label has
+     about 200px; `Average request failure rate` and
+     `Worst demand-to-supply ratio` each ran to two lines, which pushed their
+     numerals a line lower than the three beside them — five readings meant to
+     be scanned as one row, drawn on two baselines.
+
+     Nothing is lost with the words. `request` is the only thing on this screen
+     that can fail, and `ratio` is what `demand-to-supply` already names. */
+  'zones.tile.avgFailureRate': 'Average failure rate',
+  'zones.tile.worstDemandSupplyRatio': 'Worst demand-to-supply',
+
+  /* ── THE STRIP'S NOTES. ────────────────────────────────────────────────
+     One short phrase beside a reading, saying what a reader must know to read
+     it correctly: what would clear it, what it is out of, what window it
+     covers. FRAGMENTS, so no terminal period (R6), and never a value — the
+     value is the numeral they sit beside.
+
+     Two of the five have none. `Average request failure rate` is a percentage
+     across the live zones and the label says so; `Worst demand-to-supply` takes
+     the WORST ZONE'S NAME, which is data rather than copy and comes from the
+     rows. A note nobody can write honestly is a note that does not render. */
+  'zones.tile.captainsNeeded.note': 'to clear starved zones',
+  'zones.tile.starvedZones.note': 'of {total}',
+  'zones.tile.unservedRequests30d.note': '30 days',
 
   'zones.col.zone': 'Zone',
   'zones.col.demandSupply': 'Demand : supply',
@@ -87,22 +114,34 @@ export const ZONES_EN: Dictionary = {
   'zones.map.a11y.desc':
     '{count} zones, shaded by {metric}. Every zone is also listed beside the map.',
   'zones.map.metric.label': 'Shade by',
-  'zones.map.metric.ratio': 'demand to supply',
+  /* The colon is the reference's and it is doing work: `demand to supply` reads
+     as a direction of travel, and the reading is a RATIO — one number set
+     against another. It is also the phrase the table's own column header
+     already uses (`zones.col.demandSupply`), so the tab on the band and the
+     column under the map now name the measure identically. */
+  'zones.map.metric.ratio': 'demand : supply',
   'zones.map.metric.failure': 'failure rate',
   'zones.map.metric.demand': 'requests',
   'zones.map.reading.demand': '{count} req',
-  'zones.map.shading.on': 'Hide shading',
-  'zones.map.shading.off': 'Show shading',
+  /* The two zoom controls. Icon-only buttons, so these ARE their names — a
+     `+` with no accessible name is a button that announces itself as "button". */
+  'zones.map.zoom.in': 'Zoom in',
+  'zones.map.zoom.out': 'Zoom out',
   'zones.map.legend.low': 'Lower',
   'zones.map.legend.high': 'Higher {metric}',
   /* A zone we track but hold no boundary for. Stated, never dropped — a zone
      missing from the picture and a zone missing from the data look identical
      the moment nobody says which it is. */
   'zones.map.unmapped': 'No boundary is recorded for {zones}.',
-  'zones.map.list.heading': 'Zones',
-  'zones.map.search': 'Search zones',
-  'zones.map.noMatch': 'No zone matches this search.',
-  'zones.map.noMatch.action': 'Clear search',
+  /* The list's eyebrow, which names the SORT and not the rows. `{metric}` is
+     whichever measure the band's switch is on, so the eyebrow and the numbers
+     down the right of the list can never disagree about what is being ranked.
+
+     The search that used to sit under it is gone: six rows is a list you scan,
+     every district on the canvas is its own button, and the table below the map
+     carries the search, the filters and the pagination for a list long enough
+     to need them. */
+  'zones.map.list.heading': 'All zones',
   /* R5-11's third sentence: nothing is captured, so there is nothing to draw.
      Not "no data for this range" — the range is not what is missing. */
   'zones.map.empty': 'Nothing is recorded here yet.',
@@ -114,4 +153,9 @@ export const ZONES_EN: Dictionary = {
   'zones.map.inspector.heading': 'Zone detail',
   'zones.map.inspector.none': 'Pick a zone on the map or in the list to see its detail.',
   'zones.map.captainsNeeded': '{count} more captains reach 3 requests per captain here.',
+  /* The shortfall reading's own note — what the number would BUY, in the slot
+     R4-4 §4.2 keeps for exactly that. A fragment, so no terminal period (R6).
+     The three is the starved threshold the sentence above already names; it is
+     one number stated in one voice rather than a value interpolated twice. */
+  'zones.map.captainsNeeded.detail': 'to reach 3 requests each',
 }

@@ -165,8 +165,25 @@ import { Button } from '@/components/ui/button'
  * surplus rather than pooling it all at the inline-end, which also keeps the
  * page symmetric under `dir="rtl"` without a second rule.
  */
+/**
+ * **The block inset, which is now ONE ladder for the padded block and the
+ * bleeding band alike.**
+ *
+ * They were 24px and 32/44, so a page's title opened at a different height
+ * depending on whether its screen had a band: 76px down the viewport on
+ * Reports, 96px on Overview, and the operator moving between two sub-tabs saw
+ * the name of the page jump. That is the same defect V5 removed from the
+ * horizontal axis — one page width, whichever route you are on — and this is
+ * its vertical half.
+ *
+ * Written as a literal rather than composed, because Tailwind v4 only sees
+ * complete class names, and exported so `BoardBand` can spend the identical
+ * string instead of a matching one.
+ */
+export const PAGE_BLOCK_INSET = 'py-8 compact:py-6 wide:py-11'
+
 const PAGE_BLOCK =
-  'mx-auto flex min-h-full w-full max-w-measure flex-col px-page-pad py-6 wide:px-page-pad-wide'
+  'mx-auto flex min-h-full w-full max-w-measure flex-col px-page-pad py-8 compact:py-6 wide:px-page-pad-wide wide:py-11'
 
 /**
  * The `fill` variant. Its hundred-percent height is what makes the main size
@@ -177,7 +194,7 @@ const PAGE_BLOCK =
  * finds, so a class written here is a rule shipped in `dist`.
  */
 const PAGE_BLOCK_FILL =
-  'mx-auto flex h-full min-h-0 w-full max-w-measure flex-col px-page-pad py-6 wide:px-page-pad-wide'
+  'mx-auto flex h-full min-h-0 w-full max-w-measure flex-col px-page-pad py-8 compact:py-6 wide:px-page-pad-wide wide:py-11'
 
 /* ───────────────────── L-03 · single column (§7.1) ───────────────────── */
 
@@ -209,6 +226,34 @@ export interface SingleColumnPageProps {
   body?: 'fill' | 'flow'
   /** V-11 — one centred `Learn more about {resource}.` OUTSIDE the card. */
   learnMore?: ReactNode
+  /**
+   * **A band that reaches the content region's own edges**, above the measure
+   * and outside its padding. One consumer: `BoardHero`.
+   *
+   * ## An amendment to V5, not an exception smuggled past it
+   *
+   * V5's ruling is that there is ONE page width, and the mechanism it exists to
+   * refuse is a component that reaches outside its container by negative
+   * margin — a margin cancels a padding it cannot see, so the two disagree the
+   * first time either moves and nothing reports it.
+   *
+   * This slot is the opposite of that mechanism. The bleed is a SIBLING of the
+   * padded block rather than a child of it: it is never inside the measure, so
+   * there is no padding for it to cancel and no way for the two to drift. The
+   * page still has one width; what it now also has is one element declared not
+   * to be in it.
+   *
+   * The owner asked for the board band edge to edge, which is how the reference
+   * draws it, and the reason it is right is the reason the band exists at all:
+   * a coloured field that stops `--ev-page-pad` short of the region's edge
+   * reads as a large card, and a card is exactly what the lead figures were
+   * taken out of.
+   *
+   * **The band takes its own inline padding, from the same token** — see
+   * `BoardBand` — because the page's no longer applies to it, and its title
+   * must line up with the headings below rather than with the region's edge.
+   */
+  bleed?: ReactNode
 }
 
 export function SingleColumnPage({
@@ -217,7 +262,36 @@ export function SingleColumnPage({
   children,
   body = 'fill',
   learnMore,
+  bleed,
 }: SingleColumnPageProps) {
+  if (bleed) {
+    return (
+      /* The bleed and the measure are SIBLINGS. Nothing here reaches outside
+         anything; the band is simply not in the block that carries the cap. */
+      <div className="flex min-h-full w-full flex-col">
+        {bleed}
+        {/* **A bleed with nothing under it renders no block.** The block is
+            `--ev-page-pad` on every side, so an empty one is 64px of ground
+            below the bleed — which on Market & Zones, where the bleed IS the
+            screen, read as a strip of leftover page under a map that had just
+            been told to fill the region. `null` children is the caller saying
+            there is no second half, and it is checked rather than inferred:
+            `children` that happen to be `false` still mean the caller intended
+            a block and this frame is not the place to guess. */}
+        {(header || banner || learnMore || children !== null) && (
+          <div className={body === 'flow' ? PAGE_BLOCK : PAGE_BLOCK_FILL}>
+            {header && <div className="shrink-0">{header}</div>}
+            {banner && <div className="shrink-0">{banner}</div>}
+            <div className={body === 'flow' ? 'flex flex-col' : 'flex min-h-0 flex-1 flex-col'}>
+              {children}
+            </div>
+            {learnMore && <div className="shrink-0 pt-3 text-center">{learnMore}</div>}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     /* ONE width, every route. There is no `width` prop to get wrong, which is
        the point: the page header lands in the same place whichever sub-tab you

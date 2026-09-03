@@ -389,6 +389,39 @@ export interface SeriesWindow {
 }
 
 export interface TimeSeries {
+  /**
+   * **How the window's ONE number is arrived at**, for the headline a chart
+   * prints above its plot.
+   *
+   * Most charts do not need this: a chart whose key matches a metric on the
+   * same board shows THAT metric, which is the number the board already owns.
+   * Eight charts have no such metric — the two revenue lines, on-time pickups,
+   * new subscriptions, unserved requests, open signals, completed trips and
+   * activity events — and before this they were the only panels on a board
+   * that stated no quantity at all: a shape over time with no answer to *how
+   * much*.
+   *
+   * **A RULE and not a NUMBER, deliberately.** A seeded total is a second copy
+   * of the data that goes wrong the first time a point moves and reports
+   * nothing when it does. The rule is applied to the plotted points, so the
+   * headline and the line it sits over cannot disagree by construction.
+   *
+   * `sum` — a FLOW. Revenue earned, trips completed, subscriptions started,
+   * requests unserved: each day's reading is an amount that happened that day,
+   * and the window's answer is their total. `null` points are gaps and are
+   * skipped, not counted as zero.
+   *
+   * `last` — a STOCK, or a RATE. Open signals is how many are open, not how
+   * many opened; on-time pickups is a percentage. Adding either across fifteen
+   * days produces a number with no referent — `1,365%` of on-time pickups —
+   * which is exactly the sort of derived nonsense a component computing its own
+   * total would print. The window's answer is the most recent reading it has.
+   *
+   * `null` or absent — the measure has no meaningful window total and the chart
+   * prints none. A missing headline is a chart doing its job; a wrong one is
+   * not.
+   */
+  windowTotal?: 'sum' | 'last' | null
   key: string
   subTabId: string
   unit: MetricUnit

@@ -85,8 +85,24 @@ export interface PageHeaderProps {
    * it does not belong here.** A sub-tab that needs explaining gets that in its
    * first-run empty state, where the operator is actually stuck, and nowhere
    * else.
+   *
+   * **`ReactNode` rather than `string`** — a monitor's scope line carries a
+   * connection dot beside its sentence, and a screen that wants one should not
+   * have to abandon the shared header to get it. It is still ONE line: a node
+   * here is a decorated sentence, never a second row of controls.
    */
-  meta?: string | null
+  meta?: ReactNode
+  /**
+   * §8 slot 4 — readings that belong to the page rather than to a card, at the
+   * header's inline-end and BEFORE the actions, so a primary button is still
+   * the last thing on the row wherever one exists.
+   *
+   * Live Dispatch puts its three velocity figures here because the board below
+   * them is a full-bleed map with nowhere to hang a KPI strip. It is a slot for
+   * READINGS: anything with an `onClick` belongs in `secondaryActions`, where
+   * the cap and the overflow rules can see it.
+   */
+  aside?: ReactNode
   /** Inline status badges. Rendered after the title on the same baseline. */
   badges?: ReactNode
   /** §8 slot 1. Derived from the route's shape by the caller, never a stack depth. */
@@ -110,6 +126,7 @@ export function PageHeader({
   title,
   meta,
   badges,
+  aside,
   onBack,
   secondaryActions = [],
   overflowActions = [],
@@ -145,12 +162,20 @@ export function PageHeader({
         )}
 
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1">
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+          {/* **`text-band`, which is the board band's own title size, because a
+              page title is a page title.** It was 24/600 here and 30/500 on
+              every board — two ranks for the same slot, and §8's whole point is
+              that slot 1 does not move or change shape between routes. The
+              weight comes down with the size going up: 600 at 30px is a
+              display weight, and this is a name rather than a headline. */}
+          <h1 className="text-band font-medium text-foreground">{title}</h1>
           {/* §8 slot 3 — same baseline as the title, never a second row. */}
           {badges}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {aside}
+
           {visibleSecondaries.map((action) => (
             <Button
               key={action.label}
@@ -245,7 +270,9 @@ export function PageHeader({
           not `text-xs`. It was two steps below the title and is now one.
           NOTE the reference has no line here at all; V4 already narrowed this
           slot to data-derived metadata, which is why it survives. */}
-      {meta && <p className="text-sm text-muted-foreground">{meta}</p>}
+      {meta !== undefined && meta !== null && meta !== false && (
+        <p className="text-sm text-muted-foreground">{meta}</p>
+      )}
     </div>
   )
 }

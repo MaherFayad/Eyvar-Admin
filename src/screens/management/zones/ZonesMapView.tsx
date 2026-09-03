@@ -84,16 +84,27 @@
  */
 
 import { useMemo, useState } from 'react'
-import { Navigation, Search, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState, canRetry } from '@/components/ErrorState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { cn } from '@/lib/utils'
-import { Basemap, BasemapAttribution } from './Basemap'
+/* **The map layer is shared now.** Live Dispatch draws the same city, and two
+   copies of a projection are two chances for the streets and the shapes on top
+   of them to drift apart. See `src/components/map/projection.ts`. */
+import {
+  Basemap,
+  BasemapAttribution,
+  fitProjection as fitPoints,
+  MapZoomControls,
+  useMapViewport,
+  VIEW_W,
+  type GeoPoint,
+  type MapView,
+  type Projection,
+} from '@/components/map'
 import { RECRUITMENT_PRIORITY_TONE, type Zone } from '@/data/types'
 import type { AsyncStatus } from '@/hooks'
 import { ABSENT, formatCount, formatPercent, formatRatio, type Language, type Translate } from '@/lib'
@@ -101,9 +112,23 @@ import { ABSENT, formatCount, formatPercent, formatRatio, type Language, type Tr
 /* ─────────────────────────── our own geometry ──────────────────────────── */
 
 /**
- * Zone boundaries in WGS84, **ours**, carried over unchanged from the surface
- * this file replaces. They were already in the repo; only the basemap under
- * them was somebody else's.
+ * Zone boundaries in WGS84, **ours**.
+ *
+ * **They are now approximately where the districts are.** What this file
+ * inherited was six identical rotated squares of the same size, three of them
+ * placed on the wrong district entirely — KAFD / Olaya sat on Al Yasmin's
+ * ground, Al Yasmin sat on Qurtubah's, and Qurtubah sat in the middle of the
+ * city it is on the eastern edge of. Two of them overlapped on screen, which is
+ * the one thing a choropleth may never do: an operator reading two stacked
+ * shapes cannot tell which district the darker one is.
+ *
+ * These follow the real districts to the nearest major road, which is the level
+ * of precision a demand map needs and the level a hand-written table can hold
+ * honestly. North Riyadh's blocks are near-rectangular and aligned to its grid;
+ * KAFD / Olaya is a corridor down King Fahd Road and is drawn as one, because
+ * that is the shape of the thing. **Not a survey**: the boundary a dispatcher
+ * settles a fare against comes from the backend, and when it does it replaces
+ * this table wholesale.
  *
  * A zone with no entry here is not silently dropped — `unmapped` below states
  * it in words, because a zone missing from a picture and a zone missing from
@@ -118,64 +143,85 @@ interface ZoneGeometry {
 }
 
 const ZONE_GEOMETRY: Readonly<Record<string, ZoneGeometry>> = {
+  /* **Al Narjis** — the far north, above Anas Ibn Malik Road and below the
+     Al Qayrawan strip, running from King Abdulaziz Road across to Abu Bakr
+     Al-Siddiq. Its south-east corner is cut where Al Yasmin comes up to meet
+     it, which is why this one is a pentagon and its neighbours are not. */
   'ZONE-01': {
-    lat: 24.838,
-    lng: 46.685,
+    lat: 24.8555,
+    lng: 46.6575,
     path: [
-      { lat: 24.855, lng: 46.66 },
-      { lat: 24.868, lng: 46.695 },
-      { lat: 24.838, lng: 46.725 },
-      { lat: 24.818, lng: 46.68 },
+      { lat: 24.8725, lng: 46.6355 },
+      { lat: 24.8725, lng: 46.6805 },
+      { lat: 24.8555, lng: 46.6835 },
+      { lat: 24.8385, lng: 46.6795 },
+      { lat: 24.8385, lng: 46.6365 },
     ],
   },
+  /* **Al Sahafa** — south of Al Narjis and west of Al Yasmin, the block
+     between King Fahd Road and Al Imam Saud Bin Abdulaziz. */
   'ZONE-02': {
-    lat: 24.805,
-    lng: 46.645,
+    lat: 24.8175,
+    lng: 46.6375,
     path: [
-      { lat: 24.82, lng: 46.62 },
-      { lat: 24.84, lng: 46.655 },
-      { lat: 24.81, lng: 46.675 },
-      { lat: 24.785, lng: 46.635 },
+      { lat: 24.8375, lng: 46.6175 },
+      { lat: 24.8375, lng: 46.6615 },
+      { lat: 24.7985, lng: 46.6565 },
+      { lat: 24.7975, lng: 46.6125 },
     ],
   },
+  /* **KAFD / Olaya** — one zone because it is one corridor: the financial
+     district at the northern ring, and the Olaya spine running south from it
+     along King Fahd Road to the Kingdom tower. It is the only zone here that
+     is neither a grid block nor near square, and drawing it as one would put
+     Olaya's demand two kilometres west of the road it happens on. */
   'ZONE-03': {
-    lat: 24.815,
-    lng: 46.69,
+    lat: 24.7400,
+    lng: 46.6620,
     path: [
-      { lat: 24.83, lng: 46.665 },
-      { lat: 24.85, lng: 46.7 },
-      { lat: 24.82, lng: 46.72 },
-      { lat: 24.8, lng: 46.68 },
+      { lat: 24.7810, lng: 46.6320 },
+      { lat: 24.7810, lng: 46.6605 },
+      { lat: 24.7280, lng: 46.6925 },
+      { lat: 24.6905, lng: 46.6905 },
+      { lat: 24.6905, lng: 46.6640 },
+      { lat: 24.7380, lng: 46.6320 },
     ],
   },
+  /* **Al Malaz** — central-east and on the older grid, between Salahuddin
+     Al-Ayyubi and the Khurais corridor. */
   'ZONE-04': {
-    lat: 24.668,
-    lng: 46.735,
+    lat: 24.6670,
+    lng: 46.7370,
     path: [
-      { lat: 24.685, lng: 46.71 },
-      { lat: 24.705, lng: 46.745 },
-      { lat: 24.675, lng: 46.77 },
-      { lat: 24.65, lng: 46.73 },
+      { lat: 24.6885, lng: 46.7150 },
+      { lat: 24.6900, lng: 46.7585 },
+      { lat: 24.6480, lng: 46.7620 },
+      { lat: 24.6455, lng: 46.7180 },
     ],
   },
+  /* **Qurtubah** — the eastern edge of the built city, north of Khurais Road
+     and beyond Uthman Bin Affan. Nothing else on this board is out here, which
+     is the reading: its ratio is the lowest and its supply travels furthest. */
   'ZONE-05': {
-    lat: 24.76,
-    lng: 46.665,
+    lat: 24.7970,
+    lng: 46.7800,
     path: [
-      { lat: 24.775, lng: 46.64 },
-      { lat: 24.795, lng: 46.675 },
-      { lat: 24.765, lng: 46.7 },
-      { lat: 24.74, lng: 46.66 },
+      { lat: 24.8160, lng: 46.7520 },
+      { lat: 24.8180, lng: 46.8065 },
+      { lat: 24.7820, lng: 46.8080 },
+      { lat: 24.7765, lng: 46.7545 },
     ],
   },
+  /* **Al Yasmin** — east of Al Sahafa and south of Al Narjis, out to Uthman
+     Bin Affan Road. */
   'ZONE-06': {
-    lat: 24.805,
-    lng: 46.755,
+    lat: 24.8215,
+    lng: 46.6900,
     path: [
-      { lat: 24.82, lng: 46.73 },
-      { lat: 24.84, lng: 46.77 },
-      { lat: 24.81, lng: 46.795 },
-      { lat: 24.785, lng: 46.755 },
+      { lat: 24.8375, lng: 46.6660 },
+      { lat: 24.8375, lng: 46.7140 },
+      { lat: 24.8055, lng: 46.7160 },
+      { lat: 24.8025, lng: 46.6650 },
     ],
   },
 }
@@ -183,20 +229,41 @@ const ZONE_GEOMETRY: Readonly<Record<string, ZoneGeometry>> = {
 /* ────────────────────────── the drawing surface ────────────────────────── */
 
 /**
- * The SVG user space. Its ratio is `aspect-4/3`, which the canvas element
- * carries, so `preserveAspectRatio="none"` introduces **no** distortion and no
- * letterbox — and an HTML marker positioned at `x / VIEW_W` of the box lands
- * exactly on the point the SVG drew. That equivalence is what lets the markers
- * be real `<button>`s in the document rather than SVG nodes with a click
- * handler and no focus ring.
+ * **The width the floating panel takes out of the canvas, in CSS pixels.**
  *
- * 4:3 rather than something wider because the six Riyadh districts span more
- * latitude than longitude: a wider frame spends the extra width on margin.
+ * 376 for the panel, 24 for its inset and 24 again so a district never sits
+ * directly under its own edge. Above the breakpoint the panel covers this much
+ * of the map, so fitting the districts to the FULL box centred half of them
+ * behind it; the fit reserves the strip instead. Below the breakpoint the panel
+ * is stacked under the map and nothing is reserved.
  */
-const VIEW_W = 300
-const VIEW_H = 225
-/** Room for a marker to sit over its zone without leaving the frame. */
-const VIEW_PAD = 26
+const PANEL_RESERVE_PX = 424
+
+/**
+ * Fit the zones' own geometry, through the shared projection.
+ *
+ * A `ZoneGeometry` is a ring plus a chosen anchor, and both have to be inside
+ * the frame — the anchor because the marker sits on it, the ring because a
+ * district clipped at the edge is a district drawn wrong. Flattening the two
+ * into one point list is the only zone-specific thing left here; everything
+ * below it is `components/map`, which Live Dispatch fits the same way.
+ */
+function fitProjection(
+  geometries: readonly ZoneGeometry[],
+  viewH: number,
+  /** View units the floating panel covers, on the inline-end of the canvas. */
+  reserve: number,
+  /** Which end that is — the panel follows the document's direction. */
+  rtl: boolean,
+  view: MapView,
+): Projection {
+  const points: GeoPoint[] = []
+  for (const geometry of geometries) {
+    for (const vertex of geometry.path) points.push(vertex)
+    points.push({ lat: geometry.lat, lng: geometry.lng })
+  }
+  return fitPoints(points, { viewH, reserveEnd: reserve, rtl, view })
+}
 
 /**
  * The smallest vertical gap, in view units, between two marker chips that also
@@ -207,67 +274,6 @@ const VIEW_PAD = 26
 const LABEL_MIN_GAP = 13
 /** Chips wider apart than this cannot collide, so they are never displaced. */
 const LABEL_MIN_SPREAD = 58
-
-/** Web Mercator's y, in the same units as longitude. Latitude alone is not linear. */
-function mercatorY(lat: number): number {
-  const clamped = Math.min(Math.max(lat, -85), 85)
-  return (
-    (180 / Math.PI) * Math.log(Math.tan(Math.PI / 4 + (clamped * Math.PI) / 360))
-  )
-}
-
-interface Projection {
-  point: (lat: number, lng: number) => { x: number; y: number }
-  /**
-   * The same linear map, as its parameters, for anything that has to agree
-   * with it rather than call it.
-   *
-   * `Basemap` needs to INVERT this — it turns the view box's corners back into
-   * a geographic window in order to work out which tiles cover it — and a
-   * second copy of the arithmetic in that file is a second place for the map
-   * and its basemap to disagree about where a district is. Handing over the
-   * five numbers keeps one derivation.
-   */
-  params: { minX: number; minY: number; scale: number; offsetX: number; offsetY: number }
-}
-
-/**
- * Fit every drawn point into the view box, **uniformly**. A non-uniform fit
- * would fill the frame better and would be a lie about the shape of a district.
- */
-function fitProjection(geometries: readonly ZoneGeometry[]): Projection {
-  const xs: number[] = []
-  const ys: number[] = []
-  for (const geometry of geometries) {
-    for (const vertex of geometry.path) {
-      xs.push(vertex.lng)
-      ys.push(mercatorY(vertex.lat))
-    }
-    xs.push(geometry.lng)
-    ys.push(mercatorY(geometry.lat))
-  }
-
-  /* One zone, or none, still has to project to something finite. */
-  const minX = xs.length > 0 ? Math.min(...xs) : 0
-  const maxX = xs.length > 0 ? Math.max(...xs) : 1
-  const minY = ys.length > 0 ? Math.min(...ys) : 0
-  const maxY = ys.length > 0 ? Math.max(...ys) : 1
-  const spanX = maxX - minX || 1
-  const spanY = maxY - minY || 1
-
-  const scale = Math.min((VIEW_W - VIEW_PAD * 2) / spanX, (VIEW_H - VIEW_PAD * 2) / spanY)
-  const offsetX = (VIEW_W - spanX * scale) / 2
-  const offsetY = (VIEW_H - spanY * scale) / 2
-
-  return {
-    point: (lat, lng) => ({
-      x: offsetX + (lng - minX) * scale,
-      /* Screen y grows downward; north must stay up. */
-      y: VIEW_H - offsetY - (mercatorY(lat) - minY) * scale,
-    }),
-    params: { minX, minY, scale, offsetX, offsetY },
-  }
-}
 
 /**
  * Where each marker chip sits, after nudging the ones that would sit on top of
@@ -295,6 +301,7 @@ interface MarkerPlacement {
 function placeMarkers(
   zones: readonly Zone[],
   projection: Projection,
+  viewH: number,
 ): ReadonlyMap<string, MarkerPlacement> {
   const anchored = zones
     .map((zone) => {
@@ -322,7 +329,7 @@ function placeMarkers(
       anchorX: anchor.x,
       anchorY: anchor.y,
       labelX: anchor.x,
-      labelY: Math.min(labelY, VIEW_H - 4),
+      labelY: Math.min(labelY, viewH - 4),
       displaced: Math.abs(labelY - anchor.y) > 0.5,
     }
     placed.push(placement)
@@ -332,16 +339,50 @@ function placeMarkers(
   return byId
 }
 
+
 /* ──────────────────────────── the measure ──────────────────────────────── */
 
 /** The three readings the map can shade by. Each one the table also carries. */
 export type ZoneHeatMetric = 'ratio' | 'failure' | 'demand'
 
-const HEAT_METRICS: readonly ZoneHeatMetric[] = ['ratio', 'failure', 'demand']
+export const HEAT_METRICS: readonly ZoneHeatMetric[] = ['ratio', 'failure', 'demand']
 
-/** The lightest and darkest the ramp goes. Two numbers, so the ramp is one line. */
-const SHADE_FLOOR = 0.08
-const SHADE_CEILING = 0.62
+/**
+ * The lightest and darkest the ramp goes. Two numbers, so the ramp is one line.
+ *
+ * **There is no longer a switch that turns this off.** `Hide shading` was a
+ * control for a map whose shading was one green in varying alpha — dense enough
+ * over street tiles that an operator might genuinely want it out of the way.
+ * The fill is now a hue with a floor of 0.12 and a ceiling of 0.34: it names
+ * which districts are starved and it does not hide the streets under them.
+ * A toggle whose off state is strictly worse is a control with one real value.
+ */
+const SHADE_FLOOR = 0.12
+const SHADE_CEILING = 0.34
+
+/** The selected district, which is filled hard enough to find without hunting. */
+const SHADE_SELECTED = 0.42
+
+/**
+ * **Whether the district is the bad news, which is a HUE and not a step of the
+ * ramp.**
+ *
+ * The map shaded one green in varying alpha, so a zone with seven requests per
+ * captain and a zone with one differed only by how dark they were — and alpha
+ * over a street map is the least readable channel there is. The reference
+ * splits the two apart: the fill's alpha says *how much of the chosen measure*,
+ * and the fill's HUE says *is this zone starved*, red above the line and green
+ * below it.
+ *
+ * `Zone.starved` is that line and it is already the domain's own, so no
+ * threshold is invented here — it is the same flag the strip counts, the same
+ * flag the marker dot draws, and the same flag the accessible name says in
+ * words. That is also why the hue holds for all three measures: it answers a
+ * question about the zone, not about the measure on the switch.
+ */
+function isHot(zone: Zone): boolean {
+  return zone.starved || zone.demandSupplyRatio === null
+}
 
 /**
  * `0`–`1` for the chosen measure, used as the fill's alpha.
@@ -458,17 +499,16 @@ export function ZonesMapView({
   t,
 }: ZonesMapViewProps) {
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
+  /* **The measure lives with the list it orders.** It spent a version on the
+     dark band beside the board's title, which is where the reference draws it;
+     the owner moved it into the panel, above the rows it ranks, and that is the
+     better home for it — the tabs, the eyebrow that names the sort and the
+     column of numbers they order are then one object rather than a control at
+     one end of the screen acting on a list at the other. */
   const [metric, setMetric] = useState<ZoneHeatMetric>('ratio')
-  const [shaded, setShaded] = useState(true)
-  const [query, setQuery] = useState('')
 
   const mapped = useMemo(() => zones.filter((zone) => zone.id in ZONE_GEOMETRY), [zones])
   const unmapped = useMemo(() => zones.filter((zone) => !(zone.id in ZONE_GEOMETRY)), [zones])
-
-  const projection = useMemo(
-    () => fitProjection(mapped.map((zone) => ZONE_GEOMETRY[zone.id]).filter(isGeometry)),
-    [mapped],
-  )
 
   /**
    * **Computed over every zone, not over the mapped ones and not over the
@@ -485,18 +525,24 @@ export function ZonesMapView({
     [zones],
   )
 
-  const matches = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (needle === '') return zones
-    return zones.filter(
-      (zone) =>
-        zone.name.toLowerCase().includes(needle) || zone.city.toLowerCase().includes(needle),
-    )
-  }, [zones, query])
+  /* **The panel opens on the worst zone rather than on nothing.**
+     The rows arrive worst-first, so `mapped[0]` is the district with the
+     highest demand-to-supply ratio — the one the board exists to surface, and
+     the one the reference shows selected when the screen loads. An operator
+     who lands here and sees `Pick a zone` has to do a click to reach the
+     information they came for, and the click has no wrong answer.
+
+     **Derived, not seeded into state.** A `useState(mapped[0]?.id)` would
+     freeze the initial row and keep pointing at a zone that had dropped out of
+     the filtered set. This falls back only while nothing is chosen, so an
+     explicit selection still wins and a `null` here still means an empty set —
+     which is what keeps `Inspector`'s no-selection state reachable rather than
+     dead. */
+  const effectiveZoneId = selectedZoneId ?? mapped[0]?.id ?? null
 
   const selected = useMemo(
-    () => zones.find((zone) => zone.id === selectedZoneId) ?? null,
-    [zones, selectedZoneId],
+    () => zones.find((zone) => zone.id === effectiveZoneId) ?? null,
+    [zones, effectiveZoneId],
   )
 
   /* ── loading ─────────────────────────────────────────────────────────── */
@@ -537,54 +583,86 @@ export function ZonesMapView({
 
   /* ── content ─────────────────────────────────────────────────────────── */
   return (
-    <section aria-labelledby="zones-map-heading" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="zones-map-heading" className="text-sm font-semibold text-foreground">
-          {t('zones.map.heading')}
-        </h2>
-        <MetricToolbar
-          metric={metric}
-          onMetric={setMetric}
-          shaded={shaded}
-          onShaded={setShaded}
-          t={t}
-        />
-      </div>
+    /* **The map is the screen and it takes the screen.** It used to be a
+       card in the page block sharing a row with a 320px aside: at 1440 that
+       left the canvas ~660px, and the districts of a city were being read in a
+       box a third the width of the console. The reference gives the map the
+       whole content region and floats the inspector ON it, which is what every
+       map product does and what the owner asked for.
 
-      <div className="flex min-w-0 flex-col gap-3 wide:flex-row">
+       `relative` here, `absolute` on the panel — no negative margins. The
+       region is full-bleed because `ZonesScreen` renders this in
+       `SingleColumnPage`'s `bleed` slot, beside the band and the strip; see
+       that prop for why a bleed is a sibling of the measure rather than an
+       escape from it. */
+    /* `flex-1` so the map takes whatever height the console has left after the
+       band and the strip. It used to be a declared 760px — the reference's own
+       number — which left a band of dead ground under the legend on anything
+       taller than a laptop and clipped the panel on anything shorter. */
+    <section
+      aria-labelledby="zones-map-heading"
+      className="relative flex min-h-0 flex-1 flex-col"
+    >
+      <h2 id="zones-map-heading" className="sr-only">
+        {t('zones.map.heading')}
+      </h2>
+
+      {/* **Floating, not stacked, and only where there is room for both.**
+          Above the breakpoint the panel sits over the map's inline-end with the
+          measure switch opposite it, exactly as the reference draws them.
+          Below it the two float over nothing — a 358px phone has no map left
+          once a 320px panel is on it — so the whole thing falls back to the
+          stack it was: switch, map, panel, in source order. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         <MapCanvas
           zones={mapped}
           unmapped={unmapped}
-          projection={projection}
           metric={metric}
-          shaded={shaded}
           peaks={peaks}
-          selectedZoneId={selectedZoneId}
+          selectedZoneId={effectiveZoneId}
           onSelect={setSelectedZoneId}
           language={language}
           t={t}
         />
 
-        <aside className="flex w-full shrink-0 flex-col gap-3 wide:w-80">
-          <Inspector
-            zone={selected}
-            canWrite={canWrite}
-            onSteer={onSteer}
-            onQueueRecruitment={onQueueRecruitment}
-            language={language}
-            t={t}
-          />
+        {/* **ONE panel, not two stacked cards.** The reference draws a single
+            box floating on the map: the selected zone at the top, a rule, and
+            the scrollable list of all of them under it. Two cards with a gap
+            between them showed a stripe of map through the middle of what is
+            one object, and gave the operator two shadows to read as two
+            different kinds of thing.
+
+            `divide-y` is safe here where it was not on the KPI strip: this
+            divides on the BLOCK axis, which does not mirror. */}
+        <aside className="flex w-full shrink-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-2 wide:absolute wide:inset-y-6 wide:end-6 wide:z-10 wide:w-94">
+          {/* **The selection keeps its height; the LIST is what scrolls.**
+              The panel is `inset-y` above the breakpoint, so it has a fixed
+              height and something inside it has to give. Without `shrink-0`
+              flexbox took it out of the selection block — which clipped the
+              sentence and both actions, the two things an operator came to the
+              panel to use — and left the list at full height. */}
+          <div className="shrink-0">
+            <Inspector
+              zone={selected}
+              canWrite={canWrite}
+              onSteer={onSteer}
+              onQueueRecruitment={onQueueRecruitment}
+              language={language}
+              t={t}
+            />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <ZoneList
-            zones={matches}
-            query={query}
-            onQuery={setQuery}
+            zones={zones}
             metric={metric}
+            onMetric={setMetric}
             peaks={peaks}
-            selectedZoneId={selectedZoneId}
+            selectedZoneId={effectiveZoneId}
             onSelect={setSelectedZoneId}
             language={language}
             t={t}
           />
+          </div>
         </aside>
       </div>
     </section>
@@ -598,71 +676,13 @@ function isGeometry(value: ZoneGeometry | undefined): value is ZoneGeometry {
 
 /* ─────────────────────────────── toolbar ───────────────────────────────── */
 
-/**
- * Three measures and a shading switch, as real `<button>`s with `aria-pressed`
- * — the same anatomy the strip's tile toggles use one level up, so the two read
- * as one system.
- */
-function MetricToolbar({
-  metric,
-  onMetric,
-  shaded,
-  onShaded,
-  t,
-}: {
-  metric: ZoneHeatMetric
-  onMetric: (next: ZoneHeatMetric) => void
-  shaded: boolean
-  onShaded: (next: boolean) => void
-  t: Translate
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span id="zones-map-metric-label" className="text-xs text-muted-foreground">
-        {t('zones.map.metric.label')}
-      </span>
-      <div
-        role="group"
-        aria-labelledby="zones-map-metric-label"
-        className="flex items-center gap-1 rounded-lg border border-border bg-muted p-0.5"
-      >
-        {HEAT_METRICS.map((each) => (
-          <button
-            key={each}
-            type="button"
-            aria-pressed={metric === each}
-            onClick={() => onMetric(each)}
-            className={cn(
-              'rounded-md px-2 py-1 text-2xs font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              metric === each
-                ? 'bg-card text-foreground shadow-1'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {t(`zones.map.metric.${each}`)}
-          </button>
-        ))}
-      </div>
-      {/* An ACTION, not a toggle, and deliberately so: `aria-pressed` beside a
-          label that already names the next action reads as "Hide shading,
-          pressed", which is one negation too many to parse at a glance. The
-          label carries the whole state. */}
-      <Button variant="secondary" size="xs" onClick={() => onShaded(!shaded)}>
-        {shaded ? t('zones.map.shading.on') : t('zones.map.shading.off')}
-      </Button>
-    </div>
-  )
-}
 
 /* ──────────────────────────────── canvas ───────────────────────────────── */
 
 function MapCanvas({
   zones,
   unmapped,
-  projection,
   metric,
-  shaded,
   peaks,
   selectedZoneId,
   onSelect,
@@ -671,9 +691,7 @@ function MapCanvas({
 }: {
   zones: readonly Zone[]
   unmapped: readonly Zone[]
-  projection: Projection
   metric: ZoneHeatMetric
-  shaded: boolean
   peaks: ZonePeaks
   selectedZoneId: string | null
   onSelect: (id: string) => void
@@ -681,10 +699,37 @@ function MapCanvas({
   t: Translate
 }) {
   const describedBy = 'zones-map-desc'
-  const placements = placeMarkers(zones, projection)
+
+  /* **The surface — measure, wheel, drag, zoom — is `components/map`'s now.**
+     Live Dispatch needs the identical behaviour under a different set of pins,
+     and 140 lines of pointer arithmetic in two files is how two maps of one
+     city start behaving differently on a trackpad. */
+  const viewport = useMapViewport()
+  const { boxRef, viewH, view, panning, zoomAt, canZoomIn, canZoomOut } = viewport
+
+  /* The panel floats over the map only above the breakpoint; below it, it is
+     stacked underneath and covers nothing. The reserve is measured against the
+     CANVAS's width rather than the window's, which is the width the panel
+     actually eats. */
+  const reserve = viewport.reserveFor(PANEL_RESERVE_PX)
+
+  const projection = useMemo(
+    () =>
+      fitProjection(
+        zones.map((zone) => ZONE_GEOMETRY[zone.id]).filter(isGeometry),
+        viewH,
+        reserve,
+        language === 'ar',
+        view,
+      ),
+    [zones, viewH, reserve, language, view],
+  )
+
+  const placements = placeMarkers(zones, projection, viewH)
+
 
   return (
-    <figure className="m-0 flex min-w-0 flex-1 flex-col gap-2">
+    <figure className="m-0 flex min-h-0 min-w-0 flex-1 flex-col gap-2 wide:gap-0">
       {/*
         **`dir="ltr"` is the map canvas, and only the map canvas.** `rtl.md`:
         the canvas, its markers and its compass do NOT mirror in Arabic — north
@@ -692,9 +737,27 @@ function MapCanvas({
         around it does. Pinning the direction here is what lets every utility in
         this file stay logical without the geometry flipping under Arabic.
       */}
+      {/* **No radius and no border above the breakpoint.** The canvas IS the
+          region now, so an 8px corner would be a card edge drawn against the
+          console's own edge. Below it the map is still a block on a padded
+          page and keeps the card treatment it had.
+
+          The aspect ratio holds on a phone, where the region's height is
+          whatever the content gives it; above the breakpoint the map takes a
+          declared height instead, because an aspect-ratio box on a full-width
+          region is 1,080px tall at 1440 and pushes everything under it off the
+          screen. */}
       <div
+        ref={boxRef}
         dir="ltr"
-        className="relative aspect-4/3 w-full overflow-hidden rounded-xl border border-border bg-card"
+        {...viewport.surfaceProps}
+        /* `touch-none` so a drag on a phone pans the map instead of scrolling
+           the page out from under it; the two zoom buttons are the touch route
+           in, because a pinch would fight the same gesture. */
+        className={cn(
+          'relative aspect-4/3 w-full touch-none overflow-hidden rounded-xl border border-border bg-card select-none wide:aspect-auto wide:min-h-152 wide:flex-1 wide:rounded-none wide:border-x-0',
+          view.k > 1 || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default',
+        )}
       >
         {/* **The basemap, under everything.** Real OpenStreetMap tiles in the
             same Web Mercator projection the polygons are fitted in, so the
@@ -706,10 +769,10 @@ function MapCanvas({
             choropleth this screen was before — a map with no streets, never a
             map with holes in it. See `Basemap` for the licence, which is why
             these are OSM's tiles and not Google's. */}
-        <Basemap viewW={VIEW_W} viewH={VIEW_H} projection={projection.params} />
+        <Basemap viewW={VIEW_W} viewH={viewH} projection={projection.params} />
 
         <svg
-          viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+          viewBox={`0 0 ${VIEW_W} ${viewH}`}
           preserveAspectRatio="none"
           role="img"
           aria-labelledby={describedBy}
@@ -732,22 +795,24 @@ function MapCanvas({
               })
               .join(' ')
             const selectedHere = selectedZoneId === zone.id
-            const alpha = shaded
-              ? SHADE_FLOOR + intensity(zone, metric, peaks) * (SHADE_CEILING - SHADE_FLOOR)
-              : SHADE_FLOOR
+            const hot = isHot(zone)
+            /* Two tokens, two dimensions — see `isHot`. Both are tokens the
+               product already owns: `--chart-series` is the series green and
+               `--destructive` is R5a's red, whose fourth permitted use is
+               exactly this, a map marker for a zone in trouble. */
+            const hue = hot ? 'var(--destructive)' : 'var(--chart-series)'
+            const alpha =
+              SHADE_FLOOR + intensity(zone, metric, peaks) * (SHADE_CEILING - SHADE_FLOOR)
 
             return (
               <polygon
                 key={zone.id}
                 points={points}
-                /* One token, one dimension. The ramp is `--chart-series`'s own
-                   alpha; no second hue is introduced and no new colour is
-                   invented for a step that has no token. */
-                fill="var(--chart-series)"
-                fillOpacity={alpha}
-                stroke={selectedHere ? 'var(--ring)' : 'var(--chart-series)'}
-                strokeOpacity={selectedHere ? 1 : 0.55}
-                strokeWidth={selectedHere ? 2 : 1}
+                fill={hue}
+                fillOpacity={selectedHere ? SHADE_SELECTED : alpha}
+                stroke={hue}
+                strokeOpacity={selectedHere ? 1 : 0.7}
+                strokeWidth={selectedHere ? 2.5 : 1.25}
                 strokeLinejoin="round"
                 /* Decoration: the button layer above is what an operator, a
                    keyboard and a screen reader all reach. */
@@ -778,7 +843,7 @@ function MapCanvas({
                   cx={placement.anchorX}
                   cy={placement.anchorY}
                   r={1.6}
-                  fill="var(--chart-series)"
+                  fill={isHot(zone) ? 'var(--destructive)' : 'var(--chart-series)'}
                 />
               </g>
             )
@@ -798,7 +863,7 @@ function MapCanvas({
                    case `token-audit` grants an inline style. */
                 style={{
                   insetInlineStart: `${(placement.labelX / VIEW_W) * 100}%`,
-                  insetBlockStart: `${(placement.labelY / VIEW_H) * 100}%`,
+                  insetBlockStart: `${(placement.labelY / viewH) * 100}%`,
                 }}
               >
                 <ZoneMarker
@@ -813,24 +878,46 @@ function MapCanvas({
             )
           })}
         </ul>
-      </div>
+        {/* The zoom, shared with Live Dispatch — see `MapZoomControls` for why
+            it is two real buttons rather than the wheel alone. */}
+        <MapZoomControls
+          zoomAt={zoomAt}
+          canZoomIn={canZoomIn}
+          canZoomOut={canZoomOut}
+          zoomInLabel={t('zones.map.zoom.in')}
+          zoomOutLabel={t('zones.map.zoom.out')}
+          /* **The side follows the panel, and it used not to.** The comment
+             this replaces claimed `start` was safe in both languages because
+             the canvas is pinned `dir="ltr"`. That is true of the CONTROL and
+             false of the PANEL: the panel is `end` in the document, which is
+             the canvas's left in Arabic — so in Arabic these two buttons sat
+             underneath it and the keyboard's only route to the zoom was
+             invisible. */
+          side={language === 'ar' ? 'end' : 'start'}
+        />
 
-      <figcaption className="flex flex-wrap items-center justify-between gap-2 text-2xs text-muted-foreground">
-        <ShadeLegend metric={metric} t={t} />
-        {/* The tile licence. It sits in the figure's caption rather than over
-            the map: OSM asks for the credit to be shown, not for it to be
-            burned into a corner of the image where it competes with a marker.
-            It is outside the `aria-hidden` basemap on purpose — a licence
-            notice a screen reader cannot reach is not a licence notice. */}
-        <BasemapAttribution />
-        {unmapped.length > 0 && (
-          <span>
-            {t('zones.map.unmapped', {
-              zones: unmapped.map((zone) => zone.name).join(', '),
-            })}
-          </span>
-        )}
-      </figcaption>
+        {/* **The caption rides ON the map now.** It used to be a row under it,
+            which cost the canvas 28px of the height it had just been given and
+            drew a band of ground the owner read — correctly — as leftover
+            space. A legend and a licence belong over the picture they are
+            about; both keep their own ground so neither is read against a
+            street. */}
+        <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-gradient-to-t from-card/90 to-transparent px-3 pt-6 pb-2 text-2xs text-muted-foreground [&_a]:pointer-events-auto">
+          <ShadeLegend metric={metric} t={t} />
+          {/* The tile licence. OSM asks for the credit to be shown; it is over
+              the map rather than under it because the map is now the region.
+              It is outside the `aria-hidden` basemap on purpose — a licence
+              notice a screen reader cannot reach is not a licence notice. */}
+          <BasemapAttribution />
+          {unmapped.length > 0 && (
+            <span>
+              {t('zones.map.unmapped', {
+                zones: unmapped.map((zone) => zone.name).join(', '),
+              })}
+            </span>
+          )}
+        </figcaption>
+      </div>
     </figure>
   )
 }
@@ -860,6 +947,7 @@ function ZoneMarker({
   t: Translate
 }) {
   const reading = readingFor(zone, metric, language, t)
+  const hot = isHot(zone)
   return (
     <button
       type="button"
@@ -867,7 +955,9 @@ function ZoneMarker({
       onClick={() => onSelect(zone.id)}
       className={cn(
         'flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap',
-        'rounded-md border bg-card px-1.5 py-1 text-2xs shadow-2 transition-colors',
+        /* A pill, not a tag: the reference draws these fully rounded and that
+           is what separates a label ON the map from a control beside it. */
+        'rounded-full border bg-card px-2.5 py-1 text-2xs shadow-2 transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected ? 'border-ring text-foreground' : 'border-border text-muted-foreground',
         'hover:border-border-strong hover:text-foreground',
@@ -875,13 +965,19 @@ function ZoneMarker({
     >
       <span
         aria-hidden="true"
-        className={cn(
-          'size-1.5 shrink-0 rounded-full',
-          zone.starved ? 'bg-destructive' : 'bg-chart-series',
-        )}
+        className={cn('size-1.5 shrink-0 rounded-full', hot ? 'bg-destructive' : 'bg-chart-series')}
       />
       <span className="font-medium text-foreground">{zone.name}</span>
-      <span className="tabular-nums">
+      {/* The reading wears the district's own hue, which is what makes the
+          chip readable at a glance without hunting for its polygon. §7.5 holds
+          in greyscale: the number itself is the reading, and the priority word
+          below is announced. */}
+      <span
+        className={cn(
+          'font-medium tabular-nums',
+          hot ? 'text-critical-foreground' : 'text-foreground',
+        )}
+      >
         <bdi>{reading}</bdi>
       </span>
       {/* The word behind the colour. Never rendered, always announced. */}
@@ -944,100 +1040,117 @@ function Inspector({
 }) {
   if (!zone) {
     return (
-      <Card className="gap-2">
-        <div className="flex flex-col gap-1 px-(--card-spacing)">
-          <h3 className="text-sm font-semibold text-foreground">
-            {t('zones.map.inspector.heading')}
-          </h3>
-          <p className="text-xs text-muted-foreground">{t('zones.map.inspector.none')}</p>
-        </div>
-      </Card>
+      <div className="flex flex-col gap-1.5 bg-muted/40 px-6 py-5">
+        <h3 className="text-base font-medium text-foreground">
+          {t('zones.map.inspector.heading')}
+        </h3>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t('zones.map.inspector.none')}
+        </p>
+      </div>
     )
   }
 
+  const hot = isHot(zone)
+
   return (
-    <Card className="gap-2">
-      <div className="flex flex-col gap-2 px-(--card-spacing)">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-col">
-            <h3 className="truncate text-sm font-semibold text-foreground">{zone.name}</h3>
-            <span className="text-xs text-muted-foreground">{zone.city}</span>
-          </div>
-          <StatusBadge tone={RECRUITMENT_PRIORITY_TONE[zone.recruitmentPriority]}>
-            {t(`zones.priority.${zone.recruitmentPriority}`)}
-          </StatusBadge>
+    /* **Tinted, and it is the one tint on the panel.** The selection and the
+       list are two different kinds of thing sharing one box: one is about the
+       zone the operator is looking at, the other is how they change it. A rule
+       alone said "next section"; the tint says "this half is the subject". It
+       is `--ev-bg2`, the ground the nav already uses, so no value is
+       introduced — and it is the only reason the block needs no heading.
+
+       A plain block rather than a `Card`: the `aside` around it already carries
+       the border, the radius and the one shadow, so a card here would draw a
+       second box inside the first. */
+    <div className="flex flex-col gap-5 bg-muted/40 px-6 py-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h3 className="truncate text-lg font-medium text-foreground">{zone.name}</h3>
+          <span className="text-xs text-muted-foreground">{zone.city}</span>
         </div>
-
-        <dl className="grid grid-cols-2 gap-2">
-          <Reading
-            label={t('zones.col.demandSupply')}
-            value={
-              zone.demandSupplyRatio === null
-                ? ABSENT
-                : formatRatio(zone.demandSupplyRatio, language)
-            }
-            detail={t('zones.demandSupply.detail', {
-              demand: formatCount(zone.demand, language),
-              supply: formatCount(zone.supply, language),
-            })}
-          />
-          <Reading
-            label={t('zones.col.failureRate')}
-            value={formatPercent(zone.failureRate, language)}
-            detail={t('zones.unserved.detail', {
-              count: formatCount(zone.failures30d, language),
-            })}
-          />
-        </dl>
-
-        {/* Colour carries nothing here: the recruitment target is a number and
-            a sentence. R5a has no fifth use to give a tinted panel. */}
-        {zone.captainsNeeded > 0 && (
-          <p className="text-xs text-foreground">
-            {t('zones.map.captainsNeeded', {
-              count: formatCount(zone.captainsNeeded, language),
-            })}
-          </p>
-        )}
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="xs"
-            className="flex-1"
-            disabled={!canWrite || zone.activeSteerOffer !== null}
-            title={
-              zone.activeSteerOffer !== null
-                ? t('zones.steer.blocked.live')
-                : canWrite
-                  ? undefined
-                  : t('zones.blocked.permission')
-            }
-            onClick={() => onSteer(zone)}
-          >
-            <Navigation aria-hidden="true" />
-            {t('zones.action.steer')}
-          </Button>
-          <Button
-            variant="secondary"
-            size="xs"
-            className="flex-1"
-            disabled={!canWrite || zone.recruitmentQueuedAt !== null}
-            title={
-              zone.recruitmentQueuedAt !== null
-                ? t('zones.recruit.blocked.queued')
-                : canWrite
-                  ? undefined
-                  : t('zones.blocked.permission')
-            }
-            onClick={() => onQueueRecruitment(zone)}
-          >
-            <Users aria-hidden="true" />
-            {t('zones.action.recruit')}
-          </Button>
-        </div>
+        <StatusBadge tone={RECRUITMENT_PRIORITY_TONE[zone.recruitmentPriority]}>
+          {t(`zones.priority.${zone.recruitmentPriority}`)}
+        </StatusBadge>
       </div>
-    </Card>
+
+      {/* **The ratio and the SHORTFALL, which is the pair the reference sets
+          and the pair the panel's two actions are about.** It used to be the
+          ratio and the failure rate — two symptoms, and the second of them is
+          already on the strip four inches above. The zone is starved *and this
+          many captains would clear it* is the whole argument for the
+          `Queue recruitment` button directly under it; a failure rate is not an
+          argument for anything the panel can do. */}
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
+        <Reading
+          label={t('zones.col.demandSupply')}
+          value={
+            zone.demandSupplyRatio === null ? ABSENT : formatRatio(zone.demandSupplyRatio, language)
+          }
+          tone={hot ? 'critical' : undefined}
+          detail={t('zones.demandSupply.detail', {
+            demand: formatCount(zone.demand, language),
+            supply: formatCount(zone.supply, language),
+          })}
+        />
+        <Reading
+          label={t('zones.tile.captainsNeeded')}
+          value={formatCount(zone.captainsNeeded, language)}
+          detail={t('zones.map.captainsNeeded.detail')}
+        />
+      </dl>
+
+      {/* Colour carries nothing here: the recruitment target is a number and
+          a sentence. R5a has no fifth use to give a tinted panel. */}
+      {zone.captainsNeeded > 0 && (
+        <p className="text-sm leading-relaxed text-foreground">
+          {t('zones.map.captainsNeeded', {
+            count: formatCount(zone.captainsNeeded, language),
+          })}
+        </p>
+      )}
+
+      {/* **One of the two is the primary, and it is the one the panel argues
+          for.** They were both secondary, which is two equal white plates under
+          a sentence that names a single next step (R3 / D-1). `Steer captains`
+          moves supply that already exists; `Queue recruitment` is what the
+          shortfall reading above asks for, so it takes the filled treatment the
+          reference gives it. No icons — the reference sets these as two words
+          each, and a glyph on a 176px button spends the width the label needs
+          in Arabic. */}
+      <div className="flex items-center gap-2.5">
+        <Button
+          variant="secondary"
+          className="flex-1"
+          disabled={!canWrite || zone.activeSteerOffer !== null}
+          title={
+            zone.activeSteerOffer !== null
+              ? t('zones.steer.blocked.live')
+              : canWrite
+                ? undefined
+                : t('zones.blocked.permission')
+          }
+          onClick={() => onSteer(zone)}
+        >
+          {t('zones.action.steer')}
+        </Button>
+        <Button
+          className="flex-1"
+          disabled={!canWrite || zone.recruitmentQueuedAt !== null}
+          title={
+            zone.recruitmentQueuedAt !== null
+              ? t('zones.recruit.blocked.queued')
+              : canWrite
+                ? undefined
+                : t('zones.blocked.permission')
+          }
+          onClick={() => onQueueRecruitment(zone)}
+        >
+          {t('zones.action.recruit')}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -1045,16 +1158,25 @@ function Reading({
   label,
   value,
   detail,
+  tone,
 }: {
   label: string
   value: string
   detail: string
+  tone?: 'critical'
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-2xs text-muted-foreground">{label}</dt>
-      <dd className="m-0 flex flex-col">
-        <span className="text-sm font-semibold tabular-nums text-foreground">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <dt className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="m-0 flex flex-col gap-1">
+        <span
+          className={cn(
+            'text-kpi font-medium tabular-nums',
+            tone === 'critical' ? 'text-critical-foreground' : 'text-foreground',
+          )}
+        >
           <bdi>{value}</bdi>
         </span>
         <span className="text-2xs text-muted-foreground">{detail}</span>
@@ -1066,16 +1188,21 @@ function Reading({
 /* ──────────────────────────────── the list ─────────────────────────────── */
 
 /**
- * The keyboard route to every zone on the canvas, and the search that narrows
- * it. **Filtered to zero is the second kind of empty** — one grey sentence with
- * a clear-search action, never the first-run treatment, which would claim no
- * zone exists.
+ * The keyboard route to every zone on the canvas, under one eyebrow naming what
+ * the rows are ordered by.
+ *
+ * **There is no search here any more.** The panel lists the zones one operator
+ * team runs — six in the seed, and a city's worth is still a list you scan
+ * rather than one you query — and a field above six rows spent the panel's most
+ * valuable band on a control nobody needed. The rows are also not the only way
+ * in: every district on the canvas beside this is its own button, and the table
+ * below the map has the search, the filters and the pagination for the case
+ * where the list really is long.
  */
 function ZoneList({
   zones,
-  query,
-  onQuery,
   metric,
+  onMetric,
   peaks,
   selectedZoneId,
   onSelect,
@@ -1083,9 +1210,8 @@ function ZoneList({
   t,
 }: {
   zones: readonly Zone[]
-  query: string
-  onQuery: (next: string) => void
   metric: ZoneHeatMetric
+  onMetric: (next: ZoneHeatMetric) => void
   peaks: ZonePeaks
   selectedZoneId: string | null
   onSelect: (id: string) => void
@@ -1093,74 +1219,80 @@ function ZoneList({
   t: Translate
 }) {
   return (
-    /* **The card sizes to its list.** It used to claim the residual height of
-       the aside, and the aside is stretched to the map canvas beside it — a box
-       whose height is an aspect ratio of the window width. So the taller the
-       window, the more empty card there was under a list that was ALSO capped,
-       and the six zones scrolled inside a scrollport with dead space beneath
-       it. Measured at 1440 x 900 before: card 478px tall, list 384px, list
-       content 392px — a scrollbar to reveal 8 pixels. Nothing here wants the
-       residual; the cap below is the only height rule this list needs. */
-    <Card className="gap-2">
-      <div className="flex flex-col gap-2 px-(--card-spacing)">
-        <h3 id="zones-map-list-heading" className="text-sm font-semibold text-foreground">
-          {t('zones.map.list.heading')}
-        </h3>
+    <div className="flex flex-col py-3">
+      {/* **The eyebrow says the ORDER, not just the noun.** `Zones` named the
+          rows, which the rows already do. The list is sorted worst-first by the
+          measure on the band, and a reader who does not know that reads the
+          first row as an example rather than as the answer. */}
+      <span
+        id="zones-map-list-heading"
+        className="px-6 text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+      >
+        {t('zones.map.list.heading')}
+      </span>
 
-        <div className="relative">
-          <Search
-            aria-hidden="true"
-            /* `top` has no logical counterpart and nothing to mirror — the
-               inline axis is `start-2`, which does. */
-            className="pointer-events-none absolute top-1/2 start-2 size-3.5 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            value={query}
-            onChange={(event) => onQuery(event.target.value)}
-            aria-label={t('zones.map.search')}
-            placeholder={t('zones.map.search')}
-            className="ps-7"
-          />
-        </div>
+      {/* **The measure, under the label of the thing it measures.**
+          `Tabs`' `line` variant is the product's own underlined tab, so this is
+          not a second tab language invented for one screen — it is the same
+          control the rest of the console uses, at the one place where switching
+          it changes what both the list and the map beside it are about.
 
-        {zones.length === 0 ? (
-          <EmptyState
-            kind="no-match"
-            card={false}
-            message={t('zones.map.noMatch')}
-            action={{ label: t('zones.map.noMatch.action'), onClick: () => onQuery('') }}
-          />
-        ) : (
-          /* **Sizes to content, up to an honest cap.** The cap is 28rem — seven
-             rows at the 64px pitch a row measures — chosen so the six zones the
-             seed carries, and any list an operator can hold in their head, do
-             not scroll at all. Beyond seven it scrolls, which is the point of a
-             cap: this list is a picker beside a map, not a second index. */
-          <ul
-            role="list"
-            aria-labelledby="zones-map-list-heading"
-            className="m-0 flex max-h-112 list-none flex-col gap-1 overflow-y-auto p-0"
-          >
-            {zones.map((zone) => (
-              <li key={zone.id}>
-                <ZoneListRow
-                  zone={zone}
-                  metric={metric}
-                  peaks={peaks}
-                  selected={selectedZoneId === zone.id}
-                  onSelect={onSelect}
-                  language={language}
-                  t={t}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </Card>
+          `Tabs` without `TabsContent`: there is no panel to swap, because the
+          panel is the map and the rows underneath, which never unmount. The
+          primitive drops the dangling `aria-controls` when no content is
+          registered, which is exactly this case. */}
+      <Tabs
+        value={metric}
+        onValueChange={(next) => onMetric(next as ZoneHeatMetric)}
+        className="gap-0 px-6 pt-2 pb-3"
+      >
+        <TabsList variant="line" className="h-auto w-full justify-start gap-4 p-0">
+          {HEAT_METRICS.map((each) => (
+            <TabsTrigger
+              key={each}
+              value={each}
+              className="h-auto flex-none px-0 pb-1.5 text-xs capitalize"
+            >
+              {t(`zones.map.metric.${each}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <ul
+        role="list"
+        aria-labelledby="zones-map-list-heading"
+        className="m-0 flex list-none flex-col p-0"
+      >
+        {zones.map((zone) => (
+          <li key={zone.id}>
+            <ZoneListRow
+              zone={zone}
+              metric={metric}
+              peaks={peaks}
+              selected={selectedZoneId === zone.id}
+              onSelect={onSelect}
+              language={language}
+              t={t}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
+/**
+ * One row: the district's dot, its name and reading on one line, the bar under
+ * them, and the counts the reading came from under that.
+ *
+ * **Full-bleed with a marker on the inline-start edge, not a rounded plate.**
+ * The rows sit inside a floating panel that is itself a rounded box; a second
+ * radius per row drew six little cards inside one card, and the selected one
+ * read as a separate object rather than as the row that is currently on the
+ * map. The reference marks the selection with a 2px rule on the leading edge
+ * and a tint — which is also what makes it survive a screenshot in greyscale.
+ */
 function ZoneListRow({
   zone,
   metric,
@@ -1179,48 +1311,62 @@ function ZoneListRow({
   t: Translate
 }) {
   const share = barShare(zone, metric, peaks)
+  const hot = isHot(zone)
   return (
     <button
       type="button"
       aria-pressed={selected}
       onClick={() => onSelect(zone.id)}
       className={cn(
-        'flex w-full flex-col gap-1 rounded-lg border p-2 text-start transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        selected ? 'border-ring bg-muted' : 'border-transparent hover:bg-muted',
+        'flex w-full items-center gap-3.5 border-s-2 px-6 py-2.5 text-start transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        /* The edge is the DISTRICT'S hue, not the ink colour: the marker
+           beside it on the canvas, the dot at the row's head and this rule are
+           then one object seen three times. A near-black bar down the panel's
+           leading edge read as a scrollbar. */
+        selected
+          ? hot
+            ? 'border-s-destructive bg-muted'
+            : 'border-s-chart-series bg-muted'
+          : 'border-s-transparent hover:bg-muted/60',
       )}
     >
-      <span className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5">
+      <span
+        aria-hidden="true"
+        className={cn('size-1.5 shrink-0 rounded-full', hot ? 'bg-destructive' : 'bg-chart-series')}
+      />
+
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="truncate text-sm text-foreground">{zone.name}</span>
           <span
-            aria-hidden="true"
             className={cn(
-              'size-1.5 shrink-0 rounded-full',
-              zone.starved ? 'bg-destructive' : 'bg-chart-series',
+              'shrink-0 text-sm font-medium tabular-nums',
+              hot ? 'text-critical-foreground' : 'text-foreground',
             )}
+          >
+            <bdi>{readingFor(zone, metric, language, t)}</bdi>
+          </span>
+        </span>
+
+        {/* The same split the canvas draws, as a bar. `aria-hidden` because the
+            row already prints the number the bar draws. The track is the border
+            token rather than the muted one, so it stays visible under the
+            selected row's tint. */}
+        <span aria-hidden="true" className="block h-0.5 w-full overflow-hidden rounded-full bg-border">
+          <span
+            className={cn('block h-full rounded-full', hot ? 'bg-destructive' : 'bg-chart-series')}
+            /* Dynamic: a computed chart width. */
+            style={{ inlineSize: `${Math.round(share * 100)}%` }}
           />
-          <span className="truncate text-xs font-medium text-foreground">{zone.name}</span>
         </span>
-        <span className="shrink-0 text-xs tabular-nums text-foreground">
-          <bdi>{readingFor(zone, metric, language, t)}</bdi>
+
+        <span className="text-2xs text-muted-foreground">
+          {t('zones.demandSupply.detail', {
+            demand: formatCount(zone.demand, language),
+            supply: formatCount(zone.supply, language),
+          })}
         </span>
-      </span>
-
-      {/* The same ramp as the canvas, as a bar. `aria-hidden` because the row
-          already prints the number the bar draws. */}
-      <span aria-hidden="true" className="block h-1 w-full overflow-hidden rounded-full bg-muted">
-        <span
-          className="block h-full rounded-full bg-chart-series"
-          /* Dynamic: a computed chart width. */
-          style={{ inlineSize: `${Math.round(share * 100)}%` }}
-        />
-      </span>
-
-      <span className="text-2xs text-muted-foreground">
-        {t('zones.demandSupply.detail', {
-          demand: formatCount(zone.demand, language),
-          supply: formatCount(zone.supply, language),
-        })}
       </span>
     </button>
   )

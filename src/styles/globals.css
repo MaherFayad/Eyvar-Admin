@@ -805,6 +805,61 @@
   --ev-brand-field: #0c6944;
   --ev-brand-field-fg: #ffffff;
 
+  /* --- THE BOARD BAND, AND IT IS THE ONE SURFACE THAT DOES NOT INVERT. ----
+     Every metric board opens on a deep-green field carrying the board's name,
+     its one-line lede, the period it covers and its three lead numerals. It is
+     the same instrument --ev-brand-field is: a PANEL, not a control. So it
+     takes that token's ruling verbatim rather than re-deciding it — "the FIELD
+     keeps its weight in both themes" — and every value below is identical in
+     light and in dark. There is no second block for it further down this file
+     and that is deliberate: a band that inverted would be a light field filling
+     the top third of a dark console, which is the glare source the paragraph
+     above this one exists to refuse.
+
+     It holds in dark for the reason it holds in light: measured against the
+     content ground it sits on, #1e332a is 1.325 : 1 off --ev-bg (#14181e) and
+     1.845 : 1 off white, so in both themes it reads as a distinct field rather
+     than as the page.
+
+     WHAT EACH ONE CARRIES, WITH THE MEASUREMENT THAT LICENSED IT. Every ratio
+     below is against --ev-hero itself, which is the only ground any of them is
+     ever painted on:
+
+       --ev-hero-fg      #ffffff   13.44 : 1  AAA  the numeral and the title
+       --ev-hero-fg-2    #c8d1cc    8.61 : 1  AAA  the lede, and a numeral's
+                                                   context line
+       --ev-hero-fg-3    #9fada5    5.89 : 1  AA   the mono eyebrow above a
+                                                   numeral. It is a LABEL, so
+                                                   AA is the bar it must clear
+                                                   and it clears it -- this is
+                                                   not a --ev-text-3 analogue.
+       --ev-hero-up      #a3c0b0    7.52 : 1  AAA  a delta that is better
+       --ev-hero-down    #e3aaa3    6.75 : 1  AA   a delta that is worse
+
+     --ev-hero-up / --ev-hero-down ARE NOT R5a's RED AND GREEN AND DO NOT VOID
+     R4-5. R4-5 makes the delta CHIP on a tile neutral and R5a enumerates red's
+     four permitted uses. Neither is contradicted here, because on this band the
+     delta is not a chip and the hue is not the carrier: the caret and the
+     valence word travel with it exactly as they do on a tile (§7.5), and these
+     two values are what a caret PAINTED ON THIS GROUND has to be to stay
+     legible at all. --ev-red at #b42318 measures 1.79 : 1 on #1e332a, which is
+     invisible; that is the whole reason the pair exists.
+
+       --ev-hero-2     a control resting ON the band -- the period button.
+                       White on it measures 11.58 : 1.
+       --ev-hero-line  a hairline ON the band, dividing one lead numeral from
+                       the next. 1.44 : 1 off the band: structure, not text,
+                       and it is held to --ev-hairline's bar rather than to a
+                       text one. */
+  --ev-hero: #1e332a;
+  --ev-hero-2: #2a3d34;
+  --ev-hero-line: #3a4d43;
+  --ev-hero-fg: #ffffff;
+  --ev-hero-fg-2: #c8d1cc;
+  --ev-hero-fg-3: #9fada5;
+  --ev-hero-up: #a3c0b0;
+  --ev-hero-down: #e3aaa3;
+
   /* --- THE SUCCESS / PRIMARY HUE COLLISION, RESOLVED. ---------------------
      Doc 13 §1.4 left this open for the owner: "this succeeded" must not read
      as "this is the primary action". Measured before the fix:
@@ -1605,6 +1660,12 @@
      at 36px is 36.4px; 40 would leave 1.8px of leading a side and 44 leaves
      3.8, which is the same headroom 36 gives 28. */
   --text-kpi-lead--line-height: 44px;
+  /* The same +4 line box the two rungs above take, and for the one reason
+     given there: the SIZE does not lift (every digit run sets in Inter in both
+     languages) but the LINE BOX must, for Naskh's 1.70em font box on the word
+     beside the numeral. */
+  --text-band--line-height: 44px;
+  --text-kpi-hero--line-height: 48px;
 
   /* ── LETTER-SPACING IS A LATIN DEVICE, AND IT IS NEUTRALISED HERE. ───────
      Arabic is a CURSIVE script: `letter-spacing` inserts gaps between joined
@@ -2035,6 +2096,19 @@
      an Eyvar surface, not one of the library's roles. */
   --color-brand-field: var(--ev-brand-field);
   --color-brand-field-foreground: var(--ev-brand-field-fg);
+
+  /* The board band, mapped straight from layer 1 for --color-brand-field's
+     reason: it is an Eyvar surface and there is no shadcn role it belongs in.
+     It does not pass through layer 2 because it has no light/dark pair to
+     resolve -- see the derivation beside --ev-hero. */
+  --color-hero: var(--ev-hero);
+  --color-hero-2: var(--ev-hero-2);
+  --color-hero-line: var(--ev-hero-line);
+  --color-hero-foreground: var(--ev-hero-fg);
+  --color-hero-muted: var(--ev-hero-fg-2);
+  --color-hero-label: var(--ev-hero-fg-3);
+  --color-hero-up: var(--ev-hero-up);
+  --color-hero-down: var(--ev-hero-down);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -2738,6 +2812,30 @@
   --text-kpi-lead: 36px;
   --text-kpi-lead--line-height: 40px;
 
+  /* THE BAND'S TWO SIZES. Both exist only on --ev-hero and nowhere else.
+
+     --text-band is the board's NAME, which on this layout is the page's h1 and
+     sits on the band rather than above it. 30 is one step past --text-xl (24)
+     and is the largest type in the product; it is licensed by the ground it
+     sits on, where a 24px title beside a 40px numeral loses the argument about
+     which of the two names the page.
+
+     --text-kpi-hero is the LEAD NUMERAL on the band -- the +4 step past
+     --text-kpi-lead (36), taken for the same reason that one is a step past
+     --text-kpi (28). Three sizes of numeral is one more than §H4 permits on a
+     single surface and this is not that: --text-kpi-hero is the band's, and
+     --text-kpi is the page's, and no surface in the product carries both a
+     36 and a 40. --text-kpi-lead keeps its consumers on boards that render no
+     band. */
+  --text-band: 30px; /* NOT `--text-hero`: `--color-hero` already generates a
+                        `.text-hero` COLOUR rule, and a second declaration of
+                        the same class name in the `--text-*` namespace makes
+                        `text-hero` mean two properties at once. Tailwind emits
+                        the colour and drops the size, silently. */
+  --text-band--line-height: 40px;
+  --text-kpi-hero: 40px;
+  --text-kpi-hero--line-height: 44px;
+
   /* R-5, amended by the match audit. **INTER** FIRST in both languages: it
      has no Arabic glyphs, so Arabic characters fall through to Naskh per
      character, while Latin text and every numeral run stay in Inter — which is
@@ -2780,6 +2878,28 @@
   body {
     @apply bg-background text-foreground text-sm;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* **AC-19, enforced one level above the element that declares it.**
+     `AppLayout`'s frame is `h-screen … overflow-hidden` and its contract is
+     that *the frame never scrolls; each region does*. It was true of the frame
+     and false of the page around it: measured on `/operations/overview` at
+     1440 x 900, `documentElement.scrollHeight` was **1329** against a 900px
+     viewport, so the window painted its own scrollbar beside the content
+     region's — two bars, one of which moved nothing an operator wanted.
+
+     Scoped by `:has()` to the frame rather than written flat, because the app
+     is not the only thing this stylesheet dresses: `AuthCard` is `min-h-screen`
+     and lives OUTSIDE the frame, and a signed-out page taller than the window
+     must still scroll. The rule applies exactly where the contract does.
+
+     `hidden` rather than `clip`: overflow on the root PROPAGATES to the
+     viewport, and only `hidden` makes the viewport refuse to scroll there —
+     `clip` was measured still leaving `window.scrollY` reachable at 429. */
+  html:has([data-app-frame]),
+  body:has([data-app-frame]) {
+    height: 100%;
+    overflow: hidden;
   }
 
   /* §7.2 / D20. `outline: none` with no replacement is a defect, so the

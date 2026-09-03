@@ -2927,6 +2927,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * check the board against itself.
      */
     key: 'management.overview.quickRideRevenue',
+    windowTotal: 'sum',
     subTabId: 'management-overview',
     unit: 'money',
     currency: 'SAR',
@@ -2947,6 +2948,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * this one.
      */
     key: 'management.overview.subscriptionRevenue',
+    windowTotal: 'sum',
     subTabId: 'management-overview',
     unit: 'money',
     currency: 'SAR',
@@ -2967,6 +2969,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * missing board-level period, and that finding is still open.
      */
     key: 'management.performance.onTimePickup',
+    windowTotal: 'last',
     subTabId: 'management-performance',
     unit: 'percent',
     currency: null,
@@ -3011,6 +3014,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
   {
     /** **No comparison period yet** — the first week of a metric's life. */
     key: 'management.growth.newSubscriptions',
+    windowTotal: 'sum',
     subTabId: 'management-growth',
     unit: 'count',
     currency: null,
@@ -3041,6 +3045,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * rule. "Unserved" is also the truer word.
      */
     key: 'management.zones.unservedRequests',
+    windowTotal: 'sum',
     subTabId: 'management-zones',
     unit: 'count',
     currency: null,
@@ -3101,6 +3106,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * for frontend-engineer, not something to fix inside their file.
      */
     key: 'management.risk.openSignals',
+    windowTotal: 'last',
     subTabId: 'management-risk',
     unit: 'count',
     currency: null,
@@ -3118,6 +3124,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
     /* Volume context for the six backlog tiles above it: eleven breaches on a
        record day and eleven on a quiet one are different problems. */
     key: 'operations.overview.completedTrips',
+    windowTotal: 'sum',
     subTabId: 'operations-overview',
     unit: 'count',
     currency: null,
@@ -3144,6 +3151,7 @@ export const timeSeriesFixtures: TimeSeries[] = [
      * events landed, that is an incident.
      */
     key: 'admin.overview.activityEvents',
+    windowTotal: 'sum',
     subTabId: 'admin-overview',
     unit: 'count',
     currency: null,

@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 /**
  * **The screen behind all eight metric-tile sub-tabs** — `DESIGN.md` §3.7,
  * `specs/00-foundation.md` §3.4.
@@ -74,25 +73,31 @@ import { useMemo } from 'react'
  *               like the tiles it replaces. Never a centred spinner.
  */
 
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { getMetricBoard } from '@/data/clients'
-import type { BoardNotice, MetricBoard, SubTabRoute } from '@/data/types'
-import { formatDate, type Language, type Translate } from '@/lib'
+import type { MetricPeriod } from './periods'
+import type { BoardNotice, IsoDate, Metric, MetricBoard, SubTabRoute } from '@/data/types'
+import type { Language, Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 import {
+  BoardHero,
+  BoardHeroItem,
+  BoardHeroRow,
   BreakdownList,
+  Chapter,
+  ChapterFigures,
+  chaptersOf,
+  chapterSummary,
   ChartCard,
-  MetricLeadRow,
   MetricTile,
   MetricTileItem,
-  MetricTileRow,
 } from '@/components/metrics'
 import { Banner } from '@/components/Banner'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
 import { withFallback } from '../operations/localCopy'
@@ -248,71 +253,151 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
     () => withFallback(shell.language.t, OVERVIEW_EN),
     [shell.language.t],
   )
-  const { dir, language } = shell.language
+  const { language } = shell.language
 
-  const board = useAsync<MetricBoard>((signal) => getMetricBoard(row.subTabId, signal), {
-    /* `subTabId` picks the board and is the fetcher's only input, so each
-       metrics sub-tab keys separately - switching between two and back paints
-       the second board's own rows instead of a skeleton. */
-    deps: [row.subTabId],
+  /**
+   * **The window the operator asked for, or `null` for the board's own.**
+   *
+   * `null` is the load state and it is not the same as the preset that happens
+   * to match the seeded window: it means *I have not asked for a range*, so the
+   * read sends none and the board answers with whatever period its metrics
+   * declare. Pinning it to a resolved range on mount would freeze the board to
+   * a window that stops being right the day the data moves.
+   *
+   * **Reset by sub-tab.** A range chosen on Overview has no claim on Risk &
+   * Signals — the boards do not share a question — and carrying it across would
+   * silently filter a board the operator has just arrived on.
+   */
+  const [period, setPeriod] = useState<MetricPeriod | null>(null)
+  useEffect(() => setPeriod(null), [row.subTabId])
+
+  const from = period?.start ?? null
+  const to = period?.end ?? null
+
+  const board = useAsync<MetricBoard>(
+    (signal) =>
+      getMetricBoard(row.subTabId, from && to ? { from, to } : undefined, signal),
+    {
+    /* `subTabId` picks the board; `from`/`to` are the window it is asked for.
+       Each metrics sub-tab keys separately - switching between two and back
+       paints the second board's own rows instead of a skeleton - and a new
+       window re-reads rather than re-filtering what is already here, which is
+       what the backend will do. Two primitives rather than the object, because
+       a fresh `{from,to}` each render is a fresh dep every render. */
+    deps: [row.subTabId, from, to],
     cacheKey: 'metrics.board',
     isEmpty: isBoardEmpty,
   })
 
   const title = t(row.titleKey)
   const data = board.status === 'content' ? board.data : null
+  /* **The lede is keyed by sub-tab and resolved here rather than in the band**,
+     so a board with no lede in the dictionary renders the band without one
+     instead of printing a missing key across it. The membership test on
+     `OVERVIEW_EN` is what distinguishes "not written yet" from "written as the
+     empty string"; `t` then resolves it through the shell dictionary as
+     normal, so Arabic is not bypassed by the check. */
+  const ledeKey = `overview.lede.${row.subTabId}`
+  const lede = ledeKey in OVERVIEW_EN ? t(ledeKey) : null
 
-  const header = (
-    <PageHeader
-      title={title}
-      /* §8's metadata line — the board's computation instant, and `null` in
-         every state but `content`, because a page that has not loaded cannot
-         honestly claim a freshness. */
-      meta={
-        data
-          ? t('overview.asOf', {
-              time: formatDate(data.asOf, { style: 'day-month-time', language }),
-            })
-          : null
-      }
-      /* §8 slot 1 — no back arrow. A board is an index route (§2.2). */
-      t={t}
-      dir={dir}
-    />
+  /* **NO `PageHeader`.** The board's `<h1>`, its freshness line and §8's slot
+     order all moved onto `BoardHero` — the same content in the same sequence,
+     in a different box. There is still exactly one `h1` on the page and it
+     still names the board, which is the contract §8 was protecting.
+
+     The band renders in EVERY state, not only `content`. A board that is
+     loading, that failed, or that has never had a number is still the same
+     board, and stripping its identity down to a bare skeleton is what made
+     those three states read as three different screens. What it does NOT carry
+     in them is an `asOf` or a period — a page that has not loaded cannot
+     honestly claim a freshness — so both are `null` and the band closes up
+     around them. */
+  const bandOnly = (
+    <BoardHero title={title} lede={lede} asOf={null} period={null} t={t} language={language} />
   )
 
   return (
-    <SingleColumnPage header={header}>
+    /* `flow` rather than the default `fill`. The board is now a long page —
+       a band, then chapters, then a chart row — and `fill` claims the content
+       region's height for the body, which is the right shape for a screen whose
+       body IS a bounded table and the wrong one for a page that scrolls. */
+    <SingleColumnPage
+      body="flow"
+      /* **The band is the page's bleed and is rendered in every state**, so a
+         board that is loading, that failed and that has content are three
+         states of one screen rather than three screens. What varies is what
+         goes UNDER it. */
+      bleed={
+        data ? (
+          <BoardHero
+            title={title}
+            lede={lede}
+            asOf={data.asOf}
+            period={period ?? boardPeriod(data.metrics)}
+            onPeriod={setPeriod}
+            t={t}
+            language={language}
+          >
+            <BoardHeroRow>
+              {data.metrics
+                .filter((metric) => metric.rank === 'lead')
+                .map((metric) => (
+                  <BoardHeroItem key={metric.key}>
+                    <MetricTile
+                      metric={metric}
+                      boardAsOf={data.asOf}
+                      surface="band"
+                      t={t}
+                      language={language}
+                    />
+                  </BoardHeroItem>
+                ))}
+            </BoardHeroRow>
+          </BoardHero>
+        ) : (
+          bandOnly
+        )
+      }
+    >
       {board.status === 'loading' ? (
-        /* AC-35 — the tile-shaped skeleton, not a spinner. */
-        <LoadingSkeleton pattern="P5" label={t('overview.loading', { resource: title })} />
+        <div className="flex flex-col gap-12">
+          {/* AC-35 — the figure-shaped skeleton, not a spinner. */}
+          <LoadingSkeleton pattern="P5" label={t('overview.loading', { resource: title })} />
+        </div>
       ) : board.status === 'error' ? (
-        /* AC-24 — the SCREEN fails, the shell does not. `Try again` re-runs the
-           same request; it is the one primary on a page showing nothing else. */
-        <ErrorState
-          scope="page"
-          heading={t('state.pageError.title', { resource: title })}
-          message={t('state.pageError.body')}
-          action={{ label: t('state.pageError.action'), onClick: board.refetch }}
-        />
+        <div className="flex flex-col gap-12">
+          {/* AC-24 — the SCREEN fails, the shell does not. `Try again` re-runs
+              the same request; it is the one primary on a page showing nothing
+              else. */}
+          <ErrorState
+            scope="page"
+            heading={t('state.pageError.title', { resource: title })}
+            message={t('state.pageError.body')}
+            action={{ label: t('state.pageError.action'), onClick: board.refetch }}
+          />
+        </div>
       ) : board.status === 'empty' || !data ? (
-        /* R8 / AC-38 — whole page, zero records ever: the illustrated state,
-           with a heading naming what the section is FOR rather than what is
-           missing from it. */
-        <EmptyState
-          kind="first-run"
-          heading={t('overview.empty.heading')}
-          body={t('overview.empty.body')}
-          actions={[
-            { label: t('overview.empty.action'), onClick: () => navigate('/operations/quick-rides') },
-          ]}
-        />
+        <div className="flex flex-col gap-12">
+          {/* R8 / AC-38 — whole page, zero records ever: the illustrated state,
+              with a heading naming what the section is FOR rather than what is
+              missing from it. */}
+          <EmptyState
+            kind="first-run"
+            heading={t('overview.empty.heading')}
+            body={t('overview.empty.body')}
+            actions={[
+              {
+                label: t('overview.empty.action'),
+                onClick: () => navigate('/operations/quick-rides'),
+              },
+            ]}
+          />
+        </div>
       ) : (
         <BoardContent board={data} t={t} language={language} navigate={navigate} />
       )}
     </SingleColumnPage>
   )
-
 }
 
 /**
@@ -343,39 +428,35 @@ function BoardContent({
   const notice = selectNotice(loaded.notices)
   /* **Partitioned rather than sorted, and the difference matters.** A sort by
      rank would put the leads first and leave them in one list — so the two
-     ranks would share a grid, and the lead row's three-across geometry could
-     not exist. Two arrays is what lets them be two grids.
+     ranks would share a grid, and the band could not exist at all. Two arrays
+     is what lets them be two surfaces, and the leads' half is filtered by
+     `MetricBoardScreen` where the band is rendered.
 
      Order is the CLIENT's: `getMetricBoard` sorts the leads into
      `BOARD_LEADS`' declared sequence before this screen sees them, so the
      board's first number is its first number. `filter` preserves whatever
      arrives, which is why the sort has to happen there and not here — a screen
      that re-derived it would be a second copy of the ranking. */
-  const leads = loaded.metrics.filter((metric) => metric.rank === 'lead')
   const supporting = loaded.metrics.filter((metric) => metric.rank !== 'lead')
+  const chapters = chaptersOf(supporting)
 
   return (
-    /* **The gap between SECTIONS, and it is deliberately double the gap between
-       tiles.** It was 16px against the tile row's own 12px — a ratio of 1.33,
-       so moving from the last tile to the chart board that summarises something
-       else read as barely wider than moving between two neighbouring tiles.
-       Grouping was being done by borders alone.
+    /* 48px between the band and the first chapter, and between chapters. It is
+       four times the 12px the bordered grid used between tiles, and it has to
+       be: with no card edges, SPACE is the only thing that says one chapter has
+       ended and another has begun. The rule in each chapter heading closes the
+       previous one; this is what opens the next. */
+    <div className="flex flex-col gap-12">
 
-       24px restores the rhythm the tile already keeps internally: 6px within a
-       tile to 12px between tiles is exactly 2.0, and 12px between tiles to 24px
-       between sections is the same step again. The two-column grid INSIDE a
-       section stays at 16px, because a chart and its breakdown are siblings
-       under one heading, not a change of subject. */
-    <div className="flex flex-col gap-6">
-      {/* R4-4 §4.3 — the page banner slot, **between the page header and the
-          tile grid**, holding exactly one notice however many the board
-          declared. §11.4 puts a banner first in the content block, spanning
-          the full width, above every card, and that is this position.
+      {/* R4-4 §4.3 — the page banner slot, holding exactly one notice however
+          many the board declared. §11.4 puts a banner first in the content
+          block, above every card; **the band is this page's header, so first in
+          the content block is directly beneath it** and that is here.
 
           No dismiss: every one of these names a STANDING condition — an
-          unacknowledged SOS, a statutory deadline already passed — and
-          §11.4 reserves dismissal for a completed action. An operator must
-          not be able to dismiss a breached statutory clock. */}
+          unacknowledged SOS, a statutory deadline already passed — and §11.4
+          reserves dismissal for a completed action. An operator must not be
+          able to dismiss a breached statutory clock. */}
       {notice && (
         <Banner
           banner={{
@@ -386,12 +467,12 @@ function BoardContent({
               ? [
                   {
                     label: t(notice.action.labelKey),
-                    /* `Banner`'s action is a button, so the route is
-                       followed with the router rather than by an anchor.
-                       `Banner` is not this role's file and its shape is
-                       §11.4's; raised in the handoff, because a destination
-                       an operator cannot open in a new tab is a small loss
-                       worth someone deciding on rather than absorbing. */
+                    /* `Banner`'s action is a button, so the route is followed
+                       with the router rather than by an anchor. `Banner` is not
+                       this role's file and its shape is §11.4's; raised in the
+                       handoff, because a destination an operator cannot open in
+                       a new tab is a small loss worth someone deciding on
+                       rather than absorbing. */
                     onClick: () => navigate(notice.action?.route ?? ''),
                   },
                 ]
@@ -400,137 +481,180 @@ function BoardContent({
         />
       )}
 
-      {/* **§H4 — the board's own ranking, rendered.** Leads first, three
-          across at `--text-kpi-lead`; everything else four across beneath
-          them. The partition is `Metric.rank`, which `BOARD_LEADS` declares
-          and the client stamps — this screen renders a decision, it does not
-          take one, exactly as it renders rather than chooses which tiles a
-          board carries.
+      {/* **The supporting figures, in chapters.** Nine equal cells in one grid
+          said nothing about what any of them had to do with each other;
+          `Metric.category` already knew, and this is that field rendered. The
+          chapters and their order are the client's — see `chaptersOf`.
 
-          **Both rows are guarded independently and neither is assumed.** A
-          board that names no leads renders only the supporting grid and looks
-          exactly as it did before this change; a board whose every metric is a
-          lead renders only the lead row. Neither is a state the fixtures
-          reach — `board.test.ts` requires three leads on every board that has
-          metrics at all — but a screen that renders an empty `<ul>` on a
-          fixture defect hides the defect behind a gap, and a screen that
-          crashes on one takes a console down for an editorial mistake. */}
-      {leads.length > 0 && (
-        <MetricLeadRow>
-          {leads.map((metric) => (
-            <MetricTileItem key={metric.key}>
-              <MetricTile metric={metric} boardAsOf={loaded.asOf} t={t} language={language} />
-            </MetricTileItem>
-          ))}
-        </MetricLeadRow>
-      )}
+          Guarded, and not because the fixtures reach the empty case: a board
+          whose every metric is a lead renders the band and nothing under it,
+          and a `<ul>` with no children inside a heading with a rule would print
+          a chapter about nothing. */}
+      {chapters.map((chapter) => (
+        <Chapter
+          key={chapter.category}
+          category={chapter.category}
+          summary={chapterSummary(chapter.metrics, t, language)}
+          t={t}
+        >
+          <ChapterFigures>
+            {chapter.metrics.map((metric) => (
+              <MetricTileItem key={metric.key}>
+                <MetricTile
+                  metric={metric}
+                  boardAsOf={loaded.asOf}
+                  t={t}
+                  language={language}
+                />
+              </MetricTileItem>
+            ))}
+          </ChapterFigures>
+        </Chapter>
+      ))}
 
-      {supporting.length > 0 && (
-        <MetricTileRow count={supporting.length}>
-          {supporting.map((metric) => (
-            <MetricTileItem key={metric.key}>
-              <MetricTile
-                metric={metric}
-                boardAsOf={loaded.asOf}
-                t={t}
-                language={language}
-              />
-            </MetricTileItem>
-          ))}
-        </MetricTileRow>
-      )}
+      {/* **ONE section grid, two columns, charts then breakdowns, each at half
+          the content width** — R4-4 §4.5, R5-8.
 
-      {/* **R4-4 §4.5 — ONE section grid, two columns, charts then
-          breakdowns, each at half the content width.** R5-8.
-
-          The order is `05-metrics-content.md`'s and is unchanged: tiles,
-          then charts, then breakdowns, on all eight boards. A tile is a
-          summary, a chart is its shape over time, and a list is which rows
-          are responsible; reading them in the other order is reading the
-          answer before the question. What changes is that charts and
-          breakdowns are no longer two grids that each decide their own
-          width — they are **one grid**, so a lone breakdown lands in a half
-          beside a chart instead of taking the page.
+          The order is `05-metrics-content.md`'s and is unchanged: figures, then
+          charts, then breakdowns, on all nine boards. A figure is a summary, a
+          chart is its shape over time, and a list is which rows are
+          responsible; reading them in the other order is reading the answer
+          before the question.
 
           **The defect this closes (V-3).** Measured at 1440 on
           `management/zones`: `Riyadh` at x = 368 and its `6` at x = 1326 —
           **958px of white between a name and its number**. Five of the six
           boards that carry a breakdown carry exactly one, so five of six
-          rendered that. The reference never gives a breakdown a row of its
-          own: `Online store conversion rate` sits in the same three-across
-          row as two charts, sharing their top and bottom edges, at ~200px
-          label-to-value.
-
-          **Halves, not thirds, and Eyvar's own content is the reason.**
-          Content width at 1440 is ~990px; thirded that is ~320px, and an
-          Eyvar row carries a label, a sub-label that now holds a phrase
-          (R5-5) and a numeric column — at 13px an entity name truncates at
-          ~320px, and V-4 proves truncation is destructive in Arabic. Half is
-          ~490px, which is what `management/risk` already rendered and what
-          measured at ~140px label-to-value. The product contained its own
-          worked counter-example and it read correctly.
+          rendered that. Halves, not thirds, and Eyvar's own content is the
+          reason: an Eyvar row carries a label, a sub-label holding a phrase
+          (R5-5) and a numeric column, and at 13px an entity name truncates at
+          ~320px — which V-4 proves is destructive in Arabic.
 
           **The trailing cell of an odd row is page ground.** Not filled, not
-          stretched, not padded — no placeholder and no spanning last child.
-          That is not V-6: a tile grid is a row of LIKE objects, so a gap in
-          it reads as a missing sibling, and a section grid is a two-column
-          layout, where a short last row is simply how one ends.
+          stretched, not padded. A short last row is simply how a two-column
+          layout ends.
 
-          **Arabic:** the grid mirrors and the first cell is at the
-          inline-start. Nothing here depends on anything being on the left. */}
-      {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (() => {
-        const count = loaded.charts.length + loaded.breakdowns.length
-        const colsClass =
-          count === 3
-            ? 'grid-cols-3'
-            : count === 2
-              ? 'grid-cols-2'
-              : count >= 4
-                ? 'grid-cols-2'
-                : 'grid-cols-1'
-        return (
-          /* **`items-start` REMOVED — the cards in a row align.** With it, each
-             card sized to its own content, so Risk & Signals rendered a chart
-             ending at y=1060 beside a breakdown ending at y=1160 and another at
-             y=1100: three cards in one row with three different bottom edges and
-             no line for the eye to come back along. A row of cards under one
-             heading is one object read across, and the stretch default is what
-             makes it look like one. The cards' own content stays top-aligned —
-             each is already a flex column — so nothing inside them moves.
+          **It takes the same heading a chapter takes**, from the same component,
+          so the board has one heading anatomy and not two. The word is generic
+          because it has to be: the reference writes a per-screen title here
+          (*"Revenue by line"*, *"Punctuality and cancellations"*) and that is a
+          sentence about a chart set which varies by board and goes stale when
+          one is added. What is true of this section on every board is what it
+          IS — the evidence under the figures — and each panel states its own
+          subject in its own title directly beneath. */}
+      {/* **Charts and ranked lists are TWO sections, not one grid.**
+          They shared a grid, and the arithmetic that split it counted panels
+          rather than kinds: Risk & Signals has one chart and two lists, which
+          made a three-across row and gave the chart a third of the width — a
+          plot narrower than the list beside it, on the board where the plot is
+          the only shape over time. The reference sets them as two rows with a
+          rule between, and each row is columned by ITS OWN count.
 
-             **`compact:grid-cols-1` — on a phone the charts stack.** Two or
-             three chart cards share a 358px column below 768px, which is ~115px
-             of plotting area each: a chart too narrow to read beside two more
-             just like it. The tile grids have carried this rule since they were
-             written; this grid never did, so it was the one place the compact
-             layout still divided the width instead of the height. */
-          <div className={cn('grid gap-4 compact:grid-cols-1', colsClass)}>
-            {loaded.charts.map((chart) => (
+          The order is `05-metrics-content.md`'s and is unchanged: figures, then
+          charts, then lists. A figure is a summary, a chart is its shape over
+          time, and a list is which rows are responsible; reading them in the
+          other order is reading the answer before the question.
+
+          **A lone panel takes the width**, which is the reference's rule and
+          not a fallback: one chart across the measure is a plot you can read a
+          day off, and one list across the measure is what Performance draws.
+          V-3's finding — 958px between a name and its number — was about a
+          BREAKDOWN alone in a half, and it is answered by the row gap and the
+          numeric column, both of which this keeps. */}
+      {/* **The detail is ONE row of panels, not two sections with a heading
+          between them.**
+
+          It was a `Behind the numbers` heading over a grid of charts, then a
+          second grid of lists. On a board with one chart and one list — which
+          is Operations Overview, and five of the nine — that drew each of them
+          across the full measure, one under the other, with 958px between a
+          queue's name and its number. The reference sets the pair SIDE BY SIDE
+          under a single rule, which is also what makes the plot and the ranking
+          readable as two views of the same week rather than as two sections.
+
+          The heading is gone with them. `Behind the numbers` named a section
+          that no longer exists: the rule above already says the figures have
+          ended, and a heading that adds nothing but a line of type is a line of
+          type. §8's slots are unaffected — this was never one of them.
+
+          Charts come before lists and that order is `05-metrics-content.md`'s,
+          unchanged: a figure is a summary, a chart is its shape over time, and
+          a list is which rows are responsible. **A lone panel takes the
+          width**; two or more flow two-up. */}
+      {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (
+        <section
+          className={cn(
+            /* 72px between panels, which is the reference's gutter and is what
+               a chromeless panel needs: with no card edges, space is the only
+               thing separating one plot's axis labels from the next panel's
+               title. */
+            'grid gap-x-18 gap-y-12 border-t border-border pt-12 compact:grid-cols-1',
+            loaded.charts.length + loaded.breakdowns.length === 1
+              ? 'grid-cols-1'
+              : 'grid-cols-2',
+          )}
+        >
+          {loaded.charts.map((chart) => {
+            /* ONE lookup, feeding both the headline and the report link. The
+               metric with the same key is the surface that owns the number, by
+               definition; `null` when the board charts something it does not
+               also tile, which is legal — `TimeSeries.windowTotal` is how those
+               eight state their own. */
+            const owner = loaded.metrics.find((metric) => metric.key === chart.key) ?? null
+            return (
               <ChartCard
                 key={chart.key}
                 series={chart}
-                /* §3.7's report icon. `TimeSeries` carries no route, so it
-                   borrows the one from the metric with the same key — which is
-                   the surface that owns the number, by definition. `null` when
-                   the series has no tile beside it. */
-                reportHref={
-                  loaded.metrics.find((metric) => metric.key === chart.key)?.drilldownRoute ?? null
-                }
+                headline={owner}
+                frame="plain"
+                reportHref={owner?.drilldownRoute ?? null}
                 t={t}
                 language={language}
               />
-            ))}
-            {loaded.breakdowns.map((breakdown) => (
-              <BreakdownList
-                key={breakdown.key}
-                breakdown={breakdown}
-                t={t}
-                language={language}
-              />
-            ))}
-          </div>
-        )
-      })()}
+            )
+          })}
+
+          {loaded.breakdowns.map((breakdown) => (
+            <BreakdownList
+              key={breakdown.key}
+              breakdown={breakdown}
+              frame="plain"
+              t={t}
+              language={language}
+            />
+          ))}
+        </section>
+      )}
     </div>
   )
+}
+
+/**
+ * **The window the board's numbers cover**, for the band's period pill.
+ *
+ * A board has no period of its own — `MetricBoard` carries an `asOf` and
+ * nothing else — so it is read off the metrics, which each carry the window
+ * they were computed over. The first metric that has one wins, and the metrics
+ * arrive leads-first, so the pill states the window of the number the board is
+ * most about.
+ *
+ * `null` when no metric has one, and that is the common case rather than an
+ * edge: a point-in-time metric has `periodStart` and `periodEnd` both `null` by
+ * design — *"active captains right now is not a period, and giving it one
+ * invites a date-range control that would do nothing"* — so a board made
+ * entirely of them shows no pill at all. Which is correct: it is not filtered
+ * to a range, and a pill would say it was.
+ *
+ * **It does NOT check that the metrics agree.** They are computed by one
+ * server pass over one window and `clients/metrics.ts` is where that would be
+ * enforced; a screen that re-verified it would be asserting a data invariant
+ * from the outside, in a place that could only respond by rendering nothing.
+ */
+function boardPeriod(metrics: readonly Metric[]): { start: IsoDate; end: IsoDate } | null {
+  for (const metric of metrics) {
+    if (metric.periodStart !== null && metric.periodEnd !== null) {
+      return { start: metric.periodStart, end: metric.periodEnd }
+    }
+  }
+  return null
 }

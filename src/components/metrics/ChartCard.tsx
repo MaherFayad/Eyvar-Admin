@@ -63,8 +63,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { PLAIN_FRAME, PLAIN_FRAME_SLOT } from './Chapter'
 import { formatDate, type Language, type Translate } from '@/lib'
-import type { SeriesWindow, TimeSeries } from '@/data/types'
+import type { Metric, SeriesWindow, TimeSeries } from '@/data/types'
+import { seriesWindowTotal, splitMetricValue } from './formatMetric'
 
 export interface ChartCardProps {
   series: TimeSeries
@@ -74,23 +77,121 @@ export interface ChartCardProps {
    * is the surface that owns the number, by definition.
    */
   reportHref: string | null
+  /**
+   * Whether the panel draws its own box. `card` is the default and is what
+   * every surface outside a metric board wants; `plain` drops the border, the
+   * fill, the shadow and the padding, and is what a board passes — see
+   * `PLAIN_FRAME`.
+   */
+  frame?: 'card' | 'plain'
+  /**
+   * **The number this chart is the shape of**, stated above the plot.
+   *
+   * The board passes the `Metric` with the same key — the figure that owns this
+   * measure, by definition, and the one whose `drilldownRoute` already fills
+   * `reportHref`. So the headline and the plot cannot disagree: they are one
+   * number and its history, not two reads of a series.
+   *
+   * `null` when the series has no figure beside it, which is a real case — a
+   * board may chart something it does not tile. The header then closes up and
+   * the plot is the whole panel, exactly as it was before.
+   *
+   * **It is NOT derived from the series' own points.** A sum, a mean and a last
+   * reading are three different numbers and only the measure knows which of
+   * them it is; a chart that computed one would be a second definition of the
+   * metric living in a component.
+   */
+  headline?: Metric | null
   t: Translate
   language: Language
 }
 
-export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
+export function ChartCard({
+  series,
+  reportHref,
+  frame = 'card',
+  headline = null,
+  t,
+  language,
+}: ChartCardProps) {
   const title = t(`chart.${series.key}`)
+  const plain = frame === 'plain'
+  const seriesTotal = seriesWindowTotal(series)
 
   return (
-    <Card className="min-w-0">
-      <CardHeader>
+    /* **The panel stretches and the PLOT takes the slack.** The two detail
+       panels share a grid row, so the row is as tall as the taller of them —
+       the ranked list — and a fixed-height plot left the chart's column ending
+       160px short with page ground under it. The header and the legend keep
+       their heights; everything left over goes to the plot, which is the one
+       part of a chart that is better for being taller. */
+    <Card className={cn('min-w-0', plain && cn(PLAIN_FRAME, 'h-full'))}>
+      <CardHeader className={cn(plain && PLAIN_FRAME_SLOT)}>
         <CardTitle>{title}</CardTitle>
-        {/* Fact 2 — this card's own computation time, not the board's. */}
-        <CardDescription>
-          {t('overview.asOf', {
-            time: formatDate(series.asOf, { style: 'day-month-time', language }),
-          })}
-        </CardDescription>
+        {/* **The headline, between the title and the plot.** A chart's title
+            says what is being drawn and its plot says how it moved; without
+            this line the panel never states WHERE THE MEASURE ENDED UP, which
+            is the first thing a reader wants and the reason the reference puts
+            a 28px numeral here. It is the same number as the figure of the same
+            key further up the page, from the same object, so a reader who
+            checks the two against each other finds them equal.
+
+            `data-slot` and no hand-written tabular class, for the reason
+            `MetricTile` gives: the guarantee is pinned in `@layer base` on the
+            slot, and restating it at a call site free to omit it is the
+            mechanism §H4 declines to rely on. `<bdi>` because a money value is
+            two LTR runs the UBA reorders in an Arabic line. */}
+        {!headline && seriesTotal !== null && (
+          /* **The series' own window total**, for the eight charts no metric on
+             their board owns. Same slot, same size and same anatomy as a
+             metric headline — a reader must not have to know which of the two
+             produced the number in front of them. See `TimeSeries.windowTotal`
+             for why the rule is declared and the number derived. */
+          <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
+              <bdi>{splitMetricValue(seriesTotal, series.unit, series.currency, language).value}</bdi>
+            </span>
+            {splitMetricValue(seriesTotal, series.unit, series.currency, language).unit && (
+              <span className="text-2xs text-muted-foreground">
+                {splitMetricValue(seriesTotal, series.unit, series.currency, language).unit}
+              </span>
+            )}
+          </span>
+        )}
+        {headline && (
+          <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
+              <bdi>
+                {splitMetricValue(headline.value, headline.unit, headline.currency, language).value}
+              </bdi>
+            </span>
+            {splitMetricValue(headline.value, headline.unit, headline.currency, language).unit && (
+              <span className="text-2xs text-muted-foreground">
+                {splitMetricValue(headline.value, headline.unit, headline.currency, language).unit}
+              </span>
+            )}
+            {headline.value !== null && headline.caption && (
+              <span className="text-2xs text-muted-foreground">
+                <bdi>{t(headline.caption)}</bdi>
+              </span>
+            )}
+          </span>
+        )}
+        {/* Fact 2 — this card's own computation time, not the board's.
+            **Not on a board.** The band at the top of the page already states
+            when the board was computed, in the same words; repeating it under
+            every chart title put a grey timestamp between the panel's number
+            and its plot, which is the one place a reader's eye travels. A
+            chart whose own `asOf` differs from the board's is the case this
+            line exists for, and `MetricTile` already draws exactly that on the
+            figure that owns the measure. */}
+        {!plain && (
+          <CardDescription>
+            {t('overview.asOf', {
+              time: formatDate(series.asOf, { style: 'day-month-time', language }),
+            })}
+          </CardDescription>
+        )}
         {reportHref && (
           /* `CardAction`, not a bare div carrying the slot attribute: the slot
              is what switches `CardHeader` to `1fr auto`, and the COMPONENT also
@@ -117,7 +218,7 @@ export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
         )}
       </CardHeader>
 
-      <CardContent className="min-w-0">
+      <CardContent className={cn('min-w-0', plain && cn(PLAIN_FRAME_SLOT, 'flex min-h-0 flex-1 flex-col'))}>
         {/* **P1-8 — the panel-level boundary.** A plot is the pane most likely
             to throw on its own: recharts reaches into point shapes at render
             time, and a series that is legal to the type checker can still be
@@ -129,12 +230,22 @@ export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
             `card={false}` because this already sits inside `Card`; the state
             owns the body, not a second box. */}
         <ErrorBoundary scope="card" card={false} t={t} name={title}>
-          <Body series={series} t={t} language={language} />
+          <Body series={series} fill={plain} t={t} language={language} />
         </ErrorBoundary>
       </CardContent>
 
       {series.current.points.length > 0 && (
-        <CardFooter className="flex-wrap gap-x-4 gap-y-1.5">
+        <CardFooter
+          className={cn(
+            'flex-wrap gap-x-4 gap-y-1.5',
+            /* The footer's rule goes with the box. It divided the legend from
+               the plot INSIDE a panel; with no panel it would be a hairline
+               floating across the page under a chart, which reads as a section
+               break rather than as part of the chart. The legend keeps its
+               block padding so it does not sit on the axis labels. */
+            plain && 'border-t-0 px-0 pt-1',
+          )}
+        >
           <Legend series={series} t={t} language={language} />
         </CardFooter>
       )}
@@ -144,10 +255,13 @@ export function ChartCard({ series, reportHref, t, language }: ChartCardProps) {
 
 function Body({
   series,
+  fill = false,
   t,
   language,
 }: {
   series: TimeSeries
+  /** Take the height the panel was given rather than a declared one. */
+  fill?: boolean
   t: Translate
   language: Language
 }) {
@@ -199,7 +313,7 @@ function Body({
   const allZero = points.every((point) => point.value === 0)
 
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className={cn('flex min-w-0 flex-col gap-2', fill && 'min-h-0 flex-1')}>
       {allZero && <p className="text-xs text-muted-foreground">{t('overview.allZero')}</p>}
       {gaps > 0 && (
         <p className="text-xs text-muted-foreground">
@@ -208,6 +322,7 @@ function Body({
       )}
       <TrendChart
         series={series}
+        fill={fill}
         t={t}
         language={language}
         description={t('overview.chart.description', {

@@ -76,13 +76,35 @@ function renderZones(path = '/management/zones') {
  * of two matches silently depends on DOM order, so it would go on passing if
  * the table stopped rendering the row entirely.
  */
-function zoneTable(): HTMLElement {
-  const header = screen.getAllByRole('columnheader', {
-    name: ZONES_EN['zones.col.zone'] as string,
-  })[0]
-  const table = header?.closest('table')
-  if (!table) throw new Error('No zone table on the page')
-  return table
+/**
+ * **The zone LIST, which is where the table's rows went.**
+ *
+ * The owner removed the index table from this board: a zone is a shape on a
+ * city, and a row in a grid is the one representation that cannot say where it
+ * is. Every zone is still on the page, listed with its ratio and its bar, in
+ * the panel floating on the map — so the tests below did not lose their subject
+ * and are retargeted rather than deleted.
+ *
+ * **What genuinely went with the table, said once here rather than implied by
+ * six edited assertions:** column sorting, the column picker, the filter menu
+ * and CSV export. Those are index-table affordances and there is no index
+ * table. The per-row action PAIR also went: the panel offers the two actions
+ * for the SELECTED zone, once, instead of six times down a column — which is
+ * the change the action test below now measures.
+ *
+ * Reached through the search field it owns rather than by tag, because the
+ * panel is a plain `<aside>` and matching on that would also match any other
+ * aside a later change adds to the screen.
+ */
+function zonePanel(): HTMLElement {
+  /* By tag, and it is the only `<aside>` this screen renders. Reaching it
+     through a control it contains — the search field — was the first attempt
+     and it is too clever: the field's accessible role depends on the input's
+     `type`, so the helper failed with a timeout that looked like the panel not
+     rendering at all rather than like a bad query. */
+  const panel = document.querySelector('aside')
+  if (!(panel instanceof HTMLElement)) throw new Error('No zone panel on the page')
+  return panel
 }
 
 /**
@@ -99,14 +121,21 @@ function zoneStrip(): HTMLElement {
   return strip
 }
 
-/** The strip and the tiles live above both surfaces and are not inside either. */
+/** The strip and the tiles live above the map and are not inside it. */
 async function zonesReady(): Promise<HTMLElement> {
-  await waitFor(() => expect(within(zoneTable()).getByText('Al Narjis')).toBeTruthy())
-  return zoneTable()
+  /* `getAllBy`, and the plural is the point: the panel opens on the worst zone,
+     so `Al Narjis` is in it TWICE — once as the selection's heading and once as
+     a row in the list beneath. A singular query throws "found multiple", which
+     is a failure that reads like the panel is broken rather than like the query
+     is too narrow. */
+  await waitFor(() =>
+    expect(within(zonePanel()).getAllByText('Al Narjis').length).toBeGreaterThan(0),
+  )
+  return zonePanel()
 }
 
-describe('R4-6b §6.6.4 — the strip derives from the table', () => {
-  it('the summary is exactly the summary of the rows the table shows', async () => {
+describe('R4-6b §6.6.4 — the strip derives from the zones it summarises', () => {
+  it('the summary is exactly the summary of the zones the client returns', async () => {
     const health = await getZoneHealth()
     const rows = await listZones({ pageSize: 100 })
     expect(health).toEqual(summariseZones(rows.items))
@@ -121,7 +150,7 @@ describe('R4-6b §6.6.4 — the strip derives from the table', () => {
     expect(health.worstDemandSupplyRatio).toBe(7)
   })
 
-  it('the nav badge is the same starved count the table’s first rows carry', async () => {
+  it('the nav badge is the same starved count the zones carry', async () => {
     const counts = await getNavCounts()
     const badge = counts.subTabs.find((each) => each.subTabId === 'management-zones')
     expect(badge?.count).toBe(starvedZoneCount())
@@ -154,34 +183,46 @@ describe('R4-6b §6.6.4 — the strip derives from the table', () => {
   })
 })
 
-describe('the table', () => {
-  it('is worst-first by failure rate, and the first row is a starved zone', async () => {
+describe('the zone list and the panel', () => {
+  it('is worst-first by failure rate, and the first zone is a starved one', async () => {
     const rows = await listZones({ pageSize: 100 })
     const rates = rows.items.map((zone) => zone.failureRate)
     expect([...rates].sort((a, b) => b - a)).toEqual(rates)
     expect(rows.items[0]?.starved).toBe(true)
   })
 
-  it('R4-6 §6.4 clause 2 — two row actions, both labelled and visible at rest', async () => {
+  /**
+   * **R4-6 §6.4 clause 2 survives the table's removal, and this is the shape it
+   * survives in.**
+   *
+   * The clause is that a row's actions are *direct, labelled and visible at
+   * rest* — never behind a kebab. It used to be measured as six Steer buttons
+   * and six Queue buttons down a table column. There is no column now, so the
+   * count changes from six to one: the panel offers both actions for the zone
+   * it has SELECTED, spelled out, with no menu to open.
+   *
+   * The count is deliberately exact rather than `toBeGreaterThan(0)`. One is
+   * the whole claim — two directs for one selection — and a screen that grew a
+   * second pair somewhere would be back to two surfaces offering the same
+   * action, which is the ambiguity the clause exists to prevent.
+   */
+  it('R4-6 §6.4 clause 2 — two actions on the selection, labelled and visible at rest', async () => {
     renderZones()
-    const table = await zonesReady()
+    const panel = await zonesReady()
 
-    /* Counted INSIDE the table. The map inspector offers the same two actions
-       for the zone it has selected, so an unscoped count asserts the sum of two
-       surfaces and would drift every time either changed. */
-    const steer = within(table).getAllByRole('button', {
+    const steer = within(panel).getAllByRole('button', {
       name: ZONES_EN['zones.action.steer'] as string,
     })
-    const recruit = within(table).getAllByRole('button', {
+    const recruit = within(panel).getAllByRole('button', {
       name: ZONES_EN['zones.action.recruit'] as string,
     })
-    expect(steer.length).toBe(6)
-    expect(recruit.length).toBe(6)
-    /* Not behind a kebab: there is no row-actions menu trigger on this table. */
-    expect(within(table).queryByText('⋯')).toBeNull()
+    expect(steer).toHaveLength(1)
+    expect(recruit).toHaveLength(1)
+    /* Not behind a kebab: there is no actions menu trigger on this panel. */
+    expect(within(panel).queryByText('⋯')).toBeNull()
   })
 
-  it('the five tiles render, and two of them are toggles that narrow the table', async () => {
+  it('the five tiles render, and two of them are toggles that narrow the zones', async () => {
     renderZones()
     await zonesReady()
 
@@ -197,10 +238,9 @@ describe('the table', () => {
       expect(screen.getAllByText(ZONES_EN[key] as string).length).toBeGreaterThan(0)
     }
 
-    /* R4-6 §6.4 clause 1 — a tile is a toggle, not an anchor. Exactly two of
-       the five correspond to a view the table can be narrowed to. */
-    /* Counted inside the strip. Exactly two of the five tiles correspond to a
-       view the table can be narrowed to; the other three are read-only. */
+    /* R4-6 §6.4 clause 1 — a tile is a toggle, not an anchor. Counted inside
+       the strip: exactly two of the five correspond to a view the zone set can
+       be narrowed to; the other three are read-only. */
     const toggles = within(zoneStrip())
       .getAllByRole('button')
       .filter((element) => element.getAttribute('aria-pressed') !== null)
@@ -224,14 +264,18 @@ describe('the cities table is gone, and what replaced it', () => {
    * `avgFailureRate` tile, and `Riyadh` is the secondary line of every table
    * row. The fourth — coverage — is now a clause in the meta line.
    */
-  it('renders no second table, and no card headed Cities', async () => {
+  it('renders NO table at all, and no card headed Cities', async () => {
     renderZones()
     await zonesReady()
 
     expect(screen.queryByRole('heading', { name: 'Cities' })).toBeNull()
-    /* The zone table is the only table on the page. The cities card was the
-       second `<table>` element and the reason `zoneTable()` had to index. */
-    expect(document.querySelectorAll('table')).toHaveLength(1)
+    /* **Zero, and it used to be one.** The cities card went first — it was the
+       second `<table>` and the reason the old helper had to index. The zone
+       table went with the redesign. The assertion is kept rather than deleted
+       because it is now the stronger claim: this board renders a map and a
+       panel, and a table reappearing on it would be a regression somebody
+       should have to argue for. */
+    expect(document.querySelectorAll('table')).toHaveLength(0)
   })
 
   it('states coverage as a count in the meta line, derived not typed', async () => {
@@ -258,9 +302,9 @@ describe('the cities table is gone, and what replaced it', () => {
   it('a zone with no captains still renders an em dash, never a fabricated number', async () => {
     useZeroSupplyZone()
     renderZones()
-    const table = await zonesReady()
+    const panel = await zonesReady()
 
-    expect(within(table).getAllByText(ABSENT).length).toBeGreaterThan(0)
+    expect(within(panel).getAllByText(ABSENT).length).toBeGreaterThan(0)
     expect(document.body.textContent).not.toMatch(/Infinity/)
     expect(document.body.textContent).not.toMatch(/NaN/)
   })

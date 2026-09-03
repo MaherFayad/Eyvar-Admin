@@ -9,14 +9,14 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **4777** |
-| Reachable from `EN` (what the shell renders) | 4590 |
-| Keys in `AR` | 4777 |
+| **Translatable keys, all dictionaries** | **4848** |
+| Reachable from `EN` (what the shell renders) | 4625 |
+| Keys in `AR` | 4848 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 187 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 223 |
 | Plural forms (`key#category`) inside `EN` | 29 |
 | `copy.ts` files | 30 |
-| Keys in a `copy.ts` the shell has NOT registered | 131 |
+| Keys in a `copy.ts` the shell has NOT registered | 167 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 
@@ -43,7 +43,7 @@ None left. Add the lint rule and delete this section.
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 264 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 248 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
-| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 191 |
+| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 225 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
@@ -58,7 +58,7 @@ None left. Add the lint rule and delete this section.
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
-| `src/screens/management/zones/copy.ts` | `ZONES_EN` | 63 |
+| `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |
 | `src/i18n/vocabulary/copy.ts` | `VOCABULARY_EN` | 47 |
@@ -77,7 +77,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
 | `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 92 | 91 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 42 | 40 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 78 | 76 |
 
 ## Screens with no `copy.ts`
 

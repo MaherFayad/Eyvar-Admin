@@ -79,7 +79,23 @@ export function RowCriticalMarker({ className }: { className?: string } = {}) {
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-y-0 -start-3 w-[3.5px] bg-destructive z-10",
+        "pointer-events-none absolute inset-y-0 w-[3.5px] bg-destructive z-10",
+        /* **The inset is declared by the ROW, not fixed here.**
+         *
+         * This span is absolutely positioned, so it resolves against the
+         * nearest positioned ancestor — and every screen renders it inside the
+         * identity cell, which is pinned, and a pinned cell is positioned. So
+         * the inset reaches the identity cell's edge, and that is the row's
+         * leading edge only while nothing sits ahead of it.
+         *
+         * A selection lane sits ahead of it on six screens, and there the
+         * marker drew a red rule down the middle of the row instead of its
+         * edge. `DataTable` sets the custom property below on rows where that
+         * lane exists, because the lane's width is a number only it holds.
+         *
+         * The fallback is the value this had before, so a marker rendered
+         * outside a table — or in a table with no selection — is unchanged. */
+        "[inset-inline-start:var(--ev-row-marker-start,-0.75rem)]",
         className
       )}
     />

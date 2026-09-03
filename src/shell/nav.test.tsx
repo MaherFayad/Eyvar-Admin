@@ -267,12 +267,42 @@ describe('ModuleRail — badges, AC-26 and AC-27', () => {
 /* ───────────────────────── the sub-tab column ───────────────────────── */
 
 describe('PageNav — AC-05, AC-19, AC-58', () => {
-  it('lists exactly the workspace’s sub-tabs, in order', () => {
+  it('lists exactly the workspace’s sub-tabs, and every one of them once', () => {
     renderColumn()
     const links = screen.getAllByRole('link')
-    expect(links.map((l) => l.textContent?.trim())).toEqual(
-      operationsRows.map((r) => EN[r.titleKey] as string),
+    /* **The SET, not the sequence.** Operations' ten rows are painted in three
+       groups now — see `NAV_GROUPS` — so route order and column order are two
+       different orders on this workspace, deliberately. What must not change is
+       that the column is neither missing a destination nor inventing one, which
+       is what AC-05 is about; the sequence is asserted separately below. */
+    expect([...links.map((l) => l.textContent?.trim())].sort()).toEqual(
+      [...operationsRows.map((r) => EN[r.titleKey] as string)].sort(),
     )
+    expect(links).toHaveLength(operationsRows.length)
+  })
+
+  it('paints Overview first, then the three groups, each behind its own rule', () => {
+    const { container } = renderColumn()
+    const names = screen.getAllByRole('link').map((l) => l.textContent?.trim())
+    expect(names).toEqual([
+      EN['subtab.operations.overview'],
+      /* subscriptions — the plans, the trips they buy, the accounts that buy
+         them in bulk */
+      EN['subtab.operations.subscriptions'],
+      EN['subtab.operations.subscriptionTrips'],
+      EN['subtab.operations.corporate'],
+      /* rides — a request, the ride, the captain sent to it, the cover */
+      EN['subtab.operations.requests'],
+      EN['subtab.operations.quickRides'],
+      EN['subtab.operations.dispatch'],
+      EN['subtab.operations.assurance'],
+      /* the desk */
+      EN['subtab.operations.myWork'],
+      EN['subtab.operations.people'],
+    ])
+    /* One under Overview and one before each group after the first: 3 rules for
+       3 groups. A fourth would mean an empty group had drawn its own. */
+    expect(container.querySelectorAll('[data-slot="separator"]')).toHaveLength(3)
   })
 
   it('shows the workspace’s FULL name as the heading (§3.1)', () => {

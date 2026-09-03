@@ -45,14 +45,15 @@
  *               like a collapse in demand."*
  */
 
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, ReferenceLine, XAxis, YAxis } from 'recharts'
+import { cn } from '@/lib/utils'
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import type { TimeSeries } from '@/data/types'
 import { formatSeriesValue } from './formatMetric'
 
@@ -62,6 +63,31 @@ const CHART_CONFIG = {
   comparison: { label: 'comparison', color: 'var(--chart-comparison)' },
 } satisfies ChartConfig
 
+/** Halalas to riyals. `formatMoney` states the same relation in its own file. */
+const HALALAS_PER_MAJOR = 100
+
+/**
+ * The next round number at or above `peak` — 1, 2 or 5 times a power of ten.
+ *
+ * It is what makes the scale read `75 / 50` instead of `66 / 33`. The ladder is
+ * the one every axis library uses and it is written out here rather than read
+ * back off Recharts, because the marks and the domain have to agree and only
+ * one of the two can be the source.
+ */
+function niceCeiling(peak: number): number {
+  if (!Number.isFinite(peak) || peak <= 0) return 0
+  const magnitude = 10 ** Math.floor(Math.log10(peak))
+  /* The 2.5 and the 7.5 are what put a peak of 66 on a 75 axis rather than a
+     100 one — a third of the plot spent on headroom is a third of the shape
+     not drawn. They are on the ladder every charting library carries for the
+     same reason. */
+  for (const step of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 10]) {
+    const candidate = step * magnitude
+    if (candidate >= peak) return candidate
+  }
+  return 10 * magnitude
+}
+
 interface Row {
   label: string
   current: number | null
@@ -70,13 +96,21 @@ interface Row {
 
 export interface TrendChartProps {
   series: TimeSeries
+  /**
+   * **Fill the box instead of declaring a height.** `h-48` is right for a chart
+   * in a card, whose card sizes to it. On a board the panel shares a grid row
+   * with a ranked list and the row is as tall as the list, so a declared height
+   * left the chart's column ending short with page ground under it — see
+   * `ChartCard`. A floor is kept so a two-row list cannot squash the plot.
+   */
+  fill?: boolean
   /** Names the plot for anyone who cannot see it (§7.5). Already translated. */
   description: string
   t: Translate
   language: Language
 }
 
-export function TrendChart({ series, description, t, language }: TrendChartProps) {
+export function TrendChart({ series, description, fill = false, t, language }: TrendChartProps) {
   /* The two windows are zipped by INDEX, not by date: a like-for-like previous
      period has different dates by definition, so joining on the date would drop
      every comparison point. The axis carries the CURRENT window's dates, which
@@ -89,11 +123,78 @@ export function TrendChart({ series, description, t, language }: TrendChartProps
 
   const tick = (value: number) => formatSeriesValue(value, series.unit, language)
 
+  /**
+   * **The scale, as two labelled rules inside the plot rather than a column of
+   * ticks beside it.**
+   *
+   * The y-axis was a 44px gutter carrying four labels, so on a 236px panel a
+   * fifth of the width was spent on the scale and the plot started an indent in
+   * from the title above it. The reference puts the scale ON the plot: two
+   * hairlines, each with its value set small above its own left end, and the
+   * area running to the panel's edge. What a reader takes off an axis is the
+   * order of magnitude, and two marks give that as well as four — while giving
+   * back the width the shape is drawn in.
+   *
+   * **Two, and they are the top and the half.** `niceMax` rounds the highest
+   * reading up to a round number so the labels are `75 / 50` rather than
+   * `66 / 33`; the zero line is the foot of the plot and is not drawn, because
+   * the area's own base already is it.
+   *
+   * The domain is pinned to `[0, niceMax]` for the same reason the marks are
+   * computed rather than read back: Recharts would otherwise choose its own
+   * maximum and the two would disagree about where the top line goes.
+   */
+  const readings = rows.flatMap((row) =>
+    [row.current, row.comparison].filter((value): value is number => value !== null),
+  )
+  const peak = readings.length > 0 ? Math.max(...readings) : 0
+  const niceMax = niceCeiling(peak)
+  /* **The second mark is two thirds of the top when two thirds is itself a
+     round number, and half otherwise.** Straight halving put a 75 axis's lower
+     line at `38`, which is not a number anybody reads off a scale; two thirds
+     of 75 is 50, which is the reference's own pair and the one a reader of a
+     0–75 axis expects. A 0–100 axis fails the test at 66.7 and falls back to
+     50, which is right there for the same reason. */
+  const half = niceMax / 2
+  const twoThirds = (niceMax * 2) / 3
+  const marks =
+    niceMax > 0 ? [niceMax, niceCeiling(twoThirds) === twoThirds ? twoThirds : half] : []
+
+  /* First, middle and last, which is what the reference labels and what a
+     seven-to-fifteen point window can carry without the labels touching. Read
+     off the rows so a window of any length names its own ends. */
+  const xTicks =
+    rows.length > 2
+      ? [rows[0]?.label, rows[Math.floor((rows.length - 1) / 2)]?.label, rows[rows.length - 1]?.label]
+      : rows.map((row) => row.label)
+
+  /* **The y-axis drops the cents, and the tooltip keeps them.**
+     `formatSeriesValue` is the value formatter and it is right everywhere a
+     reading is quoted: a tooltip saying `312.40` is the number that was
+     measured. On the AXIS it produced `300.00  200.00  100.00  0.00` — four
+     labels whose last three characters are identical and carry no information,
+     stacked down the left of a 236px plot. An axis label is a SCALE MARK, not
+     a reading; what a reader takes off it is the order of magnitude.
+     `formatMoney`'s own rounding is not used because it would round the
+     amount — this rounds the LABEL, at the axis, and only there. */
+  const axisTick = (value: number) =>
+    series.unit === 'money'
+      ? formatCount(Math.round(value / HALALAS_PER_MAJOR), language)
+      : tick(value)
+
   return (
     /* §9.2 — the plot is pinned LTR. This is the only physical direction in the
        metric layer and it is the one the rule requires. */
-    <div dir="ltr" role="img" aria-label={description}>
-      <ChartContainer config={CHART_CONFIG} className="aspect-auto h-48 w-full">
+    <div
+      dir="ltr"
+      role="img"
+      aria-label={description}
+      className={cn(fill && 'flex min-h-0 flex-1 flex-col')}
+    >
+      <ChartContainer
+        config={CHART_CONFIG}
+        className={cn('aspect-auto w-full', fill ? 'min-h-48 flex-1' : 'h-48')}
+      >
         <AreaChart accessibilityLayer data={rows} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
           {/* §3.7 said NO gridlines beyond the axis baseline. **The horizontal
               set is restored, 2026-09-02; the vertical set stays off.**
@@ -114,29 +215,51 @@ export function TrendChart({ series, description, t, language }: TrendChartProps
               `--chart-grid` is an existing token and no new value is
               introduced. It sits under the series by construction — Recharts
               paints the grid before the areas. */}
-          <CartesianGrid horizontal vertical={false} stroke="var(--chart-grid)" />
           <XAxis
             dataKey="label"
             tickLine={false}
-            axisLine={{ stroke: 'var(--chart-axis)' }}
+            axisLine={false}
             tickMargin={8}
-            minTickGap={16}
+            ticks={xTicks.filter((label): label is string => label !== undefined)}
+            /* **`0`, or Recharts culls the ones it thinks will collide.** With
+               the default it dropped the FIRST of the three — the window's own
+               start date — leaving an axis that named its middle and its end.
+               Three labels across a 480px panel cannot collide; the ticks are
+               chosen here precisely so that is true. */
+            interval={0}
+            /* Uppercase, which is the reference's treatment for every scale
+               mark on the board and is a no-op in Arabic, a script with no
+               case. The size and the colour are what carry it there. */
+            tickFormatter={(label: string) => label.toUpperCase()}
             tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
           />
+          {/* Present for the SCALE and drawn for nothing: the marks below are
+              the visible axis. `width={0}` is what removes the gutter, and the
+              domain is pinned so the top mark lands on the top of the plot. */}
           <YAxis
-            width={56}
+            width={0}
+            domain={[0, niceMax === 0 ? 'auto' : niceMax]}
+            tick={false}
             tickLine={false}
             axisLine={false}
-            tickCount={4}
-            /* A count axis over a 0-2 domain gets ticks at 0, 0.67, 1.33 and 2,
-               and `formatCount` rounds them to `0 1 1 2` — an axis that shows
-               the same label twice. `allowDecimals={false}` makes Recharts pick
-               an integer domain instead. Only counts are integral; a rate, a
-               rating and a money amount are not. */
-            allowDecimals={series.unit !== 'count'}
-            tickFormatter={tick}
-            tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
           />
+          {marks.map((value) => (
+            <ReferenceLine
+              key={value}
+              y={value}
+              stroke="var(--chart-grid)"
+              label={{
+                value: axisTick(value),
+                position: 'insideTopLeft',
+                fill: 'var(--chart-axis)',
+                fontSize: 11,
+                /* Above its own line, not on it — the reference's placement,
+                   and the reason the label never sits inside the area fill. */
+                dy: -4,
+                dx: 0,
+              }}
+            />
+          ))}
           <ChartTooltip
             cursor={{ stroke: 'var(--chart-grid)' }}
             content={

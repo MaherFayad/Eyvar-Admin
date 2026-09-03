@@ -128,7 +128,16 @@
  *               Incidents reaches both kinds (Q-37) on one route.
  */
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { Download } from 'lucide-react'
 import {
   Table,
@@ -2003,6 +2012,38 @@ export function DataTable<T>(props: DataTableProps<T>) {
                              ground. One attribute lets CSS catch every such site,
                              including ones written after this. */
                           data-row-critical={isCritical ? '' : undefined}
+                          /* **The leading-edge marker's anchor, published here
+                             because this is the only place that knows it.**
+
+                             The marker is drawn by the SCREEN, inside the
+                             identity cell — it has to be, because a trip row
+                             carries the marker while explicitly refusing the
+                             tint (`TripsScreen`'s own R5a ruling), so the one
+                             critical declaration this component already takes
+                             cannot drive both.
+
+                             But the identity cell is pinned, and a pinned cell
+                             is positioned, so it is the marker's containing
+                             block rather than the row. The marker's own inset
+                             therefore reaches the identity cell's edge — which
+                             IS the row's leading edge only while nothing sits
+                             ahead of it. Turn selection on and a lane does:
+                             the marker drew a red rule down the middle of the
+                             row, between the checkbox and the identity, on
+                             every table with both.
+
+                             So the row states the distance. The default in the
+                             marker cancels one cell's inline padding; this
+                             cancels the select lane as well. Not a class,
+                             because the width is a number imported from the
+                             pinning module and a utility cannot read it. */
+                          style={
+                            selectable
+                              ? ({
+                                  '--ev-row-marker-start': `calc(-0.75rem - ${LANE_WIDTH_PX}px)`,
+                                } as CSSProperties)
+                              : undefined
+                          }
                           className={cn(
                             'group/row relative transition-colors',
                             rowHeightClass,

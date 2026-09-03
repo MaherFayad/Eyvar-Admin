@@ -19,7 +19,7 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 4,590 operator-facing strings
+ * **`ar` IS NO LONGER EMPTY.** The translation of 4,625 operator-facing strings
  * is done and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
