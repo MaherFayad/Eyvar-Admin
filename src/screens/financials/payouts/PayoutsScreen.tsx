@@ -487,6 +487,7 @@ function PayoutsView({
       },
       {
         id: 'state',
+        sortField: 'state',
         emphasis: 'data',
         header: t('fin.payout.col.state'),
         dataType: 'enum',
@@ -800,6 +801,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
       },
       {
         id: 'state',
+        sortField: 'settlement',
         emphasis: 'data',
         header: t('fin.escrow.col.state'),
         dataType: 'enum',

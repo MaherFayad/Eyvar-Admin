@@ -469,7 +469,10 @@ function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'operations-subscription-trips') return <TripsScreen row={row} />
   if (row.subTabId === 'operations-corporate') return <CorporateScreen row={row} />
   if (row.subTabId === 'operations-dispatch') return <DispatchScreen row={row} />
-  if (row.subTabId === 'operations-requests') return <RequestsScreen row={row} />
+  /* One screen, two sub-tabs — the same shape as `TripsScreen` above.
+     `RequestsScreen` reads `row.subTabId` and pins its channel. */
+  if (row.subTabId === 'operations-ride-requests') return <RequestsScreen row={row} />
+  if (row.subTabId === 'operations-subscription-requests') return <RequestsScreen row={row} />
   if (row.subTabId === 'operations-assurance') return <AssuranceScreen row={row} />
   if (row.subTabId === 'operations-my-work') return <MyWorkScreen row={row} />
 

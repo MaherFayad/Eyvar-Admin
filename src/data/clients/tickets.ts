@@ -110,6 +110,11 @@ const ticketShape: QueryShape<Ticket> = {
     priority: (t) => t.priority,
     status: (t) => t.status,
     subject: (t) => t.subject,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    id: (r) => r.id,
+    category: (r) => r.category,
   },
   filterable: {
     id: (t) => t.id,

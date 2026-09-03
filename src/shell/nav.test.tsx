@@ -289,10 +289,11 @@ describe('PageNav — AC-05, AC-19, AC-58', () => {
       /* subscriptions — the plans, the trips they buy, the accounts that buy
          them in bulk */
       EN['subtab.operations.subscriptions'],
+      EN['subtab.operations.subscriptionRequests'],
       EN['subtab.operations.subscriptionTrips'],
       EN['subtab.operations.corporate'],
       /* rides — a request, the ride, the captain sent to it, the cover */
-      EN['subtab.operations.requests'],
+      EN['subtab.operations.rideRequests'],
       EN['subtab.operations.quickRides'],
       EN['subtab.operations.dispatch'],
       EN['subtab.operations.assurance'],

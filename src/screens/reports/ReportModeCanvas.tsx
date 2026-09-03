@@ -50,6 +50,7 @@
  *               numbers are navigable and announced.
  */
 
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -121,15 +122,24 @@ export function ReportModeCanvas({
         </Card>
       ) : result ? (
         <>
-          <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
-            {stale
-              ? t('rb.canvas.stale', {
-                  time: formatDate(result.asOf, { style: 'day-month-time', language }),
-                })
-              : t('rb.canvas.asOf', {
-                  time: formatDate(result.asOf, { style: 'day-month-time', language }),
-                })}
-          </p>
+          {/* Freshness and the way to change it in one control, identical to
+              `ResultCanvas`'s — switching mode must not change where the
+              refresh is. The sentence keeps its own `role="status"`; the
+              button stays outside the live region. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
+              {stale
+                ? t('rb.canvas.stale', {
+                    time: formatDate(result.asOf, { style: 'day-month-time', language }),
+                  })
+                : t('rb.canvas.asOf', {
+                    time: formatDate(result.asOf, { style: 'day-month-time', language }),
+                  })}
+            </p>
+            <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+              {t('rb.canvas.error.retry')}
+            </Button>
+          </div>
           <Conditions result={result} t={t} />
           <Body
             result={result}

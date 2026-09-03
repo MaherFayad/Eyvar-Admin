@@ -15,9 +15,10 @@
  *
  * | Result | Rendering |
  * |---|---|
- * | chart type is `table` | ONE table over every series (`ResultTable`) — a table has no axis, so nothing is distorted by putting the numbers together |
  * | `grain: 'none'` | ONE distribution — the window is one bucket, the parts sum to a whole, and there is no axis to share (`DistributionCard`) |
  * | otherwise | **small multiples**, one card per panel |
+ * | beneath either, when the caller asks (`withTable`) | ONE table over every series (`ResultTable`) — a table has no axis, so nothing is distorted by putting the numbers together, and **a value you can read exactly is not a different chart type** |
+ * | chart type `table`, and the caller did NOT ask | the table alone, which is what a dashboard tile pinned as a table has always been |
  *
  * The third row is R4-1 and it is structural rather than chosen: every series
  * carries a `panelId`, `ReportResult.panels[]` is the list of y-axes, and two
@@ -53,6 +54,8 @@
  *               its own `asOf`. Never blanked, never silently stale.
  */
 
+import { useId } from 'react'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
@@ -81,6 +84,22 @@ export interface ResultCanvasProps {
   effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
   onRetry: () => void
   onRetrySeries: (measureKey: string) => void
+  /**
+   * **The builder's chrome, opted into rather than assumed — because this
+   * component has a second caller.**
+   *
+   * `DashboardTile` renders this exact component, which is what makes *"a tile
+   * is the same composer as the builder"* (AC-873) checkable rather than
+   * aspirational. It also means anything added here lands on a dashboard.
+   *
+   * A per-bucket table is thirty columns wide on a thirty-day report and a
+   * `Run again` beside the freshness line duplicates the tile's own refetch, so
+   * neither belongs inside a tile — the tile is a *reading*, the builder is a
+   * *workspace*. Off by default: the caller that wants the workspace says so,
+   * and a tile inherits nothing it did not ask for.
+   */
+  withRefresh?: boolean
+  withTable?: boolean
   /** §3.7's sentence, passed in so it stays byte-identical with every board. */
   noDataSentence: string
   t: Translator
@@ -97,6 +116,8 @@ export function ResultCanvas({
   effectiveChartType,
   onRetry,
   onRetrySeries,
+  withRefresh = false,
+  withTable = false,
   noDataSentence,
   t,
   language,
@@ -127,7 +148,13 @@ export function ResultCanvas({
         <InvalidQuery violations={violations} t={t} />
       ) : result ? (
         <>
-          <Meta result={result} stale={stale} t={t} language={language} />
+          <Meta
+            result={result}
+            stale={stale}
+            onRetry={withRefresh ? onRetry : null}
+            t={t}
+            language={language}
+          />
           <Conditions result={result} t={t} />
           <Body
             result={result}
@@ -135,10 +162,24 @@ export function ResultCanvas({
             coercedFrom={coercedFrom}
             effectiveChartType={effectiveChartType}
             onRetrySeries={onRetrySeries}
+            combinedTable={withTable}
             noDataSentence={noDataSentence}
             t={t}
             language={language}
           />
+          {/* **A picture and its numbers, never one or the other.** The table
+              used to be a *chart type* — asking for it replaced the panels, so
+              reading an exact value meant giving up the shape and reading the
+              shape meant giving up the value. Both are the same run, from the
+              same `ReportResult`, so nothing is re-requested and the two cannot
+              disagree.
+
+              **No row checkboxes.** Series membership is decided by `panelId`
+              on the wire; letting the table hide a series would make the
+              picture disagree with the question that produced it. */}
+          {withTable && result.panels.length > 0 && (
+            <NumbersBehind result={result} t={t} language={language} />
+          )}
         </>
       ) : null}
     </section>
@@ -154,19 +195,63 @@ export function ResultCanvas({
 function Meta({
   result,
   stale,
+  onRetry,
   t,
   language,
 }: {
   result: ReportResult
   stale: boolean
+  /** `null` on a dashboard tile, which has its own refetch. See the prop docs. */
+  onRetry: (() => void) | null
   t: Translator
   language: Language
 }) {
   const time = formatDate(result.asOf, { style: 'day-month-time', language })
   return (
-    <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
-      {stale ? t('rb.canvas.stale', { time }) : t('rb.canvas.asOf', { time })}
-    </p>
+    /* **Freshness and the way to change it, in one control.** Reading *when*
+       this was computed and deciding it is too old are one thought; sending
+       the operator back to the rail's `Run` to act on it puts the answer and
+       the remedy on opposite sides of the screen.
+
+       The sentence keeps its own `role="status"` — the live region is the
+       claim about the numbers, and wrapping the button in it would announce a
+       button label every time the query goes dirty. Ghost, `xs`: R3 leaves the
+       one primary on the rail. */
+    <div className="flex flex-wrap items-center gap-2">
+      <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
+        {stale ? t('rb.canvas.stale', { time }) : t('rb.canvas.asOf', { time })}
+      </p>
+      {onRetry && (
+        <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+          {t('rb.canvas.error.retry')}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The table under the picture. A heading rather than a bare table, because it
+ * is a second reading of the same run and an unlabelled table below a chart
+ * reads as a different result.
+ */
+function NumbersBehind({
+  result,
+  t,
+  language,
+}: {
+  result: ReportResult
+  t: Translator
+  language: Language
+}) {
+  const headingId = useId()
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <h3 id={headingId} className="text-sm font-medium text-foreground">
+        {t('rb.canvas.table.heading')}
+      </h3>
+      <ResultTable result={result} t={t} language={language} />
+    </section>
   )
 }
 
@@ -235,6 +320,7 @@ function Body({
   coercedFrom,
   effectiveChartType,
   onRetrySeries,
+  combinedTable,
   noDataSentence,
   t,
   language,
@@ -244,6 +330,8 @@ function Body({
   coercedFrom: string | null
   effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
   onRetrySeries: (measureKey: string) => void
+  /** The caller renders the table itself, beneath this body. See `withTable`. */
+  combinedTable: boolean
   noDataSentence: string
   t: Translator
   language: Language
@@ -268,7 +356,17 @@ function Body({
     )
   }
 
-  if (effectiveChartType === 'table') {
+  /* **`table` is no longer an early return for the builder.** It used to
+     render `ResultTable` INSTEAD of the panels, which made the numbers and the
+     picture mutually exclusive — ask for the table and you lose the shape, ask
+     for the shape and you lose the value. A caller that renders the table
+     itself (`withTable`) therefore falls through: `table` only decides that the
+     panels are drawn as lines, and the numbers are beneath them either way.
+
+     A caller that does NOT — a dashboard tile — keeps the old rendering
+     exactly, because a tile pinned as a table is a table and thirty columns of
+     numbers under a chart is not a tile. */
+  if (effectiveChartType === 'table' && !combinedTable) {
     return <ResultTable result={result} t={t} language={language} />
   }
 

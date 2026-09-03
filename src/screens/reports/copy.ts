@@ -159,6 +159,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.control.filters.unstarted': 'Choose a measure to filter it.',
   'rb.control.window': 'Date range',
   'rb.control.window.apply': 'Apply',
+  'rb.control.window.cancel': 'Cancel',
   'rb.control.window.from': 'From',
   'rb.control.window.to': 'To',
   'rb.control.window.custom': 'Custom range',
@@ -375,6 +376,14 @@ export const REPORTS_EN: Dictionary = {
   'rb.canvas.invalid': 'This report can’t run yet. The panel says why.',
   'rb.canvas.link.copy': 'Copy link to this report',
   'rb.canvas.link.copied': 'Link copied',
+  /* The clipboard can be refused (no permission, an insecure origin). The
+     refusal names what did NOT happen and what is untouched, in the same
+     shape as `rb.canvas.error` — never a silent failure. */
+  'rb.canvas.link.failed': 'The link wasn’t copied. Your report is unchanged.',
+
+  /* §A11 — the table renders WITH the chart, not instead of it, so it needs a
+     heading of its own. It names what the rows are, not what the control does. */
+  'rb.canvas.table.heading': 'The numbers behind this chart',
 
   /* ─────────── conditions the result states out loud, never silently ─────── */
 
@@ -446,11 +455,22 @@ export const REPORTS_EN: Dictionary = {
   'rb.saveAs': 'Save as new',
   'rb.save.title': 'Save this report',
   'rb.saveAs.title': 'Save as a new report',
+  /* The dialog's DESCRIPTION. It used to render `rb.save.visibility`, which is
+     the visibility LEGEND — so the sentence under the title read "Who can see
+     it", a label doing a description's job and saying nothing about what the
+     dialog is for. */
+  'rb.save.describe': 'Name this report so someone else can find it later.',
   'rb.save.name': 'Name',
   'rb.save.description': 'Description',
   'rb.save.visibility': 'Who can see it',
   'rb.save.visibility.private': 'Only me',
   'rb.save.visibility.team': 'The team',
+  /* The consequence, under the control that causes it. `Only me` and `The team`
+     name a setting; these name what the setting DOES. Rendered as text bound to
+     the radio with `aria-describedby` — never a tooltip, which an unfocused or
+     disabled control can never open. */
+  'rb.save.visibility.private.consequence': 'Only you can open this report.',
+  'rb.save.visibility.team.consequence': 'Anyone on the team can open and run it.',
   'rb.save.confirm': 'Save report',
   'rb.save.cancel': 'Cancel',
   'rb.save.failed': 'The report wasn’t saved. Nothing was changed.',
@@ -462,6 +482,20 @@ export const REPORTS_EN: Dictionary = {
   'rb.save.invalid.series-unknown': 'Choose a series.',
   'rb.save.invalid.report-unsaved': 'Save the report first.',
   'rb.save.invalid.recipient-not-permitted': 'That person can’t see this measure.',
+
+  /* Pinning at save time. Optional, and the default is not-pinned — so the
+     picker's own four states are the four states of an OPTIONAL control: none
+     of them may block the save. */
+  'rb.save.addTo': 'Add to a dashboard',
+  'rb.save.addTo.none': 'Don’t add it to a dashboard',
+  'rb.save.addTo.loading': 'Loading the dashboards',
+  'rb.save.addTo.error': 'The dashboards didn’t load. You can still save the report.',
+  'rb.save.addTo.error.retry': 'Try again',
+  'rb.save.addTo.empty': 'There are no dashboards yet.',
+  /* Two mutations, two outcomes, and the second one failing does not undo the
+     first. The sentence says both halves in the order they happened. */
+  'rb.save.addTo.failed': 'The report was saved. It wasn’t added to the dashboard.',
+  'rb.save.addTo.failed.retry': 'Try adding it again',
 
   'rb.export': 'Export CSV',
 
@@ -483,6 +517,10 @@ export const REPORTS_EN: Dictionary = {
   'rb.library.col.updated': 'Updated',
   'rb.library.col.pinned': 'On dashboards',
   'rb.library.open': 'Open',
+  /* An alert is an action ON a report, not only a destination. Without this the
+     only route in is the Alerts sub-tab, which then asks the operator to
+     re-pick by name the report they had just left. */
+  'rb.library.createAlert': 'Create alert',
   'rb.library.delete': 'Delete',
   'rb.library.firstRun.heading': 'Ask the business a question',
   'rb.library.firstRun.body':
@@ -511,6 +549,10 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboards.col.name': 'Dashboard',
   'rb.dashboards.col.tiles': 'Reports',
   'rb.dashboards.col.updated': 'Updated',
+  /* Derivable, never invented: `Dashboard.ownerId` is on the record and the
+     team roster resolves it. On a shared install “whose board is this?” was
+     unanswerable from the list. */
+  'rb.dashboards.col.owner': 'Owner',
   'rb.dashboards.open': 'Open',
   'rb.dashboards.firstRun.heading': 'Put the reports you read every morning in one place',
   'rb.dashboards.firstRun.body':
@@ -538,15 +580,39 @@ export const REPORTS_EN: Dictionary = {
      than letting an operator think they have to choose reports first. */
   'rb.dashboards.new.body': 'Give it a name. You can add reports to it straight after.',
   'rb.dashboards.new.name': 'Name',
+  /* The same field a saved report already carries. A report can say what
+     question it answers; without this a board could not say what it is for. */
+  'rb.dashboards.new.description': 'Description',
+  'rb.dashboards.description.placeholder':
+    'What is this board for? Say it here so the next person doesn’t have to guess.',
   'rb.dashboards.new.confirm': 'Create dashboard',
   'rb.dashboards.new.cancel': 'Cancel',
   'rb.dashboards.new.failed': 'The dashboard wasn’t created. Nothing was changed.',
+  /* R9 — <object> <past-participle>, sentence case, no terminal period, and it
+     echoes the name the operator typed rather than saying “Dashboard saved”. */
+  'rb.dashboards.created.toast': '{name} created',
+  'rb.dashboards.deleted.toast': '{name} deleted',
 
   'rb.dashboard.back': 'All dashboards',
   'rb.dashboard.loading': 'Loading the dashboard',
   'rb.dashboard.error': 'The dashboard didn’t load.',
   'rb.dashboard.retry': 'Try again',
   'rb.dashboard.save.failed': 'That change wasn’t saved. The board is showing what the server holds.',
+
+  /* §8's second row, and it is METADATA: both halves are on the record and
+     both change when the record does. One key with two named placeholders —
+     never `owner + ' · ' + time`, which Arabic does not order the same way. */
+  'rb.dashboard.meta': 'Owned by {owner} · Updated {time}',
+
+  /* DESIGN.md:2779 forbids an inline editor that collapses on blur, so a
+     rename is an explicit surface with an explicit commit. */
+  'rb.dashboard.rename.action': 'Rename',
+  'rb.dashboard.rename': 'Rename dashboard',
+  'rb.dashboard.rename.body': 'The name and the description travel with the board. The reports on it are untouched.',
+  'rb.dashboard.rename.confirm': 'Save changes',
+  'rb.dashboard.rename.cancel': 'Cancel',
+  'rb.dashboard.rename.failed': 'The dashboard wasn’t saved. Nothing was changed.',
+  'rb.dashboard.saved.toast': '{name} saved',
 
   'rb.dashboard.add': 'Add a report',
   'rb.dashboard.add.title': 'Add a report to this dashboard',
@@ -578,6 +644,24 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.tile.error': 'This tile didn’t load. The rest of the dashboard did.',
   'rb.dashboard.tile.open': 'Open {name}',
 
+  /* §8.3 state 12 / AC-825 — a query invalidated by a catalogue change is NOT
+     a deleted report, and it must not be offered `Remove tile` as its only
+     way out. The violations under it are the same objects the builder renders. */
+  'rb.dashboard.tile.invalid':
+    'This tile’s report can no longer run. The report was changed after it was pinned.',
+  /* §11.2's coarse reorder. `Move up` / `Move down` stay — AC-871 names them
+     and they are the fast path — but moving the sixth tile to the top was five
+     round-trips and five saves. A `Select` is keyboard-operable by
+     construction, which is the objection that rejected a drag grid. */
+  'rb.dashboard.tile.moveTo': 'Move {name} to position',
+  'rb.dashboard.tile.position': 'Position {position} of {total}',
+  /* The tile's own overflow. The trigger names the tile, so six of them stay
+     distinguishable to a screen reader (§7.3 — present, never hover-only). */
+  'rb.dashboard.tile.actions': 'Actions for {name}',
+  'rb.dashboard.tile.added.toast': '{name} added to this dashboard',
+  'rb.dashboard.tile.removed.toast': '{name} removed from this dashboard',
+  'rb.dashboard.reordered.toast': 'Order saved',
+
   /* ──────────────────────────── alerts (§12) ────────────────────────────── */
 
   'rb.alerts.new': 'New alert',
@@ -595,6 +679,21 @@ export const REPORTS_EN: Dictionary = {
   'rb.alerts.noMatch': 'No alert matches this search.',
   'rb.alerts.noMatch.action': 'Clear search',
   'rb.alerts.error': 'The alerts didn’t load. The filters are unchanged.',
+  /* The State column's `select` filter. It reads `filters[state]` and never
+     `?view=` — the reports sub-tab owns that parameter, so the old one could
+     not fire and shared a namespace with the tab strip. */
+  'rb.alerts.filter.state': 'State',
+
+  /* **R10 — a standing condition is a banner, not a footnote**, and this one
+     contradicts the most authoritative element on every row. `Armed` and
+     `Cooling` are present-tense words for a running machine; with
+     `cadence: null` nothing is running, and the correction used to be a 12px
+     grey paragraph rendered AFTER the table and below pagination. §5.2 permits
+     ONE page-level banner, so the cadence sentence and the re-arm sentence are
+     merged into it rather than stacked. */
+  'rb.alerts.banner.title': 'Nothing is checking these rules',
+  'rb.alerts.banner.body':
+    'No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value.',
 
   /* R5a permits red in four places and a threshold breach is none of them. The
      state is carried by the WORD plus a `warning`-tone badge from R7's closed
@@ -638,6 +737,13 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.rearm.unset': 'Not set',
   'rb.alert.rearm.explain':
     'A rule fires once on crossing and re-arms when the value comes back inside the line. No minimum wait has been set.',
+  /* Per row, in the State cell's secondary slot, when `cadence === null`. The
+     state WORD stays — it is a true statement about the last recorded state —
+     and this qualifies the present tense the word implies. */
+  'rb.alert.cadence.rowNote': 'Not checked on any schedule.',
+  /* `lastEvaluatedAt: null`. A dash cannot tell "never checked" from "no data",
+     and on this list every rule is the first of those. */
+  'rb.alert.lastEvaluated.never': 'Never checked',
 
   'rb.alert.form.title': 'New alert',
   'rb.alert.form.edit': 'Edit alert',
@@ -683,4 +789,49 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.test.reportMissing': 'The report this alert watches no longer exists.',
   'rb.alert.test.noChange': 'Testing changes nothing and tells nobody.',
   'rb.alert.test.failed': 'The test didn’t run.',
+
+  /* ── the firing history (§8.3 — a LEDGER, not a second index) ─────────── */
+
+  /* `AlertFiring` was modelled, seeded and clientable and no pixel rendered it,
+     so an operator could not see that a rule fired twice or that one of those
+     firings is no longer in the inbox. It is append-only: no sort, no row
+     actions, no selection — `mode: 'ledger'` refuses all three at compile time. */
+  'rb.alert.history': 'Firing history',
+  'rb.alert.history.title': 'Firings of “{name}”',
+  'rb.alert.history.description':
+    'Every time this rule crossed its threshold, newest first. Nothing here can be edited or re-sent.',
+  'rb.alert.history.col.firedAt': 'Fired',
+  'rb.alert.history.col.bucket': 'Reading for',
+  'rb.alert.history.col.value': 'Value',
+  'rb.alert.history.col.threshold': 'Threshold',
+  'rb.alert.history.col.notification': 'Notification',
+  /* **`notificationId === null` is a real seeded state and is not an error.**
+     The notification was cleared from the centre; the firing still happened.
+     Both readings are ordinary factual words in ordinary ink — neither is a
+     `warning`, and R7 puts a terminal factual outcome in neutral. */
+  'rb.alert.history.notification.present': 'In the notification centre',
+  'rb.alert.history.notification.cleared': 'No longer in the notification centre',
+  'rb.alert.history.empty': 'This rule has not fired.',
+  'rb.alert.history.error': 'The firing history didn’t load.',
+  /* The toolbar's search is unconditional, so it is wired rather than left
+     inert: it narrows on the bucket the firing read and on the firing's own id. */
+  'rb.alert.history.search': 'Search these firings',
+  'rb.alert.history.noMatch': 'No firing matches this search.',
+  'rb.alert.history.noMatch.action': 'Clear search',
+  'rb.alert.history.close': 'Close',
+
+  /* ── delete, and a toast on every mutation ────────────────────────────── */
+
+  /* R5a use #1 — destructive, in the row menu, behind a confirm that NAMES the
+     rule (§5.3), and the body says what goes and what stays. */
+  'rb.alert.delete': 'Delete alert',
+  'rb.alert.delete.confirm.title': 'Delete “{name}”?',
+  'rb.alert.delete.confirm.body':
+    'The rule and its firing history go. Notifications it already sent stay.',
+  'rb.alert.delete.confirm.action': 'Delete alert',
+  'rb.alert.delete.failed': 'The alert wasn’t deleted. Nothing was changed.',
+  /* R9 — one line, naming the object, sentence case, no terminal period. §5.1:
+     a toast for every successful mutation, INCLUDING ones inside a modal. */
+  'rb.alert.toast.saved': '{name} saved',
+  'rb.alert.toast.deleted': '{name} deleted',
 }

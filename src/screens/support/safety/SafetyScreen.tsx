@@ -561,6 +561,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     },
     {
       id: 'severity',
+      sortField: 'severity',
       emphasis: 'data',
       header: t('queue.col.severity'),
       width: 96,

@@ -159,6 +159,10 @@ const cashShape: QueryShape<CashReport> = {
     debtAddedHalalas: (r) => r.debtAddedHalalas,
     captainName: (r) => r.captainName,
     repeatCount: (r) => r.repeatCount,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    classification: (r) => r.classification,
   },
   filterable: {
     id: (r) => r.id,

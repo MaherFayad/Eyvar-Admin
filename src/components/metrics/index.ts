@@ -32,7 +32,7 @@ export {
   type ChapterProps,
 } from './Chapter'
 export { ChartCard, type ChartCardProps } from './ChartCard'
-export { MetricTile, type MetricSurface, type MetricTileProps } from './MetricTile'
+export { MetricDelta, MetricTile, type MetricSurface, type MetricTileProps } from './MetricTile'
 export { MetricTileItem } from './MetricTileRow'
 export { TrendChart, type TrendChartProps } from './TrendChart'
 export {
@@ -41,4 +41,14 @@ export {
   formatPercent,
   formatSeriesValue,
   formatSignedPercent,
+  /* §A8 / "a number is never alone". Exported so the REPORT BUILDER's panel
+     card reaches the same valence judgement and the same derived sentence as a
+     metric board's chart card — one derivation, two surfaces, no chance of the
+     two disagreeing about which way a measure moved. */
+  metricValence,
+  seriesWindowDelta,
+  trendRead,
+  type MetricValence,
+  type TrendRead,
+  type TrendReadKey,
 } from './formatMetric'

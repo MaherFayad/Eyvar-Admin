@@ -207,6 +207,7 @@ export function ApiKeysCard({
       },
       {
         id: 'state',
+        sortField: 'state',
         header: t('admin.integrations.key.col.state'),
         width: 130,
         dataType: 'enum',

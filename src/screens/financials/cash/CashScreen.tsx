@@ -384,6 +384,7 @@ function ReconciliationQueue({
       },
       {
         id: 'classification',
+        sortField: 'classification',
         emphasis: 'data',
         header: t('fin.cash.col.classification'),
         dataType: 'enum',

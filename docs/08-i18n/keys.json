@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 4848,
-    "en": 4625,
-    "ar": 4848,
+    "keys": 5044,
+    "en": 4805,
+    "ar": 5044,
     "arMissing": 0,
-    "arExtra": 223,
-    "copyFiles": 30,
+    "arExtra": 239,
+    "copyFiles": 32,
     "unregisteredKeys": 167,
-    "pluralForms": 29,
+    "pluralForms": 37,
     "defaultValue": 0,
     "defaultValueForwarded": 2
   },
@@ -25,7 +25,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 420,
+      "keys": 483,
       "notInEN": 0
     },
     {
@@ -45,19 +45,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/metrics/copy.ts",
+      "exports": [
+        "OVERVIEW_EN"
+      ],
+      "keys": 240,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/workspace/copy.ts",
       "exports": [
         "ADMIN_WORKSPACE_EN"
       ],
       "keys": 238,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "exports": [
-        "OVERVIEW_EN"
-      ],
-      "keys": 225,
       "notInEN": 0
     },
     {
@@ -173,6 +173,15 @@
       "notInEN": 0
     },
     {
+      "file": "src/i18n/vocabulary/copy.ts",
+      "exports": [
+        "RIDER_VOCABULARY_EN",
+        "VOCABULARY_EN"
+      ],
+      "keys": 73,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/management/zones/copy.ts",
       "exports": [
         "ZONES_EN"
@@ -197,14 +206,6 @@
       "notInEN": 0
     },
     {
-      "file": "src/i18n/vocabulary/copy.ts",
-      "exports": [
-        "VOCABULARY_EN"
-      ],
-      "keys": 47,
-      "notInEN": 0
-    },
-    {
       "file": "src/screens/queues/copy.ts",
       "exports": [
         "QUEUE_SHARED_EN"
@@ -218,6 +219,22 @@
         "MY_WORK_EN"
       ],
       "keys": 43,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/rider/copy.ts",
+      "exports": [
+        "RIDER_PROFILE_EN"
+      ],
+      "keys": 31,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/entity/copy.ts",
+      "exports": [
+        "ENTITY_RIDER_EN"
+      ],
+      "keys": 28,
       "notInEN": 0
     },
     {

@@ -36,6 +36,10 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.period.apply': 'تطبيق',
   'overview.period.cancel': 'إلغاء',
   'overview.period.inverted': 'تاريخ البداية بعد تاريخ النهاية',
+  /* بيان حدّ البيانات التجريبية: البطاقات تحتفظ بفترتها، والمخططات وحدها تتبع
+     النطاق المختار. لا تواريخ داخل النص — التنسيق من مسؤولية الواجهة (§18). */
+  'overview.period.figuresUnchanged':
+    'تغطي هذه الأرقام الفترة المعلنة لكل منها، لا النطاق الذي اخترته. أما المخططات فتتبع نطاقك.',
   'overview.period': '{from} – {to}',
 
   'overview.lede.management-overview':
@@ -93,7 +97,30 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.legend.range': '{from} – {to}',
   'overview.legend.current': 'هذه الفترة',
   'overview.legend.comparison': 'الفترة السابقة',
+  /* سطر مستقل تحت اسم الفترة، لا لاحقة تُضاف إليه: الإنجليزية
+     تحتمل الوصل، والعربية لا. والتاريخ معزول في `bdi` لأنه مجرى أرقام. */
+  'overview.tooltip.on': 'في {date}',
+  /* وحدة المقياس، في سطر المفتاح لا على المحور — §9.2 تمنع توجيه مجموعة
+     المحور، فلا يستقيم النص العربي داخل الـ SVG. صيغة اسمية بعد نقطتين:
+     الفاعل محذوف ولا مطابقة تُطلب، فتصحّ مع كل مقياس على اللوحة. */
+  'overview.legend.unit': 'وحدة القياس: {unit}',
+  'overview.unit.money': 'الريالات',
+  'overview.unit.count': 'الأعداد',
+  'overview.unit.percent': 'النسبة المئوية',
+  'overview.unit.minutes': 'الدقائق',
+  'overview.unit.rating': 'نقاط التقييم',
+  /* `2.4×` تُقرأ أضعافًا من أساس، لا نسبة ولا عددًا مجردًا. */
+  'overview.unit.ratio': 'الأضعاف',
   'overview.chart.description': '{title}، من {from} إلى {to}',
+  /* الجملة المشتقّة تحت كل مخطط. جملة اسمية عمدًا: اسم المقياس يأتي من
+     المعجم وقد يكون مذكّرًا أو مؤنّثًا أو جمعًا، والفعل في صدر الجملة كان
+     سيُلزمنا بمطابقة لا نعرفها وقت الكتابة. «في ارتفاع» و«في انخفاض»
+     و«دون تغيير» أخبار لا تُطابق، فتصحّ مع كل مقياس على اللوحة.
+     «دون تغيير» هي نفسها overview.delta.flat، فيتفق النصّان. */
+  'overview.chart.read.up': '{title} في ارتفاع بنسبة {delta} مقارنة بـ{from} – {to}.',
+  'overview.chart.read.down': '{title} في انخفاض بنسبة {delta} مقارنة بـ{from} – {to}.',
+  'overview.chart.read.flat': '{title} دون تغيير مقارنة بـ{from} – {to}.',
+  'overview.chart.read.noBaseline': 'لا توجد فترة للمقارنة بعد، فلا يمكن بيان اتجاه.',
   'overview.report.open': 'فتح تقرير {report}',
   'overview.empty.heading': 'الكباتن والركاب والرحلات والاشتراكات، على لوحة واحدة',
   'overview.empty.body': 'تعرض هذه اللوحة الكباتن والركاب والرحلات والاشتراكات. تظهر الأرقام هنا فور وجود نشاط يمكن إحصاؤه.',
@@ -222,6 +249,11 @@ export const OVERVIEW_AR: Dictionary = {
   'breakdown.dimension.reason-code': 'أسباب التواصل',
   'breakdown.dimension.rota-day': 'الأيام',
   'breakdown.empty': 'لا شيء لترتيبه في هذه الفترة.',
+  /* CSV يبقى لاتينيًا: اسم صيغة ملف، وهو ما يُكتب على القرص. وجملة
+     الإتمام تُعلَن في منطقة حية ولا تُعرض في منبّه، فهي جملة تامة. التمييز
+     منصوب مفرد على نسق `breakdown.sub.lateOfTrips` في هذا الملف نفسه. */
+  'breakdown.export': 'تصدير CSV',
+  'breakdown.export.done': 'تمّ تصدير {rows} صفًا',
   'breakdown.caveat.uncodedRanking': '{share} من التواصلات غير مصنَّفة، فهذا الترتيب غير مكتمل.',
   'overview.notRecorded': 'لم يُسجَّل شيء هنا بعد.',
   'breakdown.sub.lateOfTrips': 'تأخّرت {late} من {total} رحلة',

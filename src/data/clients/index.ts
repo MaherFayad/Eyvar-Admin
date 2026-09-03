@@ -137,6 +137,9 @@ export {
   RIDER_OPERATIONS,
   getRider,
   getRiderFacets,
+  getRiderMoneyMovements,
+  getRiderSupportPresence,
+  getRiderTimeline,
   listNewRiders,
   listRiders,
   type RiderQuery,
@@ -484,6 +487,7 @@ export {
   saveDashboard,
   deleteDashboard,
   moveTile,
+  moveTileTo,
   resetDashboards,
   type SaveDashboardInput,
 } from './dashboards'

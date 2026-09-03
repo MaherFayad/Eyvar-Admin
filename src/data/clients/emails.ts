@@ -644,6 +644,12 @@ const deliveryShape: QueryShape<EmailDelivery> = {
     updatedAt: (row) => row.updatedAt,
     recipient: (row) => row.recipient,
     state: (row) => row.state,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    subject: (r) => r.subject,
+    templateKey: (r) => r.templateKey,
+    ticketId: (r) => r.ticketId,
   },
   filterable: {
     state: (row) => row.state,

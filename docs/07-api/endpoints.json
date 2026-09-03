@@ -5,7 +5,7 @@
       "path": "/api/v1/alerts",
       "client": "src/data/clients/alerts.ts",
       "function": "listAlertRules",
-      "params": "q · view=firing|suspended|error|disabled · page · pageSize",
+      "params": "q · filters[state] · page · pageSize",
       "body": null,
       "returns": "Paginated<AlertRule>",
       "statuses": []
@@ -1949,7 +1949,7 @@
       "path": "/api/v1/metrics",
       "client": "src/data/clients/metrics.ts",
       "function": "listMetrics",
-      "params": "q · subTabId · category · page · pageSize · sort · filter ·",
+      "params": "null,",
       "body": null,
       "returns": "Paginated<Metric>",
       "statuses": []
@@ -1974,7 +1974,7 @@
       "path": "/api/v1/metrics/boards/:subTabId",
       "client": "src/data/clients/metrics.ts",
       "function": "getMetricBoard",
-      "params": "from · to   (the §3.7 date-range chip; the mock serves one window)",
+      "params": "from · to   (the §3.7 date-range chip, both `YYYY-MM-DD`, both or neither)",
       "body": null,
       "returns": "MetricBoard  { subTabId, asOf, metrics[], charts[], breakdowns[], notices[] }",
       "statuses": [
@@ -2613,6 +2613,51 @@
       "body": null,
       "returns": "Rider",
       "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders/:id/movements",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRiderMoneyMovements",
+      "params": null,
+      "body": null,
+      "returns": "RiderMoneyMovements",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the rider does not exist"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders/:id/support",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRiderSupportPresence",
+      "params": null,
+      "body": null,
+      "returns": "RiderSupportPresence",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the rider does not exist"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/riders/:id/timeline",
+      "client": "src/data/clients/riders.ts",
+      "function": "getRiderTimeline",
+      "params": "page · pageSize · sort · filter (kind, at)",
+      "body": null,
+      "returns": "Paginated<RiderTimelineEvent> — newest first",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the rider does not exist"
+        }
+      ]
     },
     {
       "method": "GET",

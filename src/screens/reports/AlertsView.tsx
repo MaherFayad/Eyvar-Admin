@@ -21,6 +21,32 @@
  * value to choose.** A picker defaulted to `Daily` would put a business decision
  * nobody made into a saved record, where the next reader would take it for one.
  *
+ * ## The correction outranked itself, and now it does not
+ *
+ * That unset cadence means **nothing evaluates**, and four of the five state
+ * words are present tense for a machine that is running: `Armed` means
+ * *watching*, `Cooling` means *counting down*. The two sentences that said
+ * otherwise used to render **after** the `DataTable`, below pagination — a 12px
+ * grey paragraph contradicting a `success`-toned badge on every row, which is
+ * the least authoritative element on the page arguing with the most
+ * authoritative one on each row.
+ *
+ * R10 puts a standing condition in a banner, so both sentences moved into one
+ * — §5.2 permits exactly one page-level banner, so they MERGE rather than
+ * stack — above the table, and each row carries `rb.alert.cadence.rowNote`
+ * under its badge.
+ *
+ * **No state word was removed or softened.** Each is a true statement about the
+ * last recorded state; what was false was the present tense a bare badge
+ * implies, and that is what the qualifier fixes.
+ *
+ * ## Every mutation confirms, and one of them is destructive
+ *
+ * §5.1 asks for a toast on every successful mutation *including ones inside a
+ * modal*, and saving a rule used to close the dialog and refetch in silence.
+ * `Delete alert` is R5a use #1 — the row menu, never the header — behind a
+ * confirm that names the rule (§5.3) and says what goes and what stays.
+ *
  * That is a deliberate departure from **AC-875**, which lists a cadence among
  * the fields a rule requires before `Save` is enabled. The criterion and the
  * ruling cannot both hold; the ruling wins and the departure is named in the
@@ -48,6 +74,9 @@
  */
 
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { Banner, BannerConditionList } from '@/components/Banner'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
@@ -59,9 +88,15 @@ import type { DataColumn } from '@/components/table/columns'
    no React in it. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { useAsync, useIndexTable } from '@/hooks'
-import { describeAlertRule, evaluateAlertRule, listAlertRules } from '@/data/clients'
+import {
+  deleteAlertRule,
+  describeAlertRule,
+  evaluateAlertRule,
+  listAlertRules,
+} from '@/data/clients'
 import type { AlertEvaluation, AlertRule } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { AlertHistoryDialog } from './AlertHistoryDialog'
 import { AlertRuleDialog } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
 
@@ -92,6 +127,16 @@ const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'n
   suspended: 'neutral',
   error: 'neutral',
 }
+
+/**
+ * The State filter's options, **derived from the tone map rather than typed a
+ * second time.** `STATE_TONE` is a `Record` over the closed union, so a sixth
+ * state does not compile without a tone — and therefore cannot reach the filter
+ * without one either. A hand-written list of five would silently keep filtering
+ * on five after the union grew to six, which is how a row disappears from an
+ * index nobody has touched.
+ */
+const ALERT_STATES = Object.keys(STATE_TONE) as ReadonlyArray<AlertRule['state']>
 
 export function AlertsView({
   title,
@@ -128,6 +173,51 @@ export function AlertsView({
     }
   }
 
+  /* The firing history. One dialog, one rule at a time; the rule is held rather
+     than the id so the title can name it without a second read. */
+  const [historyOf, setHistoryOf] = useState<AlertRule | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  /**
+   * §5.3 — the confirmation NAMES the rule, and its body says what goes and
+   * what stays. `deleteAlertRule` has existed since the client was written and
+   * had no UI caller at all: a rule could be created and edited and never
+   * removed.
+   */
+  const askDelete = (rule: AlertRule) => {
+    setConfirm({
+      title: t('rb.alert.delete.confirm.title', { name: rule.name }),
+      body: t('rb.alert.delete.confirm.body'),
+      confirmLabel: t('rb.alert.delete.confirm.action'),
+      /* R5a use #1. Nothing in this product restores a deleted rule or its
+         firing history, which is the test the red button has to pass. */
+      destructive: true,
+      onConfirm: () => void runDelete(rule),
+    })
+  }
+
+  const runDelete = async (rule: AlertRule) => {
+    setDeleting(true)
+    try {
+      await deleteAlertRule(rule.id)
+      setConfirm(null)
+      /* R9 — one line, naming the object. §5.1 wants one for every successful
+         mutation, and a row vanishing from a table is not a confirmation: the
+         operator cannot tell it from a filter change. */
+      toast.success(t('rb.alert.toast.deleted', { name: rule.name }))
+      rules.refetch()
+    } catch {
+      /* §8.3 — a failed mutation never closes the surface it came from. The
+         confirm stays open with the same rule named in it. */
+      toast.error(t('rb.alert.delete.failed'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const columns: Array<DataColumn<AlertRule>> = [
     {
       id: 'name',
@@ -152,6 +242,21 @@ export function AlertsView({
       emphasis: 'data',
       header: t('rb.alerts.col.state'),
       width: 140,
+      dataType: 'enum',
+      /* **The filter that could never fire, made reachable.** It used to live
+         on `params.view` in `alerts.ts`, which `useIndexTable` feeds from
+         `?view=` — always the reports sub-tab id `alerts` on this screen. A
+         `FilterSpec` is keyed on a FIELD, so `state` cannot collide with a view
+         id, and the control and the client branch are now one declaration. */
+      filter: {
+        kind: 'select',
+        field: 'state',
+        label: t('rb.alerts.filter.state'),
+        options: ALERT_STATES.map((state) => ({
+          value: state,
+          label: t(`rb.alert.state.${state}`),
+        })),
+      },
       cell: (row) => (
         <span className="flex flex-col items-start gap-1">
           <StatusBadge tone={STATE_TONE[row.state]}>{t(`rb.alert.state.${row.state}`)}</StatusBadge>
@@ -170,10 +275,31 @@ export function AlertsView({
           )}
         </span>
       ),
-      secondaryLine: (row) =>
-        row.stateReasonKey === null ? null : (
-          <span className="text-xs text-muted-foreground">{t(row.stateReasonKey)}</span>
-        ),
+      /**
+       * The qualifier, in the slot the suspended and error reasons already use.
+       *
+       * **The row note is added, never substituted.** It answers *is anything
+       * checking this?* and `stateReasonKey` answers *why is it in this state?*
+       * — two different questions, and the second is the one the disabled
+       * `Test this rule` action points at (`reason: () => null` below is only
+       * legal while the reason is on the row). A rule with a cadence shows the
+       * reason alone; a rule without one shows both, in that order, because the
+       * present tense is what needs qualifying first.
+       */
+      secondaryLine: (row) => {
+        const lines = [
+          ...(row.cadence === null ? [t('rb.alert.cadence.rowNote')] : []),
+          ...(row.stateReasonKey === null ? [] : [t(row.stateReasonKey)]),
+        ]
+        if (lines.length === 0) return null
+        return (
+          <span className="flex flex-col text-xs text-muted-foreground">
+            {lines.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </span>
+        )
+      },
     },
     {
       id: 'cadence',
@@ -206,11 +332,13 @@ export function AlertsView({
       header: t('rb.alerts.col.lastEvaluated'),
       width: 160,
       dataType: 'date',
+      /* **A word, not a placeholder.** `formatMetricValue(null, …)` rendered the
+         no-data dash, which cannot tell *never checked* from *checked, and the
+         reading was missing*. Every rule on this list is the first of those and
+         the column is entitled to say so. */
       cell: (row) =>
         row.lastEvaluatedAt === null ? (
-          <span className="text-muted-foreground">
-            {formatMetricValue(null, 'count', language)}
-          </span>
+          <span className="text-muted-foreground">{t('rb.alert.lastEvaluated.never')}</span>
         ) : (
           <bdi>{formatDate(row.lastEvaluatedAt, { style: 'day-month-time', language })}</bdi>
         ),
@@ -243,6 +371,23 @@ export function AlertsView({
          five times its height and says nothing new. */
       reason: () => null,
     },
+    {
+      /* The whole `alerts.history` resource's only way in. It opens a record,
+         mutates nothing, and is deliberately NOT the row-click target: `Open`
+         already is, and §11.2 allows exactly one. */
+      label: t('rb.alert.history'),
+      onSelect: (row) => {
+        setHistoryOf(row)
+        setHistoryOpen(true)
+      },
+    },
+    {
+      /* R5a use #1. In the row menu, never on the page header, and never
+         reachable from a row click — a stray click must not be able to open a
+         destructive confirm the operator did not ask for. */
+      label: t('rb.alert.delete'),
+      onSelect: (row) => askDelete(row),
+    },
   ]
 
   return (
@@ -264,6 +409,38 @@ export function AlertsView({
       }
     >
       <div className="flex flex-col gap-3">
+        {/* **R10 — the standing condition, above the rows it qualifies.**
+
+            §11.4 puts a page-level banner first in the content block, and §5.2
+            allows exactly ONE — so the cadence sentence and the re-arm sentence
+            are merged into this single `info` banner rather than stacked. They
+            used to be two 12px paragraphs BELOW the table and below pagination,
+            where they were the last thing on the page contradicting a
+            `success`-toned badge on every row.
+
+            `info`, not `warning`: nothing is wrong and nothing is degrading.
+            A decision has not been made, which is a fact about the product and
+            not an incident. `role="status"` for the same reason — it is true,
+            not a rejection, and it does not earn a screen-reader interruption.
+
+            Rendered only while a rule on this page actually has no cadence, so
+            the day one is set the banner stops asserting something false. */}
+        {(rules.data?.items ?? []).some((rule) => rule.cadence === null) && (
+          <Banner
+            role="status"
+            banner={{
+              id: 'management-reports-alerts-no-cadence',
+              tone: 'info',
+              title: t('rb.alerts.banner.title'),
+              body: t('rb.alerts.banner.body'),
+            }}
+          >
+            {/* The second merged condition. §4.2's one-line-per-condition list
+                is what a merge renders, so the two facts stay two facts. */}
+            <BannerConditionList lines={[t('rb.alert.rearm.explain')]} />
+          </Banner>
+        )}
+
         {/* AC-877 — it reports the bucket, the value and whether it WOULD have
             fired. It never changes the rule and never emits a notification, and
             the sentence says so out loud so nobody reads a test as a firing. */}
@@ -317,11 +494,9 @@ export function AlertsView({
           }}
           error={{ message: t('rb.alerts.error'), onRetry: rules.refetch }}
         />
-
-        {/* The two fields the business has not decided, stated once for the
-            list rather than repeated on every row. */}
-        <p className="text-xs text-muted-foreground">{t('rb.alert.cadence.explain')}</p>
-        <p className="text-xs text-muted-foreground">{t('rb.alert.rearm.explain')}</p>
+        {/* The two footnotes that used to sit here are the banner above. R10:
+            a standing condition is a banner; a footnote below pagination is
+            not a place a correction can outrank a badge from. */}
       </div>
 
       <AlertRuleDialog
@@ -329,12 +504,32 @@ export function AlertsView({
         onOpenChange={setFormOpen}
         rule={editing}
         today={today}
-        onSaved={() => {
+        onSaved={(rule) => {
           setFormOpen(false)
+          /* §5.1 — a toast for every successful mutation, INCLUDING one inside
+             a modal. Saving used to close the dialog and refetch in silence,
+             which leaves the operator to infer the write from a list that looks
+             the same either way. R9: one line, naming the object. */
+          toast.success(t('rb.alert.toast.saved', { name: rule.name }))
           rules.refetch()
         }}
         t={t}
         language={language}
+      />
+
+      <AlertHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        rule={historyOf}
+        t={t}
+        language={language}
+      />
+
+      <ConfirmDialog
+        request={confirm}
+        onClose={() => setConfirm(null)}
+        busy={deleting}
+        t={t}
       />
     </SingleColumnPage>
   )

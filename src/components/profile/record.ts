@@ -111,7 +111,22 @@ const RECORD_OPERATIONS: Record<ProfileRecord['entityType'], string> = {
  */
 export interface PersonFacets {
   movementLog: { at: string; action: string; location: string }[]
-  device: string
+  /**
+   * **`null` when no device has been recorded**, which is not the same as an
+   * empty string and must not be flattened into one.
+   *
+   * `Rider.device` became nullable when the rider profile had to distinguish
+   * *absent* from *blank*: the reference design printed `No device recorded`
+   * over a record that has one, and the fix was to render presence from the
+   * data rather than assert it in prose. The other three person types still
+   * declare it as always present, so the union widens here rather than there.
+   *
+   * Nothing downstream needs changing: `Field.value` already treats `null` as
+   * the empty pair that renders §3.5's placeholder and feeds `splitAbsent()`,
+   * so an absent device joins the grouped `Not recorded:` line instead of
+   * printing a sentence that contradicts the record.
+   */
+  device: string | null
   appLanguage: string
   lastIp: string
   ipLocation: string

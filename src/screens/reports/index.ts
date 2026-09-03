@@ -13,6 +13,7 @@
  * not change when the row landed.
  */
 
+export { AlertHistoryDialog, type AlertHistoryDialogProps } from './AlertHistoryDialog'
 export { AlertRuleDialog, type AlertRuleDialogProps } from './AlertRuleDialog'
 export { AlertsView, type AlertsViewProps } from './AlertsView'
 export { EMPTY_QUERY, ReportBuilder, type ReportBuilderProps } from './ReportBuilder'

@@ -237,6 +237,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        sortField: 'id',
         emphasis: 'primary',
         csv: (d) => d.id,
         header: t('dispute.col.case'),
@@ -367,6 +368,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        sortField: 'id',
         emphasis: 'primary',
         csv: (l) => l.id,
         header: t('dispute.lf.col.case'),

@@ -580,62 +580,6 @@ function comparisonParts({
     }
   }
 
-  const Caret = deltaPercent > 0 ? ArrowUpIcon : deltaPercent < 0 ? ArrowDownIcon : null
-  /* The LONG clause, still exactly as it was, and still the screen reader's. */
-  const direction =
-    deltaPercent === 0
-      ? t('overview.delta.flat')
-      : t(
-          deltaPercent > 0
-            ? metric.higherIsBetter
-              ? 'overview.delta.upBetter'
-              : 'overview.delta.upWorse'
-            : metric.higherIsBetter
-              ? 'overview.delta.downWorse'
-              : 'overview.delta.downBetter',
-        )
-
-  /* **`higherIsBetter` reaches the SIGHTED operator, and after the chip came
-     off it is the ONLY thing that does.** One derivation feeds the hue a reader
-     sees and the clause a screen reader hears, so the two can never disagree —
-     which matters more now than it did, because the hue is no longer backed by
-     a word. `null` at zero: nothing moved, so nothing is better or worse, and
-     the run then takes the muted colour rather than a verdict. */
-  const valence = metricValence(deltaPercent, metric.higherIsBetter)
-
-  /* **The valence colour, and the two grounds it has to survive.** On the page
-     it is R7's tone foregrounds, unchanged. On the band NEITHER of them is
-     legible — `--ev-red` measures 1.79 : 1 on `--ev-hero` — so the band has its
-     own pair, derived against that one ground and nothing else. See
-     `--ev-hero-up` for why this does not void R4-5 or R5a: the caret and the
-     word travel together, so the hue is redundancy and never the carrier. */
-  const valenceClass =
-    valence === null
-      ? onBand
-        ? 'text-hero-muted'
-        : 'text-muted-foreground'
-      : onBand
-        ? valence === 'better'
-          ? 'text-hero-up'
-          : 'text-hero-down'
-        : valence === 'better'
-          ? 'text-success-foreground'
-          : 'text-critical-foreground'
-
-  const caret = Caret && (
-    /* §3.7's direction caret. A MARK: up and down encode magnitude, not
-       reading direction, so it does not mirror (§9.5). Drawn as an icon rather
-       than as a Unicode geometric shape, which Inter does not carry — the
-       browser falls through to whatever font does, and on Windows that font
-       paints in colour. */
-    <Caret aria-hidden="true" className="size-3" />
-  )
-
-  /* Isolated for the same reason as the value — see the `<bdi>` there.
-     `+8.1%` renders `8.1%+` without it under `dir="rtl"`, its leading sign
-     being bidi-neutral. */
-  const percent = <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
-
   return {
     /* **The chip and the valence word are both gone, and this is the owner's
        ruling rather than a drift.**
@@ -650,33 +594,137 @@ function comparisonParts({
        of five was five rectangles and five judgements competing with the five
        numbers they were about.
 
-       **§7.5 is met, and it is worth saying exactly how**, because colour is
-       now doing more work than it was:
-
-         - DIRECTION is carried by the caret, which is a shape and not a hue.
-         - The SIGN is in the text: `+57%` and `−15.4%` read as a rise and a
-           fall with the stylesheet switched off.
-         - VALENCE — whether a rise is good news — is carried by hue for a
-           sighted reader and by `overview.delta.*`'s full clause, which is
-           still rendered `sr-only` on every delta, for everyone else. That
-           clause is the same string the chip used to carry and it has not
-           moved.
-
-       So the one carrier that lost a redundant partner is valence, and it is
-       the one the reference is most emphatic about. R4-5's substance — that a
-       BADGE must not be toned — is not contradicted: there is no badge.
-
-       `text-xs` and `font-medium`, so the run is small beside a 28px numeral
-       and still heavier than the caption under it. */
+       **The run itself now lives in `MetricDelta`**, one component below, so
+       the chart card and the report builder's panel reach the same judgement
+       rather than each re-deriving it. What was here has not changed; it
+       moved. */
     delta: (
-      <span className={cn('flex items-center gap-1 text-xs font-medium tabular-nums', valenceClass)}>
-        {caret}
-        {percent}
-        <span className="sr-only">{direction}</span>
-      </span>
+      <MetricDelta
+        deltaPercent={deltaPercent}
+        higherIsBetter={metric.higherIsBetter}
+        onBand={onBand}
+        t={t}
+        language={language}
+      />
     ),
     note: againstLine,
   }
+}
+
+/**
+ * **§3.7's delta run — the one implementation, on three surfaces.**
+ *
+ * A metric tile, a chart card's headline and the report builder's panel all
+ * state the same fact and used to state it three ways: the tile with a caret,
+ * a hue and a clause; the chart with nothing at all; the panel with a neutral
+ * numeral and *alert-threshold* copy read out `sr-only`. One component, so the
+ * mark a reader sees and the clause a reader hears are one judgement.
+ *
+ * ## §3.7 and R4-5 are both satisfied, and here is exactly how
+ *
+ * §3.7 rule 3: *"Deltas MUST be colour-coded **and** carry a direction caret;
+ * colour alone is insufficient."* R4-5: `higherIsBetter` *"words a sentence; it
+ * never colours a number."* They read as a contradiction and are not one — R4-5
+ * is about a toned **badge**, which is D7 §4.9's plate, and there is no badge
+ * here. Four carriers, and colour is the only one that could be missed:
+ *
+ *   - **DIRECTION** is the caret. A shape, not a hue — and it does **not**
+ *     mirror (§9.5): up and down encode magnitude on the vertical axis, not a
+ *     direction of reading. Drawn as a lucide icon rather than a Unicode
+ *     geometric shape, which Inter does not carry: the browser falls through to
+ *     whatever font does, and on Windows that font paints in colour.
+ *   - **THE SIGN** is in the text. `+57%` and `−15.4%` read as a rise and a
+ *     fall with the stylesheet switched off.
+ *   - **VALENCE** — whether a rise is good news — is the hue for a sighted
+ *     reader and `overview.delta.*`'s full clause, rendered `sr-only` on every
+ *     delta, for everyone else.
+ *   - **THE SENTENCE** under the headline (`trendRead`) says the same thing in
+ *     words, from the same number.
+ *
+ * So the hue is redundancy on every surface and the carrier on none.
+ *
+ * ## The two grounds, and why the tone foregrounds are not enough
+ *
+ * On the page it is R7's tone foregrounds. On the band NEITHER is legible —
+ * `--ev-red` measures 1.79 : 1 on `--ev-hero` — so the band has its own pair,
+ * derived against that one ground and nothing else. See `--ev-hero-up`.
+ *
+ * ## `null` is an em dash and never `0%`
+ *
+ * AC-834. The dash is `aria-hidden`, because a mark is not a sentence: every
+ * caller pairs it with words — the tile's reason line, the card's
+ * `overview.chart.read.noBaseline`. A caller that renders this with `null` and
+ * says nothing beside it has a defect, not a delta.
+ */
+export function MetricDelta({
+  deltaPercent,
+  higherIsBetter,
+  onBand = false,
+  t,
+  language,
+}: {
+  /** Signed, in percentage points. `null` when there is nothing to compare. */
+  deltaPercent: number | null
+  higherIsBetter: boolean
+  /** `true` on the hero band, which has its own legible pair of valence hues. */
+  onBand?: boolean
+  t: Translate
+  language: Language
+}) {
+  if (deltaPercent === null) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn('text-sm', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
+      >
+        {ABSENT}
+      </span>
+    )
+  }
+
+  const Caret = deltaPercent > 0 ? ArrowUpIcon : deltaPercent < 0 ? ArrowDownIcon : null
+
+  /* The LONG clause, and it is the screen reader's. */
+  const direction =
+    deltaPercent === 0
+      ? t('overview.delta.flat')
+      : t(
+          deltaPercent > 0
+            ? higherIsBetter
+              ? 'overview.delta.upBetter'
+              : 'overview.delta.upWorse'
+            : higherIsBetter
+              ? 'overview.delta.downWorse'
+              : 'overview.delta.downBetter',
+        )
+
+  /* One derivation feeds the hue a reader sees and the clause a screen reader
+     hears, so the two can never disagree. `null` at zero: nothing moved, so
+     nothing is better or worse, and the run takes the muted colour rather than
+     a verdict. */
+  const valence = metricValence(deltaPercent, higherIsBetter)
+  const valenceClass =
+    valence === null
+      ? onBand
+        ? 'text-hero-muted'
+        : 'text-muted-foreground'
+      : onBand
+        ? valence === 'better'
+          ? 'text-hero-up'
+          : 'text-hero-down'
+        : valence === 'better'
+          ? 'text-success-foreground'
+          : 'text-critical-foreground'
+
+  return (
+    <span className={cn('flex items-center gap-1 text-xs font-medium tabular-nums', valenceClass)}>
+      {Caret && <Caret aria-hidden="true" className="size-3" />}
+      {/* Isolated for the same reason as the value. `+8.1%` renders `8.1%+`
+          without it under `dir="rtl"`, its leading sign being bidi-neutral. */}
+      <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
+      <span className="sr-only">{direction}</span>
+    </span>
+  )
 }
 
 /**

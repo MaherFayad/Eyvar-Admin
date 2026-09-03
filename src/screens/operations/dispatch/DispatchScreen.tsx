@@ -338,7 +338,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
       actions={[
         {
           label: t('dispatch.empty.board.action'),
-          onClick: () => navigate('/operations/requests'),
+          onClick: () => navigate('/operations/ride-requests'),
           primary: true,
         },
       ]}

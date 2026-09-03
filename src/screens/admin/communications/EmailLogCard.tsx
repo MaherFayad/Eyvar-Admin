@@ -176,6 +176,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
       },
       {
         id: 'subject',
+        sortField: 'subject',
         header: t('comms.col.subject'),
         width: 240,
         dataType: 'text',
@@ -185,6 +186,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
       },
       {
         id: 'templateKey',
+        sortField: 'templateKey',
         header: t('comms.col.template'),
         width: 190,
         dataType: 'enum',
@@ -203,6 +205,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
       },
       {
         id: 'state',
+        sortField: 'state',
         header: t('comms.col.state'),
         width: 210,
         dataType: 'enum',
@@ -256,6 +259,7 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
       },
       {
         id: 'ticketId',
+        sortField: 'ticketId',
         header: t('comms.col.ticket'),
         width: 110,
         dataType: 'id',

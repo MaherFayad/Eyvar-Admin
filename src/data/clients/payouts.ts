@@ -175,6 +175,10 @@ const payoutShape: QueryShape<CaptainPayout> = {
     earnedHalalas: (p) => p.earnedHalalas,
     tripsInPeriod: (p) => p.tripsInPeriod,
     lastPayoutAt: (p) => p.lastPayoutAt,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    state: (p) => p.state,
   },
   filterable: {
     captainId: (p) => p.captainId,
@@ -405,6 +409,10 @@ const escrowShape: QueryShape<EscrowHold> = {
     amountHalalas: (e) => e.amountHalalas,
     heldSince: (e) => e.heldSince,
     tripsCompleted: (e) => e.tripsCompleted,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    settlement: (e) => e.settlement,
   },
   filterable: {
     id: (e) => e.id,

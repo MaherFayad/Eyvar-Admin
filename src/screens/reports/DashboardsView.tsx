@@ -29,6 +29,7 @@
  */
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
@@ -44,10 +45,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
-import { deleteDashboard, listDashboards, saveDashboard } from '@/data/clients'
-import { REPORT_NAME_MAX, type Dashboard } from '@/data/types'
+import { deleteDashboard, listDashboards, listTeamUsers, saveDashboard } from '@/data/clients'
+import { REPORT_NAME_MAX, type Dashboard, type TeamUser } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { reportsViewTabs, type ReportsView } from './views'
 
@@ -81,6 +83,13 @@ export function DashboardsView({
     cacheKey: 'dashboards.list',
   })
 
+  /* The owner is an id on the wire; a real API joins it and the mock does not,
+     so the roster is read once and mapped here - derivable, never invented. */
+  const team = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), {
+    deps: [],
+    cacheKey: 'session.teamUsers',
+  })
+
   const rows = dashboards.data?.items ?? []
 
   const columns: Array<DataColumn<Dashboard>> = [
@@ -95,6 +104,32 @@ export function DashboardsView({
         /* User content. Layout on the box, isolation on the run (AC-898). */
         <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
           <bdi {...isolatedRunProps().run}>{row.name}</bdi>
+        </span>
+      ),
+      /* What the board is FOR, on the second line - the same treatment the
+         report library gives a saved report's description. `null` renders
+         nothing rather than a blank line, so an unwritten description costs the
+         row no height. */
+      secondaryLine: (row) =>
+        row.description === null ? null : (
+          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+            <bdi {...isolatedRunProps().run}>{row.description}</bdi>
+          </span>
+        ),
+    },
+    {
+      id: 'owner',
+      header: t('rb.dashboards.col.owner'),
+      width: 160,
+      dataType: 'text',
+      /* On a shared install "whose board is this?" was unanswerable from the
+         list. The id is the fallback while the roster is still loading - a
+         truthful identifier beats a blank cell, which reads as no owner. */
+      cell: (row) => (
+        <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+          <bdi {...isolatedRunProps().run}>
+            {team.data?.find((user) => user.id === row.ownerId)?.name ?? row.ownerId}
+          </bdi>
         </span>
       ),
     },
@@ -132,6 +167,10 @@ export function DashboardsView({
     try {
       await deleteDashboard(pending.dashboard.id)
       setPending(null)
+      /* R9 - <object> <past-participle>, echoing the name the operator read in
+         the confirmation. The row is gone from the table by the time this is
+         read, which is exactly what a toast is for (R10). */
+      toast.success(t('rb.dashboards.deleted.toast', { name: pending.dashboard.name }))
       dashboards.refetch()
     } catch {
       /* A failed mutation never closes the surface it came from (§8.3). */
@@ -189,6 +228,7 @@ export function DashboardsView({
         onOpenChange={setCreating}
         onCreated={(dashboard) => {
           setCreating(false)
+          toast.success(t('rb.dashboards.created.toast', { name: dashboard.name }))
           onOpen(dashboard)
         }}
         t={t}
@@ -246,13 +286,14 @@ function NewDashboardDialog({
   t: Translator
 }) {
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [reasons, setReasons] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
 
   const submit = async () => {
     setFailed(false)
     try {
-      const outcome = await saveDashboard({ id: null, name, tiles: [] })
+      const outcome = await saveDashboard({ id: null, name, description, tiles: [] })
       if (outcome.status === 'invalid') {
         /* A RETURNED outcome, not a throw: a failed save never closes the
            dialog it came from and the operator's input is preserved (AC-859). */
@@ -261,6 +302,7 @@ function NewDashboardDialog({
       }
       setReasons([])
       setName('')
+      setDescription('')
       onCreated(outcome.dashboard)
     } catch {
       setFailed(true)
@@ -275,13 +317,32 @@ function NewDashboardDialog({
           <AlertDialogDescription>{t('rb.dashboards.new.body')}</AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="rb-dashboard-name">{t('rb.dashboards.new.name')}</Label>
-          <Input
-            id="rb-dashboard-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rb-dashboard-name">{t('rb.dashboards.new.name')}</Label>
+            <Input
+              id="rb-dashboard-name"
+              maxLength={REPORT_NAME_MAX}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+
+          {/* The same field a saved report carries. Optional, and the
+              placeholder says who the answer is for rather than restating the
+              label. */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rb-dashboard-description">
+              {t('rb.dashboards.new.description')}
+            </Label>
+            <Textarea
+              id="rb-dashboard-description"
+              placeholder={t('rb.dashboards.description.placeholder')}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+
           {reasons.map((reason) => (
             <p key={reason} className="text-xs text-muted-foreground">
               {t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX })}

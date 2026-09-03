@@ -57,11 +57,10 @@
  *   §9.1        logical spacing throughout; nothing placed by a physical side.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -73,15 +72,13 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { LegalityOptions } from '@/components/reports'
-import { resolveWindow } from '@/data/clients'
+import { LegalityOptions, WindowControl } from '@/components/reports'
 import {
   MAX_COHORT_HORIZON,
   MAX_FUNNEL_STEPS,
   MAX_JOURNEY_DEPTH,
   MIN_COHORT_HORIZON,
   MIN_JOURNEY_DEPTH,
-  REPORT_PRESETS,
 } from '@/data/clients/reports'
 import {
   REPORT_MODES,
@@ -96,7 +93,7 @@ import {
   type ReportMode,
   type ReportQuery,
 } from '@/data/types'
-import { formatDate, type Language, type Translator } from '@/lib'
+import type { Language, Translator } from '@/lib'
 
 /** Shared by both rails, so a mode card and a query card sit on one surface. */
 const CARD = 'flex flex-col gap-4 rounded-xl border border-border bg-card p-3 shadow-1'
@@ -183,7 +180,18 @@ export function ReportModePanel({
         />
       )}
 
-      <WindowField query={query} onChange={onChange} today={today} t={t} language={language} />
+      {/* §5.3 item 5, from the one shared control — see `WindowControl.tsx`.
+          **Never `disabled` here**, which is the concrete reason this panel
+          exists: a cohort's window decides how many columns it can reach, and
+          `QueryPanel` turns the range off while `measures` is empty. */}
+      <WindowControl
+        id="rb-mode-window"
+        query={query}
+        onChange={onChange}
+        today={today}
+        t={t}
+        language={language}
+      />
       <Reasons items={reasons('window')} t={t} />
       {/* The grain is not a control here and it is not hidden either: the mode
           decided it, and the sentence says which mode and what it decided. */}
@@ -223,25 +231,51 @@ export interface ModeFieldProps {
  * Each option carries one line saying what the question is, because *Retention*
  * and *Journeys* are not self-evident to an operator who has not used an
  * analytics tool before, and a mode switched into by mistake costs a `Run`.
+ *
+ * ## Why a strip and not a `Select`
+ *
+ * It **was** a `Select`, and a `Select` shows one of five: an operator who had
+ * never opened it could not know that a funnel, a retention matrix or a journey
+ * tree were on offer at all. That is the same failure this module refuses
+ * everywhere else — *disabled in place, never hidden* — applied to the one
+ * control that chooses which question is being asked.
+ *
+ * So it is the `role="group"` button row `LegalityOptions` already uses, with
+ * the same `aria-pressed` selection, for the same reason: individually
+ * focusable buttons keep every option one Tab away, and the selection is
+ * *announced* rather than merely coloured (§7.5). `group` rather than
+ * `radiogroup` because a radio group takes one tab stop and owns arrow-key
+ * navigation, which is a second interaction model for a five-item strip.
+ *
+ * No icons: no icon set has been specified for these five, and inventing one
+ * would be five design decisions taken in a component.
  */
 export function ModeField({ query, onChange, t }: ModeFieldProps) {
   const mode = reportMode(query)
+  const labelId = useId()
   return (
     <div className={`${CARD} w-72 shrink-0`}>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-mode">{t('rb.control.mode')}</Label>
-        <Select value={mode} onValueChange={(value) => onChange(value as ReportMode)}>
-          <SelectTrigger id="rb-mode" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {REPORT_MODES.map((value) => (
-              <SelectItem key={value} value={value}>
+        <Label id={labelId}>{t('rb.control.mode')}</Label>
+        <div role="group" aria-labelledby={labelId} className="flex flex-wrap gap-1">
+          {REPORT_MODES.map((value) => {
+            const selected = value === mode
+            return (
+              <Button
+                key={value}
+                type="button"
+                size="xs"
+                variant={selected ? 'secondary' : 'ghost'}
+                aria-pressed={selected}
+                onClick={() => onChange(value)}
+              >
                 {t(`rb.mode.${value}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              </Button>
+            )
+          })}
+        </div>
+        {/* The hint stays under the strip and describes the SELECTED mode —
+            five hints at once is a paragraph, not a switcher. */}
         <p className="text-xs text-muted-foreground">{t(`rb.mode.${mode}.hint`)}</p>
       </div>
     </div>
@@ -655,105 +689,6 @@ function JourneyFields({
 }
 
 /* ───────────────────────────── shared parts ────────────────────────────── */
-
-/**
- * The nine presets, or an explicit pair of dates.
- *
- * The same nine, from `REPORT_PRESETS` in the query model, in the same order —
- * a second range control offering eight of them would be a second answer to
- * §3.2. **Enabled in every mode**, which is the concrete reason this panel
- * exists: a cohort's window is what decides how many columns it can reach, and
- * `QueryPanel` disables the range on `measures.length === 0`.
- */
-function WindowField({
-  query,
-  onChange,
-  today,
-  t,
-  language,
-}: {
-  query: ReportQuery
-  onChange: (query: ReportQuery) => void
-  today: string
-  t: Translator
-  language: Language
-}) {
-  const [open, setOpen] = useState(false)
-  const resolved = resolveWindow(query.window, today)
-  const [from, setFrom] = useState(resolved.from)
-  const [to, setTo] = useState(resolved.to)
-
-  const label =
-    query.window.kind === 'preset'
-      ? t(`rb.preset.${query.window.preset}`)
-      : t('rb.control.window.range', {
-          from: formatDate(resolved.from, { style: 'day-month', language }),
-          to: formatDate(resolved.to, { style: 'day-month', language }),
-        })
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor="rb-mode-window">{t('rb.control.window')}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button id="rb-mode-window" type="button" variant="secondary" className="justify-between">
-            <bdi>{label}</bdi>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="flex w-64 flex-col gap-2">
-          <ul className="flex list-none flex-col">
-            {REPORT_PRESETS.map((preset) => (
-              <li key={preset}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full justify-start"
-                  aria-pressed={query.window.kind === 'preset' && query.window.preset === preset}
-                  onClick={() => {
-                    onChange({ ...query, window: { kind: 'preset', preset } })
-                    setOpen(false)
-                  }}
-                >
-                  {t(`rb.preset.${preset}`)}
-                </Button>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-col gap-1.5 border-t border-border pt-2">
-            <Label htmlFor="rb-mode-window-from">{t('rb.control.window.from')}</Label>
-            <Input
-              id="rb-mode-window-from"
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-            />
-            <Label htmlFor="rb-mode-window-to">{t('rb.control.window.to')}</Label>
-            <Input
-              id="rb-mode-window-to"
-              type="date"
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
-            />
-            {/* §3.2 — validate by disabling the primary. An inverted range
-                never becomes a query. */}
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={from === '' || to === '' || from > to}
-              onClick={() => {
-                onChange({ ...query, window: { kind: 'absolute', from, to } })
-                setOpen(false)
-              }}
-            >
-              {t('rb.control.window.apply')}
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  )
-}
 
 /** The measure list, grouped by the metrics library's own six categories. */
 function MeasureItems({ measures, t }: { measures: readonly Measure[]; t: Translator }) {

@@ -25,39 +25,79 @@
  * (**AC-869**). It is never read for a resolvable tile, because then it would
  * be a second, stale source of truth for the title.
  *
- * ## Missing is not blocked, and neither is an error
+ * ## Four outcomes, and the defect was collapsing them into one
  *
- * Three different sentences, and §11.3 keeps them apart on purpose:
+ * `load` used to `.catch(() => null)` every `reports.get` failure and map an
+ * `invalid-query` run to the same `null`. So a network blip, a 403 on a private
+ * report and a query invalidated by a catalogue change all rendered *"The
+ * report this tile pointed at no longer exists"* — whose only action is
+ * `Remove tile`, **inviting the operator to destroy a healthy tile**. The
+ * `error` branch below was unreachable.
  *
- *   **missing** — *this is gone.* The frame stays, `pinnedName` names it, and
- *                 `Remove tile` is the only action.
+ * It now returns a discriminated `TileState` and a genuine transport error
+ * **rejects**, so `useAsync`'s error branch fires with the retry it already
+ * renders. The catch is narrowed to `not-found`, which is the fix
+ * `ReportsScreen.tsx` names for the identical hazard on the builder.
+ *
+ *   **missing** — *this is gone.* 404 and only 404. The frame stays,
+ *                 `pinnedName` names it, `Remove tile` beside the sentence.
+ *   **invalid** — *this cannot run.* §8.3 state 12 / AC-825: the report
+ *                 resolved, the query no longer validates, and the violations
+ *                 say what changed. Removing the tile would not fix it.
  *   **blocked** — *you may not see this.* `PanelCard` renders it, per series,
  *                 naming the permission required.
  *   **failed**  — *this did not load.* Its own retry, and the dashboard is fine.
+ *
+ * The violations are rendered in `ResultCanvas`'s own `InvalidQuery` shape —
+ * `role="alert"`, one line per violation, from `violation.reasonKey` — but not
+ * by calling it: its sentence is *"This report can't run yet. The panel says
+ * why"*, and a dashboard tile has no panel to point at. Same objects, same
+ * markup, a sentence that is true where it is read.
  *
  * Rules applied
  *   AC-873      the same composer as a metric board: same panels, same no-data
  *               sentence, same legend rules. `ResultCanvas` is literally the
  *               same component the builder renders, which is what makes that
  *               claim checkable rather than aspirational.
- *   AC-871      `Move up` / `Move down` are real buttons with accessible names.
- *               §7 does not exempt drag-and-drop, so the core ships the
- *               keyboard-operable form and a grid stays additive.
- *   §7.3        the tile's controls are not hover-only.
+ *   AC-871      `Move up` / `Move down` are real buttons with accessible names,
+ *               and `Move to position` is a `Select` beside them — §11.2's
+ *               rejection of a drag grid was about keyboard operability, so the
+ *               coarse move is a form control rather than a gesture.
+ *   §7.3        every one of the tile's controls is present, never hover-only —
+ *               including `Remove tile`, which used to reach the UI only from
+ *               the missing branch, so a healthy tile could not be removed at
+ *               all.
+ *   §9.1        `ms-`/`me-` only; the arrows point along an ordered LIST, which
+ *               runs block-wise in both languages (§9.5), so they do not mirror.
  */
 
 import { useCallback } from 'react'
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { useAsync } from '@/hooks'
 import { getReport, planReportQuery, runReport } from '@/data/clients'
+import { isApiError } from '@/data/types'
 import type {
   DashboardTile as DashboardTileModel,
   Dimension,
   Measure,
+  QueryViolation,
   ReportResult,
   SavedReport,
 } from '@/data/types'
@@ -69,10 +109,15 @@ export interface DashboardTileProps {
   measures: readonly Measure[]
   dimensions: readonly Dimension[]
   today: string
-  /** `null` disables the move controls at the ends of the list. */
+  /** 1-based, and the value the position `Select` shows. */
+  position: number
+  /** How many tiles the board holds — the last position `Move to` can offer. */
+  total: number
+  /** `false` disables the move controls at the ends of the list, in place. */
   canMoveUp: boolean
   canMoveDown: boolean
   onMove: (tileId: string, direction: -1 | 1) => void
+  onMoveTo: (tileId: string, position: number) => void
   onRemove: (tileId: string) => void
   onOpen: (report: SavedReport) => void
   noDataSentence: string
@@ -80,19 +125,26 @@ export interface DashboardTileProps {
   language: Language
 }
 
-interface Resolved {
-  report: SavedReport
-  result: ReportResult
-}
+/**
+ * The tile's three *resolved* answers. A transport failure is not one of them —
+ * it rejects, and `useAsync` turns it into the error state with a retry.
+ */
+type TileState =
+  | { kind: 'ok'; report: SavedReport; result: ReportResult }
+  | { kind: 'invalid'; report: SavedReport; violations: QueryViolation[] }
+  | { kind: 'missing' }
 
 export function DashboardTile({
   tile,
   measures,
   dimensions,
   today,
+  position,
+  total,
   canMoveUp,
   canMoveDown,
   onMove,
+  onMoveTo,
   onRemove,
   onOpen,
   noDataSentence,
@@ -100,20 +152,32 @@ export function DashboardTile({
   language,
 }: DashboardTileProps) {
   const load = useCallback(
-    async (signal: AbortSignal): Promise<Resolved | null> => {
-      const report = await getReport(tile.reportId, signal).catch(() => null)
-      /* A dangling reference. It cannot be created through the UI — the delete
-         is refused — but a concurrent session, a restore or a direct API call
-         can still produce one. `null` is the MISSING state, not an error. */
-      if (!report) return null
-      const outcome = await runReport(report.data.query, { today, signal })
-      if (outcome.status !== 'ok') return null
-      return { report: report.data, result: outcome.result }
+    async (signal: AbortSignal): Promise<TileState> => {
+      let report: SavedReport
+      try {
+        report = (await getReport(tile.reportId, signal)).data
+      } catch (thrown) {
+        /* **Only a 404 is MISSING.** A dangling reference cannot be created
+           through the UI — the delete is refused — but a concurrent session, a
+           restore or a direct API call can still produce one. Everything else
+           — a blip, a 503, a 403 on a `private` report — rethrows, because
+           telling an operator a healthy report was deleted is how a healthy
+           tile gets destroyed. */
+        if (isApiError(thrown) && thrown.kind === 'not-found') return { kind: 'missing' }
+        throw thrown
+      }
+      const outcome = await runReport(report.query, { today, signal })
+      /* §8.3 state 12 — the report exists and its question no longer validates.
+         A returned union, not a throw, and it is not a missing tile. */
+      if (outcome.status === 'invalid-query') {
+        return { kind: 'invalid', report, violations: outcome.violations }
+      }
+      return { kind: 'ok', report, result: outcome.result }
     },
     [tile.reportId, today],
   )
 
-  const tileData = useAsync<Resolved | null>(load, {
+  const tileData = useAsync<TileState>(load, {
     /**
      * **P3-13 fix: `today` was missing.**
      *
@@ -130,27 +194,28 @@ export function DashboardTile({
      */
     deps: [tile.reportId, today],
     cacheKey: 'reports.run',
-    /* `null` is a real answer here — the tile is missing — so it must not be
-       folded into `empty`, which would render the wrong sentence. */
+    /* `missing` and `invalid` are real answers, so neither may be folded into
+       `empty`, which would render the wrong sentence. */
     isEmpty: () => false,
   })
 
   const measuresByKey = Object.fromEntries(measures.map((m) => [m.key, m]))
-  const resolved = tileData.data ?? null
-
-  const title = resolved?.report.name ?? tile.pinnedName
+  const state = tileData.data
+  /* The report's CURRENT name wherever the reference resolved — `pinnedName` is
+     read in exactly one case, and this is it. */
+  const title = state && state.kind !== 'missing' ? state.report.name : tile.pinnedName
 
   return (
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle>
-          {resolved ? (
-            /* A resolvable tile opens its report. The `pinnedName` is not read
-               here — the report's current name is the truth. */
+          {state?.kind === 'ok' || state?.kind === 'invalid' ? (
+            /* A resolvable tile opens its report — including one whose query no
+               longer validates, because the builder is where it gets fixed. */
             <Button
               type="button"
               variant="link"
-              onClick={() => onOpen(resolved.report)}
+              onClick={() => onOpen(state.report)}
               aria-label={t('rb.dashboard.tile.open', { name: title })}
             >
               <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
@@ -165,8 +230,8 @@ export function DashboardTile({
         </CardTitle>
 
         {/* AC-871 — keyboard-operable by construction. Present always, not on
-            hover, and each carries the tile's name so a screen reader knows
-            which tile it is moving.
+            hover, and each control carries the tile's name so a screen reader
+            knows which tile it is acting on.
 
             `CardAction`, not a bare div: the slot is what switches the header
             to a two-column grid and puts the controls BESIDE the title rather
@@ -196,6 +261,61 @@ export function DashboardTile({
             >
               <ArrowDownIcon aria-hidden="true" className="size-4" />
             </Button>
+
+            {/* §11.2's coarse reorder, and the reason it is a `Select` rather
+                than a drag handle: the objection that rejected the grid was
+                keyboard operability, and a form control has that for free. One
+                save replaces five. Disabled in place on a one-tile board — a
+                control that vanishes teaches nothing about the list. */}
+            <Select
+              value={String(position)}
+              disabled={total < 2}
+              onValueChange={(next) => onMoveTo(tile.tileId, Number(next))}
+            >
+              <SelectTrigger
+                size="sm"
+                aria-label={t('rb.dashboard.tile.moveTo', { name: title })}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: total }, (_, index) => index + 1).map((slot) => (
+                  <SelectItem key={slot} value={String(slot)}>
+                    {t('rb.dashboard.tile.position', { position: slot, total })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* **The defect this closes: a healthy tile could not be removed.**
+                `onRemove` reached the UI only from the missing branch, so
+                pinning was one-way — the only way off a board was to delete the
+                report, which §11.3 refuses. No confirmation: the write is
+                recoverable, `writeTiles` states its own failure, and the report
+                itself is untouched. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('rb.dashboard.tile.actions', { name: title })}
+                >
+                  <span aria-hidden="true">⋯</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  /* The label names the action; the accessible name names the
+                     tile, so six `Remove tile` items stay distinguishable to a
+                     screen reader without six different visible labels. */
+                  aria-label={t('rb.dashboard.tile.removeA11y', { name: title })}
+                  onSelect={() => onRemove(tile.tileId)}
+                >
+                  {t('rb.dashboard.tile.remove')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardAction>
       </CardHeader>
@@ -204,14 +324,16 @@ export function DashboardTile({
         {tileData.status === 'loading' ? (
           /* Skeleton in the tile's OWN frame. Other tiles render independently. */
           <LoadingSkeleton pattern="P5" label={title} />
-        ) : tileData.status === 'error' ? (
+        ) : tileData.status === 'error' || state === null ? (
+          /* Reachable at last. A transport failure is a failure to LOAD, with
+             its own retry — never "this report was deleted". */
           <ErrorState
             scope="card"
             card={false}
             message={t('rb.dashboard.tile.error')}
             action={{ label: t('rb.dashboard.tile.retry'), onClick: tileData.refetch }}
           />
-        ) : resolved === null ? (
+        ) : state.kind === 'missing' ? (
           /* §11.3's MISSING tile: the frame, `pinnedName`, one sentence, and
              `Remove tile`. Not an error, and it does not fail the dashboard. */
           <div className="flex flex-col items-center gap-2 py-8 text-center">
@@ -219,30 +341,43 @@ export function DashboardTile({
             <Button
               type="button"
               variant="ghost"
-              /* The label names the action; the accessible name names the tile
-                 (`copy.ts`), so six `Remove tile` buttons stay distinguishable
-                 to a screen reader without six different visible labels. */
               aria-label={t('rb.dashboard.tile.removeA11y', { name: title })}
               onClick={() => onRemove(tile.tileId)}
             >
               {t('rb.dashboard.tile.remove')}
             </Button>
           </div>
+        ) : state.kind === 'invalid' ? (
+          /* AC-825 — the violations are the same objects the builder disables a
+             control with, from the same pure function, so the sentence here and
+             the sentence beside the greyed-out option are one string. */
+          <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
+            <p className="text-sm text-muted-foreground">{t('rb.dashboard.tile.invalid')}</p>
+            <ul className="flex list-none flex-col gap-0.5">
+              {state.violations.map((violation) => (
+                <li
+                  key={`${violation.code}-${violation.field}`}
+                  className="text-xs text-muted-foreground"
+                >
+                  {t(violation.reasonKey, violation.reasonParams)}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <ResultCanvas
             status="content"
-            result={resolved.result}
+            result={state.result}
             stale={false}
             violations={[]}
             measuresByKey={measuresByKey}
             coercedFrom={
-              planReportQuery(resolved.report.query, { measures, dimensions }, today)
-                .chartTypeCoerced
-                ? resolved.report.query.chartType
+              planReportQuery(state.report.query, { measures, dimensions }, today).chartTypeCoerced
+                ? state.report.query.chartType
                 : null
             }
             effectiveChartType={
-              planReportQuery(resolved.report.query, { measures, dimensions }, today)
+              planReportQuery(state.report.query, { measures, dimensions }, today)
                 .effectiveChartType
             }
             onRetry={tileData.refetch}

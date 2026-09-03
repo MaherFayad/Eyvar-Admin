@@ -735,10 +735,10 @@ describe('AC-61 — "Every one of the 36 route-table rows has a non-null permiss
    * assertion is the record of what was wrong.
    */
   it('PASSES: 35 rows carry a view key and the 36th is the named exception', () => {
-    expect(table.subTabs).toHaveLength(36)
+    expect(table.subTabs).toHaveLength(37)
     /* 35 after D1b split Trips in two; the 36th is still the single named
        exception. */
-    expect(table.subTabs.filter((r) => r.viewPermission !== null)).toHaveLength(35)
+    expect(table.subTabs.filter((r) => r.viewPermission !== null)).toHaveLength(36)
     /* The criterion's second way to pass — a named exception with a reason.
        `admin-activity` is it, and the reason is on the row: every authenticated
        operator can open the Activity Log, and its rows are filtered server-side

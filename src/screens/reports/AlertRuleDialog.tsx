@@ -114,6 +114,21 @@ export interface AlertRuleDialogProps {
   onOpenChange: (open: boolean) => void
   /** `null` creates. */
   rule: AlertRule | null
+  /**
+   * **Which report a NEW rule starts on — the report the operator was already
+   * looking at.**
+   *
+   * Alerts were a destination and never an action: the only route in was the
+   * Alerts sub-tab, `New alert`, and then re-picking by name, from a list of up
+   * to 100, the report you had just left. This is the whole fix, and it is one
+   * prop rather than a second dialog.
+   *
+   * **Read only when `rule` is `null`.** An existing rule's `reportId` is on the
+   * record and must win: a preset that could override it would silently
+   * re-point a live rule at a different report on open, which is the one thing
+   * an edit form may never do. Ignored, not merged.
+   */
+  presetReportId?: string
   onSaved: (rule: AlertRule) => void
   today: string
   t: Translator
@@ -124,13 +139,14 @@ export function AlertRuleDialog({
   open,
   onOpenChange,
   rule,
+  presetReportId,
   onSaved,
   today,
   t,
   language,
 }: AlertRuleDialogProps) {
   const [name, setName] = useState(rule?.name ?? '')
-  const [reportId, setReportId] = useState<string | null>(rule?.reportId ?? null)
+  const [reportId, setReportId] = useState<string | null>(rule?.reportId ?? presetReportId ?? null)
   const [seriesId, setSeriesId] = useState<string>(rule?.seriesId ?? '')
   const [comparator, setComparator] = useState<AlertComparator>(rule?.comparator ?? 'gt')
   const [thresholdText, setThresholdText] = useState('')
@@ -198,7 +214,9 @@ export function AlertRuleDialog({
   useEffect(() => {
     if (!open) return
     setName(rule?.name ?? '')
-    setReportId(rule?.reportId ?? null)
+    /* The record first, the preset only where there is no record. See
+       `presetReportId`: an edit must not be re-pointed by a caller's default. */
+    setReportId(rule?.reportId ?? presetReportId ?? null)
     setSeriesId(rule?.seriesId ?? '')
     setComparator(rule?.comparator ?? 'gt')
     setGrain(rule?.evaluationGrain ?? 'day')
@@ -215,7 +233,7 @@ export function AlertRuleDialog({
     )
     setReasons([])
     setFailed(false)
-  }, [open, rule])
+  }, [open, rule, presetReportId])
 
   /** The wire value. Money is halalas; everything else is the number as typed. */
   const threshold =

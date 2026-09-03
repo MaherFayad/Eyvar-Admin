@@ -118,11 +118,29 @@ export type {
 
 export { COMPLIANCE_DOC_TYPES } from './driver'
 
-export type { ChurnRisk, NewRider, Rider, RiderStatus, RiderTier } from './rider'
+export type {
+  ChurnReason,
+  ChurnReasonKey,
+  ChurnRisk,
+  NewRider,
+  Rider,
+  RiderMoneyMovement,
+  RiderMoneyMovements,
+  RiderMovementSource,
+  RiderRelatedCount,
+  RiderStatus,
+  RiderSupportPresence,
+  RiderTier,
+  RiderTimelineDetail,
+  RiderTimelineEvent,
+  RiderTimelineKind,
+} from './rider'
 
 export type { Applicant, ApplicantDoc, ApplicantDocStatus, ApplicantStatus } from './applicant'
 
 export type { Trip, TripKind, TripStatus } from './trip'
+/* Values, not types: the one shared answer to "is this trip still open". */
+export { OPEN_TRIP_STATUSES, isOpenTrip, isOpenTripStatus } from './trip'
 
 export type { PlanKey, Subscription, SubscriptionStatus } from './subscription'
 

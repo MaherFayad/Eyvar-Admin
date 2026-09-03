@@ -65,7 +65,6 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -77,31 +76,18 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { pairableWith, resolveWindow } from '@/data/clients'
+import { pairableWith } from '@/data/clients'
 import type {
   Dimension,
   Measure,
   QueryPlan,
   ReportGrain,
-  ReportPreset,
   ReportQuery,
   ChartType,
 } from '@/data/types'
-import { formatDate, type Language, type Translator } from '@/lib'
+import type { Language, Translator } from '@/lib'
 import { LegalityOptions } from './LegalityOptions'
-
-/** §3.2's nine, verbatim from the metric boards' own preset list. Not a new control. */
-const PRESETS: ReportPreset[] = [
-  'today',
-  'yesterday',
-  'last-7d',
-  'last-30d',
-  'last-90d',
-  'last-365d',
-  'last-month',
-  'last-12-months',
-  'last-year',
-]
+import { WindowControl } from './WindowControl'
 
 const COMPARISONS: ReportQuery['periodComparison'][] = ['none', 'previous-period', 'previous-year']
 
@@ -518,110 +504,6 @@ function Filters({
           {twoMeasures ? t('rb.control.filters.empty') : t('rb.control.filters.noneForMeasure')}
         </p>
       ) : null}
-    </div>
-  )
-}
-
-/**
- * §5.3 item 5 — the range chip, opening the preset list plus an explicit pair of
- * dates, committed by `Apply`.
- *
- * **This is not a new control**: the nine presets are the metric boards' own
- * list, verbatim, and `ReportPreset` is that list as a type. The absolute pair
- * is inclusive of the whole end day in Riyadh — the rule `columnFilter.ts`
- * already encodes and `resolveWindow` already applies (AC-815).
- *
- * `Apply` is what commits, so nothing re-runs on a keystroke and a half-typed
- * date never becomes a query.
- */
-function WindowControl({
-  query,
-  onChange,
-  today,
-  disabled,
-  t,
-  language,
-}: {
-  query: ReportQuery
-  onChange: (query: ReportQuery) => void
-  today: string
-  disabled: boolean
-  t: Translator
-  language: Language
-}) {
-  const [open, setOpen] = useState(false)
-  const resolved = resolveWindow(query.window, today)
-  const [from, setFrom] = useState(resolved.from)
-  const [to, setTo] = useState(resolved.to)
-
-  const label =
-    query.window.kind === 'preset'
-      ? t(`rb.preset.${query.window.preset}`)
-      : t('rb.control.window.range', {
-          from: formatDate(resolved.from, { style: 'day-month', language }),
-          to: formatDate(resolved.to, { style: 'day-month', language }),
-        })
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor="rb-window">{t('rb.control.window')}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button id="rb-window" type="button" variant="secondary" disabled={disabled} className="justify-between">
-            <bdi>{label}</bdi>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="flex w-64 flex-col gap-2">
-          <ul className="flex list-none flex-col">
-            {PRESETS.map((preset) => (
-              <li key={preset}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full justify-start"
-                  aria-pressed={query.window.kind === 'preset' && query.window.preset === preset}
-                  onClick={() => {
-                    onChange({ ...query, window: { kind: 'preset', preset } })
-                    setOpen(false)
-                  }}
-                >
-                  {t(`rb.preset.${preset}`)}
-                </Button>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-col gap-1.5 border-t border-border pt-2">
-            <Label htmlFor="rb-window-from">{t('rb.control.window.from')}</Label>
-            <Input
-              id="rb-window-from"
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-            />
-            <Label htmlFor="rb-window-to">{t('rb.control.window.to')}</Label>
-            <Input
-              id="rb-window-to"
-              type="date"
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
-            />
-            {/* §3.2 — validate by disabling the primary, not by an error after
-                submit. An inverted range never becomes a query. */}
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={from === '' || to === '' || from > to}
-              onClick={() => {
-                onChange({ ...query, window: { kind: 'absolute', from, to } })
-                setOpen(false)
-              }}
-            >
-              {t('rb.control.window.apply')}
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
     </div>
   )
 }

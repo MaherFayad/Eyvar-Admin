@@ -371,6 +371,9 @@ export const dashboardFixtures: Dashboard[] = [
   {
     id: 'DSH-1',
     name: 'Monday morning',
+    /* User-authored, like a saved report's. It says what the board is FOR,
+       which is the one thing a name and a tile count cannot. */
+    description: 'The three numbers the owner asks about before anything else.',
     ownerId: 'USR-1',
     tiles: [
       { tileId: 'TIL-1', reportId: 'RPT-1', pinnedName: 'Captains vs riders — 30 days', order: 1 },
@@ -385,6 +388,9 @@ export const dashboardFixtures: Dashboard[] = [
        report`, which is a different empty from the library's (§11.4). */
     id: 'DSH-2',
     name: 'Finance weekly',
+    /* Written before a single report was pinned — which is the point of
+       AC-865: the board is a valid record the moment it has a name. */
+    description: 'Built for Thursday’s finance review. Nothing pinned to it yet.',
     ownerId: 'USR-2',
     tiles: [],
     createdAt: offsetFromNow({ days: -2 }),
@@ -393,6 +399,9 @@ export const dashboardFixtures: Dashboard[] = [
   {
     id: 'DSH-3',
     name: 'Growth review',
+    /* `null` is a board whose author wrote nothing, and the list has to render
+       that as an absent second line rather than as a blank one. */
+    description: null,
     ownerId: 'USR-5',
     tiles: [
       { tileId: 'TIL-4', reportId: 'RPT-4', pinnedName: 'New subscriptions by plan', order: 1 },

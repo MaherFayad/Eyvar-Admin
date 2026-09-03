@@ -186,6 +186,48 @@ describe('every board’s notices — R4-4 §4.3 as amended by R5-3', () => {
   })
 })
 
+/**
+ * **The period caveat, and the banner it must not take.**
+ *
+ * A board asked for a range it cannot recompute declares one extra condition —
+ * `overview.period.figuresUnchanged`, `tone: 'info'` — because the tiles keep
+ * their seeded figures *and their own dates* and something has to say so
+ * (`clients/metrics.ts`, `windowed()`).
+ *
+ * `selectNotice` renders one notice per board, highest tone first, so adding a
+ * condition to a board that already declares one is a displacement risk and not
+ * a cosmetic change. `info` is below every tone the fixtures use, which settles
+ * it in the safe direction: **the caveat is suppressed on a board with a real
+ * condition, never the other way round.** That suppression is a genuine
+ * residual gap and is recorded as such; it is not resolved here by promoting a
+ * tone, because an operator must not lose an unacknowledged SOS to a note about
+ * fixtures.
+ */
+describe('a windowed board’s notices — the period caveat never takes the banner', () => {
+  const PICKED = { from: '2026-06-23', to: '2026-06-25' }
+  const CAVEAT = 'overview.period.figuresUnchanged'
+
+  beforeAll(() => {
+    disableMockLatency()
+  })
+
+  it('leaves the critical condition in the banner slot where a board declares one', async () => {
+    const board = await getMetricBoard('support-overview', PICKED)
+    expect(board.notices.map((n) => n.key)).toContain(CAVEAT)
+    expect(selectNotice(board.notices)?.key).toBe('notice.support.unacknowledgedSos')
+  })
+
+  it('states the caveat on a board that declares nothing else', async () => {
+    const board = await getMetricBoard('management-overview', PICKED)
+    expect(selectNotice(board.notices)?.key).toBe(CAVEAT)
+  })
+
+  it('goes back to the board’s own single notice when no range is asked for', async () => {
+    const board = await getMetricBoard('support-overview')
+    expect(selectNotice(board.notices)?.key).toBe('notice.support.unacknowledgedSos')
+  })
+})
+
 describe('isBoardEmpty — a ranked list is content (R4-4 §4.1)', () => {
   it('is empty with no number, no chart and no row', () => {
     expect(isBoardEmpty(board())).toBe(true)

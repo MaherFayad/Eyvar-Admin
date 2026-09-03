@@ -3,17 +3,34 @@
  *
  * ```
  *  ┌──────────────────────────────────────────────────────┐
- *  │ Registered captains                            47 —  │  title · headline · delta
+ *  │ Registered captains                                  │  title
  *  │ Counts every captain record, whatever its status.    │  THE POPULATION (R5-15)
  *  │ Registration only. A captain suspended yesterday…    │  the caption
  *  │ 24 of 30 buckets have a reading.                     │  THE BASE
  *  │ ────────────────────────────────────────────────     │
+ *  │ 47   ↑ +8.1%                                         │  value · delta (§3.7)
+ *  │ Registered captains is up 8.1% against 27 Apr – 26…  │  the derived read (§A8)
  *  │          ╱╲      ╱                                    │
  *  │  ╱╲  ╱╲╱   ╲   ╱                                      │
  *  │ ────────────────────────────────────────────────     │
  *  │ ▬ 27 May – 25 Jun    ┄ 27 Apr – 26 May                │  legend, both periods
  *  └──────────────────────────────────────────────────────┘
  * ```
+ *
+ * ## A number is never alone, and it comes BEFORE the picture
+ *
+ * §3.7's anatomy is *"title, report link, value, delta, chart, legend — in that
+ * order"*, and this card used to put the value and the delta in the footer,
+ * after the plot. That is a house non-conformance and not merely a parity gap:
+ * a reader met the shape of a measure before its quantity, and the panel's one
+ * number sat below the thing it was the summary of.
+ *
+ * The headline now leads the body. Under it, `trendRead` states the movement in
+ * one sentence, **derived every render** from the same delta the caret is drawn
+ * from — never authored, because a hand-written sentence about data is true
+ * only until the data moves. Where there is no comparison it says so; it is
+ * never dropped, because a dropped line leaves a bare number and no way to tell
+ * a missing sentence from a missing baseline.
  *
  * ## The population is on the card, not in the definition
  *
@@ -46,10 +63,22 @@
  *               page banner (R5 sends critical state there and this is not
  *               critical) and not a toast (R10: a toast is a transient
  *               confirmation and this is a standing condition).
- *   R4-5        the delta chip is **neutral, always**. `higherIsBetter` words a
- *               sentence; it never colours a number.
- *   R5a         no red anywhere. A firing threshold is carried by the word and
- *               a `warning`-tone badge, and neither belongs on this card.
+ *   §3.7        *"Deltas MUST be colour-coded and carry a direction caret;
+ *               colour alone is insufficient."* The run is `MetricDelta`, the
+ *               same component the metric boards use, so this panel and the
+ *               board tile for the same measure state one judgement.
+ *   R4-5        **not contradicted, and the reason is structural.** R4-5
+ *               forbids a TONED BADGE — D7 §4.9's plate — and there is no
+ *               badge here. The caret is a shape, the sign is in the text, and
+ *               `overview.delta.*`'s full clause is announced `sr-only` on
+ *               every delta, so hue is the fourth carrier of valence and the
+ *               sole carrier of nothing. `MetricDelta`'s own header argues it
+ *               in full.
+ *   R5a         `text-critical-foreground` on a falling delta is a FOREGROUND
+ *               on the page ground, not one of R7's toned surfaces. R5a's four
+ *               places govern destructive affordances and critical banners; a
+ *               metric moving the wrong way is neither, and the same treatment
+ *               already ships on every metric board.
  *   §9.2        the card mirrors; the plot does not (`PanelChart`).
  */
 
@@ -62,7 +91,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { formatMetricValue, formatSignedPercent } from '@/components/metrics'
+import { MetricDelta, formatMetricValue, trendRead } from '@/components/metrics'
 import { comparisonWindow, OTHER_GROUP } from '@/data/clients'
 import type { Measure, ReportPanel, ReportResult } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
@@ -102,6 +131,17 @@ export function PanelCard({
 
   const title = panelTitle(panel, t)
 
+  /* **There is a line to draw** — the one condition the headline shares with
+     the plot. A blocked or failed series has no number, and a window of pure
+     gaps has none either: `rollUpSeries` would return `null` for both the
+     value and the delta, and a pair of em dashes above §3.7's no-data sentence
+     states nothing the sentence does not state better. */
+  const drawable =
+    current !== null &&
+    current.blocked === null &&
+    current.failed === null &&
+    !current.points.every((point) => point === null)
+
   return (
     /* `h-full` — a small multiple whose cards end at different heights is a set
        the eye reads as unrelated, and the row is one object read across. The
@@ -131,6 +171,20 @@ export function PanelCard({
       </CardHeader>
 
       <CardContent className="flex min-w-0 flex-col gap-2">
+        {/* **§3.7's rows three and four, before the plot.** Where there is no
+            line to draw the body below is the whole card, and it says what is
+            wrong in words — see `drawable`. */}
+        {drawable && result.buckets.length > 0 && (
+          <Headline
+            panel={panel}
+            result={result}
+            measure={measure}
+            title={title.text}
+            t={t}
+            language={language}
+          />
+        )}
+
         {coercedFrom && (
           /* §7.3 — the note is attached to the object it describes. */
           <p className="text-xs text-muted-foreground">
@@ -176,7 +230,6 @@ export function PanelCard({
 
       {current && !current.blocked && !current.failed && result.buckets.length > 0 && (
         <CardFooter className="flex-wrap items-center gap-x-4 gap-y-1.5">
-          <Headline panel={panel} result={result} measure={measure} t={t} language={language} />
           <Legend
             result={result}
             hasComparison={comparison !== null}
@@ -225,23 +278,41 @@ function Base({
 }
 
 /**
- * The panel's one number, and its period delta.
+ * **The panel's one number, its period delta, and the sentence they make.**
  *
  * The rollup is the **catalogue's** declared aggregate applied across buckets
- * (`rollup.ts`), never a choice made here. The delta is neutral in every
- * direction — R4-5 — and an absent one is an em dash, never `0%` and never
- * blank (AC-834).
+ * (`rollup.ts`), never a choice made here. An absent delta is an em dash, never
+ * `0%` and never blank (AC-834) — and the em dash is `aria-hidden`, so the
+ * words that replace it are the read sentence directly beneath, which names the
+ * absence rather than leaving it drawn and unannounced.
+ *
+ * ## The copy comes from the metric boards' dictionary, on purpose
+ *
+ * `overview.chart.read.*` and `overview.delta.*` are resolved here rather than
+ * copied into `rb.*`, on the precedent this module already set for
+ * `overview.noData`: *"the board's key, not a copy of its string … so
+ * 'identical everywhere' is true by construction rather than by two
+ * dictionaries agreeing today"* (`ReportsScreen`, AC-844). One measure charted
+ * on a board and in a report must not read differently in the two places.
+ *
+ * What was here before and is gone: `rb.alert.direction.good` / `.bad` rendered
+ * `sr-only` beside the delta. That is **alert-threshold copy** — it words
+ * whether crossing a line is good news — and a chart has no threshold, so a
+ * reader was told a measure was "good" whichever way it had moved.
  */
 function Headline({
   panel,
   result,
   measure,
+  title,
   t,
   language,
 }: {
   panel: ReportPanel
   result: ReportResult
   measure: Measure | null
+  /** Already resolved by the card, so the sentence and the card title agree. */
+  title: string
   t: Translator
   language: Language
 }) {
@@ -255,18 +326,47 @@ function Headline({
     : null
   const delta = periodDelta(now.value, before?.value ?? null)
 
+  /* The same window the legend's dashed chip names, from the same function —
+     so the dates in the sentence and the dates under the plot cannot drift. */
+  const from = result.buckets[0]
+  const to = result.buckets[result.buckets.length - 1]
+  const kind = result.query.periodComparison
+  const baseline =
+    comparison && kind !== 'none' && from !== undefined && to !== undefined
+      ? comparisonWindow({ from, to }, kind)
+      : null
+
+  const read = trendRead({
+    title,
+    /* `periodDelta` returns a fraction; §3.7's delta text and the sentence both
+       take percentage points. One conversion, at the boundary. */
+    deltaPercent: delta === null ? null : delta * 100,
+    baseline,
+    language,
+  })
+  const sentence = isolatedRunProps({ className: 'text-xs text-muted-foreground' })
+
   return (
-    <span className="flex items-baseline gap-2">
-      <span className="text-base font-semibold tabular-nums text-foreground">
-        {formatMetricValue(now.value, panel.unit, language)}
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <span className="text-base font-semibold tabular-nums text-foreground">
+          {formatMetricValue(now.value, panel.unit, language)}
+        </span>
+        <MetricDelta
+          deltaPercent={delta === null ? null : delta * 100}
+          higherIsBetter={measure.higherIsBetter}
+          t={t}
+          language={language}
+        />
       </span>
-      <span className="text-xs tabular-nums text-muted-foreground">
-        {delta === null ? formatMetricValue(null, panel.unit, language) : formatSignedPercent(delta * 100, language)}
-      </span>
-      <span className="sr-only">
-        {measure.higherIsBetter ? t('rb.alert.direction.good') : t('rb.alert.direction.bad')}
-      </span>
-    </span>
+      {/* Three isolated runs in one sentence — a title that may carry a group
+          value, a percentage and a date range — so the paragraph is isolated
+          and wraps rather than truncates, following `BreakdownList`'s
+          `Caveat`. */}
+      <p {...sentence.box}>
+        <bdi {...sentence.run}>{t(read.key, read.params)}</bdi>
+      </p>
+    </div>
   )
 }
 

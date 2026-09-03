@@ -155,6 +155,7 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'id',
+        sortField: 'id',
         emphasis: 'primary',
         csv: (tk) => tk.id,
         header: t('ticket.col.ticket'),
@@ -197,6 +198,13 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'category',
+        /* **Text, not select, and the type is the reason.** `Ticket.category` is a
+           bare `string` — the fixtures carry four values today and nothing in the
+           type stops a fifth arriving. A select would enumerate the four and
+           silently hide every ticket in a category added after this line was
+           written; a contains-match cannot go stale. */
+        filter: { kind: 'text', field: 'category' },
+        sortField: 'category',
         header: t('ticket.col.category'),
         /* Left at 150 deliberately, and the measurement is why. The reason line
            below is now a SENTENCE, so widening to 230 looked obviously right —
@@ -226,6 +234,14 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'priority',
+        filter: {
+          kind: 'select',
+          field: 'priority',
+          options: (['Critical', 'High', 'Medium', 'Low'] as const).map((value) => ({
+            value,
+            label: t(`ticket.priority.${value}`),
+          })),
+        },
         header: t('ticket.col.priority'),
         width: 104,
         dataType: 'enum',
@@ -238,6 +254,17 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        /* §15 — the shape already facets `status`; the column said nothing, so an
+           SLA console could be sorted by state and not narrowed to one. The five
+           are `TicketStatus`'s own union, in lifecycle order, and each label is the
+           key the CELL renders — so a chip and its rows read identically. */
+        filter: {
+          kind: 'select',
+          field: 'status',
+          options: (['open', 'in-progress', 'waiting', 'resolved', 'closed'] as const).map(
+            (value) => ({ value, label: t(`ticket.status.${value}`) }),
+          ),
+        },
         emphasis: 'data',
         header: t('ticket.col.status'),
         width: 140,

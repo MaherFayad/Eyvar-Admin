@@ -36,6 +36,7 @@ import {
   ABSENT,
   MINUS_SIGN,
   formatCount,
+  formatDate,
   formatDecimal,
   formatDuration,
   formatMoney,
@@ -91,6 +92,81 @@ export function metricValence(
 ): MetricValence | null {
   if (deltaPercent === 0) return null
   return deltaPercent > 0 === higherIsBetter ? 'better' : 'worse'
+}
+
+/* ── §A8 / "a number is never alone" ─────────────────────────────────────
+   A headline figure, a delta and a legend are three things a reader has to
+   assemble into a claim. The claim itself is one sentence, and this is where
+   it is DERIVED — never authored. `Chapter.tsx` records the reason a
+   hand-written sentence about data is the wrong artefact: it is true until
+   the data moves, and nothing tells you the day it stops being true.
+
+   The two consumers are `ChartCard` (a metric board) and `PanelCard` (the
+   report builder). One derivation, so the sentence under a board's chart and
+   the sentence under the same measure in a report cannot disagree. */
+
+/** The four things this sentence can say. A closed union, so a fifth is a compile error. */
+export type TrendReadKey =
+  | 'overview.chart.read.up'
+  | 'overview.chart.read.down'
+  | 'overview.chart.read.flat'
+  | 'overview.chart.read.noBaseline'
+
+/** A key and its named parameters — **never a concatenation** (AC-75/AC-713). */
+export interface TrendRead {
+  key: TrendReadKey
+  params: Record<string, string>
+}
+
+export interface TrendReadInput {
+  /** The measure's own title, already translated by the caller. */
+  title: string
+  /**
+   * The signed change in **percentage points** — `8.1` is up 8.1 %, the same
+   * scale `formatSignedPercent` takes.
+   *
+   * `null` is "there is no delta to state", which is a different fact from
+   * `0`. `0` is *measured, did not move* and gets its own sentence.
+   */
+  deltaPercent: number | null
+  /**
+   * The window the delta is measured against. `null` when the comparison is
+   * not a period — no comparison at all, or a **target**, which is a level and
+   * not a stretch of dates. Either way there is no period to name, and the
+   * sentence says so rather than inventing one.
+   */
+  baseline: { from: string; to: string } | null
+  language: Language
+}
+
+/**
+ * **The plain-English read, derived every render.**
+ *
+ * `{title} is up {delta} against {from} – {to}.` The direction is in the verb,
+ * so `delta` is a MAGNITUDE and not a signed percent: *"is up −4 %"* is a
+ * sentence a reader has to un-negate.
+ *
+ * **There is no silent branch.** With no baseline it returns the no-baseline
+ * key rather than `null`, because a card that drops the line when it has
+ * nothing to say leaves a bare number and no way to know whether the sentence
+ * is missing or the comparison is.
+ */
+export function trendRead({ title, deltaPercent, baseline, language }: TrendReadInput): TrendRead {
+  if (deltaPercent === null || baseline === null) {
+    return { key: 'overview.chart.read.noBaseline', params: {} }
+  }
+  const from = formatDate(baseline.from, { style: 'day-month', language })
+  const to = formatDate(baseline.to, { style: 'day-month', language })
+  if (deltaPercent === 0) return { key: 'overview.chart.read.flat', params: { title, from, to } }
+  return {
+    key: deltaPercent > 0 ? 'overview.chart.read.up' : 'overview.chart.read.down',
+    params: {
+      title,
+      delta: formatPercent(Math.abs(deltaPercent), language),
+      from,
+      to,
+    },
+  }
 }
 
 /**
@@ -190,6 +266,41 @@ export function seriesWindowTotal(series: {
   if (readings.length === 0) return null
   if (rule === 'last') return readings[readings.length - 1] ?? null
   return readings.reduce((total, value) => total + value, 0)
+}
+
+/**
+ * The same rule applied to the comparison window, expressed as a delta.
+ *
+ * **This does not choose anything.** `windowTotal` is the series' own declared
+ * rule and it is applied to BOTH windows, so the two numbers being subtracted
+ * are the same kind of number — which is the whole objection `types/metrics.ts`
+ * raises to a component computing a total. `periodDelta` in the report builder
+ * is the same arithmetic over the report catalogue's declared aggregate.
+ *
+ * `null` in every case where a delta would be a claim rather than a
+ * measurement: no comparison window at all, no reading in one of them, or a
+ * comparison of zero — *"up ∞ %"* is not a fact an operator can act on.
+ *
+ * **It is `null`, never `0`.** "Nothing to compare to" and "measured, did not
+ * move" are the two facts §3.7 requires to render differently, and returning
+ * `0` here would collapse them at the source.
+ *
+ * Returned in **percentage points**, the scale `formatSignedPercent` and
+ * `trendRead` both take.
+ */
+export function seriesWindowDelta(series: {
+  windowTotal?: 'sum' | 'last' | null
+  current: { points: readonly { value: number | null }[] }
+  comparison: { points: readonly { value: number | null }[] } | null
+}): number | null {
+  if (!series.comparison) return null
+  const now = seriesWindowTotal(series)
+  const before = seriesWindowTotal({
+    windowTotal: series.windowTotal,
+    current: series.comparison,
+  })
+  if (now === null || before === null || before === 0) return null
+  return ((now - before) / Math.abs(before)) * 100
 }
 
 export function formatSeriesValue(value: number, unit: MetricUnit, language: Language): string {

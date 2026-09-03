@@ -87,6 +87,26 @@ export const OVERVIEW_EN: Dictionary = {
      control. */
   'overview.period.inverted': 'The start is after the end',
 
+  /* **The mock's own limit, said out loud.** `clients/metrics.ts`'s `windowed()`
+     slices a chart to the range the operator picked and cannot recompute a
+     tile: a seeded scalar was written down and a derived one counts a whole
+     population with no date to filter on. It used to move each tile's declared
+     period onto the picked range anyway, which put a one-day label on a
+     fifteen-day figure — the relabel WAS the lie, and this sentence is what
+     replaced it.
+
+     It arrives as an `info` `BoardNotice` from the client, so the page banner
+     carries it and no second surface exists (R10). No dates in it: a notice's
+     `params` reach `t()` unformatted and `formatDate` owns the calendar and the
+     numbering system (§18), so an interpolated `2026-06-25` would print
+     Gregorian Latin digits inside an Arabic sentence. The tiles state their own
+     dates; this states why they differ. */
+  /* Not "the figures above": the banner sits under the band, so the lead tiles
+     are above it and the chapters are below it. A sentence naming a position
+     would be wrong for two thirds of what it describes. */
+  'overview.period.figuresUnchanged':
+    'These figures cover the periods they were computed for, not the range you picked. The charts follow your range.',
+
   /* ── THE BOARD LEDES. ONE SENTENCE, AND IT ANSWERS "A BOARD OF WHAT?" ──
      Beneath the board's name on the band. It is not a summary of the
      numbers — those move, and a sentence that described them would be
@@ -244,8 +264,75 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.legend.range': '{from} – {to}',
   'overview.legend.current': 'This period',
   'overview.legend.comparison': 'Previous period',
+  /* §A10 — **the comparison row names its own day.** The two windows are
+     zipped by index, because a like-for-like previous period has different
+     dates by definition and joining on the date would drop every comparison
+     point. So the tooltip's heading is the CURRENT window's date and the
+     dashed reading beneath it was taken on another one; until this key the
+     card printed both under one date and said nothing.
+
+     A fragment on its own line, never appended to `overview.legend.comparison`
+     — `Previous period` + ` on 14 Jun` is a sentence assembled by
+     concatenation (AC-713) and no translation survives it. */
+  'overview.tooltip.on': 'on {date}',
+
+  /* ── THE UNIT THE SCALE IS IN — §A9, off the axis ───────────────────
+     A9 labels the y-axis with the measure. This axis is a 0px gutter carrying
+     two in-plot marks and §9.2 forbids giving the SVG axis group a direction,
+     so the noun goes in the legend row — which mirrors — instead. It is
+     load-bearing on a money chart: `TrendChart` divides money marks by 100, so
+     a revenue plot reads `300 / 200` with no riyals named anywhere on it.
+
+     `{unit}` is another key's value interpolated into a named placeholder,
+     which is `breakdown.cutOff`'s `{dimension}` precedent exactly — not the
+     concatenation AC-713 forbids.
+
+     **The nouns name what the SCALE is in, never what the series counts.** The
+     title above the plot already names that, and the six `count` charts count
+     six different things (signals, subscriptions, requests, trips, pickups,
+     events) — so `events` would be false on five of them. `counts` is true of
+     all six and says the one thing the marks do not: that they are whole,
+     unscaled counts, unlike money's. */
+  'overview.legend.unit': 'Measured in {unit}',
+  'overview.unit.money': 'riyals',
+  'overview.unit.count': 'counts',
+  'overview.unit.percent': 'per cent',
+  'overview.unit.minutes': 'minutes',
+  /* A CSAT/NPS scale is read in points on a fixed range; `Measured in rating`
+     is not a sentence in English. */
+  'overview.unit.rating': 'rating points',
+  /* `formatRatio` renders `2.4×` — a multiple of a base, not a percentage and
+     not a bare count. `multiples` is what the × means, said in a word. */
+  'overview.unit.ratio': 'multiples',
   /* The plot's text alternative. A chart is an image and needs one (§7.5). */
   'overview.chart.description': '{title}, {from} to {to}',
+
+  /* ── THE PLAIN-ENGLISH READ, AND IT IS DERIVED EVERY RENDER ───────────
+     §A8's last line and Amplitude's second principle: a number is never
+     alone. A headline figure, a caret and a legend are three things a reader
+     assembles into a claim; this is the claim, said once.
+
+     **Not a sentence anybody wrote about the data.** `trendRead` picks which
+     of these four is true from the same delta the caret is drawn from, so the
+     mark and the sentence cannot disagree — the reason `overview.chapter.*`
+     above is computed rather than authored, in a smaller slot.
+
+     Full sentences, so a terminal period (R6). `{delta}` is a MAGNITUDE and
+     the direction is in the verb: *"is up −4%"* makes a reader un-negate a
+     number to read a fall. One key per branch with named placeholders, never
+     a stem plus a joined direction word (AC-75/AC-713) — Arabic agrees its
+     verb with the subject and cannot take an English sentence's seams.
+
+     `noBaseline` is the branch a card must not skip. Dropping the line when
+     there is nothing to compare leaves the number bare and gives a reader no
+     way to tell a missing sentence from a missing comparison. It is a
+     SENTENCE rather than `overview.noCompare.no-history`'s fragment because
+     it stands on its own line under a plot rather than in a chip beside a
+     figure — and because it says the consequence, not just the condition. */
+  'overview.chart.read.up': '{title} is up {delta} against {from} – {to}.',
+  'overview.chart.read.down': '{title} is down {delta} against {from} – {to}.',
+  'overview.chart.read.flat': '{title} is unchanged against {from} – {to}.',
+  'overview.chart.read.noBaseline': 'No comparison period yet, so there is no trend to state.',
   /* §3.7's report icon at top right. An imperative naming the destination. */
   'overview.report.open': 'Open the {report} report',
 
@@ -505,6 +592,16 @@ export const OVERVIEW_EN: Dictionary = {
      grey sentence, never the first-run illustration, because the section is
      empty and the page is not. */
   'breakdown.empty': 'Nothing to rank for this period.',
+  /* **Principle 5's exportable half.** AC-694 forbids a *mutating* control on a
+     breakdown; an export mutates nothing and is the alternative to an operator
+     retyping five rows into a spreadsheet.
+
+     `CSV` stays Latin in both languages — it is a file format, not a word, and
+     it is what the download is called on disk. §13.6: the outcome is
+     ANNOUNCED, never toasted, so `done` is written as a finished sentence a
+     screen reader can read on its own. */
+  'breakdown.export': 'Export CSV',
+  'breakdown.export.done': 'Exported {rows} rows',
   /**
    * **R5-9 §18.1 — the caveat line, and it is a THIRD slot rather than a
    * reuse of one of the two that exist.**

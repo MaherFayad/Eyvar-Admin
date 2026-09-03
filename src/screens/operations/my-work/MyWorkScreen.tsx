@@ -678,6 +678,7 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
     },
     {
       id: 'severity',
+      sortField: 'severity',
       emphasis: 'data',
       header: t('queue.col.severity'),
       width: 104,

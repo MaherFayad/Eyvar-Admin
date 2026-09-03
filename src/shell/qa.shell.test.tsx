@@ -217,8 +217,8 @@ describe('AC-11 — "Browser Back after three navigations returns through the th
     await screen.findByText('screen: operations-quick-rides')
     await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.people')) }))
     await screen.findByText('screen: operations-people')
-    await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.requests')) }))
-    await screen.findByText('screen: operations-requests')
+    await user.click(within(column).getByRole('link', { name: rowName(en('subtab.operations.rideRequests')) }))
+    await screen.findByText('screen: operations-ride-requests')
 
     const back = screen.getByRole('button', { name: 'qa-back' })
     await user.click(back)
@@ -478,9 +478,9 @@ describe('AC-24 — "When a sub-tab\'s data load fails it renders its error stat
     expect(rail).toBeInTheDocument()
     expect(screen.getByRole('banner')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.requests')) }))
+    await user.click(screen.getByRole('link', { name: rowName(en('subtab.operations.rideRequests')) }))
     expect(
-      await screen.findByRole('heading', { level: 1, name: en('subtab.operations.requests') }),
+      await screen.findByRole('heading', { level: 1, name: en('subtab.operations.rideRequests') }),
     ).toBeInTheDocument()
     /* …and the rail followed, without a reload. */
     expect(railTile('operations', rail)).toHaveAttribute('aria-current', 'page')
@@ -604,7 +604,8 @@ describe('AC-28 — "Exactly one setInterval is registered by the application"',
     for (const id of [
       'operations-quick-rides',
       'operations-people',
-      'operations-requests',
+      'operations-ride-requests',
+      'operations-subscription-requests',
       'operations-overview',
     ]) {
       const row = table.subTabs.find((r) => r.subTabId === id)!

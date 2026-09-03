@@ -1126,3 +1126,217 @@ describe('money is integer minor units here too', () => {
     expect(amounts.filter((a) => !Number.isInteger(a))).toEqual([])
   })
 })
+
+/**
+ * **12 — a window the operator asks for moves what it can, and declares what it
+ * cannot.**
+ *
+ * `windowed()` used to move every metric's `periodStart`/`periodEnd` onto the
+ * requested range while leaving `value`, `deltaPercent` and `comparison`
+ * exactly as seeded. Pick `Today` and a fifteen-day figure asserted a one-day
+ * window: **invented data, produced by relabelling rather than by arithmetic**,
+ * which is the cheaper way to tell the same lie.
+ *
+ * Recomputing was considered and is not available here. Of the seventy-eight
+ * seeded metrics, twenty-two declare a period at all, and of those exactly two
+ * are derived over a window this layer could re-take (`tripsCompleted` and
+ * `cancellationRate`, both over `SNAPSHOT_CURRENT`). Every other value is
+ * either a scalar somebody wrote down or a count over a whole fixture
+ * population — `allDriverFixtures.filter(d => d.suspended).length` has no date
+ * to filter on. **Three of the eleven series share a key with a metric and none
+ * of the three declares `windowTotal`**, so even where points exist there is no
+ * stated rule for turning them into the tile's one number: `windowTotal` is
+ * carried by exactly the eight charts that own no metric. A board where two
+ * tiles of twenty-two answered the range, all twenty-two wearing the same
+ * label, is less honest than a board where none do and the page says so.
+ *
+ * So: the figures and their labels are untouched, the charts really do slice,
+ * and the divergence is declared as a notice the page renders in words.
+ */
+describe('12 — a window the operator asks for moves what it can, and declares what it cannot', () => {
+  /* Three days inside every seeded current window, so the slice is non-empty on
+     every board and the assertions below are never vacuous. */
+  const PICKED = { from: '2026-06-23', to: '2026-06-25' }
+  const PERIOD_NOTICE_KEY = 'overview.period.figuresUnchanged'
+
+  it('leaves every tile exactly as the unwindowed board served it — value, delta and PERIOD', async () => {
+    /* The whole defect, pinned in one assertion. `toEqual` over the array
+       covers `value`, `deltaPercent`, `comparison` and both period fields at
+       once, so a future edit that moves any of them fails here rather than on
+       screen. */
+    let compared = 0
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const own = await getMetricBoard(subTabId)
+      const asked = await getMetricBoard(subTabId, PICKED)
+      expect(asked.metrics, subTabId).toEqual(own.metrics)
+      compared += own.metrics.length
+    }
+    expect(compared).toBeGreaterThan(0)
+  })
+
+  it('is not a vacuous check — tiles really do declare a window other than the one asked for', async () => {
+    /* Without this, the assertion above would pass on a dataset of purely
+       point-in-time tiles and prove nothing. */
+    const board = await getMetricBoard('management-overview', PICKED)
+    const dated = board.metrics.filter((m) => m.periodStart !== null)
+    expect(dated.length).toBeGreaterThan(0)
+    expect(dated.some((m) => m.periodStart !== PICKED.from || m.periodEnd !== PICKED.to)).toBe(true)
+  })
+
+  it('never gives a point-in-time metric a period', async () => {
+    /* "Active captains right now" is not taken over a window, and a range
+       control that appeared to scope it would be claiming a count was. */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const own = await getMetricBoard(subTabId)
+      const asked = await getMetricBoard(subTabId, PICKED)
+      const pointInTime = own.metrics.filter((m) => m.periodStart === null).map((m) => m.key)
+      for (const key of pointInTime) {
+        const metric = asked.metrics.find((m) => m.key === key)!
+        expect(metric.periodStart, key).toBeNull()
+        expect(metric.periodEnd, key).toBeNull()
+      }
+    }
+  })
+
+  it('slices each chart to the range and names the range it kept', async () => {
+    const board = await getMetricBoard('management-overview', PICKED)
+    const chart = board.charts.find((c) => c.key === 'management.overview.quickRideRevenue')!
+    expect(chart.current.periodStart).toBe(PICKED.from)
+    expect(chart.current.periodEnd).toBe(PICKED.to)
+    expect(chart.current.points.map((p) => p.at)).toEqual([
+      '2026-06-23',
+      '2026-06-24',
+      '2026-06-25',
+    ])
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const c of (await getMetricBoard(subTabId, PICKED)).charts) {
+        for (const point of c.current.points) {
+          expect(point.at >= PICKED.from && point.at <= PICKED.to, `${c.key} ${point.at}`).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('moves the comparison window by the offset the fixture declares, not onto the range itself', async () => {
+    /**
+     * Slicing the comparison by the *current* range emptied it — every one of
+     * its points is dated in the previous window — and then labelled it with
+     * the current range's dates, so §3.7's legend printed two chips naming the
+     * same three days over a single line.
+     *
+     * The offset is read off the two declared `periodStart`s: 11 Jun against
+     * 27 May is fifteen days, so 23–25 Jun asks the baseline for 8–10 Jun.
+     * That is the correspondence the fixture already asserts by keeping the two
+     * windows equal in length and zipping them by index.
+     */
+    const board = await getMetricBoard('management-overview', PICKED)
+    const chart = board.charts.find((c) => c.key === 'management.overview.quickRideRevenue')!
+    expect(chart.comparison!.periodStart).toBe('2026-06-08')
+    expect(chart.comparison!.periodEnd).toBe('2026-06-10')
+    expect(chart.comparison!.points.map((p) => p.at)).toEqual([
+      '2026-06-08',
+      '2026-06-09',
+      '2026-06-10',
+    ])
+  })
+
+  it('keeps both windows the same length under a window, so the dotted line still aligns', async () => {
+    /* The same invariant §3 asserts for the unwindowed board. A comparison left
+       whole beside a sliced current would be truncated by index and would draw
+       the picked day against the FIRST day of the previous fortnight. */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const chart of (await getMetricBoard(subTabId, PICKED)).charts) {
+        if (!chart.comparison || chart.current.points.length === 0) continue
+        expect(chart.comparison.points.length, chart.key).toBe(chart.current.points.length)
+      }
+    }
+  })
+
+  it('leaves a series that declares no comparison without one', async () => {
+    const board = await getMetricBoard('management-risk', PICKED)
+    expect(board.charts.find((c) => c.key === 'management.risk.openSignals')!.comparison).toBeNull()
+  })
+
+  it('declares the divergence as a notice, with no action and no interpolated date', async () => {
+    const board = await getMetricBoard('management-overview', PICKED)
+    const declared = board.notices.filter((n) => n.key === PERIOD_NOTICE_KEY)
+    expect(declared.length).toBe(1)
+    expect(declared[0]!.tone).toBe('info')
+    /* Nowhere to send anybody — the fixture limit is not an operator's to fix. */
+    expect(declared[0]!.action).toBeNull()
+    /* `params` reach `t()` unformatted, and `formatDate` owns the calendar and
+       the numbering system (§18). A date in here prints Gregorian Latin digits
+       inside an Arabic sentence. */
+    expect(declared[0]!.params).toBeNull()
+  })
+
+  it('adds it to the board own conditions rather than replacing them', async () => {
+    const own = await getMetricBoard('support-overview')
+    const asked = await getMetricBoard('support-overview', PICKED)
+    expect(own.notices.map((n) => n.key)).toEqual(['notice.support.unacknowledgedSos'])
+    expect(asked.notices.map((n) => n.key)).toEqual([
+      'notice.support.unacknowledgedSos',
+      PERIOD_NOTICE_KEY,
+    ])
+  })
+
+  it('is the only info notice anywhere, so it can displace nothing and collides with nothing', async () => {
+    /* `selectNotice` takes the highest TONE first, then the highest severity
+       within it. `info` is outranked by every condition the fixtures declare —
+       all four are `critical` or `warning` — so this notice can never take a
+       banner from an unacknowledged SOS. The consequence runs the other way and
+       is a real gap: on a board that already declares one, the caveat is
+       SUPPRESSED. It is recorded in the handoff, not fixed by promoting a tone.
+       The uniqueness also makes `severity` moot, since severity is only ever
+       compared within a tone. */
+    const infos: string[] = []
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const board of [
+        await getMetricBoard(subTabId),
+        await getMetricBoard(subTabId, PICKED),
+      ]) {
+        for (const n of board.notices) if (n.tone === 'info') infos.push(n.key)
+      }
+    }
+    expect([...new Set(infos)]).toEqual([PERIOD_NOTICE_KEY])
+  })
+
+  it('keeps every windowed board inside R4-4 4.3 bound of three', async () => {
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId, PICKED)
+      expect(board.notices.length, subTabId).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('declares nothing when the range IS the window the tiles carry', async () => {
+    /* Asking for the window a board already answers is not a divergence, and a
+       banner stating one would be a banner that is false. */
+    const board = await getMetricBoard('support-fairness', { from: '2026-06-19', to: '2026-06-25' })
+    expect(
+      board.metrics.every((m) => m.periodStart === null || m.periodStart === '2026-06-19'),
+    ).toBe(true)
+    expect(board.notices.map((n) => n.key)).not.toContain(PERIOD_NOTICE_KEY)
+  })
+
+  it('declares nothing on a board whose tiles carry no period at all', async () => {
+    /* Operations and Admin overview are entirely point-in-time. Nothing on them
+       claims a window, so nothing on them diverges from one. */
+    for (const subTabId of ['operations-overview', 'admin-overview']) {
+      const board = await getMetricBoard(subTabId, PICKED)
+      expect(
+        board.metrics.some((m) => m.periodStart !== null),
+        subTabId,
+      ).toBe(false)
+      expect(board.notices.map((n) => n.key), subTabId).not.toContain(PERIOD_NOTICE_KEY)
+    }
+  })
+
+  it('serves a board asked for no window byte for byte, notices included', async () => {
+    /* `undefined` is *do not filter*, and it is what keeps the rest of this
+       suite describing the fixtures rather than this function arithmetic. */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId)
+      expect(board.notices.map((n) => n.key), subTabId).not.toContain(PERIOD_NOTICE_KEY)
+    }
+  })
+})

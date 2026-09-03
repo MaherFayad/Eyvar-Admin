@@ -100,6 +100,9 @@ const safetyShape: QueryShape<SafetyIncident> = {
         : i.slaDueAt
           ? Date.parse(i.slaDueAt)
           : Number.MAX_SAFE_INTEGER,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
   },
   filterable: {
     /* identity — text */

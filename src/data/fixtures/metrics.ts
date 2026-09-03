@@ -2105,7 +2105,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
-    drilldownRoute: '/operations/requests',
+    drilldownRoute: '/operations/ride-requests',
   },
   {
     key: 'operations.overview.medianTimeToAssign',
@@ -2131,7 +2131,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
-    drilldownRoute: '/operations/requests',
+    drilldownRoute: '/operations/ride-requests',
   },
   {
     key: 'operations.overview.slaAttainmentPercent',
@@ -2158,7 +2158,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: true,
     caption: null,
     sourceResource: 'requests',
-    drilldownRoute: '/operations/requests',
+    drilldownRoute: '/operations/ride-requests',
   },
   {
     key: 'operations.overview.riderAbandonmentRate',
@@ -2184,7 +2184,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'requests',
-    drilldownRoute: '/operations/requests',
+    drilldownRoute: '/operations/ride-requests',
   },
 
   /* ── Customer Support › Overview ─────────────────────────────────────────

@@ -85,6 +85,11 @@ const requestShape: QueryShape<RideRequest> = {
      * legacy order and nobody re-implements it in a component.
      */
     urgency: (r) => (r.slaBreachedAt ? 1_000_000 : 0) + waitedMinutes(r),
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    pickup: (r) => r.pickup,
+    destination: (r) => r.destination,
   },
   filterable: {
     /* identity — text */

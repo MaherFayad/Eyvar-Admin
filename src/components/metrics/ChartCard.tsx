@@ -35,8 +35,17 @@
  * sentence, and they will go looking for a broken pipeline that is working.
  *
  * Rules applied
- *   §3.7        title, report link, plot, legend — in that order. The legend
- *               names BOTH periods explicitly with dates.
+ *   §3.7        title, report link, **value, delta**, plot, legend — in that
+ *               order. The legend names BOTH periods explicitly with dates.
+ *   §3.7        the delta is colour-coded AND carries a direction caret, and
+ *               R4-5 is not contradicted — there is no badge. `MetricDelta`
+ *               carries the whole argument.
+ *   §A8         a number is never alone: the headline states a quantity, a
+ *               delta and a derived one-sentence read of which way it went.
+ *   §A9         **the legend names the unit the scale is in.** The axis has no
+ *               gutter for a rotated title and §9.2 forbids giving the axis
+ *               group a direction, so the measure is named in the legend row —
+ *               which mirrors — rather than on the plot. See `unitNounKey`.
  *   §3.7        the no-data sentence is identical everywhere including its
  *               trailing period; it is one copy key, used once.
  *   R8          an empty card gets **one grey sentence**, never the first-run
@@ -65,9 +74,15 @@ import {
 } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { PLAIN_FRAME, PLAIN_FRAME_SLOT } from './Chapter'
-import { formatDate, type Language, type Translate } from '@/lib'
-import type { Metric, SeriesWindow, TimeSeries } from '@/data/types'
-import { seriesWindowTotal, splitMetricValue } from './formatMetric'
+import { MetricDelta } from './MetricTile'
+import { formatDate, isolatedRunProps, type Language, type Translate } from '@/lib'
+import type { CurrencyCode, Metric, MetricUnit, SeriesWindow, TimeSeries } from '@/data/types'
+import {
+  seriesWindowDelta,
+  seriesWindowTotal,
+  splitMetricValue,
+  trendRead,
+} from './formatMetric'
 
 export interface ChartCardProps {
   series: TimeSeries
@@ -116,7 +131,7 @@ export function ChartCard({
 }: ChartCardProps) {
   const title = t(`chart.${series.key}`)
   const plain = frame === 'plain'
-  const seriesTotal = seriesWindowTotal(series)
+  const facts = headlineFacts(series, headline)
 
   return (
     /* **The panel stretches and the PLOT takes the slack.** The two detail
@@ -128,55 +143,19 @@ export function ChartCard({
     <Card className={cn('min-w-0', plain && cn(PLAIN_FRAME, 'h-full'))}>
       <CardHeader className={cn(plain && PLAIN_FRAME_SLOT)}>
         <CardTitle>{title}</CardTitle>
-        {/* **The headline, between the title and the plot.** A chart's title
-            says what is being drawn and its plot says how it moved; without
-            this line the panel never states WHERE THE MEASURE ENDED UP, which
-            is the first thing a reader wants and the reason the reference puts
-            a 28px numeral here. It is the same number as the figure of the same
-            key further up the page, from the same object, so a reader who
-            checks the two against each other finds them equal.
+        {/* **The headline, between the title and the plot — and it never
+            stands alone.** A chart's title says what is being drawn and its
+            plot says how it moved; without this line the panel never states
+            WHERE THE MEASURE ENDED UP, which is the first thing a reader
+            wants and the reason the reference puts a 28px numeral here.
 
-            `data-slot` and no hand-written tabular class, for the reason
-            `MetricTile` gives: the guarantee is pinned in `@layer base` on the
-            slot, and restating it at a call site free to omit it is the
-            mechanism §H4 declines to rely on. `<bdi>` because a money value is
-            two LTR runs the UBA reorders in an Arabic line. */}
-        {!headline && seriesTotal !== null && (
-          /* **The series' own window total**, for the eight charts no metric on
-             their board owns. Same slot, same size and same anatomy as a
-             metric headline — a reader must not have to know which of the two
-             produced the number in front of them. See `TimeSeries.windowTotal`
-             for why the rule is declared and the number derived. */
-          <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
-              <bdi>{splitMetricValue(seriesTotal, series.unit, series.currency, language).value}</bdi>
-            </span>
-            {splitMetricValue(seriesTotal, series.unit, series.currency, language).unit && (
-              <span className="text-2xs text-muted-foreground">
-                {splitMetricValue(seriesTotal, series.unit, series.currency, language).unit}
-              </span>
-            )}
-          </span>
-        )}
-        {headline && (
-          <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
-              <bdi>
-                {splitMetricValue(headline.value, headline.unit, headline.currency, language).value}
-              </bdi>
-            </span>
-            {splitMetricValue(headline.value, headline.unit, headline.currency, language).unit && (
-              <span className="text-2xs text-muted-foreground">
-                {splitMetricValue(headline.value, headline.unit, headline.currency, language).unit}
-              </span>
-            )}
-            {headline.value !== null && headline.caption && (
-              <span className="text-2xs text-muted-foreground">
-                <bdi>{t(headline.caption)}</bdi>
-              </span>
-            )}
-          </span>
-        )}
+            §3.7's anatomy is title, report link, **value, delta**, chart,
+            legend — so the delta belongs on this baseline, not in the footer,
+            and every branch below carries one or says in words why it cannot
+            (AC-834). Under it, the derived read: the one sentence that turns
+            a figure, a caret and a legend into a claim. See `headlineFacts`
+            for where the two branches' numbers come from. */}
+        {facts && <Headline facts={facts} title={title} t={t} language={language} />}
         {/* Fact 2 — this card's own computation time, not the board's.
             **Not on a board.** The band at the top of the page already states
             when the board was computed, in the same words; repeating it under
@@ -250,6 +229,146 @@ export function ChartCard({
         </CardFooter>
       )}
     </Card>
+  )
+}
+
+/**
+ * **The two ways a chart card can know its own number, reduced to one shape.**
+ *
+ * A chart whose key matches a metric on the same board shows THAT metric —
+ * the figure the board already owns, so the headline and the tile further up
+ * the page cannot disagree. Eight charts have no such metric, and for those
+ * `TimeSeries.windowTotal` declares how the plotted points collapse to one.
+ *
+ * Both branches produce the same five facts, so the anatomy below does not
+ * know which produced them — which is the requirement: *a reader must not have
+ * to know which of the two produced the number in front of them.*
+ *
+ * **Neither branch invents a delta.** A metric's arrives signed from the data
+ * layer; a series' is the declared window rule applied to BOTH windows
+ * (`seriesWindowDelta`), which is the same rule twice rather than a component
+ * deciding what a total is. `TimeSeries.higherIsBetter` exists for exactly this
+ * — *"so a chart can tint a trend without joining to a tile"* — and until now
+ * no chart component read it.
+ */
+interface HeadlineFacts {
+  value: number | null
+  unit: MetricUnit
+  currency: CurrencyCode | null
+  /** A translation key, or `null`. Only a metric carries one. */
+  captionKey: string | null
+  /** Signed, in percentage points. `null` when there is nothing to compare. */
+  deltaPercent: number | null
+  higherIsBetter: boolean
+  /**
+   * The window the delta is measured against. `null` for a **target**
+   * comparison as well as for no comparison at all: a target is a level, not a
+   * stretch of dates, so there is no period to name and `trendRead` says so
+   * rather than naming one that does not exist. The tile that owns the target
+   * states it in full; this card states the trend it can state.
+   */
+  baseline: { from: string; to: string } | null
+}
+
+function headlineFacts(series: TimeSeries, headline: Metric | null): HeadlineFacts | null {
+  if (headline) {
+    return {
+      value: headline.value,
+      unit: headline.unit,
+      currency: headline.currency,
+      captionKey: headline.caption,
+      deltaPercent: headline.deltaPercent,
+      higherIsBetter: headline.higherIsBetter,
+      baseline:
+        headline.comparison.kind === 'previous-period'
+          ? { from: headline.comparison.periodStart, to: headline.comparison.periodEnd }
+          : null,
+    }
+  }
+  const total = seriesWindowTotal(series)
+  if (total === null) return null
+  return {
+    value: total,
+    unit: series.unit,
+    currency: series.currency,
+    captionKey: null,
+    deltaPercent: seriesWindowDelta(series),
+    higherIsBetter: series.higherIsBetter,
+    baseline: series.comparison
+      ? { from: series.comparison.periodStart, to: series.comparison.periodEnd }
+      : null,
+  }
+}
+
+/**
+ * §3.7's anatomy, rows three and four: **value, delta**, then the read.
+ *
+ * `data-slot` and no hand-written tabular class, for the reason `MetricTile`
+ * gives: the guarantee is pinned in `@layer base` on the slot, and restating it
+ * at a call site free to omit it is the mechanism §H4 declines to rely on.
+ * `<bdi>` because a money value is two LTR runs the UBA reorders in an Arabic
+ * line.
+ *
+ * The read sentence is a paragraph of its own rather than a fourth item on the
+ * baseline: it interpolates a title, a percentage and a date range — three
+ * isolated runs in one sentence — so it takes `isolatedRunProps` and wraps
+ * rather than truncates, following `BreakdownList`'s `Caveat`.
+ *
+ * **The baseline is not restated as a `vs 12 – 18 Jun` chip.** The sentence
+ * already names it, and §3.7 requires the legend at the foot of the card to
+ * name both periods with dates — a third copy on one card is noise, not
+ * redundancy.
+ */
+function Headline({
+  facts,
+  title,
+  t,
+  language,
+}: {
+  facts: HeadlineFacts
+  title: string
+  t: Translate
+  language: Language
+}) {
+  const split = splitMetricValue(facts.value, facts.unit, facts.currency, language)
+  const read = trendRead({
+    title,
+    deltaPercent: facts.deltaPercent,
+    baseline: facts.baseline,
+    language,
+  })
+  const sentence = isolatedRunProps({ className: 'text-xs text-muted-foreground' })
+
+  return (
+    <>
+      <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
+          <bdi>{split.value}</bdi>
+        </span>
+        {split.unit && <span className="text-2xs text-muted-foreground">{split.unit}</span>}
+        {facts.value !== null && (
+          <MetricDelta
+            deltaPercent={facts.deltaPercent}
+            higherIsBetter={facts.higherIsBetter}
+            t={t}
+            language={language}
+          />
+        )}
+        {facts.value !== null && facts.captionKey && (
+          <span className="text-2xs text-muted-foreground">
+            <bdi>{t(facts.captionKey)}</bdi>
+          </span>
+        )}
+      </span>
+      {/* **Never omitted.** A card that drops this line when it has nothing to
+          compare leaves a bare number and no way to tell a missing sentence
+          from a missing comparison — which is the state §A8's second principle
+          exists to prevent. `noBaseline` is what the em dash beside the numeral
+          means, in words. */}
+      <p {...sentence.box}>
+        <bdi {...sentence.run}>{t(read.key, read.params)}</bdi>
+      </p>
+    </>
   )
 }
 
@@ -376,8 +495,53 @@ function Legend({
           {series.comparison ? range(series.comparison) : t('overview.noCompare.no-history')}
         </bdi>
       </span>
+      {/* **§A9's *"the Y axis is labelled with the measure"*, moved off the
+          axis.** The y-axis is a 0px gutter carrying two in-plot marks
+          (`TrendChart`'s own note explains why), so there is no column for a
+          rotated title — and §9.2 forbids giving the axis group a direction, so
+          an SVG title would neither shape nor align Arabic. The legend row
+          mirrors normally, and it is already where this card names things.
+
+          It is not decoration on a count chart and it is load-bearing on a
+          money one: `TrendChart` rescales money marks by 100, so a revenue plot
+          whose marks read `300 / 200` is quoting riyals with nothing on the
+          panel saying so. */}
+      <span className="text-xs text-muted-foreground">
+        {t('overview.legend.unit', { unit: t(unitNounKey(series.unit)) })}
+      </span>
     </>
   )
+}
+
+/**
+ * The noun for a scale, one per `MetricUnit`.
+ *
+ * **A `switch` with no `default`, and that is the whole of the design.** A
+ * seventh unit added to the union makes this function fall off its end without
+ * returning a `string`, which is a compile error — where a `default` would ship
+ * a wrong noun, and a `?? ''` would ship a blank line under a plot nobody would
+ * notice for a quarter.
+ *
+ * The nouns name **what the scale is in**, never what the series counts: the
+ * title above the plot already names that, and six of the eight `count` series
+ * count different things (signals, trips, subscriptions, pickups, requests,
+ * events), so any one of those nouns would be false on five charts.
+ */
+function unitNounKey(unit: MetricUnit): string {
+  switch (unit) {
+    case 'money':
+      return 'overview.unit.money'
+    case 'count':
+      return 'overview.unit.count'
+    case 'percent':
+      return 'overview.unit.percent'
+    case 'minutes':
+      return 'overview.unit.minutes'
+    case 'rating':
+      return 'overview.unit.rating'
+    case 'ratio':
+      return 'overview.unit.ratio'
+  }
 }
 
 /**

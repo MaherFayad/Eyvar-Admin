@@ -234,7 +234,12 @@ export const navCountFixtures: SubTabCount[] = [
    * makes the breach vanish. A rider waiting five days is a bad week, not an
    * unrecoverable one, and the count says seven either way.
    */
-  { subTabId: 'operations-requests', count: 7, tone: 'neutral' },
+  /* The seven open requests, split by the channel each tab now pins: four
+     instant, three subscription. A tab's badge counts the rows that tab
+     shows — a combined seven on either would send an operator looking for
+     three rows that are on the other tab. */
+  { subTabId: 'operations-ride-requests', count: 4, tone: 'neutral' },
+  { subTabId: 'operations-subscription-requests', count: 3, tone: 'neutral' },
   { subTabId: 'operations-subscriptions', count: 8, tone: 'neutral' },
   /* One pending corporate account — CORP-001 (`:13847`). */
   { subTabId: 'operations-corporate', count: 1, tone: 'neutral' },

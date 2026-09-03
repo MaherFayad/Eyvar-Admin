@@ -561,6 +561,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'subscriptionId',
+        sortField: 'subscriptionId',
         header: t('trips.col.subscription'),
         width: 136,
         dataType: 'id',
@@ -601,6 +602,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'paymentId',
+        sortField: 'paymentId',
         header: t('trips.col.payment'),
         width: 136,
         dataType: 'id',
@@ -653,6 +655,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'flagged',
+        sortField: 'flagged',
         header: t('trips.flagged'),
         width: 112,
         dataType: 'enum',

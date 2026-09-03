@@ -129,6 +129,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         id: 'companyName',
+        sortField: 'companyName',
         emphasis: 'primary',
         csv: (c) => c.companyName,
         header: t('column.company'),
@@ -224,6 +225,15 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'billingType',
+        filter: {
+          kind: 'select',
+          field: 'billingType',
+          options: (['Monthly invoice', 'Prepaid balance'] as const).map((value) => ({
+            value,
+            label: value,
+          })),
+        },
+        sortField: 'billingType',
         header: t('column.billing'),
         width: 140,
         dataType: 'enum',
@@ -234,6 +244,19 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'status',
+        /* The four states an account can be in. **The label is the value**, which
+           is what the cell renders too — these reach the screen untranslated, and a
+           filter that invented labels the rows do not carry would be worse than one
+           that matches them. Raised as an i18n gap rather than papered over here. */
+        filter: {
+          kind: 'select',
+          field: 'status',
+          options: (['Active', 'Trial', 'Pending', 'Suspended'] as const).map((value) => ({
+            value,
+            label: value,
+          })),
+        },
+        sortField: 'status',
         emphasis: 'data',
         header: t('column.status'),
         width: 100,

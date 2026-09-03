@@ -641,6 +641,14 @@ export interface DashboardTile {
 export interface Dashboard {
   id: string
   name: string
+  /**
+   * **User-authored, and the same field `SavedReport` already carries.** A
+   * report can say what question it answers; without this a board could not say
+   * what it is for, and the list had nothing to show but a name and a count.
+   * `null` is a board whose author did not write one — never an empty string,
+   * so "not written" and "written and then cleared" are the same state.
+   */
+  description: string | null
   ownerId: string
   tiles: DashboardTile[]
   createdAt: IsoDateTime

@@ -128,8 +128,12 @@ export function NotificationBell({
         <div className="shrink-0 flex h-11 items-center justify-between border-b border-border px-4 bg-popover">
           <h2 className="text-sm font-bold text-foreground">{t('shell.notifications.title')}</h2>
           {unread > 0 && (
+            /* This read `{unread} new` — a hardcoded English template with a raw
+               JS numeral. Both halves are fixed: the word comes from a key and
+               the numeral from `formatCount`, so Arabic gets Arabic-Indic
+               digits like every other count in the shell. */
             <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-              {unread} new
+              {t('shell.notifications.newCount', { count: formatCount(unread, language) })}
             </span>
           )}
         </div>
@@ -151,10 +155,14 @@ export function NotificationBell({
             </div>
           )}
 
-          {/* R8 `no-match` — one grey sentence, no illustration, no heading. */}
+          {/* R8 `no-match` — one grey sentence, no illustration, no heading.
+              The sentence is `No notifications.`, not `No unread
+              notifications.`: this preview is the top eight by priority, read
+              and unread alike, so the narrower claim was simply not what an
+              empty preview means. */}
           {preview.status === 'empty' && (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground bg-popover">
-              {t('shell.notifications.noUnread')}
+              {t('shell.notifications.empty')}
             </p>
           )}
 
@@ -166,6 +174,7 @@ export function NotificationBell({
                     <NotificationRow
                       notification={notification}
                       language={language}
+                      t={t}
                       onOpen={() => {
                         /* D-11, and this is the path the first fix MISSED. Opening a
                            notification hands off to the shell layer exactly as `See
@@ -222,10 +231,12 @@ export function NotificationBell({
 function NotificationRow({
   notification,
   language,
+  t,
   onOpen,
 }: {
   notification: Notification
   language: Language
+  t: Translate
   onOpen: () => void
 }) {
   const navigable = notification.route !== null || notification.entityId !== null
@@ -250,11 +261,16 @@ function NotificationRow({
              6.95 : 1 on the popover's white, well past the 3 : 1 a meaningful
              graphic owes §7.5.
 
-             **Reported, not fixed here:** the dot is colour and shape with no
-             word and no accessible name, which is §7.5's never-colour-alone
-             rule. The fix needs a translation key and this pass may not add
-             one — raised to i18n-arabic-engineer in the handoff. */
-          <span className="size-1.5 rounded-full bg-info-foreground shrink-0" />
+             **Now fixed:** the dot used to be colour and shape with no word and
+             no accessible name — §7.5's never-colour-alone rule — and the fix
+             was held up on a translation key. The key exists
+             (`shell.notifications.unread`), so the word ships beside the dot,
+             visually hidden. The dot itself is decoration once the word is
+             there, so it is `aria-hidden`. */
+          <>
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-info-foreground shrink-0" />
+            <span className="sr-only">{t('shell.notifications.unread')}</span>
+          </>
         )}
       </div>
       <span

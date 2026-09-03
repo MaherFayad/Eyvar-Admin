@@ -34,6 +34,16 @@
  *               around it — title, legend, report link — mirrors normally. A
  *               reversed time axis makes the axis and its numerals run in
  *               opposite directions, which is the defect the rule names.
+ *   §9.2        **the TOOLTIP is the exception, and it is chrome.** Recharts
+ *               renders it inside `ChartContainer`'s div rather than in a
+ *               portal, so it inherited the plot's pin and laid Arabic copy out
+ *               left-to-right. The rule names the plot area and the SVG axis
+ *               group; a tooltip mirrors with the page, so `TrendTooltip`
+ *               restores the document direction on its own card and on nothing
+ *               else.
+ *   §A10        the tooltip names the bucket for **every** series, so the
+ *               comparison row carries the day it was measured on rather than
+ *               borrowing the current window's — see `Row.comparisonLabel`.
  *   §9.2 / R4   numerals are Western in both languages and go through
  *               `formatSeriesValue`; money never through `toLocaleString()`.
  *   R18         a chart never pulses or loops. `isAnimationActive={false}` —
@@ -47,14 +57,9 @@
 
 import { Area, AreaChart, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { cn } from '@/lib/utils'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
-import type { TimeSeries } from '@/data/types'
+import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
+import { ABSENT, directionFor, formatCount, formatDate, type Language, type Translate } from '@/lib'
+import type { MetricUnit, TimeSeries } from '@/data/types'
 import { formatSeriesValue } from './formatMetric'
 
 /** The two roles. Both resolve to `--ev-blue`; they differ by DASH, never by hue. */
@@ -88,8 +93,22 @@ function niceCeiling(peak: number): number {
   return 10 * magnitude
 }
 
+/**
+ * One x position, and **the two dates it stands for** rather than the one.
+ *
+ * `label` is the CURRENT window's day and is what the axis and the tooltip's
+ * heading carry. `comparisonLabel` is the day the dashed reading was taken on,
+ * which is a different date by definition — see the zip below — and until it
+ * was carried here the tooltip printed a value from one day under a heading
+ * naming another, unmarked. That is not a polish gap; it is the tooltip
+ * stating a fact that is false.
+ *
+ * `null` when there is no comparison window, or when it is shorter than the
+ * current one and this index falls off its end.
+ */
 interface Row {
   label: string
+  comparisonLabel: string | null
   current: number | null
   comparison: number | null
 }
@@ -115,11 +134,19 @@ export function TrendChart({ series, description, fill = false, t, language }: T
      period has different dates by definition, so joining on the date would drop
      every comparison point. The axis carries the CURRENT window's dates, which
      is what §3.7's legend then disambiguates by naming both periods. */
-  const rows: Row[] = series.current.points.map((point, index) => ({
-    label: formatDate(point.at, { style: 'day-month', language }),
-    current: point.value,
-    comparison: series.comparison?.points[index]?.value ?? null,
-  }))
+  const rows: Row[] = series.current.points.map((point, index) => {
+    const against = series.comparison?.points[index]
+    return {
+      label: formatDate(point.at, { style: 'day-month', language }),
+      /* The zip is by index; the LABEL is by date. Both facts are true and the
+         tooltip has to carry both, or the reader is told the dashed line's
+         value belongs to a day it does not. */
+      comparisonLabel:
+        against === undefined ? null : formatDate(against.at, { style: 'day-month', language }),
+      current: point.value,
+      comparison: against?.value ?? null,
+    }
+  })
 
   const tick = (value: number) => formatSeriesValue(value, series.unit, language)
 
@@ -262,23 +289,7 @@ export function TrendChart({ series, description, fill = false, t, language }: T
           ))}
           <ChartTooltip
             cursor={{ stroke: 'var(--chart-grid)' }}
-            content={
-              <ChartTooltipContent
-                labelKey="label"
-                formatter={(value, name) => (
-                  <span className="flex w-full justify-between gap-2">
-                    <span className="text-muted-foreground">
-                      {name === 'comparison'
-                        ? t('overview.legend.comparison')
-                        : t('overview.legend.current')}
-                    </span>
-                    <span className="font-medium tabular-nums text-foreground">
-                      {typeof value === 'number' ? tick(value) : String(value)}
-                    </span>
-                  </span>
-                )}
-              />
-            }
+            content={<TrendTooltip unit={series.unit} t={t} language={language} />}
           />
 
           {/* Comparison FIRST, so the current period paints over it. Same hue,
@@ -346,6 +357,112 @@ export function TrendChart({ series, description, fill = false, t, language }: T
           />
         </AreaChart>
       </ChartContainer>
+    </div>
+  )
+}
+
+/**
+ * **The tooltip — §A10, and the one place in this file that MIRRORS.**
+ *
+ * ```
+ *  ┌────────────────────────────┐
+ *  │ 21 JUN                     │  the CURRENT window's day
+ *  │ This period          312   │
+ *  │ Previous period      287   │
+ *  │   on 14 Jun                │  ← the day the dashed reading was taken
+ *  └────────────────────────────┘
+ * ```
+ *
+ * Two defects closed, and neither is cosmetic.
+ *
+ * **1 — the comparison row names its own day.** The windows are zipped by
+ * index (see `rows` above, and the reason there), so the heading's date is the
+ * current window's and the dashed value beneath it was measured on a different
+ * one. Before `Row.comparisonLabel` the tooltip printed the two under one date
+ * with nothing to say they differed, which is a false statement rather than a
+ * missing one. It is a second line rather than a suffix on the series name:
+ * `Previous period` + ` on 14 Jun` assembled inline would be a sentence built
+ * by concatenation, which AC-713 forbids and which no translation survives.
+ *
+ * **2 — §9.2, and this is the RTL defect the plot's own pin created.** Recharts
+ * renders the tooltip INSIDE `ChartContainer`'s div rather than in a portal, so
+ * it inherited the `dir="ltr"` correctly pinned on the plot: Arabic copy laid
+ * out left-to-right, and `justify-between` pinned the label to the PHYSICAL
+ * left in both languages. §9.2's prohibition names *the plot area and the SVG
+ * axis group*; **a tooltip is chrome and mirrors with the page**, exactly as
+ * the map's legend and stats bar do in the same table. So the document
+ * direction is restored here, on this card, and nowhere else — the plot and
+ * the axis stay pinned.
+ *
+ * **Why this is not `ChartTooltipContent`.** That component destructures
+ * `className` and spreads nothing, so there is no way to hand it a `dir` — and
+ * a direction is not a class, so no wrapper class can supply one either. It is
+ * also unrenderable outside a `ChartContainer` (it reads chart context), which
+ * puts the two assertions above out of reach of a test. This carries the same
+ * container tokens and the same anatomy, minus the colour indicator the
+ * `formatter` branch already suppressed: §3.7's two roles differ by DASH, so a
+ * pair of identical dots would rank nothing.
+ *
+ * Exported because the two facts above are testable only by rendering it.
+ */
+export interface TrendTooltipProps {
+  /** Recharts injects these three by cloning the element. */
+  active?: boolean
+  payload?: ReadonlyArray<{ dataKey?: string | number; value?: number | null; payload?: Row }>
+  unit: MetricUnit
+  t: Translate
+  language: Language
+}
+
+export function TrendTooltip({ active, payload, unit, t, language }: TrendTooltipProps) {
+  if (active !== true || payload === undefined || payload.length === 0) return null
+  const row = payload[0]?.payload
+  if (row === undefined) return null
+
+  return (
+    /* The card's own direction, restored from the language. Never on the SVG,
+       never on the axis group — see the note above. */
+    <div
+      dir={directionFor(language)}
+      className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-2"
+    >
+      {/* The bucket, once, at the top. A day-month run in a card that may be
+          Arabic — isolated for the reason `ChartCard`'s legend gives. */}
+      <p className="font-medium text-foreground">
+        <bdi>{row.label}</bdi>
+      </p>
+      <div className="grid gap-1.5">
+        {payload.map((entry) => {
+          const comparison = entry.dataKey === 'comparison'
+          const on = comparison ? row.comparisonLabel : null
+          return (
+            <div
+              key={String(entry.dataKey)}
+              className="flex w-full items-start justify-between gap-2"
+            >
+              <span className="flex min-w-0 flex-col text-muted-foreground">
+                <span>
+                  {comparison ? t('overview.legend.comparison') : t('overview.legend.current')}
+                </span>
+                {on !== null && (
+                  <span className="text-2xs">
+                    <bdi>{t('overview.tooltip.on', { date: on })}</bdi>
+                  </span>
+                )}
+              </span>
+              {/* A gap reads as an em dash, never as a zero — the rule
+                  `connectNulls={false}` enforces in the plot, said in text. */}
+              <span className="font-medium tabular-nums text-foreground">
+                <bdi>
+                  {typeof entry.value === 'number'
+                    ? formatSeriesValue(entry.value, unit, language)
+                    : ABSENT}
+                </bdi>
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

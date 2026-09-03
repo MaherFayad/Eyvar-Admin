@@ -245,7 +245,42 @@ function RevenueByPlanView({ tabs, activeTab, onSelectTab }: ViewProps) {
     cacheKey: 'revenue.byPlan',
   })
 
-  const rows = plans.data ?? []
+  /**
+   * **The by-plan table sorts HERE, because its read cannot.**
+   *
+   * `listRevenueByPlan` takes a period and nothing else — no `sort`, no `page`,
+   * no query at all — so the sort the toolbar records in the URL reached a
+   * client that had no way to honour it. Every sortable column on this table
+   * was inert: the menu opened, the caret moved, the rows did not.
+   *
+   * It is sorted in the screen rather than by teaching the client a query,
+   * because there are six rows and no pagination — the whole result is already
+   * in memory, and a `QueryShape` for a fixed six-row summary would be a query
+   * engine standing in for an `Array.prototype.sort`.
+   *
+   * `planName` is the one text field; everything else on the row is a number,
+   * so one comparator covers both. Nulls sort last ascending, which is the rule
+   * `mock/query.ts` follows for the tables that DO have a query — the two must
+   * not disagree about where an absent value goes.
+   */
+  const rows = useMemo(() => {
+    const all = plans.data ?? []
+    const sort = table.sort
+    if (!sort) return all
+    const read = (planRow: RevenueByPlanRow): string | number | null =>
+      (planRow as unknown as Record<string, string | number | null>)[sort.field] ?? null
+    const dir = sort.dir === 'desc' ? -1 : 1
+    return [...all].sort((a, b) => {
+      const left = read(a)
+      const right = read(b)
+      if (left === right) return 0
+      if (left === null) return 1
+      if (right === null) return -1
+      return (typeof left === 'number' && typeof right === 'number'
+        ? left - right
+        : String(left).localeCompare(String(right), ['ar', 'en'])) * dir
+    })
+  }, [plans.data, table.sort])
 
   const totals = useMemo(
     () =>

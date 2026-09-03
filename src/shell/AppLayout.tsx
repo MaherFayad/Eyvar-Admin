@@ -78,7 +78,8 @@ import {
   switchMockUser,
   updateUiState,
 } from '@/data/clients'
-import type { Notification, ShellLayerId } from '@/data/types'
+import { PROFILE_ENTITY_TYPES } from '@/data/types'
+import type { Notification, ProfileEntityType, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -372,20 +373,73 @@ export function AppLayout() {
        is stored. */
   }, { deps: [] })
 
+  /**
+   * **Marking read is now its own operation, reachable without navigating.**
+   *
+   * It used to live inside `openNotificationTarget`, which is only ever called
+   * from a row that HAS a destination — so a notification with `route: null`
+   * **and** `entityId: null` could never be marked read individually at all.
+   * `alert` is the most-produced runtime type and the one most often without a
+   * destination (`types/notifications.ts`), so that was not a corner case.
+   *
+   * Returns the promise so the surface that asked can repaint its own list when
+   * the write lands; `openNotificationTarget` deliberately does not await it —
+   * the operator asked to go somewhere and a bookkeeping flag must not sit
+   * between them and it. A failed write leaves the count HIGH, which is the safe
+   * direction to be wrong in, and `refreshNotifications` means the badge shows
+   * what the server holds rather than an optimistic decrement.
+   *
+   * Read state itself is still **in-memory in the mock** and resets on reload —
+   * that is Q1, and it is not answered here.
+   */
+  const markNotificationAsRead = useCallback(
+    (notification: Notification): Promise<void> => {
+      if (notification.read) return Promise.resolve()
+      return markNotificationRead(notification.id)
+        .then(() => undefined)
+        .catch(() => undefined)
+        .finally(() => shell.refreshNotifications())
+    },
+    [shell],
+  )
+
+  /**
+   * **`entityId` only wins when it names a PROFILE entity.**
+   *
+   * `?entity=` is resolved by `clients/profile.ts`, which knows the eleven
+   * `PROFILE_ENTITY_TYPES` and nothing else. Preferring `entityId`
+   * unconditionally sent every other kind of id into that resolver, which
+   * returns `null`, which renders `ProfileLayer`'s not-found empty naming an id
+   * the operator cannot do anything about. Four seeded rows did this — `ALR-1`
+   * (`alert-rule`), `PO-0007` (`payout`), `SNAP-0030` (untyped) and `APP-2202`
+   * (`application`) — including the ONE end-to-end alert path, whose correct
+   * destination (`route`) was sitting on the same row unused.
+   *
+   * The ids stay on the fixtures: `entityId` is the reconciliation key
+   * `AlertFiring.notificationId` depends on (`types/report.ts`). It is the
+   * routing preference that was wrong, not the data.
+   */
   const openNotificationTarget = useCallback(
     (notification: Notification) => {
-      if (!notification.read) {
-        void markNotificationRead(notification.id)
-          .catch(() => undefined)
-          .finally(() => shell.refreshNotifications())
-      }
-      if (notification.entityId) {
+      void markNotificationAsRead(notification)
+      const opensAProfile =
+        notification.entityId !== null &&
+        notification.entityType !== null &&
+        PROFILE_ENTITY_TYPES.includes(notification.entityType as ProfileEntityType)
+      if (opensAProfile && notification.entityId) {
         setLayer('entity', notification.entityId)
         return
       }
-      if (notification.route) navigate(notification.route)
+      if (notification.route) {
+        navigate(notification.route)
+        return
+      }
+      /* No route and an id of some other kind: the overlay is the only
+         affordance the row was drawn with, so it is still tried rather than
+         leaving a `<button>` that does nothing (§11.2). */
+      if (notification.entityId) setLayer('entity', notification.entityId)
     },
-    [navigate, setLayer, shell],
+    [markNotificationAsRead, navigate, setLayer],
   )
 
   /**
@@ -716,6 +770,8 @@ export function AppLayout() {
           t={t}
           language={language}
           onOpenNotification={openNotificationTarget}
+          onMarkRead={markNotificationAsRead}
+          unreadCount={shell.notifications?.unread ?? 0}
           onChanged={shell.refreshNotifications}
         />
       )}

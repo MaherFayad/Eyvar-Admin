@@ -149,7 +149,26 @@ export function resolveRoute(pathname: string, search: string): RouteState {
       ...base,
       params: entityParams,
       shape: 'detail',
-      showsBackArrow: true,
+      /**
+       * **`false`, and it is the only detail route that says so.**
+       *
+       * The top bar's arrow is an unlabelled icon calling `navigate(-1)`
+       * (`TopBar.tsx`), which is fine on a route reached by drilling down and
+       * wrong here. `/entity/:id` is reached from global search, from any table,
+       * from a notification and from the profile layer's `Open full profile` —
+       * and on a pasted link or a fresh tab there is no entry to go back to, so
+       * the arrow walks the operator out of the application.
+       *
+       * The page renders its own return control instead: an `<a href>` with a
+       * resolved destination and a label naming the screen it returns to. That
+       * one always has somewhere to go, which is what lets it satisfy §11.2
+       * without a disabled state.
+       *
+       * So this is not "the page has no back affordance" — it is "the page owns
+       * it". Leaving both drew two back controls 40px apart, the unlabelled one
+       * being the one that could dead-end.
+       */
+      showsBackArrow: false,
       isBleed: false,
       isNotFound: false,
     }

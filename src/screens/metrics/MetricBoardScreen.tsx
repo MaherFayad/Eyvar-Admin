@@ -619,6 +619,16 @@ function BoardContent({
               key={breakdown.key}
               breakdown={breakdown}
               frame="plain"
+              /* **What the export attributes the file to.** A `MetricBreakdown`
+                 is a ranking and carries no board, no sub-tab and no dates, so
+                 the surface that renders it hands them over — and a list with
+                 no scope offers no export, rather than writing a CSV that
+                 cannot say what it is a slice of (`components/table/csv.ts`).
+
+                 The window is the board's own, read off the metrics exactly as
+                 the band's period pill reads it, so the pill and the file name
+                 the same range. */
+              scope={{ subTabId: loaded.subTabId, period: boardPeriod(loaded.metrics) }}
               t={t}
               language={language}
             />

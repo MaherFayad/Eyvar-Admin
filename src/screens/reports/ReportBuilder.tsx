@@ -60,6 +60,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { QueryPanel, ResultCanvas, type CanvasStatus } from '@/components/reports'
 import { useAsync } from '@/hooks'
@@ -314,6 +315,36 @@ export function ReportBuilder({
 
   const stale = ranQuery !== null && !isDeepEqual(query, ranQuery)
 
+  /**
+   * **Share, with no share feature** — AC-855, finally rendered.
+   *
+   * The link is not a second representation of the question: it is the *same*
+   * `serialiseReportQuery` the `Run` push writes to the address bar and the
+   * same one an alert notification's `route` is built from, so what lands in
+   * the clipboard is byte-identical to what `Back` walks. `ranQuery` first,
+   * because the honest thing to hand someone is the question that produced the
+   * numbers on screen; `query` only when nothing has run yet.
+   *
+   * **R10 sends this to a toast and R9 makes it name the object.** Every other
+   * message in this module is a standing condition and correctly renders as a
+   * sentence beside the result — this one is a transient confirmation of an
+   * action that left no trace on screen, which is the one case a toast is for.
+   *
+   * The clipboard is a permission, so it is a promise that can be refused.
+   * `SecretRevealDialog` recovers by selecting the text; there is no text to
+   * select here, so the refusal is *stated* rather than swallowed — a silent
+   * failure means pasting whatever was in the clipboard before.
+   */
+  const copyLink = useCallback(async () => {
+    const target = ranQuery ?? query
+    const url = `${window.location.origin}${location.pathname}?${REPORT_QUERY_PARAM}=${serialiseReportQuery(target)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(t('rb.canvas.link.copied'))
+    } catch {
+      toast.error(t('rb.canvas.link.failed'))
+    }
+  }, [ranQuery, query, location.pathname, t])
 
   const header = (
     <PageHeader
@@ -338,6 +369,15 @@ export function ReportBuilder({
           label: t('rb.export'),
           onClick: () => void exportCsv(),
           disabled: result === null,
+        },
+        {
+          label: t('rb.canvas.link.copy'),
+          onClick: () => void copyLink(),
+          /* An unrunnable question is not a shareable link: the recipient would
+             land on the invalid-query canvas holding violations they did not
+             cause. Same test the `Save` above applies, for the same reason —
+             the planner already knows whether the question is answerable. */
+          disabled: plan.violations.length > 0,
         },
       ]}
       t={t}
@@ -452,6 +492,11 @@ export function ReportBuilder({
             effectiveChartType={plan.effectiveChartType}
             onRetry={() => void run(ranQuery ?? query, false)}
             onRetrySeries={(key) => void retrySeries(key)}
+            /* The builder is a workspace, so it takes the workspace chrome: a
+               refresh beside the freshness line and the numbers beneath the
+               picture. A dashboard tile is a reading and takes neither. */
+            withRefresh
+            withTable
             noDataSentence={noDataSentence}
             t={t}
             language={language}

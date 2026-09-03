@@ -151,8 +151,18 @@ export interface PageNavProps {
  */
 const NAV_GROUPS: Readonly<Record<string, readonly (readonly string[])[]>> = {
   operations: [
-    ['operations-subscriptions', 'operations-subscription-trips', 'operations-corporate'],
-    ['operations-requests', 'operations-quick-rides', 'operations-dispatch', 'operations-assurance'],
+    [
+      'operations-subscriptions',
+      'operations-subscription-requests',
+      'operations-subscription-trips',
+      'operations-corporate',
+    ],
+    [
+      'operations-ride-requests',
+      'operations-quick-rides',
+      'operations-dispatch',
+      'operations-assurance',
+    ],
     ['operations-my-work', 'operations-people'],
   ],
 }

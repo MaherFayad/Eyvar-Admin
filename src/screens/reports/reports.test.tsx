@@ -353,7 +353,13 @@ describe('AC-851 — a failed leg fails alone', () => {
       `${reportQueryPath((await savedReports()).find((r) => r.id === 'RPT-1')!.query)}&failSeries=riders.registered`,
       <ReportsScreen />,
     )
-    expect(await screen.findByText(REPORTS_EN['rb.panel.failed'] as string)).toBeInTheDocument()
+    /* The sentence is stated TWICE on purpose since the table began rendering
+       beside the chart: once on the card, once as the table's spanning cell.
+       This criterion is about the CARD, so the assertion is that at least one
+       statement of it lives outside the table — a count would break the next
+       time a rendering states it honestly somewhere else. */
+    const failures = await screen.findAllByText(REPORTS_EN['rb.panel.failed'] as string)
+    expect(failures.some((node) => node.closest('table') === null)).toBe(true)
     expect(
       screen.getByRole('button', { name: REPORTS_EN['rb.panel.failed.retry'] as string }),
     ).toBeInTheDocument()
@@ -405,8 +411,13 @@ describe('§12 — the client half of alerts, and the two fields nobody has deci
     renderAt('/management/reports?view=alerts', <ReportsScreen />)
     const unset = await screen.findAllByText(REPORTS_EN['rb.alert.cadence.unset'] as string)
     expect(unset.length).toBe(rules.length)
-    /* And it says what "unset" means, once, where an operator will read it. */
-    expect(screen.getByText(REPORTS_EN['rb.alert.cadence.explain'] as string)).toBeInTheDocument()
+    /* And it says what "unset" means, once, where an operator will read it.
+       That sentence MOVED: it was a footnote under the table and it is now the
+       page banner above it (R10), so the assertion follows it to the key the
+       banner carries rather than being deleted. `rb.alert.cadence.explain` is
+       still live — it is the sentence beside the disabled cadence field in
+       `AlertRuleDialog`, which is a different surface with a different reader. */
+    expect(screen.getByText(REPORTS_EN['rb.alerts.banner.body'] as string)).toBeInTheDocument()
   })
 
   it('AC-885 — a firing rule uses the word and a warning tone, and no red anywhere', async () => {
@@ -430,14 +441,22 @@ describe('§12 — the client half of alerts, and the two fields nobody has deci
     )
     expect(firingRow).toBeDefined()
 
-    /* One declared row action renders as a labelled button rather than a
-       kebab — §7.8 — and it is present in the lane always, not on hover. */
+    /* §7.8 — the lane is present always, never on hover. Its SHAPE changed with
+       the action count: `DataTable` renders up to two declared actions as
+       labelled buttons and three or more as a kebab, and this table now
+       declares four (Open · Test · Firing history · Delete). So the action is
+       reached through the menu, which is also how an operator reaches it. */
+    await user.click(within(firingRow!).getByRole('button', { name: /More actions/ }))
     await user.click(
-      within(firingRow!).getByRole('button', { name: REPORTS_EN['rb.alert.test'] as string }),
+      await screen.findByRole('menuitem', { name: REPORTS_EN['rb.alert.test'] as string }),
     )
 
-    const status = await screen.findByRole('status')
-    expect(status.textContent).toContain(REPORTS_EN['rb.alert.test.noChange'] as string)
+    /* `findAllByRole` rather than `findByRole`: the page-level banner is also a
+       `status`, and it is the one that says nothing is checking these rules. */
+    const status = (await screen.findAllByRole('status')).find((node) =>
+      node.textContent?.includes(REPORTS_EN['rb.alert.test.noChange'] as string),
+    )
+    expect(status).toBeDefined()
     /* The row's state is untouched: the rule is still `Firing`, not `Fired`. */
     expect(
       within(firingRow!).getByText(REPORTS_EN['rb.alert.state.firing'] as string),

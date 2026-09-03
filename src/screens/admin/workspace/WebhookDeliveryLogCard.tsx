@@ -153,6 +153,7 @@ export function WebhookDeliveryLogCard({
     () => [
       {
         id: 'event',
+        sortField: 'event',
         header: t('admin.integrations.delivery.col.event'),
         minWidth: 160,
         dataType: 'enum',
@@ -177,6 +178,7 @@ export function WebhookDeliveryLogCard({
       },
       {
         id: 'endpointId',
+        sortField: 'endpointId',
         header: t('admin.integrations.delivery.col.endpoint'),
         width: 140,
         dataType: 'enum',
@@ -194,6 +196,7 @@ export function WebhookDeliveryLogCard({
       },
       {
         id: 'state',
+        sortField: 'state',
         header: t('admin.integrations.delivery.col.state'),
         width: 240,
         dataType: 'enum',
@@ -276,6 +279,7 @@ export function WebhookDeliveryLogCard({
       },
       {
         id: 'id',
+        sortField: 'id',
         header: t('admin.integrations.delivery.col.id'),
         width: 110,
         dataType: 'id',

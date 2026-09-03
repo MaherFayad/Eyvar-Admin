@@ -89,8 +89,31 @@ let rules!: AlertRule[]
 
 /**
  * GET /api/v1/alerts
- *   params: q · view=firing|suspended|error|disabled · page · pageSize
+ *   params: q · filters[state] · page · pageSize
  *   -> Paginated<AlertRule>
+ *
+ * ## The state filter reads `filters`, and it used to read `view`
+ *
+ * It was `params.view === 'firing' | 'suspended' | 'error' | 'disabled'`, and
+ * **that parameter is not this client's to spend.** `view` is the index view
+ * tab — `QueryParams` says so — and on `/management/reports` it is fed from
+ * `?view=`, which on the alerts surface is always the reports sub-tab id
+ * `'alerts'` (`screens/reports/views.ts`). So the filter could never fire: the
+ * only value that ever reached it was the name of the tab the operator was
+ * standing on. Worse, the two vocabularies shared a namespace, so a sub-tab
+ * ever named `firing` would have silently hidden rows.
+ *
+ * A `FilterSpec` is keyed on a **field**, so `state` here cannot collide with a
+ * view id, a sort field or a second filter — the collision is removed by the
+ * shape rather than by choosing a luckier word. The State column declares the
+ * matching `select` filter, so the control and this branch are one declaration.
+ *
+ * **`disabled` did not survive the move, deliberately.** It was never a state:
+ * `enabled` is the operator's switch, `state` is the server's machine, and
+ * `mutedUntil` is a third fact again — the rule this module states in three
+ * places. Offering `Disabled` inside a `State` filter would fold two of the
+ * three back together in the one control an operator uses to reason about them.
+ * Nothing regresses: the branch was unreachable code the whole time.
  */
 export async function listAlertRules(
   params: QueryParams = {},
@@ -101,10 +124,11 @@ export async function listAlertRules(
   }
   return mock(ALERT_OPERATIONS.list, signal, () => {
     let rows = rules.slice()
-    if (params.view === 'firing') rows = rows.filter((r) => r.state === 'firing')
-    if (params.view === 'suspended') rows = rows.filter((r) => r.state === 'suspended')
-    if (params.view === 'error') rows = rows.filter((r) => r.state === 'error')
-    if (params.view === 'disabled') rows = rows.filter((r) => !r.enabled)
+    for (const filter of params.filters ?? []) {
+      if (filter.field !== 'state') continue
+      const wanted = Array.isArray(filter.value) ? filter.value.map(String) : [String(filter.value)]
+      rows = rows.filter((r) => wanted.includes(r.state))
+    }
     const q = params.q?.trim().toLowerCase()
     if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q))
     return paginate(rows, params)

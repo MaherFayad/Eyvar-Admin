@@ -301,6 +301,10 @@ const keyShape: QueryShape<ApiKey> = {
     createdAt: (row) => row.createdAt,
     lastUsedAt: (row) => row.lastUsedAt,
     requestCount: (row) => row.requestCount,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    state: (r) => r.state,
   },
   filterable: { state: (row) => row.state, scopes: (row) => row.scopes },
   facetable: ['state'],
@@ -745,6 +749,13 @@ const deliveryShape: QueryShape<WebhookDelivery> = {
     attemptedAt: (row) => row.attemptedAt,
     statusCode: (row) => row.statusCode,
     durationMs: (row) => row.durationMs,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    id: (r) => r.id,
+    event: (r) => r.event,
+    endpointId: (r) => r.endpointId,
+    state: (r) => r.state,
   },
   filterable: {
     endpointId: (row) => row.endpointId,

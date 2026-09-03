@@ -1,0 +1,339 @@
+28 column sets, 282 columns — 0 sortable-but-silent, 0 facetable-but-silent
+
+src/screens/admin/activity/AdminActivityScreen.tsx   <AuditEntry>   [no QueryShape found]
+    id                    id      sort —  filter —
+    actor                 text    sort —  filter —
+    action                enum    sort —  filter —
+    detail                text    sort —  filter —
+    note                  text    sort —  filter —
+    subject               text    sort —  filter —
+    amount                money   sort —  filter —
+    reasonCode            text    sort —  filter —
+    at                    date    sort —  filter —
+
+src/screens/admin/communications/EmailLogCard.tsx   <EmailDelivery>
+    recipient             text    sort ✓  filter —
+    subject               text    sort ✓  filter —
+    templateKey           enum    sort ✓  filter ✓ select
+    state                 enum    sort ✓  filter ✓ select
+    queuedAt              date    sort ✓  filter —
+    ticketId              id      sort ✓  filter —
+
+src/screens/admin/policy/ReasonCodesCard.tsx   <ReasonCode>   [no QueryShape found]
+    code                  —       sort ✓  filter —
+    labelAr               —       sort —  filter —
+    surfaces              —       sort —  filter —
+    tier                  —       sort —  filter —
+    note                  —       sort —  filter —
+    owner                 —       sort —  filter —
+    state                 —       sort —  filter —
+
+src/screens/admin/workspace/ApiKeysCard.tsx   <ApiKey>
+    name                  text    sort ✓  filter —
+    scopes                text    sort —  filter —
+    state                 enum    sort ✓  filter ✓ select
+    lastUsedAt            date    sort ✓  filter —
+    createdAt             date    sort ✓  filter —
+
+src/screens/admin/workspace/WebhookDeliveryLogCard.tsx   <WebhookDelivery>
+    event                 enum    sort ✓  filter ✓ select
+    endpointId            enum    sort ✓  filter ✓ select
+    state                 enum    sort ✓  filter ✓ select
+    durationMs            number  sort ✓  filter —
+    attemptedAt           date    sort ✓  filter —
+    id                    id      sort ✓  filter —
+
+src/screens/entity/RiderMovementsTable.tsx   <RiderMoneyMovement>   [no QueryShape found]
+    date                  date    sort —  filter —
+    reference             id      sort —  filter —
+    description           text    sort —  filter —
+    debit                 money   sort —  filter —
+    credit                money   sort —  filter —
+    balance               money   sort —  filter —
+
+src/screens/financials/cash/CashScreen.tsx   <CashReport>
+    id                    id      sort ✓  filter —
+    captain               text    sort ✓  filter —
+    expected              money   sort ✓  filter —
+    reported              money   sort —  filter —
+    deviation             money   sort —  filter —
+    classification        enum    sort ✓  filter ✓ select
+    owner                 enum    sort —  filter ✓ boolean
+    decision              enum    sort —  filter —
+    captain               text    sort ✓  filter —
+    balance               money   sort ✓  filter —
+    cap                   money   sort —  filter —
+    openReports           number  sort ✓  filter —
+    lastReport            date    sort ✓  filter —
+    actions               enum    sort —  filter —
+
+src/screens/financials/ledger/LedgerControlsScreen.tsx   <TrialBalanceRow>   [no QueryShape found]
+    account               text    sort ✓  filter —
+    type                  enum    sort —  filter ✓ select
+    balance               money   sort ✓  filter —
+    id                    id      sort ✓  filter —
+    posted                date    sort ✓  filter —
+    type                  text    sort —  filter —
+    lines                 text    sort —  filter —
+    total                 money   sort —  filter —
+    label                 text    sort —  filter —
+    operational           money   sort —  filter —
+    ledger                money   sort —  filter —
+    difference            money   sort —  filter —
+    basis                 enum    sort —  filter —
+    reference             id      sort —  filter —
+    reason                text    sort —  filter —
+    attempted             date    sort —  filter —
+    lines                 text    sort —  filter —
+    name                  text    sort ✓  filter —
+    transactions          number  sort —  filter —
+    volume                money   sort —  filter —
+    enabled               boolean sort —  filter —
+
+src/screens/financials/payouts/PayoutsScreen.tsx   <CaptainPayout>
+    captain               text    sort ✓  filter —
+    trips                 number  sort ✓  filter —
+    payable               money   sort ✓  filter —
+    debt                  money   sort ✓  filter —
+    net                   money   sort —  filter —
+    state                 enum    sort ✓  filter ✓ select
+    id                    id      sort ✓  filter —
+    captain               text    sort —  filter —
+    rider                 text    sort —  filter —
+    amount                money   sort ✓  filter —
+    progress              text    sort —  filter —
+    state                 enum    sort ✓  filter ✓ select
+    id                    id      sort ✓  filter —
+    captain               text    sort ✓  filter —
+    trip                  id      sort —  filter —
+    amount                money   sort ✓  filter —
+    status                enum    sort —  filter ✓ select
+
+src/screens/financials/pricing/PricingScreen.tsx   <SubscriptionPlan>   [no QueryShape found]
+    name                  text    sort ✓  filter —
+    duration              number  sort —  filter —
+    execute               number  sort —  filter —
+    commission            number  sort —  filter —
+    discount              number  sort —  filter —
+    status                enum    sort —  filter —
+    name                  text    sort ✓  filter —
+    base                  money   sort —  filter —
+    perKm                 money   sort —  filter —
+    perMin                money   sort —  filter —
+    active                boolean sort —  filter —
+    scenario              text    sort —  filter —
+    appliesTo             enum    sort —  filter —
+    fee                   money   sort —  filter —
+    enabled               boolean sort —  filter —
+
+src/screens/financials/revenue/RevenueScreen.tsx   <RevenueByPlanRow>   [no QueryShape found]
+    plan                  text    sort ✓  filter —
+    subs                  number  sort —  filter —
+    trips                 number  sort —  filter —
+    gross                 money   sort —  filter —
+    platform              money   sort —  filter —
+    givebacks             money   sort —  filter —
+    contribution          money   sort —  filter —
+    contributionPercent   number  sort —  filter —
+    arpa                  money   sort —  filter —
+    captain               money   sort —  filter —
+    platformPercent       number  sort —  filter —
+    id                    id      sort ✓  filter —
+    rider                 text    sort ✓  filter —
+    amount                money   sort ✓  filter —
+    destination           enum    sort —  filter ✓ select
+    issued                date    sort ✓  filter —
+    by                    text    sort —  filter —
+    number                id      sort ✓  filter —
+    buyer                 text    sort —  filter —
+    subtotal              money   sort —  filter —
+    vat                   money   sort —  filter —
+    total                 money   sort ✓  filter —
+    invoice               text    sort —  filter ✓ boolean
+    issued                date    sort ✓  filter —
+
+src/screens/financials/shared/LedgerCard.tsx   <LedgerPosting>   [no QueryShape found]
+    date                  date    sort —  filter —
+    reference             id      sort —  filter —
+    description           text    sort —  filter —
+    debit                 money   sort —  filter —
+    credit                money   sort —  filter —
+    balance               money   sort —  filter —
+
+src/screens/financials/wallets/WalletsScreen.tsx   <WalletSummary>
+    rider                 text    sort ✓  filter ✓ text
+    balance               money   sort ✓  filter ✓ number-range
+    pending               money   sort ✓  filter ✓ number-range
+    postings              number  sort ✓  filter ✓ number-range
+    lastActivity          date    sort ✓  filter ✓ date-range
+    actions               enum    sort —  filter —
+
+src/screens/operations/assurance/AssuranceScreen.tsx   <AssuranceTrip>
+    leg                   text    sort ✓  filter —
+    sla                   date    sort —  filter —
+    owner                 enum    sort —  filter ✓ boolean
+    decision              enum    sort —  filter —
+    backup                text    sort —  filter ✓ boolean
+    confirmation          enum    sort —  filter ✓ boolean
+    reason                enum    sort —  filter ✓ select
+    id                    id      sort ✓  filter —
+    rider                 text    sort ✓  filter —
+    captain               text    sort ✓  filter ✓ select
+    departs               date    sort ✓  filter —
+    nearby                number  sort ✓  filter —
+    subscription          id      sort —  filter ✓ text
+    captain               text    sort ✓  filter —
+    occurred              date    sort ✓  filter —
+    tier                  enum    sort ✓  filter ✓ multi-select
+    forfeited             money   sort ✓  filter —
+    status                enum    sort —  filter ✓ boolean
+    decision              enum    sort —  filter —
+    id                    id      sort ✓  filter —
+
+src/screens/operations/corporate/CorporateScreen.tsx   <CorporateAccount>
+    companyName           text    sort ✓  filter —
+    contact               text    sort —  filter —
+    headcount             number  sort —  filter —
+    totalSpend            money   sort —  filter —
+    billingType           enum    sort ✓  filter ✓ select
+    status                enum    sort ✓  filter ✓ select
+    nextInvoice           date    sort —  filter —
+
+src/screens/operations/my-work/MyWorkScreen.tsx   <WorkItem>
+    item                  text    sort ✓  filter —
+    queue                 enum    sort ✓  filter ✓ multi-select
+    severity              enum    sort ✓  filter ✓ multi-select
+    sla                   date    sort —  filter —
+    owner                 enum    sort —  filter ✓ boolean
+    id                    id      sort ✓  filter ✓ text
+
+src/screens/operations/requests/RequestsScreen.tsx   <RideRequest>
+    rider                 text    sort ✓  filter —
+    type                  enum    sort ✓  filter ✓ select
+    status                enum    sort ✓  filter ✓ multi-select
+    sla                   date    sort —  filter —
+    owner                 enum    sort —  filter ✓ boolean
+    decision              enum    sort —  filter —
+    id                    id      sort ✓  filter —
+    requested             date    sort ✓  filter —
+    plan                  enum    sort —  filter ✓ multi-select
+    note                  text    sort —  filter ✓ text
+    class                 enum    sort —  filter ✓ select
+    flags                 enum    sort —  filter —
+    pickup                text    sort ✓  filter ✓ text
+    destination           text    sort ✓  filter ✓ text
+
+src/screens/operations/subscriptions/SubscriptionsScreen.tsx   <Subscription>
+    id                    id      sort ✓  filter —
+    riderName             text    sort ✓  filter ✓ text
+    driverName            text    sort ✓  filter ✓ text
+    status                enum    sort ✓  filter ✓ multi-select
+    paidHalalas           money   sort ✓  filter —
+    endsOn                date    sort ✓  filter —
+    startedOn             date    sort ✓  filter —
+    planKey               enum    sort ✓  filter ✓ multi-select
+    vehicleClass          enum    sort ✓  filter ✓ select
+    escrowHeldHalalas     money   sort ✓  filter —
+    renewalLikelihoodPercentnumber  sort ✓  filter —
+    frozenUntil           date    sort ✓  filter —
+    refundedHalalas       money   sort ✓  filter —
+
+src/screens/operations/trips/TripsScreen.tsx   <Trip>
+    id                    id      sort ✓  filter —
+    riderName             text    sort ✓  filter ✓ text
+    driverName            text    sort ✓  filter ✓ text
+    status                enum    sort ✓  filter ✓ multi-select
+    fareHalalas           money   sort ✓  filter —
+    startedAt             date    sort ✓  filter —
+    rating                number  sort ✓  filter —
+    subscriptionId        id      sort ✓  filter —
+    endedAt               date    sort ✓  filter —
+    paymentId             id      sort ✓  filter —
+    distanceKm            number  sort ✓  filter —
+    durationMinutes       number  sort ✓  filter —
+    flagged               enum    sort ✓  filter ✓ boolean
+
+src/screens/reports/AlertHistoryDialog.tsx   <AlertFiring>   [no QueryShape found]
+    firedAt               date    sort —  filter —
+    bucket                date    sort —  filter —
+    value                 number  sort —  filter —
+    threshold             number  sort —  filter —
+    notification          text    sort —  filter —
+
+src/screens/reports/AlertsView.tsx   <AlertRule>   [no QueryShape found]
+    name                  text    sort ✓  filter —
+    state                 enum    sort —  filter ✓ select
+    cadence               —       sort —  filter —
+    lastValue             number  sort —  filter —
+    lastEvaluated         date    sort —  filter —
+
+src/screens/reports/DashboardsView.tsx   <Dashboard>   [no QueryShape found]
+    name                  text    sort ✓  filter —
+    owner                 text    sort —  filter —
+    tiles                 number  sort —  filter —
+    updated               date    sort ✓  filter —
+
+src/screens/reports/ReportLibrary.tsx   <SavedReport>   [no QueryShape found]
+    name                  text    sort ✓  filter —
+    visibility            —       sort —  filter —
+    updated               date    sort ✓  filter —
+
+src/screens/support/conversations/ConversationConsoleScreen.tsx   <Conversation>
+    conversation          text    sort ✓  filter —
+    channel               enum    sort ✓  filter ✓ multi-select
+    status                enum    sort ✓  filter ✓ select
+    sla                   date    sort —  filter —
+    ticket                id      sort ✓  filter ✓ boolean
+    owner                 enum    sort —  filter ✓ boolean
+    id                    id      sort ✓  filter —
+    unread                number  sort ✓  filter —
+    messages              number  sort ✓  filter —
+    lastMessage           date    sort ✓  filter —
+
+src/screens/support/disputes/DisputesScreen.tsx   <Dispute>
+    id                    text    sort ✓  filter —
+    what                  enum    sort ✓  filter ✓ select
+    parties               text    sort ✓  filter —
+    amount                money   sort ✓  filter —
+    status                enum    sort ✓  filter ✓ select
+    due                   date    sort ✓  filter —
+    id                    text    sort ✓  filter —
+    item                  text    sort ✓  filter —
+    rider                 text    sort —  filter —
+    captain               text    sort —  filter —
+    status                enum    sort ✓  filter ✓ select
+    reportedAt            date    sort ✓  filter —
+
+src/screens/support/fairness/FairnessScreen.tsx   <FairnessCase>
+    rating                number  sort ✓  filter ✓ number-range
+    rider                 text    sort —  filter ✓ text
+    suspension            text    sort —  filter ✓ text
+    captain               text    sort ✓  filter —
+    sla                   date    sort —  filter —
+    owner                 enum    sort —  filter ✓ boolean
+    decision              enum    sort —  filter —
+    kind                  enum    sort ✓  filter ✓ multi-select
+    status                enum    sort ✓  filter ✓ multi-select
+    reasonCode            enum    sort ✓  filter ✓ multi-select
+    opened                date    sort ✓  filter —
+    id                    id      sort ✓  filter —
+
+src/screens/support/safety/SafetyScreen.tsx   <SafetyIncident>
+    incident              text    sort ✓  filter —
+    severity              enum    sort ✓  filter ✓ multi-select
+    status                enum    sort ✓  filter ✓ select
+    sla                   date    sort —  filter —
+    owner                 enum    sort —  filter ✓ boolean
+    protocol              enum    sort —  filter ✓ boolean
+    id                    id      sort ✓  filter —
+    type                  enum    sort ✓  filter ✓ multi-select
+    opened                date    sort ✓  filter —
+
+src/screens/support/tickets/TicketsScreen.tsx   <Ticket>
+    id                    text    sort ✓  filter —
+    subject               text    sort ✓  filter —
+    category              enum    sort ✓  filter ✓ text
+    priority              enum    sort ✓  filter ✓ select
+    status                enum    sort ✓  filter ✓ select
+    sla                   date    sort —  filter —
+    createdAt             date    sort ✓  filter —

@@ -57,6 +57,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'subscriber',
     churnRisk: 'low',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 1 } },
     joinedAt: '2026-03-01',
     hasPhoto: true,
     gender: 'Female',
@@ -69,6 +70,8 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.14.201',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 2_000,
+    /* `PAY-6120`, authorised and not yet settled. */
+    heldHalalas: 12_000,
     movementLog: [
       { at: '2026-03-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-04-01', action: 'Address updated', location: 'King Fahd District, Riyadh' },
@@ -97,6 +100,7 @@ const namedRiders: Rider[] = [
        subscription is not a subscriber. Recorded as a finding. */
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.cancelledOnRecord' },
     joinedAt: '2026-05-01',
     hasPhoto: false,
     gender: 'Female',
@@ -108,6 +112,7 @@ const namedRiders: Rider[] = [
     lastIp: '160.156.4.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 1_730,
+    heldHalalas: 2_450,
     movementLog: [
       { at: '2026-05-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-20', action: 'App opened', location: 'Riyadh, SA' },
@@ -131,6 +136,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'subscriber',
     churnRisk: 'low',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 1 } },
     joinedAt: '2026-01-01',
     hasPhoto: true,
     gender: 'Male',
@@ -142,6 +148,8 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.201.44',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
+    /* Two filler card charges still authorising. */
+    heldHalalas: 4_077,
     movementLog: [
       { at: '2026-01-01', action: 'Account registered', location: 'Riyadh, SA' },
       /* App opened in Jeddah, account registered in Riyadh. A real signal the
@@ -170,18 +178,34 @@ const namedRiders: Rider[] = [
     tier: 'new',
     status: 'on-demand',
     churnRisk: 'medium',
+    churnReason: { key: 'rider.churn.noSubscription' },
     joinedAt: '2026-06-01',
     hasPhoto: false,
     gender: 'Female',
     driverGenderPreference: null,
     city: 'Riyadh',
     address: 'Al Sahafa District, Riyadh',
-    device: 'iPhone 13 · iOS 17.3',
+    /**
+     * **The one rider with no device on record — `null`, not `''`.**
+     *
+     * The profile's identity block prints *"No device recorded"* and until
+     * `Rider.device` became nullable there was no value that could make that
+     * sentence true, so the state was unreachable without hand-editing a
+     * fixture. This is the row where it contradicts least: the wallet was
+     * funded by a captain collecting 20.00 in cash at the kerb (`CASH-0003`),
+     * which is an account that can exist without an app install behind it.
+     *
+     * `lastIp` below stays set on purpose. It is a different fact — the network
+     * the last request came from — and blanking it to match would be inventing
+     * a second absence nobody asked for.
+     */
+    device: null,
     appLanguage: 'Arabic',
     lastIp: '37.36.88.5',
     ipLocation: 'Riyadh, SA',
     /* Credited 20.00 by a cash top-up the captain collected (`CASH-0003`). */
     walletBalanceHalalas: 2_000,
+    heldHalalas: 0,
     movementLog: [{ at: '2026-06-25', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 1,
     lifetimeValueHalalas: 1_575,
@@ -203,6 +227,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.cancelledOnRecord' },
     joinedAt: '2026-04-01',
     hasPhoto: false,
     gender: 'Male',
@@ -216,6 +241,7 @@ const namedRiders: Rider[] = [
     lastIp: '160.156.4.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
+    heldHalalas: 0,
     movementLog: [
       { at: '2026-04-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-25', action: 'App opened', location: 'Riyadh, SA' },
@@ -240,6 +266,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'subscriber',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.ratingBelowFour' },
     joinedAt: '2026-02-01',
     hasPhoto: true,
     gender: 'Female',
@@ -251,6 +278,7 @@ const namedRiders: Rider[] = [
     lastIp: '185.45.10.91',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 1_000,
+    heldHalalas: 0,
     movementLog: [
       { at: '2026-02-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-23', action: 'Complaint filed', location: 'Riyadh, SA' },
@@ -284,6 +312,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'subscriber',
     churnRisk: 'low',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 1 } },
     joinedAt: '2025-12-01',
     hasPhoto: true,
     gender: 'Male',
@@ -295,6 +324,8 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.33.6',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 5_000,
+    /* A filler card charge still authorising. */
+    heldHalalas: 1_464,
     movementLog: [
       { at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-25', action: 'App opened', location: 'Riyadh, SA' },
@@ -319,6 +350,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'subscriber',
     churnRisk: 'medium',
+    churnReason: { key: 'rider.churn.lowRenewalRate', params: { percent: 30 } },
     joinedAt: '2026-05-01',
     hasPhoto: true,
     gender: 'Male',
@@ -330,6 +362,7 @@ const namedRiders: Rider[] = [
     lastIp: '46.31.77.12',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
+    heldHalalas: 0,
     movementLog: [{ at: '2026-05-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 8,
     lifetimeValueHalalas: 12_250,
@@ -359,6 +392,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 1 } },
     joinedAt: '2026-01-01',
     hasPhoto: false,
     gender: 'Male',
@@ -370,6 +404,7 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.5.18',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 20_000,
+    heldHalalas: 3_450,
     movementLog: [{ at: '2026-01-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 30,
     lifetimeValueHalalas: 164_000,
@@ -401,6 +436,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: null,
     joinedAt: '2026-03-01',
     hasPhoto: false,
     gender: 'Female',
@@ -413,6 +449,7 @@ const namedRiders: Rider[] = [
     ipLocation: 'Riyadh, SA',
     /* A 40.00 refund that landed in the **wallet**, not the instrument (`REF-0003`). */
     walletBalanceHalalas: 4_000,
+    heldHalalas: 5_000,
     movementLog: [{ at: '2026-03-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 20,
     lifetimeValueHalalas: 154_000,
@@ -469,6 +506,7 @@ const namedRiders: Rider[] = [
      */
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.ratingBelowFour' },
     joinedAt: '2025-11-01',
     hasPhoto: false,
     gender: 'Male',
@@ -488,6 +526,7 @@ const namedRiders: Rider[] = [
      * makes it do so.
      */
     walletBalanceHalalas: -4_150,
+    heldHalalas: 0,
     movementLog: [{ at: '2025-11-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 63,
     lifetimeValueHalalas: 88_400,
@@ -510,6 +549,61 @@ const namedRiders: Rider[] = [
     tier: 'new',
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.lapsedUnused' },
+    /**
+     * **DO NOT MOVE THIS DATE. It is wrong, it is deliberate, and two asserted
+     * metric literals are pinned to it.**
+     *
+     * ## The contradiction
+     *
+     * Four facts about this rider **predate the day her account was created**:
+     *
+     * | fact | dated | where |
+     * |---|---|---|
+     * | wallet top-up, +120.00 | 31 May 14:26 | `fixtures/ledger.ts:140` |
+     * | `SUB-2003` starts | 1 Jun | `fixtures/subscriptions.ts` |
+     * | `SUB-2003` expires | 8 Jun | *same* |
+     * | `PAY-6151`, a 64.00 fare | 17 Jun | `fixtures/payments.ts` |
+     *
+     * An account cannot transact before it exists, so the profile's timeline
+     * (`clients/riders.ts` → `getRiderTimeline`) renders *"22 Jun · Account
+     * registered"* **between** the plan expiring on the 8th and the trip
+     * requested on the 25th. That ordering is odd on screen and it is
+     * deliberate: the timeline reports the data rather than hiding it.
+     *
+     * ## Why it was not fixed by moving this field
+     *
+     * Moving `joinedAt` earlier was tried, measured and reverted. It breaks two
+     * literals in `fixtures/metrics.ts`, and one of them is a state with no
+     * other fixture in the product:
+     *
+     * 1. **`management.growth.newRiders`** (`fixtures/metrics.ts:1240`) —
+     *    `comparison.value: 1`, over the window 20–22 Jun, and its own docblock
+     *    names this rider: *"one rider joined on the 22nd, in the three days
+     *    before."* **She is the only rider in the whole dataset with a
+     *    `joinedAt` in that window.** Move her and the baseline is `0`, the
+     *    tile becomes 0-against-0, and **AC-606's measured-zero-with-a-real-
+     *    delta case is deleted** — it has no second fixture.
+     * 2. **`management.growth.registeredRiders`** (`:1277`) — `comparison.value:
+     *    54`, whose prose reads *"54 riders had joined on or before 10 Jun; the
+     *    fifty-fifth joined 22 Jun."* That fifty-fifth is this row.
+     *
+     * ## Why it was not fixed from the other end either
+     *
+     * Re-dating the four records is worse. `SUB-2003.startedOn` sits inside
+     * `SNAPSHOT_PREVIOUS`, and `clients/metrics.test.ts` asserts
+     * `netSubscriptionMovement` at exactly `30` / `−3.2 %`. And `SUB-2003` is
+     * the **only `expired` subscription in the dataset**, so pushing it past
+     * `EYVAR_NOW` stops it being expired and takes `seam.test.ts`'s
+     * "every subscription status is reachable" with it.
+     *
+     * ## The fix, when someone does it
+     *
+     * `fixtures/metrics.ts` already carries the finding: those baselines
+     * *"should be computed the same way [their] numerator is … rather than
+     * maintained by hand"*. Derive them, and moving this date becomes a
+     * one-line change. Until then, this comment is the reason it stays.
+     */
     joinedAt: '2026-06-22',
     hasPhoto: false,
     gender: 'Female',
@@ -521,6 +615,10 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.201.90',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 20_000,
+    /* `PAY-6150` — a 98.00 quick-ride fare captured on `mada` and frozen for
+       fraud review. Outside the 200.00 balance, which is two settled top-ups
+       and nothing else. */
+    heldHalalas: 9_800,
     movementLog: [{ at: '2026-06-22', action: 'Account registered', location: 'Riyadh, SA' }],
     /* Registered three days ago, never taken a trip. Every card on the profile
        is empty at once — the whole-page first-run empty (R8), not eight
@@ -548,6 +646,7 @@ const namedRiders: Rider[] = [
         `on-demand`, and a corporate rider holds no personal plan of their own. */
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 1 } },
     joinedAt: '2026-04-15',
     hasPhoto: true,
     gender: 'Male',
@@ -559,6 +658,7 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.14.77',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 3_500,
+    heldHalalas: 0,
     movementLog: [{ at: '2026-04-15', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 74,
     lifetimeValueHalalas: 132_000,
@@ -601,6 +701,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: null,
     joinedAt: '2025-09-01',
     hasPhoto: true,
     gender: 'Male',
@@ -612,6 +713,7 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.88.17',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 20_000,
+    heldHalalas: 0,
     movementLog: [{ at: '2025-09-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 216,
     lifetimeValueHalalas: 412_600,
@@ -634,6 +736,7 @@ const namedRiders: Rider[] = [
     tier: 'new',
     status: 'on-demand',
     churnRisk: 'medium',
+    churnReason: { key: 'rider.churn.noSubscription' },
     joinedAt: '2026-06-08',
     hasPhoto: false,
     gender: 'Male',
@@ -645,6 +748,8 @@ const namedRiders: Rider[] = [
     lastIp: '46.31.60.140',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 5_000,
+    /* A filler card charge still authorising. */
+    heldHalalas: 2_839,
     movementLog: [{ at: '2026-06-08', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 3,
     lifetimeValueHalalas: 4_820,
@@ -667,6 +772,7 @@ const namedRiders: Rider[] = [
     tier: 'bronze',
     status: 'on-demand',
     churnRisk: 'medium',
+    churnReason: { key: 'rider.churn.noSubscription' },
     joinedAt: '2026-02-01',
     hasPhoto: true,
     gender: 'Female',
@@ -678,6 +784,7 @@ const namedRiders: Rider[] = [
     lastIp: '185.45.22.71',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 0,
+    heldHalalas: 0,
     movementLog: [
       { at: '2026-02-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-17', action: 'App opened', location: 'Riyadh, SA' },
@@ -703,6 +810,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.ratingBelowFour' },
     joinedAt: '2025-10-01',
     hasPhoto: false,
     gender: 'Male',
@@ -714,6 +822,7 @@ const namedRiders: Rider[] = [
     lastIp: '37.36.19.204',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 10_000,
+    heldHalalas: 0,
     movementLog: [{ at: '2025-10-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 91,
     lifetimeValueHalalas: 118_300,
@@ -742,6 +851,7 @@ const namedRiders: Rider[] = [
     tier: 'gold',
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: null,
     joinedAt: '2025-12-01',
     hasPhoto: true,
     gender: 'Female',
@@ -753,6 +863,7 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.14.202',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 2_500,
+    heldHalalas: 0,
     movementLog: [{ at: '2025-12-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 128,
     lifetimeValueHalalas: 233_400,
@@ -773,6 +884,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'on-demand',
     churnRisk: 'low',
+    churnReason: null,
     joinedAt: '2026-01-15',
     hasPhoto: false,
     gender: 'Male',
@@ -784,6 +896,7 @@ const namedRiders: Rider[] = [
     lastIp: '92.96.14.78',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 60_000,
+    heldHalalas: 0,
     movementLog: [{ at: '2026-01-15', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 57,
     lifetimeValueHalalas: 96_400,
@@ -806,6 +919,7 @@ const namedRiders: Rider[] = [
     tier: 'silver',
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.lowRenewalRate', params: { percent: 20 } },
     joinedAt: '2025-08-01',
     hasPhoto: false,
     gender: 'Female',
@@ -817,6 +931,8 @@ const namedRiders: Rider[] = [
     lastIp: '160.156.30.11',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 7_500,
+    /* A filler card charge still authorising. */
+    heldHalalas: 4_889,
     movementLog: [{ at: '2025-08-01', action: 'Account registered', location: 'Riyadh, SA' }],
     totalTrips: 62,
     lifetimeValueHalalas: 71_500,
@@ -840,6 +956,7 @@ const namedRiders: Rider[] = [
     tier: 'bronze',
     status: 'on-demand',
     churnRisk: 'high',
+    churnReason: { key: 'rider.churn.complaintsFiled', params: { count: 2 } },
     joinedAt: '2025-07-01',
     hasPhoto: false,
     gender: 'Male',
@@ -851,6 +968,7 @@ const namedRiders: Rider[] = [
     lastIp: '46.31.11.4',
     ipLocation: 'Riyadh, SA',
     walletBalanceHalalas: 1_000,
+    heldHalalas: 0,
     movementLog: [
       { at: '2025-07-01', action: 'Account registered', location: 'Riyadh, SA' },
       { at: '2026-06-21', action: 'Complaint filed', location: 'Riyadh, SA' },
@@ -994,14 +1112,30 @@ export const fillerRiders: Rider[] = Array.from({ length: 34 }, (_, i) => {
   const id = `RDR-5${String(100 + n).padStart(3, '0')}`
   const city = cycle(FILLER_RIDER_CITIES, i)
   const district = RIDER_CITY_DISTRICTS[city] ?? cycle(FILLER_RIDER_DISTRICTS, i)
+  /* Hoisted out of the literal below because `churnReason` has to agree with
+     both of them, and a reason that contradicts the level it explains is worse
+     than no reason at all. */
+  const rating = i % 8 === 0 ? null : Number((3.2 + ((i * 3) % 18) / 10).toFixed(1))
+  const churnRisk: Rider['churnRisk'] = i % 4 === 0 ? 'high' : i % 3 === 0 ? 'medium' : 'low'
+  /* `low` carries no reason — the absence is the state (`types/rider.ts`).
+     Every filler holds `subscriptionIds: []`, so `noSubscription` is a true
+     statement about every one of them; a below-4 rating outranks it, which is
+     the order legacy scores the two signals in (`:4058`–`:4059`). */
+  const churnReason: Rider['churnReason'] =
+    churnRisk === 'low'
+      ? null
+      : rating !== null && rating < 4
+        ? { key: 'rider.churn.ratingBelowFour' }
+        : { key: 'rider.churn.noSubscription' }
   return {
     id,
     name: `${given} ${family}`,
     phone: `+966 5${i % 10} ${String(300 + n).padStart(3, '0')} ${String(4000 + n * 13).slice(-4)}`,
-    rating: i % 8 === 0 ? null : Number((3.2 + ((i * 3) % 18) / 10).toFixed(1)),
+    rating,
     tier: i % 7 === 0 ? 'gold' : i % 5 === 0 ? 'bronze' : i % 2 === 0 ? 'silver' : 'new',
     status: 'on-demand',
-    churnRisk: i % 4 === 0 ? 'high' : i % 3 === 0 ? 'medium' : 'low',
+    churnRisk,
+    churnReason,
     joinedAt: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}`,
     hasPhoto: i % 2 === 0,
     gender: female ? 'Female' : 'Male',
@@ -1013,6 +1147,10 @@ export const fillerRiders: Rider[] = Array.from({ length: 34 }, (_, i) => {
     lastIp: `92.96.${(i * 7) % 200}.${(i * 11) % 250}`,
     ipLocation: `${city}, SA`,
     walletBalanceHalalas: FILLER_RIDER_WALLET_BALANCES[id] ?? 0,
+    /* No filler rider has a payment at all — `fixtures/payments.ts` names only
+       the seeded rows — so nothing is held on any of them. `0` is the answer,
+       not a placeholder. */
+    heldHalalas: 0,
     movementLog: [
       {
         at: `2026-0${(i % 5) + 1}-${String((i % 27) + 1).padStart(2, '0')}`,

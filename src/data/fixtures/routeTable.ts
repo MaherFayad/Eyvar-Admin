@@ -386,23 +386,66 @@ export const SUB_TABS: SubTabRoute[] = [
     writePermission: 'live_ops',
     hasBacklog: false,
   },
+  /**
+   * **Requests, split by CHANNEL into two sub-tabs.**
+   *
+   * It was one queue with `instant` and `subscription` as two of its six view
+   * tabs. The two are not variants of one job and this file's own type doc says
+   * so: an instant request is matched by the tick engine and an operator
+   * intervenes only on breach, while a subscription request is matched BY HAND
+   * against a plan, and assigning a captain to one captures the rider's
+   * authorisation hold. Two different acts, two different clocks, two different
+   * confirmations (AC-247) — and until now, one destination that an operator
+   * had to re-filter every time they arrived.
+   *
+   * **The channel leaves the view row and becomes the tab.** What is left on
+   * each is the lifecycle — all, pending, assigned, expired — which is the same
+   * four on both because the lifecycle really is shared. `RequestsScreen` reads
+   * `subTabId` and pins the channel, exactly as `TripsScreen` already does for
+   * quick rides and subscription trips (D1b).
+   *
+   * `legacyPageIds` are split the same way: `requests-instant-all` was always
+   * the instant queue and `requests-sub-all` the subscription one. `requests`
+   * — the legacy combined page — goes with the ride tab, which is where a
+   * legacy deep link with no channel most nearly lands.
+   */
   {
-    subTabId: 'operations-requests',
+    subTabId: 'operations-ride-requests',
     workspaceId: 'operations',
-    path: '/operations/requests',
+    path: '/operations/ride-requests',
     order: 4,
-    titleKey: 'subtab.operations.requests',
-    subtitleKey: 'subtab.operations.requests.sub',
+    titleKey: 'subtab.operations.rideRequests',
+    subtitleKey: 'subtab.operations.rideRequests.sub',
     views: views(
       ['all', 'view.requests.all'],
-      ['instant', 'view.requests.instant'],
-      ['subscription', 'view.requests.subscription'],
       ['pending', 'view.requests.pending'],
       ['assigned', 'view.requests.assigned'],
       ['expired', 'view.requests.expired'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['requests', 'requests-sub-all', 'requests-instant-all'],
+    legacyPageIds: ['requests', 'requests-instant-all'],
+    legacySettingsPanes: [],
+    patterns: ['P8'],
+    shape: 'single',
+    viewPermission: 'view_operations',
+    writePermission: 'live_ops',
+    hasBacklog: true,
+  },
+  {
+    subTabId: 'operations-subscription-requests',
+    workspaceId: 'operations',
+    path: '/operations/subscription-requests',
+    order: 5,
+    titleKey: 'subtab.operations.subscriptionRequests',
+    subtitleKey: 'subtab.operations.subscriptionRequests.sub',
+    views: views(
+      ['all', 'view.requests.all'],
+      ['pending', 'view.requests.pending'],
+      ['assigned', 'view.requests.assigned'],
+      ['expired', 'view.requests.expired'],
+    ),
+    detailRoutes: [],
+    legacyPageIds: ['requests-sub-all'],
     legacySettingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
@@ -414,7 +457,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-subscriptions',
     workspaceId: 'operations',
     path: '/operations/subscriptions',
-    order: 5,
+    order: 6,
     titleKey: 'subtab.operations.subscriptions',
     subtitleKey: 'subtab.operations.subscriptions.sub',
     views: views(
@@ -438,7 +481,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-corporate',
     workspaceId: 'operations',
     path: '/operations/corporate',
-    order: 6,
+    order: 7,
     titleKey: 'subtab.operations.corporate',
     subtitleKey: 'subtab.operations.corporate.sub',
     views: [],
@@ -467,7 +510,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-quick-rides',
     workspaceId: 'operations',
     path: '/operations/quick-rides',
-    order: 7,
+    order: 8,
     titleKey: 'subtab.operations.quickRides',
     subtitleKey: 'subtab.operations.quickRides.sub',
     views: views(
@@ -489,7 +532,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-subscription-trips',
     workspaceId: 'operations',
     path: '/operations/subscription-trips',
-    order: 8,
+    order: 9,
     titleKey: 'subtab.operations.subscriptionTrips',
     subtitleKey: 'subtab.operations.subscriptionTrips.sub',
     views: views(
@@ -510,7 +553,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-assurance',
     workspaceId: 'operations',
     path: '/operations/assurance',
-    order: 9,
+    order: 10,
     titleKey: 'subtab.operations.assurance',
     subtitleKey: 'subtab.operations.assurance.sub',
     views: views(
@@ -532,7 +575,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subTabId: 'operations-people',
     workspaceId: 'operations',
     path: '/operations/people',
-    order: 10,
+    order: 11,
     titleKey: 'subtab.operations.people',
     subtitleKey: 'subtab.operations.people.sub',
     /* The widest merge — 5 legacy pages, 4 views, 3 patterns, on one route.

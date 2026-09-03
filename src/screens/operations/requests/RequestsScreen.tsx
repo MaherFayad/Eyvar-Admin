@@ -74,6 +74,7 @@ import type {
   Driver,
   IsoDateTime,
   Paginated,
+  RequestChannel,
   RequestStatus,
   RideRequest,
   SubTabRoute,
@@ -192,10 +193,29 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
     bulkClaim: true,
   })
 
+  /**
+   * **The channel this sub-tab IS.** One screen, two sub-tabs — the same shape
+   * `TripsScreen` uses for quick rides and subscription trips (D1b), and for
+   * the same reason: the two queues share every column, every clock and every
+   * lifecycle view, and differ only in which rows they are about.
+   *
+   * Read off `subTabId` rather than held in state, so it cannot drift from the
+   * route: a reload, a back button and a deep link all land on the channel the
+   * URL names.
+   */
+  const channel: RequestChannel =
+    row?.subTabId === 'operations-subscription-requests' ? 'subscription' : 'instant'
+
   /* The view tab and the client's `view` param are the same value. Passing it
      through `params` rather than calling `setView` in an effect keeps the URL
-     the single source: a reload lands on the same rows. */
-  const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
+     the single source: a reload lands on the same rows.
+
+     `channel` rides with it as a pinned filter. It is NOT a view: a view is
+     something the operator switches, and this is what the page is. */
+  const params = useMemo(
+    () => ({ ...table.params, view: activeTab, channel }),
+    [table.params, activeTab, channel],
+  )
 
   const data = useAsync<Paginated<RideRequest>>((signal) => listRequests(params, signal), {
     /* `params` carries the table query and the view tab. */
@@ -215,6 +235,7 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
       listRequests(
         {
           pageSize: 1,
+          channel,
           filters: [
             { field: 'breached', op: 'eq', value: true },
             { field: 'open', op: 'eq', value: true },
@@ -222,8 +243,10 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
         },
         signal,
       ),
-    /* Constant query; `[]` cannot collide with the list read's `[{...}]`. */
-    { deps: [], cacheKey: 'requests.list' },
+    /* **Scoped to this tab's channel too.** The chip states how much of THIS
+       queue is past its clock, and a count taken across both would send an
+       operator hunting for breaches that are on the other tab. */
+    { deps: [channel], cacheKey: 'requests.list' },
   )
 
   /* The captain picker's options. Read once: §5.2 calls for *the shared
@@ -1047,6 +1070,7 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
     },
     {
       id: 'pickup',
+      sortField: 'pickup',
       header: t('requests.col.pickup'),
       width: 160,
       dataType: 'text',
@@ -1056,6 +1080,7 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
     },
     {
       id: 'destination',
+      sortField: 'destination',
       header: t('requests.col.destination'),
       width: 160,
       dataType: 'text',

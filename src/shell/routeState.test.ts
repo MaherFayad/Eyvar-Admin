@@ -79,8 +79,8 @@ describe('level-3 details highlight their PARENT sub-tab (AC-09)', () => {
 
 describe('a view is a control, not a level (AC-10)', () => {
   it('reads ?view= without changing either column', () => {
-    const plain = resolveRoute('/operations/requests', '')
-    const viewed = resolveRoute('/operations/requests', '?view=instant')
+    const plain = resolveRoute('/operations/ride-requests', '')
+    const viewed = resolveRoute('/operations/ride-requests', '?view=instant')
     expect(viewed.view).toBe('instant')
     expect(viewed.workspaceId).toBe(plain.workspaceId)
     expect(viewed.subTabId).toBe(plain.subTabId)
@@ -88,7 +88,7 @@ describe('a view is a control, not a level (AC-10)', () => {
 
   it('leaves the view untouched when a layer opens over it', () => {
     const search = withOverlay('?view=instant', 'entity', 'RDR-1041')
-    const state = resolveRoute('/operations/requests', search)
+    const state = resolveRoute('/operations/ride-requests', search)
     expect(state.view).toBe('instant')
     expect(state.overlay).toBe('entity')
   })
@@ -163,7 +163,13 @@ describe('the profile full-page escape belongs to no workspace (§6.2)', () => {
     const state = resolveRoute('/entity/RDR-1041', '')
     expect(state.isNotFound).toBe(false)
     expect(state.shape).toBe('detail')
-    expect(state.showsBackArrow).toBe(true)
+    /* **The one detail route that suppresses the shell's arrow**, because the
+       page renders its own. The top bar's is an unlabelled `navigate(-1)`, and
+       this route is reached from search, any table, a notification and the
+       profile layer — so on a pasted link it leaves the application. The page's
+       control is an `<a href>` to a resolved destination with a label naming it.
+       Two back controls 40px apart, one of which dead-ends, is worse than one. */
+    expect(state.showsBackArrow).toBe(false)
     expect(state.workspaceId).toBeNull()
     expect(state.params.entityId).toBe('RDR-1041')
   })

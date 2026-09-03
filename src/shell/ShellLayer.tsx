@@ -143,6 +143,36 @@ export interface ShellLayerProps {
    * header and an identity band repeating both strings 8px beneath it.
    */
   header?: { lead?: ReactNode; trail?: ReactNode }
+  /**
+   * **A layer that draws its own header region, edge to edge.**
+   *
+   * `header` decorates the 48px chrome bar; `banner` REPLACES it. The one
+   * caller is the 360° profile's rider presentation, whose head is a deep-green
+   * field carrying an eyebrow, the record's name at display size and a meta row
+   * — a *ground*, not a bar, and a ground cannot be expressed as two slots
+   * inside a bordered 48px box.
+   *
+   * Three consequences, all deliberate:
+   *
+   *   1. **The banner owns the `SheetTitle`.** It renders one itself, so the
+   *      surface still has exactly one accessible name and Radix still has the
+   *      `Dialog.Title` it requires. This component renders none in that
+   *      branch, because two would be the "one surface, two headers" defect the
+   *      `header` prop's own note records.
+   *   2. **The banner owns the close control.** `showCloseButton` is switched
+   *      off, because `sheet.tsx`'s control is `--ev-ink` on `--ev-surface` and
+   *      a coloured ground is neither — an ink glyph on `--ev-hero` measures
+   *      1.3 : 1. The banner draws its own in the ground's own foreground.
+   *   3. **Focus entry falls through to the panel.** `useFocusEntry` takes
+   *      `initialFocusRef?.current ?? containerRef.current`, and `SheetContent`
+   *      carries `tabIndex={-1}` and `aria-label={title}` — so focus still
+   *      enters the layer on open and is still announced, from the same title
+   *      string, with no second mechanism.
+   *
+   * `title` is still REQUIRED and still supplied: it is `SheetContent`'s
+   * `aria-label` in both branches, which is what makes 3 true.
+   */
+  banner?: ReactNode
   t: Translate
 }
 
@@ -155,6 +185,7 @@ export function ShellLayer({
   children,
   presentation = 'drawer',
   header,
+  banner,
   t,
 }: ShellLayerProps) {
   /* CALLBACK REFS HELD IN STATE, not `useRef`, and that is the whole fix for
@@ -217,7 +248,20 @@ export function ShellLayer({
            `useFocusEntry` owns entry AND restore, with no fight over order. */
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
+        /* The banner draws its own dismiss, in the ground's own foreground.
+           `sheet.tsx`'s is `--ev-ink`, which on a coloured field is not a
+           control anybody can see. See the `banner` prop. */
+        showCloseButton={banner === undefined}
       >
+        {banner !== undefined ? (
+          /* The banner IS the header region: no `SheetHeader`, no `SheetTitle`
+             and no `SheetDescription` here, because the banner renders its own
+             and two would be the surface-with-two-headers defect the `header`
+             branch below exists to prevent. `setHeadingEl` is never called, so
+             `useFocusEntry` falls through to `SheetContent` — which carries
+             `tabIndex={-1}` and `aria-label={title}` above. */
+          <div className="shrink-0">{banner}</div>
+        ) : (
         <SheetHeader>
           {/* **The title is always here, and `header` decorates it rather than
               replacing it.** A caller passing its own header used to mean the
@@ -264,6 +308,7 @@ export function ShellLayer({
             </>
           )}
         </SheetHeader>
+        )}
 
         {/* The card stack scrolls; the header and footer do not (§6.1).
             The modal's own width is capped at the page measure in

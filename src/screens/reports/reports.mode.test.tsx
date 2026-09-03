@@ -139,9 +139,18 @@ describe('AC-853, AC-855 — every one of the five modes survives the URL', () =
 
     /* The mode switcher is on screen in every mode and reads the mode the link
        carried — the operator can see which of the five questions they are
-       looking at, and change it. */
-    const picker = await screen.findByLabelText(copy('rb.control.mode'))
-    await waitFor(() => expect(picker).toHaveTextContent(copy(`rb.mode.${mode}`)))
+       looking at, and change it.
+
+       Asserted through `aria-pressed`, not through text content: the strip
+       renders all five labels at once, so a `toHaveTextContent` check would
+       pass for every mode including the wrong one. */
+    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
+    await waitFor(() =>
+      expect(within(strip).getByRole('button', { name: copy(`rb.mode.${mode}`) })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    )
   })
 
   it.each(MODES)('runs a %s that arrived composed, without a second click', async (mode) => {
@@ -239,9 +248,8 @@ describe('P7-T3 — the mode switcher does not compose an illegal query', () => 
     const user = userEvent.setup()
     renderAt(reportQueryPath(QUERIES.trend), <ReportsScreen />)
 
-    const picker = await screen.findByLabelText(copy('rb.control.mode'))
-    await user.click(picker)
-    await user.click(await screen.findByRole('option', { name: copy('rb.mode.funnel') }))
+    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
+    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.funnel') }))
 
     /* The funnel rail, with the reason the planner gives for an empty one —
        disabled in place with a sentence, never a blank panel (D9 CQ-3). */

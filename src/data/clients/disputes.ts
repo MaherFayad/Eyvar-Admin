@@ -167,6 +167,10 @@ const disputeShape: QueryShape<Dispute> = {
     status: (d) => d.status,
     kind: (d) => d.kind,
     claimantName: (d) => d.claimantName,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    id: (r) => r.id,
   },
   filterable: {
     id: (d) => d.id,

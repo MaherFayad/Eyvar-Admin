@@ -29,7 +29,13 @@ import { listDriverCompliance, listDrivers } from './drivers'
 import { getNavCounts, resetNavCounts, useEmptyNavCounts } from './navCounts'
 import { getNotificationSummary, listNotifications, resetNotifications } from './notifications'
 import { resolveProfile, search } from './profile'
-import { listNewRiders, listRiders } from './riders'
+import {
+  getRiderMoneyMovements,
+  getRiderSupportPresence,
+  getRiderTimeline,
+  listNewRiders,
+  listRiders,
+} from './riders'
 import { getPreferences, getSession, listTeamUsers, resetMockSession, switchMockUser } from './session'
 import { listSubscriptions } from './subscriptions'
 import { listTrips } from './trips'
@@ -48,6 +54,14 @@ const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
   { op: 'compliance.list', call: () => listDriverCompliance() },
   { op: 'riders.list', call: () => listRiders() },
   { op: 'riders.listNew', call: () => listNewRiders() },
+  /* The 360 profile's three rider-scoped reads. Listed here and not only in
+     `riders.test.ts` because properties 1-3 are the seam's, not the
+     resource's: every client must be async, must be failable and must be
+     deterministic, and a client that is absent from this list is a client
+     nobody checked. */
+  { op: 'riders.timeline', call: () => getRiderTimeline('RDR-4002') },
+  { op: 'riders.movements', call: () => getRiderMoneyMovements('RDR-4002') },
+  { op: 'riders.support', call: () => getRiderSupportPresence('RDR-4002') },
   { op: 'applicants.list', call: () => listApplicants() },
   { op: 'trips.list', call: () => listTrips() },
   { op: 'subscriptions.list', call: () => listSubscriptions() },

@@ -336,7 +336,7 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     titleKey: key('ops.requests', 'title'),
     bodyKey: key('ops.requests', 'body'),
     learnMoreKey: null,
-    destination: { subTabId: 'operations-requests', view: null, layer: null },
+    destination: { subTabId: 'operations-ride-requests', view: null, layer: null },
     completion: 'auto',
     autoSignal: 'queue.item.disposed',
     requiredPermission: 'view_operations',

@@ -50,6 +50,10 @@ const corporateShape: QueryShape<CorporateAccount> = {
     createdAt: (c) => c.createdAt,
     nextInvoiceOn: (c) => c.nextInvoiceOn,
     status: (c) => c.status,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    billingType: (r) => r.billingType,
   },
   filterable: {
     /* identity — text */

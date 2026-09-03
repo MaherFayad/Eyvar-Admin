@@ -16,7 +16,7 @@ import { SHELL_AR } from './shell'
 import { SLA_MESSAGES_AR } from './sla'
 import { CONFIRM_AR } from './confirm'
 import { PWA_AR } from './pwa'
-import { VOCABULARY_AR } from './vocabulary'
+import { RIDER_VOCABULARY_AR, VOCABULARY_AR } from './vocabulary'
 import { QUEUE_SHARED_AR } from './queues'
 import { COMMANDS_AR } from './commands'
 import { MY_WORK_AR } from './myWork'
@@ -37,6 +37,8 @@ import { ZONES_AR } from './zones'
 import { REPORTS_AR } from './reports'
 import { FINANCIALS_AR } from './financials'
 import { PROFILE_AR } from './profile'
+import { RIDER_PROFILE_AR } from './riderProfile'
+import { ENTITY_RIDER_AR } from './entityRider'
 import { AUTH_AR } from './auth'
 import { ONBOARDING_AR } from './onboarding'
 import { ADMIN_ACTIVITY_AR } from './adminActivity'
@@ -52,6 +54,7 @@ export const AR: Dictionary = {
   ...CONFIRM_AR,
   ...PWA_AR,
   ...VOCABULARY_AR,
+  ...RIDER_VOCABULARY_AR,
   ...QUEUE_SHARED_AR,
   ...COMMANDS_AR,
   ...MY_WORK_AR,
@@ -72,6 +75,8 @@ export const AR: Dictionary = {
   ...REPORTS_AR,
   ...FINANCIALS_AR,
   ...PROFILE_AR,
+  ...RIDER_PROFILE_AR,
+  ...ENTITY_RIDER_AR,
   ...AUTH_AR,
   ...ONBOARDING_AR,
   ...ADMIN_ACTIVITY_AR,

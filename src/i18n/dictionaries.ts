@@ -19,7 +19,7 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 4,625 operator-facing strings
+ * **`ar` IS NO LONGER EMPTY.** The translation of 4,805 operator-facing strings
  * is done and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
@@ -129,7 +129,13 @@ import { COMMUNICATIONS_EN } from '@/screens/admin/communications/copy'
    a ledger posting, a refund and an audit line, so it is owned once and
    inherited, exactly as `QUEUE_SHARED_EN` is. See the module header for why the
    32 registry labels are duplicated here and what collapses that. */
-import { VOCABULARY_EN } from './vocabulary/copy'
+/* The second family in the same module, and it is here for the same reason:
+   `Rider.churnReason` and `RiderTimelineEvent.kind` are minted by
+   `clients/riders.ts` and rendered by BOTH the rider side sheet and the
+   full-page rider profile. `types/rider.ts` names the defect that follows from
+   letting either screen declare them — *"`RDR-4002` would carry two different
+   explanations of one badge on two surfaces of the same record."* */
+import { RIDER_VOCABULARY_EN, VOCABULARY_EN } from './vocabulary/copy'
 /* G5 — the shared confirmation's own string. `ConfirmDialog` renders on every
    workspace, so its `Cancel` cannot live in one screen's namespace; the
    component owns it, exactly as `components/profile/copy.ts` owns the profile's.
@@ -140,6 +146,17 @@ import { CONFIRM_EN } from '@/components/confirmCopy'
    the `?entity=` drawer and `/entity/:entityId` — and a dictionary living
    under either one would make the other a second home for the same string. */
 import { PROFILE_EN } from '@/components/profile/copy'
+/* The 360° profile's RIDER presentation. A second dictionary beside
+   `PROFILE_EN` rather than more keys inside it: the sheet is one arrangement of
+   the profile's facts and it owns only the strings that arrangement needs — the
+   band's `Joined {date}`, the rail's block labels, the tab names. Everything it
+   shares with the card stack (`profile.section.*`, `profile.field.*`) it
+   consumes from `PROFILE_EN` and does not restate. */
+import { RIDER_PROFILE_EN } from '@/components/profile/rider/copy'
+/* The rider FULL PAGE's own strings — the back affordance, the three-up strip's
+   two labels and the movements table's furniture. It restates nothing
+   `RIDER_PROFILE_EN` already says; its header lists what it reads instead. */
+import { ENTITY_RIDER_EN } from '@/screens/entity/copy'
 /* P6-T4 — Admin › Data & Compliance. Carries the `integrity.check.*` and
    `integrity.detail.*` families the DATA layer emits as `LocalisedText`: a
    finding crosses the seam as a key plus params and is worded here, so
@@ -291,8 +308,10 @@ const subTabs: Dictionary = {
   'subtab.operations.myWork.sub': 'Everything assigned to you, oldest first',
   'subtab.operations.dispatch': 'Live Dispatch',
   'subtab.operations.dispatch.sub': 'Track active trips, watch requests, and step in when needed',
-  'subtab.operations.requests': 'Requests',
-  'subtab.operations.requests.sub': 'Ride requests waiting on a captain',
+  'subtab.operations.rideRequests': 'Ride requests',
+  'subtab.operations.rideRequests.sub': 'One-off rides waiting on a captain',
+  'subtab.operations.subscriptionRequests': 'Subscription requests',
+  'subtab.operations.subscriptionRequests.sub': 'Plan trips waiting to be matched by hand',
   'subtab.operations.subscriptions': 'Subscriptions',
   'subtab.operations.subscriptions.sub': 'Active plans, renewals and cancellations',
   'subtab.operations.corporate': 'Corporate Accounts',
@@ -636,8 +655,42 @@ const shell: Dictionary = {
   'shell.notifications.seeAll': 'See all',
   'shell.notifications.endOfList': 'No more notifications',
   'shell.notifications.noUnread': 'No unread notifications.',
-  'shell.notifications.markAllRead': 'Mark all as read',
+  /* `shell.notifications.markAllRead` — the count-less version — is GONE, not
+     kept beside its replacement: an orphan key carries an Arabic string for
+     nothing and the next reader cannot tell which of the two is live. */
   'shell.notifications.unreadCount': '{count} unread',
+  /* §6.3 — the bell popover's own unread chip. It rendered `{unread} new` as a
+     hardcoded English template with a raw JS numeral beside it; the numeral now
+     goes through `formatCount` and the word through this key. */
+  'shell.notifications.newCount': '{count} new',
+  /* §6.3 — the six filter chips. They rendered the raw `NotificationFilter` id
+     (`all`, `unread`, `alert`, …) — untranslated English on a shell surface. */
+  'shell.notifications.filter.all': 'All',
+  'shell.notifications.filter.unread': 'Unread',
+  'shell.notifications.filter.alert': 'Alerts',
+  'shell.notifications.filter.ticket': 'Tickets',
+  'shell.notifications.filter.payout': 'Payouts',
+  'shell.notifications.filter.renewal': 'Renewals',
+  /* §6.3 — the four priority tiers as section headings. They rendered the raw
+     `NotificationPriority` id under a CSS `capitalize`, which is a no-op in
+     Arabic. */
+  'shell.notifications.tier.critical': 'Critical',
+  'shell.notifications.tier.high': 'High',
+  'shell.notifications.tier.medium': 'Medium',
+  'shell.notifications.tier.low': 'Low',
+  /* §7.5 — the unread marker was colour and shape with no word. This is the
+     word, visually hidden on the bell row and visible nowhere else. */
+  'shell.notifications.unread': 'Unread',
+  /* Read state is REVERSIBLE per row, not only in bulk: a notification with no
+     destination was previously unreachable by `markNotificationRead` entirely. */
+  'shell.notifications.markRead': 'Mark as read',
+  'shell.notifications.markReadA11y': 'Mark "{title}" as read',
+  /* The bulk action names the count, and renders DISABLED at zero rather than
+     hidden (§11.2). */
+  'shell.notifications.markAllReadCount': 'Mark all {count} as read',
+  /* R8 — two empties, not one. `noUnread` is the `unread` filter at zero; this
+     is the list itself being empty, which `noUnread` asserted wrongly. */
+  'shell.notifications.empty': 'No notifications.',
 
   /* §8 slot 4b — the overflow trigger. A caret, not a chevron pair: §10.2
      reserves the stacked `⌃⌄` for a SELECT, and a dropdown button's single `⌄`
@@ -994,9 +1047,12 @@ export const EN: Dictionary = {
   ...AUTH_EN,
   ...ONBOARDING_EN,
   ...PROFILE_EN,
+  ...RIDER_PROFILE_EN,
+  ...ENTITY_RIDER_EN,
   ...FINANCIALS_EN,
   ...COMMUNICATIONS_EN,
   ...VOCABULARY_EN,
+  ...RIDER_VOCABULARY_EN,
   ...CONFIRM_EN,
   ...PWA_EN,
 }

@@ -32,6 +32,7 @@ import type { DailySnapshotWindow } from '../fixtures/dailySnapshots'
 import type { DailySnapshot } from '../types/metrics'
 import type { Facets, IsoDate, Paginated, QueryParams } from '../types/common'
 import type {
+  BoardNotice,
   Metric,
   MetricBoard,
   MetricBreakdown,
@@ -43,6 +44,7 @@ import type {
 import { workBacklogByQueue } from './myWork'
 import { listCities, resolveZones, summariseZones } from './zones'
 import { concentrationShare, median, p10, p90 } from '../reporting/distribution'
+import { addDays, daysInclusive } from '../reporting/buckets'
 import { http } from './http'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -891,8 +893,18 @@ const WORK_QUEUE_ROUTES: Record<string, string> = {
 
 /**
  * GET /api/v1/metrics/boards/:subTabId
- *   params: from · to   (the §3.7 date-range chip; the mock serves one window)
+ *   params: from · to   (the §3.7 date-range chip, both `YYYY-MM-DD`, both or neither)
  *   -> MetricBoard  { subTabId, asOf, metrics[], charts[], breakdowns[], notices[] }
+ *
+ * **`from`/`to` recompute the board — every part of it.** Each metric's
+ * `value`, `deltaPercent` and `comparison` must be computed over the requested
+ * range, and each metric's `periodStart`/`periodEnd` must name the range it was
+ * actually computed over. A metric with no period (`periodStart: null`) is
+ * point-in-time and is unaffected by the parameters. **A backend that filters
+ * the series and returns the unfiltered scalars must leave the scalars' periods
+ * alone**, because a figure's declared window is the claim that makes it
+ * readable — see `windowed()`, which is exactly that case and says so on
+ * screen rather than relabelling.
  *
  * **One request per screen, not one per tile.** Eight overviews × six tiles is
  * forty-eight round trips, and §3.7's grid settles as a unit — a page that
@@ -987,50 +999,126 @@ export async function getMetricBoard(
 }
 
 /**
+ * **The condition a windowed board declares: the tiles did not move.**
+ *
+ * `tone: 'info'` and not `warning`. Nothing is broken and nothing is late —
+ * this is the mock stating the limit of what it holds, and R7's warning fill is
+ * for a condition somebody has to act on. The tone also decides the
+ * consequence, because `selectNotice` renders exactly one notice per board,
+ * highest tone first: `info` is **outranked by every real condition on the
+ * boards that declare one**, so this can never displace an unacknowledged SOS,
+ * an overdue erasure or a breached application window. On those three boards
+ * the caveat is therefore *suppressed* rather than shown, which is a real
+ * residual gap and is recorded in this defect's handoff rather than resolved by
+ * quietly promoting the tone.
+ *
+ * `action: null` — there is nowhere to send anybody. The fixture limit is not
+ * an operator's to fix.
+ *
+ * `severity` is only ever compared **within a tone**, and no board fixture
+ * declares an `info` notice, so this one is unique by construction.
+ * `metrics.test.ts` pins that rather than assuming it.
+ *
+ * Deliberately not in the `notice.*` namespace: the sentence belongs to the
+ * period control, it is written and translated beside the picker's own strings
+ * in `screens/metrics/copy.ts`, and `noticeTitle` resolves a notice key with no
+ * `count` param straight through `t()`, so the root is the whole key.
+ */
+const PERIOD_DIVERGENCE_NOTICE: BoardNotice = {
+  key: 'overview.period.figuresUnchanged',
+  params: null,
+  tone: 'info',
+  action: null,
+  severity: 10,
+}
+
+/** Signed whole days from `from` to `to`. `-7` when `to` is a week earlier. */
+function daysBetween(from: IsoDate, to: IsoDate): number {
+  return daysInclusive(from, to) - 1
+}
+
+/**
  * **The board, restated for a window the operator asked for.**
  *
  * ## What this re-derives, and what it cannot
  *
- * It slices every series to the window and moves every metric's declared period
- * onto it. Those are honest: the points are real daily snapshots with real
- * dates, so taking the ones inside a range is reading rather than inventing.
+ * It slices every series to the window. That is honest: the points are real
+ * daily snapshots carrying real dates, so taking the ones inside a range is
+ * reading rather than inventing, and the window's declared `periodStart` /
+ * `periodEnd` move with them because they now describe exactly what was kept.
  *
- * It does NOT recompute a metric's `value`. A seeded scalar — `11 %` for
- * contribution margin — is a number somebody wrote down, not a number this
- * layer derived from rows it holds, and scaling it by the ratio of two window
- * lengths would manufacture a figure that has never been measured. **The
- * backend owns that recomputation** and `docs/07-api` says so; what the mock
- * gives the screen is the right SHAPE — a board that answers to a range — with
- * every part it can honestly move, moved.
+ * **It does not touch a metric — neither its `value` nor its period.** A seeded
+ * scalar (`11 %` for contribution margin) is a number somebody wrote down, and
+ * a derived one is a count over a whole fixture population (`suspended`
+ * captains, `active` operators) with no date to filter on. Scaling either by
+ * the ratio of two window lengths would manufacture a figure nobody measured.
  *
- * The consequence is visible and deliberate: pick `Day` and the charts really do
- * redraw to one point while the tiles hold their seeded figures. That is a
- * fixture limit stated on screen rather than a lie told quietly, and it goes
- * away the moment `DATA_SOURCE === 'http'`.
+ * This function used to move `periodStart` / `periodEnd` onto the requested
+ * range anyway, and that was the defect: an unchanged 15-day figure wearing a
+ * one-day label, which is the same lie as recomputing it badly, told by the
+ * cheaper method. **A figure that cannot move keeps the label it earned.**
+ *
+ * A point-in-time metric (`periodStart === null`) keeps its `null`s for free
+ * now — "active captains right now" is not a period, and there is no branch
+ * left that could give it one.
+ *
+ * ## The comparison window moves with the current one, by the offset the
+ * fixture itself declares
+ *
+ * Slicing the comparison by the *current* range emptied it — its points are all
+ * dated in the previous fortnight — and then relabelled it with the current
+ * range's dates, so §3.7's legend printed two chips naming the same days over
+ * one line. The two windows are equal-length and zipped by index, which IS the
+ * fixture's declaration that index *i* in one corresponds to index *i* in the
+ * other; the offset between them is therefore readable off their two
+ * `periodStart`s rather than chosen here. Shifting the requested range back by
+ * that offset keeps the correspondence, keeps both windows the same length, and
+ * leaves every date on screen naming days its points were actually taken on.
+ *
+ * ## What the screen is told
+ *
+ * The divergence is **declared**, not left to be noticed: a board asked for a
+ * range it cannot answer with adds `PERIOD_DIVERGENCE_NOTICE` to `notices`, and
+ * the page banner states it in words. Only when a metric genuinely disagrees
+ * with the requested range — a board of point-in-time tiles has nothing to
+ * diverge, and a range that matches the seeded window is not a divergence.
+ *
+ * The consequence is visible and deliberate: pick `Today` and the charts really
+ * do redraw to one point while the tiles hold their seeded figures **and their
+ * own dates**. That is a fixture limit stated on screen rather than a lie told
+ * quietly, and it goes away the moment `DATA_SOURCE === 'http'` — the backend
+ * owns the recomputation and `docs/07-api` says so.
  */
 function windowed(board: MetricBoard, period: { from: IsoDate; to: IsoDate }): MetricBoard {
-  const slice = (window: SeriesWindow): SeriesWindow => ({
+  const slice = (window: SeriesWindow, from: IsoDate, to: IsoDate): SeriesWindow => ({
     ...window,
-    periodStart: period.from,
-    periodEnd: period.to,
-    points: window.points.filter((point) => point.at >= period.from && point.at <= period.to),
+    periodStart: from,
+    periodEnd: to,
+    points: window.points.filter((point) => point.at >= from && point.at <= to),
   })
+
+  const sliceComparison = (current: SeriesWindow, comparison: SeriesWindow): SeriesWindow => {
+    const offset = daysBetween(comparison.periodStart, current.periodStart)
+    return slice(comparison, addDays(period.from, -offset), addDays(period.to, -offset))
+  }
+
+  /* A tile that declares a window other than the one asked for is the whole
+     condition. Point-in-time tiles declare none and cannot disagree. */
+  const diverges = board.metrics.some(
+    (metric) =>
+      metric.periodStart !== null &&
+      metric.periodEnd !== null &&
+      (metric.periodStart !== period.from || metric.periodEnd !== period.to),
+  )
 
   return {
     ...board,
-    metrics: board.metrics.map((metric) =>
-      /* A point-in-time metric keeps its `null`s. "Active captains right now"
-         has no period, and giving it the operator's window would claim the
-         count was taken over one. */
-      metric.periodStart === null || metric.periodEnd === null
-        ? metric
-        : { ...metric, periodStart: period.from, periodEnd: period.to },
-    ),
     charts: board.charts.map((chart) => ({
       ...chart,
-      current: slice(chart.current),
-      comparison: chart.comparison ? slice(chart.comparison) : chart.comparison,
+      current: slice(chart.current, period.from, period.to),
+      comparison: chart.comparison ? sliceComparison(chart.current, chart.comparison) : null,
     })),
+    notices: diverges ? [...board.notices, PERIOD_DIVERGENCE_NOTICE] : board.notices,
   }
 }
 

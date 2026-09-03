@@ -9,13 +9,13 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **4848** |
-| Reachable from `EN` (what the shell renders) | 4625 |
-| Keys in `AR` | 4848 |
+| **Translatable keys, all dictionaries** | **5044** |
+| Reachable from `EN` (what the shell renders) | 4805 |
+| Keys in `AR` | 5044 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 223 |
-| Plural forms (`key#category`) inside `EN` | 29 |
-| `copy.ts` files | 30 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 239 |
+| Plural forms (`key#category`) inside `EN` | 37 |
+| `copy.ts` files | 32 |
 | Keys in a `copy.ts` the shell has NOT registered | 167 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
@@ -39,11 +39,11 @@ None left. Add the lint rule and delete this section.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 693 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 420 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 483 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 264 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 248 |
+| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 240 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
-| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 225 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
@@ -58,12 +58,14 @@ None left. Add the lint rule and delete this section.
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
+| `src/i18n/vocabulary/copy.ts` | `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 73 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |
-| `src/i18n/vocabulary/copy.ts` | `VOCABULARY_EN` | 47 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 46 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 43 |
+| `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 31 |
+| `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 28 |
 | `src/screens/admin/activity/copy.ts` | `ADMIN_ACTIVITY_EN` | 22 |
 | `src/pwa/copy.ts` | `PWA_EN` | 4 |
 

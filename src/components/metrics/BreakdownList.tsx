@@ -129,18 +129,25 @@
  */
 
 import { useId } from 'react'
+import { DownloadIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   Card,
+  CardAction,
   CardContent,
   CardFooter,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { PLAIN_FRAME } from './Chapter'
+import { tableCsvFilename, tableCsvText, type TableCsvView } from '@/components/table/csv'
+import type { DataColumn } from '@/components/table/columns'
+import { downloadCsv } from '@/screens/reports/csv'
 import {
+  announce,
   formatCount,
   formatPercent,
   invariant,
@@ -149,7 +156,12 @@ import {
   type Translate,
   type TranslateParams,
 } from '@/lib'
-import type { BreakdownLabel, MetricBreakdown, MetricBreakdownRow } from '@/data/types'
+import type {
+  BreakdownLabel,
+  IsoDate,
+  MetricBreakdown,
+  MetricBreakdownRow,
+} from '@/data/types'
 import { formatMetricValue } from './formatMetric'
 
 /**
@@ -214,6 +226,28 @@ function formatNumericParams(
   return formatted
 }
 
+/**
+ * **What this list is a slice OF**, and the export's precondition.
+ *
+ * `components/table/csv.ts` opens with the reason: *"a CSV of bare numbers with
+ * no window is unattributable the moment it reaches a spreadsheet, and
+ * unattributable numbers are how the wrong figure ends up in a deck."* A
+ * breakdown carries no board id, no sub-tab and no dates — `MetricBreakdown` is
+ * a ranking and nothing else — so the surface that renders it has to hand them
+ * over, and **a list that is not given them offers no export at all** rather
+ * than writing a file that cannot say what it is.
+ */
+export interface BreakdownScope {
+  /** `management-overview` — workspace and sub-tab, as the route table joins them. */
+  subTabId: string
+  /**
+   * The window the board's figures cover. `null` on a board made entirely of
+   * point-in-time figures, which is a real case rather than a gap — the header
+   * block says which of the two it is instead of leaving the field blank.
+   */
+  period: { start: IsoDate; end: IsoDate } | null
+}
+
 export interface BreakdownListProps {
   breakdown: MetricBreakdown
   /**
@@ -222,6 +256,8 @@ export interface BreakdownListProps {
    * also dropped its frame. See `PLAIN_FRAME`.
    */
   frame?: 'card' | 'plain'
+  /** See `BreakdownScope`. Absent means no export button. */
+  scope?: BreakdownScope | null
   t: Translate
   language: Language
 }
@@ -229,6 +265,7 @@ export interface BreakdownListProps {
 export function BreakdownList({
   breakdown,
   frame = 'card',
+  scope = null,
   t,
   language,
 }: BreakdownListProps) {
@@ -281,6 +318,35 @@ export function BreakdownList({
           <CardDescription>
             <CutOff breakdown={breakdown} t={t} />
           </CardDescription>
+        )}
+        {/* **Principle 5's exportable half.** `CardAction` and not a bare div
+            carrying the slot attribute: the slot switches `CardHeader` to
+            `1fr auto` and the component also carries the grid placement that
+            puts the control beside the heading rather than under it — the
+            shape `ChartCard`'s report link already uses.
+
+            **AC-694 is not in the way.** It forbids a *mutating* control on a
+            breakdown, because a row that can be acted on is a work-queue row.
+            An export mutates nothing; it hands the operator the reading they
+            are already looking at, which is the alternative to retyping it.
+
+            Rendered only when there are rows to write AND a scope to attribute
+            them to — see `BreakdownScope`. */}
+        {scope !== null && breakdown.awaitingStore === null && breakdown.rows.length > 0 && (
+          <CardAction>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground"
+              onClick={() => exportBreakdown({ breakdown, scope, t, language })}
+            >
+              {/* A download mark is an object, not a direction: it does not
+                  mirror (§9.5). Drawn, never typed — Inter carries no ⎙ and
+                  Windows falls through to a colour emoji font. */}
+              <DownloadIcon aria-hidden="true" />
+              {t('breakdown.export')}
+            </Button>
+          </CardAction>
         )}
       </CardHeader>
 
@@ -370,6 +436,126 @@ export function BreakdownList({
       )}
     </Card>
   )
+}
+
+/**
+ * **The ranked list, as a file — and there is no third CSV writer here.**
+ *
+ * `components/table/csv.ts` owns the RFC-4180 quoting and the header block, and
+ * `screens/reports/csv.ts` owns the blob and the object URL. This assembles a
+ * `TableCsvView` over the rows a breakdown is already holding and calls both.
+ * A fourth `join(',')` here is precisely the defect the first file was written
+ * to stop: *"this dataset contains company names written in Arabic, and an
+ * unquoted comma in one silently shifts every column to its right."*
+ *
+ * ## The header block, and why it is not optional
+ *
+ * A breakdown is a slice — the top five of fourteen, on one board, over one
+ * window — and every one of those facts is invisible in the rows themselves.
+ * So `table` names the board and its sub-tab, `view` names the list, a `filter`
+ * line names the window, `rows` is what the file holds and `total_matching` is
+ * what it was ranked out of. Reading `4` in a cell without them is how the
+ * wrong figure reaches a deck.
+ *
+ * **A board of point-in-time figures has no window**, and the file says
+ * `point-in-time` rather than leaving the field blank — a blank reads as a
+ * window somebody forgot to record.
+ *
+ * ## The values
+ *
+ * Raw numbers, and **money as integer halalas** (§8.3.1, and
+ * `components/table/csv.ts`’s own rule): `formatMoney` emits `884.00 SAR`,
+ * which a spreadsheet reads as text with an embedded separator and cannot sum.
+ * The `unit` and `currency` columns carry what the number is in.
+ *
+ * The row LABEL is translated, because it is what the operator reads; the
+ * column ids and the header block are not, because they are what a spreadsheet
+ * and whoever receives the file read. That split is `table/csv.ts`’s.
+ *
+ * `cell` is `() => null` on every column and is never called: `tableCsvText`
+ * returns early from `valueOf` wherever a `csv` accessor is declared, and all
+ * six declare one. This view exists to be exported and is never rendered.
+ */
+function exportBreakdown({
+  breakdown,
+  scope,
+  t,
+  language,
+}: {
+  breakdown: MetricBreakdown
+  scope: BreakdownScope
+  t: Translate
+  language: Language
+}): void {
+  const columns: Array<DataColumn<MetricBreakdownRow>> = [
+    {
+      id: 'rank',
+      header: 'rank',
+      cell: () => null,
+      /* The order IS the ranking (R5-12 §18.4), so the position is a fact about
+         the row rather than a decoration — and it is what `sort` below names. */
+      csv: (row) => breakdown.rows.indexOf(row) + 1,
+    },
+    {
+      id: 'label',
+      header: 'label',
+      cell: () => null,
+      /* R5-7’s union, and the same branch `RowLabel` takes: a `key` is copy and
+         is translated, a `text` is an entity name and nothing may translate it. */
+      csv: (row) =>
+        row.label.kind === 'key' ? t(row.label.key, row.label.params ?? undefined) : row.label.text,
+    },
+    {
+      id: 'value',
+      header: 'value',
+      cell: () => null,
+      /* Unformatted. Halalas for money — see the note above. */
+      csv: (row) => row.value,
+    },
+    { id: 'unit', header: 'unit', cell: () => null, csv: (row) => row.unit },
+    { id: 'currency', header: 'currency', cell: () => null, csv: (row) => row.currency },
+    {
+      id: 'sub_label',
+      header: 'sub_label',
+      cell: () => null,
+      /* R5-5 — the row’s second fact is a noun phrase and not a second numeric
+         column, so it exports as the sentence it is. */
+      csv: (row) =>
+        row.subLabelKey === null
+          ? null
+          : t(row.subLabelKey, formatNumericParams(row.subLabelParams, language)),
+    },
+  ]
+
+  const [board = scope.subTabId, ...rest] = scope.subTabId.split('-')
+  const exportedAt = new Date().toISOString()
+  const view: TableCsvView<MetricBreakdownRow> = {
+    tableId: `metrics-${scope.subTabId}`,
+    view: breakdown.key,
+    columns,
+    visible: columns,
+    rows: breakdown.rows,
+    query: '',
+    filters: [
+      { field: 'board', op: 'eq', value: board },
+      { field: 'sub_tab', op: 'eq', value: rest.join('-') },
+      scope.period === null
+        ? { field: 'window', op: 'eq', value: 'point-in-time' }
+        : { field: 'window', op: 'between', value: `${scope.period.start} ${scope.period.end}` },
+    ],
+    /* Not `value desc`: three of the seven lists rank ASCENDING (*least likely
+       to renew* is one), and a file that claimed a direction would be wrong on
+       those. `rank asc` is true of every one of them and names a real column. */
+    sort: { field: 'rank', dir: 'asc' },
+    total: breakdown.rowsTotal,
+    exportedAt,
+  }
+
+  downloadCsv(tableCsvFilename(view.tableId, view.view, exportedAt), tableCsvText(view))
+  /* §13.6 — announced, never toasted. R9/R10 spend a toast on a mutation of an
+     object and an export mutates nothing. `DataTable` says the same thing the
+     same way. */
+  announce(t('breakdown.export.done', { rows: formatCount(breakdown.rows.length, language) }))
 }
 
 /**

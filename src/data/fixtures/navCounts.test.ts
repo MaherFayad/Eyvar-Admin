@@ -159,7 +159,8 @@ describe('`attention` means breached, not non-empty', () => {
       'SREQ-003',
       'SREQ-006',
     ])
-    expect(row('operations-requests').tone).toBe('neutral')
+    expect(row('operations-ride-requests').tone).toBe('neutral')
+    expect(row('operations-subscription-requests').tone).toBe('neutral')
 
     const cases = await listFairnessCases({ view: 'open', pageSize: 100 })
     expect(cases.items.some((c) => c.slaBreachedAt !== null)).toBe(true)
@@ -183,12 +184,19 @@ describe('counts are derived from the queues they describe, not typed in', () =>
     expect(row('operations-my-work').count).toBe(myWorkBacklogSize())
   })
 
-  it('operations-requests equals the open request queue', async () => {
+  it('the two request tabs each equal their own open queue, and sum to it', async () => {
     const page = await listRequests({ pageSize: 500 })
     const open = page.items.filter((r) =>
       ['searching', 'offered', 'no-drivers'].includes(r.status),
     )
-    expect(row('operations-requests').count).toBe(open.length)
+    const instant = open.filter((r) => r.channel === 'instant').length
+    const subscription = open.filter((r) => r.channel === 'subscription').length
+
+    expect(row('operations-ride-requests').count).toBe(instant)
+    expect(row('operations-subscription-requests').count).toBe(subscription)
+    /* The split is exhaustive: a request is one channel or the other, so the
+       two badges together are still the whole open queue. */
+    expect(instant + subscription).toBe(open.length)
   })
 
   it('operations-assurance equals the legs with no eligible backup captain', async () => {

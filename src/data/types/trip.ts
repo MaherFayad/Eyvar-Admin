@@ -40,6 +40,80 @@ export type TripStatus =
   | 'cancelled'
   | 'no-show'
 
+/**
+ * **"Is this trip still open?" — one answer, here, for every screen that asks.**
+ *
+ * It was two. `screens/operations/dispatch/DispatchScreen.tsx:94` declares its
+ * own `ACTIVE_TRIP_STATUSES = ['assigned', 'en-route', 'in-trip']`, and the
+ * rider profile's *open trip* card is built around `TRP-9104` — a `requested`
+ * trip, which that list excludes. Two screens, one trip, two answers to the
+ * same question. `types/rider.ts` opens with the reason that is not survivable:
+ * *"a derived value computed in three screens produces three answers."*
+ *
+ * ## The set, and the one that was nearly wrong
+ *
+ * | status | open | why |
+ * |---|---|---|
+ * | `requested`  | ✅ | No captain yet. **The state that most wants an operator** — `TRP-9104` has been unassigned since 09:11 — and the one Dispatch's local list drops. |
+ * | `assigned`   | ✅ | Captain accepted, not moving yet. |
+ * | `en-route`   | ✅ | Captain on the way to the pickup. |
+ * | `in-trip`    | ✅ | Rider on board. |
+ * | `late`       | ❌ | **Terminal. This was nearly wrong and the data settled it** — see below. |
+ * | `done`       | ❌ | Terminal. |
+ * | `cancelled`  | ❌ | Terminal; `endedAt` is set (`TRP-9003`, `TRP-9108`). |
+ * | `no-show`    | ❌ | Terminal, and surfaced by its own queue (`assurance`). |
+ *
+ * ## `late` means *arrived late*, not *running late*
+ *
+ * The seeded `TRP-7742` carries `endedAt: null`, which reads as a trip still in
+ * flight and overdue — and on that reading `late` belongs in this set. It is a
+ * fixture bug, and legacy proves it. `DB.trips['TRP-7742']` (`:2677`) is
+ * `status:'Late +8'` **with** `km:'11.0'`, `min:'30'`, `fare:'29.40'`,
+ * `driverEarn:'23.52'` and `pay:'PAY-5475'` — a distance, a duration, a fare, a
+ * captain payout and a settled payment. A trip that has been measured, priced,
+ * paid out and settled is not still running. `Late +8` is *"it arrived eight
+ * minutes late"*.
+ *
+ * The generated rows agree: all **sixteen** filler `late` trips set `endedAt`.
+ * One hand-written row disagrees with legacy, with its own fare and with every
+ * other row of its status.
+ *
+ * **Finding, not fixed here:** `TRP-7742.endedAt` should be
+ * `2026-06-25T08:23:00+03:00` (`startedAt` + `durationMinutes` + the 8 minutes
+ * of lateness). It is left alone because it is a trips fixture outside this
+ * change and because `'route-history'` (`clients/trips.ts:113`) selects on
+ * `endedAt !== null && distanceKm !== null` — this row satisfies the second
+ * half, so setting the first moves what that view returns.
+ * `management.performance.tripsCompleted` is **not** affected: it filters
+ * `status === 'done'` (`clients/metrics.ts:126`).
+ *
+ * ## Adopting this **changes what Dispatch shows** — that is a product call
+ *
+ * Dispatch's feed gains `requested` trips and gains nothing else. That is a
+ * change to an operator's queue, not a refactor, so it is named rather than
+ * assumed: the constant is exported and Dispatch has not been edited.
+ */
+export const OPEN_TRIP_STATUSES: readonly TripStatus[] = [
+  'requested',
+  'assigned',
+  'en-route',
+  'in-trip',
+]
+
+/**
+ * The predicate form. Takes a status rather than a `Trip` so it can be applied
+ * to a filter value, a facet key or a row — a screen filtering a status
+ * dropdown has no `Trip` to hand.
+ */
+export function isOpenTripStatus(status: TripStatus): boolean {
+  return OPEN_TRIP_STATUSES.includes(status)
+}
+
+/** Row form, for the common case. */
+export function isOpenTrip(trip: Pick<Trip, 'status'>): boolean {
+  return isOpenTripStatus(trip.status)
+}
+
 export interface Trip {
   id: string
   kind: TripKind

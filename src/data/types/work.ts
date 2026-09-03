@@ -138,7 +138,7 @@ export const WORK_QUEUE_ROUTE: Record<WorkQueueId, string> = {
   fairness: '/support/fairness',
   incident: '/support/safety?view=open',
   application: '/operations/people/applications/:id',
-  request: '/operations/requests',
+  request: '/operations/ride-requests',
   assurance: '/operations/assurance?view=departing-24h',
   absence: '/operations/assurance?view=absences',
   erasure: '/admin/data',

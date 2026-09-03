@@ -47,6 +47,13 @@ import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { identityBandSlots, ProfileSections, useProfileRecord } from '@/components/profile'
+import {
+  RiderBand,
+  RiderFooter,
+  RiderProfile,
+  RiderSkeleton,
+  useRiderReads,
+} from '@/components/profile/rider'
 import { ShellLayer } from '../ShellLayer'
 
 export interface ProfileLayerProps {
@@ -109,6 +116,40 @@ export function ProfileLayer({
      the child indirection used to buy. */
   const record = useProfileRecord(ref ?? null)
 
+  /**
+   * **ONE SHARED CONTENT CONTRACT, TWO PRESENTATIONS.**
+   *
+   * This file's header says *"the same stack on both surfaces… nothing is
+   * passed in, so nothing can be passed differently"*, and a rider now gets a
+   * different arrangement from the other ten kinds. That rule is amended here,
+   * and it is worth writing down exactly how far the amendment goes.
+   *
+   * What it protected — that the two surfaces cannot disagree about a FACT — is
+   * untouched, and is enforced by where the facts come from rather than by
+   * everyone rendering the same component:
+   *
+   *   · the record is `useProfileRecord`, the same one read the same way;
+   *   · the collections are the same five client operations `sections.tsx`
+   *     calls for a rider, under the same cache keys;
+   *   · every derived value that both surfaces need is a SERVER field —
+   *     `churnRisk` and `churnReason`, `closingBalanceHalalas` and
+   *     `pendingHalalas`, `totalTrips`, `lifetimeValueHalalas`. Nothing below
+   *     computes one, so there is nothing for the page to compute differently.
+   *
+   * What is presentation-local is ARRANGEMENT: which column a fact sits in,
+   * which tab it is under, and what the tab's badge counts. Two surfaces may
+   * arrange one set of facts differently. They may not hold two sets.
+   *
+   * The other ten kinds are unchanged and still render `<ProfileSections>` from
+   * the single registry.
+   */
+  const rider = record.data?.entityType === 'rider' ? record.data.data : null
+  const isRider = ref?.entityType === 'rider'
+  /* Called for all eleven kinds, because a hook cannot be called
+     conditionally, and ENABLED for one. `useAsync` holds a disabled read in
+     `loading` and fires nothing, so the other ten cost no request. */
+  const riderReads = useRiderReads(entityId, isRider)
+
   return (
     <ShellLayer
       open={open}
@@ -123,10 +164,23 @@ export function ProfileLayer({
       /* The face, the record kind and the standing, beside the title in the ONE
          header. It used to be a second header inside the body repeating the
          title and subtitle this component already passes above. */
-      header={ref ? identityBandSlots({ entity: ref, record, t }) : undefined}
+      /* The ten other kinds keep the 48px chrome header and its two slots. A
+         rider's head is a coloured GROUND carrying the same three facts at
+         display size, so it replaces the bar rather than decorating it — and
+         `banner` and `header` are mutually exclusive by construction, which is
+         what keeps the surface from growing a second title. */
+      header={ref && !isRider ? identityBandSlots({ entity: ref, record, t }) : undefined}
+      banner={
+        ref && isRider ? (
+          <RiderBand entity={ref} rider={rider} t={t} language={language} />
+        ) : undefined
+      }
       t={t}
       footer={
-        ref && (
+        ref &&
+        (isRider ? (
+          <RiderFooter onOpenFullProfile={() => onOpenFullProfile(ref.fullPagePath)} t={t} />
+        ) : (
           /* §6.2 — a plain LINK at inline-start, and NO primary: this layer
              commits nothing, so §6.1's footer rule gives it no committing
              control at all. */
@@ -135,9 +189,15 @@ export function ProfileLayer({
               {t('shell.layer.openFullProfile')}
             </Button>
           </div>
-        )
+        ))
       }
     >
+      {/* **The generic overlay skeleton, and it is the right one HERE.**
+          `resolveProfile` has not answered, so the kind is unknown and no
+          kind-shaped skeleton can honestly be drawn. The moment the ref says
+          `rider`, the shape IS known and `RiderSkeleton` takes over below — two
+          skeletons, one per thing that is actually being waited on, and a
+          spinner in neither. */}
       {profile.status === 'loading' && <LoadingSkeleton pattern="overlay" />}
 
       {notFound && (
@@ -152,9 +212,28 @@ export function ProfileLayer({
         />
       )}
 
-      {/* §6.2's card stack. The layer has no rail, so it omits nothing — the
-          identity card is its first card. */}
-      {ref && (
+      {/* A rider's own arrangement. The record read owns its four states here
+          rather than inside the body, because the rail and both panels are
+          built from it and there is nothing to arrange until it lands. */}
+      {ref && isRider && (
+        <>
+          {record.status === 'loading' && <RiderSkeleton />}
+          {record.status === 'error' && (
+            <ErrorState
+              scope="card"
+              message={t('profile.state.error', { section: t('profile.kind.rider') })}
+              action={{ label: t('profile.state.retry'), onClick: record.refetch }}
+            />
+          )}
+          {rider && (
+            <RiderProfile rider={rider} reads={riderReads} t={t} language={language} />
+          )}
+        </>
+      )}
+
+      {/* §6.2's card stack, for the other ten kinds. The layer has no rail, so
+          it omits nothing — the identity card is its first card. */}
+      {ref && !isRider && (
         <ProfileSections entity={ref} record={record} t={t} language={language} />
       )}
     </ShellLayer>

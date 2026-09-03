@@ -71,6 +71,10 @@ const fairnessShape: QueryShape<FairnessCase> = {
     status: (c) => c.status,
     urgency: (c) =>
       c.slaBreachedAt ? -1 : c.slaDueAt ? Date.parse(c.slaDueAt) : Number.MAX_SAFE_INTEGER,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    reasonCode: (r) => r.reasonCode,
   },
   filterable: {
     /* identity — text */

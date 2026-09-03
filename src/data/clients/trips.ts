@@ -62,6 +62,20 @@ const tripShape: QueryShape<Trip> = {
     driverRatingGiven: (t) => t.driverRatingGiven,
     riderName: (t) => t.riderName,
     driverName: (t) => t.driverName,
+    /* **Added by the sort/filter sweep.** A column the operator can read is a
+       column they can order by, unless ordering it is meaningless — see
+       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
+    /* **Latent crash, found by the sweep and closed here.** The column
+       declared `sortField: 'id / status'` and this map had no accessor for it, and
+       `sortRows` THROWS on an unknown field rather than ignoring it — so the
+       first operator to order by this column lost the read. Nothing in the
+       type checker sees a sort field; `scratch/sortfield-check.mjs` is what
+       does. */
+    id: (t) => t.id,
+    status: (t) => t.status,
+    subscriptionId: (r) => r.subscriptionId,
+    paymentId: (r) => r.paymentId,
+    flagged: (r) => (r.flagged ? 1 : 0),
   },
   filterable: {
     /* identity — text */

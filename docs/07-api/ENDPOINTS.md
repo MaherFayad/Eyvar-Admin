@@ -8,13 +8,13 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**290 endpoints across 46 client modules.**
+**293 endpoints across 46 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| GET | `/api/v1/alerts` | `Paginated<AlertRule>` | `q · view=firing\|suspended\|error\|disabled · page · pageSize` | - | `listAlertRules()` |
+| GET | `/api/v1/alerts` | `Paginated<AlertRule>` | `q · filters[state] · page · pageSize` | - | `listAlertRules()` |
 | POST | `/api/v1/alerts` | `Single<AlertRule>` | `SaveAlertInput` | - | `saveAlertRule()` |
 | DELETE | `/api/v1/alerts/:id` | `204` | - | - | `deleteAlertRule()` |
 | GET | `/api/v1/alerts/:id` | `Single<AlertRule>` | - | - | `getAlertRule()` |
@@ -255,9 +255,9 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| GET | `/api/v1/metrics` | `Paginated<Metric>` | `q · subTabId · category · page · pageSize · sort · filter ·` | - | `listMetrics()` |
+| GET | `/api/v1/metrics` | `Paginated<Metric>` | `null,` | - | `listMetrics()` |
 | GET | `/api/v1/metrics/:key/series` | `TimeSeries  { current, comparison | null }` | `from · to · compare=previous-period\|none` | **404** when the metric has no series. A metric tile without a chart is normal | `getMetricSeries()` |
-| GET | `/api/v1/metrics/boards/:subTabId` | `MetricBoard  { subTabId, asOf, metrics[], charts[], breakdowns[], notices[] }` | `from · to   (the §3.7 date-range chip; the mock serves one window)` | **404** when the sub-tab has no board, which is every sub-tab with a table. That | `getMetricBoard()` |
+| GET | `/api/v1/metrics/boards/:subTabId` | `MetricBoard  { subTabId, asOf, metrics[], charts[], breakdowns[], notices[] }` | `from · to   (the §3.7 date-range chip, both `YYYY-MM-DD`, both or neither)` | **404** when the sub-tab has no board, which is every sub-tab with a table. That | `getMetricBoard()` |
 | GET | `/api/v1/metrics/facets` | `Facets — powers the metrics-library sidebar's category grouping` | `view` | - | `getMetricFacets()` |
 
 ## `src/data/clients/myWork.ts`
@@ -409,6 +409,9 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/riders` | `Paginated<Rider>` | `q · status · churnRisk · page · pageSize · sort · filter · view=riders\|overdrawn` | - | `listRiders()` |
 | GET | `/api/v1/riders/:id` | `Rider` | - | - | `getRider()` |
+| GET | `/api/v1/riders/:id/movements` | `RiderMoneyMovements` | - | **404** when the rider does not exist | `getRiderMoneyMovements()` |
+| GET | `/api/v1/riders/:id/support` | `RiderSupportPresence` | - | **404** when the rider does not exist | `getRiderSupportPresence()` |
+| GET | `/api/v1/riders/:id/timeline` | `Paginated<RiderTimelineEvent> — newest first` | `page · pageSize · sort · filter (kind, at)` | **404** when the rider does not exist | `getRiderTimeline()` |
 | GET | `/api/v1/riders/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getRiderFacets()` |
 | GET | `/api/v1/riders/new` | `Paginated<NewRider>` | `q · page · pageSize · sort` | - | `listNewRiders()` |
 

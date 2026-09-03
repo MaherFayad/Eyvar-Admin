@@ -922,6 +922,7 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
     },
     {
       id: 'reasonCode',
+      sortField: 'reasonCode',
       header: t('queue.col.reason'),
       width: 176,
       dataType: 'enum',

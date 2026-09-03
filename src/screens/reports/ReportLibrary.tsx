@@ -31,9 +31,20 @@
  *               page header.
  *   §9.2        a report NAME is user content: never translated, and it carries
  *               its own direction inside an English UI (AC-898).
+ *
+ * ## An alert is an action on a report, not only a destination
+ *
+ * `Create alert` opens the rule form **with this row's report already chosen**
+ * (`AlertRuleDialog`'s `presetReportId`). Without it the only route in is the
+ * Alerts sub-tab, `New alert`, and then re-picking by name — from a list of up
+ * to 100 — the report the operator had just been standing on.
+ *
+ * It is not the row-click target and never could be: `Open` is (§11.2 allows
+ * one), and this one opens a form that writes.
  */
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
@@ -50,9 +61,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
-import { deleteReport, listReports } from '@/data/clients'
+import { EYVAR_TODAY, deleteReport, listReports } from '@/data/clients'
 import type { SavedReport } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { AlertRuleDialog } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
 
 export interface ReportLibraryProps {
@@ -62,6 +74,16 @@ export interface ReportLibraryProps {
   onOpen: (report: SavedReport) => void
   onNew: () => void
   views?: React.ReactNode
+  /**
+   * The day `Create alert` resolves the chosen report's series against.
+   *
+   * Optional, and defaulted to the mock clock's today rather than read from an
+   * ambient one inside the dialog — `ReportsScreen` derives a ticking `today`
+   * for `AlertsView` and can thread the same value here in one line. Recorded
+   * as a follow-up rather than taken, because that screen has another owner
+   * right now.
+   */
+  today?: string
   t: Translator
   language: Language
   dir: 'ltr' | 'rtl'
@@ -80,12 +102,17 @@ export function ReportLibrary({
   onSelectView,
   onOpen,
   onNew,
+  today = EYVAR_TODAY,
   t,
   language,
   dir,
 }: ReportLibraryProps) {
   const table = useIndexTable<SavedReport>({ mode: 'index', getRowId: (row) => row.id })
   const [pending, setPending] = useState<PendingDelete | null>(null)
+  /* The report `Create alert` was pressed on. Held rather than passed straight
+     into the dialog so the dialog's own reset effect is the single place the
+     preset is consumed. */
+  const [alertFor, setAlertFor] = useState<SavedReport | null>(null)
 
   const reports = useAsync((signal) => listReports({ ...table.params, view: table.view }, signal), {
     /* Both of the fetcher's inputs are here; delete calls `reports.refetch`. */
@@ -144,6 +171,11 @@ export function ReportLibrary({
     /* **P0-2 — the declared row-click target.** `Delete` is the other
        action on this table and must stay unreachable from a row click. */
     { label: t('rb.library.open'), onSelect: onOpen, rowClick: true },
+    {
+      /* Opens the rule form on THIS report. See the file header. */
+      label: t('rb.library.createAlert'),
+      onSelect: (row) => setAlertFor(row),
+    },
     {
       label: t('rb.library.delete'),
       onSelect: (row) => setPending({ report: row, dashboards: [], failed: false }),
@@ -214,6 +246,30 @@ export function ReportLibrary({
           error={{ message: t('rb.library.error'), onRetry: reports.refetch }}
         />
       </div>
+
+      {/* Mounted only while a report is chosen, so the dialog's reset effect
+          runs against a preset that exists rather than against `undefined` and
+          then again against a value. */}
+      {alertFor !== null && (
+        <AlertRuleDialog
+          open
+          onOpenChange={(open) => !open && setAlertFor(null)}
+          /* A CREATE. The preset is read only because this is `null` — see
+             `presetReportId`. */
+          rule={null}
+          presetReportId={alertFor.id}
+          today={today}
+          onSaved={(saved) => {
+            setAlertFor(null)
+            /* R9 / §5.1 — a toast for a mutation made inside a modal, naming
+               the object that was written. The library's own rows do not move,
+               so nothing else on this screen would confirm it. */
+            toast.success(t('rb.alert.toast.saved', { name: saved.name }))
+          }}
+          t={t}
+          language={language}
+        />
+      )}
 
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
         <AlertDialogContent>

@@ -261,6 +261,18 @@ describe('LocalisedText keys resolve in EN', () => {
   /**
    * Every field `data/types/` declares as `LocalisedText`. Keep in step with:
    * `grep -rn ': LocalisedText' src/data/types/`.
+   *
+   * **That grep is necessary and not sufficient, which is how `churnReason` got
+   * missed.** `Rider.churnReason` is typed `ChurnReason | null`, and
+   * `ChurnReason extends LocalisedText` — so it is a `LocalisedText` by every
+   * rule that matters and the string `: LocalisedText` appears nowhere near it.
+   * Sixteen `rider.churn.*` literals sat in `fixtures/riders.ts` unguarded, in
+   * the same shape and for the same reason the fourteen `fin.audit.*` keys did.
+   *
+   * A field whose type merely *extends* `LocalisedText` needs adding by hand.
+   * The AST walk this file's header keeps asking for is what would find them;
+   * until then, widen the grep to `grep -rn 'LocalisedText' src/data/types/` and
+   * read the `extends` lines too.
    */
   const LOCALISED_FIELDS = [
     'detail', // audit.ts:60
@@ -272,6 +284,12 @@ describe('LocalisedText keys resolve in EN', () => {
     'label', // ledger.ts:466
     'scenario', // pricing.ts:188
     'note', // pricing.ts:192
+    'churnReason', // rider.ts:135 — `ChurnReason extends LocalisedText`
+    /* payment.ts:232. Declared `LocalisedText | null` and simply never listed —
+       the grep would have found it. Its one key resolves today, so this adds
+       coverage rather than a fix; it is here so the second one does not have to
+       be found the way `fin.audit.*` was. */
+    'escalationReason',
   ] as const
 
   /* Double-escaped on purpose: this is a template literal, so `\\s` is what

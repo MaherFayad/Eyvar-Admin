@@ -35,7 +35,7 @@ describe('AC-01/AC-02 — the rail', () => {
   })
 })
 
-describe('AC-03 — 36 sub-tabs, distributed 6/10/7/6/7, unique paths', () => {
+describe('AC-03 — 37 sub-tabs, distributed 6/11/7/6/7, unique paths', () => {
   /**
    * **AC-03 was written for 34; the table now holds 36.** `D1a` admitted
    * `management-reports` (Management 6, total 35). **`D1b` splits Operations >
@@ -46,17 +46,17 @@ describe('AC-03 — 36 sub-tabs, distributed 6/10/7/6/7, unique paths', () => {
    * count test that cannot fail is not a count test.
    */
   it('has exactly 36 sub-tab rows', () => {
-    expect(SUB_TABS).toHaveLength(36)
+    expect(SUB_TABS).toHaveLength(37)
   })
 
   it('distributes them 6 / 10 / 7 / 6 / 7', () => {
     const counts = WORKSPACE_IDS.map((id) => SUB_TABS.filter((r) => r.workspaceId === id).length)
-    expect(counts).toEqual([6, 10, 7, 6, 7])
+    expect(counts).toEqual([6, 11, 7, 6, 7])
   })
 
   it('gives every sub-tab a unique path and a unique id', () => {
-    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(36)
-    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(36)
+    expect(new Set(SUB_TABS.map((r) => r.path)).size).toBe(37)
+    expect(new Set(SUB_TABS.map((r) => r.subTabId)).size).toBe(37)
   })
 
   it('numbers display order 1..n contiguously within each workspace', () => {
@@ -167,8 +167,8 @@ describe('§3.10 — page shapes', () => {
    * the reason it is written as two assertions rather than one: **every sub-tab
    * is single-column except Live Dispatch**, which is a monitor.
    */
-  it('gives 35 of the 36 sub-tabs the single-column shape', () => {
-    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(35)
+  it('gives 36 of the 37 sub-tabs the single-column shape', () => {
+    expect(SUB_TABS.filter((r) => r.shape === 'single')).toHaveLength(36)
     expect(SUB_TABS.filter((r) => r.shape === 'monitor').map((r) => r.subTabId)).toEqual([
       'operations-dispatch',
     ])
@@ -299,7 +299,12 @@ describe('§3.8 — route resolution', () => {
   })
 
   it('ignores the view param when resolving (rule 3, AC-10)', () => {
-    expect(findSubTabByPath('/operations/requests?view=instant')?.subTabId).toBe('operations-requests')
+    /* Operations gained a row when Requests split by channel into
+       `operations-ride-requests` and `operations-subscription-requests`. The view param is still ignored; what changed is
+       which path carries the channel. */
+    expect(findSubTabByPath('/operations/ride-requests?view=pending')?.subTabId).toBe(
+      'operations-ride-requests',
+    )
   })
 
   it('resolves an unknown path to null, so the shell can render not-found (rule 5, AC-12)', () => {

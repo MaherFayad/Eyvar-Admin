@@ -429,6 +429,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'planKey',
+        sortField: 'planKey',
         header: t('subs.col.plan'),
         width: 112,
         dataType: 'enum',
@@ -446,6 +447,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'vehicleClass',
+        sortField: 'vehicleClass',
         header: t('subs.col.class'),
         width: 112,
         dataType: 'enum',
@@ -495,6 +497,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'frozenUntil',
+        sortField: 'frozenUntil',
         header: t('subs.col.frozenUntil'),
         width: 128,
         dataType: 'date',
@@ -508,6 +511,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'refundedHalalas',
+        sortField: 'refundedHalalas',
         header: t('subs.col.refunded'),
         width: 128,
         align: 'end',

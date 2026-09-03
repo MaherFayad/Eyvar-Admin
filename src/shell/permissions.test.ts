@@ -180,7 +180,7 @@ describe('canWriteSubTab CAN return false — which nothing could make it do bef
     /* 29 after D1b: splitting Trips in two produced a second row carrying
        `live_ops`. The literal is kept rather than derived from the table,
        because a count asserted against the thing it counts asserts nothing. */
-    expect(writable.length).toBe(29)
+    expect(writable.length).toBe(30)
     for (const r of writable) expect(canWriteSubTab(owner, r), r.subTabId).toBe(true)
   })
 })
@@ -212,17 +212,19 @@ describe('AC-914 — the Dispatcher sees Operations and a one-row Admin', () => 
 
 /* D1b split Trips in two, so the Dispatcher's Operations count is 10 and both
    halves of the old Trips row are writable — six, not five. */
-describe('AC-915 — the Dispatcher gets ten Operations rows, six writable', () => {
+describe('AC-915 — the Dispatcher gets eleven Operations rows, seven writable', () => {
   const dispatcher = () => asRole('Dispatcher')
 
-  it('lists ten sub-tab rows', () => {
-    expect(visibleSubTabs(dispatcher(), table.subTabs, 'operations')).toHaveLength(10)
+  it('lists eleven sub-tab rows', () => {
+    expect(visibleSubTabs(dispatcher(), table.subTabs, 'operations')).toHaveLength(11)
   })
 
-  it('enables the write actions on Dispatch, Requests, Trips, Assurance and My Work', () => {
+  it('enables the write actions on Dispatch, both Requests queues, Trips, Assurance and My Work', () => {
     const enabled = [
       'dispatch',
-      'requests',
+      /* Requests split by channel — two rows now, both `live_ops`. */
+      'ride-requests',
+      'subscription-requests',
       'quick-rides',
       'subscription-trips',
       'assurance',
