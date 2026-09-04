@@ -1,3 +1,7 @@
+> **Archived round record.** Rulings here stay binding unless a later entry in
+> `docs/05-restructure/DECISIONS.md` or `docs/RULINGS.md` supersedes them. Check
+> `docs/RULINGS.md` before citing one.
+
 # 00 — Four decisions raised against the shell spec
 
 > **Phase 0, decision pass.** Owner: product-designer.

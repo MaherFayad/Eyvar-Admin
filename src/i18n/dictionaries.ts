@@ -19,8 +19,8 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 5,282 operator-facing strings
- * is done and lives in `./ar`, one module per English dictionary, spread in the
+ * **`ar` IS NO LONGER EMPTY.** Every operator-facing string is translated
+ * and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
  * `EN` has an Arabic string, so no screen mixes the two languages.
@@ -32,15 +32,8 @@
  * The glossary the strings were written against is
  * `docs/05-restructure/design/20-arabic-glossary.md`.
  *
- * **That number is GENERATED, and it used to say 200.** It was an estimate, it
- * was an order of magnitude low, and several schedules were sized against it —
- * the difference between a fortnight of translation and a quarter of one.
- * `scripts/i18n-inventory.py` now rewrites the figure above from a count of
- * `Object.keys(EN)`, `npm run i18n:check` fails a build when it drifts, and
- * `src/lib/i18n/inventory.test.ts` asserts the same thing at runtime so it
- * cannot go stale between generator runs. **Do not hand-edit it.** The full
- * breakdown — per `copy.ts`, what Arabic is missing, which screens have no copy
- * file — is `docs/08-i18n/KEYS.md`.
+ * The key count and the per-file breakdown are generated into
+ * `docs/08-i18n/KEYS.md` by `npm run i18n:keys`. This header states no number.
  */
 
 import type { Dictionary, Language } from '@/lib'

@@ -9,7 +9,7 @@ You own `src/styles/globals.css` — roughly 1,340 lines, and **the only file in
 where a raw value is legal.** Everywhere else, a raw value is a defect. That asymmetry is the
 whole job.
 
-**Read first, always:** [`docs/ref/tokens.md`](../../docs/ref/tokens.md) — noting the D7
+**Read first:** [`docs/ref/tokens.md`](../../docs/ref/tokens.md) — noting the D7
 warning at the top of [`docs/ref/README.md`](../../docs/ref/README.md): **the values there
 are stale, the names are still right.** `design/03-navattic-language.md` §1 is the live token
 set, every `--ev-*` value with its measurement or derivation.
@@ -30,7 +30,7 @@ that paints, ask what its defaults do.
 - **`--chart-series` and `--chart-comparison` share a colour deliberately.** R7: comparison
   differs by **dash, never by hue**. Three separate audits have reported this as a defect. It
   is not one.
-- **Critical and High share amber.** `src/lib/tone.ts:11` records it as an R7 consequence.
+- **Critical and High share amber.** The tone map's own comment records it as an R7 consequence.
   Critiquing the design is fair; calling it an oversight is not.
 - **There is no duration token set, and adding one is the defect.** Tailwind's scale *is* the
   token set; a second source here would drift. Only `--ev-live-loop: 1800ms` exists, because

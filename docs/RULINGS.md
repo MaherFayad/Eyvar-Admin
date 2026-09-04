@@ -1,0 +1,156 @@
+# Rulings index
+
+The one place that says which rule wins. This file holds links and one-line summaries;
+the text of a ruling lives where the link points. If a rule is not reachable from here it
+does not bind anyone.
+
+## Precedence
+
+1. **Standing owner overrides** (below).
+2. **Decisions** in [`05-restructure/DECISIONS.md`](05-restructure/DECISIONS.md), newest first.
+3. **`DESIGN.md` Rulings table** R1–R19 (text in [`06-design-reference/_partials/00-header.md`](06-design-reference/_partials/00-header.md)).
+4. **`DESIGN.md` §6.2 sanctioned deviations** D-1 onward (text in [`_partials/06-eyvar-mapping.md`](06-design-reference/_partials/06-eyvar-mapping.md); D-11a onward are appended in DECISIONS.md).
+5. **`DESIGN.md` §7–§9** (accessibility, Eyvar patterns, RTL).
+6. **`DESIGN.md` §1–§5**, which describe Shopify. Never cite a pixel figure from them (R13).
+
+Round rulings (R-n, R4-n, R5-n) sit at level 2: they were delegated decisions and bind until a
+later decision supersedes them.
+
+## ID namespaces
+
+The same digits mean different things with different prefixes. Write the exact form.
+
+| Form | Means | Text lives in |
+|---|---|---|
+| `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
+| `D1`…`D14`, `D1a` | Project decision | `05-restructure/DECISIONS.md` |
+| `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
+| `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
+| `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
+| `R4-1`…`R4-11` | Round 4 ruling | `05-restructure/design/07-rulings-r4.md` |
+| `R5-1`…`R5-14` | Round 5 ruling | `05-restructure/design/09-rulings-r5.md` and DECISIONS.md "Round 5" |
+| `AC-nnn` | Acceptance criterion | `05-restructure/specs/` |
+| `Q-n`, `V-n`, `B-n`, `F-n`, `W4-Fn` | Audit question or finding | the round document that raised it |
+
+`D7` is the Navattic decision. The §6.2 deviation with the same digit is `D-7`.
+
+## Standing owner overrides
+
+### Amplitude outranks `DESIGN.md` inside the report builder and metric boards (2026-09-04)
+
+The owner ruled that the report builder and the metric boards are to be a 1:1 copy of
+Amplitude, and that Amplitude fidelity outranks `DESIGN.md` there where the two conflict.
+Where a `DESIGN.md` rule is overridden this way, record the override in a comment at the
+rule's own site and add it to the list below. Overridden so far:
+
+- `globals.css` "there is no categorical chart palette": `--chart-s1`…`s6` and `--chart-fill-s1`…`s6` exist; `--chart-s1` is `--ev-brand`, so single-series charts are unchanged.
+- §3.7 "no gridlines beyond the axis baseline": `SeriesChart` draws horizontal gridlines.
+- §5.7 "helper text under fields, not tooltips": rail descriptions are `InfoHint` tooltips.
+
+Not overridden, and not to be assumed overridden: R7's "comparison differs by dash, never by
+hue", and `pairRefusal`'s rule for what may share one y-axis.
+
+## `DESIGN.md` rulings
+
+| ID | Ruling in one line |
+|---|---|
+| R1 | Banners are soft tinted cards everywhere. |
+| R2 | Save uses the same primary as every other primary; under D7 that is `--ev-ink`. |
+| R3 | The primary action is `--ev-ink` near-black; links are `--ev-blue-dk` with an underline (rewritten by D7). |
+| R4 | Numeric, currency and count columns right-align with tabular figures; this does not flip in Arabic. |
+| R5 | No red badge for lifecycle state; critical page-level state is a banner. |
+| R5a | The four permitted uses of red: a destructive button, one page-level banner, a breached-row edge marker, a map marker. |
+| R6 | Sentences take a period; fragments, labels and buttons do not. |
+| R7 | Five badge tones: success, warning, info, neutral, new. There is no critical tone. |
+| R8 | An illustration appears only on a whole-page, zero-records-ever empty state. |
+| R9 | A toast names the object exactly, one line, 60 characters; truncate the name, never the verb. |
+| R10 | One event, one surface: transient confirmation is a toast, a standing condition is a banner, never two banners. |
+| R11 | Spent under D7 (it reconciled Shopify nav widths); kept so citations resolve. |
+| R12 | §1.6 motion is SHOULD only; the binding motion rules are §7.6 and §8.1. |
+| R13 | Every px figure in §1–§5 is indicative, never binding; figures re-measured against Navattic stand. |
+| R14 | `Paid` is the success tone; the same label always takes the same tone. |
+| R15 | Badges and toasts are rounded rectangles (4px badge, 8px card and control); avatars are 32px circles (D7). |
+| R16 | All four banner tones are pale tinted cards. |
+| R17 | One warning tone; separate "waiting on them" from "waiting on you" by label, not fill. |
+| R18 | Ambient loops only to signal a live feed: opacity-only, 1200–2500ms, never below 0.4 opacity, never severity. |
+| R19 | `--ev-hairline-strong` is licensed only for the resting boundary of an unchecked control. |
+
+## Decisions
+
+Headings in `05-restructure/DECISIONS.md`. Grep the heading.
+
+| Heading |
+|---|
+| D1 — Information architecture: 5 workspaces, 34 sub-tabs |
+| D1a — Amendment to D1: 35 sub-tabs. Management gains **Reports** at order 6 |
+| D2 — Minimum viewport: 1280px |
+| D3 — Stack |
+| D4 — Role model — **OPEN, needed before 0.7** |
+| D5 — The sub-tab column never collapses |
+| D6 — The navigation has its own background, one step darker than the canvas |
+| D7 — Navattic replaces Shopify as the **visual** reference |
+| D8 — A row kebab is for *many* actions, never for one or two |
+| D9 — ⌘K is a command centre, not a search box |
+| D10 — Two rulings from the owner on chrome, applied immediately |
+| D11 — The index toolbar is TWO rows, and search is a field |
+| D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception |
+| D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen |
+| D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language |
+| D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
+| D-12 — peek is the drawer, not a sixth surface |
+| D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused |
+
+## Round rulings
+
+Round 3, [`design/00-decisions-r3.md`](05-restructure/design/00-decisions-r3.md):
+
+| Heading |
+|---|
+| 1. R-3 — the shadow scale |
+| 2. R-1 — shadcn `empty`: **upheld. Do not add. `components.json` stays frozen.** |
+| 3. F-9 — six vs seven: **seven. §18's prose was wrong; §1.2's table is normative.** |
+| 4. Q12 — badge-tone roll-up: **0.6's escalation confirmed, with one clause added.** |
+
+Round 4, [`design/07-rulings-r4.md`](05-restructure/design/07-rulings-r4.md):
+
+| Heading |
+|---|
+| 1. R4-1 · Q-RB-4 — the series palette. **Small multiples. Do not mint the palette.** |
+| 2. R4-2 · Three §6.4 rows, and one new page shape |
+| 3. R4-3 · The shell has **four** layers, not five. Re-authentication is a modal. |
+| 4. R4-4 · The `MetricBoard` contract — breakdowns, captions, notices |
+| 5. R4-5 · W4-F2 — the delta chip is **neutral**. §3.7's colour MUST is void. |
+| 6. R4-6 · W4-F1 — Market & Zones is **both**, and the table is primary |
+| 7. R4-7 · R15, the stadium, and the avatar |
+| 8. R4-8 · The elevation gap. **Real. Tier 0.5, and today's build is the interim.** |
+| 9. R4-9 · D-11 — who owns focus when a popover hands off to a layer |
+| 10. R4-10 · Severity resolution, and the nav `attention` cap |
+| 11. R4-11 · Q-114 — the bar a board must clear, applied to Performance |
+
+Round 5, [`design/09-rulings-r5.md`](05-restructure/design/09-rulings-r5.md):
+
+| Heading |
+|---|
+| 1. R5-1 · V-2 — the unexplained em dash |
+| 2. R5-2 · AC-605's hole |
+| 3. R5-3 · The declaration-order clause is deleted, and it was mine |
+| 4. R5-4 · B-3 — the caption's scope was drawn wrong |
+| 5. R5-5 · B-1 — two numeric columns, and the slot that should not exist |
+| 6. R5-6 · B-2 / V-11 — the bar earns its place; the token does not |
+| 7. R5-7 · B-8 — `MetricBreakdownRow.labelKey` gains a union |
+| 8. R5-8 · V-3 — a breakdown never exceeds half the content width |
+| 19. R5-11 completed — the field it needed, and two measured results |
+| 20. R5-9 corrected — §18.1's guard was written the way §4.2 was, and that is the whole objection |
+| 21. Three boards fail R5-10, not two — and `avgRenewalRate` is a label problem before it is a caption one |
+| 22. The fourth population — and R5-14, which is what stops there being a fifth |
+| 24. R5-10 was over-specified — the `mod 4` clause never binds |
+
+The reconciled audit, [`design/17-reconciled-findings.md`](05-restructure/design/17-reconciled-findings.md),
+lists which audit claims survived verification and which did not. Its §3 is the reason a
+grep is a lead and never a finding.
+
+## Adding a ruling
+
+Append it to `05-restructure/DECISIONS.md` with the next `D` number and the date, then add
+one row here. A ruling that lives only in a source comment, a chat, or a memory file does
+not exist.

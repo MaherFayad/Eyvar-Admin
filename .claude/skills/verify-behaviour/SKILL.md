@@ -93,8 +93,8 @@ Run the suite. A verdict written from reading code is not a verdict.
 
 ## Reference
 
-Check the small file, not the 5,761-line document:
+Check the small file, not the whole document:
 `docs/ref/states.md` · `docs/ref/surfaces.md` · `docs/ref/copy.md`
 
-Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
-reasoning or the evidence behind a rule.
+Index: `docs/ref/README.md`. For a section's full text read its partial in
+`docs/06-design-reference/_partials/`; which rule wins is `docs/RULINGS.md`.

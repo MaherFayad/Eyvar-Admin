@@ -1,19 +1,9 @@
 /**
- * The dictionary header states a number. This asserts it is the true one.
- *
- * `src/i18n/dictionaries.ts` said **"200 operator-facing strings"** for long
- * enough that plans were sized against it. The real figure is over four
- * thousand — an order of magnitude, and the difference between a fortnight of
- * translation and a quarter of one.
- *
- * `scripts/i18n-inventory.py` regenerates the number and `npm run i18n:check`
- * fails a stale one, but that runs against the SOURCE TEXT. This runs against
- * `Object.keys(EN)` — the thing the number is actually about — so the two agree
- * on the count and not merely on the file's contents.
+ * The Arabic dictionary is complete and consistent with the English one.
+ * The key count itself is generated into `docs/08-i18n/KEYS.md`; no test
+ * asserts a number quoted in a comment.
  */
 
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { AR, EN } from '@/i18n/dictionaries'
 /* The two screen dictionaries `dictionaries.ts` has not registered. They are
@@ -24,23 +14,6 @@ import { CORPORATE_EN } from '@/screens/operations/corporate/copy'
 import { DISPATCH_EN } from '@/screens/operations/dispatch/copy'
 import { PLURAL_CATEGORIES } from './plural'
 import { placeholdersIn } from './translate'
-
-/* `process.cwd()` rather than `import.meta.url`: under jsdom the module URL is
-   an `http://localhost/` origin and `readFileSync` refuses it. Vitest runs with
-   the project root as cwd. */
-const SOURCE = readFileSync(resolve(process.cwd(), 'src/i18n/dictionaries.ts'), 'utf8')
-
-describe('the dictionary header', () => {
-  it('states the real key count', () => {
-    const stated = /translation of ([\d,]+) operator-facing strings/.exec(SOURCE)?.[1]
-    expect(stated, 'the header sentence naming the count has been reworded').toBeDefined()
-    expect(Number(stated?.replace(/,/g, ''))).toBe(Object.keys(EN).length)
-  })
-
-  it('does not still say 200', () => {
-    expect(SOURCE).not.toContain('translation of 200 operator-facing strings')
-  })
-})
 
 describe('AR is complete', () => {
   /* This block used to guard `AR = {}` as AC-74's fixture, and the fixture has

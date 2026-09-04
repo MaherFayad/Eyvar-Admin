@@ -16,7 +16,7 @@ already mapped, and if the answer is "none — build it" you need to know that n
 ## Adding a primitive
 
 ```bash
-pnpm dlx shadcn@latest add button badge dialog
+npx shadcn@latest add button badge dialog
 ```
 
 Never hand-write a component the CLI can add. `components.json` must have `"rtl": true`
@@ -83,8 +83,8 @@ Then run `/token-audit` on what you touched.
 
 ## Reference
 
-Check the small file, not the 5,761-line document:
+Check the small file, not the whole document:
 `docs/ref/components.md` · `docs/ref/tokens.md` · `docs/ref/states.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md`
 
-Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
-reasoning or the evidence behind a rule.
+Index: `docs/ref/README.md`. For a section's full text read its partial in
+`docs/06-design-reference/_partials/`; which rule wins is `docs/RULINGS.md`.

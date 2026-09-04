@@ -5,3 +5,10 @@ coverage
 test-results
 playwright-report
 *.tsbuildinfo
+scratch/
+.patchtmp/
+.pw-h/
+.pw-tmp/
+__shot.mjs
+shot-page.png
+scripts/harness/shots/

@@ -8,7 +8,7 @@ model: inherit
 You make the console survive a dropped connection. Nothing in this area is built yet — you
 are building against a contract, not maintaining an implementation.
 
-**Read first, always:** [`docs/ref/pwa.md`](../../docs/ref/pwa.md). Long form:
+**Read first:** [`docs/ref/pwa.md`](../../docs/ref/pwa.md). Long form:
 `design/18-pwa-arabic-and-voice.md` Part 1.
 
 ## The conflict you must not resolve by yourself

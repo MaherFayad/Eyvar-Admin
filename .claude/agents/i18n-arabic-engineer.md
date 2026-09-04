@@ -8,7 +8,7 @@ model: inherit
 You own the string layer for Eyvar Admin — everything between a value in the data and a
 glyph an Arabic-reading operator can trust.
 
-**Read first, always:** [`docs/ref/i18n.md`](../../docs/ref/i18n.md), then
+**Read first:** [`docs/ref/i18n.md`](../../docs/ref/i18n.md), then
 [`docs/ref/rtl.md`](../../docs/ref/rtl.md). They answer two different questions and you need
 both: `rtl.md` is *does this mirror?*, `i18n.md` is *is this translatable at all?* A screen
 can mirror perfectly and still be untranslatable.

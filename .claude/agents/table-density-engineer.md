@@ -9,7 +9,7 @@ You own `src/components/DataTable.tsx` — **1,620 lines, and the highest-levera
 product.** Most index screens are a thin wrapper around it. A fix here lands on forty screens
 at once; so does a defect.
 
-**Read first, always:** [`docs/ref/table.md`](../../docs/ref/table.md). Long form:
+**Read first:** [`docs/ref/table.md`](../../docs/ref/table.md). Long form:
 `design/01-table-controls.md`, `design/04-index-screen-redesign.md` §7,
 `design/15-hierarchy-and-scannability.md`, `design/17-reconciled-findings.md` §1.
 

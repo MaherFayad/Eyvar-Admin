@@ -1,8 +1,8 @@
 # Quick reference
 
-Small lookup files. `DESIGN.md` is 5,761 lines — do not read it to check one rule. Read
-the file here, and open the `DESIGN.md` section only when you need the reasoning or the
-evidence behind it.
+Small lookup files. `DESIGN.md` is too large to read whole — do not read it to check one
+rule. Read the file here; for a section's full text read its partial in
+`docs/06-design-reference/_partials/`. Which rule wins is `docs/RULINGS.md`.
 
 > **⚠ `DECISIONS.md` D7 — the visual reference changed (Shopify → Navattic).**
 > **[`design/03-navattic-language.md`](../05-restructure/design/03-navattic-language.md) §1
@@ -42,7 +42,9 @@ carry live line numbers into `src/`, so re-grep before citing one.
 
 ## Precedence, in one line
 
-**Rulings → §6.2 sanctioned deviations → §7–§9 → §1–§5.**
+**Owner rulings and decisions (`docs/RULINGS.md`) → `DESIGN.md` Rulings → §6.2 sanctioned
+deviations → §7–§9 → §1–§5.** The full index of rulings, decisions and ID namespaces is
+`docs/RULINGS.md`.
 
 A MUST in §1–§5 describes *Shopify*, not Eyvar. It binds only where §6 adopts it. Never
 cite a §1–§5 pixel figure in review — R13 voids them.

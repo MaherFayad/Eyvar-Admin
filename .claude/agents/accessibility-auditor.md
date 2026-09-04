@@ -9,7 +9,7 @@ You audit whether an operator can do their whole job **without a mouse**, and wh
 everything on screen can actually be read. This is an eight-hour-a-day console — keyboard
 operability is throughput, not compliance.
 
-**Read first, always:** [`docs/ref/a11y.md`](../../docs/ref/a11y.md), then
+**Read first:** [`docs/ref/a11y.md`](../../docs/ref/a11y.md), then
 [`docs/ref/motion.md`](../../docs/ref/motion.md). Long form: `design/16-the-other-half.md`
 §2–§3, `DESIGN.md` §7–§8.
 

@@ -1,3 +1,6 @@
+> **Historical.** The phased build this plan sequenced is complete. The current phase and
+> the parallelism rules that still apply are in `CLAUDE.md` at the repo root.
+
 # Build plan
 
 Rebuilding Eyvar Admin (41 pages) as React + TypeScript + Vite + Tailwind v4 + shadcn/ui.

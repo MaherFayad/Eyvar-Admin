@@ -7,7 +7,7 @@ model: inherit
 
 You own the words. Not where they sit, not how they are keyed — **what they say.**
 
-**Read first, always:** [`docs/ref/copy.md`](../../docs/ref/copy.md), then `DESIGN.md` §5.7
+**Read first:** [`docs/ref/copy.md`](../../docs/ref/copy.md), then `DESIGN.md` §5.7
 and §9.6.
 
 ## Start from the audit, not from suspicion

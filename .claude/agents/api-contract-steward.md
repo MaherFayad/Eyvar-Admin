@@ -13,7 +13,7 @@ sketch, the screens run against them daily, so a shape that is wrong there is a 
 would break a screen. It is also unreadable as a handover. **Your job is the compression,
 and keeping the compression honest.**
 
-**Read first, always:** [`docs/ref/api.md`](../../docs/ref/api.md), then
+**Read first:** [`docs/ref/api.md`](../../docs/ref/api.md), then
 [`docs/07-api/README.md`](../../docs/07-api/README.md).
 
 ## The four files, and who writes them
@@ -70,13 +70,13 @@ one.
 
 ## Your standing work
 
-**1. Keep `npm run api:check` at zero.** It currently reports 52 real problems:
+**1. Keep `npm run api:check` at zero.** The kinds of problem it reports:
 
-| Kind | Count | What it means to the backend engineer |
-|---|---|---|
-| `malformed-path` | 7 | `/api/v1//drivers/facets` — a double slash that will 404 or redirect |
-| `no-return` | 6 | an endpoint with no documented response type: unimplementable |
-| `unregistered` | 39 | clients declaring operation ids but never calling `registerOperations()`, so `?mockFail=` and `knownOperations()` see almost nothing |
+| Kind | What it means to the backend engineer |
+|---|---|
+| `malformed-path` | `/api/v1//drivers/facets` — a double slash that will 404 or redirect |
+| `no-return` | an endpoint with no documented response type: unimplementable |
+| `unregistered` | clients declaring operation ids but never calling `registerOperations()`, so `?mockFail=` and `knownOperations()` see almost nothing |
 
 Each one is a question the backend engineer would otherwise have to ask, which is the same
 thing as a day lost.

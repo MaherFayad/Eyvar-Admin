@@ -1,18 +1,10 @@
-# Name
-### eyvar-admin
+# Eyvar Admin
 
-# Synopsis
+The Eyvar operations console. Start with [`CLAUDE.md`](CLAUDE.md): stack, commands, where
+the rules live, and how work flows.
 
-
-# Description
-
-# Example
-
-# Install:
-`npm install eyvar-admin`
-
-# Test:
-`npm test`
-
-#License:
-
+```
+npm install
+npm run dev
+npm run test:changed
+```

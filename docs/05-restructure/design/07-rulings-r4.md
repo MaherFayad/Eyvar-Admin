@@ -1,3 +1,7 @@
+> **Archived round record.** Rulings here stay binding unless a later entry in
+> `docs/05-restructure/DECISIONS.md` or `docs/RULINGS.md` supersedes them. Check
+> `docs/RULINGS.md` before citing one.
+
 # 07 — Round 4 rulings: twelve questions from four agents, settled in one pass
 
 > **Owner:** product-designer. **Ruling pass, not a screen spec.**

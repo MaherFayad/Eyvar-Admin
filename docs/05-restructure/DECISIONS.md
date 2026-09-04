@@ -5,6 +5,56 @@ repo. Do not re-litigate one in a spec or a review — if it is wrong, change it
 
 ---
 
+## Index
+
+Grep the heading to jump. **Decided** binds; **Open** waits on the owner; **Practice** is a
+working rule; **Log** is a round's record. `docs/RULINGS.md` is the cross-document index and
+precedence order; new decisions are appended here with the next number and a date, then
+given one row there.
+
+| Heading | Status |
+|---|---|
+| D1 — Information architecture: 5 workspaces, 34 sub-tabs | Decided |
+| D1a — Amendment to D1: 35 sub-tabs. Management gains **Reports** at order 6 | Decided |
+| D2 — Minimum viewport: 1280px | Decided |
+| D3 — Stack | Decided |
+| D4 — Role model — **OPEN, needed before 0.7** | Decided |
+| D5 — The sub-tab column never collapses | Decided |
+| D6 — The navigation has its own background, one step darker than the canvas | Decided |
+| D7 — Navattic replaces Shopify as the **visual** reference | Decided |
+| D8 — A row kebab is for *many* actions, never for one or two | Decided |
+| D9 — ⌘K is a command centre, not a search box | Decided |
+| D10 — Two rulings from the owner on chrome, applied immediately | Decided |
+| D11 — The index toolbar is TWO rows, and search is a field | Decided |
+| D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception | Decided |
+| D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen | Decided |
+| D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language | Decided |
+| AWAITING THE OWNER'S SIGNATURE — seven items | Open |
+| OPEN AFTER WAVE R4-4 — four items, none blocking | Open |
+| OPEN AFTER WAVE 3 (FINANCIALS DATA) — six spec findings for product-owner | Open |
+| OPEN AFTER THE FINANCIALS MONEY-FLOW DESIGN — two questions for Finance | Open |
+| OPEN AFTER THE REPORT-BUILDER SEMANTIC LAYER — three that outlive the module | Open |
+| BUILD SLOT — the zone-health table (owner: main, scheduled here so it is not lost again) | Open |
+| PRACTICE — a document may not tick its own acceptance criterion | Practice |
+| CARRIED — items owed to the AUTH BUILD, which has not started | Open |
+| PRACTICE — three rules from R5 §19–§20 that outlive the feature | Practice |
+| PRACTICE — assert the reason, not the presence | Practice |
+| PRACTICE — a ratio across two populations is wrong even when both numbers are right | Practice |
+| PRACTICE — four rules from R5 §23 | Practice |
+| PRACTICE — writing a rule about code without reading the code, in both directions | Practice |
+| SEQUENCING — D15 comes first, and the tile-count questions are HELD behind it | Open |
+| PRACTICE — two more, both about what a rule may claim | Practice |
+| PRACTICE — a negative assertion can pass vacuously, and that is a false tick in test form | Practice |
+| Round 5 — the eight delegated rulings, 2026-09-01 | Log |
+| Round 5 addendum — four rulings raised by the build, 2026-09-01 | Log |
+| Round 5 addendum 2 — the conversation-composer design pass, 2026-09-01 | Log |
+| Round 5 addendum 3 — AC-39's word list, 2026-09-01 | Log |
+| Round 5 addendum 4 — credential authority, 2026-09-01 | Log |
+| Remediation amendment, 2026-09-02 | Log |
+| D-11a — who owns focus when a menu hands off to a layer: **the layer wins** | Decided |
+| D-12 — peek is the drawer, not a sixth surface | Decided |
+| D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused | Decided |
+
 ## D1 — Information architecture: 5 workspaces, 34 sub-tabs
 
 > **Amended by D1a — the count is 35.** The heading keeps its original number on

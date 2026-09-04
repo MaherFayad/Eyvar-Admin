@@ -164,7 +164,7 @@ export default defineConfig({
      * **15 s, not vitest's default 5 s — a wait budget, not a licence for slow
      * tests.**
      *
-     * The suite is ~2 300 tests across 83 files, and the heaviest render a whole
+     * The suite is large, and the heaviest tests render a whole
      * routed shell in jsdom, type into a debounced search field and wait for the
      * re-query to resolve. Those cost ~1.8 s alone and comfortably exceed 5 s
      * when a dozen workers share one machine.

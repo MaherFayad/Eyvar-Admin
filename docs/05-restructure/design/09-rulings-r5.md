@@ -1,3 +1,7 @@
+> **Archived round record.** Rulings here stay binding unless a later entry in
+> `docs/05-restructure/DECISIONS.md` or `docs/RULINGS.md` supersedes them. Check
+> `docs/RULINGS.md` before citing one.
+
 # 09 — Round 5 rulings: eight questions from three build passes and one visual audit
 
 **Rules:** `design/07-rulings-r4.md` **R4-4** §4.1 / §4.2 / §4.3 (amended here, in place of

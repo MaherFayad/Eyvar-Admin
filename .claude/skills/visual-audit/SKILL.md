@@ -38,8 +38,9 @@ illustration only when whole-page and zero-records-ever (R8).
 
 ## Pass 3 — Reference comparison
 
-Capture the screen with Playwright, then open the equivalent Shopify screenshot from
-`docs/06-design-reference/shopify-admin-web/` and compare side by side.
+Capture the screen with Playwright, then open the Navattic frame for the visual treatment
+(`docs/06-design-reference/navattic-web/`) and the equivalent Shopify screenshot for
+structure (`docs/06-design-reference/shopify-admin-web/`) and compare side by side.
 
 You are **not** looking for a pixel match — Eyvar is denser by sanctioned deviation D-2.
 You are looking for structural divergence: actions in the wrong place, a page header
@@ -97,8 +98,8 @@ can.
 
 ## Reference
 
-Check the small file, not the 5,761-line document:
+Check the small file, not the whole document:
 `docs/ref/rulings.md` · `docs/ref/tokens.md` · `docs/ref/components.md` · `docs/ref/a11y.md` · `docs/ref/rtl.md` · `docs/ref/screenshots.md`
 
-Index: `docs/ref/README.md`. Open a `DESIGN.md` section only for the
-reasoning or the evidence behind a rule.
+Index: `docs/ref/README.md`. For a section's full text read its partial in
+`docs/06-design-reference/_partials/`; which rule wins is `docs/RULINGS.md`.

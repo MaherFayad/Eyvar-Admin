@@ -32,7 +32,7 @@ correction produced by a narrower check than the original is worse than the orig
 Three separate audits did this:
 - `--chart-series` and `--chart-comparison` share a colour → deliberate, R7:
   *"differs by DASH, never by hue."*
-- Critical and High share amber → `src/lib/tone.ts:11` documents it as an R7 consequence.
+- Critical and High share amber → the tone map's own comment documents it as an R7 consequence.
 - `AR: Dictionary = {}` → `dictionaries.ts:6–27` explains it as the AC-74 fixture.
 - Dispatch's hardcoded `42s` / `96.4%` / `78.2%` → already tracked at `:469` with a
   mitigation.

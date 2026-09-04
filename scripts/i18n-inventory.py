@@ -14,11 +14,10 @@ WHY THIS EXISTS
 
 Two numbers were load-bearing and neither was measured.
 
-1. `src/i18n/dictionaries.ts` said "200 operator-facing strings" in a header that
-   several plans were sized against. The real figure is over four thousand -- an
-   order of magnitude out, which is the difference between a fortnight of
-   translation and a quarter of it. A hand-typed count goes stale the first day
-   somebody adds a screen, so this emits it and a test asserts the header agrees.
+1. `src/i18n/dictionaries.ts` once said "200 operator-facing strings" in a
+   header that plans were sized against; the real figure was over four
+   thousand. No source comment states the count any more. This emits it into
+   `docs/08-i18n/KEYS.md`, which is the only place it lives.
 
 2. `t(key, { defaultValue: 'Trips' })` puts the English string in a `.tsx`, where
    `translate.ts` reaches it as a THIRD fallback the missing-key guard never
@@ -74,7 +73,6 @@ DECL = re.compile(
 # frozen copy; anything else that matched above is dropped by this filter.
 NAMED_EN = re.compile(r'(?:_EN|^EN)$')
 DEFAULT_VALUE = re.compile(r'\bdefaultValue\s*:')
-HEADER_COUNT = re.compile(r'translation of ([\d,]+) operator-facing strings')
 
 
 def read(path):
@@ -443,18 +441,6 @@ def render(data, budget):
     return '\n'.join(out) + '\n'
 
 
-def header_number(en_count):
-    """The one sentence in `dictionaries.ts` that used to say "200".
-
-    Returns `(current_source, wanted_source)`. Nothing else in that file is
-    touched: this owns a NUMBER inside a docblock, not the module.
-    """
-    src = read(DICTIONARIES)
-    want = HEADER_COUNT.sub(
-        lambda m: m.group(0).replace(m.group(1), '{:,}'.format(en_count)), src, count=1)
-    return src, want
-
-
 def colliding_keys():
     """Keys defined in more than one dictionary with DIFFERENT values.
 
@@ -482,7 +468,6 @@ def main():
     check = '--check' in sys.argv
     data = build()
     measured = data['totals']['defaultValue']
-    header_is, header_want = header_number(data['totals']['en'])
 
     budget = json.loads(read(BUDGET_PATH))['defaultValue'] if os.path.exists(BUDGET_PATH) else measured
 
@@ -522,10 +507,6 @@ def main():
                 for f, v in sorted(d.items()):
                     print('      %-56s %r' % (f, v))
             failed = True
-        if header_is != header_want:
-            print('stale: %s -- the header count is not %d. Run `npm run i18n:keys`.'
-                  % (rel(DICTIONARIES), data['totals']['en']))
-            failed = True
         if failed:
             return 1
         print('key inventory is current: %d keys, %d in EN, %d defaultValue sites at ceiling %d'
@@ -550,9 +531,6 @@ def main():
     md = render(data, ceiling)
     for p, want in ((md_path, md), (js_path, js)):
         io.open(p, 'w', encoding='utf-8', newline='\n').write(want)
-    if header_is != header_want:
-        io.open(DICTIONARIES, 'w', encoding='utf-8', newline='\n').write(header_want)
-        print('  rewrote the count in %s' % rel(DICTIONARIES))
     print('wrote %d keys across %d copy.ts files (%d reachable from EN, %d unregistered)'
           % (data['totals']['keys'], data['totals']['copyFiles'],
              data['totals']['en'], data['totals']['unregisteredKeys']))
