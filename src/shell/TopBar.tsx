@@ -21,12 +21,9 @@
  * the new D-4 — **do not "fix" it**.
  *
  * Rules applied
- *   §4 slot 1   back arrow: 28 × 28 icon button, present when `route.shape` is
- *               `detail` or `bleed`, **absent on sub-tab index routes**.
- *               Derived from the route's SHAPE, never from a stack depth —
- *               this retires `navStack.length` (`:7005`, D-L5). It **mirrors**
- *               in Arabic, at string-construction time via `mirrorGlyph`,
- *               never with CSS (§9.5).
+ *   §4 slot 1   **EMPTY on every route (O11).** The back arrow lives beside the
+ *               page title, where the eye lands; a detail route drew two, both
+ *               named `Back` and both calling `navigate(-1)`. See `PageHeader`.
  *   §4 slot 2   **DELETED — `02-visual-refinement.md` V4.** The `Title ›
  *               Subtitle` route trail is gone and the slots renumber to
  *               1, 2, 3a–3d. §4 justified the trail as wayfinding and aligned
@@ -67,25 +64,22 @@
  */
 
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { formatCount, mirrorGlyph } from '@/lib'
+import { formatCount } from '@/lib'
 import type { ThemeChoice } from '@/hooks'
-import type { Direction, Language, Translate } from '@/lib'
+import type { Language, Translate } from '@/lib'
 import type { Notification, Session } from '@/data/types'
 import { AccountMenu } from './AccountMenu'
 import { GlobalSearch } from './GlobalSearch'
 import { NotificationBell } from './NotificationBell'
 import type { ShellState } from './ShellContext'
-import type { RouteState } from './routeState'
 
 export interface TopBarProps {
-  route: RouteState
   shell: ShellState
   t: Translate
-  dir: Direction
   language: Language
   onOpenEntity: (entityId: string) => void
   onOpenNotifications: () => void
@@ -125,10 +119,8 @@ export interface TopBarProps {
 }
 
 export function TopBar({
-  route,
   shell,
   t,
-  dir,
   language,
   onOpenEntity,
   onOpenNotifications,
@@ -144,14 +136,12 @@ export function TopBar({
   menu = null,
   compact = false,
 }: TopBarProps) {
-  const navigate = useNavigate()
   const session: Session | null = shell.session
 
   return (
     <header className="flex h-topbar shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-      {/* Slot 1 — the back arrow, and nothing else. V4 deleted the route trail
-          that used to sit beside it, so on an index route this half of the bar
-          is deliberately empty. */}
+      {/* Slot 1 — empty on every route (O11): V4 deleted the route trail and
+          the back arrow moved to the page header, beside the title. */}
       {/* `flex-1` on both outer slots is what centres the field on the viewport
           above the breakpoint (§2.1). Below it there is no width to centre
           anything in, so the two slots shrink to their contents and the field
@@ -165,19 +155,6 @@ export function TopBar({
             search field and four chips to reach the navigation. Above the
             breakpoint this is `null` and the bar is unchanged. */}
         {menu}
-        {route.showsBackArrow && (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t('shell.topbar.back')}
-            onClick={() => navigate(-1)}
-          >
-            {/* §9.5 — mirrored at STRING-CONSTRUCTION time, never with CSS. */}
-            <span aria-hidden="true" className="text-base leading-none">
-              {mirrorGlyph('←', dir)}
-            </span>
-          </Button>
-        )}
       </div>
 
       {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}

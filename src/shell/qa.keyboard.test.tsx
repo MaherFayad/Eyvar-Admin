@@ -16,6 +16,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { disableMockLatency, getRouteTable, resetDataLayer } from '@/data/clients'
 import { createTranslator, resetDefaultUiStores } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
+import { AppRoutes } from '@/routes'
 import { AppLayout } from './AppLayout'
 import { ShellProvider } from './ShellContext'
 import { ShellLayer } from './ShellLayer'
@@ -239,21 +240,20 @@ describe('AC-65 — "Every icon-only control in the shell has an accessible name
     expect(screen.getByRole('link', { name: 'Eyvar' })).toBeInTheDocument()
   })
 
-  it('names the back arrow on a level-3 detail route', async () => {
+  it('names the ONE back arrow on a level-3 detail route, in the page header (O11)', async () => {
     render(
-      <MemoryRouter initialEntries={['/operations/people/applications/APP-2201']}>
+      <MemoryRouter initialEntries={['/operations/corporate/CORP-001']}>
         <ShellProvider>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route path="/operations/people/applications/:applicantId" element={<div>detail</div>} />
-            </Route>
-          </Routes>
+          <AppRoutes />
         </ShellProvider>
       </MemoryRouter>,
     )
-    expect(
-      await screen.findByRole('button', { name: en('shell.topbar.back') }),
-    ).toBeInTheDocument()
+    const back = await screen.findByRole('button', { name: en('shell.topbar.back') })
+    /* O11 — the page header's arrow is the one that survives. The top bar drew
+       a second one, also named `Back`, also calling `navigate(-1)`. */
+    expect(screen.getAllByRole('button', { name: en('shell.topbar.back') })).toHaveLength(1)
+    expect(screen.getByRole('banner')).not.toContainElement(back)
+    expect(screen.getByRole('main')).toContainElement(back)
   })
 
   it('leaves no button or link in the shell chrome without an accessible name', async () => {
