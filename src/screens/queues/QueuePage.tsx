@@ -87,11 +87,8 @@ function toTabs(views: readonly SubTabView[], t: Translate): readonly ToolbarTab
  * So `defaultView` is a constant on each screen, named in that screen's file
  * with the sentence from §5.3 / §6.3 / §7.3 / §8.9 / §9.3 that chose it.
  *
- * **This is a divergence from the route table that I could not close in my own
- * files.** The spec's §12 asks mock-data-engineer for `pending` → `needs-decision`
- * (and for it to become default), for `all` to stop being Requests' default, and
- * for `all` views on Assurance and Fairness. None of those landed, and
- * `routeTable.ts` has a single owner. Reported rather than edited.
+ * §12's `pending` → `needs-decision` rename has landed (T3.2). The `all` views
+ * it also asked for on Assurance and Fairness have not.
  */
 export function useQueueViews(
   row: SubTabRoute,

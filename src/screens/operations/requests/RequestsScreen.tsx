@@ -117,16 +117,9 @@ import { REQUESTS_EN } from './copy'
 /**
  * **Q-32 — a work queue's default view is its open work, not `All`.**
  *
- * §5.3 asks for this view to be *renamed* `needs-decision` and made the route
- * table's default; `routeTable.ts:280` still declares `pending` and still marks
- * `all` default. That file has a single owner, so the rename is reported and
- * the **default is set here**, which is the half that lives in my files.
- *
- * The view is `searching ∪ offered` (`reqStatusMatch`, `:10046`). Note what it
- * therefore excludes: `no-drivers`, which is the breach state and *is* open
- * work. That is **F-5 restated** — the client's `pending` predicate inherits the
- * legacy grouping — and it is why the breach banner counts through the `open`
- * boolean rather than through this view.
+ * §5.3's rename has landed: the route table declares `needs-decision` and the
+ * client's predicate is `searching ∪ offered ∪ no-drivers` (T3.2), so the
+ * breach state the banner counts is now on the tab that opens by default.
  */
 /**
  * The captain picker's query, hoisted to module scope so it can be a **cache
@@ -142,7 +135,7 @@ import { REQUESTS_EN } from './copy'
  */
 const ACTIVE_CAPTAINS_QUERY = { status: 'active', pageSize: 50 } as const
 
-const DEFAULT_VIEW = 'pending'
+const DEFAULT_VIEW = 'needs-decision'
 
 /** §5.5 — the statuses after which nothing is owed. `no-drivers` is NOT one. */
 const TERMINAL: readonly RequestStatus[] = ['assigned', 'expired', 'cancelled']
@@ -543,7 +536,7 @@ const CLEARED_BODY: Readonly<Record<string, string>> = {
   all: 'requests.empty.cleared.all',
   instant: 'requests.empty.cleared.instant',
   subscription: 'requests.empty.cleared.subscription',
-  pending: 'requests.empty.cleared.needsDecision',
+  'needs-decision': 'requests.empty.cleared.needsDecision',
   assigned: 'requests.empty.cleared.assigned',
   expired: 'requests.empty.cleared.expired',
 }
