@@ -3,7 +3,7 @@
  *
  * Heading, an optional note and an uppercase tracked fact line at the
  * inline-start; one to three figures at the inline-end, each a label above a
- * `--text-kpi` numeral with its unit on a small line. Flat, no card (V-1).
+ * `--text-kpi` numeral with its unit beside it. Flat, no card (V-1).
  */
 
 import type { ReactNode } from 'react'
@@ -17,11 +17,11 @@ const MONEY_UNIT = 'SAR'
 export interface ViewFigure {
   /** Sits above the numeral. Sentence case, one line. */
   label: string
-  /** Integer halalas. Renders `--text-kpi` with `SAR` beneath; `null` is the em dash. */
+  /** Integer halalas. Renders `--text-kpi` with `SAR` beside it; `null` is the em dash. */
   amountHalalas?: Halalas | null
   /** A figure that is not money — already formatted by the caller. */
   value?: ReactNode
-  /** The small line under a non-money numeral. A money figure supplies its own. */
+  /** The run beside a non-money numeral. A money figure supplies its own. */
   unit?: string | null
 }
 
@@ -58,7 +58,7 @@ export function ViewHeader({
   if (loading) return null
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1">
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="truncate text-sm font-semibold text-foreground">
           <bdi>{heading}</bdi>
@@ -75,7 +75,7 @@ export function ViewHeader({
       </div>
 
       {(detail !== null || figures.length > 0) && (
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
           {detail}
           {figures.map((figure) => (
             <ViewFigureBlock key={figure.label} figure={figure} />
@@ -91,18 +91,26 @@ function ViewFigureBlock({ figure }: { figure: ViewFigure }) {
   const unit = isMoney ? MONEY_UNIT : (figure.unit ?? null)
 
   return (
+    /* **Two lines, not three.** The unit sits on the numeral's baseline rather
+       than under it: a third line cost every view 16px of chrome before its
+       first row, and `MetricTile` already reads value and unit as one run. */
     <div className="flex min-w-0 flex-col items-end gap-0.5">
-      <span className="text-xs text-muted-foreground">{figure.label}</span>
-      {/* H4 — the numeral is the tile's, and `data-slot="metric-value"` is what
-          pins its tabular figures in `@layer base` rather than a class here. */}
-      <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
-        {isMoney ? (
-          <Money amount={figure.amountHalalas ?? null} unit="none" />
-        ) : (
-          <bdi>{figure.value}</bdi>
-        )}
+      <span className="text-xs leading-none text-muted-foreground">{figure.label}</span>
+      <span className="flex items-baseline gap-1.5">
+        {/* H4 — `data-slot="metric-value"` is what pins the tabular figures in
+            `@layer base`, rather than a class here. */}
+        <span
+          data-slot="metric-value"
+          className="text-kpi leading-none font-semibold text-foreground"
+        >
+          {isMoney ? (
+            <Money amount={figure.amountHalalas ?? null} unit="none" />
+          ) : (
+            <bdi>{figure.value}</bdi>
+          )}
+        </span>
+        {unit !== null && <span className="text-xs text-muted-foreground">{unit}</span>}
       </span>
-      {unit !== null && <span className="text-2xs text-muted-foreground">{unit}</span>}
     </div>
   )
 }
