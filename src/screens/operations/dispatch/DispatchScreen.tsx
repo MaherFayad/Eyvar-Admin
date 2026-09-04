@@ -43,10 +43,6 @@
  *
  * ## Still not fixed, and now visible
  *
- *   §2.2  the three velocity figures are hardcoded. They have no type, no
- *         fixture and no client. They are in the header rather than a card now,
- *         which does not make them any more real; the note at `TELEMETRY`
- *         stands.
  *   §2.2  **nothing on this board carries a coordinate.** `Trip`,
  *         `RideRequest` and `Driver` have no position field, so `./geo.ts`
  *         places every mark from its place NAME and a captain from their
@@ -60,9 +56,19 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { withFallback } from '../localCopy'
 import { DISPATCH_EN } from './copy'
-import { assignRequest, listDrivers, listRequests, listTrips } from '@/data/clients'
+import {
+  EYVAR_NOW,
+  assignRequest,
+  getDispatchTelemetry,
+  listDrivers,
+  listInterventions,
+  listRequests,
+  listTrips,
+} from '@/data/clients'
 import type {
+  DispatchTelemetry,
   Driver,
+  Intervention,
   Paginated,
   RideRequest,
   SubTabRoute,
@@ -70,7 +76,7 @@ import type {
   TripStatus,
 } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { formatCount } from '@/lib'
+import { formatCount, formatDate, formatPercent } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -95,20 +101,6 @@ const ACTIVE_TRIP_STATUSES: readonly TripStatus[] = ['assigned', 'en-route', 'in
 
 /** One screenful of each feed. A monitor shows what is happening, not an archive. */
 const FEED_PAGE_SIZE = 50
-
-/**
- * **§2.2 — these three figures are hardcoded and have no client.**
- *
- * They are on the remediation list as unmodelled data. Moving them into the
- * header made them more prominent, not more real, so they are named here in one
- * place rather than inlined into the JSX: when the endpoint exists, this
- * constant is the only thing that has to go.
- */
-const TELEMETRY = {
-  matchTime: '42s',
-  autoMatch: '96.4%',
-  utilisation: '78.2%',
-} as const
 
 export function DispatchScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -178,9 +170,23 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     { deps: ['active', FEED_PAGE_SIZE], cacheKey: 'drivers.list' },
   )
 
+  /* T1.1 — the three header readings, from `clients/dispatch.ts`. They were a
+     `TELEMETRY` literal beside a sentence claiming a live connection (X4). */
+  const telemetry = useAsync<DispatchTelemetry>((signal) => getDispatchTelemetry(signal), {
+    deps: [],
+    cacheKey: 'dispatch.telemetry',
+  })
+
+  /* T1.2 — interventions are a read, not a `useState` literal. */
+  const interventionFeed = useAsync<Intervention[]>(
+    (signal) => listInterventions({ status: 'open' }, signal),
+    { deps: ['open'], cacheKey: 'dispatch.interventions' },
+  )
+
   const activeTrips = trips.data?.items ?? []
   const pendingRequests = requests.data?.items ?? []
   const onlineDrivers = fleet.data?.items ?? []
+  const interventions = interventionFeed.data ?? []
 
   /* One board, one load. A monitor that renders two of its three feeds and a
      skeleton in the third reads as broken chrome, so the three reads resolve to
@@ -200,29 +206,9 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     trips.refetch()
     requests.refetch()
     fleet.refetch()
+    telemetry.refetch()
+    interventionFeed.refetch()
   }
-
-  /* Simulated live interventions. Local state, not a feed: these have no type,
-     no fixture and no client (§2.2 class), which is why they neither load nor
-     fail. Reported, not invented here. */
-  const [interventions] = useState([
-    {
-      id: 'INT-01',
-      kind: 'delayed' as const,
-      title: 'Delayed Arrival — SUB-1041',
-      subtitle: 'Captain Abdullah Al-Otaibi is 8 mins delayed for pickup at Al-Olaya',
-      elapsedMinutes: 8,
-      tripId: 'TRP-1002',
-    },
-    {
-      id: 'INT-02',
-      kind: 'sos' as const,
-      title: 'Emergency Signal — TRP-1004',
-      subtitle: 'Rider flagged route deviation on King Fahd Rd',
-      elapsedMinutes: 3,
-      tripId: 'TRP-1004',
-    },
-  ])
 
   const [manualDispatchReq, setManualDispatchReq] = useState<{
     id: string
@@ -280,29 +266,45 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     fleet: fleet.data?.total ?? onlineDrivers.length,
   } as const
 
-  /* The meta line names a count, so it only exists once there is a count to
-     name. `—` here would be a claim that the number is zero. */
+  /* T1.1 — the meta names a count and **when the figures were measured**. It
+     used to read "live telemetry connected", which nothing in this screen was
+     (X4). Both halves need their read, so it waits for both. */
   const header = (
     <PageHeader
       title={title}
       meta={
-        trips.data ? (
+        trips.data && telemetry.data ? (
           <span className="flex items-center gap-2">
             {/* The connection dot. Static — R18: a pulsing "live" indicator is
                 the first thing an operator's eye learns to discard. */}
             <span aria-hidden="true" className="size-1.5 rounded-full bg-chart-series" />
-            {t('dispatch.meta', { count: formatCount(trips.data.total, language) })}
+            {t('dispatch.meta', {
+              count: formatCount(trips.data.total, language),
+              time: formatDate(telemetry.data.asOf, { style: 'time', language }),
+            })}
           </span>
         ) : null
       }
       aside={
-        /* §2.2 — hardcoded, and yielding to the error state below rather than
-           presenting `96.4%` beside a board that could not load. */
-        failed || loading ? null : (
+        /* Yielding to the error state below rather than presenting a figure
+           beside a board that could not load. */
+        failed || loading || !telemetry.data ? null : (
           <div className="flex items-start gap-4 wide:gap-6">
-            <Reading label={t('dispatch.reading.matchTime')} value={TELEMETRY.matchTime} />
-            <Reading label={t('dispatch.reading.autoMatch')} value={TELEMETRY.autoMatch} tone="up" />
-            <Reading label={t('dispatch.reading.utilisation')} value={TELEMETRY.utilisation} />
+            <Reading
+              label={t('dispatch.reading.matchTime')}
+              value={t('dispatch.reading.seconds', {
+                seconds: formatCount(telemetry.data.medianMatchSeconds, language),
+              })}
+            />
+            <Reading
+              label={t('dispatch.reading.autoMatch')}
+              value={formatPercent(telemetry.data.autoMatchPercent, language)}
+              tone="up"
+            />
+            <Reading
+              label={t('dispatch.reading.utilisation')}
+              value={formatPercent(telemetry.data.fleetUtilisationPercent, language)}
+            />
           </div>
         )
       }
@@ -425,11 +427,11 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                   interventionsOpen={interventionsOpen}
                   onInterventionsOpen={setInterventionsOpen}
                   interventions={
-                    /* Local state, so it neither loads nor fails, and it keeps
-                       working while the feeds are down (AC-41's principle: a
-                       failure takes down what it owns and nothing else). */
+                    /* Its own read, so a failure takes down what it owns and
+                       nothing else (AC-41). */
                     <InterventionsCard
                       items={interventions}
+                      now={telemetry.data?.asOf ?? EYVAR_NOW}
                       unavailableReason={interventionsUnavailable}
                       t={t}
                     />
