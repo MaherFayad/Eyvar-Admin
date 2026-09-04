@@ -463,3 +463,9 @@ The numbers below are from the DOM, not from reading the code.
 | **D · consolidation** | the Refunds and Credit notes headers from `fin/revenue-views` move onto `ViewHeader` | after B and `fin/revenue-views` |
 
 Verification per lane as §6: typecheck, `test:changed`, the finance harnesses, and for lane A the full suite. Lane C re-runs the round-1 scan script and must show every first row above 400px at 1280 × 900 and every table row at 52px unless a cell genuinely carries two lines.
+
+### 10.4 Measured after lanes A and B (2026-09-05)
+
+- **R2-3 landed.** The base pitch of a table whose identity cell has no secondary line is **41px**, not the 52px §10.2 guessed; 52px is the pitch of a two-line identity cell. Payouts: 77px on every row before, 41px unrefused and 69px on a refused row after; eight rows in a 900px viewport instead of five. A refused row genuinely carries two lines because AC-368's reason is visible text; a screen declares `DataColumn.carriesRefusalReason` to choose which cell carries it, and Payouts should declare its state column (lane C).
+- **R2-8 landed** in `DataTable.tsx`, not `LedgerCard`: the `min-h-54` floor on the scroll container now applies only while refreshing or empty. The one-row wallet ledger card went from 218px to 176px.
+- **R2-1's header costs 42px** where a view had none (12px label, 28px numeral, one gap). Journal 416px → 466px first row; Wallets unchanged at 450px after the two-line figure. **Reaching the §10.3 target of a first row under 400px needs the figures to share the view row** — the stadium at the inline-start, the figures at the inline-end, the heading dropped because the selected pill already names the view. That is one change in `FinancialsPage.viewRow` for all seven screens and is lane D's, not a per-screen change.
