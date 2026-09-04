@@ -67,7 +67,8 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { ArrowRightIcon, CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { forwardIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -77,7 +78,7 @@ import { cn } from '@/lib/utils'
 import { resolveWindow } from '@/data/clients'
 import { REPORT_PRESETS } from '@/data/clients/reports'
 import type { ReportQuery } from '@/data/types'
-import { formatDate, type Language, type Translator } from '@/lib'
+import { directionFor, formatDate, type Language, type Translator } from '@/lib'
 
 /* `react-day-picker` + `date-fns` is 20.5 KB gzip and this rail renders on
    every report. An operator who never opens the popover never downloads a
@@ -146,6 +147,7 @@ export function WindowControl({
   t,
   language,
 }: WindowControlProps) {
+  const FromToArrow = forwardIcon(directionFor(language))
   const [open, setOpen] = useState(false)
   const resolved = resolveWindow(query.window, today)
   /** The draft is a COPY. Nothing on the page reads it until `Apply`. */
@@ -270,11 +272,11 @@ export function WindowControl({
                   />
                 </div>
                 {/* A reading-order mark between two fields whose order mirrors,
-                    so it mirrors with them (§9.5) — unlike a calendar glyph,
-                    which is an object. */}
-                <ArrowRightIcon
+                    so it is PICKED BY `dir` (§9.5, O10) - unlike a calendar
+                    glyph, which is an object and does not mirror. */}
+                <FromToArrow
                   aria-hidden="true"
-                  className="mb-2 size-4 shrink-0 text-muted-foreground rtl:rotate-180"
+                  className="mb-2 size-4 shrink-0 text-muted-foreground"
                 />
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={`${id}-to`} className="text-xs text-muted-foreground">

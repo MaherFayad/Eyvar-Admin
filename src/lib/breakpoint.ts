@@ -1,5 +1,5 @@
 /**
- * **The** breakpoint. D2, resolved in 0.2: `--ev-bp-wide: 1344px`.
+ * **The** breakpoint. D2, as amended by O1: `--ev-bp-wide: 1280px`.
  *
  * One number, one media query, three uses — the sub-tab list's first-run default
  * (§3.3), the detail right-rail drop (§7.2) and the metric-tile grid. D2 is
@@ -14,7 +14,7 @@
  */
 
 /** Matches `--ev-bp-wide` in `src/styles/globals.css`. See DECISIONS.md D2. */
-export const WIDE_BREAKPOINT_FALLBACK_PX = 1344
+export const WIDE_BREAKPOINT_FALLBACK_PX = 1280
 
 /**
  * `--ev-bp-wide` in CSS pixels, read from the document element's computed style.

@@ -35,6 +35,7 @@ import {
 } from '@/data/clients'
 import { normaliseReportQuery, type ReportMode, type ReportQuery } from '@/data/types'
 import { DashboardDetailScreen } from './DashboardDetailScreen'
+import { EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
 
@@ -293,7 +294,7 @@ describe('P7-T3 — the mode switcher does not compose an illegal query', () => 
        the planner's own sentence, reachable, naming why the funnel is refused.
        So the hint is opened and the sentence read out of it, rather than the
        assertion being softened to something a blank panel would also pass. */
-    const hints = screen.getAllByRole('button', { name: copy('rb.hint.show') })
+    const hints = screen.getAllByRole('button', { name: EN['shell.hint.show'] as string })
     let reason: HTMLElement | null = null
     for (const hint of hints) {
       await user.hover(hint)

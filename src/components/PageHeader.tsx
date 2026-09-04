@@ -62,7 +62,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { mirrorGlyph, type Direction, type Translate } from '@/lib'
+import { backIcon, nextIcon, previousIcon } from '@/components/icons'
+import type { Direction, Translate } from '@/lib'
 
 export interface PageAction {
   label: string
@@ -135,6 +136,12 @@ export function PageHeader({
   t,
   dir,
 }: PageHeaderProps) {
+  /* T9.10/O10 - lucide at `size-4`, picked by `dir`. A font arrow drew at the
+     text weight, so it was a hairline beside a 30px title, and its coverage
+     differed in Arabic. This is the ONE back arrow on a detail route (O11). */
+  const BackArrow = backIcon(dir)
+  const PreviousChevron = previousIcon(dir)
+  const NextChevron = nextIcon(dir)
   const visibleSecondaries = secondaryActions.slice(0, SECONDARY_CAP)
   /* Everything past the cap SPILLS into the overflow rather than wrapping —
      §8's rule, applied here so no screen has to remember it. */
@@ -155,9 +162,7 @@ export function PageHeader({
             aria-label={t('shell.topbar.back')}
             className="-ms-1.5 shrink-0"
           >
-            <span aria-hidden="true" className="text-base leading-none">
-              {mirrorGlyph('←', dir)}
-            </span>
+            <BackArrow aria-hidden="true" className="size-4" />
           </Button>
         )}
 
@@ -240,7 +245,7 @@ export function PageHeader({
             </Button>
           )}
 
-          {/* §8 slot 5 — rightmost of all. Chevrons mirror. */}
+          {/* §8 slot 5 — rightmost of all. Chevrons are picked by `dir`. */}
           {pager && (
             <div className="flex items-center gap-0.5">
               <Button
@@ -250,7 +255,7 @@ export function PageHeader({
                 disabled={!pager.hasPrevious}
                 aria-label={t('table.previous')}
               >
-                <span aria-hidden="true">{mirrorGlyph('‹', dir)}</span>
+                <PreviousChevron aria-hidden="true" className="size-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -259,7 +264,7 @@ export function PageHeader({
                 disabled={!pager.hasNext}
                 aria-label={t('table.next')}
               >
-                <span aria-hidden="true">{mirrorGlyph('›', dir)}</span>
+                <NextChevron aria-hidden="true" className="size-4" />
               </Button>
             </div>
           )}

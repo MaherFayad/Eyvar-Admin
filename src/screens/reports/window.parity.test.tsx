@@ -48,7 +48,7 @@ import {
 } from '@/data/clients'
 import { REPORT_PRESETS } from '@/data/clients/reports'
 import type { ReportMode, ReportQuery } from '@/data/types'
-import { formatDate } from '@/lib'
+import { UI_STATE_KEYS, defaultUiStore, formatDate } from '@/lib'
 import { REPORTS_AR } from '@/i18n/ar/reports'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
@@ -456,53 +456,69 @@ describe('both rails render the same control', () => {
 /* ────────────────────────── §9.2 / §9.5 — Arabic ───────────────────────── */
 
 describe('the popover survives dir="rtl"', () => {
-  afterEach(() => document.documentElement.removeAttribute('dir'))
+  /* O10 — the glyphs are picked by the SHELL's language, so a bare `dir`
+     attribute is only half of Arabic. Seeding the language store gives the
+     provider the same direction the document gets. */
+  const arabic = () => defaultUiStore<string>(UI_STATE_KEYS.language).write('ar')
+  const ar = (key: string) => REPORTS_AR[key] as string
+  async function openWindowAr(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByLabelText(ar('rb.control.window')))
+    return screen.findByRole('dialog')
+  }
+  afterEach(() => {
+    defaultUiStore<string>(UI_STATE_KEYS.language).write('en')
+    document.documentElement.removeAttribute('dir')
+  })
 
   it('isolates the range on the trigger, so the leading digit stays put', async () => {
-    document.documentElement.setAttribute('dir', 'rtl')
+    arabic()
     renderAt(reportQueryPath(RAILS.trend))
 
     /* `13 Aug – 11 Sep` opens with a digit in a bidi-NEUTRAL context. Without a
        `<bdi>` the UBA throws that run to the far end of the Arabic line and the
        range reads backwards. */
-    const printed = await screen.findByText(rangeLabel(RAILS.trend))
+    const resolved = resolveWindow(RAILS.trend.window, EYVAR_TODAY)
+    const printed = await screen.findByText(
+      ar('rb.control.window.range')
+        .replace('{from}', formatDate(resolved.from, { style: 'day-month', language: 'ar' }))
+        .replace('{to}', formatDate(resolved.to, { style: 'day-month', language: 'ar' })),
+    )
     expect(printed.tagName.toLowerCase()).toBe('bdi')
   })
 
   it('mirrors the from→to arrow, and keeps From before To in the DOM', async () => {
-    document.documentElement.setAttribute('dir', 'rtl')
+    arabic()
     const user = userEvent.setup()
     renderAt(reportQueryPath(RAILS.trend))
-    const popover = await openWindow(user)
+    const popover = await openWindowAr(user)
 
     /* §9.5: an arrow BETWEEN two fields whose order mirrors is a reading-order
        mark and mirrors with them — unlike a delta caret, which is magnitude.
        The fields themselves are never placed by a side: `From` leads in the
        DOM and the flex row does the mirroring. */
-    const arrow = popover.querySelector('svg.lucide-arrow-right')
-    expect(arrow?.getAttribute('class') ?? '').toMatch(/rtl:rotate-180/)
+    expect(popover.querySelector('svg.lucide-arrow-left')).not.toBeNull()
+    expect(popover.querySelector('svg.lucide-arrow-right')).toBeNull()
 
-    const from = within(popover).getByLabelText(copy('rb.control.window.from'))
-    const to = within(popover).getByLabelText(copy('rb.control.window.to'))
+    const from = within(popover).getByLabelText(ar('rb.control.window.from'))
+    const to = within(popover).getByLabelText(ar('rb.control.window.to'))
     expect(from.compareDocumentPosition(to) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('still draws two months, with mirroring month navigation', async () => {
-    document.documentElement.setAttribute('dir', 'rtl')
+    arabic()
     const user = userEvent.setup()
     renderAt(reportQueryPath(RAILS.trend))
-    const popover = await openWindow(user)
+    const popover = await openWindowAr(user)
 
     /* Month ORDER is not asserted here — jsdom lays nothing out, and the order
        is CSS: `months` is a `flex-row`, which follows `dir`. What is asserted
        is that both months are still built, and that the `‹ ›` carry the mirror
        `ui/calendar.tsx` gives them. */
     expect(await within(popover).findAllByRole('grid')).toHaveLength(2)
-    const chevrons = [...popover.querySelectorAll('svg.lucide-chevron-left, svg.lucide-chevron-right')]
-    expect(chevrons.length).toBeGreaterThanOrEqual(2)
-    for (const chevron of chevrons) {
-      expect(chevron.getAttribute('class') ?? '').toMatch(/rtl:rotate-180/)
-    }
+    const previous = popover.querySelector('.rdp-button_previous svg')
+    const next = popover.querySelector('.rdp-button_next svg')
+    expect(previous?.getAttribute('class') ?? '').toMatch(/lucide-chevron-right/)
+    expect(next?.getAttribute('class') ?? '').toMatch(/lucide-chevron-left/)
   })
 
   it('answers every one of the popover keys in Arabic', () => {

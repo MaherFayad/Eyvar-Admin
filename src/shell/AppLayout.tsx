@@ -115,7 +115,7 @@ export function AppLayout() {
   const route = useRouteState()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t, dir, language } = shell.language
+  const { t, language } = shell.language
 
   /* The tab, the history entry and the screen reader's navigation announcement
      all read this. Every route said `Eyvar Admin` before. */
@@ -623,10 +623,8 @@ export function AppLayout() {
             />
           ) : (
             <TopBar
-              route={route}
               shell={shell}
               t={t}
-              dir={dir}
               language={language}
               onOpenEntity={(entityId) => setLayer('entity', entityId)}
               onOpenNotifications={() => setLayer('notifications', 'all')}

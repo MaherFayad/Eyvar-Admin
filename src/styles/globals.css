@@ -230,11 +230,12 @@
    sees it. The tag is fixed; these variants are what a screen uses to respond
    to it. -------------------------------------------------------------------- */
 
-/* THE WIDE VARIANT — unchanged. Its three uses are fixed: the sub-tab list's
-   first-run default (§3.3), the detail right-rail drop (§7.2), and the
-   metric-tile grid (§0.1). See the note beside `--breakpoint-*: initial`
-   below for why this is a variant and not a breakpoint token. */
-@custom-variant wide (@media (min-width: 1344px));
+/* THE WIDE VARIANT — 1344 -> 1280 (O1). D2's floor is 1280, so at 1344 every
+   `wide:` layout was off at the width the product promises to work at. Its
+   three uses are fixed: the sub-tab list's first-run default (§3.3), the
+   detail right-rail drop (§7.2), and the metric-tile grid (§0.1). It is a
+   variant, not a breakpoint token: see `--breakpoint-*: initial` below. */
+@custom-variant wide (@media (min-width: 1280px));
 
 /* THE COMPACT VARIANT — the mobile shell, below 768px. Paired with
    `--ev-bp-compact` on `:root`, which JS reads; the two move together or the
@@ -264,7 +265,7 @@
    Lightning CSS emits this as `not all and (min-width:768px)` — the exact
    negation, still with no epsilon, and the build was checked rather than
    assumed. So `dist` contains the SUBSTRING `min-width:768px` while containing
-   no second min-width BREAKPOINT: the only unnegated one is still 1344. A
+   no second min-width BREAKPOINT: the only unnegated one is the wide one. A
    check that counts occurrences of the substring will now report two and be
    wrong. Count `@media(min-width:` at the start of a query, not `min-width`
    anywhere. Do not "fix" this by rewriting the variant as `max-width:
@@ -1334,7 +1335,9 @@
      the reference and is now being LOOSENED toward it. Do not cite D-2 for
      density again; §7.7's 24x24 hit target could never be argued down by it
      and now there is nothing left to argue with. --------------------------- */
-  --ev-bp-wide: 1344px; /* The upper breakpoint. §0.1 as amended. */
+  --ev-bp-wide: 1280px; /* O1 — 1344 -> 1280, D2's floor. Moves with the
+                           variant at the head of the file or the first-run
+                           nav default disagrees with the layout. */
   /* The lower breakpoint, added by the 2026-09-02 mobile ruling. Paired with
      the `compact:` variant at the head of this file — a media query cannot
      read a custom property, so 768 is written twice and THE TWO MOVE TOGETHER,
@@ -1490,17 +1493,14 @@
      which the one-breakpoint check counts. 1440 therefore gets the 1280
      answer; raising it at `wide:` is a ticket, not a local decision. */
   --ev-page-pad: 32px;
-  /* D-2' AMENDED — `04-index-screen-redesign.md` §1.2, §14.3, §15.1.
-     32 below --ev-bp-wide and **48 at and above it**, through the EXISTING
-     `wide:` variant. `--ev-page-pad` itself is unchanged and is deliberately
-     NOT redefined inside a media query: a second `@media (min-width:)` in
-     `dist` is what the one-breakpoint check counts, and the `wide:` variant is
-     already declared, so this costs no new rule of its own.
-     48 is what buys 1440 the air the reference spends (68) without taking it
-     from the 1280 column budget, where §7.3 has 910px of table to place and
-     nothing to give. It reaches the page shell as `--spacing-page-pad-wide`;
-     `PAGE_BLOCK` in `PageShell.tsx` is its only consumer. */
-  --ev-page-pad-wide: 48px;
+  /* D-2' RE-MEASURED UNDER O1 — 48 -> 32, and the 48 is falsified rather than
+     re-preferred. `wide:` now starts at D2's own 1280 floor, so 48 applies AT
+     the floor: measured, the page block is 976 and the table gets 878px, while
+     §7.3 has 910px of columns to place. 32 gives it 912 again. The token stays
+     rather than folding into `--ev-page-pad`, because the wide step is still
+     where a future ruling would put 1440's air back. One consumer: `PAGE_BLOCK`
+     in `PageShell.tsx`, through `--spacing-page-pad-wide`. */
+  --ev-page-pad-wide: 32px;
   --ev-page-max: 1120px; /* Untouched. ONE consumer: the full-bleed editor. */
   /* --- THE MEASURE EVERY PAGE STOPS GROWING AT. -------------------------
      Consumed by `PageShell`'s two page blocks and by nothing else.
@@ -1533,8 +1533,11 @@
      cap at every width the product supported before today, so no layout at or
      under a 1440px viewport changes by one pixel. */
   --ev-page-measure: 1440px;
-  --ev-detail-rail-w: 320px; /* X — not evidenced. Untouched: AC-34's
-                                640 + 16 + 320 = 976 depends on it. */
+  /* O1 RE-MEASURE — 320 -> 300. §7.2 binds the 2:1, not the pixels (R13). At
+     1280 the page block is 912 after the 32px gutters, so 596 + 16 + 300 is
+     1.99:1; 320 would have been 1.80:1. AC-34's 640 + 16 + 320 = 976 was
+     measured against a gutterless 976 and is restated by this arithmetic. */
+  --ev-detail-rail-w: 300px;
   --ev-monitor-aside-w: 340px; /* X — not evidenced. Untouched (AC-31). */
   /* M — 406 -> 480, and R13's NAMED-FIGURE CARVE-OUT IS SPENT HERE.
      `9eb629ea` / `1ef8248f` / `79a31934`: the drawer's leading edge is at
@@ -2069,8 +2072,8 @@
    costs nothing: the gutter has one consumer, `PAGE_BLOCK` in `PageShell.tsx`,
    and no other measurement is solved against it. 16 is also the gutter the
    platform guidelines converge on (iOS 16pt margins, Material 16dp).
-   `--ev-page-pad-wide` is untouched — it is the other end of the same axis and
-   1344 and 768 cannot both apply.
+   `--ev-page-pad-wide` is untouched here — it is the other end of the same
+   axis and the wide and compact variants cannot both apply.
 
    NOT HERE, DELIBERATELY: `--ev-rail-w` and `--ev-subnav-w`. Below 768 the
    three-column shell does not narrow, it goes AWAY — the rail and sub-tab
@@ -2778,7 +2781,7 @@
      fixed: the sub-tab list's first-run default (§3.3), the detail right-rail
      drop (§7.2), and the metric-tile grid (§0.1).
 
-     THE 1344 IS WRITTEN TWICE AND THAT IS UNAVOIDABLE: a media query cannot
+     THE 1280 IS WRITTEN TWICE AND THAT IS UNAVOIDABLE: a media query cannot
      read a custom property, so the variant below must carry a literal, while
      `--ev-bp-wide` must stay a literal on `:root` because `useNavCollapse`
      reads it at runtime through `getComputedStyle`. THE TWO MOVE TOGETHER OR

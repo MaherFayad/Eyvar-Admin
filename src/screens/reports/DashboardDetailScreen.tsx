@@ -74,7 +74,6 @@ import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  ArrowRightIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -144,7 +143,8 @@ import {
   type TeamUser,
 } from '@/data/types'
 import { tileSpan } from '@/data/types/report'
-import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { forwardIcon } from '@/components/icons'
+import { directionFor, formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { withFallback } from '../operations/localCopy'
 import { REPORTS_EN } from './copy'
@@ -782,6 +782,7 @@ function BoardRangeControl({
   t: Translator
   language: Language
 }) {
+  const FromToArrow = forwardIcon(directionFor(language))
   const [open, setOpen] = useState(false)
   /* What the custom fields start from. With no override there is no board
      window to seed from, so the draft starts at the widest preset the nine
@@ -937,11 +938,11 @@ function BoardRangeControl({
                   }
                 />
               </div>
-              {/* A reading-order mark between two fields whose order mirrors, so
-                  it mirrors with them (§9.5). */}
-              <ArrowRightIcon
+              {/* A reading-order mark between two fields whose order mirrors,
+                  so it is PICKED BY `dir` (§9.5, O10). */}
+              <FromToArrow
                 aria-hidden="true"
-                className="mb-2 size-4 shrink-0 text-muted-foreground rtl:rotate-180"
+                className="mb-2 size-4 shrink-0 text-muted-foreground"
               />
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="rb-board-range-to" className="text-xs text-muted-foreground">

@@ -67,14 +67,15 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { CalendarIcon, CheckIcon } from 'lucide-react'
+import { nextIcon, previousIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { EYVAR_TODAY } from '@/data/mock/clock'
 import type { FinancialsPeriod } from '@/data/types'
-import { formatDate, type Language, type Translate } from '@/lib'
+import { directionFor, formatDate, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 import { PERIOD_PRESETS, activePreset, isInverted, shiftPeriodMonths } from './periodPresets'
 
@@ -129,6 +130,9 @@ export function PeriodControl({
   t: Translate
   language: Language
 }) {
+  const dir = directionFor(language)
+  const PreviousChevron = previousIcon(dir)
+  const NextChevron = nextIcon(dir)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<FinancialsPeriod>(period)
 
@@ -148,16 +152,16 @@ export function PeriodControl({
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {/* §9.5 — a MIRRORING pair. The chevron encodes "one month back / one
-          month forward" against the reading direction, so unlike the delta
-          caret it must flip under `dir="rtl"`. */}
+      {/* §9.5/O10 - a MIRRORING pair, PICKED BY `dir`. The chevron encodes
+          "one month back / one month forward" against the reading direction,
+          so unlike the delta caret it turns around in Arabic. */}
       <Button
         variant="secondary"
         size="icon-xs"
         aria-label={t('fin.overview.period.previous')}
         onClick={() => onChange(shiftPeriodMonths(period, -1))}
       >
-        <ChevronLeftIcon className="size-4 rtl:rotate-180" aria-hidden="true" />
+        <PreviousChevron className="size-4" aria-hidden="true" />
       </Button>
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -297,7 +301,7 @@ export function PeriodControl({
         aria-label={t('fin.overview.period.next')}
         onClick={() => onChange(shiftPeriodMonths(period, 1))}
       >
-        <ChevronRightIcon className="size-4 rtl:rotate-180" aria-hidden="true" />
+        <NextChevron className="size-4" aria-hidden="true" />
       </Button>
     </div>
   )

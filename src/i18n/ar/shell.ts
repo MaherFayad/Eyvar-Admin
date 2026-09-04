@@ -213,6 +213,7 @@ export const SHELL_AR: Dictionary = {
   'nav.count.admin-data': '{count} من طلبات المحو المتأخرة عن موعدها',
   'shell.nav.backlog': 'عناصر بحاجة إلى انتباهك: {count}',
   'shell.topbar.back': 'رجوع',
+  'shell.hint.show': 'ما معنى هذا',
   'shell.topbar.search': 'بحث',
   'shell.topbar.searchShortcut': '⌘ K',
   'shell.topbar.searchShortcutWin': 'Ctrl K',

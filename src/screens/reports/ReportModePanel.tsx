@@ -106,7 +106,8 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { InfoHint, LegalityOptions, hintLines } from '@/components/reports'
+import { InfoHint, hintLines } from '@/components/InfoHint'
+import { LegalityOptions } from '@/components/reports'
 import {
   MAX_COHORT_HORIZON,
   MAX_FUNNEL_STEPS,

@@ -127,7 +127,6 @@ export const REPORTS_AR: Dictionary = {
   'rb.headline.window': 'خلال {range}',
   'rb.headline.from': 'مقارنةً بـ {date}',
 
-  'rb.hint.show': 'ما معنى هذا',
   'rb.preset.today': 'اليوم',
   'rb.preset.yesterday': 'أمس',
   'rb.preset.last-7d': 'آخر 7 أيام',

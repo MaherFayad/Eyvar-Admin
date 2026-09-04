@@ -39,13 +39,14 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { ArrowRightIcon, CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { forwardIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { formatDate, type Language, type Translate } from '@/lib'
+import { directionFor, formatDate, type Language, type Translate } from '@/lib'
 import { EYVAR_TODAY } from '@/data/mock/clock'
 import {
   METRIC_PERIODS,
@@ -103,6 +104,7 @@ export function BoardPeriodControl({
   t: Translate
   language: Language
 }) {
+  const FromToArrow = forwardIcon(directionFor(language))
   const [open, setOpen] = useState(false)
   /* The calendar and the two fields need a concrete range even when the board
      has none. A fortnight ending today is the draft they open on — it is not
@@ -245,16 +247,11 @@ export function BoardPeriodControl({
                   />
                 </label>
                 {/* A reading-order mark between two fields whose order mirrors,
-                    so it mirrors with them (§9.5) — unlike the calendar glyph on
-                    the trigger, which is an object. This was `&rarr;`, a text
-                    CHARACTER: `rtl:rotate-180` cannot reach a glyph, so in
-                    Arabic the row read `[To] → [From]` with the arrow pointing
-                    from the end date back to the start. `WindowControl` (the
-                    sibling control that does the same job) already had this
-                    right; the two now match. */}
-                <ArrowRightIcon
+                    so it is PICKED BY `dir` (§9.5, O10) - unlike the calendar
+                    glyph on the trigger, which is an object. */}
+                <FromToArrow
                   aria-hidden="true"
-                  className="mb-2 size-4 shrink-0 text-muted-foreground rtl:rotate-180"
+                  className="mb-2 size-4 shrink-0 text-muted-foreground"
                 />
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                   {t('overview.period.to')}

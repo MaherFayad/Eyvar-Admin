@@ -25,7 +25,7 @@
  * declares exactly two responsive variants and a screen may not add a third:
  *
  *   - the **compact** variant — `@media (width < 768px)`, the mobile shell
- *   - the **wide** variant — `@media (min-width: 1344px)`, §0.1's three uses
+ *   - the **wide** variant — `@media (min-width: 1280px)`, §0.1's three uses
  *
  * So the unprefixed class is the DESKTOP answer, and the compact variant
  * overrides it below 768px. A layout that wanted three columns on a desktop and
@@ -106,7 +106,7 @@ const WHY = [
   'in force at every width, on a 1440px desktop included.',
   'This product is desktop-first: write the DESKTOP answer unprefixed, and override it',
   'below 768px with the compact variant declared in globals.css.',
-  'Above 1344px, the wide variant. There is no third breakpoint.',
+  'At 1280px and above, the wide variant. There is no third breakpoint.',
 ].join(' ')
 
 function sourceFiles(dir: string): string[] {
@@ -304,7 +304,7 @@ describe('Tailwind’s responsive variants are deleted, so a utility using one i
       /@custom-variant\s+compact\s*\(@media\s*\(width\s*<\s*768px\)\)/,
     )
     expect(css, 'the wide variant is gone').toMatch(
-      /@custom-variant\s+wide\s*\(@media\s*\(min-width:\s*1344px\)\)/,
+      /@custom-variant\s+wide\s*\(@media\s*\(min-width:\s*1280px\)\)/,
     )
   })
 })
