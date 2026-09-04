@@ -39,10 +39,12 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import type { AlertRule, SavedReport } from '@/data/types'
+import { EN as SHELL_EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
 
 const EN = (key: string) => REPORTS_EN[key] as string
+const HINT = SHELL_EN['shell.hint.show'] as string
 
 beforeEach(() => {
   disableMockLatency()
@@ -160,21 +162,81 @@ describe('every alert state carries a glyph beside its word', () => {
     }
   })
 
-  it('states the threshold with its unit, beside the reading tested against it', async () => {
+  it('T9.15 — states the threshold once, with no unit line repeating it', async () => {
     renderAt('/management/reports?view=alerts')
     await screen.findByRole('table')
 
     expect(
       await screen.findByRole('columnheader', { name: EN('rb.alerts.col.threshold') }),
     ).toBeInTheDocument()
-    /* AC-876's sentence, on the row rather than only in the form: a count
-       formats as a bare numeral, and a bare numeral in a `Threshold` column is
-       the one reading nobody can check. */
+    /* The value carries its own unit, so the 12px line under it was a second
+       reading of one fact and half the row's height (X15). */
     expect(
-      screen.getAllByText(
+      screen.queryByText(
         EN('rb.alert.form.threshold.unit').replace('{unit}', EN('rb.unit.count')),
-      ).length,
-    ).toBeGreaterThan(0)
+      ),
+    ).toBeNull()
+  })
+
+  it('T9.15 — keeps the state cell to one badge and no wrapped paragraph', async () => {
+    const rules = await alertRules()
+    const suspended = rules.find((rule) => rule.state === 'suspended')
+    expect(suspended, 'no seeded suspended rule').toBeDefined()
+
+    renderAt('/management/reports?view=alerts')
+    await screen.findByRole('table')
+
+    const row = await rowNamed(suspended!.name)
+    const cell = within(row).getByText(EN('rb.alert.state.suspended')).closest('td')
+    expect(cell).not.toBeNull()
+    /* The server's reason is an explanation, so it is behind the hint rather
+       than four 12px lines inside a cell (X15). */
+    expect(cell!.textContent).not.toContain(EN(suspended!.stateReasonKey!))
+    expect(
+      within(cell as HTMLElement).getByRole('button', { name: HINT }),
+    ).toBeInTheDocument()
+  })
+
+  it('T9.15 — names the muted and the disabled glyph without printing a word', async () => {
+    const rules = await alertRules()
+    const muted = rules.find((rule) => rule.mutedUntil !== null)
+    const off = rules.find((rule) => !rule.enabled)
+    expect(muted ?? off, 'no seeded muted or disabled rule').toBeDefined()
+
+    renderAt('/management/reports?view=alerts')
+    await screen.findByRole('table')
+
+    for (const [rule, kind] of [
+      [muted, 'muted'],
+      [off, 'disabled'],
+    ] as const) {
+      if (!rule) continue
+      const row = await rowNamed(rule.name)
+      const note = row.querySelector(`[data-state-note="${kind}"]`)
+      expect(note, `no ${kind} glyph on ${rule.name}`).not.toBeNull()
+      /* A tooltip names it, and the name is on the element so it survives with
+         the tooltip shut and with no pointer (§7.5). */
+      expect(note!.getAttribute('aria-label')).toBeTruthy()
+      expect((note as HTMLElement).tabIndex).toBe(0)
+      expect(note!.querySelector(`[data-state-glyph="${kind}"]`)).not.toBeNull()
+    }
+  })
+
+  it('T9.15 — leaves the rule sentence out of the identity cell', async () => {
+    const rules = await alertRules()
+    const rule = rules[0]!
+
+    renderAt('/management/reports?view=alerts')
+    await screen.findByRole('table')
+
+    const cell = within(await rowNamed(rule.name)).getByText(rule.name).closest('td')
+    expect(cell).not.toBeNull()
+    /* One line: the name. The sentence reads in full in the row's `title` and
+       in the rule's own dialog. */
+    expect(cell!.textContent).toBe(rule.name)
+    expect(cell!.querySelector('[title]')?.getAttribute('title')).toContain(
+      EN('rb.alert.comparator.' + rule.comparator),
+    )
   })
 })
 
@@ -198,21 +260,51 @@ describe('“nothing is checking these rules” survives the chrome', () => {
     const table = await screen.findByRole('table')
     expect(banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    /* The per-row qualifier is the banner's other half and is unchanged: one
-       note per rule whose cadence is unset. */
-    const unset = rules.filter((rule) => rule.cadence === null)
-    expect((await screen.findAllByText(EN('rb.alert.cadence.rowNote'))).length).toBe(unset.length)
+    /* T9.15/R10 — the banner says it once, so no row repeats it. */
+    expect(rules.some((rule) => rule.cadence === null)).toBe(true)
+    expect(screen.queryByText(EN('rb.alert.cadence.unset'))).toBeNull()
   })
 
-  it('renders the unset cadence as a word with a glyph, never as a blank or a dash', async () => {
+  it('T9.15 — offers Test a rule on the banner and answers by name', async () => {
+    const user = userEvent.setup()
     const rules = await alertRules()
+    /* The banner's action reads the first rule nothing checks that §13.3 lets
+       it read — the same rule the screen picks. */
+    const target = rules.find((rule) => rule.cadence === null && rule.state !== 'suspended')
+    expect(target, 'no seeded rule the banner could test').toBeDefined()
+
     renderAt('/management/reports?view=alerts')
     await screen.findByRole('table')
 
-    expect((await screen.findAllByText(EN('rb.alert.cadence.unset'))).length).toBe(rules.length)
-    expect(document.querySelectorAll('[data-state-glyph="cadence-unset"]').length).toBe(
-      rules.filter((rule) => rule.cadence === null).length,
+    await user.click(
+      await screen.findByRole('button', { name: EN('rb.alerts.banner.action') }),
     )
+
+    /* One list, several writers, so every outcome names the rule it answers
+       for. AC-877: a test changes nothing and tells nobody. */
+    const answers = await screen.findAllByRole('status')
+    const list = answers.find((node) => node.tagName.toLowerCase() === 'ul')
+    expect(list, 'no test-result list').toBeDefined()
+    expect(within(list as HTMLElement).getAllByRole('listitem')).toHaveLength(1)
+    expect(list!.textContent).toContain(target!.name)
+  })
+
+  it('T9.15 — leaves the Checked cell blank while the banner is showing', async () => {
+    const rules = await alertRules()
+    const unset = rules.find((rule) => rule.cadence === null)
+    expect(unset).toBeDefined()
+
+    renderAt('/management/reports?view=alerts')
+    const table = await screen.findByRole('table')
+
+    const headers = within(table).getAllByRole('columnheader')
+    const index = headers.findIndex((h) => h.textContent?.includes(EN('rb.alerts.col.cadence')))
+    expect(index).toBeGreaterThan(-1)
+
+    const row = await rowNamed(unset!.name)
+    /* O9 — an absence the banner already states is blank, never a dash and
+       never a repeated word. */
+    expect(within(row).getAllByRole('cell')[index]!.textContent).toBe('')
   })
 })
 
@@ -283,7 +375,7 @@ describe('the library carries a type glyph per row', () => {
     }
   })
 
-  it('keeps the description on the row that has one', async () => {
+  it('T9.13 — keeps the description on the row, as its title rather than prose', async () => {
     const reports = await savedReports()
     const described = reports.find((report) => report.description !== null)
     expect(described).toBeDefined()
@@ -292,7 +384,10 @@ describe('the library carries a type glyph per row', () => {
     await screen.findByRole('table')
 
     const row = await rowNamed(described!.name)
-    expect(within(row).getByText(described!.description!)).toBeInTheDocument()
+    /* Amplitude's library row is a name, not a paragraph: the description
+       reads on hover here and in full on the report's own header. */
+    expect(within(row).queryByText(described!.description!)).toBeNull()
+    expect(row.querySelector(`[title="${described!.description!}"]`)).not.toBeNull()
   })
 })
 

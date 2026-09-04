@@ -61,7 +61,7 @@
  *   `rb.panel.coverage`   `rb.panel.axis`   `rb.panel.expand`
  *   `rb.table.bucket`     `rb.report.changed`  `rb.report.changed.action`
  *   `rb.library.tab.all`  `rb.library.tab.mine`  `rb.library.tab.team`
- *   `rb.library.col.owner`  `rb.library.col.pinned`  `rb.dashboard.back`
+ *   `rb.library.col.pinned`  `rb.dashboard.back`
  *   `rb.alerts.col.rule`  `rb.alert.rearm.unset`  `rb.alert.test.running`
  *
  * A deletion is reversible and a wrong claim is not, so the rule going forward
@@ -711,6 +711,11 @@ export const REPORTS_EN: Dictionary = {
   'rb.library.new': 'New report',
   'rb.library.search': 'Search reports',
   'rb.library.col.name': 'Report',
+  /* T9.13 — Amplitude's library shape. Three facts an operator narrows on, as
+     columns with filters, rather than prose under every name. */
+  'rb.library.col.type': 'Type',
+  'rb.library.col.owner': 'Owner',
+  'rb.library.col.lastRun': 'Last run',
   'rb.library.col.visibility': 'Visibility',
   'rb.library.col.updated': 'Updated',
   'rb.library.open': 'Open',
@@ -1003,7 +1008,10 @@ export const REPORTS_EN: Dictionary = {
      merged into it rather than stacked. */
   'rb.alerts.banner.title': 'Nothing is checking these rules',
   'rb.alerts.banner.body':
-    'No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value.',
+    'Every state below is the last one recorded, and no schedule will change it.',
+  /* T9.15 — one sentence, then the action that answers it. The row note it
+     replaces said the same thing once per row (R10). */
+  'rb.alerts.banner.action': 'Test a rule',
 
   /* R5a permits red in four places and a threshold breach is none of them. The
      state is carried by the WORD plus a `warning`-tone badge from R7's closed
@@ -1046,10 +1054,6 @@ export const REPORTS_EN: Dictionary = {
     'No checking schedule has been set for this product, and nothing checks these rules while the tab is closed. Until that is decided, a rule keeps its settings and does not run.',
   'rb.alert.rearm.explain':
     'A rule fires once on crossing and re-arms when the value comes back inside the line. No minimum wait has been set.',
-  /* Per row, in the State cell's secondary slot, when `cadence === null`. The
-     state WORD stays — it is a true statement about the last recorded state —
-     and this qualifies the present tense the word implies. */
-  'rb.alert.cadence.rowNote': 'Not checked on any schedule.',
   /* `lastEvaluatedAt: null`. A dash cannot tell "never checked" from "no data",
      and on this list every rule is the first of those. */
   'rb.alert.lastEvaluated.never': 'Never checked',
@@ -1094,6 +1098,9 @@ export const REPORTS_EN: Dictionary = {
 
   /* AC-877 — it says *would have fired*, never *fired*. */
   'rb.alert.test': 'Test this rule',
+  /* Which rule a result belongs to. The banner's action and four row menus all
+     write into one list, so a nameless outcome belongs to no rule. */
+  'rb.alert.test.of': 'Test of “{name}”:',
   'rb.alert.test.wouldFire':
     'It read {value} for the {grain} starting {bucket}. It would have fired.',
   'rb.alert.test.wouldNotFire':

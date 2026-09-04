@@ -14,36 +14,58 @@ import {
   ArrowUpIcon as RawArrowUp,
   ArrowUpDownIcon as RawArrowUpDown,
   BanIcon as RawBan,
+  BarChart3Icon as RawBarChart3,
+  BellIcon as RawBell,
   BellOffIcon as RawBellOff,
   Building2Icon as RawBuilding2,
+  CalendarIcon as RawCalendar,
   CarFrontIcon as RawCarFront,
   CheckIcon as RawCheck,
   ChevronDownIcon as RawChevronDown,
   ChevronLeftIcon as RawChevronLeft,
   ChevronRightIcon as RawChevronRight,
+  ChevronsUpDownIcon as RawChevronsUpDown,
+  CircleAlertIcon as RawCircleAlert,
   CircleCheckIcon as RawCircleCheck,
   CirclePauseIcon as RawCirclePause,
   CircleXIcon as RawCircleX,
   ClockIcon as RawClock,
   Columns3Icon as RawColumns3,
+  CopyIcon as RawCopy,
   DownloadIcon as RawDownload,
   EllipsisIcon as RawEllipsis,
+  FilePlus2Icon as RawFilePlus2,
+  FileSpreadsheetIcon as RawFileSpreadsheet,
   FlagIcon as RawFlag,
   FileTextIcon as RawFileText,
+  GitBranchIcon as RawGitBranch,
+  GripVerticalIcon as RawGripVertical,
+  HistoryIcon as RawHistory,
+  HourglassIcon as RawHourglass,
+  ImageIcon as RawImage,
   InboxIcon as RawInbox,
   InfoIcon as RawInfo,
+  LayoutDashboardIcon as RawLayoutDashboard,
+  LibraryBigIcon as RawLibraryBig,
   LifeBuoyIcon as RawLifeBuoy,
+  LineChartIcon as RawLineChart,
+  Link2Icon as RawLink2,
   ListFilterIcon as RawListFilter,
   MapIcon as RawMap,
+  Maximize2Icon as RawMaximize2,
+  PieChartIcon as RawPieChart,
   RefreshCwIcon as RawRefreshCw,
   RepeatIcon as RawRepeat,
   ReplaceIcon as RawReplace,
   RouteIcon as RawRoute,
+  SaveIcon as RawSave,
   ScaleIcon as RawScale,
   SearchIcon as RawSearch,
   ShieldCheckIcon as RawShieldCheck,
   SirenIcon as RawSiren,
   SnowflakeIcon as RawSnowflake,
+  Table2Icon as RawTable2,
+  Trash2Icon as RawTrash2,
   TriangleAlertIcon as RawTriangleAlert,
   UserRoundIcon as RawUserRound,
   UserRoundPlusIcon as RawUserRoundPlus,
@@ -119,6 +141,32 @@ export const MoreIcon = icon(RawEllipsis, 'MoreIcon')
 export const InfoIcon = icon(RawInfo, 'InfoIcon')
 export const CheckIcon = icon(RawCheck, 'CheckIcon')
 export const CloseIcon = icon(RawX, 'CloseIcon')
+export const CopyIcon = icon(RawCopy, 'CopyIcon')
+export const DeleteIcon = icon(RawTrash2, 'DeleteIcon')
+export const SaveIcon = icon(RawSave, 'SaveIcon')
+export const LinkIcon = icon(RawLink2, 'LinkIcon')
+export const ExpandIcon = icon(RawMaximize2, 'ExpandIcon')
+export const DragHandleIcon = icon(RawGripVertical, 'DragHandleIcon')
+export const SortNoneIcon = icon(RawChevronsUpDown, 'SortNoneIcon')
+export const CsvIcon = icon(RawFileSpreadsheet, 'CsvIcon')
+export const ImageIcon = icon(RawImage, 'ImageIcon')
+export const NewReportIcon = icon(RawFilePlus2, 'NewReportIcon')
+export const LibraryIcon = icon(RawLibraryBig, 'LibraryIcon')
+export const HistoryIcon = icon(RawHistory, 'HistoryIcon')
+export const CalendarIcon = icon(RawCalendar, 'CalendarIcon')
+
+/* ── Report shapes and modes (§12). One glyph per `ChartType` and per mode. ─ */
+
+export const LineChartIcon = icon(RawLineChart, 'LineChartIcon')
+export const BarChartIcon = icon(RawBarChart3, 'BarChartIcon')
+export const PieChartIcon = icon(RawPieChart, 'PieChartIcon')
+export const TableChartIcon = icon(RawTable2, 'TableChartIcon')
+export const FunnelIcon = icon(RawGitBranch, 'FunnelIcon')
+export const RetentionIcon = icon(RawRepeat, 'RetentionIcon')
+export const DashboardIcon = icon(RawLayoutDashboard, 'DashboardIcon')
+export const AlertRuleIcon = icon(RawBell, 'AlertRuleIcon')
+export const CoolingIcon = icon(RawHourglass, 'CoolingIcon')
+export const NotWorkingIcon = icon(RawCircleAlert, 'NotWorkingIcon')
 
 /* ── Directional glyphs. Never used raw; go through the helpers below. ──── */
 

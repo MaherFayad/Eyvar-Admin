@@ -34,10 +34,12 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import type { AlertFiring, AlertRule, SavedReport } from '@/data/types'
+import { EN as SHELL_EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
 
 const EN = (key: string) => REPORTS_EN[key] as string
+const HINT = SHELL_EN['shell.hint.show'] as string
 
 beforeEach(() => {
   disableMockLatency()
@@ -119,11 +121,11 @@ describe('nothing is checking these rules, said where it is read', () => {
       banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
 
-    /* §5.2 — ONE page-level banner. The re-arm sentence is merged into it, not
-       stacked beside it, so it is inside the same element. */
+    /* §5.2 — ONE page-level banner, and T9.15 leaves it one sentence: the
+       re-arm rule explains rather than acts, so it is behind the hint (X15). */
     const region = banner.closest('[data-slot="alert"]') ?? banner.parentElement
     expect(region?.textContent).toContain(EN('rb.alerts.banner.body'))
-    expect(region?.textContent).toContain(EN('rb.alert.rearm.explain'))
+    expect(region?.textContent).not.toContain(EN('rb.alert.rearm.explain'))
 
     /* The old footnote is gone from this screen entirely. It is still a live
        key — it is the sentence beside the disabled cadence field in the rule
@@ -131,26 +133,50 @@ describe('nothing is checking these rules, said where it is read', () => {
     expect(screen.queryByText(EN('rb.alert.cadence.explain'))).toBeNull()
   })
 
-  it('qualifies every row whose cadence is unset, under its own state badge', async () => {
+  it('keeps the re-arm rule one keystroke away, on the banner', async () => {
+    const user = userEvent.setup()
+    renderAt('/management/reports?view=alerts')
+    await screen.findByRole('table')
+
+    const banner = screen.getByText(EN('rb.alerts.banner.title'))
+    const region = (banner.closest('[data-slot="alert"]') ?? banner.parentElement) as HTMLElement
+    await user.hover(within(region).getByRole('button', { name: HINT }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(EN('rb.alert.rearm.explain'))
+  })
+
+  it('says nothing about the schedule on a row, because the banner says it (R10)', async () => {
     const rules = await alertRules()
-    const unset = rules.filter((rule) => rule.cadence === null)
-    expect(unset.length).toBeGreaterThan(0)
+    expect(rules.some((rule) => rule.cadence === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts')
     await screen.findByRole('table')
 
-    /* One per row, not one for the page: the badge is per row and so is the
-       correction it qualifies. */
-    const notes = await screen.findAllByText(EN('rb.alert.cadence.rowNote'))
-    expect(notes.length).toBe(unset.length)
-
-    /* And it sits in the SAME cell as the word it qualifies — a note three
-       columns away is the defect this replaces. */
+    /* The badge is a true statement about the last recorded state; the banner
+       above qualifies the present tense once, for the page. */
     const firing = rules.find((rule) => rule.state === 'firing')
     expect(firing).toBeDefined()
     const row = await rowNamed(firing!.name)
     const stateCell = within(row).getByText(EN('rb.alert.state.firing')).closest('td')
-    expect(stateCell?.textContent).toContain(EN('rb.alert.cadence.rowNote'))
+    expect(stateCell?.textContent).toBe(EN('rb.alert.state.firing'))
+  })
+
+  it('O9 — leaves Last reading blank on a rule nothing has read', async () => {
+    const rules = await alertRules()
+    const unread = rules.filter((rule) => rule.lastValue === null)
+    expect(unread.length).toBeGreaterThan(0)
+
+    renderAt('/management/reports?view=alerts')
+    const table = await screen.findByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    const index = headers.findIndex((h) =>
+      h.textContent?.includes(EN('rb.alerts.col.lastValue')),
+    )
+    expect(index).toBeGreaterThan(-1)
+
+    for (const rule of unread) {
+      const row = await rowNamed(rule.name)
+      expect(within(row).getAllByRole('cell')[index]!.textContent).toBe('')
+    }
   })
 
   it('says “never checked” rather than the no-data placeholder', async () => {
