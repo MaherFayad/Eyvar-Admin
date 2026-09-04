@@ -212,6 +212,15 @@ function touchedCustomer(ticket: Ticket, at: IsoDateTime): Partial<Ticket> {
   }
 }
 
+/** Milliseconds for the sort: a breach counts from its stamp, far below any deadline. */
+function urgencyOf(ticket: Ticket): number {
+  if (!ticketIsLive(ticket) || ticket.pausedAt !== null) return Number.MAX_SAFE_INTEGER
+  const breach = ticket.firstResponseBreachedAt ?? ticket.slaBreachedAt
+  if (breach !== null) return Date.parse(breach) - 1e14
+  const due = ticket.firstResponseAt === null ? ticket.firstResponseDueAt : ticket.slaDueAt
+  return due === null ? Number.MAX_SAFE_INTEGER : Date.parse(due)
+}
+
 /* ─────────────────────────────── the shape ────────────────────────────── */
 
 const ticketShape: QueryShape<Ticket> = {
@@ -232,6 +241,9 @@ const ticketShape: QueryShape<Ticket> = {
     category: (t) => t.category,
     slaDueAt: (t) => t.slaDueAt ?? '9999',
     firstResponseDueAt: (t) => t.firstResponseDueAt ?? '9999',
+    /* AC-217: breached first (most overdue first), then the running deadline,
+       `No clock` last. The running clock is the answer promise until answered. */
+    urgency: (t) => urgencyOf(t),
   },
   filterable: {
     id: (t) => t.id,

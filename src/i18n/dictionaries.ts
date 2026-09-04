@@ -435,10 +435,11 @@ const views: Dictionary = {
   'view.pricing.rateCard': 'Rate card',
   'view.pricing.cancellationFees': 'Cancellation fees',
 
+  'view.tickets.unassigned': 'Unassigned',
+  'view.tickets.mine': 'Mine',
   'view.tickets.open': 'Open',
-  'view.tickets.inProgress': 'In progress',
   'view.tickets.waiting': 'Waiting',
-  'view.tickets.resolved': 'Resolved',
+  'view.tickets.done': 'Done',
 
   'view.disputes.disputes': 'Disputes',
   'view.disputes.lostAndFound': 'Lost & found',

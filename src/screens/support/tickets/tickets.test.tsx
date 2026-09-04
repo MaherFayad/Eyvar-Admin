@@ -90,7 +90,7 @@ describe('an SLA console shows the SLA', () => {
     await screen.findByText(en('ticket.sla.heading'))
     /* The three fields the screen dropped: the deadline, the age, and the
        opening timestamp in the meta card. */
-    expect(screen.getByText(/^Due /)).toBeInTheDocument()
+    expect(screen.getAllByText(/^Due /).length).toBeGreaterThan(0)
     /* `Open …` also prefixes `Open 360° profile`, so the age line is matched by
        the DURATION that follows it — `Open 5h 0m` — and not by a word two
        unrelated controls share. */
@@ -101,7 +101,7 @@ describe('an SLA console shows the SLA', () => {
   it('says Breached in words on a ticket whose promise was missed', async () => {
     renderApp(detail('TKT-505'))
     expect(await screen.findByText(en('ticket.sla.breached'))).toBeInTheDocument()
-    expect(screen.getByText(/The first-reply promise on this ticket was missed/)).toBeInTheDocument()
+    expect(screen.getByText(/This promise was missed/)).toBeInTheDocument()
   })
 
   it('stops the clock on a resolved ticket instead of counting it overdue', async () => {
@@ -115,8 +115,18 @@ describe('an SLA console shows the SLA', () => {
 
   it('shows the SLA on the queue as well as on the record', async () => {
     renderApp(INDEX)
-    await screen.findByText('TKT-501')
-    expect(screen.getByRole('columnheader', { name: /Reply due/ })).toBeInTheDocument()
+    await screen.findByText('Fare calculation discrepancy on surge trip')
+    expect(screen.getByRole('columnheader', { name: en('queue.col.sla') })).toBeInTheDocument()
+  })
+
+  /* AC-S-08 */
+  it('opens on Unassigned with the breached ticket first and the marker on it', async () => {
+    renderApp(INDEX)
+    const rows = await screen.findAllByRole('row')
+    const first = rows[1]!
+    expect(within(first).getByText('Payout run refused the captain bank details on file')).toBeInTheDocument()
+    expect(within(first).getByText(/^overdue /)).toBeInTheDocument()
+    expect(screen.getByText(fill('ticket.banner.one', { count: '1' }))).toBeInTheDocument()
   })
 })
 
@@ -301,19 +311,36 @@ describe('a logged call is recorded rather than toasted', () => {
 /* ────────────────── §11.2 on the index and on the record ───────────────── */
 
 describe('§11.2 — nothing is hidden on either surface', () => {
-  it('shows Claim on an owned ticket, disabled, naming who has it', async () => {
-    renderApp(INDEX)
-    /* `TKT-503` is open — so it is in the default view — and owned by USR-1. */
-    const row = (await screen.findByText('TKT-503')).closest('tr')
-    const claim = within(row as HTMLElement).getByRole('button', {
-      name: en('ticket.action.claim'),
-    })
-    expect(claim).toBeDisabled()
+  /* AC-S-10 */
+  it('names the operator holding a ticket on the row and offers Take over, which confirms', async () => {
+    const user = userEvent.setup()
+    renderApp(`${INDEX}?view=open`)
+    /* `TKT-502` is held by Lina, and the acting operator is Sarah. */
+    const row = (await screen.findByText('Left briefcase in back seat of Camry')).closest('tr')!
+    expect(within(row).getByText('Lina Al-Otaibi')).toBeInTheDocument()
+    await user.click(within(row).getByRole('button', { name: en('queue.takeOver') }))
+    const dialog = await screen.findByRole('dialog')
     expect(
-      within(row as HTMLElement).getByText(
-        fill('ticket.action.claim.blocked.owned', { name: 'Sarah Al-Rashid' }),
-      ),
+      within(dialog).getByText(fill('queue.takeOver.title', { name: 'Lina Al-Otaibi' })),
     ).toBeInTheDocument()
+  })
+
+  /* AC-S-21 */
+  it('offers Reopen on a decided row and Resolve on a live one', async () => {
+    renderApp(`${INDEX}?view=done`)
+    const done = (await screen.findByText('App crashes when uploading Istemara registration')).closest('tr')!
+    expect(within(done).getByRole('button', { name: en('ticket.action.reopen') })).toBeEnabled()
+    expect(within(done).queryByRole('button', { name: en('ticket.action.resolve') })).not.toBeInTheDocument()
+  })
+
+  it('offers Claim selected and nothing else in the bulk bar', async () => {
+    const user = userEvent.setup()
+    renderApp(INDEX)
+    await screen.findByText('Fare calculation discrepancy on surge trip')
+    const boxes = screen.getAllByRole('checkbox')
+    await user.click(boxes[1]!)
+    expect(await screen.findByRole('button', { name: en('ticket.bulk.claim') })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /resolve selected/i })).not.toBeInTheDocument()
   })
 
   it('shows the Resolve primary on a resolved ticket rather than removing it', async () => {
@@ -333,12 +360,12 @@ describe('the four states on the index', () => {
 
     mockFailures.clear('tickets.list')
     await userEvent.click(screen.getByRole('button', { name: en('state.pageError.action') }))
-    expect(await screen.findByText('TKT-501')).toBeInTheDocument()
+    expect(await screen.findByText('Fare calculation discrepancy on surge trip')).toBeInTheDocument()
   })
 
   it('renders the no-match empty when nothing matches', async () => {
     renderApp(INDEX)
-    await screen.findByText('TKT-501')
+    await screen.findByText('Fare calculation discrepancy on surge trip')
     await userEvent.type(screen.getByPlaceholderText(en('ticket.search')), 'nothing matches this')
     expect(await screen.findByText(en('ticket.empty.noMatch'))).toBeInTheDocument()
   })
@@ -349,6 +376,71 @@ describe('the four states on the index', () => {
   })
 })
 
+describe('the lifecycle on the record (§5.3)', () => {
+  /* AC-S-11 */
+  it('pauses on Wait on customer and the rail says so, then resumes', async () => {
+    const user = userEvent.setup()
+    renderApp(detail('TKT-503'))
+    await screen.findByText(en('ticket.thread'))
+    await user.click(screen.getByRole('button', { name: en('ticket.action.wait') }))
+    expect(await screen.findByText(/Waiting on the customer since/)).toBeInTheDocument()
+    expect((await getTicket('TKT-503')).status).toBe('waiting')
+    await user.click(screen.getByRole('button', { name: en('ticket.action.resume') }))
+    await expect.poll(async () => (await getTicket('TKT-503')).status).toBe('in-progress')
+  })
+
+  /* AC-S-13 */
+  it('transfers with a required note, and the note lands on the thread as internal', async () => {
+    const user = userEvent.setup()
+    renderApp(detail('TKT-503'))
+    await screen.findByText(en('ticket.thread'))
+    await user.click(screen.getByRole('button', { name: en('ticket.action.transfer') }))
+    const dialog = await screen.findByRole('dialog')
+    const confirm = within(dialog).getByRole('button', { name: en('ticket.transfer.confirm') })
+    expect(confirm).toBeDisabled()
+    await user.type(within(dialog).getByLabelText(en('ticket.transfer.noteLabel')), 'Rider prefers Arabic.')
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: 'Lina Al-Otaibi' }))
+    await user.click(within(dialog).getByRole('button', { name: en('ticket.transfer.confirm') }))
+    await expect.poll(async () => (await getTicket('TKT-503')).ownerName).toBe('Lina Al-Otaibi')
+    expect(await screen.findByText('Rider prefers Arabic.')).toBeInTheDocument()
+    expect(screen.getByText(en('ticket.thread.notSent'))).toBeInTheDocument()
+  })
+
+  /* AC-S-12 */
+  it('re-codes through a dialog that states what changes, and the promises follow', async () => {
+    const user = userEvent.setup()
+    renderApp(detail('TKT-503'))
+    await screen.findByText(en('ticket.thread'))
+    await user.click(screen.getByRole('button', { name: en('shell.moreActions') }))
+    await user.click(await screen.findByRole('menuitem', { name: en('ticket.action.recode') }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(en('ticket.recode.body'))).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: /Captain behaved inappropriately/ }))
+    await user.click(within(dialog).getByRole('button', { name: en('ticket.recode.confirm') }))
+    await expect.poll(async () => (await getTicket('TKT-503')).reasonCode).toBe('CAP_CONDUCT')
+    expect((await getTicket('TKT-503')).priority).toBe('Critical')
+  })
+
+  /* AC-S-21 */
+  it('offers Reopen as the primary on a decided ticket and Resolve refused beside it', async () => {
+    renderApp(detail('TKT-504'))
+    await screen.findByText(en('ticket.thread'))
+    expect(screen.getByRole('button', { name: en('ticket.action.reopen') })).toBeEnabled()
+    expect(screen.getByRole('button', { name: en('ticket.action.resolve') })).toBeDisabled()
+  })
+
+  it('shows all three promises on a ticket that makes three', async () => {
+    renderApp(detail('TKT-502'))
+    await screen.findByText(en('ticket.sla.heading'))
+    expect(screen.getByText(en('ticket.sla.firstReply'))).toBeInTheDocument()
+    expect(screen.getByText(en('ticket.sla.resolution'))).toBeInTheDocument()
+    expect(screen.getByText(en('ticket.sla.nextUpdate'))).toBeInTheDocument()
+    expect(screen.getByText(en('ticket.sla.keptLate'))).toBeInTheDocument()
+  })
+})
+
 describe('resolving a ticket is reversible — D18', () => {
   /* The trade D18 makes is explicit: a command may skip its confirm **because**
      the inverse is one press away. This screen had taken the removal and not the
@@ -356,9 +448,9 @@ describe('resolving a ticket is reversible — D18', () => {
   it('offers Undo, and the undo reopens the ticket through the client', async () => {
     const user = userEvent.setup()
     renderApp(INDEX)
-    await screen.findAllByText(/TKT-/)
+    await screen.findByText('Fare calculation discrepancy on surge trip')
 
-    const resolve = await screen.findAllByRole('button', { name: /resolve/i })
+    const resolve = await screen.findAllByRole('button', { name: en('ticket.action.resolve') })
     expect(resolve.length, 'no resolve control to exercise').toBeGreaterThan(0)
     await user.click(resolve[0]!)
 
