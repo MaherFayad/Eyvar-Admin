@@ -369,8 +369,8 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.cash.class.over_report': 'مُبلَّغ عنه بزيادة',
   'fin.cash.class.under_report': 'مُبلَّغ عنه بنقص',
   'fin.cash.class.no_report': 'لم يُبلَّغ عنه قط',
-  'fin.cash.riderConfirmed': 'أكّد الراكب',
-  'fin.cash.riderUnconfirmed': 'لم يؤكّد الراكب',
+  'fin.cash.riderConfirmed': 'مؤكّد',
+  'fin.cash.riderUnconfirmed': 'غير مؤكّد',
   'fin.cash.repeat': '{count} بلاغات ناقصة سابقة',
   'fin.cash.search': 'ابحث في التقارير النقدية',
   'fin.cash.action.resolve': 'حسم',
@@ -743,7 +743,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.wallets.authority.caps': 'لكل حالة {perCase} · {countCap} لكل راكب خلال 30 يومًا',
 
   'fin.pricing.plan.col.gross': 'الإجمالي (SAR)',
-  'fin.pricing.plan.action.revenue': 'فتح الإيرادات',
 
   'fin.controls.trial.heading': 'ميزان المراجعة',
   'fin.controls.trial.balanced': 'متوازن',
@@ -755,8 +754,6 @@ export const FINANCIALS_AR: Dictionary = {
 
   'fin.payout.figures.heading': 'دورة الصرف الحالية',
   'fin.payout.figure.net': 'صافي المستحق في هذه الدورة',
-  'fin.escrow.cancelledTotal': 'حجز واحد على اشتراك ملغى',
-  'fin.escrow.cancelledTotalMany': '{count} حجوزات على اشتراكات ملغاة',
   'fin.cash.status.pending': 'بانتظار القرار',
   'fin.cash.status.resolved': 'محسوم',
   'fin.cash.status.escalated': 'مُصعَّد',
@@ -854,4 +851,21 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.overview.firstRun.body':
     'لم يُسجَّل أي قيد بعد. أول أجرة محصَّلة تفتح دفتر الأستاذ، وكل رقم هنا يتبعها.',
   'fin.overview.firstRun.action': 'فتح دفتر الأستاذ',
+  /* ── FINANCIALS-UX-PLAN §10 Payouts, Cash & Pricing ── */
+
+  'fin.figure.unit': 'SAR',
+  'fin.drill.meta': '{view} · {record}',
+  'fin.drill.back': 'العودة إلى {view}',
+
+  'fin.escrow.figures.heading': 'الضمان',
+  'fin.escrow.figure.held': 'المحجوز',
+  'fin.escrow.figure.ready': 'جاهز للإفراج',
+  'fin.escrow.figure.cancelled': 'على اشتراكات ملغاة',
+
+  'fin.deduction.figures.heading': 'الخصومات',
+  'fin.deduction.figure.pending': 'قيد الانتظار',
+  'fin.deduction.figure.count': 'بانتظار قرار',
+
+  'fin.cash.figures.heading': 'تسوية النقد',
+  'fin.cash.figure.open': 'التقارير المفتوحة',
 }

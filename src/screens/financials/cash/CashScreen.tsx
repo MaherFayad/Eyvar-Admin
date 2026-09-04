@@ -70,7 +70,7 @@
  * makes the checkbox column structurally absent rather than merely unused.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   cashDebtCapHalalas,
@@ -95,17 +95,17 @@ import { formatCount, formatDate, formatMoney } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { MoneyCell } from '@/components/Money'
+import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { Button } from '@/components/ui/button'
 import { DecisionBadge, OwnerChip, useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { EntityName, useEntityLinks } from '../shared/entityLinks'
-import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
+import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
-import { Figure, FigureGrid, FigureItem } from '../shared/Figures'
 import { PeriodControl } from '../shared/PeriodControl'
 import { bulkRefusal, claimWithheldFrom, deviationHalalas } from '../shared/derive'
 import { bulkRefusalText } from '../shared/text'
@@ -159,6 +159,66 @@ interface EscalatedScope {
 
 const NO_ESCALATED_SCOPE: EscalatedScope = { count: 0, scoped: false, showOnly: null }
 
+/**
+ * **R2-1** — a view's headline figures, flat: the heading and its caption at
+ * the inline-start, the figures at the inline-end with the unit as a small line
+ * beside the numeral (V-2, V-21). A frame is spent on a panel, never a figure.
+ * Local until the shared `shared/ViewHeader.tsx` lands in the Wallets lane.
+ */
+interface ViewFigure {
+  label: string
+  value: ReactNode
+  /** The small line beside the numeral. Omitted on a count. */
+  unit?: string
+}
+
+function ViewHeader({
+  id,
+  heading,
+  caption = null,
+  figures,
+}: {
+  id: string
+  heading: string
+  caption?: string | null
+  figures: readonly ViewFigure[]
+}) {
+  return (
+    <section
+      aria-labelledby={id}
+      className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1"
+    >
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 id={id} className="truncate text-sm font-semibold text-foreground">
+          {heading}
+        </h2>
+        {caption !== null && (
+          <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+            {caption}
+          </span>
+        )}
+      </div>
+      <ul data-numeric role="list" className="flex list-none flex-wrap items-end gap-6">
+        {figures.map((figure) => (
+          <li key={figure.label} className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">{figure.label}</span>
+            <span className="flex items-baseline gap-1">
+              <span className="text-kpi font-semibold tabular-nums text-foreground">
+                <bdi>{figure.value}</bdi>
+              </span>
+              {figure.unit !== undefined && (
+                <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {figure.unit}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function CashScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
@@ -180,6 +240,12 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
   )
 
   const [escalated, setEscalated] = useState<EscalatedScope>(NO_ESCALATED_SCOPE)
+  /* **R2-2** — the drill-in's meta names the record, and only the ledger read
+     knows its name. Cleared on unmount so the index cannot inherit it. */
+  const [subject, setSubject] = useState<string | null>(null)
+  /* The view the drill-in belongs to: the meta names it and the way back
+     restores it, so the two cannot say different things. */
+  const parentView = tabs.find((tab) => tab.id === activeTab)?.label ?? ''
 
   /* **AC-378 / P0-3** — one banner, one count, and it is the only banner this
      sub-tab raises. **There is no breach banner**, because there is no breach
@@ -213,14 +279,42 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
   return (
     <FinancialsPage
       row={row}
-      /* **TL-2 / Q-F13** — the period is printed only where a read honours it.
-         `listCashReports` and `listCaptainDebts` take `QueryParams` alone;
-         `getCaptainDebtLedger` takes a window. */
-      meta={captainId === null ? null : periodLabel(period, t, language)}
+      /* **R2-2** — on the drill-in the meta is the parent view and the record,
+         one key with two placeholders. The period is not printed twice: the
+         control on the title row states the window it changes. */
+      meta={
+        captainId === null || subject === null
+          ? null
+          : t('fin.drill.meta', { view: parentView, record: subject })
+      }
       /* §8 slot 4c - on the title row, and only where a read honours it. */
       periodControl={
         captainId === null ? undefined : (
           <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        )
+      }
+      /* **ONE view row, in one place, on all three views** (D12) — the strip
+         was the `DataTable` toolbar's and moved with whatever the view drew
+         above it. The drill-in has no views, so the row carries the way back
+         and the cap every balance under it is read against: **R2-2**, and one
+         row where there were two. */
+      viewRow={
+        captainId === null ? (
+          <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+        ) : (
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <Button
+              variant="link"
+              onClick={() => openCaptain(null)}
+              className="h-auto p-0 text-sm"
+            >
+              {t('fin.drill.back', { view: parentView })}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {t('fin.debt.figure.cap')}{' '}
+              <Money amount={cashDebtCapHalalas()} className="font-medium" />
+            </span>
+          </div>
         )
       }
       banners={banners}
@@ -229,10 +323,13 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         {captainId !== null ? (
-          <CaptainDebtLedger captainId={captainId} onBack={() => openCaptain(null)} />
+          <CaptainDebtLedger
+            captainId={captainId}
+            onBack={() => openCaptain(null)}
+            onSubject={setSubject}
+          />
         ) : activeTab === 'reconciliation-queue' ? (
           <ReconciliationQueue
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             gate={gate}
@@ -241,7 +338,6 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
         ) : (
           <CaptainDebtIndex
             key={activeTab}
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             gate={gate}
@@ -253,8 +349,12 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
   )
 }
 
+/**
+ * What a sub-view still needs: the id it is (the CSV's `view` column) and a way
+ * to send an operator to a sibling view from an empty state. **Not `tabs`** —
+ * the view row is the screen's, rendered once above (D12).
+ */
 interface ViewProps {
-  tabs: readonly { id: string; label: string }[]
   activeTab: string
   onSelectTab: (id: string) => void
   gate: { canWrite: boolean; reason: string }
@@ -263,7 +363,6 @@ interface ViewProps {
 /* ────────────────────── the reconciliation queue (§8.4) ─────────────────── */
 
 function ReconciliationQueue({
-  tabs,
   activeTab,
   onSelectTab,
   gate,
@@ -302,6 +401,13 @@ function ReconciliationQueue({
     { deps: [], cacheKey: 'cash.list' },
   )
   const escalatedTotal = escalated.data?.total ?? 0
+
+  /* **R2-1** — what the queue holds, counted over the POPULATION rather than
+     the page, the same reason the escalated count above is. */
+  const open = useAsync<Paginated<CashReport>>(
+    (signal) => listCashReports({ view: 'pending', pageSize: 1 }, signal),
+    { deps: ['pending'], cacheKey: 'cash.list' },
+  )
 
   /* **P0-2** — a FILTER, not a view: it shows as a clearable chip in the query
      strip and makes `isFiltered` true, so the resulting zero is `no-match`
@@ -398,8 +504,18 @@ function ReconciliationQueue({
         cell: (report) => (
           <EntityName href={hrefFor(report.captainId)} name={report.captainName} t={t} />
         ),
+        /* **R2-7** — one word, so the cell stays two lines at 1280. The long
+           sentence wrapped every unconfirmed captain onto a third line. */
         secondaryLine: (report) =>
           report.riderConfirmed ? t('fin.cash.riderConfirmed') : t('fin.cash.riderUnconfirmed'),
+        /* **R2-7** — and an operator who wants only the unconfirmed ones asks
+           for them, rather than reading the second line down the column. */
+        filter: {
+          kind: 'boolean',
+          field: 'riderConfirmed',
+          trueLabel: t('fin.cash.riderConfirmed'),
+          falseLabel: t('fin.cash.riderUnconfirmed'),
+        },
       },
       {
         id: 'expected',
@@ -692,6 +808,20 @@ function ReconciliationQueue({
 
   return (
     <>
+      {/* **R2-1** — the two counts the queue is worked against. */}
+      {open.data && (
+        <ViewHeader
+          id="fin-cash-figures"
+          heading={t('fin.cash.figures.heading')}
+          figures={[
+            { label: t('fin.cash.figure.open'), value: formatCount(open.data.total, language) },
+            {
+              label: t('fin.cash.status.escalated'),
+              value: formatCount(escalatedTotal, language),
+            },
+          ]}
+        />
+      )}
       <DataTable
         table={table}
         rows={rows}
@@ -703,9 +833,6 @@ function ReconciliationQueue({
         language={language}
         tableId="financials-cash-queue"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.cash.search')}
         bulkActions={bulkActions}
         /* **R5a / AC-378 — declared, and identical to the leading-edge
@@ -745,7 +872,6 @@ function ReconciliationQueue({
 /* ───────────────────────── the captain debt index ──────────────────────── */
 
 function CaptainDebtIndex({
-  tabs,
   activeTab,
   onSelectTab,
   gate,
@@ -951,41 +1077,34 @@ function CaptainDebtIndex({
 
   return (
     <>
+      {/* **R2-1** — three bordered tiles became one flat header. **AC-381** —
+          the outstanding figure is the SIGNED sum, so a captain in credit is in
+          it, and the count the table footer used to carry is the caption. */}
       {debts.status === 'content' && (
-        <section className="flex flex-col gap-2" aria-labelledby="fin-debt-figures">
-          <h2 id="fin-debt-figures" className="sr-only">
-            {t('fin.debt.figures.heading')}
-          </h2>
-          <FigureGrid>
-            <FigureItem>
-              {/* **AC-381** — the SIGNED sum, so a captain in credit is in it,
-                  and the caption carries the count the table footer used to. */}
-              <Figure
-                rank="supporting"
-                label={t('fin.debt.figure.outstanding')}
-                amount={total}
-                caption={t('fin.debt.figure.captains', {
-                  count: formatCount(rows.length, language),
-                })}
-              />
-            </FigureItem>
-            <FigureItem>
-              <Figure
-                rank="supporting"
-                label={t('fin.cash.view.overCap')}
-                value={formatCount(overCap.data?.total ?? 0, language)}
-              />
-            </FigureItem>
-            <FigureItem>
-              {/* Server policy, per Admin › Operational Policy. */}
-              <Figure
-                rank="supporting"
-                label={t('fin.debt.figure.cap')}
-                amount={cashDebtCapHalalas()}
-              />
-            </FigureItem>
-          </FigureGrid>
-        </section>
+        <ViewHeader
+          id="fin-debt-figures"
+          heading={t('fin.debt.figures.heading')}
+          caption={t('fin.debt.figure.captains', {
+            count: formatCount(rows.length, language),
+          })}
+          figures={[
+            {
+              label: t('fin.debt.figure.outstanding'),
+              value: <Money amount={total} unit="none" />,
+              unit: t('fin.figure.unit'),
+            },
+            {
+              label: t('fin.cash.view.overCap'),
+              value: formatCount(overCap.data?.total ?? 0, language),
+            },
+            {
+              /* Server policy, per Admin › Operational Policy. */
+              label: t('fin.debt.figure.cap'),
+              value: <Money amount={cashDebtCapHalalas()} unit="none" />,
+              unit: t('fin.figure.unit'),
+            },
+          ]}
+        />
       )}
       <DataTable
         table={table}
@@ -998,9 +1117,6 @@ function CaptainDebtIndex({
         language={language}
         tableId="financials-captain-debt"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.debt.search')}
         /* **AC-380 / R5a** — over the cap, the same comparison the marker
            makes. `isOverCap` is derived and not a field (`types/financials.ts`),
@@ -1035,7 +1151,16 @@ function CaptainDebtIndex({
 
 /* ─────────────────── a captain's receivable ledger (§7.2) ───────────────── */
 
-function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: () => void }) {
+function CaptainDebtLedger({
+  captainId,
+  onBack,
+  onSubject,
+}: {
+  captainId: string
+  onBack: () => void
+  /** **R2-2** — the page meta names the record, and only this read knows it. */
+  onSubject: (name: string | null) => void
+}) {
   const shell = useShell()
   const { t, language } = shell.language
   /* **Q-F13 / TL-2** — `getCaptainDebtLedger` is the one read on this screen
@@ -1068,16 +1193,16 @@ function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: (
 
   const status = ledger.status === 'content' && rows.length === 0 ? 'empty' : ledger.status
 
+  const subjectName = ledger.data?.subjectName ?? null
+  useEffect(() => {
+    onSubject(subjectName)
+    return () => onSubject(null)
+  }, [subjectName, onSubject])
+
+  /* **R2-2** — the way back and the cap left this row for the header's
+     breadcrumb slot, so the ledger header follows the title row directly. */
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="secondary" size="xs" onClick={onBack}>
-          {t('fin.debt.empty.action')}
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          {t('fin.debt.col.cap')} <MoneyCell amount={cashDebtCapHalalas()} />
-        </span>
-      </div>
       <LedgerCard
         table={table}
         ledger={ledger.data}

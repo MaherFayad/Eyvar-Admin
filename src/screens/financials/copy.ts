@@ -559,8 +559,8 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.cash.class.over_report': 'Over-reported',
   'fin.cash.class.under_report': 'Under-reported',
   'fin.cash.class.no_report': 'Never reported',
-  'fin.cash.riderConfirmed': 'Rider confirmed',
-  'fin.cash.riderUnconfirmed': 'Rider has not confirmed',
+  'fin.cash.riderConfirmed': 'Confirmed',
+  'fin.cash.riderUnconfirmed': 'Unconfirmed',
   'fin.cash.repeat': '{count} earlier under-reports',
   'fin.cash.search': 'Search cash reports',
   /* **AC-374** — a closed set of exactly two dispositions. */
@@ -1070,7 +1070,6 @@ export const FINANCIALS_EN: Dictionary = {
      is on the page meta and on the control above the table, so the header
      carries the unit and nothing else (§8.3.1). */
   'fin.pricing.plan.col.gross': 'Gross (SAR)',
-  'fin.pricing.plan.action.revenue': 'Open revenue',
 
   /* §5.5 / V-20 — the balanced books stated as a heading, never as a colour. */
   'fin.controls.trial.heading': 'Trial balance',
@@ -1083,8 +1082,6 @@ export const FINANCIALS_EN: Dictionary = {
 
   'fin.payout.figures.heading': 'This payout run',
   'fin.payout.figure.net': 'Net payable this run',
-  'fin.escrow.cancelledTotal': 'One hold is on a cancelled subscription',
-  'fin.escrow.cancelledTotalMany': '{count} holds are on cancelled subscriptions',
   'fin.cash.status.pending': 'Awaiting decision',
   'fin.cash.status.resolved': 'Resolved',
   'fin.cash.status.escalated': 'Escalated',
@@ -1190,4 +1187,28 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.overview.firstRun.body':
     'Nothing has been posted yet. The first captured fare opens the ledger and every figure here follows from it.',
   'fin.overview.firstRun.action': 'Open the ledger',
+  /* ── FINANCIALS-UX-PLAN §10 Payouts, Cash & Pricing ── */
+
+  /* R2-1 — V-21: the unit is the small line under the numeral, never at
+     `--text-kpi` beside it. Fixed in both languages: `formatMoney` prints the
+     code itself (AC-73), so a translated one here would disagree with it. */
+  'fin.figure.unit': 'SAR',
+  /* R2-2 — the drill-in's meta: the parent view and the record it opened, one
+     key with two placeholders (AC-443). */
+  'fin.drill.meta': '{view} · {record}',
+  /* The way back names the view it returns to, because that is the view the
+     link actually restores — `?captain=` is dropped and `?view=` is kept. */
+  'fin.drill.back': 'Back to {view}',
+
+  'fin.escrow.figures.heading': 'Escrow',
+  'fin.escrow.figure.held': 'Held',
+  'fin.escrow.figure.ready': 'Ready to release',
+  'fin.escrow.figure.cancelled': 'On cancelled subscriptions',
+
+  'fin.deduction.figures.heading': 'Deductions',
+  'fin.deduction.figure.pending': 'Pending',
+  'fin.deduction.figure.count': 'Awaiting a decision',
+
+  'fin.cash.figures.heading': 'Cash reconciliation',
+  'fin.cash.figure.open': 'Open reports',
 }

@@ -574,7 +574,11 @@ describe('§5.4 — the catalogue row carries its money and points at the money 
     }
   })
 
-  it("the row's open action is the plan's page on Revenue, and Edit stays the catalogue's own act", async () => {
+  /**
+   * **R2-4** — the lane holds the one mutating act; opening the plan's money
+   * page is the ROW, by click and by `Enter` through the same handler.
+   */
+  it('R2-4 — the row opens Revenue and the lane holds Edit alone', async () => {
     const user = userEvent.setup()
     render(
       <MemoryRouter initialEntries={['/financials/pricing']}>
@@ -589,15 +593,38 @@ describe('§5.4 — the catalogue row carries its money and points at the money 
     await waitFor(() => expect(screen.getByText('Monthly')).toBeTruthy())
 
     const monthly = screen.getByText('Monthly').closest('tr') as HTMLElement
+    /* One control in the lane, and it is the catalogue's own act. */
+    expect(within(monthly).getAllByRole('button')).toHaveLength(1)
     expect(
       within(monthly).getByRole('button', { name: EN['fin.pricing.plan.action.edit'] as string }),
     ).toBeTruthy()
 
-    await user.click(
-      within(monthly).getByRole('button', {
-        name: EN['fin.pricing.plan.action.revenue'] as string,
-      }),
+    await user.click(monthly)
+    await waitFor(() =>
+      expect(screen.getByTestId('here').textContent).toBe(
+        '/financials/revenue?view=by-plan&plan=monthly',
+      ),
     )
+  })
+
+  /** **R2-4** — and the keyboard arrives at the same place through the same door. */
+  it('R2-4 — Enter on the focused row opens the same page the click does', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/financials/pricing']}>
+        <ShellProvider>
+          <Routes>
+            <Route path="/financials/pricing" element={<PricingScreen row={pricingRow()} />} />
+            <Route path="/financials/revenue" element={<Here />} />
+          </Routes>
+        </ShellProvider>
+      </MemoryRouter>,
+    )
+    await waitFor(() => expect(screen.getByText('Monthly')).toBeTruthy())
+
+    const monthly = screen.getByText('Monthly').closest('tr') as HTMLElement
+    monthly.focus()
+    await user.keyboard('{Enter}')
     await waitFor(() =>
       expect(screen.getByTestId('here').textContent).toBe(
         '/financials/revenue?view=by-plan&plan=monthly',
