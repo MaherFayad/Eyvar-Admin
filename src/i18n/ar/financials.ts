@@ -143,8 +143,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.overview.outOfBalance.action': 'قراءة القيود المرفوضة',
   'fin.overview.refused.title': 'رُفض قيد واحد.',
   'fin.overview.refused.titleMany': 'رُفض {count} من القيود.',
-  'fin.revenue.view.all': 'كل القيود',
-  'fin.revenue.view.revenue': 'الإيرادات',
   'fin.revenue.view.refunds': 'الاستردادات',
   'fin.revenue.view.creditNotes': 'الإشعارات الدائنة',
   'fin.revenue.view.margin': 'هامش المساهمة',
@@ -728,4 +726,41 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.audit.planSaved': 'حُفظت الباقة {plan}.',
   'fin.audit.refundIssued': 'صدر الاسترداد {reference} إلى {destination}.',
   'fin.audit.walletAdjusted': 'عُدِّلت محفظة — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §4 Revenue ── */
+
+  'fin.revenue.view.byPlan': 'الإيرادات حسب الباقة',
+  'fin.revenue.view.refundsLedger': 'دفتر الاستردادات',
+
+  'fin.revenue.mode.label': 'طريقة عرض هذا المنظور',
+  'fin.revenue.mode.charts': 'رسوم',
+  'fin.revenue.mode.table': 'جدول',
+  'fin.revenue.export': 'تصدير CSV',
+
+  'fin.revenue.plan.list': 'الباقات',
+  'fin.revenue.plan.facts': '{subs} اشتراك نشط · {trips} رحلة',
+  'fin.revenue.plan.facts.noSubs': '{trips} رحلة',
+  'fin.revenue.plan.detail.facts': '{subs} اشتراك نشط · {trips} رحلة · {from} إلى {to}',
+  'fin.revenue.plan.detail.facts.noSubs': '{trips} رحلة · {from} إلى {to}',
+  'fin.revenue.plan.sparkline': 'الإجمالي يوميًا، {from} إلى {to}',
+
+  'fin.revenue.plan.chart.heading': 'الإجمالي والمساهمة يوميًا',
+  'fin.revenue.plan.chart.description': 'الإجمالي والمساهمة يوميًا، {from} إلى {to}',
+  'fin.revenue.plan.chart.gross': 'الإجمالي',
+  'fin.revenue.plan.chart.contribution': 'المساهمة',
+
+  'fin.revenue.plan.composition.heading': 'أين ذهب الإجمالي',
+  'fin.revenue.plan.composition.captain': 'أرباح الكابتن',
+  'fin.revenue.plan.composition.givebacks': 'المردودات',
+  'fin.revenue.plan.composition.contribution': 'المساهمة',
+
+  'fin.revenue.plan.refunds.heading': 'استردادات هذه الباقة',
+  'fin.revenue.plan.refunds.rate': 'نسبة الاسترداد {rate} من إجمالي هذه الباقة',
+  'fin.revenue.plan.refunds.none': 'لم يقع أي استرداد على هذه الباقة في هذه الفترة.',
+
+  'metric.fin.revenue.plan.gross': 'الإجمالي',
+  'metric.fin.revenue.plan.platform': 'المنصة',
+  'metric.fin.revenue.plan.contribution': 'المساهمة',
+  'metric.fin.revenue.plan.contributionPercent': 'نسبة المساهمة',
+  'metric.delta.points': '{value} نقطة',
 }

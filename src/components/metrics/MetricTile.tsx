@@ -187,13 +187,23 @@ import {
   ABSENT,
   directionFor,
   formatDate,
+  formatDecimal,
   invariant,
   isolatedRunProps,
+  MINUS_SIGN,
   type Language,
   type Translate,
 } from '@/lib'
 import type { Metric, MetricComparison } from '@/data/types'
 import { formatMetricValue, formatSignedPercent, metricValence, splitMetricValue } from './formatMetric'
+
+/** `+0.6` / `−0.6` / `0.0` — the sign carried in text, as `formatSignedPercent` does. */
+function formatSignedDecimal(value: number, language: Language): string {
+  const magnitude = formatDecimal(Math.abs(value), 1, language)
+  if (value > 0) return `+${magnitude}`
+  if (value < 0) return `${MINUS_SIGN}${magnitude}`
+  return magnitude
+}
 
 
 export interface MetricTileProps {
@@ -223,7 +233,19 @@ export interface MetricTileProps {
    * not about any one of them.
    */
   selection?: MetricSelection
+  /**
+   * **What the delta is measured IN.** A change in a percentage is points, not
+   * a percentage of a percentage — `19.0%` against `19.6%` is `−0.6 pts`, and
+   * rendering `−3.1%` there would be a different, true, unasked-for fact.
+   *
+   * `points` reads the signed one-decimal value already on `deltaPercent` and
+   * renders it through `metric.delta.points`. Defaults to `percent`.
+   */
+  deltaUnit?: MetricDeltaUnit
 }
+
+/** See `MetricTileProps.deltaUnit`. */
+export type MetricDeltaUnit = 'percent' | 'points'
 
 /** The three fields of a roving-tabindex radio. See `MetricTileProps`. */
 export interface MetricSelection {
@@ -254,6 +276,7 @@ export function MetricTile({
   language,
   surface = 'page',
   selection,
+  deltaUnit = 'percent',
 }: MetricTileProps) {
   const label = t(`metric.${metric.key}`)
   const isStale = new Date(metric.asOf).getTime() < new Date(boardAsOf).getTime()
@@ -263,7 +286,7 @@ export function MetricTile({
      entirely by the surface and this reads `false` for all three of them. */
   const isLead = !onBand && metric.rank === 'lead'
 
-  const { delta, note } = comparisonParts({ metric, t, language, onBand })
+  const { delta, note } = comparisonParts({ metric, t, language, onBand, deltaUnit })
   /* The numeral and the unit beside it — see `splitMetricValue` for why a money
      value is two runs here and one everywhere else. `unitNode` is `null` on
      every non-money measure, so nothing but money gains a line. */
@@ -635,11 +658,13 @@ function comparisonParts({
   t,
   language,
   onBand,
+  deltaUnit,
 }: {
   metric: Metric
   t: Translate
   language: Language
   onBand: boolean
+  deltaUnit: MetricDeltaUnit
 }): { delta: ReactNode; note: ReactNode } {
   const { comparison, deltaPercent } = metric
   /* One bag, every place the trailing phrase is drawn. `isolatedRunProps`
@@ -779,6 +804,7 @@ function comparisonParts({
     delta: (
       <MetricDelta
         deltaPercent={deltaPercent}
+        unit={deltaUnit}
         higherIsBetter={metric.higherIsBetter}
         onBand={onBand}
         t={t}
@@ -841,6 +867,7 @@ function comparisonParts({
  */
 export function MetricDelta({
   deltaPercent,
+  unit = 'percent',
   higherIsBetter,
   onBand = false,
   t,
@@ -848,6 +875,8 @@ export function MetricDelta({
 }: {
   /** Signed, in percentage points. `null` when there is nothing to compare. */
   deltaPercent: number | null
+  /** `points` renders the same number as a point difference. See `MetricTileProps`. */
+  unit?: MetricDeltaUnit
   higherIsBetter: boolean
   /** `true` on the hero band, which has its own legible pair of valence hues. */
   onBand?: boolean
@@ -904,7 +933,11 @@ export function MetricDelta({
       {Caret && <Caret aria-hidden="true" className="size-3" />}
       {/* Isolated for the same reason as the value. `+8.1%` renders `8.1%+`
           without it under `dir="rtl"`, its leading sign being bidi-neutral. */}
-      <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
+      <bdi className="tabular-nums">
+        {unit === 'points'
+          ? t('metric.delta.points', { value: formatSignedDecimal(deltaPercent, language) })
+          : formatSignedPercent(deltaPercent, language)}
+      </bdi>
       <span className="sr-only">{direction}</span>
     </span>
   )

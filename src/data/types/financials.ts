@@ -117,6 +117,53 @@ export interface RevenueByPlanRow {
   platformHalalas: Halalas
   captainHalalas: Halalas
   givebacksHalalas?: Halalas
+  /**
+   * Present only when the read asked for `include: 'daily'` — the plan list's
+   * sparkline, so a list of four rows is one call rather than five.
+   */
+  daily?: readonly PlanRevenuePoint[]
+}
+
+/**
+ * One day of a plan's revenue.
+ *
+ * `contributionHalalas` is `platform − givebacks` for that day, so it is the
+ * same subtraction `marginBreakdown` makes over the window. Both series sum to
+ * the index row's figures, which is the invariant `revenue.test.tsx` asserts:
+ * a chart that does not sum to the tile beside it is `12a` R12 in a plot.
+ */
+export interface PlanRevenuePoint {
+  date: IsoDate
+  grossHalalas: Halalas
+  contributionHalalas: Halalas
+}
+
+/** The refunds that landed on one plan. A refund has no profile, so no link (AC-474). */
+export interface PlanRevenueRefund {
+  id: string
+  reasonCode: string
+  amountHalalas: Halalas
+  issuedAt: IsoDateTime
+}
+
+/**
+ * A plan's detail — the master-detail's end side.
+ *
+ * A **second read** rather than more fields on the index row: the index is a
+ * four-row summary and this carries thirty points, a prior window and a refund
+ * list per plan. `comparison` is `null` when the plan has no prior window.
+ */
+export interface PlanRevenueDetail {
+  /**
+   * When the server computed it. Required for the same reason `Metric.asOf` is
+   * (`types/metrics.ts`): a figure that cannot say when it was computed is one
+   * an operator cannot trust on an escalation.
+   */
+  asOf: IsoDateTime
+  row: RevenueByPlanRow
+  comparison: RevenueByPlanRow | null
+  daily: readonly PlanRevenuePoint[]
+  refunds: readonly PlanRevenueRefund[]
 }
 
 /**

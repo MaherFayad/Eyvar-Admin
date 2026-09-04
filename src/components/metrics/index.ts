@@ -37,11 +37,13 @@ export {
   MetricDelta,
   MetricTile,
   OpenAnalysis,
+  type MetricDeltaUnit,
   type MetricSelection,
   type MetricSurface,
   type MetricTileProps,
 } from './MetricTile'
 export { MetricTileItem } from './MetricTileRow'
+export { Sparkline, type SparklineProps } from './Sparkline'
 export { TrendChart, type TrendChartProps } from './TrendChart'
 export {
   formatDecimal,

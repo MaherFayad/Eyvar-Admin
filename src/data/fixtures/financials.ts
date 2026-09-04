@@ -23,6 +23,8 @@ import type {
   EscrowHold,
   InvoiceSequence,
   PaymentGateway,
+  PlanRevenuePoint,
+  PlanRevenueRefund,
   Refund,
   RevenueByPlanRow,
   VatConfig,
@@ -30,7 +32,7 @@ import type {
 import { CASH_COMMISSION_PERCENT, CASH_DEBT_CAP_HALALAS } from '../serverPolicy'
 import { cycleRecord } from './cycle'
 import { fillerDrivers } from './drivers'
-import { fillerSubscriptions } from './subscriptions'
+import { allSubscriptionFixtures, fillerSubscriptions } from './subscriptions'
 import { allTripFixtures } from './trips'
 
 /* `FINANCIALS_PERIOD` and the three `CASH_*` policy constants used to be
@@ -215,6 +217,147 @@ export const revenueByPlanFixtures: RevenueByPlanRow[] = [
     givebacksHalalas: 2_400,
   },
 ]
+
+/* ───────────────── per-plan daily series and joins (§2.5, §2.6) ────────── */
+
+/** June 2026, the window `FINANCIALS_PERIOD` names. */
+const REVENUE_DAY_COUNT = 30
+
+const revenueDay = (index: number): string => `2026-06-${String(index + 1).padStart(2, '0')}`
+
+/**
+ * A repeatable weight per plan-day. Seeded from the plan id so two runs, two
+ * machines and two languages draw the same shape, and so the series is not a
+ * second set of literals that can drift from the row above it (D-F19).
+ */
+function dayWeights(planId: string): number[] {
+  /* FNV-1a over the id, then xorshift32 — 32-bit integer arithmetic through
+     `Math.imul`, because a float LCG loses the low bits and every plan comes
+     out with the same repeating shape. */
+  let state = 2_166_136_261
+  for (const character of planId) state = Math.imul(state ^ character.charCodeAt(0), 16_777_619)
+  return Array.from({ length: REVENUE_DAY_COUNT }, (_, index) => {
+    state ^= state << 13
+    state >>>= 0
+    state ^= state >>> 17
+    state ^= state << 5
+    state >>>= 0
+    /* 12 to 27, and a lift on the seventh day: a subscription business bills in
+       weeks, so a flat series would be the smoother picture §2.2 refuses. */
+    return 12 + (state % 16) + (index % 7 === 4 ? 9 : 0)
+  })
+}
+
+/**
+ * Split `total` integer halalas across `weights`, the remainder on the last
+ * day. **This is what makes §2.5's invariant hold by construction** rather than
+ * by a fixture author adding thirty numbers correctly.
+ */
+function splitAcross(total: number, weights: readonly number[]): number[] {
+  const sum = weights.reduce((running, weight) => running + weight, 0)
+  let allocated = 0
+  return weights.map((weight, index) => {
+    if (index === weights.length - 1) return total - allocated
+    const share = Math.round((total * weight) / sum)
+    allocated += share
+    return share
+  })
+}
+
+/** `Σ gross === row.gross` and `Σ contribution === platform − givebacks`, per plan. */
+export const revenueByPlanDailyFixtures: Readonly<Record<string, readonly PlanRevenuePoint[]>> =
+  Object.fromEntries(
+    revenueByPlanFixtures.map((plan) => {
+      const weights = dayWeights(plan.planId)
+      const gross = splitAcross(plan.grossHalalas, weights)
+      const contribution = splitAcross(
+        plan.platformHalalas - (plan.givebacksHalalas ?? 0),
+        /* Offset weights, so the two series are not the same shape scaled — a
+           contribution line that tracks the bars exactly says nothing. */
+        [...weights.slice(7), ...weights.slice(0, 7)],
+      )
+      return [
+        plan.planId,
+        gross.map((amount, index) => ({
+          date: revenueDay(index),
+          grossHalalas: amount,
+          contributionHalalas: contribution[index] as number,
+        })),
+      ]
+    }),
+  )
+
+/**
+ * The same four plans over the **previous** window.
+ *
+ * `monthly` is `null` on purpose: it is the pilot plan that opened in June, so
+ * it has no prior window and its tiles render §3.7's em dash with a reason
+ * rather than a delta against nothing.
+ */
+export const revenueByPlanComparisonFixtures: Readonly<
+  Record<string, RevenueByPlanRow | null>
+> = {
+  weekly: {
+    planId: 'weekly',
+    planName: 'Weekly',
+    activeSubs: 139,
+    trips: 2_744,
+    grossHalalas: 167_900,
+    platformHalalas: 34_415,
+    captainHalalas: 133_485,
+    givebacksHalalas: 2_850,
+  },
+  biweekly: {
+    planId: 'biweekly',
+    planName: 'Bi-weekly',
+    activeSubs: 64,
+    trips: 1_302,
+    grossHalalas: 126_400,
+    platformHalalas: 22_120,
+    captainHalalas: 104_280,
+    givebacksHalalas: 1_540,
+  },
+  monthly: null,
+  'quick-ride': {
+    planId: 'quick-ride',
+    planName: 'Quick rides',
+    activeSubs: 0,
+    trips: 3_980,
+    grossHalalas: 96_600,
+    platformHalalas: 19_030,
+    captainHalalas: 77_570,
+    givebacksHalalas: 2_610,
+  },
+}
+
+/**
+ * Which plan a refund landed on — `relatedId → subscription.planKey`.
+ *
+ * A refund carries a subscription or a trip id, never a plan (`Refund.relatedId`),
+ * so the join is made here rather than by storing a plan on the document. A
+ * refund whose `relatedId` names no subscription lands under `quick-ride`,
+ * which is where its trip's revenue is.
+ */
+export function planIdForRefund(relatedId: string | null): string {
+  if (relatedId === null) return 'quick-ride'
+  const subscription = allSubscriptionFixtures.find((each) => each.id === relatedId)
+  return subscription?.planKey ?? 'quick-ride'
+}
+
+/** The refund lines one plan's detail shows (§4.4). Documents, not links. */
+export function refundsForPlan(
+  planId: string,
+  refunds: readonly Refund[],
+): PlanRevenueRefund[] {
+  return refunds
+    .filter((refund) => planIdForRefund(refund.relatedId) === planId)
+    .map((refund) => ({
+      id: refund.id,
+      reasonCode: refund.reasonCode,
+      amountHalalas: refund.amountHalalas,
+      issuedAt: refund.issuedAt,
+    }))
+}
 
 /**
  * **`givebackOperationalFixture` is retired. Do not reinstate it.**

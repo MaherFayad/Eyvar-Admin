@@ -354,6 +354,35 @@ export function DetailPage({ banner, header, main, rail }: DetailPageProps) {
   )
 }
 
+/* ─────────────── master-detail (FINANCIALS-UX-PLAN §4.1) ─────────────── */
+
+export interface MasterDetailPageProps {
+  /** The 280px selection column. Stays a list below the breakpoint. */
+  list: ReactNode
+  /** The selected record. `minmax(0,1fr)`, so it can shrink below its content. */
+  detail: ReactNode
+}
+
+/**
+ * **A list that DRIVES a detail**, which none of the four shapes above is.
+ * `DetailPage` runs main-then-rail; here the fixed track LEADS and carries the
+ * selection, so reusing it would put the list in the rail slot §2.2 reserves
+ * for status and metadata. ONE breakpoint: below it the two stack and the list
+ * stays a list, because rows carrying a sparkline and a facts line are not tabs.
+ * A REGION, not a page shape — the `<h1>` above it is still the page's.
+ */
+export function MasterDetailPage({ list, detail }: MasterDetailPageProps) {
+  return (
+    <div className="grid min-h-0 grid-cols-1 gap-5 wide:grid-cols-master-detail">
+      {list}
+      {/* `min-w-0` is what makes `minmax(0,1fr)` mean what it says: without it
+          a wide table or a long facts line sets the track's floor and the page
+          scrolls sideways. */}
+      <div className="flex min-w-0 flex-col gap-3">{detail}</div>
+    </div>
+  )
+}
+
 /* ──────────────────────── L-06 · monitor (§7.4) ──────────────────────── */
 
 export interface MonitorShellProps {

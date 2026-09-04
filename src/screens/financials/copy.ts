@@ -249,8 +249,6 @@ export const FINANCIALS_EN: Dictionary = {
 
   /* ═══════════════════════ Revenue & Refunds ════════════════════════════ */
 
-  'fin.revenue.view.all': 'All postings',
-  'fin.revenue.view.revenue': 'Revenue',
   'fin.revenue.view.refunds': 'Refunds',
   'fin.revenue.view.creditNotes': 'Credit notes',
   'fin.revenue.view.margin': 'Contribution margin',
@@ -1047,4 +1045,44 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.audit.planSaved': 'Saved the plan {plan}.',
   'fin.audit.refundIssued': 'Issued the refund {reference} to {destination}.',
   'fin.audit.walletAdjusted': 'Adjusted a wallet — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §4 Revenue ── */
+
+  'fin.revenue.view.byPlan': 'Revenue by plan',
+  'fin.revenue.view.refundsLedger': 'Refunds ledger',
+
+  'fin.revenue.mode.label': 'How this view is drawn',
+  'fin.revenue.mode.charts': 'Charts',
+  'fin.revenue.mode.table': 'Table',
+  'fin.revenue.export': 'Export CSV',
+
+  'fin.revenue.plan.list': 'Plans',
+  'fin.revenue.plan.facts': '{subs} active subs · {trips} trips',
+  'fin.revenue.plan.facts.noSubs': '{trips} trips',
+  'fin.revenue.plan.detail.facts': '{subs} active subs · {trips} trips · {from} to {to}',
+  'fin.revenue.plan.detail.facts.noSubs': '{trips} trips · {from} to {to}',
+  'fin.revenue.plan.sparkline': 'Gross by day, {from} to {to}',
+
+  'fin.revenue.plan.chart.heading': 'Daily gross and contribution',
+  'fin.revenue.plan.chart.description': 'Gross and contribution by day, {from} to {to}',
+  'fin.revenue.plan.chart.gross': 'Gross',
+  'fin.revenue.plan.chart.contribution': 'Contribution',
+
+  'fin.revenue.plan.composition.heading': 'Where the gross went',
+  'fin.revenue.plan.composition.captain': 'Captain earnings',
+  'fin.revenue.plan.composition.givebacks': 'Givebacks',
+  'fin.revenue.plan.composition.contribution': 'Contribution',
+
+  'fin.revenue.plan.refunds.heading': 'Refunds on this plan',
+  'fin.revenue.plan.refunds.rate': 'Refund rate {rate} of this plan’s gross',
+  'fin.revenue.plan.refunds.none': 'No refund landed on this plan in this period.',
+
+  /* The four detail tiles. `MetricTile` reads `metric.{key}`, so these are in
+     the `metric.` namespace and named for the plan detail that owns them. */
+  'metric.fin.revenue.plan.gross': 'Gross',
+  'metric.fin.revenue.plan.platform': 'Platform',
+  'metric.fin.revenue.plan.contribution': 'Contribution',
+  'metric.fin.revenue.plan.contributionPercent': 'Contribution %',
+  /* A change in a percentage is points, not a percentage of a percentage. */
+  'metric.delta.points': '{value} pts',
 }

@@ -21,6 +21,7 @@ import {
 import type {
   CreditNote,
   FinancialsPeriod,
+  PlanRevenueDetail,
   Refund,
   RefundDestination,
   RevenueByPlanRow,
@@ -39,12 +40,18 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 let creditNoteFixtures!: Fixtures['creditNoteFixtures']
 let refundFixtures!: Fixtures['refundFixtures']
 let revenueByPlanFixtures!: Fixtures['revenueByPlanFixtures']
+let revenueByPlanDailyFixtures!: Fixtures['revenueByPlanDailyFixtures']
+let revenueByPlanComparisonFixtures!: Fixtures['revenueByPlanComparisonFixtures']
+let refundsForPlan!: Fixtures['refundsForPlan']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 let riderFixtures!: Fixtures['riderFixtures']
 onFixturesLoaded((f) => {
   creditNoteFixtures = f.creditNoteFixtures
   refundFixtures = f.refundFixtures
   revenueByPlanFixtures = f.revenueByPlanFixtures
+  revenueByPlanDailyFixtures = f.revenueByPlanDailyFixtures
+  revenueByPlanComparisonFixtures = f.revenueByPlanComparisonFixtures
+  refundsForPlan = f.refundsForPlan
   teamUserFixtures = f.teamUserFixtures
   riderFixtures = f.riderFixtures
 })
@@ -55,6 +62,7 @@ export const REVENUE_OPERATIONS = {
   refundFacets: 'revenue.refundFacets',
   creditNotes: 'revenue.creditNotes',
   byPlan: 'revenue.byPlan',
+  planDetail: 'revenue.planDetail',
   issueRefund: 'revenue.issueRefund',
 } as const
 
@@ -475,24 +483,78 @@ export async function listCreditNotes(
 
 /**
  * GET /api/v1/financials/revenue-by-plan
- *   params: from · to
+ *   params: from · to · include=daily
  *   -> RevenueByPlanRow[]
  *
  * `platformPercent` is **derived** — `platform / gross` (M-4) — and is not on
  * the wire. A percentage is computed from two posted amounts, never stored.
+ *
+ * `include: 'daily'` attaches each plan's day series to its row, so the plan
+ * list draws four sparklines from ONE read rather than one read per row (§2.6).
+ * Omitted, the response is byte-for-byte what it always was.
  */
 export async function listRevenueByPlan(
   period: FinancialsPeriod = FINANCIALS_PERIOD,
+  options: { include?: 'daily' } = {},
   signal?: AbortSignal,
 ): Promise<RevenueByPlanRow[]> {
   if (DATA_SOURCE === 'http') {
     return http.get<RevenueByPlanRow[]>(
       '/financials/revenue-by-plan',
+      { from: period.start, to: period.end, include: options.include },
+      { signal },
+    )
+  }
+  return mock(REVENUE_OPERATIONS.byPlan, signal, () =>
+    options.include === 'daily'
+      ? revenueByPlanFixtures.map((plan) => ({
+          ...plan,
+          daily: revenueByPlanDailyFixtures[plan.planId] ?? [],
+        }))
+      : revenueByPlanFixtures,
+  )
+}
+
+/**
+ * GET /api/v1/financials/revenue/by-plan/:planId
+ *   params: from · to
+ *   -> PlanRevenueDetail
+ *   404 when no plan carries that id
+ *
+ * **A second read, not more fields on the index row** (§2.5). The index is a
+ * four-row summary; this carries thirty points, the prior window and the
+ * refunds that landed on the plan — none of which a list of four rows should
+ * pay for.
+ *
+ * `comparison` is `null` for a plan with no prior window, so the detail's tiles
+ * render §3.7's em dash and a reason rather than a delta against nothing.
+ *
+ * The refund join is `relatedId → subscription.planKey`, made in the fixture
+ * layer: a refund carries a subscription or a trip id and never a plan, and
+ * storing one on the document would be a derived value with two owners.
+ */
+export async function getPlanRevenueDetail(
+  args: { planId: string; period?: FinancialsPeriod; signal?: AbortSignal },
+): Promise<PlanRevenueDetail> {
+  const { planId, period = FINANCIALS_PERIOD, signal } = args
+  if (DATA_SOURCE === 'http') {
+    return http.get<PlanRevenueDetail>(
+      `/financials/revenue/by-plan/${encodeURIComponent(planId)}`,
       { from: period.start, to: period.end },
       { signal },
     )
   }
-  return mock(REVENUE_OPERATIONS.byPlan, signal, () => revenueByPlanFixtures)
+  return mock(REVENUE_OPERATIONS.planDetail, signal, () => {
+    const row = revenueByPlanFixtures.find((plan) => plan.planId === planId)
+    if (!row) throw notFound('plan', planId)
+    return {
+      asOf: EYVAR_NOW,
+      row,
+      comparison: revenueByPlanComparisonFixtures[planId] ?? null,
+      daily: revenueByPlanDailyFixtures[planId] ?? [],
+      refunds: refundsForPlan(planId, allRefunds()),
+    }
+  })
 }
 
 /* ────────────────────── the refunds ledger ──────────────────── */

@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**311 endpoints across 47 client modules.**
+**312 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -417,7 +417,8 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/credit-notes` | `Paginated<CreditNote>` | `q · page · pageSize · sort · filter · view=all\|unlinked` | - | `listCreditNotes()` |
-| GET | `/api/v1/financials/revenue-by-plan` | `RevenueByPlanRow[]` | `from · to` | - | `listRevenueByPlan()` |
+| GET | `/api/v1/financials/revenue-by-plan` | `RevenueByPlanRow[]` | `from · to · include=daily` | - | `listRevenueByPlan()` |
+| GET | `/api/v1/financials/revenue/by-plan/:planId` | `PlanRevenueDetail` | `from · to` | **404** when no plan carries that id | `getPlanRevenueDetail()` |
 | GET | `/api/v1/ledgers/contra.refunds` | `Ledger` | `from · to · page · pageSize` | - | `getRefundsLedger()` |
 | GET | `/api/v1/refunds` | `Paginated<Refund>` | `q · page · pageSize · sort · filter · view=all\|to-wallet\|to-instrument\|unsourced` | - | `listRefunds()` |
 | POST | `/api/v1/refunds` | `{ refund: Refund, creditNote: CreditNote }` | `IssueRefundInput` | **409** when an identical unconfirmed refund already exists<br>**422** on a non-positive amount | `issueRefund()` |

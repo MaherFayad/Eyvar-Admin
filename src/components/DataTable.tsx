@@ -607,6 +607,15 @@ interface DataTableBaseProps<T> {
     /** The column id the figure aligns under. */
     alignTo: string
   }
+  /**
+   * **V-11 (FINANCIALS-UX-PLAN §9.2) — a total that lives with its rows.**
+   *
+   * Same shape as a ledger's closing balance and for the same reason: a total
+   * belongs UNDER the column it totals, where the header is already its label.
+   * `label` takes the first visible column; `cells` is keyed by column id, so
+   * hiding a column takes its total with it.
+   */
+  footerRow?: { label: ReactNode; cells: Readonly<Record<string, ReactNode>> }
   /** V-11 — one centred line, outside the card. */
   learnMore?: ReactNode
   /** §11.3 — which skeleton shape. Defaults from the mode. */
@@ -753,6 +762,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     cleared,
     error,
     ledgerBoundaryRows,
+    footerRow,
     learnMore,
     skeletonPattern,
     onRowClick,
@@ -2549,6 +2559,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
                       )
                     })}
               </TableBody>
+
+              {/* V-11 — the total row, under the columns it totals. */}
+              {!isLedger && footerRow && status === 'content' && rows.length > 0 && (
+                <TableFooter>
+                  <TableRow className="font-semibold">
+                    {selectable && <TableCell style={laneStyle(SELECT_COLUMN_ID)} />}
+                    {visible.map((column, index) => (
+                      <TableCell
+                        key={column.id}
+                        className={cn('tabular-nums', column.align === 'end' && 'text-end')}
+                      >
+                        {index === 0 ? footerRow.label : (footerRow.cells[column.id] ?? null)}
+                      </TableCell>
+                    ))}
+                    {kebabs && <TableCell style={laneStyle(KEBAB_COLUMN_ID)} />}
+                  </TableRow>
+                </TableFooter>
+              )}
 
               {/* §9.2 / AC-49 — and CLOSES with a labelled closing balance. */}
               {isLedger && ledgerBoundaryRows && (
