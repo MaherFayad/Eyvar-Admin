@@ -4078,8 +4078,10 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
     {
       key: 'operations.backlogByQueue',
       dimension: 'queue',
-      rowsShown: 5,
-      rowsTotal: 5,
+      /* Overwritten by `backlogByQueueRows` with the live count: this list is
+         every queue and has no cut-off (AC-695). Seven since T1.6. */
+      rowsShown: 7,
+      rowsTotal: 7,
       bar: false,
       /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
          `breakdown.caveat.uncodedRanking`; its gate is

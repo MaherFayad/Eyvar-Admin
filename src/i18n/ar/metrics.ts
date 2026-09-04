@@ -288,6 +288,8 @@ export const OVERVIEW_AR: Dictionary = {
   'breakdown.queue.assurance': 'ضمان الرحلات',
   'breakdown.queue.incident': 'السلامة والحوادث',
   'breakdown.queue.fairness': 'إنصاف الكباتن',
+  'breakdown.queue.ticket': 'التذاكر',
+  'breakdown.queue.dispute': 'النزاعات',
   'breakdown.rotaDay.sun': 'الأحد',
   'breakdown.rotaDay.mon': 'الاثنين',
   'breakdown.rotaDay.tue': 'الثلاثاء',

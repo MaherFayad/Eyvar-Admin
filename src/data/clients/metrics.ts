@@ -727,6 +727,10 @@ function backlogByQueueRows(declared: MetricBreakdown): MetricBreakdown {
   }))
   return {
     ...declared,
+    /* **AC-691 / AC-695 — this list has no cut-off, and must not grow one.**
+       It is *every* queue, and the tile above it sums the same set: a cut-off
+       here would make the rows disagree with the tile. Seven since T1.6. */
+    rowsShown: queues.length,
     rowsTotal: queues.length,
     /**
      * **`true` now, because the ordering that forbade it is gone.**

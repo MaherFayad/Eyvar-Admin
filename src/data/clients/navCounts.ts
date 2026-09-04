@@ -12,6 +12,10 @@
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
+import { captainCount } from './drivers'
+import { myWorkBacklogSize } from './myWork'
+import { openRequestCount } from './requests'
+import { subscriptionCount } from './subscriptions'
 import { starvedZoneCount } from './zones'
 import type { NavCounts, SubTabCount } from '../types/navigation'
 import { http } from './http'
@@ -69,28 +73,35 @@ export async function getNavCounts(signal?: AbortSignal): Promise<NavCounts> {
 }
 
 /**
- * **`management-zones` is computed, not seeded — R4-6 §6.5 and §6.6.4.**
+ * **O8** — each badge counts what its sub-tab's default view shows, computed by
+ * that sub-tab's own client, so the badge and the page cannot disagree (X3).
  *
- * The badge's legacy definition is the *starved* count (`sbb-zones`, `:14140`),
- * and until `clients/zones.ts` existed this layer had no zone array to count.
- * `fixtures/navCounts.ts` records the consequence in its own comment: the badge
- * and the `starvedZones` tile were *"asserted against each other"* and both
- * merely cited to `:14133`, with the closing line **"A real `clients/zones.ts`
- * closes it."** This is that close.
+ * `management-risk` is absent: its three contributing tiles are literals that
+ * `fixtures/metrics.ts:1022` derives *from* this badge, so summing them would
+ * invert AC-720's authority. An owner question, not a predicate to invent.
+ */
+const COMPUTED: Readonly<Record<string, () => number>> = {
+  'management-zones': starvedZoneCount,
+  'operations-my-work': myWorkBacklogSize,
+  'operations-ride-requests': () => openRequestCount('instant'),
+  'operations-subscription-requests': () => openRequestCount('subscription'),
+  'operations-subscriptions': subscriptionCount,
+  'operations-people': captainCount,
+}
+
+/**
+ * The seeded number stays in the fixture as the expected value — a grep-able
+ * number a bug report can name — and this is what makes it true rather than
+ * agreed.
  *
- * The seeded `2` stays in the fixture as the expected value — a grep-able
- * number a bug report can name — and this function is what makes it *true*
- * rather than *agreed*. The badge, the tile and the table's first row now come
- * from one array (§6.6.4), so none of the three can drift from the others.
- *
- * **`all-empty` is NOT grounded**, and that is the one place the two must
- * differ: the clean-shift scenario asserts what the nav looks like when every
- * backlog is empty, and a badge that recomputed itself back to `2` would make
- * that scenario unreachable — the opposite of the point.
+ * **`all-empty` is NOT grounded.** The clean-shift scenario asserts what the
+ * nav looks like when every backlog is empty, and a badge that recomputed
+ * itself would make that scenario unreachable.
  */
 function ground(row: SubTabCount): SubTabCount {
-  if (row.subTabId !== 'management-zones') return row
-  return { ...row, count: row.count === null ? null : starvedZoneCount() }
+  const compute = COMPUTED[row.subTabId]
+  if (!compute || row.count === null) return row
+  return { ...row, count: compute() }
 }
 
 /**

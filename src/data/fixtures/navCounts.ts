@@ -200,24 +200,14 @@ export const navCountFixtures: SubTabCount[] = [
   /* Operations */
   { subTabId: 'operations-overview', count: null, tone: 'neutral' },
   /**
-   * **Derived, not chosen.** Twenty-five is `myWorkBacklogSize()` — items routed
-   * to this operator's role that nobody else is holding — and
-   * `navCounts.test.ts` asserts the two are equal, so the badge cannot drift
-   * away from the screen it opens.
+   * **Computed, not seeded — O8.** `clients/navCounts.ts` overwrites this with
+   * `myWorkBacklogSize()`; the number here is the expected value a bug report
+   * can name, and it moved to 46 when tickets and disputes joined (T1.6).
    *
-   * **Was 22.** It moved because the fairness queue did: ten filler cases became
-   * live, three of the open ones are now claimed, and My Work counts what is
-   * open and in nobody's name. That is the assertion doing its job — one
-   * fixture changed and the badge that depends on it failed until it agreed
-   * again.
-   *
-   * Legacy would tone this `attention`: `updateInboxBadge` sets `.a` whenever
-   * *anything* in the inbox is breached (`:19314`), and three things are. Under
-   * the wave-2 fixtures that lights the chip permanently, which is exactly the
-   * failure the tone was re-scoped to avoid. The count is the backlog; the tone
-   * is the escalation, and they are separate decisions.
+   * Legacy would tone this `attention` whenever anything is breached
+   * (`:19314`), which lights the chip permanently. Count and tone are separate.
    */
-  { subTabId: 'operations-my-work', count: 25, tone: 'neutral' },
+  { subTabId: 'operations-my-work', count: 46, tone: 'neutral' },
   { subTabId: 'operations-dispatch', count: null, tone: 'neutral' },
   /**
    * Seven open requests — four instant, three subscription — of which **three
@@ -240,7 +230,10 @@ export const navCountFixtures: SubTabCount[] = [
      three rows that are on the other tab. */
   { subTabId: 'operations-ride-requests', count: 4, tone: 'neutral' },
   { subTabId: 'operations-subscription-requests', count: 3, tone: 'neutral' },
-  { subTabId: 'operations-subscriptions', count: 8, tone: 'neutral' },
+  /* **Computed, not seeded — O8.** `subscriptionCount()` overwrites this with
+     what the default `all` view shows. The old `8` matched nothing on the page
+     (X3); seventy is the number the queue's own footer prints. */
+  { subTabId: 'operations-subscriptions', count: 70, tone: 'neutral' },
   /* One pending corporate account — CORP-001 (`:13847`). */
   { subTabId: 'operations-corporate', count: 1, tone: 'neutral' },
   { subTabId: 'operations-quick-rides', count: null, tone: 'neutral' },
@@ -258,29 +251,14 @@ export const navCountFixtures: SubTabCount[] = [
    */
   { subTabId: 'operations-assurance', count: 4, tone: 'neutral' },
   /**
-   * **Retoned to `neutral` in wave 2. It was `attention`; it stepped aside for
-   * `support-safety`.**
+   * **Computed, not seeded — O8.** `captainCount()` overwrites this with what
+   * People's default `captains` view shows. The old `7` was a cross-view sum
+   * (five applications plus two lapsed documents) that appeared on no single
+   * page, so no operator could reconcile it (X3).
    *
-   * The seven are unchanged: five applications awaiting a decision
-   * (`DB.pendingDrivers`, `:2712`) plus two lapsed compliance documents. Two of
-   * the applications are past their deadline — `APP-2204` (submitted
-   * 2026-06-22 13:05, due 2026-06-24 13:05, **20 hours ago**) and `APP-2205`
-   * (due 2026-06-23 16:30) — and `DRV-0104` is a gold captain with 524 trips
-   * driving on a national ID that expired 2026-06-20.
-   *
-   * Those are real. What is **not** real is the denominator underneath the
-   * first two: the 48-hour application SLA is a placeholder, `slaSource` on
-   * every applicant row is `'unset'`, and **Q8** has not been answered. Colour
-   * that rests on an undecided number moves when the number does.
-   *
-   * The compliance expiry has a real date and no such problem — but it is one
-   * of seven inside a single count, so the chip cannot tell an operator *which*
-   * of the seven is the emergency. That is the D-L8 failure in miniature.
-   *
-   * **Answer Q8 and this has a claim on the slot again**, and something else
-   * has to give it up.
+   * `neutral`, not `attention`: it stepped aside for `support-safety` in wave 2.
    */
-  { subTabId: 'operations-people', count: 7, tone: 'neutral' },
+  { subTabId: 'operations-people', count: 57, tone: 'neutral' },
 
   /* Financials */
   { subTabId: 'financials-overview', count: null, tone: 'neutral' },

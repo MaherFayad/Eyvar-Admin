@@ -37,11 +37,13 @@ import {
   useAsync,
   useLanguageState,
   useOnline,
+  useTick,
   LanguageContext,
   type AsyncStatus,
   type FormStatus,
   type LanguageState,
 } from '@/hooks'
+import { useLocation } from 'react-router-dom'
 import { DICTIONARIES } from '@/i18n/dictionaries'
 import { setUiStateOwner } from '@/lib/persistence'
 import { permissionContext, type PermissionContext } from './permissions'
@@ -200,7 +202,11 @@ export function useShell(): ShellState {
 
 /* ──────────────────────────── the provider ──────────────────────────── */
 
+/** T1.4 — the slowest bucket the tick engine offers. A badge is not a monitor. */
+const NAV_COUNT_POLL_BUCKET = 60
+
 export function ShellProvider({ children }: { children: ReactNode }) {
+  const location = useLocation()
   /* Identity and permissions. §9.1's ERROR state is "identity or permissions
      could not be loaded" — page-scoped, shell intact, retry as an imperative.
      `useAsync` supplies all four states from one promise; `AC-36` induces the
@@ -268,8 +274,21 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, [session.data?.userId])
 
   /* §8.4 — a NETWORK read, not a constant, which is what makes §9.1's
-     "labels render immediately, only the badges are skeletons" honourable. */
-  const counts = useAsync<NavCounts>((signal) => getNavCounts(signal), { deps: [] })
+     "labels render immediately, only the badges are skeletons" honourable.
+     **T1.4** — re-read on every route change: a badge read once at sign-in is
+     stale by the second queue an operator works (X3). Identity is not. */
+  const counts = useAsync<NavCounts>((signal) => getNavCounts(signal), {
+    deps: [location.pathname],
+  })
+
+  /* T1.4 — and a slow poll, so a badge moves when another operator clears a
+     queue. **AC-28** — through the one tick engine, never a timer of its own. */
+  const navTick = useTick(NAV_COUNT_POLL_BUCKET)
+  const refreshCounts = counts.refetch
+  useEffect(() => {
+    if (navTick === 0) return
+    refreshCounts()
+  }, [navTick, refreshCounts])
 
   const notifications = useAsync<NotificationSummary>((signal) => getNotificationSummary(signal), {
     deps: [],

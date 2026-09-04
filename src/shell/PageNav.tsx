@@ -307,6 +307,32 @@ export function PageNav({
   )
 }
 
+/**
+ * **O8** — what each badge counts, in words, one key per sub-tab. A number an
+ * operator cannot name is a number they stop reading (X3). `nav.count.other`
+ * covers a sub-tab that grows a backlog before it grows a sentence.
+ */
+const NAV_COUNT_KEY: Readonly<Record<string, string>> = {
+  'management-risk': 'nav.count.management-risk',
+  'management-zones': 'nav.count.management-zones',
+  'operations-my-work': 'nav.count.operations-my-work',
+  'operations-ride-requests': 'nav.count.operations-ride-requests',
+  'operations-subscription-requests': 'nav.count.operations-subscription-requests',
+  'operations-subscriptions': 'nav.count.operations-subscriptions',
+  'operations-corporate': 'nav.count.operations-corporate',
+  'operations-assurance': 'nav.count.operations-assurance',
+  'operations-people': 'nav.count.operations-people',
+  'financials-payouts': 'nav.count.financials-payouts',
+  'financials-cash': 'nav.count.financials-cash',
+  'support-tickets': 'nav.count.support-tickets',
+  'support-disputes': 'nav.count.support-disputes',
+  'support-fairness': 'nav.count.support-fairness',
+  'support-safety': 'nav.count.support-safety',
+  'support-contact-centre': 'nav.count.support-contact-centre',
+  'admin-team': 'nav.count.admin-team',
+  'admin-data': 'nav.count.admin-data',
+}
+
 /* ─────────────────────────────── one row ─────────────────────────────── */
 
 interface NavRowProps {
@@ -358,8 +384,17 @@ function NavRow({ row, active, badge, badgeLoading, t, ...itemProps }: NavRowPro
       ) : (
         badge && (
           /* V6 — `warning` on a ROW is the one licensed tone in the nav and it
-             means BREACHED, rarely. Everything else is the quiet chip. */
-          <Badge size="count" tone={badge.tone === 'warning' ? 'warning' : 'nav-neutral'}>
+             means BREACHED, rarely. Everything else is the quiet chip.
+             **O8** — the name says WHAT is counted, so the number is
+             reconcilable with the page it opens; `99+` still reads the real
+             count to a screen reader. */
+          <Badge
+            size="count"
+            tone={badge.tone === 'warning' ? 'warning' : 'nav-neutral'}
+            aria-label={t(NAV_COUNT_KEY[row.subTabId] ?? 'nav.count.other', {
+              count: formatCount(badge.count),
+            })}
+          >
             {badgeOverflows(badge.count) ? t('shell.nav.countOverflow') : formatCount(badge.count)}
           </Badge>
         )

@@ -202,6 +202,15 @@ const driverShape: QueryShape<Driver> = {
 }
 
 /**
+ * What People's default view (`captains`) shows, synchronously, for the nav
+ * badge (O8). `CaptainsView` reads `listDrivers` with no view, so this is the
+ * same population and the badge reconciles with the page's row count (X3).
+ */
+export function captainCount(): number {
+  return allDriverFixtures.length
+}
+
+/**
  * GET /api/v1/drivers
  *   params: q · status · page · pageSize · sort=<field>:<dir> · filter=<field>:<op>:<value>
  *   -> Paginated<Driver>
