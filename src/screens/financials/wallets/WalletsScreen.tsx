@@ -77,11 +77,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   adjustWallet,
   checkAdjustmentAuthority,
+  getFinancialsOverview,
   getWalletLedger,
   listWallets,
 } from '@/data/clients'
 import type {
   AuthorityCheck,
+  FinancialsOverview,
+  Halalas,
   Ledger,
   LedgerPosting,
   Paginated,
@@ -89,11 +92,11 @@ import type {
   WalletSummary,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, formatMoney, type Translate } from '@/lib'
+import { formatCount, formatDate, formatMoney, type Language, type Translate } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn, type ExtraFilterSpec } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { MoneyCell } from '@/components/Money'
+import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
@@ -279,6 +282,33 @@ function WalletIndex({
     { deps: [], cacheKey: 'wallets.list' },
   )
   const negativeTotal = negative.data?.total ?? 0
+
+  /**
+   * **§5.3** — the header's three facts. The count is of ALL wallets, so `deps`
+   * names the query rather than colliding with the two reads above. The
+   * liability is a POSITION (`accountBalanceFrom`, no window), so this takes no
+   * period and the page draws no period control (**Q-F13**).
+   */
+  const allWallets = useAsync<Paginated<WalletSummary>>(
+    (signal) => listWallets({ view: 'all-wallets', pageSize: 1 }, signal),
+    { deps: ['all-wallets'], cacheKey: 'wallets.list' },
+  )
+  const overview = useAsync<FinancialsOverview>(
+    (signal) => getFinancialsOverview({ signal }),
+    { deps: [], cacheKey: 'financials.overview', isEmpty: () => false },
+  )
+
+  /**
+   * **AC-384** — the ceiling on the page before the dialog opens, from the same
+   * read the dialog makes. Only the OPERATOR-scoped half is rendered:
+   * `authorityFor` (`clients/wallets.ts`) derives the caps and the daily used
+   * from the signed-in user, and `per30dCount` alone is per-rider.
+   */
+  const goodwillRiderId = activeTab === 'goodwill' ? (rows[0]?.riderId ?? null) : null
+  const envelope = useAsync<AuthorityCheck>(
+    (signal) => checkAdjustmentAuthority(goodwillRiderId ?? '', 0, 'goodwill', signal),
+    { deps: [goodwillRiderId], enabled: goodwillRiderId !== null },
+  )
   useEffect(() => {
     onNegativeCount(negativeTotal)
     return () => onNegativeCount(0)
@@ -497,7 +527,17 @@ function WalletIndex({
   )
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      {overview.data && (
+        <WalletsHeader
+          liabilityHalalas={overview.data.riderWalletLiabilityHalalas}
+          walletCount={allWallets.data?.total ?? 0}
+          negativeCount={negativeTotal}
+          authority={envelope.data}
+          t={t}
+          language={language}
+        />
+      )}
       <DataTable
         table={table}
         rows={rows}
@@ -543,7 +583,70 @@ function WalletIndex({
       {/* The envelope is held so a test can assert the ceiling that was applied
           (**AC-439**); it renders nothing of its own. */}
       <span className="sr-only" data-applied-role={authority?.appliedRole ?? undefined} />
-    </>
+    </div>
+  )
+}
+
+/**
+ * **§5.3 / V-20** — the header in `LedgerCard`'s Balance shape: the subject and
+ * its facts on the inline-start, the position on the inline-end. `Goodwill`
+ * adds the operator's own envelope, so the ceiling is known before the adjust
+ * dialog opens rather than discovered inside it (**AC-384**).
+ */
+function WalletsHeader({
+  liabilityHalalas,
+  walletCount,
+  negativeCount,
+  authority,
+  t,
+  language,
+}: {
+  liabilityHalalas: Halalas
+  walletCount: number
+  negativeCount: number
+  authority: AuthorityCheck | null
+  t: Translate
+  language: Language
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 className="truncate text-sm font-semibold text-foreground">
+          {t('fin.wallets.header.label')}
+        </h2>
+        {/* **V-3** in the console's own face: `MetricTile` records the owner's
+            ruling against the reference's monospace, and `globals.css` refuses
+            `--ev-text-3` as a text colour — so size, case, tracking, muted ink. */}
+        <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+          {t('fin.wallets.header.caption', {
+            wallets: formatCount(walletCount, language),
+            negative: formatCount(negativeCount, language),
+          })}
+        </span>
+      </div>
+
+      {authority !== null && (
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">
+            {t('fin.wallets.authority.label')}
+          </span>
+          <span className="text-sm font-medium tabular-nums text-foreground">
+            {t('fin.wallets.authority.daily', {
+              used: formatMoney(authority.dailyUsedHalalas),
+              cap: formatMoney(authority.dailyCapHalalas),
+            })}
+          </span>
+          <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+            {t('fin.wallets.authority.caps', {
+              perCase: formatMoney(authority.perCaseCapHalalas),
+              countCap: formatCount(authority.per30dCountCap, language),
+            })}
+          </span>
+        </div>
+      )}
+
+      <Money amount={liabilityHalalas} className="text-lg font-semibold" />
+    </div>
   )
 }
 

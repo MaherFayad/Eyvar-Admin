@@ -17,11 +17,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   checkAdjustmentAuthority,
   disableMockLatency,
+  getFinancialsOverview,
   getRouteTable,
   listWallets,
   resetDataLayer,
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
+import { formatMoney } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { WalletsScreen } from './WalletsScreen'
@@ -397,5 +399,62 @@ describe('P4-T1 — the wallet index offers no bulk command', () => {
     /* Non-vacuity: the table really is rendered and really is an index — it
        sorts. Without this the two assertions above would pass on a blank page. */
     expect(screen.getByRole('button', { name: EN['table.sort'] as string })).toBeTruthy()
+  })
+})
+
+/* ══════════ FINANCIALS-UX-PLAN §5.3 — the wallets view header ═══════════ */
+
+describe('§5.3 — the sub-tab states the position it is an index of', () => {
+  /**
+   * Every figure is read from the client rather than typed, so the header
+   * fails if it ever states a plausible number instead of the real one.
+   */
+  it('states the rider wallet liability, the wallet count and the count below zero', async () => {
+    const overview = await getFinancialsOverview()
+    const all = await listWallets({ view: 'all-wallets', pageSize: 1 })
+    const negative = await listWallets({ view: 'negative-balances', pageSize: 1 })
+    expect(negative.total).toBeGreaterThan(0)
+
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    expect(
+      screen.getByRole('heading', { name: EN['fin.wallets.header.label'] as string }),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        (EN['fin.wallets.header.caption'] as string)
+          .replace('{wallets}', String(all.total))
+          .replace('{negative}', String(negative.total)),
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getAllByText(formatMoney(overview.riderWalletLiabilityHalalas)).length,
+    ).toBeGreaterThan(0)
+  })
+
+  /**
+   * **AC-384** — *"the ceiling is known before the dialog opens rather than
+   * discovered inside it."* The envelope's operator-scoped half is the only
+   * half a header may state: `per30dCount` is computed per rider.
+   */
+  it('AC-384 — the Goodwill view names the daily ceiling before any dialog is opened', async () => {
+    const page = await listWallets({ view: 'goodwill', pageSize: 1 })
+    expect(page.total).toBeGreaterThan(0)
+    const envelope = await checkAdjustmentAuthority(page.items[0]!.riderId, 0, 'goodwill')
+
+    mount('/financials/rider-wallets?view=goodwill')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.wallets.authority.label'] as string)).toBeTruthy(),
+    )
+
+    expect(screen.queryByRole('dialog'), 'no dialog was opened').toBeNull()
+    expect(
+      screen.getByText(
+        (EN['fin.wallets.authority.daily'] as string)
+          .replace('{used}', formatMoney(envelope.dailyUsedHalalas))
+          .replace('{cap}', formatMoney(envelope.dailyCapHalalas)),
+      ),
+    ).toBeTruthy()
   })
 })

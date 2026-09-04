@@ -39,6 +39,7 @@ import {
   listPlans,
   listQuickRideTypes,
   listRateCards,
+  listRevenueByPlan,
   listSurgeSuspensions,
   listSurgeWindows,
   listZones,
@@ -47,9 +48,11 @@ import {
 import { SURGE_SUSPENSION_MAX_HOURS } from '@/data/types'
 import type {
   CancellationRule,
+  FinancialsPeriod,
   Paginated,
   QuickRideType,
   RateCard,
+  RevenueByPlanRow,
   SubTabRoute,
   SubscriptionPlan,
   SurgeSuspension,
@@ -69,7 +72,8 @@ import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { FigureRow } from '../shared/Figures'
-import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
+import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
+import { PeriodControl } from '../shared/PeriodControl'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -86,8 +90,9 @@ const DEFAULT_VIEW = 'subscription-plans'
 
 export function PricingScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir } = shell.language
+  const { t, dir, language } = shell.language
   const gate = useWriteGate(row, t)
+  const { period, setPeriod } = usePeriod()
 
   /* The route table carries this sub-tab's views; the screen's constant is the
      fallback for a row that has not been given them. Where the table has them,
@@ -116,11 +121,35 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
     [t],
   )
 
+  /**
+   * **Q-F13, decided per read.** `listPlans`, `listQuickRideTypes`,
+   * `listRateCards` and `listCancellationRules` take a signal and nothing else;
+   * `listRevenueByPlan(period)` takes `from` / `to`. So the period is stated
+   * and controlled on the one view that honours it — a control that moves
+   * nothing is **TL-2** in the other direction.
+   */
+  const windowed = activeTab === 'subscription-plans'
+
   return (
-    <FinancialsPage row={row} banners={banners} t={t} dir={dir}>
+    <FinancialsPage
+      row={row}
+      meta={windowed ? periodLabel(period, t, language) : null}
+      banners={banners}
+      t={t}
+      dir={dir}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
+        {windowed && (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        )}
         {activeTab === 'subscription-plans' && (
-          <PlansView key="plans" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <PlansView
+            key="plans"
+            tabs={tabs}
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            period={period}
+          />
         )}
         {activeTab === 'quick-rides' && (
           <QuickRidesView key="quick" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
@@ -144,7 +173,12 @@ interface ViewProps {
 
 /* ─────────────────────────── subscription plans ────────────────────────── */
 
-function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function PlansView({
+  tabs,
+  activeTab,
+  onSelectTab,
+  period,
+}: ViewProps & { period: FinancialsPeriod }) {
   const shell = useShell()
   const { t, language } = shell.language
   const navigate = useNavigate()
@@ -155,6 +189,22 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
     cacheKey: 'pricing.plans',
   })
   const rows = plans.data ?? []
+
+  /**
+   * **§5.4 — the join is `SubscriptionPlan.id === RevenueByPlanRow.planId`**, a
+   * plain string match: the id is `PlanKey`, and the only `planId` outside that
+   * union is `quick-ride`, which is not a plan and has no row here. A plan with
+   * no revenue row renders the em dash, never a zero (**AC-341**).
+   */
+  const revenue = useAsync<RevenueByPlanRow[]>(
+    (signal) => listRevenueByPlan(period, signal),
+    { deps: [period.start, period.end], cacheKey: 'revenue.byPlan' },
+  )
+  const grossByPlan = useMemo(() => {
+    const byPlan = new Map<string, number>()
+    for (const each of revenue.data ?? []) byPlan.set(each.planId, each.grossHalalas)
+    return byPlan
+  }, [revenue.data])
 
   const columns = useMemo<DataColumn<SubscriptionPlan>[]>(
     () => [
@@ -188,6 +238,12 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
         dataType: 'number',
         align: 'end',
         width: 100,
+        /* **V-12** — §7.3 rule 3 budgets `Σ px + identity floor ≤ 910`, and the
+           gross column takes 160 of it. With all seven declared, every fixed
+           column squeezed to 76px and four headers wrapped mid-word. The leg
+           count and the discount are on the editor behind the row, so they are
+           off by default and one click away in `Columns`. */
+        defaultHidden: true,
         cell: (plan) => (
           <span className="tabular-nums">{formatCount(plan.executeDays, language)}</span>
         ),
@@ -208,9 +264,21 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
         dataType: 'number',
         align: 'end',
         width: 124,
+        /* Off by default with `execute`; see the note there. */
+        defaultHidden: true,
         cell: (plan) => (
           <span className="tabular-nums">{formatPercent(plan.discountPercent, language)}</span>
         ),
+      },
+      {
+        id: 'gross',
+        emphasis: 'data',
+        csv: (plan) => grossByPlan.get(plan.id) ?? '',
+        header: t('fin.pricing.plan.col.gross'),
+        dataType: 'money',
+        align: 'end',
+        width: 160,
+        cell: (plan) => <MoneyCell amount={grossByPlan.get(plan.id) ?? null} />,
       },
       {
         id: 'status',
@@ -225,20 +293,26 @@ function PlansView({ tabs, activeTab, onSelectTab }: ViewProps) {
         ),
       },
     ],
-    [t, language],
+    [t, language, grossByPlan],
   )
 
-  /* **D8 — one declared action renders as a labelled control, not a kebab.** */
   const rowActions = useMemo<RowAction<SubscriptionPlan>[]>(
     () => [
+      {
+        /* **§5.4 / P0-2 — the declared row-click target.** Pricing is the
+           catalogue; a plan's MONEY page is the Revenue master-detail, so a
+           plain click on the row opens it there. Neither destination mutates
+           anything. */
+        label: t('fin.pricing.plan.action.revenue'),
+        onSelect: (plan) =>
+          navigate(`/financials/revenue?view=by-plan&plan=${encodeURIComponent(plan.id)}`),
+        rowClick: true,
+      },
       {
         label: t('fin.pricing.plan.action.edit'),
         /* **AC-390** — the editor is a route outside the layout, so entering it
            unmounts the rail, the sub-tab column and the top bar. */
         onSelect: (plan) => navigate(`/financials/pricing/plans/${plan.id}/edit`),
-        /* **P0-2 — the declared row-click target.** A plan's only surface is
-           the editor route, and entering it mutates nothing. */
-        rowClick: true,
       },
     ],
     [t, navigate],
