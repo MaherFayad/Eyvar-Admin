@@ -7,6 +7,7 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
+import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
 import type { Paginated, QueryParams } from '../types/common'
@@ -156,6 +157,24 @@ export async function markAllNotificationsRead(signal?: AbortSignal): Promise<No
   })
 }
 
+/* ───────────────────────────── producers ────────────────────────────────── */
+
+let minted = 900
+
+/**
+ * Raise a notification from inside the data layer. Mock only: `clients/
+ * tickets.ts`'s SLA sweep calls it at a breach crossing (§8.4.3, once per
+ * crossing, batched per tick). In http mode the server raises them.
+ */
+export function pushNotification(
+  input: Omit<Notification, 'id' | 'createdAt' | 'read'>,
+): Notification {
+  minted += 1
+  const row: Notification = { ...input, id: `N${minted}`, createdAt: EYVAR_NOW, read: false }
+  rows = [row, ...rows]
+  return row
+}
+
 /* ─────────────────────────── QA affordances ────────────────────────────── */
 
 /** Serve the all-read set, so the `notif-unread-zero` state is one call away. */
@@ -171,6 +190,7 @@ export function useNoNotifications(): void {
 
 export function resetNotifications(): void {
   allRead = false
+  minted = 900
   /* Before the fixture chunk lands there is nothing seeded to reset, and the
      rows this would read are still undefined. The binder seeds fresh state. */
   if (fixturesLoaded()) rows = seedRows()

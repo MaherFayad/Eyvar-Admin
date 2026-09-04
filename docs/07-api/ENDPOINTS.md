@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**312 endpoints across 47 client modules.**
+**316 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -507,14 +507,18 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/tickets` | `Paginated<Ticket>` | `q, view, page, pageSize, sort, filter` | - | `listTickets()` |
-| POST | `/api/v1/tickets` | `Ticket` | `{ subject, entityId, entityName, entityType, category, reasonCode,` | - | `createTicket()` |
+| POST | `/api/v1/tickets` | `Ticket` | `NewTicketInput` | - | `createTicket()` |
 | GET | `/api/v1/tickets/:id` | `Ticket` | - | **404** when the id does not exist | `getTicket()` |
-| POST | `/api/v1/tickets/:id/call-log` | `Ticket` | `{ outcome, notes }` | **422** on an outcome outside the closed set | `logTicketCall()` |
-| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/call-log` | `Ticket` | `{ outcome, notes }` | **422** on an outcome outside the closed set. A call moves the ticket on as a | `logTicketCall()` |
+| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ takeOver? }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds a live claim and `takeOver` is unset<br>**409** `ticket_decided` on a resolved or closed ticket | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/priority` | `Ticket` | `{ priority }` | - | `setTicketPriority()` |
+| POST | `/api/v1/tickets/:id/reason-code` | `Ticket` | `{ reasonCode }` | **409** `ticket_decided` on a resolved or closed ticket. Re-derives the priority | `recodeTicket()` |
 | POST | `/api/v1/tickets/:id/release` | `Ticket` | - | **404** when the id does not exist | `releaseTicket()` |
-| POST | `/api/v1/tickets/:id/reopen` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is not resolved | `reopenTicket()` |
-| POST | `/api/v1/tickets/:id/reply` | `Ticket` | `{ body }` | **404** when the id does not exist | `replyTicket()` |
-| POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is already resolved | `resolveTicket()` |
+| POST | `/api/v1/tickets/:id/reopen` | `Ticket` | - | **404** when the id does not exist<br>**409** `ticket_open` when the ticket is not decided. Releases the decided claim; | `reopenTicket()` |
+| POST | `/api/v1/tickets/:id/reply` | `Ticket` | `{ body }` | **404** when the id does not exist<br>**409** `ticket_closed` on a closed ticket<br>**422** `no_channel` when the ticket has no reply destination | `replyTicket()` |
+| POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** `ticket_decided` when already resolved or closed. The claim becomes | `resolveTicket()` |
+| POST | `/api/v1/tickets/:id/status` | `Ticket` | `{ status: 'waiting' \| 'in-progress' }` | **409** `ticket_decided` on a resolved or closed ticket. `waiting` pauses the | `setTicketStatus()` |
+| POST | `/api/v1/tickets/:id/transfer` | `Ticket` | `{ toUserId, note }` | **404** when the id or the operator does not exist<br>**409** `ticket_decided` on a resolved or closed ticket<br>**422** `note_required` when the note is empty. The note lands as an internal message (AC-S-13). | `transferTicket()` |
 
 ## `src/data/clients/trips.ts`
 

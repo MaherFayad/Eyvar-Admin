@@ -218,6 +218,8 @@ export const reasonCodeFixtures: ReasonCode[] = [
     requiresNote: false,
     state: 'active',
     tier: 'T3',
+    /* Legacy `upd: 15` (`:14670`): a rider waiting for a late captain is promised news every quarter hour. */
+    updateEveryMinutes: 15,
     ownerTeam: 'Ops',
     retiredAt: null,
     supersededByKey: null,
@@ -370,6 +372,8 @@ export const reasonCodeFixtures: ReasonCode[] = [
     requiresNote: true,
     state: 'active',
     tier: 'T3',
+    /* Legacy `upd: 30` (`:14686`): the rider is told every half hour where the search stands. */
+    updateEveryMinutes: 30,
     ownerTeam: 'Ops',
     retiredAt: null,
     supersededByKey: null,

@@ -400,17 +400,16 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       entityType: k.entityType,
       route: route('ticket', k.id),
       routedToMyRole: WORK_ROUTING.ticket.includes(role),
-      claim: ownerClaim('ticket', k.id, k.ownerId, k.ownerName, k.createdAt),
-      slaStartedAt: k.createdAt,
+      /* A ticket is a work-queue row (S-1): its claim and clocks are its own. */
+      claim: k.claim,
+      slaStartedAt: k.slaStartedAt,
       slaDueAt: k.slaDueAt,
-      /* The window is the tier's, resolved server-side; the row carries the
-         due stamp and not the promise it came from. */
-      slaTargetMinutes: null,
-      slaBreachedAt: k.slaBreached ? k.slaDueAt : null,
-      slaSource: 'legacy-reason-code',
-      firstResponseDueAt: null,
-      firstResponseAt: null,
-      firstResponseBreachedAt: null,
+      slaTargetMinutes: k.slaTargetMinutes,
+      slaBreachedAt: k.slaBreachedAt,
+      slaSource: k.slaSource,
+      firstResponseDueAt: k.firstResponseDueAt,
+      firstResponseAt: k.firstResponseAt,
+      firstResponseBreachedAt: k.firstResponseBreachedAt,
     })
   }
 

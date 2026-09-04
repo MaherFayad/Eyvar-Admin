@@ -3323,7 +3323,7 @@
       "client": "src/data/clients/tickets.ts",
       "function": "createTicket",
       "params": null,
-      "body": "{ subject, entityId, entityName, entityType, category, reasonCode,",
+      "body": "NewTicketInput",
       "returns": "Ticket",
       "statuses": []
     },
@@ -3353,7 +3353,7 @@
       "statuses": [
         {
           "code": "422",
-          "when": "on an outcome outside the closed set"
+          "when": "on an outcome outside the closed set. A call moves the ticket on as a"
         }
       ]
     },
@@ -3363,7 +3363,7 @@
       "client": "src/data/clients/tickets.ts",
       "function": "claimTicket",
       "params": null,
-      "body": "{ userId, takeOver }",
+      "body": "{ takeOver? }",
       "returns": "Ticket",
       "statuses": [
         {
@@ -3372,7 +3372,36 @@
         },
         {
           "code": "409",
-          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+          "when": "`claimed_by_other` when another operator holds a live claim and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/priority",
+      "client": "src/data/clients/tickets.ts",
+      "function": "setTicketPriority",
+      "params": null,
+      "body": "{ priority }",
+      "returns": "Ticket",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/reason-code",
+      "client": "src/data/clients/tickets.ts",
+      "function": "recodeTicket",
+      "params": null,
+      "body": "{ reasonCode }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket. Re-derives the priority"
         }
       ]
     },
@@ -3406,7 +3435,7 @@
         },
         {
           "code": "409",
-          "when": "when the ticket is not resolved"
+          "when": "`ticket_open` when the ticket is not decided. Releases the decided claim;"
         }
       ]
     },
@@ -3422,6 +3451,14 @@
         {
           "code": "404",
           "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_closed` on a closed ticket"
+        },
+        {
+          "code": "422",
+          "when": "`no_channel` when the ticket has no reply destination"
         }
       ]
     },
@@ -3440,7 +3477,45 @@
         },
         {
           "code": "409",
-          "when": "when the ticket is already resolved"
+          "when": "`ticket_decided` when already resolved or closed. The claim becomes"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/status",
+      "client": "src/data/clients/tickets.ts",
+      "function": "setTicketStatus",
+      "params": null,
+      "body": "{ status: 'waiting' | 'in-progress' }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket. `waiting` pauses the"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/transfer",
+      "client": "src/data/clients/tickets.ts",
+      "function": "transferTicket",
+      "params": null,
+      "body": "{ toUserId, note }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id or the operator does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket"
+        },
+        {
+          "code": "422",
+          "when": "`note_required` when the note is empty. The note lands as an internal message (AC-S-13)."
         }
       ]
     },

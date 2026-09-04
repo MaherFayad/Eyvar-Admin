@@ -100,6 +100,15 @@ function clone<T>(value: T): T {
 
 let policyState!: OperationalPolicy
 
+/**
+ * The policy document, synchronously, for the clients that stamp promises
+ * inside one `mockMutation` (`clients/tickets.ts`). Mock only: in http mode
+ * the server resolves an SLA and this is never called.
+ */
+export function currentPolicy(): OperationalPolicy {
+  return policyState
+}
+
 export function resetPolicy(): void {
   /* Nothing seeded yet: the fixture chunk has not landed, so there is no
      state to reset and the rows this would read are still undefined. The

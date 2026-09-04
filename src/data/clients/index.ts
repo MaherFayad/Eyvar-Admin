@@ -546,7 +546,13 @@ export {
   resolveTicket,
   reopenTicket,
   createTicket,
+  transferTicket,
+  setTicketStatus,
+  recodeTicket,
+  setTicketPriority,
+  sweepTicketSla,
   type TicketQuery,
+  type TicketBreachKind,
 } from './tickets'
 
 /* ── phase 5a: the support conversation centre ───────────────────────

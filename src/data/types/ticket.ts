@@ -1,8 +1,13 @@
 import type { IsoDateTime } from './common'
 import type { ConversationChannel } from './conversation'
+import { effectiveSlaTargets, type OperationalPolicy, type SlaTierKey } from './policy'
+import type { WorkQueueRow } from './workQueue'
 
 export type TicketPriority = 'Critical' | 'High' | 'Medium' | 'Low'
 export type TicketStatus = 'open' | 'in-progress' | 'waiting' | 'resolved' | 'closed'
+
+/** Who may read a message on the ticket. Absent means `customer` (the pre-S-3 rows). */
+export type TicketMessageVisibility = 'customer' | 'internal'
 
 export interface TicketMessage {
   id: string
@@ -11,25 +16,13 @@ export interface TicketMessage {
   senderType: 'customer' | 'agent' | 'system'
   body: string
   sentAt: IsoDateTime
+  /** `internal` is never sent to the customer: a transfer note, a handover. */
+  visibility?: TicketMessageVisibility
 }
 
-/* ── the call wrap-up (P5-T2) ─────────────────────────────────────────
- *
- * `LogCallModal` collected an outcome and a note and threw both away:
- * `TicketDetailScreen.tsx:86` declared `handleLogCallConfirm = () =>
- * toast.success(…)` — **no parameters at all**, so the arguments the modal
- * passed could not reach the handler even in principle. The operator saw
- * "Support call logged successfully" and nothing was logged.
- */
-
 /**
- * How the call ended. A **closed** union, because the four options were already
- * a closed list inside the modal's `<Select>` and a free string cannot be
- * counted — *"how many calls end with the customer unreachable"* is the first
- * question anyone asks of a call log.
- *
- * Values are the modal's own, renamed from `snake_case` to the hyphenated form
- * every other union in this folder uses.
+ * How a call ended. A closed union so the log can be counted; values are
+ * hyphenated like every other union in this folder.
  */
 export type TicketCallOutcome =
   | 'resolved-on-call'
@@ -45,74 +38,62 @@ export const TICKET_CALL_OUTCOMES: readonly TicketCallOutcome[] = [
 ]
 
 /**
- * One recorded call. It is **not** a `TicketMessage`: a message has a body an
- * operator wrote to a customer, and a call log has an outcome nobody typed and
- * a note nobody sent. Folding one into the other would make the outcome a
- * sentence, and a sentence cannot be filtered or translated.
- *
- * It renders **on the ticket's timeline**, interleaved with the messages by
- * time, which is the whole point of recording it.
+ * One recorded call. Not a `TicketMessage`: a message has a body written to a
+ * customer, a call log has an outcome nobody typed. It renders on the ticket's
+ * timeline interleaved with the messages by time.
  */
 export interface TicketCallLog {
   /** `CALL-nnn`. Minted from a counter, never from the clock. */
   id: string
   outcome: TicketCallOutcome
-  /** The operator's summary. `null` when they logged an outcome and no note. */
   notes: string | null
   loggedAt: IsoDateTime
   loggedByUserId: string
   loggedByUserName: string
 }
 
-export interface Ticket {
+/**
+ * A work-queue row (S-1): the shared `Claim` plus the `SlaTracked` block, so
+ * `OwnerChip`, `SlaCell` and My Work read it directly. Three clocks stamped
+ * from policy at creation (S-2): first response, resolution (pauses while
+ * waiting on the customer, never for a suspension appeal, Q-81), next update.
+ */
+export interface Ticket extends WorkQueueRow {
   id: string
   subject: string
   entityId: string
   entityName: string
   entityType: 'rider' | 'driver' | 'corporate'
   category: string
+  /** A key in the reason-code registry. `OTHER_UNCODED` targets apply when it is not. */
   reasonCode: string
   priority: TicketPriority
   status: TicketStatus
+
+  /** The live holder, projected from `claim` by the client. `null` = nobody. */
   ownerId: string | null
   ownerName: string | null
+
   createdAt: IsoDateTime
-  slaDueAt: IsoDateTime | null
+  resolvedAt: IsoDateTime | null
+
+  /** The recurring-update promise, when the reason code makes one. */
+  updateDueAt: IsoDateTime | null
+  /** The last outbound customer-visible act: a reply or a logged call. */
+  lastUpdateAt: IsoDateTime | null
+  /** `Waiting on customer` since. The resolution clock does not run while set. */
+  pausedAt: IsoDateTime | null
+  /** Minutes the resolution clock has already spent paused. */
+  pausedMinutes: number
+
+  /** Either breach stamp set. Derived by the client; never written by a screen. */
   slaBreached: boolean
 
-  /* ── the conversation link (P5-T1) ───────────────────────────────────
-   *
-   * **Optional in this pass, and that is a deliberate, temporary compromise.**
-   * `clients/tickets.ts` is being edited by another agent right now; a required
-   * field would break every `Ticket` literal in it the moment both branches
-   * meet. So both fields are `?` here, every fixture sets them explicitly, and
-   * the follow-up is recorded below.
-   *
-   * **Follow-up, once `clients/tickets.ts` is free:**
-   *   1. make both required (`conversationId: string | null`,
-   *      `channel: ConversationChannel`) — an optional channel is exactly the
-   *      "a reply composed with no idea where it goes" defect, only quieter;
-   *   2. fold `TicketMessage` into `Message` (`types/conversation.ts`), which
-   *      is P5-T1's other half. `TicketMessage` has no delivery state and no
-   *      `visibility`, so a ticket reply today cannot be shown as failed and an
-   *      internal note on a ticket is not expressible at all;
-   *   3. `replyTicket()` becomes `replyConversation()` against the ticket's
-   *      `conversationId`, so there is one reply path and not two.
-   */
+  /** The thread this ticket is discussed in. `null` = nobody has contacted the customer. */
+  conversationId: string | null
+  /** Where a reply goes. `null` = unknown; ask before replying, never a default. */
+  channel: ConversationChannel | null
 
-  /**
-   * The thread this ticket is discussed in, when there is one. `null` for a
-   * ticket raised internally that nobody has contacted the customer about —
-   * a real state, and not the same as "not yet migrated".
-   */
-  conversationId?: string | null
-
-  /**
-   * Where a reply to this ticket **goes**. Absent today on tickets created
-   * before the conversation model; treat absent as "unknown, ask before
-   * replying" and never as a default channel.
-   */
-  channel?: ConversationChannel
   callGuideScript?: {
     scenario: string
     say: string
@@ -120,13 +101,88 @@ export interface Ticket {
     policyRef: string
   }
   messages: TicketMessage[]
-
-  /**
-   * Every call wrap-up recorded against this ticket, oldest first.
-   *
-   * **Required, not optional.** An optional array would let a ticket exist with
-   * no answer to *"has anyone phoned this person"* — and `[]` is that answer,
-   * clearly, where `undefined` is only the absence of the question.
-   */
+  /** Every call wrap-up, oldest first. `[]` is an answer, not the absence of one. */
   callLogs: TicketCallLog[]
+}
+
+/* ── the SLA, resolved from policy ─────────────────────────────────────── */
+
+/** Legacy `rcPriority` (`:14745`): the tier names the priority. */
+export const PRIORITY_BY_TIER: Record<SlaTierKey, TicketPriority> = {
+  T1: 'Critical',
+  T2: 'High',
+  T3: 'Medium',
+  T4: 'Low',
+}
+
+export interface TicketSlaTargets {
+  tier: SlaTierKey
+  firstResponseMinutes: number
+  resolutionMinutes: number
+  updateEveryMinutes: number | null
+  pausesOnCustomer: boolean
+  /** `false` when the code is not in the registry and `OTHER_UNCODED` answered. */
+  coded: boolean
+}
+
+/** The code whose targets an unknown code inherits (legacy `rcTargets`, `:14733`). */
+export const UNCODED_REASON = 'OTHER_UNCODED'
+
+/**
+ * The one place a ticket's promises are resolved (B1). Reads the registry entry
+ * for its tier, the queue × tier grid for the minutes, and Q-81 for the pause.
+ */
+export function ticketSlaTargets(policy: OperationalPolicy, reasonCode: string): TicketSlaTargets {
+  const code =
+    policy.reasonCodes.find((each) => each.key === reasonCode) ??
+    policy.reasonCodes.find((each) => each.key === UNCODED_REASON)
+  const tier: SlaTierKey = code?.tier ?? 'T3'
+  const targets = effectiveSlaTargets(policy.sla, 'ticket', tier)
+  const tierDefault = policy.sla.tiers.find((each) => each.key === tier)
+  return {
+    tier,
+    firstResponseMinutes: targets.firstResponse.minutes,
+    resolutionMinutes: targets.resolution.minutes,
+    updateEveryMinutes: code?.updateEveryMinutes ?? null,
+    pausesOnCustomer:
+      (tierDefault?.pausesOnCustomer ?? true) && reasonCode !== 'DRV_SUSPENSION_APPEAL',
+    coded: code !== undefined && code.key === reasonCode,
+  }
+}
+
+export function addMinutes(iso: IsoDateTime, minutes: number): IsoDateTime {
+  return new Date(Date.parse(iso) + minutes * 60_000).toISOString()
+}
+
+/** The clock fields a fresh ticket carries, from its targets and opening instant. */
+export function stampTicketClocks(
+  targets: TicketSlaTargets,
+  openedAt: IsoDateTime,
+): Pick<
+  Ticket,
+  | 'slaStartedAt'
+  | 'slaDueAt'
+  | 'slaTargetMinutes'
+  | 'slaBreachedAt'
+  | 'slaSource'
+  | 'firstResponseDueAt'
+  | 'firstResponseBreachedAt'
+  | 'updateDueAt'
+> {
+  return {
+    slaStartedAt: openedAt,
+    slaDueAt: addMinutes(openedAt, targets.resolutionMinutes),
+    slaTargetMinutes: targets.resolutionMinutes,
+    slaBreachedAt: null,
+    slaSource: 'legacy-reason-code',
+    firstResponseDueAt: addMinutes(openedAt, targets.firstResponseMinutes),
+    firstResponseBreachedAt: null,
+    updateDueAt:
+      targets.updateEveryMinutes === null ? null : addMinutes(openedAt, targets.updateEveryMinutes),
+  }
+}
+
+/** Work still owed. Resolved and closed tickets have stopped clocks. */
+export function ticketIsLive(ticket: Pick<Ticket, 'status'>): boolean {
+  return ticket.status !== 'resolved' && ticket.status !== 'closed'
 }

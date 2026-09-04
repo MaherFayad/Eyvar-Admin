@@ -1,33 +1,52 @@
+/**
+ * Support › Tickets, on the work-queue contract (SUPPORT-UX-PLAN.md §3.1–3.3).
+ * Ownership is the shared `Claim` (30-minute expiry, take-over recorded);
+ * the three clocks are stamped from policy at creation and paused by
+ * `Waiting on customer`; a breach is stamped once by `sweepTicketSla`, with one
+ * audit entry and one notification per crossing (§8.4.3).
+ */
+
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import { ApiError, type Paginated, type QueryParams } from '../types/common'
+import {
+  ApiError,
+  type Claim,
+  type IsoDateTime,
+  type Paginated,
+  type QueryParams,
+} from '../types/common'
 import type { ConversationChannel } from '../types/conversation'
-import type {
-  Ticket,
-  TicketCallLog,
-  TicketCallOutcome,
-  TicketMessage,
-  TicketPriority,
-  TicketStatus,
+import {
+  PRIORITY_BY_TIER,
+  addMinutes,
+  stampTicketClocks,
+  ticketIsLive,
+  ticketSlaTargets,
+  type Ticket,
+  type TicketCallLog,
+  type TicketCallOutcome,
+  type TicketMessage,
+  type TicketPriority,
+  type TicketStatus,
 } from '../types/ticket'
+import { appendAudit } from './audit'
 import { http } from './http'
+import { pushNotification } from './notifications'
+import { currentPolicy } from './policy'
+import { liveClaim } from './requests'
 import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
-/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
-   import: a static one pins seeded data into every build, including the http
-   build that can never read it. Bound before any mock read, because `mock()`
-   and `mockMutation()` await `loadFixtures()`. */
+/* Late-bound fixture rows: a static import would pin seeded data into the
+   http build. Bound before any mock read, because `mock()` awaits `loadFixtures()`. */
 let ticketFixtures!: Fixtures['ticketFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   ticketFixtures = f.ticketFixtures
   teamUserFixtures = f.teamUserFixtures
-  /* Seeded here rather than at module load: these locals are built from
-     late-bound fixtures, which are undefined until the fixture chunk lands. */
-  dynamicTickets = [...ticketFixtures]
+  dynamicTickets = ticketFixtures.map(normalise)
 })
 
 export const TICKET_OPERATIONS = {
@@ -35,18 +54,18 @@ export const TICKET_OPERATIONS = {
   get: 'tickets.get',
   claim: 'tickets.claim',
   release: 'tickets.release',
+  transfer: 'tickets.transfer',
   reply: 'tickets.reply',
   resolve: 'tickets.resolve',
   reopen: 'tickets.reopen',
   create: 'tickets.create',
   logCall: 'tickets.logCall',
+  setStatus: 'tickets.setStatus',
+  recode: 'tickets.recode',
+  setPriority: 'tickets.setPriority',
 } as const
 
-/* Registered at module load, not on first call. `config.ts` says *"each client
-   registers its ids here at module load"*, and `mock()` only registers when it
-   runs — so an operation nobody has invoked yet is missing from a QA panel's
-   list and from any validation of `?mockFail=`. Every id in this module is
-   listed the moment the module is imported. */
+/* Registered at module load so `?mockFail=` can name any of them before the first call. */
 registerOperations(...Object.values(TICKET_OPERATIONS))
 
 export interface TicketQuery extends QueryParams {
@@ -55,81 +74,164 @@ export interface TicketQuery extends QueryParams {
   reasonCode?: string
 }
 
-let dynamicTickets!: typeof ticketFixtures
+let dynamicTickets!: Ticket[]
 
-/**
- * Ids for messages minted in this session, `MSG-901` upward.
- *
- * **Not `MSG-${Date.now()}`.** A clock-derived id is a different id on every
- * run, so two runs of the same script produce two different documents and
- * nothing that diffs output — a visual regression, a snapshot, a QA repro —
- * can tell a real change from the clock ticking. `src/data/mock/clock.ts` says
- * it plainly: there is no ambient time in `src/data/`, and `ledger.ts` mints
- * `JE-9…` the same way (`nextEntryId`, `:210`) for the same reason.
- *
- * Seeded at `900` so a session-minted id is greppably distinct from the
- * fixtures' `MSG-01`…`MSG-06` and can never collide with them, exactly as
- * ledger's `9` prefix separates session entries from fixture ones. The
- * timestamp on the message is `EYVAR_NOW`; the id carries no time at all.
- */
+/* Session-minted ids count from 900 so they are greppably distinct from the
+   fixtures' `MSG-01`, `CALL-01` and never derive from the clock. */
 let messageSequence = 900
+let callSequence = 900
 
 function nextMessageId(): string {
   return `MSG-${++messageSequence}`
 }
 
-/**
- * Call-log ids minted in this session, `CALL-901` upward. Same reasoning as
- * `messageSequence` above, and seeded past the fixtures' `CALL-01`…`CALL-03`
- * for the same reason: a session-minted id has to be greppably distinct from a
- * seeded one and can never collide with it.
- */
-let callSequence = 900
-
 function nextCallId(): string {
   return `CALL-${++callSequence}`
 }
 
-/**
- * Back to fixtures, and back to the first minted id.
- *
- * Both halves matter: a test that reset the array but not the counter would
- * see `MSG-901` in its first run and `MSG-904` in its second, which is the
- * non-determinism this file just removed arriving by another door.
- */
+/** Back to fixtures, and back to the first minted id. */
 export function resetTickets(): void {
-  /* Nothing seeded yet: the fixture chunk has not landed, so there is no
-     state to reset and the rows this would read are still undefined. The
-     binder in this module seeds fresh state when it does land. */
   if (!fixturesLoaded()) return
-  dynamicTickets = [...ticketFixtures]
+  dynamicTickets = ticketFixtures.map(normalise)
   messageSequence = 900
   callSequence = 900
 }
 
-/**
- * The session's ticket rows, synchronously, for the cross-queue projection in
- * `clients/myWork.ts` (T1.6). Reads the same array `claimTicket` writes, so a
- * claim made from My Work is the claim Tickets reports.
- *
- * Mock only. In http mode My Work is one server query and this is never called.
- */
+/** The session's rows, synchronously, for `clients/myWork.ts`'s projection. Mock only. */
 export function currentTickets(): readonly Ticket[] {
   return dynamicTickets ?? []
 }
 
+/* ─────────────────────────────── projections ──────────────────────────── */
+
+/**
+ * `ownerId`/`ownerName` follow the live claim (a stale one is already free),
+ * except on a decided ticket, where the claim records who decided it.
+ * `slaBreached` is either stamp. Applied on every write so no reader re-derives.
+ */
+function normalise(ticket: Ticket): Ticket {
+  const held = ticketIsLive(ticket) ? liveClaim(ticket.claim) : ticket.claim
+  return {
+    ...ticket,
+    ownerId: held?.ownerId ?? null,
+    ownerName: held?.ownerName ?? null,
+    slaBreached: ticket.slaBreachedAt !== null || ticket.firstResponseBreachedAt !== null,
+  }
+}
+
+function find(id: string): { index: number; ticket: Ticket } {
+  const index = dynamicTickets.findIndex((t) => t.id === id)
+  const ticket = dynamicTickets[index]
+  if (index === -1 || !ticket) throw notFound('ticket', id)
+  return { index, ticket }
+}
+
+function commit(index: number, next: Ticket): Ticket {
+  const stored = normalise(next)
+  dynamicTickets[index] = stored
+  return stored
+}
+
+function operator(userId?: string, userName?: string): { id: string; name: string } {
+  const id = userId ?? currentMockUserId()
+  return { id, name: userName ?? teamUserFixtures?.find((u) => u.id === id)?.name ?? id }
+}
+
+function refuseDecided(ticket: Ticket, code: string, message: string): void {
+  if (!ticketIsLive(ticket)) {
+    throw new ApiError({ status: 409, kind: 'conflict', code, message, retryable: false })
+  }
+}
+
+function audit(
+  action: Parameters<typeof appendAudit>[0]['action'],
+  ticket: Ticket,
+  note: string | null,
+  detailParams: Record<string, string> = {},
+  actorId?: string,
+): void {
+  appendAudit({
+    action,
+    subjectType: 'ticket',
+    subjectId: ticket.id,
+    amountHalalas: null,
+    reasonCode: ticket.reasonCode,
+    note,
+    detail: { key: `audit.${action}`, params: { id: ticket.id, ...detailParams } },
+    ...(actorId === undefined ? {} : { actorId }),
+  })
+}
+
+/** A claim for `owner`, taking over a live one when asked and refusing otherwise. */
+function claimFor(ticket: Ticket, owner: { id: string; name: string }, takeOver: boolean): Claim {
+  const held = liveClaim(ticket.claim)
+  if (held && held.ownerId !== owner.id && !takeOver) {
+    throw new ApiError({
+      status: 409,
+      kind: 'conflict',
+      code: 'claimed_by_other',
+      message: `${held.ownerName} is holding this ticket`,
+      retryable: false,
+    })
+  }
+  const handedOver = held !== null && held.ownerId !== owner.id
+  return {
+    key: `ticket:${ticket.id}`,
+    entityType: 'ticket',
+    entityId: ticket.id,
+    ownerId: owner.id,
+    ownerName: owner.name,
+    claimedAt: held?.ownerId === owner.id ? held.claimedAt : EYVAR_NOW,
+    touchedAt: EYVAR_NOW,
+    state: 'claimed',
+    releasedAt: null,
+    releaseReason: null,
+    takeovers: handedOver
+      ? [
+          ...held.takeovers,
+          {
+            fromUserId: held.ownerId,
+            fromUserName: held.ownerName,
+            toUserId: owner.id,
+            toUserName: owner.name,
+            at: EYVAR_NOW,
+          },
+        ]
+      : (held?.takeovers ?? []),
+  }
+}
+
+/** A customer-visible act answers the first-response promise and restarts the update clock. */
+function touchedCustomer(ticket: Ticket, at: IsoDateTime): Partial<Ticket> {
+  const targets = ticketSlaTargets(currentPolicy(), ticket.reasonCode)
+  return {
+    firstResponseAt: ticket.firstResponseAt ?? at,
+    lastUpdateAt: at,
+    updateDueAt:
+      targets.updateEveryMinutes === null ? null : addMinutes(at, targets.updateEveryMinutes),
+  }
+}
+
+/* ─────────────────────────────── the shape ────────────────────────────── */
+
 const ticketShape: QueryShape<Ticket> = {
-  searchable: [(t) => t.id, (t) => t.subject, (t) => t.entityName, (t) => t.entityId, (t) => t.reasonCode],
+  searchable: [
+    (t) => t.id,
+    (t) => t.subject,
+    (t) => t.entityName,
+    (t) => t.entityId,
+    (t) => t.reasonCode,
+    (t) => t.conversationId ?? '',
+  ],
   sortable: {
     createdAt: (t) => t.createdAt,
     priority: (t) => t.priority,
     status: (t) => t.status,
     subject: (t) => t.subject,
-    /* **Added by the sort/filter sweep.** A column the operator can read is a
-       column they can order by, unless ordering it is meaningless — see
-       `docs/TABLE-SORT-AUDIT.md` for the three kinds this sweep left alone. */
-    id: (r) => r.id,
-    category: (r) => r.category,
+    id: (t) => t.id,
+    category: (t) => t.category,
+    slaDueAt: (t) => t.slaDueAt ?? '9999',
+    firstResponseDueAt: (t) => t.firstResponseDueAt ?? '9999',
   },
   filterable: {
     id: (t) => t.id,
@@ -141,19 +243,25 @@ const ticketShape: QueryShape<Ticket> = {
     entityType: (t) => t.entityType,
     ownerId: (t) => t.ownerId,
     slaBreached: (t) => t.slaBreached,
-    /* An SLA console has to be able to ask "which tickets have no reply
-       destination", because those are the ones the composer will refuse. */
-    channel: (t) => t.channel ?? null,
+    breached: (t) => t.slaBreached && ticketIsLive(t),
+    unclaimed: (t) => t.ownerId === null && ticketIsLive(t),
+    channel: (t) => t.channel,
   },
   facetable: ['status', 'priority', 'category', 'reasonCode'],
   views: {
     all: () => true,
-    open: (t) => t.status === 'open',
+    /* §4.6 Q-32: a queue lands on the work nobody holds. */
+    unassigned: (t) => ticketIsLive(t) && t.ownerId === null,
+    mine: (t) => ticketIsLive(t) && t.ownerId === currentMockUserId(),
+    open: (t) => ticketIsLive(t),
     'in-progress': (t) => t.status === 'in-progress',
     waiting: (t) => t.status === 'waiting',
     resolved: (t) => t.status === 'resolved' || t.status === 'closed',
+    done: (t) => t.status === 'resolved' || t.status === 'closed',
   },
 }
+
+/* ────────────────────────────────── reads ─────────────────────────────── */
 
 /**
  * GET /api/v1/tickets
@@ -167,9 +275,7 @@ export async function listTickets(
   if (DATA_SOURCE === 'http') {
     return http.get<Paginated<Ticket>>('/tickets', { ...params }, { signal })
   }
-  return mock(TICKET_OPERATIONS.list, signal, () => {
-    return runQuery(dynamicTickets, params, ticketShape)
-  })
+  return mock(TICKET_OPERATIONS.list, signal, () => runQuery(dynamicTickets, params, ticketShape))
 }
 
 /**
@@ -181,32 +287,18 @@ export async function getTicket(id: string, signal?: AbortSignal): Promise<Ticke
   if (DATA_SOURCE === 'http') {
     return http.get<Ticket>(`/tickets/${id}`, undefined, { signal })
   }
-  return mock(TICKET_OPERATIONS.get, signal, () => {
-    const row = dynamicTickets.find((t) => t.id === id)
-    if (!row) throw notFound('ticket', id)
-    return row
-  })
+  return mock(TICKET_OPERATIONS.get, signal, () => find(id).ticket)
 }
 
-/**
- * The signed-in operator, when the caller does not name one. Every other work
- * queue resolves the claimant this way (`nextClaim`, `clients/requests.ts`), so
- * My Work can claim a ticket without asserting who is acting.
- */
-function sessionOperator(): { id: string; name: string } {
-  const id = currentMockUserId()
-  return { id, name: teamUserFixtures?.find((u) => u.id === id)?.name ?? id }
-}
+/* ─────────────────────────────── ownership ────────────────────────────── */
 
 /**
  * POST /api/v1/tickets/:id/claim
- *   body: { userId, takeOver }
+ *   body: { takeOver? }
  *   -> Ticket
  *   404 when the id does not exist
- *   409 `claimed_by_other` when another operator holds it and `takeOver` is unset
- *
- * Omit `userId` and the claimant is the authenticated session, as on the other
- * five queues. `userName` is a display value and is not on the wire.
+ *   409 `claimed_by_other` when another operator holds a live claim and `takeOver` is unset
+ *   409 `ticket_decided` on a resolved or closed ticket
  */
 export async function claimTicket(
   id: string,
@@ -216,34 +308,20 @@ export async function claimTicket(
   signal?: AbortSignal,
 ): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal })
+    return http.post<Ticket>(`/tickets/${id}/claim`, { takeOver: opts.takeOver }, { signal })
   }
   return mockMutation(TICKET_OPERATIONS.claim, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === id)
-    if (idx === -1) throw notFound('ticket', id)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', id)
-    const me = sessionOperator()
-    const owner = userId ?? me.id
-    /* A claim is not a lock, but a take-over is deliberate and recorded
-       (`nextClaim`, `clients/requests.ts`). */
-    if (existing.ownerId !== null && existing.ownerId !== owner && !opts.takeOver) {
-      throw new ApiError({
-        status: 409,
-        kind: 'conflict',
-        code: 'claimed_by_other',
-        message: `${existing.ownerName ?? existing.ownerId} is holding this ticket`,
-        retryable: false,
-      })
-    }
-    const updated: Ticket = {
-      ...existing,
-      ownerId: owner,
-      ownerName: userName ?? (userId === undefined ? me.name : userId),
-      status: existing.status === 'open' ? 'in-progress' : existing.status,
-    }
-    dynamicTickets[idx] = updated
-    return updated
+    const { index, ticket } = find(id)
+    refuseDecided(ticket, 'ticket_decided', 'A decided ticket is not claimed. Reopen it first.')
+    const me = operator(userId, userName)
+    const claim = claimFor(ticket, me, opts.takeOver === true)
+    const next = commit(index, {
+      ...ticket,
+      claim,
+      status: ticket.status === 'open' ? 'in-progress' : ticket.status,
+    })
+    audit('ticket.claim', next, null, { owner: me.name }, me.id)
+    return next
   })
 }
 
@@ -252,36 +330,92 @@ export async function claimTicket(
  *   -> Ticket
  *   404 when the id does not exist
  *
- * Ownership only. A released ticket goes back to `open` so it reappears in the
- * queue's open scope; nothing else about it changes.
+ * Ownership only: the ticket goes back to `open` so it reappears in the
+ * unassigned scope; its clocks do not reset.
  */
 export async function releaseTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
     return http.post<Ticket>(`/tickets/${id}/release`, undefined, { signal })
   }
   return mockMutation(TICKET_OPERATIONS.release, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === id)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', id)
-    const updated: Ticket = {
-      ...existing,
-      ownerId: null,
-      ownerName: null,
-      status: existing.status === 'in-progress' ? 'open' : existing.status,
-    }
-    dynamicTickets[idx] = updated
-    return updated
+    const { index, ticket } = find(id)
+    const held = liveClaim(ticket.claim)
+    const next = commit(index, {
+      ...ticket,
+      claim:
+        held === null
+          ? ticket.claim
+          : { ...held, state: 'released', releasedAt: EYVAR_NOW, releaseReason: 'manual' },
+      status: ticket.status === 'in-progress' ? 'open' : ticket.status,
+    })
+    audit('ticket.release', next, null)
+    return next
   })
 }
+
+/**
+ * POST /api/v1/tickets/:id/transfer
+ *   body: { toUserId, note }
+ *   -> Ticket
+ *   404 when the id or the operator does not exist
+ *   409 `ticket_decided` on a resolved or closed ticket
+ *   422 `note_required` when the note is empty. The note lands as an internal message (AC-S-13).
+ */
+export async function transferTicket(
+  id: string,
+  toUserId: string,
+  opts: { note: string },
+  signal?: AbortSignal,
+): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/transfer`, { toUserId, note: opts.note }, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.transfer, signal, () => {
+    const { index, ticket } = find(id)
+    refuseDecided(ticket, 'ticket_decided', 'A decided ticket is not transferred.')
+    const target = teamUserFixtures.find((u) => u.id === toUserId)
+    if (!target) throw notFound('operator', toUserId)
+    if (opts.note.trim() === '') {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'note_required',
+        message: 'Write a note for the receiving operator.',
+        details: [{ field: 'note', code: 'required', message: 'Required' }],
+        retryable: false,
+      })
+    }
+    const from = operator()
+    const claim = claimFor(ticket, { id: target.id, name: target.name }, true)
+    const note: TicketMessage = {
+      id: nextMessageId(),
+      senderId: from.id,
+      senderName: from.name,
+      senderType: 'agent',
+      body: opts.note.trim(),
+      sentAt: EYVAR_NOW,
+      visibility: 'internal',
+    }
+    const next = commit(index, {
+      ...ticket,
+      claim,
+      status: ticket.status === 'open' ? 'in-progress' : ticket.status,
+      messages: [...ticket.messages, note],
+    })
+    audit('ticket.transfer', next, opts.note.trim(), { from: from.name, to: target.name })
+    return next
+  })
+}
+
+/* ─────────────────────────────── the thread ───────────────────────────── */
 
 /**
  * POST /api/v1/tickets/:id/reply
  *   body: { body }
  *   -> Ticket
  *   404 when the id does not exist
- *
- * `senderId` and `senderName` are not sent: the sender is the authenticated
- * session, and letting a caller name it would let one operator reply as another.
+ *   409 `ticket_closed` on a closed ticket
+ *   422 `no_channel` when the ticket has no reply destination
  */
 export async function replyTicket(
   id: string,
@@ -294,202 +428,52 @@ export async function replyTicket(
     return http.post<Ticket>(`/tickets/${id}/reply`, { body }, { signal })
   }
   return mockMutation(TICKET_OPERATIONS.reply, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === id)
-    if (idx === -1) throw notFound('ticket', id)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', id)
-    const newMsg: TicketMessage = {
+    const { index, ticket } = find(id)
+    if (ticket.status === 'closed') {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'ticket_closed',
+        message: 'A closed ticket does not take replies. Reopen it first.',
+        retryable: false,
+      })
+    }
+    if (ticket.channel === null) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'no_channel',
+        message: 'This ticket has no reply destination.',
+        details: [{ field: 'channel', code: 'required', message: 'No channel' }],
+        retryable: false,
+      })
+    }
+    const message: TicketMessage = {
       id: nextMessageId(),
       senderId,
       senderName,
       senderType: 'agent',
       body,
       sentAt: EYVAR_NOW,
+      visibility: 'customer',
     }
-    const updated: Ticket = {
-      ...existing,
-      messages: [...existing.messages, newMsg],
-      status: 'in-progress',
-    }
-    dynamicTickets[idx] = updated
-    return updated
+    const next = commit(index, {
+      ...ticket,
+      ...touchedCustomer(ticket, EYVAR_NOW),
+      messages: [...ticket.messages, message],
+      status: ticket.status === 'open' ? 'in-progress' : ticket.status,
+    })
+    audit('ticket.reply', next, null, { channel: ticket.channel }, senderId)
+    return next
   })
-}
-
-/**
- * POST /api/v1/tickets/:id/resolve
- *   -> Ticket
- *   404 when the id does not exist
- *   409 when the ticket is already resolved
- */
-export async function resolveTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
-  if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/resolve`, {}, { signal })
-  }
-  return mockMutation(TICKET_OPERATIONS.resolve, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === id)
-    if (idx === -1) throw notFound('ticket', id)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', id)
-    const updated: Ticket = {
-      ...existing,
-      status: 'resolved',
-    }
-    dynamicTickets[idx] = updated
-    return updated
-  })
-}
-
-/**
- * POST /api/v1/tickets/:id/reopen
- *   -> Ticket
- *   404 when the id does not exist
- *   409 when the ticket is not resolved
- */
-export async function reopenTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
-  if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/reopen`, {}, { signal })
-  }
-  return mockMutation(TICKET_OPERATIONS.reopen, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === id)
-    if (idx === -1) throw notFound('ticket', id)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', id)
-    const updated: Ticket = {
-      ...existing,
-      status: 'open',
-    }
-    dynamicTickets[idx] = updated
-    return updated
-  })
-}
-
-/**
- * POST /api/v1/tickets
- *   body: { subject, entityId, entityName, entityType, category, reasonCode,
- *           priority, initialMessage?, conversationId?, channel? }
- *   -> Ticket
- *
- * **`conversationId` and `channel` are the two-way link D19 requires.** They
- * were absent, and `conversationId: null` was written unconditionally, so a
- * ticket raised from the conversation console could not say which conversation
- * it came from and `replyTicket` could not say where a reply would go —
- * `types/ticket.ts`'s *"a reply composed with no idea where it goes"* defect,
- * arriving through the create path instead of the fixture.
- *
- * Both stay **optional and nullable**, because a ticket raised anywhere else
- * genuinely has no thread yet, and the type is explicit that an absent `channel`
- * means *"ask before replying"* rather than a default. Guessing `email` here
- * would be the defect the field exists to prevent. What has changed is only that
- * a caller who **knows** can now say so.
- *
- * The conversation side of the link is written by
- * `createTicketForConversation` in `clients/conversations.ts`, which is the one
- * endpoint that owns both halves. Call that, not this, from the console.
- *
- * `initialMessage` is now optional: a ticket created from a conversation already
- * **has** the thread, and seeding it with a copy of the first message would put
- * the same words in two records and let them drift.
- */
-export async function createTicket(input: NewTicketInput, signal?: AbortSignal): Promise<Ticket> {
-  if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>('/tickets', input, { signal })
-  }
-  return mockMutation(TICKET_OPERATIONS.create, signal, () => mintTicket(input))
-}
-
-export interface NewTicketInput {
-  subject: string
-  entityId: string
-  entityName: string
-  entityType: 'rider' | 'driver' | 'corporate'
-  category: string
-  reasonCode: string
-  priority: TicketPriority
-  initialMessage?: string
-  conversationId?: string | null
-  channel?: ConversationChannel
-}
-
-/**
- * Mint a ticket into the mock store, **synchronously**.
- *
- * Split out of `createTicket` so that `createTicketForConversation`
- * (`clients/conversations.ts`) can write both halves of D19's two-way link
- * inside **one** `mockMutation`. Nesting one mutation inside another would
- * double the latency and, worse, put the failure injection on the *outer*
- * operation only — `?mockFail=conversations.createTicket` would fire after the
- * ticket had already been written, leaving a ticket pointing at a conversation
- * that does not point back. A link that is two mutations is a link that is
- * half-written when the second one fails.
- *
- * **Mock-only, and not exported from the barrel.** In `http` mode the server
- * does this and neither caller reaches here.
- */
-export function mintTicket(input: NewTicketInput): Ticket {
-  {
-    const newId = `TKT-${500 + dynamicTickets.length + 1}`
-    const created: Ticket = {
-      id: newId,
-      subject: input.subject,
-      entityId: input.entityId,
-      entityName: input.entityName,
-      entityType: input.entityType,
-      category: input.category,
-      reasonCode: input.reasonCode,
-      priority: input.priority,
-      status: 'open',
-      ownerId: null,
-      ownerName: null,
-      createdAt: EYVAR_NOW,
-      slaDueAt: null,
-      slaBreached: false,
-      /* Both `null`/absent unless the caller named them. A ticket raised
-         through this operation with no conversation behind it still has no
-         thread, and `types/ticket.ts` is explicit that an absent `channel`
-         means *"ask before replying"* rather than a default — so guessing
-         `email` remains the defect that field exists to prevent. */
-      conversationId: input.conversationId ?? null,
-      ...(input.channel === undefined ? {} : { channel: input.channel }),
-      callLogs: [],
-      /* No seeded message when there is none to seed. A ticket created from a
-         conversation carries the thread by reference; an empty bubble with the
-         customer's name on it would be a message they never sent. */
-      messages:
-        input.initialMessage === undefined || input.initialMessage.trim() === ''
-          ? []
-          : [
-              {
-                id: nextMessageId(),
-                senderId: input.entityId,
-                senderName: input.entityName,
-                senderType: 'customer',
-                body: input.initialMessage,
-                sentAt: EYVAR_NOW,
-              },
-            ],
-    }
-    dynamicTickets = [created, ...dynamicTickets]
-    return created
-  }
 }
 
 /**
  * POST /api/v1/tickets/:id/call-log
  *   body: { outcome, notes }
  *   -> Ticket
- *   422 on an outcome outside the closed set
- *
- * **What `LogCallModal` was missing.** Its `onConfirm` reached
- * `TicketDetailScreen.tsx:86`, a handler declared with **no parameters**, so
- * the outcome and the note were discarded one stack frame after being
- * collected. This writes them onto the ticket, which is what makes them
- * readable afterwards by anyone other than the operator who typed them.
- *
- * A logged call also **moves the ticket on**, exactly as a reply does, because
- * an operator who has just phoned the customer has worked the ticket: an
- * untouched `open` ticket after a call is a queue lying about its own backlog.
- * `no-answer` is the exception — nobody was reached, so nothing progressed.
+ *   422 on an outcome outside the closed set. A call moves the ticket on as a
+ *   reply does; `no-answer` is the exception because nobody was reached.
  */
 export async function logTicketCall(
   input: { ticketId: string; outcome: TicketCallOutcome; notes?: string | null },
@@ -505,10 +489,7 @@ export async function logTicketCall(
     )
   }
   return mockMutation(TICKET_OPERATIONS.logCall, signal, () => {
-    const idx = dynamicTickets.findIndex((t) => t.id === input.ticketId)
-    const existing = dynamicTickets[idx]
-    if (!existing) throw notFound('ticket', input.ticketId)
-
+    const { index, ticket } = find(input.ticketId)
     const entry: TicketCallLog = {
       id: nextCallId(),
       outcome: input.outcome,
@@ -517,17 +498,23 @@ export async function logTicketCall(
       loggedByUserId: userId,
       loggedByUserName: userName,
     }
-    const updated: Ticket = {
-      ...existing,
-      callLogs: [...existing.callLogs, entry],
-      status: nextStatusAfterCall(existing.status, input.outcome),
-      /* Whoever phoned owns it. An unowned ticket somebody has already called
-         about is the queue's worst row: it looks untouched and is not. */
-      ownerId: existing.ownerId ?? userId,
-      ownerName: existing.ownerName ?? userName,
-    }
-    dynamicTickets[idx] = updated
-    return updated
+    const reached = input.outcome !== 'no-answer'
+    const status = nextStatusAfterCall(ticket.status, input.outcome)
+    const held = liveClaim(ticket.claim)
+    const next = commit(index, {
+      ...ticket,
+      ...(reached ? touchedCustomer(ticket, EYVAR_NOW) : {}),
+      ...pauseFor(ticket, status),
+      callLogs: [...ticket.callLogs, entry],
+      status,
+      resolvedAt: status === 'resolved' ? (ticket.resolvedAt ?? EYVAR_NOW) : ticket.resolvedAt,
+      claim:
+        held === null && ticketIsLive(ticket)
+          ? claimFor(ticket, { id: userId, name: userName }, false)
+          : ticket.claim,
+    })
+    audit('ticket.callLog', next, entry.notes, { outcome: input.outcome }, userId)
+    return next
   })
 }
 
@@ -541,8 +528,327 @@ function nextStatusAfterCall(status: TicketStatus, outcome: TicketCallOutcome): 
     case 'escalated':
       return 'in-progress'
     case 'no-answer':
-      /* Nobody was reached. The ticket has not moved and saying it has is how a
-         queue quietly loses a person who is still waiting. */
       return status
   }
+}
+
+/* ───────────────────────────── the lifecycle ──────────────────────────── */
+
+/**
+ * The pause bookkeeping for a status change (legacy `slaMarkStatus`, `:14863`).
+ * Entering `waiting` pauses the resolution clock when the tier pauses; leaving
+ * it adds the paused span to the deadline. The first-response clock never pauses.
+ */
+function pauseFor(ticket: Ticket, status: TicketStatus): Partial<Ticket> {
+  const targets = ticketSlaTargets(currentPolicy(), ticket.reasonCode)
+  if (status === 'waiting' && ticket.status !== 'waiting') {
+    return targets.pausesOnCustomer ? { pausedAt: EYVAR_NOW } : {}
+  }
+  if (status !== 'waiting' && ticket.pausedAt !== null) {
+    const paused = Math.max(0, (Date.parse(EYVAR_NOW) - Date.parse(ticket.pausedAt)) / 60_000)
+    return {
+      pausedAt: null,
+      pausedMinutes: ticket.pausedMinutes + paused,
+      slaDueAt: ticket.slaDueAt === null ? null : addMinutes(ticket.slaDueAt, paused),
+    }
+  }
+  return {}
+}
+
+/**
+ * POST /api/v1/tickets/:id/status
+ *   body: { status: 'waiting' | 'in-progress' }
+ *   -> Ticket
+ *   409 `ticket_decided` on a resolved or closed ticket. `waiting` pauses the
+ *   resolution clock where the tier says so; `in-progress` resumes it.
+ */
+export async function setTicketStatus(
+  id: string,
+  status: 'waiting' | 'in-progress',
+  signal?: AbortSignal,
+): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/status`, { status }, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.setStatus, signal, () => {
+    const { index, ticket } = find(id)
+    refuseDecided(ticket, 'ticket_decided', 'A decided ticket has no waiting state. Reopen it first.')
+    if (ticket.status === status) return ticket
+    const next = commit(index, { ...ticket, ...pauseFor(ticket, status), status })
+    audit('ticket.status', next, null, { status })
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/tickets/:id/reason-code
+ *   body: { reasonCode }
+ *   -> Ticket
+ *   409 `ticket_decided` on a resolved or closed ticket. Re-derives the priority
+ *   and all three clocks from opening and clears the breach stamps.
+ */
+export async function recodeTicket(id: string, reasonCode: string, signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/reason-code`, { reasonCode }, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.recode, signal, () => {
+    const { index, ticket } = find(id)
+    refuseDecided(ticket, 'ticket_decided', 'A decided ticket is not re-coded.')
+    const targets = ticketSlaTargets(currentPolicy(), reasonCode)
+    const stamped = stampTicketClocks(targets, ticket.createdAt)
+    const next = commit(index, {
+      ...ticket,
+      ...stamped,
+      /* The update clock counts from the last update, not from opening. */
+      updateDueAt:
+        targets.updateEveryMinutes === null
+          ? null
+          : addMinutes(ticket.lastUpdateAt ?? ticket.createdAt, targets.updateEveryMinutes),
+      /* A paused ticket stays paused; the span already paused stays spent. */
+      slaDueAt:
+        stamped.slaDueAt === null ? null : addMinutes(stamped.slaDueAt, ticket.pausedMinutes),
+      reasonCode,
+      priority: PRIORITY_BY_TIER[targets.tier],
+    })
+    audit('ticket.recode', next, null, { from: ticket.reasonCode, to: reasonCode })
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/tickets/:id/priority
+ *   body: { priority }
+ *   -> Ticket
+ */
+export async function setTicketPriority(
+  id: string,
+  priority: TicketPriority,
+  signal?: AbortSignal,
+): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/priority`, { priority }, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.setPriority, signal, () => {
+    const { index, ticket } = find(id)
+    const next = commit(index, { ...ticket, priority })
+    audit('ticket.priority', next, null, { from: ticket.priority, to: priority })
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/tickets/:id/resolve
+ *   -> Ticket
+ *   404 when the id does not exist
+ *   409 `ticket_decided` when already resolved or closed. The claim becomes
+ *   `done` so the row records who decided it (legacy `slaMarkStatus`, `:14875`).
+ */
+export async function resolveTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/resolve`, {}, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.resolve, signal, () => {
+    const { index, ticket } = find(id)
+    refuseDecided(ticket, 'ticket_decided', 'This ticket is already decided.')
+    const held = liveClaim(ticket.claim)
+    const me = operator()
+    const claim: Claim = held ?? claimFor(ticket, me, false)
+    const next = commit(index, {
+      ...ticket,
+      ...pauseFor(ticket, 'resolved'),
+      status: 'resolved',
+      resolvedAt: EYVAR_NOW,
+      firstResponseAt: ticket.firstResponseAt ?? EYVAR_NOW,
+      claim: { ...claim, state: 'done', touchedAt: EYVAR_NOW },
+    })
+    audit('ticket.resolve', next, null)
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/tickets/:id/reopen
+ *   -> Ticket
+ *   404 when the id does not exist
+ *   409 `ticket_open` when the ticket is not decided. Releases the decided claim;
+ *   neither restarts a clock nor clears a breach (§8.4.3).
+ */
+export async function reopenTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/reopen`, {}, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.reopen, signal, () => {
+    const { index, ticket } = find(id)
+    if (ticketIsLive(ticket)) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'ticket_open',
+        message: 'This ticket is already open.',
+        retryable: false,
+      })
+    }
+    const next = commit(index, {
+      ...ticket,
+      status: 'open',
+      resolvedAt: null,
+      claim:
+        ticket.claim === null
+          ? null
+          : { ...ticket.claim, state: 'released', releasedAt: EYVAR_NOW, releaseReason: 'manual' },
+    })
+    audit('ticket.reopen', next, null)
+    return next
+  })
+}
+
+/* ─────────────────────────────── creation ─────────────────────────────── */
+
+export interface NewTicketInput {
+  subject: string
+  entityId: string
+  entityName: string
+  entityType: 'rider' | 'driver' | 'corporate'
+  category: string
+  reasonCode: string
+  priority?: TicketPriority
+  initialMessage?: string
+  conversationId?: string | null
+  channel?: ConversationChannel | null
+}
+
+/**
+ * POST /api/v1/tickets
+ *   body: NewTicketInput
+ *   -> Ticket
+ *   Clocks are stamped from policy (AC-S-06); `priority` defaults to the code's
+ *   tier; `channel` stays `null` when unknown, never a default.
+ */
+export async function createTicket(input: NewTicketInput, signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>('/tickets', input, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.create, signal, () => mintTicket(input))
+}
+
+/**
+ * Mint a ticket into the mock store, synchronously, so
+ * `createTicketForConversation` can write both halves of the link inside one
+ * `mockMutation`. Mock only; not exported from the barrel.
+ */
+export function mintTicket(input: NewTicketInput): Ticket {
+  const targets = ticketSlaTargets(currentPolicy(), input.reasonCode)
+  const created: Ticket = normalise({
+    id: `TKT-${500 + dynamicTickets.length + 1}`,
+    subject: input.subject,
+    entityId: input.entityId,
+    entityName: input.entityName,
+    entityType: input.entityType,
+    category: input.category,
+    reasonCode: input.reasonCode,
+    priority: input.priority ?? PRIORITY_BY_TIER[targets.tier],
+    status: 'open',
+    claim: null,
+    ownerId: null,
+    ownerName: null,
+    createdAt: EYVAR_NOW,
+    resolvedAt: null,
+    ...stampTicketClocks(targets, EYVAR_NOW),
+    firstResponseAt: null,
+    lastUpdateAt: null,
+    pausedAt: null,
+    pausedMinutes: 0,
+    slaBreached: false,
+    conversationId: input.conversationId ?? null,
+    channel: input.channel ?? null,
+    callLogs: [],
+    messages:
+      input.initialMessage === undefined || input.initialMessage.trim() === ''
+        ? []
+        : [
+            {
+              id: nextMessageId(),
+              senderId: input.entityId,
+              senderName: input.entityName,
+              senderType: 'customer',
+              body: input.initialMessage,
+              sentAt: EYVAR_NOW,
+              visibility: 'customer',
+            },
+          ],
+  })
+  dynamicTickets = [created, ...dynamicTickets]
+  audit('ticket.create', created, null, { reasonCode: input.reasonCode })
+  return created
+}
+
+/* ─────────────────────────────── the sweep ────────────────────────────── */
+
+export type TicketBreachKind = 'first_response' | 'resolution'
+
+/**
+ * Stamp every promise that broke before `now`, once each (§8.4.3): one audit
+ * entry per crossing, one batched notification per sweep. Mock only; the
+ * console calls it from its tick bucket and the server owns it in http mode.
+ */
+export function sweepTicketSla(
+  now: IsoDateTime = EYVAR_NOW,
+): Array<{ ticketId: string; kind: TicketBreachKind }> {
+  if (!dynamicTickets) return []
+  const nowMs = Date.parse(now)
+  const crossings: Array<{ ticketId: string; kind: TicketBreachKind }> = []
+
+  dynamicTickets = dynamicTickets.map((ticket) => {
+    if (!ticketIsLive(ticket)) return ticket
+    let next = ticket
+    if (
+      ticket.firstResponseAt === null &&
+      ticket.firstResponseBreachedAt === null &&
+      ticket.firstResponseDueAt !== null &&
+      Date.parse(ticket.firstResponseDueAt) < nowMs
+    ) {
+      next = { ...next, firstResponseBreachedAt: ticket.firstResponseDueAt }
+      crossings.push({ ticketId: ticket.id, kind: 'first_response' })
+    }
+    if (
+      ticket.pausedAt === null &&
+      ticket.slaBreachedAt === null &&
+      ticket.slaDueAt !== null &&
+      Date.parse(ticket.slaDueAt) < nowMs
+    ) {
+      next = { ...next, slaBreachedAt: ticket.slaDueAt }
+      crossings.push({ ticketId: ticket.id, kind: 'resolution' })
+    }
+    if (next === ticket) return ticket
+    const stored = normalise(next)
+    audit('ticket.slaBreach', stored, null, {
+      kind: crossings.filter((c) => c.ticketId === ticket.id).map((c) => c.kind).join(','),
+    })
+    return stored
+  })
+
+  if (crossings.length === 1) {
+    const only = crossings[0]!
+    const ticket = dynamicTickets.find((t) => t.id === only.ticketId)
+    pushNotification({
+      type: 'ticket',
+      priority: 'high',
+      title: `SLA breach ${only.ticketId}`,
+      body: ticket?.subject ?? null,
+      route: `/support/tickets/${only.ticketId}`,
+      entityId: only.ticketId,
+      entityType: 'ticket',
+    })
+  } else if (crossings.length > 1) {
+    pushNotification({
+      type: 'ticket',
+      priority: 'high',
+      title: `SLA breach on ${crossings.length} tickets`,
+      body: null,
+      route: '/support/tickets?view=open',
+      entityId: null,
+      entityType: null,
+    })
+  }
+  return crossings
 }
