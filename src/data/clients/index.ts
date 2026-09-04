@@ -341,6 +341,7 @@ export {
 
 export {
   REVENUE_OPERATIONS,
+  getPlanRevenueDetail,
   getRefundFacets,
   getRefundsLedger,
   issueRefund,

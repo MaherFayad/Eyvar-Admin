@@ -85,7 +85,7 @@ const SURFACES: Array<{ name: string; path: string; element: () => React.ReactEl
     path: '/financials/overview',
     element: () => <OverviewScreen row={rowFor('financials-overview')} />,
   },
-  ...['all', 'revenue', 'refunds', 'credit-notes', 'margin'].map((view) => ({
+  ...['by-plan', 'refunds', 'refunds-ledger', 'credit-notes', 'margin'].map((view) => ({
     name: `Revenue & Refunds · ${view}`,
     path: `/financials/revenue?view=${view}`,
     element: () => <RevenueScreen row={rowFor('financials-revenue')} />,
@@ -191,7 +191,7 @@ describe('AC-425 / AC-428 — the four states are reachable by controlling the c
       name: 'Revenue & Refunds',
       operation: REVENUE_OPERATIONS.ledger,
       surface: () => <RevenueScreen row={rowFor('financials-revenue')} />,
-      path: '/financials/revenue?view=all',
+      path: '/financials/revenue?view=refunds-ledger',
     },
     {
       name: 'Payouts & Escrow',

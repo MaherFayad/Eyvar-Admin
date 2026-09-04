@@ -1648,10 +1648,25 @@
       "path": "/api/v1/financials/revenue-by-plan",
       "client": "src/data/clients/revenue.ts",
       "function": "listRevenueByPlan",
-      "params": "from · to",
+      "params": "from · to · include=daily",
       "body": null,
       "returns": "RevenueByPlanRow[]",
       "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/financials/revenue/by-plan/:planId",
+      "client": "src/data/clients/revenue.ts",
+      "function": "getPlanRevenueDetail",
+      "params": "from · to",
+      "body": null,
+      "returns": "PlanRevenueDetail",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when no plan carries that id"
+        }
+      ]
     },
     {
       "method": "GET",

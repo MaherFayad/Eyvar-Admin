@@ -17,6 +17,7 @@ Screenshots land in `scripts/harness/shots/` (git-ignored).
 | `amp-interact.mjs` | a control issues no run: counts `result.asOf` changes and skeleton frames, not network requests, because `DATA_SOURCE` is `mock` in dev and a run makes no HTTP call |
 | `amp-builder-ar-dark.mjs` | Arabic (via the account menu's Arabic radio) and dark (`colorScheme`) |
 | `amp-dash.mjs` | dashboard tiles, which reuse the same `ResultCanvas` at a third of the width |
+| `fin-revenue.mjs` | the Revenue by plan master-detail: four sparklines, the composed day plot, the composition bar, the 280px list column, the table's footer total and the H6 column preset, at 1280 and 1440 and in Arabic |
 | `table-density.mjs` | row pitch, rows per 800px viewport, column widths and clipped identity cells, at 1280 and 1152. Takes a label: `node scripts/harness/table-density.mjs before` |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here

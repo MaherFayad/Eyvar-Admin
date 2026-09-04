@@ -1539,6 +1539,10 @@
      measured against a gutterless 976 and is restated by this arithmetic. */
   --ev-detail-rail-w: 300px;
   --ev-monitor-aside-w: 340px; /* X — not evidenced. Untouched (AC-31). */
+  /* FINANCIALS-UX-PLAN §4.1 — the master-detail's list column. At the 1280
+     floor the page block is 912, so 280 + 20 + 612 leaves the detail's day
+     chart above R4-1's 268px plot floor. */
+  --ev-master-list-w: 280px;
   /* M — 406 -> 480, and R13's NAMED-FIGURE CARVE-OUT IS SPENT HERE.
      `9eb629ea` / `1ef8248f` / `79a31934`: the drawer's leading edge is at
      destination x = 505.5 and the frame ends at 767.5 -> 262 x 1.875 = 491.
@@ -2735,6 +2739,9 @@
                 expanded that is 620 + 16 + 340 = 976 (AC-31 holds) */
   --grid-template-columns-detail: minmax(0, 1fr) var(--ev-detail-rail-w);
   --grid-template-columns-monitor: minmax(0, 1fr) var(--ev-monitor-aside-w);
+  /* master-detail  §4.1 — the list LEADS, so the fixed track is first and the
+     detail takes `minmax(0, 1fr)` and can therefore shrink below its content. */
+  --grid-template-columns-master-detail: var(--ev-master-list-w) minmax(0, 1fr);
 
   /* Radius. Explicit, all on the 4px grid — shadcn's stock
      calc(--radius * 0.6) produces 4.8px, which D15 records as a defect.
