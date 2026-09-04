@@ -50,7 +50,7 @@ import { comparisonWindow } from '@/data/clients'
 import { formatDate, type Language, type Translate } from '@/lib'
 import { PanelNumeral } from './PanelCard'
 import { declaredAggregate, periodDelta, rollUpSeries } from './rollup'
-import { seriesColor } from './SeriesChart'
+import { seriesColor, seriesDash } from './SeriesChart'
 
 export interface SeriesHeadlinesProps {
   /** The same panels, in the same order, that `SeriesChart` was handed. */
@@ -120,6 +120,10 @@ export function SeriesHeadlines({
       panelId: panel.panelId,
       title: titles[index] ?? '',
       color: seriesColor(colorIndexes[index] ?? index),
+      /* On the palette's second lap the plot draws a dotted line. A dot cannot
+         be dotted, so it is drawn hollow — same hue, different treatment, which
+         is the same rule the plot follows. See `seriesDash`. */
+      hollow: seriesDash(colorIndexes[index] ?? index) !== undefined,
       value: now?.value ?? null,
       delta: periodDelta(now?.value ?? null, before?.value ?? null),
       /* Its own measure's direction. A split by district is one measure, but
@@ -146,7 +150,11 @@ export function SeriesHeadlines({
             <span
               aria-hidden="true"
               className="size-2 shrink-0 rounded-full"
-              style={{ background: column.color }}
+              style={
+                column.hollow
+                  ? { border: `2px solid ${column.color}` }
+                  : { background: column.color }
+              }
             />
             {/* A group value is user content and carries its own direction. */}
             <span className="min-w-0 truncate text-xs text-muted-foreground">
@@ -170,12 +178,27 @@ export function SeriesHeadlines({
                 framed
                 language={language}
               >
-                <MetricDelta
-                  deltaPercent={column.delta === null ? null : column.delta * 100}
-                  higherIsBetter={column.higherIsBetter}
-                  t={t}
-                  language={language}
-                />
+                {/* **The em dash is for a delta that could not be computed,
+                    not for one nobody asked for.**
+
+                    AC-834 is that an absent delta reads as an em dash rather
+                    than as `0%` or as blank — and it holds here: with a
+                    comparison window on, a series whose baseline is zero or
+                    whose aggregate is refused still renders `—`, which is the
+                    case that rule exists for.
+
+                    With no comparison window at all there is nothing absent to
+                    mark. The line below already says `no comparison` in words,
+                    and a dash beside every number saying the same thing a
+                    second time is the noise the owner asked to be rid of. */}
+                {baseline !== null && (
+                  <MetricDelta
+                    deltaPercent={column.delta === null ? null : column.delta * 100}
+                    higherIsBetter={column.higherIsBetter}
+                    t={t}
+                    language={language}
+                  />
+                )}
               </PanelNumeral>
 
               {/* Two facts, two lines, no prose: what the number covers, and
@@ -187,17 +210,28 @@ export function SeriesHeadlines({
                   <bdi>{t('rb.headline.window', { range })}</bdi>
                 </p>
               )}
-              <p className="text-2xs text-muted-foreground">
-                {baseline === null ? (
-                  t('rb.headline.noCompare')
-                ) : (
+              {/* **What the delta is measured against — and nothing where there
+                  is no delta.**
+
+                  `no comparison` printed under every column was four copies of
+                  one fact that the toolbar's own `No comparison` already
+                  states, on a card where the split had four series and a tile
+                  had room for two. That is the noise the owner asked to be rid
+                  of, arriving from inside a component rather than from a rail.
+
+                  It is not an absence being hidden: with no comparison window
+                  there is no baseline to name, the delta beside the number is
+                  already suppressed for the same reason, and the control that
+                  turns one on is two inches away saying what it is set to. */}
+              {baseline !== null && (
+                <p className="text-2xs text-muted-foreground">
                   <bdi>
                     {t('rb.headline.from', {
                       date: formatDate(baseline.from, { style: 'day-month', language }),
                     })}
                   </bdi>
-                )}
-              </p>
+                </p>
+              )}
             </>
           )}
         </li>

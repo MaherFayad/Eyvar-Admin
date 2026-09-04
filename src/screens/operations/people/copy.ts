@@ -416,4 +416,96 @@ export const PEOPLE_EN: Dictionary = {
      registering this dictionary would have silently relabelled three modals.
      A key that means four things is not a key. */
   'applicant.action.backToApplications': 'Back to applications',
+  /* The queue's third disposition — the one that OPENS the file rather than
+     deciding it sight unseen. */
+  'people.queue.review': 'Review',
+  /* ── document review — the sheet and the page ────────────────────────
+     The four documents are `people.col.doc.*` above and are NOT restated
+     here: a document's name is one word in one place, and the review
+     surfaces read it through `docLabelKey`. */
+  'applicant.docStatus.verified': 'Verified',
+  'applicant.docStatus.pending': 'Needs review',
+  'applicant.docStatus.rejected': 'Rejected',
+  'applicant.docStatus.missing': 'Not uploaded',
+
+  /* The five reason codes. A code, never free text — see `types/applicant.ts`. */
+  'applicant.docReason.unclear': 'Photo unclear or blurry',
+  'applicant.docReason.expired': 'Document has expired',
+  'applicant.docReason.mismatch': 'Does not match the national ID',
+  'applicant.docReason.wrongType': 'Wrong document uploaded',
+  'applicant.docReason.suspectedForgery': 'Suspected forgery',
+  'applicant.docReason.legend': 'Rejected — {reason}',
+
+  /* The review header. `n of m` counts VERIFIED documents, never uploaded
+     ones: an upload nobody has looked at is not progress. */
+  'applicant.review.progress': '{verified} of {total} verified',
+  'applicant.review.openFirst': 'Open first unreviewed',
+  'applicant.review.allVerified': 'Every document is verified.',
+  'applicant.review.documents': 'Documents',
+  'applicant.review.signals': 'Signals',
+  'applicant.review.driverDetails': 'Driver details',
+  'applicant.review.readFrom': 'Read from this document',
+  'applicant.review.readNothing':
+    'Nothing has been read off this document yet. Verifying or rejecting it records what it says.',
+  'applicant.review.readNone': 'A photograph has nothing printed on it to read.',
+  'applicant.review.noUpload': 'The applicant has not uploaded this document.',
+  'applicant.review.fileMeta': '{kind} · {size} · uploaded {date}',
+  'applicant.review.scanLoading': 'Fetching the scan…',
+  'applicant.review.scanRefused': 'You do not have permission to open this scan.',
+  'applicant.review.scanError': 'The scan could not be fetched.',
+  'applicant.review.scanRetry': 'Try again',
+  'applicant.review.openFull': 'Open full size',
+
+  /* The three verdicts on ONE document. They are not the application's
+     decision and are worded so nobody reads them as one. */
+  'applicant.doc.verify': 'Verify document',
+  'applicant.doc.reject': 'Reject document',
+  'applicant.doc.reupload': 'Request re-upload',
+  'applicant.doc.verifyRefusedNoFile': 'Nothing has been uploaded, so there is nothing to verify.',
+  'applicant.doc.rejectRefusedNoFile': 'Nothing has been uploaded, so there is nothing to reject.',
+  'applicant.doc.reuploadRefusedNoFile': 'Nothing has been uploaded yet.',
+  'applicant.doc.rejectTitle': 'Why is this document being rejected?',
+  'applicant.doc.rejectDesc':
+    'The applicant is told the reason and asked for a replacement. Pick the closest one.',
+  'applicant.doc.rejectConfirm': 'Reject document',
+  'applicant.doc.toast.verified': '{document} verified',
+  'applicant.doc.toast.rejected': '{document} rejected',
+  'applicant.doc.toast.reupload': 'Re-upload requested for {document}',
+  'applicant.doc.toast.error': "Couldn't record that verdict",
+
+  /* The approval checklist. */
+  'applicant.check.heading': 'Must clear before approval',
+  'applicant.check.document': '{document} verified',
+  'applicant.check.bank': 'Payout account verified',
+  'applicant.action.documentsOpen': 'Still open: {documents}.',
+  'applicant.action.bankUnverified': 'The payout account has not been verified.',
+
+  /* The review sheet's own chrome. */
+  'applicant.sheet.position': 'Application {index} of {total}',
+  'applicant.sheet.previous': 'Previous application',
+  'applicant.sheet.next': 'Next application',
+  'applicant.sheet.openFull': 'Open full application',
+  'applicant.sheet.close': 'Close',
+
+  /* The fields read off a document. Each is what the CARD says, which is why
+     the labels differ from the application's own — `Name on document` is not
+     `Name`, and the difference is the whole point of the panel. */
+  'applicant.read.licenceNo': 'Licence no.',
+  'applicant.read.class': 'Class',
+  'applicant.read.expiry': 'Expiry',
+  'applicant.read.issuingCity': 'Issuing city',
+  'applicant.read.nameOnDocument': 'Name on document',
+  'applicant.read.idNo': 'ID number',
+  'applicant.read.dateOfBirth': 'Date of birth',
+  'applicant.read.nationality': 'Nationality',
+  'applicant.read.plate': 'Plate',
+  'applicant.read.vehicle': 'Vehicle',
+  'applicant.read.keeper': 'Registered keeper',
+
+  /* The signals block — what the application arrived from. */
+  'applicant.signal.device': 'Device {device} also used by another application.',
+  'applicant.signal.address': 'Address in {address} is shared with an active captain.',
+  'applicant.signal.ip': 'IP location {location} — consistent with the operating city.',
+  'applicant.signal.ipMismatch': 'IP location {location} does not match the operating city.',
+  'applicant.signal.none': 'Nothing on this application looks unusual.',
 }

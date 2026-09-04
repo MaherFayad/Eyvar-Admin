@@ -107,7 +107,7 @@ export function TripStages({ telemetry, t, language, layout = 'rail' }: TripStag
         <span
           className={cn(
             'text-2xs font-medium tabular-nums',
-            lost > 0 ? 'text-tone-warning-fg' : 'text-muted-foreground',
+            lost > 0 ? 'text-warning-foreground' : 'text-muted-foreground',
           )}
         >
           <bdi>
@@ -213,7 +213,7 @@ function StageRow({
         {!last && (
           <span
             className={cn(
-              costly ? 'bg-tone-warning-graphic' : done ? 'bg-chart-series' : 'bg-border',
+              costly ? 'bg-warning-graphic' : done ? 'bg-chart-series' : 'bg-border',
               layout === 'row' ? 'h-px flex-1' : 'w-px flex-1',
             )}
           />
@@ -237,7 +237,7 @@ function StageRow({
         <span className="flex flex-wrap items-baseline gap-x-2 text-2xs tabular-nums">
           <bdi className={done ? 'text-muted-foreground' : 'text-muted-foreground'}>{time}</bdi>
           {delta !== null && (
-            <bdi className={costly ? 'text-tone-warning-fg' : 'text-muted-foreground'}>
+            <bdi className={costly ? 'text-warning-foreground' : 'text-muted-foreground'}>
               {delta}
             </bdi>
           )}
@@ -249,8 +249,18 @@ function StageRow({
 
 /**
  * One stage's mark. Three shapes for three states (§7.5) — a filled disc, a
- * half-filled disc for a stage that cost time, and a hollow ring for one that
- * has not happened.
+ * ringed disc for a stage that cost time, and a hollow ring for one that has
+ * not happened.
+ *
+ * **The costly mark was a half-filled disc and it did not read.** At 10px the
+ * fill was five pixels wide against a 1px border in the same amber, and it was
+ * indistinguishable from the hollow ring beside it — measured on the ride page,
+ * where `Captain accepted` and `Arrived at pickup` both looked like stages that
+ * had not happened. A ring of the ground colour inside a filled disc is the
+ * same three-way distinction at a size that survives.
+ *
+ * `aria-hidden` throughout: every row states its time and its cost in words,
+ * and the mark is the picture's key rather than a fact of its own.
  */
 function Mark({ done, costly }: { done: boolean; costly: boolean }) {
   if (!done) {
@@ -258,9 +268,7 @@ function Mark({ done, costly }: { done: boolean; costly: boolean }) {
   }
   if (costly) {
     return (
-      <span className="relative size-2.5 shrink-0 overflow-hidden rounded-full border border-tone-warning-graphic">
-        <span className="absolute inset-y-0 start-0 w-1/2 bg-tone-warning-graphic" />
-      </span>
+      <span className="size-2.5 shrink-0 rounded-full bg-warning-graphic ring-1 ring-card ring-inset" />
     )
   }
   return <span className="size-2.5 shrink-0 rounded-full bg-chart-series" />

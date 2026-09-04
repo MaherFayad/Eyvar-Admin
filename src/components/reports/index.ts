@@ -26,7 +26,14 @@ export { DistributionCard, type DistributionCardProps } from './DistributionCard
    in one hint, and two copies of that would drift. */
 export { InfoHint, hintLines, type InfoHintProps } from './InfoHint'
 export { LegalityOptions, type LegalityOptionsProps } from './LegalityOptions'
-export { PanelCard, panelTitle, type PanelCardProps } from './PanelCard'
+export {
+  PanelCard,
+  RelatedBoards,
+  panelTitle,
+  relatedBoards,
+  type PanelCardProps,
+  type RelatedBoard,
+} from './PanelCard'
 export { PanelChart, seriesOfPanel, type PanelChartProps } from './PanelChart'
 export { QueryPanel, type QueryPanelProps } from './QueryPanel'
 export { ResultCanvas, type CanvasStatus, type ResultCanvasProps } from './ResultCanvas'
@@ -34,6 +41,7 @@ export { ResultTable, type ResultTableProps } from './ResultTable'
 export {
   SeriesChart,
   seriesColor,
+  seriesDash,
   seriesFill,
   type SeriesChartProps,
 } from './SeriesChart'

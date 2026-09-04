@@ -71,8 +71,15 @@ import type {
 } from '@/data/types'
 import { formatDate, type Language, type Translator } from '@/lib'
 import { DistributionCard } from './DistributionCard'
-import { PanelCard, PanelFrame, panelTitle } from './PanelCard'
-import { SeriesChart, seriesColor } from './SeriesChart'
+import {
+  PanelCard,
+  PanelFrame,
+  RelatedBoards,
+  panelTitle,
+  relatedBoards,
+  type RelatedBoard,
+} from './PanelCard'
+import { SeriesChart, seriesColor, seriesDash } from './SeriesChart'
 import { SeriesHeadlines } from './SeriesHeadlines'
 import { ResultTable } from './ResultTable'
 
@@ -571,6 +578,49 @@ function Body({
    * plot, exactly as they were: dropping them into the compound chart would
    * draw a redacted series as a flat line at zero, which is §13.1's silent
    * redaction wearing a nicer picture.
+   *
+   * ## AC-844 — a group that resolved to nothing says so, and this was a
+   * regression
+   *
+   * `PanelCard` carries the branch `!current || current.points.every(p => p ===
+   * null)` → `noDataSentence`, and the first version of this rewrite dropped it
+   * on the floor: replacing the per-panel `PanelCard` mapping with
+   * `SeriesHeadlines` + `SeriesChart` left neither of them with an all-null
+   * case. Measured on an absolute window outside every store's coverage, the
+   * builder rendered **an em dash and an empty plot** and said nothing about
+   * why — and `Body` is shared, so every dashboard tile did too.
+   *
+   * `result.panels.length === 0` was not the safety net it looked like: the
+   * runner emits a panel for every chosen measure whether or not the window
+   * holds a reading, so that branch is not the empty state an operator actually
+   * reaches.
+   *
+   * The check is **per axis group, not per series**, and that is the one place
+   * it differs from `PanelCard`. One empty series beside four full ones still
+   * draws the plot — its em dash is legible *because* the others give it a
+   * scale, which is the whole argument for putting them on one axis. It is only
+   * when nothing in the group carries a reading that the picture is empty and
+   * the sentence is the honest rendering of it.
+   *
+   * ## §P4's datapoint click-through is NOT here, and that is a ruling
+   *
+   * `PanelChart` lets a click on a plotted mark activate the anchor to the
+   * board that displays the measure. It is deliberately absent from the
+   * compound plot, because the question it answers has no single answer:
+   * **on a plot of six series, whose board does a click open?** The tooltip is
+   * axis-shared — it resolves from the pointer's x against the category axis,
+   * not from hovering one mark — so the datum under the cursor is *a bucket*,
+   * not *a series*, and there is nothing for the click to disambiguate on.
+   *
+   * §A12's strip below the plot is what replaces it: one anchor per board,
+   * deduplicated across the series, in the tab order, with a real destination
+   * in the status bar before the click. The affordance is kept; only the
+   * shortcut is gone. It survives untouched on dashboard tiles, on blocked legs
+   * and on failed legs, all of which still render a `PanelCard`.
+   *
+   * Named here rather than left silent so the next reader knows this was
+   * decided. Restoring it for the single-series case is defensible and is the
+   * open question; product-designer's ruling, not this file's.
    */
   const drawable = result.panels.filter((panel) => {
     const series = result.series.find((s) => s.panelId === panel.panelId && s.role === 'current')
@@ -620,6 +670,50 @@ function Body({
 
       {[...axisGroups.entries()].map(([key, group]) => {
         const titles = group.panels.map((panel) => panelTitle(panel, t).text)
+
+        /* **AC-844.** `0` inside coverage is a reading; `null` is a gap. A group
+           where every series is gaps end to end has no picture to draw, and an
+           em dash over an empty plot is not the same claim as *nothing was
+           found for this range*. See the header for the regression this is. */
+        const empty = !group.panels.some((panel) =>
+          result.series.some(
+            (series) =>
+              series.panelId === panel.panelId &&
+              series.role === 'current' &&
+              series.points.some((point) => point !== null && point !== undefined),
+          ),
+        )
+
+        /**
+         * **§A12's strip, deduplicated across the plot rather than repeated per
+         * series.**
+         *
+         * It used to hang off each `PanelCard`, which was right when a split
+         * by district drew six cards — six strips, six copies of the same
+         * board. One plot gets one strip, and a board named by two of its
+         * series appears once.
+         *
+         * `relatedBoards` resolves a measure's `displayedAsMetricKeys` against
+         * the real route table and drops anything that names no route, so this
+         * can never offer a destination that does not exist. An empty
+         * `displayedAsMetricKeys` **is a claim** (`measure.ts:281–291`) and the
+         * honest rendering of it is no strip, never a dead card.
+         *
+         * The builder only (`combinedTable`): a strip of navigation cards under
+         * every plot of a nine-tile board is links nobody asked for.
+         */
+        const boards: RelatedBoard[] = []
+        if (combinedTable) {
+          const seen = new Set<string>()
+          for (const panel of group.panels) {
+            for (const board of relatedBoards(measureOf(panel.panelId))) {
+              if (seen.has(board.subTabId)) continue
+              seen.add(board.subTabId)
+              boards.push(board)
+            }
+          }
+        }
+
         return (
           /* **P1-8 — one boundary per plot**, so one axis failing inside
              recharts does not take the other down with it. Carded, because the
@@ -627,6 +721,21 @@ function Body({
           <ErrorBoundary key={key} scope="card" t={t}>
             <PanelFrame framed={framed} className="w-full">
               <CardContent className="flex flex-col gap-3 px-3">
+                {empty ? (
+                  /* §3.7's sentence, the metric boards' own string, passed in
+                     so it stays byte-identical with every board. Framed like a
+                     panel, because a group that resolved to nothing is still
+                     one answer and draws one hairline. */
+                  <>
+                    <p className="text-sm font-medium text-foreground">
+                      <bdi>{titles.join(', ')}</bdi>
+                    </p>
+                    <p className="py-10 text-center text-sm text-muted-foreground">
+                      {noDataSentence}
+                    </p>
+                  </>
+                ) : (
+                <>
                 {/* **The planner refused the shape and drew another one, and
                     that is stated on the plot it changed.** It used to sit
                     inside each `PanelCard`; with one plot per axis it belongs
@@ -680,6 +789,9 @@ function Body({
                   }
                   t={t}
                 />
+                </>
+                )}
+                {boards.length > 0 && <RelatedBoards boards={boards} t={t} />}
               </CardContent>
             </PanelFrame>
           </ErrorBoundary>
@@ -726,7 +838,12 @@ function SeriesLegend({
     <ul role="list" className="flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1">
       {panels.map((panel, index) => (
         <li key={panel.panelId} className="flex min-w-0 items-center gap-1.5">
-          <Swatch color={seriesColor(colorIndexes[index] ?? index)} dashed={false} />
+          <Swatch
+            color={seriesColor(colorIndexes[index] ?? index)}
+            /* The legend's mark is the plot's mark, dot pattern included —
+               a legend that does not match its own line is worse than none. */
+            dash={seriesDash(colorIndexes[index] ?? index)}
+          />
           {/* A group value is user content and carries its own direction. */}
           <span className="min-w-0 truncate text-xs text-muted-foreground">
             <bdi>{titles[index] ?? ''}</bdi>
@@ -735,7 +852,7 @@ function SeriesLegend({
       ))}
       {hasComparison && (
         <li className="flex items-center gap-1.5">
-          <Swatch color="var(--chart-axis)" dashed />
+          <Swatch color="var(--chart-axis)" dash="4 3" />
           {/* Square brackets are bidi-neutral and would swap ends of an Arabic
               line unisolated, so the marker is its own isolated run. */}
           <span className="text-xs text-muted-foreground">
@@ -747,19 +864,19 @@ function SeriesLegend({
   )
 }
 
-/** The line swatch. The dash is the only difference between the two (§3.7). */
-function Swatch({ color, dashed }: { color: string; dashed: boolean }) {
+/**
+ * The line swatch, drawn with **the plot's own dash array** rather than a
+ * boolean — there are two different patterns in play and they mean different
+ * things: `4 3` is the previous period (§3.7), `1 3` is a series on the
+ * palette's second lap (`seriesDash`). A boolean could only carry one.
+ *
+ * SVG rather than a bordered element so the rhythm matches the plot exactly; a
+ * CSS dashed border and an SVG dash array do not produce the same pattern.
+ */
+function Swatch({ color, dash }: { color: string; dash?: string | undefined }) {
   return (
     <svg aria-hidden="true" width="14" height="8" viewBox="0 0 14 8" className="shrink-0">
-      <line
-        x1="0"
-        y1="4"
-        x2="14"
-        y2="4"
-        stroke={color}
-        strokeWidth="2"
-        strokeDasharray={dashed ? '4 3' : undefined}
-      />
+      <line x1="0" y1="4" x2="14" y2="4" stroke={color} strokeWidth="2" strokeDasharray={dash} />
     </svg>
   )
 }

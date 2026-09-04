@@ -78,14 +78,16 @@ export type TripStatus =
  * One hand-written row disagrees with legacy, with its own fare and with every
  * other row of its status.
  *
- * **Finding, not fixed here:** `TRP-7742.endedAt` should be
- * `2026-06-25T08:23:00+03:00` (`startedAt` + `durationMinutes` + the 8 minutes
- * of lateness). It is left alone because it is a trips fixture outside this
- * change and because `'route-history'` (`clients/trips.ts:113`) selects on
- * `endedAt !== null && distanceKm !== null` — this row satisfies the second
- * half, so setting the first moves what that view returns.
- * `management.performance.tripsCompleted` is **not** affected: it filters
- * `status === 'done'` (`clients/metrics.ts:126`).
+ * **Finding, and it is now FIXED.** `TRP-7742.endedAt` was `null` and is
+ * `2026-06-25T08:23:00+03:00` — `startedAt` + `durationMinutes` + the 8 minutes
+ * of lateness. It was left alone here because `'route-history'`
+ * (`clients/trips.ts:113`) selects on `endedAt !== null && distanceKm !== null`
+ * and this row satisfies the second half, so setting the first moves what that
+ * view returns. The ride record forced it: the stage log drew `Drop-off · Not
+ * yet` under a fare that had already been paid, which is a surface reproducing
+ * the contradiction rather than a fixture quietly holding one.
+ * `management.performance.tripsCompleted` is unaffected: it filters
+ * `status === 'done'` (`clients/metrics.ts:126`) and this row is `late`.
  *
  * ## Adopting this **changes what Dispatch shows** — that is a product call
  *

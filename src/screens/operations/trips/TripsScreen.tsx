@@ -62,13 +62,30 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
-import { flagTrip, listTrips, unflagTrip } from '@/data/clients'
+import { listTrips } from '@/data/clients'
 import type { Paginated, SubTabRoute, Trip, TripStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
 import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
-import { setRefusal, type SetRefusal } from '../bulkRefusal'
+/**
+ * **The two commands are declared in `components/actions/trip.ts`, not here.**
+ *
+ * They were here while this screen was their only caller. The ride sheet now
+ * offers the same two, and a command with two callers needs one declaration or
+ * the two surfaces disagree about who may run it — the same argument this file
+ * already made for the row menu and the bulk bar. `FlagTripModal` moved with
+ * them and is imported back, so nothing about how this screen renders it
+ * changed.
+ */
+import {
+  FlagTripModal,
+  FLAG_REASONS,
+  flagRefusal as flagRefusalFor,
+  runFlag as runFlagCommand,
+  runUnflag as runUnflagCommand,
+  unflagRefusal as unflagRefusalFor,
+} from '@/components/actions'
+import type { SetRefusal } from '../bulkRefusal'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
@@ -80,7 +97,7 @@ import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from '@/screens/
 import { EntityLink, useEntityLinks } from '../EntityLink'
 import { withFallback } from '../localCopy'
 import { TRIPS_EN } from './copy'
-import { FlagTripModal } from './FlagTripModal'
+
 
 /**
  * R7 tones, keyed on the **union** so a new status cannot silently fall through
@@ -100,14 +117,6 @@ const STATUS_TONE: Readonly<
   'no-show': 'neutral',
 }
 
-/** The five categories the flag form offers. Keys, never strings (AC-74). */
-const FLAG_REASONS: readonly string[] = [
-  'trips.reason.fareDispute',
-  'trips.reason.routeDeviation',
-  'trips.reason.speedViolation',
-  'trips.reason.safetyIncident',
-  'trips.reason.unusualPairing',
-]
 
 export function TripsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -248,32 +257,17 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
    */
   const roleReason = canWrite ? null : t('trips.action.noPermission')
 
+  /* The command context both predicates take, built once. */
+  const commands = useMemo(() => ({ roleReason, t, language }), [roleReason, t, language])
+
   const flagRefusal = useCallback(
-    (targets: readonly Trip[]): SetRefusal =>
-      setRefusal({
-        targets,
-        getId: (trip) => trip.id,
-        isBlocked: (trip) => trip.flagged,
-        roleReason,
-        blockedKeyPrefix: 'trips.action.flag.blocked',
-        t,
-        language,
-      }),
-    [roleReason, t, language],
+    (targets: readonly Trip[]): SetRefusal => flagRefusalFor(targets, commands),
+    [commands],
   )
 
   const unflagRefusal = useCallback(
-    (targets: readonly Trip[]): SetRefusal =>
-      setRefusal({
-        targets,
-        getId: (trip) => trip.id,
-        isBlocked: (trip) => !trip.flagged,
-        roleReason,
-        blockedKeyPrefix: 'trips.action.unflag.blocked',
-        t,
-        language,
-      }),
-    [roleReason, t, language],
+    (targets: readonly Trip[]): SetRefusal => unflagRefusalFor(targets, commands),
+    [commands],
   )
 
   /* ── the writes. Every bulk action reaches the data layer ────────────── */
@@ -286,37 +280,22 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
    */
   const runFlag = useCallback(
     async (trips: readonly Trip[], reason: string) => {
-      try {
-        const updated = await Promise.all(trips.map((trip) => flagTrip(trip.id, reason)))
-        record(updated)
-        table.clearSelection()
-        toast.success(
-          trips.length === 1
-            ? t('trips.toast.flagged.one')
-            : t('trips.toast.flagged.other', { count: formatCount(trips.length, language) }),
-        )
-      } catch (error: unknown) {
-        /* Re-thrown so `FlagTripModal` keeps itself open and states the refusal
-           beside the category that produced it (§11.2). */
-        throw error instanceof Error ? error : new Error(t('trips.error.flag'))
-      }
+      await runFlagCommand(trips, reason, { onRecord: record, t, language })
+      /* The selection is this screen's and not the command's — the sheet has
+         none to clear. */
+      table.clearSelection()
     },
     [record, table, t, language],
   )
 
   const runUnflag = useCallback(
     async (trips: readonly Trip[]) => {
-      try {
-        const updated = await Promise.all(trips.map((trip) => unflagTrip(trip.id)))
-        record(updated)
+      /* **Only on success.** `runUnflag` toasts its failure rather than
+         throwing, so the boolean is the only way to tell the two apart — and a
+         selection cleared after a refused write says twelve records changed
+         when none did. */
+      if (await runUnflagCommand(trips, { onRecord: record, t, language })) {
         table.clearSelection()
-        toast.success(
-          trips.length === 1
-            ? t('trips.toast.unflagged.one')
-            : t('trips.toast.unflagged.other', { count: formatCount(trips.length, language) }),
-        )
-      } catch {
-        toast.error(t('trips.error.unflag'))
       }
     },
     [record, table, t, language],

@@ -50,6 +50,18 @@ export interface MapViewport {
   /** Reset to the fit. */
   resetView: () => void
   /**
+   * **Did the last pointer sequence PAN the map?**
+   *
+   * A canvas that opens something on click has to tell a click from the end of
+   * a drag, and the browser cannot: a pan of two hundred pixels still fires
+   * `click` on pointer-up. The hook already tracks `moved` to do its own work,
+   * so it answers rather than making every caller re-measure the gesture.
+   *
+   * Reads the LAST completed sequence and stays true until the next
+   * pointer-down, because `click` fires after `pointerup`.
+   */
+  lastGestureMoved: () => boolean
+  /**
    * View units a floating panel of `px` CSS pixels covers — zero when the box
    * is too narrow for the panel to float, because below that breakpoint the
    * panel is stacked under the map and covers nothing.
@@ -167,11 +179,15 @@ export function useMapViewport(options: MapViewportOptions = {}): MapViewport {
      pointer move and nothing rendered depends on it except the cursor, which
      is a class the pointer handlers set directly. */
   const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null)
+  /* Survives the pointer-up that clears `drag`, because `click` fires after it
+     and is the event that has to know. */
+  const movedLast = useRef(false)
   const [panning, setPanning] = useState(false)
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     /* A marker is a real button and its click is not a drag. */
     if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return
+    movedLast.current = false
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false }
     event.currentTarget.setPointerCapture(event.pointerId)
     setPanning(true)
@@ -184,7 +200,10 @@ export function useMapViewport(options: MapViewportOptions = {}): MapViewport {
     if (!rect || rect.width === 0 || rect.height === 0) return
     const dx = ((event.clientX - held.x) / rect.width) * VIEW_W
     const dy = ((event.clientY - held.y) / rect.height) * viewH
-    if (Math.abs(dx) + Math.abs(dy) > 0.5) held.moved = true
+    if (Math.abs(dx) + Math.abs(dy) > 0.5) {
+      held.moved = true
+      movedLast.current = true
+    }
     held.x = event.clientX
     held.y = event.clientY
     setView((current) => clampView({ ...current, tx: current.tx + dx, ty: current.ty + dy }, viewH))
@@ -206,6 +225,7 @@ export function useMapViewport(options: MapViewportOptions = {}): MapViewport {
     canZoomIn: view.k < MAX_ZOOM,
     canZoomOut: view.k > 1,
     resetView,
+    lastGestureMoved: () => movedLast.current,
     reserveFor,
     surfaceProps: {
       onPointerDown,

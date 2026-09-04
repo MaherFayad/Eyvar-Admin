@@ -157,9 +157,18 @@ describe('an illegal question is never sent — by editing', () => {
     mockFailures.once(RUN)
 
     /* A funnel with no rungs is `funnel-needs-steps`. Reached through the
-       strip, which is the control an operator has. */
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.funnel') }))
+       `Chart type` menu, which is the control an operator has now: the
+       five-button mode strip was deleted and its five options are entries
+       there, each resolving to a `(mode, chartType)` pair. Same edit, same
+       refusal — only the click moved. */
+    await user.click(screen.getByRole('combobox', { name: copy('rb.viz.label') }))
+    await user.click(
+      await screen.findByRole('option', {
+        /* A prefix: an illegal option carries its refusal inside its own
+           accessible name (D9 CQ-3), and `name` takes no `exact` flag. */
+        name: (name: string) => name.startsWith(copy('rb.viz.funnel')),
+      }),
+    )
     await settle()
 
     expect(mockFailures.peek(RUN)).not.toBeNull()

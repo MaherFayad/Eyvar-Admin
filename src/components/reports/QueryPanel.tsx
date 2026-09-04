@@ -261,15 +261,23 @@ export function QueryPanel({
             </SelectContent>
           </Select>
         )}
-        <Reasons items={violationsFor('measures')} t={t} />
-        {/* R5-15 made visible at the point of choosing: the population of the
-            measure the operator has actually picked. */}
-        {first && <p className="text-xs text-muted-foreground">{t(first.population.predicateKey)}</p>}
       </div>
 
       {/* ── 2 · second measure ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-measure-2">{t('rb.control.measure2')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-measure-2">{t('rb.control.measure2')}</Label>
+          <InfoHint t={t}>
+            {hintLines([
+              unstarted
+                ? t('rb.control.disabled.unstarted')
+                : /* A refusal stated, not an empty menu. R4-1 §1.3's own
+                     sentence. */
+                  pairable.length === 0 && t('rb.control.measure2.empty'),
+              second && t(second.population.predicateKey),
+            ])}
+          </InfoHint>
+        </div>
         <Select
           value={query.measures[1]?.key ?? NONE}
           disabled={unstarted || pairable.length === 0}
@@ -283,18 +291,21 @@ export function QueryPanel({
             <MeasureItems measures={pairable} t={t} />
           </SelectContent>
         </Select>
-        {unstarted ? (
-          <p className="text-xs text-muted-foreground">{t('rb.control.disabled.unstarted')}</p>
-        ) : pairable.length === 0 ? (
-          /* A refusal stated, not an empty menu. R4-1 §1.3's own sentence. */
-          <p className="text-xs text-muted-foreground">{t('rb.control.measure2.empty')}</p>
-        ) : null}
-        {second && <p className="text-xs text-muted-foreground">{t(second.population.predicateKey)}</p>}
       </div>
 
       {/* ── 3 · split by ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-groupby">{t('rb.control.groupBy')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-groupby">{t('rb.control.groupBy')}</Label>
+          <InfoHint t={t}>
+            {hintLines([
+              unstarted
+                ? t('rb.control.disabled.unstarted')
+                : plan.legalDimensions.length === 0 && t('rb.control.groupBy.empty'),
+              ...reasonSentences(violationsFor('groupBy'), t),
+            ])}
+          </InfoHint>
+        </div>
         <Select
           value={query.groupBy ?? NONE}
           disabled={unstarted || plan.legalDimensions.length === 0}
@@ -315,17 +326,14 @@ export function QueryPanel({
             ))}
           </SelectContent>
         </Select>
-        {unstarted ? (
-          <p className="text-xs text-muted-foreground">{t('rb.control.disabled.unstarted')}</p>
-        ) : plan.legalDimensions.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t('rb.control.groupBy.empty')}</p>
-        ) : null}
+        {/* **Stays on the page, and is not a hint.** A live region reports what
+            AC-812 did behind the operator's back; an announcement they have to
+            open is not an announcement. */}
         {clearedSplit && (
           <p role="status" className="text-xs text-muted-foreground">
             {t('rb.control.groupBy.cleared', { measure: second ? t(second.labelKey) : '' })}
           </p>
         )}
-        <Reasons items={violationsFor('groupBy')} t={t} />
       </div>
 
       {/* ── 4 · filters ──────────────────────────────────────────────────── */}
@@ -445,7 +453,22 @@ function Filters({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="rb-filter-field">{t('rb.control.filters')}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor="rb-filter-field">{t('rb.control.filters')}</Label>
+        <InfoHint t={t}>
+          {hintLines([
+            unstarted
+              ? t('rb.control.filters.unstarted')
+              : legalFields.length === 0 &&
+                /* Two different facts: two measures that share no field, and
+                   one measure that has none. The split-by sentence used to
+                   stand in for both and was wrong about the second. */
+                (twoMeasures
+                  ? t('rb.control.filters.empty')
+                  : t('rb.control.filters.noneForMeasure')),
+          ])}
+        </InfoHint>
+      </div>
 
       {query.filters.length > 0 && (
         <ul className="flex list-none flex-wrap gap-1">
@@ -505,40 +528,27 @@ function Filters({
       <Button type="button" size="xs" variant="secondary" disabled={disabled || field === '' || value.trim() === ''} onClick={add}>
         {t('rb.control.filters.apply')}
       </Button>
-
-      {unstarted ? (
-        <p className="text-xs text-muted-foreground">{t('rb.control.filters.unstarted')}</p>
-      ) : legalFields.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {/* Two different facts: two measures that share no field, and one
-              measure that has none. The split-by sentence used to stand in for
-              both and was wrong about the second. */}
-          {twoMeasures ? t('rb.control.filters.empty') : t('rb.control.filters.noneForMeasure')}
-        </p>
-      ) : null}
     </div>
   )
 }
 
-/** A violation renders beside the control it names, in the layer's own words. */
-function Reasons({
-  items,
-  t,
-}: {
-  items: ReadonlyArray<{ code: string; reasonKey: string; reasonParams: Record<string, string | number> }>
-  t: Translator
-}) {
-  if (items.length === 0) return null
-  return (
-    <ul className="flex list-none flex-col gap-0.5">
-      {/* Two measures can carry the SAME violation code — an unresolved pair is
-          two `unknown-measure`s — so the key pairs the code with its position.
-          A code-only key silently drops the second sentence. */}
-      {items.map((item, index) => (
-        <li key={`${item.code}-${index}`} className="text-xs text-muted-foreground">
-          {t(item.reasonKey, item.reasonParams)}
-        </li>
-      ))}
-    </ul>
-  )
+/**
+ * A violation, as the sentence it names — for the hint on the control its
+ * `field` names.
+ *
+ * **It was a `<ul>` of `<li>`s under the control** and it is a list of strings
+ * now, because the sentences render inside a tooltip and `<ul>` is not phrasing
+ * content, so it cannot live inside the `<bdi>` that isolates them. Nothing
+ * else changed: same keys, same params, same order.
+ *
+ * **Two violations can carry the same code** — an unresolved pair is two
+ * `unknown-measure`s — so nothing here dedupes. `hintLines` keys by index for
+ * exactly that reason. (Contrast `LegalityOptions`, which dedupes on the
+ * resolved *sentence*: there, two options genuinely share one reason.)
+ */
+function reasonSentences(
+  items: ReadonlyArray<{ code: string; reasonKey: string; reasonParams: Record<string, string | number> }>,
+  t: Translator,
+): string[] {
+  return items.map((item) => t(item.reasonKey, item.reasonParams))
 }

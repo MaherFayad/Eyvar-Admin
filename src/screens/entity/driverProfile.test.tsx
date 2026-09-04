@@ -1022,7 +1022,7 @@ describe('the tab row', () => {
    * ledger AND the deduction list and their members overlap, so any single
    * number is a double count; `Identity` is a set of pairs, not records.
    */
-  it('carries a count on Documents and Activity, and on neither of the other two', async () => {
+  it('carries a count on Documents and on none of the other three', async () => {
     const compliance = await getDriverCompliance(AHMED)
     await renderPage()
     const [documents, earnings, activity, identity] = screen.getAllByRole('tab')
@@ -1032,9 +1032,11 @@ describe('the tab row', () => {
         `${en('profile.driver.tab.documents')}${compliance.docs.length}`,
       ),
     )
-    expect(activity?.textContent).toMatch(
-      new RegExp(`^${en('profile.driver.tab.activity')}\\d+$`),
-    )
+    /* **Activity lost its count with its list.** `counts.activity` is
+       `getDriverTimeline`'s server `total`; the owner removed the timeline from
+       both surfaces, so a number here would count something no operator can
+       see. `tabCounts` still derives it and nothing renders it. */
+    expect(activity?.textContent).toBe(en('profile.driver.tab.activity'))
     /* No chip, and no skeleton standing in for one. */
     expect(earnings?.textContent).toBe(en('profile.driver.tab.earnings'))
     expect(identity?.textContent).toBe(en('profile.section.identity'))
@@ -1294,16 +1296,15 @@ describe('the trips table', () => {
     expect(screen.queryByText(en('profile.field.lastTrip'))).toBeNull()
   })
 
-  it('gives the timeline a heading now that it shares its tab', async () => {
+  it('no longer renders the timeline, on the owner’s instruction', async () => {
     await renderPage(AHMED, { view: 'activity' })
-    /* §4B.8 — *no section repeats the tab's own name*. The timeline needed no
-       heading while it was the only list on the tab; two headless lists read as
-       one list that changed shape halfway down. `Activity history` is not
-       `Activity`, so the rule is applied rather than broken. */
-    expect(
-      screen.getByRole('heading', { name: en('entity.driver.timeline.title') }),
-    ).toBeTruthy()
-    expect(en('entity.driver.timeline.title')).not.toBe(en('profile.driver.tab.activity'))
+    await screen.findByRole('table')
+    /* Removed from the sheet first and then from here, so the two surfaces
+       still agree (§3). This asserts the HEADING is absent rather than the
+       events: a trip row's text is `Trip completed · {rider}`, and the trips
+       table on this same tab legitimately carries the same trips, so an
+       assertion on the events would pass or fail for the wrong reason. */
+    expect(screen.queryByRole('heading', { name: en('entity.driver.timeline.title') })).toBeNull()
   })
 
   it('leaves the profile’s address alone — no ?q= and no ?page=', async () => {

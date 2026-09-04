@@ -57,11 +57,14 @@
  *               text, so nothing here exists only as a picture.
  */
 
+import { useState } from 'react'
 import {
   Basemap,
   BasemapAttribution,
   fitProjection,
   locate,
+  MapDialog,
+  MapExpandButton,
   MapZoomControls,
   VIEW_W,
   useMapViewport,
@@ -90,6 +93,18 @@ export interface TripMapProps {
   telemetry: TripTelemetry | null
   /** Fitted height. The sheet gives it less than the page does. */
   height?: 'sheet' | 'page'
+  /**
+   * **`'expanded'` is this same component, inside `MapDialog`, drawing itself
+   * again at viewport size.**
+   *
+   * One prop rather than a render-prop or a second component: the expanded map
+   * has to be the same marks under the same projection, and a picture assembled
+   * twice is a picture that can drift. What the variant changes is the frame —
+   * it fills its container, drops the expand affordance it was opened by, and
+   * takes its own `useMapViewport`, so panning the big map does not move the
+   * small one behind it.
+   */
+  variant?: 'inline' | 'expanded'
   t: Translate
   language: Language
 }
@@ -158,9 +173,27 @@ function captainAt(
   }
 }
 
-export function TripMap({ trip, telemetry, height = 'sheet', t, language }: TripMapProps) {
-  const { boxRef, viewH, view, panning, zoomAt, canZoomIn, canZoomOut, surfaceProps } =
-    useMapViewport()
+export function TripMap({
+  trip,
+  telemetry,
+  height = 'sheet',
+  variant = 'inline',
+  t,
+  language,
+}: TripMapProps) {
+  const {
+    boxRef,
+    viewH,
+    view,
+    panning,
+    zoomAt,
+    canZoomIn,
+    canZoomOut,
+    surfaceProps,
+    lastGestureMoved,
+  } = useMapViewport()
+  const [expanded, setExpanded] = useState(false)
+  const isInline = variant === 'inline'
 
   const { from, to } = tripPoints(trip)
   const captain = captainAt(from, to, telemetry?.progress ?? null)
@@ -187,7 +220,18 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
   ].filter((place): place is string => place !== null)
 
   return (
-    <section aria-labelledby={`${describedBy}-heading`} className="flex flex-col">
+    <section
+      aria-labelledby={`${describedBy}-heading`}
+      /* **The section STRETCHES in both of the sizes that fill something.**
+         `page` is the ride page's canvas child and `expanded` is the dialog's
+         content row; in both the parent decides the box and the section has to
+         take all of it. Left to itself a `flex-col` section is as wide as its
+         widest child, which drew a 310px map in a 1,000px canvas. */
+      className={cn(
+        'flex flex-col',
+        (!isInline || height === 'page') && 'min-h-0 min-w-0 flex-1 self-stretch',
+      )}
+    >
       <h3 id={`${describedBy}-heading`} className="sr-only">
         {t('profile.trip.map.heading')}
       </h3>
@@ -198,13 +242,47 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
            chrome around it mirrors; the geography never does. */
         dir="ltr"
         {...surfaceProps}
+        /**
+         * **Click the map to open it — and a pan is not a click.**
+         *
+         * The browser fires `click` at the end of every drag, so a pan of two
+         * hundred pixels would open the dialog the operator was trying to avoid
+         * needing. `lastGestureMoved` is the hook's own answer to that; the
+         * second guard keeps the zoom buttons and the attribution link doing
+         * their own jobs.
+         *
+         * This is a MOUSE convenience. The keyboard's way in is
+         * `MapExpandButton`, which is a real button — see `MapDialog.tsx`.
+         */
+        onClick={
+          isInline
+            ? (event) => {
+                if (lastGestureMoved()) return
+                if ((event.target as HTMLElement).closest('button, a')) return
+                setExpanded(true)
+              }
+            : undefined
+        }
         className={cn(
           /* `touch-none` so a drag on a phone pans the map instead of scrolling
              the sheet out from under it; the two zoom buttons are the touch
              route in, because a pinch would fight the same gesture. */
-          'relative w-full touch-none overflow-hidden border-b border-border bg-muted select-none',
-          height === 'page' ? 'h-96' : 'h-56',
+          'relative w-full touch-none overflow-hidden bg-muted select-none',
+          isInline
+            ? cn(
+                'border-b border-border',
+                /* **`page` FILLS.** The ride page's canvas is a flex column and
+                   the map is its `flex-1` child, so a fixed height there would
+                   leave a strip of ground and a band of empty page under it —
+                   which is what `h-96` did. The floor is `DispatchMap`'s, for
+                   the one other surface whose subject is the ground. */
+                height === 'page' ? 'min-h-96 flex-1 self-stretch border-b-0' : 'h-56',
+              )
+            : /* Fills the dialog's content row rather than taking a height:
+                 the expanded map's size is the viewport's business. */
+              'h-full rounded-lg border border-border',
           view.k > 1 || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default',
+          isInline && view.k === 1 && !panning && 'cursor-zoom-in',
         )}
       >
         <Basemap viewW={VIEW_W} viewH={viewH} projection={projection.params} />
@@ -300,7 +378,16 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
         {/* **The floating layer.** `pointer-events-none` throughout: nothing on
             it is interactive, and a transparent box over a map is a box the map
             cannot be dragged through. The zoom controls take their own events. */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-end gap-2 p-2">
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 flex flex-col justify-end gap-2 p-2',
+            /* **Shrink-wrapped when expanded.** In the 480px sheet a full-width card is
+             the whole measure and reads as a caption; stretched across a
+             1,500px dialog it is a banner with three words in it. `items-start`
+             lets the cards take their content's width instead. */
+          !isInline && 'items-start',
+          )}
+        >
           <div className="flex flex-col gap-1 rounded-lg border border-border bg-card/95 px-3 py-2">
             <Endpoint
               mark="pickup"
@@ -327,6 +414,13 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
           </div>
         </div>
 
+        {isInline && (
+          <MapExpandButton
+            label={t('profile.trip.map.expand')}
+            onClick={() => setExpanded(true)}
+          />
+        )}
+
         <MapZoomControls
           zoomAt={zoomAt}
           canZoomIn={canZoomIn}
@@ -340,7 +434,12 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
       {/* Under the map, not on it: the bottom edge is spent on the three marks,
           and a licence notice competing with them would be read as part of the
           ride. It is a real link either way — a licence a screen reader cannot
-          reach is not a licence notice. */}
+          reach is not a licence notice.
+
+          The expanded instance skips it: `MapDialog` states the caveat in its
+          own description line, and a second copy under a full-screen canvas
+          would be the same sentence twice. */}
+      {isInline && (
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-2xs text-muted-foreground">
         <span className="flex min-w-0 flex-col">
           {from && to ? (
@@ -359,6 +458,27 @@ export function TripMap({ trip, telemetry, height = 'sheet', t, language }: Trip
         </span>
         <BasemapAttribution />
       </div>
+      )}
+
+      {/* The same component, again, at viewport size. Mounted only while it is
+          open, so the expanded instance's viewport starts at the fit every
+          time rather than resuming a pan from an hour ago. */}
+      {isInline && expanded && (
+        <MapDialog
+          open
+          onOpenChange={setExpanded}
+          title={t('profile.trip.band.route', { pickup, destination })}
+          description={t('profile.trip.map.dialogNote')}
+        >
+          <TripMap
+            trip={trip}
+            telemetry={telemetry}
+            variant="expanded"
+            t={t}
+            language={language}
+          />
+        </MapDialog>
+      )}
     </section>
   )
 }
@@ -389,13 +509,13 @@ function Endpoint({
         className={cn(
           'size-2.5 shrink-0 border',
           mark === 'pickup' && 'rounded-full border-chart-series',
-          mark === 'captain' && 'rotate-45 border-tone-warning-graphic',
+          mark === 'captain' && 'rotate-45 border-warning-graphic',
           mark === 'destination' && 'border-foreground',
           placed &&
             (mark === 'pickup'
               ? 'bg-chart-series'
               : mark === 'captain'
-                ? 'bg-tone-warning-graphic'
+                ? 'bg-warning-graphic'
                 : 'bg-foreground'),
         )}
       />

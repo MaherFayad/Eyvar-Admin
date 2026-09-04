@@ -266,41 +266,66 @@ const SECTIONS: Record<ProfileEntityType, ProfileSectionKey[]> = {
  * ticket findable but not openable would replace legacy's "No record found" on
  * the search box with the same sentence one click later (§4.3.1).
  */
+/**
+ * **Case-insensitive on BOTH sides, and that is a bug fix.**
+ *
+ * `resolveLocally` uppercased the incoming id and then compared it to the
+ * fixture's id verbatim — which works only while every id is already upper
+ * case. `SUB-1052b` is not: its lowercase suffix marks it as the second cycle
+ * on one rider, and it is a real row the Subscriptions table renders and links
+ * to. The comparison could never match it, so `?entity=SUB-1052b` answered
+ * *"No record found"* about a record sitting in the list behind the overlay.
+ *
+ * The `plan` branch already compared `p.id.toUpperCase() === id` for the same
+ * reason one step further on — catalogue slugs are lower case — so this makes
+ * the rule uniform rather than introducing one.
+ */
+function matches(recordId: string, id: string): boolean {
+  return recordId.toUpperCase() === id
+}
+
 function resolveLocally(entityId: string): ProfileRef | null {
   const id = entityId.trim().toUpperCase()
 
-  const rider = riderFixtures.find((r) => r.id === id)
-  if (rider) return ref(id, 'rider', rider.name, rider.phone)
+  /* **Every branch returns the RECORD's own id, never the uppercased input.**
+     The two are the same for all but `SUB-1052b` and the plan slugs — and for
+     those the uppercased form is what every downstream client would then be
+     asked for. `useProfileRecord` calls `getSubscription(ref.entityId)`, so a
+     ref carrying `SUB-1052B` resolves and then 404s on its own record, which is
+     a worse failure than not resolving at all. */
 
-  const newRider = newRiderFixtures.find((r) => r.id === id)
-  if (newRider) return ref(id, 'new-rider', newRider.name, newRider.phone)
+  const rider = riderFixtures.find((r) => matches(r.id, id))
+  if (rider) return ref(rider.id, 'rider', rider.name, rider.phone)
 
-  const driver = allDriverFixtures.find((d) => d.id === id)
-  if (driver) return ref(id, 'driver', driver.name, driver.vehicle)
+  const newRider = newRiderFixtures.find((r) => matches(r.id, id))
+  if (newRider) return ref(newRider.id, 'new-rider', newRider.name, newRider.phone)
 
-  const applicant = applicantFixtures.find((a) => a.id === id)
-  if (applicant) return ref(id, 'applicant', applicant.name, applicant.vehicle)
+  const driver = allDriverFixtures.find((d) => matches(d.id, id))
+  if (driver) return ref(driver.id, 'driver', driver.name, driver.vehicle)
 
-  const trip = allTripFixtures.find((t) => t.id === id)
-  if (trip) return ref(id, 'trip', id, trip.route)
+  const applicant = applicantFixtures.find((a) => matches(a.id, id))
+  if (applicant) return ref(applicant.id, 'applicant', applicant.name, applicant.vehicle)
 
-  const sub = allSubscriptionFixtures.find((s) => s.id === id)
-  if (sub) return ref(id, 'subscription', id, sub.planName)
+  const trip = allTripFixtures.find((t) => matches(t.id, id))
+  if (trip) return ref(trip.id, 'trip', trip.id, trip.route)
 
-  const corp = corporateAccountFixtures.find((c) => c.id === id)
-  if (corp) return ref(id, 'corporate-account', corp.companyName, corp.contactName)
+  const sub = allSubscriptionFixtures.find((s) => matches(s.id, id))
+  if (sub) return ref(sub.id, 'subscription', sub.id, sub.planName)
 
-  const ticket = ticketFixtures.find((t) => t.id === id)
-  if (ticket) return ref(id, 'ticket', ticket.subject, ticket.entityName)
+  const corp = corporateAccountFixtures.find((c) => matches(c.id, id))
+  if (corp) return ref(corp.id, 'corporate-account', corp.companyName, corp.contactName)
+
+  const ticket = ticketFixtures.find((t) => matches(t.id, id))
+  if (ticket) return ref(ticket.id, 'ticket', ticket.subject, ticket.entityName)
 
   /* Both of these read real fixtures now. The subtitle is the person the record
      hangs off — a payment's payer, a complaint's captain — because that is what
      an operator recognises on a row whose title is an opaque id. */
-  const payment = paymentFixtures.find((p) => p.id === id)
-  if (payment) return ref(id, 'payment', id, payment.riderName ?? payment.captainName)
+  const payment = paymentFixtures.find((p) => matches(p.id, id))
+  if (payment) return ref(payment.id, 'payment', payment.id, payment.riderName ?? payment.captainName)
 
-  const complaint = complaintFixtures.find((c) => c.id === id)
-  if (complaint) return ref(id, 'complaint', id, complaint.driverName)
+  const complaint = complaintFixtures.find((c) => matches(c.id, id))
+  if (complaint) return ref(complaint.id, 'complaint', complaint.id, complaint.driverName)
 
   /**
    * `REQ-*` and `SREQ-*`. Both channels are one resource and one prefix space,
@@ -321,13 +346,13 @@ function resolveLocally(entityId: string): ProfileRef | null {
    * `requests.route` once the record lands. Both place names are still
    * searchable — see `searchEntities`.
    */
-  const request = allRequestFixtures.find((r) => r.id === id)
-  if (request) return ref(id, 'request', id, request.riderName)
+  const request = allRequestFixtures.find((r) => matches(r.id, id))
+  if (request) return ref(request.id, 'request', request.id, request.riderName)
 
   /* Plan ids are catalogue slugs (`weekly`), not prefixed keys, so the
      uppercase normalisation above does not apply to them. The ref carries the
      fixture's own id, because that is what every other client keys on. */
-  const plan = subscriptionPlanFixtures.find((p) => p.id.toUpperCase() === id)
+  const plan = subscriptionPlanFixtures.find((p) => matches(p.id, id))
   if (plan) return ref(plan.id, 'plan', plan.nameEn, null)
 
   return null

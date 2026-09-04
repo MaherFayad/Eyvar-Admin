@@ -126,7 +126,6 @@ export const REPORTS_AR: Dictionary = {
   /* الأرقام فوق الرسم. */
   'rb.headline.window': 'خلال {range}',
   'rb.headline.from': 'مقارنةً بـ {date}',
-  'rb.headline.noCompare': 'بلا مقارنة',
 
   'rb.hint.show': 'ما معنى هذا',
   'rb.preset.today': 'اليوم',

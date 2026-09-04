@@ -589,7 +589,16 @@ describe('what else references this captain', () => {
       lostAndFound: { total: 2, open: 2 },
       fairnessCases: { total: 6, open: 2 },
       tickets: { total: 0, open: 0 },
-      safetyIncidents: { total: 8, open: 1 },
+      /* **Nine, not eight, and the extra one is a fixture correction rather
+         than a new incident.** `INCIDENT_SUBJECTS` (`fixtures/safety.ts`)
+         projects every FINISHED trip with a captain, and `TRP-7742.endedAt` was
+         `null` on a trip that carries a distance, a duration, a fare and a
+         settled payment — a fixture bug `types/trip.ts` had already diagnosed
+         and which the ride record forced (the stage log drew `Drop-off · Not
+         yet` under a fare that had been paid). Filling it in put that trip into
+         the subject pool, and one more filler incident landed on this captain.
+         The `open` count is unmoved: fillers are seeded closed. */
+      safetyIncidents: { total: 9, open: 1 },
       cashReports: { total: 6, open: 0 },
       deductions: { total: 7, open: 0 },
       computedAt: undefined,

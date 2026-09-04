@@ -1,11 +1,11 @@
 {
   "totals": {
-    "keys": 5455,
-    "en": 5184,
-    "ar": 5455,
+    "keys": 5553,
+    "en": 5282,
+    "ar": 5553,
     "arMissing": 0,
     "arExtra": 271,
-    "copyFiles": 35,
+    "copyFiles": 36,
     "unregisteredKeys": 167,
     "pluralForms": 53,
     "defaultValue": 0,
@@ -25,7 +25,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 566,
+      "keys": 565,
       "notInEN": 0
     },
     {
@@ -33,7 +33,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 263,
+      "keys": 329,
       "notInEN": 0
     },
     {
@@ -179,7 +179,7 @@
       "exports": [
         "TRIP_PROFILE_EN"
       ],
-      "keys": 82,
+      "keys": 86,
       "notInEN": 0
     },
     {
@@ -219,7 +219,7 @@
       "exports": [
         "REQUEST_PROFILE_EN"
       ],
-      "keys": 59,
+      "keys": 61,
       "notInEN": 0
     },
     {
@@ -260,6 +260,14 @@
         "RIDER_PROFILE_EN"
       ],
       "keys": 30,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/subscription/copy.ts",
+      "exports": [
+        "SUBSCRIPTION_PROFILE_EN"
+      ],
+      "keys": 27,
       "notInEN": 0
     },
     {

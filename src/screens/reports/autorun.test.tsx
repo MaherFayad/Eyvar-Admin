@@ -33,7 +33,7 @@
  * namespace, which passes vacuously on a negative assertion.
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -133,6 +133,39 @@ async function savedReports(): Promise<readonly SavedReport[]> {
 /** The freshness sentence, without its interpolated instant. Its presence is a run. */
 const AS_OF = (copy('rb.canvas.asOf').split('{')[0] as string).trim()
 
+/**
+ * **The toolbar's controls are menus now, not button strips.**
+ *
+ * The five-button mode strip and the four-button chart-type strip were one
+ * question asked twice, so they are one `Chart type` menu — and the grain and
+ * the quick-range strips went the same way, on the owner's *"1:1 with
+ * Amplitude"* ruling. These two helpers are the click sequence that replaces
+ * `click(getByRole('button', { name: 'Week' }))` throughout this file; the
+ * assertions around them are unchanged, which is the point: what the controls
+ * DO did not move, only what they look like.
+ */
+async function pick(
+  user: ReturnType<typeof userEvent.setup>,
+  control: string,
+  optionKey: string,
+) {
+  await user.click(screen.getByRole('combobox', { name: copy(control) }))
+  await user.click(
+    await screen.findByRole('option', {
+      /* A prefix: an illegal option carries its refusal inside its own
+         accessible name (D9 CQ-3), and `getByRole`'s `name` takes no
+         `exact` flag. */
+      name: (name: string) => name.startsWith(copy(optionKey)),
+    }),
+  )
+}
+
+const pickGrain = (user: ReturnType<typeof userEvent.setup>, grain: string) =>
+  pick(user, 'rb.control.grain', `rb.grain.${grain}`)
+
+const pickShape = (user: ReturnType<typeof userEvent.setup>, viz: string) =>
+  pick(user, 'rb.viz.label', `rb.viz.${viz}`)
+
 const tab = (view: 'reports' | 'dashboards' | 'alerts') =>
   screen.findByRole('tab', { name: copy(`rb.view.${view}`) })
 
@@ -225,7 +258,7 @@ describe('the owner’s second sentence — the report runs itself', () => {
     expect(await screen.findByText(AS_OF, { exact: false })).toBeInTheDocument()
 
     /* One click, on the grain — and nothing else. No `Refresh`. */
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
 
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
     /* And the answer on screen belongs to it: the address is amended by the
@@ -241,8 +274,7 @@ describe('the owner’s second sentence — the report runs itself', () => {
 
     /* A funnel with no rungs is `funnel-needs-steps`. The plan refuses it, so
        the debounce must too — the gate is the planner, not a timer. */
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.funnel') }))
+    await pickShape(user, 'funnel')
 
     expect(await screen.findByText(copy('rb.funnel.steps.unstarted'))).toBeInTheDocument()
     await new Promise((resolve) => setTimeout(resolve, AUTO_RUN_DEBOUNCE_MS * 3))
@@ -264,7 +296,7 @@ describe('the owner’s second sentence — the report runs itself', () => {
     const measure = copy('rb.measure.captains.registered')
     expect((await screen.findAllByText(measure)).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
 
     /* §8.3 state 2, and the reason auto-run does not blank the canvas: the
        panels stay, the sentence says they are the previous run's, and the
@@ -305,14 +337,18 @@ describe('history — an auto-run replaces, a deliberate act pushes', () => {
 
     /* Three edits — three auto-runs, and all three REPLACE. Pushing here would
        make `Back` walk the operator's own clicks. */
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
-    await user.click(screen.getByRole('button', { name: copy('rb.toolbar.range.last-7d') }))
+    /* The quick-range strip is gone — it duplicated four of the nine presets
+       the range popover already carries. The popover IS the range control now,
+       and this is the same edit through it. */
+    await user.click(screen.getByRole('button', { name: copy('rb.control.window') }))
+    await user.click(await screen.findByRole('button', { name: copy('rb.preset.last-7d') }))
     await waitFor(
       () => expect(questionInUrl()?.window).toEqual({ kind: 'preset', preset: 'last-7d' }),
       { timeout: SETTLE },
     )
-    await user.click(screen.getByRole('button', { name: copy('rb.chartType.bar') }))
+    await pickShape(user, 'bar')
     await waitFor(() => expect(questionInUrl()?.chartType).toBe('bar'), { timeout: SETTLE })
 
     await user.click(screen.getByRole('button', { name: 'history-back' }))
@@ -350,7 +386,7 @@ describe('history — an auto-run replaces, a deliberate act pushes', () => {
     renderAt([`${reportQueryPath(query)}&failSeries=riders.registered`])
     expect((await screen.findAllByText(copy('rb.panel.failed'))).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
 
     expect(rawParam('failSeries')).toBe('riders.registered')
@@ -366,11 +402,15 @@ describe('the lens never edits the question', () => {
     renderAt([reportQueryPath(query)])
     await screen.findByText(AS_OF, { exact: false })
 
-    await user.click(screen.getByRole('button', { name: copy('rb.chartType.bar') }))
+    await pickShape(user, 'bar')
     await waitFor(() => expect(questionInUrl()?.chartType).toBe('bar'), { timeout: SETTLE })
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
-    await user.click(screen.getByRole('button', { name: copy('rb.toolbar.range.last-7d') }))
+    /* The quick-range strip is gone — it duplicated four of the nine presets
+       the range popover already carries. The popover IS the range control now,
+       and this is the same edit through it. */
+    await user.click(screen.getByRole('button', { name: copy('rb.control.window') }))
+    await user.click(await screen.findByRole('button', { name: copy('rb.preset.last-7d') }))
     await waitFor(
       () => expect(questionInUrl()?.window).toEqual({ kind: 'preset', preset: 'last-7d' }),
       { timeout: SETTLE },
@@ -391,30 +431,29 @@ describe('the lens never edits the question', () => {
     await screen.findByText(AS_OF, { exact: false })
 
     /* A lens the operator picked, on purpose. */
-    await user.click(screen.getByRole('button', { name: copy('rb.grain.week') }))
+    await pickGrain(user, 'week')
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
 
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
     /* A funnel is bars at one total — `applyReportMode` decides both, and it
        must, or the operator's first sight of the mode is two violations they
        did not cause. */
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.funnel') }))
+    await pickShape(user, 'funnel')
     await screen.findByText(copy('rb.funnel.steps.unstarted'))
 
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.trend') }))
+    await pickShape(user, 'line')
 
     /* Back on the trend, wearing the lens they chose — not the funnel's. This
        used to come back as bars at `Total`, so the operator re-picked two
        controls they never changed. */
+    /* The trigger SHOWS the live value, which is what `aria-pressed` said on
+       the strip: the restored lens is read out, not merely coloured (§7.5). */
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: copy('rb.grain.week') })).toHaveAttribute(
-        'aria-pressed',
-        'true',
+      expect(screen.getByRole('combobox', { name: copy('rb.control.grain') })).toHaveTextContent(
+        copy('rb.grain.week'),
       ),
     )
-    expect(screen.getByRole('button', { name: copy(`rb.chartType.${query.chartType}`) })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    expect(screen.getByRole('combobox', { name: copy('rb.viz.label') })).toHaveTextContent(
+      copy(`rb.viz.${query.chartType}`),
     )
     /* And the question itself survived the round trip untouched. */
     await waitFor(() => expect(questionInUrl()?.measures).toEqual(query.measures), {

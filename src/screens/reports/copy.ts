@@ -259,7 +259,6 @@ export const REPORTS_EN: Dictionary = {
      (AC-896). */
   'rb.headline.window': 'over {range}',
   'rb.headline.from': 'from {date}',
-  'rb.headline.noCompare': 'no comparison',
 
   /* The `i` beside a label. One accessible name for every one of them, and it
      names the ACTION rather than the field — the field is already announced by

@@ -772,6 +772,16 @@ export function AppLayout() {
              disabled in place with its reason, not hidden and not offered. */
           canOpenCompliance={shell.permissions.permissions.includes(COMPLIANCE_VIEW_PERMISSION)}
           canOpenPayouts={shell.permissions.permissions.includes(PAYOUTS_VIEW_PERMISSION)}
+          /* **The two writes the record sheets now offer.** The owner asked for
+             the table's actions on the sheet the table opens, and each control
+             is gated on the same permission its queue gates on — `live_ops` for
+             a ride's flag, `manage_subscriptions` for a cycle's three commands.
+             Read here because this is where the session is; the layer takes
+             them as props so its suites can mount it without one. */
+          canFlagTrips={shell.permissions.permissions.includes('live_ops')}
+          canManageSubscriptions={shell.permissions.permissions.includes(
+            'manage_subscriptions',
+          )}
           /* **The address of another record, on this route.** The request sheet
              links to the rider waiting on the ride — the path from that queue
              to the person, which making the row open the RIDE would otherwise

@@ -19,7 +19,7 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 5,184 operator-facing strings
+ * **`ar` IS NO LONGER EMPTY.** The translation of 5,282 operator-facing strings
  * is done and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
@@ -171,6 +171,11 @@ import { ENTITY_DRIVER_EN } from '@/screens/entity/DriverCopy'
    families it reuses rather than restates, `requests.route` chief among them —
    that key carries the arrow, and the Arabic entry carries `←`. */
 import { REQUEST_PROFILE_EN } from '@/components/profile/request/copy'
+/* The 360° profile's SUBSCRIPTION presentation. Small on purpose: a commitment
+   sheet and a request sheet are the same shape, so it reuses the request's map
+   and panel vocabulary and mints only what a commitment alone has — its legs,
+   its cycle window, its escrow and the direction of the daily leg. */
+import { SUBSCRIPTION_PROFILE_EN } from '@/components/profile/subscription/copy'
 /* The 360° profile's TRIP presentation — the ride sheet a trips row opens, and
    the ride page behind `Open full record`. **One dictionary for both**, because
    they are two arrangements of one record; a second would be a second chance
@@ -1089,6 +1094,7 @@ export const EN: Dictionary = {
   ...DRIVER_PROFILE_EN,
   ...ENTITY_DRIVER_EN,
   ...REQUEST_PROFILE_EN,
+  ...SUBSCRIPTION_PROFILE_EN,
   ...TRIP_PROFILE_EN,
   ...FINANCIALS_EN,
   ...COMMUNICATIONS_EN,

@@ -131,6 +131,25 @@ const QUERIES: Record<ReportMode, ReportQuery> = {
 
 const MODES = Object.keys(QUERIES) as ReportMode[]
 
+/**
+ * **The five modes are entries in the one `Chart type` menu now**, not a
+ * five-button strip beside a four-button chart-type strip. Seven entries, each
+ * resolving to a `(mode, chartType)` pair — so a trend is reached by the chart
+ * type it is drawn as, and the four modes that fix their own shape are reached
+ * by their own name. `ReportMode` did not change and neither did the URL.
+ */
+const VIZ_OF: Record<ReportMode, string> = {
+  /* `trend` has three entries; the one this file's trend carries is `line`. */
+  trend: 'line',
+  table: 'table',
+  funnel: 'funnel',
+  cohort: 'cohort',
+  journey: 'journey',
+}
+
+/** The one control that says which of the five questions is on screen. */
+const shapeMenu = () => screen.findByRole('combobox', { name: copy('rb.viz.label') })
+
 /* ─────────── AC-853 / AC-854 / AC-855 — every mode is a link ───────────── */
 
 describe('AC-853, AC-855 — every one of the five modes survives the URL', () => {
@@ -141,15 +160,15 @@ describe('AC-853, AC-855 — every one of the five modes survives the URL', () =
        carried — the operator can see which of the five questions they are
        looking at, and change it.
 
-       Asserted through `aria-pressed`, not through text content: the strip
-       renders all five labels at once, so a `toHaveTextContent` check would
-       pass for every mode including the wrong one. */
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
+       **Asserted on the trigger's text, which is now the discriminating
+       observable.** It used to be `aria-pressed` on one of five always-rendered
+       buttons, because a text check would have matched all five. A closed menu
+       renders exactly one label — the live one — so reading it IS the check
+       `aria-pressed` used to be, and it is the same §7.5 promise: the selection
+       is read out, not merely coloured. */
+    const menu = await shapeMenu()
     await waitFor(() =>
-      expect(within(strip).getByRole('button', { name: copy(`rb.mode.${mode}`) })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      ),
+      expect(menu).toHaveTextContent(copy(`rb.viz.${VIZ_OF[mode]}`)),
     )
   })
 
@@ -248,15 +267,44 @@ describe('P7-T3 — the mode switcher does not compose an illegal query', () => 
     const user = userEvent.setup()
     renderAt(reportQueryPath(QUERIES.trend), <ReportsScreen />)
 
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.funnel') }))
+    /* Through the `Chart type` menu — the mode strip is deleted and its five
+       options live there. A mode entry is never disabled: *a mode is never
+       illegal, its configuration is*, and greying out `Funnel` would hide the
+       only control that could fix the funnel. */
+    await user.click(await shapeMenu())
+    await user.click(
+      await screen.findByRole('option', {
+        name: (name: string) => name.startsWith(copy('rb.viz.funnel')),
+      }),
+    )
 
     /* The funnel rail, with the reason the planner gives for an empty one —
        disabled in place with a sentence, never a blank panel (D9 CQ-3). */
     expect(await screen.findByText(copy('rb.funnel.steps.unstarted'))).toBeInTheDocument()
-    expect(
-      screen.getByText(/A funnel needs at least 2 steps/),
-    ).toBeInTheDocument()
+    /* **The sentence moved carriers, and the criterion did not.**
+
+       It used to print as a paragraph under the `Steps` group. The owner asked
+       for the rails to stop doing that — *"remove all those dumb overwhelming
+       descriptions you are adding everywhere and add i icon when hovered"* — so
+       every field group's reasons are now an `InfoHint` on its label row, and
+       a tooltip's content is not in the DOM until it opens.
+
+       What D9 CQ-3 actually requires is unchanged and is what is asserted:
+       the planner's own sentence, reachable, naming why the funnel is refused.
+       So the hint is opened and the sentence read out of it, rather than the
+       assertion being softened to something a blank panel would also pass. */
+    const hints = screen.getAllByRole('button', { name: copy('rb.hint.show') })
+    let reason: HTMLElement | null = null
+    for (const hint of hints) {
+      await user.hover(hint)
+      const tip = await screen.findByRole('tooltip')
+      if (/A funnel needs at least 2 steps/.test(tip.textContent ?? '')) {
+        reason = tip
+        break
+      }
+      await user.unhover(hint)
+    }
+    expect(reason, 'the planner’s refusal is reachable from the Steps group').not.toBeNull()
 
     /* §3.2 — the primary is off while the question carries a violation,
        rather than failing after submit. */

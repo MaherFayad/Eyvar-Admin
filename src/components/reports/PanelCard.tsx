@@ -681,7 +681,7 @@ export function relatedBoards(measure: Measure | null): RelatedBoard[] {
  * primitive's own ring, it opens in a new tab on the modifier every operator
  * already knows, and its destination is in the status bar before the click.
  */
-function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; t: Translator }) {
+export function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; t: Translator }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <p className="text-xs text-muted-foreground">{t('rb.related.heading')}</p>

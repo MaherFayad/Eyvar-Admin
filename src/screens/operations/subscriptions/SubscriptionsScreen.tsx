@@ -59,11 +59,10 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
-import { cancelSubscription, freezeSubscription, listSubscriptions } from '@/data/clients'
+import { listSubscriptions } from '@/data/clients'
 import type { Paginated, SubTabRoute, Subscription, SubscriptionStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, formatMoney } from '@/lib'
+import { formatCount, formatDate } from '@/lib'
 import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
@@ -71,32 +70,35 @@ import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
-import { useRouteState, withView } from '@/shell/routeState'
+import { useRouteState, withOverlay, withView } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, NumCell } from '@/screens/queues/cells'
-import { setRefusal, type SetRefusal } from '../bulkRefusal'
+import type { SetRefusal } from '../bulkRefusal'
 import { EntityLink, useEntityLinks } from '../EntityLink'
 import { withFallback } from '../localCopy'
 import { SUBSCRIPTIONS_EN } from './copy'
-import { ChangeDriverModal } from './ChangeDriverModal'
-import { FreezeModal } from './FreezeModal'
-import { CancelSettleModal } from './CancelSettleModal'
-import { SUBSCRIPTION_TONE, SubscriptionDetailDrawer } from './SubscriptionDetailDrawer'
-
-/** The five termination reasons the settle form offers, as copy KEYS. */
-const SETTLE_REASONS: readonly string[] = [
-  'subs.reason.noDriver',
-  'subs.reason.serviceFailure',
-  'subs.reason.relocated',
-  'subs.reason.vehicleBreakdown',
-  'subs.reason.riderViolation',
-]
-
-/** The statuses no write can act on. The client raises 409 on both. */
-const TERMINAL: readonly SubscriptionStatus[] = ['cancelled', 'expired']
-
-function isTerminal(sub: Subscription): boolean {
-  return TERMINAL.includes(sub.status)
-}
+/**
+ * **The three commands are declared in `components/actions/subscription.ts`,
+ * not here.**
+ *
+ * They were here while this screen was their only caller. The record sheet now
+ * offers the same three, and a command with two callers needs one declaration
+ * or the two surfaces disagree about who may run it — the same argument this
+ * file already made for the row menu and the bulk bar. The forms moved with
+ * them (they were always pure presentation) and are imported back, so nothing
+ * about how this screen renders them changed.
+ */
+import {
+  CancelSettleModal,
+  ChangeDriverModal,
+  FreezeModal,
+  SETTLE_REASONS,
+  cancelRefusal as cancelRefusalFor,
+  freezeRefusal as freezeRefusalFor,
+  reassignRefusal as reassignRefusalFor,
+  runCancel as runCancelCommand,
+  runFreeze as runFreezeCommand,
+} from '@/components/actions'
+import { SUBSCRIPTION_TONE } from './tone'
 
 export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -144,7 +146,6 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
    * record the server's and not the browser's.
    */
   const [overrides, setOverrides] = useState<ReadonlyMap<string, Subscription>>(() => new Map())
-  const [drawerId, setDrawerId] = useState<string | null>(null)
   const [reassigning, setReassigning] = useState<Subscription | null>(null)
   const [settling, setSettling] = useState<Subscription | null>(null)
   /** The subscriptions the freeze form is asking about — one, or the selection. */
@@ -187,79 +188,36 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
   /** D17 / D21 rule 5 — a permission refusal outranks every domain refusal. */
   const roleReason = canWrite ? null : t('subs.action.noPermission')
 
+  /* The command context every predicate takes, built once. */
+  const commands = useMemo(() => ({ roleReason, t, language }), [roleReason, t, language])
+
   const freezeRefusal = useCallback(
-    (targets: readonly Subscription[]): SetRefusal =>
-      setRefusal({
-        targets,
-        getId: (sub) => sub.id,
-        /* The client's own 409: `cancelled` and `expired` cannot be frozen. The
-           predicate is the client's contract restated, not a second policy. */
-        isBlocked: isTerminal,
-        roleReason,
-        blockedKeyPrefix: 'subs.action.freeze.blocked',
-        t,
-        language,
-      }),
-    [roleReason, t, language],
+    (targets: readonly Subscription[]): SetRefusal => freezeRefusalFor(targets, commands),
+    [commands],
   )
 
   const cancelRefusal = useCallback(
-    (targets: readonly Subscription[]): SetRefusal =>
-      setRefusal({
-        targets,
-        getId: (sub) => sub.id,
-        isBlocked: isTerminal,
-        roleReason,
-        blockedKeyPrefix: 'subs.action.cancel.blocked',
-        t,
-        language,
-      }),
-    [roleReason, t, language],
+    (targets: readonly Subscription[]): SetRefusal => cancelRefusalFor(targets, commands),
+    [commands],
   )
 
-  /**
-   * **The one refusal on this screen that is not about the record.**
-   * `Change captain` has no client operation behind it at all, so it is refused
-   * for every row and every role, and the sentence says which — *not connected
-   * yet*, rather than a permission or a status. §11.2: never hidden.
-   */
-  const reassignRefusal = roleReason ?? t('subs.action.changeDriver.unavailable')
+  const reassignRefusal = reassignRefusalFor(commands)
 
   /* ── the writes. Every bulk action reaches the data layer ────────────── */
 
   const runFreeze = useCallback(
     async (subs: readonly Subscription[], until: string) => {
-      const updated = await Promise.all(subs.map((sub) => freezeSubscription(sub.id, until)))
-      record(updated)
+      await runFreezeCommand(subs, until, { onRecord: record, t, language })
+      /* The selection is this screen's and not the command's — the sheet has
+         none to clear. */
       table.clearSelection()
-      toast(
-        subs.length === 1
-          ? t('subs.toast.frozen.one')
-          : t('subs.toast.frozen.other', { count: formatCount(subs.length, language) }),
-      )
     },
     [record, table, t, language],
   )
 
   const runCancel = useCallback(
     async (sub: Subscription, reason: string) => {
-      const updated = await cancelSubscription(sub.id, reason)
-      record([updated])
-      /**
-       * **The toast names the SERVER's refund, not the browser's estimate.**
-       * `cancelSubscription` computes the settlement and returns it on
-       * `refundedHalalas`; `CancelSettleModal` shows an estimate derived from
-       * unused trips, and the two can disagree. Quoting the response is the
-       * only figure this screen is entitled to assert.
-       */
-      toast(
-        t('subs.toast.cancelled', {
-          /* `formatMoney` deliberately takes NO language: §8.3.1 fixes `,`
-             thousands and `.` decimals, and AC-73 requires a money value to
-             read in the same character order in Arabic as in English. */
-          amount: formatMoney(updated.refundedHalalas ?? 0),
-        }),
-      )
+      await runCancelCommand(sub, reason, { onRecord: record, t, language })
     },
     [record, t, language],
   )
@@ -536,7 +494,18 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         label: t('subs.action.view'),
-        onSelect: (sub: Subscription) => setDrawerId(sub.id),
+        /* **The record sheet is the 360° layer, not a drawer this screen
+           owns.** It used to be `SubscriptionDetailDrawer`, a second record
+           surface built here — so a cycle opened from this table and the same
+           cycle opened from a rider's profile were two different sheets showing
+           two subsets of one record. `?entity=SUB-*` is the one address and
+           `components/profile/subscription` is the one arrangement behind it,
+           which is the move `TripsScreen` already made for the same reason. */
+        onSelect: (sub: Subscription) =>
+          navigate({
+            pathname: location.pathname,
+            search: withOverlay(location.search, 'entity', sub.id),
+          }),
         /* **P0-2 — the declared row-click target.** `Freeze`, `Change driver`
            and `Cancel` all mutate; none may carry this. */
         rowClick: true,
@@ -641,13 +610,6 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         }}
         noMatch={{ message: t('subs.empty.noMatch') }}
         error={{ message: t('subs.error.list'), onRetry: data.refetch }}
-      />
-
-      <SubscriptionDetailDrawer
-        subscriptionId={drawerId}
-        onClose={() => setDrawerId(null)}
-        language={language}
-        t={t}
       />
 
       <FreezeModal

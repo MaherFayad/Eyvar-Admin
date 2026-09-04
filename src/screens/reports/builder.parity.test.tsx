@@ -15,9 +15,14 @@
  *    `catch {}` that swallowed the failure would fail this test.
  * 3. **The table ships with the chart.** Both are asserted *in the same render*
  *    — a test that only looked for the table would pass on the old
- *    early-return, which is precisely the defect.
- * 4. **The five modes are reachable without opening a menu**, which is the one
- *    thing a `Select` could not offer.
+ *    early-return, which is precisely the defect. The chart half is now the
+ *    plot itself rather than the population sentence that used to stand in for
+ *    it; see the comment on that test for what moved.
+ * 4. **The five modes are one interaction away, and none of them is refused.**
+ *    G1 asked for all five visible without opening anything and the owner
+ *    overruled it — they are entries in the one `Chart type` menu now — so what
+ *    is asserted is what G1 was protecting: every mode discoverable, every mode
+ *    offerable, no mode disabled by its own configuration.
  *
  * Disciplines this file keeps, in common with `reports.test.tsx`:
  * **no fixture is imported** (queries are composed here), and **nothing spies
@@ -189,12 +194,20 @@ describe('the builder can hand someone the question it is showing', () => {
 /* ─────────────────── 2 — the table WITH the chart (G18) ─────────────────── */
 
 describe('a chart ships with its numbers', () => {
-  it('renders the panels and the table together for a line report', async () => {
+  it('renders the plot and the table together for a line report', async () => {
     renderAt(reportQueryPath(TREND))
 
-    /* The picture: the population sentence is rendered by `PanelCard` and by
-       nothing else, so its presence is the chart's presence. */
-    expect(await screen.findAllByText(copy('rb.pop.drivers.all'))).not.toHaveLength(0)
+    /* **The picture, asserted as the picture.** This used to look for the
+       population sentence, on the reasoning that `PanelCard` rendered it and
+       nothing else did — so its presence stood in for the chart's. Both halves
+       of that moved: the compound-plot rewrite took `PanelCard` off the canvas'
+       drawable path, and the population sentence became an `InfoHint` on the
+       measure's label row. The plot is now asserted directly, which is what the
+       test meant all along: the marks are inert, so the plot's accessible name
+       is what a reader is told is in it, and it names the measure asked for. */
+    const canvas = await screen.findByRole('region', { name: copy('rb.canvas.heading') })
+    const plot = await within(canvas).findByRole('img')
+    expect(plot).toHaveAccessibleName(copy('rb.measure.captains.registered'))
 
     /* The numbers, in the same render — under their own heading, so the table
        reads as a second view of this result rather than as another result. */
@@ -237,46 +250,65 @@ describe('the freshness sentence carries the way to act on it', () => {
   })
 })
 
-/* ─────────────────── 4 — the five modes as a strip (G1) ─────────────────── */
+/* ───────────── 4 — the five questions live in the shape menu ───────────── */
 
-describe('all five questions are visible without opening anything', () => {
-  it('offers every mode as a pressed-state button in one group', async () => {
-    const strip = await (async () => {
-      renderAt(reportQueryPath(TREND))
-      return screen.findByRole('group', { name: copy('rb.control.mode') })
-    })()
-
-    for (const mode of REPORT_MODES) {
-      expect(within(strip).getByRole('button', { name: copy(`rb.mode.${mode}`) })).toBeVisible()
-    }
-
-    /* The selection is announced, not merely coloured (§7.5). */
-    expect(
-      within(strip).getByRole('button', { name: copy('rb.mode.trend') }),
-    ).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      within(strip).getByRole('button', { name: copy('rb.mode.funnel') }),
-    ).toHaveAttribute('aria-pressed', 'false')
-
-    /* And there is no menu left to open for it. */
-    expect(screen.queryByLabelText(copy('rb.control.mode'))).not.toHaveAttribute('role', 'combobox')
-  })
-
-  it('switches the question on one click, hint and all', async () => {
+/**
+ * **G1 said "all five visible without opening anything" and the owner overruled
+ * it**: *"rather than funnel, or retention or journeys, make them chart types"*,
+ * because *"we don't have funnel or journey data here at all"* — so neither
+ * deserves a permanent tab beside the question that actually gets asked.
+ *
+ * What G1 was protecting is kept, and that is what these tests now hold: an
+ * operator who has never opened the menu must still be able to DISCOVER that a
+ * funnel, a retention matrix and a journey tree are on offer, and every one of
+ * them must still be one interaction away. The strip's other promise — that a
+ * mode is never disabled, because its *configuration* is what can be illegal
+ * and greying out `Funnel` would hide the only control that could fix it — is
+ * asserted here too.
+ */
+describe('all five questions are one menu away, and none of them is refused', () => {
+  it('offers every mode in the shape menu, alongside the chart types', async () => {
     const user = userEvent.setup()
     renderAt(reportQueryPath(TREND))
-    const strip = await screen.findByRole('group', { name: copy('rb.control.mode') })
+    const menu = await screen.findByRole('combobox', { name: copy('rb.viz.label') })
 
-    expect(screen.getByText(copy('rb.mode.trend.hint'))).toBeInTheDocument()
+    /* The trigger shows the live shape, which is the strip's `aria-pressed`
+       promise in a menu's own vocabulary: the selection is READ OUT, not merely
+       coloured (§7.5). */
+    expect(menu).toHaveTextContent(copy('rb.viz.line'))
 
-    await user.click(within(strip).getByRole('button', { name: copy('rb.mode.cohort') }))
+    await user.click(menu)
+    for (const mode of REPORT_MODES) {
+      const option = await screen.findByRole('option', {
+        name: (name: string) => name.startsWith(copy(`rb.viz.${mode === 'trend' ? 'line' : mode}`)),
+      })
+      expect(option).toBeVisible()
+      /* **A mode is never illegal — its configuration is.** Disabling
+         `Funnel` because no rungs are chosen would hide the only control that
+         can choose them. */
+      if (mode !== 'trend') expect(option).not.toHaveAttribute('aria-disabled', 'true')
+    }
+  })
 
-    expect(await screen.findByText(copy('rb.mode.cohort.hint'))).toBeInTheDocument()
-    expect(screen.queryByText(copy('rb.mode.trend.hint'))).not.toBeInTheDocument()
+  it('switches the question on one pick, and the trigger says which', async () => {
+    const user = userEvent.setup()
+    renderAt(reportQueryPath(TREND))
+    const menu = await screen.findByRole('combobox', { name: copy('rb.viz.label') })
+
+    await user.click(menu)
+    await user.click(
+      await screen.findByRole('option', {
+        name: (name: string) => name.startsWith(copy('rb.viz.cohort')),
+      }),
+    )
+
+    /* The retention rail replaced the trend rail — the mode really changed,
+       rather than only the label on the trigger. */
+    expect(await screen.findByLabelText(copy('rb.cohort.anchor'))).toBeInTheDocument()
     await waitFor(() =>
-      expect(
-        within(strip).getByRole('button', { name: copy('rb.mode.cohort') }),
-      ).toHaveAttribute('aria-pressed', 'true'),
+      expect(screen.getByRole('combobox', { name: copy('rb.viz.label') })).toHaveTextContent(
+        copy('rb.viz.cohort'),
+      ),
     )
   })
 })

@@ -29,6 +29,15 @@ export type SubscriptionStatus = 'active' | 'expiring' | 'at-risk' | 'frozen' | 
 /** Legacy `DB.plans` keys (`:2890`). The plan catalogue, not free text. */
 export type PlanKey = 'weekly' | 'biweekly' | 'monthly'
 
+/**
+ * A daily leg out, or out and back.
+ *
+ * Two members and no `flexible`: every plan in the catalogue is sold as a fixed
+ * commute, and a third member would be a product decision this file does not
+ * get to make on its own. If one arrives it is additive.
+ */
+export type SubscriptionTripKind = 'one-way' | 'round-trip'
+
 export interface Subscription {
   id: string
   riderId: string
@@ -42,6 +51,41 @@ export interface Subscription {
   /** `'Weekly Economy'` — the display name legacy stores in `plan` (`:2687`). */
   planName: string
   vehicleClass: VehicleClass
+
+  /* ── the commitment's route ─────────────────────────────────────────── */
+  /**
+   * **Where the ride goes, every day of the subscription.**
+   *
+   * A subscription is not one journey and it is not a journeyless commitment
+   * either: it is **one route, repeated** — a commute — and the route is the
+   * thing the rider actually bought. `RideRequest` has carried `pickup` and
+   * `destination` since wave 1 and the subscription created from one dropped
+   * them on the floor, so a plan an operator was asked about could be read for
+   * its price, its legs and its captain but not for **where it goes**.
+   *
+   * That was a modelling gap rather than a display one, which is why it is
+   * fixed here and not papered over in a component: the subscription sheet
+   * draws the same map the request sheet draws, and it draws it from these two
+   * fields rather than from a scan of the trips — most cycles have no leg
+   * recorded yet, and a record whose own route depends on rows that may not
+   * exist is a record that cannot answer for itself.
+   *
+   * Always set. A cycle exists because a request named these two places, and
+   * `assignedSubscriptionId` is the link that carried them across.
+   */
+  pickup: string
+  destination: string
+  /**
+   * Whether the daily leg comes back.
+   *
+   * `round-trip` is two legs a day against the same pair of places — the
+   * commute out and the commute home — and it is the difference between five
+   * legs a week and ten. It is a field rather than something inferred from
+   * `tripsIncluded / durationDays`, because that ratio is also moved by a plan
+   * changing its allowance, and two facts sharing one derivation is how they
+   * start disagreeing.
+   */
+  tripKind: SubscriptionTripKind
 
   /** Legacy `started: '19 Jun'` / `ends: '26 Jun'` — day-and-month, no year. */
   startedOn: IsoDate

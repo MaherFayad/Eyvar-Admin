@@ -39,6 +39,9 @@ export const REQUEST_PROFILE_AR: Dictionary = {
   'profile.request.map.straightLine': '{distance} كم مسافة بخط مستقيم',
   'profile.request.map.unplaced': 'تعذّر تحديد موقع {place} على الخريطة.',
   'profile.request.map.none': 'لا تعرف الخريطة أيًّا من طرفَي هذه الرحلة.',
+  'profile.request.map.expand': 'فتح الخريطة',
+  'profile.request.map.dialogNote':
+    'نقطتا الالتقاط والوصول موضوعتان على مستوى الحي، والخط بينهما وصلة مستقيمة وليس الطريق الذي سُلك.',
   'profile.request.map.zoom.in': 'تكبير',
   'profile.request.map.zoom.out': 'تصغير',
 

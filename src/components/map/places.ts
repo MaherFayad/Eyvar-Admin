@@ -120,15 +120,32 @@ const PLACES: Readonly<Record<string, GeoPoint>> = {
  */
 function normalise(name: string): string {
   const withoutCity = name.split(',')[0] ?? name
-  return withoutCity
-    .trim()
-    .toLowerCase()
-    .replace(/\s+(district|dist\.?)$/u, '')
-    .replace(/\s+/gu, ' ')
+  return withoutCity.trim().toLowerCase().replace(/\s+/gu, ' ')
 }
 
-/** The point for a place name, or `null` when the gazetteer has no entry. */
+/** The same, with a trailing `District` or `Dist.` removed. */
+function withoutDistrict(name: string): string {
+  return name.replace(/\s+(district|dist\.?)$/u, '')
+}
+
+/**
+ * The point for a place name, or `null` when the gazetteer has no entry.
+ *
+ * **Two lookups, in this order, and the order is a bug fix.** The stripped form
+ * used to be the ONLY one tried, which made every key whose own name ends in
+ * *District* unreachable by its own name: `'King Abdullah Financial District'`
+ * normalised to `king abdullah financial`, the table held
+ * `king abdullah financial district`, and the two never met — so KAFD's own
+ * full name drew nothing and the caller printed *"could not be placed on the
+ * map"* about a place the gazetteer knew perfectly well.
+ *
+ * Trying the exact form first and the stripped form second keeps what the strip
+ * was for — `'Al Sahafa'`, `'Al Sahafa District'` and `'Al Sahafa District,
+ * Riyadh'` still collapse onto one entry — while letting a place whose name
+ * genuinely ends in the word resolve as itself.
+ */
 export function locate(name: string | null | undefined): GeoPoint | null {
   if (name === null || name === undefined || name === '') return null
-  return PLACES[normalise(name)] ?? null
+  const exact = normalise(name)
+  return PLACES[exact] ?? PLACES[withoutDistrict(exact)] ?? null
 }

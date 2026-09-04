@@ -107,19 +107,38 @@ export function tripFigures(
 
   const eta = telemetry.etaAt as IsoDateTime
   const elapsed = Math.max(0, minutesBetween(trip.startedAt, nowIso))
-  const remaining = Math.max(0, minutesBetween(nowIso, eta))
+  const toGo = minutesBetween(nowIso, eta)
   const projected = Math.max(0, minutesBetween(trip.startedAt, eta))
   const planned = telemetry.plannedDurationMinutes
 
+  figures.push({
+    label: t('profile.trip.fact.elapsed'),
+    value: t('profile.trip.fact.minutes', { minutes: formatCount(elapsed, language) }),
+  })
+
+  /**
+   * **A ride past its own ETA is OVERDUE, and the row says so.**
+   *
+   * It read `Remaining 0 min`, which is the arithmetic clamped and is a
+   * different claim from the truth: `0 min` says *about to arrive*, and this
+   * ride was due twenty minutes ago. It is also the one reading an operator
+   * watching a live board is looking for — a trip that has quietly run past its
+   * projection is exactly the row that needs somebody — so collapsing it into a
+   * zero hid the alarm inside the reassurance.
+   *
+   * R5a: `warning`, never red. A ride running over is not an incident.
+   */
   figures.push(
-    {
-      label: t('profile.trip.fact.elapsed'),
-      value: t('profile.trip.fact.minutes', { minutes: formatCount(elapsed, language) }),
-    },
-    {
-      label: t('profile.trip.fact.remaining'),
-      value: t('profile.trip.fact.minutes', { minutes: formatCount(remaining, language) }),
-    },
+    toGo >= 0
+      ? {
+          label: t('profile.trip.fact.remaining'),
+          value: t('profile.trip.fact.minutes', { minutes: formatCount(toGo, language) }),
+        }
+      : {
+          label: t('profile.trip.fact.overdueLabel'),
+          value: t('profile.trip.fact.overdue', { minutes: formatCount(-toGo, language) }),
+          tone: 'warning',
+        },
   )
 
   if (planned === null) {
@@ -168,7 +187,7 @@ export function TripFacts({
           <dd
             className={cn(
               'text-end font-medium tabular-nums',
-              figure.tone === 'warning' ? 'text-tone-warning-fg' : 'text-foreground',
+              figure.tone === 'warning' ? 'text-warning-foreground' : 'text-foreground',
             )}
           >
             <bdi>{figure.value}</bdi>

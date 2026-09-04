@@ -55,7 +55,7 @@ import type { AsyncResult } from '@/hooks'
 import type { IsoDateTime, ProfileRef, Trip } from '@/data/types'
 import { formatDate, type Direction, type Language, type Translator } from '@/lib'
 import { BoardBand } from '@/components/metrics'
-import { DetailPage } from '@/components/PageShell'
+import { MonitorShell } from '@/components/PageShell'
 import { ErrorState } from '@/components/ErrorState'
 import { StatusBadge } from '@/components/StatusBadge'
 import {
@@ -100,7 +100,7 @@ export function TripProfilePage({
   const reads = useTripReads(record, true)
   const telemetry = reads.telemetry.data ?? null
 
-  const rail = useMemo(
+  const aside = useMemo(
     () =>
       record === null
         ? []
@@ -129,12 +129,22 @@ export function TripProfilePage({
               t={t}
               language={language}
             />,
+            /* **The fare moved out of the canvas and into the rail**, because
+               the canvas is the map now. It is five lines and a sentence — the
+               shape a 340px column is for — and it keeps the sheet's own
+               arrangement, where the fare is a tab rather than a banner. */
+            <div
+              key="fare"
+              className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3"
+            >
+              <TripFare trip={record} paymentHref={hrefFor(record.paymentId)} t={t} />
+            </div>,
           ],
     [record, telemetry, nowIso, reads, hrefFor, t, language],
   )
 
   return (
-    <DetailPage
+    <MonitorShell
       header={
         <div className="flex flex-col gap-4 pb-5">
           <TripBandBlock
@@ -148,10 +158,10 @@ export function TripProfilePage({
           />
         </div>
       }
-      main={
+      canvas={
         record === null ? (
           /* The record is what every block is built from, so its failure is the
-             main column's. The band above still carries the id and the back
+             canvas's. The band above still carries the id and the back
              control. */
           <ErrorState
             scope="card"
@@ -159,9 +169,16 @@ export function TripProfilePage({
             action={{ label: t('profile.trip.state.retry'), onClick: trip.refetch }}
           />
         ) : (
-          <div className="flex flex-col gap-6">
-            {hasTripMap(record) && (
-              <div className="overflow-hidden rounded-xl border border-border">
+          /* A column with a declared floor, so the map has something to fill.
+             `min-h-152` is `DispatchMap`'s figure — the one other surface in the
+             product whose subject is the ground — and below the wide
+             breakpoint the map falls back to its own `min-h-96`. */
+          <div className="flex min-h-0 flex-col gap-4 wide:min-h-152">
+            {hasTripMap(record) ? (
+              /* **The map fills the canvas.** `flex-1` inside a column with a
+                 declared floor, which is `DispatchMap`'s own arrangement — the
+                 one other surface in the product whose subject IS the ground. */
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
                 <TripMap
                   trip={record}
                   telemetry={telemetry}
@@ -170,6 +187,14 @@ export function TripProfilePage({
                   language={language}
                 />
               </div>
+            ) : (
+              /* **R8 — a missing picture is NAMED, never a blank.** The
+                 gazetteer places ~30 Riyadh names and a ride between two it does
+                 not know has no map; saying so is the difference between a
+                 surface that is broken and one that is honest. */
+              <p className="rounded-xl border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
+                {t('profile.trip.map.none')}
+              </p>
             )}
 
             {record.stateDesynced && (
@@ -178,8 +203,10 @@ export function TripProfilePage({
               </p>
             )}
 
-            {/* The stage log's own four states, inside the block that renders
-                it — a failed read costs the rail and not the page. */}
+            {/* Docked under the canvas, across its whole measure — the stage log
+                is a timeline and a timeline wants width, which is the one thing
+                the 340px rail beside it has not got. Its own four states are
+                owned here, so a failed read costs the rail and not the page. */}
             {reads.telemetry.status === 'error' ? (
               <ErrorState
                 scope="card"
@@ -191,21 +218,22 @@ export function TripProfilePage({
               />
             ) : (
               telemetry !== null && (
-                <TripStages
-                  telemetry={telemetry}
-                  layout="row"
-                  t={t}
-                  language={language}
-                />
+                <div className="shrink-0 rounded-xl border border-border bg-card p-4">
+                  <TripStages
+                    telemetry={telemetry}
+                    layout="row"
+                    t={t}
+                    language={language}
+                  />
+                </div>
               )
             )}
-
-            <TripFare trip={record} paymentHref={hrefFor(record.paymentId)} t={t} />
           </div>
         )
       }
-      /* AC-34 — the array IS the restack order below `--ev-bp-wide`. */
-      rail={rail}
+      /* AC-34 — the array IS the restack order below `--ev-bp-wide`: the
+         figures first, then the two parties, then the money. */
+      aside={aside}
     />
   )
 }

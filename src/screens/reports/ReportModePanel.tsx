@@ -47,6 +47,28 @@
  * is two violations they did not cause — §3.2's rule is to validate by
  * disabling the primary, not by an error after the fact.
  *
+ * ## The field explanations moved behind an `i`
+ *
+ * Each of the three field sets carried a standing
+ * `<p className="text-xs text-muted-foreground">` under almost every control —
+ * what an anchor is, how far the horizon reaches, where a journey starts, how
+ * deep it follows, what a conversion window means — plus a `Reasons` list. Six
+ * paragraphs in a 288px column, on a rail an operator uses to *compose*, not to
+ * read. They are now `InfoHint`s on their controls' label rows: **same key,
+ * same words, different carrier**, and the row keeps its height.
+ *
+ * **Four kinds of sentence did not move**, and the line is *is this a
+ * description of a control, or is it standing in for one*:
+ *
+ * | Sentence | Why it stays |
+ * |---|---|
+ * | `rb.catalogue.empty` (panel level) | it is a **branch**, sibling to `LoadingSkeleton` and `ErrorState`. There is no control and no label row to hang a hint on |
+ * | `rb.funnel.steps.unstarted` | R8's second kind of empty, and it is the region's only content — a hint would leave a wordless box |
+ * | `rb.control.filters.noneForMeasure` in `StepFilters` | it renders **instead of** the field and value controls, not under them. Same reason |
+ * | `Reasons` for `grain` (panel level) | the grain is not a control on this rail; the sentence has no label row of its own |
+ *
+ * Every one of the four is raised in the handoff rather than settled here.
+ *
  * Rules applied
  *   §5.3        control order. AC-809's *nothing runs until `Run`* is
  *               superseded by the owner's own instruction; the builder's
@@ -84,7 +106,7 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { LegalityOptions } from '@/components/reports'
+import { InfoHint, LegalityOptions, hintLines } from '@/components/reports'
 import {
   MAX_COHORT_HORIZON,
   MAX_FUNNEL_STEPS,
@@ -345,7 +367,18 @@ function FunnelFields({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-funnel-add">{t('rb.funnel.steps')}</Label>
+        {/* The hint is a SIBLING of the `<Label>`, never a child: a `<button>`
+            inside a `<label>` joins the control's accessible name, and `Add a
+            step` would be called "Steps What this means". */}
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-funnel-add">{t('rb.funnel.steps')}</Label>
+          <InfoHint t={t}>
+            {hintLines([
+              steps.length >= MAX_FUNNEL_STEPS && t('rb.funnel.step.atMax', { max: MAX_FUNNEL_STEPS }),
+              ...reasonSentences(reasons, t),
+            ])}
+          </InfoHint>
+        </div>
 
         {steps.length === 0 ? (
           /* R8's second kind of empty, inside a control: the data exists and
@@ -423,16 +456,13 @@ function FunnelFields({
         >
           {t('rb.funnel.step.add')}
         </Button>
-        {steps.length >= MAX_FUNNEL_STEPS && (
-          <p className="text-xs text-muted-foreground">
-            {t('rb.funnel.step.atMax', { max: MAX_FUNNEL_STEPS })}
-          </p>
-        )}
-        <Reasons items={reasons} t={t} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-funnel-window">{t('rb.funnel.window')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-funnel-window">{t('rb.funnel.window')}</Label>
+          <InfoHint t={t}>{t('rb.funnel.window.explain')}</InfoHint>
+        </div>
         <Select
           value={spec.conversionWindowDays === null ? NONE : String(spec.conversionWindowDays)}
           onValueChange={(value) =>
@@ -459,7 +489,6 @@ function FunnelFields({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">{t('rb.funnel.window.explain')}</p>
       </div>
     </div>
   )
@@ -589,7 +618,12 @@ function CohortFields({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-cohort-anchor">{t('rb.cohort.anchor')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-cohort-anchor">{t('rb.cohort.anchor')}</Label>
+          <InfoHint t={t}>
+            {hintLines([t('rb.cohort.anchor.explain'), ...reasonSentences(reasons, t)])}
+          </InfoHint>
+        </div>
         <Select
           value={spec.anchorMeasureKey ?? ''}
           onValueChange={(key) => set({ anchorMeasureKey: key })}
@@ -601,8 +635,6 @@ function CohortFields({
             <MeasureItems measures={measures} t={t} />
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">{t('rb.cohort.anchor.explain')}</p>
-        <Reasons items={reasons} t={t} />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -641,7 +673,10 @@ function CohortFields({
       />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-cohort-horizon">{t('rb.cohort.horizon')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-cohort-horizon">{t('rb.cohort.horizon')}</Label>
+          <InfoHint t={t}>{t('rb.cohort.horizon.explain')}</InfoHint>
+        </div>
         <Select value={String(spec.horizon)} onValueChange={(v) => set({ horizon: Number(v) })}>
           <SelectTrigger id="rb-cohort-horizon" className="w-full">
             <SelectValue />
@@ -660,7 +695,6 @@ function CohortFields({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">{t('rb.cohort.horizon.explain')}</p>
       </div>
     </div>
   )
@@ -687,7 +721,12 @@ function JourneyFields({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-journey-root">{t('rb.journey.root')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-journey-root">{t('rb.journey.root')}</Label>
+          <InfoHint t={t}>
+            {hintLines([t('rb.journey.root.explain'), ...reasonSentences(reasons, t)])}
+          </InfoHint>
+        </div>
         <Select
           value={spec.rootMeasureKey ?? ''}
           onValueChange={(key) => set({ rootMeasureKey: key })}
@@ -699,12 +738,13 @@ function JourneyFields({
             <MeasureItems measures={measures} t={t} />
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">{t('rb.journey.root.explain')}</p>
-        <Reasons items={reasons} t={t} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-journey-depth">{t('rb.journey.depth')}</Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-journey-depth">{t('rb.journey.depth')}</Label>
+          <InfoHint t={t}>{t('rb.journey.depth.explain')}</InfoHint>
+        </div>
         <Select value={String(spec.depth)} onValueChange={(v) => set({ depth: Number(v) })}>
           <SelectTrigger id="rb-journey-depth" className="w-full">
             <SelectValue />
@@ -720,7 +760,6 @@ function JourneyFields({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">{t('rb.journey.depth.explain')}</p>
       </div>
     </div>
   )
@@ -753,6 +792,23 @@ function MeasureItems({ measures, t }: { measures: readonly Measure[]; t: Transl
 }
 
 /**
+ * The same sentences, as strings, for a hint.
+ *
+ * **A `<ul>` cannot live inside the `<bdi>` that isolates a hint's content** —
+ * `<ul>` is not phrasing content — so a control's violations reach `InfoHint`
+ * as a list of resolved sentences and `hintLines` stacks them. Nothing about
+ * the resolution changed: same keys, same `resolveReasonParams`, same order.
+ *
+ * **Nothing here dedupes.** Two violations can carry the same code with
+ * different params, and both are true. `LegalityOptions` dedupes because two
+ * *options* there genuinely share one reason and printed it twice; a violation
+ * list has no such pair.
+ */
+export function reasonSentences(items: readonly QueryViolation[], t: Translator): string[] {
+  return items.map((violation) => t(violation.reasonKey, resolveReasonParams(violation.reasonParams, t)))
+}
+
+/**
  * A violation, as the sentence it names — beside the control its `field` names.
  *
  * **The planner's `reasonParams` carry the machine's vocabulary** (`bar`,
@@ -760,6 +816,12 @@ function MeasureItems({ measures, t }: { measures: readonly Measure[]; t: Transl
  * display string and must not. Interpolating them raw produces *"bar is fixed
  * by funnel"*, which is two identifiers wearing a sentence and is untranslatable
  * besides. The screen owns the labels, so the screen maps them.
+ *
+ * **Still on the page for one caller only**: the `grain` violations at panel
+ * level. Every field-group list became an `InfoHint` on its label row, but the
+ * grain is not a control on this rail — the mode decided it and `ChartToolbar`
+ * shows it — so there is no label row to hang an icon off. Inventing one would
+ * be a design decision taken in a component; it is raised in the handoff.
  */
 export function Reasons({ items, t }: { items: readonly QueryViolation[]; t: Translator }) {
   if (items.length === 0) return null

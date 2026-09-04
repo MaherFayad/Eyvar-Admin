@@ -182,6 +182,23 @@ export function LegalityOptions<T extends string>({
 
   const reasons = [...bySentence.values()]
 
+  /**
+   * **A description must always have a target.**
+   *
+   * The per-option list is not rendered when the whole group is off, so an
+   * `aria-describedby` pointing into it would dangle in exactly the state where
+   * the operator most needs an answer. When the group is off the honest
+   * description is the group's own sentence, so every option points at that
+   * one; with no `disabledReason` there is nothing to point at and the
+   * attribute is dropped rather than left hanging.
+   */
+  const disabledReasonId = `${groupId}-off`
+  const describedByFor = (option: OptionLegality<T>) => {
+    if (option.legal) return undefined
+    if (disabled) return disabledReason ? disabledReasonId : undefined
+    return describedBy.get(option.value)
+  }
+
   return (
     <div className={cn('flex flex-col', hideLabel ? 'gap-0.5' : 'gap-1.5')}>
       {/* The label and its hint share one row — that is the whole point of the
@@ -215,7 +232,7 @@ export function LegalityOptions<T extends string>({
               variant={selected ? 'secondary' : 'ghost'}
               aria-pressed={selected}
               disabled={off}
-              aria-describedby={option.legal ? undefined : describedBy.get(option.value)}
+              aria-describedby={describedByFor(option)}
               onClick={() => onChange(option.value)}
             >
               {iconFor?.(option.value)}
@@ -228,7 +245,9 @@ export function LegalityOptions<T extends string>({
       {/* **Stays on the page.** The group is off entirely; there is no option
           to reach and no reason to make the operator find an icon first. */}
       {disabled && disabledReason ? (
-        <p className="text-xs text-muted-foreground">{disabledReason}</p>
+        <p id={disabledReasonId} className="text-xs text-muted-foreground">
+          {disabledReason}
+        </p>
       ) : null}
 
       {/* The `aria-describedby` targets, always mounted. A tooltip's content is

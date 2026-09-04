@@ -78,6 +78,8 @@ import { PeopleTable, type PeopleColumn } from './PeopleTable'
 import { DecisionBadge, OwnerChip, SlaCountdown } from './queue'
 import { useNowIso } from './useNowIso'
 import { useRowOverrides } from './useRowOverrides'
+import { ApplicationSheet } from './ApplicationSheet'
+import { approvalRefusal } from './documentReview'
 import { VIEW_CAPTAINS, type ViewChrome } from './views'
 
 /** The applicant detail route (`fixtures/routeTable.ts`, `APPLICANT_DETAIL`). */
@@ -148,6 +150,11 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
     team.data?.find((user) => user.id === id)?.name ?? id ?? ''
 
   const overrides = useRowOverrides<Applicant>()
+  /* The row the review sheet is open against, or `null`. It is a ROW and not an
+     id, because the sheet steps through the loaded queue and needs the record
+     it is stepping to — an id would mean a read per step for a row already in
+     hand. */
+  const [reviewing, setReviewing] = useState<Applicant | null>(null)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [busy, setBusy] = useState(false)
   const [rowErrors, setRowErrors] = useState<ReadonlyMap<string, RowError>>(() => new Map())
@@ -270,6 +277,7 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
     onTakeOver: askTakeOver,
     onApprove: (row) => void approve(row),
     onReject: askReject,
+    onReview: setReviewing,
   })
 
   return (
@@ -299,6 +307,23 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
           }}
         />
       )}
+
+      {/* **The review sheet.** It is not the 360° layer: this surface COMMITS
+          three things, and §6.2 gives that layer a plain link and no primary.
+          See `ApplicationSheet` for the whole argument. */}
+      <ApplicationSheet
+        applicant={reviewing}
+        queue={rows}
+        onSelect={setReviewing}
+        onClose={() => setReviewing(null)}
+        onUpdated={(next) => {
+          overrides.record(next)
+          setReviewing(next)
+        }}
+        canWrite={canWrite}
+        t={t}
+        language={language}
+      />
 
       <PeopleTable
         t={t}
@@ -374,6 +399,8 @@ export interface ColumnDeps {
   onTakeOver: (row: Applicant) => void
   onApprove: (row: Applicant) => void
   onReject: (row: Applicant) => void
+  /** Opens the review sheet against this row. See `ApplicationSheet`. */
+  onReview: (row: Applicant) => void
 }
 
 function isDecided(row: Applicant): boolean {
@@ -612,15 +639,32 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
         }
 
         const refusalId = `applicant-refusal-${row.id}`
+        /**
+         * **§11.2, and this row used to break it.**
+         *
+         * `Approve` was gated on the permission alone, while the server refuses
+         * on the DOCUMENTS — `approveApplicant` throws a 422 the moment one is
+         * unverified. So an operator with `approve_drivers` clicked, waited,
+         * and was told no, which is the systemic legacy defect this screen's own
+         * header describes. `approvalRefusal` is the one predicate all three
+         * surfaces render from, and it names the documents still open.
+         */
+        const approveRefusal = approvalRefusal(row, row.status, deps.canWrite, t)
         return (
           <span className="flex flex-col gap-1">
             <span className="flex items-center gap-1">
+              {/* **First, because it is the one that INFORMS the other two.**
+                  Approving from a table row is a decision taken without looking
+                  at a document; the sheet is where the file is. */}
+              <Button variant="secondary" size="xs" onClick={() => deps.onReview(row)}>
+                {t('people.queue.review')}
+              </Button>
               <Button
                 variant="secondary"
                 size="xs"
                 onClick={() => deps.onApprove(row)}
-                disabled={!deps.canWrite}
-                aria-describedby={deps.canWrite ? undefined : refusalId}
+                disabled={approveRefusal !== null}
+                aria-describedby={approveRefusal === null ? undefined : refusalId}
               >
                 {t('people.queue.approve')}
               </Button>
@@ -641,8 +685,8 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
                 by a screen reader as a label rather than a reason. One line for
                 both controls, because they are refused by the same permission and
                 saying it twice is noise. */}
-            {!deps.canWrite && (
-              <RefusalLine id={refusalId}>{t('people.action.noPermission')}</RefusalLine>
+            {approveRefusal !== null && (
+              <RefusalLine id={refusalId}>{approveRefusal}</RefusalLine>
             )}
           </span>
         )

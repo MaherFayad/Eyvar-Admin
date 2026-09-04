@@ -360,25 +360,45 @@ describe('one answer to "is this trip open"', () => {
     expect(wrong).toEqual([])
   })
 
-  it('names TRP-7742, the one finished trip with no end time, so the defect stays visible', () => {
+  it('gives every finished trip an end time — TRP-7742 included, which it was not', () => {
     /**
-     * **A known fixture defect, asserted so it cannot be quietly "fixed" or
-     * quietly forgotten**, in the style `denormalisation.test.ts` uses for its
-     * deliberate exceptions.
+     * **The tripwire fired, and this is what it fired for.**
+     *
+     * It used to assert the DEFECT: `TRP-7742` was the one `late` trip with
+     * `endedAt: null`, and the assertion existed so that setting it could not
+     * pass unnoticed — *"when someone sets it, this test fails and points at
+     * `types/trip.ts`"*. Somebody set it, deliberately, and the test now
+     * asserts the corrected state instead of the broken one.
      *
      * Legacy `DB.trips['TRP-7742']` (`:2677`) is `status:'Late +8'` with
      * `km:'11.0'`, `min:'30'`, `fare:'29.40'`, `driverEarn:'23.52'` and
-     * `pay:'PAY-5475'`. A measured, priced, paid-out, settled trip is finished.
-     * All sixteen filler `late` trips set `endedAt`; this one does not.
+     * `pay:'PAY-5475'`. A measured, priced, paid-out, settled trip is finished,
+     * and all sixteen filler `late` trips already said so.
      *
-     * When someone sets it, this test fails and points at `types/trip.ts` for
-     * the value and for what `'route-history'` does when it changes.
+     * What forced it was the ride record: the stage log drew `Drop-off · Not
+     * yet` under a fare of 29.40 that had already been paid, which is a surface
+     * reproducing a contradiction rather than a fixture quietly holding one.
+     *
+     * **Two things moved with it, both named rather than discovered later:**
+     * `'route-history'` (`clients/trips.ts`) selects on `endedAt !== null &&
+     * distanceKm !== null`, so this row is in that view now; and
+     * `INCIDENT_SUBJECTS` (`fixtures/safety.ts`) projects finished trips, so one
+     * more filler incident lands on `DRV-0103` — `drivers.test.ts` carries that
+     * count and says so.
      */
     const { allTripFixtures } = fixtures()
-    const ended = (status: string) =>
-      allTripFixtures.filter((t) => t.status === status && t.endedAt === null).map((t) => t.id)
-    expect(ended('late')).toEqual(['TRP-7742'])
+    const openEnded = allTripFixtures
+      .filter((t) => !isOpenTripStatus(t.status) && t.endedAt === null)
+      .map((t) => `${t.id} (${t.status}) has finished and has no end time`)
+    /* `cancelled` is the one terminal status that legitimately has none — a
+       ride cancelled before it started never ended. `TRP-9003` and `TRP-9105`
+       are those, and they are excluded by carrying no fare. */
+    expect(openEnded.filter((line) => !line.includes('(cancelled)'))).toEqual([])
+
     const row = allTripFixtures.find((t) => t.id === 'TRP-7742')!
+    expect(row.endedAt, 'startedAt + durationMinutes + the 8 minutes of lateness').toBe(
+      '2026-06-25T08:23:00+03:00',
+    )
     expect(row.fareHalalas, 'a trip with a fare and a settled payment has finished').toBeGreaterThan(0)
     expect(row.paymentId).toBe('PAY-5475')
   })

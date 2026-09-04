@@ -54,6 +54,12 @@ import {
   RiderSkeleton,
   useRiderReads,
 } from '@/components/profile/rider'
+import { SubscriptionActions, TripActions } from '@/components/actions'
+import {
+  SubscriptionBand,
+  SubscriptionProfile,
+  SubscriptionSkeleton,
+} from '@/components/profile/subscription'
 import {
   RequestBand,
   RequestFooter,
@@ -124,6 +130,27 @@ export interface ProfileLayerProps {
   canOpenCompliance?: boolean
   canOpenPayouts?: boolean
   /**
+   * **The two write permissions the sheets' own actions are gated on.**
+   *
+   * The owner asked for the table's actions to be present on the sheet the
+   * table opens, so the sheet now offers `Flag` / `Remove flag` on a ride and
+   * `Freeze` / `Cancel and settle` / `Change captain` on a subscription. Each
+   * is the same command the queue offers, through the same predicate in
+   * `components/actions` — and a predicate needs to know whether this operator
+   * may write.
+   *
+   * Props rather than a `useShell()` call here, for the reason every other
+   * capability on this component is a prop: the layer takes what it needs from
+   * the shell above it and stays renderable on its own, which is what lets its
+   * suites mount it without a provider.
+   *
+   * **They default to `false`, and the default is the safe one.** A missing
+   * permission renders each control disabled with its stated reason (§11.2),
+   * never enabled — so a caller that forgets them under-promises.
+   */
+  canFlagTrips?: boolean
+  canManageSubscriptions?: boolean
+  /**
    * **Where another record's overlay lives — supplied, never derived.**
    *
    * The request sheet links to the rider waiting on the ride, which needs the
@@ -170,6 +197,8 @@ export function ProfileLayer({
   language,
   canOpenCompliance = false,
   canOpenPayouts = false,
+  canFlagTrips = false,
+  canManageSubscriptions = false,
   entityHref,
 }: ProfileLayerProps) {
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(entityId, signal), {
@@ -242,6 +271,19 @@ export function ProfileLayer({
      difference the shape forces: a trip's other reads are keyed on ids that are
      ON the trip, so the hook takes the RECORD rather than the id and fires
      nothing until it lands. */
+  /**
+   * **The fourth own arrangement, and like a request it costs one read.**
+   *
+   * A cycle is a commute — the owner's ruling, and `types/subscription.ts`
+   * carries the route because of it — so it gets the same sheet a request and
+   * a ride get: the journey first, then the standing facts, then the panels.
+   * Every fact is a field on the record already fetched above, so there is no
+   * `useSubscriptionReads` and no second loading state.
+   */
+  const subscription =
+    record.data?.entityType === 'subscription' ? record.data.data : null
+  const isSubscription = ref?.entityType === 'subscription'
+
   const trip = record.data?.entityType === 'trip' ? record.data.data : null
   const isTrip = ref?.entityType === 'trip'
   const tripReads = useTripReads(isTrip ? trip : null, isTrip)
@@ -264,7 +306,7 @@ export function ProfileLayer({
      card stack. Named once so the three slots below cannot drift apart — the
      original defect in this file was a header and a body disagreeing about
      which kinds were special. */
-  const isOwnArrangement = isRider || isDriver || isTrip || isRequest
+  const isOwnArrangement = isRider || isDriver || isTrip || isRequest || isSubscription
 
   /**
    * **Every `?entity=` link this layer hands out, through one function.**
@@ -356,6 +398,8 @@ export function ProfileLayer({
           <RequestBand entity={ref} request={request} t={t} />
         ) : ref && isTrip ? (
           <TripBand entity={ref} trip={trip} t={t} language={language} />
+        ) : ref && isSubscription ? (
+          <SubscriptionBand entity={ref} subscription={subscription} t={t} />
         ) : undefined
       }
       t={t}
@@ -368,7 +412,43 @@ export function ProfileLayer({
         ) : isRequest ? (
           <RequestFooter onOpenFullProfile={() => onOpenFullProfile(ref.fullPagePath)} t={t} />
         ) : isTrip ? (
-          <TripFooter onOpenFullRecord={() => onOpenFullProfile(ref.fullPagePath)} t={t} />
+          /* **The ride's own two commands, on the sheet the trips table opens.**
+             `TripFooter` still renders the plain link while the RECORD is in
+             flight — an action bar with nothing to act on would offer two
+             controls disabled for a reason that is really *not loaded yet*,
+             which §11.2's "disabled in place with its reason" would make a
+             lie. */
+          trip === null ? (
+            <TripFooter onOpenFullRecord={() => onOpenFullProfile(ref.fullPagePath)} t={t} />
+          ) : (
+            <TripActions
+              trip={trip}
+              canWrite={canFlagTrips}
+              onOpenFullRecord={() => onOpenFullProfile(ref.fullPagePath)}
+              /* The record read owns the record; a write re-reads it here
+                 rather than this file holding a second copy of a `Trip`. */
+              onDone={record.refetch}
+              t={t}
+              language={language}
+            />
+          )
+        ) : isSubscription ? (
+          subscription === null ? (
+            <div className="flex shrink-0 items-center border-t border-border px-3 py-2">
+              <Button variant="link" onClick={() => onOpenFullProfile(ref.fullPagePath)}>
+                {t('shell.layer.openFullProfile')}
+              </Button>
+            </div>
+          ) : (
+            <SubscriptionActions
+              subscription={subscription}
+              canWrite={canManageSubscriptions}
+              onOpenFullRecord={() => onOpenFullProfile(ref.fullPagePath)}
+              onDone={record.refetch}
+              t={t}
+              language={language}
+            />
+          )
         ) : (
           /* §6.2 — a plain LINK at inline-start, and NO primary: this layer
              commits nothing, so §6.1's footer rule gives it no committing
@@ -507,7 +587,33 @@ export function ProfileLayer({
         </>
       )}
 
-      {/* §6.2's card stack, for the other eight kinds. The layer has no rail, so
+      {/* A commitment's own arrangement — the commute it repeats, then the
+          cycle's standing facts. Same four states as the three above, owned by
+          the record read for the same reason: there is nothing to arrange until
+          it lands. */}
+      {ref && isSubscription && (
+        <>
+          {record.status === 'loading' && <SubscriptionSkeleton />}
+          {record.status === 'error' && (
+            <ErrorState
+              scope="card"
+              message={t('profile.state.error', { section: t('profile.kind.subscription') })}
+              action={{ label: t('profile.state.retry'), onClick: record.refetch }}
+            />
+          )}
+          {subscription && (
+            <SubscriptionProfile
+              subscription={subscription}
+              riderHref={hrefFor(subscription.riderId)}
+              captainHref={hrefFor(subscription.driverId)}
+              t={t}
+              language={language}
+            />
+          )}
+        </>
+      )}
+
+      {/* §6.2's card stack, for the other seven kinds. The layer has no rail, so
           it omits nothing — the identity card is its first card. */}
       {ref && !isOwnArrangement && (
         <ProfileSections entity={ref} record={record} t={t} language={language} />

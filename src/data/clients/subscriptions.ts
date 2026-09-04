@@ -58,7 +58,17 @@ function endsWithinDays(endsOn: string, days: number, today: string = EYVAR_TODA
 }
 
 const subscriptionShape: QueryShape<Subscription> = {
-  searchable: [(s) => s.id, (s) => s.riderName, (s) => s.driverName, (s) => s.planName],
+  /* The commute joins the free-text search for the same reason it joins the
+     filters: a subscription is a route repeated, and *"who commutes to KAFD"*
+     is the supply question this queue exists to answer. */
+  searchable: [
+    (s) => s.id,
+    (s) => s.riderName,
+    (s) => s.driverName,
+    (s) => s.planName,
+    (s) => s.pickup,
+    (s) => s.destination,
+  ],
   sortable: {
     endsOn: (s) => s.endsOn,
     startedOn: (s) => s.startedOn,
@@ -82,6 +92,11 @@ const subscriptionShape: QueryShape<Subscription> = {
     planKey: (r) => r.planKey,
     vehicleClass: (r) => r.vehicleClass,
     frozenUntil: (r) => r.frozenUntil,
+    /* The commute. Ordered by PICKUP, which is the half an operator groups by —
+       nine cycles out of Al Narjis are a supply commitment in Al Narjis. */
+    pickup: (r) => r.pickup,
+    destination: (r) => r.destination,
+    tripKind: (r) => r.tripKind,
     refundedHalalas: (r) => r.refundedHalalas,
   },
   filterable: {
@@ -96,6 +111,12 @@ const subscriptionShape: QueryShape<Subscription> = {
     status: (s) => s.status,
     planKey: (s) => s.planKey,
     vehicleClass: (s) => s.vehicleClass,
+    tripKind: (s) => s.tripKind,
+
+    /* the commute, as text — an operator hunting *"who commutes to KAFD"* is
+       asking a supply question and the queue is where they ask it */
+    pickup: (s) => s.pickup,
+    destination: (s) => s.destination,
 
     /* relations */
     riderId: (s) => s.riderId,
@@ -121,7 +142,7 @@ const subscriptionShape: QueryShape<Subscription> = {
     frozenUntil: (s) => toInstant(s.frozenUntil),
     cancelledAt: (s) => toInstant(s.cancelledAt),
   },
-  facetable: ['status', 'planKey', 'vehicleClass', 'planName'],
+  facetable: ['status', 'planKey', 'vehicleClass', 'planName', 'tripKind'],
   views: {
     all: () => true,
     active: (s) => s.status === 'active',

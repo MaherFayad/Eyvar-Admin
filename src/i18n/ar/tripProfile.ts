@@ -59,6 +59,9 @@ export const TRIP_PROFILE_AR: Dictionary = {
   'profile.trip.map.unplaced': 'تعذّر تحديد موقع {place} على الخريطة.',
   'profile.trip.map.none': 'لا تعرف الخريطة أيًّا من طرفَي هذه الرحلة.',
   'profile.trip.map.estimated': 'موقع الكابتن تقديري محسوب من الوقت المنقضي، وليس متتبَّعًا.',
+  'profile.trip.map.expand': 'فتح الخريطة',
+  'profile.trip.map.dialogNote':
+    'نقطتا الالتقاط والوصول موضوعتان على مستوى الحي، والخط بينهما وصلة مستقيمة وليس الطريق الذي سُلك.',
   'profile.trip.map.zoom.in': 'تكبير',
   'profile.trip.map.zoom.out': 'تصغير',
 
@@ -66,6 +69,8 @@ export const TRIP_PROFILE_AR: Dictionary = {
   'profile.trip.fact.distance': 'المسافة',
   'profile.trip.fact.elapsed': 'الوقت المنقضي',
   'profile.trip.fact.remaining': 'الوقت المتبقي',
+  'profile.trip.fact.overdueLabel': 'متأخرة',
+  'profile.trip.fact.overdue': 'بـ {minutes} دقيقة',
   'profile.trip.fact.plan': 'مقابل الخطة',
   'profile.trip.fact.duration': 'المدة',
   'profile.trip.fact.km': '{km} كم',

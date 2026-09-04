@@ -27,6 +27,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Economy',
     vehicleClass: 'Economy',
+    pickup: 'Al Narjis District',
+    destination: 'King Abdullah Financial District',
+    tripKind: 'round-trip',
     startedOn: '2026-06-19',
     /* Ends tomorrow. In the *Expiring ≤ 7 days* view by both the status **and**
        the date window — the one row where the two agree. */
@@ -57,6 +60,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'biweekly',
     planName: 'Bi-weekly Comfort',
     vehicleClass: 'Comfort',
+    pickup: 'Al Malaz',
+    destination: 'Olaya Towers',
+    tripKind: 'round-trip',
     startedOn: '2026-06-12',
     endsOn: '2026-06-26',
     frozenUntil: null,
@@ -79,6 +85,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'monthly',
     planName: 'Monthly Comfort',
     vehicleClass: 'Comfort',
+    pickup: 'Al Yasmin District',
+    destination: 'King Fahd Rd',
+    tripKind: 'one-way',
     startedOn: '2026-06-01',
     endsOn: '2026-06-30',
     frozenUntil: null,
@@ -104,6 +113,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Economy',
     vehicleClass: 'Economy',
+    pickup: 'Al Rabwah District',
+    destination: 'Riyadh Front',
+    tripKind: 'round-trip',
     startedOn: '2026-06-21',
     endsOn: '2026-06-28',
     frozenUntil: null,
@@ -127,6 +139,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Comfort',
     vehicleClass: 'Comfort',
+    pickup: 'Al Narjis District',
+    destination: 'King Abdullah Financial District',
+    tripKind: 'round-trip',
     startedOn: '2026-06-20',
     endsOn: '2026-06-27',
     frozenUntil: null,
@@ -150,6 +165,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Economy',
     vehicleClass: 'Economy',
+    pickup: 'Al Suwaidi',
+    destination: 'Kingdom Tower',
+    tripKind: 'one-way',
     startedOn: '2026-06-12',
     endsOn: '2026-06-19',
     frozenUntil: null,
@@ -173,6 +191,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Comfort',
     vehicleClass: 'Comfort',
+    pickup: 'Al Wurud District',
+    destination: 'King Saud University',
+    tripKind: 'round-trip',
     startedOn: '2026-06-11',
     endsOn: '2026-06-18',
     frozenUntil: null,
@@ -203,6 +224,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'monthly',
     planName: 'Monthly Economy',
     vehicleClass: 'Economy',
+    pickup: 'Qurtubah',
+    destination: 'Al Fanar Mall',
+    tripKind: 'one-way',
     startedOn: '2026-06-05',
     endsOn: '2026-07-05',
     frozenUntil: null,
@@ -227,6 +251,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'biweekly',
     planName: 'Bi-weekly Comfort',
     vehicleClass: 'Comfort',
+    pickup: 'Al Sahafa District',
+    destination: 'KAFD',
+    tripKind: 'round-trip',
     startedOn: '2026-06-14',
     endsOn: '2026-06-28',
     frozenUntil: '2026-07-05',
@@ -252,6 +279,9 @@ export const subscriptionFixtures: Subscription[] = [
     planKey: 'weekly',
     planName: 'Weekly Economy',
     vehicleClass: 'Economy',
+    pickup: 'Al Rabwah District',
+    destination: 'Princess Noura University',
+    tripKind: 'one-way',
     startedOn: '2026-06-01',
     endsOn: '2026-06-08',
     frozenUntil: null,
@@ -302,6 +332,36 @@ const FILLER_SUB_CAPTAINS = refsFor(driverFixtures, [
   'DRV-0106',
 ])
 
+/**
+ * The commutes the filler rows run.
+ *
+ * Every name is a `components/map/places.ts` entry, because a subscription's
+ * sheet draws its route and a row the gazetteer cannot place would show the
+ * *"neither end of this ride is a place the map knows"* branch on a record
+ * that has a perfectly good route. Two lists rather than one pair list, offset
+ * by a step, so the two ends cycle at different rates and 60 rows do not read
+ * as six routes repeated ten times.
+ */
+const FILLER_SUB_PICKUPS: readonly string[] = [
+  'Al Narjis District',
+  'Al Sahafa District',
+  'Al Malaz',
+  'Qurtubah',
+  'Al Yasmin District',
+  'Al Rabwah District',
+  'Al Wurud District',
+]
+const FILLER_SUB_DESTINATIONS: readonly string[] = [
+  'KAFD',
+  'Olaya Towers',
+  'King Saud University',
+  'Riyadh Front',
+  'Kingdom Tower',
+  'Princess Noura University',
+  'Granada Mall',
+  'Al Fanar Mall',
+]
+
 /** Volume for pagination — 60 rows, deterministic by index. */
 export const fillerSubscriptions: Subscription[] = Array.from({ length: 60 }, (_, i) => {
   const n = i + 1
@@ -320,6 +380,13 @@ export const fillerSubscriptions: Subscription[] = Array.from({ length: 60 }, (_
     planKey,
     planName: `${planKey === 'biweekly' ? 'Bi-weekly' : planKey === 'weekly' ? 'Weekly' : 'Monthly'} ${comfort ? 'Comfort' : 'Economy'}`,
     vehicleClass: comfort ? 'Comfort' : 'Economy',
+    /* The commute, cycled over pairs the gazetteer can place, so the sheet's
+       map draws a real route on every filler row rather than on some of them.
+       Round trips on two rows in three, which is the mix the named rows carry
+       and the reason `tripKind` is a field: it doubles the daily legs. */
+    pickup: cycle(FILLER_SUB_PICKUPS, i),
+    destination: cycle(FILLER_SUB_DESTINATIONS, i + 1),
+    tripKind: i % 3 === 0 ? 'one-way' : 'round-trip',
     startedOn: `2026-06-${String((i % 25) + 1).padStart(2, '0')}`,
     endsOn: `2026-07-${String((i % 27) + 1).padStart(2, '0')}`,
     frozenUntil: null,

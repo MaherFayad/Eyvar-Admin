@@ -1122,6 +1122,210 @@
      against the whole ladder at once, not two tokens at a time. */
   --ev-text-2-row-critical: #666d7a;
 
+  /* ══ THE CATEGORICAL SERIES RAMP. SIX STOPS, AND IT REVERSES A RULING. ═══
+     **THE AUTHORITY IS THE BUSINESS OWNER, 2026-09-04, IN TWO SENTENCES:**
+       "the priority is to make it the same as amplitude not to align with
+        design.md at the current moment"
+       "for charts I need ... compound charts that compare those data to each
+        other not every one in it's own chart"
+
+     A compound chart draws every series in ONE plot. Two series in one plot
+     that share a hue are not two series, so §3.7's single-hue line and the
+     compound chart cannot both stand. The owner chose the compound chart.
+     The ruling this overturns is stated at --chart-series in layer 2 and is
+     AMENDED there rather than deleted, so the next reader sees a rule that was
+     reversed on purpose instead of one somebody forgot.
+
+     **R7 IS NOT TOUCHED AND MUST NOT BE READ AS TOUCHED.** --chart-comparison
+     still differs from its series by DASH and never by hue, because a
+     comparison is the SAME series at another time; a categorical stop is a
+     DIFFERENT series. The two questions were always separate and only one of
+     them has been reopened.
+
+     ── HOW THE SIX WERE DERIVED, SO THE NEXT PERSON CAN REDO IT. ──────────
+     Hue families were CHOSEN (green, violet, ochre, plum, blue, cyan);
+     saturation and lightness were SOLVED, by coordinate ascent on the
+     objective below. Neither half is taste: a pure optimiser with the hues
+     free returns three blues and two greens, because the blue-violet region is
+     where a dichromat retains the most separation, and that is a palette no
+     legend can name.
+
+       objective   maximise the MINIMUM pairwise dE76, evaluated three times
+                   per pair — normal trichromat, deuteranope, protanope — and
+                   scored on the WORST of the three. Dichromacy simulated by
+                   Vienot-Brettel-Mollon 1999, the linear-RGB form.
+       constraint  >= 3:1 on the theme's --card (WCAG 1.4.11, non-text). The
+                   working floor is 3.4 so a stop is never one rounding step
+                   from failing.
+       constraint  <= 8.99:1, so no stop drifts into reading as --ev-ink.
+       constraint  Lab chroma >= 30 — no stop may be a grey, or it reads as the
+                   axis rather than as data.
+       constraint  dE76 >= 20 from --ev-red AND from --ev-amber, so no ordinary
+                   series can be misread as a breach or a warning. R5a spends
+                   red on five surfaces already and a sixth arriving through a
+                   chart would be a ruling, not a token.
+       dE76        the metric this file already uses (see --ev-brand-lt vs
+                   --ev-green-lt), kept for continuity rather than upgraded.
+
+     ── THE ORDER IS PART OF THE DERIVATION. §7.5. ─────────────────────────
+     Two series next to each other in a legend at 8px is the reading task, so
+     the ORDER was solved too — all 120 permutations with s1 pinned, ranked on
+     the worst ADJACENT pair. green -> violet -> ochre -> plum -> blue -> cyan
+     wins: every neighbouring pair clears **55.7** (light) / **57.2** (dark),
+     against a global worst pair of 25.6 / 29.1. The two closest pairs in the
+     set — violet|cyan and plum|cyan — are pushed to positions 2|6 and 4|6,
+     where they are never neighbours.
+
+     **NO RED/GREEN PAIR IS ADJACENT, AND THERE IS NO RED IN THE SET AT ALL.**
+     The warm slot is ochre (h 38), not vermillion; the magenta slot is plum
+     (h 313), not rose. That is the dE-20-from---ev-red constraint doing its
+     work, and it costs nothing: the green sits at position 1 and the nearest
+     warm stop at position 3.
+
+     ── LIGHT. Contrast on --card #ffffff, and the pairwise floor. ─────────
+       stop  role              hex       hsl                  contrast   L*
+       s1    green (brand)     #0c6944   156.1 / 80% / 23%     6.731    38.9
+       s2    violet            #6d3899   272.8 / 46% / 41%     7.848    34.8
+       s3    ochre             #b57d1c    38.0 / 73% / 41%     3.550    56.7
+       s4    plum              #742f65   313.0 / 42% / 32%     8.985    31.1
+       s5    blue              #2b4dd4   227.9 / 66% / 50%     6.742    38.9
+       s6    cyan              #1193b0   190.9 / 82% / 38%     3.606    56.2
+
+       worst-observer dE76      s1     s2     s3     s4     s5     s6
+                        s1       -   59.0   36.3   27.7   97.6   43.4
+                        s2    59.0      -  106.6   27.3   28.2   25.6
+                        s3    36.3  106.6      -   79.7  132.2   73.7
+                        s4    27.7   27.3   79.7      -   55.7   25.8
+                        s5    97.6   28.2  132.2   55.7      -   58.9
+                        s6    43.4   25.6   73.7   25.8   58.9      -
+
+     ── DARK. Derived AGAINST #1a1f26, not lifted from light. ──────────────
+     The same rule --ev-row-critical records: a dark surface gets its own
+     derivation. Hue FAMILY is carried across (every stop is within 6 deg of
+     its light twin) so series 2 is still "the violet one" after a theme
+     switch; saturation and lightness were re-solved against the dark card.
+
+       stop  hex       hsl                  on --card  on --ev-bg #14181e
+       s1    #4fb183   151.8 / 39% / 50%      6.269         6.741
+       s2    #9e73d3   266.9 / 52% / 64%      4.611         4.958
+       s3    #e2b03c    41.9 / 74% / 56%      8.289         8.912
+       s4    #a6598e   318.7 / 30% / 50%      3.503         3.766
+       s5    #4d6af4   229.6 / 88% / 63%      3.694         3.972
+       s6    #50d5e7   187.2 / 76% / 61%      9.474        10.188
+
+       worst-observer dE76      s1     s2     s3     s4     s5     s6
+                        s1       -   59.3   40.1   29.1   98.0   38.2
+                        s2    59.3      -  111.9   29.2   29.7   29.2
+                        s3    40.1  111.9      -   83.8  140.3   76.1
+                        s4    29.1   29.2   83.8      -   57.2   29.2
+                        s5    98.0   29.7  140.3   57.2      -   65.8
+                        s6    38.2   29.2   76.1   29.2   65.8      -
+
+     ── WHAT THE SET SITS NEAR, STATED RATHER THAN DISCOVERED LATER. ───────
+       light  s3 ochre  to --ev-amber #b45309   dE 24.2   distinct family
+              s5 blue   to --ev-blue-dk         dE 12.6   see below
+              s5 blue   to --ev-blue            dE 15.1
+              s1 green  to --ev-green #1d723c   dE 10.1   PRE-EXISTING
+       dark   s3 ochre  to .dark --ev-amber     dE 18.2
+              s5 blue   to .dark --ev-blue      dE 31.2
+              s1 green  to .dark --ev-green     dE 11.8   PRE-EXISTING
+     s5 is a different blue from --ev-blue-dk on purpose — reusing the link
+     colour would undo Doc 13 Phase 1.2, which moved the series OFF blue. 12.6
+     is a visible step and the two never meet: one is a 2px stroke inside a
+     plot, the other is 14px underlined text in a paragraph.
+     The s1/--ev-green pair is the brand-vs-semantic-success collision already
+     recorded against --ev-brand. **s1 IS --ev-brand, so this ramp adds
+     nothing to it and does not resolve it.** That collision is an open owner
+     decision and stays one.
+
+     ── s1 IS AN ALIAS, WHICH IS THE WHOLE POINT. ─────────────────────────
+     The first series of every chart is the series that already shipped, so a
+     single-series chart is pixel-identical to what is on screen today and no
+     screenshot changes. Aliasing rather than repeating the value is what makes
+     that structural: s1 needs no `.dark` entry, it cannot drift from
+     --ev-brand, and if the open brand decision moves --ev-brand it moves with
+     it. Alias precedent in this layer: --ev-hairline2. */
+  --ev-series-1: var(--ev-brand);
+  --ev-series-2: #6d3899;
+  --ev-series-3: #b57d1c;
+  --ev-series-4: #742f65;
+  --ev-series-5: #2b4dd4;
+  --ev-series-6: #1193b0;
+
+  /* ── THE AREA FILLS. One per stop, by --ev-brand-lt's stated method: the
+     stop at **10% on the theme's ground**. s1 reproduces --ev-brand-lt
+     EXACTLY — 0.10 x rgb(12 105 68) + 0.90 x rgb(255 255 255) = #e7f0ec — so
+     it is that token, aliased, and --chart-fill and --chart-fill-s1 are the
+     same value by construction rather than by coincidence.
+
+       fill  hex       on white    the stop on its own fill  (non-text, 3:1)
+       s1    #e7f0ec    1.1620              5.793
+       s2    #f0ebf5    1.1727              6.692
+       s3    #f8f2e8    1.1136              3.188
+       s4    #f1eaf0    1.1819              7.602
+       s5    #eaedfb    1.1663              5.780
+       s6    #e7f4f7    1.1241              3.207
+     Every line clears 3:1 against its own wash, which is the requirement a
+     stroke on a fill has. s3 and s6 are the thin pair at 3.19 / 3.21 — they
+     are the two lightest stops and the wash under them is the palest, so the
+     margin is smallest exactly where both ends move the same way. §3.7's
+     "very pale area fill" keeps its weight: 1.11-1.18 against --ev-brand-lt's
+     shipped 1.162.
+
+     ⚠ **THE INK ON A FILL IS NOT --muted-foreground, AND THIS IS MEASURED.**
+     Every wash is a new ground, so both inks were computed on all six:
+       ink on fill            s1      s2      s3      s4      s5      s6
+       --ev-ink             14.984  14.846  15.634  14.731  14.928  15.488 ✓
+       --ev-text-2         **4.161   4.122   4.341   4.090   4.145   4.301 ✗**
+     The muted level fails AA on ALL SIX in light and passes on all six in
+     dark (6.18-7.19) — the worst shape a failure can take, because the
+     component reviews clean on whichever theme the reviewer had open. This is
+     the same failure already recorded at --color-brand-lt, arriving from a
+     second direction, and it extends unchanged: **inside a series fill a
+     secondary line takes `text-foreground` or the series colour, never
+     `text-muted-foreground`.** No muted ink is minted for these — a chart
+     label is chosen once, not defaulted per cell, which is the bar
+     --ev-text-2-rail and --ev-text-2-row-critical each had to clear.
+
+     ⚠ **THE FILLS DO NOT SEPARATE THE SERIES. THE STROKE DOES.** Measured,
+     because a compound area chart is exactly what these were asked for:
+       light  worst pair s2|s4 dE **2.19**; adjacent 8.81 10.45 8.52 5.37 6.89
+       dark   worst pair s2|s5 dE **7.70**; adjacent 33.2 30.5 24.4 13.9 16.9
+     A 10% wash of six different hues collapses toward white — that is
+     arithmetic, not a defect in the choice of hue, and deepening the wash to
+     fix it would break §3.7's "very pale" and the 4.5:1 the ink above already
+     misses. Two consequences, stated so they are not rediscovered:
+       1. **A stacked or overlaid area chart with more than two series must
+          carry its identity in the stroke**, and the fill is decoration under
+          it. Six fills at once is a wash, not a chart.
+       2. **s5's fill is dE 1.32 from --ev-blue-lt** and s3's is 2.91 from
+          --ev-amber-lt. Under §7.5's two-carrier rule that is survivable — a
+          tone tint always carries a label and an area fill always carries its
+          line — but a series fill must never be the only thing distinguishing
+          a plot region from an info or warning surface.
+
+     THE DARK FILLS ARE NOT THE 10% MIX, AND THAT IS DELIBERATE. 10% of a stop
+     on #1a1f26 lands a wash at 1.175:1 — heavier than the shipped dark
+     --ev-brand-lt at **1.078**, so applying light's arithmetic to a dark
+     ground would make series 1's band change weight between themes. The dark
+     tone tints in `.dark` were not built that way either; read as HSL they are
+     one construction, `hsl(H_tone, ~34-45%, ~11-13%)`:
+       --ev-brand-lt #14291f = h151 s34% l12%   from stop h152
+       --ev-green-lt #12251a = h145 s35% l11%   from stop h145
+       --ev-blue-lt  #141c2e = h222 s39% l13%   from stop h221
+       --ev-amber-lt #2a1f10 = h035 s45% l11%   from stop h032
+     So the dark rule is that construction at a fixed `hsl(H_stop, 40%, 12%)`,
+     which reproduces the shipped --ev-brand-lt to **dE76 2.21** (#122b1f vs
+     #14291f). The shipped value wins for s1 — it is the token that is on
+     screen — and the method supplies s2..s6. Same method for the whole set,
+     one measured exception, written down. */
+  --ev-series-1-lt: var(--ev-brand-lt);
+  --ev-series-2-lt: #f0ebf5;
+  --ev-series-3-lt: #f8f2e8;
+  --ev-series-4-lt: #f1eaf0;
+  --ev-series-5-lt: #eaedfb;
+  --ev-series-6-lt: #e7f4f7;
+
   /* --- Geometry. D7 §1.4. Every value is on the 4px grid (D15).
      D-2 IS RETIRED — see `03-navattic-language.md` §5. Its type half was not a
      deviation (13px IS the reference's body size), its spacing half was not a
@@ -1596,6 +1800,64 @@
   --ev-row-critical: #23161a;
   --ev-row-critical-emphasis: #2a1512;
   --ev-text-2-row-critical: #b5a1a4;
+
+  /* --- The categorical series ramp. Derived AGAINST #1a1f26, the dark card,
+     not lifted from light — the rule --ev-row-critical records. Hue family is
+     carried across (each stop within 6 deg of its light twin) so a theme
+     switch does not renumber the legend; S and L were re-solved. Contrast on
+     the card, then on --ev-bg #14181e; the worst-observer dE76 matrix and the
+     full derivation are at --ev-series-1 in the light block.
+
+       stop  hex       hsl                  on --card  on --ev-bg
+       s1    #4fb183   151.8 / 39% / 50%      6.269       6.741   = --ev-brand
+       s2    #9e73d3   266.9 / 52% / 64%      4.611       4.958
+       s3    #e2b03c    41.9 / 74% / 56%      8.289       8.912
+       s4    #a6598e   318.7 / 30% / 50%      3.503       3.766
+       s5    #4d6af4   229.6 / 88% / 63%      3.694       3.972
+       s6    #50d5e7   187.2 / 76% / 61%      9.474      10.188
+
+     All six clear 1.4.11's 3:1 on both dark grounds. Adjacent pairs in the
+     shipped order clear **57.2** and the global worst pair is **29.1**, both
+     WIDER than light's 55.7 / 25.6 — a dark ground gives the mid-lightness
+     stops more room than white does.
+
+     **s1 IS ABSENT ON PURPOSE.** --ev-series-1 is `var(--ev-brand)` in layer
+     1, and `.dark` already redeclares --ev-brand to #4fb183, so the var()
+     resolves at use time on the element and the dark stop arrives for free.
+     Declaring it here would be a second copy of a value that has one owner —
+     the same reason --churn-high-foreground has no `.dark` entry. */
+  --ev-series-2: #9e73d3;
+  --ev-series-3: #e2b03c;
+  --ev-series-4: #a6598e;
+  --ev-series-5: #4d6af4;
+  --ev-series-6: #50d5e7;
+
+  /* --- The dark area fills. `hsl(H_stop, 40%, 12%)` — the construction the
+     five dark tone tints above already use, NOT light's 10%-on-white mix,
+     which on a dark card lands 1.175:1 against the shipped --ev-brand-lt's
+     1.078 and would change series 1's weight between themes. The method
+     reproduces --ev-brand-lt to dE76 2.21, so s1 keeps the shipped token and
+     s2..s6 are generated. Full reasoning at --ev-series-1-lt.
+
+       fill  hex       on --card   stop on its own fill   --ev-ink  --ev-text-2
+       s1    #14291f    1.0779           5.816             12.950      6.172
+       s2    #1d122b    1.0803           4.982             15.081      7.187
+       s3    #2b2312    1.0662           7.774             13.093      6.239
+       s4    #2b1223    1.0448           3.660             14.585      6.951
+       s5    #12172b    1.0716           3.958             14.960      7.129
+       s6    #12282b    1.0759           8.806             12.975      6.183
+
+     Every stroke clears 3:1 on its own wash and — unlike light — BOTH inks
+     clear AA on all six. The muted level passes here and fails there, so the
+     rule at --ev-series-1-lt is written for the light case and binds in both:
+     a secondary line inside a fill never takes `text-muted-foreground`.
+     s1 is absent for the same reason the stop is: --ev-series-1-lt is
+     `var(--ev-brand-lt)` and `.dark` already moves --ev-brand-lt. */
+  --ev-series-2-lt: #1d122b;
+  --ev-series-3-lt: #2b2312;
+  --ev-series-4-lt: #2b1223;
+  --ev-series-5-lt: #12172b;
+  --ev-series-6-lt: #12282b;
 
   /* --- Elevation. The light tiers are near-black at low alpha on white; on a
      dark ground that is invisible, so the alphas rise and the colour goes to
@@ -2177,7 +2439,36 @@
      comparison series the SAME hue dotted, no gridlines beyond the axis
      baseline. There is therefore no categorical chart palette and no
      --chart-3. shadcn's --chart-1…5 neutral ramp is deleted, not remapped:
-     leaving five slots invites a categorical read R7 does not sanction. */
+     leaving five slots invites a categorical read R7 does not sanction.
+
+     ⚠ ══ THE SENTENCE ABOVE IS OVERRIDDEN. KEPT, NOT DELETED. ═══════════════
+     **Overridden by the business owner, 2026-09-04, twice, in these words:**
+       "the priority is to make it the same as amplitude not to align with
+        design.md at the current moment"
+       "for charts I need ... compound charts that compare those data to each
+        other not every one in it's own chart"
+     A compound chart draws every series in ONE plot, and two series in one
+     plot that share a hue are not two series. §3.7's single-hue rule and the
+     compound chart cannot both stand; the owner chose the compound chart, so
+     **there IS a categorical chart palette** — six stops, --chart-s1 through
+     --chart-s6 below, derived and measured at --ev-series-1 in layer 1.
+
+     The paragraph above is left standing rather than edited away so the next
+     reader sees a rule that was REVERSED ON PURPOSE, on a named authority, and
+     not one somebody forgot. Reversing it back is a token edit and no
+     component change — s1 is the shipped series and nothing else consumes the
+     ramp until a compound chart is built.
+
+     TWO THINGS THE OVERRIDE DOES **NOT** REACH, so that a later reader does
+     not stretch it:
+       · **R7 stands.** --chart-comparison still differs from its series by
+         DASH and never by hue. A comparison is the same series at another
+         time; a categorical stop is a different series. Separate questions,
+         and only one was reopened.
+       · **shadcn's --chart-1…5 stays deleted.** The new ramp is named
+         --chart-s*, not --chart-*, precisely so nobody restores the library's
+         neutral five and gets a sixth, unmeasured, categorical read for free.
+     ════════════════════════════════════════════════════════════════════════ */
   /* Doc 13 Phase 1.2: OFF BLUE, onto the brand ramp. Non-text marks need 3:1
      and the move improves every one of them —
        series on --card / --ev-bg white   **6.731** (was 4.574)
@@ -2185,8 +2476,15 @@
      which also fixes a real weakness: the old line was only 4.006:1 against
      its own area fill, and it is now 5.793.
      `BreakdownList`'s 4px share bar takes --chart-series directly on card
-     white: 6.731:1. */
-  --chart-series: var(--ev-brand);
+     white: 6.731:1.
+
+     **IT NOW READS --ev-series-1, AND THAT CHANGES NO PIXEL.** --ev-series-1
+     is `var(--ev-brand)` in both themes, so this is the same value it has
+     been; what the indirection buys is that "the legacy single series and the
+     first categorical stop are the same colour" becomes structural instead of
+     two declarations that happen to agree. It is routed through layer 1 rather
+     than written `var(--chart-s1)` so layer 2 keeps reading only layer 1. */
+  --chart-series: var(--ev-series-1);
   /* **R7 — comparison differs by DASH, NEVER by hue.** This has been filed as
      a defect by three separate audits and it is not one. It shares the series
      colour deliberately, and moving the series to green does not reopen it:
@@ -2199,6 +2497,49 @@
   --chart-fill: var(--ev-brand-lt);
   --chart-axis: var(--ev-text-2);
   --chart-grid: var(--ev-hairline);
+
+  /* --- THE CATEGORICAL STOPS. The override above is the authority; the
+     derivation, the contrast table and the worst-observer dE76 matrices are
+     at --ev-series-1 and --ev-series-1-lt in layer 1, in both themes.
+
+     Every stop clears **3:1 on --card** in its own theme — 3.550 is the light
+     floor (s3), 3.503 the dark (s4) — which is WCAG 1.4.11 for a non-text
+     mark. Adjacent pairs in this order clear dE76 55.7 light / 57.2 dark
+     under the worse of deuteranopia and protanopia; the order itself was
+     solved for that, and there is no red/green pair anywhere in it because
+     there is no red in the set.
+
+     **s1 IS THE SHIPPED SERIES.** It resolves to --ev-brand exactly as
+     --chart-series does, so a one-series chart is pixel-identical to what is
+     on screen and no existing screenshot changes. The five tokens above are
+     untouched and every current consumer keeps working. */
+  --chart-s1: var(--ev-series-1);
+  --chart-s2: var(--ev-series-2);
+  --chart-s3: var(--ev-series-3);
+  --chart-s4: var(--ev-series-4);
+  --chart-s5: var(--ev-series-5);
+  --chart-s6: var(--ev-series-6);
+
+  /* --- One pale area fill per stop, so a compound area chart does not have
+     to reach for --chart-fill six times and get one green wash under six
+     different lines. --chart-fill-s1 and --chart-fill are the SAME VALUE in
+     both themes by construction — both are --ev-brand-lt — so migrating a
+     single-series area chart onto the ramp changes nothing.
+
+     ⚠ Two measured limits carried up from layer 1 because a consumer reads
+     this block and not that one:
+       · **The fill is not the identifier — the stroke is.** The light fills
+         sit as close as dE76 **2.19** to each other. Six of them in one plot
+         is a wash.
+       · **`text-muted-foreground` inside any fill fails AA in light**
+         (4.09-4.34 on all six). A secondary line takes `text-foreground` or
+         the series colour. */
+  --chart-fill-s1: var(--ev-series-1-lt);
+  --chart-fill-s2: var(--ev-series-2-lt);
+  --chart-fill-s3: var(--ev-series-3-lt);
+  --chart-fill-s4: var(--ev-series-4-lt);
+  --chart-fill-s5: var(--ev-series-5-lt);
+  --chart-fill-s6: var(--ev-series-6-lt);
 }
 
 /* ==========================================================================
@@ -2314,6 +2655,31 @@
   --color-chart-fill: var(--chart-fill);
   --color-chart-axis: var(--chart-axis);
   --color-chart-grid: var(--chart-grid);
+
+  /* The categorical ramp — `stroke-chart-s3`, `fill-chart-fill-s3`,
+     `text-chart-s3` for a legend swatch. Exposed exactly as the five above
+     are, and for the same reason: a Recharts series takes its colour as a
+     PROP, so the value has to be reachable from a component either as a
+     utility class or through `var(--chart-s3)` in a style object. Without a
+     utility a compound chart falls back to a palette class, which is the one
+     drift this file exists to stop.
+
+     s1 is exposed even though `--color-chart-series` already resolves to the
+     same value: a compound chart that writes s1, s2, s3 reads as a set, and
+     a chart that writes chart-series, chart-s2, chart-s3 reads as a mistake.
+     See the slot in layer 2 for why they cannot disagree. */
+  --color-chart-s1: var(--chart-s1);
+  --color-chart-s2: var(--chart-s2);
+  --color-chart-s3: var(--chart-s3);
+  --color-chart-s4: var(--chart-s4);
+  --color-chart-s5: var(--chart-s5);
+  --color-chart-s6: var(--chart-s6);
+  --color-chart-fill-s1: var(--chart-fill-s1);
+  --color-chart-fill-s2: var(--chart-fill-s2);
+  --color-chart-fill-s3: var(--chart-fill-s3);
+  --color-chart-fill-s4: var(--chart-fill-s4);
+  --color-chart-fill-s5: var(--chart-fill-s5);
+  --color-chart-fill-s6: var(--chart-fill-s6);
 
   /* Geometry, so a component can say `w-rail` / `h-row` / `max-w-page`
      instead of an arbitrary value. */

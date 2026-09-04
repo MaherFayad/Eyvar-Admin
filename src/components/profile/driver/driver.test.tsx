@@ -649,25 +649,35 @@ describe('the two navigations', () => {
 
 /* ═══════════ 7 · the timeline, and the one event it refuses to invent ═══ */
 
+/* **The timeline is no longer on the sheet** — the owner removed it from this
+   surface and then from the page, so the two still agree (§3). `DriverTimeline`
+   and `timelineSentence` survive as a component nothing renders; these two
+   assertions moved off `renderSheet` and onto the builder so the behaviour they
+   pin is not lost with the surface that used to show it. If the component is
+   deleted, delete this block with it. */
 describe('the timeline', () => {
-  it('is one server-derived list and carries no suspension event', async () => {
-    await renderSheet({ driverId: SUSPENDED })
-    await userEvent.click(screen.getByRole('tab', { name: /Activity/ }))
-    const panel = await screen.findByRole('tabpanel')
-    /* `Driver` has `suspended` and `suspensionReason` and no `suspendedAt`. A
-       timeline event needs a time, so putting one here would mean inventing a
-       date. The banner reports the current state instead, and neither lies. */
-    expect(within(panel).queryByText(en('profile.driver.flag.suspended'))).toBeNull()
-  })
-
-  it('names the rider on a trip row rather than a route', async () => {
+  it('is absent from the sheet’s Activity tab', async () => {
     await renderSheet({ driverId: AHMED })
     await userEvent.click(screen.getByRole('tab', { name: /Activity/ }))
     const panel = await screen.findByRole('tabpanel')
-    /* `types/driver.ts` refuses to carry `pickup` / `destination` — both
-       nullable on `Trip`, which is the optional-key trap `interpolate` throws
-       on — and a captain's own history is a list of who they carried. */
-    expect(within(panel).getAllByText(/Trip (completed|requested|cancelled)/).length).toBeGreaterThan(0)
+    /* The figures stay; the list does not. Asserted on the heading-free list's
+       own rows rather than on a heading, because the sheet's timeline never
+       carried one. */
+    expect(within(panel).queryAllByText(/Trip (completed|requested|cancelled)/)).toHaveLength(0)
+  })
+
+  it('carries no suspension event, because there is no date to put on one', async () => {
+    const driver = await getDriver(SUSPENDED)
+    const timeline = await getDriverTimeline(SUSPENDED, { pageSize: DRIVER_LIST_ROWS })
+    /* `Driver` has `suspended` and `suspensionReason` and no `suspendedAt`. A
+       timeline event needs a time, so putting one here would mean inventing a
+       date. The banner reports the current state instead, and neither lies. */
+    expect(driver.suspended).toBe(true)
+    /* `Paginated<T>` is `items`, and `DriverTimelineEvent`'s union has no
+       suspension arm at all — so this pins the fixture rather than the type:
+       nothing smuggles a suspension event in through the data. */
+    expect(timeline.items.length).toBeGreaterThan(0)
+    expect(timeline.items.every((event) => !event.kind.includes('suspend'))).toBe(true)
   })
 })
 

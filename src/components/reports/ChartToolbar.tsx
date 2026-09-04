@@ -210,6 +210,7 @@ export function ChartToolbar({
 }: ChartToolbarProps) {
   const comparing = query.periodComparison !== 'none'
   const windowReasons = plan.violations.filter((v) => v.field === 'window')
+  const mode = reportMode(query)
   const current = visualisationOf(query)
   const vizLabelId = useId()
   const grainLabelId = useId()
@@ -225,12 +226,28 @@ export function ChartToolbar({
       : {}),
   })
 
-  /* Legality per shape, from the plan — and ONLY for the three that are chart
-     types. `plan.chartTypes` describes the current mode's renderings; a mode is
-     never illegal, so the four mode entries are always offered. That is the
-     mode strip's own recorded ruling, kept: greying out `Funnel` because no
-     rungs are chosen would hide the only control that can choose them. */
+  /**
+   * **Legality applies to a redraw, never to a way out.**
+   *
+   * `plan.chartTypes` describes what the CURRENT mode may be drawn as. In
+   * `trend` that is exactly right: a pie of two measures is refused, in place,
+   * with its reason.
+   *
+   * Applied to every entry it was a trap. Inside a funnel the planner marks
+   * `line` and `pie` illegal — *"bar is fixed by funnel"* — so the three
+   * entries that mean *leave the funnel* were all disabled, and the only way
+   * back to a trend was the browser's Back button. A control whose exit is
+   * greyed out by the thing you are trying to exit is worse than no control.
+   *
+   * So an entry is judged by the current mode's rules only while it STAYS in
+   * the current mode. An entry that changes mode is always offered, and
+   * `applyReportMode` fixes that mode's own shape on arrival — which is the
+   * mode strip's recorded ruling, unchanged: *a mode is never illegal; its
+   * configuration is.*
+   */
   const chartLegality = new Map(plan.chartTypes.map((option) => [option.value, option]))
+  const legalityOf = (option: (typeof VISUALISATIONS)[number]) =>
+    option.chartType === null || option.mode !== mode ? null : chartLegality.get(option.chartType)
 
   return (
     <div
@@ -289,23 +306,40 @@ export function ChartToolbar({
           </SelectTrigger>
           <SelectContent>
             {VISUALISATIONS.map((option) => {
-              /* Only the three chart types carry legality; a mode never does. */
-              const legality = option.chartType === null ? null : chartLegality.get(option.chartType)
+              const legality = legalityOf(option)
               const illegal = legality !== null && legality !== undefined && !legality.legal
               const Glyph = option.icon
               return (
-                <SelectItem key={option.id} value={option.id} disabled={illegal}>
+                <SelectItem
+                  key={option.id}
+                  value={option.id}
+                  disabled={illegal}
+                  /* Typeahead types the NAME, never the name plus its refusal —
+                     a reader hunting for `Pie chart` should not have to spell
+                     out why they cannot have it. */
+                  textValue={t(`rb.viz.${option.id}`)}
+                >
                   <span className="flex min-w-0 flex-col items-start gap-0.5">
                     <span className="flex items-center gap-1.5">
                       {/* Decorative — the label beside it carries the name, so
                           the option still announces as `Line chart`. */}
-                      <Glyph aria-hidden="true" className="size-4" />
+                      <Glyph data-slot="viz-glyph" aria-hidden="true" className="size-4" />
                       {t(`rb.viz.${option.id}`)}
                     </span>
                     {/* D9 CQ-3 — the reason travels INSIDE the option it
                         describes rather than in a list at the menu's foot. */}
                     {illegal && legality?.reasonKey && (
-                      <span className="text-2xs text-muted-foreground">
+                      <span className="block text-2xs text-muted-foreground">
+                        {/* **The space is load-bearing.** An option's accessible
+                            name is its text content, and two adjacent inline
+                            spans concatenate with nothing between them — the
+                            announced name came out as `Pie chartA pie shows one
+                            measure`, opening with a word that is in no
+                            dictionary. `block` fixes the picture; the explicit
+                            space fixes the name. Both are needed: the class is
+                            invisible to an accessible-name computation, and the
+                            space is invisible on screen. */}
+                        {' '}
                         {t(legality.reasonKey, legality.reasonParams)}
                       </span>
                     )}

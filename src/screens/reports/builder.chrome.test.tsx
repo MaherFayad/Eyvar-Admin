@@ -36,7 +36,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import { disableMockLatency, listReports, resetDataLayer } from '@/data/clients'
-import { REPORT_MODES, type SavedReport } from '@/data/types'
+import type { SavedReport } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { REPORTS_EN } from './copy'
@@ -118,10 +118,14 @@ describe('§A7 — the presentation controls are a row above the plot', () => {
 /* ──────────── 2 — moved, which is not the same as copied ───────────────── */
 
 describe('the moved controls exist exactly once, in the toolbar', () => {
+  /* `rb.control.chartType` left this list because the control did: the shape
+     is chosen in the one `rb.viz.label` menu now, which also swallowed the mode
+     strip. The other three are unchanged and must still be in the toolbar
+     exactly once — a setting with two controls has two controls that disagree. */
   const MOVED = [
     'rb.control.window',
     'rb.control.grain',
-    'rb.control.chartType',
+    'rb.viz.label',
     'rb.control.compare',
   ] as const
 
@@ -144,47 +148,75 @@ describe('the moved controls exist exactly once, in the toolbar', () => {
     }
   })
 
-  it('offers the quick range presets as a pressed-state group beside them', async () => {
+  /* **The quick-range strip is gone and this asserts that it stays gone.**
+     It offered four of the nine presets the range popover already carries —
+     the same setting with two controls, which is the exact defect the MOVED
+     list above exists to catch, shipped one row along. */
+  it('leaves no second range control beside the range popover', async () => {
     renderBuilder(null)
-    const group = await screen.findByRole('group', { name: copy('rb.toolbar.range') })
-    /* The live preset is the seeded `last-30d`, and the selection is ANNOUNCED
-       rather than merely filled (§7.5). */
-    expect(
-      within(group).getByRole('button', { name: copy('rb.toolbar.range.last-30d') }),
-    ).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      within(group).getByRole('button', { name: copy('rb.toolbar.range.last-7d') }),
-    ).toHaveAttribute('aria-pressed', 'false')
+    await screen.findByRole('region', { name: copy('rb.canvas.heading') })
+    expect(screen.queryByRole('group', { name: copy('rb.toolbar.range') })).toBeNull()
+    expect(within(toolbar()).getAllByLabelText(copy('rb.control.window'))).toHaveLength(1)
   })
 })
 
-/* ───────────────── 3 — five modes, five decorative glyphs ──────────────── */
+/* ──────────── 3 — one shape menu, seven entries, seven glyphs ─────────── */
 
-describe('§A1 — the mode strip carries an icon per question', () => {
-  it.each(REPORT_MODES)('gives %s a hidden glyph and an accessible name from its label', (mode) => {
+/**
+ * The five-button mode strip and the four-button chart-type strip were two
+ * controls answering *what shape is this answer*, one of them able to say
+ * `Data table` and the other `Table`. They are one menu now, on the owner's
+ * ruling — *"rather than funnel, or retention or journeys, make them chart
+ * types"* — and these tests hold that menu to what both strips promised: every
+ * entry offered, every entry named by its label, every entry carrying a
+ * decorative glyph that does not leak into the name.
+ */
+describe('§A1 — the one shape menu carries an icon per entry', () => {
+  const ENTRIES = ['line', 'bar', 'pie', 'table', 'cohort', 'funnel', 'journey'] as const
+
+  /**
+   * The option's accessible name OPENS with its label and may continue with
+   * the reason it is refused — D9 CQ-3 puts that sentence inside the option's
+   * own subtree. `getByRole`'s `name` takes no `exact` flag, so a prefix is
+   * expressed as a predicate.
+   */
+  const named = (entry: (typeof ENTRIES)[number]) => (name: string) =>
+    name.startsWith(copy(`rb.viz.${entry}`))
+
+  it('offers all seven, and none of them is hidden behind a legality rule', async () => {
+    const user = userEvent.setup()
     renderBuilder(null)
-    const strip = screen.getByRole('group', { name: copy('rb.control.mode') })
+    await screen.findByRole('region', { name: copy('rb.canvas.heading') })
 
-    /* The NAME first: `getByRole` with an exact name fails the moment a glyph
-       leaks a title or an unhidden `<svg>` label into the button. */
-    const button = within(strip).getByRole('button', { name: copy(`rb.mode.${mode}`) })
+    await user.click(screen.getByRole('combobox', { name: copy('rb.viz.label') }))
+    for (const entry of ENTRIES) {
+      expect(await screen.findByRole('option', { name: named(entry) })).toBeInTheDocument()
+    }
+  })
 
-    const glyph = button.querySelector('svg')
-    expect(glyph, 'every mode carries one').not.toBeNull()
+  it.each(ENTRIES)('gives %s a hidden glyph that stays out of the name', async (entry) => {
+    const user = userEvent.setup()
+    renderBuilder(null)
+    await screen.findByRole('region', { name: copy('rb.canvas.heading') })
+
+    await user.click(screen.getByRole('combobox', { name: copy('rb.viz.label') }))
+    const option = await screen.findByRole('option', { name: named(entry) })
+
+    /* **Not `querySelector('svg')`.** `SelectItem` renders its own check
+       indicator first, so the bare selector asserted `size-4` about a
+       primitive's tick and passed for the wrong reason. `data-slot` names the
+       one glyph this test is about. */
+    const glyph = option.querySelector('[data-slot="viz-glyph"]')
+    expect(glyph, 'every entry carries one').not.toBeNull()
     expect(glyph).toHaveAttribute('aria-hidden', 'true')
     /* One set, one size (§1.5). `size-4` is 16px. */
     expect(glyph?.getAttribute('class') ?? '').toContain('size-4')
   })
 
-  it('puts one on every chart type too, without renaming the option', async () => {
+  it('leaves no mode strip behind in the rail', async () => {
     renderBuilder(null)
     await screen.findByRole('region', { name: copy('rb.canvas.heading') })
-    const group = screen.getByLabelText(copy('rb.control.chartType'))
-
-    for (const chart of ['line', 'bar', 'pie', 'table'] as const) {
-      const button = within(group).getByRole('button', { name: copy(`rb.chartType.${chart}`) })
-      expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
-    }
+    expect(screen.queryByRole('group', { name: copy('rb.control.mode') })).toBeNull()
   })
 })
 

@@ -86,7 +86,18 @@
  * because an import would carry the value and lose the reason.
  */
 
-import { Area, AreaChart, Bar, BarChart, Line, LineChart, XAxis, YAxis } from 'recharts'
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
 import { formatSeriesValue } from '@/components/metrics'
 import { bucketStarts, comparisonWindow } from '@/data/clients'
@@ -136,6 +147,35 @@ export function seriesColor(index: number): string {
 
 export function seriesFill(index: number): string {
   return FILL_STOPS[index % FILL_STOPS.length] ?? FILL_STOPS[0]
+}
+
+/**
+ * **The seventh series onwards, and why it may take the dash.**
+ *
+ * Six hues is where the palette stops — a seventh that separates from the other
+ * six under deuteranopia does not exist at this lightness, which is measured
+ * and recorded in `globals.css`. So `seriesColor` wraps, and a split by
+ * district that survives §7.4's fold with nine groups drew **District 6 and
+ * Other in the same ochre**, District 1 and District 7 in the same green.
+ * Measured on `/management/reports/RPT-2`: nine series, six strokes.
+ *
+ * The hue is not the only identifier — the legend and the headline both put the
+ * name next to the mark — but on the plot itself it is, and *which line is
+ * spiking* is the question a compound chart exists to answer.
+ *
+ * So the second lap is **dotted**, and §3.7's *"the comparison differs by DASH,
+ * never by hue"* survives intact, because the two cases **cannot co-occur**:
+ * `SeriesChart` draws a comparison only at two series or fewer, and a second lap
+ * only exists at seven or more. There is no plot on which a dotted line could
+ * be read as either. The pattern is `1 3` — a fine dot, deliberately not the
+ * comparison's `4 3` long dash, so the two do not resemble each other even in
+ * a screenshot taken out of context.
+ *
+ * Past twelve, both are exhausted; the fold makes that vanishingly rare and a
+ * third pattern would be three ways of saying *this is a different series*.
+ */
+export function seriesDash(index: number): string | undefined {
+  return index < SERIES_STOPS.length ? undefined : '1 3'
 }
 
 /** Recharts needs flat keys, and a panel id is not one. Index-addressed. */
@@ -241,8 +281,34 @@ export function SeriesChart({
 
   const tooltip = <SeriesTooltip titles={titles} unit={unit} t={t} language={language} />
 
+  /* §3.5 — a partial bucket is a property of the WINDOW, so every series in
+     this plot shares the same set. Read off the first series that has one
+     rather than unioned: they are identical by construction, and a union would
+     quietly paper over a resolver that disagreed with itself. */
+  const partials = currents.find((s) => s !== null && s.partialBucketIndexes.length > 0)
+    ?.partialBucketIndexes ?? []
+
   const axes = (
     <>
+      {/**
+       * **Horizontal gridlines, which §3.7 rules out and the owner ruled in.**
+       *
+       * DESIGN.md §3.7 says *"no gridlines beyond the axis baseline"*, and for
+       * a single line in a 176px tile that was right — the rules were noise
+       * over a shape a reader takes in at a glance.
+       *
+       * This plot is not that plot. It is 320px tall, carries up to six series,
+       * and the reading task it exists for is *which of these is higher at this
+       * date, and by roughly how much* — which is read by tracing across to a
+       * value. Amplitude draws them for the same reason, and the owner's
+       * ruling is explicit that Amplitude wins where the two disagree.
+       *
+       * Horizontal only. A vertical rule per bucket over a 30-day window is 30
+       * rules, and the x positions are already marked by the axis ticks.
+       * `--chart-grid` is the hairline tone the token layer already carries; no
+       * token is minted for this.
+       */}
+      <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
       <XAxis
         dataKey="label"
         tickLine={false}
@@ -266,6 +332,38 @@ export function SeriesChart({
         cursor={kind === 'bar' ? { fill: 'var(--chart-grid)' } : { stroke: 'var(--chart-grid)' }}
         content={tooltip}
       />
+      {/**
+       * §3.5's partial buckets, **drawn and marked** — a scrim over the series,
+       * not behind it.
+       *
+       * `PanelChart` records the measurement that settled the shape: a
+       * `ReferenceArea` draws nothing at all on a point scale, because
+       * `d3.scalePoint().bandwidth()` is `0` and `Rectangle` returns `null`,
+       * which is every line chart. A `ReferenceLine` places itself at
+       * `position: 'middle'`, which point and band scales both answer, and takes
+       * its width from `strokeWidth` rather than from the scale.
+       *
+       * In front, because recharts puts `ReferenceLine` at zIndex 400 and the
+       * marks at 100–300 — behind, an opaque bar or fill hid it everywhere
+       * except the headroom above the readings, and a mark only visible on
+       * charts with slack is not a mark.
+       */}
+      {partials.map((index) => {
+        const row = rows[index]
+        if (row === undefined) return null
+        return (
+          <ReferenceLine
+            key={index}
+            x={row.label}
+            stroke="var(--chart-axis)"
+            strokeOpacity={0.32}
+            strokeWidth={12}
+            ifOverflow="extendDomain"
+            className="recharts-partial-bucket"
+            style={INERT}
+          />
+        )
+      })}
     </>
   )
 
@@ -292,6 +390,14 @@ export function SeriesChart({
                 />
               ),
             )}
+            {/* **Bars take no second-lap pattern, and do not need one.**
+                `seriesDash` disambiguates the seventh series onwards for LINES,
+                which overlap and are told apart only by their mark. Bars are
+                grouped side by side inside each bucket in a fixed order, so
+                position already separates two series that share a hue — the
+                ambiguity the dash exists to remove is not present here. An SVG
+                pattern fill would be a second mechanism for a problem this
+                branch does not have. */}
             {panels.map((_, index) => (
               <Bar
                 key={currentKey(index)}
@@ -370,6 +476,8 @@ export function SeriesChart({
                 type="monotone"
                 stroke={`var(--color-${currentKey(index)})`}
                 strokeWidth={2}
+                /* The second lap through the palette. See `seriesDash`. */
+                strokeDasharray={seriesDash(colorIndexes[index] ?? index)}
                 dot={false}
                 activeDot={{
                   r: 4,

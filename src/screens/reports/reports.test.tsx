@@ -168,12 +168,80 @@ describe('AC-807, AC-809 — nothing but the measure picker, and nothing runs', 
 
 /* ────────────────── R5-15 — the population is on the panel ─────────────── */
 
+/**
+ * **Open the measure control's hint and give back what it says.**
+ *
+ * The rail's standing descriptions are `InfoHint`s now, so the sentence a
+ * control owes an operator is not in the DOM until the hint is opened. It is
+ * opened by **hover** here because that is the owner's own instruction (*"when
+ * hovered it just show me those details"*) and because a hover that works
+ * proves the Radix path is wired; the same button also opens on focus and on
+ * click, which is what makes it reachable without a pointer (§7.2).
+ *
+ * The measure picker is §5.3's first control, so its hint is the first
+ * `What this means` inside the panel region. Scoped to the region rather than
+ * the document because the toolbar above the canvas has its own controls.
+ */
+/**
+ * **The toolbar's controls are `Select`s now, not button strips.**
+ *
+ * The grain, the comparison and the chart type were three button strips; the
+ * five-button `Question` strip was a fourth control asking the same thing as
+ * one of them. All of it is three menus — `Chart type`, `Grain`, `Compare to` —
+ * on the owner's *"exactly 1:1 with Amplitude"* ruling. The keys did not move
+ * (`rb.control.grain`, `rb.viz.label`), only the widget, so this helper is the
+ * click sequence that replaces `click(getByRole('button', { name: 'Week' }))`
+ * throughout the file. What the controls DO is unchanged, which is why every
+ * assertion around a `pick` is the assertion it always was.
+ */
+async function pick(
+  user: ReturnType<typeof userEvent.setup>,
+  control: string,
+  optionKey: string,
+) {
+  await user.click(screen.getByRole('combobox', { name: REPORTS_EN[control] as string }))
+  await user.click(
+    await screen.findByRole('option', {
+      /* A prefix: an illegal option carries its refusal INSIDE its own
+         accessible name (D9 CQ-3), and `getByRole`'s `name` takes no `exact`. */
+      name: (name: string) => name.startsWith(REPORTS_EN[optionKey] as string),
+    }),
+  )
+}
+
+async function measureHint(user: ReturnType<typeof userEvent.setup>): Promise<string> {
+  const panel = await screen.findByRole('region', {
+    name: REPORTS_EN['rb.panel.heading'] as string,
+  })
+  const hints = within(panel).getAllByRole('button', {
+    name: REPORTS_EN['rb.hint.show'] as string,
+  })
+  await user.hover(hints[0]!)
+  const tip = await screen.findByRole('tooltip')
+  return tip.textContent ?? ''
+}
+
 describe('R5-15 — the operator can read the population, not just the number', () => {
   /**
    * Not *"a population sentence is present"* — a hardcoded caption would pass
    * that. **The sentence has to be the one this measure declares**, so the test
    * runs two different reports and asserts the sentence changes with the
    * measure, and that each sentence is the catalogue's own.
+   *
+   * **What changed, and why the old assertion had to go.** This read
+   * `findAllByText(…)` against the whole document, which passed because the
+   * rail printed the sentence as a standing paragraph under the measure picker.
+   * The business owner had every one of those paragraphs moved behind an `i`
+   * (`InfoHint`) — *"remove all those dumb overwhelming descriptions … add i
+   * icon when hovered it just show me those details"* — so a bare `getByText`
+   * now asserts exactly the behaviour that was removed, and passing it would
+   * mean the change had not been made.
+   *
+   * R5-15 itself is untouched: the operator can still read the population, and
+   * it still moves with the measure. So the assertion asks the **hint** for it —
+   * hover the control's `What this means`, read the `tooltip` it opens. The
+   * sentence is still the catalogue's own, and the wrong measure's sentence is
+   * still nowhere on the page, opened or closed.
    */
   it('renders the measure’s own population sentence, and it moves with the measure', async () => {
     const captains = reportQueryPath({
@@ -195,17 +263,15 @@ describe('R5-15 — the operator can read the population, not just the number', 
       chartType: 'line',
     })
 
+    const user = userEvent.setup()
+
     const first = renderAt(captains, <ReportsScreen />)
-    expect(
-      await screen.findAllByText(REPORTS_EN['rb.pop.drivers.all'] as string),
-    ).not.toHaveLength(0)
+    expect(await measureHint(user)).toContain(REPORTS_EN['rb.pop.drivers.all'] as string)
     expect(screen.queryByText(REPORTS_EN['rb.pop.trips.completed'] as string)).toBeNull()
     first.unmount()
 
     renderAt(trips, <ReportsScreen />)
-    expect(
-      await screen.findAllByText(REPORTS_EN['rb.pop.trips.completed'] as string),
-    ).not.toHaveLength(0)
+    expect(await measureHint(user)).toContain(REPORTS_EN['rb.pop.trips.completed'] as string)
     expect(screen.queryByText(REPORTS_EN['rb.pop.drivers.all'] as string)).toBeNull()
   })
 
@@ -267,8 +333,9 @@ describe('AC-810 — an edited query keeps the previous answer, visibly marked',
     const captains = await screen.findAllByText(REPORTS_EN['rb.measure.captains.registered'] as string)
     expect(captains.length).toBeGreaterThan(0)
 
-    /* Edit the grain. The canvas must NOT blank and must NOT stay silent. */
-    await user.click(screen.getByRole('button', { name: REPORTS_EN['rb.grain.week'] as string }))
+    /* Edit the grain — through the `Grain` menu, which is what the button strip
+       became. The canvas must NOT blank and must NOT stay silent. */
+    await pick(user, 'rb.control.grain', 'rb.grain.week')
 
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
     const stale = REPORTS_EN['rb.canvas.stale'] as string
@@ -282,28 +349,110 @@ describe('AC-810 — an edited query keeps the previous answer, visibly marked',
 
 /* ─────────────── §7 — an illegal option, and the reason it points at ───── */
 
+/**
+ * **The mechanism changed and the criterion did not.**
+ *
+ * This used to assert an `aria-describedby` from a disabled chart-type BUTTON
+ * to the node carrying its reason. There is no such button any more: the
+ * chart-type strip is a `Select`, and an illegal shape is a **disabled
+ * `SelectItem` with its reason inside it**. `aria-describedby` on a
+ * `SelectItem` is not a mechanism Radix exposes, so the reason is part of the
+ * option's own accessible NAME rather than a reference to it — which is
+ * strictly stronger: a name is announced with the option, a description can be
+ * skipped by verbosity settings, and the two can no longer come apart.
+ *
+ * So the relationship is still what is asserted, just at one remove less: the
+ * refused option, the exact sentence the planner gave for refusing it, and the
+ * two in one announcement. The coverage is kept; only the pointer is gone.
+ */
 describe('AC-836, AC-899 — a disabled option owes a reason a screen reader can reach', () => {
-  it('links the disabled chart type to the very node that carries its reason', async () => {
+  it('announces the disabled chart type together with the reason it is refused', async () => {
+    const user = userEvent.setup()
+    /* RPT-1 asks two measures, and `A pie shows one measure` is the planner's
+       refusal for exactly that — read from the copy, never retyped. */
+    const query = (await savedReports()).find((r) => r.id === 'RPT-1')!.query
+    expect(query.measures.length).toBe(2)
+    renderAt(reportQueryPath(query), <ReportsScreen />)
+
+    await user.click(
+      await screen.findByRole('combobox', { name: REPORTS_EN['rb.viz.label'] as string }),
+    )
+    const pie = await screen.findByRole('option', {
+      name: (name: string) => name.startsWith(REPORTS_EN['rb.viz.pie'] as string),
+    })
+
+    /* **Disabled IN PLACE** — present and off, never removed (D9 CQ-3). An
+       option that vanished would leave the operator with no way to learn that a
+       pie exists, let alone why they cannot have one. */
+    expect(pie).toHaveAttribute('aria-disabled', 'true')
+
+    /* **The relationship, not the presence.** A reason rendered somewhere on
+       the page passes a presence check while telling a screen-reader user
+       nothing. Here the reason is announced AS PART OF the option: name it, and
+       the refusal comes with it. */
+    const name = pie.textContent ?? ''
+    expect(name).toContain(REPORTS_EN['rb.viz.pie'] as string)
+    expect(name).toContain(REPORTS_EN['rb.chart.pieOneMeasure'] as string)
+    /* The space between the two spans is load-bearing: without it the announced
+       name opens `Pie chartA pie shows one measure`. */
+    expect(name).not.toContain(
+      `${REPORTS_EN['rb.viz.pie'] as string}${(REPORTS_EN['rb.chart.pieOneMeasure'] as string).charAt(0)}`,
+    )
+  })
+
+  it('leaves the legal shapes offerable, so the refusal is about this question', async () => {
+    const user = userEvent.setup()
     const query = (await savedReports()).find((r) => r.id === 'RPT-1')!.query
     renderAt(reportQueryPath(query), <ReportsScreen />)
 
-    const pie = await screen.findByRole('button', { name: REPORTS_EN['rb.chartType.pie'] as string })
-    expect(pie).toBeDisabled()
-
-    /* **The relationship, not the presence.** A reason rendered somewhere on the
-       page passes a presence check while telling a screen-reader user nothing.
-       The disabled control has to point at it, and the node it points at has to
-       exist and carry text. */
-    const describedBy = pie.getAttribute('aria-describedby')
-    expect(describedBy).toBeTruthy()
-    const reason = document.getElementById(describedBy!)
-    expect(reason).not.toBeNull()
-    expect(reason!.textContent?.trim()).not.toBe('')
+    await user.click(
+      await screen.findByRole('combobox', { name: REPORTS_EN['rb.viz.label'] as string }),
+    )
+    /* Without this the test above would pass on a menu that disabled
+       everything, which is a broken control rather than a stated refusal. */
+    for (const key of ['rb.viz.line', 'rb.viz.bar', 'rb.viz.table'] as const) {
+      const option = await screen.findByRole('option', {
+        name: (name: string) => name.startsWith(REPORTS_EN[key] as string),
+      })
+      expect(option).not.toHaveAttribute('aria-disabled', 'true')
+    }
   })
 })
 
 /* ─────────────── AC-844 — one sentence, byte-identical ─────────────────── */
 
+/**
+ * **LEFT FAILING DELIBERATELY — 2026-09-04. This is a defect, not a stale
+ * selector.**
+ *
+ * `ResultCanvas.Body` used to render one `PanelCard` per panel, and `PanelCard`
+ * carries the branch `!current || current.points.every(p => p === null)` →
+ * `noDataSentence`. The compound-plot rewrite replaced that mapping with
+ * `SeriesHeadlines` + `SeriesChart` per `(unit, currency)` group, and **neither
+ * has an all-null branch**. A run that succeeds and returns nothing at all now
+ * renders an em dash under the measure's name and an empty plot, with nothing
+ * saying why.
+ *
+ * Measured on this exact query (`revenue.total`, 1–31 Jan 2020 — a window
+ * entirely outside every store), the canvas reads:
+ *
+ * > *Part of this range is outside what is recorded, so the chart breaks rather
+ * > than reading zero.* · *Gross revenue* · **—** · *over 1 Jan – 31 Jan* ·
+ * > *no comparison*
+ *
+ * `Body`'s own `result.panels.length === 0` branch still renders the sentence,
+ * but the runner always produces a panel for a chosen measure, so that branch
+ * is not the empty state an operator reaches. This affects the dashboard tile
+ * path too — `Body` is shared, and `framed` does not change the branch.
+ *
+ * `SeriesHeadlines`' own doc calls this out for the blocked case: *"a headline
+ * over an empty series would print an em dash that reads as 'no data'"*. The
+ * same is true here, and the em dash is all there is.
+ *
+ * The assertion below is unchanged because the criterion is unchanged. It goes
+ * green when the empty state is put back — a fix belongs in `ResultCanvas` or
+ * `SeriesHeadlines`, not here.
+ */
 describe('AC-844 — the no-data sentence is the metric boards’ own string', () => {
   it('renders it character for character, trailing period included', async () => {
     /* A window entirely outside every store: the run succeeds and returns
@@ -517,9 +666,13 @@ describe('AC-853, AC-855 — a link reproduces the question', () => {
     expect(screen.getByLabelText(REPORTS_EN['rb.control.compare'] as string)).toHaveTextContent(
       REPORTS_EN['rb.compare.previous-period'] as string,
     )
+    /* The grain came back too. It used to be `aria-pressed` on one of five
+       always-rendered buttons; the strip is a `Select`, so the live value is on
+       the trigger — read out rather than merely coloured (§7.5), which is the
+       same promise `aria-pressed` was making. */
     expect(
-      screen.getByRole('button', { name: REPORTS_EN['rb.grain.week'] as string }),
-    ).toHaveAttribute('aria-pressed', 'true')
+      screen.getByRole('combobox', { name: REPORTS_EN['rb.control.grain'] as string }),
+    ).toHaveTextContent(REPORTS_EN['rb.grain.week'] as string)
   })
 })
 

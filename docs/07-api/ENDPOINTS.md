@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**298 endpoints across 46 client modules.**
+**302 endpoints across 46 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -30,8 +30,12 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/applications/:id` | `Applicant` | - | - | `getApplicant()` |
 | POST | `/api/v1/applications/:id/approve` | `Applicant  (with `approvedDriverId` set to the new `DRV-*` record)` | - | **403** without `approve_drivers`<br>**422** when a required document is not verified | `approveApplicant()` |
 | POST | `/api/v1/applications/:id/claim` | `Applicant` | `{ takeOver?: boolean }` | **409** when another operator holds it and `takeOver` was not sent | `claimApplicant()` |
+| POST | `/api/v1/applications/:id/documents/:type/reject` | `Applicant` | `{ code }` | - | `rejectApplicantDocument()` |
+| POST | `/api/v1/applications/:id/documents/:type/request-reupload` | `Applicant` | - | - | `requestApplicantDocumentReupload()` |
+| POST | `/api/v1/applications/:id/documents/:type/verify` | `Applicant` | - | **422** when nothing has been uploaded | `verifyApplicantDocument()` |
 | POST | `/api/v1/applications/:id/reject` | `Applicant` | `{ reason: string }` | **422** when `reason` is empty — a rejection with no stated reason is not appealable | `rejectApplicant()` |
 | POST | `/api/v1/applications/:id/release` | `Applicant` | - | - | `releaseApplicant()` |
+| GET | `/api/v1/applications/documents/:documentId/file` | `bytes, or 204 for no upload on record` | - | **403** without `approve_drivers` | `getApplicationDocumentFile()` |
 | GET | `/api/v1/applications/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getApplicantFacets()` |
 
 ## `src/data/clients/assurance.ts`

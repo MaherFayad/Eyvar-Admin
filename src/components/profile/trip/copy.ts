@@ -46,6 +46,11 @@ export const TRIP_PROFILE_EN: Dictionary = {
      is on the surface because a mark that looks like a GPS fix and is not will
      otherwise be read as one. */
   'profile.trip.map.estimated': 'Captain’s position is estimated from time elapsed, not tracked.',
+  'profile.trip.map.expand': 'Open the map',
+  /* The dialog's description line. `places.ts`'s caveat has to travel with the
+     picture when the picture gets big enough to look authoritative. */
+  'profile.trip.map.dialogNote':
+    'Pickup and drop-off are placed at their district, and the line between them is a connector rather than the road anybody drove.',
   'profile.trip.map.zoom.in': 'Zoom in',
   'profile.trip.map.zoom.out': 'Zoom out',
 
@@ -53,6 +58,11 @@ export const TRIP_PROFILE_EN: Dictionary = {
   'profile.trip.fact.distance': 'Distance',
   'profile.trip.fact.elapsed': 'Elapsed',
   'profile.trip.fact.remaining': 'Remaining',
+  /* The row `Remaining` becomes once the ETA is behind us. A separate LABEL and
+     not a negative number: `Remaining −20 min` is arithmetic, `Overdue by
+     20 min` is the sentence an operator acts on. */
+  'profile.trip.fact.overdueLabel': 'Overdue',
+  'profile.trip.fact.overdue': 'by {minutes} min',
   'profile.trip.fact.plan': 'Against plan',
   'profile.trip.fact.duration': 'Duration',
   'profile.trip.fact.km': '{km} km',

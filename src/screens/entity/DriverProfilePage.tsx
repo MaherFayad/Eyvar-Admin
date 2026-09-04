@@ -539,9 +539,17 @@ export function DriverProfilePage({
                   as something else entirely, and it is invisible until a wide
                   child appears.
 
-                  It stacks below `wide:` because at 1136px a 2fr share is 745px
-                  and the table needs more than that. */}
-              <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                  **19rem for `Elsewhere`, and it is its own max-content plus a
+                  little.** Measured: that section renders every row on one line
+                  at **286px** and its height is identical at 300, 340 and 413 —
+                  so the 2fr/1fr split was handing it 127px it had no use for,
+                  taken directly out of the table's toolbar. Fixing the reference
+                  list at the width it wants and giving the remainder to the
+                  table is what puts the search field back above its floor.
+
+                  It stacks below `wide:` because the table needs more than the
+                  1136px column can spare once the list has its share. */}
+              <div className="grid items-start gap-6 wide:grid-cols-[minmax(0,1fr)_19rem]">
                 <DriverTripsTable
                   driverId={entity.entityId}
                   totalTrips={record.totalTrips}

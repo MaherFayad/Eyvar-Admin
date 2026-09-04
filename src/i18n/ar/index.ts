@@ -43,6 +43,7 @@ import { ENTITY_RIDER_AR } from './entityRider'
 import { DRIVER_PROFILE_AR } from './driverProfile'
 import { ENTITY_DRIVER_AR } from './entityDriver'
 import { REQUEST_PROFILE_AR } from './requestProfile'
+import { SUBSCRIPTION_PROFILE_AR } from './subscriptionProfile'
 import { TRIP_PROFILE_AR } from './tripProfile'
 import { AUTH_AR } from './auth'
 import { ONBOARDING_AR } from './onboarding'
@@ -87,6 +88,7 @@ export const AR: Dictionary = {
   ...DRIVER_PROFILE_AR,
   ...ENTITY_DRIVER_AR,
   ...REQUEST_PROFILE_AR,
+  ...SUBSCRIPTION_PROFILE_AR,
   ...TRIP_PROFILE_AR,
   ...AUTH_AR,
   ...ONBOARDING_AR,

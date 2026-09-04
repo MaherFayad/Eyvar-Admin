@@ -307,7 +307,12 @@ function PartyCard({
           {present.map((row) => (
             <div key={row.label} className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
-              <dd className="min-w-0 truncate text-end tabular-nums text-foreground">
+              {/* **Wraps rather than truncates.** In the 320px rail on the ride
+                  page `SUB-1041 · Weekly Economy · leg 5 of 5` lost its last
+                  three words to an ellipsis — and *which leg* is the whole
+                  reason the line is there. A pair that needs two lines gets
+                  two. */}
+              <dd className="min-w-0 text-end break-words tabular-nums text-foreground">
                 {row.value ?? (
                   <span className="text-muted-foreground">{t('profile.field.absent')}</span>
                 )}

@@ -173,7 +173,12 @@ export { OPEN_TRIP_STATUSES, isOpenTrip, isOpenTripStatus } from './trip'
    see the header on `tripTelemetry.ts`. */
 export type { TripStage, TripStageKind, TripTelemetry } from './tripTelemetry'
 
-export type { PlanKey, Subscription, SubscriptionStatus } from './subscription'
+export type {
+  PlanKey,
+  Subscription,
+  SubscriptionStatus,
+  SubscriptionTripKind,
+} from './subscription'
 
 export type {
   CorporateAccount,

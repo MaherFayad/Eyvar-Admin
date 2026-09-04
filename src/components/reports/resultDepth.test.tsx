@@ -32,6 +32,13 @@
  * is therefore proved in a real browser by `scratch/rb-datapoint.mjs`, and what
  * is proved here is the thing the click delegates to: an anchor that exists, is
  * in the tab order, and points where the tooltip says it does.
+ *
+ * **2026-09-04 — where the seam block moved to.** The compound-plot rewrite
+ * took `PanelCard` off `ResultCanvas`' drawable path, so §P4's action row is no
+ * longer on the builder's main path; the `PanelCard` block above is unchanged
+ * and still its subject, and the seam block at the foot now holds §A12's strip,
+ * which is the destination the builder canvas actually offers. See the comment
+ * there for what that costs and why it is a finding rather than an assertion.
  */
 
 import { render, screen, within } from '@testing-library/react'
@@ -425,16 +432,48 @@ describe('the catalogue reaches the table on both of the canvas’ paths', () =>
     expect(screen.queryByRole('button', { name: copy('rb.table.export') })).not.toBeInTheDocument()
   })
 
-  it('carries §P4’s action row onto the builder, which is where it was missing', () => {
-    /* The regression this whole file exists for: `boardPath` had no passer, so
-       the anchor never rendered in production. It renders because
-       `ResultCanvas` turns `related` on for the builder and `PanelCard`
-       forwards the resolved path. */
+  /**
+   * **The destination still reaches the builder canvas — through §A12's strip,
+   * not §P4's action row.**
+   *
+   * The compound-plot rewrite (2026-09-04) stopped `ResultCanvas.Body` from
+   * rendering a `PanelCard` per panel on the drawable path, so `BoardAction`
+   * and `PanelChart.boardPath` — §P4's imperative `Open the Growth board` and
+   * the datapoint's own click — are no longer on the builder's main path. They
+   * are still `PanelCard`'s and still covered by the `§P4` block at the top of
+   * this file, and still reached by a dashboard tile, a blocked leg and a
+   * failed leg.
+   *
+   * What this seam test holds is the half that survived and is the half it was
+   * really about: **the catalogue reaches the canvas, and the builder gets a
+   * real anchor at the route table's own path.** The strip is now per-plot and
+   * deduplicated, which is why it names the board once.
+   *
+   * The loss of the datapoint click-through on the compound plot is raised as a
+   * finding rather than asserted here — bringing it back is a design decision
+   * (which series' board does a click on a six-series plot open?) and inventing
+   * the answer in a test is how two agents ship incompatible ones.
+   */
+  it('carries the catalogue’s destination onto the builder, as a real anchor', () => {
     renderCanvas({ withTable: true, withMeta: false })
+    const strip = screen.getByText(copy('rb.related.heading')).parentElement as HTMLElement
+    const link = within(strip).getByRole('link', { name: GROWTH_TITLE })
+    /* An `<a href>`: in the tab order, with the primitive's ring, opening in a
+       new tab on the modifier, stating its destination before the click. */
+    expect(link.tagName.toLowerCase()).toBe('a')
+    expect(link.getAttribute('href')).toBe(GROWTH?.path)
+  })
+
+  it('gives a dashboard tile neither the strip nor an action row', () => {
+    /* `withTable` is the builder-versus-tile signal, and it has to take BOTH
+       with it — a strip of navigation cards under every plot of a nine-tile
+       board is links nobody asked for. */
+    renderCanvas({ framed: false })
+    expect(screen.queryByText(copy('rb.related.heading'))).not.toBeInTheDocument()
     expect(
-      screen.getByRole('link', {
+      screen.queryByRole('link', {
         name: copy('rb.panel.action.open').replace('{board}', GROWTH_TITLE),
       }),
-    ).toBeInTheDocument()
+    ).not.toBeInTheDocument()
   })
 })

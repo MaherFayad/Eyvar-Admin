@@ -70,12 +70,17 @@
  *               only as a picture.
  */
 
+import { useState } from 'react'
 import {
   Basemap,
   BasemapAttribution,
   fitProjection,
   locate,
+  MapDialog,
+  MapExpandButton,
   MapZoomControls,
+  routeFrame,
+  straightLineKm,
   VIEW_W,
   useMapViewport,
   type GeoPoint,
@@ -84,18 +89,6 @@ import { Money } from '@/components/Money'
 import type { RideRequest } from '@/data/types'
 import { formatDecimal, formatDuration, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
-
-/**
- * The smallest window the fit will draw, in degrees of longitude and of
- * Mercator-y.
- *
- * About 2.2km at Riyadh's latitude. Two district anchors in adjacent
- * neighbourhoods sit ~0.01° apart, and fitting exactly that would put the two
- * marks at opposite edges of a frame in which no street is recognisable — the
- * operator would be looking at a junction, not at a city they know. The floor
- * keeps enough ground around the pair to place it.
- */
-const MIN_SPAN_DEG = 0.02
 
 /** Breathing room between a mark and the usable frame, in view units. Tighter
     than the board default: this canvas is a third of a zone map's height and
@@ -118,9 +111,6 @@ const PAD = 14
 const COVER_TOP_PX = 64
 const COVER_BOTTOM_PX = 54
 
-/** Mean Earth radius in kilometres — the straight-line figure's one constant. */
-const EARTH_KM = 6371
-
 export interface RequestMapProps {
   request: RideRequest
   /** The pickup, or `null` when the gazetteer has no entry for its name. */
@@ -137,6 +127,16 @@ export interface RequestMapProps {
   /** The deadline's own state, in the words the queue row already uses. */
   slaLabel: string | null
   slaBreached: boolean
+  /**
+   * **`'expanded'` is this same component, inside `MapDialog`, drawing itself
+   * again at viewport size.**
+   *
+   * One prop rather than a second component: the expanded map has to be the
+   * same marks under the same projection, and a picture assembled twice is a
+   * picture that can drift. See `components/map/MapDialog.tsx`, which owns the
+   * chrome all three journey maps open into.
+   */
+  variant?: 'inline' | 'expanded'
   t: Translate
   language: Language
 }
@@ -151,34 +151,6 @@ export function requestPoints(request: RideRequest): { from: GeoPoint | null; to
   return { from: locate(request.pickup), to: locate(request.destination) }
 }
 
-/** Great-circle kilometres between two anchors. See the header on what it is not. */
-function straightLineKm(a: GeoPoint, b: GeoPoint): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
-  return 2 * EARTH_KM * Math.asin(Math.min(1, Math.sqrt(h)))
-}
-
-/**
- * The window to fit: the ride's own extent, widened to `MIN_SPAN_DEG` about its
- * centre when the two ends are close together or there is only one of them.
- */
-function frameFor(points: readonly GeoPoint[]): readonly GeoPoint[] {
-  const lats = points.map((p) => p.lat)
-  const lngs = points.map((p) => p.lng)
-  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2
-  const midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2
-  const halfLat = Math.max((Math.max(...lats) - Math.min(...lats)) / 2, MIN_SPAN_DEG / 2)
-  const halfLng = Math.max((Math.max(...lngs) - Math.min(...lngs)) / 2, MIN_SPAN_DEG / 2)
-  return [
-    { lat: midLat - halfLat, lng: midLng - halfLng },
-    { lat: midLat + halfLat, lng: midLng + halfLng },
-  ]
-}
-
 export function RequestMap({
   request,
   from,
@@ -187,11 +159,24 @@ export function RequestMap({
   waitOpen,
   slaLabel,
   slaBreached,
+  variant = 'inline',
   t,
   language,
 }: RequestMapProps) {
-  const { boxRef, boxPx, viewH, view, panning, zoomAt, canZoomIn, canZoomOut, surfaceProps } =
-    useMapViewport()
+  const {
+    boxRef,
+    boxPx,
+    viewH,
+    view,
+    panning,
+    zoomAt,
+    canZoomIn,
+    canZoomOut,
+    surfaceProps,
+    lastGestureMoved,
+  } = useMapViewport()
+  const [expanded, setExpanded] = useState(false)
+  const isInline = variant === 'inline'
 
   const placed = [from, to].filter((point): point is GeoPoint => point !== null)
   /* The cards' cover, in view units. `boxPx.h` is the measured height, so this
@@ -203,7 +188,7 @@ export function RequestMap({
     view,
     reserveTop: COVER_TOP_PX * perPx,
     reserveBottom: COVER_BOTTOM_PX * perPx,
-    bounds: frameFor(placed),
+    bounds: routeFrame(placed),
   })
 
   const a = from === null ? null : projection.point(from.lat, from.lng)
@@ -217,7 +202,10 @@ export function RequestMap({
   ].filter((place): place is string => place !== null)
 
   return (
-    <section aria-labelledby={`${describedBy}-heading`} className="flex flex-col">
+    <section
+      aria-labelledby={`${describedBy}-heading`}
+      className={cn('flex flex-col', !isInline && 'h-full')}
+    >
       <h3 id={`${describedBy}-heading`} className="sr-only">
         {t('profile.request.map.heading')}
       </h3>
@@ -228,12 +216,35 @@ export function RequestMap({
            chrome around it mirrors; the geography never does. */
         dir="ltr"
         {...surfaceProps}
+        /**
+         * **Click the map to open it — and a pan is not a click.**
+         *
+         * The browser fires `click` at the end of every drag, so a pan of two
+         * hundred pixels would open the dialog the operator was trying to avoid
+         * needing. `lastGestureMoved` is the hook's own answer; the second guard
+         * keeps the zoom buttons and the attribution link doing their own jobs.
+         *
+         * A MOUSE convenience. The keyboard's way in is `MapExpandButton`.
+         */
+        onClick={
+          isInline
+            ? (event) => {
+                if (lastGestureMoved()) return
+                if ((event.target as HTMLElement).closest('button, a')) return
+                setExpanded(true)
+              }
+            : undefined
+        }
         className={cn(
           /* `touch-none` so a drag on a phone pans the map instead of scrolling
              the sheet out from under it; the two zoom buttons are the touch
              route in, because a pinch would fight the same gesture. */
-          'relative h-64 w-full touch-none overflow-hidden border-b border-border bg-muted select-none',
+          'relative w-full touch-none overflow-hidden bg-muted select-none',
+          isInline
+            ? 'h-64 border-b border-border'
+            : 'h-full rounded-lg border border-border',
           view.k > 1 || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default',
+          isInline && view.k === 1 && !panning && 'cursor-zoom-in',
         )}
       >
         {/* Real OpenStreetMap tiles, in the same Web Mercator projection the
@@ -303,7 +314,16 @@ export function RequestMap({
             it is interactive, and a transparent box over a map is a box the map
             cannot be dragged through. The zoom controls are outside it and take
             their own events. */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2">
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2',
+            /* **Shrink-wrapped when expanded.** In the 480px sheet a full-width card is
+             the whole measure and reads as a caption; stretched across a
+             1,500px dialog it is a banner with three words in it. `items-start`
+             lets the cards take their content's width instead. */
+          !isInline && 'items-start',
+          )}
+        >
           <RequestFigures
             request={request}
             waitMs={waitMs}
@@ -333,6 +353,13 @@ export function RequestMap({
           </div>
         </div>
 
+        {isInline && (
+          <MapExpandButton
+            label={t('profile.request.map.expand')}
+            onClick={() => setExpanded(true)}
+          />
+        )}
+
         <MapZoomControls
           zoomAt={zoomAt}
           canZoomIn={canZoomIn}
@@ -347,6 +374,7 @@ export function RequestMap({
           endpoints, and a licence notice competing with them would be read as
           part of the ride. It is a real link either way — a licence a screen
           reader cannot reach is not a licence notice. */}
+      {isInline && (
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-2xs text-muted-foreground">
         <span>
           {from && to ? (
@@ -365,6 +393,35 @@ export function RequestMap({
         </span>
         <BasemapAttribution />
       </div>
+      )}
+
+      {/* The same component, again, at viewport size. Mounted only while open,
+          so the expanded instance starts at the fit every time rather than
+          resuming a pan from an hour ago. */}
+      {isInline && expanded && (
+        <MapDialog
+          open
+          onOpenChange={setExpanded}
+          title={t('requests.route', {
+            pickup: request.pickup,
+            destination: request.destination,
+          })}
+          description={t('profile.request.map.dialogNote')}
+        >
+          <RequestMap
+            request={request}
+            from={from}
+            to={to}
+            waitMs={waitMs}
+            waitOpen={waitOpen}
+            slaLabel={slaLabel}
+            slaBreached={slaBreached}
+            variant="expanded"
+            t={t}
+            language={language}
+          />
+        </MapDialog>
+      )}
     </section>
   )
 }

@@ -117,7 +117,25 @@ export const tripFixtures: Trip[] = [
     driverName: 'Khalid Mansour',
     subscriptionId: 'SUB-1041',
     startedAt: '2026-06-25T07:45:00+03:00',
-    endedAt: null,
+    /**
+     * **08:23 — `startedAt` + `durationMinutes` + the eight minutes of
+     * lateness.** It was `null`, and `types/trip.ts` diagnosed it as a fixture
+     * bug rather than a state: this row carries a distance, a duration, a fare,
+     * a captain payout and a settled payment, and *"a trip that has been
+     * measured, priced, paid out and settled is not still running"*.
+     *
+     * It was left alone because `'route-history'` selects on
+     * `endedAt !== null && distanceKm !== null`, so setting it moves what that
+     * view returns. The ride record is what forced the fix: the stage log drew
+     * `Drop-off · Not yet` under a fare of 29.40 that had already been paid,
+     * which is a surface reproducing the contradiction rather than a fixture
+     * quietly holding one.
+     *
+     * Nothing else moves. `management.performance.tripsCompleted` filters
+     * `status === 'done'` (`clients/metrics.ts:126`) and this row is `late`; no
+     * test asserts a `route-history` count.
+     */
+    endedAt: '2026-06-25T08:23:00+03:00',
     route: 'Al Malaz → Riyadh Park',
     pickup: 'Al Malaz',
     destination: 'Riyadh Park',
@@ -669,6 +687,50 @@ const FILLER_PLANS: readonly FillerPlan[] = [
 })
 
 /**
+ * **The districts the volume trips run between, and why they are real ones.**
+ *
+ * They were `District 1` … `District 12` — filler names in the literal sense,
+ * and the map could not draw a single one of them. `components/map/places.ts`
+ * is a gazetteer of the ~30 place names the fixtures actually use, and
+ * `District 7` is in none of them, so `locate` returned `null` for **both ends
+ * of 120 of the 137 trips**. The ride sheet and the ride page each ask
+ * `hasTripMap` before they lay themselves out, so the honest answer — *neither
+ * end of this ride is a place the map knows* — was the answer on almost every
+ * record in the product. An operator opening a trip saw no map and no reason
+ * for there not to be one.
+ *
+ * The fix is the same one `FILLER_RIDERS` and `FILLER_CAPTAINS` already apply
+ * one field over: **stop inventing a value the rest of the system cannot
+ * resolve.** These twelve are Riyadh districts the gazetteer already anchors,
+ * spread across the city so a filler leg crosses real ground rather than
+ * hopping between two neighbours, and every one of them places.
+ *
+ * The period is 12 and the destination is offset by 5, exactly as before, so
+ * the distribution of pairs is unchanged — only the names are.
+ *
+ * **`KFUPM` is the one endpoint still unplaceable, and it is left alone.** It
+ * is King Fahd University of Petroleum and Minerals, which is in Dhahran,
+ * ~400km away; two hand-written trips use it as a Riyadh commute. Anchoring it
+ * truthfully would draw a country-scale frame on a city ride, and repointing it
+ * would be editing a seeded record to suit a picture. The map names it as
+ * unplaced instead, which is what that state is for.
+ */
+const FILLER_PLACES: readonly string[] = [
+  'Al Malqa',
+  'Al Narjis',
+  'Hittin',
+  'Al Sahafa',
+  'Al Yasmin',
+  'KAFD',
+  'Al Wurud',
+  'Olaya',
+  'Al Malaz',
+  'Al Rawdah',
+  'Qurtubah',
+  'Al Suwaidi',
+]
+
+/**
  * Volume rows for pagination. Deterministic: every field is a function of the
  * index. 120 rows, so the Trips index pages five deep at the default 25.
  *
@@ -707,9 +769,11 @@ export const fillerTrips: Trip[] = Array.from({ length: 120 }, (_, i) => {
     subscriptionId: plan ? plan.id : null,
     startedAt: offsetFromNow({ days: -(i % 45), hours: -(i % 14), minutes: -(i % 55) }),
     endedAt: i % 11 === 0 ? null : offsetFromNow({ days: -(i % 45), hours: -(i % 14) }),
-    route: `District ${(i % 12) + 1} → District ${((i + 5) % 12) + 1}`,
-    pickup: `District ${(i % 12) + 1}`,
-    destination: `District ${((i + 5) % 12) + 1}`,
+    route: `${FILLER_PLACES[i % FILLER_PLACES.length]} → ${
+      FILLER_PLACES[(i + 5) % FILLER_PLACES.length]
+    }`,
+    pickup: FILLER_PLACES[i % FILLER_PLACES.length] ?? null,
+    destination: FILLER_PLACES[(i + 5) % FILLER_PLACES.length] ?? null,
     distanceKm: i % 11 === 0 ? null : Number((3 + ((i * 7) % 220) / 10).toFixed(1)),
     durationMinutes: i % 11 === 0 ? null : 8 + (i % 40),
     fareHalalas: i % 11 === 0 ? 0 : fare,

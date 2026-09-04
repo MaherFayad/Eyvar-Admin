@@ -13,20 +13,30 @@
  * So the assertions here are all about the **seam**, not about the widgets:
  *
  *   1. The canvas that asks for the table (`withTable` — the builder) gets the
- *      search, the sort and the export, and its panels get the related strip.
+ *      search, the sort and the export, and its plots get the related strip.
  *   2. The canvas that does not (a dashboard tile) gets none of the four. One
  *      signal, `combinedTable`, decides both — so the two cannot drift into
  *      disagreeing about which caller they are inside.
  *   3. `onExport` is the caller's function, actually invoked. A button wired to
  *      nothing passes a presence check forever.
- *   4. `framed` produces exactly one frame, and `PanelFrame` is asserted in
- *      both states so *"one card"* cannot be true merely because the panels
- *      stopped rendering.
+ *   4. `framed` produces exactly one frame, and the plot is asserted alongside
+ *      it so *"one card"* cannot be true merely because the body stopped
+ *      rendering.
  *
  * The `ReportResult` is hand-built rather than run through `runReport`, for the
  * reason `panelCard.test.tsx` gives: the point is a shape the seeded data need
  * not contain — two panels, with a measure declared as displayed on a real
  * board — and waiting for a fixture to grow one is how a seam ships untested.
+ *
+ * ## What moved on 2026-09-04, and why the assertions did rather than the code
+ *
+ * `ResultCanvas.Body` no longer maps `result.panels` to one `PanelCard` each in
+ * a `@xl:grid-cols-2` grid. It filters out the series that cannot be drawn,
+ * groups the rest by `(unit, currency)`, and renders **one card per group** —
+ * headlines, one plot, a legend, and §A12's strip. So the counts here changed
+ * from *per panel* to *per axis group*, and the retired column-count block is
+ * replaced by the invariants that actually matter: what may share a y-axis, and
+ * what is never folded into one. Nothing about the QUERY changed.
  */
 
 import { render, screen, within } from '@testing-library/react'
@@ -35,6 +45,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { createTranslator } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
+import { findSubTabById } from '@/data/clients'
 import type {
   Measure,
   ReportPanel,
@@ -48,6 +59,8 @@ import { ResultCanvas } from './ResultCanvas'
 const t = createTranslator({ dictionary: EN })
 const copy = (key: string) => EN[key] as string
 const NO_DATA = EN['overview.noData'] as string
+/** The board `management.growth.*` resolves to, read from the route table itself. */
+const GROWTH_TITLE = t(findSubTabById('management-growth')?.titleKey ?? '')
 const AS_OF = '2026-06-25T09:14:00+03:00'
 const BUCKETS = ['2026-06-19', '2026-06-20', '2026-06-21']
 
@@ -80,18 +93,31 @@ const MEASURE: Measure = {
   displayedAsMetricKeys: ['management.growth.registeredRiders'],
 }
 
-function panelOf(id: string): ReportPanel {
+/**
+ * **Each panel carries its own group name**, so the compound plot's accessible
+ * name lists distinguishable series rather than `Other, Other`. The name IS the
+ * assertion now: the marks inside a plot are inert, so what a reader is told is
+ * in it is the only handle on which series ended up on which axis.
+ */
+function panelOf(id: string, over: Partial<ReportPanel> = {}): ReportPanel {
   return {
     panelId: id,
-    titleKey: 'rb.panel.measure',
-    titleParams: { measure: 'rb.panel.other' },
+    titleKey: 'rb.panel.measureByGroup',
+    titleParams: { measure: 'rb.panel.other', group: id },
     unit: 'count',
     currency: null,
     seriesIds: [`s-${id}`],
+    ...over,
   }
 }
 
-function seriesOf(panelId: string): ReportSeries {
+/** The title the plot, the headline and the legend all read for a panel. */
+const titleOf = (id: string) =>
+  (copy('rb.panel.measureByGroup') as string)
+    .replace('{measure}', copy('rb.panel.other'))
+    .replace('{group}', id)
+
+function seriesOf(panelId: string, over: Partial<ReportSeries> = {}): ReportSeries {
   return {
     id: `s-${panelId}`,
     measureKey: MEASURE.key,
@@ -105,6 +131,7 @@ function seriesOf(panelId: string): ReportSeries {
     partialBucketIndexes: [],
     blocked: null,
     failed: null,
+    ...over,
   }
 }
 
@@ -118,7 +145,7 @@ const QUERY: ReportQuery = {
   chartType: 'line',
 }
 
-/** Two panels — the small-multiples branch, which is the one both callers hit. */
+/** Two panels of one unit — one axis group, and therefore one plot. */
 function twoPanelResult(): ReportResult {
   return {
     query: QUERY,
@@ -138,10 +165,49 @@ function wideResult(): ReportResult {
   const ids = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8']
   return {
     ...twoPanelResult(),
-    panels: ids.map(panelOf),
-    series: ids.map(seriesOf),
+    panels: ids.map((id) => panelOf(id)),
+    series: ids.map((id) => seriesOf(id)),
   }
 }
+
+/**
+ * **Two panels that may NOT share a y-axis** — a count and a money figure.
+ *
+ * `(unit, currency)` is two thirds of the triple `pairRefusal` uses to decide
+ * whether two numbers may be combined at all, and it is the grouping key the
+ * canvas splits on. Halalas and a count on one axis is the fabrication this
+ * module exists to refuse, so this fixture is the one that proves the compound
+ * plot did not buy its picture by drawing it.
+ */
+function twoUnitResult(): ReportResult {
+  return {
+    ...twoPanelResult(),
+    panels: [panelOf('p1'), panelOf('p2', { unit: 'money', currency: 'SAR' })],
+    series: [seriesOf('p1'), seriesOf('p2', { unit: 'money', currency: 'SAR' })],
+  }
+}
+
+/** A run where one leg is redacted (§13.1) and the rest is drawable. */
+function blockedResult(): ReportResult {
+  return {
+    ...twoPanelResult(),
+    series: [seriesOf('p1'), seriesOf('p2', { blocked: 'view_finance', points: [] })],
+  }
+}
+
+/** §8.3 state 10 — one leg failed, the rest live. */
+function failedResult(): ReportResult {
+  return {
+    ...twoPanelResult(),
+    series: [
+      seriesOf('p1'),
+      seriesOf('p2', { failed: { code: 'upstream', retryable: true }, points: [] }),
+    ],
+  }
+}
+
+/** The plots on screen, named by what each one says is in it. */
+const plots = () => screen.queryAllByRole('img').map((p) => p.getAttribute('aria-label'))
 
 function renderCanvas(props: Partial<React.ComponentProps<typeof ResultCanvas>> = {}) {
   return render(
@@ -233,9 +299,26 @@ describe('§A11 — the table under the picture ships with its chrome', () => {
 /* ═══════════════ §A12 — the related strip follows the same signal ═════════ */
 
 describe('§A12 — the related-boards strip is the builder’s, not the board’s', () => {
-  it('closes every panel in the builder with the boards the measure appears on', () => {
+  /* **One strip per PLOT, deduplicated across the series in it** — was one per
+     panel. The strip hung off each `PanelCard` when a split by district drew
+     six cards, which printed the same board six times. The compound plot is one
+     card, so the statement *"this measure also appears on …"* is made once
+     about everything on that axis. */
+  it('closes each plot in the builder with the boards its measures appear on, once', () => {
     asBuilder()
-    /* One per panel: the strip belongs to the panel, and the run has two. */
+    /* Two panels, one unit, one plot — and one strip, not one per series, even
+       though both series resolve to the same board. */
+    expect(screen.getAllByText(copy('rb.related.heading'))).toHaveLength(1)
+    expect(
+      screen.getByRole('link', { name: GROWTH_TITLE }),
+      'the board is named once, not once per series on the axis',
+    ).toBeInTheDocument()
+  })
+
+  /* **New with the compound plot**: the dedup must not collapse across axes.
+     Two plots are two readings and each owes its own way out. */
+  it('gives each axis group its own strip, because they are two separate plots', () => {
+    asBuilder({ result: twoUnitResult() })
     expect(screen.getAllByText(copy('rb.related.heading'))).toHaveLength(2)
   })
 
@@ -255,25 +338,25 @@ describe('§A12 — the related-boards strip is the builder’s, not the board�
 /* ═══════════════════════ one frame, and only one ═════════════════════════ */
 
 describe('framed — the caller that already drew a frame says so', () => {
-  it('cards every panel by default, which is what a nested frame would double', () => {
+  /* **One card per axis group**, was one card per panel. The small-multiples
+     grid is gone: two panels of one unit are two series on one plot, so the
+     canvas draws ONE card. `twoUnitResult` below is the half that keeps this
+     from being an assertion that the canvas stopped rendering. */
+  it('cards each plot by default, which is what a nested frame would double', () => {
     const { container } = renderCanvas()
     const cards = container.querySelectorAll('[data-slot="card"]')
-    expect(cards, 'two panels, two cards — the canvas IS the page here').toHaveLength(2)
+    expect(cards, 'two series, one unit, one axis — one card').toHaveLength(1)
     expect(container.querySelectorAll('[data-slot="panel-frame"]')).toHaveLength(0)
   })
 
-  it('draws no card at all when the caller has one, and still draws the panels', () => {
+  it('draws no card at all when the caller has one, and still draws the plot', () => {
     const { container } = asTile()
     expect(container.querySelectorAll('[data-slot="card"]')).toHaveLength(0)
     /* **The half that stops this being vacuous.** Zero cards is trivially true
-       of a canvas that rendered nothing; the panels have to still be there, and
-       each one has to still be a panel. */
-    const panels = container.querySelectorAll('[data-slot="panel-frame"]')
-    expect(panels).toHaveLength(2)
-    expect(
-      screen.getAllByRole('button', { name: copy('rb.panel.actions') }),
-      'a flush panel keeps its own chrome',
-    ).toHaveLength(2)
+       of a canvas that rendered nothing; the plot has to still be there, and it
+       has to still say both series are in it. */
+    expect(container.querySelectorAll('[data-slot="panel-frame"]')).toHaveLength(1)
+    expect(plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
   })
 
   it('carries the frame decision into the empty result too', () => {
@@ -306,37 +389,68 @@ describe('framed — the caller that already drew a frame says so', () => {
   })
 })
 
-/* ══════════════════════ R4-1's floor, as a column count ══════════════════ */
+/* ═══════════════ one plot per (unit, currency), and no more ══════════════ */
 
-describe('R4-1 — the panel grid asks its container, not the viewport', () => {
-  it('splits two across only where a container query says there is room', () => {
-    const { container } = renderCanvas()
-    const grid = container.querySelector('ul[role="list"]') as HTMLElement
-    expect(grid).toBeTruthy()
-    /* One column unconditionally, two only above `@xl` (36rem = 576px), which
-       is the nearest container size above 2 x 268 + 12. A tile-width canvas is
-       under it and runs one column; the builder's is over it and runs two.
-       `scratch/tile-density.mjs` measures both — jsdom has no layout, so what
-       is checkable here is that the request is a CONTAINER query and that the
-       one-column answer is unprefixed and therefore always in force. */
-    expect(grid.className).toContain('grid-cols-1')
-    expect(grid.className).toContain('@xl:grid-cols-2')
-    /* Never a bare viewport variant: `--breakpoint-*` is `initial`, so
-       `xl:grid-cols-2` would compile to nothing and silently leave one column
-       everywhere. `breakpointVariants.test.ts` is the product-wide gate. */
-    expect(grid.className).not.toMatch(/(^|\s)xl:/)
+/**
+ * **What replaced R4-1's column count.**
+ *
+ * The old two tests here asserted `grid-cols-1 @xl:grid-cols-2` on the panel
+ * grid. That grid was retired deliberately — the owner's *"compound charts that
+ * compare those data to each other not every one in it's own chart"* — and with
+ * it the defect it caused: six districts drew six charts, each auto-scaled to
+ * its own maximum, so 40 rides and 4,000 rides produced the same shaped line at
+ * the same height and the comparison the split exists to make was the one thing
+ * the picture could not show.
+ *
+ * A column count is not the invariant worth guarding anyway. **What may share a
+ * y-axis is**, and these are the assertions that catch a regression which would
+ * be a lie rather than a layout: one plot per `(unit, currency)`, a series that
+ * cannot be drawn left out of the compound plot rather than flattened into it.
+ */
+describe('the compound plot groups by what may honestly share one axis', () => {
+  it('draws one plot for series of one unit, naming every series in it', () => {
+    renderCanvas()
+    expect(plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
   })
 
-  it('gives a single panel the whole width, at every container size', () => {
-    const one: ReportResult = {
-      ...twoPanelResult(),
-      panels: [panelOf('p1')],
-      series: [seriesOf('p1')],
-    }
-    const { container } = renderCanvas({ result: one })
-    const grid = container.querySelector('ul[role="list"]') as HTMLElement
-    expect(grid.className).toContain('grid-cols-1')
-    expect(grid.className).not.toContain('@xl:grid-cols-2')
+  it('draws one plot however many groups a split produces', () => {
+    /* Eight panels, one unit — a split by district, which is the case the
+       compound chart was built for. Still one axis, still one plot. */
+    renderCanvas({ result: wideResult() })
+    expect(screen.getAllByRole('img')).toHaveLength(1)
+    expect(plots()[0]).toContain(titleOf('p8'))
+  })
+
+  it('refuses to put a count and a money figure on one axis, and draws two', () => {
+    const { container } = renderCanvas({ result: twoUnitResult() })
+    /* Two plots, and two cards — a second unit is a second reading, not a
+       second line. Halalas over a count on one axis is the fabrication
+       `pairRefusal` exists to refuse; drawing it prettily does not make it
+       true. */
+    expect(plots()).toEqual([titleOf('p1'), titleOf('p2')])
+    expect(container.querySelectorAll('[data-slot="card"]')).toHaveLength(2)
+  })
+
+  it('keeps a blocked series out of the compound plot, with its own card', () => {
+    renderCanvas({ result: blockedResult() })
+    /* Not folded in: a redacted series has no points, and drawing it as a flat
+       line at zero is §13.1's silent redaction wearing a nicer picture. */
+    expect(plots()).toEqual([titleOf('p1')])
+    expect(
+      screen.getByText(copy('rb.panel.blocked').replace('{permission}', 'view_finance')),
+      'the viewer is told the series exists and which permission would show it',
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a failed series out of the compound plot, with its own retry', () => {
+    renderCanvas({ result: failedResult() })
+    expect(plots()).toEqual([titleOf('p1')])
+    /* §8.3 state 10 — the leg that failed carries the way to try it again, and
+       the leg that worked is still drawn. */
+    expect(screen.getByText(copy('rb.panel.failed'))).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: copy('rb.panel.failed.retry') }),
+    ).toBeInTheDocument()
   })
 
   it('asks the canvas itself, because nothing outside it knows how wide it is', () => {

@@ -126,6 +126,41 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/applications/:id/documents/:type/reject",
+      "client": "src/data/clients/applicants.ts",
+      "function": "rejectApplicantDocument",
+      "params": null,
+      "body": "{ code }",
+      "returns": "Applicant",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/documents/:type/request-reupload",
+      "client": "src/data/clients/applicants.ts",
+      "function": "requestApplicantDocumentReupload",
+      "params": null,
+      "body": null,
+      "returns": "Applicant",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/applications/:id/documents/:type/verify",
+      "client": "src/data/clients/applicants.ts",
+      "function": "verifyApplicantDocument",
+      "params": null,
+      "body": null,
+      "returns": "Applicant",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "when nothing has been uploaded"
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/applications/:id/reject",
       "client": "src/data/clients/applicants.ts",
       "function": "rejectApplicant",
@@ -148,6 +183,21 @@
       "body": null,
       "returns": "Applicant",
       "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/applications/documents/:documentId/file",
+      "client": "src/data/clients/applicants.ts",
+      "function": "getApplicationDocumentFile",
+      "params": null,
+      "body": null,
+      "returns": "bytes, or 204 for no upload on record",
+      "statuses": [
+        {
+          "code": "403",
+          "when": "without `approve_drivers`"
+        }
+      ]
     },
     {
       "method": "GET",

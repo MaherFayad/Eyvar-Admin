@@ -156,8 +156,36 @@ export function IndexToolbar(props: IndexToolbarProps) {
        UNREACHABLE control, which is the exact failure the tab-track note below
        degrades to avoid. So the row wraps and its height becomes a floor
        instead of a fixed 56. Desktop-first: the unprefixed classes are still
-       the desktop answer and nothing above 768 reads these overrides. */
-    <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 px-3 py-2">
+       the desktop answer and nothing above 768 reads these overrides.
+
+       **The heading variant changes two things about this row, and both are
+        measured defects rather than preferences.**
+
+        1. `px-3` on the row put a section title 12px inside its own card. On
+           the captain's Activity tab the figure row above sat at x=128, the
+           table card at 128 and its first column header at 129 — and the
+           heading alone at **140**, aligned to nothing on the page. The padding
+           is right for the control cluster (it keeps the buttons off the card
+           edge) and wrong for the title, so the row loses its inline padding in
+           this variant and the cluster carries its own instead.
+
+        2. `flex-wrap` broke the row in two. Measured on that same tab: the
+           heading block wants 258px and the control cluster 716px, which is
+           982 against an 827px box, so the title took one line and the controls
+           took another. The search field is already built to absorb this —
+           `min-w-32 shrink basis-60`, 240px down to 128 — but flex assigns
+           items to lines at their BASE size and only shrinks afterwards, so
+           wrapping fires before the field ever gives up a pixel. `nowrap` here
+           lets the shrink it was designed for actually happen.
+
+        The tab-strip variant keeps both, untouched: a tab that shrinks is an
+        unreadable control, and `compact:` already owns its narrow behaviour. */
+    <div
+      className={cn(
+        'flex min-h-14 shrink-0 items-center gap-2 py-2',
+        heading === undefined || heading === '' ? 'flex-wrap px-3' : 'min-w-0 flex-nowrap',
+      )}
+    >
       {/* Truthy, not merely `!== undefined`: the type requires a `string` on
           this arm, but a screen that builds its title from a record still in
           flight can hand over `''`, and an EMPTY `h2` is worse than no heading
@@ -236,8 +264,21 @@ export function IndexToolbar(props: IndexToolbarProps) {
           {/* `null` is the documented absence and `''` is what a screen's
               `join` produces when it has nothing to join — neither should draw
               an empty 16px line under the title. */}
+          {/* **The subheading WRAPS where the title truncates, and the
+              asymmetry is deliberate.** The rule above — *a clipped heading is
+              just a lost sentence* — holds for a title, which names a section
+              the reader can still identify from its first words. It does not
+              hold here: this line carries FACTS. `DriverTripsTable` puts
+              `1,284 trips completed · Last trip 25 Jun 06:40` in it, and once
+              the row stopped wrapping the block shrank to 214px and ellipsised
+              that to `…Last trip 25 Jun 0…` — a date truncated mid-value, which
+              reads as a rendering fault rather than as a shortened phrase.
+
+              Wrapping costs one 16px line in the rare case and never costs a
+              fact. `text-pretty` so a two-line break lands between phrases
+              rather than orphaning a single word. */}
           {subheading != null && subheading !== '' && (
-            <span className="truncate text-xs text-muted-foreground">{subheading}</span>
+            <span className="text-xs text-pretty text-muted-foreground">{subheading}</span>
           )}
         </div>
       )}
@@ -343,7 +384,16 @@ export function IndexToolbar(props: IndexToolbarProps) {
       {/* The cluster keeps its inline-end alignment on the desktop; wrapped, an
           auto inline-start margin would push it to the far edge of its own row
           and split the controls across the width for no reason. */}
-      <div className="ms-auto flex items-center gap-1.5 compact:ms-0 compact:flex-wrap">
+      <div
+        className={cn(
+          'ms-auto flex items-center gap-1.5 compact:ms-0 compact:flex-wrap',
+          /* The inline padding the row gave up, carried by the cluster so the
+             buttons keep their distance from the card edge while the title
+             does not. `min-w-0` so the search field can reach its own floor
+             instead of the cluster refusing to shrink below max-content. */
+          heading !== undefined && heading !== '' && 'min-w-0 pe-3',
+        )}
+      >
         {/* ONE control, ONE focus ring. The previous construction was a
             bordered wrapper with `focus-within:ring-2` around an `Input` that
             still carried its own `focus-visible:ring-2 ring-offset-2` — so

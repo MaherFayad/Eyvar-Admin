@@ -47,7 +47,7 @@
 
 import { toEpochMs, EYVAR_NOW, EYVAR_TZ_OFFSET } from '../mock/clock'
 import type { IsoDateTime } from '../types/common'
-import type { Trip } from '../types/trip'
+import { isOpenTripStatus, type Trip } from '../types/trip'
 import type { TripStage, TripTelemetry } from '../types/tripTelemetry'
 import { allTripFixtures } from './trips'
 
@@ -206,7 +206,24 @@ const DETOUR_ROADS: readonly string[] = [
  */
 export function tripTelemetryFor(trip: Trip, now: IsoDateTime = EYVAR_NOW): TripTelemetry {
   const stages = tripStagesFor(trip)
-  const inFlight = trip.endedAt === null && trip.status !== 'requested'
+  /**
+   * **In flight = a captain is driving this ride right now.**
+   *
+   * `OPEN_TRIP_STATUSES` is the product's one answer to *"is this trip still
+   * open"*, and `types/trip.ts` opens by naming the defect a local list causes:
+   * Dispatch and the rider profile each invented one and disagreed about
+   * `requested`. So the set is read rather than restated, minus `requested` —
+   * which is open, and has nobody driving it to project a position for.
+   *
+   * **`late` is deliberately NOT in flight.** It means *arrived late*, not
+   * *running late*: `TRP-7742` carries a distance, a duration, a fare, a payout
+   * and a settled payment, and a trip that has been measured, priced, paid out
+   * and settled is not still moving. `endedAt: null` on that row is a fixture
+   * bug the type file already records; reading the status rather than the
+   * timestamp is what keeps this file from inheriting it.
+   */
+  const inFlight =
+    trip.endedAt === null && trip.status !== 'requested' && isOpenTripStatus(trip.status)
 
   if (!inFlight) {
     return {

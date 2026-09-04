@@ -57,6 +57,12 @@ export const REQUEST_PROFILE_EN: Dictionary = {
      place missing from the data look identical once you stop saying which. */
   'profile.request.map.unplaced': '{place} could not be placed on the map.',
   'profile.request.map.none': 'Neither end of this ride is a place the map knows.',
+  /* The expanded map. The key sits in the REQUEST dictionary and the
+     subscription sheet reads it, exactly as it already reads
+     `profile.request.map.pickup` — one control, one spelling. */
+  'profile.request.map.expand': 'Open the map',
+  'profile.request.map.dialogNote':
+    'Pickup and drop-off are placed at their district, and the line between them is a connector rather than the road anybody drove.',
   'profile.request.map.zoom.in': 'Zoom in',
   'profile.request.map.zoom.out': 'Zoom out',
 
