@@ -636,7 +636,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.trial.col.type': 'النوع',
   'fin.trial.col.balance': 'الرصيد (SAR)',
   'fin.trial.search': 'ابحث في الحسابات',
-  'fin.trial.totals': 'المدين {debits} · الدائن {credits} · {entries} قيد',
   'fin.trial.balanced': 'المدين يساوي الدائن.',
   'fin.trial.type.asset': 'أصل',
   'fin.trial.type.liability': 'التزام',
@@ -728,4 +727,25 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.audit.planSaved': 'حُفظت الباقة {plan}.',
   'fin.audit.refundIssued': 'صدر الاسترداد {reference} إلى {destination}.',
   'fin.audit.walletAdjusted': 'عُدِّلت محفظة — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §5 Wallets, Pricing & Ledger ── */
+
+  'fin.overview.refused.body':
+    'كل قيد مرفوض محفوظ ويمكن قراءته، ولا شيء منها داخل هذه الإجماليات.',
+
+  'fin.wallets.header.label': 'أرصدة محافظ الركاب',
+  'fin.wallets.header.caption': '{wallets} محفظة · {negative} دون الصفر',
+  'fin.wallets.authority.label': 'صلاحيتك لمنح التعويض',
+  'fin.wallets.authority.daily': 'اليوم {used} من {cap}',
+  'fin.wallets.authority.caps': 'لكل حالة {perCase} · {countCap} لكل راكب خلال 30 يومًا',
+
+  'fin.pricing.plan.col.gross': 'الإجمالي (SAR)',
+  'fin.pricing.plan.action.revenue': 'فتح الإيرادات',
+
+  'fin.controls.trial.heading': 'ميزان المراجعة',
+  'fin.controls.trial.balanced': 'متوازن',
+  'fin.controls.trial.unbalanced': 'غير متوازن',
+  'fin.controls.trial.debits': 'إجمالي المدين',
+  'fin.controls.trial.credits': 'إجمالي الدائن',
+  'fin.controls.trial.caption': '{entries} قيد · {suppressed} تكرارًا مكبوتًا',
 }

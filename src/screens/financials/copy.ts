@@ -923,7 +923,6 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.trial.col.type': 'Type',
   'fin.trial.col.balance': 'Balance (SAR)',
   'fin.trial.search': 'Search accounts',
-  'fin.trial.totals': 'Debits {debits} · Credits {credits} · {entries} entries',
   'fin.trial.balanced': 'Debits equal credits.',
   'fin.trial.type.asset': 'Asset',
   'fin.trial.type.liability': 'Liability',
@@ -1047,4 +1046,33 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.audit.planSaved': 'Saved the plan {plan}.',
   'fin.audit.refundIssued': 'Issued the refund {reference} to {destination}.',
   'fin.audit.walletAdjusted': 'Adjusted a wallet — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §5 Wallets, Pricing & Ledger ── */
+
+  /* §1 P0-1 — the refused banner used to reuse the out-of-balance sentence and
+     so contradicted the balanced totals printed beneath it. */
+  'fin.overview.refused.body':
+    'Every refused posting is kept and can be read. None of them is in these totals.',
+
+  /* §5.3 — the wallets view header, in `LedgerCard`'s Balance shape. */
+  'fin.wallets.header.label': 'Rider wallet balances',
+  'fin.wallets.header.caption': '{wallets} wallets · {negative} below zero',
+  /* AC-384 — the ceiling is on the page before the dialog opens. */
+  'fin.wallets.authority.label': 'Your goodwill authority',
+  'fin.wallets.authority.daily': 'Daily {used} of {cap}',
+  'fin.wallets.authority.caps': 'Per case {perCase} · {countCap} per rider in 30 days',
+
+  /* §5.4 — the plan's money page is Revenue, not this catalogue. The period
+     is on the page meta and on the control above the table, so the header
+     carries the unit and nothing else (§8.3.1). */
+  'fin.pricing.plan.col.gross': 'Gross (SAR)',
+  'fin.pricing.plan.action.revenue': 'Open revenue',
+
+  /* §5.5 / V-20 — the balanced books stated as a heading, never as a colour. */
+  'fin.controls.trial.heading': 'Trial balance',
+  'fin.controls.trial.balanced': 'Balanced',
+  'fin.controls.trial.unbalanced': 'Out of balance',
+  'fin.controls.trial.debits': 'Total debits',
+  'fin.controls.trial.credits': 'Total credits',
+  'fin.controls.trial.caption': '{entries} entries · {suppressed} duplicates suppressed',
 }

@@ -35,7 +35,7 @@
  *              rather than trusting this sentence.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import {
   getIdempotencyStats,
   getInvoiceSequence,
@@ -62,16 +62,17 @@ import type {
   VatConfig,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, formatMoney } from '@/lib'
+import { formatCount, formatDate, formatMoney, type Language, type Translate } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { MoneyCell } from '@/components/Money'
+import { Money, MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { cn } from '@/lib/utils'
 import { useShell } from '@/shell/ShellContext'
 import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
@@ -89,6 +90,9 @@ const VIEWS: readonly ScreenView[] = [
 ]
 
 const DEFAULT_VIEW = 'trial-balance'
+
+/** V-19 — the first four views READ the books; the two after them configure it. */
+const BOOKS_VIEW_COUNT = 4
 
 export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -122,6 +126,13 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
     cacheKey: 'ledger.refused',
   })
   const refusedCount = refused.data?.length ?? 0
+
+  /* §5.5 — read at the SCREEN: two views state it now. A suppressed duplicate
+     is a posting that did not double the books, so it belongs in the header. */
+  const stats = useAsync<IdempotencyStats>((signal) => getIdempotencyStats(signal), {
+    deps: [],
+    cacheKey: 'ledger.idempotency',
+  })
 
   /* **AC-416 / AC-419** — one banner. Out of balance outranks the refused
      count, because a book that does not balance is the more severe reading of
@@ -164,7 +175,10 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
               : t('fin.overview.refused.titleMany', {
                   count: formatCount(refusedCount, language),
                 }),
-          body: t('fin.overview.outOfBalance.body'),
+          /* **P0-1** — its own sentence. The out-of-balance body says the two
+             totals disagree, which contradicts the header beneath this banner
+             on every balanced ledger. */
+          body: t('fin.overview.refused.body'),
           actions:
             activeTab === 'refused'
               ? []
@@ -183,27 +197,34 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   return (
     <FinancialsPage row={row} banners={banners} t={t} dir={dir}>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
+        {/* **V-19** — one view row for the whole route, grouped, above whatever
+            the view renders. See `LedgerViewTabs`. */}
+        <LedgerViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
         {activeTab === 'trial-balance' && (
           <TrialBalanceView
             key="trial"
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             trial={trial.data}
             status={trial.status}
+            stats={stats.data}
             onRetry={trial.refetch}
           />
         )}
         {activeTab === 'journal' && (
-          <JournalView key="journal" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <JournalView key="journal" activeTab={activeTab} onSelectTab={selectTab} />
         )}
         {activeTab === 'reconciliation' && (
-          <ReconciliationView key="recon" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <ReconciliationView
+            key="recon"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            stats={stats.data}
+          />
         )}
         {activeTab === 'refused' && (
           <RefusedView
             key="refused"
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             refused={refused.data ?? []}
@@ -212,16 +233,16 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
           />
         )}
         {activeTab === 'gateways' && (
-          <GatewaysView key="gateways" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
+          <GatewaysView key="gateways" activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
         )}
-        {activeTab === 'vat' && <VatView key="vat" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+        {activeTab === 'vat' && <VatView key="vat" />}
       </div>
     </FinancialsPage>
   )
 }
 
 interface ViewProps {
-  tabs: readonly { id: string; label: string }[]
+  /** Still passed: `DataTable` keys its per-view column state on it (§7.6). */
   activeTab: string
   onSelectTab: (id: string) => void
 }
@@ -229,15 +250,16 @@ interface ViewProps {
 /* ─────────────────────────── the trial balance ─────────────────────────── */
 
 function TrialBalanceView({
-  tabs,
   activeTab,
   onSelectTab,
   trial,
   status,
+  stats,
   onRetry,
 }: ViewProps & {
   trial: TrialBalance | null
   status: 'loading' | 'error' | 'empty' | 'content'
+  stats: IdempotencyStats | null
   onRetry: () => void
 }) {
   const shell = useShell()
@@ -295,18 +317,19 @@ function TrialBalanceView({
   )
 
   return (
-    <DataTable
-      table={table}
-      rows={rows}
-      columns={columns}
-      getRowId={(each) => each.account}
-      status={status}
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      {trial && <TrialBalanceHeader trial={trial} stats={stats} t={t} language={language} />}
+      <DataTable
+        table={table}
+        rows={rows}
+        columns={columns}
+        getRowId={(each) => each.account}
+        status={status}
       total={rows.length}
       t={t}
       language={language}
       tableId="financials-trial-balance"
       view={activeTab}
-      tabs={tabs}
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.trial.search')}
@@ -317,32 +340,74 @@ function TrialBalanceView({
          `balanceHalalas < 0` tinted half a healthy trial balance red. A trial
          balance has no critical row: an out-of-balance ledger is a PAGE-level
          fact and §3.7 already refuses to turn a tile red for it. */
-      skeletonPattern="P1"
-      learnMore={
-        trial ? (
-          <span className="text-sm text-muted-foreground">
-            {t('fin.trial.totals', {
-              debits: formatMoney(trial.totalDebitsHalalas),
-              credits: formatMoney(trial.totalCreditsHalalas),
-              entries: formatCount(trial.entryCount, language),
-            })}
+        skeletonPattern="P1"
+        firstRun={{
+          heading: t('fin.trial.empty.heading'),
+          body: t('fin.trial.empty.body'),
+          actions: [{ label: t('fin.trial.empty.action'), onClick: () => onSelectTab('journal') }],
+        }}
+        noMatch={{ message: t('fin.empty.noMatch') }}
+        error={{ message: t('fin.error.read'), onRetry }}
+      />
+    </div>
+  )
+}
+
+/**
+ * **V-20** — the balanced books in `LedgerCard`'s header shape, promoted out of
+ * the table footer. `Balanced` is a WORD and wears no colour: **AC-416** keeps
+ * out of balance in the page's critical banner.
+ */
+function TrialBalanceHeader({
+  trial,
+  stats,
+  t,
+  language,
+}: {
+  trial: TrialBalance
+  stats: IdempotencyStats | null
+  t: Translate
+  language: Language
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3 pb-1">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 className="truncate text-sm font-semibold text-foreground">
+          {t('fin.controls.trial.heading')}
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {t(trial.balanced ? 'fin.controls.trial.balanced' : 'fin.controls.trial.unbalanced')}
+        </p>
+      </div>
+
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-end gap-6">
+          <span className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">{t('fin.controls.trial.debits')}</span>
+            <Money amount={trial.totalDebitsHalalas} className="text-lg font-semibold" />
           </span>
-        ) : undefined
-      }
-      firstRun={{
-        heading: t('fin.trial.empty.heading'),
-        body: t('fin.trial.empty.body'),
-        actions: [{ label: t('fin.trial.empty.action'), onClick: () => onSelectTab('journal') }],
-      }}
-      noMatch={{ message: t('fin.empty.noMatch') }}
-      error={{ message: t('fin.error.read'), onRetry }}
-    />
+          <span className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">{t('fin.controls.trial.credits')}</span>
+            <Money amount={trial.totalCreditsHalalas} className="text-lg font-semibold" />
+          </span>
+        </div>
+        {/* **V-3** in the console's own face: `MetricTile` records the owner's
+            ruling against the reference's monospace, and `globals.css` refuses
+            `--ev-text-3` as a text colour — so size, case, tracking, muted ink. */}
+        <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+          {t('fin.controls.trial.caption', {
+            entries: formatCount(trial.entryCount, language),
+            suppressed: formatCount(stats?.suppressed ?? 0, language),
+          })}
+        </span>
+      </div>
+    </div>
   )
 }
 
 /* ────────────────────────────── the journal ────────────────────────────── */
 
-function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function JournalView({ activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<JournalEntry>({ mode: 'queue', getRowId: (entry) => entry.id })
@@ -437,7 +502,6 @@ function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
       language={language}
       tableId="financials-journal"
       view={activeTab}
-      tabs={tabs}
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.journal.search')}
@@ -455,7 +519,7 @@ function JournalView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
 /* ───────────────────────────  reconciliation  ──────────────────────────── */
 
-function ReconciliationView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function ReconciliationView({ activeTab, onSelectTab, stats }: ViewProps & { stats: IdempotencyStats | null }) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<ReconciliationRow>({
@@ -467,11 +531,6 @@ function ReconciliationView({ tabs, activeTab, onSelectTab }: ViewProps) {
     deps: [],
     cacheKey: 'ledger.reconciliation',
   })
-  const stats = useAsync<IdempotencyStats>((signal) => getIdempotencyStats(signal), {
-    deps: [],
-    cacheKey: 'ledger.idempotency',
-  })
-
   const columns = useMemo<DataColumn<ReconciliationRow>[]>(
     () => [
       {
@@ -533,18 +592,17 @@ function ReconciliationView({ tabs, activeTab, onSelectTab }: ViewProps) {
       language={language}
       tableId="financials-reconciliation"
       view={activeTab}
-      tabs={tabs}
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.reconcile.search')}
       skeletonPattern="P1"
       learnMore={
-        stats.data ? (
+        stats ? (
           <span className="text-sm text-muted-foreground">
             {t('fin.reconcile.idempotency', {
-              operations: formatCount(stats.data.operations, language),
-              duplicated: formatCount(stats.data.duplicated, language),
-              suppressed: formatCount(stats.data.suppressed, language),
+              operations: formatCount(stats.operations, language),
+              duplicated: formatCount(stats.duplicated, language),
+              suppressed: formatCount(stats.suppressed, language),
             })}
           </span>
         ) : undefined
@@ -565,7 +623,6 @@ function ReconciliationView({ tabs, activeTab, onSelectTab }: ViewProps) {
 /* ──────────────────────────── refused postings ─────────────────────────── */
 
 function RefusedView({
-  tabs,
   activeTab,
   onSelectTab,
   refused,
@@ -656,7 +713,6 @@ function RefusedView({
       language={language}
       tableId="financials-refused"
       view={activeTab}
-      tabs={tabs}
       activeTab={activeTab}
       onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.refused.search')}
@@ -683,7 +739,6 @@ function RefusedView({
 /* ──────────────────────────── payment gateways ─────────────────────────── */
 
 function GatewaysView({
-  tabs,
   activeTab,
   onSelectTab,
   gate,
@@ -831,7 +886,6 @@ function GatewaysView({
         language={language}
         tableId="financials-gateways"
         view={activeTab}
-        tabs={tabs}
         activeTab={activeTab}
         onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.gateway.search')}
@@ -852,7 +906,7 @@ function GatewaysView({
 
 /* ────────────────────────── VAT and invoicing ──────────────────────────── */
 
-function VatView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function VatView() {
   const shell = useShell()
   const { t, language } = shell.language
   const vat = useAsync<VatConfig>((signal) => getVatConfig(signal), {
@@ -866,8 +920,6 @@ function VatView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <ViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={onSelectTab} />
-
       {vat.status === 'loading' && <LoadingSkeleton pattern="P4" />}
       {vat.status === 'error' && (
         <ErrorState
@@ -924,24 +976,41 @@ function VatView({ tabs, activeTab, onSelectTab }: ViewProps) {
   )
 }
 
-/** A view with cards instead of a table still needs the same control, in the same place. */
-function ViewTabs({ tabs, activeTab, onSelectTab }: ViewProps) {
+/**
+ * **V-19** — the six views in two groups, one row for the whole route.
+ *
+ * Rendered here rather than in `IndexToolbar`, whose Radix tab strip has no
+ * slot for a divider; so the DataTables below declare no tabs, and the card
+ * views lose the second, differently shaped strip they used to carry.
+ */
+function LedgerViewTabs({ tabs, activeTab, onSelectTab }: ViewProps & {
+  tabs: readonly { id: string; label: string }[]
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          aria-pressed={tab.id === activeTab}
-          onClick={() => onSelectTab(tab.id)}
-          className={
-            tab.id === activeTab
-              ? 'rounded-lg bg-accent px-2.5 py-1.5 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              : 'rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          }
-        >
-          {tab.label}
-        </button>
+    <div className="flex w-fit max-w-full flex-wrap items-center gap-0.5 rounded-full border border-border-control bg-muted p-0.5">
+      {tabs.map((tab, index) => (
+        <Fragment key={tab.id}>
+          {index === BOOKS_VIEW_COUNT && (
+            <span
+              role="separator"
+              aria-orientation="vertical"
+              className="mx-1 h-4 w-px bg-border"
+            />
+          )}
+          <button
+            type="button"
+            aria-pressed={tab.id === activeTab}
+            onClick={() => onSelectTab(tab.id)}
+            className={cn(
+              'rounded-full border border-transparent px-3 py-1 text-sm whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              tab.id === activeTab
+                ? 'border-border-control bg-card font-semibold text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {tab.label}
+          </button>
+        </Fragment>
       ))}
     </div>
   )

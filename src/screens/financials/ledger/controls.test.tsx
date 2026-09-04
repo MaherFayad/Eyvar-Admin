@@ -21,6 +21,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   disableMockLatency,
+  getIdempotencyStats,
   getRouteTable,
   getTrialBalance,
   listGateways,
@@ -88,10 +89,14 @@ describe('AC-416 — debits equal credits, or the page says so in SAR', () => {
     await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(5))
 
     expect(screen.queryByText(/out of balance/i)).toBeNull()
-    /* And the totals line states both sides. */
-    const totals = screen.getByText(/Debits/)
-    expect(totals.textContent).toContain(money(trial.totalDebitsHalalas))
-    expect(totals.textContent).toContain(money(trial.totalCreditsHalalas))
+    /* **V-20** — the view header states the reading in words and both totals as
+       figures. It replaced the footer sentence, so the assertion follows it. */
+    expect(screen.getByRole('heading', { name: 'Trial balance' })).toBeTruthy()
+    expect(screen.getByText('Balanced')).toBeTruthy()
+    for (const label of ['Total debits', 'Total credits']) {
+      expect(screen.getByText(label), `the header states ${label}`).toBeTruthy()
+    }
+    expect(screen.getAllByText(`${money(trial.totalDebitsHalalas)} SAR`).length).toBeGreaterThan(0)
   })
 
   it('the unbalanced case renders one critical banner naming the difference in SAR', async () => {
@@ -340,5 +345,71 @@ describe('the payment gateways', () => {
       )
       expect(row.textContent, `${gateway.name}'s volume`).toContain(money(gateway.volumeHalalas))
     }
+  })
+})
+
+/* ═══════ FINANCIALS-UX-PLAN §1 P0-1, §5.5 — the banner and the header ═════ */
+
+describe('§1 P0-1 — the refused banner states its own condition', () => {
+  /**
+   * The refused banner used to borrow `fin.overview.outOfBalance.body`, which
+   * says the two totals disagree — directly above a header that prints them
+   * equal. Both sentences are asserted here, one present and one absent, so a
+   * banner that goes back to borrowing fails.
+   */
+  it('says the refusals are kept and are not in these totals, not that the books disagree', async () => {
+    const refused = await listRefusedPostings()
+    expect(refused.length).toBeGreaterThan(0)
+
+    mount('/financials/ledger?view=trial-balance')
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(5))
+
+    expect(screen.getByText(EN['fin.overview.refused.body'] as string)).toBeTruthy()
+    expect(screen.queryByText(EN['fin.overview.outOfBalance.body'] as string)).toBeNull()
+  })
+})
+
+describe('§5.5 / V-20 — the trial balance header carries the counts', () => {
+  it('states the entry count beside the idempotency suppressed count', async () => {
+    const trial = await getTrialBalance()
+    const stats = await getIdempotencyStats()
+
+    mount('/financials/ledger?view=trial-balance')
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(5))
+
+    const caption = (EN['fin.controls.trial.caption'] as string)
+      .replace('{entries}', String(trial.entryCount))
+      .replace('{suppressed}', String(stats.suppressed))
+    expect(screen.getByText(caption)).toBeTruthy()
+  })
+})
+
+describe('§5.5 / V-19 — six views in one row, in two groups', () => {
+  /**
+   * One route and one view row for every view, the two configuration views
+   * behind a separator. Asserted on a CARD view, because that half of the
+   * sub-tab used to render a second, differently shaped strip of its own.
+   */
+  it('the view row lists all six and separates the books from the configuration', async () => {
+    mount('/financials/ledger?view=vat')
+    await waitFor(() => expect(screen.getByText(EN['fin.vat.heading'] as string)).toBeTruthy())
+
+    const viewRow = screen.getByRole('button', {
+      name: EN['fin.controls.view.trialBalance'] as string,
+    }).parentElement as HTMLElement
+
+    expect(within(viewRow).getAllByRole('button').map((each) => each.textContent)).toEqual([
+      EN['fin.controls.view.trialBalance'],
+      EN['fin.controls.view.journal'],
+      EN['fin.controls.view.reconciliation'],
+      EN['fin.controls.view.refused'],
+      EN['fin.controls.view.gateways'],
+      EN['fin.controls.view.vat'],
+    ])
+
+    const separators = within(viewRow).getAllByRole('separator')
+    expect(separators).toHaveLength(1)
+    /* Between the fourth view and the fifth — the books, then configuration. */
+    expect(Array.from(viewRow.children).indexOf(separators[0]!)).toBe(4)
   })
 })

@@ -25,11 +25,14 @@ import {
   getPlan,
   getRouteTable,
   listCancellationRules,
+  listPlans,
+  listRevenueByPlan,
   listSurgeSuspensions,
   listSurgeWindows,
   resetDataLayer,
 } from '@/data/clients'
 import { PLAN_EXAMPLE_INPUTS, type PlanKey, type SubTabRoute } from '@/data/types'
+import { formatMoney } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppLayout } from '@/shell/AppLayout'
@@ -170,14 +173,14 @@ describe('AC-390 — the plan editor is outside the app layout', () => {
     const navsBefore = screen.getAllByRole('navigation').length
     expect(navsBefore).toBeGreaterThan(0)
 
-    /* Into the editor, through the row's own control. */
+    /* Into the editor, through the row's own control. The row declares two
+       actions now — `Open revenue` is the row-click target and `Edit` is the
+       catalogue's own act — so the editor is reached by name. */
     const monthly = screen.getByText('Monthly').closest('tr') as HTMLElement
-    const trigger = within(monthly).getByRole('button')
-    await user.click(trigger)
-    const edit = within(monthly).queryByRole('button', {
+    const edit = within(monthly).getByRole('button', {
       name: EN['fin.pricing.plan.action.edit'] as string,
     })
-    await user.click(edit ?? (await screen.findByRole('menuitem', { name: EN['fin.pricing.plan.action.edit'] as string })))
+    await user.click(edit)
 
     await waitFor(() =>
       expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
@@ -532,4 +535,79 @@ function LocationProbe({ onChange }: { onChange: (next: string) => void }) {
   const { pathname, search } = useLocation()
   onChange(`${pathname}${search}`)
   return null
+}
+
+/* ═══════════ FINANCIALS-UX-PLAN §5.4 — the plan's money, and where ═══════ */
+
+describe('§5.4 — the catalogue row carries its money and points at the money page', () => {
+  /**
+   * **The join is `SubscriptionPlan.id === RevenueByPlanRow.planId`.** Read
+   * from both clients here rather than typed, so a row that ever stated another
+   * plan's gross fails. `quick-ride` is a revenue row and not a plan, so it has
+   * no row in this catalogue and is asserted absent.
+   */
+  it('every plan row states Gross this period from listRevenueByPlan', async () => {
+    const plans = await listPlans()
+    const revenue = await listRevenueByPlan()
+    expect(plans.length).toBeGreaterThan(0)
+
+    mountPricing('/financials/pricing?view=subscription-plans')
+    await waitFor(() => expect(screen.getByText('Monthly')).toBeTruthy())
+
+    expect(screen.getByRole('columnheader', {
+      name: EN['fin.pricing.plan.col.gross'] as string,
+    })).toBeTruthy()
+
+    for (const plan of plans) {
+      const row = screen.getByText(plan.nameEn).closest('tr') as HTMLElement
+      const gross = revenue.find((each) => each.planId === plan.id)
+      expect(gross, `${plan.id} joins a revenue row`).toBeTruthy()
+      expect(
+        within(row).getByText(formatMoney(gross!.grossHalalas, { unit: 'none' })),
+      ).toBeTruthy()
+    }
+
+    /* `quick-ride` is a revenue row and not a plan, so no row in the catalogue
+       carries it. (The words also name a VIEW on this screen, hence the scope.) */
+    for (const row of screen.getAllByRole('row')) {
+      expect(row.textContent).not.toContain('Quick rides')
+    }
+  })
+
+  it("the row's open action is the plan's page on Revenue, and Edit stays the catalogue's own act", async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/financials/pricing']}>
+        <ShellProvider>
+          <Routes>
+            <Route path="/financials/pricing" element={<PricingScreen row={pricingRow()} />} />
+            <Route path="/financials/revenue" element={<Here />} />
+          </Routes>
+        </ShellProvider>
+      </MemoryRouter>,
+    )
+    await waitFor(() => expect(screen.getByText('Monthly')).toBeTruthy())
+
+    const monthly = screen.getByText('Monthly').closest('tr') as HTMLElement
+    expect(
+      within(monthly).getByRole('button', { name: EN['fin.pricing.plan.action.edit'] as string }),
+    ).toBeTruthy()
+
+    await user.click(
+      within(monthly).getByRole('button', {
+        name: EN['fin.pricing.plan.action.revenue'] as string,
+      }),
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('here').textContent).toBe(
+        '/financials/revenue?view=by-plan&plan=monthly',
+      ),
+    )
+  })
+})
+
+/** Renders the location it was reached at, so a navigation is a readable fact. */
+function Here() {
+  const location = useLocation()
+  return <span data-testid="here">{`${location.pathname}${location.search}`}</span>
 }
