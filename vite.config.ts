@@ -179,5 +179,8 @@ export default defineConfig({
      * test needs more than this, that test is the problem, not this line.
      */
     testTimeout: 15_000,
+    /* Agent worktrees live under `.claude/worktrees/` inside the repo; their
+       test files must not run against this tree's modules. */
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
   },
 })
