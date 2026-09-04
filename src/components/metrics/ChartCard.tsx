@@ -78,16 +78,17 @@
 
 import type { ReactNode } from 'react'
 import {
-  BanknoteIcon,
-  ChartLineIcon,
-  ClockIcon,
-  DivideIcon,
-  HashIcon,
+  ChartIcon,
+  CountIcon,
+  DurationIcon,
+  MoneyIcon,
   PercentIcon,
-  StarIcon,
-} from 'lucide-react'
+  RatingIcon,
+  RatioIcon,
+} from '@/components/icons'
 import { TrendChart } from './TrendChart'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { InfoHint, hintLines } from '@/components/InfoHint'
 import {
   Card,
   CardAction,
@@ -189,6 +190,11 @@ export function ChartCard({
         <CardTitle className="flex min-w-0 items-center gap-2">
           <MeasureIcon unit={series.unit} />
           <span className="min-w-0 truncate">{title}</span>
+          {/* T9.9 / X15 — what the plot needs EXPLAINING sits beside its title
+              and opens on demand: the scale's noun, and the days that carry no
+              reading. What the plot needs SAYING stays under it — the derived
+              read, and `overview.allZero`, which is a fact about the data. */}
+          <InfoHint t={t}>{hintLines(chartNotes(series, t))}</InfoHint>
         </CardTitle>
         {/* **§E7's period sub-line, directly beneath the title.**
 
@@ -295,7 +301,7 @@ export function ChartCard({
             aria-hidden="true"
             className="flex items-center gap-1.5 text-2xs text-muted-foreground"
           >
-            <ChartLineIcon className="size-4 shrink-0" />
+            <ChartIcon className="size-4 shrink-0" />
             {t(unitNounKey(series.unit))}
           </span>
         </CardAction>
@@ -581,17 +587,14 @@ function Body({
 
   /* The remaining states all draw a plot, because in all of them the
      measurement RAN. What differs is the sentence above it. */
-  const gaps = points.filter((point) => point.value === null).length
   const allZero = points.every((point) => point.value === 0)
 
   return (
     <div className={cn('flex min-w-0 flex-col gap-2', fill && 'min-h-0 flex-1')}>
+      {/* A fact about the readings, not an explanation of the chrome: zero is
+          the good answer on a no-show plot and must not be behind a tooltip
+          (T9.9, X15). The gap count moved to the title's hint. */}
       {allZero && <p className="text-xs text-muted-foreground">{t('overview.allZero')}</p>}
-      {gaps > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {t('overview.gaps', { gaps: String(gaps), total: String(points.length) })}
-        </p>
-      )}
       <TrendChart
         series={series}
         fill={fill}
@@ -648,22 +651,27 @@ function Legend({
           {series.comparison ? range(series.comparison) : t('overview.noCompare.no-history')}
         </bdi>
       </span>
-      {/* **§A9's *"the Y axis is labelled with the measure"*, moved off the
-          axis.** The y-axis is a 0px gutter carrying two in-plot marks
-          (`TrendChart`'s own note explains why), so there is no column for a
-          rotated title — and §9.2 forbids giving the axis group a direction, so
-          an SVG title would neither shape nor align Arabic. The legend row
-          mirrors normally, and it is already where this card names things.
-
-          It is not decoration on a count chart and it is load-bearing on a
-          money one: `TrendChart` rescales money marks by 100, so a revenue plot
-          whose marks read `300 / 200` is quoting riyals with nothing on the
-          panel saying so. */}
-      <span className="text-xs text-muted-foreground">
-        {t('overview.legend.unit', { unit: t(unitNounKey(series.unit)) })}
-      </span>
     </>
   )
+}
+
+/**
+ * T9.9 — the sentences that explain the plot rather than report it, for the
+ * hint beside the title. §A9's scale noun (load-bearing: `TrendChart` rescales
+ * money marks by 100), then the days inside the range that carry no reading —
+ * `SeriesPoint`: *"conflating them is how an outage looks like a collapse"*.
+ */
+function chartNotes(series: TimeSeries, t: Translate): string[] {
+  const points = series.current.points
+  /* §A9's own test: a card with no plot has no scale to name, and a hint that
+     opened on an empty card would claim a measurement it does not have. */
+  if (series.awaitingStore !== null || points.length === 0) return []
+  const notes = [t('overview.legend.unit', { unit: t(unitNounKey(series.unit)) })]
+  const gaps = points.filter((point) => point.value === null).length
+  if (gaps > 0) {
+    notes.push(t('overview.gaps', { gaps: String(gaps), total: String(points.length) }))
+  }
+  return notes
 }
 
 /**
@@ -686,17 +694,17 @@ function MeasureIcon({ unit }: { unit: MetricUnit }) {
   const shared = 'size-4 shrink-0 text-muted-foreground'
   switch (unit) {
     case 'money':
-      return <BanknoteIcon aria-hidden="true" className={shared} />
+      return <MoneyIcon aria-hidden="true" className={shared} />
     case 'count':
-      return <HashIcon aria-hidden="true" className={shared} />
+      return <CountIcon aria-hidden="true" className={shared} />
     case 'percent':
       return <PercentIcon aria-hidden="true" className={shared} />
     case 'minutes':
-      return <ClockIcon aria-hidden="true" className={shared} />
+      return <DurationIcon aria-hidden="true" className={shared} />
     case 'rating':
-      return <StarIcon aria-hidden="true" className={shared} />
+      return <RatingIcon aria-hidden="true" className={shared} />
     case 'ratio':
-      return <DivideIcon aria-hidden="true" className={shared} />
+      return <RatioIcon aria-hidden="true" className={shared} />
   }
 }
 

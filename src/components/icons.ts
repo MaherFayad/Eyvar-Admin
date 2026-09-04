@@ -14,8 +14,11 @@ import {
   ArrowUpIcon as RawArrowUp,
   ArrowUpDownIcon as RawArrowUpDown,
   BanIcon as RawBan,
+  BanknoteIcon as RawBanknote,
   BellOffIcon as RawBellOff,
   Building2Icon as RawBuilding2,
+  CalendarIcon as RawCalendar,
+  ChartLineIcon as RawChartLine,
   CarFrontIcon as RawCarFront,
   CheckIcon as RawCheck,
   ChevronDownIcon as RawChevronDown,
@@ -26,15 +29,18 @@ import {
   CircleXIcon as RawCircleX,
   ClockIcon as RawClock,
   Columns3Icon as RawColumns3,
+  DivideIcon as RawDivide,
   DownloadIcon as RawDownload,
   EllipsisIcon as RawEllipsis,
   FlagIcon as RawFlag,
   FileTextIcon as RawFileText,
+  HashIcon as RawHash,
   InboxIcon as RawInbox,
   InfoIcon as RawInfo,
   LifeBuoyIcon as RawLifeBuoy,
   ListFilterIcon as RawListFilter,
   MapIcon as RawMap,
+  PercentIcon as RawPercent,
   RefreshCwIcon as RawRefreshCw,
   RepeatIcon as RawRepeat,
   ReplaceIcon as RawReplace,
@@ -44,6 +50,7 @@ import {
   ShieldCheckIcon as RawShieldCheck,
   SirenIcon as RawSiren,
   SnowflakeIcon as RawSnowflake,
+  StarIcon as RawStar,
   TriangleAlertIcon as RawTriangleAlert,
   UserRoundIcon as RawUserRound,
   UserRoundPlusIcon as RawUserRoundPlus,
@@ -119,6 +126,25 @@ export const MoreIcon = icon(RawEllipsis, 'MoreIcon')
 export const InfoIcon = icon(RawInfo, 'InfoIcon')
 export const CheckIcon = icon(RawCheck, 'CheckIcon')
 export const CloseIcon = icon(RawX, 'CloseIcon')
+
+/* ── Measures. One glyph per `MetricUnit`, plus the two marks a board's
+      chrome draws. The §1.5 card-title exception is `ChartCard`'s own and is
+      recorded there; nothing else may put one on a heading. ─────────────── */
+
+export const MoneyIcon = icon(RawBanknote, 'MoneyIcon')
+export const CountIcon = icon(RawHash, 'CountIcon')
+export const PercentIcon = icon(RawPercent, 'PercentIcon')
+export const DurationIcon = icon(RawClock, 'DurationIcon')
+export const RatingIcon = icon(RawStar, 'RatingIcon')
+export const RatioIcon = icon(RawDivide, 'RatioIcon')
+export const ChartIcon = icon(RawChartLine, 'ChartIcon')
+export const CalendarIcon = icon(RawCalendar, 'CalendarIcon')
+
+/* ── Deltas. A caret encodes magnitude, not reading order: it never mirrors
+      (§9.5), which is why it is not in the directional block below. ─────── */
+
+export const DeltaUpIcon = icon(RawArrowUp, 'DeltaUpIcon')
+export const DeltaDownIcon = icon(RawArrowDown, 'DeltaDownIcon')
 
 /* ── Directional glyphs. Never used raw; go through the helpers below. ──── */
 

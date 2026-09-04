@@ -129,7 +129,7 @@
  */
 
 import { useId } from 'react'
-import { DownloadIcon } from 'lucide-react'
+import { ExportIcon } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import {
   Card,
@@ -336,7 +336,7 @@ export function BreakdownList({
               {/* A download mark is an object, not a direction: it does not
                   mirror (§9.5). Drawn, never typed — Inter carries no ⎙ and
                   Windows falls through to a colour emoji font. */}
-              <DownloadIcon aria-hidden="true" />
+              <ExportIcon aria-hidden="true" />
               {t('breakdown.export')}
             </Button>
           </CardAction>

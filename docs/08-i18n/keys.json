@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5609,
-    "en": 5330,
-    "ar": 5609,
+    "keys": 5611,
+    "en": 5332,
+    "ar": 5611,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
-    "overBudget": 192
+    "emDashEn": 110,
+    "emDashAr": 113,
+    "overBudget": 189
   },
   "registered": [
     {
@@ -44,7 +44,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 250,
+      "keys": 252,
       "notInEN": 0
     },
     {
@@ -1365,30 +1365,6 @@
       "value": "You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there."
     },
     {
-      "file": "src/i18n/ar/metrics.ts",
-      "lang": "ar",
-      "key": "overview.lede.support-overview",
-      "value": "كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها."
-    },
-    {
-      "file": "src/i18n/ar/metrics.ts",
-      "lang": "ar",
-      "key": "overview.hero.group",
-      "value": "المؤشرات الرئيسية — اختر واحدًا لعرض مخططه"
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "lang": "en",
-      "key": "overview.lede.support-overview",
-      "value": "Everything open in front of a person — incidents, tickets and the response times on them."
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "lang": "en",
-      "key": "overview.hero.group",
-      "value": "Lead metrics — pick one to chart"
-    },
-    {
       "file": "src/i18n/ar/people.ts",
       "lang": "ar",
       "key": "applicant.docReason.legend",
@@ -1827,14 +1803,6 @@
       "value": "Open Safety & Incidents"
     },
     {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.action",
-      "class": "button",
-      "words": 4,
-      "budget": 3,
-      "value": "Go to quick rides"
-    },
-    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.reasons.action.restore",
       "class": "button",
@@ -1961,14 +1929,6 @@
       "words": 20,
       "budget": 12,
       "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count."
     },
     {
       "file": "src/screens/operations/people/copy.ts",
@@ -2273,14 +2233,6 @@
       "words": 8,
       "budget": 5,
       "value": "The record of who did what, and when"
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.heading",
-      "class": "empty title",
-      "words": 8,
-      "budget": 5,
-      "value": "Captains, riders, trips and subscriptions, on one board"
     },
     {
       "file": "src/screens/management/zones/copy.ts",
@@ -3234,15 +3186,15 @@
     ],
     [
       "empty body",
-      48
+      47
     ],
     [
       "empty title",
-      20
+      19
     ],
     [
       "button",
-      19
+      18
     ],
     [
       "meta",

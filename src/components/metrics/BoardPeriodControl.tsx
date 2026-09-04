@@ -39,8 +39,12 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
-import { forwardIcon } from '@/components/icons'
+import {
+  CalendarIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  forwardIcon,
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -75,9 +79,39 @@ function toIsoDay(date: Date | undefined): string | null {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
+/**
+ * T5.7 — what the pill says. One window when the board has one scope, and both
+ * named when the chart under the band covers a different one; one key with
+ * named parameters, never two labels joined (AC-713).
+ */
+export function periodPillLabel({
+  period,
+  chartPeriod,
+  t,
+  language,
+}: {
+  period: MetricPeriod | null
+  chartPeriod: MetricPeriod | null
+  t: Translate
+  language: Language
+}): string {
+  const range = (window: MetricPeriod) =>
+    t('overview.period', {
+      from: formatDate(window.start, { style: 'day-month', language }),
+      to: formatDate(window.end, { style: 'day-month', language }),
+    })
+  const leads = period ? range(period) : t('overview.period.none')
+  const differs =
+    chartPeriod !== null &&
+    (period === null || chartPeriod.start !== period.start || chartPeriod.end !== period.end)
+  if (!differs) return leads
+  return t('overview.period.scope', { leads, chart: range(chartPeriod) })
+}
+
 export function BoardPeriodControl({
   period,
   onChange,
+  chartPeriod = null,
   t,
   language,
 }: {
@@ -101,6 +135,12 @@ export function BoardPeriodControl({
    * asking for a window*, and it is what `Reset` sends.
    */
   onChange: (next: MetricPeriod | null) => void
+  /**
+   * T5.7 — the window of the chart drawn under the band, when the board draws
+   * one. Given and different from `period`, the pill names both scopes instead
+   * of stating one window over a plot covering another.
+   */
+  chartPeriod?: MetricPeriod | null
   t: Translate
   language: Language
 }) {
@@ -149,14 +189,7 @@ export function BoardPeriodControl({
           <CalendarIcon aria-hidden="true" className="size-3.5 text-hero-label" />
           {/* `<bdi>` isolates it: `11 – 25 Jun` is a numeral run whose leading
               digit the UBA otherwise moves to the far end of an Arabic line. */}
-          <bdi>
-            {period
-              ? t('overview.period', {
-                  from: formatDate(period.start, { style: 'day-month', language }),
-                  to: formatDate(period.end, { style: 'day-month', language }),
-                })
-              : t('overview.period.none')}
-          </bdi>
+          <bdi>{periodPillLabel({ period, chartPeriod, t, language })}</bdi>
           <ChevronDownIcon aria-hidden="true" className="size-3.5 text-hero-label" />
           {/* The control's name, for a reader who arrives on it out of context.
               The visible label is a date range, which says WHAT is chosen and
