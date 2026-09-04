@@ -103,6 +103,7 @@ export const DISPUTE_OPERATIONS = {
   get: 'disputes.get',
   facets: 'disputes.facets',
   claim: 'disputes.claim',
+  release: 'disputes.release',
   resolve: 'disputes.resolve',
   lostFoundList: 'lostFound.list',
   lostFoundGet: 'lostFound.get',
@@ -138,6 +139,17 @@ export function resetDisputes(): void {
   if (!fixturesLoaded()) return
   dynamicDisputes = [...disputeFixtures]
   dynamicLostFound = [...lostFoundFixtures]
+}
+
+/**
+ * The session's dispute rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts` (T1.6). Reads the same array `claimDispute` writes, so a
+ * claim made from My Work is the claim Disputes reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentDisputes(): readonly Dispute[] {
+  return dynamicDisputes ?? []
 }
 
 /* ────────────────────── query shapes ────────────────────────── */
@@ -263,34 +275,76 @@ export async function getDispute(id: string, signal?: AbortSignal): Promise<Disp
 
 /**
  * POST /api/v1/disputes/:id/claim
- *   body: { userId }
+ *   body: { userId, takeOver }
  *   -> Dispute
  *   404 when the id does not exist
- *   409 when the dispute is already resolved
+ *   409 `already_resolved` when the dispute is resolved
+ *   409 `claimed_by_other` when another operator holds it and `takeOver` is unset
  *
- * Taking ownership moves an `open` claim to `under-review`, which is the only
- * way that status is reached — it is *"somebody is on it"*, not a separate
- * decision an operator makes.
+ * Ownership moves an `open` claim to `under-review`, the only way that status
+ * is reached. Omit `userId` and the claimant is the session.
  */
 export async function claimDispute(
   id: string,
-  userId: string,
-  userName: string,
+  userId?: string,
+  userName?: string,
+  opts: { takeOver?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<Dispute> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Dispute>(`/disputes/${id}/claim`, { userId }, { signal })
+    return http.post<Dispute>(`/disputes/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal })
   }
   return mockMutation(DISPUTE_OPERATIONS.claim, signal, () => {
     const idx = dynamicDisputes.findIndex((d) => d.id === id)
     const existing = dynamicDisputes[idx]
     if (!existing) throw notFound('dispute', id)
     if (existing.status === 'resolved') throw alreadyResolved(existing)
+    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())
+    const owner = userId ?? me?.id ?? currentMockUserId()
+    /* A claim is not a lock, but a take-over is deliberate (`nextClaim`). */
+    if (existing.ownerId !== null && existing.ownerId !== owner && !opts.takeOver) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'claimed_by_other',
+        message: `${existing.ownerName ?? existing.ownerId} is holding this dispute`,
+        retryable: false,
+      })
+    }
     const updated: Dispute = {
       ...existing,
-      ownerId: userId,
-      ownerName: userName,
+      ownerId: owner,
+      ownerName: userName ?? (userId === undefined ? (me?.name ?? owner) : userId),
       status: existing.status === 'open' ? 'under-review' : existing.status,
+    }
+    dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
+    return updated
+  })
+}
+
+/**
+ * POST /api/v1/disputes/:id/release
+ *   -> Dispute
+ *   404 when the id does not exist
+ *   409 `already_resolved` when the dispute is resolved
+ *
+ * Ownership only. `under-review` falls back to `open`, because that status
+ * means somebody is on it and now nobody is.
+ */
+export async function releaseDispute(id: string, signal?: AbortSignal): Promise<Dispute> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Dispute>(`/disputes/${id}/release`, undefined, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.release, signal, () => {
+    const idx = dynamicDisputes.findIndex((d) => d.id === id)
+    const existing = dynamicDisputes[idx]
+    if (!existing) throw notFound('dispute', id)
+    if (existing.status === 'resolved') throw alreadyResolved(existing)
+    const updated: Dispute = {
+      ...existing,
+      ownerId: null,
+      ownerName: null,
+      status: existing.status === 'under-review' ? 'open' : existing.status,
     }
     dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
     return updated

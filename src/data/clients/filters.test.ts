@@ -17,6 +17,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { disableMockLatency, mockFailures } from '../config'
 import { EYVAR_TZ_OFFSET, toInstant } from '../mock/clock'
 import { listApplicants } from './applicants'
+import { listDisputes } from './disputes'
+import { listTickets } from './tickets'
 import {
   getAssuranceFacets,
   listAbsences,
@@ -174,7 +176,9 @@ const REQUIRED: Array<{ name: string; list: (f: FilterSpec[]) => Promise<unknown
     name: 'work-items',
     list: (filters) => listWorkItems({ filters, pageSize: 5 }),
     fields: [
-      'key', 'id', 'title', 'subtitle', 'entityId', 'route',
+      /* T4.1 — a row carries a `titleKey` and its params, never a sentence, so
+         the filterable identity is the key. */
+      'key', 'id', 'titleKey', 'subtitleKey', 'entityId', 'route',
       'queue', 'severity', 'entityType', 'slaSource', 'claimedBy',
       'breached', 'unclaimed', 'heldByMe', 'routedToMyRole', 'hasDeadline',
       'slaTargetMinutes',
@@ -510,20 +514,27 @@ describe('wave 2 — the SLA fields a work queue is actually sorted and filtered
 
 describe('wave 2 — My Work is derived from the queues, never seeded twice', () => {
   it('carries no row that its own queue does not also serve', async () => {
-    const [work, requests, incidents, cases, trips, applicants] = await Promise.all([
-      listWorkItems({ view: 'everything', pageSize: 500, includeOtherRoles: true }),
-      listRequests({ pageSize: 500 }),
-      listSafetyIncidents({ pageSize: 100 }),
-      listFairnessCases({ pageSize: 100 }),
-      listAssuranceTrips({ pageSize: 100 }),
-      listApplicants({ pageSize: 100 }),
-    ])
+    const [work, requests, incidents, cases, trips, applicants, tickets, disputes] =
+      await Promise.all([
+        listWorkItems({ view: 'everything', pageSize: 500, includeOtherRoles: true }),
+        listRequests({ pageSize: 500 }),
+        listSafetyIncidents({ pageSize: 100 }),
+        listFairnessCases({ pageSize: 100 }),
+        listAssuranceTrips({ pageSize: 100 }),
+        listApplicants({ pageSize: 100 }),
+        listTickets({ pageSize: 100 }),
+        listDisputes({ pageSize: 100 }),
+      ])
     const known: Record<string, Set<string>> = {
       request: new Set(requests.items.map((r) => r.id)),
       incident: new Set(incidents.items.map((i) => i.id)),
       fairness: new Set(cases.items.map((c) => c.id)),
       assurance: new Set(trips.items.map((t) => t.id)),
       application: new Set(applicants.items.map((a) => a.id)),
+      /* T1.6 — the two queues My Work gained. Same rule: a row here resolves
+         back to a real record in the client that owns it. */
+      ticket: new Set(tickets.items.map((t) => t.id)),
+      dispute: new Set(disputes.items.map((d) => d.id)),
     }
     for (const item of work.items) {
       expect(known[item.queue]?.has(item.id), `${item.key} has no source row`).toBe(true)

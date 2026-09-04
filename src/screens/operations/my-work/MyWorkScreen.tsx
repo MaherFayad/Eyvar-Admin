@@ -54,21 +54,26 @@ import { useNavigate } from 'react-router-dom'
 import {
   claimApplicant,
   claimAssuranceTrip,
+  claimDispute,
   claimFairnessCase,
   claimRequest,
   claimSafetyIncident,
+  claimTicket,
   listWorkItems,
   releaseApplicant,
   releaseAssuranceTrip,
+  releaseDispute,
   releaseFairnessCase,
   releaseRequest,
   releaseSafetyIncident,
+  releaseTicket,
 } from '@/data/clients'
 import type {
   IsoDateTime,
   Paginated,
   SubTabRoute,
   WorkItem,
+  WorkItemParams,
   WorkItemSeverity,
   WorkQueueId,
 } from '@/data/types'
@@ -523,14 +528,11 @@ const FILTERS = (t: Translate): readonly ExtraFilterSpec[] => [
  * projection is sent to the queue that owns the record, so there is one claim
  * and one owner everywhere (§4.2 Q-9).
  *
- * **Four of the nine queues are absent, and that is the honest state.**
- * `ticket` and `dispute` are wave 5, `erasure` is wave 7, and `absence` has no
- * claim at all — `AbsenceEvent` is a recorded fact, not a task (Q-60). Their
- * rows still render with their data; their claim control renders **disabled
- * with the reason**, which is §7.5's `source-queue-unavailable` treatment and
- * **AC-292**'s shape: *"the row is shown with its data and its action disabled,
- * naming which queue is unreachable, rather than the whole projection
- * failing."*
+ * **Two of the nine queues are absent, and that is the honest state.**
+ * `erasure` has no client, and `absence` has no claim at all — `AbsenceEvent`
+ * is a recorded fact, not a task (Q-60). A row from either still renders with
+ * its data and its claim control **disabled with the reason** (§7.5,
+ * **AC-292**), rather than the whole projection failing.
  */
 const CLAIM_CLIENTS: Partial<
   Record<
@@ -557,6 +559,17 @@ const CLAIM_CLIENTS: Partial<
   application: {
     claim: (id, takeOver) => claimApplicant(id, { takeOver }),
     release: (id) => releaseApplicant(id),
+  },
+  /* T1.6 — the two queues the refusal above used to name. The claimant is left
+     to the client, which resolves the signed-in session exactly as the five
+     above do; asserting it here would let one screen claim as another operator. */
+  ticket: {
+    claim: (id, takeOver) => claimTicket(id, undefined, undefined, { takeOver }),
+    release: (id) => releaseTicket(id),
+  },
+  dispute: {
+    claim: (id, takeOver) => claimDispute(id, undefined, undefined, { takeOver }),
+    release: (id) => releaseDispute(id),
   },
 }
 
@@ -625,16 +638,30 @@ export function workClock(item: WorkItem, now: IsoDateTime): QueueClockResult {
   )
 }
 
+/**
+ * **T4.1 — the row's line is made here, never in the client.** A `{ key }`
+ * param is an enum member whose words another screen owns (`fairness.kind.*`,
+ * `people.class.*`); everything else is a fact off the record.
+ */
+export function workText(t: Translate, key: string, params: WorkItemParams): string {
+  const resolved: Record<string, string | number> = {}
+  for (const [name, value] of Object.entries(params)) {
+    resolved[name] = typeof value === 'object' ? t(value.key) : value
+  }
+  return t(key, resolved)
+}
+
 export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>> {
   const { t, language, now } = deps
 
   const clockFor = (item: WorkItem) => workClock(item, now)
+  const titleOf = (item: WorkItem) => workText(t, item.titleKey, item.titleParams)
 
   return [
     {
       id: 'item',
       emphasis: 'primary',
-      csv: (item) => item.title,
+      csv: (item) => titleOf(item),
       header: t('myWork.col.item'),
       alwaysVisible: true,
       minWidth: 176,
@@ -647,9 +674,13 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
               it does not decide; `item.route` is the queue that owns the record. */}
           <SubjectIdentity
             to={item.route}
-            title={item.title}
-            secondary={item.subtitle}
-            label={t('myWork.a11y.open', { title: item.title })}
+            title={titleOf(item)}
+            secondary={
+              item.subtitleKey === null
+                ? null
+                : workText(t, item.subtitleKey, item.subtitleParams)
+            }
+            label={t('myWork.a11y.open', { title: titleOf(item) })}
           />
         </>
       ),

@@ -4,6 +4,8 @@
  * asserts a number quoted in a comment.
  */
 
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { AR, EN } from '@/i18n/dictionaries'
 /* The two screen dictionaries `dictionaries.ts` has not registered. They are
@@ -14,6 +16,20 @@ import { CORPORATE_EN } from '@/screens/operations/corporate/copy'
 import { DISPATCH_EN } from '@/screens/operations/dispatch/copy'
 import { PLURAL_CATEGORIES } from './plural'
 import { placeholdersIn } from './translate'
+
+/** Drop every `${...}` group, braces balanced, so nested templates go too. */
+function stripInterpolations(source: string): string {
+  let out = ''
+  let depth = 0
+  for (let i = 0; i < source.length; i += 1) {
+    if (source[i] === '$' && source[i + 1] === '{') {
+      depth += 1
+      i += 1
+    } else if (depth > 0 && source[i] === '}') depth -= 1
+    else if (depth === 0) out += source[i]
+  }
+  return out
+}
 
 describe('AR is complete', () => {
   /* This block used to guard `AR = {}` as AC-74's fixture, and the fixture has
@@ -62,6 +78,33 @@ describe('AR is complete', () => {
        that only copies English's one/other renders a wrong noun form at counts
        an operator sees every day. */
     expect(gaps, 'a plural family Arabic cannot resolve at some count').toEqual([])
+  })
+
+  /**
+   * **X2 / T4.1 — the data layer must not write English.**
+   *
+   * `clients/myWork.ts` used to build `Captain application — {name}` and hand it
+   * to a table an operator reads in Arabic. Rows carry a key and its values now;
+   * this fails the day one carries a sentence again.
+   */
+  it('assembles no operator-facing sentence under src/data/clients', () => {
+    const dir = join(process.cwd(), 'src/data/clients')
+    const fields = /^\s*(title|subtitle|label|heading|summary|description):\s*(.+)$/
+    const offenders: string[] = []
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))) {
+      const lines = readFileSync(join(dir, file), 'utf8').split('\n')
+      lines.forEach((line, index) => {
+        const match = fields.exec(line)
+        if (!match) return
+        /* Interpolations are the row's own values — a name, an id, a place.
+           What is left over is what the client wrote itself. */
+        const literal = stripInterpolations(match[2] ?? '')
+        if (/[A-Za-z]{2,}[ ,][A-Za-z]{2,}/.test(literal)) {
+          offenders.push(`${file}:${index + 1} ${line.trim()}`)
+        }
+      })
+    }
+    expect(offenders, 'English assembled in the data layer; use a key and params').toEqual([])
   })
 
   it('preserves every placeholder the English template declares', () => {

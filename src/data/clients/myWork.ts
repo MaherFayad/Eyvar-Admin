@@ -12,27 +12,30 @@
  * breached row in a source queue appears here, and every row here resolves back
  * to a real record in its own client.
  *
- * ## Two queues are missing and it is not an oversight
+ * Seven of the nine queues project here. `absence` records a fact rather than
+ * a task (Q-60) and `erasure` has no client yet.
  *
- * Legacy's inbox covers twelve collections. Four of them — tickets, disputes,
- * lost & found, PDPL erasure — are **wave 3**, and three more (emergency
- * claims, emergency dispatches, departure risk) belong to Live Dispatch, which
- * is a monitor surface and not a queue. As each lands, one entry is added to
- * `SOURCES` below and nothing else changes. The `WorkQueueId` union already
- * names them, so a missing source is a compile error the day someone tries.
+ * No row carries a sentence: every title is a key plus its values (X2, T4.1).
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import type { Facets, Paginated, QueryParams } from '../types/common'
+import type { Claim, Facets, Paginated, QueryParams } from '../types/common'
+import type { DisputeKind } from '../types/dispute'
+import type { FairnessCaseKind } from '../types/fairness'
+import type { SafetyIncidentType } from '../types/safety'
+import type { TicketPriority } from '../types/ticket'
+import type { VehicleClass } from '../types/driver'
 import type { WorkItem } from '../types/work'
 import { WORK_QUEUE_ROUTE, WORK_ROUTING } from '../types/work'
-import type { WorkQueueId } from '../types/workQueue'
+import type { WorkItemSeverity, WorkQueueId } from '../types/workQueue'
 import type { RoleName } from '../types/session'
+import { currentDisputes } from './disputes'
 import { http } from './http'
 import { currentMockUserId } from './session'
+import { currentTickets } from './tickets'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -78,6 +81,109 @@ export interface WorkQuery extends QueryParams {
 
 const route = (queue: WorkQueueId, id: string) => WORK_QUEUE_ROUTE[queue].replace(':id', id)
 
+/* ─────────────── enum members, as the keys their own screens own ──────────
+   X2 — the projection used to print `suspension-appeal` and `Economy` into a
+   cell. Each map points at the key the owning screen already ships, so My Work
+   and the queue it links to name a value the same way in both languages. */
+
+const FAIRNESS_KIND_KEY: Readonly<Record<FairnessCaseKind, string>> = {
+  'suspension-appeal': 'fairness.kind.suspensionAppeal',
+  'rating-dispute': 'fairness.kind.ratingDispute',
+  'rider-report': 'fairness.kind.riderReport',
+}
+
+const SAFETY_TYPE_KEY: Readonly<Record<SafetyIncidentType, string>> = {
+  sos: 'safety.type.sos',
+  accident: 'safety.type.accident',
+  harassment: 'safety.type.harassment',
+  'unsafe-driving': 'safety.type.unsafeDriving',
+  theft: 'safety.type.theft',
+  other: 'safety.type.other',
+}
+
+const VEHICLE_CLASS_KEY: Readonly<Record<VehicleClass, string>> = {
+  Economy: 'people.class.economy',
+  Comfort: 'people.class.comfort',
+}
+
+const DISPUTE_KIND_KEY: Readonly<Record<DisputeKind, string>> = {
+  'no-show': 'dispute.kind.no-show',
+  'vehicle-class': 'dispute.kind.vehicle-class',
+  'fare-dispute': 'dispute.kind.fare-dispute',
+  'toll-charge': 'dispute.kind.toll-charge',
+  'cancellation-fee': 'dispute.kind.cancellation-fee',
+  'vehicle-damage': 'dispute.kind.vehicle-damage',
+}
+
+/** A ticket's priority word, as this projection's three-step severity. */
+const TICKET_SEVERITY: Readonly<Record<TicketPriority, WorkItemSeverity>> = {
+  Critical: 'critical',
+  High: 'high',
+  Medium: 'normal',
+  Low: 'normal',
+}
+
+/**
+ * Zero outstanding documents is a different fact from three, so it gets its own
+ * key rather than an English plural the data layer would have to inflect.
+ */
+function applicationSubtitle(
+  vehicleClass: VehicleClass,
+  outstanding: number,
+): Pick<WorkItem, 'subtitleKey' | 'subtitleParams'> {
+  return {
+    subtitleKey:
+      outstanding === 0 ? 'myWork.item.application.sub.clear' : 'myWork.item.application.sub',
+    subtitleParams: { vehicleClass: { key: VEHICLE_CLASS_KEY[vehicleClass] }, documents: outstanding },
+  }
+}
+
+/** An uncovered leg, a named captain who has not confirmed, or no captain at all. */
+function assuranceTitle(
+  uncovered: boolean,
+  subscriptionId: string,
+  driverName: string | null,
+): Pick<WorkItem, 'titleKey' | 'titleParams'> {
+  if (uncovered) {
+    return {
+      titleKey: 'myWork.item.assurance.uncovered',
+      titleParams: { subscription: subscriptionId },
+    }
+  }
+  if (driverName === null) {
+    return { titleKey: 'myWork.item.assurance.unconfirmed.noCaptain', titleParams: {} }
+  }
+  return { titleKey: 'myWork.item.assurance.unconfirmed', titleParams: { captain: driverName } }
+}
+
+/**
+ * A `Claim` for a queue that records ownership as two columns rather than as a
+ * claim record. Tickets and Disputes both do; everything the inbox needs
+ * — who holds it, and is it live — is present either way.
+ */
+function ownerClaim(
+  entityType: string,
+  entityId: string,
+  ownerId: string | null,
+  ownerName: string | null,
+  since: string,
+): Claim | null {
+  if (ownerId === null) return null
+  return {
+    key: `${entityType}:${entityId}`,
+    entityType,
+    entityId,
+    ownerId,
+    ownerName: ownerName ?? ownerId,
+    claimedAt: since,
+    touchedAt: EYVAR_NOW,
+    state: 'claimed',
+    releasedAt: null,
+    releaseReason: null,
+    takeovers: [],
+  }
+}
+
 /**
  * The union, built once per call.
  *
@@ -95,8 +201,9 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `application:${a.id}`,
       queue: 'application',
       id: a.id,
-      title: `Captain application — ${a.name}`,
-      subtitle: `${a.vehicleClass} · ${a.docs.filter((d) => d.status !== 'verified').length} documents outstanding`,
+      titleKey: 'myWork.item.application',
+      titleParams: { name: a.name },
+      ...applicationSubtitle(a.vehicleClass, a.docs.filter((d) => d.status !== 'verified').length),
       dueAt: a.slaDueAt,
       breached: a.slaBreachedAt !== null,
       severity: 'normal',
@@ -123,11 +230,18 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `request:${r.id}`,
       queue: 'request',
       id: r.id,
-      title:
+      titleKey:
+        r.channel === 'instant' ? 'myWork.item.request.instant' : 'myWork.item.request.subscription',
+      titleParams:
         r.channel === 'instant'
-          ? `Ride request — ${r.pickup} → ${r.destination}`
-          : `Subscription request — ${r.riderName}`,
-      subtitle: `${r.riderName} · ${r.vehicleClass}${r.status === 'no-drivers' ? ' · no captain found' : ''}`,
+          ? { pickup: r.pickup, destination: r.destination }
+          : { rider: r.riderName },
+      subtitleKey:
+        r.status === 'no-drivers' ? 'myWork.item.request.sub.noCaptain' : 'myWork.item.request.sub',
+      subtitleParams: {
+        rider: r.riderName,
+        vehicleClass: { key: VEHICLE_CLASS_KEY[r.vehicleClass] },
+      },
       dueAt: r.slaDueAt,
       breached: r.slaBreachedAt !== null,
       /* `no-drivers` is the status the tick engine writes *at* the breach
@@ -170,10 +284,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `assurance:${t.id}`,
       queue: 'assurance',
       id: t.id,
-      title: t.uncovered
-        ? `Leg uncovered — ${t.subscriptionId}`
-        : `Unconfirmed leg — ${t.driverName ?? 'no captain'}`,
-      subtitle: `${t.riderName} · ${t.planName} · departs ${t.departsAt}`,
+      ...assuranceTitle(t.uncovered, t.subscriptionId, t.driverName),
+      /* **`departs {ISO}` is gone.** It printed the raw instant into the cell;
+         a time is the UI's to format (§8.3) and this row already carries a
+         deadline column. The Assurance queue owns the departure clock. */
+      subtitleKey: 'myWork.item.assurance.sub',
+      subtitleParams: { rider: t.riderName, plan: t.planName },
       dueAt: t.slaDueAt,
       breached: t.slaBreachedAt !== null,
       /* Legacy pushes an uncovered leg at `critical` (`:19161`) — the rider is
@@ -202,11 +318,13 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `incident:${i.id}`,
       queue: 'incident',
       id: i.id,
-      title: `${i.type} — ${i.summary}`,
-      subtitle: i.reporterName
-        ? `Reporter ${i.reporterName}`
-        : /* `INC-017`. Legacy prints `Reporter undefined` here (`:13432`). */
-          'Raised automatically — no reporter',
+      titleKey: 'myWork.item.incident',
+      titleParams: { type: { key: SAFETY_TYPE_KEY[i.type] }, summary: i.summary },
+      /* `INC-017`. Legacy prints `Reporter undefined` here (`:13432`). */
+      subtitleKey: i.reporterName
+        ? 'myWork.item.incident.sub'
+        : 'myWork.item.incident.sub.noReporter',
+      subtitleParams: i.reporterName ? { name: i.reporterName } : {},
       /* The **response** clock leads on this queue: an SOS breaches its promise
          to answer long before its promise to resolve. */
       dueAt: i.firstResponseDueAt ?? i.slaDueAt,
@@ -235,8 +353,11 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `fairness:${c.id}`,
       queue: 'fairness',
       id: c.id,
-      title: `${c.kind} — ${c.driverName}`,
-      subtitle: c.detail,
+      titleKey: 'myWork.item.fairness',
+      titleParams: { kind: { key: FAIRNESS_KIND_KEY[c.kind] }, captain: c.driverName },
+      /* The case's own words, which are data and not copy. */
+      subtitleKey: 'myWork.item.text',
+      subtitleParams: { text: c.detail },
       dueAt: c.slaDueAt,
       breached: c.slaBreachedAt !== null || c.firstResponseBreachedAt !== null,
       severity: 'normal',
@@ -256,15 +377,97 @@ function buildWorkItems(role: RoleName): WorkItem[] {
     })
   }
 
+  /* ── tickets (T1.6) ──────────────────────────────────────────────────
+     `claimTicket` exists, so the "source queue unavailable" refusal this
+     projection used to inherit is stale. Anything not disposed of is work:
+     a ticket goes `in-progress` the moment it is claimed, and dropping it
+     here would make an operator's own claim erase the row from their inbox. */
+  for (const k of currentTickets()) {
+    if (k.status === 'resolved' || k.status === 'closed') continue
+    items.push({
+      key: `ticket:${k.id}`,
+      queue: 'ticket',
+      id: k.id,
+      /* The subject is the customer's own words: data, not copy. */
+      titleKey: 'myWork.item.text',
+      titleParams: { text: k.subject },
+      subtitleKey: 'myWork.item.ticket.sub',
+      subtitleParams: { entity: k.entityName, category: k.category },
+      dueAt: k.slaDueAt,
+      breached: k.slaBreached,
+      severity: TICKET_SEVERITY[k.priority],
+      entityId: k.entityId,
+      entityType: k.entityType,
+      route: route('ticket', k.id),
+      routedToMyRole: WORK_ROUTING.ticket.includes(role),
+      claim: ownerClaim('ticket', k.id, k.ownerId, k.ownerName, k.createdAt),
+      slaStartedAt: k.createdAt,
+      slaDueAt: k.slaDueAt,
+      /* The window is the tier's, resolved server-side; the row carries the
+         due stamp and not the promise it came from. */
+      slaTargetMinutes: null,
+      slaBreachedAt: k.slaBreached ? k.slaDueAt : null,
+      slaSource: 'legacy-reason-code',
+      firstResponseDueAt: null,
+      firstResponseAt: null,
+      firstResponseBreachedAt: null,
+    })
+  }
+
+  /* ── disputes (T1.6) ─────────────────────────────────────────────────
+     `claimDispute` exists for the same reason. A dispute records no breach
+     stamp, so the clock is the comparison the queue itself makes. */
+  for (const d of currentDisputes()) {
+    if (d.status === 'resolved') continue
+    const breached = d.dueAt !== null && Date.parse(d.dueAt) < Date.parse(EYVAR_NOW)
+    items.push({
+      key: `dispute:${d.id}`,
+      queue: 'dispute',
+      id: d.id,
+      titleKey: 'myWork.item.dispute',
+      titleParams: { kind: { key: DISPUTE_KIND_KEY[d.kind] }, claimant: d.claimantName },
+      subtitleKey: d.againstName === null ? 'myWork.item.dispute.sub.platform' : 'myWork.item.dispute.sub',
+      subtitleParams: d.againstName === null ? {} : { name: d.againstName },
+      dueAt: d.dueAt,
+      breached,
+      severity: 'normal',
+      entityId: d.claimantId,
+      entityType: d.claimantType,
+      route: route('dispute', d.id),
+      routedToMyRole: WORK_ROUTING.dispute.includes(role),
+      claim: ownerClaim('dispute', d.id, d.ownerId, d.ownerName, d.filedAt),
+      slaStartedAt: d.filedAt,
+      slaDueAt: d.dueAt,
+      slaTargetMinutes: null,
+      slaBreachedAt: breached ? d.dueAt : null,
+      slaSource: 'legacy-policy',
+      firstResponseDueAt: null,
+      firstResponseAt: null,
+      firstResponseBreachedAt: null,
+    })
+  }
+
   return items
 }
 
+/**
+ * What free-text search reads: the **facts** in a row's params, never its keys.
+ * An operator types a captain's name or a place, not `myWork.item.fairness`.
+ */
+function searchText(item: WorkItem): string {
+  const values = [...Object.values(item.titleParams), ...Object.values(item.subtitleParams)]
+  return values.filter((v) => typeof v !== 'object').join(' ')
+}
+
 const workShape: QueryShape<WorkItem> = {
-  searchable: [(w) => w.id, (w) => w.title, (w) => w.subtitle, (w) => w.entityId],
+  searchable: [(w) => w.id, (w) => searchText(w), (w) => w.entityId],
   sortable: {
     key: (w) => w.key,
     queue: (w) => w.queue,
-    title: (w) => w.title,
+    /* The template first, then its values: rows from one queue group together
+       and order by the name inside them. A sort on the rendered sentence is
+       impossible here, because the sentence is made in the browser (X2). */
+    title: (w) => `${w.titleKey} ${searchText(w)}`,
     severity: (w) => ({ critical: 0, high: 1, normal: 2 })[w.severity],
     dueAt: (w) => w.dueAt,
     /**
@@ -284,8 +487,8 @@ const workShape: QueryShape<WorkItem> = {
     /* identity — text */
     key: (w) => w.key,
     id: (w) => w.id,
-    title: (w) => w.title,
-    subtitle: (w) => w.subtitle,
+    titleKey: (w) => w.titleKey,
+    subtitleKey: (w) => w.subtitleKey,
     entityId: (w) => w.entityId,
     route: (w) => w.route,
 
@@ -454,6 +657,8 @@ export const WORK_SOURCES: readonly WorkQueueId[] = [
   'assurance',
   'incident',
   'fairness',
+  'ticket',
+  'dispute',
 ]
 
 /** The fixed clock this client measures against, re-exported so a test need not import `mock/`. */
