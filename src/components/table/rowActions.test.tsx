@@ -88,9 +88,11 @@ describe('the labelled shape', () => {
     expect(noBank).not.toBe(nothingNet)
 
     /* Both are on screen as text, not only in an attribute: §5.7 keeps a
-       constraint out of a tooltip, so neither carries `title`. */
+       constraint from being carried by a tooltip ALONE. R2-3 adds `title` as
+       reinforcement beside the control, so the rendered text is what this
+       asserts and the tooltip only has to agree with it. */
     expect(screen.getByText(noBank)).toBeTruthy()
-    expect(controlIn('no-bank').getAttribute('title')).toBeNull()
+    expect(controlIn('no-bank').getAttribute('title')).toBe(noBank)
 
     /* The payable row is enabled and describes nothing — so the sentences above
        are a reading of the predicate rather than furniture on every row. */
