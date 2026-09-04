@@ -441,6 +441,46 @@ describe('the lifecycle on the record (§5.3)', () => {
   })
 })
 
+describe('raising a ticket (S-4)', () => {
+  /* AC-S-15 */
+  it('refuses to raise a ticket with no channel, and says so; then raises one with the clocks stamped', async () => {
+    const user = userEvent.setup()
+    renderApp(INDEX)
+    await screen.findByText('Fare calculation discrepancy on surge trip')
+    await user.click(screen.getByRole('button', { name: en('ticket.new') }))
+    const dialog = await screen.findByRole('dialog')
+
+    await user.type(within(dialog).getByPlaceholderText(en('ticket.new.requester.placeholder')), 'Nora')
+    await user.click(await within(dialog).findByRole('button', { name: /Nora Al-Harbi/ }))
+
+    const selects = within(dialog).getAllByRole('combobox')
+    await user.click(selects[0]!)
+    await user.click(await screen.findByRole('option', { name: 'Captain late for pickup' }))
+    expect(await within(dialog).findByText(/First reply within/)).toBeInTheDocument()
+
+    await user.type(within(dialog).getByLabelText(en('ticket.new.subject')), 'Captain was 20 minutes late')
+
+    /* Everything but the channel is in; the primary still refuses, naming the channel. */
+    const confirm = within(dialog).getByRole('button', { name: en('ticket.new.confirm') })
+    expect(confirm).toBeDisabled()
+    expect(within(dialog).getByText(en('ticket.new.blocked.channel'))).toBeInTheDocument()
+
+    const channel = within(dialog).getAllByRole('combobox').at(-1)!
+    await user.click(channel)
+    await user.click(await screen.findByRole('option', { name: en('ticket.channel.email') }))
+    await user.click(within(dialog).getByRole('button', { name: en('ticket.new.confirm') }))
+
+    await expect
+      .poll(async () => (await listTickets({ view: 'all', pageSize: 100 })).items.find((tk) => tk.subject === 'Captain was 20 minutes late'))
+      .toMatchObject({ reasonCode: 'CAP_LATE', channel: 'email', priority: 'Medium' })
+    const created = (await listTickets({ view: 'all', pageSize: 100 })).items.find(
+      (tk) => tk.subject === 'Captain was 20 minutes late',
+    )!
+    expect(created.firstResponseDueAt).not.toBeNull()
+    expect(created.slaDueAt).not.toBeNull()
+  })
+})
+
 describe('resolving a ticket is reversible — D18', () => {
   /* The trade D18 makes is explicit: a command may skip its confirm **because**
      the inverse is one press away. This screen had taken the removal and not the

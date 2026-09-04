@@ -138,6 +138,10 @@ export interface ConversationPaneProps {
   onTransfer: () => void
   onClose: () => void
   onReopen: () => void
+  /** D19 / AC-947: opens the ticket form with this conversation's party and channel locked. */
+  onCreateTicket: () => void
+  /** `null` when this party can be ticketed; the sentence otherwise. */
+  createTicketRefusal: string | null
 
   profileHref: string
   ticketHref: (ticketId: string) => string
@@ -158,6 +162,8 @@ export function ConversationPane({
   onTransfer,
   onClose,
   onReopen,
+  onCreateTicket,
+  createTicketRefusal,
   profileHref,
   ticketHref,
 }: ConversationPaneProps) {
@@ -377,6 +383,23 @@ export function ConversationPane({
    *      it is a ticket."* It is a conversion prompt, not an escalation.
    *   3. otherwise there is no primary, and that is a legitimate answer.
    */
+  /* §11.2: the form exists (`NewTicketModal`), so the control is live wherever
+     the party can be ticketed, and refused with its reason where it cannot. */
+  const createTicketRefused: string | null =
+    writeRefusal ??
+    createTicketRefusal ??
+    (conversation.ticketId !== null
+      ? t('conversations.ticket.linked', { id: conversation.ticketId })
+      : conversation.status === 'closed'
+        ? t('conversations.composer.closed')
+        : null)
+  const createTicketAction: PageAction = {
+    label: t('conversations.ticket.create'),
+    onClick: onCreateTicket,
+    disabled: createTicketRefused !== null,
+    reason: createTicketRefused,
+  }
+
   const primary: PageAction | undefined = (() => {
     if (conversation.status === 'closed') {
       /* §3.5's header primary on a closed thread. `reopenConversation` landed,
@@ -398,22 +421,8 @@ export function ConversationPane({
         disabled: writeRefusal !== null || grabRefusal !== null,
       }
     }
-    if (sla.resolutionBreached) {
-      return {
-        label: t('conversations.ticket.create'),
-        onClick: () => undefined,
-        /* **The operation exists; the FORM does not.**
-           `createTicketForConversation` writes both sides of D19's link in one
-           mutation, so the seam gap this control was blocked on is closed. What
-           it requires is a `category`, a `reasonCode` and a `priority` — three
-           operator choices — and §6.4 has no row for the conversion form that
-           would collect them. `ConfirmDialog` offers one `choice`, not three, and
-           a three-field modal is a design decision this file does not get to
-           make. Disabled in place with its reason (§11.2); raised to
-           product-designer with the options. */
-        disabled: true,
-      }
-    }
+    /* AC-964: past twenty minutes the conversion is the primary. */
+    if (sla.resolutionBreached && conversation.ticketId === null) return createTicketAction
     return undefined
   })()
 
@@ -428,6 +437,7 @@ export function ConversationPane({
       onClick: onClose,
       disabled: writeRefusal !== null || conversation.status === 'closed',
     },
+    ...(primary === createTicketAction ? [] : [createTicketAction]),
   ]
 
   /* ── the composer's refusal, resolved ONCE (§8.6.3, §8.6.8) ─────────── */

@@ -182,6 +182,36 @@ export function stampTicketClocks(
   }
 }
 
+/** Legacy's eleven categories (`13a` §6), derived from the registry key's prefix. */
+export function categoryOf(reasonCode: string): string {
+  const prefix = reasonCode.split('_')[0] ?? ''
+  switch (prefix) {
+    case 'CAP':
+      return 'Captain'
+    case 'BKG':
+      return 'Booking'
+    case 'PAY':
+      return 'Payment'
+    case 'TRP':
+      return 'Trip'
+    case 'APP':
+    case 'TECH':
+      return 'Technical'
+    case 'SAF':
+      return 'Safety'
+    case 'FBK':
+      return 'Feedback'
+    case 'SUB':
+      return 'Subscription'
+    case 'DRV':
+      return 'Driver'
+    case 'CORP':
+      return 'Corporate'
+    default:
+      return 'Other'
+  }
+}
+
 /** Work still owed. Resolved and closed tickets have stopped clocks. */
 export function ticketIsLive(ticket: Pick<Ticket, 'status'>): boolean {
   return ticket.status !== 'resolved' && ticket.status !== 'closed'

@@ -132,6 +132,7 @@ import {
 } from '@/screens/queues'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { ConversationPane } from './ConversationPane'
+import { NewTicketModal, type TicketRequester } from '@/screens/support/tickets/NewTicketModal'
 import { PresenceBar } from './PresenceBar'
 import { useAutoAway, usePresence, type PresenceModel } from './presence'
 import { compareForQueue, conversationSla, runningClock, type ConversationSla } from './sla'
@@ -262,6 +263,8 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
 
   const actions = useRowActions<Conversation>({ t })
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  /** The conversation a ticket is being raised from, or `null`. */
+  const [ticketFor, setTicketFor] = useState<Conversation | null>(null)
   /**
    * **R5a's scope, and it is a SCOPE and not a filter** (§9.4). It cannot be a
    * `FilterSpec`: the breach it narrows to is derived from D22's channel policy
@@ -580,12 +583,49 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
           }
           profileHref={`${location.pathname}${withOverlay(location.search, 'entity', record.entityId)}`}
           ticketHref={(ticketId) => `/support/tickets/${ticketId}`}
+          onCreateTicket={() => setTicketFor(record)}
+          createTicketRefusal={
+            requesterOf(record) === null ? t('conversations.ticket.create.unavailable') : null
+          }
         />
         <ConfirmDialog
           request={confirm}
           onClose={() => setConfirm(null)}
           busy={actions.busy}
           t={t}
+        />
+        <NewTicketModal
+          open={ticketFor !== null}
+          onClose={() => setTicketFor(null)}
+          onCreated={(ticket) => {
+            const linked = ticketFor
+            setTicketFor(null)
+            toast.success(t('conversations.toast.ticketCreated', { id: ticket.id }))
+            /* The row overlay holds the last mutation's response until a newer
+               one is recorded; the link was written by the ticket mutation, so
+               a fresh read is recorded here or the pane keeps the pre-link row. */
+            if (linked !== null) {
+              void actions.run({
+                id: linked.id,
+                errorKey: 'conversations.thread.error',
+                action: () => getConversation(linked.id),
+              })
+            }
+            bump()
+            void corpus.refetch()
+            void data.refetch()
+          }}
+          t={t}
+          language={language}
+          locked={
+            ticketFor === null || requesterOf(ticketFor) === null
+              ? null
+              : {
+                  requester: requesterOf(ticketFor)!,
+                  channel: ticketFor.channel,
+                  conversationId: ticketFor.id,
+                }
+          }
         />
       </>
     )
@@ -732,6 +772,15 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={actions.busy} t={t} />
     </QueuePage>
   )
+}
+
+/** The party a ticket can be raised about, or `null` for one it cannot (`ticketEntityType`'s rule). */
+function requesterOf(conversation: Conversation): TicketRequester | null {
+  const type = conversation.entityType
+  const entityType =
+    type === 'rider' ? 'rider' : type === 'driver' ? 'driver' : type === 'corporate-account' ? 'corporate' : null
+  if (entityType === null) return null
+  return { entityId: conversation.entityId, entityName: conversation.entityName, entityType }
 }
 
 /* ─────────────────────────────── columns ───────────────────────────────── */

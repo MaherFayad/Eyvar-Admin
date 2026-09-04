@@ -213,7 +213,8 @@ export const CONVERSATIONS_EN: Dictionary = {
      product-designer with the three options; the sentence stays operator-facing
      and says nothing about a schema. */
   'conversations.ticket.create.unavailable':
-    'Turning a conversation into a ticket isn’t available yet.',
+    'A ticket can only be raised about a rider, a captain or a corporate account.',
+  'conversations.toast.ticketCreated': '{id} raised from this conversation',
   'conversations.ticket.linked': 'This conversation is the thread of {id}.',
   /* **AC-964** — the twenty-minute prompt, in words, with no escalation implied. */
   'conversations.ticket.overdue':

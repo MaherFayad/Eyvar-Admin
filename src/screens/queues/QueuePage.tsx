@@ -43,7 +43,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import type { SubTabRoute, SubTabView } from '@/data/types'
 import { formatCount, type Direction, type Language, type Translate } from '@/lib'
 import { Banner } from '@/components/Banner'
-import { PageHeader } from '@/components/PageHeader'
+import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import {
   DataTable,
@@ -122,16 +122,23 @@ export function QueuePage({
   meta,
   t,
   dir,
+  primaryAction,
   children,
 }: {
   row: SubTabRoute
   meta: string | null
   t: Translate
   dir: Direction
+  /** R3: at most one. A queue that can create its own rows names the act here. */
+  primaryAction?: PageAction
   children: ReactNode
 }) {
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}>
+    <SingleColumnPage
+      header={
+        <PageHeader title={t(row.titleKey)} meta={meta} primaryAction={primaryAction} t={t} dir={dir} />
+      }
+    >
       {children}
     </SingleColumnPage>
   )

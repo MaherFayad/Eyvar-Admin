@@ -45,6 +45,7 @@ import { toastOutcome } from '@/commands'
 import { setRefusal } from '../../operations/bulkRefusal'
 import { withFallback } from '../../operations/localCopy'
 import { runningTicketClock, ticketIsDecided } from './clock'
+import { NewTicketModal } from './NewTicketModal'
 import { PRIORITY_TONE, STATUS_TONE } from './tone'
 import { TICKETS_EN } from './copy'
 
@@ -95,6 +96,7 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
   const actions = useRowActions<Ticket>({ t })
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [claimingMany, setClaimingMany] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const rows = actions.rows(data.data?.items ?? [])
   const scoped = table.filters.some((filter) => filter.field === 'breached')
@@ -217,7 +219,30 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
   })
 
   return (
-    <QueuePage row={row} meta={meta} t={t} dir={dir}>
+    <QueuePage
+      row={row}
+      meta={meta}
+      t={t}
+      dir={dir}
+      primaryAction={{
+        label: t('ticket.new'),
+        onClick: () => setCreating(true),
+        disabled: !canWrite,
+        reason: canWrite ? null : t('ticket.action.claim.blocked.permission'),
+      }}
+    >
+      <NewTicketModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(created) => {
+          setCreating(false)
+          toast.success(t('ticket.toast.created', { id: created.id }))
+          data.refetch()
+          breached.refetch()
+        }}
+        t={t}
+        language={language}
+      />
       <BreachBanner
         id="support-tickets-sla"
         count={breached.data?.total ?? 0}

@@ -33,6 +33,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  getTicket,
   claimConversation,
   disableMockLatency,
   transferConversation,
@@ -49,6 +50,7 @@ import { ShellProvider } from '@/shell/ShellContext'
 import { QUEUE_SHARED_EN } from '@/screens/queues/copy'
 import { ConversationConsoleScreen } from './ConversationConsoleScreen'
 import { CONVERSATIONS_EN } from './copy'
+import { TICKETS_EN } from '@/screens/support/tickets/copy'
 import { resetDrafts } from './drafts'
 import { compareForQueue, conversationSla, runningClock } from './sla'
 
@@ -63,7 +65,7 @@ const row = (): SubTabRoute => {
 }
 
 const copy = (key: string): string => {
-  const value = CONVERSATIONS_EN[key] ?? QUEUE_SHARED_EN[key]
+  const value = CONVERSATIONS_EN[key] ?? QUEUE_SHARED_EN[key] ?? TICKETS_EN[key]
   if (!value) throw new Error(`No dictionary key ${key}`)
   return value
 }
@@ -785,6 +787,33 @@ describe('the channel switch', () => {
 })
 
 /* ═════════ the four controls that shipped dead, and now do not ═════════ */
+
+describe('AC-947 / AC-S-14 — a ticket raised from a conversation', () => {
+  it('links the two in both directions and renders the ticket link on the row', async () => {
+    renderConsole(paneAt('CNV-101'))
+    await screen.findByText(copy('conversations.composer.unclaimed'))
+    await userEvent.click(screen.getByRole('button', { name: copy('queue.claim') }))
+
+    await userEvent.click(await screen.findByRole('button', { name: copy('conversations.ticket.create') }))
+    const dialog = await screen.findByRole('dialog')
+    /* The party and the channel arrive locked from the conversation. */
+    expect(within(dialog).queryByPlaceholderText(copy('ticket.new.requester.placeholder'))).not.toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getAllByRole('combobox')[0]!)
+    await userEvent.click(await screen.findByRole('option', { name: 'Captain late for pickup' }))
+    await userEvent.type(within(dialog).getByLabelText(copy('ticket.new.subject')), 'Late again')
+    await userEvent.click(within(dialog).getByRole('button', { name: copy('ticket.new.confirm') }))
+
+    await expect.poll(async () => (await byId('CNV-101')).ticketId).not.toBeNull()
+    const linked = await byId('CNV-101')
+    const ticket = await getTicket(linked.ticketId!)
+    expect(ticket.conversationId).toBe('CNV-101')
+    expect(ticket.channel).toBe(linked.channel)
+    expect(
+      await screen.findByRole('link', { name: copy('conversations.ticket.open').replace('{id}', ticket.id) }),
+    ).toBeInTheDocument()
+  })
+})
 
 describe('the controls the seam unblocked', () => {
   /**
