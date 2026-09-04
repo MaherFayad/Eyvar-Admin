@@ -193,7 +193,13 @@ import {
   type Translate,
 } from '@/lib'
 import type { Metric, MetricComparison } from '@/data/types'
-import { formatMetricValue, formatSignedPercent, metricValence, splitMetricValue } from './formatMetric'
+import {
+  formatMetricValue,
+  formatSignedPercent,
+  formatSignedPoints,
+  metricValence,
+  splitMetricValue,
+} from './formatMetric'
 
 
 export interface MetricTileProps {
@@ -223,7 +229,16 @@ export interface MetricTileProps {
    * not about any one of them.
    */
   selection?: MetricSelection
+  /**
+   * What `deltaPercent` is a change IN. `percent` is the default. `points` is
+   * the difference between two rates — 12.6% to 12.0% fell 0.6 points, not
+   * 4.8% — and the caller puts that difference in `deltaPercent` (§4.3).
+   */
+  deltaUnit?: MetricDeltaUnit
 }
+
+/** See `MetricTileProps.deltaUnit`. */
+export type MetricDeltaUnit = 'percent' | 'points'
 
 /** The three fields of a roving-tabindex radio. See `MetricTileProps`. */
 export interface MetricSelection {
@@ -254,6 +269,7 @@ export function MetricTile({
   language,
   surface = 'page',
   selection,
+  deltaUnit = 'percent',
 }: MetricTileProps) {
   const label = t(`metric.${metric.key}`)
   const isStale = new Date(metric.asOf).getTime() < new Date(boardAsOf).getTime()
@@ -263,7 +279,7 @@ export function MetricTile({
      entirely by the surface and this reads `false` for all three of them. */
   const isLead = !onBand && metric.rank === 'lead'
 
-  const { delta, note } = comparisonParts({ metric, t, language, onBand })
+  const { delta, note } = comparisonParts({ metric, t, language, onBand, deltaUnit })
   /* The numeral and the unit beside it — see `splitMetricValue` for why a money
      value is two runs here and one everywhere else. `unitNode` is `null` on
      every non-money measure, so nothing but money gains a line. */
@@ -373,7 +389,7 @@ export function MetricTile({
           onBand ? 'text-hero-muted' : 'text-muted-foreground',
         )}
       >
-        <bdi>{t(metric.caption)}</bdi>
+        <bdi>{t(metric.caption, metric.captionParams ?? undefined)}</bdi>
       </span>
     ) : null
 
@@ -635,11 +651,13 @@ function comparisonParts({
   t,
   language,
   onBand,
+  deltaUnit,
 }: {
   metric: Metric
   t: Translate
   language: Language
   onBand: boolean
+  deltaUnit: MetricDeltaUnit
 }): { delta: ReactNode; note: ReactNode } {
   const { comparison, deltaPercent } = metric
   /* One bag, every place the trailing phrase is drawn. `isolatedRunProps`
@@ -781,6 +799,7 @@ function comparisonParts({
         deltaPercent={deltaPercent}
         higherIsBetter={metric.higherIsBetter}
         onBand={onBand}
+        deltaUnit={deltaUnit}
         t={t}
         language={language}
       />
@@ -843,6 +862,7 @@ export function MetricDelta({
   deltaPercent,
   higherIsBetter,
   onBand = false,
+  deltaUnit = 'percent',
   t,
   language,
 }: {
@@ -851,6 +871,8 @@ export function MetricDelta({
   higherIsBetter: boolean
   /** `true` on the hero band, which has its own legible pair of valence hues. */
   onBand?: boolean
+  /** See `MetricTileProps.deltaUnit`. `points` renders `−0.6 pts`, not `−0.6%`. */
+  deltaUnit?: MetricDeltaUnit
   t: Translate
   language: Language
 }) {
@@ -904,7 +926,13 @@ export function MetricDelta({
       {Caret && <Caret aria-hidden="true" className="size-3" />}
       {/* Isolated for the same reason as the value. `+8.1%` renders `8.1%+`
           without it under `dir="rtl"`, its leading sign being bidi-neutral. */}
-      <bdi className="tabular-nums">{formatSignedPercent(deltaPercent, language)}</bdi>
+      {/* A change in a RATE is a point difference, and the run says which it is
+          rather than leaving `%` to mean two things (§4.3). */}
+      <bdi className="tabular-nums">
+        {deltaUnit === 'points'
+          ? `${formatSignedPoints(deltaPercent, language)}${t('metric.delta.points')}`
+          : formatSignedPercent(deltaPercent, language)}
+      </bdi>
       <span className="sr-only">{direction}</span>
     </span>
   )

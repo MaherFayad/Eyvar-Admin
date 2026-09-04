@@ -728,4 +728,62 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.audit.planSaved': 'حُفظت الباقة {plan}.',
   'fin.audit.refundIssued': 'صدر الاسترداد {reference} إلى {destination}.',
   'fin.audit.walletAdjusted': 'عُدِّلت محفظة — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §3 Overview ── */
+
+  'fin.overview.refused.body':
+    'كل قيد مرفوض محفوظ ويمكن قراءته. ولا واحد منها داخل هذه الإجماليات.',
+
+  'fin.overview.board.lede': 'من {from} إلى {to}، مقيسة مقابل {compareFrom} إلى {compareTo}.',
+  'fin.overview.board.lede.alone': 'من {from} إلى {to}. لا توجد فترة سابقة تُقاس مقابلها.',
+  'fin.overview.chapter.period': 'الفترة',
+  'fin.overview.chapter.period.note': 'التدفقات خلال {from} إلى {to}.',
+  'fin.overview.chapter.positions': 'أين يُحتفظ بالمال',
+  'fin.overview.chapter.positions.note': 'الأرصدة حتى {at}.',
+  'fin.overview.charts.heading': 'كيف سار الشهر',
+  'fin.overview.lists.heading': 'إلى أين ذهب',
+
+  'metric.financials.overview.grossBookings': 'إجمالي الحجوزات',
+  'metric.financials.overview.captainEarnings': 'أرباح الكباتن',
+  'metric.financials.overview.grossMargin': 'الهامش الإجمالي',
+  'metric.financials.overview.giveback': 'المردودات',
+  'metric.financials.overview.contributionMargin': 'هامش المساهمة',
+  'metric.financials.overview.contributionPercent': 'نسبة المساهمة',
+  'metric.financials.overview.refunds': 'الاستردادات',
+  'metric.financials.overview.pendingPayouts': 'مستحق للكباتن',
+  'metric.financials.overview.escrowHeld': 'الضمان المحجوز',
+  'metric.financials.overview.escrowReady': 'ضمان جاهز للإفراج',
+  'metric.financials.overview.captainDebt': 'دين الكباتن النقدي',
+  'metric.financials.overview.riderWallets': 'أرصدة محافظ الركاب',
+  'metric.financials.overview.heldInTotal': 'الإجمالي المحتجز',
+
+  'fin.overview.caption.shareOfGross': '{share} من الإجمالي',
+  'fin.overview.caption.shareOfMargin': '{share} من الهامش الإجمالي',
+  'fin.overview.caption.shareOfGiveback': '{share} من المردودات',
+  'fin.overview.caption.escrowReady': 'اكتملت مدة الحجز.',
+  'fin.overview.caption.captainDebt': 'الكباتن المدينون فقط.',
+  'fin.overview.caption.heldInTotal': 'عبر خمسة حسابات.',
+
+  'metric.delta.points': ' نقطة',
+
+  'chart.financials.overview.grossByDay': 'إجمالي الحجوزات يوميًا',
+  'chart.financials.overview.contributionPercentByDay': 'نسبة المساهمة يوميًا',
+
+  'breakdown.financials.overview.giveback': 'ما أُعيد',
+  'breakdown.dimension.giveback-line': 'بنود المردودات',
+  'fin.overview.giveback.share': '{shareOfGiveback} من المردودات · {shareOfMargin} من الهامش الإجمالي',
+
+  'fin.overview.decisions.heading': 'ما ينتظر قرارًا',
+  'fin.overview.decisions.empty': 'لا شيء في الدفاتر ينتظر قرارًا.',
+  'fin.overview.decision.payouts': 'دفعات أعادها البنك',
+  'fin.overview.decision.creditNotes': 'إشعارات دائنة بلا فاتورة',
+  'fin.overview.decision.cash': 'تقارير نقدية مُصعَّدة',
+
+  'fin.overview.empty.heading': 'لا قيود في هذه الفترة',
+  'fin.overview.empty.body':
+    'تحتوي الدفاتر على {postings} قيدًا. ولم يُسجَّل أي منها بين {from} و{to}.',
+  'fin.overview.firstRun.heading': 'الدفاتر فارغة',
+  'fin.overview.firstRun.body':
+    'لم يُسجَّل أي قيد بعد. أول أجرة محصَّلة تفتح دفتر الأستاذ، وكل رقم هنا يتبعها.',
+  'fin.overview.firstRun.action': 'فتح دفتر الأستاذ',
 }

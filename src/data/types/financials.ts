@@ -55,6 +55,18 @@ export interface FinancialsPeriod {
  */
 export interface FinancialsOverview {
   period: FinancialsPeriod
+  /**
+   * When the server computed this read. `Metric.asOf` and `BoardHero` both
+   * require one and Overview had none, so every figure derived from this
+   * response had to borrow a freshness it could not state.
+   */
+  asOf: IsoDateTime
+  /**
+   * Postings in the books, **ever** — not in `period`. LR-3: the split between
+   * *nothing happened in this window* and *this console has never had a
+   * posting* is a lifetime fact, and a query result cannot tell them apart.
+   */
+  lifetimePostings: number
   /** Sum of `revenue.fares` + `tax.vat_output` credits in period — captured payments only. */
   grossBookingsHalalas: Halalas
   /**
@@ -97,6 +109,57 @@ export interface FinancialsOverview {
   failedPayoutCount: number
   unlinkedCreditNoteCount: number
   escalatedCashReportCount: number
+
+  /**
+   * The previous window of equal length, so a delta is a fact the response
+   * carries rather than arithmetic a screen invents. `null` on the first month
+   * of trading.
+   */
+  comparison: FinancialsComparison | null
+  /**
+   * One entry per DAY in `period`, ascending, no gaps in the dates. A day with
+   * no postings is `0`, which is a measured zero — the plot's gap comes from
+   * `percentOrNull` over a zero denominator (AC-342), never from a missing day.
+   */
+  daily: FinancialsDailyPoint[]
+}
+
+/**
+ * One day's flows, bucketed by `JournalEntry.postedAt`.
+ *
+ * **The derived lines are absent for AC-347's reason.** Contribution per day is
+ * `gross − earnings − giveback` and contribution % is that over gross; both are
+ * `derive.ts`'s arithmetic and neither is a second definition living on a wire.
+ */
+export interface FinancialsDailyPoint {
+  date: IsoDate
+  grossBookingsHalalas: Halalas
+  captainEarningsHalalas: Halalas
+  givebackHalalas: Halalas
+}
+
+/**
+ * The prior window's figures. Flows are always statable; a position is a
+ * balance as at a date and two of the five have no history behind them, so they
+ * are `null` and the adapter takes `MetricComparison`'s `none` arm (R5-1).
+ */
+export interface FinancialsComparison {
+  /** The window itself, server-chosen. The caption names its dates (§3.7). */
+  period: FinancialsPeriod
+  grossBookingsHalalas: Halalas
+  captainEarningsHalalas: Halalas
+  promoHalalas: Halalas
+  referralHalalas: Halalas
+  incentiveHalalas: Halalas
+  refundsHalalas: Halalas
+  goodwillHalalas: Halalas
+  emergencyCoverHalalas: Halalas
+  /** Balances as at `period.end`. `null` where no such balance is statable. */
+  pendingPayoutsHalalas: Halalas | null
+  escrowHeldHalalas: Halalas | null
+  escrowReadyHalalas: Halalas | null
+  captainDebtHalalas: Halalas | null
+  riderWalletLiabilityHalalas: Halalas | null
 }
 
 /* ───────────────────── revenue & refunds ────────────────────── */

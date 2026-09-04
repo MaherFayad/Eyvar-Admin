@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5609,
-    "en": 5330,
-    "ar": 5609,
+    "keys": 5653,
+    "en": 5374,
+    "ar": 5653,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 694,
+      "keys": 738,
       "notInEN": 0
     },
     {
@@ -324,7 +324,18 @@
     }
   ],
   "defaultValueByFile": [],
-  "fragments": [],
+  "fragments": [
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "key": "metric.delta.points",
+      "value": " نقطة"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "metric.delta.points",
+      "value": " pts"
+    }
+  ],
   "emDash": [
     {
       "file": "src/i18n/ar/adminData.ts",

@@ -318,6 +318,8 @@ export type {
   Deduction,
   DeductionState,
   EscrowHold,
+  FinancialsComparison,
+  FinancialsDailyPoint,
   FinancialsOverview,
   FinancialsPeriod,
   InvoiceSequence,

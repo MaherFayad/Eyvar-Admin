@@ -2,13 +2,11 @@
  * The money figure, the figure grid, and the period control — the three shapes
  * Overview and the four summary cards are built from.
  *
- * **These are not `MetricTile`.** `src/components/metrics/` renders a `Metric`
- * — a keyed measure with a comparison, a caption and an `asOf` — and nothing on
- * a Financials card is one: a contribution margin is arithmetic over the
- * period's postings, computed by `derive.ts` at render, with no series behind
- * it and no delta to state. Passing one through a component built for the other
- * would mean minting a fake `Metric` per figure, which is exactly the
- * hand-written literal **AC-346** exists to prevent.
+ * **These are the working, not the board — D-F32.** The rule here was that a
+ * Financials figure is not a `Metric`, because it had no comparison and no
+ * series. `FinancialsOverview` now carries both, so `overview/toBoard.ts`
+ * derives real `Metric`s and Overview's figures are `MetricTile`s. What stays
+ * here is `FigureRow`: a SUM with its operators drawn, which no tile can be.
  *
  * Rules applied
  *   §3.7 / D7 §4.9 / H4
@@ -50,15 +48,9 @@ export interface FigureProps {
    * §H4 — `lead` renders `--text-kpi-lead`, and a lead belongs in
    * `FigureLeadRow` so it is three across rather than four.
    *
-   * **The same two ranks `Metric.rank` has, and deliberately the same word.**
-   * This file's opening rule is that a Financials figure is NOT a `Metric` and
-   * must not borrow its component — a contribution margin has no series, no
-   * comparison and no `asOf`, so passing one through `MetricTile` would mean
-   * minting a fake `Metric` per figure. That argument is about the DATA. Rank
-   * is a rendering decision about which numbers a page is for, and a Finance
-   * lead moving from `/management/overview` to `/financials/overview` should
-   * find the same two weights meaning the same thing. Sharing the vocabulary
-   * costs nothing the rule was protecting.
+   * The same two ranks `Metric.rank` has, and deliberately the same word: a
+   * Finance lead moving from `/management/overview` to `/financials/overview`
+   * finds the same two weights meaning the same thing (D-F32).
    */
   rank?: 'lead' | 'supporting'
   className?: string

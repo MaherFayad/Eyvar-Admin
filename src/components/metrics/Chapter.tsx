@@ -53,7 +53,7 @@
 
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { formatCount, type Language, type Translate } from '@/lib'
+import { formatCount, invariant, type Language, type Translate } from '@/lib'
 import type { Metric, MetricCategory } from '@/data/types'
 import { FIGURE_GUTTER } from './BoardHero'
 import { metricValence } from './formatMetric'
@@ -168,7 +168,15 @@ export const PLAIN_FRAME = 'rounded-none border-0 bg-transparent py-0 shadow-non
 export const PLAIN_FRAME_SLOT = 'px-0'
 
 export interface ChapterProps {
-  category: MetricCategory
+  /**
+   * A board's chapters are its `MetricCategory` groups and name themselves from
+   * one. `null` on a surface whose sections are its own — Financials' *The
+   * period* and *Where the money is held* are not categories — which then
+   * passes `title` instead.
+   */
+  category: MetricCategory | null
+  /** Given, it names the chapter. Required when `category` is `null`. */
+  title?: string
   /** The chapter's own sub-line — see `chapterSummary`. */
   summary: string
   children: ReactNode
@@ -211,7 +219,9 @@ export function SectionHeading({ title, note }: { title: string; note?: string |
   )
 }
 
-export function Chapter({ category, summary, children, t }: ChapterProps) {
+export function Chapter({ category, title, summary, children, t }: ChapterProps) {
+  const heading = title ?? (category === null ? '' : t(`overview.category.${category}`))
+  invariant(heading !== '', 'Chapter needs a category or a title')
   return (
     /* 16px between the heading and its figures, down from 24. The rule in the
        heading already closes the section above; what separates a heading from
@@ -219,7 +229,7 @@ export function Chapter({ category, summary, children, t }: ChapterProps) {
        the next, and at 24 against 48 it read as a gap rather than as an
        attachment. §E7's density pass. */
     <section className="flex flex-col gap-4">
-      <SectionHeading title={t(`overview.category.${category}`)} note={summary} />
+      <SectionHeading title={heading} note={summary} />
       {children}
     </section>
   )

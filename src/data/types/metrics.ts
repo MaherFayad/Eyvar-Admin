@@ -280,6 +280,13 @@ export interface Metric {
    * quoted wrong.
    */
   caption: string | null
+  /**
+   * The caption's named parameters. Absent on the ~forty captions that are
+   * whole sentences; present where the caption states a denominator the figure
+   * itself computed — `{share}% of gross`. A key with parameters, never a
+   * concatenation (AC-713).
+   */
+  captionParams?: Record<string, string | number> | null
 
   /**
    * The resource this is an aggregate **of**, when it is one — `'drivers'`,
