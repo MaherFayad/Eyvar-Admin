@@ -343,6 +343,40 @@ describe('§4 — `Revenue by plan` is a master-detail driven by `?plan=`', () =
   })
 
   /**
+   * **One view strip, on all five views.** It was the `DataTable` toolbar's
+   * stadium on three views and a row of pills on the other two, so the strip
+   * changed shape and place on every click. Two strips would read as ten tabs
+   * here; the by-plan view adds only its own `Charts | Table` pair (§4.5).
+   */
+  it('every view renders one strip of the same five views', async () => {
+    const views = [
+      EN['fin.revenue.view.byPlan'],
+      EN['fin.revenue.view.refunds'],
+      EN['fin.revenue.view.refundsLedger'],
+      EN['fin.revenue.view.creditNotes'],
+      EN['fin.revenue.view.margin'],
+    ]
+
+    for (const [view, extra] of [
+      ['by-plan', [EN['fin.revenue.mode.charts'], EN['fin.revenue.mode.table']]],
+      ['refunds', []],
+      ['refunds-ledger', []],
+      ['credit-notes', []],
+      ['margin', []],
+    ] as const) {
+      const { unmount } = mount(`/financials/revenue?view=${view}`)
+      await waitFor(() => expect(screen.getAllByRole('tab').length).toBeGreaterThan(0))
+      await waitFor(() =>
+        expect(screen.getAllByRole('tab').map((tab) => tab.textContent?.trim())).toEqual([
+          ...views,
+          ...extra,
+        ]),
+      )
+      unmount()
+    }
+  })
+
+  /**
    * **`Table` mode is the table that always shipped** — the same four rows and
    * the AC-355 total, now as a footer row. The mode rides in the URL, so a
    * reload keeps the drawing the operator chose.

@@ -134,14 +134,18 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
     <FinancialsPage
       row={row}
       meta={windowed ? periodLabel(period, t, language) : null}
+      /* §8 slot 4c - the period rides the title row, on the one view whose
+         read honours it (Q-F13 / TL-2). */
+      periodControl={
+        windowed ? (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        ) : undefined
+      }
       banners={banners}
       t={t}
       dir={dir}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        {windowed && (
-          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
-        )}
         {activeTab === 'subscription-plans' && (
           <PlansView
             key="plans"

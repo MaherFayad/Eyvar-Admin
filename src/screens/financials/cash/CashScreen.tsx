@@ -162,7 +162,7 @@ const NO_ESCALATED_SCOPE: EscalatedScope = { count: 0, scoped: false, showOnly: 
 export function CashScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
-  const { period } = usePeriod()
+  const { period, setPeriod } = usePeriod()
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
   const gate = useWriteGate(row, t)
   const location = useLocation()
@@ -217,6 +217,12 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
          `listCashReports` and `listCaptainDebts` take `QueryParams` alone;
          `getCaptainDebtLedger` takes a window. */
       meta={captainId === null ? null : periodLabel(period, t, language)}
+      /* §8 slot 4c - on the title row, and only where a read honours it. */
+      periodControl={
+        captainId === null ? undefined : (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        )
+      }
       banners={banners}
       t={t}
       dir={dir}
@@ -1033,8 +1039,8 @@ function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: (
   const shell = useShell()
   const { t, language } = shell.language
   /* **Q-F13 / TL-2** — `getCaptainDebtLedger` is the one read on this screen
-     that takes a window, so this is the one place the control belongs. */
-  const { period, setPeriod } = usePeriod()
+     that takes a window; the control for it is on the page's title row. */
+  const { period } = usePeriod()
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>(
@@ -1071,7 +1077,6 @@ function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: (
         <span className="text-xs text-muted-foreground">
           {t('fin.debt.col.cap')} <MoneyCell amount={cashDebtCapHalalas()} />
         </span>
-        <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
       </div>
       <LedgerCard
         table={table}

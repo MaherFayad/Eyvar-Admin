@@ -33,7 +33,15 @@
  *              control; `Table` is the same `DataTable` it always was.
  */
 
-import { useCallback, useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import { Download } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -69,7 +77,9 @@ import {
 import { cn } from '@/lib/utils'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn } from '@/components/DataTable'
+import { tableCeiling } from '@/components/table/columns'
 import { tableCsvFilename, tableCsvText } from '@/components/table/csv'
+import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { downloadCsv } from '@/screens/reports/csv'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -115,6 +125,7 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
   const { t, dir, language } = shell.language
   const { period, setPeriod } = usePeriod()
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
+  const { mode, setMode } = useDrawMode()
 
   /* The banner state is lifted so the page renders **one** banner whichever
      view is mounted (R10). Only the credit-note view can raise one here. */
@@ -137,51 +148,159 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
     ]
   }, [unlinkedCount, t, language])
 
+  /* The by-plan read lives here because `Export CSV` does: the row's button
+     and the view draw the same plans off one read. `enabled` keeps it off the
+     other four views and off `Table` mode, which reads without the series. */
+  const plans = useAsync<RevenueByPlanRow[]>(
+    (signal) => listRevenueByPlan(period, { include: 'daily' }, signal),
+    {
+      deps: [period.start, period.end],
+      enabled: activeTab === 'by-plan' && mode === 'charts',
+      cacheKey: 'revenue.byPlan.daily',
+    },
+  )
+  const planRows = useMemo(() => plans.data ?? [], [plans.data])
+
+  /* §4.5 - the CSV is the by-plan table in both modes, so `Charts` exports the
+     same file `Table` does rather than a second shape of the same numbers. */
+  const exportCsv = () => {
+    const columns = revenueByPlanColumns(t, language, false)
+    const exportedAt = new Date().toISOString()
+    const text = tableCsvText({
+      tableId: 'financials-revenue-by-plan',
+      view: activeTab,
+      columns,
+      visible: columns,
+      rows: planRows,
+      query: '',
+      filters: [],
+      sort: null,
+      total: planRows.length,
+      exportedAt,
+    })
+    downloadCsv(tableCsvFilename('financials-revenue-by-plan', activeTab, exportedAt), text)
+  }
+
   return (
     <FinancialsPage
       row={row}
       meta={periodLabel(period, t, language)}
       banners={activeTab === 'credit-notes' ? banners : []}
+      periodControl={
+        <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+      }
+      /* **ONE view row, in one place, on all five views.** It was the
+         `DataTable` toolbar's stadium on three views and a row of pills above
+         the cards on the other two, so the strip changed shape and moved on
+         every click. The sub-views pass no `tabs` at all now (D12). */
+      viewRow={
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          {/* §4.5 - the drawing control and its export belong to `Revenue by
+              plan` alone, so they render at the row's inline-end there and
+              nowhere else. `Table` mode carries the table's own `Export`. */}
+          {activeTab === 'by-plan' && (
+            <div className="flex items-center gap-2">
+              <Tabs
+                value={mode}
+                onValueChange={(next) => setMode(next === 'table' ? 'table' : 'charts')}
+                className="shrink-0 gap-0"
+              >
+                <TabsList variant="segmented" aria-label={t('fin.revenue.mode.label')}>
+                  {(['charts', 'table'] as const).map((id) => (
+                    <TabsTrigger
+                      key={id}
+                      value={id}
+                      className="rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
+                    >
+                      {t(id === 'table' ? 'fin.revenue.mode.table' : 'fin.revenue.mode.charts')}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              {mode === 'charts' && (
+                <Button variant="secondary" onClick={exportCsv} disabled={planRows.length === 0}>
+                  <Download aria-hidden="true" />
+                  {t('fin.revenue.export')}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      }
       t={t}
       dir={dir}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
-
         {activeTab === 'by-plan' && (
-          <PlanRevenueView key="by-plan" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-        )}
-        {activeTab === 'refunds-ledger' && (
-          <RefundsLedgerView
-            key="refunds-ledger"
-            tabs={tabs}
+          <PlanRevenueView
+            key="by-plan"
             activeTab={activeTab}
             onSelectTab={selectTab}
-            period={period}
+            mode={mode}
+            rows={planRows}
+            status={plans.status}
+            onRetry={plans.refetch}
           />
         )}
+        {activeTab === 'refunds-ledger' && (
+          <RefundsLedgerView key="refunds-ledger" onSelectTab={selectTab} period={period} />
+        )}
         {activeTab === 'refunds' && (
-          <RefundsView key="refunds" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <RefundsView key="refunds" activeTab={activeTab} onSelectTab={selectTab} />
         )}
         {activeTab === 'credit-notes' && (
           <CreditNotesView
             key="credit-notes"
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             onUnlinkedCount={setUnlinkedCount}
           />
         )}
-        {activeTab === 'margin' && (
-          <ContributionMarginView key="margin" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-        )}
+        {activeTab === 'margin' && <ContributionMarginView key="margin" />}
       </div>
     </FinancialsPage>
   )
 }
 
+/**
+ * A view's headline figures above its table, in `LedgerCard`'s header shape: a
+ * name at the inline-start, figures at the inline-end. Every figure is
+ * computed from the rows on screen (AC-355), so the header cannot disagree
+ * with the table beneath it.
+ */
+function ViewHeader({
+  heading,
+  figures,
+  maxInlineSize,
+}: {
+  heading: string
+  figures: readonly { label: string; value: ReactNode }[]
+  maxInlineSize?: number
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3 pb-3" style={{ maxInlineSize }}>
+      <h2 className="truncate text-sm font-semibold text-foreground">{heading}</h2>
+      <ul data-numeric role="list" className="flex list-none flex-wrap items-end gap-6">
+        {figures.map((figure) => (
+          <li key={figure.label} className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">{figure.label}</span>
+            <span className="text-lg font-semibold tabular-nums text-foreground">
+              <bdi>{figure.value}</bdi>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * What a sub-view still needs: the id it is (the CSV's `view` column) and a way
+ * to send an operator to a sibling view from an empty state. **Not `tabs`** —
+ * the view row is the screen's, rendered once above (D12).
+ */
 interface ViewProps {
-  tabs: readonly { id: string; label: string }[]
   activeTab: string
   onSelectTab: (id: string) => void
 }
@@ -189,11 +308,9 @@ interface ViewProps {
 /* ─────────────────────── the `contra.refunds` ledger ────────────────────── */
 
 function RefundsLedgerView({
-  tabs,
-  activeTab,
   onSelectTab,
   period,
-}: ViewProps & { period: { start: string; end: string } }) {
+}: Pick<ViewProps, 'onSelectTab'> & { period: { start: string; end: string } }) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable({ mode: 'ledger' })
@@ -232,9 +349,6 @@ function RefundsLedgerView({
       t={t}
       language={language}
       tableId="financials-refunds-ledger"
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={onSelectTab}
       onRetry={ledger.refetch}
       hasHistory={(ledger.data?.lifetimePostings ?? 0) > 0}
       firstRun={{
@@ -580,46 +694,26 @@ function percentChange(current: number, previous: number | undefined): number | 
   return Math.round(((current - previous) / previous) * 1000) / 10
 }
 
-function PlanRevenueView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function PlanRevenueView({
+  activeTab,
+  onSelectTab,
+  mode,
+  rows,
+  status,
+  onRetry,
+}: ViewProps & {
+  mode: 'charts' | 'table'
+  /** The plans the screen read, so the row's `Export` and this view agree. */
+  rows: readonly RevenueByPlanRow[]
+  status: 'loading' | 'error' | 'empty' | 'content'
+  onRetry: () => void
+}) {
   const shell = useShell()
   const { t, language } = shell.language
   const { period } = usePeriod()
-  const { mode, setMode } = useDrawMode()
   const { planId, selectPlan } = usePlanParam()
 
-  /* `enabled` — `Table` mode mounts `RevenueByPlanView`, which does its own
-     read without the day series, so this one must not fire beside it. */
-  const plans = useAsync<RevenueByPlanRow[]>(
-    (signal) => listRevenueByPlan(period, { include: 'daily' }, signal),
-    {
-      deps: [period.start, period.end],
-      enabled: mode === 'charts',
-      cacheKey: 'revenue.byPlan.daily',
-    },
-  )
-
-  const rows = useMemo(() => plans.data ?? [], [plans.data])
   const selected = rows.find((plan) => plan.planId === planId) ?? rows[0] ?? null
-
-  /* §4.5 — the CSV is the by-plan table in both modes, so `Charts` exports the
-     same file `Table` does rather than a second shape of the same numbers. */
-  const exportCsv = () => {
-    const columns = revenueByPlanColumns(t, language, false)
-    const exportedAt = new Date().toISOString()
-    const text = tableCsvText({
-      tableId: 'financials-revenue-by-plan',
-      view: activeTab,
-      columns,
-      visible: columns,
-      rows,
-      query: '',
-      filters: [],
-      sort: null,
-      total: rows.length,
-      exportedAt,
-    })
-    downloadCsv(tableCsvFilename('financials-revenue-by-plan', activeTab, exportedAt), text)
-  }
 
   /* Arrow keys move the SELECTION, which is what the list is for; Home and End
      jump. Vertical, so nothing here is direction-sensitive (§9.1). */
@@ -645,51 +739,19 @@ function PlanRevenueView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {/* V-10 — ONE header row: the views, the drawing and the export. The
-          `DataTable` toolbar mounts only in `Table` mode and carries its own
-          `Export` there (§4.5), so this button belongs to `Charts`. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={onSelectTab} />
-        <div className="flex items-center gap-2">
-          <Tabs
-            value={mode}
-            onValueChange={(next) => setMode(next === 'table' ? 'table' : 'charts')}
-            className="shrink-0 gap-0"
-          >
-            <TabsList variant="segmented" aria-label={t('fin.revenue.mode.label')}>
-              {(['charts', 'table'] as const).map((id) => (
-                <TabsTrigger
-                  key={id}
-                  value={id}
-                  className="rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
-                >
-                  {t(id === 'table' ? 'fin.revenue.mode.table' : 'fin.revenue.mode.charts')}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          {mode === 'charts' && (
-            <Button variant="secondary" onClick={exportCsv} disabled={rows.length === 0}>
-              <Download aria-hidden="true" />
-              {t('fin.revenue.export')}
-            </Button>
-          )}
-        </div>
-      </div>
-
       {mode === 'table' ? (
         <RevenueByPlanView activeTab={activeTab} onSelectTab={onSelectTab} />
       ) : (
         <>
-          {plans.status === 'loading' && <LoadingSkeleton pattern="P5" />}
-          {plans.status === 'error' && (
+          {status === 'loading' && <LoadingSkeleton pattern="P5" />}
+          {status === 'error' && (
             <ErrorState
               scope="card"
               message={t('fin.error.read')}
-              action={{ label: t('fin.error.retry'), onClick: plans.refetch }}
+              action={{ label: t('fin.error.retry'), onClick: onRetry }}
             />
           )}
-          {plans.status === 'content' && rows.length === 0 && (
+          {status === 'content' && rows.length === 0 && (
             <EmptyState
               kind="first-run"
               heading={t('fin.pricing.plan.empty.heading')}
@@ -1089,7 +1151,7 @@ function PlanDetailPanel({
 
 /* ──────────────────────────── refund documents ─────────────────────────── */
 
-function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function RefundsView({ activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<Refund>({ mode: 'queue', getRowId: (refund) => refund.id })
@@ -1100,6 +1162,16 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
   )
 
   const rows = refunds.data?.items ?? []
+
+  /* The three headline figures, off the rows on screen (AC-355's argument):
+     how many refunds, how much went back, and how many name no payment. */
+  const figures = useMemo(
+    () => ({
+      total: rows.reduce((sum, refund) => sum + refund.amountHalalas, 0),
+      unsourced: rows.filter((refund) => refund.sourcePaymentId === null).length,
+    }),
+    [rows],
+  )
 
   /**
    * **P8-T1** — the rider the refund went to.
@@ -1204,45 +1276,60 @@ function RefundsView({ tabs, activeTab, onSelectTab }: ViewProps) {
   )
 
   return (
-    <DataTable
-      table={table}
-      rows={rows}
-      columns={columns}
-      getRowId={(refund) => refund.id}
-      status={refunds.status}
-      total={refunds.data?.total ?? 0}
-      t={t}
-      language={language}
-      tableId="financials-refunds"
-      view={activeTab}
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={onSelectTab}
-      searchPlaceholder={t('fin.refund.search')}
-      /* **§6.3 / R5a** — a refund with no traceable payment. The table used to
-         reach for this itself with `r.sourcePaymentId === null && 'refundId'
-         in r`, a clause that matched NO type in the product: `Refund` has no
-         `refundId` and `CreditNote` has no `sourcePaymentId`. So the marker
-         has been alone on these rows since it shipped. */
-      isRowCritical={(refund) => refund.sourcePaymentId === null}
-      skeletonPattern="P1"
-      firstRun={{
-        heading: t('fin.refund.empty.heading'),
-        body: t('fin.refund.empty.body'),
-        actions: [
-          { label: t('fin.refund.empty.action'), onClick: () => onSelectTab('refunds-ledger') },
-        ],
-      }}
-      noMatch={{ message: t('fin.empty.noMatch') }}
-      error={{ message: t('fin.error.read'), onRetry: refunds.refetch }}
-    />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {rows.length > 0 && (
+        <ViewHeader
+          heading={t('fin.refund.header.heading')}
+          maxInlineSize={tableCeiling(columns)}
+          figures={[
+            { label: t('fin.refund.header.count'), value: formatCount(rows.length, language) },
+            {
+              label: t('fin.refund.header.total'),
+              value: <Money amount={figures.total} />,
+            },
+            {
+              label: t('fin.refund.unsourced'),
+              value: formatCount(figures.unsourced, language),
+            },
+          ]}
+        />
+      )}
+      <DataTable
+        table={table}
+        rows={rows}
+        columns={columns}
+        getRowId={(refund) => refund.id}
+        status={refunds.status}
+        total={refunds.data?.total ?? 0}
+        t={t}
+        language={language}
+        tableId="financials-refunds"
+        view={activeTab}
+        searchPlaceholder={t('fin.refund.search')}
+        /* **§6.3 / R5a** — a refund with no traceable payment. The table used to
+           reach for this itself with `r.sourcePaymentId === null && 'refundId'
+           in r`, a clause that matched NO type in the product: `Refund` has no
+           `refundId` and `CreditNote` has no `sourcePaymentId`. So the marker
+           has been alone on these rows since it shipped. */
+        isRowCritical={(refund) => refund.sourcePaymentId === null}
+        skeletonPattern="P1"
+        firstRun={{
+          heading: t('fin.refund.empty.heading'),
+          body: t('fin.refund.empty.body'),
+          actions: [
+            { label: t('fin.refund.empty.action'), onClick: () => onSelectTab('refunds-ledger') },
+          ],
+        }}
+        noMatch={{ message: t('fin.empty.noMatch') }}
+        error={{ message: t('fin.error.read'), onRetry: refunds.refetch }}
+      />
+    </div>
   )
 }
 
 /* ───────────────────────────── credit notes ─────────────────────────────── */
 
 function CreditNotesView({
-  tabs,
   activeTab,
   onSelectTab,
   onUnlinkedCount,
@@ -1257,6 +1344,17 @@ function CreditNotesView({
   )
 
   const rows = notes.data?.items ?? []
+
+  /* The headline figures, off the rows on screen. The page BANNER counts the
+     population instead, and that is the difference between the two: a banner
+     names a condition beyond this page, a header describes this page. */
+  const figures = useMemo(
+    () => ({
+      vat: rows.reduce((sum, note) => sum + note.vatHalalas, 0),
+      unlinked: rows.filter((note) => note.unlinked).length,
+    }),
+    [rows],
+  )
 
   /* **P8-T1** — the buyer. A buyer is a rider or a corporate account and both
      resolve; the note number, the refund id and `againstInvoice` are documents
@@ -1371,33 +1469,46 @@ function CreditNotesView({
   )
 
   return (
-    <DataTable
-      table={table}
-      rows={rows}
-      columns={columns}
-      getRowId={(note) => note.id}
-      status={notes.status}
-      total={notes.data?.total ?? 0}
-      t={t}
-      language={language}
-      tableId="financials-credit-notes"
-      view={activeTab}
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={onSelectTab}
-      searchPlaceholder={t('fin.creditNote.search')}
-      /* **AC-356 / R5a** — the third of the three parts, beside the marker and
-         the page banner, and now declared rather than duck-typed. */
-      isRowCritical={(note) => note.unlinked}
-      skeletonPattern="P1"
-      firstRun={{
-        heading: t('fin.creditNote.empty.heading'),
-        body: t('fin.creditNote.empty.body'),
-        actions: [{ label: t('fin.creditNote.empty.action'), onClick: () => onSelectTab('refunds') }],
-      }}
-      noMatch={{ message: t('fin.empty.noMatch') }}
-      error={{ message: t('fin.error.read'), onRetry: notes.refetch }}
-    />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {rows.length > 0 && (
+        <ViewHeader
+          heading={t('fin.creditNote.header.heading')}
+          maxInlineSize={tableCeiling(columns)}
+          figures={[
+            { label: t('fin.creditNote.header.count'), value: formatCount(rows.length, language) },
+            { label: t('fin.creditNote.header.vat'), value: <Money amount={figures.vat} /> },
+            {
+              label: t('fin.creditNote.unlinked'),
+              value: formatCount(figures.unlinked, language),
+            },
+          ]}
+        />
+      )}
+      <DataTable
+        table={table}
+        rows={rows}
+        columns={columns}
+        getRowId={(note) => note.id}
+        status={notes.status}
+        total={notes.data?.total ?? 0}
+        t={t}
+        language={language}
+        tableId="financials-credit-notes"
+        view={activeTab}
+        searchPlaceholder={t('fin.creditNote.search')}
+        /* **AC-356 / R5a** — the third of the three parts, beside the marker and
+           the page banner, and now declared rather than duck-typed. */
+        isRowCritical={(note) => note.unlinked}
+        skeletonPattern="P1"
+        firstRun={{
+          heading: t('fin.creditNote.empty.heading'),
+          body: t('fin.creditNote.empty.body'),
+          actions: [{ label: t('fin.creditNote.empty.action'), onClick: () => onSelectTab('refunds') }],
+        }}
+        noMatch={{ message: t('fin.empty.noMatch') }}
+        error={{ message: t('fin.error.read'), onRetry: notes.refetch }}
+      />
+    </div>
   )
 }
 
@@ -1409,7 +1520,7 @@ function CreditNotesView({
  * response. **AC-361** — both percentages render, each labelled, and the gross
  * figure is never presented alone.
  */
-function ContributionMarginView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function ContributionMarginView() {
   const shell = useShell()
   const { t, language } = shell.language
   const { period } = usePeriod()
@@ -1429,10 +1540,6 @@ function ContributionMarginView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* The view row is the table toolbar's on every other view; this one has
-          no table, so the tabs render as the same control above the cards. */}
-      <ViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={onSelectTab} />
-
       {overview.status === 'loading' && <LoadingSkeleton pattern="P5" />}
       {overview.status === 'error' && (
         <ErrorState
@@ -1500,41 +1607,6 @@ function ContributionMarginView({ tabs, activeTab, onSelectTab }: ViewProps) {
           </Card>
         </>
       )}
-    </div>
-  )
-}
-
-/**
- * The view row, for a view with no table under it.
- *
- * `DataTable` owns the toolbar on every other view (§5.3), and a view that
- * mounts cards instead of a table still needs the same control in the same
- * place — otherwise switching to it makes the tabs disappear, and an operator
- * has no way back that does not involve the browser's Back button.
- */
-export function ViewTabs({ tabs, activeTab, onSelectTab }: ViewProps) {
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          /* **Not `role="tab"`.** A tab role owes a `tabpanel` and an
-             `aria-controls`, and these controls change a search param rather
-             than swapping a panel inside one widget. `aria-pressed` states what
-             is true — this view is the one selected — without claiming a widget
-             structure the page does not have. */
-          aria-pressed={tab.id === activeTab}
-          onClick={() => onSelectTab(tab.id)}
-          className={
-            tab.id === activeTab
-              ? 'rounded-lg bg-accent px-2.5 py-1.5 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              : 'rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          }
-        >
-          {tab.label}
-        </button>
-      ))}
     </div>
   )
 }

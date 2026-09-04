@@ -132,6 +132,16 @@ export interface FinancialsPageProps {
    * nothing; two or more render **one** merged banner with a count.
    */
   banners?: readonly BannerModel[]
+  /**
+   * The reporting period, at the END OF THE TITLE ROW (§8 slot 4c). It had a
+   * row of its own under the meta line: V-18's row of chrome, given back.
+   */
+  periodControl?: ReactNode
+  /**
+   * The screen's view switcher, ABOVE the banner so the strip does not move
+   * when a view raises one (R10). The banner speaks for the content below it.
+   */
+  viewRow?: ReactNode
   t: Translate
   dir: Direction
   children: ReactNode
@@ -141,6 +151,8 @@ export function FinancialsPage({
   row,
   meta = null,
   banners = [],
+  periodControl,
+  viewRow,
   t,
   dir,
   children,
@@ -155,7 +167,22 @@ export function FinancialsPage({
 
   return (
     <SingleColumnPage
-      header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}
+      header={
+        <>
+          <PageHeader
+            title={t(row.titleKey)}
+            meta={meta}
+            control={periodControl}
+            t={t}
+            dir={dir}
+          />
+          {viewRow && (
+            <div data-slot="view-row" className="pb-3">
+              {viewRow}
+            </div>
+          )}
+        </>
+      }
       banner={merged ? <Banner banner={merged} className="mb-3" /> : undefined}
     >
       {children}

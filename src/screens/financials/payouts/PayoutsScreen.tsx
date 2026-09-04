@@ -256,7 +256,7 @@ function useCaptainParam(): { captainId: string | null; open: (id: string | null
 export function PayoutsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
-  const { period } = usePeriod()
+  const { period, setPeriod } = usePeriod()
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
   const { captainId, open } = useCaptainParam()
   const gate = useWriteGate(row, t)
@@ -296,6 +296,12 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
          `listCaptainPayouts`, `listEscrowHolds` and `listDeductions` take
          `QueryParams` alone; `getCaptainPayableLedger` takes a window. */
       meta={captainId === null ? null : periodLabel(period, t, language)}
+      /* §8 slot 4c - on the title row, and only where a read honours it. */
+      periodControl={
+        captainId === null ? undefined : (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        )
+      }
       banners={banners}
       t={t}
       dir={dir}
@@ -1515,8 +1521,8 @@ function CaptainPayableLedger({
   const shell = useShell()
   const { t, language } = shell.language
   /* **Q-F13 / TL-2** — `getCaptainPayableLedger` is the one read on this screen
-     that takes a window, so this is the one place the control belongs. */
-  const { period, setPeriod } = usePeriod()
+     that takes a window; the control for it is on the page's title row. */
+  const { period } = usePeriod()
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>(
@@ -1551,7 +1557,6 @@ function CaptainPayableLedger({
           {t('fin.payout.back')}
         </Button>
       </div>
-      <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
       <LedgerCard
         table={table}
         ledger={ledger.data}
