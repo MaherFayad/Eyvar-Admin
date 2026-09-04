@@ -12,7 +12,7 @@
     "defaultValueForwarded": 2,
     "emDashEn": 110,
     "emDashAr": 113,
-    "overBudget": 191
+    "overBudget": 185
   },
   "registered": [
     {
@@ -1947,22 +1947,6 @@
       "value": "This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count."
     },
     {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.applications.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Every captain who applies lands in this queue with their documents, so you can approve or reject in one place."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.compliance.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected."
-    },
-    {
       "file": "src/screens/operations/trips/copy.ts",
       "key": "trips.empty.firstRun.body",
       "class": "empty body",
@@ -2073,14 +2057,6 @@
       "words": 16,
       "budget": 12,
       "value": "Nothing is open in the queues routed to your role. Other queues may still have work."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.riders.body",
-      "class": "empty body",
-      "words": 16,
-      "budget": 12,
-      "value": "Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk."
     },
     {
       "file": "src/screens/support/conversations/copy.ts",
@@ -2275,14 +2251,6 @@
       "value": "Every message the system sends lands here"
     },
     {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.riders.heading",
-      "class": "empty title",
-      "words": 7,
-      "budget": 5,
-      "value": "The rider roster, with wallets and renewals"
-    },
-    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.reasons.empty.heading",
       "class": "empty title",
@@ -2353,22 +2321,6 @@
       "words": 6,
       "budget": 5,
       "value": "No rider holds a wallet balance"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.captains.heading",
-      "class": "empty title",
-      "words": 6,
-      "budget": 5,
-      "value": "Every captain, from application to compliance"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.compliance.heading",
-      "class": "empty title",
-      "words": 6,
-      "budget": 5,
-      "value": "Document expiry, for the whole fleet"
     },
     {
       "file": "src/screens/reports/copy.ts",
@@ -3202,15 +3154,15 @@
     ],
     [
       "empty body",
-      48
-    ],
-    [
-      "empty title",
-      20
+      45
     ],
     [
       "button",
       19
+    ],
+    [
+      "empty title",
+      17
     ],
     [
       "meta",

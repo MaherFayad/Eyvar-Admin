@@ -299,7 +299,7 @@ export const PEOPLE_EN: Dictionary = {
 
   /* ── the four states, per view (§11.1, §11.2, R8) ───────────────────── */
   /* `first-run` names the VALUE of the section, never the absence of data. */
-  'people.empty.captains.heading': 'Every captain, from application to compliance',
+  'people.empty.captains.heading': 'Captains, from application to compliance',
   'people.empty.captains.body':
     'Add a captain to start reviewing documents, tracking readiness, and assigning trips.',
   'people.empty.captains.primary': 'Add captain',
@@ -308,19 +308,19 @@ export const PEOPLE_EN: Dictionary = {
 
   'people.empty.applications.heading': 'Applications arrive here for review',
   'people.empty.applications.body':
-    'Every captain who applies lands in this queue with their documents, so you can approve or reject in one place.',
+    'Captains who apply land here with their documents, ready to decide.',
   'people.empty.applications.primary': 'Invite a captain to apply',
   'people.empty.applications.noMatch': 'No applications match these filters.',
 
-  'people.empty.compliance.heading': 'Document expiry, for the whole fleet',
+  'people.empty.compliance.heading': 'Document expiry across the fleet',
   'people.empty.compliance.body':
-    'Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected.',
+    "Every captain's document expiry dates land here, so you can act early.",
   'people.empty.compliance.primary': 'Add a compliance file',
   'people.empty.compliance.noMatch': 'No compliance files match these filters.',
 
-  'people.empty.riders.heading': 'The rider roster, with wallets and renewals',
+  'people.empty.riders.heading': 'The rider roster, with wallets',
   'people.empty.riders.body':
-    'Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk.',
+    'Riders land here on registration, with wallet, subscriptions and churn risk.',
   'people.empty.riders.primary': 'Invite riders',
   'people.empty.riders.noMatch': 'No riders match these filters.',
 

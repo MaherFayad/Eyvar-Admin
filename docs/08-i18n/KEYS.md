@@ -21,7 +21,7 @@ this file is stale or when the `defaultValue` ratchet slips.
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **110** |
 | **Arabic values carrying an em dash (the ratchet)** | **113** |
-| **English values over their word budget (the ratchet)** | **191** |
+| **English values over their word budget (the ratchet)** | **185** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -325,7 +325,7 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **191**, measured **191**. **X18**: a slot an operator scans holds a
+Ceiling **185**, measured **185**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
@@ -333,9 +333,9 @@ Measured on English only, and a placeholder counts as one word.
 | Class | Budget, in words | Over |
 |---|---:|---:|
 | title | 4 | 93 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
+| empty body | 12 | 45 |
 | button | 3 | 19 |
+| empty title | 5 | 17 |
 | meta | 6 | 9 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
@@ -379,8 +379,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
 | empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
 | empty body | 20 | `overview.empty.body` | This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count. |
-| empty body | 20 | `people.empty.applications.body` | Every captain who applies lands in this queue with their documents, so you can approve or reject in one place. |
-| empty body | 20 | `people.empty.compliance.body` | Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected. |
 | empty body | 20 | `trips.empty.firstRun.body` | Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating. |
 | empty body | 19 | `comms.identity.empty.body` | A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email. |
 | empty body | 19 | `entity.rider.payments.empty.body` | This rider has not paid for a trip by card. Quick ride fares appear here as they are captured. |
@@ -395,7 +393,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
 | empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
 | empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
-| empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
 | empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
 | empty body | 15 | `requests.empty.firstRun.body` | Every instant ride and every subscription sign-up waiting on a captain appears in this queue. |
@@ -420,7 +417,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
 | empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
 | empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
-| empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
 | empty title | 7 | `trips.empty.firstRun.heading` | Every journey taken, and what it earned |
 | empty title | 6 | `admin.integrations.webhook.empty.heading` | Tell another system when something happens |
@@ -430,8 +426,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 6 | `fairness.empty.firstRun.heading` | The route back for a captain |
 | empty title | 6 | `fin.payout.empty.heading` | No captain has earnings this period |
 | empty title | 6 | `fin.wallet.empty.heading` | No rider holds a wallet balance |
-| empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
-| empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
 | empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
 | meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
 | meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
