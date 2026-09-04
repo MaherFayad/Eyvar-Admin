@@ -418,6 +418,12 @@ function ReconciliationQueue({
         dataType: 'money',
         align: 'end',
         width: 132,
+        /* **H6 preset, and one hide was not enough.** Six columns and a
+           checkbox lane is what 910px holds. `Never reported` still renders in
+           words in `Classification` and the deviation is still an em dash
+           (**AC-372**); an operator resolves against deviation and
+           classification, and un-hides the raw figure through `Columns`. */
+        defaultHidden: true,
         /* **AC-372** — never reported is a STATE, in words, not a zero. */
         cell: (report) =>
           report.reportedHalalas === null ? (
@@ -444,15 +450,13 @@ function ReconciliationQueue({
         emphasis: 'data',
         header: t('fin.cash.col.classification'),
         dataType: 'enum',
-        width: 132,
-        minWidth: 128,
-        /* **H6 preset, and one hide was not enough.** Seven columns is what
-           910px holds; this is the eighth and the one whose value is already on
-           the row twice — `Under-reported` is the sign of `Deviation`, and
-           `Never reported` is the word `Reported` already renders (AC-372). It
-           keeps its sort and its filter, which `filterEntries` reads from the
-           DECLARED columns, not the visible ones. */
-        defaultHidden: true,
+        /* **Stays visible.** `classification` is server policy over
+           `CASH_TOLERANCE_HALALAS` (`serverPolicy.ts:41`), so a deviation
+           inside the band is `match` rather than `under_report` — the one fact
+           the deviation's sign cannot give. Sized to `Under-reported` in its
+           badge and floored there. */
+        width: 136,
+        minWidth: 130,
         cell: (report) => (
           <StatusBadge tone={report.classification === 'match' ? 'success' : 'warning'}>
             {t(`fin.cash.class.${report.classification}`)}
