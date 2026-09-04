@@ -1,43 +1,28 @@
 /**
- * **Live Dispatch — the board's four states, its layers, and the link between
- * the list and the map.**
+ * Live Dispatch — the four states, the layers, the link between the list and
+ * the map, the clock (T1.3), the two intervention writes (T1.2), the keyed feed
+ * (T4.2) and the frame control (T2.2).
  *
- * This screen had no test at all before it became a map, which is how it kept a
- * `handleResolveIntervention` that toasted success over an act nobody
- * performed. The three things asserted here are the three that cannot be
- * checked by reading the source:
- *
- *   1. **AC-24 / AC-36 / §2.1** — with a read rigged to fail, the board renders
- *      its own error state and the retry re-runs the request.
- *      `mockFailures.always('trips.list')` can only reach a screen that goes
- *      through the client seam, so a passing error assertion here **is** the
- *      seam assertion: a direct fixture import would be unreachable by failure
- *      injection and this test would go green over a board nobody could break.
- *   2. **The layer switches actually remove marks.** A switch that only sets
- *      state is a switch that looks like it works.
- *   3. **Selection is one piece of state on two surfaces.** Picking a pin
- *      presses its row and vice versa — the whole reason the map sits next to
- *      the list rather than replacing it.
- *
- * Everything is read through the client, never from `data/fixtures/*`; a test
- * that imports a fixture is the same seam breach the screen just closed.
+ * Everything is read through the client seam: `mockFailures` can only reach a
+ * screen that goes through it, so a passing error assertion IS the seam
+ * assertion. A test that imports a fixture would prove nothing.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import {
   disableMockLatency,
   getDispatchTelemetry,
   getRouteTable,
+  listInterventions,
   listRequests,
-  listTrips,
   mockFailures,
   resetDataLayer,
 } from '@/data/clients'
-import type { RideRequest, SubTabRoute } from '@/data/types'
-import { formatDate } from '@/lib'
+import { ApiError, type Intervention, type RideRequest, type SubTabRoute } from '@/data/types'
+import { resetClock } from '@/hooks'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { DISPATCH_EN } from './copy'
@@ -167,19 +152,11 @@ describe('T1.1 — the three header figures come from a read, not a literal', ()
     expect(screen.getByText(`${telemetry.fleetUtilisationPercent}%`)).toBeInTheDocument()
   })
 
-  it('says when the figures were measured, and claims nothing about a connection', async () => {
+  it('says how old the board is, and claims nothing about a connection', async () => {
     renderDispatch()
-    const telemetry = await getDispatchTelemetry()
-    const trips = await listTrips({
-      filters: [{ field: 'status', op: 'in', value: ['assigned', 'en-route', 'in-trip'] }],
-      pageSize: 50,
-    })
-    const time = formatDate(telemetry.asOf, { style: 'time', language: 'en' })
 
     expect(
-      await screen.findByText(
-        fill('dispatch.meta', { count: String(trips.total), time }),
-      ),
+      await screen.findByText(fill('dispatch.meta', { seconds: '0' })),
     ).toBeInTheDocument()
     /* X4 — the sentence that was a claim. */
     expect(screen.queryByText(/live telemetry connected/i)).not.toBeInTheDocument()
@@ -190,6 +167,165 @@ describe('T1.1 — the three header figures come from a read, not a literal', ()
     renderDispatch()
     await screen.findByRole('img', { name: /trips in flight/i })
     expect(screen.queryByText(copy('dispatch.reading.matchTime'))).not.toBeInTheDocument()
+  })
+})
+
+describe('T1.3 — the board ticks on the shell clock', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    resetClock()
+  })
+
+  it('ages the meta line a second at a time', async () => {
+    /* Installed before the render: the one interval starts on the first
+       subscriber, and a clock the test replaced afterwards is not that one. */
+    vi.useFakeTimers()
+    renderDispatch()
+    await screen.findByText(fill('dispatch.meta', { seconds: '0' }))
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    expect(screen.getByText(fill('dispatch.meta', { seconds: '5' }))).toBeInTheDocument()
+  })
+
+  it('re-reads the feeds when the refresh bucket turns over', async () => {
+    vi.useFakeTimers()
+    renderDispatch()
+    await screen.findByRole('img', { name: /trips in flight/i })
+
+    /* Rigged only AFTER the first read landed, so reaching the error state can
+       only mean the screen asked the client again. */
+    mockFailures.always('trips.list')
+    await act(async () => {
+      vi.advanceTimersByTime(20_000)
+    })
+
+    expect(
+      await screen.findByText(fill('state.pageError.title', { resource: copy(row().titleKey) })),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('T1.2 — the two intervention controls are writes now', () => {
+  /** Open the alert strip and hand back the first open intervention. */
+  async function openInterventions(user: ReturnType<typeof userEvent.setup>) {
+    const items = await listInterventions({ status: 'open' })
+    const [first] = items
+    if (!first) throw new Error('Fixtures carry no open intervention.')
+    await user.click(
+      await screen.findByRole('button', {
+        name: new RegExp(fill('dispatch.interventions.strip', { count: String(items.length) })),
+      }),
+    )
+    return first
+  }
+
+  const titleOf = (item: Intervention) =>
+    fill(`dispatch.intervention.${item.kind}`, { trip: item.tripId ?? item.riderName })
+
+  it('acknowledging one takes it off the open list', async () => {
+    const user = userEvent.setup()
+    renderDispatch()
+    const first = await openInterventions(user)
+    const title = await screen.findByText(titleOf(first))
+    expect(title).toBeInTheDocument()
+
+    await user.click(screen.getAllByRole('button', { name: copy('dispatch.dismissAlert') })[0]!)
+
+    await waitFor(() => {
+      expect(screen.queryByText(titleOf(first))).not.toBeInTheDocument()
+    })
+  })
+
+  it('states the 409 on the row that refused, and stops offering the act', async () => {
+    const user = userEvent.setup()
+    renderDispatch()
+    const first = await openInterventions(user)
+    await screen.findByText(titleOf(first))
+
+    mockFailures.once(
+      'dispatch.acknowledgeIntervention',
+      new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'already_acknowledged',
+        message: 'USR-9 acknowledged it',
+        retryable: false,
+      }),
+    )
+    const acknowledge = screen.getAllByRole('button', {
+      name: copy('dispatch.dismissAlert'),
+    })[0]!
+    await user.click(acknowledge)
+
+    expect(
+      await screen.findByText(copy('dispatch.intervention.refusal.already_acknowledged')),
+    ).toBeInTheDocument()
+    /* §11.2 — refused in place: the row keeps its control and the control
+       refuses, rather than the row disappearing as if the act had run. */
+    expect(screen.getByText(titleOf(first))).toBeInTheDocument()
+    expect(acknowledge).toBeDisabled()
+  })
+
+  it('reassigning one to another captain takes it off the open list', async () => {
+    const user = userEvent.setup()
+    renderDispatch()
+    const first = await openInterventions(user)
+    await screen.findByText(titleOf(first))
+
+    await user.click(screen.getAllByRole('button', { name: copy('dispatch.reassignCaptain') })[0]!)
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('combobox'))
+    const options = await screen.findAllByRole('option')
+    /* A captain who is not the one already on it — that raises `same_driver`. */
+    const other = options.find((option) => !(option.textContent ?? '').includes(first.driverName ?? ' '))
+    if (!other) throw new Error('The picker offers no second captain.')
+    await user.click(other)
+    await user.click(within(dialog).getByRole('button', { name: copy('dispatch.reassignCaptain') }))
+
+    await waitFor(() => {
+      expect(screen.queryByText(titleOf(first))).not.toBeInTheDocument()
+    })
+  })
+})
+
+describe('T4.2 — the feed reads its enums through keys', () => {
+  it('prints the channel and the vehicle class as words, not slugs', async () => {
+    renderDispatch()
+    await screen.findByRole('img', { name: /trips in flight/i })
+
+    expect(screen.getAllByText(copy('requests.channel.instant')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('instant')).not.toBeInTheDocument()
+    expect(screen.queryByText('subscription')).not.toBeInTheDocument()
+  })
+})
+
+describe('T2.2 — Fit to fleet re-frames the board', () => {
+  it('moves the marks, and pressing it again gives the declared frame back', async () => {
+    const user = userEvent.setup()
+    const request = await firstPending()
+    renderDispatch()
+
+    const pin = await screen.findByRole('button', {
+      name: fill('dispatch.map.pin.request', {
+        id: request.id,
+        pickup: request.pickup,
+        destination: request.destination,
+      }),
+    })
+    const positionOf = () => (pin.closest('li') as HTMLElement).style.insetInlineStart
+    const declared = positionOf()
+
+    const fit = screen.getByRole('button', { name: copy('dispatch.map.fit') })
+    await user.click(fit)
+
+    expect(fit).toHaveAttribute('aria-pressed', 'true')
+    expect(positionOf()).not.toBe(declared)
+
+    await user.click(fit)
+    expect(positionOf()).toBe(declared)
   })
 })
 
