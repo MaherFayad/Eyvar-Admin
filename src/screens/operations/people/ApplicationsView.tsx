@@ -129,14 +129,10 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
         {
           view: BREACHED_VIEW,
           pageSize: 1,
-          /* **Only items still running.** The client's `breached` view is
-             `slaDueAt < now` regardless of status, so it counts applications
-             that were decided days ago — and a clock that has stopped is not a
-             backlog. The banner states what is still on the operator's desk;
-             `Show only breached` deliberately shows the wider set, because
-             "everything that went past its SLA" is the right thing to audit.
-             Raised for mock-data-engineer: the VIEW itself should probably
-             exclude decided items. */
+          /* **Only items still running.** The `breached` view is every row the
+             server ever stamped, decided ones included, and a stopped clock is
+             not a backlog. The banner counts the desk; the scope audits the
+             wider set. */
           filters: [{ field: 'status', op: 'in', value: ['pending', 'in-review'] }],
         },
         signal,
@@ -602,15 +598,9 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
     {
       id: 'decision',
       header: t('people.col.decision'),
-      /* **176, and this column is a placeholder for build item 11.** §7.4 makes
-         `Decision` default-hidden and moves the disposition controls into a
-         116px ACTIONS lane carrying D8's `✓ ✗ View` triad. That is item 11 and
-         not this pass, so the column stays visible — it is the only carrier of
-         `Approve` and `Reject` today, and hiding it would take the queue's whole
-         purpose off the screen to satisfy an arithmetic that is not yet real.
-         176 is §7.4's own declared width for the hidden `Decision` column and it
-         keeps Σ inside the budget in both languages (864 ≤ 870). When item 11
-         lands this becomes `defaultHidden` and Σ drops to 844. */
+      /* 176 is §7.4's declared width for this column, and it stays VISIBLE
+         until build item 11 moves the dispositions into an actions lane: it is
+         the only carrier of `Approve` and `Reject` today. Σ = 864 ≤ 870. */
       width: 176,
       dataType: 'enum',
       cell: (row) => {

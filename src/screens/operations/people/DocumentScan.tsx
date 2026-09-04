@@ -197,7 +197,7 @@ export function DocumentScan({
           <object
             data={state.url}
             type="application/pdf"
-            aria-label={`${label} — ${applicantName}`}
+            aria-label={t('applicant.review.scanName', { label, name: applicantName })}
             className="size-full min-h-72"
           >
             <a
@@ -212,10 +212,10 @@ export function DocumentScan({
         ) : (
           <img
             src={state.url}
-            /* Named, because a scan with `alt="scan"` is one a screen reader
-               cannot tell from any other on the page. */
-            alt={`${label} — ${applicantName}`}
-            className="max-h-[28rem] w-full object-contain"
+            /* AC-75 — named through a key, because a scan with `alt="scan"`
+               is one a screen reader cannot tell from any other. */
+            alt={t('applicant.review.scanName', { label, name: applicantName })}
+            className="max-h-112 w-full object-contain"
           />
         )}
 

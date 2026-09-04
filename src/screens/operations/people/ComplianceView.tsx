@@ -436,7 +436,10 @@ export function complianceColumns(
     {
       id: 'nextExpiry',
       header: t('people.col.soonestExpiry'),
-      width: 128,
+      /* T5.1 — 128 clipped `18 Jun · expired` at 1280 (measured: 129 needed in
+         English, and Arabic's longest month is wider still). 152 is the §7.3
+         budget's next step and leaves the identity 302px of residual. */
+      width: 152,
       dataType: 'date',
       /* §7.4 — `12 Aug · 45d`, plain text; inside the alert window the same
          text in the critical tone. Computed from a clock this component is

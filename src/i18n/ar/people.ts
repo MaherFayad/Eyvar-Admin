@@ -71,7 +71,7 @@ export const PEOPLE_AR: Dictionary = {
   'applicant.docReason.mismatch': 'لا يطابق الهوية الوطنية',
   'applicant.docReason.wrongType': 'رُفع مستند خاطئ',
   'applicant.docReason.suspectedForgery': 'يُشتبه في تزويره',
-  'applicant.docReason.legend': 'مرفوض — {reason}',
+  'applicant.docReason.legend': 'مرفوض · {reason}',
 
   'applicant.review.progress': '{verified} من {total} موثَّقة',
   'applicant.review.openFirst': 'فتح أول مستند غير مراجَع',
@@ -90,6 +90,7 @@ export const PEOPLE_AR: Dictionary = {
   'applicant.review.scanError': 'تعذّر جلب النسخة الممسوحة.',
   'applicant.review.scanRetry': 'إعادة المحاولة',
   'applicant.review.openFull': 'فتح بالحجم الكامل',
+  'applicant.review.scanName': '{label} · {name}',
 
   'applicant.doc.verify': 'توثيق المستند',
   'applicant.doc.reject': 'رفض المستند',
@@ -131,7 +132,7 @@ export const PEOPLE_AR: Dictionary = {
 
   'applicant.signal.device': 'الجهاز {device} استُخدم في طلب آخر أيضًا.',
   'applicant.signal.address': 'العنوان في {address} مشترك مع كابتن نشط.',
-  'applicant.signal.ip': 'موقع الاتصال {location} — متوافق مع مدينة التشغيل.',
+  'applicant.signal.ip': 'موقع الاتصال {location}. متوافق مع مدينة التشغيل.',
   'applicant.signal.ipMismatch': 'موقع الاتصال {location} لا يطابق مدينة التشغيل.',
   'applicant.signal.none': 'لا يبدو في هذا الطلب ما يستدعي الانتباه.',
   'people.col.doc.license': 'رخصة القيادة',
@@ -244,7 +245,7 @@ export const PEOPLE_AR: Dictionary = {
   'people.reject.reason': 'السبب',
   'people.reject.reasonHelp': 'يقرأ المتقدِّم هذا النص، فاذكر ما ينبغي عليه إصلاحه.',
   'people.reject.confirm': 'رفض الطلب',
-  'people.takeOver.title': 'تولّي هذا الطلب من {name}؟',
+  'people.takeOver.title': 'تولّيه من {name}؟',
   'people.takeOver.body': 'يفقده {name} دون استئذان، ويُسجَّل التولّي. لا يتغيّر أي شيء بتّ فيه من قبل.',
   'people.takeOver.confirm': 'تولٍّ',
   'people.toast.suspended.one': 'تم إيقاف الكابتن',
@@ -333,6 +334,8 @@ export const PEOPLE_AR: Dictionary = {
   'applicant.iban': 'IBAN',
   'applicant.ipLocation': 'موقع IP',
   'applicant.lastIp': 'آخر IP',
+  'applicant.meta': '{id} · {city} · {applied}',
+  'applicant.vehiclePlate': '{vehicle} · {plate}',
   'applicant.movementLog': 'سجل التنقّل',
   'applicant.movementLog.empty': 'لم يُسجَّل شيء لهذا المتقدِّم بعد.',
   'applicant.nationalId': 'رقم الهوية',

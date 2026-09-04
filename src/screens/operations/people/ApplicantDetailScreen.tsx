@@ -61,7 +61,7 @@
  *                so no operator reaches the server to be told no.
  *   R3           one primary — `Approve captain`. `Reject application` is the
  *                destructive button R5a permits, and nothing else is red.
- *   §8.3.1       `—` is not-applicable only.
+ *   O9           an absent value renders BLANK, never a dash.
  *   AC-73        `<bdi>` on every id, phone, IBAN, plate and date run.
  *   AC-74/75     every string is a key in `./copy.ts` with named placeholders.
  */
@@ -85,9 +85,11 @@ import {
   type DocumentType,
 } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { ABSENT, formatCount, formatDate } from '@/lib'
+import { formatCount, formatDate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { CheckIcon } from '@/components/icons'
+import { InfoHint } from '@/components/InfoHint'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
@@ -242,14 +244,15 @@ export function ApplicantDetailScreen() {
         header={
           <PageHeader
             title={record.name}
+            /* AC-75 — one key with named parameters, never four fragments
+               joined in code: the separator and the order are the translator's. */
             meta={
               <bdi>
-                {[
-                  record.id,
-                  record.city,
-                  record.vehicleClass,
-                  formatDate(record.appliedAt, { style: 'day-month-time', language }),
-                ].join(' · ')}
+                {t('applicant.meta', {
+                  id: record.id,
+                  city: record.city,
+                  applied: formatDate(record.appliedAt, { style: 'day-month-time', language }),
+                })}
               </bdi>
             }
             badges={
@@ -338,24 +341,23 @@ export function ApplicantDetailScreen() {
             {active !== null && (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold text-foreground">
+                  <h2 className="flex items-center gap-1 text-sm font-semibold text-foreground">
                     {t(docLabelKey(active.type))}
+                    {/* T9.7 — the reason a document was rejected explains the
+                        badge beside it; it changes nothing the operator does
+                        next, so it is asked for rather than read (X15). */}
+                    <InfoHint t={t}>
+                      {active.rejectionCode === null
+                        ? null
+                        : t('applicant.docReason.legend', {
+                            reason: t(reasonKey(active.rejectionCode)),
+                          })}
+                    </InfoHint>
                   </h2>
                   <StatusBadge tone={DOC_STATUS_TONE[active.status]}>
                     {t(DOC_STATUS_LABEL[active.status])}
                   </StatusBadge>
                 </div>
-
-                {/* A rejected document says WHY, in the applicant's own words
-                    rather than as a code. A rejection nobody can read is one
-                    nobody can appeal. */}
-                {active.rejectionCode !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    {t('applicant.docReason.legend', {
-                      reason: t(reasonKey(active.rejectionCode)),
-                    })}
-                  </p>
-                )}
 
                 <DocumentScan
                   doc={active}
@@ -423,28 +425,31 @@ export function ApplicantDetailScreen() {
                     beside what the application says — see the rail. The two are
                     deliberately not merged: a reviewer compares them. */}
                 <section className="flex flex-col gap-2 rounded-lg border border-border p-3">
-                  <h3 className="text-2xs font-medium tracking-widest text-muted-foreground uppercase">
+                  <h3 className="flex items-center gap-1 text-2xs font-medium tracking-widest text-muted-foreground uppercase">
                     {t('applicant.review.readFrom')}
+                    {/* T9.7 — why the grid is empty, beside the title rather
+                        than as a 12px paragraph under it (X15). */}
+                    <InfoHint t={t}>
+                      {active.readFields.length > 0
+                        ? null
+                        : t(
+                            active.type === 'photo'
+                              ? 'applicant.review.readNone'
+                              : 'applicant.review.readNothing',
+                          )}
+                    </InfoHint>
                   </h3>
-                  {active.readFields.length > 0 ? (
+                  {active.readFields.length > 0 && (
                     <dl className="grid grid-cols-3 gap-x-4 gap-y-3 text-xs compact:grid-cols-2">
                       {active.readFields.map((field) => (
                         <div key={field.labelKey} className="flex min-w-0 flex-col gap-0.5">
                           <dt className="text-muted-foreground">{t(field.labelKey)}</dt>
                           <dd className="min-w-0 truncate font-medium tabular-nums text-foreground">
-                            <bdi>{field.value === '' ? ABSENT : field.value}</bdi>
+                            <bdi>{field.value}</bdi>
                           </dd>
                         </div>
                       ))}
                     </dl>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {t(
-                        active.type === 'photo'
-                          ? 'applicant.review.readNone'
-                          : 'applicant.review.readNothing',
-                      )}
-                    </p>
                   )}
                 </section>
               </>
@@ -527,18 +532,20 @@ export function ApplicantDetailScreen() {
               {checklist.map((check) => (
                 <li key={check.id} className="flex items-start gap-2">
                   {/* A box and a tick, not a colour: §7.5, and it survives
-                      greyscale. `aria-hidden` because the row says `done` in
-                      its own text below. */}
+                      greyscale. T9.10 — the registry's `Check`, at the box and
+                      glyph sizes `ui/checkbox.tsx` already uses, so no
+                      arbitrary radius or type size is needed. `aria-hidden`
+                      because the row says `done` in its own text beside it. */}
                   <span
                     aria-hidden="true"
                     className={cn(
-                      'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border text-[9px] leading-none',
+                      'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-sm border',
                       check.done
                         ? 'border-chart-series bg-chart-series text-card'
                         : 'border-border',
                     )}
                   >
-                    {check.done ? '✓' : ''}
+                    {check.done && <CheckIcon className="size-3" />}
                   </span>
                   <span className={check.done ? 'text-muted-foreground' : 'text-foreground'}>
                     {t(check.labelKey, {
@@ -666,14 +673,12 @@ function RailCard({
   )
 }
 
-/** A label over its value. `null` renders §3.5's placeholder, never a blank. */
+/** A label over its value. O9 — an absent value is BLANK, never a dash. */
 function Pair({ label, value }: { label: string; value: React.ReactNode | null }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words font-medium text-foreground">
-        {value ?? <span className="text-muted-foreground">{ABSENT}</span>}
-      </dd>
+      <dd className="min-w-0 break-words font-medium text-foreground">{value}</dd>
     </div>
   )
 }

@@ -257,7 +257,7 @@ export const PEOPLE_EN: Dictionary = {
   'people.reject.reasonHelp': 'The applicant sees this, so name what they need to fix.',
   'people.reject.confirm': 'Reject application',
 
-  'people.takeOver.title': 'Take this application from {name}?',
+  'people.takeOver.title': 'Take from {name}?',
   'people.takeOver.body':
     '{name} loses it without being asked, and the take-over is recorded. Nothing they have already decided changes.',
   'people.takeOver.confirm': 'Take over',
@@ -389,6 +389,10 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.iban': 'IBAN',
   'applicant.ipLocation': 'IP location',
   'applicant.lastIp': 'Last IP',
+  /* AC-75 — the header meta line as ONE key. Four values joined in code gave
+     the translator no say in the order or the separator. */
+  'applicant.meta': '{id} · {city} · {applied}',
+  'applicant.vehiclePlate': '{vehicle} · {plate}',
   'applicant.movementLog': 'Movement log',
   'applicant.movementLog.empty': 'Nothing recorded for this applicant yet.',
   'applicant.nationalId': 'National ID',
@@ -437,7 +441,7 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.docReason.mismatch': 'Does not match the national ID',
   'applicant.docReason.wrongType': 'Wrong document uploaded',
   'applicant.docReason.suspectedForgery': 'Suspected forgery',
-  'applicant.docReason.legend': 'Rejected — {reason}',
+  'applicant.docReason.legend': 'Rejected · {reason}',
 
   /* The review header. `n of m` counts VERIFIED documents, never uploaded
      ones: an upload nobody has looked at is not progress. */
@@ -458,6 +462,9 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.review.scanError': 'The scan could not be fetched.',
   'applicant.review.scanRetry': 'Try again',
   'applicant.review.openFull': 'Open full size',
+  /* AC-75 — the scan's accessible name. A screen reader cannot tell one
+     `alt="scan"` from another on a page with four. */
+  'applicant.review.scanName': '{label} · {name}',
 
   /* The three verdicts on ONE document. They are not the application's
      decision and are worded so nobody reads them as one. */
@@ -508,7 +515,7 @@ export const PEOPLE_EN: Dictionary = {
   /* The signals block — what the application arrived from. */
   'applicant.signal.device': 'Device {device} also used by another application.',
   'applicant.signal.address': 'Address in {address} is shared with an active captain.',
-  'applicant.signal.ip': 'IP location {location} — consistent with the operating city.',
+  'applicant.signal.ip': 'IP location {location}. Consistent with the operating city.',
   'applicant.signal.ipMismatch': 'IP location {location} does not match the operating city.',
   'applicant.signal.none': 'Nothing on this application looks unusual.',
 }
