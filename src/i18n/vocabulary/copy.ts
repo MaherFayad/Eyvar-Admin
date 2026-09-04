@@ -121,7 +121,7 @@ export const VOCABULARY_EN: Dictionary = {
      points at this string and must keep reading as a sentence. */
   'reason.TRP_GHOST_COMPLETE': 'Trip completed but the rider never boarded',
   'reason.TRP_FALSE_COMPLETE': 'Captain ended a trip that never ran',
-  'reason.TECH_STATE_DESYNC': 'Ride state desync — the two apps disagree',
+  'reason.TECH_STATE_DESYNC': 'Ride state desync · the two apps disagree',
 
   /* ── the registry, §5 technical ───────────────────────────────────── */
   'reason.APP_LOGIN': 'Rider cannot sign in',
@@ -136,8 +136,8 @@ export const VOCABULARY_EN: Dictionary = {
 
   /* ── the registry, subscriptions ──────────────────────────────────── */
   'reason.SUB_SAME_CAPTAIN_BROKEN': 'Assigned captain changed mid-plan',
-  'reason.SUB_FREEZE_TRAVEL': 'Rider away — plan paused',
-  'reason.SUB_FREEZE_MEDICAL': 'Medical reason — plan paused',
+  'reason.SUB_FREEZE_TRAVEL': 'Rider away · plan paused',
+  'reason.SUB_FREEZE_MEDICAL': 'Medical reason · plan paused',
 
   /* ── the registry, captain-side disputes and money ────────────────── */
   'reason.DRV_RATING_DISPUTE': 'Captain disputes an unfair rating',
@@ -147,7 +147,7 @@ export const VOCABULARY_EN: Dictionary = {
   'reason.CASH_SHORTFALL': 'Cash collected does not match the trip',
 
   /* ── the registry, the escape hatch ───────────────────────────────── */
-  'reason.OTHER_UNCODED': 'Other — needs a taxonomy review',
+  'reason.OTHER_UNCODED': 'Other · needs a taxonomy review',
 
   /* ── off-registry, but shipped in fixtures ────────────────────────────
      Four codes that reach a screen and are in no registry entry. They are
@@ -186,12 +186,12 @@ export const VOCABULARY_EN: Dictionary = {
      and audit lines a resolution writes, so the six `DisputeKind` members each
      reach a screen as a reason code. They are enumerated, not derived: a key
      assembled at runtime is a key no extractor can see. */
-  'reason.dispute_no_show': 'Disputed — no-show',
-  'reason.dispute_vehicle_class': 'Disputed — vehicle class',
-  'reason.dispute_fare_dispute': 'Disputed — fare',
-  'reason.dispute_toll_charge': 'Disputed — toll charge',
-  'reason.dispute_cancellation_fee': 'Disputed — cancellation fee',
-  'reason.dispute_vehicle_damage': 'Disputed — vehicle damage',
+  'reason.dispute_no_show': 'Disputed · no-show',
+  'reason.dispute_vehicle_class': 'Disputed · vehicle class',
+  'reason.dispute_fare_dispute': 'Disputed · fare',
+  'reason.dispute_toll_charge': 'Disputed · toll charge',
+  'reason.dispute_cancellation_fee': 'Disputed · cancellation fee',
+  'reason.dispute_vehicle_damage': 'Disputed · vehicle damage',
 }
 
 /**
@@ -314,7 +314,7 @@ export function reasonLabel(t: Translate, code: string | null | undefined): stri
  */
 export const RIDER_VOCABULARY_EN: Dictionary = {
   /* ── why a rider is a churn risk — `ChurnReasonKey`, `types/rider.ts` ─── */
-  'rider.churn.noSubscription': 'No subscription — quick rides only.',
+  'rider.churn.noSubscription': 'No subscription. Quick rides only.',
   'rider.churn.cancelledOnRecord': 'A cancelled subscription is on record.',
   'rider.churn.complaintsFiled': 'Complaints on record: {count}',
   'rider.churn.ratingBelowFour': 'Rating below 4.',
@@ -362,7 +362,7 @@ export const RIDER_VOCABULARY_EN: Dictionary = {
      `clients/riders.ts` omits `location` rather than guessing it from `city`
      when one does not. */
   'rider.timeline.account-registered.subtitleNoPlace': '{tier} tier',
-  'rider.timeline.trip.routePickupOnly': 'From {pickup} — no destination confirmed',
+  'rider.timeline.trip.routePickupOnly': 'From {pickup} · no destination confirmed',
   /* The §9.6 case: its own sentence, never a clause welded onto the title. */
   'rider.timeline.trip.noCaptain': 'No captain was assigned.',
   /**

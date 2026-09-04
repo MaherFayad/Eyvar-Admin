@@ -1,4 +1,7 @@
 {
-  "_": "The defaultValue ceiling. Written by scripts/i18n-inventory.py, which refuses to raise it. See docs/08-i18n/KEYS.md.",
-  "defaultValue": 0
+  "_": "Ceilings the generator refuses to RAISE, written by scripts/i18n-inventory.py. defaultValue: literals no extractor can see. emDashEn/emDashAr: dictionary values carrying U+2014 (X14). overBudget: English values over their X18 word budget. See docs/08-i18n/KEYS.md.",
+  "defaultValue": 0,
+  "emDashEn": 112,
+  "emDashAr": 115,
+  "overBudget": 187
 }

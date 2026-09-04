@@ -129,7 +129,10 @@ export function RequestProfile({
     nowIso,
     { terminal: TERMINAL.has(request.status) },
   )
-  const showClock = clock.clock.kind !== 'no-clock'
+  /* O7 — a missed cut-off keeps a breached clock so the ROW sorts with the
+     breached ones, and this band still prints no countdown for it: the promise
+     was not broken, and `overdue 12h` here would contradict the row. */
+  const showClock = clock.clock.kind !== 'no-clock' && !clock.deadlinePassedUnbroken
 
   return (
     /* **`-m-3` cancels `ShellLayer`'s body padding, deliberately.** The map is a

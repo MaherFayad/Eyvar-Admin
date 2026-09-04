@@ -17,10 +17,8 @@
  * one of **three** sentences (one target, some blocked, **all** blocked); there
  * is no partial apply; and the way out is `Select only the N eligible`, which
  * `DataTable` renders from `eligibleIds` and which changes the SELECTION rather
- * than narrowing the command. One predicate (`flagRefusal` / `unflagRefusal`)
- * answers for the row menu and the bulk bar, so there is no single-record code
- * path for them to disagree in, and `setRefusal` supplies the shape so this
- * screen cannot forget D21's third sentence.
+ * than narrowing the command. One predicate answers for the row menu and the
+ * bulk bar, so there is no single-record code path for them to disagree in.
  *
  * **Four cells named an entity and none of them opened one properly.** The trip
  * id, the rider and the captain were `<button onClick={navigate}>` carrying
@@ -60,32 +58,33 @@
  *   AC-74/75      every string is a key in `./copy.ts` with named placeholders.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { listTrips } from '@/data/clients'
 import type { Paginated, SubTabRoute, Trip, TripStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
 import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
 /**
- * **The two commands are declared in `components/actions/trip.ts`, not here.**
- *
- * They were here while this screen was their only caller. The ride sheet now
- * offers the same two, and a command with two callers needs one declaration or
- * the two surfaces disagree about who may run it — the same argument this file
- * already made for the row menu and the bulk bar. `FlagTripModal` moved with
- * them and is imported back, so nothing about how this screen renders it
- * changed.
+ * **The two commands are declared in `src/commands/trips.ts`, not here** — D9 /
+ * X9, the way Captains does it. The row menu, the bulk bar, the ride sheet and
+ * ⌘K resolve one registry, so `Flag` and `Remove flag` carry D18's undo on
+ * every surface instead of only in the palette.
  */
 import {
-  FlagTripModal,
   FLAG_REASONS,
-  flagRefusal as flagRefusalFor,
-  runFlag as runFlagCommand,
-  runUnflag as runUnflagCommand,
-  unflagRefusal as unflagRefusalFor,
-} from '@/components/actions'
-import type { SetRefusal } from '../bulkRefusal'
+  TRIP_COMMANDS,
+  resolveCommands,
+  runCommand,
+  toastOutcome,
+  unavailableReason,
+  type Command,
+  type CommandContext,
+  type CommandHost,
+  type CommandResult,
+} from '@/commands'
+import { FlagTripModal } from '@/components/actions'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
@@ -117,6 +116,13 @@ const STATUS_TONE: Readonly<
   'no-show': 'neutral',
 }
 
+
+/**
+ * Resolved once at module scope because they depend on nothing the screen
+ * holds — CM-1. `plural: false` is the row kebab, `plural: true` the bulk bar.
+ */
+const ROW_COMMANDS = resolveCommands(TRIP_COMMANDS, { entityType: 'trip', plural: false })
+const BULK_COMMANDS = resolveCommands(TRIP_COMMANDS, { entityType: 'trip', plural: true })
 
 export function TripsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -245,60 +251,83 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
     })
   }, [])
 
-  /* ── §11.2, one predicate per command, evaluated over a SET ──────────── */
+  /* ── the registry: one declaration, four surfaces ────────────────────── */
 
   /**
    * **The set rule, D21.** Refused if ANY target would be refused on its own
-   * row; three sentences depending on how much of the selection is blocked; the
-   * permission refusal first, because narrowing a selection cannot make a role
-   * able to act. A row menu passes an array of one; the bulk bar passes the
-   * selection. There is no separate single-record path, which is what makes
-   * "the two surfaces agree" structural rather than a promise.
+   * row; the permission refusal first, because narrowing a selection cannot
+   * make a role able to act. A row menu passes an array of one; the bulk bar
+   * passes the selection. `unavailableReason` answers both.
    */
-  const roleReason = canWrite ? null : t('trips.action.noPermission')
+  /**
+   * The confirmation this screen asks `trip.flag` for is `FlagTripModal`, not
+   * `ConfirmDialog`: the category list is the point of the flag. The command
+   * still owns the copy and the write, so the palette and this screen cannot
+   * ask different questions. Both draw on `trips.flag.*`.
+   */
+  const pending = useRef<readonly Trip[]>([])
+  const answer = useRef<((reason: string | null) => void) | null>(null)
+  const settled = useRef<{ ok: () => void; fail: (error: unknown) => void } | null>(null)
 
-  /* The command context both predicates take, built once. */
-  const commands = useMemo(() => ({ roleReason, t, language }), [roleReason, t, language])
+  /** CQ-4 — the only things a command may reach this screen for. */
+  const host: CommandHost = {
+    openProfile: (_entityType, id) =>
+      navigate({
+        pathname: location.pathname,
+        search: withOverlay(location.search, 'entity', id),
+      }),
+    confirm: () =>
+      new Promise<string | null>((resolve) => {
+        answer.current = resolve
+        setFlagging(pending.current)
+      }),
+  }
 
-  const flagRefusal = useCallback(
-    (targets: readonly Trip[]): SetRefusal => flagRefusalFor(targets, commands),
-    [commands],
+  const context = useCallback(
+    (targets: readonly Trip[]): CommandContext<Trip> => ({
+      targets,
+      t,
+      language,
+      /* CQ-7 / Q4 — one boolean, read only by `roleRefusal`. */
+      session: { canWrite },
+      host,
+    }),
+    // `host` is rebuilt every render and holds only refs and the router.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, language, canWrite],
   )
-
-  const unflagRefusal = useCallback(
-    (targets: readonly Trip[]): SetRefusal => unflagRefusalFor(targets, commands),
-    [commands],
-  )
-
-  /* ── the writes. Every bulk action reaches the data layer ────────────── */
 
   /**
-   * **`Promise.all` over the client, never a toast on its own.** A bulk action
-   * that only fires a toast is worse than none: it teaches the operator that
-   * twelve records changed when nothing did. `flagTrip` / `unflagTrip` return
-   * the updated record, and every one of them is held over the list.
+   * **The one dispatch path.** `runCommand` re-checks the refusal, runs the
+   * write, and `toastOutcome` renders D18's undo handle — a bare `toast` would
+   * render the sentence and drop the inverse on the floor.
    */
-  const runFlag = useCallback(
-    async (trips: readonly Trip[], reason: string) => {
-      await runFlagCommand(trips, reason, { onRecord: record, t, language })
-      /* The selection is this screen's and not the command's — the sheet has
-         none to clear. */
-      table.clearSelection()
-    },
-    [record, table, t, language],
-  )
-
-  const runUnflag = useCallback(
-    async (trips: readonly Trip[]) => {
-      /* **Only on success.** `runUnflag` toasts its failure rather than
-         throwing, so the boolean is the only way to tell the two apart — and a
-         selection cleared after a refused write says twelve records changed
-         when none did. */
-      if (await runUnflagCommand(trips, { onRecord: record, t, language })) {
-        table.clearSelection()
+  const dispatch = useCallback(
+    async (command: Command<Trip>, targets: readonly Trip[]) => {
+      pending.current = targets
+      let result: CommandResult<Trip>
+      try {
+        result = await runCommand(command, context(targets))
+      } catch (error: unknown) {
+        /* §11.2 — the refusal renders inside the form that asked, with the
+           operator's category and note still on screen. */
+        settled.current?.fail(error)
+        settled.current = null
+        return
       }
+      settled.current?.ok()
+      settled.current = null
+      setFlagging([])
+      if (result.kind === 'refused') {
+        toast(result.reason)
+        return
+      }
+      if (result.kind === 'cancelled' || result.outcome === null) return
+      record(result.outcome.changed ?? [])
+      table.clearSelection()
+      toastOutcome(result.outcome, t)
     },
-    [record, table, t, language],
+    [context, record, table, t],
   )
 
   /** The selection as RECORDS, which is what both predicates take. */
@@ -677,51 +706,50 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
            mutate; neither may carry this. */
         rowClick: true,
       },
-      {
-        label: t('trips.action.flag'),
-        onSelect: (trip: Trip) => setFlagging([trip]),
-        disabled: (trip: Trip) => flagRefusal([trip]).refused,
-        reason: (trip: Trip) => flagRefusal([trip]).reason,
-      },
-      {
-        label: t('trips.action.unflag'),
-        onSelect: (trip: Trip) => void runUnflag([trip]),
-        disabled: (trip: Trip) => unflagRefusal([trip]).refused,
-        reason: (trip: Trip) => unflagRefusal([trip]).reason,
-      },
+      /* CM-1 — two ids, no declarations. §11.2 / AC-368 — `disabled` and
+         `reason` are the same call, so a dead control cannot lose its
+         sentence on the way to the screen. */
+      ...ROW_COMMANDS.map((command) => ({
+        label: t(command.titleKey),
+        onSelect: (trip: Trip) => void dispatch(command, [trip]),
+        disabled: (trip: Trip) => unavailableReason(command, context([trip])) !== null,
+        reason: (trip: Trip) => unavailableReason(command, context([trip])),
+      })),
     ],
-    [t, flagRefusal, unflagRefusal, runUnflag],
+    [t, context, dispatch, navigate, location.pathname, location.search],
   )
 
   /* ── the bulk bar (§13.4 — the inverted strip takes the compact form) ── */
 
-  const bulkActions: ReadonlyArray<BulkAction> = useMemo(() => {
-    const flag = flagRefusal(selected)
-    const unflag = unflagRefusal(selected)
-    return [
-      {
-        label: t('trips.bulk.flag'),
-        onClick: () => setFlagging(selected),
-        disabled: flag.refused,
-        reason: flag.reason,
+  const bulkActions: ReadonlyArray<BulkAction> = useMemo(
+    () =>
+      BULK_COMMANDS.map((command) => {
+        const refusal = selected.length === 0 ? null : unavailableReason(command, context(selected))
         /* **D21's escape hatch, and it is not a partial apply.** These are the
-           ids in the CURRENT selection the command would accept; `DataTable`
-           renders `Select only the N eligible` from them and narrows the
-           selection through `table.selectOnly`, so the bar's count changes
-           before the command can run and the toast can never name a different
-           number from the bar. Empty when every selected trip is blocked, and
-           the bar then correctly offers no control (AC-960). */
-        eligibleIds: flag.eligibleIds,
-      },
-      {
-        label: t('trips.bulk.unflag'),
-        onClick: () => void runUnflag(selected),
-        disabled: unflag.refused,
-        reason: unflag.reason,
-        eligibleIds: unflag.eligibleIds,
-      },
-    ]
-  }, [selected, flagRefusal, unflagRefusal, runUnflag, t])
+           ids in the CURRENT selection the command would accept, derived from
+           the SAME predicate; `DataTable` renders `Select only the N eligible`
+           from them and narrows the selection through `table.selectOnly`, so
+           the bar's count changes before the command can run and the toast can
+           never name a different number from the bar (AC-959, AC-960). */
+        const eligibleIds = new Set(
+          selected
+            .filter((trip) => unavailableReason(command, context([trip])) === null)
+            .map((trip) => trip.id),
+        )
+        return {
+          label: t(command.compactTitleKey ?? command.titleKey),
+          onClick: (ids: ReadonlySet<string>) =>
+            void dispatch(
+              command,
+              rows.filter((trip) => ids.has(trip.id)),
+            ),
+          disabled: refusal !== null,
+          reason: refusal,
+          eligibleIds: eligibleIds.size === selected.length ? undefined : eligibleIds,
+        }
+      }),
+    [selected, rows, context, dispatch, t],
+  )
 
   const tabs = views.map((v) => ({ id: v.id, label: t(v.titleKey) }))
   const total = data.data?.total ?? 0
@@ -810,8 +838,22 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
       <FlagTripModal
         trips={flagging}
         reasonKeys={FLAG_REASONS}
-        onClose={() => setFlagging([])}
-        onConfirm={runFlag}
+        /* Dismissing answers the command with `null`, which is how `run` learns
+           it was cancelled and returns without writing anything. */
+        onClose={() => {
+          answer.current?.(null)
+          answer.current = null
+          setFlagging([])
+        }}
+        /* Resolved when the command settles, so the form stays open for the
+           round trip and a refusal lands in place (§11.2). */
+        onConfirm={(_trips, reason) =>
+          new Promise<void>((ok, fail) => {
+            settled.current = { ok, fail }
+            answer.current?.(reason)
+            answer.current = null
+          })
+        }
         t={t}
       />
     </SingleColumnPage>

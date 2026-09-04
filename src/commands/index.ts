@@ -49,7 +49,7 @@
 
 export * from './registry'
 export { CAPTAIN_COMMANDS } from './captains'
-export { TRIP_COMMANDS } from './trips'
+export { TRIP_COMMANDS, FLAG_REASONS } from './trips'
 export { APPLICANT_COMMANDS } from './applicants'
 export { TICKET_COMMANDS } from './tickets'
 export { SUBSCRIPTION_COMMANDS } from './subscriptions'

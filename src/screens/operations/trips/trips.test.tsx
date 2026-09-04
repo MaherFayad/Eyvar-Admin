@@ -31,20 +31,28 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { toast } from 'sonner'
 import { disableMockLatency, listTrips, mockFailures, resetDataLayer } from '@/data/clients'
 import type { Trip } from '@/data/types'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppRoutes } from '@/routes'
+import { Toaster } from '@/components/ui/sonner'
+import { EN } from '@/i18n/dictionaries'
 import { TRIPS_EN } from './copy'
 
 const t = (key: string, params: Record<string, string> = {}) =>
   Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, v), TRIPS_EN[key] as string)
+/** The shell dictionary, for the keys the command registry owns. */
+const en = (key: string) => EN[key] as string
 
 const INDEX = '/operations/quick-rides'
 
 beforeEach(() => {
   disableMockLatency()
   resetDataLayer()
+  /* Sonner's store outlives a render, so a toast raised by an earlier test is
+     still queued when the next one mounts a Toaster. */
+  toast.dismiss()
 })
 
 beforeAll(() => {
@@ -95,11 +103,18 @@ beforeAll(async () => {
   }
 })
 
-/** Tick a row's checkbox by the trip it belongs to. */
+/**
+ * Tick a row's checkbox by the trip it belongs to. Retried, because the id cell
+ * is replaced when `useEntityLinks` resolves and a node read either side of
+ * that is detached from its row.
+ */
 async function select(user: ReturnType<typeof userEvent.setup>, trip: Trip) {
-  const row = (await screen.findByText(trip.id)).closest('tr')
-  if (!row) throw new Error(`No row for ${trip.id}`)
-  await user.click(within(row as HTMLElement).getByRole('checkbox'))
+  const row = await waitFor(() => {
+    const found = screen.getByText(trip.id).closest('tr')
+    if (!found) throw new Error(`No row for ${trip.id}`)
+    return found as HTMLElement
+  })
+  await user.click(within(row).getByRole('checkbox'))
 }
 
 describe('P8-T1 — every cell that names an entity opens that entity', () => {
@@ -292,5 +307,49 @@ describe('P4-T1 — the bulk action reaches the data layer', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: t('trips.bulk.unflag') })).toBeInTheDocument(),
     )
+  })
+})
+
+describe('T6.1 / D18 — flagging a trip is reversible from the toast', () => {
+  /* X9: the two commands were declared twice and the screen-side pair carried
+     no undo handle, so a flag placed on the wrong ride was unrecoverable from
+     the surface that placed it. `src/commands/trips.ts` declares the inverse
+     and `toastOutcome` is what puts it on screen. */
+  function renderWithToasts(path: string = INDEX) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <ShellProvider>
+          <AppRoutes />
+          {/* Sonner renders nothing without a mounted Toaster, and D18's one
+              control lives inside the toast. */}
+          <Toaster />
+        </ShellProvider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('offers Undo inside the window, and the undo reverts the flag through the client', async () => {
+    const user = userEvent.setup()
+    const target = unflagged[0]!
+    renderWithToasts()
+    await screen.findByText(page[0]!.id)
+    await select(user, target)
+    await user.click(await screen.findByRole('button', { name: t('trips.bulk.flag') }))
+
+    /* The category is the point of the flag, so the form still asks for it. */
+    await user.click(await screen.findByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: t('trips.reason.fareDispute') }))
+    await user.click(screen.getByRole('button', { name: t('trips.flag.confirm') }))
+
+    const undo = await screen.findByRole('button', { name: en('command.undo') })
+    expect(undo, 'a flag must offer its inverse, not just report success').toBeInTheDocument()
+
+    await user.click(undo)
+    /* The second toast, which only `unflagTrip` returning can produce. */
+    expect(
+      await screen.findByText(
+        (en('trips.toast.flagged.undone.one') as string).replace('{id}', target.id),
+      ),
+    ).toBeInTheDocument()
   })
 })

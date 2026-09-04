@@ -116,7 +116,7 @@ export interface SlaCellProps {
  * | `queueClock` says | The cell reads |
  * |---|---|
  * | running / breached | the countdown pill — `45s left`, `overdue 14m` |
- * | passed unbroken | `Due 24 Jun 21:00` — a date, neutral, no track |
+ * | passed unbroken | `Missed 24 Jun 21:00` — a date, neutral, no track (O7) |
  * | no clock at all | `No clock` — a VALUE (Q-20), sorted last, never `—` |
  */
 export function SlaCell({ result, t, language, dueAt, promiseLabel = null }: SlaCellProps) {
@@ -125,7 +125,7 @@ export function SlaCell({ result, t, language, dueAt, promiseLabel = null }: Sla
       <span className="block" title={promiseLabel ?? undefined}>
         <Cell className="text-muted-foreground">
           <bdi>
-            {t('queue.sla.dueAt', {
+            {t('queue.sla.missed', {
               date: formatDate(dueAt, { style: 'day-month-time', language }),
             })}
           </bdi>

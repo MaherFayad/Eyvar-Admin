@@ -11,10 +11,10 @@
  * allowed. The screens import them back from here, so their call sites are
  * unchanged.
  *
- * The `*.ts` modules beside them are the half that matters: **one declaration
- * per command** — its refusal predicate, its write, its toast and its reason
- * codes. Two surfaces offering one command must not hold two answers to *who
- * may run it*, and this is where that is made structural rather than promised.
+ * **The trip commands are gone from here** (X9): `TripActions` resolves
+ * `src/commands/trips.ts`, so `Flag` and `Remove flag` carry D18's undo on
+ * every surface. `subscription.ts` stays until `Freeze` can be declared as a
+ * command — see its header for the two things that blocks on.
  */
 
 export { ActionBar, type ActionBarProps, type SheetAction } from './ActionBar'
@@ -35,12 +35,3 @@ export {
   type SubscriptionCommandContext,
   type SubscriptionWriteContext,
 } from './subscription'
-export {
-  FLAG_REASONS,
-  flagRefusal,
-  runFlag,
-  runUnflag,
-  unflagRefusal,
-  type TripCommandContext,
-  type TripWriteContext,
-} from './trip'

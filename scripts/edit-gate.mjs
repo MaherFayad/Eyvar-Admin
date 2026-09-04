@@ -26,9 +26,12 @@ const isTokenFile = file.endsWith('styles/globals.css')
 const isTest = /\.test\.tsx?$/.test(file)
 
 // Token checks run on code only; a comment quoting a hex value is not a defect.
+// A ` * ` line counts as a comment on its own, because an edit to the middle of
+// a docblock carries no `/*` for the block rule to match.
 const code = written
   .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
   .replace(/(^|[^:])\/\/.*$/gm, '$1')
+  .replace(/^\s*(?:\/\*+|\*+\/?).*$/gm, '')
 
 const rules = [
   {
@@ -72,6 +75,15 @@ const rules = [
     why: 'defaultValue literal is invisible to the extractor; add the key to the owning copy.ts',
     re: /\bdefaultValue\s*:\s*['"`]/,
     on: !isCss && !isTest,
+  },
+  {
+    // X14. Comments are already blanked out of `code`, so a comment quoting the
+    // rule does not trip it. `npm run i18n:keys` ratchets the same character
+    // down in every dictionary value.
+    id: 'em-dash',
+    why: 'em dash in a string an operator reads; use · for a qualifier, two sentences for two clauses, an en dash only for a numeric range (X14)',
+    re: /—/,
+    on: !isTest,
   },
 ]
 

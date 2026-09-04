@@ -24,6 +24,8 @@ Source: `DESIGN.md` §5.7. These are MUSTs.
 10. **State end-of-list and no-data in words** rather than leaving a surface blank.
 11. **"Learn more about `<noun>`"** for page-level help, only the noun linked; a bare
     "Learn more" appended inline elsewhere.
+12. **No em dash.** `·` separates a qualifier, two clauses become two sentences, and the
+    en dash is for numeric ranges only (`Showing 1–7 of 7`). X14.
 
 ## Rewrites
 
@@ -38,13 +40,51 @@ Source: `DESIGN.md` §5.7. These are MUSTs.
 | `Submit` | `Send invoice` |
 | `No data` | `No drivers match these filters` |
 | `⚠️ Wallet low` | `Wallet balance below minimum` |
+| `Offered to Nora — waiting for their reply` | `Offered to Nora · waiting for their reply` |
+| `Assumed — not confirmed` | `Assumed. Not confirmed.` |
+
+## How many words (X18)
+
+Every slot an operator scans has a budget. Anything longer moves behind `InfoHint` or onto
+the record's own detail surface. `npm run i18n:keys` counts them, puts each key in a class
+by its name, and holds the over-budget total as a ceiling it refuses to raise.
+
+| Slot | Words | The key looks like |
+|---|---:|---|
+| Page or card title | 4 | `…title`, `…heading`, `route.…`, `nav.…` |
+| Button | 3 | `…action.<verb>`, `…empty.action` |
+| Badge | 2 | `…status.<enum>` |
+| Meta line | 6 | `…meta`, `…meta.…` |
+| Cell second line | 5 | no convention yet; give it a `.sub` tail |
+| Empty-state title | 5 | `…empty.…heading` |
+| Empty-state body, one sentence | 12 | `…empty`, `…empty.…body` |
+| Banner, with one action | 20 | `…banner.…` |
+| Toast | 8 | `…toast.…` |
+| Tooltip | 25 | `…hint`, `…hint.…`, `…tooltip…` |
+
+A placeholder counts as one word. A refusal sentence under `action.` is not a button and
+has no budget; it is still bound by rule 4.
+
+## What goes behind an info icon (X15)
+
+`InfoHint` is the tooltip, and it is not a place to put things an operator must read.
+
+- A sentence that **explains** goes behind `InfoHint`, beside the thing it explains: what a
+  measure counts, what a threshold means, why a column is empty.
+- A sentence that **changes what the operator does next** stays inline: a refusal (§11.2), a
+  field error, the one line of an empty state, a banner's body.
+- **Nothing an operator must read to act may live only in a tooltip.** A tooltip is not
+  reachable on touch, is not announced reliably, and disappears on the way to the control.
+
+The test: if the sentence were deleted, would the operator take a different action? If yes,
+it is inline. If it would only leave them less sure why, it is an `InfoHint`.
 
 ## Toast, specifically (R9)
 
 One line. Names the object exactly. ≤60 characters. No period, no emoji, no action link.
 If the object name is long, truncate the **object** with an ellipsis — never the verb.
 
-`Plan "Weekly — Riyadh North…" saved` · not · `Changes saved successfully!`
+`Plan "Weekly · Riyadh North…" saved` · not · `Changes saved successfully!`
 
 ## Arabic (§9.6)
 

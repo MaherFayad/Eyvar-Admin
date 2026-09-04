@@ -269,7 +269,7 @@ describe('riderTimelineStrings', () => {
       kind: 'trip-cancelled',
       detail: { pickup: 'Al Aqiq', captainAssigned: true },
     })
-    expect(out.subtitle).toBe('From Al Aqiq — no destination confirmed')
+    expect(out.subtitle).toBe('From Al Aqiq · no destination confirmed')
   })
 
   /** `TRP-9104` — requested three minutes ago and never assigned. */

@@ -34,7 +34,7 @@ export const VOCABULARY_AR: Dictionary = {
   'reason.TRP_LOST_ITEM': 'ترك الراكب متعلقات في المركبة',
   'reason.TRP_GHOST_COMPLETE': 'اكتملت الرحلة دون أن يركب الراكب',
   'reason.TRP_FALSE_COMPLETE': 'أنهى الكابتن رحلة لم تُنفَّذ',
-  'reason.TECH_STATE_DESYNC': 'عدم تطابق حالة الرحلة — التطبيقان غير متفقين',
+  'reason.TECH_STATE_DESYNC': 'عدم تطابق حالة الرحلة · التطبيقان غير متفقين',
   'reason.APP_LOGIN': 'الراكب لا يستطيع تسجيل الدخول',
   'reason.APP_CRASH': 'التطبيق يتعطّل أو لا يفتح',
   'reason.APP_PROMO': 'لم يُطبَّق رمز العرض',
@@ -42,14 +42,14 @@ export const VOCABULARY_AR: Dictionary = {
   'reason.SAF_ACCIDENT': 'حادث أو عطل في المركبة',
   'reason.SAF_THEFT': 'فقدان غرض أو سرقته أثناء الرحلة',
   'reason.SUB_SAME_CAPTAIN_BROKEN': 'تغيّر الكابتن المُسنَد أثناء الباقة',
-  'reason.SUB_FREEZE_TRAVEL': 'الراكب مسافر — جُمِّدت الباقة',
-  'reason.SUB_FREEZE_MEDICAL': 'سبب طبي — جُمِّدت الباقة',
+  'reason.SUB_FREEZE_TRAVEL': 'الراكب مسافر · جُمِّدت الباقة',
+  'reason.SUB_FREEZE_MEDICAL': 'سبب طبي · جُمِّدت الباقة',
   'reason.DRV_RATING_DISPUTE': 'يعترض الكابتن على تقييم غير منصف',
   'reason.DRV_DEDUCTION_DISPUTE': 'يعترض الكابتن على خصم',
   'reason.DRV_SUSPENSION_APPEAL': 'يتظلّم الكابتن من إيقاف',
   'reason.DRV_DOC_EXPIRED': 'انتهت صلاحية مستند مطلوب',
   'reason.CASH_SHORTFALL': 'النقد المحصَّل لا يطابق الرحلة',
-  'reason.OTHER_UNCODED': 'أخرى — تحتاج إلى مراجعة التصنيف',
+  'reason.OTHER_UNCODED': 'أخرى · تحتاج إلى مراجعة التصنيف',
   'reason.BKG_CAPTAIN_PREF': 'طلب الراكب كابتن آخر',
   'reason.DRV_RIDER_NOSHOW': 'لم يحضر الراكب للرحلة',
   'reason.DRV_RIDER_CONDUCT': 'سلوك غير لائق من الراكب',
@@ -59,12 +59,12 @@ export const VOCABULARY_AR: Dictionary = {
   'reason.captain_absence': 'لم يصل الكابتن لرحلة مجدولة',
   'reason.app_issue': 'بلاغ عن خلل في التطبيق',
   'reason.payout_blocked': 'رُفض صرف المستحقات بناءً على البيانات المسجَّلة',
-  'reason.dispute_no_show': 'اعتراض — عدم الحضور',
-  'reason.dispute_vehicle_class': 'اعتراض — فئة المركبة',
-  'reason.dispute_fare_dispute': 'اعتراض — الأجرة',
-  'reason.dispute_toll_charge': 'اعتراض — رسوم الطريق',
-  'reason.dispute_cancellation_fee': 'اعتراض — رسوم الإلغاء',
-  'reason.dispute_vehicle_damage': 'اعتراض — إتلاف المركبة',
+  'reason.dispute_no_show': 'اعتراض · عدم الحضور',
+  'reason.dispute_vehicle_class': 'اعتراض · فئة المركبة',
+  'reason.dispute_fare_dispute': 'اعتراض · الأجرة',
+  'reason.dispute_toll_charge': 'اعتراض · رسوم الطريق',
+  'reason.dispute_cancellation_fee': 'اعتراض · رسوم الإلغاء',
+  'reason.dispute_vehicle_damage': 'اعتراض · إتلاف المركبة',
 }
 
 /**
@@ -109,7 +109,7 @@ export const VOCABULARY_AR: Dictionary = {
  */
 
 export const RIDER_VOCABULARY_AR: Dictionary = {
-  'rider.churn.noSubscription': 'لا يوجد اشتراك — رحلات سريعة فقط.',
+  'rider.churn.noSubscription': 'لا يوجد اشتراك. رحلات سريعة فقط.',
   'rider.churn.cancelledOnRecord': 'يوجد اشتراك ملغى على السجل.',
   'rider.churn.complaintsFiled': 'الشكاوى المسجّلة: {count}',
   'rider.churn.ratingBelowFour': 'التقييم أقل من 4.',
@@ -140,7 +140,7 @@ export const RIDER_VOCABULARY_AR: Dictionary = {
      placeholder is a pass-through, and `types/metrics.ts` deleted one for being
      "a fig leaf". The noun is what makes `برونزية` legible on its own. */
   'rider.timeline.account-registered.subtitleNoPlace': 'فئة {tier}',
-  'rider.timeline.trip.routePickupOnly': 'من {pickup} — لم تُحدَّد الوجهة',
+  'rider.timeline.trip.routePickupOnly': 'من {pickup} · لم تُحدَّد الوجهة',
   'rider.timeline.trip.noCaptain': 'لم يُسنَد أي كابتن.',
   /* The open-trip card's present tense. See the English for why it is a second
      sentence and not a second spelling. */

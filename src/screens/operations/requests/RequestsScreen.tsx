@@ -1009,19 +1009,10 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
       defaultHidden: true,
       filter: { kind: 'text', field: 'notes' },
       /**
-       * **AC-245**, and it is a real gap this build closes. §5.4: *"Legacy
-       * stores this and renders it nowhere"* (`:2795`–`:2799`) — the seeds
-       * include *"wants female driver if available"* and *"wants the same
-       * driver daily if possible"*, so the rider's stated preference is
-       * invisible to the operator choosing their captain.
-       *
-       * **It is `defaultHidden` and that is a deviation I am flagging, not
-       * hiding.** §7.3's budget has no room for a 200px free-text column beside
-       * the queue's own furniture at 1280, and truncating a preference to eight
-       * characters is worse than putting it one click away. The honest carrier
-       * is the detail drawer (§11), which is not built. **AC-245 is met in the
-       * weaker of its two readings** — *"on the row or in the row's detail"* —
-       * and only once the operator un-hides the column.
+       * **AC-245** in its second reading: *on the row or in the row's detail*.
+       * §7.3's budget has no room for a 200px free-text column at 1280, so the
+       * carrier is the request sheet (`?entity=REQ-…`, `components/profile/
+       * request`) and this column is `defaultHidden`.
        */
       cell: (row) => (row.notes === null ? <Absent /> : <Cell>{row.notes}</Cell>),
     },
