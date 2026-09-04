@@ -105,6 +105,8 @@ import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
+import { Figure, FigureGrid, FigureItem } from '../shared/Figures'
+import { PeriodControl } from '../shared/PeriodControl'
 import { bulkRefusal, claimWithheldFrom, deviationHalalas } from '../shared/derive'
 import { bulkRefusalText } from '../shared/text'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -143,6 +145,20 @@ const VIEWS: readonly ScreenView[] = [
  */
 const DEFAULT_VIEW = 'reconciliation-queue'
 
+/**
+ * **P0-2** — what the queue lifts so the page banner can carry its control.
+ * `showOnly` is `null` while the queue is unmounted, which keeps the banner's
+ * action from outliving the table it narrows.
+ */
+interface EscalatedScope {
+  count: number
+  /** True while the list is already narrowed to the escalated set. */
+  scoped: boolean
+  showOnly: (() => void) | null
+}
+
+const NO_ESCALATED_SCOPE: EscalatedScope = { count: 0, scoped: false, showOnly: null }
+
 export function CashScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
@@ -163,31 +179,44 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
     [navigate, location.pathname, location.search],
   )
 
-  const [escalatedCount, setEscalatedCount] = useState(0)
+  const [escalated, setEscalated] = useState<EscalatedScope>(NO_ESCALATED_SCOPE)
 
-  /* **AC-378** — one banner, one count, and it is the only banner this sub-tab
-     raises. **There is no breach banner**, because there is no breach (AC-453). */
+  /* **AC-378 / P0-3** — one banner, one count, and it is the only banner this
+     sub-tab raises. **There is no breach banner**, because there is no breach
+     (AC-453). The tone is `info` under **R17**: an escalated report is with
+     Trust & Safety, so it is waiting on THEM, and R5a's one red banner is for
+     the condition the operator must act on. **P0-2** gives it the control that
+     narrows the list to those reports. */
   const banners = useMemo<BannerModel[]>(() => {
-    if (escalatedCount === 0 || activeTab !== 'reconciliation-queue') return []
+    if (escalated.count === 0 || escalated.scoped || activeTab !== 'reconciliation-queue') {
+      return []
+    }
     return [
       {
         id: 'fin.cash.escalated',
-        tone: 'critical',
+        tone: 'info',
         title:
-          escalatedCount === 1
+          escalated.count === 1
             ? t('fin.cash.escalated.title')
             : t('fin.cash.escalated.titleMany', {
-                count: formatCount(escalatedCount, language),
+                count: formatCount(escalated.count, language),
               }),
         body: t('fin.cash.escalated.body'),
+        actions:
+          escalated.showOnly === null
+            ? undefined
+            : [{ label: t('fin.cash.escalated.action'), onClick: escalated.showOnly }],
       },
     ]
-  }, [escalatedCount, activeTab, t, language])
+  }, [escalated, activeTab, t, language])
 
   return (
     <FinancialsPage
       row={row}
-      meta={periodLabel(period, t, language)}
+      /* **TL-2 / Q-F13** — the period is printed only where a read honours it.
+         `listCashReports` and `listCaptainDebts` take `QueryParams` alone;
+         `getCaptainDebtLedger` takes a window. */
+      meta={captainId === null ? null : periodLabel(period, t, language)}
       banners={banners}
       t={t}
       dir={dir}
@@ -201,7 +230,7 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
             activeTab={activeTab}
             onSelectTab={selectTab}
             gate={gate}
-            onEscalatedCount={setEscalatedCount}
+            onEscalated={setEscalated}
           />
         ) : (
           <CaptainDebtIndex
@@ -232,8 +261,8 @@ function ReconciliationQueue({
   activeTab,
   onSelectTab,
   gate,
-  onEscalatedCount,
-}: ViewProps & { onEscalatedCount: (count: number) => void }) {
+  onEscalated,
+}: ViewProps & { onEscalated: (scope: EscalatedScope) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
   const now = useNowIso()
@@ -267,10 +296,28 @@ function ReconciliationQueue({
     { deps: [], cacheKey: 'cash.list' },
   )
   const escalatedTotal = escalated.data?.total ?? 0
+
+  /* **P0-2** — a FILTER, not a view: it shows as a clearable chip in the query
+     strip and makes `isFiltered` true, so the resulting zero is `no-match`
+     rather than the cleared-queue sentence. The field is the one the
+     `Decision` column declares, so the chip is labelled and removable. */
+  const setFilter = table.setFilter
+  const showOnlyEscalated = useCallback(
+    () => setFilter({ field: 'status', op: 'eq', value: 'escalated' }),
+    [setFilter],
+  )
+  const scopedToEscalated = table.filters.some(
+    (filter) => filter.field === 'status' && filter.value === 'escalated',
+  )
+
   useEffect(() => {
-    onEscalatedCount(escalatedTotal)
-    return () => onEscalatedCount(0)
-  }, [escalatedTotal, onEscalatedCount])
+    onEscalated({
+      count: escalatedTotal,
+      scoped: scopedToEscalated,
+      showOnly: showOnlyEscalated,
+    })
+    return () => onEscalated(NO_ESCALATED_SCOPE)
+  }, [escalatedTotal, scopedToEscalated, showOnlyEscalated, onEscalated])
 
   const decide = useCallback(
     (report: CashReport, disposition: 'resolve' | 'escalate') => {
@@ -319,7 +366,7 @@ function ReconciliationQueue({
         csv: (report) => report.id,
         header: t('fin.cash.col.id'),
         dataType: 'id',
-        minWidth: 170,
+        minWidth: 150,
         sortField: 'id',
         cell: (report) => (
           <span className="relative block font-medium tabular-nums">
@@ -337,7 +384,10 @@ function ReconciliationQueue({
         id: 'captain',
         header: t('fin.cash.col.captain'),
         dataType: 'text',
-        width: 168,
+        /* **H6 preset** — `fitWidths` shrank this to 76px and names truncated
+           at eight characters. The floor is what a captain's name reads at. */
+        width: 148,
+        minWidth: 140,
         sortField: 'captainName',
         cell: (report) => (
           <EntityName href={hrefFor(report.captainId)} name={report.captainName} t={t} />
@@ -352,6 +402,12 @@ function ReconciliationQueue({
         dataType: 'money',
         align: 'end',
         width: 124,
+        /* **H6 preset.** Nine columns do not fit 1280 and a wrapping header is
+           the tell. `Deviation` carries what this column means; the operator
+           un-hides it through `Columns` when they want the base fare.
+           `DataTable` has no width-conditional hide, so this is the
+           `defaultHidden` the plan's *"below `wide:`"* resolves to. */
+        defaultHidden: true,
         sortField: 'expectedFareHalalas',
         cell: (report) => <MoneyCell amount={report.expectedFareHalalas} />,
       },
@@ -377,7 +433,7 @@ function ReconciliationQueue({
         header: t('fin.cash.col.deviation'),
         dataType: 'money',
         align: 'end',
-        width: 124,
+        width: 140,
         /* **AC-373** — `reported − topup − expected`, derived, with its sign;
            `null` when there is nothing to compute from (**AC-372**). */
         cell: (report) => <MoneyCell amount={deviationHalalas(report)} />,
@@ -388,7 +444,15 @@ function ReconciliationQueue({
         emphasis: 'data',
         header: t('fin.cash.col.classification'),
         dataType: 'enum',
-        width: 148,
+        width: 132,
+        minWidth: 128,
+        /* **H6 preset, and one hide was not enough.** Seven columns is what
+           910px holds; this is the eighth and the one whose value is already on
+           the row twice — `Under-reported` is the sign of `Deviation`, and
+           `Never reported` is the word `Reported` already renders (AC-372). It
+           keeps its sort and its filter, which `filterEntries` reads from the
+           DECLARED columns, not the visible ones. */
+        defaultHidden: true,
         cell: (report) => (
           <StatusBadge tone={report.classification === 'match' ? 'success' : 'warning'}>
             {t(`fin.cash.class.${report.classification}`)}
@@ -406,7 +470,8 @@ function ReconciliationQueue({
         id: 'owner',
         header: t('queue.col.owner'),
         dataType: 'enum',
-        width: 184,
+        width: 156,
+        minWidth: 148,
         /* §4.2 — the owner chip has three states: unclaimed, `You`, and another
            operator named. **Opening a report does not claim it** (AC-375). */
         cell: (report) =>
@@ -455,7 +520,24 @@ function ReconciliationQueue({
         id: 'decision',
         header: t('queue.col.decision'),
         dataType: 'enum',
-        width: 190,
+        /* **The action lane of this queue**, and it is a declared column rather
+           than `rowActions` because AC-377 converts a decided row into a
+           `DecisionBadge` in the same cell — a lane renders controls only. It
+           is last, it is sized to hold both controls, and it never shrinks
+           under them. */
+        width: 164,
+        minWidth: 156,
+        /* The field **P0-2**'s banner control sets, declared here so the filter
+           renders as a labelled, removable chip rather than as a narrowing
+           nothing on screen accounts for. */
+        filter: {
+          kind: 'select',
+          field: 'status',
+          options: (['pending', 'escalated', 'resolved'] as const).map((value) => ({
+            value,
+            label: t(`fin.cash.status.${value}`),
+          })),
+        },
         cell: (report) => {
           const failure = actions.failure(report.id)
           if (failure) {
@@ -687,6 +769,14 @@ function CaptainDebtIndex({
      is why this is a signed sum and the Overview tile is the positive-only one. */
   const total = useMemo(() => rows.reduce((sum, debt) => sum + debt.balanceHalalas, 0), [rows])
 
+  /* **The cap is what every balance on this table is read against**, and until
+     now it was printed only inside one captain's ledger. The count is of the
+     whole population, not the page. */
+  const overCap = useAsync<Paginated<CaptainDebt>>(
+    (signal) => listCaptainDebts({ view: 'over-cap', pageSize: 1 }, signal),
+    { deps: [], cacheKey: 'cash.debts.overCap' },
+  )
+
   const columns = useMemo<DataColumn<CaptainDebt>[]>(
     () => [
       {
@@ -728,7 +818,7 @@ function CaptainDebtIndex({
         header: t('fin.debt.col.balance'),
         dataType: 'money',
         align: 'end',
-        width: 140,
+        width: 128,
         sortField: 'balanceHalalas',
         cell: (debt) => <MoneyCell amount={debt.balanceHalalas} />,
       },
@@ -738,7 +828,7 @@ function CaptainDebtIndex({
         header: t('fin.debt.col.cap'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 112,
         /* Server policy, per Admin › Operational Policy — **not** the client
            constant `CASH_DEBT_CAP = -300` (`:12080`), and not negated. */
         cell: (debt) => <MoneyCell amount={debt.capHalalas} />,
@@ -748,7 +838,7 @@ function CaptainDebtIndex({
         header: t('fin.debt.col.openReports'),
         dataType: 'number',
         align: 'end',
-        width: 132,
+        width: 120,
         sortField: 'openReportCount',
         cell: (debt) => (
           <span className="tabular-nums">{formatCount(debt.openReportCount, language)}</span>
@@ -759,7 +849,7 @@ function CaptainDebtIndex({
         emphasis: 'data',
         header: t('fin.debt.col.lastReport'),
         dataType: 'date',
-        width: 148,
+        width: 120,
         sortField: 'lastReportAt',
         cell: (debt) => (
           <span className="tabular-nums">
@@ -773,7 +863,10 @@ function CaptainDebtIndex({
         id: 'actions',
         header: t('queue.col.actions'),
         dataType: 'enum',
+        /* Two labelled controls, and the floor is what stops `fitWidths`
+           cutting `View ledger` in half when the table is over budget. */
         width: 210,
+        minWidth: 200,
         /* **R4-6's D8 reading, applied here**: two actions render as two
            labelled controls, visible at rest and reachable by keyboard, rather
            than behind a kebab. They live in a declared column because
@@ -848,6 +941,42 @@ function CaptainDebtIndex({
 
   return (
     <>
+      {debts.status === 'content' && (
+        <section className="flex flex-col gap-2" aria-labelledby="fin-debt-figures">
+          <h2 id="fin-debt-figures" className="sr-only">
+            {t('fin.debt.figures.heading')}
+          </h2>
+          <FigureGrid>
+            <FigureItem>
+              {/* **AC-381** — the SIGNED sum, so a captain in credit is in it,
+                  and the caption carries the count the table footer used to. */}
+              <Figure
+                rank="supporting"
+                label={t('fin.debt.figure.outstanding')}
+                amount={total}
+                caption={t('fin.debt.figure.captains', {
+                  count: formatCount(rows.length, language),
+                })}
+              />
+            </FigureItem>
+            <FigureItem>
+              <Figure
+                rank="supporting"
+                label={t('fin.cash.view.overCap')}
+                value={formatCount(overCap.data?.total ?? 0, language)}
+              />
+            </FigureItem>
+            <FigureItem>
+              {/* Server policy, per Admin › Operational Policy. */}
+              <Figure
+                rank="supporting"
+                label={t('fin.debt.figure.cap')}
+                amount={cashDebtCapHalalas()}
+              />
+            </FigureItem>
+          </FigureGrid>
+        </section>
+      )}
       <DataTable
         table={table}
         rows={rows}
@@ -868,16 +997,6 @@ function CaptainDebtIndex({
            so it is derived once here and read twice. */
         isRowCritical={(debt) => debt.balanceHalalas >= debt.capHalalas}
         skeletonPattern="P1"
-        learnMore={
-          debts.status === 'content' ? (
-            <span className="text-sm text-muted-foreground">
-              {t('fin.debt.total', {
-                amount: formatMoney(total),
-                count: formatCount(rows.length, language),
-              })}
-            </span>
-          ) : undefined
-        }
         firstRun={{
           /* LR-3 — no Financials empty carries an illustration. See
              `PayoutsScreen`'s first declaration for the full reasoning. */
@@ -909,7 +1028,9 @@ function CaptainDebtIndex({
 function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: () => void }) {
   const shell = useShell()
   const { t, language } = shell.language
-  const { period } = usePeriod()
+  /* **Q-F13 / TL-2** — `getCaptainDebtLedger` is the one read on this screen
+     that takes a window, so this is the one place the control belongs. */
+  const { period, setPeriod } = usePeriod()
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>(
@@ -946,6 +1067,7 @@ function CaptainDebtLedger({ captainId, onBack }: { captainId: string; onBack: (
         <span className="text-xs text-muted-foreground">
           {t('fin.debt.col.cap')} <MoneyCell amount={cashDebtCapHalalas()} />
         </span>
+        <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
       </div>
       <LedgerCard
         table={table}

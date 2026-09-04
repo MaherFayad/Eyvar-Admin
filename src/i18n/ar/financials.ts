@@ -412,7 +412,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.debt.suspended': 'تحصيل النقد موقوف',
   'fin.debt.action.repay': 'تسجيل سداد',
   'fin.debt.action.ledger': 'عرض الدفتر',
-  'fin.debt.total': 'إجمالي المدين به {amount} على {count} من الكباتن',
   'fin.debt.empty.heading': 'لا يوجد كابتن مدين بنقد',
   'fin.debt.empty.body': 'الأجرة النقدية تضيف عمولة إلى ذمة الكابتن المدينة. ولا شيء قائم.',
   'fin.debt.empty.action': 'قراءة قائمة التسوية',
@@ -728,4 +727,18 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.audit.planSaved': 'حُفظت الباقة {plan}.',
   'fin.audit.refundIssued': 'صدر الاسترداد {reference} إلى {destination}.',
   'fin.audit.walletAdjusted': 'عُدِّلت محفظة — {direction} {reference}.',
+
+  /* ── FINANCIALS-UX-PLAN §5 Payouts & Cash ── */
+
+  'fin.payout.figures.heading': 'دورة الصرف الحالية',
+  'fin.payout.figure.net': 'صافي المستحق في هذه الدورة',
+  'fin.escrow.cancelledTotal': 'حجز واحد على اشتراك ملغى',
+  'fin.escrow.cancelledTotalMany': '{count} حجوزات على اشتراكات ملغاة',
+  'fin.cash.status.pending': 'بانتظار القرار',
+  'fin.cash.status.resolved': 'محسوم',
+  'fin.cash.status.escalated': 'مُصعَّد',
+  'fin.debt.figures.heading': 'دين الكباتن',
+  'fin.debt.figure.outstanding': 'دين الكباتن القائم',
+  'fin.debt.figure.cap': 'السقف',
+  'fin.debt.figure.captains': 'على {count} من الكباتن',
 }
