@@ -35,7 +35,7 @@
  * | People — declared media | 60 | **45** |
  * | Payouts — a row with nothing refused | 41 | **40** |
  * | Payouts, Escrow, Deductions, Disputes — a REFUSED row | 69 | **61** |
- * | Email log — refused, over a two-line identity | 81 | **73** |
+ * | Email log — refused, in the declared state cell | 69 | **61** |
  *
  * So compact is **8px a row** — the block padding, and nothing else — except on
  * the media views, where it is 15 because it also takes the declared 60px
@@ -46,10 +46,10 @@
  * the support queue and the email log all shipped a flat 77 because
  * `reserveRefusal` held two empty lines open on every row of a page where any
  * row was refused. The reason now renders in the refused row's own cell, so
- * only that row is tall: Payouts at 1280x900 fits **8 rows against 5**. The one
- * table that lost is the email log, 77 -> 81, whose identity cell already
- * carries a bounce message and now carries the refusal under it — closed by
- * that screen declaring `carriesRefusalReason`, not here.
+ * only that row is tall: Payouts at 1280x900 fits **8 rows against 5**, the
+ * email log 8 against 5 at 69. The email log is also the proof that the carrier
+ * declaration earns its keep: undeclared it measured 81, because the reason
+ * stacked under the recipient's address AND its second line.
  *
  * ## Why a module store rather than a prop or a context
  *
