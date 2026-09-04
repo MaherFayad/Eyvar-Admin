@@ -114,7 +114,7 @@ export interface IdentityProps {
   name: string
   /** §7.7 — line 2 qualifies line 1: a route, a plan, a reason code, an id. */
   secondary?: ReactNode
-  /** §9.1 — semibold when the identity is a CODE (`INC-014`), regular for a name. */
+  /** §9.1 / T5.3 — a CODE (`INC-014`) is mono and semibold, and carries no avatar. */
   code?: boolean
   /** The accessible name, already interpolated. One key, never concatenated (AC-75). */
   label: string
@@ -133,18 +133,23 @@ export interface IdentityProps {
 export function Identity({ to, name, secondary = null, code = false, label }: IdentityProps) {
   return (
     <span className="flex max-w-80 items-center gap-2">
-      <Avatar className="size-8 rounded-full">
-        <AvatarFallback className="rounded-full text-xs font-medium">
-          {initialsOf(name)}
-        </AvatarFallback>
-      </Avatar>
+      {/* T5.3 — an avatar stands for a PERSON. `TRP-9012` has no face, and
+          `initialsOf` was rendering its first two letters as one. A code-led
+          record leads with the code, in mono, and takes the 40px back. */}
+      {!code && (
+        <Avatar className="size-8 rounded-full">
+          <AvatarFallback className="rounded-full text-xs font-medium">
+            {initialsOf(name)}
+          </AvatarFallback>
+        </Avatar>
+      )}
       <span className="flex min-w-0 flex-col justify-center">
         <Link
           to={to}
           aria-label={label}
           className={cn(
             'truncate rounded-sm text-foreground group-hover/row:underline',
-            code ? 'font-semibold tabular-nums' : 'font-medium',
+            code ? 'font-mono font-semibold' : 'font-medium',
           )}
         >
           {name}
