@@ -31,7 +31,7 @@
  *               weight — never colour alone.
  */
 
-import { ArrowUpDown, ChevronDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -94,7 +94,13 @@ export function SortControl<T>({
           >
             <ArrowUpDown aria-hidden="true" />
             <span className="max-w-24 truncate">{activeColumn.header}</span>
-            <span aria-hidden="true">{active.dir === 'desc' ? '↓' : '↑'}</span>
+            {/* T9.10 — drawn, not a font glyph: a glyph takes the text weight
+                and depends on the loaded font, which differs in Arabic. */}
+            {active.dir === 'desc' ? (
+              <ArrowDown aria-hidden="true" className="size-4" />
+            ) : (
+              <ArrowUp aria-hidden="true" className="size-4" />
+            )}
             <ChevronDown aria-hidden="true" />
           </Button>
         )}
@@ -135,7 +141,11 @@ export function SortControl<T>({
                 active?.dir === direction && 'bg-accent font-semibold',
               )}
             >
-              <span aria-hidden="true">{direction === 'asc' ? '↑' : '↓'}</span>
+              {direction === 'asc' ? (
+                <ArrowUp aria-hidden="true" className="size-4" />
+              ) : (
+                <ArrowDown aria-hidden="true" className="size-4" />
+              )}
               {activeColumn === null
                 ? t(direction === 'asc' ? 'table.sort.textAsc' : 'table.sort.textDesc')
                 : sortLabel(t, activeColumn, direction)}

@@ -145,7 +145,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
-import { Download } from 'lucide-react'
+import { Download, Ellipsis } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -1810,7 +1810,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                the row's hover OR its focus-within. Never zero opacity. */
             className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
           >
-            <span aria-hidden="true">⋯</span>
+            <Ellipsis aria-hidden="true" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -2663,7 +2663,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                       aria-label={t('shell.moreActions')}
                       className="h-8 w-8 rounded-lg bg-background/20 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
                     >
-                      <span aria-hidden="true">⋯</span>
+                      <Ellipsis aria-hidden="true" className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
