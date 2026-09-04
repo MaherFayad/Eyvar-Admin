@@ -39,6 +39,7 @@ import {
 } from './ledger'
 import { nextClaim } from './requests'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -256,15 +257,15 @@ export async function claimCashReport(
   signal?: AbortSignal,
 ): Promise<CashReport> {
   if (DATA_SOURCE === 'http') {
-    return http.post<CashReport>(`/cash-reports/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<CashReport>(`/cash-reports/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(CASH_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(CASH_OPERATIONS.claim, signal, () => {
     const row = reportState.find((r) => r.id === id)
     if (!row) throw notFound('cash report', id)
     const next = { ...row, claim: nextClaim('cash', id, row.claim, opts.takeOver) }
     reportState = reportState.map((r) => (r.id === id ? next : r))
     return next
-  })
+  }))
 }
 
 /**
@@ -310,10 +311,10 @@ export async function decideCashReport(
   signal?: AbortSignal,
 ): Promise<CashReport> {
   if (DATA_SOURCE === 'http') {
-    return http.post<CashReport>(`/cash-reports/${id}/decide`, { disposition, reasonCode }, { signal })
+    return signalled('queue.item.disposed', http.post<CashReport>(`/cash-reports/${id}/decide`, { disposition, reasonCode }, { signal }))
   }
   const operation = disposition === 'resolve' ? CASH_OPERATIONS.resolve : CASH_OPERATIONS.escalate
-  return mockMutation(operation, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(operation, signal, () => {
     const row = reportState.find((r) => r.id === id)
     if (!row) throw notFound('cash report', id)
     if (!reasonCode.trim()) {
@@ -355,7 +356,7 @@ export async function decideCashReport(
       detail: { key: `fin.audit.cash.${disposition}`, params: { reference: id } },
     })
     return next
-  })
+  }))
 }
 
 /* ─────────────────── the captain debt ledger ────────────────── */

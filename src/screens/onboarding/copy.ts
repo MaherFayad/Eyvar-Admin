@@ -69,6 +69,10 @@ export const ONBOARDING_EN: Dictionary = {
     "You answer riders and captains, and you're the first person to hear when something goes wrong. You can see a safety incident and you cannot decide one — an Ops Manager does.",
   /* **AC-601** — for `lina@eyvar.com` this reads 3. Two numbers, one sentence,
      `t()` not `t.plural`. */
+  'onboarding.intro.dispatcher':
+    'You keep the live board clear: requests, trips under way and the captains covering them. Pricing and approvals belong to the Ops Manager.',
+  'onboarding.intro.trustSafety':
+    'You decide on safety incidents, appeals and captain suspensions. You read the analytics and the queues; money and settings are not yours.',
   'onboarding.intro.permissions': 'You hold {held} of {total} permissions.',
   /* §8.3 part 3, with the sub-tab name as a link that opens the route and
      closes the layer.
@@ -82,6 +86,8 @@ export const ONBOARDING_EN: Dictionary = {
      dropped. Reported to product-designer; the alternative is a new key for
      the qualified name. */
   'onboarding.intro.myWork': 'Work assigned to you arrives in {subTab}.',
+  /* C-3 — replaces the My Work line once the three shared steps are done. */
+  'onboarding.intro.commonDone': 'The three steps everyone does are done. The rest is yours.',
 
   /* ─────────────────────────── the step row ───────────────────────────── */
   'onboarding.step.open': 'Open {subTab}',
@@ -149,7 +155,7 @@ export const ONBOARDING_EN: Dictionary = {
   /* Owner — 3 common + 4 = 7 (**AC-619**). */
   'onboarding.step.owner.team.title': 'Read the role matrix, and decide if it still holds',
   'onboarding.step.owner.team.body':
-    "One account holds manage_settings, and that key gates 39 of the console's 131 permission checks. Decide whether that is still acceptable.",
+    'One account holds every administrative permission. Decide whether that is still acceptable.',
   'onboarding.step.owner.policy.title': 'Read the policy you are accountable for',
   'onboarding.step.owner.policy.body':
     'Dispatch radius, operating limits, SLA targets and reason codes. Read them once, deliberately, rather than the first time one is disputed.',
@@ -237,4 +243,6 @@ export const ROLE_INTRO_KEYS: Readonly<Record<string, string>> = {
   'Ops Manager': 'onboarding.intro.opsManager',
   Finance: 'onboarding.intro.finance',
   Support: 'onboarding.intro.support',
+  Dispatcher: 'onboarding.intro.dispatcher',
+  'Trust & Safety': 'onboarding.intro.trustSafety',
 }

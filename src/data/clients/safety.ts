@@ -24,6 +24,7 @@ import type {
 } from '../types/safety'
 import { SAFETY_PROTOCOL_STEPS } from '../types/safety'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -262,9 +263,9 @@ export async function claimSafetyIncident(
   signal?: AbortSignal,
 ): Promise<SafetyIncident> {
   if (DATA_SOURCE === 'http') {
-    return http.post<SafetyIncident>(`/incidents/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<SafetyIncident>(`/incidents/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(SAFETY_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(SAFETY_OPERATIONS.claim, signal, () => {
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     const respondingNow = row.firstResponseAt === null
@@ -274,7 +275,7 @@ export async function claimSafetyIncident(
       firstResponseAt: respondingNow ? EYVAR_NOW : row.firstResponseAt,
       firstResponseBreachedAt: respondingNow ? null : row.firstResponseBreachedAt,
     }
-  })
+  }))
 }
 
 /**
@@ -433,9 +434,9 @@ export async function closeSafetyIncident(
   signal?: AbortSignal,
 ): Promise<SafetyIncident> {
   if (DATA_SOURCE === 'http') {
-    return http.post<SafetyIncident>(`/incidents/${id}/close`, undefined, { signal })
+    return signalled('queue.item.disposed', http.post<SafetyIncident>(`/incidents/${id}/close`, undefined, { signal }))
   }
-  return mockMutation(SAFETY_OPERATIONS.close, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(SAFETY_OPERATIONS.close, signal, () => {
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     const outstanding = row.protocol.filter((s) => !s.done)
@@ -461,7 +462,7 @@ export async function closeSafetyIncident(
       closedByUserId: me.id,
       closedByUserName: me.name,
     }
-  })
+  }))
 }
 
 /**

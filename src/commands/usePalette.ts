@@ -219,6 +219,8 @@ export interface UsePaletteOptions {
   permissions: PermissionContext
   navigate: (path: string) => void
   openProfile: (entityType: ProfileEntityType, entityId: string) => void
+  /** The onboarding checklist while it is incomplete and undismissed; `null` otherwise. */
+  guide: { done: number; total: number; open: () => void } | null
 }
 
 /* ───────────────────────────── the pre-seed ───────────────────────────── */
@@ -257,6 +259,9 @@ function seedFromSelection(selection: CommandSelection | null): PreSeed | null {
  * stays on `cmdk`.
  */
 const KEYWORD_WEIGHT = 0.8
+
+/** What an operator types to find the checklist. */
+const GUIDE_KEYWORDS = ['onboarding', 'getting started', 'checklist', 'guide', 'البدء', 'التهيئة']
 
 function scoreCommand(query: string, title: string, keywords: readonly string[]): number {
   let best = matchScore(query, title)
@@ -402,6 +407,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     permissions,
     navigate,
     openProfile,
+    guide,
   } = options
 
   const [query, setQuery] = useState('')
@@ -938,6 +944,29 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   /* ── assembly ─────────────────────────────────────────────────────────── */
 
+  /* The checklist, reachable by keyboard from anywhere while it is open work
+     (plan D-2): one row, under `Resume` when the field is empty and among the
+     destinations when the query names it. */
+  const guideRow = useMemo<PaletteRow | null>(() => {
+    if (guide === null) return null
+    return {
+      key: 'guide:onboarding',
+      title: t('onboarding.menuEntry'),
+      subtitle: t('onboarding.progress', { done: guide.done, total: guide.total }),
+      refusal: null,
+      badge: null,
+      narrow: null,
+      onSelect: () => {
+        close()
+        guide.open()
+      },
+    }
+  }, [close, guide, t])
+  const guideMatches =
+    guideRow !== null &&
+    trimmed !== '' &&
+    scoreCommand(trimmed, guideRow.title, GUIDE_KEYWORDS) >= MIN_MATCH_SCORE
+
   const blocks = useMemo<PaletteBlock[]>(() => {
     if (step === 'confirm') return []
     if (step === 'target') {
@@ -947,7 +976,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       return [
         { id: 'onScreen', heading: t('command.block.onScreen'), rows: onScreenRows },
         { id: 'queues', heading: t('command.block.queues'), rows: queueRows },
-        { id: 'resume', heading: t('command.block.resume'), rows: resumeRows },
+        {
+          id: 'resume',
+          heading: t('command.block.resume'),
+          rows: guideRow === null ? resumeRows : [guideRow, ...resumeRows],
+        },
         { id: 'recent', heading: t('command.block.recent'), rows: recentRows },
         { id: 'goTo', heading: t('command.block.goTo'), rows: goToRows },
       ].filter((block) => block.rows.length > 0)
@@ -963,7 +996,10 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       heading: t('shell.search.destinations', {
         count: formatCount(searchRows.destinations.length, language),
       }),
-      rows: searchRows.destinations,
+      rows:
+        guideMatches && guideRow !== null
+          ? [guideRow, ...searchRows.destinations]
+          : searchRows.destinations,
     }
     const records: PaletteBlock = {
       id: 'records',
@@ -980,6 +1016,8 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   }, [
     doRows,
     goToRows,
+    guideMatches,
+    guideRow,
     language,
     onScreenRows,
     queueRows,

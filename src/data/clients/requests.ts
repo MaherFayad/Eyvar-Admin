@@ -17,6 +17,7 @@ import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { RequestChannel, RequestStatus, RideRequest } from '../types/request'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -231,13 +232,13 @@ export async function claimRequest(
   signal?: AbortSignal,
 ): Promise<RideRequest> {
   if (DATA_SOURCE === 'http') {
-    return http.post<RideRequest>(`/requests/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<RideRequest>(`/requests/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(REQUEST_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(REQUEST_OPERATIONS.claim, signal, () => {
     const row = allRequestFixtures.find((r) => r.id === id)
     if (!row) throw notFound('request', id)
     return { ...row, claim: nextClaim('request', id, row.claim, opts.takeOver) }
-  })
+  }))
 }
 
 /**
@@ -277,9 +278,9 @@ export async function assignRequest(
   signal?: AbortSignal,
 ): Promise<RideRequest> {
   if (DATA_SOURCE === 'http') {
-    return http.post<RideRequest>(`/requests/${id}/assign`, { driverId }, { signal })
+    return signalled('queue.item.disposed', http.post<RideRequest>(`/requests/${id}/assign`, { driverId }, { signal }))
   }
-  return mockMutation(REQUEST_OPERATIONS.assign, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(REQUEST_OPERATIONS.assign, signal, () => {
     const row = allRequestFixtures.find((r) => r.id === id)
     if (!row) throw notFound('request', id)
     if (!driverId.trim()) {
@@ -311,7 +312,7 @@ export async function assignRequest(
       assignedByUserName: me.name,
       assignedAt: EYVAR_NOW,
     }
-  })
+  }))
 }
 
 /**
@@ -324,13 +325,13 @@ export async function assignRequest(
  */
 export async function expireRequest(id: string, signal?: AbortSignal): Promise<RideRequest> {
   if (DATA_SOURCE === 'http') {
-    return http.post<RideRequest>(`/requests/${id}/expire`, undefined, { signal })
+    return signalled('queue.item.disposed', http.post<RideRequest>(`/requests/${id}/expire`, undefined, { signal }))
   }
-  return mockMutation(REQUEST_OPERATIONS.expire, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(REQUEST_OPERATIONS.expire, signal, () => {
     const row = allRequestFixtures.find((r) => r.id === id)
     if (!row) throw notFound('request', id)
     return { ...row, status: 'expired' as const, expiredAt: EYVAR_NOW }
-  })
+  }))
 }
 
 /**

@@ -31,6 +31,9 @@ import {
   getNotificationSummary,
   type LegacyResolution,
 } from '@/data/clients'
+import { completeStep } from '@/data/clients'
+import { onOnboardingSignal } from '@/data/signals'
+import { track } from '@/lib/analytics'
 import type { NavCounts, NotificationSummary, SecurityPolicy, Session } from '@/data/types'
 import type { OnboardingChecklist } from '@/data/types/onboarding'
 import {
@@ -309,6 +312,38 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const onboarding = useAsync<OnboardingChecklist>(
     (signal) => getOnboarding(session.data?.userId, signal),
     { deps: [session.data?.userId], enabled: session.data !== null },
+  )
+
+  /* AC-612 — a step completes itself, silently, when the operator does the
+     real task: a client emits the step's `autoSignal` after its mutation
+     succeeds (`data/signals.ts`). Skipped and done steps ignore it; the
+     account-menu count is the only standing signal (R10). */
+  const onboardingRef = useRef(onboarding.data)
+  onboardingRef.current = onboarding.data
+  const refetchOnboarding = onboarding.refetch
+  useEffect(
+    () =>
+      onOnboardingSignal((signal) => {
+        const data = onboardingRef.current
+        if (data === null) return
+        const hits = data.steps.filter(
+          (step) =>
+            step.autoSignal === signal &&
+            step.reachable &&
+            !data.state.completedStepIds.includes(step.id) &&
+            !data.state.skippedStepIds.includes(step.id),
+        )
+        if (hits.length === 0) return
+        void Promise.all(hits.map((step) => completeStep(step.id, 'auto', data.userId)))
+          .then(() => {
+            for (const step of hits) {
+              track('onboarding.step.completed', { stepId: step.id, role: data.role, mode: 'auto' })
+            }
+            refetchOnboarding()
+          })
+          .catch(() => undefined)
+      }),
+    [refetchOnboarding],
   )
 
   /* AC-70 — `dir` and `lang` on the DOCUMENT ELEMENT, not a subtree. */

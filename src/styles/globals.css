@@ -3394,6 +3394,15 @@
     "Noto Sans Arabic", ui-sans-serif, "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
 
+  @keyframes ev-draw {
+    from {
+      stroke-dashoffset: 24;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
   @keyframes live-pulse {
     0%,
     100% {

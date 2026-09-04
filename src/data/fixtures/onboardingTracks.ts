@@ -415,16 +415,18 @@ export const onboardingStepSeeds: OnboardingStepSeed[] = [
     requiredPermission: 'view_support',
   },
   {
-    /** The `profile` shell layer, reached from any rider or captain row. */
+    /** The `profile` shell layer opens from any rider or captain row, so the
+       step's door is Operations › People; the checklist names no entity
+       (ONBOARDING-UX-PLAN.md A-3). */
     id: 'support.profile',
     order: 5,
     titleKey: key('support.profile', 'title'),
     bodyKey: key('support.profile', 'body'),
     learnMoreKey: null,
-    destination: { subTabId: null, view: null, layer: 'profile' },
+    destination: { subTabId: 'operations-people', view: null, layer: null },
     completion: 'manual',
     autoSignal: null,
-    requiredPermission: null,
+    requiredPermission: 'view_operations',
   },
   {
     /* The same destination as `finance.goodwill`, and deliberately so: §10.5
@@ -493,6 +495,20 @@ export const ONBOARDING_TRACKS: OnboardingTracks = {
     'support.profile',
     'support.goodwill',
     'support.boundary',
+  ],
+  /* D17's two roles, composed from the steps their permissions reach: the
+     union of ids stays at 21 and no new copy is minted (AC-617: a role with
+     no track is a bug, never a fallback). Neither list sends the operator to
+     their own landing route (AC-630): Live Dispatch and Safety are theirs. */
+  Dispatcher: ['common.account', 'common.mywork', 'common.audit', 'ops.requests', 'ops.assurance'],
+  'Trust & Safety': [
+    'common.account',
+    'common.mywork',
+    'common.audit',
+    'ops.application',
+    'ops.fairness',
+    'support.ticket',
+    'support.profile',
   ],
 }
 

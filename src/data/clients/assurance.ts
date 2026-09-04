@@ -22,6 +22,7 @@ import {
   LEG_ACK_WEIGHT,
 } from '../types/assurance'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -244,13 +245,13 @@ export async function claimAssuranceTrip(
   signal?: AbortSignal,
 ): Promise<AssuranceTrip> {
   if (DATA_SOURCE === 'http') {
-    return http.post<AssuranceTrip>(`/assurance/trips/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<AssuranceTrip>(`/assurance/trips/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(ASSURANCE_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(ASSURANCE_OPERATIONS.claim, signal, () => {
     const row = assuranceTripFixtures.find((t) => t.id === id)
     if (!row) throw notFound('assurance trip', id)
     return { ...row, claim: nextClaim('assurance', id, row.claim, opts.takeOver) }
-  })
+  }))
 }
 
 /**

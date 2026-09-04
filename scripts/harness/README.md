@@ -20,6 +20,7 @@ Screenshots land in `scripts/harness/shots/` (git-ignored).
 | `fin-revenue.mjs` | the Revenue by plan master-detail: four sparklines, the composed day plot, the composition bar, the 280px list column, the table's footer total and the H6 column preset, at 1280 and 1440 and in Arabic |
 | `fin-overview.mjs` | Financials Overview as a board: two day-charts, seventeen numerals, the band's ground, the period control inside it, no card around a figure, `overflowX === 0`. 1280/1440, light/dark/Arabic. Reads `HARNESS_BASE` |
 | `table-density.mjs` | row pitch, rows per 800px viewport, column widths and clipped identity cells, at 1280 and 1152. Takes a label: `node scripts/harness/table-density.mjs before` |
+| `onboarding.mjs` | the getting-started layer: auto-open after a user switch, the checklist for each of the four roles at 1280, every illustration rendered and inside 96×64 (160×112 for the completed state), the account-menu path, Arabic with the art at inline-end. Reads `HARNESS_BASE` |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here
 small; a harness nobody runs is scratch, and scratch is not committed.

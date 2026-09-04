@@ -13,6 +13,7 @@ import type {
   TicketStatus,
 } from '../types/ticket'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -217,9 +218,9 @@ export async function claimTicket(
   signal?: AbortSignal,
 ): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal })
+    return signalled('queue.item.claimed', http.post<Ticket>(`/tickets/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal }))
   }
-  return mockMutation(TICKET_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(TICKET_OPERATIONS.claim, signal, () => {
     const idx = dynamicTickets.findIndex((t) => t.id === id)
     if (idx === -1) throw notFound('ticket', id)
     const existing = dynamicTickets[idx]
@@ -245,7 +246,7 @@ export async function claimTicket(
     }
     dynamicTickets[idx] = updated
     return updated
-  })
+  }))
 }
 
 /**
@@ -325,9 +326,9 @@ export async function replyTicket(
  */
 export async function resolveTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/resolve`, {}, { signal })
+    return signalled('queue.item.disposed', http.post<Ticket>(`/tickets/${id}/resolve`, {}, { signal }))
   }
-  return mockMutation(TICKET_OPERATIONS.resolve, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(TICKET_OPERATIONS.resolve, signal, () => {
     const idx = dynamicTickets.findIndex((t) => t.id === id)
     if (idx === -1) throw notFound('ticket', id)
     const existing = dynamicTickets[idx]
@@ -338,7 +339,7 @@ export async function resolveTicket(id: string, signal?: AbortSignal): Promise<T
     }
     dynamicTickets[idx] = updated
     return updated
-  })
+  }))
 }
 
 /**

@@ -88,6 +88,7 @@ import type {
 import type { ProfileEntityType } from '../types/profile'
 import type { Ticket, TicketPriority } from '../types/ticket'
 import { http } from './http'
+import { signalled } from '../signals'
 import { liveClaim, nextClaim } from './requests'
 import { currentMockUserId } from './session'
 import { mintTicket } from './tickets'
@@ -423,13 +424,13 @@ export async function claimConversation(
   signal?: AbortSignal,
 ): Promise<Conversation> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Conversation>(`/conversations/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<Conversation>(`/conversations/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(CONVERSATION_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(CONVERSATION_OPERATIONS.claim, signal, () => {
     const existing = find(id)
     const claim = nextClaim('conversation', id, existing.claim, opts.takeOver)
     return commit({ ...existing, claim }, { type: 'conversation.claim', conversationId: id, claim })
-  })
+  }))
 }
 
 /**

@@ -43,6 +43,7 @@
  * tracked as **Q-82**.
  */
 
+import { useEffect, useRef, useState } from 'react'
 import {
   AccordionContent,
   AccordionItem,
@@ -55,6 +56,7 @@ import type { OnboardingStep } from '@/data/types/onboarding'
 import type { Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { permissionName } from '@/shell/permissions'
+import { STEP_ART } from './illustrations'
 
 export interface OnboardingStepRowProps {
   step: OnboardingStep
@@ -80,6 +82,16 @@ export function OnboardingStepRow({
 }: OnboardingStepRowProps) {
   const title = t(step.titleKey)
   const unavailable = !step.reachable
+  const Art = STEP_ART[step.id]
+
+  /* C-1 — the tick draws in only when the step completes while on screen;
+     a step that arrives done is drawn already. */
+  const wasDone = useRef(done)
+  const [justDone, setJustDone] = useState(false)
+  useEffect(() => {
+    if (done && !wasDone.current) setJustDone(true)
+    wasDone.current = done
+  }, [done])
   const destinationName = destinationLabel(step, t)
 
   /* §13 — the marker is decorative, so the state lives in the accessible name.
@@ -111,7 +123,7 @@ export function OnboardingStepRow({
         aria-label={accessibleName}
       >
         <span className="flex items-center gap-2">
-          <Marker done={done} unavailable={unavailable} />
+          <Marker done={done} unavailable={unavailable} animate={justDone} />
           <span className={cn('text-sm', done || unavailable ? 'font-normal' : 'font-medium')}>
             {title}
           </span>
@@ -123,7 +135,12 @@ export function OnboardingStepRow({
           {/* §10.1's sub-card. **Only the expanded step shows its description,
               its action and its skip control** (**AC-605**). */}
           <div className="ms-6 flex flex-col gap-3 rounded-xl bg-muted p-3">
-            <p className="text-sm text-foreground">{t(step.bodyKey)}</p>
+            {/* The picture sits at inline-end of the description (§5.6 reference),
+                decorative and `aria-hidden`; remove it and every criterion holds. */}
+            <div className="flex items-start gap-3">
+              <p className="min-w-0 flex-1 text-sm text-foreground">{t(step.bodyKey)}</p>
+              {Art !== undefined && <Art className="h-16 w-24 shrink-0" />}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
               {destinationName !== null && (
@@ -210,7 +227,15 @@ export function OnboardingStepRow({
  * The not-started circle is `border-border` (`--ev-hairline`) and **not**
  * `border-border-strong`: see the file header on R19.
  */
-function Marker({ done, unavailable }: { done: boolean; unavailable: boolean }) {
+function Marker({
+  done,
+  unavailable,
+  animate,
+}: {
+  done: boolean
+  unavailable: boolean
+  animate: boolean
+}) {
   if (done) {
     return (
       <svg
@@ -224,7 +249,11 @@ function Marker({ done, unavailable }: { done: boolean; unavailable: boolean }) 
         aria-hidden="true"
         focusable="false"
       >
-        <path d="M4 12.5l5 5L20 6.5" />
+        <path
+          d="M4 12.5l5 5L20 6.5"
+          strokeDasharray={24}
+          className={cn(animate && 'animate-draw motion-reduce:animate-none')}
+        />
       </svg>
     )
   }

@@ -75,6 +75,7 @@ import {
 } from '../types/dispute'
 import type { Refund } from '../types/financials'
 import { http } from './http'
+import { emitOnboardingSignal, signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { postEntry } from './ledger'
 import { issueRefund } from './revenue'
@@ -292,9 +293,9 @@ export async function claimDispute(
   signal?: AbortSignal,
 ): Promise<Dispute> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Dispute>(`/disputes/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal })
+    return signalled('queue.item.claimed', http.post<Dispute>(`/disputes/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal }))
   }
-  return mockMutation(DISPUTE_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(DISPUTE_OPERATIONS.claim, signal, () => {
     const idx = dynamicDisputes.findIndex((d) => d.id === id)
     const existing = dynamicDisputes[idx]
     if (!existing) throw notFound('dispute', id)
@@ -319,7 +320,7 @@ export async function claimDispute(
     }
     dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
     return updated
-  })
+  }))
 }
 
 /**
@@ -390,11 +391,11 @@ export async function resolveDispute(
   signal?: AbortSignal,
 ): Promise<ResolveDisputeResult> {
   if (DATA_SOURCE === 'http') {
-    return http.post<ResolveDisputeResult>(
+    return signalled('queue.item.disposed', http.post<ResolveDisputeResult>(
       `/disputes/${input.disputeId}/resolve`,
       { outcome: input.outcome, refundHalalas: input.refundHalalas, note: input.note ?? null },
       { signal },
-    )
+    ))
   }
 
   /* 1 — validate against current state. Injectable as `disputes.resolve`, so a
@@ -432,6 +433,7 @@ export async function resolveDispute(
     },
   }
   dynamicDisputes = replaceAt(dynamicDisputes, idx, resolved)
+  emitOnboardingSignal('queue.item.disposed')
   return { dispute: resolved, refund }
 }
 

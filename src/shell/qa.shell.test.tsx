@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import {
   disableMockLatency,
   getRouteTable,
+  markOnboardingAutoOpened,
   mockFailures,
   resetDataLayer,
   switchMockUser,
@@ -967,6 +968,9 @@ describe('D5 (replacing AC-32 / AC-33) — "the level-2 column is always visible
 
   it('offers no disclosure and opens no sub-tab popover — there is nothing to collapse it with', async () => {
     const user = userEvent.setup()
+    /* AC-594: a never-seen account auto-opens the checklist, which is a dialog
+       and not the popover this test is about. Stamp the sighting first. */
+    await markOnboardingAutoOpened()
     renderShell('/operations/people')
     await screen.findByRole('main')
 
