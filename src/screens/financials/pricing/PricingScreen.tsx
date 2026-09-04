@@ -197,7 +197,7 @@ function PlansView({
    * no revenue row renders the em dash, never a zero (**AC-341**).
    */
   const revenue = useAsync<RevenueByPlanRow[]>(
-    (signal) => listRevenueByPlan(period, signal),
+    (signal) => listRevenueByPlan(period, {}, signal),
     { deps: [period.start, period.end], cacheKey: 'revenue.byPlan' },
   )
   const grossByPlan = useMemo(() => {
