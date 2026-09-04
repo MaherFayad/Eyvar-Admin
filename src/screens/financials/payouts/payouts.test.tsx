@@ -38,6 +38,7 @@ import {
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
+import { VOCABULARY_EN } from '@/i18n/vocabulary/copy'
 import { ShellProvider } from '@/shell/ShellContext'
 import { PayoutsScreen } from './PayoutsScreen'
 
@@ -528,7 +529,9 @@ describe('waiving a deduction', () => {
     const waived = rowFor('DED-04')
     expect(within(waived).getByText(EN['fin.deduction.status.waived'] as string)).toBeTruthy()
     expect(waived.textContent).toContain('Sarah Al-Rashid')
-    expect(waived.textContent).toContain('TRP_ROUTE_DEVIATION')
+    /* Rule 7 — the reason reads in words. The registry's id is not the text. */
+    expect(waived.textContent).toContain(VOCABULARY_EN['reason.TRP_ROUTE_DEVIATION'])
+    expect(waived.textContent).not.toContain('TRP_ROUTE_DEVIATION')
 
     /* And it is not a red badge — a waiver is a neutral terminal outcome (R5). */
     const badge = waived.querySelector('[data-slot="badge"]')
@@ -1047,11 +1050,11 @@ describe('the returned-payouts banner acts, and the run states its figures', () 
     expect(screen.queryByText(EN['fin.payout.failed.title'] as string)).toBeNull()
   })
 
-  /** §5.1 — the four figures a period is settled against, above the index. */
+  /** §10.4 — the four figures a period is settled against, on the view row. */
   it('§5.1 — the strip states what is owed, what is net, and the two counts', async () => {
     mount(payoutsRow(), '/financials/payouts?view=payouts')
-    const strip = await screen.findByRole('region', {
-      name: EN['fin.payout.figures.heading'] as string,
+    const strip = await screen.findByRole('list', {
+      name: EN['fin.payouts.view.payouts'] as string,
     })
 
     expect(within(strip).getByText(EN['fin.overview.pendingPayouts'] as string)).toBeTruthy()
@@ -1101,8 +1104,8 @@ describe('the returned-payouts banner acts, and the run states its figures', () 
   it('§5.1 — the Escrow view states how many holds sit on a cancelled subscription', async () => {
     mount(payoutsRow(), '/financials/payouts?view=escrow')
     await waitFor(() => expect(screen.getByText('ESC-1052')).toBeTruthy())
-    const header = screen.getByRole('region', {
-      name: EN['fin.escrow.figures.heading'] as string,
+    const header = screen.getByRole('list', {
+      name: EN['fin.payouts.view.escrow'] as string,
     })
     expect(within(header).getByText(EN['fin.escrow.figure.cancelled'] as string)).toBeTruthy()
     expect(within(header).getByText(EN['fin.escrow.figure.held'] as string)).toBeTruthy()

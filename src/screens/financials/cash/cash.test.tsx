@@ -489,8 +489,8 @@ describe('the captain debt index', () => {
 
     /* The strip's first figure is the total; the table footer that used to
        carry it is gone, because one number twice on one screen is two answers. */
-    const strip = screen.getByRole('region', {
-      name: EN['fin.debt.figures.heading'] as string,
+    const strip = screen.getByRole('list', {
+      name: EN['fin.cash.view.ledger'] as string,
     })
     const rendered = (strip.textContent ?? '').match(/[\d,]+\.\d{2}/)?.[0]
     expect(rendered).toBe(
@@ -813,8 +813,8 @@ describe('the escalated banner, the debt strip, and the period', () => {
   /** §5.2 — the cap every balance on the table is read against, stated once. */
   it('§5.2 — the debt strip states the outstanding total, the over-cap count and the cap', async () => {
     mount('/financials/cash?view=captain-debt-ledger')
-    const strip = await screen.findByRole('region', {
-      name: EN['fin.debt.figures.heading'] as string,
+    const strip = await screen.findByRole('list', {
+      name: EN['fin.cash.view.ledger'] as string,
     })
 
     expect(within(strip).getByText(EN['fin.debt.figure.outstanding'] as string)).toBeTruthy()

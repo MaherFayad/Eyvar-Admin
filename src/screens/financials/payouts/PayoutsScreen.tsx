@@ -98,7 +98,7 @@
  * no money at all, wastes their time twice.
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   applyDeduction,
@@ -126,9 +126,10 @@ import { formatCount, formatMoney, type Translate } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { Money, MoneyCell } from '@/components/Money'
+import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
 import { bulkRefusalText, localisedText } from '../shared/text'
@@ -138,6 +139,7 @@ import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { useMoneyActions } from '../shared/actions'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import {
   bulkRefusal,
   deductionWithheldFrom,
@@ -219,66 +221,6 @@ interface FailedScope {
 
 const NO_FAILED_SCOPE: FailedScope = { count: 0, scoped: false, showOnly: null }
 
-/**
- * **R2-1** — a view's headline figures, flat: the heading and its caption at
- * the inline-start, the figures at the inline-end with the unit as a small line
- * beside the numeral (V-2, V-21). A frame is spent on a panel, never a figure.
- * Local until the shared `shared/ViewHeader.tsx` lands in the Wallets lane.
- */
-interface ViewFigure {
-  label: string
-  value: ReactNode
-  /** The small line beside the numeral. Omitted on a count. */
-  unit?: string
-}
-
-function ViewHeader({
-  id,
-  heading,
-  caption = null,
-  figures,
-}: {
-  id: string
-  heading: string
-  caption?: string | null
-  figures: readonly ViewFigure[]
-}) {
-  return (
-    <section
-      aria-labelledby={id}
-      className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1"
-    >
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 id={id} className="truncate text-sm font-semibold text-foreground">
-          {heading}
-        </h2>
-        {caption !== null && (
-          <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-            {caption}
-          </span>
-        )}
-      </div>
-      <ul data-numeric role="list" className="flex list-none flex-wrap items-end gap-6">
-        {figures.map((figure) => (
-          <li key={figure.label} className="flex flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{figure.label}</span>
-            <span className="flex items-baseline gap-1">
-              <span className="text-kpi font-semibold tabular-nums text-foreground">
-                <bdi>{figure.value}</bdi>
-              </span>
-              {figure.unit !== undefined && (
-                <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {figure.unit}
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
 /** The captain whose payable ledger is open, if any. The index-of-ledgers boundary. */
 function useCaptainParam(): { captainId: string | null; open: (id: string | null) => void } {
   const location = useLocation()
@@ -312,6 +254,9 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
      knows its name. Lifted the way `failed` is, and cleared on unmount so the
      index cannot inherit a captain's name. */
   const [subject, setSubject] = useState<string | null>(null)
+  /* **§10.4** — the view's figures ride the stadium's row, so the view that
+     reads them publishes them to the row the screen owns. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
   /* The view the drill-in belongs to: the meta names it and the way back
      restores it, so the two cannot say different things. */
   const parentView = tabs.find((tab) => tab.id === activeTab)?.label ?? ''
@@ -364,17 +309,19 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
          above it. The drill-in has no views, so the row carries the way back
          instead: **R2-2**'s breadcrumb slot, directly under the title. */
       viewRow={
-        captainId === null ? (
-          <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-        ) : (
-          <Button
-            variant="link"
-            onClick={() => open(null)}
-            className="h-auto p-0 text-sm"
-          >
-            {t('fin.drill.back', { view: parentView })}
-          </Button>
-        )
+        <ViewRow
+          label={parentView}
+          facts={captainId === null ? facts : null}
+          lead={
+            captainId === null ? (
+              <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+            ) : (
+              <Button variant="link" onClick={() => open(null)} className="h-auto p-0 text-sm">
+                {t('fin.drill.back', { view: parentView })}
+              </Button>
+            )
+          }
+        />
       }
       banners={banners}
       t={t}
@@ -397,10 +344,17 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
                 onOpenLedger={open}
                 gate={gate}
                 onFailed={setFailed}
+                onFacts={setFacts}
               />
             )}
             {activeTab === 'escrow' && (
-              <EscrowView key="escrow" activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
+              <EscrowView
+                key="escrow"
+                activeTab={activeTab}
+                onSelectTab={selectTab}
+                gate={gate}
+                onFacts={setFacts}
+              />
             )}
             {activeTab === 'deductions' && (
               <DeductionsView
@@ -408,6 +362,7 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
                 activeTab={activeTab}
                 onSelectTab={selectTab}
                 gate={gate}
+                onFacts={setFacts}
               />
             )}
           </>
@@ -426,6 +381,9 @@ interface ViewProps {
   activeTab: string
   onSelectTab: (id: string) => void
   gate: { canWrite: boolean; reason: string }
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own reads know them. Published, not rendered here. */
+  onFacts: (facts: ViewFacts | null) => void
 }
 
 /* ──────────────────────────────── payouts ──────────────────────────────── */
@@ -436,6 +394,7 @@ function PayoutsView({
   gate,
   onOpenLedger,
   onFailed,
+  onFacts,
 }: ViewProps & {
   onOpenLedger: (id: string) => void
   onFailed: (scope: FailedScope) => void
@@ -641,6 +600,9 @@ function PayoutsView({
         id: 'state',
         sortField: 'state',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — a refused `Pay` explains itself under the STATE
+           word, where an operator is already reading why the row cannot move. */
+        carriesRefusalReason: true,
         header: t('fin.payout.col.state'),
         dataType: 'enum',
         /* **H6 preset.** `fitWidths` shrinks an `enum` to 76px when the table
@@ -797,41 +759,38 @@ function PayoutsView({
 
   const data = overview.data
 
+  /* **§10.4** — the four figures a period is settled against, on the screen's
+     view row. Every one is a read this view already makes. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      data
+        ? {
+            figures: [
+              {
+                label: t('fin.overview.pendingPayouts'),
+                amountHalalas: data.pendingPayoutsHalalas,
+              },
+              {
+                label: t('fin.payout.figure.net'),
+                amountHalalas: data.pendingPayoutsHalalas - data.captainDebtHalalas,
+              },
+              {
+                label: t('fin.payout.state.due'),
+                value: formatCount(due.data?.total ?? 0, language),
+              },
+              {
+                label: t('fin.payout.state.failed'),
+                value: formatCount(failedTotal, language),
+              },
+            ],
+          }
+        : null,
+    [data, due.data, failedTotal, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **R2-1** — the four figures a period is settled against, flat above
-          the index. Every one is a read this view already makes. */}
-      {data && (
-        <ViewHeader
-          id="fin-payouts-figures"
-          heading={t('fin.payout.figures.heading')}
-          figures={[
-            {
-              label: t('fin.overview.pendingPayouts'),
-              value: <Money amount={data.pendingPayoutsHalalas} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.payout.figure.net'),
-              value: (
-                <Money
-                  amount={data.pendingPayoutsHalalas - data.captainDebtHalalas}
-                  unit="none"
-                />
-              ),
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.payout.state.due'),
-              value: formatCount(due.data?.total ?? 0, language),
-            },
-            {
-              label: t('fin.payout.state.failed'),
-              value: formatCount(failedTotal, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -877,7 +836,7 @@ function PayoutsView({
 
 /* ───────────────────────────────── escrow ──────────────────────────────── */
 
-function EscrowView({ activeTab, onSelectTab, gate }: ViewProps) {
+function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<EscrowHold>({ mode: 'index', getRowId: (hold) => hold.id })
@@ -929,7 +888,9 @@ function EscrowView({ activeTab, onSelectTab, gate }: ViewProps) {
         csv: (hold) => hold.id,
         header: t('fin.escrow.col.id'),
         dataType: 'id',
-        minWidth: 180,
+        /* **R2-7** — the floor that keeps the subscription code on the second
+           line rather than wrapping it. */
+        minWidth: 200,
         sortField: 'id',
         cell: (hold) => (
           <span className="block font-medium tabular-nums">
@@ -1007,6 +968,10 @@ function EscrowView({ activeTab, onSelectTab, gate }: ViewProps) {
         id: 'state',
         sortField: 'settlement',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — the refused `Release` explains itself under the
+           state word. Undeclared, the reason fell to the identity cell and
+           wrapped it to a third line (§10.4). */
+        carriesRefusalReason: true,
         header: t('fin.escrow.col.state'),
         dataType: 'enum',
         width: 132,
@@ -1144,34 +1109,29 @@ function EscrowView({ activeTab, onSelectTab, gate }: ViewProps) {
 
   const escrow = overview.data
 
+  /* **§10.4** — this view said nothing before its rows. Held and
+     ready-to-release are balances; the third is the count **Q-F4** raises,
+     which was a sentence under the header and would be one number twice. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      escrow
+        ? {
+            figures: [
+              { label: t('fin.escrow.figure.held'), amountHalalas: escrow.escrowHeldHalalas },
+              { label: t('fin.escrow.figure.ready'), amountHalalas: escrow.escrowReadyHalalas },
+              {
+                label: t('fin.escrow.figure.cancelled'),
+                value: formatCount(cancelledTotal, language),
+              },
+            ],
+          }
+        : null,
+    [escrow, cancelledTotal, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **R2-1** — this view said nothing before its rows. Held and
-          ready-to-release are balances; the third is the count **Q-F4** raises,
-          which was a sentence under the header and would be one number twice
-          if it stayed. */}
-      {escrow && (
-        <ViewHeader
-          id="fin-escrow-figures"
-          heading={t('fin.escrow.figures.heading')}
-          figures={[
-            {
-              label: t('fin.escrow.figure.held'),
-              value: <Money amount={escrow.escrowHeldHalalas} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.escrow.figure.ready'),
-              value: <Money amount={escrow.escrowReadyHalalas} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.escrow.figure.cancelled'),
-              value: formatCount(cancelledTotal, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -1237,7 +1197,7 @@ function deductionRefusal(
     : t(withheld)
 }
 
-function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
+function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<Deduction>({ mode: 'index', getRowId: (deduction) => deduction.id })
@@ -1286,7 +1246,9 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
         csv: (deduction) => deduction.id,
         header: t('fin.deduction.col.id'),
         dataType: 'id',
-        minWidth: 190,
+        /* **R2-7** — the floor that keeps the waiver's actor and reason on ONE
+           second line rather than wrapping the cell to a third. */
+        minWidth: 300,
         sortField: 'id',
         cell: (deduction) => (
           <span className="block font-medium tabular-nums">
@@ -1307,9 +1269,12 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
           /* **AC-370** — a waived deduction keeps its actor and its reason on
              the row. It is not removed from the list. */
           if (deduction.status === 'waived' && deduction.waivedByUserName) {
+            /* Rule 7 — the reason reads in words. `TRP_ROUTE_DEVIATION` is the
+               registry's id, and `reasonLabel` falls back to it only when
+               nothing labels it. */
             return t('fin.deduction.waivedBy', {
               actor: deduction.waivedByUserName,
-              reason: deduction.waivedReasonCode ?? '',
+              reason: reasonLabel(t, deduction.waivedReasonCode) ?? '',
             })
           }
           return localisedText(t, deduction.type)
@@ -1319,7 +1284,9 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
         id: 'captain',
         header: t('fin.deduction.col.captain'),
         dataType: 'text',
-        width: 180,
+        /* Narrowed by what the identity column took: a captain's name fits, and
+           the waiver's second line is the cell that could not wrap. */
+        width: 160,
         sortField: 'captainName',
         cell: (deduction) => (
           <EntityName href={hrefFor(deduction.captainId)} name={deduction.captainName} t={t} />
@@ -1329,7 +1296,7 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
         id: 'trip',
         header: t('fin.deduction.col.trip'),
         dataType: 'id',
-        width: 132,
+        width: 112,
         /* §8.3.1 — a deduction raised against no trip renders nothing here, as
            it always has. It is the ABSENCE of a reference, not an unknown one. */
         cell: (deduction) =>
@@ -1353,6 +1320,9 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
       {
         id: 'status',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — as Escrow and Payouts: the refusal reads under the
+           state word, not under the identifier. */
+        carriesRefusalReason: true,
         header: t('fin.deduction.col.status'),
         dataType: 'enum',
         width: 132,
@@ -1569,26 +1539,27 @@ function DeductionsView({ activeTab, onSelectTab, gate }: ViewProps) {
     confirmWaiveMany,
   ])
 
+  /* **§10.4** — the two figures the queue is worked against. */
+  const pendingTotal = pending.data?.total
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      pendingTotal === undefined
+        ? null
+        : {
+            figures: [
+              { label: t('fin.deduction.figure.pending'), amountHalalas: pendingHalalas },
+              {
+                label: t('fin.deduction.figure.count'),
+                value: formatCount(pendingTotal, language),
+              },
+            ],
+          },
+    [pendingTotal, pendingHalalas, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **R2-1** — the two figures the queue is worked against. */}
-      {pending.data && (
-        <ViewHeader
-          id="fin-deductions-figures"
-          heading={t('fin.deduction.figures.heading')}
-          figures={[
-            {
-              label: t('fin.deduction.figure.pending'),
-              value: <Money amount={pendingHalalas} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.deduction.figure.count'),
-              value: formatCount(pending.data.total, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}

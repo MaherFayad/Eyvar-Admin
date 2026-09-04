@@ -90,9 +90,9 @@ describe('AC-416 — debits equal credits, or the page says so in SAR', () => {
     await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(5))
 
     expect(screen.queryByText(/out of balance/i)).toBeNull()
-    /* **V-20** — the view header states the reading in words and both totals as
-       figures. It replaced the footer sentence, so the assertion follows it. */
-    expect(screen.getByRole('heading', { name: 'Trial balance' })).toBeTruthy()
+    /* **V-20 / §10.4** — the view row states the reading in words and both
+       totals as figures. The heading went: the selected pill names the view,
+       so `Balanced` is the assertion the criterion actually makes. */
     expect(screen.getByText('Balanced')).toBeTruthy()
     for (const label of ['Total debits', 'Total credits']) {
       expect(screen.getByText(label), `the header states ${label}`).toBeTruthy()

@@ -70,7 +70,7 @@
  * makes the checkbox column structurally absent rather than merely unused.
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   cashDebtCapHalalas,
@@ -95,7 +95,7 @@ import { formatCount, formatDate, formatMoney } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { Money, MoneyCell } from '@/components/Money'
+import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { Button } from '@/components/ui/button'
@@ -107,6 +107,7 @@ import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPag
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import { bulkRefusal, claimWithheldFrom, deviationHalalas } from '../shared/derive'
 import { bulkRefusalText } from '../shared/text'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -159,66 +160,6 @@ interface EscalatedScope {
 
 const NO_ESCALATED_SCOPE: EscalatedScope = { count: 0, scoped: false, showOnly: null }
 
-/**
- * **R2-1** — a view's headline figures, flat: the heading and its caption at
- * the inline-start, the figures at the inline-end with the unit as a small line
- * beside the numeral (V-2, V-21). A frame is spent on a panel, never a figure.
- * Local until the shared `shared/ViewHeader.tsx` lands in the Wallets lane.
- */
-interface ViewFigure {
-  label: string
-  value: ReactNode
-  /** The small line beside the numeral. Omitted on a count. */
-  unit?: string
-}
-
-function ViewHeader({
-  id,
-  heading,
-  caption = null,
-  figures,
-}: {
-  id: string
-  heading: string
-  caption?: string | null
-  figures: readonly ViewFigure[]
-}) {
-  return (
-    <section
-      aria-labelledby={id}
-      className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1"
-    >
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 id={id} className="truncate text-sm font-semibold text-foreground">
-          {heading}
-        </h2>
-        {caption !== null && (
-          <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-            {caption}
-          </span>
-        )}
-      </div>
-      <ul data-numeric role="list" className="flex list-none flex-wrap items-end gap-6">
-        {figures.map((figure) => (
-          <li key={figure.label} className="flex flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{figure.label}</span>
-            <span className="flex items-baseline gap-1">
-              <span className="text-kpi font-semibold tabular-nums text-foreground">
-                <bdi>{figure.value}</bdi>
-              </span>
-              {figure.unit !== undefined && (
-                <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {figure.unit}
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
 export function CashScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
@@ -246,6 +187,15 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
   /* The view the drill-in belongs to: the meta names it and the way back
      restores it, so the two cannot say different things. */
   const parentView = tabs.find((tab) => tab.id === activeTab)?.label ?? ''
+  /* **§10.4** — the view's figures ride the stadium's row, published by the
+     view that reads them. The drill-in's one figure is server policy. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
+  const capFacts = useMemo<ViewFacts>(
+    () => ({
+      figures: [{ label: t('fin.debt.figure.cap'), amountHalalas: cashDebtCapHalalas() }],
+    }),
+    [t],
+  )
 
   /* **AC-378 / P0-3** — one banner, one count, and it is the only banner this
      sub-tab raises. **There is no breach banner**, because there is no breach
@@ -299,23 +249,25 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
          and the cap every balance under it is read against: **R2-2**, and one
          row where there were two. */
       viewRow={
-        captainId === null ? (
-          <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-        ) : (
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <Button
-              variant="link"
-              onClick={() => openCaptain(null)}
-              className="h-auto p-0 text-sm"
-            >
-              {t('fin.drill.back', { view: parentView })}
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              {t('fin.debt.figure.cap')}{' '}
-              <Money amount={cashDebtCapHalalas()} className="font-medium" />
-            </span>
-          </div>
-        )
+        <ViewRow
+          label={parentView}
+          /* **R2-2** — the drill-in's one figure is the cap every balance under
+             it is read against; it was a small run of prose on the same row. */
+          facts={captainId === null ? facts : capFacts}
+          lead={
+            captainId === null ? (
+              <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+            ) : (
+              <Button
+                variant="link"
+                onClick={() => openCaptain(null)}
+                className="h-auto p-0 text-sm"
+              >
+                {t('fin.drill.back', { view: parentView })}
+              </Button>
+            )
+          }
+        />
       }
       banners={banners}
       t={t}
@@ -334,6 +286,7 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
             onSelectTab={selectTab}
             gate={gate}
             onEscalated={setEscalated}
+            onFacts={setFacts}
           />
         ) : (
           <CaptainDebtIndex
@@ -342,6 +295,7 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
             onSelectTab={selectTab}
             gate={gate}
             onOpenLedger={openCaptain}
+            onFacts={setFacts}
           />
         )}
       </div>
@@ -358,6 +312,9 @@ interface ViewProps {
   activeTab: string
   onSelectTab: (id: string) => void
   gate: { canWrite: boolean; reason: string }
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own reads know them. Published, not rendered here. */
+  onFacts: (facts: ViewFacts | null) => void
 }
 
 /* ────────────────────── the reconciliation queue (§8.4) ─────────────────── */
@@ -367,6 +324,7 @@ function ReconciliationQueue({
   onSelectTab,
   gate,
   onEscalated,
+  onFacts,
 }: ViewProps & { onEscalated: (scope: EscalatedScope) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
@@ -806,22 +764,27 @@ function ReconciliationQueue({
     [t, actions, table, selected, claimRefusal, claimEligible],
   )
 
+  /* **§10.4** — the two counts the queue is worked against, on the view row. */
+  const openTotal = open.data?.total
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      openTotal === undefined
+        ? null
+        : {
+            figures: [
+              { label: t('fin.cash.figure.open'), value: formatCount(openTotal, language) },
+              {
+                label: t('fin.cash.status.escalated'),
+                value: formatCount(escalatedTotal, language),
+              },
+            ],
+          },
+    [openTotal, escalatedTotal, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **R2-1** — the two counts the queue is worked against. */}
-      {open.data && (
-        <ViewHeader
-          id="fin-cash-figures"
-          heading={t('fin.cash.figures.heading')}
-          figures={[
-            { label: t('fin.cash.figure.open'), value: formatCount(open.data.total, language) },
-            {
-              label: t('fin.cash.status.escalated'),
-              value: formatCount(escalatedTotal, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -876,6 +839,7 @@ function CaptainDebtIndex({
   onSelectTab,
   gate,
   onOpenLedger,
+  onFacts,
 }: ViewProps & { onOpenLedger: (id: string) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
@@ -1075,37 +1039,32 @@ function CaptainDebtIndex({
     [t, language, gate, actions, onOpenLedger, hrefFor],
   )
 
+  /* **§10.4** — three bordered tiles became three figures on the view row.
+     **AC-381** — the outstanding figure is the SIGNED sum, so a captain in
+     credit is in it, and the count the table footer used to carry is the
+     caption. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      debts.status === 'content'
+        ? {
+            caption: [t('fin.debt.figure.captains', { count: formatCount(rows.length, language) })],
+            figures: [
+              { label: t('fin.debt.figure.outstanding'), amountHalalas: total },
+              {
+                label: t('fin.cash.view.overCap'),
+                value: formatCount(overCap.data?.total ?? 0, language),
+              },
+              /* Server policy, per Admin › Operational Policy. */
+              { label: t('fin.debt.figure.cap'), amountHalalas: cashDebtCapHalalas() },
+            ],
+          }
+        : null,
+    [debts.status, rows.length, total, overCap.data, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **R2-1** — three bordered tiles became one flat header. **AC-381** —
-          the outstanding figure is the SIGNED sum, so a captain in credit is in
-          it, and the count the table footer used to carry is the caption. */}
-      {debts.status === 'content' && (
-        <ViewHeader
-          id="fin-debt-figures"
-          heading={t('fin.debt.figures.heading')}
-          caption={t('fin.debt.figure.captains', {
-            count: formatCount(rows.length, language),
-          })}
-          figures={[
-            {
-              label: t('fin.debt.figure.outstanding'),
-              value: <Money amount={total} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-            {
-              label: t('fin.cash.view.overCap'),
-              value: formatCount(overCap.data?.total ?? 0, language),
-            },
-            {
-              /* Server policy, per Admin › Operational Policy. */
-              label: t('fin.debt.figure.cap'),
-              value: <Money amount={cashDebtCapHalalas()} unit="none" />,
-              unit: t('fin.figure.unit'),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}

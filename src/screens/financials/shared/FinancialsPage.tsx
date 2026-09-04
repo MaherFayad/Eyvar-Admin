@@ -177,7 +177,7 @@ export function FinancialsPage({
             dir={dir}
           />
           {viewRow && (
-            <div data-slot="view-row" className="pb-3">
+            <div data-slot="view-row" className="pb-2">
               {viewRow}
             </div>
           )}

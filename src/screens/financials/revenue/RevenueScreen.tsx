@@ -40,7 +40,6 @@ import {
   useMemo,
   useState,
   type KeyboardEvent,
-  type ReactNode,
 } from 'react'
 import { Download } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -77,7 +76,6 @@ import {
 import { cn } from '@/lib/utils'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn } from '@/components/DataTable'
-import { tableCeiling } from '@/components/table/columns'
 import { tableCsvFilename, tableCsvText } from '@/components/table/csv'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { downloadCsv } from '@/screens/reports/csv'
@@ -97,6 +95,7 @@ import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { LedgerCard } from '../shared/LedgerCard'
 import { FinancialsPage, periodLabel, usePeriod } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import { CompositionBar } from '../shared/CompositionBar'
 import { PlanDayChart } from '../shared/PlanDayChart'
 import { shiftPeriodMonths } from '../shared/periodPresets'
@@ -130,6 +129,9 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
   /* The banner state is lifted so the page renders **one** banner whichever
      view is mounted (R10). Only the credit-note view can raise one here. */
   const [unlinkedCount, setUnlinkedCount] = useState(0)
+  /* **§10.4** — the view's figures ride the stadium's row, published by the
+     view that counts them. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
 
   const banners = useMemo<BannerModel[]>(() => {
     if (unlinkedCount === 0) return []
@@ -194,12 +196,15 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
          the cards on the other two, so the strip changed shape and moved on
          every click. The sub-views pass no `tabs` at all now (D12). */
       viewRow={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-          {/* §4.5 - the drawing control and its export belong to `Revenue by
+        <ViewRow
+          label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          facts={facts}
+          lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+          /* §4.5 - the drawing control and its export belong to `Revenue by
               plan` alone, so they render at the row's inline-end there and
-              nowhere else. `Table` mode carries the table's own `Export`. */}
-          {activeTab === 'by-plan' && (
+              nowhere else. `Table` mode carries the table's own `Export`. */
+          control={
+            activeTab === 'by-plan' ? (
             <div className="flex items-center gap-2">
               <Tabs
                 value={mode}
@@ -225,8 +230,9 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
                 </Button>
               )}
             </div>
-          )}
-        </div>
+            ) : undefined
+          }
+        />
       }
       t={t}
       dir={dir}
@@ -247,7 +253,12 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
           <RefundsLedgerView key="refunds-ledger" onSelectTab={selectTab} period={period} />
         )}
         {activeTab === 'refunds' && (
-          <RefundsView key="refunds" activeTab={activeTab} onSelectTab={selectTab} />
+          <RefundsView
+            key="refunds"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            onFacts={setFacts}
+          />
         )}
         {activeTab === 'credit-notes' && (
           <CreditNotesView
@@ -255,6 +266,7 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
             activeTab={activeTab}
             onSelectTab={selectTab}
             onUnlinkedCount={setUnlinkedCount}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'margin' && <ContributionMarginView key="margin" />}
@@ -264,45 +276,19 @@ export function RevenueScreen({ row }: { row: SubTabRoute }) {
 }
 
 /**
- * A view's headline figures above its table, in `LedgerCard`'s header shape: a
- * name at the inline-start, figures at the inline-end. Every figure is
- * computed from the rows on screen (AC-355), so the header cannot disagree
- * with the table beneath it.
- */
-function ViewHeader({
-  heading,
-  figures,
-  maxInlineSize,
-}: {
-  heading: string
-  figures: readonly { label: string; value: ReactNode }[]
-  maxInlineSize?: number
-}) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3 pb-3" style={{ maxInlineSize }}>
-      <h2 className="truncate text-sm font-semibold text-foreground">{heading}</h2>
-      <ul data-numeric role="list" className="flex list-none flex-wrap items-end gap-6">
-        {figures.map((figure) => (
-          <li key={figure.label} className="flex flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{figure.label}</span>
-            <span className="text-lg font-semibold tabular-nums text-foreground">
-              <bdi>{figure.value}</bdi>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-/**
  * What a sub-view still needs: the id it is (the CSV's `view` column) and a way
  * to send an operator to a sibling view from an empty state. **Not `tabs`** —
  * the view row is the screen's, rendered once above (D12).
  */
+/** The two views with no figures of their own publish nothing. */
+const noop = () => {}
+
 interface ViewProps {
   activeTab: string
   onSelectTab: (id: string) => void
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own rows know them (AC-355). Published, not rendered here. */
+  onFacts?: (facts: ViewFacts | null) => void
 }
 
 /* ─────────────────────── the `contra.refunds` ledger ────────────────────── */
@@ -1151,7 +1137,7 @@ function PlanDetailPanel({
 
 /* ──────────────────────────── refund documents ─────────────────────────── */
 
-function RefundsView({ activeTab, onSelectTab }: ViewProps) {
+function RefundsView({ activeTab, onSelectTab, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<Refund>({ mode: 'queue', getRowId: (refund) => refund.id })
@@ -1172,6 +1158,26 @@ function RefundsView({ activeTab, onSelectTab }: ViewProps) {
     }),
     [rows],
   )
+
+  /* **§10.4 / AC-355** — every figure is of the rows on screen, so the row
+     above the table cannot disagree with the table. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      rows.length === 0
+        ? null
+        : {
+            figures: [
+              { label: t('fin.refund.header.count'), value: formatCount(rows.length, language) },
+              { label: t('fin.refund.header.total'), amountHalalas: figures.total },
+              {
+                label: t('fin.refund.unsourced'),
+                value: formatCount(figures.unsourced, language),
+              },
+            ],
+          },
+    [rows.length, figures, t, language],
+  )
+  usePublishFacts(onFacts ?? noop, facts)
 
   /**
    * **P8-T1** — the rider the refund went to.
@@ -1277,23 +1283,6 @@ function RefundsView({ activeTab, onSelectTab }: ViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {rows.length > 0 && (
-        <ViewHeader
-          heading={t('fin.refund.header.heading')}
-          maxInlineSize={tableCeiling(columns)}
-          figures={[
-            { label: t('fin.refund.header.count'), value: formatCount(rows.length, language) },
-            {
-              label: t('fin.refund.header.total'),
-              value: <Money amount={figures.total} />,
-            },
-            {
-              label: t('fin.refund.unsourced'),
-              value: formatCount(figures.unsourced, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -1333,6 +1322,7 @@ function CreditNotesView({
   activeTab,
   onSelectTab,
   onUnlinkedCount,
+  onFacts,
 }: ViewProps & { onUnlinkedCount: (count: number) => void }) {
   const shell = useShell()
   const { t, language } = shell.language
@@ -1355,6 +1345,28 @@ function CreditNotesView({
     }),
     [rows],
   )
+
+  /* **§10.4 / AC-355** — of the rows on screen, above them. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      rows.length === 0
+        ? null
+        : {
+            figures: [
+              {
+                label: t('fin.creditNote.header.count'),
+                value: formatCount(rows.length, language),
+              },
+              { label: t('fin.creditNote.header.vat'), amountHalalas: figures.vat },
+              {
+                label: t('fin.creditNote.unlinked'),
+                value: formatCount(figures.unlinked, language),
+              },
+            ],
+          },
+    [rows.length, figures, t, language],
+  )
+  usePublishFacts(onFacts ?? noop, facts)
 
   /* **P8-T1** — the buyer. A buyer is a rider or a corporate account and both
      resolve; the note number, the refund id and `againstInvoice` are documents
@@ -1470,20 +1482,6 @@ function CreditNotesView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {rows.length > 0 && (
-        <ViewHeader
-          heading={t('fin.creditNote.header.heading')}
-          maxInlineSize={tableCeiling(columns)}
-          figures={[
-            { label: t('fin.creditNote.header.count'), value: formatCount(rows.length, language) },
-            { label: t('fin.creditNote.header.vat'), value: <Money amount={figures.vat} /> },
-            {
-              label: t('fin.creditNote.unlinked'),
-              value: formatCount(figures.unlinked, language),
-            },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}

@@ -78,7 +78,7 @@ import { cn } from '@/lib/utils'
 import { useShell } from '@/shell/ShellContext'
 import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
-import { ViewHeader } from '../shared/ViewHeader'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -143,6 +143,9 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
+  /* **§10.4** — the view's figures ride the stadium's row, published by the
+     view that reads them. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
   const gate = useWriteGate(row, t)
 
   /* Finding 11's screen: nine concurrent parameterless reads at 320 ms each.
@@ -240,11 +243,22 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   }, [trial.data, refusedCount, activeTab, t, language, selectTab])
 
   return (
-    <FinancialsPage row={row} banners={banners} t={t} dir={dir}>
+    <FinancialsPage
+      row={row}
+      banners={banners}
+      /* **V-19 / §10.4** — one view row for the whole route: the grouped
+         stadium, and the view's own figures at its inline-end. */
+      viewRow={
+        <ViewRow
+          label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          facts={facts}
+          lead={<LedgerViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+        />
+      }
+      t={t}
+      dir={dir}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        {/* **V-19** — one view row for the whole route, grouped, above whatever
-            the view renders. See `LedgerViewTabs`. */}
-        <LedgerViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
         {activeTab === 'trial-balance' && (
           <TrialBalanceView
             key="trial"
@@ -254,10 +268,16 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             status={trial.status}
             stats={stats.data}
             onRetry={trial.refetch}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'journal' && (
-          <JournalView key="journal" activeTab={activeTab} onSelectTab={selectTab} />
+          <JournalView
+            key="journal"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            onFacts={setFacts}
+          />
         )}
         {activeTab === 'reconciliation' && (
           <ReconciliationView
@@ -265,6 +285,7 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             activeTab={activeTab}
             onSelectTab={selectTab}
             stats={stats.data}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'refused' && (
@@ -275,10 +296,17 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             refused={refused.data ?? []}
             status={refused.status}
             onRetry={refused.refetch}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'gateways' && (
-          <GatewaysView key="gateways" activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
+          <GatewaysView
+            key="gateways"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            gate={gate}
+            onFacts={setFacts}
+          />
         )}
         {activeTab === 'vat' && <VatView key="vat" />}
       </div>
@@ -290,6 +318,9 @@ interface ViewProps {
   /** Still passed: `DataTable` keys its per-view column state on it (§7.6). */
   activeTab: string
   onSelectTab: (id: string) => void
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own reads know them. Published, not rendered here. */
+  onFacts: (facts: ViewFacts | null) => void
 }
 
 /* ─────────────────────────── the trial balance ─────────────────────────── */
@@ -301,6 +332,7 @@ function TrialBalanceView({
   status,
   stats,
   onRetry,
+  onFacts,
 }: ViewProps & {
   trial: TrialBalance | null
   status: 'loading' | 'error' | 'empty' | 'content'
@@ -361,25 +393,32 @@ function TrialBalanceView({
     [t],
   )
 
+  /* **V-20 / §10.4** — the balanced books on the view row. `Balanced` is a
+     WORD on the caption line and wears no colour: **AC-416** keeps out of
+     balance in the page's critical banner. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      trial === null
+        ? null
+        : {
+            figures: [
+              { label: t('fin.controls.trial.debits'), amountHalalas: trial.totalDebitsHalalas },
+              { label: t('fin.controls.trial.credits'), amountHalalas: trial.totalCreditsHalalas },
+            ],
+            caption: [
+              t(trial.balanced ? 'fin.controls.trial.balanced' : 'fin.controls.trial.unbalanced'),
+              t('fin.controls.trial.caption', {
+                entries: formatCount(trial.entryCount, language),
+                suppressed: formatCount(stats?.suppressed ?? 0, language),
+              }),
+            ],
+          },
+    [trial, stats, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {/* **V-20 / R2-1** — the balanced books in the one view header. `Balanced`
-          is a WORD and wears no colour: **AC-416** keeps out of balance in the
-          page's critical banner. */}
-      {trial && (
-        <ViewHeader
-          heading={t('fin.controls.trial.heading')}
-          note={t(trial.balanced ? 'fin.controls.trial.balanced' : 'fin.controls.trial.unbalanced')}
-          caption={t('fin.controls.trial.caption', {
-            entries: formatCount(trial.entryCount, language),
-            suppressed: formatCount(stats?.suppressed ?? 0, language),
-          })}
-          figures={[
-            { label: t('fin.controls.trial.debits'), amountHalalas: trial.totalDebitsHalalas },
-            { label: t('fin.controls.trial.credits'), amountHalalas: trial.totalCreditsHalalas },
-          ]}
-        />
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -416,7 +455,7 @@ function TrialBalanceView({
 
 /* ────────────────────────────── the journal ────────────────────────────── */
 
-function JournalView({ activeTab, onSelectTab }: ViewProps) {
+function JournalView({ activeTab, onSelectTab, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<JournalEntry>({ mode: 'queue', getRowId: (entry) => entry.id })
@@ -500,21 +539,27 @@ function JournalView({ activeTab, onSelectTab }: ViewProps) {
     [t, language],
   )
 
+  /* **§10.4** — the entry count is the one figure this read returns; it
+     carries no window total, so the row states none. The note is the caption. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      !journal.data
+        ? null
+        : {
+            figures: [
+              {
+                label: t('fin.controls.journal.entries'),
+                value: formatCount(journal.data.total, language),
+              },
+            ],
+            caption: [t('fin.controls.journal.note')],
+          },
+    [journal.data, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {/* **R2-1** — the entry count is the one figure this read returns. It
-          carries no window total, so the header states none. */}
-      <ViewHeader
-        loading={journal.data === undefined}
-        heading={t('fin.controls.view.journal')}
-        note={t('fin.controls.journal.note')}
-        figures={[
-          {
-            label: t('fin.controls.journal.entries'),
-            value: formatCount(journal.data?.total ?? 0, language),
-          },
-        ]}
-      />
       <DataTable
       table={table}
       rows={rows}
@@ -544,7 +589,14 @@ function JournalView({ activeTab, onSelectTab }: ViewProps) {
 
 /* ───────────────────────────  reconciliation  ──────────────────────────── */
 
-function ReconciliationView({ activeTab, onSelectTab, stats }: ViewProps & { stats: IdempotencyStats | null }) {
+function ReconciliationView({
+  activeTab,
+  onSelectTab,
+  stats,
+  onFacts,
+}: ViewProps & { stats: IdempotencyStats | null }) {
+  /* This view is a set of named checks, not a table of figures. */
+  usePublishFacts(onFacts, null)
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<ReconciliationRow>({
@@ -653,6 +705,7 @@ function RefusedView({
   refused,
   status,
   onRetry,
+  onFacts,
 }: ViewProps & {
   /* Read by the screen, because the page banner needs the same count — see
      `LedgerControlsScreen`. This view renders what it is given (**AC-419**). */
@@ -733,21 +786,24 @@ function RefusedView({
     [t, language],
   )
 
+  /* **§10.4** — both figures are of the rows on screen: the read returns the
+     refusals themselves and no total of its own. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      status === 'loading'
+        ? null
+        : {
+            figures: [
+              { label: t('fin.controls.refused.count'), value: formatCount(rows.length, language) },
+              { label: t('fin.controls.refused.debits'), amountHalalas: attemptedDebits },
+            ],
+          },
+    [status, rows.length, attemptedDebits, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {/* **R2-1** — both figures are of the rows on screen: the read returns the
-          refusals themselves and no total of its own. */}
-      <ViewHeader
-        loading={status === 'loading'}
-        heading={t('fin.controls.view.refused')}
-        figures={[
-          {
-            label: t('fin.controls.refused.count'),
-            value: formatCount(rows.length, language),
-          },
-          { label: t('fin.controls.refused.debits'), amountHalalas: attemptedDebits },
-        ]}
-      />
       <DataTable
       table={table}
       rows={rows}
@@ -789,6 +845,7 @@ function GatewaysView({
   activeTab,
   onSelectTab,
   gate,
+  onFacts,
 }: ViewProps & { gate: { canWrite: boolean; reason: string } }) {
   const shell = useShell()
   const { t, language } = shell.language
@@ -924,22 +981,30 @@ function GatewaysView({
     [t, language, gate, toggle, makeDefault],
   )
 
+  /* **§10.4** — the two figures on the view row. `of {total}` is the unit run
+     beside the enabled count, not a second figure. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      !gateways.data
+        ? null
+        : {
+            figures: [
+              {
+                label: t('fin.controls.gateways.enabled'),
+                value: formatCount(totals.enabled, language),
+                unit: t('fin.controls.gateways.ofTotal', {
+                  total: formatCount(rows.length, language),
+                }),
+              },
+              { label: t('fin.controls.gateways.volume'), amountHalalas: totals.volumeHalalas },
+            ],
+          },
+    [gateways.data, totals, rows.length, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <ViewHeader
-        loading={gateways.data === undefined}
-        heading={t('fin.controls.view.gateways')}
-        figures={[
-          {
-            label: t('fin.controls.gateways.enabled'),
-            value: formatCount(totals.enabled, language),
-            unit: t('fin.controls.gateways.ofTotal', {
-              total: formatCount(rows.length, language),
-            }),
-          },
-          { label: t('fin.controls.gateways.volume'), amountHalalas: totals.volumeHalalas },
-        ]}
-      />
       {refusal && (
         <Card className="gap-1">
           <p role="alert" className="px-(--card-spacing) text-sm text-foreground">
@@ -1060,7 +1125,11 @@ function VatView() {
  * slot for a divider; so the DataTables below declare no tabs, and the card
  * views lose the second, differently shaped strip they used to carry.
  */
-function LedgerViewTabs({ tabs, activeTab, onSelectTab }: ViewProps & {
+function LedgerViewTabs({
+  tabs,
+  activeTab,
+  onSelectTab,
+}: Pick<ViewProps, 'activeTab' | 'onSelectTab'> & {
   tabs: readonly { id: string; label: string }[]
 }) {
   return (

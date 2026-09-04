@@ -418,8 +418,10 @@ describe('§5.3 — the sub-tab states the position it is an index of', () => {
     mount('/financials/rider-wallets?view=all-wallets')
     await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
 
+    /* **§10.4** — the figures sit on the view row, named by the pill that
+       selected the view; the heading went with the row it used to cost. */
     expect(
-      screen.getByRole('heading', { name: EN['fin.wallets.header.label'] as string }),
+      screen.getByRole('list', { name: EN['fin.wallets.view.all'] as string }),
     ).toBeTruthy()
     expect(
       screen.getByText(

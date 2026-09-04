@@ -75,6 +75,7 @@ import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmM
 import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -150,7 +151,12 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
          `DataTable` toolbar's stadium on three views and a row of hand-rolled
          pills above the cards on `Rate card`, so the strip changed shape and
          moved on every click. */
-      viewRow={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+      viewRow={
+        <ViewRow
+          label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+        />
+      }
       banners={banners}
       t={t}
       dir={dir}

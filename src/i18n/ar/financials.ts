@@ -169,7 +169,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.refund.destination.instrument': 'أداة الدفع',
   'fin.refund.destination.wallet': 'محفظة الراكب',
   'fin.refund.unsourced': 'لا يوجد دفع يمكن تتبّعه',
-  'fin.refund.header.heading': 'الاستردادات الصادرة',
   'fin.refund.header.count': 'الاستردادات',
   'fin.refund.header.total': 'المُسترَد',
   'fin.refund.search': 'ابحث في الاستردادات',
@@ -184,7 +183,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.creditNote.col.invoice': 'مقابل الفاتورة',
   'fin.creditNote.col.issued': 'تاريخ الإصدار',
   'fin.creditNote.unlinked': 'لا فاتورة مطابقة',
-  'fin.creditNote.header.heading': 'الإشعارات الدائنة الصادرة',
   'fin.creditNote.header.count': 'الإشعارات',
   'fin.creditNote.header.vat': 'ضريبة القيمة المضافة',
   'fin.creditNote.search': 'ابحث في الإشعارات الدائنة',
@@ -260,7 +258,7 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.deduction.status.pending': 'قيد الانتظار',
   'fin.deduction.status.applied': 'مُطبَّق',
   'fin.deduction.status.waived': 'مُسقَط',
-  'fin.deduction.waivedBy': 'أسقطه {actor} · {reason}',
+  'fin.deduction.waivedBy': '{actor} · {reason}',
   'fin.deduction.search': 'ابحث في الخصومات',
   'fin.deduction.action.apply': 'تطبيق',
   'fin.deduction.action.waive': 'إسقاط',
@@ -736,7 +734,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.overview.refused.body':
     'كل قيد مرفوض محفوظ ويمكن قراءته، ولا شيء منها داخل هذه الإجماليات.',
 
-  'fin.wallets.header.label': 'أرصدة محافظ الركاب',
   'fin.wallets.header.caption': '{wallets} محفظة · {negative} دون الصفر',
   'fin.wallets.authority.label': 'صلاحيتك لمنح التعويض',
   'fin.wallets.authority.daily': 'اليوم {used} من {cap}',
@@ -744,7 +741,6 @@ export const FINANCIALS_AR: Dictionary = {
 
   'fin.pricing.plan.col.gross': 'الإجمالي (SAR)',
 
-  'fin.controls.trial.heading': 'ميزان المراجعة',
   'fin.controls.trial.balanced': 'متوازن',
   'fin.controls.trial.unbalanced': 'غير متوازن',
   'fin.controls.trial.debits': 'إجمالي المدين',
@@ -752,12 +748,10 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.controls.trial.caption': '{entries} قيد · {suppressed} تكرارًا مكبوتًا',
   /* ── FINANCIALS-UX-PLAN §5 Payouts & Cash ── */
 
-  'fin.payout.figures.heading': 'دورة الصرف الحالية',
   'fin.payout.figure.net': 'صافي المستحق في هذه الدورة',
   'fin.cash.status.pending': 'بانتظار القرار',
   'fin.cash.status.resolved': 'محسوم',
   'fin.cash.status.escalated': 'مُصعَّد',
-  'fin.debt.figures.heading': 'دين الكباتن',
   'fin.debt.figure.outstanding': 'دين الكباتن القائم',
   'fin.debt.figure.cap': 'السقف',
   'fin.debt.figure.captains': 'على {count} من الكباتن',
@@ -896,19 +890,15 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.recipe.walletTopup': 'شحن المحفظة',
   /* ── FINANCIALS-UX-PLAN §10 Payouts, Cash & Pricing ── */
 
-  'fin.figure.unit': 'SAR',
   'fin.drill.meta': '{view} · {record}',
   'fin.drill.back': 'العودة إلى {view}',
 
-  'fin.escrow.figures.heading': 'الضمان',
   'fin.escrow.figure.held': 'المحجوز',
   'fin.escrow.figure.ready': 'جاهز للإفراج',
   'fin.escrow.figure.cancelled': 'على اشتراكات ملغاة',
 
-  'fin.deduction.figures.heading': 'الخصومات',
   'fin.deduction.figure.pending': 'قيد الانتظار',
   'fin.deduction.figure.count': 'بانتظار قرار',
 
-  'fin.cash.figures.heading': 'تسوية النقد',
   'fin.cash.figure.open': 'التقارير المفتوحة',
 }

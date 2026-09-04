@@ -278,7 +278,6 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.refund.destination.wallet': 'Rider wallet',
   'fin.refund.unsourced': 'No traceable payment',
   /* The view header's three figures, computed from the rows on screen. */
-  'fin.refund.header.heading': 'Refunds issued',
   'fin.refund.header.count': 'Refunds',
   'fin.refund.header.total': 'Refunded',
   'fin.refund.search': 'Search refunds',
@@ -294,7 +293,6 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.creditNote.col.invoice': 'Against invoice',
   'fin.creditNote.col.issued': 'Issued',
   'fin.creditNote.unlinked': 'No matched invoice',
-  'fin.creditNote.header.heading': 'Credit notes issued',
   'fin.creditNote.header.count': 'Notes',
   'fin.creditNote.header.vat': 'VAT',
   'fin.creditNote.search': 'Search credit notes',
@@ -383,7 +381,8 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.status.pending': 'Pending',
   'fin.deduction.status.applied': 'Applied',
   'fin.deduction.status.waived': 'Waived',
-  'fin.deduction.waivedBy': 'Waived by {actor} · {reason}',
+  /* The badge beside it already says `Waived`; the line names who and why. */
+  'fin.deduction.waivedBy': '{actor} · {reason}',
   'fin.deduction.search': 'Search deductions',
   'fin.deduction.action.apply': 'Apply',
   'fin.deduction.action.waive': 'Waive',
@@ -1059,7 +1058,6 @@ export const FINANCIALS_EN: Dictionary = {
     'Every refused posting is kept and can be read. None of them is in these totals.',
 
   /* §5.3 — the wallets view header, in `LedgerCard`'s Balance shape. */
-  'fin.wallets.header.label': 'Rider wallet balances',
   'fin.wallets.header.caption': '{wallets} wallets · {negative} below zero',
   /* AC-384 — the ceiling is on the page before the dialog opens. */
   'fin.wallets.authority.label': 'Your goodwill authority',
@@ -1072,7 +1070,6 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.pricing.plan.col.gross': 'Gross (SAR)',
 
   /* §5.5 / V-20 — the balanced books stated as a heading, never as a colour. */
-  'fin.controls.trial.heading': 'Trial balance',
   'fin.controls.trial.balanced': 'Balanced',
   'fin.controls.trial.unbalanced': 'Out of balance',
   'fin.controls.trial.debits': 'Total debits',
@@ -1080,12 +1077,10 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.controls.trial.caption': '{entries} entries · {suppressed} duplicates suppressed',
   /* ── FINANCIALS-UX-PLAN §5 Payouts & Cash ── */
 
-  'fin.payout.figures.heading': 'This payout run',
   'fin.payout.figure.net': 'Net payable this run',
   'fin.cash.status.pending': 'Awaiting decision',
   'fin.cash.status.resolved': 'Resolved',
   'fin.cash.status.escalated': 'Escalated',
-  'fin.debt.figures.heading': 'Captain debt',
   'fin.debt.figure.outstanding': 'Outstanding captain debt',
   'fin.debt.figure.cap': 'Cap',
   'fin.debt.figure.captains': 'Across {count} captains',
@@ -1240,7 +1235,6 @@ export const FINANCIALS_EN: Dictionary = {
   /* R2-1 — V-21: the unit is the small line under the numeral, never at
      `--text-kpi` beside it. Fixed in both languages: `formatMoney` prints the
      code itself (AC-73), so a translated one here would disagree with it. */
-  'fin.figure.unit': 'SAR',
   /* R2-2 — the drill-in's meta: the parent view and the record it opened, one
      key with two placeholders (AC-443). */
   'fin.drill.meta': '{view} · {record}',
@@ -1248,15 +1242,12 @@ export const FINANCIALS_EN: Dictionary = {
      link actually restores — `?captain=` is dropped and `?view=` is kept. */
   'fin.drill.back': 'Back to {view}',
 
-  'fin.escrow.figures.heading': 'Escrow',
   'fin.escrow.figure.held': 'Held',
   'fin.escrow.figure.ready': 'Ready to release',
   'fin.escrow.figure.cancelled': 'On cancelled subscriptions',
 
-  'fin.deduction.figures.heading': 'Deductions',
   'fin.deduction.figure.pending': 'Pending',
   'fin.deduction.figure.count': 'Awaiting a decision',
 
-  'fin.cash.figures.heading': 'Cash reconciliation',
   'fin.cash.figure.open': 'Open reports',
 }

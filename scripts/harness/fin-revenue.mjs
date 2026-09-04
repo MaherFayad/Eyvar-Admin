@@ -8,9 +8,14 @@
  * the detail plot clears R4-1's 268px floor.
  *
  * The second pass measures the two things the owner reviewed and rejected: the
- * view row must be at the SAME top and the SAME height on all five views, and
- * the period control must sit on the title row rather than on one of its own.
- * Both skins, because the review is in dark.
+ * view row must be at the SAME top on all five views, and the period control
+ * must sit on the title row rather than on one of its own. Both skins, because
+ * the review is in dark.
+ *
+ * **§10.4 amends the height half.** The row now carries the view's figures at
+ * its inline-end, so its height is the height of what the mounted view has to
+ * say: 52px bare, more where the figures wrap under a wide stadium. The top is
+ * the invariant, and `heights` is printed rather than asserted.
  *
  *   npx vite --port 4336
  *   HARNESS_BASE=http://localhost:4336 node scripts/harness/fin-revenue.mjs
