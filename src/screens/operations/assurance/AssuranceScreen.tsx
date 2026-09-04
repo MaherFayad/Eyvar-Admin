@@ -78,6 +78,7 @@ import type {
   LegAckSource,
   Paginated,
   SubTabRoute,
+  SubTabView,
 } from '@/data/types'
 import { toast } from 'sonner'
 import { useAsync, useIndexTable } from '@/hooks'
@@ -142,6 +143,16 @@ const ACTIVE_CAPTAINS_QUERY = { status: 'active', pageSize: 50 } as const
 const DEFAULT_VIEW = 'departing-24h'
 const VIEW_ABSENCES = 'absences'
 
+/**
+ * §12 asked the route table for an `all` view on this queue and it has not
+ * grown one, so the screen declares it. It is FIRST and it is not the default:
+ * foundation §7.1 keeps `All` first in the tab row, Q-32 keeps the queue
+ * landing on its open work. The client already serves `view=all`.
+ */
+const ALL_VIEW: readonly SubTabView[] = [
+  { id: 'all', titleKey: 'assurance.view.all', order: 0, isDefault: false },
+]
+
 export function AssuranceScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
@@ -156,7 +167,7 @@ export function AssuranceScreen({ row }: { row: SubTabRoute }) {
     [shell.language.t],
   )
   const { dir, language } = shell.language
-  const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
+  const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t, ALL_VIEW)
 
   /* §9.4 — **one mode at a time.** The absences view is a different RESOURCE
      with no claim and no clock (Q-60), so it is a different component and the
@@ -636,6 +647,7 @@ function AbsencesView({ row, tabs, activeTab, onSelectTab }: ViewProps) {
 /* ─────────────────────────────── vocabulary ────────────────────────────── */
 
 const CLEARED_BODY: Readonly<Record<string, string>> = {
+  all: 'assurance.empty.cleared.all',
   'departing-24h': 'assurance.empty.cleared.departing',
   'no-backup-captain': 'assurance.empty.cleared.noBackup',
   'awaiting-confirmation': 'assurance.empty.cleared.awaiting',
@@ -682,6 +694,17 @@ const CAPTAIN_STATE: Readonly<
  * so legacy paints a leg nine hours out in critical red. The clock is the
  * urgency; this is only what is wrong.
  */
+/**
+ * **T5.12 / H7 — the two reasons that get a fill.** Nobody is driving, and
+ * nobody can be sent instead: the leg does not happen without an operator. The
+ * other four are states of a leg that still has a captain, so they are DATA
+ * text beside a clock that already carries the urgency (Q-58).
+ */
+const BADGED_REASONS: ReadonlySet<string> = new Set([
+  'assurance.reason.captainUnavailable',
+  'assurance.reason.noBackup',
+])
+
 function reasonKeyOf(trip: AssuranceTrip): string {
   if (trip.captainDepartureState === 'unavailable') return 'assurance.reason.captainUnavailable'
   if (!trip.backupEligible && trip.nearbyEligibleCount === 0) return 'assurance.reason.noBackup'
@@ -898,7 +921,9 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
             kind: 'boolean',
             field: 'coverageNominal',
             trueLabel: t('assurance.backup.none'),
-            falseLabel: t('assurance.backup.eligible', { name: '' }).trim(),
+            /* Its own key. The cell's value carries a name, and blanking the
+               name left the control reading `· eligible`. */
+            falseLabel: t('assurance.backup.filter.eligible'),
           },
           /**
            * **AC-265** — a plan whose registered backup fails eligibility
@@ -962,6 +987,9 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
           }
         : {
             id: 'reason',
+            /* T5.12 — what the operator came to read, so H1's DATA tier: ink at
+               `font-normal`, not the grey a badge used to sit on. */
+            emphasis: 'data',
             header: t('queue.col.reason'),
             width: 152,
             dataType: 'enum',
@@ -979,17 +1007,27 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
              * carries no breach marker; its reason is stated here. Severity and
              * lateness are two facts and the row does not collapse them.
              */
+            /**
+             * **T5.12 / H7 — at most one fill in this cell.** §9.1 / D-21 lets
+             * a value be a badge only where it is a state the operator acts on
+             * and is not the column's resting value; five of six reasons failed
+             * that, so the owner chip, the deadline pill and this made three
+             * fills on most rows. The two in `BADGED_REASONS` keep theirs.
+             */
             cell: (trip) => {
               const key = reasonKeyOf(trip)
               const line = t(key)
-              /* **§9.1 / D-21 — the column's RESTING value is plain text.** *"A
-                 value may be a badge only if it is a lifecycle state the
-                 operator can act on or change, **and** only when it is not that
-                 column's resting value."* `On track` is the answer this column
-                 hopes for on every row; drawing it as a badge spends colour on
-                 the rows that need none and flattens the ones that do. */
-              if (key === 'assurance.reason.onTrack') {
-                return <Cell className="text-muted-foreground">{line}</Cell>
+              if (!BADGED_REASONS.has(key)) {
+                /* D-21 — `On track` is this column's resting value and stays
+                   muted; the other three are facts the operator reads. */
+                return (
+                  <Cell
+                    className={key === 'assurance.reason.onTrack' ? 'text-muted-foreground' : ''}
+                    title={trip.captainUnavailableReason ?? undefined}
+                  >
+                    {line}
+                  </Cell>
+                )
               }
               return (
                 <Cell title={trip.captainUnavailableReason ?? line}>

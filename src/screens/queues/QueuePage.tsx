@@ -67,6 +67,9 @@ export interface QueueViews {
   selectTab: (id: string) => void
 }
 
+/** A stable identity, so `useQueueViews`'s memo does not rebuild every render. */
+const EMPTY_VIEWS: readonly SubTabView[] = []
+
 /** The translated tab row. Separate so a screen can decorate a label. */
 function toTabs(views: readonly SubTabView[], t: Translate): readonly ToolbarTab[] {
   return views.map((view) => ({ id: view.id, label: t(view.titleKey) }))
@@ -87,19 +90,25 @@ function toTabs(views: readonly SubTabView[], t: Translate): readonly ToolbarTab
  * So `defaultView` is a constant on each screen, named in that screen's file
  * with the sentence from §5.3 / §6.3 / §7.3 / §8.9 / §9.3 that chose it.
  *
- * §12's `pending` → `needs-decision` rename has landed (T3.2). The `all` views
- * it also asked for on Assurance and Fairness have not.
+ * `extra` carries a view §12 asked the route table for and the route table has
+ * not grown yet — Assurance's `all`, and Fairness's when it lands. It is merged
+ * and ordered exactly like a declared view, so the screen reads the same either
+ * way and the row can absorb it later with no code change here.
  */
 export function useQueueViews(
   row: SubTabRoute,
   defaultView: string,
   t: Translate,
+  extra: readonly SubTabView[] = EMPTY_VIEWS,
 ): QueueViews {
   const route = useRouteState()
   const location = useLocation()
   const navigate = useNavigate()
 
-  const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
+  const views = useMemo(
+    () => [...row.views, ...extra].sort((a, b) => a.order - b.order),
+    [row.views, extra],
+  )
 
   const activeTab = views.some((view) => view.id === route.view)
     ? (route.view as string)

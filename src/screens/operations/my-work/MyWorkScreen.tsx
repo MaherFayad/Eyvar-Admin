@@ -97,7 +97,6 @@ import {
   queueClock,
   type QueueClockResult,
   useNowIso,
-  useQueueMeta,
   useQueueViews,
 } from '@/screens/queues'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
@@ -119,6 +118,16 @@ import { MY_WORK_EN } from './copy'
 const VIEW_MINE = 'mine'
 const VIEW_UNASSIGNED = 'unassigned'
 
+/**
+ * **X3 / O8** — the rail badge is `myWorkBacklogSize()`: routed to this role
+ * and not held by somebody else, which is `mine` ∪ `unassigned`. Two disjoint
+ * `pageSize: 1` reads through the same client add up to it by construction.
+ * Named, because `useAsync` keys on `deps` and two `[]` reads of one operation
+ * would share a cache entry.
+ */
+const MINE_COUNT_QUERY = { view: VIEW_MINE, pageSize: 1 } as const
+const OPEN_COUNT_QUERY = { view: VIEW_UNASSIGNED, pageSize: 1 } as const
+
 export function MyWorkScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const navigate = useNavigate()
@@ -136,19 +145,49 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
   const { dir, language } = shell.language
   const now = useNowIso()
 
-  /* Q-61's probe. `deps: []` — it answers a question about the session, not
-     about the current query, and re-running it per filter change would make the
-     default flicker under the operator. */
+  /* Q-61's probe, and half of the backlog. Constant queries, so they answer a
+     question about the session rather than about the current filters and do not
+     make the default flicker under the operator. Both are role-scoped, so an
+     item held by this operator but routed elsewhere no longer sends them to a
+     `Mine` tab the routing filter has emptied. */
   const held = useAsync<Paginated<WorkItem>>(
-    (signal) => listWorkItems({ view: VIEW_MINE, includeOtherRoles: true, pageSize: 1 }, signal),
-    /* A constant probe. Its `[]` key cannot collide with the list read below
-       (`[{...params}]`) or with `breached` (`[b:true|false]`). */
-    { deps: [], cacheKey: 'work.list' },
+    (signal) => listWorkItems(MINE_COUNT_QUERY, signal),
+    { deps: [MINE_COUNT_QUERY], cacheKey: 'work.list' },
+  )
+  const open = useAsync<Paginated<WorkItem>>(
+    (signal) => listWorkItems(OPEN_COUNT_QUERY, signal),
+    { deps: [OPEN_COUNT_QUERY], cacheKey: 'work.list' },
   )
   const defaultView = (held.data?.total ?? 0) > 0 ? VIEW_MINE : VIEW_UNASSIGNED
 
   const { tabs, activeTab, selectTab } = useQueueViews(row, defaultView, t)
-  const { meta, onTotal } = useQueueMeta(t, language, 'myWork.meta')
+
+  /**
+   * **§8 / V4, read differently here on purpose (X3).** Elsewhere the meta line
+   * is the mounted view's count; this projection has a rail badge beside its
+   * name and the two disagreed (badge 25 above `5 items`). The line states the
+   * backlog; the table's own `Showing 1–N of N` states the view.
+   */
+  const backlog =
+    held.data === null || open.data === null ? null : held.data.total + open.data.total
+  const heldRefetch = held.refetch
+  const openRefetch = open.refetch
+  const countsRefetch = useCallback(() => {
+    heldRefetch()
+    openRefetch()
+  }, [heldRefetch, openRefetch])
+  const meta = useMemo(
+    () =>
+      backlog === null
+        ? null
+        : t(`myWork.meta.${backlog === 1 ? 'one' : 'other'}`, {
+            count: formatCount(backlog, language),
+          }),
+    [backlog, t, language],
+  )
+  /* The table reports its own total to nobody: the header line above is the
+     backlog, not this view's count. */
+  const onTotal = useCallback(() => {}, [])
 
   const table = useIndexTable<WorkItem>({
     mode: 'queue',
@@ -287,8 +326,10 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
         await action()
         /* Re-read rather than overlay: the source of truth is the source queue
            and this screen is a projection of it. An overlay here would be the
-           parallel copy `clients/myWork.ts` refuses to keep. */
+           parallel copy `clients/myWork.ts` refuses to keep. The two counts go
+           with it, or a take-over leaves the header line behind the badge. */
         data.refetch()
+        countsRefetch()
         return true
       } catch {
         setFailures((current) =>
@@ -302,7 +343,7 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
         setBusy(false)
       }
     },
-    [data, t],
+    [data, countsRefetch, t],
   )
 
   function claim(item: WorkItem, takeOver: boolean) {
@@ -377,6 +418,7 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
     } finally {
       setClaimingMany(false)
       data.refetch()
+      countsRefetch()
     }
   }
 
@@ -606,9 +648,10 @@ export interface WorkDeps {
 }
 
 /**
- * §7.3's width contract: `160 + 104 + 160 + 176 = 600`, plus the identity's
- * `minWidth: 176` = **776**, plus §7.8's 88px single-action lane = **864**,
- * inside the Arabic budget of 870.
+ * §7.3's width contract: `136 + 104 + 160 + 176 = 576`, plus the identity's
+ * `minWidth: 208` = **784**, plus §7.8's 88px single-action lane = **872**,
+ * two over the Arabic budget of 870, which `fitColumnWidths` absorbs from the
+ * four shrinkable columns rather than from the identity (T5.1).
  *
  * **There is no `Decision` column and there must not be one** (§7.2,
  * **AC-281**). The trailing data column is the owner chip; the action lane
@@ -664,7 +707,13 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
       csv: (item) => titleOf(item),
       header: t('myWork.col.item'),
       alwaysVisible: true,
-      minWidth: 176,
+      /* **T5.1, and it does not reach zero.** 208 is every px `Queue` can give
+         back (measured: 129 en / 109 ar for its widest label). The widest line
+         one on the fixtures is 570 en / 529 ar — an incident summary and a
+         ticket subject are sentences, not identities — so a sentence still
+         truncates into its `title`. Named in the handoff; the fix is a column
+         or a shorter line one, and neither is this file's to choose. */
+      minWidth: 208,
       dataType: 'text',
       sortField: 'title',
       cell: (item) => (
@@ -688,7 +737,9 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
     {
       id: 'queue',
       header: t('queue.col.queue'),
-      width: 160,
+      /* 136, measured: `Safety & Incidents` is 129px with its padding and the
+         widest Arabic label is 109. The 24 goes to the identity (T5.1). */
+      width: 136,
       dataType: 'enum',
       sortField: 'queue',
       filter: {

@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5609,
-    "en": 5330,
-    "ar": 5609,
+    "keys": 5611,
+    "en": 5332,
+    "ar": 5611,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
-    "overBudget": 192
+    "emDashEn": 107,
+    "emDashAr": 110,
+    "overBudget": 185
   },
   "registered": [
     {
@@ -116,7 +116,7 @@
       "exports": [
         "ASSURANCE_EN"
       ],
-      "keys": 112,
+      "keys": 114,
       "notInEN": 0
     },
     {
@@ -771,54 +771,6 @@
       "value": "Webhook delivery replayed — {endpoint}, {original} queued as {replay}"
     },
     {
-      "file": "src/i18n/ar/assurance.ts",
-      "lang": "ar",
-      "key": "assurance.ack.assumed",
-      "value": "مفترَض — غير مؤكَّد"
-    },
-    {
-      "file": "src/i18n/ar/assurance.ts",
-      "lang": "ar",
-      "key": "assurance.backup.eligible",
-      "value": "{name} — مؤهَّل"
-    },
-    {
-      "file": "src/i18n/ar/assurance.ts",
-      "lang": "ar",
-      "key": "assurance.backup.ineligible",
-      "value": "{name} — {reason}"
-    },
-    {
-      "file": "src/i18n/ar/assurance.ts",
-      "lang": "ar",
-      "key": "assurance.confirm.choice.help",
-      "value": "المصدر يُسجَّل. “مفترَض” ليس تأكيدًا — بل مخاطرة قبِلها أحدهم."
-    },
-    {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "lang": "en",
-      "key": "assurance.ack.assumed",
-      "value": "Assumed — not confirmed"
-    },
-    {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "lang": "en",
-      "key": "assurance.backup.eligible",
-      "value": "{name} — eligible"
-    },
-    {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "lang": "en",
-      "key": "assurance.backup.ineligible",
-      "value": "{name} — {reason}"
-    },
-    {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "lang": "en",
-      "key": "assurance.confirm.choice.help",
-      "value": "The source is on the record. “Assumed” is not a confirmation — it is a risk somebody accepted."
-    },
-    {
       "file": "src/i18n/ar/auth.ts",
       "lang": "ar",
       "key": "session.writeRevoked.body",
@@ -1249,18 +1201,6 @@
       "lang": "en",
       "key": "fin.audit.walletAdjusted",
       "value": "Adjusted a wallet — {direction} {reference}."
-    },
-    {
-      "file": "src/i18n/ar/myWork.ts",
-      "lang": "ar",
-      "key": "myWork.empty.firstRun.body",
-      "value": "كل ما تحمله، وكل ما لم يستلمه أحد، من الطلبات إلى السلامة — مرتَّبًا حسب الموعد النهائي لا حسب التصنيف."
-    },
-    {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "lang": "en",
-      "key": "myWork.empty.firstRun.body",
-      "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
     },
     {
       "file": "src/i18n/ar/onboarding.ts",
@@ -1955,14 +1895,6 @@
       "value": "Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap."
     },
     {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "key": "myWork.empty.firstRun.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
-    },
-    {
       "file": "src/screens/metrics/copy.ts",
       "key": "overview.empty.body",
       "class": "empty body",
@@ -2027,14 +1959,6 @@
       "value": "Once an endpoint is registered and one of its events happens, every attempt and every response appears here."
     },
     {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "key": "assurance.empty.firstRun.body",
-      "class": "empty body",
-      "words": 18,
-      "budget": 12,
-      "value": "Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue."
-    },
-    {
       "file": "src/screens/admin/communications/copy.ts",
       "key": "comms.template.empty.body",
       "class": "empty body",
@@ -2089,14 +2013,6 @@
       "words": 16,
       "budget": 12,
       "value": "No trip is on the road right now. New trips appear here as captains accept them."
-    },
-    {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "key": "myWork.empty.routed",
-      "class": "empty body",
-      "words": 16,
-      "budget": 12,
-      "value": "Nothing is open in the queues routed to your role. Other queues may still have work."
     },
     {
       "file": "src/screens/operations/people/copy.ts",
@@ -2787,14 +2703,6 @@
       "value": "Copy the new signing secret now"
     },
     {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "key": "assurance.offer.title",
-      "class": "title",
-      "words": 6,
-      "budget": 4,
-      "value": "Hand {id} to a backup captain?"
-    },
-    {
       "file": "src/screens/auth/copy.ts",
       "key": "auth.activate.tokenInvalid.title",
       "class": "title",
@@ -2947,14 +2855,6 @@
       "value": "Answer one ticket end to end"
     },
     {
-      "file": "src/screens/queues/copy.ts",
-      "key": "queue.takeOver.decide.title",
-      "class": "title",
-      "words": 6,
-      "budget": 4,
-      "value": "Decide this while {name} holds it?"
-    },
-    {
       "file": "src/screens/reports/copy.ts",
       "key": "rb.dashboard.add.title",
       "class": "title",
@@ -2985,14 +2885,6 @@
       "words": 5,
       "budget": 4,
       "value": "Copy this signing secret now"
-    },
-    {
-      "file": "src/screens/operations/assurance/copy.ts",
-      "key": "assurance.waive.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Waive this strike against {name}?"
     },
     {
       "file": "src/screens/auth/copy.ts",
@@ -3155,14 +3047,6 @@
       "value": "When a target is breached"
     },
     {
-      "file": "src/screens/queues/copy.ts",
-      "key": "queue.takeOver.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Take this over from {name}?"
-    },
-    {
       "file": "src/screens/reports/copy.ts",
       "key": "rb.canvas.table.heading",
       "class": "title",
@@ -3230,11 +3114,11 @@
   "overBudgetByClass": [
     [
       "title",
-      94
+      90
     ],
     [
       "empty body",
-      48
+      45
     ],
     [
       "empty title",

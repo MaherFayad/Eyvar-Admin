@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5609** |
-| Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5609 |
+| **Translatable keys, all dictionaries** | **5611** |
+| Reachable from `EN` (what the shell renders) | 5332 |
+| Keys in `AR` | 5611 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values carrying an em dash (the ratchet)** | **107** |
+| **Arabic values carrying an em dash (the ratchet)** | **110** |
+| **English values over their word budget (the ratchet)** | **185** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **107** English and **110** Arabic, measured **107** and **110**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -49,14 +49,12 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/adminData.ts` | 13 |
 | ar | `src/i18n/ar/adminTeam.ts` | 6 |
 | ar | `src/i18n/ar/adminWorkspace.ts` | 18 |
-| ar | `src/i18n/ar/assurance.ts` | 4 |
 | ar | `src/i18n/ar/auth.ts` | 1 |
 | ar | `src/i18n/ar/conversations.ts` | 2 |
 | ar | `src/i18n/ar/disputes.ts` | 2 |
 | ar | `src/i18n/ar/fairness.ts` | 1 |
 | ar | `src/i18n/ar/financials.ts` | 30 |
 | ar | `src/i18n/ar/metrics.ts` | 2 |
-| ar | `src/i18n/ar/myWork.ts` | 1 |
 | ar | `src/i18n/ar/onboarding.ts` | 10 |
 | ar | `src/i18n/ar/people.ts` | 2 |
 | ar | `src/i18n/ar/policy.ts` | 5 |
@@ -83,8 +81,6 @@ Both ceilings only ever fall.
 | en | `src/screens/management/zones/copy.ts` | 1 |
 | en | `src/screens/metrics/copy.ts` | 2 |
 | en | `src/screens/onboarding/copy.ts` | 7 |
-| en | `src/screens/operations/assurance/copy.ts` | 4 |
-| en | `src/screens/operations/my-work/copy.ts` | 1 |
 | en | `src/screens/operations/people/copy.ts` | 2 |
 | en | `src/screens/operations/requests/copy.ts` | 3 |
 | en | `src/screens/operations/subscriptions/copy.ts` | 3 |
@@ -173,14 +169,6 @@ Both ceilings only ever fall.
 | en | `admin.audit.integrations.webhookUpdated` | Webhook updated — {name}, changed: {fields}, now {state} |
 | en | `admin.audit.integrations.webhookSecretRotated` | Webhook signing secret rotated — {name}, {from} replaced by {to} |
 | en | `admin.audit.integrations.webhookReplayed` | Webhook delivery replayed — {endpoint}, {original} queued as {replay} |
-| ar | `assurance.ack.assumed` | مفترَض — غير مؤكَّد |
-| ar | `assurance.backup.eligible` | {name} — مؤهَّل |
-| ar | `assurance.backup.ineligible` | {name} — {reason} |
-| ar | `assurance.confirm.choice.help` | المصدر يُسجَّل. “مفترَض” ليس تأكيدًا — بل مخاطرة قبِلها أحدهم. |
-| en | `assurance.ack.assumed` | Assumed — not confirmed |
-| en | `assurance.backup.eligible` | {name} — eligible |
-| en | `assurance.backup.ineligible` | {name} — {reason} |
-| en | `assurance.confirm.choice.help` | The source is on the record. “Assumed” is not a confirmation — it is a risk somebody accepted. |
 | ar | `session.writeRevoked.body` | أُزيلت صلاحية “{permission}” أثناء تحريرك. تغييراتك لا تزال هنا — انسخ ما تحتاجه قبل التجاهل. |
 | en | `session.writeRevoked.body` | The "{permission}" permission was removed while you were editing. Your changes are still here — copy anything you need before discarding. |
 | ar | `conversations.promise.paused` | مؤجَّلة — المؤقّتان متوقفان. |
@@ -253,8 +241,6 @@ Both ceilings only ever fall.
 | en | `fin.pricing.surge.suspend.body` | Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes. |
 | en | `fin.audit.payoutPaid` | Paid {netHalalas} — {payableHalalas} payable, less {cashDebtHalalas} of cash debt. |
 | en | `fin.audit.walletAdjusted` | Adjusted a wallet — {direction} {reference}. |
-| ar | `myWork.empty.firstRun.body` | كل ما تحمله، وكل ما لم يستلمه أحد، من الطلبات إلى السلامة — مرتَّبًا حسب الموعد النهائي لا حسب التصنيف. |
-| en | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
 | ar | `onboarding.intro.owner` | أنت مسؤول عن اللوحة كاملة — السياسة والأشخاص والمال والقرارات التي لا يستطيع غيرك اتخاذها. |
 | ar | `onboarding.intro.opsManager` | أنت من يبقي الرحلات مغطّاة والكباتن على رأس العمل — الطلبات المقدَّمة وطلبات الرحلات وضمان الرحلات والتوزيع. |
 | ar | `onboarding.intro.finance` | أنت من يحرّك المال ويحاسب عليه — المستحقات والضمان والخصومات والتسوية. يمكنك الاطلاع على الملفات الشخصية، ولا يمكنك تغيير حالة كابتن. |
@@ -331,15 +317,15 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **185**, measured **185**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 94 |
-| empty body | 12 | 48 |
+| title | 4 | 90 |
+| empty body | 12 | 45 |
 | empty title | 5 | 20 |
 | button | 3 | 19 |
 | meta | 6 | 9 |
@@ -383,7 +369,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 22 | `dispatch.empty.board.body` | Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts. |
 | empty body | 22 | `dispute.lf.empty.body` | Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back. |
 | empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
-| empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
 | empty body | 20 | `overview.empty.body` | This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count. |
 | empty body | 20 | `people.empty.applications.body` | Every captain who applies lands in this queue with their documents, so you can approve or reject in one place. |
 | empty body | 20 | `people.empty.compliance.body` | Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected. |
@@ -392,7 +377,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 19 | `entity.rider.payments.empty.body` | This rider has not paid for a trip by card. Quick ride fares appear here as they are captured. |
 | empty body | 18 | `admin.activity.empty.body` | The log is append-only and starts empty. The first payout, suspension or settings change writes the first line. |
 | empty body | 18 | `admin.integrations.delivery.empty.body` | Once an endpoint is registered and one of its events happens, every attempt and every response appears here. |
-| empty body | 18 | `assurance.empty.firstRun.body` | Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue. |
 | empty body | 18 | `comms.template.empty.body` | A template turns a system event into the message a customer reads. Each one is written per language. |
 | empty body | 18 | `zones.empty.body` | A zone is a district where demand and supply are measured. None is tracked in this city yet. |
 | empty body | 17 | `dispute.empty.body` | Fare adjustments, cancellation fees and property damage claims arrive here from the support ticket that raised them. |
@@ -400,7 +384,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
 | empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
-| empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
 | empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
 | empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
@@ -487,7 +470,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 7 | `pwa.install.title` | Run the console in its own window |
 | title | 7 | `session.writeRevoked.title` | You can no longer save this change |
 | title | 6 | `admin.integrations.reveal.webhook.rotated.title` | Copy the new signing secret now |
-| title | 6 | `assurance.offer.title` | Hand {id} to a backup captain? |
 | title | 6 | `auth.activate.tokenInvalid.title` | This invite is no longer valid |
 | title | 6 | `auth.otp.elsewhere.title` | This sign-in finished in another tab |
 | title | 6 | `auth.otp.missing.title` | That verification is no longer open |
@@ -507,12 +489,10 @@ Measured on English only, and a placeholder counts as one word.
 | title | 6 | `onboarding.step.ops.assurance.title` | Cover one trip before it departs |
 | title | 6 | `onboarding.step.support.goodwill.title` | Credit a rider, inside your cap |
 | title | 6 | `onboarding.step.support.ticket.title` | Answer one ticket end to end |
-| title | 6 | `queue.takeOver.decide.title` | Decide this while {name} holds it? |
 | title | 6 | `rb.dashboard.add.title` | Add a report to this dashboard |
 | title | 6 | `rb.delete.pinned.title` | This report is on other dashboards |
 | title | 5 | `admin.integrations.reveal.key.rotated.title` | Copy the new key now |
 | title | 5 | `admin.integrations.reveal.webhook.issued.title` | Copy this signing secret now |
-| title | 5 | `assurance.waive.title` | Waive this strike against {name}? |
 | title | 5 | `auth.enroll.title` | Set up your verification code |
 | title | 5 | `auth.otp.superseded.title` | That code has been replaced |
 | title | 5 | `driver.timeline.trip-no-show.title` | Trip recorded as a no-show |
@@ -533,7 +513,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `onboarding.step.owner.pricing.title` | Settle how captains are paid |
 | title | 5 | `people.takeOver.title` | Take this application from {name}? |
 | title | 5 | `policy.sla.breach.title` | When a target is breached |
-| title | 5 | `queue.takeOver.title` | Take this over from {name}? |
 | title | 5 | `rb.canvas.table.heading` | The numbers behind this chart |
 | title | 5 | `rb.library.firstRun.heading` | Ask the business a question |
 | title | 5 | `rb.related.heading` | This measure also appears on |
@@ -561,7 +540,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 164 |
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
-| `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 112 |
+| `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 114 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 111 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |

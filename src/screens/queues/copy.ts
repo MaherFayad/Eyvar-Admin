@@ -51,12 +51,12 @@ export const QUEUE_SHARED_EN: Dictionary = {
   /* **AC-203** — the confirmation names the current owner and states that they
      lose the item **without being asked**. Rule 9: it also says what does not
      change. */
-  'queue.takeOver.title': 'Take this over from {name}?',
+  'queue.takeOver.title': 'Take over from {name}?',
   'queue.takeOver.body':
     '{name} loses this item without being asked, and both names go on the record. Nothing else about the item changes.',
   'queue.takeOver.confirm': 'Take over',
   /* **AC-209** — disposing of someone else's item takes the same confirmation. */
-  'queue.takeOver.decide.title': 'Decide this while {name} holds it?',
+  'queue.takeOver.decide.title': 'Decide instead of {name}?',
   'queue.takeOver.decide.body':
     '{name} is working this now. Deciding it takes the item from them without being asked, and both names go on the record.',
   'queue.takeOver.decide.confirm': 'Take over and decide',
