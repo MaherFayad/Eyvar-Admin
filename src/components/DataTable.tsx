@@ -165,6 +165,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import {
   directionFor,
@@ -192,6 +193,7 @@ import { ColumnLayoutPopover } from './table/ColumnLayoutPopover'
 import { AddFilterPopover, FilterChipRow } from './table/FilterChipRow'
 import { IndexToolbar, type ToolbarLeadingSlot } from './table/IndexToolbar'
 import { NarrowRowCards } from './table/NarrowRowCards'
+import { TABLE_PAGE_SIZES, setTablePageSize } from './table/pageSize'
 import { SortControl } from './table/SortControl'
 import {
   emphasisOf,
@@ -1210,6 +1212,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
      `no-match` empty, because taking the filter back off is the only way out
      of it; `nothingToNarrow` is the branch where every control is inert. */
   const emptyReasonId = useId()
+  const pageSizeLabelId = useId()
   const narrowed = table.isFiltered || emptyKind === 'no-match'
   const nothingToNarrow = status === 'empty' && !narrowed
   const emptyDescribedBy = status === 'empty' ? emptyReasonId : undefined
@@ -2535,6 +2538,43 @@ export function DataTable<T>(props: DataTableProps<T>) {
               total: formatCount(range.total),
             })}
           </span>
+          {/* T6.3 — `ui.pageSize`, the operator's, not the screen's. Under
+              infinite scroll it is still the size of a page, just one the
+              scroll fetches. Absent on a ledger (a card inside another surface)
+              and below one page at the smallest size, where it acts on nothing
+              (T5.13). */}
+          {!isLedger && range.total > TABLE_PAGE_SIZES[0]! && (
+            <div className="flex items-center gap-2">
+              <span id={pageSizeLabelId} className="text-xs text-muted-foreground">
+                {t('table.pageSize')}
+              </span>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={String(table.pageSize)}
+                aria-labelledby={pageSizeLabelId}
+                onValueChange={(next) => {
+                  /* Radix emits `''` when the pressed item is pressed again;
+                     a page size has no cleared state. Page 1 because page 4 of
+                     25 is past the end of the same list at 100. */
+                  const size = Number(next)
+                  if (!TABLE_PAGE_SIZES.includes(size)) return
+                  table.setPage(1)
+                  setTablePageSize(size)
+                }}
+              >
+                {TABLE_PAGE_SIZES.map((size) => (
+                  <ToggleGroupItem
+                    key={size}
+                    value={String(size)}
+                    aria-label={t('table.pageSize.option', { count: formatCount(size) })}
+                  >
+                    {formatCount(size)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          )}
           {infiniteScroll === false ? (
             <div className="flex items-center gap-2">
               <Button

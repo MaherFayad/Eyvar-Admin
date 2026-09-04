@@ -850,6 +850,9 @@ const table: Dictionary = {
   'table.showing': 'Showing {from}–{to} of {total}',
   'table.previous': '‹ Previous',
   'table.next': 'Next ›',
+  /* T6.3 — the label beside the page-size toggles, and each toggle's own name. */
+  'table.pageSize': 'Rows per page',
+  'table.pageSize.option': 'Show {count} rows per page',
   'table.learnMore': 'Learn more about {resource}.',
   'table.sort': 'Sort',
   'table.sortBy': 'Sort by',

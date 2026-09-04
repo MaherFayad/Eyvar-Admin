@@ -56,7 +56,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FilterSpec, QueryParams, SortDirection, SortSpec } from '@/data/types/common'
-import { DEFAULT_PAGE_SIZE } from '@/data/types/common'
+import { useTablePageSize } from '@/components/table/pageSize'
 import { DEFAULT_DEBOUNCE_MS } from './useDebouncedValue'
 import { useUrlTableState } from './useUrlTableState'
 
@@ -65,6 +65,10 @@ export type TableMode = 'index' | 'ledger' | 'queue'
 /* ─────────────────────────────── options ─────────────────────────────── */
 
 interface BaseTableOptions {
+  /**
+   * Rows per page. Omitted, the operator's `ui.pageSize` preference supplies it
+   * (T6.3) — class 1 beats class 2, so a screen that names a size means it.
+   */
   pageSize?: number
   initialQuery?: string
   initialView?: string | null
@@ -231,9 +235,10 @@ export function useIndexTable<T>(options: IndexTableOptions<T>): IndexTable<T>
 export function useIndexTable<T>(
   options: IndexTableOptions<T> | LedgerTableOptions | QueueTableOptions<T>,
 ): AnyTable<T> {
+  const preferredPageSize = useTablePageSize()
   const {
     mode,
-    pageSize = DEFAULT_PAGE_SIZE,
+    pageSize = preferredPageSize,
     initialQuery = '',
     initialView = null,
     initialFilters,

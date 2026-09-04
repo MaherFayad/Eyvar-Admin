@@ -368,6 +368,8 @@ export const SHELL_AR: Dictionary = {
   'table.showing': 'عرض {from}–{to} من {total}',
   'table.previous': '‹ السابق',
   'table.next': 'التالي ›',
+  'table.pageSize': 'صفوف بالصفحة',
+  'table.pageSize.option': 'عرض {count} صفوف بالصفحة',
   'table.learnMore': 'معرفة المزيد عن {resource}.',
   'table.sort': 'ترتيب',
   'table.sortBy': 'الترتيب حسب',

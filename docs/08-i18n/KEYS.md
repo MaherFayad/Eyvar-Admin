@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5559** |
-| Reachable from `EN` (what the shell renders) | 5287 |
-| Keys in `AR` | 5559 |
+| **Translatable keys, all dictionaries** | **5561** |
+| Reachable from `EN` (what the shell renders) | 5289 |
+| Keys in `AR` | 5561 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 272 |
 | Plural forms (`key#category`) inside `EN` | 53 |
