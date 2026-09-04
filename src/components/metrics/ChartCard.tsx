@@ -99,8 +99,8 @@ import {
 } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { PLAIN_FRAME, PLAIN_FRAME_SLOT } from './Chapter'
-import { MetricDelta, OpenAnalysis } from './MetricTile'
-import { formatDate, isolatedRunProps, type Language, type Translate } from '@/lib'
+import { MetricDelta, OpenAnalysis, type MetricDeltaUnit } from './MetricTile'
+import { formatDate, formatDecimal, isolatedRunProps, type Language, type Translate } from '@/lib'
 import type { CurrencyCode, Metric, MetricUnit, SeriesWindow, TimeSeries } from '@/data/types'
 import {
   seriesWindowDelta,
@@ -142,6 +142,11 @@ export interface ChartCardProps {
    * metric living in a component.
    */
   headline?: Metric | null
+  /**
+   * What the headline's delta is a change IN. Passed straight through, so a
+   * chart and the tile that owns its measure state the same movement (§4.3).
+   */
+  deltaUnit?: MetricDeltaUnit
   t: Translate
   language: Language
 }
@@ -151,6 +156,7 @@ export function ChartCard({
   reportHref,
   frame = 'card',
   headline = null,
+  deltaUnit = 'percent',
   t,
   language,
 }: ChartCardProps) {
@@ -225,7 +231,15 @@ export function ChartCard({
             (AC-834). Under it, the derived read: the one sentence that turns
             a figure, a caret and a legend into a claim. See `headlineFacts`
             for where the two branches' numbers come from. */}
-        {facts && <Headline facts={facts} title={title} t={t} language={language} />}
+        {facts && (
+          <Headline
+            facts={facts}
+            title={title}
+            deltaUnit={deltaUnit}
+            t={t}
+            language={language}
+          />
+        )}
         {/* **The card's own `Computed …` line is GONE, and §E7's period sub-line
             above is what took its place.**
 
@@ -444,11 +458,13 @@ function headlineFacts(series: TimeSeries, headline: Metric | null): HeadlineFac
 function Headline({
   facts,
   title,
+  deltaUnit,
   t,
   language,
 }: {
   facts: HeadlineFacts
   title: string
+  deltaUnit: MetricDeltaUnit
   t: Translate
   language: Language
 }) {
@@ -458,6 +474,13 @@ function Headline({
     deltaPercent: facts.deltaPercent,
     baseline: facts.baseline,
     language,
+    /* The sentence words the same movement the run beside the numeral does.
+       A rate that fell 0.6 points must not read "down 4.8%" one line below
+       "−0.6 pts" (§4.3). */
+    deltaText:
+      deltaUnit === 'points' && facts.deltaPercent !== null
+        ? formatDecimal(Math.abs(facts.deltaPercent), 1, language) + t('metric.delta.points')
+        : undefined,
   })
   const sentence = isolatedRunProps({ className: 'text-xs text-muted-foreground' })
 
@@ -478,6 +501,7 @@ function Headline({
           <MetricDelta
             deltaPercent={facts.deltaPercent}
             higherIsBetter={facts.higherIsBetter}
+            deltaUnit={deltaUnit}
             t={t}
             language={language}
           />

@@ -1,35 +1,9 @@
 /**
- * Financials › Overview — spec §5 row 1, §6.2, **AC-346–353**.
- *
- * ## The one thing this screen exists to stop
- *
- * The legacy Finance page's seven KPI tiles are **static HTML strings**
- * (`:931`–`:939`) and three of them contradict the live data five rows below
- * them (`12a` R12): `Eyvar net 9,246 / 19.2%` above a table saying
- * `8,752 / 18.1%`; `501.98` held in escrow above a function computing `138.40`
- * from the same array; `65.00` in deductions above a pending sum of `45.00`.
- *
- * **AC-346** is the criterion that stops it returning, and it is structural
- * here rather than a promise: there is not one number literal in this file.
- * Every figure comes from `getFinancialsOverview`, which computes from
- * postings, and the five derived ones come from `derive.ts`, which both this
- * screen and Revenue & Refunds read — that is **AC-347**.
- *
- * Rules applied
- *   §3.7 / R5a **no tile turns red** when the books are out of balance
- *              (**AC-351**). The condition is a page-level critical banner
- *              naming the difference in SAR, and the tiles state numbers.
- *   R10        **one banner.** Out of balance outranks refused postings; the
- *              failed payouts, unmatched credit notes and escalated reports
- *              raise their banners on the sub-tabs that can act on them
- *              (**AC-367**, **AC-356**, **AC-378**), not here.
- *   AC-342     `grossMarginPercent` is `null` when gross is zero, and `Percent`
- *              renders an em dash for it. Never `0%`.
- *   AC-353     the period is a search param and a `useAsync` dependency, so
- *              changing it re-reads every figure rather than re-filtering one
- *              already on screen.
- *   §11.3      the loading state is the shape of the content — a grid of tile
- *              skeletons — and never a centred spinner (**AC-426**).
+ * Financials › Overview — spec §5 row 1, §6.2, **AC-346–353**, rebuilt on the
+ * metric-board set (FINANCIALS-UX-PLAN §3). Every figure reaches the screen
+ * through `toBoard`; the derived five come from `derive.ts`, which Revenue &
+ * Refunds reads too (AC-347). R10 keeps one banner and `DecisionList` carries
+ * the three conditions it did not take. V-1, V-4, V-6 and V-7 are the layout.
  */
 
 import { useMemo } from 'react'
@@ -37,27 +11,59 @@ import { useNavigate } from 'react-router-dom'
 import { getFinancialsOverview } from '@/data/clients'
 import type { FinancialsOverview, SubTabRoute } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { formatCount, formatMoney } from '@/lib'
-import type { BannerModel } from '@/components/Banner'
+import { formatCount, formatDate, formatMoney, type Language } from '@/lib'
+import { Banner, mergeBanners, type BannerModel } from '@/components/Banner'
 import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { useShell } from '@/shell/ShellContext'
+import { SingleColumnPage } from '@/components/PageShell'
 import {
-  Figure,
-  FigureGrid,
-  FigureItem,
-  FigureLeadRow,
-  FigureRow,
-  Percent,
-} from '../shared/Figures'
-import { FinancialsPage, periodLabel, usePeriod } from '../shared/FinancialsPage'
+  BoardHero,
+  BoardHeroItem,
+  BoardHeroRow,
+  BreakdownList,
+  Chapter,
+  ChapterFigures,
+  ChartCard,
+  MetricTile,
+  MetricTileItem,
+  SectionHeading,
+} from '@/components/metrics'
+import { useShell } from '@/shell/ShellContext'
+import { FigureRow, Percent } from '../shared/Figures'
+import { usePeriod } from '../shared/FinancialsPage'
+import { DecisionList } from '../shared/DecisionList'
 import { PeriodControl } from '../shared/PeriodControl'
 import { marginBreakdown } from '../shared/derive'
+import { CHART_HEADLINE, toBoard } from './toBoard'
+
+/** A day string as the page words it. The client sends days; the band prints them. */
+function day(at: string, language: Language): string {
+  return formatDate(`${at}T00:00:00+03:00`, { style: 'day-month', language })
+}
+
+/**
+ * **Nothing was posted in this window**, which is not the same fact as an
+ * empty console — `lifetimePostings` decides which of R8's two kinds renders
+ * (LR-3, §3.5).
+ */
+function noPostingsInWindow(data: FinancialsOverview): boolean {
+  return data.daily.every(
+    (each) =>
+      each.grossBookingsHalalas === 0 &&
+      each.captainEarningsHalalas === 0 &&
+      each.givebackHalalas === 0,
+  )
+}
+
+/** The two panel rows and the calculation card share one grid: halves, never thirds (V-6). */
+const HALVES = 'grid grid-cols-2 gap-5 compact:grid-cols-1'
+const SECTION = 'flex flex-col gap-4 border-t border-border pt-8'
 
 export function OverviewScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  const { t, language } = shell.language
   const navigate = useNavigate()
   const { period, setPeriod } = usePeriod()
 
@@ -65,16 +71,20 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
     (signal) => getFinancialsOverview({ period, signal }),
     /* AC-353: changing the period changes every figure, so both ends of the
        window are dependencies and the key carries them. */
-    { deps: [period.start, period.end], cacheKey: 'financials.overview', isEmpty: () => false },
+    {
+      deps: [period.start, period.end],
+      cacheKey: 'financials.overview',
+      isEmpty: noPostingsInWindow,
+    },
   )
 
-  const data = overview.data
+  const data = overview.status === 'content' ? overview.data : null
+  const board = useMemo(() => (data ? toBoard(data, language) : null), [data, language])
   const margin = useMemo(() => (data ? marginBreakdown(data) : null), [data])
 
   /* §11.4 / R10 — ONE banner, chosen by precedence rather than merged. AC-351
      requires the out-of-balance banner to state the difference in SAR, and a
-     merged banner states a count instead, so the more severe condition takes
-     the surface outright and the other is reachable on its own sub-tab. */
+     merged banner states a count instead. */
   const banners = useMemo<BannerModel[]>(() => {
     if (!data) return []
     if (!data.trialBalanceBalanced) {
@@ -106,7 +116,10 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
               : t('fin.overview.refused.titleMany', {
                   count: formatCount(data.refusedPostingCount, language),
                 }),
-          body: t('fin.overview.outOfBalance.body'),
+          /* P0-1 — the refused condition's own sentence. It used to borrow the
+             out-of-balance one, which claims debits and credits disagree under
+             a footer showing them equal. */
+          body: t('fin.overview.refused.body'),
           actions: [
             {
               label: t('fin.overview.outOfBalance.action'),
@@ -119,254 +132,243 @@ export function OverviewScreen({ row }: { row: SubTabRoute }) {
     return []
   }, [data, t, language, navigate])
 
-  const scope = periodLabel(period, t, language)
+  const merged = useMemo(
+    () => mergeBanners([...banners], (count) => t('state.merged.message', { count: String(count) })),
+    [banners, t],
+  )
+
+  /* The lede states the window and what it is measured against, and nothing
+     else. F-4: the refused-postings sentence is the banner's, printed once.
+     F-5: it never says "closed" while Q-F8 is open. */
+  const compare = board?.comparisonPeriod ?? null
+  const lede = compare
+    ? t('fin.overview.board.lede', {
+        from: day(period.start, language),
+        to: day(period.end, language),
+        compareFrom: day(compare.start, language),
+        compareTo: day(compare.end, language),
+      })
+    : t('fin.overview.board.lede.alone', {
+        from: day(period.start, language),
+        to: day(period.end, language),
+      })
+
+  const title = t(row.titleKey)
 
   return (
-    <FinancialsPage row={row} meta={scope} banners={banners} t={t} dir={dir}>
-      <div className="flex flex-col gap-4">
-        <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
-
-        {overview.status === 'loading' && <LoadingSkeleton pattern="P5" />}
-
-        {overview.status === 'error' && (
-          <ErrorState
-            scope="page"
-            message={t('fin.error.read')}
-            action={{ label: t('fin.error.retry'), onClick: overview.refetch }}
-          />
-        )}
-
-        {data && margin && (
-          <>
-            <section className="flex flex-col gap-2" aria-labelledby="fin-overview-period">
-              <h2 id="fin-overview-period" className="text-sm font-semibold text-foreground">
-                {t('fin.overview.tiles.heading')}
-              </h2>
-              {/* **§H4 — three lead figures, then three supporting.**
-                  Six figures at one size said nothing about which of them a
-                  Finance lead opens this page for. The three below are the
-                  period's P&L in one line — what came in, what was left after
-                  the whole cost of serving it, and that as a rate — and the
-                  three beneath them are the working that produces the second.
-
-                  **Contribution and not gross margin** is the editorial call
-                  worth stating: gross margin stops at captain earnings, and the
-                  giveback (promos, referrals, refunds, goodwill) is real money
-                  this business spends. The number that answers "did the period
-                  pay for itself" is contribution, so contribution leads and
-                  gross margin supports it. */}
-              <FigureLeadRow>
-                <FigureItem>
-                  <Figure
-                    rank="lead"
-                    label={t('fin.overview.gross')}
-                    amount={data.grossBookingsHalalas}
-                    caption={scope}
+    <SingleColumnPage
+      body="flow"
+      banner={merged ? <Banner banner={merged} className="mb-3" /> : undefined}
+      bleed={
+        <BoardHero
+          title={title}
+          lede={lede}
+          asOf={data ? data.asOf : null}
+          period={data ? period : null}
+          /* V-7 — Financials' own control, in the band. Its presets are
+             calendar months and `BoardPeriodControl`'s are rolling windows; two
+             sets of presets for one window is the affordance §3.2 refuses. */
+          periodSlot={
+            <PeriodControl
+              period={period}
+              onChange={setPeriod}
+              t={t}
+              language={language}
+              surface="band"
+            />
+          }
+          t={t}
+          language={language}
+        >
+          {board && data && (
+            <BoardHeroRow>
+              {board.leads.map((metric) => (
+                <BoardHeroItem key={metric.key}>
+                  <MetricTile
+                    metric={metric}
+                    boardAsOf={data.asOf}
+                    surface="band"
+                    deltaUnit={metric.unit === 'percent' ? 'points' : 'percent'}
+                    t={t}
+                    language={language}
                   />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    rank="lead"
+                </BoardHeroItem>
+              ))}
+            </BoardHeroRow>
+          )}
+        </BoardHero>
+      }
+    >
+      {overview.status === 'loading' ? (
+        /* §11.3 / AC-426 — the shape of the content, never a centred spinner. */
+        <LoadingSkeleton pattern="P5" label={t('overview.loading', { resource: title })} />
+      ) : overview.status === 'error' ? (
+        <ErrorState
+          scope="page"
+          message={t('fin.error.read')}
+          action={{ label: t('fin.error.retry'), onClick: overview.refetch }}
+        />
+      ) : overview.status === 'empty' ? (
+        overview.data && overview.data.lifetimePostings === 0 ? (
+          /* R8's first kind / LR-1 — the console has never had a posting. */
+          <EmptyState
+            kind="first-run"
+            heading={t('fin.overview.firstRun.heading')}
+            body={t('fin.overview.firstRun.body')}
+            actions={[
+              {
+                label: t('fin.overview.firstRun.action'),
+                onClick: () => navigate('/financials/ledger'),
+              },
+            ]}
+          />
+        ) : (
+          /* R8's second kind — the books have postings, this window has none.
+             One sentence, no illustration. */
+          <p className="py-6 text-sm text-muted-foreground">
+            <bdi>
+              {t('fin.overview.empty.body', {
+                postings: formatCount(overview.data?.lifetimePostings ?? 0, language),
+                from: day(period.start, language),
+                to: day(period.end, language),
+              })}
+            </bdi>
+          </p>
+        )
+      ) : board && data && margin ? (
+        <div className="flex flex-col gap-8">
+          <Chapter
+            category={null}
+            title={t('fin.overview.chapter.period')}
+            /* §3.2 — the window is stated ONCE, here, instead of on six tiles. */
+            summary={t('fin.overview.chapter.period.note', {
+              from: day(period.start, language),
+              to: day(period.end, language),
+            })}
+            t={t}
+          >
+            <ChapterFigures>
+              {board.flows.map((metric) => (
+                <MetricTileItem key={metric.key}>
+                  <MetricTile
+                    metric={metric}
+                    boardAsOf={data.asOf}
+                    deltaUnit={metric.unit === 'percent' ? 'points' : 'percent'}
+                    t={t}
+                    language={language}
+                  />
+                </MetricTileItem>
+              ))}
+            </ChapterFigures>
+          </Chapter>
+
+          <Chapter
+            category={null}
+            title={t('fin.overview.chapter.positions')}
+            summary={t('fin.overview.chapter.positions.note', { at: day(period.end, language) })}
+            t={t}
+          >
+            <ChapterFigures>
+              {board.positions.map((metric) => (
+                <MetricTileItem key={metric.key}>
+                  <MetricTile metric={metric} boardAsOf={data.asOf} t={t} language={language} />
+                </MetricTileItem>
+              ))}
+            </ChapterFigures>
+          </Chapter>
+
+          <section className={SECTION}>
+            <SectionHeading title={t('fin.overview.charts.heading')} />
+            <div className={HALVES}>
+              {board.series.map((series) => (
+                <ChartCard
+                  key={series.key}
+                  series={series}
+                  headline={
+                    board.leads.find((lead) => lead.key === CHART_HEADLINE[series.key]) ?? null
+                  }
+                  deltaUnit={series.unit === 'percent' ? 'points' : 'percent'}
+                  reportHref={null}
+                  t={t}
+                  language={language}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className={SECTION}>
+            <SectionHeading title={t('fin.overview.lists.heading')} />
+            <div className={HALVES}>
+              {board.breakdowns.map((breakdown) => (
+                <BreakdownList
+                  key={breakdown.key}
+                  breakdown={breakdown}
+                  scope={{ subTabId: row.subTabId, period }}
+                  t={t}
+                  language={language}
+                />
+              ))}
+              <DecisionList rows={board.decisions} t={t} language={language} />
+            </div>
+          </section>
+
+          {/* §3.4 — the H5 calculation card, kept and moved to the END. A
+              Finance lead auditing a contribution figure needs the operands in
+              a column with the operators drawn; a reader who wants the shape of
+              the month is no longer stopped by it. */}
+          <section className={SECTION}>
+            <div className={HALVES}>
+              <Card className="gap-2">
+                <div className="flex flex-col px-(--card-spacing)">
+                  <h2 className="pb-1 text-sm font-semibold text-foreground">
+                    {t('fin.overview.margin.heading')}
+                  </h2>
+                  {/* The two percentages take NO operator and no gutter: they
+                      are ratios of the lines above them, not operands in the
+                      sum. That is why the field distinguishes `null` from
+                      omitted. */}
+                  <FigureRow
+                    operator={null}
+                    label={t('fin.overview.gross')}
+                    amount={margin.grossBookingsHalalas}
+                  />
+                  <FigureRow
+                    operator="subtract"
+                    label={t('fin.overview.captainEarnings')}
+                    amount={margin.captainEarningsHalalas}
+                  />
+                  <FigureRow
+                    operator="equals"
+                    label={t('fin.overview.grossMargin')}
+                    amount={margin.grossMarginHalalas}
+                  />
+                  <FigureRow
+                    label={t('fin.overview.grossMarginPercent')}
+                    value={<Percent value={margin.grossMarginPercent} language={language} />}
+                  />
+                  <FigureRow
+                    operator="subtract"
+                    label={t('fin.overview.giveback')}
+                    amount={margin.givebackHalalas}
+                  />
+                  <FigureRow
+                    operator="equals"
                     label={t('fin.overview.contributionMargin')}
                     amount={margin.contributionMarginHalalas}
-                    caption={scope}
+                    emphasis
                   />
-                </FigureItem>
-                <FigureItem>
-                  {/* **AC-361's pair, and AC-342's em dash.** Both percentages
-                      are labelled and neither is presented alone. */}
-                  <Figure
-                    rank="lead"
+                  <FigureRow
                     label={t('fin.overview.contributionPercent')}
                     value={
                       <Percent value={margin.contributionMarginPercent} language={language} />
                     }
-                    caption={scope}
                   />
-                </FigureItem>
-              </FigureLeadRow>
-
-              <FigureGrid>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.captainEarnings')}
-                    amount={data.captainEarningsHalalas}
-                    caption={scope}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.grossMargin')}
-                    amount={margin.grossMarginHalalas}
-                    caption={scope}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.giveback')}
-                    amount={margin.givebackHalalas}
-                    caption={scope}
-                  />
-                </FigureItem>
-              </FigureGrid>
-            </section>
-
-            <section className="flex flex-col gap-2" aria-labelledby="fin-overview-positions">
-              <h2 id="fin-overview-positions" className="text-sm font-semibold text-foreground">
-                {t('fin.overview.positions.heading')}
-              </h2>
-              <FigureGrid>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.pendingPayouts')}
-                    amount={data.pendingPayoutsHalalas}
-                    caption={t('fin.overview.asAt')}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.escrowHeld')}
-                    amount={data.escrowHeldHalalas}
-                    caption={t('fin.overview.asAt')}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.escrowReady')}
-                    amount={data.escrowReadyHalalas}
-                    caption={t('fin.overview.asAt')}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.captainDebt')}
-                    amount={data.captainDebtHalalas}
-                    caption={t('fin.overview.asAt')}
-                  />
-                </FigureItem>
-                <FigureItem>
-                  <Figure
-                    label={t('fin.overview.riderWalletLiability')}
-                    amount={data.riderWalletLiabilityHalalas}
-                    caption={t('fin.overview.asAt')}
-                  />
-                </FigureItem>
-              </FigureGrid>
-            </section>
-
-            <Card className="gap-2">
-              <div className="flex flex-col px-(--card-spacing)">
-                <h2 className="pb-1 text-sm font-semibold text-foreground">
-                  {t('fin.overview.giveback.heading')}
-                </h2>
-                {/* **AC-455** — promo, referral and incentive resolve to their
-                    OWN accounts. They were operational figures served beside a
-                    trial balance until the chart was opened; a management
-                    number is a GL number or it is not auditable. */}
-                {/* §H5 — the card is a SUM, so every row states its part in
-                    it. The first operand takes `null`: it is in the sum and
-                    carries no sign, and it still reserves the gutter so its
-                    label lines up with the five beneath it. */}
-                <FigureRow
-                  operator={null}
-                  label={t('fin.overview.giveback.promo')}
-                  amount={data.promoHalalas}
-                />
-                <FigureRow
-                  operator="add"
-                  label={t('fin.overview.giveback.referral')}
-                  amount={data.referralHalalas}
-                />
-                <FigureRow
-                  operator="add"
-                  label={t('fin.overview.giveback.incentive')}
-                  amount={data.incentiveHalalas}
-                />
-                {/* **AC-352** — a refund appears in exactly ONE cost line.
-                    Legacy books the cancellation path as `refunds` *and* as
-                    `goodwill` and subtracts it twice. */}
-                <FigureRow
-                  operator="add"
-                  label={t('fin.overview.giveback.refunds')}
-                  amount={data.refundsHalalas}
-                />
-                <FigureRow
-                  operator="add"
-                  label={t('fin.overview.giveback.goodwill')}
-                  amount={data.goodwillHalalas}
-                />
-                <FigureRow
-                  operator="add"
-                  label={t('fin.overview.giveback.emergency')}
-                  amount={data.emergencyCoverHalalas}
-                />
-                <FigureRow
-                  operator="equals"
-                  label={t('fin.overview.giveback')}
-                  amount={margin.givebackHalalas}
-                  emphasis
-                />
-              </div>
-            </Card>
-
-            <Card className="gap-2">
-              <div className="flex flex-col px-(--card-spacing)">
-                <h2 className="pb-1 text-sm font-semibold text-foreground">
-                  {t('fin.overview.margin.heading')}
-                </h2>
-                {/* §H5 — the card IS the calculation
-                    gross − earnings = gross margin − giveback = contribution,
-                    and now says so. Before this it was six labelled amounts in
-                    the order of a sum with nothing marking it as one, so
-                    `Gross margin %` — a ratio derived from the two lines above
-                    it, and not an operand at all — was indistinguishable from
-                    `Giveback`, which is subtracted.
-
-                    The two percentages therefore take NO operator and no
-                    gutter: they are not in the sum, and giving them one would
-                    be the same defect written in glyphs. That is the whole
-                    reason the field distinguishes `null` from omitted. */}
-                <FigureRow
-                  operator={null}
-                  label={t('fin.overview.gross')}
-                  amount={margin.grossBookingsHalalas}
-                />
-                <FigureRow
-                  operator="subtract"
-                  label={t('fin.overview.captainEarnings')}
-                  amount={margin.captainEarningsHalalas}
-                />
-                <FigureRow
-                  operator="equals"
-                  label={t('fin.overview.grossMargin')}
-                  amount={margin.grossMarginHalalas}
-                />
-                <FigureRow
-                  label={t('fin.overview.grossMarginPercent')}
-                  value={<Percent value={margin.grossMarginPercent} language={language} />}
-                />
-                <FigureRow
-                  operator="subtract"
-                  label={t('fin.overview.giveback')}
-                  amount={margin.givebackHalalas}
-                />
-                <FigureRow
-                  operator="equals"
-                  label={t('fin.overview.contributionMargin')}
-                  amount={margin.contributionMarginHalalas}
-                  emphasis
-                />
-                <FigureRow
-                  label={t('fin.overview.contributionPercent')}
-                  value={
-                    <Percent value={margin.contributionMarginPercent} language={language} />
-                  }
-                />
-              </div>
-            </Card>
-          </>
-        )}
-      </div>
-    </FinancialsPage>
+                </div>
+              </Card>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </SingleColumnPage>
   )
 }

@@ -1,5 +1,6 @@
 /**
- * Financials › Overview — **AC-353**, and the reason it cannot pass as written.
+ * Financials › Overview — **AC-353**, **AC-487**, and the four claims §3.6 adds
+ * when the screen becomes a board.
  *
  * **No spies.** The period behaviour is driven by mounting at two different
  * `?from=`/`?to=` values and comparing what is on screen, so nothing here can
@@ -16,9 +17,12 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
+import { formatSignedPercent, formatSignedPoints } from '@/components/metrics'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
+import { marginBreakdown } from '../shared/derive'
 import { OverviewScreen } from './OverviewScreen'
+import { toBoard } from './toBoard'
 
 const overviewRow = (): SubTabRoute => {
   const row = getRouteTable().subTabs.find((each) => each.subTabId === 'financials-overview')
@@ -44,138 +48,264 @@ function mount(path: string) {
 const FULL_MONTH = '/financials/overview?from=2026-06-01&to=2026-06-30'
 const FIRST_WEEK = '/financials/overview?from=2026-06-01&to=2026-06-07'
 
-/**
- * The value rendered beneath a tile's label, scoped to the tile grid.
- *
- * `Gross bookings` is also a row label on the margin card below — the same
- * measure named the same way in both places, which is right — so the lookup is
- * scoped to the section rather than made unique by rewording either.
- */
-function tileValue(label: string, section: 'period' | 'positions' = 'period'): string {
-  const region = document.getElementById(`fin-overview-${section}`)?.parentElement as HTMLElement
-  const heading = within(region).getByText(label)
-  const tile = heading.parentElement as HTMLElement
-  return (tile.textContent ?? '').replace(label, '').trim()
+const copy = (key: string) => EN[key] as string
+
+/** The `<section>` a chapter heading names — the two chapters and nothing else. */
+function chapter(title: string): HTMLElement {
+  const heading = screen.getByRole('heading', { name: title })
+  const section = heading.closest('section')
+  if (!section) throw new Error(`No section around the chapter heading ${title}`)
+  return section
+}
+
+/** The numeral of the figure labelled `label`, inside one chapter. */
+function figureValue(section: HTMLElement, label: string): string {
+  const labelNode = within(section).getByText(label)
+  const item = labelNode.closest('li')
+  if (!item) throw new Error(`No figure around the label ${label}`)
+  return item.querySelector('[data-slot="metric-value"]')?.textContent?.trim() ?? ''
+}
+
+/** The band — `BoardBand`'s section, found by the page's one `<h1>`. */
+function band(): HTMLElement {
+  const section = screen.getByRole('heading', { level: 1 }).closest('section')
+  if (!section) throw new Error('No band around the page heading')
+  return section
+}
+
+async function settled(): Promise<void> {
+  await waitFor(() =>
+    expect(screen.getByText(copy('fin.overview.chapter.period'))).toBeTruthy(),
+  )
 }
 
 describe('AC-353 — the period is a search param and it re-reads', () => {
   /**
-   * The half that is right, and the assertion a hardcoded tile cannot pass:
-   * **the figure moves when the window narrows.** `12a` R12's whole complaint
-   * is seven KPI tiles that are static HTML strings, so "it changed" is the
-   * property worth asserting rather than "it says 4,432.52".
+   * The assertion a hardcoded tile cannot pass: **the figure moves when the
+   * window narrows.** `12a` R12's complaint is seven KPI tiles that are static
+   * HTML strings, so "it changed" is the property worth asserting.
    */
   it('narrowing the period moves every in-period figure', async () => {
     const wide = await getFinancialsOverview({ period: { start: '2026-06-01', end: '2026-06-30' } })
-    const narrow = await getFinancialsOverview({ period: { start: '2026-06-01', end: '2026-06-07' } })
-
-    /* The client really does read a different window. */
+    const narrow = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-07' },
+    })
     expect(narrow.grossBookingsHalalas).not.toBe(wide.grossBookingsHalalas)
 
     const first = mount(FULL_MONTH)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.tiles.heading'] as string)).toBeTruthy(),
-    )
-    const wideGross = tileValue(EN['fin.overview.gross'] as string)
-    const wideEarnings = tileValue(EN['fin.overview.captainEarnings'] as string)
+    await settled()
+    const period = chapter(copy('fin.overview.chapter.period'))
+    const wideGross = figureValue(period, copy('metric.financials.overview.grossBookings'))
+    const wideEarnings = figureValue(period, copy('metric.financials.overview.captainEarnings'))
+    expect(wideGross).toBeTruthy()
     first.unmount()
 
     mount(FIRST_WEEK)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.tiles.heading'] as string)).toBeTruthy(),
+    await settled()
+    const narrowed = chapter(copy('fin.overview.chapter.period'))
+    expect(figureValue(narrowed, copy('metric.financials.overview.grossBookings'))).not.toBe(
+      wideGross,
     )
-    expect(tileValue(EN['fin.overview.gross'] as string)).not.toBe(wideGross)
-    expect(tileValue(EN['fin.overview.captainEarnings'] as string)).not.toBe(wideEarnings)
+    expect(figureValue(narrowed, copy('metric.financials.overview.captainEarnings'))).not.toBe(
+      wideEarnings,
+    )
   })
 
   /**
-   * *"…and every tile states the period it covers."*
-   *
-   * The in-period tiles carry the window in their caption, and the caption
-   * **moves with the window** — a caption that could not change would be the
-   * same defect as a value that could not.
+   * §3.2 — **the chapter heading carries the window once and no figure repeats
+   * it.** Six figures printed `Period 1 Jun to 30 Jun` and five printed
+   * `Balance to date, outside the period.`: the page meta, eleven times.
    */
-  it('every in-period tile carries the window, and the caption moves with it', async () => {
-    const first = mount(FULL_MONTH)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.tiles.heading'] as string)).toBeTruthy(),
-    )
-    const wideCaptions = screen.getAllByText(/1 Jun/)
-    expect(wideCaptions.length).toBeGreaterThan(4)
-    expect(wideCaptions[0]?.textContent).toContain('30 Jun')
-    first.unmount()
+  it('the chapter summary carries the window and no figure repeats it', async () => {
+    mount(FULL_MONTH)
+    await settled()
+    const period = chapter(copy('fin.overview.chapter.period'))
 
-    mount(FIRST_WEEK)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.tiles.heading'] as string)).toBeTruthy(),
-    )
-    const narrowCaptions = screen.getAllByText(/1 Jun/)
-    expect(narrowCaptions[0]?.textContent).toContain('7 Jun')
-    expect(narrowCaptions[0]?.textContent).not.toContain('30 Jun')
+    const summary = within(period).getAllByText(/1 Jun/)
+    expect(summary).toHaveLength(1)
+    expect(summary[0]?.textContent).toContain('30 Jun')
+
+    for (const figure of Array.from(period.querySelectorAll('li'))) {
+      expect(figure.textContent ?? '').not.toContain('1 Jun')
+    }
   })
 
   /**
-   * **AC-487 — the five position tiles are as-at and do NOT move with the
-   * period.** This test was a deliberate RED against AC-353 as originally
-   * written (*"changing the period changes EVERY tile"*), and it is now the
-   * assertion the amended criteria actually want.
-   *
-   * The criterion was what was wrong, not the screen. Overview renders two
-   * sections: six **in-period flows**, which move with the window and are
-   * covered by the caption test above, and five **as-at positions** — pending
-   * payouts, escrow held, escrow ready, captain debt, rider wallet liability.
-   * Each of those is a *balance*, not a flow: `accountBalanceFrom` and the
-   * escrow holds are read at the clock, with no window at all.
-   *
-   * **A balance-sheet position that changed when a reporting period was
-   * narrowed would be wrong**, so satisfying the original wording would have
-   * meant breaking the screen. Product-owner split it: AC-353 became *"every
-   * tile states its window, and a tile with no window states that it has
-   * none"*, and AC-487 carries these five. The pairing is what makes the
-   * assertion meaningful — a tile that never moves and never says why is just
-   * as broken as one that moves when it should not, so this test and the
-   * `as-at` caption test below are a pair and neither stands alone.
+   * **AC-487 — the position figures are as-at and do NOT move with the period.**
+   * A balance-sheet position that changed when a reporting period narrowed
+   * would be wrong, so this test and the summary test below are a pair.
    */
-  it('the position tiles hold still when the period narrows', async () => {
+  it('the position figures hold still when the period narrows', async () => {
+    const labels = [
+      copy('metric.financials.overview.pendingPayouts'),
+      copy('metric.financials.overview.riderWallets'),
+      copy('metric.financials.overview.escrowHeld'),
+      copy('metric.financials.overview.escrowReady'),
+      copy('metric.financials.overview.captainDebt'),
+      copy('metric.financials.overview.heldInTotal'),
+    ]
+
     const first = mount(FULL_MONTH)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.positions.heading'] as string)).toBeTruthy(),
-    )
-    const positionLabels = [
-      EN['fin.overview.pendingPayouts'],
-      EN['fin.overview.escrowHeld'],
-      EN['fin.overview.escrowReady'],
-      EN['fin.overview.captainDebt'],
-      EN['fin.overview.riderWalletLiability'],
-    ] as string[]
-    const wide = positionLabels.map((label) => tileValue(label, 'positions'))
+    await settled()
+    const wideSection = chapter(copy('fin.overview.chapter.positions'))
+    const wide = labels.map((label) => figureValue(wideSection, label))
     first.unmount()
 
     mount(FIRST_WEEK)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.positions.heading'] as string)).toBeTruthy(),
-    )
-    const narrow = positionLabels.map((label) => tileValue(label, 'positions'))
+    await settled()
+    const narrowSection = chapter(copy('fin.overview.chapter.positions'))
+    const narrow = labels.map((label) => figureValue(narrowSection, label))
 
-    /* Guard against the vacuous pass: five identical empty strings would
-       satisfy the loop below without proving anything. */
-    for (const [index, label] of positionLabels.entries()) {
+    for (const [index, label] of labels.entries()) {
       expect(wide[index], `${label} rendered no value to compare`).toBeTruthy()
       expect(narrow[index], `${label} moved when the period narrowed`).toBe(wide[index])
     }
   })
 
-  /**
-   * The behaviour that **is** correct, recorded so the verdict has something to
-   * point at when AC-353 is split: the position tiles state that they are
-   * as-at, rather than borrowing the period's caption and implying they were
-   * measured over it.
-   */
-  it('the position tiles state that they are as-at rather than in-period', async () => {
+  it('the positions chapter states a balance date rather than the window', async () => {
     mount(FULL_MONTH)
-    await waitFor(() =>
-      expect(screen.getByText(EN['fin.overview.positions.heading'] as string)).toBeTruthy(),
+    await settled()
+    const positions = chapter(copy('fin.overview.chapter.positions'))
+    expect(within(positions).getByText(/Balances as at/)).toBeTruthy()
+  })
+})
+
+describe('§3 — the board', () => {
+  /**
+   * **Every delta on the band is the same field's change in the response.** A
+   * delta computed in the component from numbers it happened to have is the
+   * hand-written literal AC-346 forbids, one field over.
+   */
+  it('every delta on the band equals the change in the response', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    const before = data.comparison
+    expect(before, 'the fixtures must carry a comparison window').not.toBeNull()
+    const now = marginBreakdown(data)
+    const then = marginBreakdown(before!)
+
+    const change = (a: number, b: number) => Math.round(((a - b) / Math.abs(b)) * 1000) / 10
+    const grossDelta = formatSignedPercent(
+      change(data.grossBookingsHalalas, before!.grossBookingsHalalas),
+      'en',
     )
-    expect(screen.getAllByText(EN['fin.overview.asAt'] as string)).toHaveLength(5)
+    const contributionDelta = formatSignedPercent(
+      change(now.contributionMarginHalalas, then.contributionMarginHalalas),
+      'en',
+    )
+    /* §4.3 — a RATE moved by points, not by a percent of a percent. */
+    const pointsDelta =
+      formatSignedPoints(
+        Math.round(
+          ((now.contributionMarginPercent ?? 0) - (then.contributionMarginPercent ?? 0)) * 10,
+        ) / 10,
+        'en',
+      ) + copy('metric.delta.points')
+
+    mount(FULL_MONTH)
+    await settled()
+    const text = band().textContent ?? ''
+    expect(text).toContain(grossDelta)
+    expect(text).toContain(contributionDelta)
+    expect(text).toContain(pointsDelta)
+  })
+
+  /**
+   * **AC-342 in the plot: a zero-gross day is a GAP, not a `0%` point.** A
+   * chart that dips to the axis on a quiet day reads as a collapse in margin.
+   */
+  it('a zero-gross day plots as a gap, not a zero', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    const quiet = data.daily.filter((each) => each.grossBookingsHalalas === 0)
+    expect(quiet.length, 'the fixtures must contain a day with no gross').toBeGreaterThan(0)
+
+    const board = toBoard(data, 'en')
+    const contribution = board.series.find((series) =>
+      series.key.endsWith('contributionPercentByDay'),
+    )
+    expect(contribution).toBeTruthy()
+    expect(contribution!.current.points).toHaveLength(data.daily.length)
+    for (const day of quiet) {
+      const point = contribution!.current.points.find((each) => each.at === day.date)
+      expect(point?.value, `${day.date} plotted a number over zero gross`).toBeNull()
+    }
+  })
+
+  /**
+   * **The two absences are different facts.** `no-history` is *there is no
+   * earlier window*; a window that exists and carries nothing to divide by is
+   * `insufficient-data`. Emitting the first for both put *No comparison period
+   * yet* on one figure beside *vs 1 May – 31 May* on the next.
+   */
+  it('a prior window with nothing to divide by reads as too little data, not no history', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    expect(data.comparison, 'the fixtures must carry a comparison window').not.toBeNull()
+    expect(
+      data.comparison!.captainEarningsHalalas,
+      'this figure is the worked case only while its prior value is zero',
+    ).toBe(0)
+
+    const board = toBoard(data, 'en')
+    const earnings = board.flows.find((each) => each.key.endsWith('captainEarnings'))
+    expect(earnings?.comparison).toEqual({ kind: 'none', reason: 'insufficient-data' })
+    expect(earnings?.deltaPercent).toBeNull()
+
+    mount(FULL_MONTH)
+    await settled()
+    const period = chapter(copy('fin.overview.chapter.period'))
+    expect(within(period).getAllByText(copy('overview.noCompare.insufficient-data')).length)
+      .toBeGreaterThan(0)
+    expect(within(period).queryByText(copy('overview.noCompare.no-history'))).toBeNull()
+  })
+
+  /**
+   * §3.7's dotted line. A legend reading *No comparison period yet* under a
+   * headline reading *up 5,024.3% against 1 May – 31 May* is one card making
+   * two claims about one window.
+   */
+  it('each chart carries the prior window as its comparison series', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    expect(data.dailyComparison).not.toBeNull()
+    expect(data.dailyComparison).toHaveLength(31)
+
+    const board = toBoard(data, 'en')
+    for (const series of board.series) {
+      expect(series.comparison, `${series.key} draws no dotted line`).not.toBeNull()
+      expect(series.comparison!.periodStart).toBe(data.comparison!.period.start)
+      expect(series.comparison!.points).toHaveLength(data.dailyComparison!.length)
+    }
+  })
+
+  /** §3.0 — each decision row opens the view that can act on it. */
+  it('the decision list links to the view that can act', async () => {
+    mount(FULL_MONTH)
+    await settled()
+    const link = screen.getByRole('link', { name: new RegExp(copy('fin.overview.decision.cash')) })
+    expect(link.getAttribute('href')).toBe('/financials/cash?view=reconciliation-queue')
+  })
+
+  /**
+   * **P0-1.** The refused banner reused `fin.overview.outOfBalance.body` —
+   * *"Total debits and total credits disagree."* — on a page whose books
+   * balance. The banner contradicted the page.
+   */
+  it('the refused banner does not say debits and credits disagree when the books balance', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    expect(data.trialBalanceBalanced).toBe(true)
+    expect(data.refusedPostingCount).toBeGreaterThan(0)
+
+    mount(FULL_MONTH)
+    await settled()
+    expect(screen.getByText(copy('fin.overview.refused.body'))).toBeTruthy()
+    expect(screen.queryByText(copy('fin.overview.outOfBalance.body'))).toBeNull()
   })
 })

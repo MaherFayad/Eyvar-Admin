@@ -104,6 +104,12 @@ export interface BoardHeroProps {
    */
   onPeriod?: (next: { start: IsoDate; end: IsoDate } | null) => void
   /**
+   * A control of the caller's own, in the pill's place. Financials' presets are
+   * calendar months and its stepper walks them; a second control on the band
+   * would be two sets of presets for one window (§3.2). Outranks `onPeriod`.
+   */
+  periodSlot?: ReactNode
+  /**
    * The lead figures. Three of them, rendered by the caller at
    * `surface="band"`. Absent while the board is loading, failed or empty —
    * the band is then its title, its lede and nothing else.
@@ -119,6 +125,7 @@ export function BoardHero({
   asOf,
   period,
   onPeriod,
+  periodSlot,
   children,
   t,
   language,
@@ -145,7 +152,7 @@ export function BoardHero({
               point-in-time has no period to print and is exactly the board an
               operator wants to put one on. The static pill is what is left when
               a board states a window it cannot be asked to change. */}
-          {onPeriod ? (
+          {periodSlot ?? (onPeriod ? (
             <BoardPeriodControl
               period={period}
               onChange={onPeriod}
@@ -173,7 +180,7 @@ export function BoardHero({
                 </bdi>
               </span>
             )
-          )}
+          ))}
           {/* §8 slot 2 — the board's freshness, in the band rather than above
               it. Same key, same format, same content as the `PageHeader` line
               it replaces. */}

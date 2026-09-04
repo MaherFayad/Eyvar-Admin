@@ -187,23 +187,19 @@ import {
   ABSENT,
   directionFor,
   formatDate,
-  formatDecimal,
   invariant,
   isolatedRunProps,
-  MINUS_SIGN,
   type Language,
   type Translate,
 } from '@/lib'
 import type { Metric, MetricComparison } from '@/data/types'
-import { formatMetricValue, formatSignedPercent, metricValence, splitMetricValue } from './formatMetric'
-
-/** `+0.6` / `−0.6` / `0.0` — the sign carried in text, as `formatSignedPercent` does. */
-function formatSignedDecimal(value: number, language: Language): string {
-  const magnitude = formatDecimal(Math.abs(value), 1, language)
-  if (value > 0) return `+${magnitude}`
-  if (value < 0) return `${MINUS_SIGN}${magnitude}`
-  return magnitude
-}
+import {
+  formatMetricValue,
+  formatSignedPercent,
+  formatSignedPoints,
+  metricValence,
+  splitMetricValue,
+} from './formatMetric'
 
 
 export interface MetricTileProps {
@@ -234,12 +230,9 @@ export interface MetricTileProps {
    */
   selection?: MetricSelection
   /**
-   * **What the delta is measured IN.** A change in a percentage is points, not
-   * a percentage of a percentage — `19.0%` against `19.6%` is `−0.6 pts`, and
-   * rendering `−3.1%` there would be a different, true, unasked-for fact.
-   *
-   * `points` reads the signed one-decimal value already on `deltaPercent` and
-   * renders it through `metric.delta.points`. Defaults to `percent`.
+   * What `deltaPercent` is a change IN. `percent` is the default. `points` is
+   * the difference between two rates — 12.6% to 12.0% fell 0.6 points, not
+   * 4.8% — and the caller puts that difference in `deltaPercent` (§4.3).
    */
   deltaUnit?: MetricDeltaUnit
 }
@@ -396,7 +389,7 @@ export function MetricTile({
           onBand ? 'text-hero-muted' : 'text-muted-foreground',
         )}
       >
-        <bdi>{t(metric.caption)}</bdi>
+        <bdi>{t(metric.caption, metric.captionParams ?? undefined)}</bdi>
       </span>
     ) : null
 
@@ -804,9 +797,9 @@ function comparisonParts({
     delta: (
       <MetricDelta
         deltaPercent={deltaPercent}
-        unit={deltaUnit}
         higherIsBetter={metric.higherIsBetter}
         onBand={onBand}
+        deltaUnit={deltaUnit}
         t={t}
         language={language}
       />
@@ -867,19 +860,19 @@ function comparisonParts({
  */
 export function MetricDelta({
   deltaPercent,
-  unit = 'percent',
   higherIsBetter,
   onBand = false,
+  deltaUnit = 'percent',
   t,
   language,
 }: {
   /** Signed, in percentage points. `null` when there is nothing to compare. */
   deltaPercent: number | null
-  /** `points` renders the same number as a point difference. See `MetricTileProps`. */
-  unit?: MetricDeltaUnit
   higherIsBetter: boolean
   /** `true` on the hero band, which has its own legible pair of valence hues. */
   onBand?: boolean
+  /** See `MetricTileProps.deltaUnit`. `points` renders `−0.6 pts`, not `−0.6%`. */
+  deltaUnit?: MetricDeltaUnit
   t: Translate
   language: Language
 }) {
@@ -933,9 +926,11 @@ export function MetricDelta({
       {Caret && <Caret aria-hidden="true" className="size-3" />}
       {/* Isolated for the same reason as the value. `+8.1%` renders `8.1%+`
           without it under `dir="rtl"`, its leading sign being bidi-neutral. */}
+      {/* A change in a RATE is a point difference, and the run says which it is
+          rather than leaving `%` to mean two things (§4.3). */}
       <bdi className="tabular-nums">
-        {unit === 'points'
-          ? t('metric.delta.points', { value: formatSignedDecimal(deltaPercent, language) })
+        {deltaUnit === 'points'
+          ? `${formatSignedPoints(deltaPercent, language)}${t('metric.delta.points')}`
           : formatSignedPercent(deltaPercent, language)}
       </bdi>
       <span className="sr-only">{direction}</span>

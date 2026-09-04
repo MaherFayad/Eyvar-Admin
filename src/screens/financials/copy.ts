@@ -1123,5 +1123,64 @@ export const FINANCIALS_EN: Dictionary = {
   'metric.fin.revenue.plan.contribution': 'Contribution',
   'metric.fin.revenue.plan.contributionPercent': 'Contribution %',
   /* A change in a percentage is points, not a percentage of a percentage. */
-  'metric.delta.points': '{value} pts',
+  /* ── FINANCIALS-UX-PLAN §3 Overview ── */
+
+  /* P0-1. The refused banner reused the out-of-balance sentence, which says
+     debits and credits disagree — under a footer reading `Debits 15,754.93 ·
+     Credits 15,754.93`. Refused postings are a different condition. */
+
+  'fin.overview.board.lede': '{from} to {to}, measured against {compareFrom} to {compareTo}.',
+  'fin.overview.board.lede.alone': '{from} to {to}. There is no earlier window to measure against.',
+  'fin.overview.chapter.period': 'The period',
+  'fin.overview.chapter.period.note': 'Flows over {from} to {to}.',
+  'fin.overview.chapter.positions': 'Where the money is held',
+  'fin.overview.chapter.positions.note': 'Balances as at {at}.',
+  'fin.overview.charts.heading': 'How the month ran',
+  'fin.overview.lists.heading': 'Where it went',
+
+  'metric.financials.overview.grossBookings': 'Gross bookings',
+  'metric.financials.overview.captainEarnings': 'Captain earnings',
+  'metric.financials.overview.grossMargin': 'Gross margin',
+  'metric.financials.overview.giveback': 'Giveback',
+  'metric.financials.overview.contributionMargin': 'Contribution margin',
+  'metric.financials.overview.contributionPercent': 'Contribution %',
+  'metric.financials.overview.refunds': 'Refunds',
+  'metric.financials.overview.pendingPayouts': 'Owed to captains',
+  'metric.financials.overview.escrowHeld': 'Escrow held',
+  'metric.financials.overview.escrowReady': 'Escrow ready to release',
+  'metric.financials.overview.captainDebt': 'Captain cash debt',
+  'metric.financials.overview.riderWallets': 'Rider wallet balances',
+  'metric.financials.overview.heldInTotal': 'Held in total',
+
+  /* R4-4 §4.2 — a denominator or a scope limit, never a status, ≤38 chars. */
+  'fin.overview.caption.shareOfGross': '{share} of gross',
+  'fin.overview.caption.shareOfMargin': '{share} of gross margin',
+  'fin.overview.caption.shareOfGiveback': '{share} of giveback',
+  'fin.overview.caption.escrowReady': 'Cleared the hold window.',
+  'fin.overview.caption.captainDebt': 'Captains in debt only.',
+  'fin.overview.caption.heldInTotal': 'Across five accounts.',
+
+  /* §4.3 — a change in a RATE is a point difference. Read by `MetricDelta`. */
+  'metric.delta.points': ' pts',
+
+  'chart.financials.overview.grossByDay': 'Gross bookings by day',
+  'chart.financials.overview.contributionPercentByDay': 'Contribution % by day',
+
+  'breakdown.financials.overview.giveback': 'What was given back',
+  'breakdown.dimension.giveback-line': 'giveback lines',
+  'fin.overview.giveback.share': '{shareOfGiveback} of giveback · {shareOfMargin} of gross margin',
+
+  'fin.overview.decisions.heading': 'What needs a decision',
+  'fin.overview.decisions.empty': 'Nothing on the books is waiting on a decision.',
+  'fin.overview.decision.payouts': 'Payouts returned by the bank',
+  'fin.overview.decision.creditNotes': 'Credit notes with no invoice',
+  'fin.overview.decision.cash': 'Cash reports escalated',
+
+  'fin.overview.empty.heading': 'Nothing posted in this window',
+  'fin.overview.empty.body':
+    'The books hold {postings} postings. None was posted between {from} and {to}.',
+  'fin.overview.firstRun.heading': 'The books are empty',
+  'fin.overview.firstRun.body':
+    'Nothing has been posted yet. The first captured fare opens the ledger and every figure here follows from it.',
+  'fin.overview.firstRun.action': 'Open the ledger',
 }

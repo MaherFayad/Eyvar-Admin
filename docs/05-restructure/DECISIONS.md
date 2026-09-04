@@ -4600,3 +4600,37 @@ without one. Where that control lives is a shell decision, and Live Dispatch alr
 
 Guarded by `src/components/ui/motion.licence.test.ts`, whose class names are assembled at
 runtime — because a test that greps for a utility by writing it also ships it.
+
+---
+
+## D-F32 — a `Metric` derived from a server response is not a minted literal
+
+**Status:** ruled and implemented (FINANCIALS-UX-PLAN §3.1, Q-F14).
+
+`src/screens/financials/shared/Figures.tsx` opened with a rule: *a Financials figure is not a
+`Metric`, so it must not borrow `MetricTile`*. The premise was stated in the same paragraph —
+*"a contribution margin is arithmetic over the period's postings … with no series behind it and
+no delta to state"* — and the conclusion followed from it: passing such a figure through a
+component built for a keyed measure would mean **minting a fake `Metric` per figure**, which is
+the hand-written literal **AC-346** exists to prevent.
+
+**The premise no longer holds.** `FinancialsOverview` now carries a `comparison` window and a
+`daily` series (§2.1, §2.2), both computed from the same postings as every other figure on the
+read. A `Metric` whose value, whose comparison and whose series all come from one server
+response is not minted; it is the response, typed for the component that draws it. The
+adapter that does the typing is `src/screens/financials/overview/toBoard.ts`, and it contains
+no number literal — the same structural guarantee `getFinancialsOverview` gives.
+
+**What the rule still forbids, unchanged.** A figure with no comparison and no series does not
+become a `Metric` by being wrapped in one. Where a Financials surface has only arithmetic —
+the H5 calculation card, the payout confirmation's three lines, the trial-balance totals — it
+uses `FigureRow`, which draws the **operators** of a sum and which no metric tile can.
+
+**Consequence.** Financials Overview is a board: `BoardHero`, `Chapter`, `ChapterFigures`,
+`MetricTile`, `ChartCard`, `BreakdownList`, plus one new `DecisionList`. `Figures.tsx`'s
+opening rule is rewritten to say so. Revenue & Refunds' plan detail (§4) follows the same
+reading when `PlanRevenueDetail` lands.
+
+**What was NOT decided here.** Whether Financials may use the categorical chart palette
+(Q-F11), whether a period closes (Q-F8), and whether a contribution-% target exists (Q-F10)
+are all still open and all still ship as the plan's defaults.

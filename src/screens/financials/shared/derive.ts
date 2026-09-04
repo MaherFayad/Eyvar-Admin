@@ -18,6 +18,23 @@
 
 import type { FinancialsOverview, Halalas } from '@/data/types'
 
+/**
+ * The eight lines the margin chain is computed from. Named as a shape rather
+ * than as `FinancialsOverview` so the **comparison window** runs through the
+ * same arithmetic — AC-347 is one implementation, not one caller.
+ */
+export type MarginComponents = Pick<
+  FinancialsOverview,
+  | 'grossBookingsHalalas'
+  | 'captainEarningsHalalas'
+  | 'promoHalalas'
+  | 'referralHalalas'
+  | 'incentiveHalalas'
+  | 'refundsHalalas'
+  | 'goodwillHalalas'
+  | 'emergencyCoverHalalas'
+>
+
 export interface MarginBreakdown {
   grossBookingsHalalas: Halalas
   captainEarningsHalalas: Halalas
@@ -54,7 +71,7 @@ export function percentOrNull(numerator: number, denominator: number): number | 
  * that, and the closure is structural here because there is one addition and
  * `goodwillHalalas` is the client's own `expense.goodwill` flow.
  */
-export function marginBreakdown(overview: FinancialsOverview): MarginBreakdown {
+export function marginBreakdown(overview: MarginComponents): MarginBreakdown {
   const grossMarginHalalas = overview.grossBookingsHalalas - overview.captainEarningsHalalas
   const givebackHalalas =
     overview.promoHalalas +

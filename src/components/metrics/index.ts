@@ -51,6 +51,7 @@ export {
   formatPercent,
   formatSeriesValue,
   formatSignedPercent,
+  formatSignedPoints,
   /* §A8 / "a number is never alone". Exported so the REPORT BUILDER's panel
      card reaches the same valence judgement and the same derived sentence as a
      metric board's chart card — one derivation, two surfaces, no chance of the

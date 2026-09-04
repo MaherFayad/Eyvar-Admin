@@ -124,11 +124,18 @@ export function PeriodControl({
   onChange,
   t,
   language,
+  surface = 'page',
 }: {
   period: FinancialsPeriod
   onChange: (next: FinancialsPeriod) => void
   t: Translate
   language: Language
+  /**
+   * `band` rests the three triggers on `--ev-hero-2` — none of the page's
+   * foreground tokens is legible on `--ev-hero`. The popover is unaffected: it
+   * is a layer over the page, not part of the field (§3.2).
+   */
+  surface?: 'page' | 'band'
 }) {
   const dir = directionFor(language)
   const PreviousChevron = previousIcon(dir)
@@ -141,6 +148,14 @@ export function PeriodControl({
      Without this, opening the picker after two clicks of the forward stepper
      would show the window from before those clicks. */
   useEffect(() => setDraft(period), [period])
+
+  const onBand = surface === 'band'
+  /* One bag, all three triggers, so the band cannot grow a control in the
+     page's palette. `focus-visible` is the band's own ring for the same
+     reason. */
+  const trigger = onBand
+    ? 'border border-hero-line bg-hero-2 text-hero-foreground hover:bg-hero-2 hover:text-hero-foreground focus-visible:ring-hero-foreground'
+    : undefined
 
   const active = activePreset(period, EYVAR_TODAY)
   const unchanged = draft.start === period.start && draft.end === period.end
@@ -158,6 +173,7 @@ export function PeriodControl({
       <Button
         variant="secondary"
         size="icon-xs"
+        className={trigger}
         aria-label={t('fin.overview.period.previous')}
         onClick={() => onChange(shiftPeriodMonths(period, -1))}
       >
@@ -166,8 +182,11 @@ export function PeriodControl({
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="secondary" size="xs" className="gap-2">
-            <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+          <Button variant="secondary" size="xs" className={cn('gap-2', trigger)}>
+            <CalendarIcon
+              className={cn('size-4', onBand ? 'text-hero-label' : 'text-muted-foreground')}
+              aria-hidden="true"
+            />
             {/* `<bdi>` — the range is a Latin numeral run inside what may be an
                 Arabic control, and it reorders without the isolate. */}
             <bdi className="tabular-nums">{rangeLabel(period, t, language)}</bdi>
@@ -298,6 +317,7 @@ export function PeriodControl({
       <Button
         variant="secondary"
         size="icon-xs"
+        className={trigger}
         aria-label={t('fin.overview.period.next')}
         onClick={() => onChange(shiftPeriodMonths(period, 1))}
       >

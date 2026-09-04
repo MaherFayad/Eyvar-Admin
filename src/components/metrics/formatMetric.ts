@@ -68,6 +68,18 @@ export function formatSignedPercent(value: number, language: Language): string {
 }
 
 /**
+ * A signed one-decimal value, for a delta measured in percentage **points**:
+ * `+0.6`, `−0.6`, `0.0`. The unit word is the caller's (`metric.delta.points`),
+ * because it is a translated noun and this returns a numeral (AC-713).
+ */
+export function formatSignedPoints(value: number, language: Language): string {
+  const magnitude = formatDecimal(Math.abs(value), 1, language)
+  if (value > 0) return `+${magnitude}`
+  if (value < 0) return `${MINUS_SIGN}${magnitude}`
+  return magnitude
+}
+
+/**
  * **Is this movement good news or bad news?** The one place that decides, so
  * the word a reader sees and the clause a screen reader hears are the same
  * judgement rather than two implementations of it.
@@ -137,6 +149,11 @@ export interface TrendReadInput {
    */
   baseline: { from: string; to: string } | null
   language: Language
+  /**
+   * The magnitude, already formatted, when the sentence must not word it as a
+   * percentage — a rate that moved by POINTS. Absent, it is `formatPercent`.
+   */
+  deltaText?: string
 }
 
 /**
@@ -151,7 +168,13 @@ export interface TrendReadInput {
  * nothing to say leaves a bare number and no way to know whether the sentence
  * is missing or the comparison is.
  */
-export function trendRead({ title, deltaPercent, baseline, language }: TrendReadInput): TrendRead {
+export function trendRead({
+  title,
+  deltaPercent,
+  baseline,
+  language,
+  deltaText,
+}: TrendReadInput): TrendRead {
   if (deltaPercent === null || baseline === null) {
     return { key: 'overview.chart.read.noBaseline', params: {} }
   }
@@ -162,7 +185,7 @@ export function trendRead({ title, deltaPercent, baseline, language }: TrendRead
     key: deltaPercent > 0 ? 'overview.chart.read.up' : 'overview.chart.read.down',
     params: {
       title,
-      delta: formatPercent(Math.abs(deltaPercent), language),
+      delta: deltaText ?? formatPercent(Math.abs(deltaPercent), language),
       from,
       to,
     },
