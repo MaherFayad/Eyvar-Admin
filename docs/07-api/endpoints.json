@@ -974,6 +974,56 @@
       ]
     },
     {
+      "method": "DELETE",
+      "path": "/api/v1/corporate-accounts/:id/employees/:riderId",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "removeCorporateEmployee",
+      "params": null,
+      "body": null,
+      "returns": "CorporateAccount",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the account does not exist"
+        },
+        {
+          "code": "422",
+          "when": "`rider_not_linked` when the rider is not on this account"
+        },
+        {
+          "code": "409",
+          "when": "`unbilled_spend` when the rider has spend the open invoice has not billed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/corporate-accounts/:id/invoice",
+      "client": "src/data/clients/corporateAccounts.ts",
+      "function": "sendCorporateInvoice",
+      "params": null,
+      "body": null,
+      "returns": "CorporateAccount  (with `lastInvoiceGeneratedAt` and `nextInvoiceOn` moved)",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the account does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`account_not_active` when the account is pending or suspended"
+        },
+        {
+          "code": "422",
+          "when": "`prepaid_account` when the account is not invoiced at all"
+        },
+        {
+          "code": "422",
+          "when": "`no_billable_spend` when there is nothing to invoice"
+        }
+      ]
+    },
+    {
       "method": "PATCH",
       "path": "/api/v1/corporate-accounts/:id/usage-policy",
       "client": "src/data/clients/corporateAccounts.ts",
@@ -1090,6 +1140,68 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/dispatch/interventions",
+      "client": "src/data/clients/dispatch.ts",
+      "function": "listInterventions",
+      "params": "status",
+      "body": null,
+      "returns": "Intervention[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dispatch/interventions/:id/acknowledge",
+      "client": "src/data/clients/dispatch.ts",
+      "function": "acknowledgeIntervention",
+      "params": null,
+      "body": "{ note: string | null }",
+      "returns": "Intervention",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`already_acknowledged` when somebody has already taken it"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dispatch/interventions/:id/reassign",
+      "client": "src/data/clients/dispatch.ts",
+      "function": "reassignIntervention",
+      "params": null,
+      "body": "{ driverId: string }",
+      "returns": "Intervention",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the intervention or the captain does not exist"
+        },
+        {
+          "code": "422",
+          "when": "`driver_unavailable` when the captain is not online and free"
+        },
+        {
+          "code": "422",
+          "when": "`same_driver` when the captain named is the one already on the trip"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dispatch/telemetry",
+      "client": "src/data/clients/dispatch.ts",
+      "function": "getDispatchTelemetry",
+      "params": "none — the server scopes to the caller's cities",
+      "body": null,
+      "returns": "DispatchTelemetry",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/disputes",
       "client": "src/data/clients/disputes.ts",
       "function": "listDisputes",
@@ -1119,7 +1231,7 @@
       "client": "src/data/clients/disputes.ts",
       "function": "claimDispute",
       "params": null,
-      "body": "{ userId }",
+      "body": "{ userId, takeOver }",
       "returns": "Dispute",
       "statuses": [
         {
@@ -1128,7 +1240,30 @@
         },
         {
           "code": "409",
-          "when": "when the dispute is already resolved"
+          "when": "`already_resolved` when the dispute is resolved"
+        },
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/release",
+      "client": "src/data/clients/disputes.ts",
+      "function": "releaseDispute",
+      "params": null,
+      "body": null,
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`already_resolved` when the dispute is resolved"
         }
       ]
     },
@@ -2908,6 +3043,37 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/subscriptions/:id/driver",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "reassignSubscriptionDriver",
+      "params": null,
+      "body": "{ driverId: string, reason: string }",
+      "returns": "Subscription",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the subscription or the captain does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`not_reassignable` when the subscription is cancelled or expired"
+        },
+        {
+          "code": "422",
+          "when": "`same_driver` when the captain named already holds it"
+        },
+        {
+          "code": "422",
+          "when": "`driver_unavailable` when the captain is not active"
+        },
+        {
+          "code": "422",
+          "when": "`vehicle_class_below_plan` when their vehicle is below the plan's tier"
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/subscriptions/:id/freeze",
       "client": "src/data/clients/subscriptions.ts",
       "function": "freezeSubscription",
@@ -3182,7 +3348,7 @@
       "client": "src/data/clients/tickets.ts",
       "function": "claimTicket",
       "params": null,
-      "body": "{ userId }",
+      "body": "{ userId, takeOver }",
       "returns": "Ticket",
       "statuses": [
         {
@@ -3191,7 +3357,22 @@
         },
         {
           "code": "409",
-          "when": "when another operator already holds it"
+          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/release",
+      "client": "src/data/clients/tickets.ts",
+      "function": "releaseTicket",
+      "params": null,
+      "body": null,
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
         }
       ]
     },

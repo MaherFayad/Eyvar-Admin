@@ -1,12 +1,12 @@
 {
   "totals": {
-    "keys": 5553,
-    "en": 5282,
-    "ar": 5553,
+    "keys": 5601,
+    "en": 5323,
+    "ar": 5601,
     "arMissing": 0,
-    "arExtra": 271,
+    "arExtra": 278,
     "copyFiles": 36,
-    "unregisteredKeys": 167,
+    "unregisteredKeys": 174,
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2
@@ -37,19 +37,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/metrics/copy.ts",
+      "exports": [
+        "OVERVIEW_EN"
+      ],
+      "keys": 250,
+      "notInEN": 0
+    },
+    {
       "file": "src/components/profile/copy.ts",
       "exports": [
         "PROFILE_EN"
       ],
       "keys": 249,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "exports": [
-        "OVERVIEW_EN"
-      ],
-      "keys": 248,
       "notInEN": 0
     },
     {
@@ -207,6 +207,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "exports": [
+        "MY_WORK_EN"
+      ],
+      "keys": 63,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/support/fairness/copy.ts",
       "exports": [
         "FAIRNESS_EN"
@@ -236,14 +244,6 @@
         "QUEUE_SHARED_EN"
       ],
       "keys": 46,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "exports": [
-        "MY_WORK_EN"
-      ],
-      "keys": 43,
       "notInEN": 0
     },
     {
@@ -301,8 +301,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 78,
-      "notInEN": 76
+      "keys": 85,
+      "notInEN": 83
     }
   ],
   "noCopyFile": [

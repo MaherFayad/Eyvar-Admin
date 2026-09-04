@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**302 endpoints across 46 client modules.**
+**311 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -139,6 +139,8 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/corporate-accounts` | `CorporateAccount   (status `Pending`, empty `riderIds`)` | `CreateCorporateAccountInput` | **422** when company name, contact name or contact email is missing | `createCorporateAccount()` |
 | GET | `/api/v1/corporate-accounts/:id` | `CorporateAccount` | - | - | `getCorporateAccount()` |
 | POST | `/api/v1/corporate-accounts/:id/employees` | `CorporateAccount` | `{ riderId: string }` | **409** when the rider is already covered by another account | `addCorporateEmployee()` |
+| DELETE | `/api/v1/corporate-accounts/:id/employees/:riderId` | `CorporateAccount` | - | **404** when the account does not exist<br>**422** `rider_not_linked` when the rider is not on this account<br>**409** `unbilled_spend` when the rider has spend the open invoice has not billed | `removeCorporateEmployee()` |
+| POST | `/api/v1/corporate-accounts/:id/invoice` | `CorporateAccount  (with `lastInvoiceGeneratedAt` and `nextInvoiceOn` moved)` | - | **404** when the account does not exist<br>**409** `account_not_active` when the account is pending or suspended<br>**422** `prepaid_account` when the account is not invoiced at all<br>**422** `no_billable_spend` when there is nothing to invoice | `sendCorporateInvoice()` |
 | PATCH | `/api/v1/corporate-accounts/:id/usage-policy` | `CorporateAccount` | `Partial<CorporateUsagePolicy>` | - | `updateCorporateUsagePolicy()` |
 | GET | `/api/v1/corporate-accounts/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getCorporateFacets()` |
 
@@ -152,13 +154,23 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/dashboards/:id` | `Single<Dashboard>` | - | - | `getDashboard()` |
 | PATCH | `/api/v1/dashboards/:id` | `Single<Dashboard>` | `{ name, tiles }` | - | `saveDashboard()` |
 
+## `src/data/clients/dispatch.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/dispatch/interventions` | `Intervention[]` | `status` | - | `listInterventions()` |
+| POST | `/api/v1/dispatch/interventions/:id/acknowledge` | `Intervention` | `{ note: string \| null }` | **404** when the id does not exist<br>**409** `already_acknowledged` when somebody has already taken it | `acknowledgeIntervention()` |
+| POST | `/api/v1/dispatch/interventions/:id/reassign` | `Intervention` | `{ driverId: string }` | **404** when the intervention or the captain does not exist<br>**422** `driver_unavailable` when the captain is not online and free<br>**422** `same_driver` when the captain named is the one already on the trip | `reassignIntervention()` |
+| GET | `/api/v1/dispatch/telemetry` | `DispatchTelemetry` | `none — the server scopes to the caller's cities` | - | `getDispatchTelemetry()` |
+
 ## `src/data/clients/disputes.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/disputes` | `Paginated<Dispute>` | `QueryParams + status · kind · claimantType` | - | `listDisputes()` |
 | GET | `/api/v1/disputes/:id` | `Dispute` | - | **404** when the id does not exist | `getDispute()` |
-| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId }` | **404** when the id does not exist<br>**409** when the dispute is already resolved | `claimDispute()` |
+| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset | `claimDispute()` |
+| POST | `/api/v1/disputes/:id/release` | `Dispute` | - | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved | `releaseDispute()` |
 | POST | `/api/v1/disputes/:id/resolve` | `{ dispute, refund }` | `{ outcome, refundHalalas, note }` | **409** when the dispute is already resolved<br>**422** on an amount that contradicts the outcome<br>**403** when a goodwill credit is above the operator's authority (`adjustWallet`) | `resolveDispute()` |
 | GET | `/api/v1/disputes/facets` | `Facets — field name -> [{ value, count }], count-descending` | - | - | `getDisputeFacets()` |
 | GET | `/api/v1/lost-found` | `Paginated<LostFoundItem>` | `{ disputeId: dispute.id },` | - | `listLostFound()` |
@@ -466,6 +478,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/subscriptions` | `Paginated<Subscription>` | `q · status · planKey · riderId · driverId · page · pageSize ·` | - | `listSubscriptions()` |
 | GET | `/api/v1/subscriptions/:id` | `Subscription` | - | - | `getSubscription()` |
 | POST | `/api/v1/subscriptions/:id/cancel` | `Subscription  (with `refundedHalalas` computed for unused trips)` | `{ reason: string }` | - | `cancelSubscription()` |
+| POST | `/api/v1/subscriptions/:id/driver` | `Subscription` | `{ driverId: string, reason: string }` | **404** when the subscription or the captain does not exist<br>**409** `not_reassignable` when the subscription is cancelled or expired<br>**422** `same_driver` when the captain named already holds it<br>**422** `driver_unavailable` when the captain is not active<br>**422** `vehicle_class_below_plan` when their vehicle is below the plan's tier | `reassignSubscriptionDriver()` |
 | POST | `/api/v1/subscriptions/:id/freeze` | `Subscription` | `{ until: IsoDate }` | **409** when the subscription is cancelled or expired | `freezeSubscription()` |
 | GET | `/api/v1/subscriptions/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getSubscriptionFacets()` |
 
@@ -496,7 +509,8 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/tickets` | `Ticket` | `{ subject, entityId, entityName, entityType, category, reasonCode,` | - | `createTicket()` |
 | GET | `/api/v1/tickets/:id` | `Ticket` | - | **404** when the id does not exist | `getTicket()` |
 | POST | `/api/v1/tickets/:id/call-log` | `Ticket` | `{ outcome, notes }` | **422** on an outcome outside the closed set | `logTicketCall()` |
-| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ userId }` | **404** when the id does not exist<br>**409** when another operator already holds it | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/release` | `Ticket` | - | **404** when the id does not exist | `releaseTicket()` |
 | POST | `/api/v1/tickets/:id/reopen` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is not resolved | `reopenTicket()` |
 | POST | `/api/v1/tickets/:id/reply` | `Ticket` | `{ body }` | **404** when the id does not exist | `replyTicket()` |
 | POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is already resolved | `resolveTicket()` |

@@ -9,14 +9,14 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5553** |
-| Reachable from `EN` (what the shell renders) | 5282 |
-| Keys in `AR` | 5553 |
+| **Translatable keys, all dictionaries** | **5601** |
+| Reachable from `EN` (what the shell renders) | 5323 |
+| Keys in `AR` | 5601 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 271 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 278 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 167 |
+| Keys in a `copy.ts` the shell has NOT registered | 174 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 
@@ -41,8 +41,8 @@ None left. Add the lint rule and delete this section.
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 565 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
+| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
-| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 248 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
@@ -62,11 +62,11 @@ None left. Add the lint rule and delete this section.
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
+| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 46 |
-| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 43 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
@@ -83,7 +83,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
 | `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 92 | 91 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 78 | 76 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
 
 ## Screens with no `copy.ts`
 
