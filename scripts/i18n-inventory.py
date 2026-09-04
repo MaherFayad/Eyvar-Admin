@@ -26,14 +26,21 @@ Two numbers were load-bearing and neither was measured.
    English forever with nothing to show for it. There is no way to find these by
    running the app -- only by counting them.
 
-THE RATCHET
+THE RATCHETS
 
-`scripts/i18n-budget.json` holds a ceiling. `--check` fails when the measured
-count EXCEEDS it, naming the files. The writer sets the ceiling to
-`min(measured, ceiling)` and REFUSES to raise it, so the number can only ever go
-down, and it cannot be quietly reset by re-running the generator. Deleting a
-`defaultValue` means moving its string into the owning screen's `copy.ts` --
-`src/screens/operations/dispatch/copy.ts` is the worked example.
+`scripts/i18n-budget.json` holds a ceiling per measure. `--check` fails when a
+measured count EXCEEDS its ceiling, naming the offenders. The writer sets each
+ceiling to `min(measured, ceiling)` and REFUSES to raise it, so a number can
+only ever go down, and it cannot be quietly reset by re-running the generator.
+
+  defaultValue  literals no extractor can see. Deleting one means moving its
+                string into the owning screen's `copy.ts` --
+                `src/screens/operations/dispatch/copy.ts` is the worked example.
+  emDashEn      dictionary values carrying U+2014, English (X14). No em dash in
+  emDashAr      a string an operator reads: `·` separates a qualifier, two
+                clauses become two sentences, a numeric range keeps its en dash.
+  overBudget    English values longer than the X18 word budget for the class
+                their key name puts them in. See WORD_BUDGET below.
 
 WHAT COUNTS, AND WHAT DOES NOT
 
@@ -100,12 +107,17 @@ def walk(*, suffixes, skip_tests=True):
 def scan_object(src, start):
     """Walk the object literal opening at `src[start] == '{'`.
 
-    Returns `(keys, spreads, end)` for DEPTH 1 only -- a nested object's keys
-    belong to its parent entry, not to the dictionary. A character scanner
+    Returns `(keys, spreads, values, end)` for DEPTH 1 only -- a nested object's
+    keys belong to its parent entry, not to the dictionary. A character scanner
     rather than a line regex because `'a.b': 'it isn\\'t {n}'` and a `//` inside
     a string both defeat the regex, and both occur in this tree.
+
+    `values` maps a key to its string literal where the value IS one. A value
+    that is an expression, a template literal or a nested object is absent, so
+    the em-dash and word-budget passes below measure only what an operator
+    actually reads.
     """
-    keys, spreads = [], []
+    keys, spreads, values = [], [], {}
     depth, i, n = 0, start, len(src)
     while i < n:
         ch = src[i]
@@ -117,6 +129,9 @@ def scan_object(src, start):
             if m:
                 keys.append(m.group(1))
                 i += m.end()
+                v = re.match(r"\s*'([^'\\]*(?:\\.[^'\\]*)*)'\s*[,}]", src[i:])
+                if v:
+                    values[m.group(1)] = v.group(1)
                 continue
         if depth == 1 and ch == '.':
             m = re.match(r'\.\.\.([A-Za-z_][A-Za-z0-9_]*)', src[i:])
@@ -149,14 +164,14 @@ def scan_object(src, start):
             depth -= 1
             i += 1
             if depth == 0:
-                return keys, spreads, i
+                return keys, spreads, values, i
             continue
         i += 1
-    return keys, spreads, n
+    return keys, spreads, values, n
 
 
 def collect_dictionaries():
-    """name -> {file, keys, spreads} for every dictionary literal in the tree."""
+    """name -> {file, keys, spreads, values} for every dictionary in the tree."""
     found = {}
     for path in walk(suffixes=('.ts',)):
         src = read(path)
@@ -165,8 +180,9 @@ def collect_dictionaries():
             annotated = ': Dictionary' in m.group(0)
             if not annotated and not NAMED_EN.search(name):
                 continue
-            keys, spreads, _ = scan_object(src, src.index('{', m.end() - 1))
-            found[name] = {'file': rel(path), 'keys': keys, 'spreads': spreads}
+            keys, spreads, values, _ = scan_object(src, src.index('{', m.end() - 1))
+            found[name] = {'file': rel(path), 'keys': keys, 'spreads': spreads,
+                           'values': values}
     return found
 
 
@@ -270,6 +286,108 @@ def fragments(dicts):
     return out
 
 
+# --------------------------------------------------- em dashes and word budget
+
+EM_DASH = '—'
+
+
+def dictionary_values(dicts):
+    """(file, lang, key, value) for every dictionary entry with a string value."""
+    out = []
+    for name in sorted(dicts):
+        entry = dicts[name]
+        lang = 'ar' if entry['file'].startswith('src/i18n/ar/') else 'en'
+        for key, value in entry['values'].items():
+            out.append((entry['file'], lang, key, value))
+    return out
+
+
+def em_dash_values(values):
+    """Values carrying U+2014 -- X14. Never an em dash in a string an operator
+    reads: `·` separates a qualifier, two clauses become two sentences, and a
+    numeric range keeps its en dash."""
+    return [{'file': f, 'lang': lang, 'key': k, 'value': v}
+            for f, lang, k, v in values if EM_DASH in v]
+
+
+# X18's budget, in words, keyed by the class a key's NAME puts it in. The
+# classification below is read off how keys are named in the `copy.ts` files
+# today, not off an ideal scheme:
+#
+#   toast     `…toast.…`                        every undo and outcome toast
+#   banner    `…banner.…`                       title and body both
+#   empty     `…empty.…heading|title` -> title, `…empty.…body` and a bare
+#             `…empty` or `…empty.<variant>` -> body, `…empty.action` -> button
+#   tooltip   `…hint` / `…hint.…` / `…tooltip…`  what InfoHint opens
+#   meta      `…meta` / `…meta.…`               the PageHeader and band meta line
+#   badge     `…status.<enum>`                  the only badge naming in the tree
+#   button    `…action.<verb>` (one segment)    a label; `action.x.blocked.one`
+#             is a refusal sentence, not a button, so it is left unclassified
+#   title     `…title` / `…heading` / `route.…` / `nav.…`   a page or card title
+#
+# `cell second line` from the X18 table has no naming convention yet, so it is
+# not classified; give those keys a `.sub` tail and add the class here.
+WORD_BUDGET = {
+    'title': 4,
+    'button': 3,
+    'badge': 2,
+    'meta': 6,
+    'empty title': 5,
+    'empty body': 12,
+    'banner': 20,
+    'toast': 8,
+    'tooltip': 25,
+}
+
+
+def classify(key, value=''):
+    """The X18 class a key's name puts it in, or None. First match wins.
+
+    A value ending in a full stop or a question mark is a SENTENCE -- a §11.2
+    refusal under `action.`, not a label -- and X18 gives it no budget.
+    """
+    base = key.split('#')[0]
+    tail = base.rsplit('.', 1)[-1]
+    if re.search(r'(^|\.)toast(\.|$)', base):
+        return 'toast'
+    if re.search(r'(^|\.)banner(\.|$)', base):
+        return 'banner'
+    if re.search(r'(^|\.)empty(\.|$)', base):
+        if tail in ('heading', 'title'):
+            return 'empty title'
+        if tail == 'action':
+            return 'button'
+        return 'empty body'
+    if re.search(r'(^|\.)(hint|tooltip)(\.|$)', base):
+        return 'tooltip'
+    if re.search(r'(^|\.)meta(\.|$)', base):
+        return 'meta'
+    if re.search(r'(^|\.)(status|badge)\.[A-Za-z0-9]+$', base) and tail != 'label':
+        return 'badge'
+    if re.search(r'(^|\.)action\.[A-Za-z0-9]+$', base) or tail == 'action':
+        return None if value.rstrip().endswith(('.', '?', '!')) else 'button'
+    if tail in ('title', 'heading') or re.match(r'^(route|nav)\.', base):
+        return 'title'
+    return None
+
+
+def over_budget(values):
+    """English values longer than their class allows. A placeholder counts as
+    one word, because it renders as one thing the operator reads."""
+    out = []
+    for f, lang, key, value in values:
+        if lang != 'en':
+            continue
+        cls = classify(key, value)
+        if cls is None:
+            continue
+        words = len(value.split())
+        if words > WORD_BUDGET[cls]:
+            out.append({'file': f, 'key': key, 'class': cls, 'words': words,
+                        'budget': WORD_BUDGET[cls], 'value': value})
+    return sorted(out, key=lambda r: (r['class'], -r['words'], r['key']))
+
+
 # ---------------------------------------------------------------------- render
 
 def build():
@@ -333,6 +451,13 @@ def build():
 
     total_keys = len(set().union(*[resolve(n, dicts) for n in dicts]) if dicts else set())
 
+    values = dictionary_values(dicts)
+    dashes = em_dash_values(values)
+    long_values = over_budget(values)
+    by_class = {}
+    for r in long_values:
+        by_class[r['class']] = by_class.get(r['class'], 0) + 1
+
     return {
         'totals': {
             'keys': total_keys,
@@ -350,17 +475,24 @@ def build():
             'pluralForms': len([k for k in en if '#' in k]),
             'defaultValue': len(counted),
             'defaultValueForwarded': len(sites) - len(counted),
+            'emDashEn': len([d for d in dashes if d['lang'] == 'en']),
+            'emDashAr': len([d for d in dashes if d['lang'] == 'ar']),
+            'overBudget': len(long_values),
         },
         'registered': sorted(registered, key=lambda r: -r['keys']),
         'unregistered': sorted(unregistered, key=lambda r: -r['keys']),
         'noCopyFile': no_copy,
         'defaultValueByFile': sorted(by_file.items(), key=lambda kv: -kv[1]),
         'fragments': [{'file': f, 'key': k, 'value': v} for f, k, v in fragments(dicts)],
+        'emDash': dashes,
+        'overBudget': long_values,
+        'overBudgetByClass': sorted(by_class.items(), key=lambda kv: -kv[1]),
     }
 
 
-def render(data, budget):
+def render(data, budgets):
     t = data['totals']
+    budget = budgets['defaultValue']
     out = [
         '<!-- GENERATED by scripts/i18n-inventory.py. Do not edit. -->',
         '# The key inventory', '',
@@ -380,6 +512,9 @@ def render(data, budget):
         '| Keys in a `copy.ts` the shell has NOT registered | %d |' % t['unregisteredKeys'],
         '| **`defaultValue` call sites (the ratchet)** | **%d** |' % t['defaultValue'],
         '| `defaultValue` forwarding a Dictionary (exempt) | %d |' % t['defaultValueForwarded'],
+        '| **English values carrying an em dash (the ratchet)** | **%d** |' % t['emDashEn'],
+        '| **Arabic values carrying an em dash (the ratchet)** | **%d** |' % t['emDashAr'],
+        '| **English values over their word budget (the ratchet)** | **%d** |' % t['overBudget'],
         '',
         '`AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no',
         'screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR',
@@ -398,6 +533,48 @@ def render(data, budget):
         out.append('')
     else:
         out += ['None left. Add the lint rule and delete this section.', '']
+
+    out += ['## The em-dash ratchet', '',
+            'Ceilings **%d** English and **%d** Arabic, measured **%d** and **%d**. **X14**:'
+            % (budgets['emDashEn'], budgets['emDashAr'], t['emDashEn'], t['emDashAr']),
+            'no em dash in a string an operator reads. `·` separates a qualifier, two clauses',
+            'become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.',
+            'Both ceilings only ever fall.', '']
+    if data['emDash']:
+        by_file = {}
+        for d in data['emDash']:
+            by_file.setdefault((d['lang'], d['file']), []).append(d['key'])
+        out += ['| Language | File | Values |', '|---|---|---:|']
+        out += ['| %s | `%s` | %d |' % (lang, f, len(ks))
+                for (lang, f), ks in sorted(by_file.items())]
+        out.append('')
+        out += ['<details><summary>Every key</summary>', '',
+                '| Language | Key | Value |', '|---|---|---|']
+        out += ['| %s | `%s` | %s |' % (d['lang'], d['key'], d['value'].replace('|', '\\|'))
+                for d in data['emDash']]
+        out += ['', '</details>', '']
+    else:
+        out += ['None left. Delete the ceiling and make the gate a hard failure.', '']
+
+    out += ['## The word budget', '',
+            'Ceiling **%d**, measured **%d**. **X18**: a slot an operator scans holds a'
+            % (budgets['overBudget'], t['overBudget']),
+            'fixed number of words. A key is put in a class by its name; the mapping is in',
+            'the generator header. Anything longer moves to `InfoHint` or the detail surface.',
+            'Measured on English only, and a placeholder counts as one word.', '',
+            '| Class | Budget, in words | Over |', '|---|---:|---:|']
+    out += ['| %s | %d | %d |' % (cls, WORD_BUDGET[cls], n)
+            for cls, n in data['overBudgetByClass']]
+    out.append('')
+    if data['overBudget']:
+        out += ['<details><summary>Every key over budget</summary>', '',
+                '| Class | Words | Key | Value |', '|---|---:|---|---|']
+        out += ['| %s | %d | `%s` | %s |'
+                % (r['class'], r['words'], r['key'], r['value'].replace('|', '\\|'))
+                for r in data['overBudget']]
+        out += ['', '</details>', '']
+    else:
+        out += ['None over budget.', '']
 
     out += ['## Keys per `copy.ts`', '', '| File | Exports | Keys |', '|---|---|---:|']
     out += ['| `%s` | %s | %d |' % (r['file'], ', '.join('`%s`' % e for e in r['exports']), r['keys'])
@@ -464,20 +641,68 @@ def colliding_keys():
     return {k: d for k, d in sorted(vals.items()) if len(set(d.values())) > 1}
 
 
+RATCHETS = ('defaultValue', 'emDashEn', 'emDashAr', 'overBudget')
+
+BUDGET_HEADER = (
+    'Ceilings the generator refuses to RAISE, written by scripts/i18n-inventory.py. '
+    'defaultValue: literals no extractor can see. emDashEn/emDashAr: dictionary values '
+    'carrying U+2014 (X14). overBudget: English values over their X18 word budget. '
+    'See docs/08-i18n/KEYS.md.'
+)
+
+
+def read_budgets(measured):
+    """The recorded ceilings, defaulting to what is measured today."""
+    saved = json.loads(read(BUDGET_PATH)) if os.path.exists(BUDGET_PATH) else {}
+    return {name: saved.get(name, measured[name]) for name in RATCHETS}
+
+
 def main():
+    # The report names offending values, and they are Arabic as often as English.
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     check = '--check' in sys.argv
     data = build()
     measured = data['totals']['defaultValue']
 
-    budget = json.loads(read(BUDGET_PATH))['defaultValue'] if os.path.exists(BUDGET_PATH) else measured
+    budgets = read_budgets(data['totals'])
+    budget = budgets['defaultValue']
 
-    md = render(data, budget)
+    md = render(data, budgets)
     js = json.dumps(data, indent=2, ensure_ascii=False) + '\n'
     md_path = os.path.join(OUT_DIR, 'KEYS.md')
     js_path = os.path.join(OUT_DIR, 'keys.json')
 
+    # X14 and X18 turn the same way `defaultValue` does: over the ceiling names
+    # the offenders and fails; under it, regenerate so the ceiling follows down.
+    def ratchet(name, label, offenders):
+        now, ceiling = data['totals'][name], budgets[name]
+        if now > ceiling:
+            print('%s ratchet BROKE: %d against a ceiling of %d.' % (label, now, ceiling))
+            for line in offenders:
+                print('  %s' % line)
+            return True
+        if now < ceiling:
+            print('%s fell from %d to %d. Run `npm run i18n:keys` and commit '
+                  'so the ceiling follows it down.' % (label, ceiling, now))
+            return True
+        return False
+
+    em_offenders = ['%-56s %s' % (d['key'], d['value']) for d in data['emDash']]
+    budget_offenders = ['%-14s %2d/%2d  %-44s %s'
+                        % (r['class'], r['words'], r['budget'], r['key'], r['value'])
+                        for r in data['overBudget']]
+
     if check:
         failed = False
+        if ratchet('emDashEn', 'em dash (English)',
+                   [o for o, d in zip(em_offenders, data['emDash']) if d['lang'] == 'en']):
+            failed = True
+        if ratchet('emDashAr', 'em dash (Arabic)',
+                   [o for o, d in zip(em_offenders, data['emDash']) if d['lang'] == 'ar']):
+            failed = True
+        if ratchet('overBudget', 'word budget', budget_offenders):
+            failed = True
         if measured > budget:
             print('defaultValue ratchet BROKE: %d sites against a ceiling of %d.'
                   % (measured, budget))
@@ -515,20 +740,32 @@ def main():
 
     if not os.path.isdir(OUT_DIR):
         os.makedirs(OUT_DIR)
-    # The ratchet only turns one way, including here.
-    ceiling = min(measured, budget)
-    if measured > budget:
-        print('REFUSING to write: %d defaultValue sites against a ceiling of %d.'
-              % (measured, budget))
-        print('The ceiling never rises. Move the new strings into a copy.ts.')
+    # Every ratchet only turns one way, including here.
+    ceilings = {name: min(data['totals'][name], budgets[name]) for name in RATCHETS}
+    refused = [name for name in RATCHETS if data['totals'][name] > budgets[name]]
+    if refused:
+        for name in refused:
+            print('REFUSING to write: %s is %d against a ceiling of %d.'
+                  % (name, data['totals'][name], budgets[name]))
+        if 'defaultValue' in refused:
+            print('The ceiling never rises. Move the new strings into a copy.ts.')
+        if 'emDashEn' in refused or 'emDashAr' in refused:
+            print('The ceiling never rises. No em dash in a value an operator reads (X14):')
+            print('`·` for a qualifier, two sentences for two clauses.')
+            for line in em_offenders:
+                print('  %s' % line)
+        if 'overBudget' in refused:
+            print('The ceiling never rises. Cut the value to its class budget (X18),')
+            print('or move the explanation behind InfoHint.')
+            for line in budget_offenders:
+                print('  %s' % line)
         return 1
+    ceiling = ceilings['defaultValue']
+    payload = {'_': BUDGET_HEADER}
+    payload.update({name: ceilings[name] for name in RATCHETS})
     io.open(BUDGET_PATH, 'w', encoding='utf-8', newline='\n').write(
-        json.dumps({
-            '_': 'The defaultValue ceiling. Written by scripts/i18n-inventory.py, which '
-                 'refuses to raise it. See docs/08-i18n/KEYS.md.',
-            'defaultValue': ceiling,
-        }, indent=2) + '\n')
-    md = render(data, ceiling)
+        json.dumps(payload, indent=2) + '\n')
+    md = render(data, ceilings)
     for p, want in ((md_path, md), (js_path, js)):
         io.open(p, 'w', encoding='utf-8', newline='\n').write(want)
     print('wrote %d keys across %d copy.ts files (%d reachable from EN, %d unregistered)'
@@ -537,6 +774,13 @@ def main():
     print('  ar missing        %d (extra in ar: %d)'
           % (data['totals']['arMissing'], data['totals']['arExtra']))
     print('  defaultValue      %d (ceiling now %d)' % (measured, ceiling))
+    print('  em dash           %d en, %d ar (ceilings now %d, %d)'
+          % (data['totals']['emDashEn'], data['totals']['emDashAr'],
+             ceilings['emDashEn'], ceilings['emDashAr']))
+    print('  over word budget  %d (ceiling now %d)'
+          % (data['totals']['overBudget'], ceilings['overBudget']))
+    for cls, n in data['overBudgetByClass']:
+        print('      %-14s %3d over %d words' % (cls, n, WORD_BUDGET[cls]))
     print('  fragments         %d' % len(data['fragments']))
     print('  screens no copy   %d' % len(data['noCopyFile']))
     return 0

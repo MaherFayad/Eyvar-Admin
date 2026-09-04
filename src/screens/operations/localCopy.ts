@@ -37,10 +37,9 @@
  * dictionary nor the screen's own still reaches `onMissingKey` and still throws
  * in dev, which is the behaviour AC-74 depends on.
  *
- * Arabic is unaffected either way. The `ar` dictionary is deliberately empty
- * (see `dictionaries.ts`), so every string in the product already renders its
- * English fallback; this changes where that fallback is written down, not
- * which language appears.
+ * Arabic is unaffected either way: `AR` answers every key `EN` reaches
+ * (`docs/08-i18n/KEYS.md`), and this wrapper only decides where the ENGLISH
+ * fallback is written down.
  */
 
 import type { Dictionary, Translate, TranslateParams, Translator } from '@/lib'

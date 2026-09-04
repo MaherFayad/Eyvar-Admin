@@ -9,7 +9,10 @@
     "unregisteredKeys": 167,
     "pluralForms": 53,
     "defaultValue": 0,
-    "defaultValueForwarded": 2
+    "defaultValueForwarded": 2,
+    "emDashEn": 112,
+    "emDashAr": 115,
+    "overBudget": 187
   },
   "registered": [
     {
@@ -321,5 +324,2897 @@
     }
   ],
   "defaultValueByFile": [],
-  "fragments": []
+  "fragments": [],
+  "emDash": [
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "integrity.check.agree.aggregate-vs-records.desc",
+      "value": "الراكب أو الكابتن الذي يتجاوز إجمالي رحلاته المخزَّن الرحلات المحفوظة أمر متوقَّع — فهذه اللوحة تحتفظ بنافذة حديثة والفوترة تحتفظ بالتراكم. أما من ليس خلف إجماليه شيء إطلاقًا فليس متوقعًا، وهذا ما يبلّغ عنه هذا الفحص."
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.dataset.trips",
+      "value": "الرحلات — المكتملة والأجرة المحصَّلة"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.dataset.subscriptions",
+      "value": "الاشتراكات — المبدوءة والملغاة"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.dataset.captains",
+      "value": "الكباتن — المنضمّون والمسجَّلون"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.dataset.riders",
+      "value": "الركاب — المنضمّون والمفعَّلون"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.dataset.revenue",
+      "value": "الإيرادات — الإجمالي والاشتراكات"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.export.omitted",
+      "value": "حُذفت {count} سلسلة — لا يمكنك الاطلاع عليها"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.desc",
+      "value": "كم يُحتفظ بكل نوع من السجلات قبل حذفه أو إخفاء هويته. تقصير النافذة يتلف أدلة قد تحتاجها — ويجب ألّا تقل أبدًا عن نافذة النزاع لدى مزوّد الدفع."
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.days.365",
+      "value": "365 يومًا — سنة واحدة"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.days.730",
+      "value": "730 يومًا — سنتان، نظاميًا"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.days.1825",
+      "value": "1,825 يومًا — خمس سنوات، هيئة الزكاة والضريبة والجمارك"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.days.90",
+      "value": "90 يومًا — قياسي"
+    },
+    {
+      "file": "src/i18n/ar/adminData.ts",
+      "lang": "ar",
+      "key": "adminData.retention.months.13",
+      "value": "13 شهرًا — سنة وزيادة احتياطية"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "integrity.check.agree.aggregate-vs-records.desc",
+      "value": "A rider or captain whose stored trip total is larger than the trips on file is expected — this console keeps a recent window and billing keeps the lifetime. One whose stored total has nothing at all behind it is not, and that is what this check reports."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.dataset.trips",
+      "value": "Trips — completed and fares collected"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.dataset.subscriptions",
+      "value": "Subscriptions — started and cancelled"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.dataset.captains",
+      "value": "Captains — joined and registered"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.dataset.riders",
+      "value": "Riders — joined and activated"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.dataset.revenue",
+      "value": "Revenue — total and subscription"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.export.omitted",
+      "value": "{count} series omitted — you cannot read them"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.desc",
+      "value": "How long each kind of record is kept before it is deleted or anonymised. Shortening a window destroys evidence you may still need — it must never be shorter than the payment provider’s dispute window."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.days.365",
+      "value": "365 days — one year"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.days.730",
+      "value": "730 days — two years, statutory"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.days.1825",
+      "value": "1,825 days — five years, ZATCA"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.days.90",
+      "value": "90 days — standard"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "lang": "en",
+      "key": "adminData.retention.months.13",
+      "value": "13 months — a year plus headroom"
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.team.sessions.title",
+      "value": "الجلسات — {name}"
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.team.matrix.desc",
+      "value": "ما يستطيع كل دور فعله. تعديلها موقوف على نموذج الأدوار — انظر الملاحظة أسفل الجدول."
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.team.rota.option",
+      "value": "{name} — {role}"
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.audit.team.permissionsChanged",
+      "value": "تغيّرت صلاحيات {name} — أُضيفت {added} وأُزيلت {removed}"
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.audit.team.securityPolicy",
+      "value": "حُفظت سياسة الأمان — الخمول {idleMinutes} دقيقة، والانتهاء المطلق {expiryHours} ساعة، وتغيّر اشتراط عامل التحقق الثاني: {twoFactor}"
+    },
+    {
+      "file": "src/i18n/ar/adminTeam.ts",
+      "lang": "ar",
+      "key": "admin.audit.team.rota",
+      "value": "حُفظ جدول المناوبة — الأساسي {primary}"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.team.sessions.title",
+      "value": "Sessions — {name}"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.team.matrix.desc",
+      "value": "What each role can do. Editing it is blocked on the role model — see the note below the table."
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.team.rota.option",
+      "value": "{name} — {role}"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.team.permissionsChanged",
+      "value": "Changed {name}’s permissions — {added} added, {removed} removed"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.team.securityPolicy",
+      "value": "Security policy saved — idle {idleMinutes} min, absolute expiry {expiryHours} h, second-factor requirement changed: {twoFactor}"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.team.rota",
+      "value": "On-call rota saved — primary {primary}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.workspace.empty.body",
+      "value": "لم يُضبط شيء لمساحة العمل هذه بعد — لا اسم ولا عنوان دعم ولا نسخ قانونية. اضبطها لتلتقطها كل شاشة."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.workspace.updated",
+      "value": "حُفظت إعدادات مساحة العمل — المتغيّر: {fields}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.key.name.help",
+      "value": "الغرض من هذا المفتاح — النظام الذي سيقدّمه."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.reveal.warning.key.body",
+      "value": "لا يخزّن Eyvar سوى البادئة {prefix}. أما الباقي فلا يُخزَّن في أي مكان ولا يمكن عرضه مرة أخرى — لا بإعادة فتح هذا الصف، ولا بتصدير، ولا عبر الدعم. إن فُقد، فدوّر المفتاح لإصدار واحد جديد."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.reveal.warning.webhook.body",
+      "value": "لا يخزّن Eyvar سوى البادئة {prefix}. ويحتاج نظامك المستقبِل إلى السر كاملًا للتحقق من توقيع Eyvar. ولا يمكن عرضه مرة أخرى — إن فُقد، فدوّره وحدّث المستقبِل."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.webhook.edit.desc",
+      "value": "غيّر الوجهة أو ما تسمعه. لا يتأثر سر التوقيع — دوّره بشكل منفصل إن لزم استبداله."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.webhook.name.help",
+      "value": "من يستقبل هذا — النظام، لا الرابط."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.webhook.empty.body",
+      "value": "تستقبل نقطة نهاية Webhook حمولة موقَّعة لحظة اكتمال رحلة أو انقضاء اشتراك أو تسوية مستحقات — فلا يضطر نظام الشريك إلى الاستعلام المتكرر."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.delivery.desc",
+      "value": "كل محاولة قام بها Eyvar، وما أجابت به نقطة النهاية، وإعادة إرسال لما أخفق منها. إعادة الإرسال محاولة جديدة — وتبقى المحاولة المخفقة في السجل."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.delivery.failure.http5xx",
+      "value": "أخطأت نقطة النهاية. هذا مؤقت عادةً — أعد الإرسال."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.integrations.delivery.replay.confirm.body",
+      "value": "تُجدوَل الحمولة نفسها لـ{endpoint} كمحاولة جديدة. ويبقى {id} في السجل كما هو تمامًا، بما في ذلك رمز حالته ورده — إعادة الإرسال لا تلغي إخفاقًا، بل تضيف محاولة."
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.keyIssued",
+      "value": "أُصدر مفتاح API — {name} ({prefix})، النطاقات: {scopes}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.keyRotated",
+      "value": "دُوِّر مفتاح API — {name}، حلّ {to} محل {from}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.keyRevoked",
+      "value": "سُحب مفتاح API — {name} ({prefix})"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.webhookCreated",
+      "value": "سُجِّل Webhook — {name} على {url}، الأحداث: {events}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.webhookUpdated",
+      "value": "حُدِّث Webhook — {name}، المتغيّر: {fields}، وأصبح {state}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.webhookSecretRotated",
+      "value": "دُوِّر سر توقيع Webhook — {name}، حلّ {to} محل {from}"
+    },
+    {
+      "file": "src/i18n/ar/adminWorkspace.ts",
+      "lang": "ar",
+      "key": "admin.audit.integrations.webhookReplayed",
+      "value": "أُعيد إرسال تسليم Webhook — {endpoint}، جُدول {original} كـ{replay}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.workspace.empty.body",
+      "value": "Nothing has been set for this workspace yet — no name, no support address, no legal versions. Set them and every screen picks them up."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.workspace.updated",
+      "value": "Workspace settings saved — changed: {fields}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.key.name.help",
+      "value": "What this key is for — the system that will present it."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.reveal.warning.key.body",
+      "value": "Eyvar stores only the prefix {prefix}. The rest is not stored anywhere and cannot be shown again — not by reopening this row, not by an export, and not by support. If it is lost, rotate the key to issue a new one."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.reveal.warning.webhook.body",
+      "value": "Eyvar stores only the prefix {prefix}. Your receiving system needs the whole secret to verify an Eyvar signature. It cannot be shown again — if it is lost, rotate it and update the receiver."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.webhook.edit.desc",
+      "value": "Change the target or what it hears about. The signing secret is not affected — rotate it separately if it needs replacing."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.webhook.name.help",
+      "value": "Who receives this — the system, not the URL."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.webhook.empty.body",
+      "value": "A webhook endpoint receives a signed payload the moment a trip completes, a subscription lapses or a payout settles — so a partner system does not have to poll for it."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.delivery.desc",
+      "value": "Every attempt Eyvar made, what the endpoint answered, and a replay for the ones that failed. A replay is a new attempt — the failed one stays in the log."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.delivery.failure.http5xx",
+      "value": "The endpoint errored. This is usually temporary — replay it."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.integrations.delivery.replay.confirm.body",
+      "value": "The same payload is queued for {endpoint} as a new attempt. {id} stays in the log exactly as it is, including its status code and response — a replay does not undo a failure, it adds an attempt."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.keyIssued",
+      "value": "API key issued — {name} ({prefix}), scopes: {scopes}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.keyRotated",
+      "value": "API key rotated — {name}, {from} replaced by {to}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.keyRevoked",
+      "value": "API key revoked — {name} ({prefix})"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.webhookCreated",
+      "value": "Webhook registered — {name} at {url}, events: {events}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.webhookUpdated",
+      "value": "Webhook updated — {name}, changed: {fields}, now {state}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.webhookSecretRotated",
+      "value": "Webhook signing secret rotated — {name}, {from} replaced by {to}"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "lang": "en",
+      "key": "admin.audit.integrations.webhookReplayed",
+      "value": "Webhook delivery replayed — {endpoint}, {original} queued as {replay}"
+    },
+    {
+      "file": "src/i18n/ar/assurance.ts",
+      "lang": "ar",
+      "key": "assurance.ack.assumed",
+      "value": "مفترَض — غير مؤكَّد"
+    },
+    {
+      "file": "src/i18n/ar/assurance.ts",
+      "lang": "ar",
+      "key": "assurance.backup.eligible",
+      "value": "{name} — مؤهَّل"
+    },
+    {
+      "file": "src/i18n/ar/assurance.ts",
+      "lang": "ar",
+      "key": "assurance.backup.ineligible",
+      "value": "{name} — {reason}"
+    },
+    {
+      "file": "src/i18n/ar/assurance.ts",
+      "lang": "ar",
+      "key": "assurance.confirm.choice.help",
+      "value": "المصدر يُسجَّل. “مفترَض” ليس تأكيدًا — بل مخاطرة قبِلها أحدهم."
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "lang": "en",
+      "key": "assurance.ack.assumed",
+      "value": "Assumed — not confirmed"
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "lang": "en",
+      "key": "assurance.backup.eligible",
+      "value": "{name} — eligible"
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "lang": "en",
+      "key": "assurance.backup.ineligible",
+      "value": "{name} — {reason}"
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "lang": "en",
+      "key": "assurance.confirm.choice.help",
+      "value": "The source is on the record. “Assumed” is not a confirmation — it is a risk somebody accepted."
+    },
+    {
+      "file": "src/i18n/ar/auth.ts",
+      "lang": "ar",
+      "key": "session.writeRevoked.body",
+      "value": "أُزيلت صلاحية “{permission}” أثناء تحريرك. تغييراتك لا تزال هنا — انسخ ما تحتاجه قبل التجاهل."
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "lang": "en",
+      "key": "session.writeRevoked.body",
+      "value": "The \"{permission}\" permission was removed while you were editing. Your changes are still here — copy anything you need before discarding."
+    },
+    {
+      "file": "src/i18n/ar/conversations.ts",
+      "lang": "ar",
+      "key": "conversations.promise.paused",
+      "value": "مؤجَّلة — المؤقّتان متوقفان."
+    },
+    {
+      "file": "src/i18n/ar/conversations.ts",
+      "lang": "ar",
+      "key": "conversations.delivery.failedReason",
+      "value": "لم تصل — {reason}"
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "lang": "en",
+      "key": "conversations.promise.paused",
+      "value": "Snoozed — both clocks are paused."
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "lang": "en",
+      "key": "conversations.delivery.failedReason",
+      "value": "Not delivered — {reason}"
+    },
+    {
+      "file": "src/i18n/ar/disputes.ts",
+      "lang": "ar",
+      "key": "dispute.toast.resolved",
+      "value": "تمت تسوية {id} — أُضيف {amount} إلى {name}"
+    },
+    {
+      "file": "src/i18n/ar/disputes.ts",
+      "lang": "ar",
+      "key": "dispute.toast.declined",
+      "value": "رُفضت {id} — لم يتحرك أي مبلغ"
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "lang": "en",
+      "key": "dispute.toast.resolved",
+      "value": "{id} settled — {amount} credited to {name}"
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "lang": "en",
+      "key": "dispute.toast.declined",
+      "value": "{id} declined — no money moved"
+    },
+    {
+      "file": "src/i18n/ar/fairness.ts",
+      "lang": "ar",
+      "key": "fairness.empty.firstRun.body",
+      "value": "إيقاف يُتظلَّم منه، وتقييم يُعترض عليه، وبلاغ من راكب. ارتفاع نسبة النقض هنا ليس إخفاقًا — بل يعني أن طريق التظلّم يلتقط القرارات الخاطئة قبل أن تكلّفك كابتن."
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "lang": "en",
+      "key": "fairness.empty.firstRun.body",
+      "value": "A suspension appealed, a rating disputed, a rider reported. A high overturn rate here is not a failure — it means the appeal route is catching bad calls before they cost you a captain."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.payment.escalation.unsettledPastCycle",
+      "value": "غير مسوّى منذ {days} يومًا بعد دورته — صعّده إلى بوابة الدفع."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.noBank.one",
+      "value": "لا يمكن صرف هذه المستحقات — لا يوجد حساب بنكي محفوظ."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.noBank.other",
+      "value": "{count} من المستحقات المحدَّدة لا يمكن صرفها — لا يوجد حساب بنكي محفوظ."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.noBank.all",
+      "value": "كل المستحقات المحدَّدة ({count}) لا يمكن صرفها — لا يوجد حساب بنكي محفوظ."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.nothing.one",
+      "value": "لا يمكن صرف هذه المستحقات — لا شيء مستحق بعد خصم الدين النقدي."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.nothing.other",
+      "value": "{count} من المستحقات المحدَّدة لا يمكن صرفها — لا شيء مستحق بعد خصم الدين النقدي."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.nothing.all",
+      "value": "كل المستحقات المحدَّدة ({count}) لا يمكن صرفها — لا شيء مستحق بعد خصم الدين النقدي."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.pay.confirm.body",
+      "value": "يُصرف لكل كابتن صافيه الخاص — المستحق ناقص الدين النقدي عليه. والإجماليات أعلاه للتحديد كله. وتُسدَّد الديون بهذه المصروفات ولا يتغيّر شيء آخر بخصوص الكباتن."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.state.one",
+      "value": "لا يمكن الإفراج عن هذا الحجز — فقد أُفرج عنه أو عُكس بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.state.other",
+      "value": "{count} من الحجوزات المحدَّدة لا يمكن الإفراج عنها — فقد أُفرج عنها أو عُكست بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.state.all",
+      "value": "كل الحجوزات المحدَّدة ({count}) لا يمكن الإفراج عنها — فقد أُفرج عنها أو عُكست بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.trips.one",
+      "value": "لا يمكن الإفراج عن هذا الحجز — لم تُنفَّذ كل رحلات الباقة."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.trips.other",
+      "value": "{count} من الحجوزات المحدَّدة لا يمكن الإفراج عنها — لم تُنفَّذ كل رحلات الباقة."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.release.trips.all",
+      "value": "كل الحجوزات المحدَّدة ({count}) لا يمكن الإفراج عنها — لم تُنفَّذ كل رحلات الباقة."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.apply.decided.one",
+      "value": "لا يمكن تطبيق هذا الخصم — فقد طُبّق أو أُسقط بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.apply.decided.other",
+      "value": "{count} من الخصومات المحدَّدة لا يمكن تطبيقها — فقد طُبّقت أو أُسقطت بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.apply.decided.all",
+      "value": "كل الخصومات المحدَّدة ({count}) لا يمكن تطبيقها — فقد طُبّقت أو أُسقطت بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.waive.decided.one",
+      "value": "لا يمكن إسقاط هذا الخصم — فقد طُبّق أو أُسقط بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.waive.decided.other",
+      "value": "{count} من الخصومات المحدَّدة لا يمكن إسقاطها — فقد طُبّقت أو أُسقطت بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.waive.decided.all",
+      "value": "كل الخصومات المحدَّدة ({count}) لا يمكن إسقاطها — فقد طُبّقت أو أُسقطت بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.decided.one",
+      "value": "لا يمكن استلام هذا التقرير — فقد بُتّ فيه بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.decided.other",
+      "value": "{count} من التقارير المحدَّدة لا يمكن استلامها — فقد بُتّ فيها بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.decided.all",
+      "value": "كل التقارير المحدَّدة ({count}) لا يمكن استلامها — فقد بُتّ فيها بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.heldByOther.one",
+      "value": "لا يمكن استلام هذا التقرير — فمشغّل آخر يحمله."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.heldByOther.other",
+      "value": "{count} من التقارير المحدَّدة لا يمكن استلامها — فمشغّل آخر يحملها."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.bulk.claim.heldByOther.all",
+      "value": "كل التقارير المحدَّدة ({count}) لا يمكن استلامها — فمشغّل آخر يحملها."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.debt.repay.body",
+      "value": "{captain} مدين بـ{balance}. أدخل ما سُلِّم — والسداد الجزئي يبقي الباقي قائمًا وظاهرًا."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.pricing.surge.suspend.body",
+      "value": "تعود الأجرة في المنطقة إلى السعر الأساسي حتى ينتهي الإيقاف. ولا يُمدَّد الإيقاف — بل يُرفع من جديد. ولا يتغيّر شيء سُعِّر بالفعل."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.audit.payoutPaid",
+      "value": "صُرف {netHalalas} — {payableHalalas} مستحق، ناقص {cashDebtHalalas} من الدين النقدي."
+    },
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "lang": "ar",
+      "key": "fin.audit.walletAdjusted",
+      "value": "عُدِّلت محفظة — {direction} {reference}."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.payment.escalation.unsettledPastCycle",
+      "value": "Unsettled {days} days past its cycle — escalate to the gateway."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.noBank.one",
+      "value": "This payout cannot be paid — no bank account is on file."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.noBank.other",
+      "value": "{count} of the selected payouts cannot be paid — no bank account is on file."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.noBank.all",
+      "value": "All {count} selected payouts cannot be paid — no bank account is on file."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.nothing.one",
+      "value": "This payout cannot be paid — nothing is payable after cash debt."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.nothing.other",
+      "value": "{count} of the selected payouts cannot be paid — nothing is payable after cash debt."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.nothing.all",
+      "value": "All {count} selected payouts cannot be paid — nothing is payable after cash debt."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.pay.confirm.body",
+      "value": "Every captain is paid their own net — the payable less the cash debt on it. The totals above are for the whole selection. The debts are cleared by these payouts and nothing else about the captains changes."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.state.one",
+      "value": "This hold cannot be released — it is already released or reversed."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.state.other",
+      "value": "{count} of the selected holds cannot be released — they are already released or reversed."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.state.all",
+      "value": "All {count} selected holds cannot be released — they are already released or reversed."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.trips.one",
+      "value": "This hold cannot be released — not every plan trip is delivered."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.trips.other",
+      "value": "{count} of the selected holds cannot be released — not every plan trip is delivered."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.release.trips.all",
+      "value": "All {count} selected holds cannot be released — not every plan trip is delivered."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.apply.decided.one",
+      "value": "This deduction cannot be applied — it is already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.apply.decided.other",
+      "value": "{count} of the selected deductions cannot be applied — they are already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.apply.decided.all",
+      "value": "All {count} selected deductions cannot be applied — they are already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.waive.decided.one",
+      "value": "This deduction cannot be waived — it is already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.waive.decided.other",
+      "value": "{count} of the selected deductions cannot be waived — they are already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.waive.decided.all",
+      "value": "All {count} selected deductions cannot be waived — they are already applied or waived."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.decided.one",
+      "value": "This report cannot be claimed — it is already decided."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.decided.other",
+      "value": "{count} of the selected reports cannot be claimed — they are already decided."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.decided.all",
+      "value": "All {count} selected reports cannot be claimed — they are already decided."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.heldByOther.one",
+      "value": "This report cannot be claimed — another operator holds it."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.heldByOther.other",
+      "value": "{count} of the selected reports cannot be claimed — another operator holds them."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.bulk.claim.heldByOther.all",
+      "value": "All {count} selected reports cannot be claimed — another operator holds them."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.debt.repay.body",
+      "value": "{captain} owes {balance}. Enter what was handed over — a part payment leaves the rest outstanding and visible."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.pricing.surge.suspend.body",
+      "value": "Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.audit.payoutPaid",
+      "value": "Paid {netHalalas} — {payableHalalas} payable, less {cashDebtHalalas} of cash debt."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "lang": "en",
+      "key": "fin.audit.walletAdjusted",
+      "value": "Adjusted a wallet — {direction} {reference}."
+    },
+    {
+      "file": "src/i18n/ar/myWork.ts",
+      "lang": "ar",
+      "key": "myWork.empty.firstRun.body",
+      "value": "كل ما تحمله، وكل ما لم يستلمه أحد، من الطلبات إلى السلامة — مرتَّبًا حسب الموعد النهائي لا حسب التصنيف."
+    },
+    {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "lang": "en",
+      "key": "myWork.empty.firstRun.body",
+      "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.intro.owner",
+      "value": "أنت مسؤول عن اللوحة كاملة — السياسة والأشخاص والمال والقرارات التي لا يستطيع غيرك اتخاذها."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.intro.opsManager",
+      "value": "أنت من يبقي الرحلات مغطّاة والكباتن على رأس العمل — الطلبات المقدَّمة وطلبات الرحلات وضمان الرحلات والتوزيع."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.intro.finance",
+      "value": "أنت من يحرّك المال ويحاسب عليه — المستحقات والضمان والخصومات والتسوية. يمكنك الاطلاع على الملفات الشخصية، ولا يمكنك تغيير حالة كابتن."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.intro.support",
+      "value": "أنت من يجيب الركاب والكباتن، وأول من يسمع حين يسوء شيء. يمكنك رؤية حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.trackEmpty",
+      "value": "لا توجد خطوات متاحة لهذا الدور بعد — يمكن للمالك مراجعة صلاحياتك من إدارة النظام › الفريق والصلاحيات."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.step.finance.ledger.body",
+      "value": "تعلّم اصطلاح الإشارة، وتعلّم أن الصف المُقيَّد لا يُعدَّل أبدًا — بل يُعكَس بصف ثانٍ. لا شيء في المالية يتراجع عن نفسه."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.step.finance.escrow.body",
+      "value": "افتح صف ضمان واحدًا واقرأه كاملًا. الإفراج ينقل المال إلى كابتن، ولا تراجع عنه — إلا بقيد عكسي."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.step.ops.application.body",
+      "value": "اقرأ المستندات، ثم وافق أو ارفض. يمنحك الصف علامة صح وعلامة خطأ و«عرض» — لا قائمة تُفتح."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.step.ops.requests.body",
+      "value": "راقب مؤقّت SLA وأنت تحمله. اقرأ ما معنى الإخلال — الإخلال هدف لم يُدرَك، لا تقصير في التصرّف."
+    },
+    {
+      "file": "src/i18n/ar/onboarding.ts",
+      "lang": "ar",
+      "key": "onboarding.step.support.boundary.body",
+      "value": "يمكنك رؤية كل حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. اقرأ حادثة واحدة، وقف عند ذلك."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.intro.opsManager",
+      "value": "You keep trips covered and captains working — applications, requests, assurance and dispatch."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.trackEmpty",
+      "value": "No steps are available for this role yet — an owner can check your permissions in Admin › Team & Access."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.step.finance.ledger.body",
+      "value": "Learn the sign convention, and learn that a posted row is never edited — it is reversed by a second row. Nothing in Financials undoes itself."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.step.finance.escrow.body",
+      "value": "Open one escrow row and read it through. Release moves money to a captain, and there is no undo — only a reversing entry."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.step.ops.application.body",
+      "value": "Read the documents, then approve or reject. The row gives you a tick, a cross and View — there is no menu to open."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.step.ops.requests.body",
+      "value": "Watch the SLA clock while you hold it. Read what a breach means — a breach is a missed target, not a failure to act."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "lang": "en",
+      "key": "onboarding.step.support.boundary.body",
+      "value": "You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there."
+    },
+    {
+      "file": "src/i18n/ar/metrics.ts",
+      "lang": "ar",
+      "key": "overview.lede.support-overview",
+      "value": "كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها."
+    },
+    {
+      "file": "src/i18n/ar/metrics.ts",
+      "lang": "ar",
+      "key": "overview.hero.group",
+      "value": "المؤشرات الرئيسية — اختر واحدًا لعرض مخططه"
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "lang": "en",
+      "key": "overview.lede.support-overview",
+      "value": "Everything open in front of a person — incidents, tickets and the response times on them."
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "lang": "en",
+      "key": "overview.hero.group",
+      "value": "Lead metrics — pick one to chart"
+    },
+    {
+      "file": "src/i18n/ar/people.ts",
+      "lang": "ar",
+      "key": "applicant.docReason.legend",
+      "value": "مرفوض — {reason}"
+    },
+    {
+      "file": "src/i18n/ar/people.ts",
+      "lang": "ar",
+      "key": "applicant.signal.ip",
+      "value": "موقع الاتصال {location} — متوافق مع مدينة التشغيل."
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "lang": "en",
+      "key": "applicant.docReason.legend",
+      "value": "Rejected — {reason}"
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "lang": "en",
+      "key": "applicant.signal.ip",
+      "value": "IP location {location} — consistent with the operating city."
+    },
+    {
+      "file": "src/i18n/ar/policy.ts",
+      "lang": "ar",
+      "key": "policy.sla.grid.desc",
+      "value": "تعمل قائمة العمل على القيمة الافتراضية للمستوى ما لم تتجاوزها. الهدف المتجاوَز يتوقف عن اتّباع المستوى — أعده لتعيده إلى الوراثة."
+    },
+    {
+      "file": "src/i18n/ar/policy.ts",
+      "lang": "ar",
+      "key": "policy.reasons.desc",
+      "value": "المفردات المغلقة التي يُصنَّف بها كل إلغاء واسترداد وإيقاف ونزاع. لا يُحذف الرمز ولا يُعاد تسميته أبدًا — أوقفه واذكر ما حلّ محله، لأن السجلات التاريخية تشير إلى المفتاح."
+    },
+    {
+      "file": "src/i18n/ar/policy.ts",
+      "lang": "ar",
+      "key": "policy.reasons.new.desc",
+      "value": "اختر المفتاح بعناية — فهو لا يُعاد تسميته ولا يُعاد استخدامه أبدًا، حتى بعد إيقافه."
+    },
+    {
+      "file": "src/i18n/ar/policy.ts",
+      "lang": "ar",
+      "key": "policy.audit.saved",
+      "value": "حُفظت السياسة التشغيلية — تغيّر {count} من الحقول: {fields}"
+    },
+    {
+      "file": "src/i18n/ar/policy.ts",
+      "lang": "ar",
+      "key": "policy.audit.codeSaved",
+      "value": "عُدِّل رمز السبب {code} — تغيّر {count} من الحقول: {fields}"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "lang": "en",
+      "key": "policy.sla.grid.desc",
+      "value": "A queue answers on the tier default unless it overrides it. An overridden target stops following the tier — revert it to put it back."
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "lang": "en",
+      "key": "policy.reasons.desc",
+      "value": "The closed vocabulary every cancellation, refund, suspension and dispute is coded against. A code is never deleted or renamed — retire it and name what replaced it, because historical records point at the key."
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "lang": "en",
+      "key": "policy.reasons.new.desc",
+      "value": "Choose the key carefully — it is never renamed and never reused, even after it is retired."
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "lang": "en",
+      "key": "policy.audit.saved",
+      "value": "Operational policy saved — {count} fields changed: {fields}"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "lang": "en",
+      "key": "policy.audit.codeSaved",
+      "value": "Reason code {code} edited — {count} fields changed: {fields}"
+    },
+    {
+      "file": "src/i18n/ar/pwa.ts",
+      "lang": "ar",
+      "key": "pwa.install.body",
+      "value": "النافذة المثبَّتة تُخفي شريط أدوات المتصفح وتعيد نحو 90 بكسل — أي صفًّا إضافيًا في الجدول تقريبًا."
+    },
+    {
+      "file": "src/pwa/copy.ts",
+      "lang": "en",
+      "key": "pwa.install.body",
+      "value": "An installed window drops the browser toolbar and gives back about 90px — roughly another table row."
+    },
+    {
+      "file": "src/i18n/ar/reports.ts",
+      "lang": "ar",
+      "key": "rb.funnel.duplicateStep",
+      "value": "الخطوة {position} تكرّر خطوة سابقة. وخطوتان متطابقتان تحوّلان بنسبة 100 %، وهو ما لا يقيس شيئًا — غيّر مقياسها، أو أعطها تصفية خاصة بها."
+    },
+    {
+      "file": "src/i18n/ar/reports.ts",
+      "lang": "ar",
+      "key": "rb.panel.measureByGroup",
+      "value": "{measure} — {group}"
+    },
+    {
+      "file": "src/i18n/ar/reports.ts",
+      "lang": "ar",
+      "key": "rb.dashboard.tile.filterRefused",
+      "value": "لم تُطبَّق تصفية {field} — لا يقبلها هذا التقرير."
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "lang": "en",
+      "key": "rb.funnel.duplicateStep",
+      "value": "Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own."
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "lang": "en",
+      "key": "rb.panel.measureByGroup",
+      "value": "{measure} — {group}"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "lang": "en",
+      "key": "rb.dashboard.tile.filterRefused",
+      "value": "Not filtered by {field} — this report can’t be."
+    },
+    {
+      "file": "src/i18n/ar/requests.ts",
+      "lang": "ar",
+      "key": "requests.offered.withCaptain",
+      "value": "معروض على {name} — بانتظار ردّه"
+    },
+    {
+      "file": "src/i18n/ar/requests.ts",
+      "lang": "ar",
+      "key": "requests.offered.unnamed",
+      "value": "معروض على أحد الكباتن — بانتظار ردّه"
+    },
+    {
+      "file": "src/i18n/ar/requests.ts",
+      "lang": "ar",
+      "key": "requests.offered.waiting",
+      "value": "— بانتظار ردّه"
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "lang": "en",
+      "key": "requests.offered.withCaptain",
+      "value": "Offered to {name} — waiting for their reply"
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "lang": "en",
+      "key": "requests.offered.unnamed",
+      "value": "Offered to a captain — waiting for their reply"
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "lang": "en",
+      "key": "requests.offered.waiting",
+      "value": "— waiting for their reply"
+    },
+    {
+      "file": "src/i18n/ar/safety.ts",
+      "lang": "ar",
+      "key": "safety.step.a11y",
+      "value": "{step} — {incident}"
+    },
+    {
+      "file": "src/i18n/ar/safety.ts",
+      "lang": "ar",
+      "key": "safety.empty.firstRun.body",
+      "value": "نداء استغاثة من سيارة مسرعة، أو اصطدام، أو بلاغ ضد كابتن أو راكب — كل واحدة يستلمها شخص محدَّد وتُعالج عبر أربع خطوات."
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "lang": "en",
+      "key": "safety.step.a11y",
+      "value": "{step} — {incident}"
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "lang": "en",
+      "key": "safety.empty.firstRun.body",
+      "value": "An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps."
+    },
+    {
+      "file": "src/i18n/ar/shell.ts",
+      "lang": "ar",
+      "key": "table.bulk.refusalLabelled",
+      "value": "{action} — {reason}"
+    },
+    {
+      "file": "src/i18n/ar/subscriptions.ts",
+      "lang": "ar",
+      "key": "subs.bulk.freeze.blocked",
+      "value": "{count} من {total} من الاشتراكات المحدَّدة لا يمكن تجميدها — فهي ملغاة أو منتهية."
+    },
+    {
+      "file": "src/i18n/ar/subscriptions.ts",
+      "lang": "ar",
+      "key": "subs.toast.cancelled",
+      "value": "تم إلغاء الاشتراك — استُرد {amount}"
+    },
+    {
+      "file": "src/i18n/ar/subscriptions.ts",
+      "lang": "ar",
+      "key": "sub.driverOption",
+      "value": "{name} — {city} · {rating} · {active}/{max} اشتراك"
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "lang": "en",
+      "key": "subs.bulk.freeze.blocked",
+      "value": "{count} of {total} selected subscriptions cannot be frozen — they are cancelled or expired."
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "lang": "en",
+      "key": "subs.toast.cancelled",
+      "value": "Subscription cancelled — {amount} refunded"
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "lang": "en",
+      "key": "sub.driverOption",
+      "value": "{name} — {city} · {rating} · {active}/{max} subs"
+    },
+    {
+      "file": "src/i18n/ar/subscriptionProfile.ts",
+      "lang": "ar",
+      "key": "profile.subscription.rail.window",
+      "value": "{from} — {to}"
+    },
+    {
+      "file": "src/components/profile/subscription/copy.ts",
+      "lang": "en",
+      "key": "profile.subscription.rail.window",
+      "value": "{from} — {to}"
+    },
+    {
+      "file": "src/i18n/ar/tickets.ts",
+      "lang": "ar",
+      "key": "ticket.guide.heading",
+      "value": "دليل المكالمة — {scenario}"
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "lang": "en",
+      "key": "ticket.guide.heading",
+      "value": "Call guide — {scenario}"
+    },
+    {
+      "file": "src/i18n/ar/tripProfile.ts",
+      "lang": "ar",
+      "key": "profile.trip.party.ratingWithNote",
+      "value": "{rating} — «{note}»"
+    },
+    {
+      "file": "src/i18n/ar/tripProfile.ts",
+      "lang": "ar",
+      "key": "profile.trip.fare.reconcile",
+      "value": "مجموع هذه البنود لا يساوي الإجمالي — {amount} ريال غير مُفسَّرة."
+    },
+    {
+      "file": "src/components/profile/trip/copy.ts",
+      "lang": "en",
+      "key": "profile.trip.party.ratingWithNote",
+      "value": "{rating} — “{note}”"
+    },
+    {
+      "file": "src/components/profile/trip/copy.ts",
+      "lang": "en",
+      "key": "profile.trip.fare.reconcile",
+      "value": "These lines do not add up to the total — {amount} SAR is unaccounted for."
+    },
+    {
+      "file": "src/i18n/ar/zones.ts",
+      "lang": "ar",
+      "key": "zones.steer.body",
+      "value": "الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده."
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "lang": "en",
+      "key": "zones.steer.body",
+      "value": "Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended."
+    },
+    {
+      "file": "src/i18n/dictionaries.ts",
+      "lang": "en",
+      "key": "table.bulk.refusalLabelled",
+      "value": "{action} — {reason}"
+    }
+  ],
+  "overBudget": [
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "key": "ticket.status.waiting",
+      "class": "badge",
+      "words": 3,
+      "budget": 2,
+      "value": "Waiting on customer"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.alerts.banner.body",
+      "class": "banner",
+      "words": 33,
+      "budget": 20,
+      "value": "No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.empty.firstRun.action",
+      "class": "button",
+      "words": 5,
+      "budget": 3,
+      "value": "Read the chart of accounts"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.activate.tokenInvalid.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Go to sign in"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.reset.tokenInvalid.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Request a new link"
+    },
+    {
+      "file": "src/screens/operations/corporate/copy.ts",
+      "key": "corp.action.backToAccounts",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Back to corporate accounts"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.debt.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the reconciliation queue"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.deduction.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the payable ledger"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.gateway.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the trial balance"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.journal.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the trial balance"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.payout.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the payable ledger"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.cancel.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the rate card"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.plan.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the rate card"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.quick.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the rate card"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.reconcile.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the trial balance"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.refund.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Read the refunds ledger"
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "key": "notice.action.openSafety",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Open Safety & Incidents"
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "key": "overview.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Go to quick rides"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.reasons.action.restore",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Put back in use"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.reasons.empty.action",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Add the first code"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.panel.action.open",
+      "class": "button",
+      "words": 4,
+      "budget": 3,
+      "value": "Open the {board} board"
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "key": "fairness.empty.firstRun.body",
+      "class": "empty body",
+      "words": 34,
+      "budget": 12,
+      "value": "A suspension appealed, a rating disputed, a rider reported. A high overturn rate here is not a failure — it means the appeal route is catching bad calls before they cost you a captain."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.key.empty.body",
+      "class": "empty body",
+      "words": 33,
+      "budget": 12,
+      "value": "An API key lets a billing job, a partner portal or a warehouse export read and write through the same permissions your operators have. Each key carries only the scopes you grant it."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.webhook.empty.body",
+      "class": "empty body",
+      "words": 31,
+      "budget": 12,
+      "value": "A webhook endpoint receives a signed payload the moment a trip completes, a subscription lapses or a payout settles — so a partner system does not have to poll for it."
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "key": "safety.empty.firstRun.body",
+      "class": "empty body",
+      "words": 30,
+      "budget": 12,
+      "value": "An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.workspace.empty.body",
+      "class": "empty body",
+      "words": 25,
+      "budget": 12,
+      "value": "Nothing has been set for this workspace yet — no name, no support address, no legal versions. Set them and every screen picks them up."
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.reasons.empty.body",
+      "class": "empty body",
+      "words": 25,
+      "budget": 12,
+      "value": "A reason code is the closed vocabulary operators pick from when they dispose of work. Without one, every disposition is free text nobody can count."
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "key": "subs.empty.firstRun.body",
+      "class": "empty body",
+      "words": 23,
+      "budget": 12,
+      "value": "A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "adminData.integrity.empty.body",
+      "class": "empty body",
+      "words": 22,
+      "budget": 12,
+      "value": "Nothing is scanned in the background. Run the checks and each one reports what it found, with its name on every row."
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.log.empty.outbox.body",
+      "class": "empty body",
+      "words": 22,
+      "budget": 12,
+      "value": "Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them."
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.empty.board.body",
+      "class": "empty body",
+      "words": 22,
+      "budget": 12,
+      "value": "Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts."
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "key": "dispute.lf.empty.body",
+      "class": "empty body",
+      "words": 22,
+      "budget": 12,
+      "value": "Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back."
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "key": "admin.team.empty.body",
+      "class": "empty body",
+      "words": 21,
+      "budget": 12,
+      "value": "Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap."
+    },
+    {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "key": "myWork.empty.firstRun.body",
+      "class": "empty body",
+      "words": 20,
+      "budget": 12,
+      "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "key": "overview.empty.body",
+      "class": "empty body",
+      "words": 20,
+      "budget": 12,
+      "value": "This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count."
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.applications.body",
+      "class": "empty body",
+      "words": 20,
+      "budget": 12,
+      "value": "Every captain who applies lands in this queue with their documents, so you can approve or reject in one place."
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.compliance.body",
+      "class": "empty body",
+      "words": 20,
+      "budget": 12,
+      "value": "Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected."
+    },
+    {
+      "file": "src/screens/operations/trips/copy.ts",
+      "key": "trips.empty.firstRun.body",
+      "class": "empty body",
+      "words": 20,
+      "budget": 12,
+      "value": "Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating."
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.identity.empty.body",
+      "class": "empty body",
+      "words": 19,
+      "budget": 12,
+      "value": "A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email."
+    },
+    {
+      "file": "src/screens/entity/copy.ts",
+      "key": "entity.rider.payments.empty.body",
+      "class": "empty body",
+      "words": 19,
+      "budget": 12,
+      "value": "This rider has not paid for a trip by card. Quick ride fares appear here as they are captured."
+    },
+    {
+      "file": "src/screens/admin/activity/copy.ts",
+      "key": "admin.activity.empty.body",
+      "class": "empty body",
+      "words": 18,
+      "budget": 12,
+      "value": "The log is append-only and starts empty. The first payout, suspension or settings change writes the first line."
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.delivery.empty.body",
+      "class": "empty body",
+      "words": 18,
+      "budget": 12,
+      "value": "Once an endpoint is registered and one of its events happens, every attempt and every response appears here."
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "key": "assurance.empty.firstRun.body",
+      "class": "empty body",
+      "words": 18,
+      "budget": 12,
+      "value": "Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue."
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.template.empty.body",
+      "class": "empty body",
+      "words": 18,
+      "budget": 12,
+      "value": "A template turns a system event into the message a customer reads. Each one is written per language."
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "key": "zones.empty.body",
+      "class": "empty body",
+      "words": 18,
+      "budget": 12,
+      "value": "A zone is a district where demand and supply are measured. None is tracked in this city yet."
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "key": "dispute.empty.body",
+      "class": "empty body",
+      "words": 17,
+      "budget": 12,
+      "value": "Fare adjustments, cancellation fees and property damage claims arrive here from the support ticket that raised them."
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "key": "ticket.thread.empty.body",
+      "class": "empty body",
+      "words": 17,
+      "budget": 12,
+      "value": "This ticket was raised from an operations event. The first message or logged call will appear here."
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.log.empty.inbox.body",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "When a customer answers a transactional message, the reply appears here beside the message it answers."
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.push.empty.body",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.empty.trips.body",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "No trip is on the road right now. New trips appear here as captains accept them."
+    },
+    {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "key": "myWork.empty.routed",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "Nothing is open in the queues routed to your role. Other queues may still have work."
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.riders.body",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk."
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "key": "conversations.empty.cleared.unassigned",
+      "class": "empty body",
+      "words": 15,
+      "budget": 12,
+      "value": "Every conversation has an operator. New ones appear here the moment a customer writes in."
+    },
+    {
+      "file": "src/screens/entity/DriverCopy.ts",
+      "key": "entity.driver.ledger.empty.body",
+      "class": "empty body",
+      "words": 15,
+      "budget": 12,
+      "value": "A completed trip accrues earnings here, and a payout takes them out. Neither has happened."
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "key": "requests.empty.firstRun.body",
+      "class": "empty body",
+      "words": 15,
+      "budget": 12,
+      "value": "Every instant ride and every subscription sign-up waiting on a captain appears in this queue."
+    },
+    {
+      "file": "src/screens/entity/DriverCopy.ts",
+      "key": "entity.driver.trips.empty.body",
+      "class": "empty body",
+      "words": 14,
+      "budget": 12,
+      "value": "Every trip they drive lands here, with what it earned and how it ended."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.empty.firstRun.body",
+      "class": "empty body",
+      "words": 14,
+      "budget": 12,
+      "value": "Postings appear the moment a fare, a payout or a credit touches this account."
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "key": "conversations.empty.firstRun.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "Chat and email conversations appear here as soon as a customer opens one."
+    },
+    {
+      "file": "src/screens/entity/copy.ts",
+      "key": "entity.rider.movements.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "This wallet has no movements. Top-ups and refunds appear here as they happen."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.escrow.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A plan subscription holds its captain earnings here until the trips are delivered."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.payout.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A captain appears here as soon as a trip accrues earnings to them."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.quick.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A class is what a rider picks when they book without a plan."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.refund.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A refund appears here the moment one is issued, with its credit note."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.refused.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A posting the ledger will not write is kept here with its reason."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.trial.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "Every account in the chart is listed the moment anything posts to it."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.wallet.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "A top-up, a goodwill credit or a refund to the wallet opens one."
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.dashboard.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "Add a saved report and it appears here, in the order you choose."
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "key": "sub.changeDriver.empty",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "No other captain is active right now. Reassignment reopens when one comes online."
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "key": "ticket.empty.body",
+      "class": "empty body",
+      "words": 13,
+      "budget": 12,
+      "value": "Inbound customer care tickets and the calls operators log against them arrive here."
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "key": "admin.team.empty.heading",
+      "class": "empty title",
+      "words": 10,
+      "budget": 5,
+      "value": "Everyone who can sign in, and what each may do"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "adminData.integrity.empty.heading",
+      "class": "empty title",
+      "words": 10,
+      "budget": 5,
+      "value": "Find out where a stored total stops matching its records"
+    },
+    {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "key": "subs.empty.firstRun.heading",
+      "class": "empty title",
+      "words": 9,
+      "budget": 5,
+      "value": "Standing journeys, and the captain committed to each one"
+    },
+    {
+      "file": "src/screens/admin/activity/copy.ts",
+      "key": "admin.activity.empty.heading",
+      "class": "empty title",
+      "words": 8,
+      "budget": 5,
+      "value": "The record of who did what, and when"
+    },
+    {
+      "file": "src/screens/metrics/copy.ts",
+      "key": "overview.empty.heading",
+      "class": "empty title",
+      "words": 8,
+      "budget": 5,
+      "value": "Captains, riders, trips and subscriptions, on one board"
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "key": "zones.empty.heading",
+      "class": "empty title",
+      "words": 8,
+      "budget": 5,
+      "value": "Where demand and supply meet, district by district"
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.log.empty.outbox.heading",
+      "class": "empty title",
+      "words": 7,
+      "budget": 5,
+      "value": "Every message the system sends lands here"
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.riders.heading",
+      "class": "empty title",
+      "words": 7,
+      "budget": 5,
+      "value": "The rider roster, with wallets and renewals"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.reasons.empty.heading",
+      "class": "empty title",
+      "words": 7,
+      "budget": 5,
+      "value": "One word for each way work ends"
+    },
+    {
+      "file": "src/screens/operations/trips/copy.ts",
+      "key": "trips.empty.firstRun.heading",
+      "class": "empty title",
+      "words": 7,
+      "budget": 5,
+      "value": "Every journey taken, and what it earned"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.webhook.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "Tell another system when something happens"
+    },
+    {
+      "file": "src/screens/operations/corporate/copy.ts",
+      "key": "corp.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "Company ride budgets, on one invoice"
+    },
+    {
+      "file": "src/screens/entity/DriverCopy.ts",
+      "key": "entity.driver.ledger.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "No earnings have reached this captain"
+    },
+    {
+      "file": "src/screens/entity/DriverCopy.ts",
+      "key": "entity.driver.trips.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "This captain has taken no trips"
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "key": "fairness.empty.firstRun.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "The route back for a captain"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.payout.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "No captain has earnings this period"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.wallet.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "No rider holds a wallet balance"
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.captains.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "Every captain, from application to compliance"
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.empty.compliance.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "Document expiry, for the whole fleet"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.dashboard.empty.heading",
+      "class": "empty title",
+      "words": 6,
+      "budget": 5,
+      "value": "This dashboard has no reports yet"
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "key": "zones.meta",
+      "class": "meta",
+      "words": 11,
+      "budget": 6,
+      "value": "{zones} zones · {starved} starved · {cities} of {allCities} cities live"
+    },
+    {
+      "file": "src/screens/admin/activity/copy.ts",
+      "key": "admin.activity.meta",
+      "class": "meta",
+      "words": 10,
+      "budget": 6,
+      "value": "Append-only. Every mutating action, with the operator who took it."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "adminData.meta",
+      "class": "meta",
+      "words": 10,
+      "budget": 6,
+      "value": "Data exports, retention schedules and the integrity checks behind them"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.meta",
+      "class": "meta",
+      "words": 10,
+      "budget": 6,
+      "value": "Dispatch, operating cities, safety limits, reason codes and SLA targets"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.workspace.meta",
+      "class": "meta",
+      "words": 9,
+      "budget": 6,
+      "value": "Company details, branding, and the legal versions in force"
+    },
+    {
+      "file": "src/screens/admin/communications/copy.ts",
+      "key": "comms.meta",
+      "class": "meta",
+      "words": 9,
+      "budget": 6,
+      "value": "{total} messages in the log · {attention} needing attention"
+    },
+    {
+      "file": "src/screens/admin/team/copy.ts",
+      "key": "admin.team.meta",
+      "class": "meta",
+      "words": 8,
+      "budget": 6,
+      "value": "Operators, permissions, security policy and the on-call rota"
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.meta",
+      "class": "meta",
+      "words": 7,
+      "budget": 6,
+      "value": "{count} in transit · live telemetry connected"
+    },
+    {
+      "file": "src/components/profile/trip/copy.ts",
+      "key": "profile.trip.band.meta",
+      "class": "meta",
+      "words": 7,
+      "budget": 6,
+      "value": "{id} · {date} · {rider} · {captain}"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.support.profile.title",
+      "class": "title",
+      "words": 13,
+      "budget": 4,
+      "value": "Open a 360° profile, and know what you may not do with it"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.reveal.warning.webhook.title",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "This is the only time this signing secret is shown"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.stageA.title",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "Prices are read-only until the rate card owner is decided."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.ledger-subject.title",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "Ledger postings name a subject and an entry that exist"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.owner.team.title",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "Read the role matrix, and decide if it still holds"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.dashboards.firstRun.heading",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "Put the reports you read every morning in one place"
+    },
+    {
+      "file": "src/i18n/dictionaries.ts",
+      "key": "state.saveInvalid.title",
+      "class": "title",
+      "words": 10,
+      "budget": 4,
+      "value": "To save this {entity}, {count} changes need to be made:"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.reveal.warning.key.title",
+      "class": "title",
+      "words": 9,
+      "budget": 4,
+      "value": "This is the only time this key is shown"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.invariant.status-fields.title",
+      "class": "title",
+      "words": 9,
+      "budget": 4,
+      "value": "A status agrees with the fields that justify it"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.support.boundary.title",
+      "class": "title",
+      "words": 9,
+      "budget": 4,
+      "value": "Know what you may not decide, and who does"
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "key": "fairness.economics.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "What this number does and does not measure"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.overview.outOfBalance.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "The books are out of balance by {amount}."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.pricing.cancel.notEnforced.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Five cancellation rules are stored and never applied."
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.common.audit.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Find your own name in the activity log"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.finance.escrow.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Read what releasing escrow does, without releasing it"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.finance.goodwill.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Find the cap that bounds a goodwill credit"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.finance.ledger.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Read a ledger before you post to one"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.ops.dispatch.title",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Tell a stale feed from a dead one"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.alerts.firstRun.heading",
+      "class": "title",
+      "words": 8,
+      "budget": 4,
+      "value": "Be told when a number crosses a line"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.otp.resent.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "A new code is on its way"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.reauth.blocked.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "This account can no longer sign in"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.cash.escalated.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "One report is with Trust & Safety."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.creditNote.unlinked.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "One credit note has no matched invoice."
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.payout.failed.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "One payout was returned by the bank."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.agree.aggregate-vs-records.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "A lifetime total has records behind it"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.agree.escrow-amount.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "A subscription and its escrow hold agree"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.agree.party-name.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Two records agree on a person’s name"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.money.payout-net.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "A payout’s net follows from the ledger"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.money-party.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Money records name a party that exists"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.ticket-subject.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Tickets point at a customer who exists"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.common.account.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Check the account that is now yours"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.finance.reconciliation.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Work one reconciliation item end to end"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.ops.application.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Decide one captain application end to end"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.ops.requests.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Claim, work and dispose of one request"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.owner.policy.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Read the policy you are accountable for"
+    },
+    {
+      "file": "src/pwa/copy.ts",
+      "key": "pwa.install.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "Run the console in its own window"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "session.writeRevoked.title",
+      "class": "title",
+      "words": 7,
+      "budget": 4,
+      "value": "You can no longer save this change"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.reveal.webhook.rotated.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Copy the new signing secret now"
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "key": "assurance.offer.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Hand {id} to a backup captain?"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.activate.tokenInvalid.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "This invite is no longer valid"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.otp.elsewhere.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "This sign-in finished in another tab"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.otp.missing.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "That verification is no longer open"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.reauth.signOutConfirm.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Sign out and lose your changes?"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.reset.tokenInvalid.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "This link is no longer valid"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.session.endedAbsolute.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Your session reached its 12-hour limit"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.cash.escalate.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Escalate {report} to Trust & Safety?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.wallet.negative.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "One rider wallet is below zero."
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.invariant.counters.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Counters on one record add up"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.money.wallet-balance.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "A wallet balance matches its ledger"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.person-links.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Rider and captain link lists resolve"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.subscription-links.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Subscriptions point at records that exist"
+    },
+    {
+      "file": "src/screens/admin/data/copy.ts",
+      "key": "integrity.check.ref.trip-links.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Trips point at records that exist"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.common.mywork.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Claim one item, then release it"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.ops.assurance.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Cover one trip before it departs"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.support.goodwill.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Credit a rider, inside your cap"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.support.ticket.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Answer one ticket end to end"
+    },
+    {
+      "file": "src/screens/queues/copy.ts",
+      "key": "queue.takeOver.decide.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Decide this while {name} holds it?"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.dashboard.add.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Add a report to this dashboard"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.delete.pinned.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "This report is on other dashboards"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.reveal.key.rotated.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Copy the new key now"
+    },
+    {
+      "file": "src/screens/admin/workspace/copy.ts",
+      "key": "admin.integrations.reveal.webhook.issued.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Copy this signing secret now"
+    },
+    {
+      "file": "src/screens/operations/assurance/copy.ts",
+      "key": "assurance.waive.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Waive this strike against {name}?"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.enroll.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Set up your verification code"
+    },
+    {
+      "file": "src/screens/auth/copy.ts",
+      "key": "auth.otp.superseded.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "That code has been replaced"
+    },
+    {
+      "file": "src/i18n/vocabulary/copy.ts",
+      "key": "driver.timeline.trip-no-show.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Trip recorded as a no-show"
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "key": "fairness.overturn.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Overturn the decision against {name}?"
+    },
+    {
+      "file": "src/screens/support/fairness/copy.ts",
+      "key": "fairness.uphold.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Uphold the decision against {name}?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.apply.confirm.title#one",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Apply {amount} from 1 deduction?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.apply.confirm.title#other",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Apply {amount} from {count} deductions?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.release.confirm.title#one",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Release {amount} from 1 hold?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.release.confirm.title#other",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Release {amount} from {count} holds?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.waive.confirm.title#one",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Waive {amount} on 1 deduction?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.bulk.waive.confirm.title#other",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Waive {amount} on {count} deductions?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.debt.repay.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Record a repayment from {captain}?"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.overview.positions.heading",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Where the money is held"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.finance.routing.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Know which queue reaches you"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.owner.position.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "State the current contribution margin"
+    },
+    {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.step.owner.pricing.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Settle how captains are paid"
+    },
+    {
+      "file": "src/screens/operations/people/copy.ts",
+      "key": "people.takeOver.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Take this application from {name}?"
+    },
+    {
+      "file": "src/screens/admin/policy/copy.ts",
+      "key": "policy.sla.breach.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "When a target is breached"
+    },
+    {
+      "file": "src/screens/queues/copy.ts",
+      "key": "queue.takeOver.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Take this over from {name}?"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.canvas.table.heading",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "The numbers behind this chart"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.library.firstRun.heading",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Ask the business a question"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.related.heading",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "This measure also appears on"
+    },
+    {
+      "file": "src/screens/reports/copy.ts",
+      "key": "rb.saveAs.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Save as a new report"
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "key": "requests.assign.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Assign a captain to {id}?"
+    },
+    {
+      "file": "src/screens/operations/requests/copy.ts",
+      "key": "requests.expire.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Close {id} with no captain?"
+    },
+    {
+      "file": "src/i18n/vocabulary/copy.ts",
+      "key": "rider.timeline.trip-no-show.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Trip recorded as a no-show"
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "key": "ticket.logCall.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Log a call on {id}"
+    }
+  ],
+  "overBudgetByClass": [
+    [
+      "title",
+      89
+    ],
+    [
+      "empty body",
+      48
+    ],
+    [
+      "empty title",
+      20
+    ],
+    [
+      "button",
+      19
+    ],
+    [
+      "meta",
+      9
+    ],
+    [
+      "badge",
+      1
+    ],
+    [
+      "banner",
+      1
+    ]
+  ]
 }

@@ -1,62 +1,20 @@
 /**
- * Management › Market & Zones — **the zone map, drawn from our own polygons.**
+ * Management › Market & Zones — **a choropleth of our own zone polygons over
+ * `Basemap`,** which owns the tile source and its licence (X11, **O2**).
  *
- * ## Why there is no basemap, and why that is not a downgrade
+ * The zones themselves are Eyvar's data and are drawn as vectors, so the board
+ * still answers *where is demand starved* if the tiles never arrive: `Basemap`
+ * removes itself after three failures rather than leaving holes.
  *
- * The surface this file replaces fetched slippy tiles straight from
- * `https://mt1.google.com/vt/` — **no API key, no billing account, no terms
- * accepted** — with `loading="eager"` and no `onError`. That is an unlicensed
- * use of somebody else's tile servers: it can be cut off without notice, and
- * when it is, every `<img>` renders as a silent broken graphic with no state
- * behind it. A second style pulled CARTO's `dark_all` basemap on the same
- * terms. Neither is shippable, and swapping one unlicensed host for another
- * would only move the problem.
+ * **Never name a Tailwind class in a comment here.** Tailwind v4 scans comments
+ * as plain text, so a class written literally is re-emitted into `dist`; that is
+ * how an R18 loop and a physical margin both shipped out of comments forbidding
+ * them. Name the parts, and verify in `dist`.
  *
- * **No licensed provider is configured anywhere in this repo.** There is no map
- * key, no provider config, no `VITE_*` map variable — the only other tile URLs
- * in the tree are the legacy panel's own OpenStreetMap calls
- * (`eyvar_ops_panel_v40_fixed.html:7873`, `:11574`), which the findings
- * register already lists as a CSP problem rather than as a licence we hold.
- *
- * So this is the second of the three defensible answers: **a self-contained
- * vector rendering of our own zones, with no third-party fetch of any kind.**
- * Zones are Eyvar's data. A choropleth of our own polygons, shaded by the
- * measure the operator picked, needs no basemap to answer the question the
- * board exists to answer — *where is demand starved* — and it answers it
- * offline, under any CSP, with no vendor able to switch it off. `docs/ref/rtl.md`
- * points the same way: the map canvas does not mirror in Arabic, and geometry
- * we draw ourselves handles that cleanly rather than depending on a raster whose
- * labels are baked LTR.
- *
- * What went with the tiles, and why none of it is a loss:
- *   - **Roadmap / Satellite / Dark** were three basemaps. With no basemap they
- *     name nothing.
- *   - **Drag-to-pan and wheel zoom** were mouse-only, with no keyboard path to
- *     the same information (`a11y.md`). Six zones fitted to the frame need
- *     neither: everything is on screen at once.
- *   - **The Google watermark** was six hard-coded brand hexes attributing a
- *     basemap we no longer draw.
- *   - **The ping-loop utility on a starved zone** was a loop encoding severity,
- *     which R18 forbids outright — a loop may only mean *this feed is live*.
- *     The class is named in words here on purpose: Tailwind v4 scans comments as
- *     plain text, so spelling it out re-emitted the rule into `dist` and shipped
- *     the very loop this line records deleting. The same mechanism once shipped
- *     an auto physical margin out of a comment warning against physical margins
- *     — and then out of THIS comment, when the cautionary example was written
- *     literally. Name the parts, never the class. Verify in `dist`, not `src`.
- *   - **`CITIES_DATA`** was five hand-typed cities with invented user counts,
- *     one of which (Medina) is not in `cityFixtures` at all. R4-6b's whole
- *     point is that this screen's figures are derived, and the city breakdown
- *     that IS derived lives on the metrics board as `zones.citiesHealth`; the
- *     screen header states the coverage count off `listCities()`.
- *
- * ## The keyboard path is the point, not a concession
- *
- * A map that only answers a mouse gives an operator nothing. Every zone here is
- * reachable two ways: a real `<button>` marker on the canvas, and a real
- * `<button>` row in the list beside it. Both carry `aria-pressed`, both show
- * the focus ring, and the SVG itself is `role="img"` with a title and a
- * description — it is the picture, never the only route to the reading.
+ * Every zone is reachable two ways, because a map that only answers a mouse
+ * gives an operator nothing: a `<button>` marker on the canvas and a `<button>`
+ * row in the list, both with `aria-pressed` and a focus ring. The SVG is
+ * `role="img"` with a title and a description, never the only route.
  *
  * Rules applied
  *   R5a          red appears here in exactly one place, and it is the licensed

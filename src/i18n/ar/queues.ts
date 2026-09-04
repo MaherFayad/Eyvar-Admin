@@ -35,7 +35,7 @@ export const QUEUE_SHARED_AR: Dictionary = {
   'queue.toast.claimed': 'تم الاستلام',
   'queue.toast.released': 'تم الترك',
   'queue.toast.takenOver': 'تم التولّي',
-  'queue.sla.dueAt': 'الاستحقاق {date}',
+  'queue.sla.missed': 'فات موعده {date}',
   'queue.showBreached': 'عرض ما تجاوز الموعد النهائي فقط',
   'queue.filter.breached': 'تجاوز الموعد النهائي',
   'queue.filter.breached.yes': 'تجاوز موعده النهائي',

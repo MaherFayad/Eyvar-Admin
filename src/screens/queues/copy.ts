@@ -66,11 +66,11 @@ export const QUEUE_SHARED_EN: Dictionary = {
   'queue.toast.takenOver': 'Taken over',
 
   /* ── §4.4 breach ────────────────────────────────────────────────────── */
-  /* §4.4 — the third SLA reading, beside `sla.left` and `sla.overdue`. The
-     deadline is behind us and the promise was **not** broken (`queueClock`'s
-     `deadlinePassedUnbroken`), so nothing is counting and nothing is overdue.
-     One key, one named placeholder. */
-  'queue.sla.dueAt': 'Due {date}',
+  /* O7 — the third SLA reading, beside `sla.left` and `sla.overdue`. The
+     cut-off is behind us and no breach was stamped, so nothing is counting and
+     nothing is overdue; it still reads `Missed`, never `Due`, because a
+     deadline in the past is not a deadline the operator can still meet. */
+  'queue.sla.missed': 'Missed {date}',
 
   'queue.showBreached': 'Show only past deadline',
   /* Q-18 — the wider audit set says so in its own label. The chip reads `Past

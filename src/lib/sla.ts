@@ -293,8 +293,9 @@ export interface QueueClockResult {
  * banner (**AC-219**).
  *
  * So a passed-but-unbroken deadline renders as **a date, not a countdown**:
- * `Due 24 Jun 21:00`, neutral, no track, no marker. It is one clock readout per
- * row (**AC-211**), it is true, and it agrees with everything else on screen.
+ * `Missed 24 Jun 21:00` (**O7**), neutral, no track, no marker, and sorted with
+ * the breached rows. It is one clock readout per row (**AC-211**), it is true,
+ * and it agrees with everything else on screen.
  *
  * It is also exactly what the data layer asked for on this queue: `slaSource`
  * is `unset` and `slaTargetMinutes` is `null` on every `AssuranceTrip`, and
@@ -318,7 +319,16 @@ export function queueClock(
 
   const breached = input.breachedAt !== null
   if (base.kind === 'breached' && !breached) {
-    return { clock: NO_CLOCK, breached: false, deadlinePassedUnbroken: true }
+    /* **O7.** The cut-off is behind us, so the row belongs beside the breached
+       ones (`slaSortKey`) and never at the bottom with `No clock`. It keeps the
+       breached clock for the ORDER and loses its track, because no window was
+       ever agreed; `SlaCell` reads `deadlinePassedUnbroken` and prints
+       `Missed 24 Jun 21:00` rather than a countdown. */
+    return {
+      clock: { ...base, consumedRatio: null, windowMs: null },
+      breached: false,
+      deadlinePassedUnbroken: true,
+    }
   }
   return { clock: base, breached, deadlinePassedUnbroken: false }
 }

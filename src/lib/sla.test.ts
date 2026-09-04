@@ -4,6 +4,7 @@ import {
   SLA_MESSAGES_EN,
   compareBySla,
   formatSlaLabel,
+  queueClock,
   slaBand,
   slaClock,
   slaPrecision,
@@ -256,5 +257,42 @@ describe('slaPrecision — the window decides, not the number', () => {
     expect(formatSlaLabel(slaClock({ dueAt: atSeconds(-30), targetMinutes: 3 }, NOW), t)).toBe(
       'overdue 30s',
     )
+  })
+})
+
+describe('queueClock — O7: a past cut-off with no breach stamp is Missed, not Due', () => {
+  const input = (breachedAt: string | null) => ({
+    startedAt: null,
+    dueAt: at(-12 * 60),
+    targetMinutes: null,
+    breachedAt,
+  })
+
+  it('reports a passed cut-off with no stamp as passed unbroken, and not as breached', () => {
+    const result = queueClock(input(null), NOW, { terminal: false })
+    expect(result.deadlinePassedUnbroken).toBe(true)
+    expect(result.breached).toBe(false)
+  })
+
+  it('sorts it with the breached rows, not last with No clock', () => {
+    const missed = queueClock(input(null), NOW, { terminal: false })
+    const breached = queueClock(input(at(-11 * 60)), NOW, { terminal: false })
+    const running = slaClock({ dueAt: at(30) }, NOW)
+    expect(slaSortKey(missed.clock)).toBeLessThan(slaSortKey(running))
+    expect(slaSortKey(missed.clock)).toBeLessThan(slaSortKey(NO_CLOCK))
+    /* Both are twelve hours past the same cut-off, so neither outranks the
+       other by lateness: they land together, which is what O7 asks for. */
+    expect(compareBySla(missed.clock, breached.clock)).toBe(0)
+  })
+
+  it('draws no track for it, because no window was ever agreed', () => {
+    const missed = queueClock(input(null), NOW, { terminal: false })
+    expect(slaTrackPercent(missed.clock)).toBeNull()
+  })
+
+  it('stops the clock entirely once the row is decided (Q-18)', () => {
+    const decided = queueClock(input(null), NOW, { terminal: true })
+    expect(decided.clock).toBe(NO_CLOCK)
+    expect(decided.deadlinePassedUnbroken).toBe(false)
   })
 })

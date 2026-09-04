@@ -8,15 +8,12 @@
  * one write on it, so it is the command an operator reaches for most often and
  * the one that most benefits from not going through a kebab.
  *
- * ## What this mirrors, unchanged
+ * ## The only declaration (X9, T6.1)
  *
- * `TripsScreen.tsx` already declares exactly these two actions in both surfaces
- * and already routes both through **one** predicate per command
- * (`flagRefusal` / `unflagRefusal`, built on `screens/operations/bulkRefusal`),
- * so unlike `CaptainsView` there was no divergence to fix here — the row menu
- * and the bulk bar already agreed. What the registry adds is the **third**
- * surface: the same two commands, the same two predicates and the same two
- * toasts, reachable from ⌘K.
+ * `TripsScreen`, the ride sheet's `TripActions` and ⌘K all resolve this file,
+ * so one predicate and one write answer for four surfaces and `Flag` carries
+ * D18's undo on every one of them. `components/actions/trip.ts` was the second
+ * declaration and is gone.
  *
  * Ported verbatim:
  *
@@ -78,6 +75,19 @@ import { undoHandle } from './undo'
  * `roleRefusal`, which records it and does not evaluate it — **Q4**.
  */
 const WRITE_PERMISSION = 'live_ops'
+
+/**
+ * The five categories the flag form offers. Keys, never strings (AC-74).
+ * Beside the command that asks for one, the way `SETTLE_REASONS` sits beside
+ * cancel: a surface renders the list, no surface owns it.
+ */
+export const FLAG_REASONS: readonly string[] = [
+  'trips.reason.fareDispute',
+  'trips.reason.routeDeviation',
+  'trips.reason.speedViolation',
+  'trips.reason.safetyIncident',
+  'trips.reason.unusualPairing',
+]
 
 /* ──────────────────────────────── commands ──────────────────────────────── */
 
