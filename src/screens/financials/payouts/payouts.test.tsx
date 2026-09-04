@@ -1025,3 +1025,64 @@ describe('P8-T1 — a cell that names an entity opens that entity', () => {
     expect(within(row).getByText('DED-01').closest('a')).toBeNull()
   })
 })
+
+/* ════════════ FINANCIALS-UX-PLAN §1 P0-2, §5.1, §5.6 (Q-F13) ════════════ */
+
+describe('the returned-payouts banner acts, and the run states its figures', () => {
+  /**
+   * **P0-2 / AC-367** — the banner names the control that narrows the list, and
+   * stands down once the list is already showing only those rows.
+   */
+  it('P0-2 — Show only returned narrows the index to the returned payouts', async () => {
+    const user = userEvent.setup()
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+
+    await user.click(
+      screen.getByRole('button', { name: EN['fin.payout.failed.action'] as string }),
+    )
+
+    await waitFor(() => expect(screen.queryByText('Ahmed Salem')).toBeNull())
+    expect(screen.getByText('Youssef Nouri')).toBeTruthy()
+    expect(screen.queryByText(EN['fin.payout.failed.title'] as string)).toBeNull()
+  })
+
+  /** §5.1 — the four figures a period is settled against, above the index. */
+  it('§5.1 — the strip states what is owed, what is net, and the two counts', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=payouts')
+    const strip = await screen.findByRole('region', {
+      name: EN['fin.payout.figures.heading'] as string,
+    })
+
+    expect(within(strip).getByText(EN['fin.overview.pendingPayouts'] as string)).toBeTruthy()
+    expect(within(strip).getByText(EN['fin.payout.figure.net'] as string)).toBeTruthy()
+    expect(within(strip).getByText(EN['fin.payout.state.due'] as string)).toBeTruthy()
+    expect(within(strip).getByText(EN['fin.payout.state.failed'] as string)).toBeTruthy()
+  })
+
+  /**
+   * **TL-2 / Q-F13** — `listCaptainPayouts` takes no window, so the page states
+   * no period; `getCaptainPayableLedger` takes one, so the ledger does and
+   * offers the control that changes it.
+   */
+  it('Q-F13 — the index prints no period, and the ledger prints one with its control', async () => {
+    const { unmount } = mount(payoutsRow(), '/financials/payouts?view=payouts')
+    await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
+    expect(screen.queryByText(/^Period /)).toBeNull()
+    unmount()
+
+    mount(payoutsRow(), '/financials/payouts?view=payouts&captain=DRV-0101')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+    expect(screen.getByText(/^Period /)).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: EN['fin.overview.period.previous'] as string }),
+    ).toBeTruthy()
+  })
+
+  /** Q-F4 — the cancelled holds are counted at the top of the Escrow view. */
+  it('§5.1 — the Escrow view states how many holds sit on a cancelled subscription', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=escrow')
+    await waitFor(() => expect(screen.getByText('ESC-1052')).toBeTruthy())
+    expect(screen.getByText(EN['fin.escrow.cancelledTotal'] as string)).toBeTruthy()
+  })
+})

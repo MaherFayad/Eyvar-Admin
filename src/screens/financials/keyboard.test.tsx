@@ -194,22 +194,12 @@ describe('AC-450 — every interactive element declares a focus ring', () => {
   })
 
   /**
-   * Row actions driven with the keyboard alone.
-   *
-   * **This used to open a kebab, and under D8-b there is no kebab on this
-   * screen to open.** The threshold moved from two to three, so Payouts'
-   * `Pay` and `View ledger` now render as two labelled buttons rather than
-   * collapsing into a menu — and a test hard-coding the menu shape started
-   * failing on a screen that had become *more* accessible, not less.
-   *
-   * Re-targeted rather than deleted, and re-targeted at the shape this screen
-   * actually renders. §7.3's defect is a row action that only appears on
-   * hover; what has to be proved is that both controls are **visible at rest,
-   * in the tab order, and operable without a pointer**. The kebab's own
-   * keyboard behaviour is not gone — it belongs in a file whose screen
-   * declares three or more actions, and no Financials screen does.
+   * V-16 moved `View ledger` off the lane, so neither path may be pointer-only:
+   * the one labelled control takes focus, and the row answers `Enter` by
+   * opening the captain's payable ledger. `Pay` moves money and is deliberately
+   * not the row's open (D-A).
    */
-  it('both row actions are reachable and operable from the keyboard alone', async () => {
+  it('the row action and the row’s open are both operable from the keyboard alone', async () => {
     const user = userEvent.setup()
     mount(<PayoutsScreen row={rowFor('financials-payouts')} />, '/financials/payouts?view=payouts')
     await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
@@ -220,24 +210,21 @@ describe('AC-450 — every interactive element declares a focus ring', () => {
        would mean the threshold had silently moved back. */
     expect(
       within(row).queryByRole('button', { name: /actions/i }),
-      'two declared actions render directly, not behind a kebab (D8-b)',
+      'one declared action renders directly, not behind a kebab (D8-b)',
     ).toBeNull()
 
-    const buttons = within(row).getAllByRole('button')
-    const labelled = buttons.filter((b) => (b.textContent ?? '').trim().length > 0)
-    expect(labelled.length, 'both actions carry a visible label').toBeGreaterThanOrEqual(2)
+    const pay = within(row).getByRole('button', { name: EN['fin.payout.action.pay'] as string })
+    pay.focus()
+    expect(document.activeElement, 'the lane’s one action takes focus').toBe(pay)
 
-    /* Reachable by keyboard, not merely present in the DOM — the distinction
-       §7.3 exists to make. */
-    const first = labelled[0] as HTMLElement
-    first.focus()
-    expect(document.activeElement, 'the first action takes focus').toBe(first)
-
-    await user.tab()
-    expect(
-      labelled.includes(document.activeElement as HTMLElement),
-      'the second action is the next tab stop',
-    ).toBe(true)
+    /* The row is the open, and `Enter` on it is the same contract the click
+       takes — the ledger replaces the index. */
+    row.focus()
+    expect(document.activeElement, 'the row itself is a keyboard destination').toBe(row)
+    await user.keyboard('{Enter}')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
+    )
   })
 })
 

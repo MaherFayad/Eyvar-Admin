@@ -630,7 +630,6 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.debt.suspended': 'Cash collection suspended',
   'fin.debt.action.repay': 'Record repayment',
   'fin.debt.action.ledger': 'View ledger',
-  'fin.debt.total': 'Total owed {amount} across {count} captains',
   'fin.debt.empty.heading': 'No captain owes cash',
   'fin.debt.empty.body': 'A cash fare adds commission to a captain receivable. None is outstanding.',
   'fin.debt.empty.action': 'Read the reconciliation queue',
@@ -1075,4 +1074,17 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.controls.trial.debits': 'Total debits',
   'fin.controls.trial.credits': 'Total credits',
   'fin.controls.trial.caption': '{entries} entries · {suppressed} duplicates suppressed',
+  /* ── FINANCIALS-UX-PLAN §5 Payouts & Cash ── */
+
+  'fin.payout.figures.heading': 'This payout run',
+  'fin.payout.figure.net': 'Net payable this run',
+  'fin.escrow.cancelledTotal': 'One hold is on a cancelled subscription',
+  'fin.escrow.cancelledTotalMany': '{count} holds are on cancelled subscriptions',
+  'fin.cash.status.pending': 'Awaiting decision',
+  'fin.cash.status.resolved': 'Resolved',
+  'fin.cash.status.escalated': 'Escalated',
+  'fin.debt.figures.heading': 'Captain debt',
+  'fin.debt.figure.outstanding': 'Outstanding captain debt',
+  'fin.debt.figure.cap': 'Cap',
+  'fin.debt.figure.captains': 'Across {count} captains',
 }

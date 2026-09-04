@@ -483,8 +483,12 @@ describe('the captain debt index', () => {
       .reduce((sum, each) => sum + each.balanceHalalas, 0)
     expect(signed).not.toBe(positiveOnly)
 
-    const total = screen.getByText(/Total owed/)
-    const rendered = (total.textContent ?? '').match(/[\d,]+\.\d{2}/)?.[0]
+    /* The strip's first figure is the total; the table footer that used to
+       carry it is gone, because one number twice on one screen is two answers. */
+    const strip = screen.getByRole('region', {
+      name: EN['fin.debt.figures.heading'] as string,
+    })
+    const rendered = (strip.textContent ?? '').match(/[\d,]+\.\d{2}/)?.[0]
     expect(rendered).toBe(
       (signed / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     )
@@ -764,5 +768,79 @@ describe('P8-T1 — a cash row names a captain, and the name opens them', () => 
       within(row).getByRole('button', { name: EN['fin.debt.action.ledger'] as string }),
     )
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+  })
+})
+
+/* ═══════════ FINANCIALS-UX-PLAN §1 P0-2/P0-3, §5.2, §5.6 (Q-F13) ═════════ */
+
+describe('the escalated banner, the debt strip, and the period', () => {
+  /**
+   * **P0-3 / R17** — an escalated report is with Trust & Safety, so the
+   * condition is waiting on THEM. R5a's one red banner is for the condition the
+   * operator must act on, and this is not it.
+   */
+  it('P0-3 — the escalated banner is info, not critical', async () => {
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.cash.escalated.title'] as string)).toBeTruthy(),
+    )
+    const banner = screen
+      .getByText(EN['fin.cash.escalated.title'] as string)
+      .closest('[data-slot="alert"]') as HTMLElement
+    expect(banner.getAttribute('data-tone')).toBe('info')
+  })
+
+  /** **P0-2 / AC-378** — the banner carries the control that narrows the queue. */
+  it('P0-2 — Show only escalated narrows the queue to the escalated reports', async () => {
+    const user = userEvent.setup()
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+
+    await user.click(
+      screen.getByRole('button', { name: EN['fin.cash.escalated.action'] as string }),
+    )
+
+    /* CASH-0002 is the escalated one and stays; the pending reports go. */
+    await waitFor(() => expect(screen.queryByText('CASH-0001')).toBeNull())
+    expect(screen.getByText('CASH-0002')).toBeTruthy()
+    expect(screen.queryByText(EN['fin.cash.escalated.title'] as string)).toBeNull()
+  })
+
+  /** §5.2 — the cap every balance on the table is read against, stated once. */
+  it('§5.2 — the debt strip states the outstanding total, the over-cap count and the cap', async () => {
+    mount('/financials/cash?view=captain-debt-ledger')
+    const strip = await screen.findByRole('region', {
+      name: EN['fin.debt.figures.heading'] as string,
+    })
+
+    expect(within(strip).getByText(EN['fin.debt.figure.outstanding'] as string)).toBeTruthy()
+    expect(within(strip).getByText(EN['fin.cash.view.overCap'] as string)).toBeTruthy()
+    expect(within(strip).getByText(EN['fin.debt.figure.cap'] as string)).toBeTruthy()
+  })
+
+  /**
+   * **TL-2 / Q-F13** — `listCashReports` and `listCaptainDebts` take no window,
+   * so the page states no period; `getCaptainDebtLedger` takes one.
+   */
+  it('Q-F13 — the queue prints no period, and the receivable ledger prints one', async () => {
+    const { unmount } = mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+    expect(screen.queryByText(/^Period /)).toBeNull()
+    unmount()
+
+    mount('/financials/cash?view=captain-debt-ledger&captain=DRV-0103')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+    expect(screen.getByText(/^Period /)).toBeTruthy()
+  })
+
+  /**
+   * **AC-453 stays an absence.** No countdown, no due, no overdue pill, no
+   * breach banner and no `Show only breached` — the queue's one banner is the
+   * escalated one and it is not a breach.
+   */
+  it('AC-453 — the queue offers no breach control beside the escalated one', async () => {
+    mount('/financials/cash?view=reconciliation-queue')
+    await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: EN['queue.showBreached'] as string })).toBeNull()
   })
 })

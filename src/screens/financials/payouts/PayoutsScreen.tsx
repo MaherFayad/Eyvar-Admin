@@ -23,22 +23,15 @@
  * to mount, and one built by concatenating twelve captains' ledgers would have
  * twelve running balances in one column. So this sub-tab is an **index of
  * ledgers**, exactly as §5 describes Rider Wallets: the `Payouts` view is the
- * index, and a captain's payable ledger opens from the row's own control. The
- * boundary is that link, and §7.2's rules apply on the far side of it in full.
+ * index, and a captain's payable ledger opens from the row itself. The boundary
+ * is that open, and §7.2's rules apply on the far side of it in full.
  *
  * Rules applied
- *   §7.8 / D8  **this screen does not choose the shape of its action lane.**
- *              It declares `Pay` and `View ledger`; `DataTable` decides from
- *              the count of DECLARED actions — never of enabled ones, so the
- *              lane cannot jitter row by row — and the threshold at which that
- *              count becomes a kebab is D8's to move, not this file's.
- *
- *              **Stated as the rule and not as the rendered shape on purpose.**
- *              The previous wording here named the shape, the threshold then
- *              moved under it, and a comment that describes what a row looks
- *              like is wrong the day somebody re-reads §7.8. Whatever the
- *              threshold is, both actions are visible at rest and both are
- *              keyboard operable (AC-68 / D19).
+ *   §7.8 / D8 / V-16
+ *              the payouts lane declares `Pay` alone; opening the captain's
+ *              payable ledger is the row's own open action, by click and by
+ *              `Enter` (D-A / D-B). `DataTable` still decides the lane's shape
+ *              from the count of DECLARED actions, never this file.
  *   §11.2 / AC-368
  *              a payout the role may not perform renders **disabled in place**
  *              with its reason. No spinner, no bank-network theatre, no success
@@ -105,11 +98,12 @@
  * no money at all, wastes their time twice.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   applyDeduction,
   getCaptainPayableLedger,
+  getFinancialsOverview,
   listCaptainPayouts,
   listDeductions,
   listEscrowHolds,
@@ -121,6 +115,7 @@ import type {
   CaptainPayout,
   Deduction,
   EscrowHold,
+  FinancialsOverview,
   Ledger,
   LedgerPosting,
   Paginated,
@@ -135,14 +130,14 @@ import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
-import { DRIVER_TIER } from '@/screens/operations/people/domain'
-import type { DriverTier } from '@/data/types'
 import { bulkRefusalText, localisedText } from '../shared/text'
 import { LedgerCard } from '../shared/LedgerCard'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { useMoneyActions } from '../shared/actions'
+import { Figure, FigureItem } from '../shared/Figures'
+import { PeriodControl } from '../shared/PeriodControl'
 import {
   bulkRefusal,
   deductionWithheldFrom,
@@ -210,6 +205,34 @@ const VIEWS: readonly ScreenView[] = [
 
 const DEFAULT_VIEW = 'payouts'
 
+/**
+ * **P0-2** — what the payouts index lifts so the page banner can carry its
+ * control. `showOnly` is `null` while the view is unmounted, which is what
+ * keeps the banner's action from outliving the table it narrows.
+ */
+interface FailedScope {
+  count: number
+  /** True while the list is already narrowed to the returned set. */
+  scoped: boolean
+  showOnly: (() => void) | null
+}
+
+const NO_FAILED_SCOPE: FailedScope = { count: 0, scoped: false, showOnly: null }
+
+/**
+ * The figure strip's row. `FigureGrid` is three across (§H4) and this strip is
+ * four, so a `FigureGrid` would leave the hole V-5 names; `Figures.tsx` is
+ * shared and not this screen's to widen, so the one differing class lives here
+ * and every figure in it is still `Figure`.
+ */
+function FigureStrip({ children }: { children: ReactNode }) {
+  return (
+    <ul data-numeric role="list" className="grid list-none grid-cols-4 gap-3">
+      {children}
+    </ul>
+  )
+}
+
 /** The captain whose payable ledger is open, if any. The index-of-ledgers boundary. */
 function useCaptainParam(): { captainId: string | null; open: (id: string | null) => void } {
   const location = useLocation()
@@ -238,27 +261,41 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
   const { captainId, open } = useCaptainParam()
   const gate = useWriteGate(row, t)
 
-  const [failedCount, setFailedCount] = useState(0)
+  const [failed, setFailed] = useState<FailedScope>(NO_FAILED_SCOPE)
 
+  /* **P0-2 / AC-367** — the banner names the count AND carries the control that
+     narrows the list to it, the same shape `BreachBanner` gives every queue.
+     The table lives in the view below, so the view lifts its filter setter and
+     whether it is already narrowed; a banner that offered `Show only returned`
+     over a list already showing only returned would be a dead control. */
   const banners = useMemo<BannerModel[]>(() => {
-    if (failedCount === 0 || activeTab !== 'payouts' || captainId !== null) return []
+    if (failed.count === 0 || failed.scoped || activeTab !== 'payouts' || captainId !== null) {
+      return []
+    }
     return [
       {
         id: 'fin.payout.failed',
         tone: 'critical',
         title:
-          failedCount === 1
+          failed.count === 1
             ? t('fin.payout.failed.title')
-            : t('fin.payout.failed.titleMany', { count: formatCount(failedCount, language) }),
+            : t('fin.payout.failed.titleMany', { count: formatCount(failed.count, language) }),
         body: t('fin.payout.failed.body'),
+        actions:
+          failed.showOnly === null
+            ? undefined
+            : [{ label: t('fin.payout.failed.action'), onClick: failed.showOnly }],
       },
     ]
-  }, [failedCount, activeTab, captainId, t, language])
+  }, [failed, activeTab, captainId, t, language])
 
   return (
     <FinancialsPage
       row={row}
-      meta={periodLabel(period, t, language)}
+      /* **TL-2 / Q-F13** — the period is printed only where a read honours it.
+         `listCaptainPayouts`, `listEscrowHolds` and `listDeductions` take
+         `QueryParams` alone; `getCaptainPayableLedger` takes a window. */
+      meta={captainId === null ? null : periodLabel(period, t, language)}
       banners={banners}
       t={t}
       dir={dir}
@@ -276,7 +313,7 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
                 onSelectTab={selectTab}
                 onOpenLedger={open}
                 gate={gate}
-                onFailedCount={setFailedCount}
+                onFailed={setFailed}
               />
             )}
             {activeTab === 'escrow' && (
@@ -313,8 +350,11 @@ function PayoutsView({
   onSelectTab,
   gate,
   onOpenLedger,
-  onFailedCount,
-}: ViewProps & { onOpenLedger: (id: string) => void; onFailedCount: (count: number) => void }) {
+  onFailed,
+}: ViewProps & {
+  onOpenLedger: (id: string) => void
+  onFailed: (scope: FailedScope) => void
+}) {
   const shell = useShell()
   const { t, language } = shell.language
   /* **P4-T1** — an index, which is what it always was: no claim, no owner chip,
@@ -349,10 +389,40 @@ function PayoutsView({
     { deps: [], cacheKey: 'payouts.list' },
   )
   const failedTotal = failed.data?.total ?? 0
+
+  /* The `Due` half of the figure strip, read the same way and for the same
+     reason: a count of the page is not a count of the run. */
+  const due = useAsync<Paginated<CaptainPayout>>(
+    (signal) => listCaptainPayouts({ view: 'due', pageSize: 1 }, signal),
+    { deps: [], cacheKey: 'payouts.due' },
+  )
+
+  /* **The strip states the RUN, not the page** (AC-346): both balances are
+     computed from postings by `getFinancialsOverview`, and the net is the same
+     `payable − debt` the row and the confirmation take, over the population.
+     `pendingPayouts` and `captainDebt` are balances to date, so no period. */
+  const overview = useAsync<FinancialsOverview>((signal) => getFinancialsOverview({ signal }), {
+    deps: [],
+    cacheKey: 'financials.overview',
+    isEmpty: () => false,
+  })
+
+  /* **P0-2** — a FILTER, not a view: it shows as a clearable chip in the query
+     strip and makes `isFiltered` true, so the resulting zero is `no-match`
+     rather than the never-had-one sentence. Same reasoning as `BreachBanner`. */
+  const setFilter = table.setFilter
+  const showOnlyFailed = useCallback(
+    () => setFilter({ field: 'state', op: 'eq', value: 'failed' }),
+    [setFilter],
+  )
+  const scopedToFailed = table.filters.some(
+    (filter) => filter.field === 'state' && filter.value === 'failed',
+  )
+
   useEffect(() => {
-    onFailedCount(failedTotal)
-    return () => onFailedCount(0)
-  }, [failedTotal, onFailedCount])
+    onFailed({ count: failedTotal, scoped: scopedToFailed, showOnly: showOnlyFailed })
+    return () => onFailed(NO_FAILED_SCOPE)
+  }, [failedTotal, scopedToFailed, showOnlyFailed, onFailed])
 
   const confirmPay = useCallback(
     (payout: CaptainPayout) => {
@@ -399,7 +469,7 @@ function PayoutsView({
         csv: (payout) => payout.captainName,
         header: t('fin.payout.col.captain'),
         dataType: 'text',
-        minWidth: 200,
+        minWidth: 190,
         sortField: 'captainName',
         cell: (payout) => (
           <span className="relative block font-medium">
@@ -427,16 +497,13 @@ function PayoutsView({
               />
             )
           }
-          /* **The tier is a machine value, and it reached the row raw** —
-             `gold` sitting in English under an Arabic captain's name (A3). The
-             label already exists as `people.tier.*`; `DRIVER_TIER` is the one
-             map from the three values, so this reads it rather than declaring a
-             second one. `Payout.tier` is typed `string` rather than
-             `DriverTier`, so an unrecognised value keeps rendering itself
-             instead of throwing on a key that does not exist. */
+          /* **V-16 — the tier left this line.** A captain's tier decides
+             nothing an operator does on a payout row, and carrying it gave
+             every row a second line and the table a 77px pitch. What stays is
+             the one second fact that IS decision information: why the bank
+             returned the money. */
           if (payout.failureReason) return localisedText(t, payout.failureReason)
-          const tierKey = DRIVER_TIER[payout.tier as DriverTier]
-          return tierKey === undefined ? payout.tier : t(tierKey)
+          return null
         },
       },
       {
@@ -444,7 +511,7 @@ function PayoutsView({
         header: t('fin.payout.col.trips'),
         dataType: 'number',
         align: 'end',
-        width: 92,
+        width: 76,
         sortField: 'tripsInPeriod',
         cell: (payout) => (
           <span className="tabular-nums">{formatCount(payout.tripsInPeriod, language)}</span>
@@ -457,7 +524,7 @@ function PayoutsView({
         header: t('fin.payout.col.payable'),
         dataType: 'money',
         align: 'end',
-        width: 128,
+        width: 124,
         sortField: 'payableHalalas',
         cell: (payout) => <MoneyCell amount={payout.payableHalalas} />,
       },
@@ -467,7 +534,7 @@ function PayoutsView({
         header: t('fin.payout.col.debt'),
         dataType: 'money',
         align: 'end',
-        width: 128,
+        width: 132,
         sortField: 'cashDebtHalalas',
         cell: (payout) => <MoneyCell amount={payout.cashDebtHalalas} />,
       },
@@ -478,7 +545,7 @@ function PayoutsView({
         header: t('fin.payout.col.net'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 140,
         /* **Derived**, from two independently-true server values. Never a third
            wire field that can disagree with both. */
         cell: (payout) => (
@@ -491,7 +558,11 @@ function PayoutsView({
         emphasis: 'data',
         header: t('fin.payout.col.state'),
         dataType: 'enum',
-        width: 168,
+        /* **H6 preset.** `fitWidths` shrinks an `enum` to 76px when the table
+           is over budget, which rendered `Du` / `Pa` / `Re` under a header
+           reading `Sta`. The floor is what makes the words render. */
+        width: 120,
+        minWidth: 120,
         cell: (payout) =>
           payout.state === 'failed' ? (
             /* R5 — no red badge exists. The state is the words. */
@@ -532,17 +603,8 @@ function PayoutsView({
           return withheld === null ? null : t(withheld)
         },
       },
-      {
-        label: t('fin.payout.action.ledger'),
-        onSelect: (payout) => onOpenLedger(payout.captainId),
-        /* **P0-2 — the declared row-click target.** The only action on this
-           table that opens something rather than moving money: `Pay` is one
-           click from a real payout and must never be reachable by a stray
-           click on a row. */
-        rowClick: true,
-      },
     ],
-    [t, gate.canWrite, confirmPay, onOpenLedger],
+    [t, gate.canWrite, confirmPay],
   )
 
   /* ── the bulk bar ── */
@@ -648,8 +710,49 @@ function PayoutsView({
     [t, confirmPayMany, payRefusal, payEligible],
   )
 
+  const data = overview.data
+
   return (
     <>
+      {/* **The four figures a period is settled against.** Supporting rank, no
+          band: this is a working page beside a table, not a board (§H4). */}
+      {data && (
+        <section className="flex flex-col gap-2" aria-labelledby="fin-payouts-figures">
+          <h2 id="fin-payouts-figures" className="sr-only">
+            {t('fin.payout.figures.heading')}
+          </h2>
+          <FigureStrip>
+            <FigureItem>
+              <Figure
+                rank="supporting"
+                label={t('fin.overview.pendingPayouts')}
+                amount={data.pendingPayoutsHalalas}
+              />
+            </FigureItem>
+            <FigureItem>
+              <Figure
+                rank="supporting"
+                label={t('fin.payout.figure.net')}
+                amount={data.pendingPayoutsHalalas - data.captainDebtHalalas}
+              />
+            </FigureItem>
+            <FigureItem>
+              <Figure
+                rank="supporting"
+                label={t('fin.payout.state.due')}
+                value={formatCount(due.data?.total ?? 0, language)}
+              />
+            </FigureItem>
+            <FigureItem>
+              <Figure
+                rank="supporting"
+                label={t('fin.payout.state.failed')}
+                value={formatCount(failedTotal, language)}
+              />
+            </FigureItem>
+          </FigureStrip>
+        </section>
+      )}
       <DataTable
         table={table}
         rows={rows}
@@ -670,6 +773,12 @@ function PayoutsView({
            cell. */
         isRowCritical={(payout) => payout.state === 'failed'}
         skeletonPattern="P1"
+        /* **V-16 / D-A** — the row OPENS the captain's payable ledger, by click
+           and by `Enter` on the focused row, so the lane holds `Pay` alone and
+           the pitch halves. `Pay` moves money and must never be reachable by a
+           stray click, which is why it stays a declared control and this is
+           `onRowClick` rather than a second `rowClick` action. */
+        onRowClick={(payout) => onOpenLedger(payout.captainId)}
         rowActions={rowActions}
         bulkActions={bulkActions}
         firstRun={{
@@ -703,6 +812,16 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     (signal) => listEscrowHolds({ ...table.params }, signal),
     { deps: [table.params], cacheKey: 'payouts.escrow' },
   )
+
+  /* **Q-F4 at the top of the view rather than on row 41.** A hold on a
+     cancelled subscription is neither held nor releasable under any rule
+     anybody has written; the row already says so, and this says how many. The
+     count is of the whole population, not the page. */
+  const cancelled = useAsync<Paginated<EscrowHold>>(
+    (signal) => listEscrowHolds({ view: 'cancelled', pageSize: 1 }, signal),
+    { deps: [], cacheKey: 'payouts.escrow.cancelled' },
+  )
+  const cancelledTotal = cancelled.data?.total ?? 0
 
   const rows = useMemo(() => actions.apply(holds.data?.items ?? []), [actions, holds.data])
 
@@ -940,6 +1059,15 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
 
   return (
     <>
+      {holds.status === 'content' && cancelledTotal > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {cancelledTotal === 1
+            ? t('fin.escrow.cancelledTotal')
+            : t('fin.escrow.cancelledTotalMany', {
+                count: formatCount(cancelledTotal, language),
+              })}
+        </p>
+      )}
       <DataTable
         table={table}
         rows={rows}
@@ -1386,7 +1514,9 @@ function CaptainPayableLedger({
 }) {
   const shell = useShell()
   const { t, language } = shell.language
-  const { period } = usePeriod()
+  /* **Q-F13 / TL-2** — `getCaptainPayableLedger` is the one read on this screen
+     that takes a window, so this is the one place the control belongs. */
+  const { period, setPeriod } = usePeriod()
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>(
@@ -1421,6 +1551,7 @@ function CaptainPayableLedger({
           {t('fin.payout.back')}
         </Button>
       </div>
+      <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
       <LedgerCard
         table={table}
         ledger={ledger.data}
