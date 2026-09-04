@@ -19,8 +19,10 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
 let allSubscriptionFixtures!: Fixtures['allSubscriptionFixtures']
+let allDriverFixtures!: Fixtures['allDriverFixtures']
 onFixturesLoaded((f) => {
   allSubscriptionFixtures = f.allSubscriptionFixtures
+  allDriverFixtures = f.allDriverFixtures
 })
 
 export const SUBSCRIPTION_OPERATIONS = {
@@ -29,6 +31,7 @@ export const SUBSCRIPTION_OPERATIONS = {
   get: 'subscriptions.get',
   freeze: 'subscriptions.freeze',
   cancel: 'subscriptions.cancel',
+  reassignDriver: 'subscriptions.reassignDriver',
 } as const
 
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -43,6 +46,15 @@ export interface SubscriptionQuery extends QueryParams {
   planKey?: PlanKey
   riderId?: string
   driverId?: string
+}
+
+/**
+ * What the sub-tab's default view (`all`) shows, synchronously, for the nav
+ * badge (O8). The badge is reconcilable with the page's own row count; the
+ * seeded `8` beside a queue of seventy was not (X3).
+ */
+export function subscriptionCount(): number {
+  return allSubscriptionFixtures.length
 }
 
 /** The *Expiring ≤ 7 days* window. Days, so the endpoint's name and the view's name agree. */
@@ -267,6 +279,73 @@ export async function cancelSubscription(
       cancelledAt: `${EYVAR_TODAY}T09:14:00+03:00`,
       refundedHalalas: refunded,
     }
+  })
+}
+
+/**
+ * POST /api/v1/subscriptions/:id/driver
+ *   body: { driverId: string, reason: string }
+ *   -> Subscription
+ *   404 when the subscription or the captain does not exist
+ *   409 `not_reassignable` when the subscription is cancelled or expired
+ *   422 `same_driver` when the captain named already holds it
+ *   422 `driver_unavailable` when the captain is not active
+ *   422 `vehicle_class_below_plan` when their vehicle is below the plan's tier
+ *
+ * The last is the rule `backupEligible` already enforces on Assurance: a
+ * reassignment that ignores it downgrades what the rider paid for.
+ */
+export async function reassignSubscriptionDriver(
+  id: string,
+  driverId: string,
+  reason: string,
+  signal?: AbortSignal,
+): Promise<Subscription> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Subscription>(`/subscriptions/${id}/driver`, { driverId, reason }, { signal })
+  }
+  return mockMutation(SUBSCRIPTION_OPERATIONS.reassignDriver, signal, () => {
+    const row = allSubscriptionFixtures.find((s) => s.id === id)
+    if (!row) throw notFound('subscription', id)
+    const driver = allDriverFixtures.find((d) => d.id === driverId)
+    if (!driver) throw notFound('driver', driverId)
+    if (row.status === 'cancelled' || row.status === 'expired') {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'not_reassignable',
+        message: `${id} is ${row.status} and has no captain to change`,
+        retryable: false,
+      })
+    }
+    if (row.driverId === driverId) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'same_driver',
+        message: `${driver.name} already holds ${id}`,
+        retryable: false,
+      })
+    }
+    if (driver.status !== 'active') {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'driver_unavailable',
+        message: `${driver.name} is ${driver.status}`,
+        retryable: false,
+      })
+    }
+    if (row.vehicleClass === 'Comfort' && driver.vehicleClass !== 'Comfort') {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'vehicle_class_below_plan',
+        message: `${driver.name} drives ${driver.vehicleClass} and ${row.planName} is Comfort`,
+        retryable: false,
+      })
+    }
+    return { ...row, driverId: driver.id, driverName: driver.name }
   })
 }
 

@@ -38,7 +38,7 @@ import { addDays } from '../reporting/buckets'
 import { listDrivers } from './drivers'
 import { listSafetyIncidents } from './safety'
 import { listSubscriptions } from './subscriptions'
-import { listWorkItems } from './myWork'
+import { WORK_SOURCES, listWorkItems } from './myWork'
 import {
   METRIC_BOARD_SUB_TABS,
   getMetricBoard,
@@ -931,7 +931,10 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
      */
     const board = await getMetricBoard('operations-overview')
     const queues = board.breakdowns.find((b) => b.key === 'operations.backlogByQueue')!
-    expect(queues.rows.length).toBe(5)
+    /* Seven since T1.6: tickets and disputes project into My Work, so the
+       shift's backlog has two more queues in it. `WORK_SOURCES` is the one
+       list, and this row count reads it rather than restating a number. */
+    expect(queues.rows.length).toBe(WORK_SOURCES.length)
 
     const breachedTile = board.metrics.find(
       (m) => m.key === 'operations.overview.breachedWorkItems',
@@ -1657,8 +1660,8 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
         "management.zones.applicantPipelinePerCity = 5 · 66.7 up vs previous-period:3",
         "management.zones.steerOfferAcceptanceRate = 68.5 · -3.8 down vs previous-period:71.2",
         "operations.overview.slaAttainmentPercent = 80.4 · -6.7 down vs previous-period:86.2",
-        "operations.overview.breachedWorkItems = 13 · 44.4 up vs previous-period:9",
-        "operations.overview.unclaimedWork = 20 · 17.6 up vs previous-period:17",
+        "operations.overview.breachedWorkItems = 16 · 77.8 up vs previous-period:9",
+        "operations.overview.unclaimedWork = 34 · 100 up vs previous-period:17",
         "operations.overview.applicationsPastWindow = 2 · -60 down vs previous-period:5",
         "operations.overview.pendingApplications = 5 · 150 up vs previous-period:2",
         "operations.overview.legsUncovered = 4 · -33.3 down vs previous-period:6",

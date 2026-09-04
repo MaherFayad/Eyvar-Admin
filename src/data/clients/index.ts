@@ -38,6 +38,8 @@ import { resetWorkspace as resetWorkspaceState } from './workspace'
 import { resetRealtime as resetRealtimeState } from './realtime'
 import { resetTickets as resetTicketState } from './tickets'
 import { resetDisputes as resetDisputeState } from './disputes'
+import { resetDispatch as resetDispatchState } from './dispatch'
+import { resetCorporateAccounts as resetCorporateState } from './corporateAccounts'
 import { resetPolicy as resetPolicyState } from './policy'
 /* P6-T4 — Admin › Data & Compliance: the integrity run state and the retention
    schedules. Both are session-scoped and both leak across test files without
@@ -187,6 +189,8 @@ export {
   getSubscription,
   getSubscriptionFacets,
   listSubscriptions,
+  reassignSubscriptionDriver,
+  subscriptionCount,
   type SubscriptionQuery,
 } from './subscriptions'
 
@@ -197,10 +201,25 @@ export {
   getCorporateAccount,
   getCorporateFacets,
   listCorporateAccounts,
+  removeCorporateEmployee,
+  resetCorporateAccounts,
+  sendCorporateInvoice,
   updateCorporateUsagePolicy,
   type CorporateQuery,
   type CreateCorporateAccountInput,
 } from './corporateAccounts'
+
+/* Live Dispatch — T1.1 and T1.2. The telemetry read replaces a `TELEMETRY`
+   literal; the intervention writes replace two controls that toasted success
+   over an act nobody performed. */
+export {
+  DISPATCH_OPERATIONS,
+  acknowledgeIntervention,
+  getDispatchTelemetry,
+  listInterventions,
+  reassignIntervention,
+  resetDispatch,
+} from './dispatch'
 
 /* ── wave 2: the work queues ─────────────────────────────────────────── */
 export {
@@ -520,6 +539,8 @@ export {
   listTickets,
   getTicket,
   claimTicket,
+  releaseTicket,
+  currentTickets,
   replyTicket,
   resolveTicket,
   reopenTicket,
@@ -684,6 +705,10 @@ export function resetDataLayer(): void {
      count of open claims. */
   resetTicketState()
   resetDisputeState()
+  /* T1.2. Interventions and corporate accounts hold session state a write
+     changes — an acknowledgement, an unlinked employee, a sent invoice. */
+  resetDispatchState()
+  resetCorporateState()
   /* P6-T4. `integrity` holds a run counter and a per-check last-run stamp; a
      leaked one makes the next file's first run `IRUN-0004` and its catalogue
      already dated, which is exactly the non-determinism the checks are written
@@ -956,6 +981,8 @@ export {
   DISPUTE_OPERATIONS,
   advanceLostFoundItem,
   claimDispute,
+  releaseDispute,
+  currentDisputes,
   getDispute,
   getDisputeFacets,
   getLostFoundItem,

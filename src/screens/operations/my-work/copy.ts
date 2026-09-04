@@ -15,6 +15,41 @@ export const MY_WORK_EN: Dictionary = {
   'myWork.search': 'Search by subject, ID or queue',
 
   'myWork.col.item': 'Item',
+
+  /* **X2 / T4.1 — the row's own words.** `clients/myWork.ts` used to build
+     `Captain application — {name}` and print enum slugs; it now hands a key and
+     its values, and every enum member resolves through the key the owning
+     screen already ships (`fairness.kind.*`, `safety.type.*`, `people.class.*`,
+     `dispute.kind.*`). Nothing below concatenates (AC-75). */
+  /** The source record's own words: a subject line, a case detail. Data, not copy. */
+  'myWork.item.text': '{text}',
+
+  'myWork.item.application': 'Captain application · {name}',
+  'myWork.item.application.sub': '{vehicleClass} · {documents} awaiting verification',
+  'myWork.item.application.sub.clear': '{vehicleClass} · every document verified',
+
+  'myWork.item.request.instant': 'Ride request · {pickup} → {destination}',
+  'myWork.item.request.subscription': 'Subscription request · {rider}',
+  'myWork.item.request.sub': '{rider} · {vehicleClass}',
+  'myWork.item.request.sub.noCaptain': '{rider} · {vehicleClass} · no captain found',
+
+  'myWork.item.assurance.uncovered': 'Leg uncovered · {subscription}',
+  'myWork.item.assurance.unconfirmed': 'Unconfirmed leg · {captain}',
+  'myWork.item.assurance.unconfirmed.noCaptain': 'Unconfirmed leg · no captain assigned',
+  'myWork.item.assurance.sub': '{rider} · {plan}',
+
+  'myWork.item.incident': '{type} · {summary}',
+  'myWork.item.incident.sub': 'Reported by {name}',
+  'myWork.item.incident.sub.noReporter': 'Raised automatically · no reporter',
+
+  'myWork.item.fairness': '{kind} · {captain}',
+
+  'myWork.item.ticket.sub': '{entity} · {category}',
+
+  'myWork.item.dispute': '{kind} · {claimant}',
+  'myWork.item.dispute.sub': 'Against {name}',
+  'myWork.item.dispute.sub.platform': 'Against Eyvar',
+
   'myWork.a11y.open': 'Open {title}',
   'myWork.action.open': 'Open',
   'myWork.action.open.help': 'Open this item in the queue that owns it',

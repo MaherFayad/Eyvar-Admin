@@ -418,7 +418,10 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.rideRequests.sub',
     views: views(
       ['all', 'view.requests.all'],
-      ['pending', 'view.requests.pending'],
+      /* T3.2 — the spec's name (`specs/02-work-queues.md:697`): "pending" is a
+         status word and this is a scope. `clients/requests.ts` keeps `pending`
+         as an alias so a bookmarked `?view=pending` still resolves. */
+      ['needs-decision', 'view.requests.needsDecision'],
       ['assigned', 'view.requests.assigned'],
       ['expired', 'view.requests.expired'],
     ),
@@ -440,7 +443,10 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.subscriptionRequests.sub',
     views: views(
       ['all', 'view.requests.all'],
-      ['pending', 'view.requests.pending'],
+      /* T3.2 — the spec's name (`specs/02-work-queues.md:697`): "pending" is a
+         status word and this is a scope. `clients/requests.ts` keeps `pending`
+         as an alias so a bookmarked `?view=pending` still resolves. */
+      ['needs-decision', 'view.requests.needsDecision'],
       ['assigned', 'view.requests.assigned'],
       ['expired', 'view.requests.expired'],
     ),

@@ -2,7 +2,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import type { Paginated, QueryParams } from '../types/common'
+import { ApiError, type Paginated, type QueryParams } from '../types/common'
 import type { ConversationChannel } from '../types/conversation'
 import type {
   Ticket,
@@ -13,6 +13,7 @@ import type {
   TicketStatus,
 } from '../types/ticket'
 import { http } from './http'
+import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -20,8 +21,10 @@ import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixture
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
 let ticketFixtures!: Fixtures['ticketFixtures']
+let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   ticketFixtures = f.ticketFixtures
+  teamUserFixtures = f.teamUserFixtures
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
   dynamicTickets = [...ticketFixtures]
@@ -31,6 +34,7 @@ export const TICKET_OPERATIONS = {
   list: 'tickets.list',
   get: 'tickets.get',
   claim: 'tickets.claim',
+  release: 'tickets.release',
   reply: 'tickets.reply',
   resolve: 'tickets.resolve',
   reopen: 'tickets.reopen',
@@ -101,6 +105,17 @@ export function resetTickets(): void {
   dynamicTickets = [...ticketFixtures]
   messageSequence = 900
   callSequence = 900
+}
+
+/**
+ * The session's ticket rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts` (T1.6). Reads the same array `claimTicket` writes, so a
+ * claim made from My Work is the claim Tickets reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentTickets(): readonly Ticket[] {
+  return dynamicTickets ?? []
 }
 
 const ticketShape: QueryShape<Ticket> = {
@@ -175,34 +190,85 @@ export async function getTicket(id: string, signal?: AbortSignal): Promise<Ticke
 }
 
 /**
+ * The signed-in operator, when the caller does not name one. Every other work
+ * queue resolves the claimant this way (`nextClaim`, `clients/requests.ts`), so
+ * My Work can claim a ticket without asserting who is acting.
+ */
+function sessionOperator(): { id: string; name: string } {
+  const id = currentMockUserId()
+  return { id, name: teamUserFixtures?.find((u) => u.id === id)?.name ?? id }
+}
+
+/**
  * POST /api/v1/tickets/:id/claim
- *   body: { userId }
+ *   body: { userId, takeOver }
  *   -> Ticket
  *   404 when the id does not exist
- *   409 when another operator already holds it
+ *   409 `claimed_by_other` when another operator holds it and `takeOver` is unset
  *
- * `userName` is a display value the caller already has; the server resolves the
- * name from `userId` and it is deliberately not on the wire.
+ * Omit `userId` and the claimant is the authenticated session, as on the other
+ * five queues. `userName` is a display value and is not on the wire.
  */
 export async function claimTicket(
   id: string,
-  userId: string,
-  userName: string,
+  userId?: string,
+  userName?: string,
+  opts: { takeOver?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<Ticket> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Ticket>(`/tickets/${id}/claim`, { userId }, { signal })
+    return http.post<Ticket>(`/tickets/${id}/claim`, { userId, takeOver: opts.takeOver }, { signal })
   }
   return mockMutation(TICKET_OPERATIONS.claim, signal, () => {
     const idx = dynamicTickets.findIndex((t) => t.id === id)
     if (idx === -1) throw notFound('ticket', id)
     const existing = dynamicTickets[idx]
     if (!existing) throw notFound('ticket', id)
+    const me = sessionOperator()
+    const owner = userId ?? me.id
+    /* A claim is not a lock, but a take-over is deliberate and recorded
+       (`nextClaim`, `clients/requests.ts`). */
+    if (existing.ownerId !== null && existing.ownerId !== owner && !opts.takeOver) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'claimed_by_other',
+        message: `${existing.ownerName ?? existing.ownerId} is holding this ticket`,
+        retryable: false,
+      })
+    }
     const updated: Ticket = {
       ...existing,
-      ownerId: userId,
-      ownerName: userName,
+      ownerId: owner,
+      ownerName: userName ?? (userId === undefined ? me.name : userId),
       status: existing.status === 'open' ? 'in-progress' : existing.status,
+    }
+    dynamicTickets[idx] = updated
+    return updated
+  })
+}
+
+/**
+ * POST /api/v1/tickets/:id/release
+ *   -> Ticket
+ *   404 when the id does not exist
+ *
+ * Ownership only. A released ticket goes back to `open` so it reappears in the
+ * queue's open scope; nothing else about it changes.
+ */
+export async function releaseTicket(id: string, signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>(`/tickets/${id}/release`, undefined, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.release, signal, () => {
+    const idx = dynamicTickets.findIndex((t) => t.id === id)
+    const existing = dynamicTickets[idx]
+    if (!existing) throw notFound('ticket', id)
+    const updated: Ticket = {
+      ...existing,
+      ownerId: null,
+      ownerName: null,
+      status: existing.status === 'in-progress' ? 'open' : existing.status,
     }
     dynamicTickets[idx] = updated
     return updated

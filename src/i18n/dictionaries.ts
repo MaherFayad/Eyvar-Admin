@@ -403,7 +403,7 @@ const views: Dictionary = {
   'view.requests.all': 'All',
   'view.requests.instant': 'Instant',
   'view.requests.subscription': 'Subscription',
-  'view.requests.pending': 'Pending',
+  'view.requests.needsDecision': 'Needs a decision',
   'view.requests.assigned': 'Assigned',
   'view.requests.expired': 'Expired',
 
@@ -517,6 +517,29 @@ const shell: Dictionary = {
   'shell.nav.menu': 'Navigation',
   /* §2.4 — a count badge above 99 reads `99+`, and never a `0` (AC-26). */
   'shell.nav.countOverflow': '99+',
+
+  /* **O8** — the accessible name of a nav count badge: what it counts, in the
+     words the sub-tab's own default view uses. `nav.count.other` is the
+     fallback for a sub-tab that grows a backlog before it grows a sentence. */
+  'nav.count.other': '{count} open items',
+  'nav.count.management-risk': '{count} open risk signals',
+  'nav.count.management-zones': '{count} supply-starved zones',
+  'nav.count.operations-my-work': '{count} items in your work',
+  'nav.count.operations-ride-requests': '{count} open ride requests',
+  'nav.count.operations-subscription-requests': '{count} open subscription requests',
+  'nav.count.operations-subscriptions': '{count} subscriptions',
+  'nav.count.operations-corporate': '{count} corporate accounts awaiting approval',
+  'nav.count.operations-assurance': '{count} legs with no backup captain',
+  'nav.count.operations-people': '{count} captains',
+  'nav.count.financials-payouts': '{count} payout batches',
+  'nav.count.financials-cash': '{count} cash escalations',
+  'nav.count.support-tickets': '{count} open tickets',
+  'nav.count.support-disputes': '{count} open disputes',
+  'nav.count.support-fairness': '{count} open fairness cases',
+  'nav.count.support-safety': '{count} open incidents',
+  'nav.count.support-contact-centre': '{count} open conversations',
+  'nav.count.admin-team': '{count} operators who have never signed in',
+  'nav.count.admin-data': '{count} erasure requests past their deadline',
   'shell.nav.backlog': '{count} items need attention',
 
   /* §4 — the top bar, slot by slot. */

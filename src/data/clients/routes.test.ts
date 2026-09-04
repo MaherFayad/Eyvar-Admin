@@ -302,7 +302,7 @@ describe('§3.8 — route resolution', () => {
     /* Operations gained a row when Requests split by channel into
        `operations-ride-requests` and `operations-subscription-requests`. The view param is still ignored; what changed is
        which path carries the channel. */
-    expect(findSubTabByPath('/operations/ride-requests?view=pending')?.subTabId).toBe(
+    expect(findSubTabByPath('/operations/ride-requests?view=needs-decision')?.subTabId).toBe(
       'operations-ride-requests',
     )
   })

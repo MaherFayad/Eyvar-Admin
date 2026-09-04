@@ -40,6 +40,17 @@ import type { RoleName } from './session'
 import type { SlaTracked, WorkItemSeverity, WorkQueueId } from './workQueue'
 
 /**
+ * One value a `titleKey` or `subtitleKey` interpolates.
+ *
+ * A `string` or `number` is a **fact** off the record: a name, an id, a place,
+ * a count. A `{ key }` is an **enum member** whose words another screen already
+ * owns, resolved by the screen with `t` (X2). The data layer never calls `t`.
+ */
+export type WorkItemParam = string | number | { readonly key: string }
+
+export type WorkItemParams = Readonly<Record<string, WorkItemParam>>
+
+/**
  * One row of somebody's day, from whichever queue it came from.
  *
  * Deliberately **narrow**: title, subtitle, when it is due, who holds it, where
@@ -53,10 +64,19 @@ export interface WorkItem extends SlaTracked {
   /** The id **in the source queue**. `INC-014`, `REQ-503`, `FC-0001`. Not unique across queues. */
   id: string
 
-  /** One line. Legacy `t.subject` / `c.kind+' — '+nm2(c.driverId)` (`:19124`, `:19141`). */
-  title: string
-  /** The supporting line — who it is about, which plan, which reason code. `null` when there is nothing to add. */
-  subtitle: string | null
+  /**
+   * One line, as a **key plus its values** and never a sentence (X2, T4.1).
+   * Legacy assembled `c.kind+' — '+nm2(c.driverId)` (`:19141`); a projection
+   * that builds English cannot be read in Arabic, so the screen calls `t`.
+   */
+  titleKey: string
+  titleParams: WorkItemParams
+  /**
+   * The supporting line: who it is about, which plan, which reason code.
+   * `null` when there is nothing to add.
+   */
+  subtitleKey: string | null
+  subtitleParams: WorkItemParams
 
   /**
    * `slaDueAt` restated under the name the inbox sorts on. Identical value;

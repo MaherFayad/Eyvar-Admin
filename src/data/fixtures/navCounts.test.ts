@@ -38,7 +38,7 @@ import { describe, expect, it } from 'vitest'
 import { disableMockLatency } from '../config'
 import { listApplicants } from '../clients/applicants'
 import { listAssuranceTrips } from '../clients/assurance'
-import { listDriverCompliance } from '../clients/drivers'
+import { listDriverCompliance, listDrivers } from '../clients/drivers'
 import { listFairnessCases } from '../clients/fairness'
 import { getMetricBoard } from '../clients/metrics'
 import { listWorkItems, myWorkBacklogSize } from '../clients/myWork'
@@ -278,30 +278,27 @@ describe('one authority per number — spec §19, AC-720 to AC-724', () => {
     expect(needed.value).toBe(3)
   })
 
-  it('AC-721 — operations-people 7 and the applications tile 5 differ legitimately', async () => {
+  it('AC-721 under O8 — operations-people counts its default view, not a cross-view sum', async () => {
     /**
-     * **Do not force these equal.** The badge is the sub-tab's whole backlog:
-     * five applications awaiting a decision **plus two lapsed compliance
-     * documents**. The tile is labelled `Applications waiting` and counts only
-     * the five — the other two belong to §10.1 tile 7, `Compliance documents
-     * expired`.
-     *
-     * An engineer who makes the tile read 7 has put two lapsed documents inside
-     * a number labelled "applications"; one who makes the badge read 5 has
-     * hidden a captain driving on an expired national ID.
+     * **O8 supersedes the old reading of AC-721.** The badge used to be five
+     * applications plus two lapsed documents: a number that appeared on no
+     * single page, so no operator could reconcile it (X3). It now counts what
+     * the default `captains` view shows, and the tile still counts only the
+     * applications, so the two remain different numbers for a stated reason.
      */
+    const captains = await listDrivers({ pageSize: 500 })
+    expect(row('operations-people').count, 'the badge is the default view').toBe(captains.total)
+
     const applications = await listApplicants({ pageSize: 200 })
     const waiting = applications.items.filter(
       (a) => a.status === 'pending' || a.status === 'in-review',
     )
     const compliance = await listDriverCompliance({ pageSize: 200 })
     const lapsed = compliance.items.flatMap((c) => c.docs.filter((d) => d.state === 'expired'))
-
+    /* Both still exist and are still separately reachable: the applications
+       queue and the compliance view. Neither is hidden by the badge's change. */
     expect(waiting.length, 'applications awaiting a decision').toBe(5)
     expect(lapsed.length, 'lapsed compliance documents').toBe(2)
-    expect(row('operations-people').count, '5 applications + 2 lapsed documents').toBe(
-      waiting.length + lapsed.length,
-    )
 
     const board = await getMetricBoard('operations-overview')
     const tile = board.metrics.find((m) => m.key === 'operations.overview.pendingApplications')!

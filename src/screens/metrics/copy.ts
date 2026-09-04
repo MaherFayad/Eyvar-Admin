@@ -810,6 +810,9 @@ export const OVERVIEW_EN: Dictionary = {
   'breakdown.queue.assurance': 'Trip Assurance',
   'breakdown.queue.incident': 'Safety & Incidents',
   'breakdown.queue.fairness': 'Captain Fairness',
+  /* T1.6 â the two queues My Work gained. */
+  'breakdown.queue.ticket': 'Tickets',
+  'breakdown.queue.dispute': 'Disputes',
 
   /* `DAY_KEYS` (`:19594`), Sunday-first — the Saudi working week. */
   'breakdown.rotaDay.sun': 'Sunday',

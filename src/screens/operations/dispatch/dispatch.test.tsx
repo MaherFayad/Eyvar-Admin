@@ -29,12 +29,15 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import {
   disableMockLatency,
+  getDispatchTelemetry,
   getRouteTable,
   listRequests,
+  listTrips,
   mockFailures,
   resetDataLayer,
 } from '@/data/clients'
 import type { RideRequest, SubTabRoute } from '@/data/types'
+import { formatDate } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { DISPATCH_EN } from './copy'
@@ -145,6 +148,48 @@ describe('selection is one piece of state on two surfaces', () => {
     expect(
       await screen.findByRole('button', { name: copy('dispatch.assignCaptain') }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('T1.1 — the three header figures come from a read, not a literal', () => {
+  it('prints the telemetry the client serves, formatted', async () => {
+    renderDispatch()
+    const telemetry = await getDispatchTelemetry()
+
+    /* The exact figures the client returned, not the `'42s'` / `'96.4%'`
+       strings the screen used to hold. If the fixture moves, so does this. */
+    expect(
+      await screen.findByText(
+        fill('dispatch.reading.seconds', { seconds: String(telemetry.medianMatchSeconds) }),
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText(`${telemetry.autoMatchPercent}%`)).toBeInTheDocument()
+    expect(screen.getByText(`${telemetry.fleetUtilisationPercent}%`)).toBeInTheDocument()
+  })
+
+  it('says when the figures were measured, and claims nothing about a connection', async () => {
+    renderDispatch()
+    const telemetry = await getDispatchTelemetry()
+    const trips = await listTrips({
+      filters: [{ field: 'status', op: 'in', value: ['assigned', 'en-route', 'in-trip'] }],
+      pageSize: 50,
+    })
+    const time = formatDate(telemetry.asOf, { style: 'time', language: 'en' })
+
+    expect(
+      await screen.findByText(
+        fill('dispatch.meta', { count: String(trips.total), time }),
+      ),
+    ).toBeInTheDocument()
+    /* X4 — the sentence that was a claim. */
+    expect(screen.queryByText(/live telemetry connected/i)).not.toBeInTheDocument()
+  })
+
+  it('renders no figure at all when the read fails', async () => {
+    mockFailures.always('dispatch.telemetry')
+    renderDispatch()
+    await screen.findByRole('img', { name: /trips in flight/i })
+    expect(screen.queryByText(copy('dispatch.reading.matchTime'))).not.toBeInTheDocument()
   })
 })
 

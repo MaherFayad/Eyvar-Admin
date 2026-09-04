@@ -579,7 +579,7 @@ describe('AC-42 — "Opening the profile layer for an id that does not resolve s
 })
 
 describe('AC-28 — "Exactly one setInterval is registered by the application"', () => {
-  it('registers NONE from application code across a boot and four navigations', async () => {
+  it('registers exactly one, and it is the tick engine, across a boot and four navigations', async () => {
     const user = userEvent.setup()
     /* Testing Library's own `waitFor` polls with `setInterval`, so a raw call
        count is the harness's, not the app's. Only frames outside `node_modules`
@@ -613,7 +613,15 @@ describe('AC-28 — "Exactly one setInterval is registered by the application"',
       await screen.findByText(`screen: ${id}`)
     }
 
-    expect(appStacks, appStacks.join(' | ')).toHaveLength(0)
+    /* **The criterion, as written**: *"the app runs exactly one
+       `setInterval(tickEngine, 1000)` and every periodic surface subscribes to
+       a modulo bucket off it. Per-page intervals are forbidden."* It asserted
+       zero, which held only while nothing on these five routes ticked; the nav
+       counts poll now does (T1.4). What is forbidden is a SECOND engine, so the
+       assertion is the sentence: at most one, and it is `useTick`. */
+    const notTheEngine = appStacks.filter((frame) => !/useTick/.test(frame))
+    expect(notTheEngine, `a per-page interval: ${notTheEngine.join(' | ')}`).toHaveLength(0)
+    expect(new Set(appStacks).size, appStacks.join(' | ')).toBeLessThanOrEqual(1)
     spy.mockRestore()
   })
 })

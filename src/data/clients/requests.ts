@@ -154,11 +154,15 @@ const requestShape: QueryShape<RideRequest> = {
     all: () => true,
     instant: (r) => r.channel === 'instant',
     subscription: (r) => r.channel === 'subscription',
-    /* Legacy `reqStatusMatch` (`:10046`): pending ≡ searching ∪ offered. */
-    pending: (r) => r.status === 'searching' || r.status === 'offered',
+    /* **T3.2 / F-5** — legacy's `pending` was `searching ∪ offered`, so
+       `no-drivers` was reachable only under `All` while the banner counted it.
+       `needs-decision` is the spec's name (`specs/02-work-queues.md:697`);
+       `pending` remains its alias for a bookmarked `?view=pending`. */
+    'needs-decision': (r) => NEEDS_DECISION.includes(r.status),
+    pending: (r) => NEEDS_DECISION.includes(r.status),
     assigned: (r) => r.status === 'assigned',
-    /* Legacy folds `no_drivers` into `expired` (`:10051`) — both are "we did
-       not find anyone", from the operator's point of view. */
+    /* Legacy folds `no_drivers` into `expired` (`:10051`). It stays there too:
+       `expired` is the archive scope and a stuck row is still not assigned. */
     expired: (r) => r.status === 'expired' || r.status === 'no-drivers',
 
     /* Not tab views — filter and cross-link targets. `mine` and `unassigned`
@@ -172,7 +176,7 @@ const requestShape: QueryShape<RideRequest> = {
 /**
  * GET /api/v1/requests
  *   params: q · channel · status · page · pageSize · sort · filter ·
- *           view=all|instant|subscription|pending|assigned|expired|mine|unassigned|breached
+ *           view=all|instant|subscription|needs-decision|assigned|expired|mine|unassigned|breached
  *   -> Paginated<RideRequest>
  *
  * Sortable: id · riderName · requestedAt · slaDueAt · status · channel ·
@@ -368,6 +372,22 @@ export async function getRequestFacets(
  * Mock-only, and every caller is inside a `DATA_SOURCE === 'mock'` branch; in
  * http mode the server resolves the claimant from the auth cookie.
  */
+/** The statuses that still owe an operator a decision. `open`'s three, exactly. */
+const NEEDS_DECISION: readonly RequestStatus[] = ['searching', 'offered', 'no-drivers']
+
+/**
+ * One channel's open queue, synchronously, for the nav badge (O8). Reads the
+ * same `open` predicate the tab's default view filters on, so the badge and the
+ * page it opens cannot say different numbers.
+ */
+export function openRequestCount(channel: RequestChannel): number {
+  return allRequestFixtures.filter(
+    (r) =>
+      r.channel === channel &&
+      NEEDS_DECISION.includes(r.status),
+  ).length
+}
+
 export function nextClaim(
   entityType: string,
   entityId: string,

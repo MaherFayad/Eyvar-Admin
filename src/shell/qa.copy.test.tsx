@@ -530,14 +530,21 @@ describe('AC-73 — "In Arabic, money values, dates, ids and phone numbers read 
     const user = userEvent.setup()
     renderShell('/operations/people', <LanguageDriver />)
     await screen.findByRole('main')
+    /* `Badge` isolates a run that carries a bidi-neutral character — `99+` does,
+       a bare `12` does not — so the isolates come off before the numerals are
+       compared. See the component: the wrapping is the point, not the noise. */
+    const numerals = (node: Element | null | undefined) =>
+      (node?.textContent ?? '').replace(/[⁦⁩]/g, '')
+
     const tile = railTile('operations')
-    const englishBadge = tile.querySelector('[data-slot="badge"]')?.textContent ?? ''
+    const englishBadge = numerals(tile.querySelector('[data-slot="badge"]'))
     expect(englishBadge).toMatch(/^[0-9]+$|^99\+$/)
 
     await user.click(screen.getByRole('button', { name: 'qa-arabic' }))
     await waitFor(() => expect(document.documentElement).toHaveAttribute('lang', 'ar'))
-    const arabicBadge =
-      arabicRailTile('operations').querySelector('[data-slot="badge"]')?.textContent ?? ''
+    const arabicBadge = numerals(
+      arabicRailTile('operations').querySelector('[data-slot="badge"]'),
+    )
     expect(arabicBadge).toBe(englishBadge)
     /* Western digits, never Arabic-Indic — the `-nu-latn` locale is what makes
        that true, and the badge is the shell's only numeral surface today. */

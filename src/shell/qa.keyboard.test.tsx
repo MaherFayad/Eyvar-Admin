@@ -539,12 +539,12 @@ describe('AC-63 — "Every rail tile and every sub-tab row is reachable by keybo
    * algorithm inserts a space between element contributions, so the separator
    * was never missing. The MISSING LABEL is.
    *
-   * Not fixed, deliberately, and frontend-engineer was right not to invent it:
-   * the only key that exists is `shell.nav.backlog` ("{count} items need
-   * attention"), which is wrong for a neutral count, and writing a neutral one
-   * is copy. **Owner: product-designer — one key.**
+   * **D-3 is FIXED under O8, so this test is inverted** — the same shape D-4's
+   * test below took when it was closed. Every sub-tab badge now names what it
+   * counts (`nav.count.<subTabId>`), so the row announces `Subscriptions 70
+   * subscriptions` rather than `Subscriptions 70`.
    */
-  it('DEFECT D-3 — a sub-tab row announces its count as a bare numeral with no label', async () => {
+  it('D-3 fixed — a sub-tab row names what its count counts, as the rail tile does', async () => {
     renderShell('/operations/people')
     await screen.findByRole('main')
     const column = screen.getByRole('heading', { level: 2 }).closest('nav')!
@@ -553,11 +553,15 @@ describe('AC-63 — "Every rail tile and every sub-tab row is reachable by keybo
       .find((el) => el.querySelector('[data-slot="badge"]'))
     expect(rowWithCount, 'no Operations row currently carries a count').toBeDefined()
 
-    /* The badge has no name of its own, so its digits compose raw. */
-    expect(rowWithCount!.querySelector('[data-slot="badge"]')).not.toHaveAttribute('aria-label')
+    const badge = rowWithCount!.querySelector('[data-slot="badge"]')!
+    const name = badge.getAttribute('aria-label')
+    expect(name, 'the badge names itself').not.toBeNull()
+    /* A number and a noun, not a number alone. */
+    expect(name).toMatch(/\d/)
+    expect(name).toMatch(/[A-Za-z]{3,}/)
 
-    /* And the rail's own tile, for contrast: same fixture, same kind of
-       number, a name that says what it is. This pair is the finding. */
+    /* And the rail's own tile still does the same, so the two nav levels keep
+       one contract rather than two. */
     const tile = railTile('operations')
     expect(tile.querySelector('[data-slot="badge"]')).toHaveAttribute('aria-label')
   })

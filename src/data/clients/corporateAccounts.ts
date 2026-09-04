@@ -4,13 +4,13 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
-import { EYVAR_NOW, toInstant } from '../mock/clock'
+import { EYVAR_NOW, EYVAR_TODAY, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { CorporateAccount, CorporateAccountStatus } from '../types/corporateAccount'
 import { http } from './http'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
@@ -19,7 +19,19 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 let corporateAccountFixtures!: Fixtures['corporateAccountFixtures']
 onFixturesLoaded((f) => {
   corporateAccountFixtures = f.corporateAccountFixtures
+  dynamicAccounts = [...corporateAccountFixtures]
 })
+
+/* Session state, so a read after a write reflects it. `freeze`/`cancel` on
+   Subscriptions still return a derived row without storing it; these two store,
+   because the screens that call them re-read the list to show the result. */
+let dynamicAccounts!: CorporateAccount[]
+
+/** Back to fixtures, so one test's unlink cannot leak into the next. */
+export function resetCorporateAccounts(): void {
+  if (!fixturesLoaded()) return
+  dynamicAccounts = [...corporateAccountFixtures]
+}
 
 export const CORPORATE_OPERATIONS = {
   facets: 'corporate.facets',
@@ -28,6 +40,8 @@ export const CORPORATE_OPERATIONS = {
   create: 'corporate.create',
   updatePolicy: 'corporate.updatePolicy',
   addEmployee: 'corporate.addEmployee',
+  removeEmployee: 'corporate.removeEmployee',
+  sendInvoice: 'corporate.sendInvoice',
 } as const
 
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -116,7 +130,7 @@ export async function listCorporateAccounts(
     const filters = params.status
       ? [...(params.filters ?? []), { field: 'status', op: 'eq' as const, value: params.status }]
       : params.filters
-    return runQuery(corporateAccountFixtures, { ...params, filters }, corporateShape)
+    return runQuery(dynamicAccounts, { ...params, filters }, corporateShape)
   })
 }
 
@@ -129,7 +143,7 @@ export async function getCorporateAccount(id: string, signal?: AbortSignal): Pro
     return http.get<CorporateAccount>(`/corporate-accounts/${id}`, undefined, { signal })
   }
   return mock(CORPORATE_OPERATIONS.get, signal, () => {
-    const row = corporateAccountFixtures.find((c) => c.id === id)
+    const row = dynamicAccounts.find((c) => c.id === id)
     if (!row) throw notFound('corporate account', id)
     return row
   })
@@ -173,7 +187,7 @@ export async function createCorporateAccount(
         retryable: false,
       })
     }
-    const nextNumber = corporateAccountFixtures.length + 1
+    const nextNumber = dynamicAccounts.length + 1
     return {
       id: `CORP-${String(nextNumber).padStart(3, '0')}`,
       companyName: input.companyName,
@@ -225,7 +239,7 @@ export async function updateCorporateUsagePolicy(
     return http.patch<CorporateAccount>(`/corporate-accounts/${id}/usage-policy`, patch, { signal })
   }
   return mockMutation(CORPORATE_OPERATIONS.updatePolicy, signal, () => {
-    const row = corporateAccountFixtures.find((c) => c.id === id)
+    const row = dynamicAccounts.find((c) => c.id === id)
     if (!row) throw notFound('corporate account', id)
     return { ...row, usagePolicy: { ...row.usagePolicy, ...patch } }
   })
@@ -249,9 +263,9 @@ export async function addCorporateEmployee(
     return http.post<CorporateAccount>(`/corporate-accounts/${id}/employees`, { riderId }, { signal })
   }
   return mockMutation(CORPORATE_OPERATIONS.addEmployee, signal, () => {
-    const row = corporateAccountFixtures.find((c) => c.id === id)
+    const row = dynamicAccounts.find((c) => c.id === id)
     if (!row) throw notFound('corporate account', id)
-    const other = corporateAccountFixtures.find((c) => c.id !== id && c.riderIds.includes(riderId))
+    const other = dynamicAccounts.find((c) => c.id !== id && c.riderIds.includes(riderId))
     if (other) {
       throw new ApiError({
         status: 409,
@@ -263,6 +277,112 @@ export async function addCorporateEmployee(
     }
     const riderIds = [...row.riderIds, riderId]
     return { ...row, riderIds, employeeCount: riderIds.length }
+  })
+}
+
+/**
+ * DELETE /api/v1/corporate-accounts/:id/employees/:riderId
+ *   -> CorporateAccount
+ *   404 when the account does not exist
+ *   422 `rider_not_linked` when the rider is not on this account
+ *   409 `unbilled_spend` when the rider has spend the open invoice has not billed
+ *
+ * The 409 is the one that matters: unlinking a rider mid-cycle strands the
+ * trips they have already taken on a bill nobody owns.
+ */
+export async function removeCorporateEmployee(
+  id: string,
+  riderId: string,
+  signal?: AbortSignal,
+): Promise<CorporateAccount> {
+  if (DATA_SOURCE === 'http') {
+    return http.delete<CorporateAccount>(`/corporate-accounts/${id}/employees/${riderId}`, { signal })
+  }
+  return mockMutation(CORPORATE_OPERATIONS.removeEmployee, signal, () => {
+    const index = dynamicAccounts.findIndex((c) => c.id === id)
+    const row = dynamicAccounts[index]
+    if (!row) throw notFound('corporate account', id)
+    if (!row.riderIds.includes(riderId)) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'rider_not_linked',
+        message: `${riderId} is not covered by ${row.companyName}`,
+        retryable: false,
+      })
+    }
+    if (row.invoiceOverdue) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'unbilled_spend',
+        message: `${row.companyName} has an unsent invoice covering ${riderId}`,
+        retryable: false,
+      })
+    }
+    const riderIds = row.riderIds.filter((r) => r !== riderId)
+    const updated = { ...row, riderIds, employeeCount: riderIds.length }
+    dynamicAccounts[index] = updated
+    return updated
+  })
+}
+
+/**
+ * POST /api/v1/corporate-accounts/:id/invoice
+ *   -> CorporateAccount  (with `lastInvoiceGeneratedAt` and `nextInvoiceOn` moved)
+ *   404 when the account does not exist
+ *   409 `account_not_active` when the account is pending or suspended
+ *   422 `prepaid_account` when the account is not invoiced at all
+ *   422 `no_billable_spend` when there is nothing to invoice
+ *
+ * Period and total are server-computed: a screen that totals the payments is a
+ * second answer to what is owed.
+ */
+export async function sendCorporateInvoice(
+  id: string,
+  signal?: AbortSignal,
+): Promise<CorporateAccount> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<CorporateAccount>(`/corporate-accounts/${id}/invoice`, undefined, { signal })
+  }
+  return mockMutation(CORPORATE_OPERATIONS.sendInvoice, signal, () => {
+    const index = dynamicAccounts.findIndex((c) => c.id === id)
+    const row = dynamicAccounts[index]
+    if (!row) throw notFound('corporate account', id)
+    if (row.status !== 'Active') {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'account_not_active',
+        message: `${row.companyName} is ${row.status}`,
+        retryable: false,
+      })
+    }
+    if (row.billingType !== 'Monthly invoice') {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'prepaid_account',
+        message: `${row.companyName} is billed ${row.billingType} and is never invoiced`,
+        retryable: false,
+      })
+    }
+    if (row.totalSpendHalalas <= 0) {
+      throw new ApiError({
+        status: 422,
+        kind: 'validation',
+        code: 'no_billable_spend',
+        message: `${row.companyName} has no spend to invoice`,
+        retryable: false,
+      })
+    }
+    const updated = {
+      ...row,
+      lastInvoiceGeneratedAt: EYVAR_TODAY,
+      invoiceOverdue: false,
+    }
+    dynamicAccounts[index] = updated
+    return updated
   })
 }
 
@@ -286,5 +406,5 @@ export async function getCorporateFacets(
   if (DATA_SOURCE === 'http') {
     return http.get<Facets>('/corporate-accounts/facets', { view: view ?? undefined }, { signal })
   }
-  return mock(CORPORATE_OPERATIONS.facets, signal, () => computeFacets(corporateAccountFixtures, corporateShape, view))
+  return mock(CORPORATE_OPERATIONS.facets, signal, () => computeFacets(dynamicAccounts, corporateShape, view))
 }

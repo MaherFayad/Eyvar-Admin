@@ -10,41 +10,25 @@
  * reported that *"automated captain reassignment"* had been dispatched for a
  * rider who was still waiting.
  *
- * **Interventions have no type, no fixture and no client anywhere in the
- * product.** The two rows this card renders are literals in `DispatchScreen`,
- * which the file already says in as many words. There is therefore nothing for
- * either control to call, and §11.2's answer to that is not to hide them: a
- * blocked control is **disabled in place with a stated reason**, because a
- * hidden one teaches the operator that intervening is not a thing this console
- * does.
+ * **T1.2 — the model now exists**: `types/dispatch.ts`, `fixtures/dispatch.ts`
+ * and `clients/dispatch.ts` with `acknowledgeIntervention(id, note)` and
+ * `reassignIntervention(id, driverId)`. This card reads `listInterventions()`.
  *
- * So both render, both refuse, and one sentence at the foot of the card says
- * why - pointed at by `aria-describedby` from every button, because eight
- * copies of the same line down a narrow aside is noise and a `title` is
- * invisible to the keyboard (§5.7, §8.4.4).
- *
- * The model this needs is named in the handoff: an `Intervention` type, a
- * fixture, and `clients/dispatch.ts` with `acknowledgeIntervention(id, note)`
- * and `reassignIntervention(id, driverId)`. Until then the card is honest
- * about being read-only, which is what it has always actually been.
+ * Both controls still render **disabled with a stated reason** (§11.2): wiring
+ * them is a wave-2 screen task, and a hidden control teaches the operator that
+ * intervening is not a thing this console does.
  */
 
 import { AlertTriangle, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { Intervention, IsoDateTime } from '@/data/types'
 import type { Translate } from '@/lib'
 
-interface InterventionItem {
-  id: string
-  kind: 'delayed' | 'sos' | 'stranded'
-  title: string
-  subtitle: string
-  elapsedMinutes: number
-  tripId?: string
-}
-
 interface InterventionsCardProps {
-  items: InterventionItem[]
+  items: Intervention[]
+  /** The fixed clock the row's elapsed time is measured against (`mock/clock.ts`). */
+  now: IsoDateTime
   /**
    * §11.2 - why neither control can be used, as a sentence. Non-null disables
    * both **in place** and renders the sentence once at the foot of the card.
@@ -57,8 +41,17 @@ interface InterventionsCardProps {
 
 const REFUSAL_ID = 'dispatch-intervention-refusal'
 
-export function InterventionsCard({ items, unavailableReason, t }: InterventionsCardProps) {
+/** T4.2 — a kind is a key, not a slug: the row is read in Arabic too. */
+const KIND_KEY: Readonly<Record<Intervention['kind'], string>> = {
+  delayed: 'dispatch.intervention.delayed',
+  sos: 'dispatch.intervention.sos',
+  stranded: 'dispatch.intervention.stranded',
+}
+
+export function InterventionsCard({ items, now, unavailableReason, t }: InterventionsCardProps) {
   const blocked = unavailableReason !== null
+  const elapsed = (raisedAt: IsoDateTime) =>
+    Math.max(0, Math.round((Date.parse(now) - Date.parse(raisedAt)) / 60_000))
   return (
     <Card className="border-border">
       <CardHeader className="pb-3 border-b border-border bg-muted/20">
@@ -90,16 +83,29 @@ export function InterventionsCard({ items, unavailableReason, t }: Interventions
                     ) : (
                       <Clock className="h-3.5 w-3.5 text-warning-foreground shrink-0" />
                     )}
-                    <span className="font-semibold text-foreground">{item.title}</span>
+                    <span className="font-semibold text-foreground">
+                      {t(KIND_KEY[item.kind], { trip: item.tripId ?? item.riderName })}
+                    </span>
                   </div>
                   {/* H2 — 11px arbitrary, off the ramp. META is `--text-xs`. */}
-                  <p className="text-xs text-muted-foreground">{item.subtitle}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.driverName === null
+                      ? t('dispatch.intervention.sub.noCaptain', {
+                          rider: item.riderName,
+                          place: item.place,
+                        })
+                      : t('dispatch.intervention.sub', {
+                          captain: item.driverName,
+                          rider: item.riderName,
+                          place: item.place,
+                        })}
+                  </p>
                 </div>
                 {/* H2 — an SLA figure is a VALUE, not a badge label, so it
                     leaves `--text-2xs`. H7 rule 3 already had it right: toned
                     text rather than a second chip on a row that carries one. */}
                 <span className="text-xs font-mono text-warning-foreground shrink-0">
-                  +{item.elapsedMinutes}m SLA
+                  {t('dispatch.intervention.elapsed', { minutes: elapsed(item.raisedAt) })}
                 </span>
               </div>
 

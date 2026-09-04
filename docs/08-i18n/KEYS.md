@@ -9,19 +9,16 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5561** |
-| Reachable from `EN` (what the shell renders) | 5289 |
-| Keys in `AR` | 5561 |
+| **Translatable keys, all dictionaries** | **5601** |
+| Reachable from `EN` (what the shell renders) | 5323 |
+| Keys in `AR` | 5601 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 272 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 278 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 168 |
+| Keys in a `copy.ts` the shell has NOT registered | 174 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **187** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -37,509 +34,6 @@ exceeds it, and the writer refuses to raise it.
 
 None left. Add the lint rule and delete this section.
 
-## The em-dash ratchet
-
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
-no em dash in a string an operator reads. `·` separates a qualifier, two clauses
-become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
-Both ceilings only ever fall.
-
-| Language | File | Values |
-|---|---|---:|
-| ar | `src/i18n/ar/adminData.ts` | 13 |
-| ar | `src/i18n/ar/adminTeam.ts` | 6 |
-| ar | `src/i18n/ar/adminWorkspace.ts` | 18 |
-| ar | `src/i18n/ar/assurance.ts` | 4 |
-| ar | `src/i18n/ar/auth.ts` | 1 |
-| ar | `src/i18n/ar/conversations.ts` | 2 |
-| ar | `src/i18n/ar/disputes.ts` | 2 |
-| ar | `src/i18n/ar/fairness.ts` | 1 |
-| ar | `src/i18n/ar/financials.ts` | 30 |
-| ar | `src/i18n/ar/metrics.ts` | 2 |
-| ar | `src/i18n/ar/myWork.ts` | 1 |
-| ar | `src/i18n/ar/onboarding.ts` | 10 |
-| ar | `src/i18n/ar/people.ts` | 2 |
-| ar | `src/i18n/ar/policy.ts` | 5 |
-| ar | `src/i18n/ar/pwa.ts` | 1 |
-| ar | `src/i18n/ar/reports.ts` | 3 |
-| ar | `src/i18n/ar/requests.ts` | 3 |
-| ar | `src/i18n/ar/safety.ts` | 2 |
-| ar | `src/i18n/ar/shell.ts` | 1 |
-| ar | `src/i18n/ar/subscriptionProfile.ts` | 1 |
-| ar | `src/i18n/ar/subscriptions.ts` | 3 |
-| ar | `src/i18n/ar/tickets.ts` | 1 |
-| ar | `src/i18n/ar/tripProfile.ts` | 2 |
-| ar | `src/i18n/ar/zones.ts` | 1 |
-| en | `src/components/profile/subscription/copy.ts` | 1 |
-| en | `src/components/profile/trip/copy.ts` | 2 |
-| en | `src/i18n/dictionaries.ts` | 1 |
-| en | `src/pwa/copy.ts` | 1 |
-| en | `src/screens/admin/data/copy.ts` | 13 |
-| en | `src/screens/admin/policy/copy.ts` | 5 |
-| en | `src/screens/admin/team/copy.ts` | 6 |
-| en | `src/screens/admin/workspace/copy.ts` | 18 |
-| en | `src/screens/auth/copy.ts` | 1 |
-| en | `src/screens/financials/copy.ts` | 30 |
-| en | `src/screens/management/zones/copy.ts` | 1 |
-| en | `src/screens/metrics/copy.ts` | 2 |
-| en | `src/screens/onboarding/copy.ts` | 7 |
-| en | `src/screens/operations/assurance/copy.ts` | 4 |
-| en | `src/screens/operations/my-work/copy.ts` | 1 |
-| en | `src/screens/operations/people/copy.ts` | 2 |
-| en | `src/screens/operations/requests/copy.ts` | 3 |
-| en | `src/screens/operations/subscriptions/copy.ts` | 3 |
-| en | `src/screens/reports/copy.ts` | 3 |
-| en | `src/screens/support/conversations/copy.ts` | 2 |
-| en | `src/screens/support/disputes/copy.ts` | 2 |
-| en | `src/screens/support/fairness/copy.ts` | 1 |
-| en | `src/screens/support/safety/copy.ts` | 2 |
-| en | `src/screens/support/tickets/copy.ts` | 1 |
-
-<details><summary>Every key</summary>
-
-| Language | Key | Value |
-|---|---|---|
-| ar | `integrity.check.agree.aggregate-vs-records.desc` | الراكب أو الكابتن الذي يتجاوز إجمالي رحلاته المخزَّن الرحلات المحفوظة أمر متوقَّع — فهذه اللوحة تحتفظ بنافذة حديثة والفوترة تحتفظ بالتراكم. أما من ليس خلف إجماليه شيء إطلاقًا فليس متوقعًا، وهذا ما يبلّغ عنه هذا الفحص. |
-| ar | `adminData.export.dataset.trips` | الرحلات — المكتملة والأجرة المحصَّلة |
-| ar | `adminData.export.dataset.subscriptions` | الاشتراكات — المبدوءة والملغاة |
-| ar | `adminData.export.dataset.captains` | الكباتن — المنضمّون والمسجَّلون |
-| ar | `adminData.export.dataset.riders` | الركاب — المنضمّون والمفعَّلون |
-| ar | `adminData.export.dataset.revenue` | الإيرادات — الإجمالي والاشتراكات |
-| ar | `adminData.export.omitted` | حُذفت {count} سلسلة — لا يمكنك الاطلاع عليها |
-| ar | `adminData.retention.desc` | كم يُحتفظ بكل نوع من السجلات قبل حذفه أو إخفاء هويته. تقصير النافذة يتلف أدلة قد تحتاجها — ويجب ألّا تقل أبدًا عن نافذة النزاع لدى مزوّد الدفع. |
-| ar | `adminData.retention.days.365` | 365 يومًا — سنة واحدة |
-| ar | `adminData.retention.days.730` | 730 يومًا — سنتان، نظاميًا |
-| ar | `adminData.retention.days.1825` | 1,825 يومًا — خمس سنوات، هيئة الزكاة والضريبة والجمارك |
-| ar | `adminData.retention.days.90` | 90 يومًا — قياسي |
-| ar | `adminData.retention.months.13` | 13 شهرًا — سنة وزيادة احتياطية |
-| en | `integrity.check.agree.aggregate-vs-records.desc` | A rider or captain whose stored trip total is larger than the trips on file is expected — this console keeps a recent window and billing keeps the lifetime. One whose stored total has nothing at all behind it is not, and that is what this check reports. |
-| en | `adminData.export.dataset.trips` | Trips — completed and fares collected |
-| en | `adminData.export.dataset.subscriptions` | Subscriptions — started and cancelled |
-| en | `adminData.export.dataset.captains` | Captains — joined and registered |
-| en | `adminData.export.dataset.riders` | Riders — joined and activated |
-| en | `adminData.export.dataset.revenue` | Revenue — total and subscription |
-| en | `adminData.export.omitted` | {count} series omitted — you cannot read them |
-| en | `adminData.retention.desc` | How long each kind of record is kept before it is deleted or anonymised. Shortening a window destroys evidence you may still need — it must never be shorter than the payment provider’s dispute window. |
-| en | `adminData.retention.days.365` | 365 days — one year |
-| en | `adminData.retention.days.730` | 730 days — two years, statutory |
-| en | `adminData.retention.days.1825` | 1,825 days — five years, ZATCA |
-| en | `adminData.retention.days.90` | 90 days — standard |
-| en | `adminData.retention.months.13` | 13 months — a year plus headroom |
-| ar | `admin.team.sessions.title` | الجلسات — {name} |
-| ar | `admin.team.matrix.desc` | ما يستطيع كل دور فعله. تعديلها موقوف على نموذج الأدوار — انظر الملاحظة أسفل الجدول. |
-| ar | `admin.team.rota.option` | {name} — {role} |
-| ar | `admin.audit.team.permissionsChanged` | تغيّرت صلاحيات {name} — أُضيفت {added} وأُزيلت {removed} |
-| ar | `admin.audit.team.securityPolicy` | حُفظت سياسة الأمان — الخمول {idleMinutes} دقيقة، والانتهاء المطلق {expiryHours} ساعة، وتغيّر اشتراط عامل التحقق الثاني: {twoFactor} |
-| ar | `admin.audit.team.rota` | حُفظ جدول المناوبة — الأساسي {primary} |
-| en | `admin.team.sessions.title` | Sessions — {name} |
-| en | `admin.team.matrix.desc` | What each role can do. Editing it is blocked on the role model — see the note below the table. |
-| en | `admin.team.rota.option` | {name} — {role} |
-| en | `admin.audit.team.permissionsChanged` | Changed {name}’s permissions — {added} added, {removed} removed |
-| en | `admin.audit.team.securityPolicy` | Security policy saved — idle {idleMinutes} min, absolute expiry {expiryHours} h, second-factor requirement changed: {twoFactor} |
-| en | `admin.audit.team.rota` | On-call rota saved — primary {primary} |
-| ar | `admin.workspace.empty.body` | لم يُضبط شيء لمساحة العمل هذه بعد — لا اسم ولا عنوان دعم ولا نسخ قانونية. اضبطها لتلتقطها كل شاشة. |
-| ar | `admin.audit.workspace.updated` | حُفظت إعدادات مساحة العمل — المتغيّر: {fields} |
-| ar | `admin.integrations.key.name.help` | الغرض من هذا المفتاح — النظام الذي سيقدّمه. |
-| ar | `admin.integrations.reveal.warning.key.body` | لا يخزّن Eyvar سوى البادئة {prefix}. أما الباقي فلا يُخزَّن في أي مكان ولا يمكن عرضه مرة أخرى — لا بإعادة فتح هذا الصف، ولا بتصدير، ولا عبر الدعم. إن فُقد، فدوّر المفتاح لإصدار واحد جديد. |
-| ar | `admin.integrations.reveal.warning.webhook.body` | لا يخزّن Eyvar سوى البادئة {prefix}. ويحتاج نظامك المستقبِل إلى السر كاملًا للتحقق من توقيع Eyvar. ولا يمكن عرضه مرة أخرى — إن فُقد، فدوّره وحدّث المستقبِل. |
-| ar | `admin.integrations.webhook.edit.desc` | غيّر الوجهة أو ما تسمعه. لا يتأثر سر التوقيع — دوّره بشكل منفصل إن لزم استبداله. |
-| ar | `admin.integrations.webhook.name.help` | من يستقبل هذا — النظام، لا الرابط. |
-| ar | `admin.integrations.webhook.empty.body` | تستقبل نقطة نهاية Webhook حمولة موقَّعة لحظة اكتمال رحلة أو انقضاء اشتراك أو تسوية مستحقات — فلا يضطر نظام الشريك إلى الاستعلام المتكرر. |
-| ar | `admin.integrations.delivery.desc` | كل محاولة قام بها Eyvar، وما أجابت به نقطة النهاية، وإعادة إرسال لما أخفق منها. إعادة الإرسال محاولة جديدة — وتبقى المحاولة المخفقة في السجل. |
-| ar | `admin.integrations.delivery.failure.http5xx` | أخطأت نقطة النهاية. هذا مؤقت عادةً — أعد الإرسال. |
-| ar | `admin.integrations.delivery.replay.confirm.body` | تُجدوَل الحمولة نفسها لـ{endpoint} كمحاولة جديدة. ويبقى {id} في السجل كما هو تمامًا، بما في ذلك رمز حالته ورده — إعادة الإرسال لا تلغي إخفاقًا، بل تضيف محاولة. |
-| ar | `admin.audit.integrations.keyIssued` | أُصدر مفتاح API — {name} ({prefix})، النطاقات: {scopes} |
-| ar | `admin.audit.integrations.keyRotated` | دُوِّر مفتاح API — {name}، حلّ {to} محل {from} |
-| ar | `admin.audit.integrations.keyRevoked` | سُحب مفتاح API — {name} ({prefix}) |
-| ar | `admin.audit.integrations.webhookCreated` | سُجِّل Webhook — {name} على {url}، الأحداث: {events} |
-| ar | `admin.audit.integrations.webhookUpdated` | حُدِّث Webhook — {name}، المتغيّر: {fields}، وأصبح {state} |
-| ar | `admin.audit.integrations.webhookSecretRotated` | دُوِّر سر توقيع Webhook — {name}، حلّ {to} محل {from} |
-| ar | `admin.audit.integrations.webhookReplayed` | أُعيد إرسال تسليم Webhook — {endpoint}، جُدول {original} كـ{replay} |
-| en | `admin.workspace.empty.body` | Nothing has been set for this workspace yet — no name, no support address, no legal versions. Set them and every screen picks them up. |
-| en | `admin.audit.workspace.updated` | Workspace settings saved — changed: {fields} |
-| en | `admin.integrations.key.name.help` | What this key is for — the system that will present it. |
-| en | `admin.integrations.reveal.warning.key.body` | Eyvar stores only the prefix {prefix}. The rest is not stored anywhere and cannot be shown again — not by reopening this row, not by an export, and not by support. If it is lost, rotate the key to issue a new one. |
-| en | `admin.integrations.reveal.warning.webhook.body` | Eyvar stores only the prefix {prefix}. Your receiving system needs the whole secret to verify an Eyvar signature. It cannot be shown again — if it is lost, rotate it and update the receiver. |
-| en | `admin.integrations.webhook.edit.desc` | Change the target or what it hears about. The signing secret is not affected — rotate it separately if it needs replacing. |
-| en | `admin.integrations.webhook.name.help` | Who receives this — the system, not the URL. |
-| en | `admin.integrations.webhook.empty.body` | A webhook endpoint receives a signed payload the moment a trip completes, a subscription lapses or a payout settles — so a partner system does not have to poll for it. |
-| en | `admin.integrations.delivery.desc` | Every attempt Eyvar made, what the endpoint answered, and a replay for the ones that failed. A replay is a new attempt — the failed one stays in the log. |
-| en | `admin.integrations.delivery.failure.http5xx` | The endpoint errored. This is usually temporary — replay it. |
-| en | `admin.integrations.delivery.replay.confirm.body` | The same payload is queued for {endpoint} as a new attempt. {id} stays in the log exactly as it is, including its status code and response — a replay does not undo a failure, it adds an attempt. |
-| en | `admin.audit.integrations.keyIssued` | API key issued — {name} ({prefix}), scopes: {scopes} |
-| en | `admin.audit.integrations.keyRotated` | API key rotated — {name}, {from} replaced by {to} |
-| en | `admin.audit.integrations.keyRevoked` | API key revoked — {name} ({prefix}) |
-| en | `admin.audit.integrations.webhookCreated` | Webhook registered — {name} at {url}, events: {events} |
-| en | `admin.audit.integrations.webhookUpdated` | Webhook updated — {name}, changed: {fields}, now {state} |
-| en | `admin.audit.integrations.webhookSecretRotated` | Webhook signing secret rotated — {name}, {from} replaced by {to} |
-| en | `admin.audit.integrations.webhookReplayed` | Webhook delivery replayed — {endpoint}, {original} queued as {replay} |
-| ar | `assurance.ack.assumed` | مفترَض — غير مؤكَّد |
-| ar | `assurance.backup.eligible` | {name} — مؤهَّل |
-| ar | `assurance.backup.ineligible` | {name} — {reason} |
-| ar | `assurance.confirm.choice.help` | المصدر يُسجَّل. “مفترَض” ليس تأكيدًا — بل مخاطرة قبِلها أحدهم. |
-| en | `assurance.ack.assumed` | Assumed — not confirmed |
-| en | `assurance.backup.eligible` | {name} — eligible |
-| en | `assurance.backup.ineligible` | {name} — {reason} |
-| en | `assurance.confirm.choice.help` | The source is on the record. “Assumed” is not a confirmation — it is a risk somebody accepted. |
-| ar | `session.writeRevoked.body` | أُزيلت صلاحية “{permission}” أثناء تحريرك. تغييراتك لا تزال هنا — انسخ ما تحتاجه قبل التجاهل. |
-| en | `session.writeRevoked.body` | The "{permission}" permission was removed while you were editing. Your changes are still here — copy anything you need before discarding. |
-| ar | `conversations.promise.paused` | مؤجَّلة — المؤقّتان متوقفان. |
-| ar | `conversations.delivery.failedReason` | لم تصل — {reason} |
-| en | `conversations.promise.paused` | Snoozed — both clocks are paused. |
-| en | `conversations.delivery.failedReason` | Not delivered — {reason} |
-| ar | `dispute.toast.resolved` | تمت تسوية {id} — أُضيف {amount} إلى {name} |
-| ar | `dispute.toast.declined` | رُفضت {id} — لم يتحرك أي مبلغ |
-| en | `dispute.toast.resolved` | {id} settled — {amount} credited to {name} |
-| en | `dispute.toast.declined` | {id} declined — no money moved |
-| ar | `fairness.empty.firstRun.body` | إيقاف يُتظلَّم منه، وتقييم يُعترض عليه، وبلاغ من راكب. ارتفاع نسبة النقض هنا ليس إخفاقًا — بل يعني أن طريق التظلّم يلتقط القرارات الخاطئة قبل أن تكلّفك كابتن. |
-| en | `fairness.empty.firstRun.body` | A suspension appealed, a rating disputed, a rider reported. A high overturn rate here is not a failure — it means the appeal route is catching bad calls before they cost you a captain. |
-| ar | `fin.payment.escalation.unsettledPastCycle` | غير مسوّى منذ {days} يومًا بعد دورته — صعّده إلى بوابة الدفع. |
-| ar | `fin.bulk.pay.noBank.one` | لا يمكن صرف هذه المستحقات — لا يوجد حساب بنكي محفوظ. |
-| ar | `fin.bulk.pay.noBank.other` | {count} من المستحقات المحدَّدة لا يمكن صرفها — لا يوجد حساب بنكي محفوظ. |
-| ar | `fin.bulk.pay.noBank.all` | كل المستحقات المحدَّدة ({count}) لا يمكن صرفها — لا يوجد حساب بنكي محفوظ. |
-| ar | `fin.bulk.pay.nothing.one` | لا يمكن صرف هذه المستحقات — لا شيء مستحق بعد خصم الدين النقدي. |
-| ar | `fin.bulk.pay.nothing.other` | {count} من المستحقات المحدَّدة لا يمكن صرفها — لا شيء مستحق بعد خصم الدين النقدي. |
-| ar | `fin.bulk.pay.nothing.all` | كل المستحقات المحدَّدة ({count}) لا يمكن صرفها — لا شيء مستحق بعد خصم الدين النقدي. |
-| ar | `fin.bulk.pay.confirm.body` | يُصرف لكل كابتن صافيه الخاص — المستحق ناقص الدين النقدي عليه. والإجماليات أعلاه للتحديد كله. وتُسدَّد الديون بهذه المصروفات ولا يتغيّر شيء آخر بخصوص الكباتن. |
-| ar | `fin.bulk.release.state.one` | لا يمكن الإفراج عن هذا الحجز — فقد أُفرج عنه أو عُكس بالفعل. |
-| ar | `fin.bulk.release.state.other` | {count} من الحجوزات المحدَّدة لا يمكن الإفراج عنها — فقد أُفرج عنها أو عُكست بالفعل. |
-| ar | `fin.bulk.release.state.all` | كل الحجوزات المحدَّدة ({count}) لا يمكن الإفراج عنها — فقد أُفرج عنها أو عُكست بالفعل. |
-| ar | `fin.bulk.release.trips.one` | لا يمكن الإفراج عن هذا الحجز — لم تُنفَّذ كل رحلات الباقة. |
-| ar | `fin.bulk.release.trips.other` | {count} من الحجوزات المحدَّدة لا يمكن الإفراج عنها — لم تُنفَّذ كل رحلات الباقة. |
-| ar | `fin.bulk.release.trips.all` | كل الحجوزات المحدَّدة ({count}) لا يمكن الإفراج عنها — لم تُنفَّذ كل رحلات الباقة. |
-| ar | `fin.bulk.apply.decided.one` | لا يمكن تطبيق هذا الخصم — فقد طُبّق أو أُسقط بالفعل. |
-| ar | `fin.bulk.apply.decided.other` | {count} من الخصومات المحدَّدة لا يمكن تطبيقها — فقد طُبّقت أو أُسقطت بالفعل. |
-| ar | `fin.bulk.apply.decided.all` | كل الخصومات المحدَّدة ({count}) لا يمكن تطبيقها — فقد طُبّقت أو أُسقطت بالفعل. |
-| ar | `fin.bulk.waive.decided.one` | لا يمكن إسقاط هذا الخصم — فقد طُبّق أو أُسقط بالفعل. |
-| ar | `fin.bulk.waive.decided.other` | {count} من الخصومات المحدَّدة لا يمكن إسقاطها — فقد طُبّقت أو أُسقطت بالفعل. |
-| ar | `fin.bulk.waive.decided.all` | كل الخصومات المحدَّدة ({count}) لا يمكن إسقاطها — فقد طُبّقت أو أُسقطت بالفعل. |
-| ar | `fin.bulk.claim.decided.one` | لا يمكن استلام هذا التقرير — فقد بُتّ فيه بالفعل. |
-| ar | `fin.bulk.claim.decided.other` | {count} من التقارير المحدَّدة لا يمكن استلامها — فقد بُتّ فيها بالفعل. |
-| ar | `fin.bulk.claim.decided.all` | كل التقارير المحدَّدة ({count}) لا يمكن استلامها — فقد بُتّ فيها بالفعل. |
-| ar | `fin.bulk.claim.heldByOther.one` | لا يمكن استلام هذا التقرير — فمشغّل آخر يحمله. |
-| ar | `fin.bulk.claim.heldByOther.other` | {count} من التقارير المحدَّدة لا يمكن استلامها — فمشغّل آخر يحملها. |
-| ar | `fin.bulk.claim.heldByOther.all` | كل التقارير المحدَّدة ({count}) لا يمكن استلامها — فمشغّل آخر يحملها. |
-| ar | `fin.debt.repay.body` | {captain} مدين بـ{balance}. أدخل ما سُلِّم — والسداد الجزئي يبقي الباقي قائمًا وظاهرًا. |
-| ar | `fin.pricing.surge.suspend.body` | تعود الأجرة في المنطقة إلى السعر الأساسي حتى ينتهي الإيقاف. ولا يُمدَّد الإيقاف — بل يُرفع من جديد. ولا يتغيّر شيء سُعِّر بالفعل. |
-| ar | `fin.audit.payoutPaid` | صُرف {netHalalas} — {payableHalalas} مستحق، ناقص {cashDebtHalalas} من الدين النقدي. |
-| ar | `fin.audit.walletAdjusted` | عُدِّلت محفظة — {direction} {reference}. |
-| en | `fin.payment.escalation.unsettledPastCycle` | Unsettled {days} days past its cycle — escalate to the gateway. |
-| en | `fin.bulk.pay.noBank.one` | This payout cannot be paid — no bank account is on file. |
-| en | `fin.bulk.pay.noBank.other` | {count} of the selected payouts cannot be paid — no bank account is on file. |
-| en | `fin.bulk.pay.noBank.all` | All {count} selected payouts cannot be paid — no bank account is on file. |
-| en | `fin.bulk.pay.nothing.one` | This payout cannot be paid — nothing is payable after cash debt. |
-| en | `fin.bulk.pay.nothing.other` | {count} of the selected payouts cannot be paid — nothing is payable after cash debt. |
-| en | `fin.bulk.pay.nothing.all` | All {count} selected payouts cannot be paid — nothing is payable after cash debt. |
-| en | `fin.bulk.pay.confirm.body` | Every captain is paid their own net — the payable less the cash debt on it. The totals above are for the whole selection. The debts are cleared by these payouts and nothing else about the captains changes. |
-| en | `fin.bulk.release.state.one` | This hold cannot be released — it is already released or reversed. |
-| en | `fin.bulk.release.state.other` | {count} of the selected holds cannot be released — they are already released or reversed. |
-| en | `fin.bulk.release.state.all` | All {count} selected holds cannot be released — they are already released or reversed. |
-| en | `fin.bulk.release.trips.one` | This hold cannot be released — not every plan trip is delivered. |
-| en | `fin.bulk.release.trips.other` | {count} of the selected holds cannot be released — not every plan trip is delivered. |
-| en | `fin.bulk.release.trips.all` | All {count} selected holds cannot be released — not every plan trip is delivered. |
-| en | `fin.bulk.apply.decided.one` | This deduction cannot be applied — it is already applied or waived. |
-| en | `fin.bulk.apply.decided.other` | {count} of the selected deductions cannot be applied — they are already applied or waived. |
-| en | `fin.bulk.apply.decided.all` | All {count} selected deductions cannot be applied — they are already applied or waived. |
-| en | `fin.bulk.waive.decided.one` | This deduction cannot be waived — it is already applied or waived. |
-| en | `fin.bulk.waive.decided.other` | {count} of the selected deductions cannot be waived — they are already applied or waived. |
-| en | `fin.bulk.waive.decided.all` | All {count} selected deductions cannot be waived — they are already applied or waived. |
-| en | `fin.bulk.claim.decided.one` | This report cannot be claimed — it is already decided. |
-| en | `fin.bulk.claim.decided.other` | {count} of the selected reports cannot be claimed — they are already decided. |
-| en | `fin.bulk.claim.decided.all` | All {count} selected reports cannot be claimed — they are already decided. |
-| en | `fin.bulk.claim.heldByOther.one` | This report cannot be claimed — another operator holds it. |
-| en | `fin.bulk.claim.heldByOther.other` | {count} of the selected reports cannot be claimed — another operator holds them. |
-| en | `fin.bulk.claim.heldByOther.all` | All {count} selected reports cannot be claimed — another operator holds them. |
-| en | `fin.debt.repay.body` | {captain} owes {balance}. Enter what was handed over — a part payment leaves the rest outstanding and visible. |
-| en | `fin.pricing.surge.suspend.body` | Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes. |
-| en | `fin.audit.payoutPaid` | Paid {netHalalas} — {payableHalalas} payable, less {cashDebtHalalas} of cash debt. |
-| en | `fin.audit.walletAdjusted` | Adjusted a wallet — {direction} {reference}. |
-| ar | `myWork.empty.firstRun.body` | كل ما تحمله، وكل ما لم يستلمه أحد، من الطلبات إلى السلامة — مرتَّبًا حسب الموعد النهائي لا حسب التصنيف. |
-| en | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
-| ar | `onboarding.intro.owner` | أنت مسؤول عن اللوحة كاملة — السياسة والأشخاص والمال والقرارات التي لا يستطيع غيرك اتخاذها. |
-| ar | `onboarding.intro.opsManager` | أنت من يبقي الرحلات مغطّاة والكباتن على رأس العمل — الطلبات المقدَّمة وطلبات الرحلات وضمان الرحلات والتوزيع. |
-| ar | `onboarding.intro.finance` | أنت من يحرّك المال ويحاسب عليه — المستحقات والضمان والخصومات والتسوية. يمكنك الاطلاع على الملفات الشخصية، ولا يمكنك تغيير حالة كابتن. |
-| ar | `onboarding.intro.support` | أنت من يجيب الركاب والكباتن، وأول من يسمع حين يسوء شيء. يمكنك رؤية حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. |
-| ar | `onboarding.trackEmpty` | لا توجد خطوات متاحة لهذا الدور بعد — يمكن للمالك مراجعة صلاحياتك من إدارة النظام › الفريق والصلاحيات. |
-| ar | `onboarding.step.finance.ledger.body` | تعلّم اصطلاح الإشارة، وتعلّم أن الصف المُقيَّد لا يُعدَّل أبدًا — بل يُعكَس بصف ثانٍ. لا شيء في المالية يتراجع عن نفسه. |
-| ar | `onboarding.step.finance.escrow.body` | افتح صف ضمان واحدًا واقرأه كاملًا. الإفراج ينقل المال إلى كابتن، ولا تراجع عنه — إلا بقيد عكسي. |
-| ar | `onboarding.step.ops.application.body` | اقرأ المستندات، ثم وافق أو ارفض. يمنحك الصف علامة صح وعلامة خطأ و«عرض» — لا قائمة تُفتح. |
-| ar | `onboarding.step.ops.requests.body` | راقب مؤقّت SLA وأنت تحمله. اقرأ ما معنى الإخلال — الإخلال هدف لم يُدرَك، لا تقصير في التصرّف. |
-| ar | `onboarding.step.support.boundary.body` | يمكنك رؤية كل حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. اقرأ حادثة واحدة، وقف عند ذلك. |
-| en | `onboarding.intro.opsManager` | You keep trips covered and captains working — applications, requests, assurance and dispatch. |
-| en | `onboarding.trackEmpty` | No steps are available for this role yet — an owner can check your permissions in Admin › Team & Access. |
-| en | `onboarding.step.finance.ledger.body` | Learn the sign convention, and learn that a posted row is never edited — it is reversed by a second row. Nothing in Financials undoes itself. |
-| en | `onboarding.step.finance.escrow.body` | Open one escrow row and read it through. Release moves money to a captain, and there is no undo — only a reversing entry. |
-| en | `onboarding.step.ops.application.body` | Read the documents, then approve or reject. The row gives you a tick, a cross and View — there is no menu to open. |
-| en | `onboarding.step.ops.requests.body` | Watch the SLA clock while you hold it. Read what a breach means — a breach is a missed target, not a failure to act. |
-| en | `onboarding.step.support.boundary.body` | You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there. |
-| ar | `overview.lede.support-overview` | كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها. |
-| ar | `overview.hero.group` | المؤشرات الرئيسية — اختر واحدًا لعرض مخططه |
-| en | `overview.lede.support-overview` | Everything open in front of a person — incidents, tickets and the response times on them. |
-| en | `overview.hero.group` | Lead metrics — pick one to chart |
-| ar | `applicant.docReason.legend` | مرفوض — {reason} |
-| ar | `applicant.signal.ip` | موقع الاتصال {location} — متوافق مع مدينة التشغيل. |
-| en | `applicant.docReason.legend` | Rejected — {reason} |
-| en | `applicant.signal.ip` | IP location {location} — consistent with the operating city. |
-| ar | `policy.sla.grid.desc` | تعمل قائمة العمل على القيمة الافتراضية للمستوى ما لم تتجاوزها. الهدف المتجاوَز يتوقف عن اتّباع المستوى — أعده لتعيده إلى الوراثة. |
-| ar | `policy.reasons.desc` | المفردات المغلقة التي يُصنَّف بها كل إلغاء واسترداد وإيقاف ونزاع. لا يُحذف الرمز ولا يُعاد تسميته أبدًا — أوقفه واذكر ما حلّ محله، لأن السجلات التاريخية تشير إلى المفتاح. |
-| ar | `policy.reasons.new.desc` | اختر المفتاح بعناية — فهو لا يُعاد تسميته ولا يُعاد استخدامه أبدًا، حتى بعد إيقافه. |
-| ar | `policy.audit.saved` | حُفظت السياسة التشغيلية — تغيّر {count} من الحقول: {fields} |
-| ar | `policy.audit.codeSaved` | عُدِّل رمز السبب {code} — تغيّر {count} من الحقول: {fields} |
-| en | `policy.sla.grid.desc` | A queue answers on the tier default unless it overrides it. An overridden target stops following the tier — revert it to put it back. |
-| en | `policy.reasons.desc` | The closed vocabulary every cancellation, refund, suspension and dispute is coded against. A code is never deleted or renamed — retire it and name what replaced it, because historical records point at the key. |
-| en | `policy.reasons.new.desc` | Choose the key carefully — it is never renamed and never reused, even after it is retired. |
-| en | `policy.audit.saved` | Operational policy saved — {count} fields changed: {fields} |
-| en | `policy.audit.codeSaved` | Reason code {code} edited — {count} fields changed: {fields} |
-| ar | `pwa.install.body` | النافذة المثبَّتة تُخفي شريط أدوات المتصفح وتعيد نحو 90 بكسل — أي صفًّا إضافيًا في الجدول تقريبًا. |
-| en | `pwa.install.body` | An installed window drops the browser toolbar and gives back about 90px — roughly another table row. |
-| ar | `rb.funnel.duplicateStep` | الخطوة {position} تكرّر خطوة سابقة. وخطوتان متطابقتان تحوّلان بنسبة 100 %، وهو ما لا يقيس شيئًا — غيّر مقياسها، أو أعطها تصفية خاصة بها. |
-| ar | `rb.panel.measureByGroup` | {measure} — {group} |
-| ar | `rb.dashboard.tile.filterRefused` | لم تُطبَّق تصفية {field} — لا يقبلها هذا التقرير. |
-| en | `rb.funnel.duplicateStep` | Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own. |
-| en | `rb.panel.measureByGroup` | {measure} — {group} |
-| en | `rb.dashboard.tile.filterRefused` | Not filtered by {field} — this report can’t be. |
-| ar | `requests.offered.withCaptain` | معروض على {name} — بانتظار ردّه |
-| ar | `requests.offered.unnamed` | معروض على أحد الكباتن — بانتظار ردّه |
-| ar | `requests.offered.waiting` | — بانتظار ردّه |
-| en | `requests.offered.withCaptain` | Offered to {name} — waiting for their reply |
-| en | `requests.offered.unnamed` | Offered to a captain — waiting for their reply |
-| en | `requests.offered.waiting` | — waiting for their reply |
-| ar | `safety.step.a11y` | {step} — {incident} |
-| ar | `safety.empty.firstRun.body` | نداء استغاثة من سيارة مسرعة، أو اصطدام، أو بلاغ ضد كابتن أو راكب — كل واحدة يستلمها شخص محدَّد وتُعالج عبر أربع خطوات. |
-| en | `safety.step.a11y` | {step} — {incident} |
-| en | `safety.empty.firstRun.body` | An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps. |
-| ar | `table.bulk.refusalLabelled` | {action} — {reason} |
-| ar | `subs.bulk.freeze.blocked` | {count} من {total} من الاشتراكات المحدَّدة لا يمكن تجميدها — فهي ملغاة أو منتهية. |
-| ar | `subs.toast.cancelled` | تم إلغاء الاشتراك — استُرد {amount} |
-| ar | `sub.driverOption` | {name} — {city} · {rating} · {active}/{max} اشتراك |
-| en | `subs.bulk.freeze.blocked` | {count} of {total} selected subscriptions cannot be frozen — they are cancelled or expired. |
-| en | `subs.toast.cancelled` | Subscription cancelled — {amount} refunded |
-| en | `sub.driverOption` | {name} — {city} · {rating} · {active}/{max} subs |
-| ar | `profile.subscription.rail.window` | {from} — {to} |
-| en | `profile.subscription.rail.window` | {from} — {to} |
-| ar | `ticket.guide.heading` | دليل المكالمة — {scenario} |
-| en | `ticket.guide.heading` | Call guide — {scenario} |
-| ar | `profile.trip.party.ratingWithNote` | {rating} — «{note}» |
-| ar | `profile.trip.fare.reconcile` | مجموع هذه البنود لا يساوي الإجمالي — {amount} ريال غير مُفسَّرة. |
-| en | `profile.trip.party.ratingWithNote` | {rating} — “{note}” |
-| en | `profile.trip.fare.reconcile` | These lines do not add up to the total — {amount} SAR is unaccounted for. |
-| ar | `zones.steer.body` | الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده. |
-| en | `zones.steer.body` | Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended. |
-| en | `table.bulk.refusalLabelled` | {action} — {reason} |
-
-</details>
-
-## The word budget
-
-Ceiling **187**, measured **187**. **X18**: a slot an operator scans holds a
-fixed number of words. A key is put in a class by its name; the mapping is in
-the generator header. Anything longer moves to `InfoHint` or the detail surface.
-Measured on English only, and a placeholder counts as one word.
-
-| Class | Budget, in words | Over |
-|---|---:|---:|
-| title | 4 | 89 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
-| button | 3 | 19 |
-| meta | 6 | 9 |
-| badge | 2 | 1 |
-| banner | 20 | 1 |
-
-<details><summary>Every key over budget</summary>
-
-| Class | Words | Key | Value |
-|---|---:|---|---|
-| badge | 3 | `ticket.status.waiting` | Waiting on customer |
-| banner | 33 | `rb.alerts.banner.body` | No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value. |
-| button | 5 | `fin.empty.firstRun.action` | Read the chart of accounts |
-| button | 4 | `auth.activate.tokenInvalid.action` | Go to sign in |
-| button | 4 | `auth.reset.tokenInvalid.action` | Request a new link |
-| button | 4 | `corp.action.backToAccounts` | Back to corporate accounts |
-| button | 4 | `fin.debt.empty.action` | Read the reconciliation queue |
-| button | 4 | `fin.deduction.empty.action` | Read the payable ledger |
-| button | 4 | `fin.gateway.empty.action` | Read the trial balance |
-| button | 4 | `fin.journal.empty.action` | Read the trial balance |
-| button | 4 | `fin.payout.empty.action` | Read the payable ledger |
-| button | 4 | `fin.pricing.cancel.empty.action` | Read the rate card |
-| button | 4 | `fin.pricing.plan.empty.action` | Read the rate card |
-| button | 4 | `fin.pricing.quick.empty.action` | Read the rate card |
-| button | 4 | `fin.reconcile.empty.action` | Read the trial balance |
-| button | 4 | `fin.refund.empty.action` | Read the refunds ledger |
-| button | 4 | `notice.action.openSafety` | Open Safety & Incidents |
-| button | 4 | `overview.empty.action` | Go to quick rides |
-| button | 4 | `policy.reasons.action.restore` | Put back in use |
-| button | 4 | `policy.reasons.empty.action` | Add the first code |
-| button | 4 | `rb.panel.action.open` | Open the {board} board |
-| empty body | 34 | `fairness.empty.firstRun.body` | A suspension appealed, a rating disputed, a rider reported. A high overturn rate here is not a failure — it means the appeal route is catching bad calls before they cost you a captain. |
-| empty body | 33 | `admin.integrations.key.empty.body` | An API key lets a billing job, a partner portal or a warehouse export read and write through the same permissions your operators have. Each key carries only the scopes you grant it. |
-| empty body | 31 | `admin.integrations.webhook.empty.body` | A webhook endpoint receives a signed payload the moment a trip completes, a subscription lapses or a payout settles — so a partner system does not have to poll for it. |
-| empty body | 30 | `safety.empty.firstRun.body` | An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps. |
-| empty body | 25 | `admin.workspace.empty.body` | Nothing has been set for this workspace yet — no name, no support address, no legal versions. Set them and every screen picks them up. |
-| empty body | 25 | `policy.reasons.empty.body` | A reason code is the closed vocabulary operators pick from when they dispose of work. Without one, every disposition is free text nobody can count. |
-| empty body | 23 | `subs.empty.firstRun.body` | A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed. |
-| empty body | 22 | `adminData.integrity.empty.body` | Nothing is scanned in the background. Run the checks and each one reports what it found, with its name on every row. |
-| empty body | 22 | `comms.log.empty.outbox.body` | Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them. |
-| empty body | 22 | `dispatch.empty.board.body` | Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts. |
-| empty body | 22 | `dispute.lf.empty.body` | Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back. |
-| empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
-| empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
-| empty body | 20 | `overview.empty.body` | This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count. |
-| empty body | 20 | `people.empty.applications.body` | Every captain who applies lands in this queue with their documents, so you can approve or reject in one place. |
-| empty body | 20 | `people.empty.compliance.body` | Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected. |
-| empty body | 20 | `trips.empty.firstRun.body` | Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating. |
-| empty body | 19 | `comms.identity.empty.body` | A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email. |
-| empty body | 19 | `entity.rider.payments.empty.body` | This rider has not paid for a trip by card. Quick ride fares appear here as they are captured. |
-| empty body | 18 | `admin.activity.empty.body` | The log is append-only and starts empty. The first payout, suspension or settings change writes the first line. |
-| empty body | 18 | `admin.integrations.delivery.empty.body` | Once an endpoint is registered and one of its events happens, every attempt and every response appears here. |
-| empty body | 18 | `assurance.empty.firstRun.body` | Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue. |
-| empty body | 18 | `comms.template.empty.body` | A template turns a system event into the message a customer reads. Each one is written per language. |
-| empty body | 18 | `zones.empty.body` | A zone is a district where demand and supply are measured. None is tracked in this city yet. |
-| empty body | 17 | `dispute.empty.body` | Fare adjustments, cancellation fees and property damage claims arrive here from the support ticket that raised them. |
-| empty body | 17 | `ticket.thread.empty.body` | This ticket was raised from an operations event. The first message or logged call will appear here. |
-| empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
-| empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
-| empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
-| empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
-| empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
-| empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
-| empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
-| empty body | 15 | `requests.empty.firstRun.body` | Every instant ride and every subscription sign-up waiting on a captain appears in this queue. |
-| empty body | 14 | `entity.driver.trips.empty.body` | Every trip they drive lands here, with what it earned and how it ended. |
-| empty body | 14 | `fin.empty.firstRun.body` | Postings appear the moment a fare, a payout or a credit touches this account. |
-| empty body | 13 | `conversations.empty.firstRun.body` | Chat and email conversations appear here as soon as a customer opens one. |
-| empty body | 13 | `entity.rider.movements.empty.body` | This wallet has no movements. Top-ups and refunds appear here as they happen. |
-| empty body | 13 | `fin.escrow.empty.body` | A plan subscription holds its captain earnings here until the trips are delivered. |
-| empty body | 13 | `fin.payout.empty.body` | A captain appears here as soon as a trip accrues earnings to them. |
-| empty body | 13 | `fin.pricing.quick.empty.body` | A class is what a rider picks when they book without a plan. |
-| empty body | 13 | `fin.refund.empty.body` | A refund appears here the moment one is issued, with its credit note. |
-| empty body | 13 | `fin.refused.empty.body` | A posting the ledger will not write is kept here with its reason. |
-| empty body | 13 | `fin.trial.empty.body` | Every account in the chart is listed the moment anything posts to it. |
-| empty body | 13 | `fin.wallet.empty.body` | A top-up, a goodwill credit or a refund to the wallet opens one. |
-| empty body | 13 | `rb.dashboard.empty.body` | Add a saved report and it appears here, in the order you choose. |
-| empty body | 13 | `sub.changeDriver.empty` | No other captain is active right now. Reassignment reopens when one comes online. |
-| empty body | 13 | `ticket.empty.body` | Inbound customer care tickets and the calls operators log against them arrive here. |
-| empty title | 10 | `admin.team.empty.heading` | Everyone who can sign in, and what each may do |
-| empty title | 10 | `adminData.integrity.empty.heading` | Find out where a stored total stops matching its records |
-| empty title | 9 | `subs.empty.firstRun.heading` | Standing journeys, and the captain committed to each one |
-| empty title | 8 | `admin.activity.empty.heading` | The record of who did what, and when |
-| empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
-| empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
-| empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
-| empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
-| empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
-| empty title | 7 | `trips.empty.firstRun.heading` | Every journey taken, and what it earned |
-| empty title | 6 | `admin.integrations.webhook.empty.heading` | Tell another system when something happens |
-| empty title | 6 | `corp.empty.heading` | Company ride budgets, on one invoice |
-| empty title | 6 | `entity.driver.ledger.empty.heading` | No earnings have reached this captain |
-| empty title | 6 | `entity.driver.trips.empty.heading` | This captain has taken no trips |
-| empty title | 6 | `fairness.empty.firstRun.heading` | The route back for a captain |
-| empty title | 6 | `fin.payout.empty.heading` | No captain has earnings this period |
-| empty title | 6 | `fin.wallet.empty.heading` | No rider holds a wallet balance |
-| empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
-| empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
-| empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
-| meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
-| meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
-| meta | 10 | `adminData.meta` | Data exports, retention schedules and the integrity checks behind them |
-| meta | 10 | `policy.meta` | Dispatch, operating cities, safety limits, reason codes and SLA targets |
-| meta | 9 | `admin.workspace.meta` | Company details, branding, and the legal versions in force |
-| meta | 9 | `comms.meta` | {total} messages in the log · {attention} needing attention |
-| meta | 8 | `admin.team.meta` | Operators, permissions, security policy and the on-call rota |
-| meta | 7 | `dispatch.meta` | {count} in transit · live telemetry connected |
-| meta | 7 | `profile.trip.band.meta` | {id} · {date} · {rider} · {captain} |
-| title | 13 | `onboarding.step.support.profile.title` | Open a 360° profile, and know what you may not do with it |
-| title | 10 | `admin.integrations.reveal.warning.webhook.title` | This is the only time this signing secret is shown |
-| title | 10 | `fin.pricing.stageA.title` | Prices are read-only until the rate card owner is decided. |
-| title | 10 | `integrity.check.ref.ledger-subject.title` | Ledger postings name a subject and an entry that exist |
-| title | 10 | `onboarding.step.owner.team.title` | Read the role matrix, and decide if it still holds |
-| title | 10 | `rb.dashboards.firstRun.heading` | Put the reports you read every morning in one place |
-| title | 10 | `state.saveInvalid.title` | To save this {entity}, {count} changes need to be made: |
-| title | 9 | `admin.integrations.reveal.warning.key.title` | This is the only time this key is shown |
-| title | 9 | `integrity.check.invariant.status-fields.title` | A status agrees with the fields that justify it |
-| title | 9 | `onboarding.step.support.boundary.title` | Know what you may not decide, and who does |
-| title | 8 | `fairness.economics.title` | What this number does and does not measure |
-| title | 8 | `fin.overview.outOfBalance.title` | The books are out of balance by {amount}. |
-| title | 8 | `fin.pricing.cancel.notEnforced.title` | Five cancellation rules are stored and never applied. |
-| title | 8 | `onboarding.step.common.audit.title` | Find your own name in the activity log |
-| title | 8 | `onboarding.step.finance.escrow.title` | Read what releasing escrow does, without releasing it |
-| title | 8 | `onboarding.step.finance.goodwill.title` | Find the cap that bounds a goodwill credit |
-| title | 8 | `onboarding.step.finance.ledger.title` | Read a ledger before you post to one |
-| title | 8 | `onboarding.step.ops.dispatch.title` | Tell a stale feed from a dead one |
-| title | 8 | `rb.alerts.firstRun.heading` | Be told when a number crosses a line |
-| title | 7 | `auth.otp.resent.title` | A new code is on its way |
-| title | 7 | `auth.reauth.blocked.title` | This account can no longer sign in |
-| title | 7 | `fin.cash.escalated.title` | One report is with Trust & Safety. |
-| title | 7 | `fin.creditNote.unlinked.title` | One credit note has no matched invoice. |
-| title | 7 | `fin.payout.failed.title` | One payout was returned by the bank. |
-| title | 7 | `integrity.check.agree.aggregate-vs-records.title` | A lifetime total has records behind it |
-| title | 7 | `integrity.check.agree.escrow-amount.title` | A subscription and its escrow hold agree |
-| title | 7 | `integrity.check.agree.party-name.title` | Two records agree on a person’s name |
-| title | 7 | `integrity.check.money.payout-net.title` | A payout’s net follows from the ledger |
-| title | 7 | `integrity.check.ref.money-party.title` | Money records name a party that exists |
-| title | 7 | `integrity.check.ref.ticket-subject.title` | Tickets point at a customer who exists |
-| title | 7 | `onboarding.step.common.account.title` | Check the account that is now yours |
-| title | 7 | `onboarding.step.finance.reconciliation.title` | Work one reconciliation item end to end |
-| title | 7 | `onboarding.step.ops.application.title` | Decide one captain application end to end |
-| title | 7 | `onboarding.step.ops.requests.title` | Claim, work and dispose of one request |
-| title | 7 | `onboarding.step.owner.policy.title` | Read the policy you are accountable for |
-| title | 7 | `pwa.install.title` | Run the console in its own window |
-| title | 7 | `session.writeRevoked.title` | You can no longer save this change |
-| title | 6 | `admin.integrations.reveal.webhook.rotated.title` | Copy the new signing secret now |
-| title | 6 | `assurance.offer.title` | Hand {id} to a backup captain? |
-| title | 6 | `auth.activate.tokenInvalid.title` | This invite is no longer valid |
-| title | 6 | `auth.otp.elsewhere.title` | This sign-in finished in another tab |
-| title | 6 | `auth.otp.missing.title` | That verification is no longer open |
-| title | 6 | `auth.reauth.signOutConfirm.title` | Sign out and lose your changes? |
-| title | 6 | `auth.reset.tokenInvalid.title` | This link is no longer valid |
-| title | 6 | `auth.session.endedAbsolute.title` | Your session reached its 12-hour limit |
-| title | 6 | `fin.cash.escalate.title` | Escalate {report} to Trust & Safety? |
-| title | 6 | `fin.wallet.negative.title` | One rider wallet is below zero. |
-| title | 6 | `integrity.check.invariant.counters.title` | Counters on one record add up |
-| title | 6 | `integrity.check.money.wallet-balance.title` | A wallet balance matches its ledger |
-| title | 6 | `integrity.check.ref.person-links.title` | Rider and captain link lists resolve |
-| title | 6 | `integrity.check.ref.subscription-links.title` | Subscriptions point at records that exist |
-| title | 6 | `integrity.check.ref.trip-links.title` | Trips point at records that exist |
-| title | 6 | `onboarding.step.common.mywork.title` | Claim one item, then release it |
-| title | 6 | `onboarding.step.ops.assurance.title` | Cover one trip before it departs |
-| title | 6 | `onboarding.step.support.goodwill.title` | Credit a rider, inside your cap |
-| title | 6 | `onboarding.step.support.ticket.title` | Answer one ticket end to end |
-| title | 6 | `queue.takeOver.decide.title` | Decide this while {name} holds it? |
-| title | 6 | `rb.dashboard.add.title` | Add a report to this dashboard |
-| title | 6 | `rb.delete.pinned.title` | This report is on other dashboards |
-| title | 5 | `admin.integrations.reveal.key.rotated.title` | Copy the new key now |
-| title | 5 | `admin.integrations.reveal.webhook.issued.title` | Copy this signing secret now |
-| title | 5 | `assurance.waive.title` | Waive this strike against {name}? |
-| title | 5 | `auth.enroll.title` | Set up your verification code |
-| title | 5 | `auth.otp.superseded.title` | That code has been replaced |
-| title | 5 | `driver.timeline.trip-no-show.title` | Trip recorded as a no-show |
-| title | 5 | `fairness.overturn.title` | Overturn the decision against {name}? |
-| title | 5 | `fairness.uphold.title` | Uphold the decision against {name}? |
-| title | 5 | `fin.bulk.apply.confirm.title#one` | Apply {amount} from 1 deduction? |
-| title | 5 | `fin.bulk.apply.confirm.title#other` | Apply {amount} from {count} deductions? |
-| title | 5 | `fin.bulk.release.confirm.title#one` | Release {amount} from 1 hold? |
-| title | 5 | `fin.bulk.release.confirm.title#other` | Release {amount} from {count} holds? |
-| title | 5 | `fin.bulk.waive.confirm.title#one` | Waive {amount} on 1 deduction? |
-| title | 5 | `fin.bulk.waive.confirm.title#other` | Waive {amount} on {count} deductions? |
-| title | 5 | `fin.debt.repay.title` | Record a repayment from {captain}? |
-| title | 5 | `fin.overview.positions.heading` | Where the money is held |
-| title | 5 | `onboarding.step.finance.routing.title` | Know which queue reaches you |
-| title | 5 | `onboarding.step.owner.position.title` | State the current contribution margin |
-| title | 5 | `onboarding.step.owner.pricing.title` | Settle how captains are paid |
-| title | 5 | `people.takeOver.title` | Take this application from {name}? |
-| title | 5 | `policy.sla.breach.title` | When a target is breached |
-| title | 5 | `queue.takeOver.title` | Take this over from {name}? |
-| title | 5 | `rb.canvas.table.heading` | The numbers behind this chart |
-| title | 5 | `rb.library.firstRun.heading` | Ask the business a question |
-| title | 5 | `rb.related.heading` | This measure also appears on |
-| title | 5 | `rb.saveAs.title` | Save as a new report |
-| title | 5 | `requests.assign.title` | Assign a captain to {id}? |
-| title | 5 | `requests.expire.title` | Close {id} with no captain? |
-| title | 5 | `rider.timeline.trip-no-show.title` | Trip recorded as a no-show |
-| title | 5 | `ticket.logCall.title` | Log a call on {id} |
-
-</details>
-
 ## Keys per `copy.ts`
 
 | File | Exports | Keys |
@@ -547,8 +41,8 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 565 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
+| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
-| `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 248 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
@@ -557,22 +51,22 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 112 |
-| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 111 |
+| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 110 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 104 |
-| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 103 |
-| `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
+| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 102 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
+| `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 86 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
+| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 46 |
-| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 43 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
@@ -588,8 +82,8 @@ this is a wiring gap, not a translation one -- but a translator handed only
 
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
-| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 93 | 92 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 78 | 76 |
+| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 92 | 91 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
 
 ## Screens with no `copy.ts`
 

@@ -260,7 +260,7 @@ export const oneRungFunnel: ReportQuery = {
 export const savedReportFixtures: SavedReport[] = [
   {
     id: 'RPT-1',
-    name: 'Captains vs riders — 30 days',
+    name: 'Captains vs riders · 30 days',
     description: 'The owner’s standing question. Two panels, two scales, one x-axis.',
     query: captainsVsRiders,
     ownerId: 'USR-1',
@@ -282,7 +282,7 @@ export const savedReportFixtures: SavedReport[] = [
   },
   {
     id: 'RPT-3',
-    name: 'Gross revenue — 90 days vs previous',
+    name: 'Gross revenue · 90 days vs previous',
     description: 'Deliberately longer than the data. The break is the point.',
     query: revenueNinetyDays,
     ownerId: 'USR-2',
@@ -306,7 +306,7 @@ export const savedReportFixtures: SavedReport[] = [
   },
   {
     id: 'RPT-6',
-    name: 'Rider activation funnel — 90 days',
+    name: 'Rider activation funnel · 90 days',
     description: 'Joined, rode, subscribed. Three rungs, and the drop-off between them.',
     query: riderActivationFunnel,
     ownerId: 'USR-1',
@@ -317,7 +317,7 @@ export const savedReportFixtures: SavedReport[] = [
   },
   {
     id: 'RPT-7',
-    name: 'Rider retention by joining month — M0 to M3',
+    name: 'Rider retention by joining month · M0 to M3',
     description: 'A year of monthly cohorts, four columns wide.',
     query: riderRetentionCohort,
     ownerId: 'USR-2',
@@ -345,7 +345,7 @@ export const savedReportFixtures: SavedReport[] = [
   },
   {
     id: 'RPT-9',
-    name: 'Completed trips by district — daily table',
+    name: 'Completed trips by district · daily table',
     description: 'The same numbers as RPT-2, listed rather than drawn.',
     query: tripsByDistrictTable,
     ownerId: 'USR-3',
@@ -358,7 +358,7 @@ export const savedReportFixtures: SavedReport[] = [
     id: 'RPT-5',
     /* User content. Never translated, and it must render right-to-left inside
        an English UI (AC-898). Long enough to find the column that breaks. */
-    name: 'معدل الإلغاء اليومي — الرياض وجدة خلال الثلاثين يوماً الماضية',
+    name: 'معدل الإلغاء اليومي · الرياض وجدة خلال الثلاثين يوماً الماضية',
     description: 'تقرير يومي لمتابعة نسبة الإلغاء',
     query: cancellationTrend,
     ownerId: 'USR-3',
@@ -626,7 +626,7 @@ export const alertRuleFixtures: AlertRule[] = [
   },
   {
     id: 'ALR-5',
-    name: 'قاعدة تنبيه غير مفعّلة — انخفاض عدد الكباتن المسجلين',
+    name: 'قاعدة تنبيه غير مفعّلة · انخفاض عدد الكباتن المسجلين',
     reportId: 'RPT-1',
     seriesId: 'captains.registered#_#current',
     comparator: 'lte',

@@ -187,6 +187,14 @@ export type {
   CorporateUsagePolicy,
 } from './corporateAccount'
 
+/* Live Dispatch — T1.1 and T1.2. */
+export type {
+  DispatchTelemetry,
+  Intervention,
+  InterventionKind,
+  InterventionStatus,
+} from './dispatch'
+
 /* ── wave 2: the work queues ─────────────────────────────────────────── */
 
 export type { SlaSource, SlaTracked, WorkItemSeverity, WorkQueueId, WorkQueueRow } from './workQueue'
@@ -231,7 +239,7 @@ export {
   LEG_ACK_WEIGHT,
 } from './assurance'
 
-export type { WorkItem } from './work'
+export type { WorkItem, WorkItemParam, WorkItemParams } from './work'
 export { WORK_QUEUE_ROUTE, WORK_ROUTING } from './work'
 
 /* ── wave 4: metric tiles and chart cards ────────────────────────────── */

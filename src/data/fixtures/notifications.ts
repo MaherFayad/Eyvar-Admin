@@ -21,7 +21,7 @@ export const notificationFixtures: Notification[] = [
     type: 'alert',
     /* `alert` + no SOS/suspend/breach keyword → `high` under legacy `notifPriority` (`:2189`). */
     priority: 'high',
-    title: 'No-show — TRP-9003',
+    title: 'No-show · TRP-9003',
     body: 'Bandar Al-Harbi · ride auto-cancelled',
     createdAt: '2026-06-25T07:55:00+03:00',
     read: false,
@@ -49,7 +49,7 @@ export const notificationFixtures: Notification[] = [
     id: 'N3',
     type: 'renewal',
     priority: 'medium',
-    title: 'Subscription expiring — Sara Al-Ghamdi',
+    title: 'Subscription expiring · Sara Al-Ghamdi',
     body: 'SUB ends tomorrow, renewal likelihood 25%',
     createdAt: '2026-06-25T08:05:00+03:00',
     read: false,
@@ -103,7 +103,7 @@ export const notificationFixtures: Notification[] = [
        produces one, so the top priority tier renders empty on a fresh load and
        the tier heading has never been seen with a row under it. */
     priority: 'critical',
-    title: 'SOS — TRP-7742 · rider triggered the panic button',
+    title: 'SOS on TRP-7742 · rider triggered the panic button',
     body: 'Al Malaz → Riyadh Park · captain Khalid Mansour · 8 minutes late',
     createdAt: offsetFromNow({ minutes: -6 }),
     read: false,
@@ -117,7 +117,7 @@ export const notificationFixtures: Notification[] = [
     priority: 'high',
     /* A long Arabic title. The panel is a fixed-width popover; this is the row
        that finds out whether it truncates, wraps, or breaks the layout in RTL. */
-    title: 'انتهاء صلاحية رخصة القيادة — عبد الرحمن بن محمد آل عبد الله القحطاني',
+    title: 'انتهاء صلاحية رخصة القيادة · عبد الرحمن بن محمد آل عبد الله القحطاني',
     body: 'تنتهي الصلاحية خلال ٣ أيام · يجب تعليق الحساب إذا لم يتم التجديد',
     createdAt: offsetFromNow({ hours: -5 }),
     read: false,
@@ -130,7 +130,7 @@ export const notificationFixtures: Notification[] = [
     type: 'error',
     /* Every `error` is `critical` (`:2188`). */
     priority: 'critical',
-    title: 'Payment gateway timeout — 14 charges unconfirmed',
+    title: 'Payment gateway timeout · 14 charges unconfirmed',
     body: null,
     createdAt: offsetFromNow({ hours: -1, minutes: -12 }),
     read: false,
@@ -184,7 +184,7 @@ export const notificationFixtures: Notification[] = [
     id: 'N11',
     type: 'alert',
     priority: 'high',
-    title: 'Cancellation rate over 6% — 24 Jun',
+    title: 'Cancellation rate over 6% · 24 Jun',
     body: 'Daily cancellation rate reached 7%, over the 6% threshold on “Cancellation rate over 6%”.',
     createdAt: offsetFromNow({ hours: -2 }),
     read: false,
@@ -213,7 +213,7 @@ export const notificationFixtures: Notification[] = [
     id: 'N12',
     type: 'success',
     priority: 'low',
-    title: 'Payout run completed — 24 Jun',
+    title: 'Payout run completed · 24 Jun',
     body: '38 captains paid, 902.40 SAR released. One payout reversed (PO-0007).',
     createdAt: offsetFromNow({ days: -1, hours: -3 }),
     read: true,
