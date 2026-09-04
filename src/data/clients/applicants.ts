@@ -67,6 +67,11 @@ export interface ApplicantQuery extends QueryParams {
   status?: ApplicantStatus
 }
 
+/** An application nobody has to act on any more. Shared by the `open` view and `queueOrder`. */
+function isDecided(a: Applicant): boolean {
+  return a.status === 'approved' || a.status === 'rejected' || a.status === 'withdrawn'
+}
+
 const applicantShape: QueryShape<Applicant> = {
   searchable: [(a) => a.name, (a) => a.id, (a) => a.phone, (a) => a.plate, (a) => a.nationalId],
   sortable: {
@@ -74,6 +79,16 @@ const applicantShape: QueryShape<Applicant> = {
     appliedAt: (a) => a.appliedAt,
     slaDueAt: (a) => a.slaDueAt,
     status: (a) => a.status,
+    /**
+     * T3.1 — the queue's whole order in one key, so a widened scope cannot put
+     * a decided row above work still waiting: earliest deadline first, then
+     * open rows with no clock, then every decided row (null sorts last).
+     */
+    queueOrder: (a) => {
+      if (isDecided(a)) return null
+      const due = toInstant(a.slaDueAt)
+      return due === null ? Number.MAX_SAFE_INTEGER : Date.parse(due)
+    },
   },
   filterable: {
     /* identity — text */
@@ -139,6 +154,12 @@ const applicantShape: QueryShape<Applicant> = {
   ],
   views: {
     applications: () => true,
+    /**
+     * T3.1 / Q-32 — the queue's default scope: what is still waiting on
+     * somebody. Widening to `applications` brings the decided rows back, below
+     * the open ones (`queueOrder`).
+     */
+    open: (a) => !isDecided(a),
     mine: (a) => a.claim?.state === 'claimed' && a.claim.ownerId === currentMockUserId(),
     unassigned: (a) => a.claim === null || a.claim.state !== 'claimed',
     /**
@@ -156,10 +177,10 @@ const applicantShape: QueryShape<Applicant> = {
 /**
  * GET /api/v1/applications
  *   params: q · status · page · pageSize · sort · filter ·
- *           view=applications|mine|unassigned|breached
+ *           view=open|applications|mine|unassigned|breached
  *   -> Paginated<Applicant>
  *
- * Sortable: name · appliedAt · slaDueAt · status
+ * Sortable: name · appliedAt · slaDueAt · status · queueOrder
  * Filterable: status · vehicleClass · city · claimedBy · unclaimed
  *
  * `slaDueAt` may be `null` — **the legacy data has no SLA at all** and the

@@ -21,9 +21,10 @@
  *                 (c) the pill reading `overdue 14m` **in words**. All three;
  *                 none substitutes for another (**AC-50**).
  *   ordering      breached first, then remaining time ascending, `No clock`
- *                 last — which is exactly `slaDueAt` ascending with nulls last,
- *                 so the SERVER orders it and the view never re-sorts rows it
- *                 was given.
+ *                 last, and decided rows below all of them: one server sort
+ *                 key, `queueOrder`. The view never re-sorts rows (T3.1).
+ *   scope         the queue opens on `open` — pending plus in-review — and the
+ *                 chip widens it. Q-32: a queue's default is its open work.
  *
  * **Opening an item must not claim it** (§9.3; `:19301`–`:19310` claims
  * silently on open). The identity link and the kebab's `Open application` both
@@ -88,6 +89,13 @@ const DETAIL_PATH = '/operations/people/applications'
 /** The queue's SLA scope, as the applicants client declares it. */
 const BREACHED_VIEW = 'breached'
 
+/**
+ * T3.1 / Q-32 — a queue's default is its open work. `OPEN_VIEW` is pending plus
+ * in-review; clearing it widens to every application, decided rows last.
+ */
+const OPEN_VIEW = 'open'
+const ALL_VIEW = 'applications'
+
 interface RowError {
   message: string
   retry: () => void
@@ -99,10 +107,12 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
   const table = useIndexTable<Applicant>({
     mode: 'queue',
     getRowId: (applicant) => applicant.id,
-    /* §9.3's order, expressed as the one thing the server can do: earliest
-       deadline first. `compare` sorts nulls last, so `No clock` lands last
-       without a second pass. */
-    initialSort: { field: 'slaDueAt', dir: 'asc' },
+    /* T3.1 — the queue opens on its open work, never on 51 rows led by a
+       decision taken last week (X7). */
+    initialView: OPEN_VIEW,
+    /* §9.3's order, as one server-side key: earliest deadline first, `No clock`
+       after it, and — once the scope is widened — decided rows last. */
+    initialSort: { field: 'queueOrder', dir: 'asc' },
   })
 
   const data = useAsync<Paginated<Applicant>>(
@@ -162,6 +172,17 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
   const rows = overrides.apply(data.data?.items ?? [])
   const breachedCount = breached.data?.total ?? 0
   const scoped = table.view === BREACHED_VIEW
+
+  /**
+   * T3.1 — the scope chip, always present, so widening and narrowing are the
+   * same control. Its ✕ is named by what pressing it shows, never by "clear".
+   */
+  const scope =
+    table.view === BREACHED_VIEW
+      ? { label: t('people.scope.breached'), clearLabel: t('people.scope.showOpen'), next: OPEN_VIEW }
+      : table.view === OPEN_VIEW
+        ? { label: t('people.scope.open'), clearLabel: t('people.scope.showDecided'), next: ALL_VIEW }
+        : { label: t('people.scope.every'), clearLabel: t('people.scope.showOpen'), next: OPEN_VIEW }
 
   function clearRowError(id: string) {
     setRowErrors((current) => {
@@ -340,15 +361,11 @@ export function ApplicationsView({ chrome, t, language, canWrite, currentUserId 
         isRowCritical={(row) => isBreached(row, now)}
         {...chrome}
         searchPlaceholder={t('people.search.applications')}
-        scope={
-          scoped
-            ? {
-                label: t('people.scope.breached'),
-                clearLabel: t('people.scope.clear'),
-                onClear: () => table.setView(null),
-              }
-            : null
-        }
+        scope={{
+          label: scope.label,
+          clearLabel: scope.clearLabel,
+          onClear: () => table.setView(scope.next),
+        }}
         /* **No row kebab, and no `rowActions`.** D8: *"if only 1 action put the
            action not 3 dots"*. The single item this menu carried —
            `Open application` — navigated to `${DETAIL_PATH}/${row.id}`, which is
@@ -525,8 +542,8 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
          so the header carries a pin and no sort block. The queue's order is set
          once, in `useIndexTable`'s `initialSort`, and the toolbar popover has no
          entry for this column either — both read the same declaration. */
-      /* A decided item has no clock left to run. `—` is not-applicable, which
-         is exactly what it is — never a synthetic deadline (§9.3). */
+      /* O9 / T3.1 — a decided row's clock and owner are not-applicable, so both
+         cells are BLANK and the decision badge is the row's one carrier. */
       cell: (row) =>
         isDecided(row) ? <Absent /> : <SlaCountdown clock={clockFor(row)} t={t} />,
     },

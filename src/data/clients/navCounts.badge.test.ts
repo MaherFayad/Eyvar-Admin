@@ -31,7 +31,7 @@ async function badge(subTabId: string): Promise<number | null> {
   return counts.subTabs.find((s) => s.subTabId === subTabId)!.count
 }
 
-describe('O8 — every computed badge equals what its default view shows', () => {
+describe('O8 — every badge equals the open work its default view shows, or is absent', () => {
   it('operations-my-work is the backlog the screen renders', async () => {
     expect(await badge('operations-my-work')).toBe(myWorkBacklogSize())
   })
@@ -45,15 +45,20 @@ describe('O8 — every computed badge equals what its default view shows', () =>
     expect(openRequestCount('instant') + openRequestCount('subscription')).toBe(open.total)
   })
 
-  it('operations-subscriptions equals the default view total', async () => {
-    /* Against the paginated read the screen makes, not against the counter the
-       badge uses: otherwise the assertion is the implementation restated. */
-    const page = await listSubscriptions({ view: 'all', pageSize: 1 })
-    expect(await badge('operations-subscriptions')).toBe(page.total)
-  })
+  it('gives a roster sub-tab no badge at all', async () => {
+    /**
+     * **O8 refined.** People and Subscriptions open on a roster, not a backlog.
+     * A roster's size is not work owed, so the chip carried a number that never
+     * moved — the X3 failure in its purest form. `null` renders nothing; the
+     * page's own meta line still counts the rows.
+     */
+    expect(await badge('operations-people'), 'People').toBeNull()
+    expect(await badge('operations-subscriptions'), 'Subscriptions').toBeNull()
 
-  it('operations-people equals the captains roster', async () => {
-    expect(await badge('operations-people')).toBe(captainCount())
+    /* Both rosters are still non-empty, so this is a decision about the badge
+       and not an artefact of empty fixtures. */
+    expect(captainCount()).toBeGreaterThan(0)
+    expect((await listSubscriptions({ view: 'all', pageSize: 1 })).total).toBeGreaterThan(0)
   })
 
   it('management-zones stays the starved-zone count', async () => {

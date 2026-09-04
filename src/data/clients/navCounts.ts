@@ -12,10 +12,8 @@
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock } from '../mock/delay'
-import { captainCount } from './drivers'
 import { myWorkBacklogSize } from './myWork'
 import { openRequestCount } from './requests'
-import { subscriptionCount } from './subscriptions'
 import { starvedZoneCount } from './zones'
 import type { NavCounts, SubTabCount } from '../types/navigation'
 import { http } from './http'
@@ -85,9 +83,18 @@ const COMPUTED: Readonly<Record<string, () => number>> = {
   'operations-my-work': myWorkBacklogSize,
   'operations-ride-requests': () => openRequestCount('instant'),
   'operations-subscription-requests': () => openRequestCount('subscription'),
-  'operations-subscriptions': subscriptionCount,
-  'operations-people': captainCount,
 }
+
+/**
+ * **O8 refined** — a sub-tab whose default view is a ROSTER, not a backlog,
+ * carries no badge at all. A roster's size is not work: 57 captains and 70
+ * subscriptions are the same number tomorrow, so the chip taught operators to
+ * read a count that never moves (X3). The page's own meta line still says it.
+ */
+const ROSTER_SUB_TABS: ReadonlySet<string> = new Set([
+  'operations-people',
+  'operations-subscriptions',
+])
 
 /**
  * The seeded number stays in the fixture as the expected value — a grep-able
@@ -99,6 +106,7 @@ const COMPUTED: Readonly<Record<string, () => number>> = {
  * itself would make that scenario unreachable.
  */
 function ground(row: SubTabCount): SubTabCount {
+  if (ROSTER_SUB_TABS.has(row.subTabId)) return { ...row, count: null }
   const compute = COMPUTED[row.subTabId]
   if (!compute || row.count === null) return row
   return { ...row, count: compute() }

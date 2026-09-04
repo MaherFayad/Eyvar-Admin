@@ -182,10 +182,13 @@ export const PEOPLE_EN: Dictionary = {
   'people.filter.value.suspended.false': 'Active',
   'people.filter.chip': '{field}: {value}',
 
-  /* §9.4 — a queue scope that is a VIEW, not a filter chip. Named separately
-     so the operator can clear it from the same row the chips live in. */
+  /* §9.4 — a queue scope that is a VIEW, not a filter chip. T3.1: the chip's
+     control is named by what it SHOWS, so widening and narrowing read alike. */
   'people.scope.breached': 'Past SLA only',
-  'people.scope.clear': 'Show every application',
+  'people.scope.open': 'Open applications',
+  'people.scope.every': 'Every application',
+  'people.scope.showOpen': 'Show open only',
+  'people.scope.showDecided': 'Show decided too',
 
   /* ── row and bulk actions ───────────────────────────────────────────── */
   'people.action.viewProfile': 'Open 360° profile',
