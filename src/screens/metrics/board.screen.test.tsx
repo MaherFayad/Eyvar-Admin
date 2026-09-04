@@ -138,16 +138,21 @@ describe('T7.2 — every Open analysis on Risk & Signals lands pre-filtered (O4)
     }
   }
 
-  it('the three at-risk money tiles land on the at-risk subscriptions', async () => {
-    renderBoard('management-risk')
-    for (const label of [
-      'Revenue at risk',
-      'Subscriptions predicted to churn',
-      'Renewal payments flagged',
-    ]) {
+  /* The five tiles whose population IS the at-risk subscriptions: three
+     counts and the two rates derived from the same rows. One `it` each, so a
+     failure names the tile rather than the loop. */
+  for (const label of [
+    'Revenue at risk',
+    'Subscriptions predicted to churn',
+    'Renewal payments flagged',
+    'Revenue at risk as share of MRR',
+    'Median days to renewal on at-risk rows',
+  ]) {
+    it(`${label} lands on the at-risk subscriptions`, async () => {
+      renderBoard('management-risk')
       expect(question(await analysisHref(label)).view, label).toBe('at-risk')
-    }
-  })
+    })
+  }
 
   it('the at-risk subscriptions list honours that view', async () => {
     const filtered = await listSubscriptions({ view: 'at-risk', pageSize: 500 })
@@ -178,6 +183,22 @@ describe('T7.2 — every Open analysis on Risk & Signals lands pre-filtered (O4)
   it('repeat incidents land on the open safety queue', async () => {
     renderBoard('management-risk')
     expect(question(await analysisHref('Captains with repeat incidents')).view).toBe('open')
+  })
+
+  it('every link the board draws is pre-filtered, none lands on an unscoped list', async () => {
+    /* The per-tile tests above name the destinations one at a time; this one
+       fails when a NEW risk tile arrives carrying a bare route (O4). */
+    renderBoard('management-risk')
+    const links = await screen.findAllByRole('link', { name: /Open analysis for/u })
+    expect(links).toHaveLength(7)
+    for (const link of links) {
+      const href = link.getAttribute('href') ?? ''
+      const asked = question(href)
+      expect(
+        asked.view !== null || asked.filters.length > 0,
+        `${link.textContent} -> ${href}`,
+      ).toBe(true)
+    }
   })
 
   it('the one tile with no list offers no link rather than a plausible one', async () => {

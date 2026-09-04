@@ -205,6 +205,9 @@ export function SectionHeading({ title, note }: { title: string; note?: string |
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <h2 className="text-lg font-medium text-foreground">{title}</h2>
+      {/* T9.9 — stays inline. `chapterSummary` counts the figures below that
+          moved the wrong way, so this reports the data rather than explaining
+          the chrome, and X15 leaves a data fact where a reader scans. */}
       {note && <span className="text-xs text-muted-foreground">{note}</span>}
       <span aria-hidden="true" className="h-px min-w-8 flex-1 self-center bg-border" />
     </div>
