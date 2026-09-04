@@ -136,13 +136,11 @@ import {
   CardAction,
   CardContent,
   CardFooter,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { PLAIN_FRAME } from './Chapter'
 import { tableCsvFilename, tableCsvText, type TableCsvView } from '@/components/table/csv'
 import type { DataColumn } from '@/components/table/columns'
 import { downloadCsv } from '@/screens/reports/csv'
@@ -251,11 +249,22 @@ export interface BreakdownScope {
 export interface BreakdownListProps {
   breakdown: MetricBreakdown
   /**
-   * Whether the panel draws its own box. `card` is the default; `plain` is what
-   * a metric board passes, so the list sits on the page beside a chart that has
-   * also dropped its frame. See `PLAIN_FRAME`.
+   * **There is no `frame` here any more, and its removal is the finding.**
+   *
+   * This component carried `frame?: 'card' | 'plain'` and twelve styling
+   * branches off it — the box, the header rule, the cut-off's position, the row
+   * dividers, the row's plate, the bar's track, the row height. Its own doc
+   * said *"`plain` is what a metric board passes"*. **No caller passed it**, in
+   * production or in a test: `MetricBoardScreen` is the only production site
+   * and it never has. §E7 then gave that screen's panels their card frames back
+   * — the density the 20px gutter is paid for with — so `plain` was left
+   * describing a board that no longer exists.
+   *
+   * The `card` shape is therefore the only shape, and it is the one every
+   * caller was already getting. If a chromeless list is wanted again it comes
+   * back as one decision with a caller attached, not as a dozen dormant
+   * branches kept alive by a comment.
    */
-  frame?: 'card' | 'plain'
   /** See `BreakdownScope`. Absent means no export button. */
   scope?: BreakdownScope | null
   t: Translate
@@ -264,13 +273,11 @@ export interface BreakdownListProps {
 
 export function BreakdownList({
   breakdown,
-  frame = 'card',
   scope = null,
   t,
   language,
 }: BreakdownListProps) {
   const headingId = useId()
-  const plain = frame === 'plain'
   const heading = t(`breakdown.${breakdown.key}`)
 
   /**
@@ -299,26 +306,12 @@ export function BreakdownList({
     breakdown.awaitingStore === null && breakdown.rowsTotal > breakdown.rowsShown
 
   return (
-    <Card className={cn('min-w-0 border border-border shadow-xs', plain && PLAIN_FRAME)}>
-      <CardHeader
-        className={cn(
-          'border-b border-border/50 pb-3',
-          /* The heading's rule is the panel's own divider and goes with the
-             box, exactly as the chart footer's does. What separates this
-             heading from its rows on a board is the same thing that separates
-             a chapter heading from its figures: space. */
-          plain && 'border-b-0 px-0 pb-0',
-        )}
-      >
+    <Card className="min-w-0 border border-border shadow-xs">
+      {/* The heading's rule is the panel's own divider, exactly as the chart
+          footer's is. */}
+      <CardHeader className="border-b border-border/50 pb-3">
         {/* AC-690 — dimension, ranking and cut-off, as a fragment. No period. */}
         <CardTitle id={headingId}>{heading}</CardTitle>
-        {/* The scope, directly under the heading it scopes — see the note on
-            the footer this replaces on a board. */}
-        {showCutOff && plain && (
-          <CardDescription>
-            <CutOff breakdown={breakdown} t={t} />
-          </CardDescription>
-        )}
         {/* **Principle 5's exportable half.** `CardAction` and not a bare div
             carrying the slot attribute: the slot switches `CardHeader` to
             `1fr auto` and the component also carries the grid placement that
@@ -350,7 +343,7 @@ export function BreakdownList({
         )}
       </CardHeader>
 
-      <CardContent className={cn('min-w-0 p-2', plain && 'px-0 pt-4 pb-0')}>
+      <CardContent className="min-w-0 p-2">
         {breakdown.awaitingStore !== null ? (
           /* **R5-11 — the THIRD absence, and conflating any two of the three is
              the V-2 defect in a new slot.** *We ranked and this window had
@@ -399,18 +392,11 @@ export function BreakdownList({
             {breakdown.caveat && <Caveat caveat={breakdown.caveat} t={t} language={language} />}
             <ul
               aria-labelledby={headingId}
-              className={cn(
-                'flex flex-col',
-                /* The dividing rules go with the plate for the same reason: a
-                   panel with no edges does not need five internal ones. What
-                   separates the rows on a board is the air the reference gives
-                   them. */
-                plain ? 'gap-5' : 'gap-0.5 divide-y divide-border/40',
-              )}
+              className="flex list-none flex-col gap-0.5 divide-y divide-border/40"
             >
             {breakdown.rows.map((row) => (
               <li key={row.id} className="min-w-0">
-                <Row row={row} showBar={showBar} plain={plain} t={t} language={language} />
+                <Row row={row} showBar={showBar} t={t} language={language} />
               </li>
             ))}
             </ul>
@@ -418,16 +404,10 @@ export function BreakdownList({
         )}
       </CardContent>
 
-      {/* **On a board the cut-off moves under the heading, and the position is
-          the point.** AC-696's sentence says the list is the top five of
-          seven — a SCOPE, and R5-9 §20's ruling about the caveat applies to it
-          for the same reason: *a gate that appears after the thing it gates is
-          not a gate*. In a card it sat in a footer with a rule above it, which
-          is a footer's job. On a board there is no footer and no rule, so a
-          sentence trailing the fifth row reads as a sixth row.
-
-          Inside a card it stays exactly where it was. */}
-      {showCutOff && !plain && (
+      {/* AC-696's sentence — the list is the top five of seven. It sits in a
+          footer with a rule above it, which is a footer's job: the ranking has
+          ended and this states its extent. */}
+      {showCutOff && (
         <CardFooter className="border-t border-border/50 bg-muted/10 pt-3">
           {/* AC-696. A full SENTENCE, so it takes a period (R6). The dimension
               is a key of its own — `queues` and `captains` are copy. */}
@@ -653,22 +633,16 @@ function RowLabel({ label, t }: { label: BreakdownLabel; t: Translate }) {
 function Row({
   row,
   showBar,
-  plain,
   t,
   language,
 }: {
   row: MetricBreakdownRow
   showBar: boolean
-  /** Chromeless — see `PLAIN_FRAME`. The row drops its plate with the card. */
-  plain: boolean
   t: Translate
   language: Language
 }) {
   const value = isolatedRunProps({
-    className: cn(
-      'shrink-0 text-end tabular-nums text-foreground',
-      plain ? 'text-lg font-medium' : 'text-sm',
-    ),
+    className: 'shrink-0 text-end text-sm tabular-nums text-foreground',
   })
   /**
    * **V-9, which stopped being latent the moment R5-5 changed what a sub-label
@@ -698,33 +672,15 @@ function Row({
         {/* R5-5 — **the only numeric column**, aligned to the inline-end and
             tabular, and isolated so `45%` does not hop its sign or its unit in
             Arabic. There is nothing after it. */}
-        {/* **The plate goes with the card.** Boxed, the figure read as a badge
-            — a status — beside a proper noun, which is exactly what R7 reserves
-            a plate for and this is not. Unboxed and one size up it reads as the
-            quantity the row is about, which is what it is, and it lines up down
-            the column with the figures in every other panel on the page. */}
         <span {...value.box}>
-          {plain ? (
+          <span className="inline-flex min-w-6 items-center justify-center rounded-md border border-border/40 bg-muted/60 px-1.5 py-0.5 text-xs font-bold tabular-nums text-foreground">
             <bdi {...value.run}>{formatMetricValue(row.value, row.unit, language)}</bdi>
-          ) : (
-            <span className="inline-flex min-w-6 items-center justify-center rounded-md border border-border/40 bg-muted/60 px-1.5 py-0.5 text-xs font-bold tabular-nums text-foreground">
-              <bdi {...value.run}>{formatMetricValue(row.value, row.unit, language)}</bdi>
-            </span>
-          )}
+          </span>
         </span>
       </span>
-      {/* **The bar is drawn on a board too, and it is drawn with a TRACK.**
-          It was suppressed here on the reasoning that the order already encodes
-          the ranking, which is true and is not the bar's job: order says *which
-          is bigger*, a bar says *by how much*, and on a list whose top row is
-          twice the second that is the whole reading. The reference draws it
-          full-bleed under each row, which is also what stops the row's number
-          being 958px from its name with nothing in between.
-
-          The track is the change from the card version and the reference's own:
-          without it a 48% bar and a 48%-wide panel are indistinguishable, so
-          the reader cannot tell a short bar from a narrow column. */}
-      {showBar && <Bar fraction={row.barFraction} track={plain} />}
+      {/* Order says *which is bigger*; the bar says *by how much*, and on a
+          list whose top row is twice the second that is the whole reading. */}
+      {showBar && <Bar fraction={row.barFraction} />}
       {row.subLabelKey && (
         <span {...subLabel.box}>
           <bdi {...subLabel.run}>
@@ -735,19 +691,12 @@ function Row({
     </>
   )
 
-  /* R4-4 — uniform height, chosen by the bar and not by the content. The two
-     text slots truncate into it rather than growing it. */
   /* R4-4 — uniform height, chosen by the bar and not by the content, so a card
-     of rows is one object read down. **Except on a board**, where there is no
-     card: the rows sit on the page with air between them, the bar is not drawn,
-     and a fixed 40px box clipped the sub-label under the next row's name. A
-     chromeless row is spaced by its list and sized by its content. */
+     of rows is one object read down. The two text slots truncate into it rather
+     than growing it. */
   const shape = cn(
-    'flex flex-col justify-center rounded-lg transition-colors',
-    /* Wider on a board: the row is now three stacked runs — the name and its
-       number, the bar, the sub-label — and `0.5` set them as one block of
-       texture rather than as three readings. */
-    plain ? 'gap-1.5 px-0' : cn('gap-0.5 px-3', showBar ? 'h-row-media' : 'h-row'),
+    'flex flex-col justify-center gap-0.5 rounded-lg px-3 transition-colors',
+    showBar ? 'h-row-media' : 'h-row',
     'hover:bg-muted/50',
     row.drilldownRoute && 'cursor-pointer group',
   )
@@ -797,18 +746,15 @@ function Row({
  * computed against that denominator; this component does not divide, for the
  * same reason `formatMetric` does not subtract.
  *
- * **No painted track**, as before. `inlineSize` rather than a physical width:
- * the bar grows from the inline-start, so it grows from the right in Arabic
- * without a second rule (§9.1).
+ * **No painted track.** `inlineSize` rather than a physical width: the bar
+ * grows from the inline-start, so it grows from the right in Arabic without a
+ * second rule (§9.1).
  */
-function Bar({ fraction, track = false }: { fraction: number | null; track?: boolean }) {
+function Bar({ fraction }: { fraction: number | null }) {
   if (fraction === null) return null
   const percent = Math.max(0, Math.min(1, fraction)) * 100
   return (
-    <span
-      aria-hidden="true"
-      className={cn('block h-1 w-full overflow-hidden rounded-full', track && 'bg-border')}
-    >
+    <span aria-hidden="true" className="block h-1 w-full overflow-hidden rounded-full">
       <span
         className="block h-full rounded-full bg-chart-series"
         /* Dynamic: a computed chart width. `inlineSize` rather than a physical

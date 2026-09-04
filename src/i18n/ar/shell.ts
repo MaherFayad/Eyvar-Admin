@@ -302,7 +302,7 @@ export const SHELL_AR: Dictionary = {
   'shell.notifications.tier.low': 'منخفض',
   'shell.notifications.unread': 'غير مقروء',
   'shell.notifications.markRead': 'تعليم كمقروء',
-  'shell.notifications.markReadA11y': 'تعليم “{title}” كمقروء',
+  'shell.notifications.markReadA11y': 'تعليم كمقروء: {title}',
   'shell.notifications.markAllReadCount': 'تعليم الكل كمقروء ({count})',
   'shell.notifications.empty': 'لا إشعارات.',
   'shell.moreActions': 'إجراءات أخرى',

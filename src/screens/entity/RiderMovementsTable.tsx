@@ -92,7 +92,6 @@ import { useNavigate } from 'react-router-dom'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { MoneyCell, Money } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
-import { SectionHeading } from '@/components/metrics'
 import {
   SETTLEMENT_BADGE_TONE,
   type RiderMoneyMovement,
@@ -174,6 +173,27 @@ export function RiderMovementsTable({
     )
   }, [movements, query, t])
 
+  /**
+   * **The window, and it is this file's to cut.**
+   *
+   * `DataTable` renders exactly the rows it is handed and derives band 5's
+   * `Showing 1–25 of 60` from `total` and `table.page`. Every other table in
+   * the product hands it a server page, so the two agree by construction; this
+   * envelope is unpaginated, so without this slice a rider with sixty postings
+   * would get all sixty rows under a `Showing 1–25 of 60` label, and `Next`
+   * would move the label and nothing else. Fixed here and in `RiderPayments`
+   * together — two money tables on one page must not page two ways.
+   *
+   * **The boundary rows are unaffected, and that is correct.** `Opening` and
+   * `Closing` render outside the row set, so they frame the whole ledger rather
+   * than the page of it — which is what a balance means. §8.3.3's own reason
+   * for putting them outside `rows`.
+   */
+  const page = useMemo(
+    () => rows.slice((table.page - 1) * table.pageSize, table.page * table.pageSize),
+    [rows, table.page, table.pageSize],
+  )
+
   const columns = useMemo(() => movementColumns(t, language), [t, language])
 
   /* `useAsync`'s default `isEmpty` cannot answer for this envelope — an object
@@ -185,8 +205,22 @@ export function RiderMovementsTable({
 
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeading
-        title={t('entity.rider.movements.title')}
+      {/* **The heading is INSIDE the table now, not above it** — owner
+          instruction: the title and the control cluster share one row, and the
+          count reads as a subtitle beneath the title rather than beside it.
+
+          It is `DataTable`'s `heading` / `subheading` rather than a
+          `SectionHeading` above the table because the toolbar belongs to
+          `DataTable` and always has. A heading rendered outside it can only ever
+          sit on its own row, and reproducing the toolbar here to get them onto
+          one row is how forty screens end up with two toolbars. `IndexToolbar`
+          types the slot as a union, so a table cannot carry view tabs and a
+          heading at once — this one has no tabs.
+
+          Measured by the slot's author: the heading wraps before it truncates,
+          the control cluster never moves, and band 2 grows 56 → 62 — which
+          costs no row, and buys one back by removing the heading's own row. */}
+      <DataTable
         /* Derived every render from the rows this table actually holds, so the
            heading cannot claim a count the table does not show.
 
@@ -196,20 +230,22 @@ export function RiderMovementsTable({
            separate labelled line, and `held` printed under a wallet balance
            reads as *held out of your balance*, which is a false statement. It
            is stated once, in the `Payments` group, where its records are. */
-        note={
+        heading={t('entity.rider.movements.title')}
+        subheading={
           result.data === null
             ? null
             : t.plural('entity.rider.movements.count', { count: movements.length })
         }
-      />
-
-      <DataTable
         table={table}
-        rows={rows}
+        rows={page}
         columns={columns}
         getRowId={(row) => row.id}
         status={status}
-        total={movements.length}
+        /* `total` is the NARROWED count, not the unfiltered one: band 5 reads
+           `Showing {from}–{to} of {total}`, and a search that hides rows has to
+           move the denominator with them or `Showing 1–2 of 60` sits over two
+           rows for the rest of the session. */
+        total={rows.length}
         t={t}
         language={language}
         tableId="profile.wallet"

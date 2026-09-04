@@ -61,7 +61,7 @@
  *              caret — encodes magnitude rather than reading direction.
  */
 
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PAGE_BLOCK_INSET } from '@/components/PageShell'
@@ -276,7 +276,13 @@ export function BoardBand({
       <div
         className={cn(
           'mx-auto flex w-full max-w-measure flex-col',
-          density === 'tall' ? 'gap-9 compact:gap-7' : 'gap-3',
+          /* **Tightened one step with the rest of the board (§E7 density).**
+             The reference's boards carry more per screen than this one did and
+             the band was the largest single spend: 36px between the title block
+             and the figures, on a field that already has 32px of its own block
+             inset. 28 keeps the field reading as a field and gives the page
+             back most of a line. */
+          density === 'tall' ? 'gap-7 compact:gap-6' : 'gap-3',
           shape === 'bleed' && 'px-page-pad wide:px-page-pad-wide',
         )}
       >
@@ -287,37 +293,135 @@ export function BoardBand({
 }
 
 /**
+ * **The gutter, written once**, because the band's row and every chapter's row
+ * have to be the same three tracks.
+ *
+ * It was one step wider than `ChapterFigures`', which put the band's second
+ * column 4px off the second column of every chapter under it — three columns
+ * that ALMOST line up read worse than three that obviously do not, because the
+ * eye keeps trying to resolve them. The band and the page block already share a
+ * padding token and a measure, so equal gutters is the last thing needed; with
+ * it, a reader's eye comes down one line from `CONTRIBUTION MARGIN` through
+ * every chapter's middle figure.
+ *
+ * **Tightened from 44px to 24px** with the rest of the board (§3.7's grid is a
+ * ~19–20px gutter and the reference's boards read denser than this one did).
+ * 24 rather than 20 on this grid alone: these figures have NO card edges, so
+ * the gutter is the only separator, and a 40px numeral needs a hair more air
+ * beside it than a bordered card does. The chapters' grid takes the same value
+ * from this constant, so the two cannot drift apart again.
+ */
+const FIGURE_GUTTER = 'gap-x-6'
+
+/**
  * The three lead figures, side by side on the band.
  *
- * Separate from `MetricLeadRow` — which is the PAGE's 3-up grid — because the
- * two rows differ in more than a colour: this one is wider-gapped (the figures
- * have no card edges to separate them, so space is the only separator there
- * is) and it stacks with a hairline between on a phone, where a 358px column
- * cannot carry three 40px numerals across.
+ * Separate from the PAGE's 3-up grid because the two rows differ in more than a
+ * colour: this one stacks with a hairline between on a phone, where a 358px
+ * column cannot carry three 40px numerals across.
  *
  * `data-numeric` covers everything in the row that is a number but is NOT the
  * numeral itself — a delta, a caption's denominator — so the row scans down
  * its digits. The numeral gets it from `[data-slot="metric-value"]`.
+ *
+ * ## §E4 — given a `groupLabel`, the row becomes a radiogroup
+ *
+ * The reference's best single idea is a KPI row that **drives one chart**: the
+ * selected tile is outlined and the plot beneath it is that tile's series. That
+ * is a choice among mutually exclusive options, which is a radiogroup and not
+ * three toggle buttons — `aria-checked` on a radio says *this is the one*,
+ * where three `aria-pressed` buttons say *these three are independently on or
+ * off*, which is false and is the thing an operator would have to test to
+ * disprove.
+ *
+ * `role="list"` when no label is passed, so the ~two boards whose leads chart
+ * nothing keep exactly the markup they had.
+ *
+ * **The arrow keys belong to the GROUP.** Which radio comes next is a fact
+ * about the set, not about any member of it, so the handler is here and each
+ * radio carries only its own `tabIndex`. Selection is NOT moved by the arrows:
+ * this row redraws a chart on every change, and a group that selects on focus
+ * would fire three reads while an operator arrows past two tiles to reach the
+ * third. `Enter` and `Space` select, which they do for free — every radio here
+ * is a real `<button>`.
  */
-export function BoardHeroRow({ children }: { children: ReactNode }) {
+export function BoardHeroRow({
+  children,
+  groupLabel = null,
+}: {
+  children: ReactNode
+  /**
+   * Given, the row is a `radiogroup` with this as its accessible name. `null`
+   * — the default — leaves it the plain list it was.
+   */
+  groupLabel?: string | null
+}) {
+  const grid = cn(
+    'grid list-none grid-cols-3 gap-y-0',
+    FIGURE_GUTTER,
+    'compact:grid-cols-1 compact:gap-y-0 compact:divide-y compact:divide-hero-line',
+  )
+
+  if (groupLabel === null) {
+    return (
+      <ul data-numeric role="list" className={grid}>
+        {children}
+      </ul>
+    )
+  }
+
   return (
-    <ul
+    <div
       data-numeric
-      role="list"
-      /* **The gutter is `ChapterFigures`' gutter and it is not a coincidence.**
-         It was one step wider, which put the band's second column 4px off the
-         second column of every chapter under it — three columns that ALMOST
-         line up read worse than three that obviously do not, because the eye
-         keeps trying to resolve them. The band and the page block already share
-         a padding token and a measure, so equal gutters is the last thing
-         needed for the two grids to be the same three tracks; with it, a
-         reader's eye comes down one line from `CONTRIBUTION MARGIN` through
-         every chapter's middle figure. */
-      className="grid list-none grid-cols-3 gap-x-11 gap-y-0 compact:grid-cols-1 compact:gap-y-0 compact:divide-y compact:divide-hero-line"
+      role="radiogroup"
+      aria-label={groupLabel}
+      className={grid}
+      onKeyDown={moveWithinGroup}
     >
       {children}
-    </ul>
+    </div>
   )
+}
+
+/** Which way each arrow walks the group. Anything else falls through. */
+const ARROW_STEP: Record<string, number | undefined> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+}
+
+/**
+ * Roving focus across the radios, and **the two horizontal arrows swap in
+ * Arabic**.
+ *
+ * `ArrowRight` means *the next one along the row*, and in a mirrored row the
+ * next one along is to the LEFT — the key names a screen direction and the
+ * group is laid out in reading order. The vertical pair does not swap: the row
+ * stacks top-to-bottom on a phone in both languages.
+ *
+ * The direction is read off the nearest `dir` rather than from a language prop,
+ * so a subtree that pins its own direction is honoured and the row needs no
+ * knowledge of which language is loaded.
+ *
+ * It wraps at both ends, which is the APG's radiogroup behaviour and is what
+ * makes a three-item group reachable in one keypress from either side.
+ */
+function moveWithinGroup(event: KeyboardEvent<HTMLDivElement>) {
+  const step = ARROW_STEP[event.key]
+  if (step === undefined) return
+
+  const group = event.currentTarget
+  const radios = Array.from(group.querySelectorAll<HTMLElement>('[role="radio"]'))
+  const at = radios.indexOf(document.activeElement as HTMLElement)
+  if (at === -1) return
+
+  event.preventDefault()
+  const dir =
+    group.closest('[dir]')?.getAttribute('dir') ?? group.ownerDocument.documentElement.dir
+  const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight'
+  const walk = dir === 'rtl' && horizontal ? -step : step
+  radios[(at + walk + radios.length) % radios.length]?.focus()
 }
 
 /**
@@ -327,7 +431,24 @@ export function BoardHeroRow({ children }: { children: ReactNode }) {
  * hairline with no air either side of it reads as a seam rather than as a
  * separator. It is zero on the first and last so the row does not gain padding
  * the band already provides.
+ *
+ * **`inGroup` swaps the `<li>` for a `<div>`, and that is a correctness fix
+ * rather than a preference.** A `radiogroup` owns its radios; an `<li>` between
+ * the group and the radio breaks that ownership, and a group whose owned
+ * elements are not radios is a group with no members — which is what a screen
+ * reader would announce. The list semantics are the thing being replaced, so
+ * there is nothing to preserve.
  */
-export function BoardHeroItem({ children }: { children: ReactNode }) {
-  return <li className="min-w-0 compact:py-5 compact:first:pt-0 compact:last:pb-0">{children}</li>
+export function BoardHeroItem({
+  children,
+  inGroup = false,
+}: {
+  children: ReactNode
+  inGroup?: boolean
+}) {
+  const cell = 'min-w-0 compact:py-5 compact:first:pt-0 compact:last:pb-0'
+  return inGroup ? <div className={cell}>{children}</div> : <li className={cell}>{children}</li>
 }
+
+/** The gutter the chapters' grid takes, so the two rows are three tracks. */
+export { FIGURE_GUTTER }

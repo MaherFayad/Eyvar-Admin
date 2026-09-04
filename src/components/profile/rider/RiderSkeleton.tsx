@@ -21,16 +21,22 @@
  *              here would emit it into the stylesheet AND trip
  *              `motion.licence.test.ts`, which reads source rather than
  *              markup. `tabs.tsx` records the same trap.
- *   §9.1       the two columns are the same logical flex row the content uses,
- *              so the skeleton mirrors exactly as the content does.
+ *   §9.1       the single column is the same `flex-col` the content uses, with
+ *              the rail's edge on the same block axis, so the skeleton mirrors
+ *              exactly as the content does — which is to say, neither does.
+ *   layout     **the rail is ABOVE the panels and full width**, because that is
+ *              what `RiderProfile` renders at `--ev-drawer-w`. A skeleton in
+ *              the shape the content is no longer in is worse than none: the
+ *              eye has to re-find the layout at exactly the moment the
+ *              skeleton exists to stop it doing that.
  */
 
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function RiderSkeleton() {
   return (
-    <div aria-busy="true" className="-m-3 flex min-h-full flex-row items-stretch compact:flex-col">
-      <div className="flex w-1/3 max-w-xs shrink-0 flex-col divide-y divide-border border-e border-border bg-muted compact:w-full compact:max-w-none compact:border-e-0 compact:border-b">
+    <div aria-busy="true" className="-m-3 flex min-h-full flex-col">
+      <div className="flex flex-col divide-y divide-border border-b border-border bg-muted">
         {[0, 1, 2, 3].map((block) => (
           <div key={block} className="flex flex-col gap-2 px-4 py-4">
             <Skeleton className="h-3 w-20" />

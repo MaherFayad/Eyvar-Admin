@@ -52,8 +52,10 @@
  */
 
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 import { formatCount, type Language, type Translate } from '@/lib'
 import type { Metric, MetricCategory } from '@/data/types'
+import { FIGURE_GUTTER } from './BoardHero'
 import { metricValence } from './formatMetric'
 
 
@@ -211,7 +213,12 @@ export function SectionHeading({ title, note }: { title: string; note?: string |
 
 export function Chapter({ category, summary, children, t }: ChapterProps) {
   return (
-    <section className="flex flex-col gap-6">
+    /* 16px between the heading and its figures, down from 24. The rule in the
+       heading already closes the section above; what separates a heading from
+       the figures it names should be less than what separates one chapter from
+       the next, and at 24 against 48 it read as a gap rather than as an
+       attachment. §E7's density pass. */
+    <section className="flex flex-col gap-4">
       <SectionHeading title={t(`overview.category.${category}`)} note={summary} />
       {children}
     </section>
@@ -230,16 +237,25 @@ export function Chapter({ category, summary, children, t }: ChapterProps) {
  * columns is what lets a reader's eye come down the same three tracks through
  * the whole board instead of re-finding them at each heading.
  *
- * The 44px gutter is deliberately three times the 12px the bordered grid used.
- * Without card edges, space is the only thing separating one figure's caption
- * from the next figure's numeral.
+ * **The gutter is `FIGURE_GUTTER` and is not written here.** The band's row and
+ * this one have to be the same three tracks or a reader's eye stops coming down
+ * one line from the band through every chapter; two grids that each spell their
+ * own gutter is exactly how they drifted 4px apart before. It was 44px — three
+ * times the 12px the bordered grid used — and §E7's density pass took it to 24,
+ * still wide enough that space alone separates one figure's caption from the
+ * next figure's numeral, which is all it has to do with no card edges.
+ *
+ * The row pitch comes down with it, 36 → 28.
  */
 export function ChapterFigures({ children }: { children: ReactNode }) {
   return (
     <ul
       data-numeric
       role="list"
-      className="grid list-none grid-cols-3 gap-x-11 gap-y-9 compact:grid-cols-1 compact:gap-y-7"
+      className={cn(
+        'grid list-none grid-cols-3 gap-y-7 compact:grid-cols-1 compact:gap-y-6',
+        FIGURE_GUTTER,
+      )}
     >
       {children}
     </ul>

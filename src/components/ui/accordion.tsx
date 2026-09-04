@@ -53,7 +53,20 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn("not-last:border-b", className)}
+      /* **`border-border`, because Tailwind v4 changed the default.**
+       *
+       * This shipped as a bare `not-last:border-b`. In Tailwind v3 an
+       * uncoloured border fell back to `gray-200`; **v4 defaults it to
+       * `currentColor`**, and `globals.css` sets no `--default-border-color`.
+       * So every accordion in the product was drawing a full-strength INK
+       * hairline where it meant to draw `--border` — a rule four times heavier
+       * than the one beside it, and one that changed colour with the text.
+       *
+       * Both consumers wanted the token: `OnboardingStepRow` and the captain's
+       * document list. Fixed at the primitive rather than at a call site,
+       * because a call-site override leaves the next consumer with the defect.
+       */
+      className={cn("not-last:border-b border-border", className)}
       {...props}
     />
   )

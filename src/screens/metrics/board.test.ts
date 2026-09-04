@@ -400,3 +400,91 @@ describe('§H4 — every board ranks exactly three metrics as leads', () => {
     }
   })
 })
+
+/**
+ * **§E4 — the boards whose lead row is a CHOICE, decided here rather than in the
+ * screen.**
+ *
+ * `MetricBoardScreen` renders the row as a `radiogroup` at two charted leads and
+ * as the plain list it always was below that, because a radiogroup of one radio
+ * cannot be operated and is announced as *"radio button, checked, 1 of 1"*.
+ * Which boards clear that bar is a fact about the fixtures, and the screen
+ * cannot be asked about it without mounting the whole shell — so it is asserted
+ * over the real boards, the same way §H4's three-leads rule above is.
+ *
+ * `heroChoice.test.tsx` covers the multi-option BEHAVIOUR on a constructed
+ * board. This covers the DATA reaching it, which is the half that went missing:
+ * the mechanism shipped correct and inert because no board seeded a second
+ * chartable lead, and nothing failed when it did.
+ */
+describe('§E4 — which boards render a lead row that drives a chart', () => {
+  /* The screen's own expression, lifted verbatim: a lead is selectable exactly
+     when the board charts a series under the same key. */
+  const selectableLeads = (board: MetricBoard) => {
+    const charted = new Set(board.charts.map((chart) => chart.key))
+    return board.metrics.filter((m) => m.rank === 'lead' && charted.has(m.key))
+  }
+
+  it('gives three boards a choice, one board a single charted lead, and five none', async () => {
+    /* All three of §E4's states reachable from real data:
+         2 — a radiogroup, and the selection redraws the hoisted chart;
+         1 — the chart is hoisted with no control, because a group of one radio
+             cannot be operated;
+         0 — the row is a plain list and nothing is hoisted. */
+    const counts: Record<string, number> = {}
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      counts[subTabId] = selectableLeads(await getMetricBoard(subTabId)).length
+    }
+    expect(counts).toEqual({
+      'management-overview': 1,
+      'management-performance': 2,
+      'management-risk': 0,
+      'management-growth': 0,
+      'management-zones': 0,
+      'operations-overview': 0,
+      'support-overview': 2,
+      'admin-overview': 0,
+      'support-fairness': 2,
+    })
+  })
+
+  it('hoists a chart the board actually holds, on every board that charts a lead', async () => {
+    /* The screen's fallback when nothing is chosen: `selectableLeads[0].key`,
+       then `charts.find(c => c.key === featuredKey)`. A board where that find
+       came back empty would render an empty hero slot. */
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId)
+      const first = selectableLeads(board)[0]
+      if (!first) continue
+      expect(board.charts.some((chart) => chart.key === first.key), subTabId).toBe(true)
+    }
+  })
+
+  it('leaves every other lead on a choosing board chartable too, so no radio is dead', async () => {
+    /* A `radiogroup` is only rendered for the leads that chart something —
+       `inGroup={leadChoice && chartedKeys.has(metric.key)}` — so a board with
+       two charted leads and one uncharted renders a mixed row. That is legal and
+       the fixtures do it: every choosing board here carries exactly two radios
+       out of three figures, which is the case worth pinning because a group of
+       two among three is the one a reader has to be told the extent of. */
+    for (const subTabId of ['management-performance', 'support-overview', 'support-fairness']) {
+      const board = await getMetricBoard(subTabId)
+      expect(board.metrics.filter((m) => m.rank === 'lead'), subTabId).toHaveLength(3)
+      expect(selectableLeads(board), subTabId).toHaveLength(2)
+    }
+  })
+
+  it('checks the board’s FIRST lead by default, in BOARD_LEADS order', async () => {
+    /* `getMetricBoard` sorts leads into the declared order and the screen only
+       filters, so the figure the band arrives checked on is the board's first
+       chartable lead — its editorial first number, not whichever series was
+       seeded first. */
+    const first = async (subTabId: string) => selectableLeads(await getMetricBoard(subTabId))[0]!.key
+    expect(await first('management-overview')).toBe('management.overview.grossRevenue')
+    expect(await first('management-performance')).toBe('management.performance.tripsCompleted')
+    expect(await first('support-overview')).toBe(
+      'support.overview.unacknowledgedCriticalIncidents',
+    )
+    expect(await first('support-fairness')).toBe('support.fairness.overturnRate')
+  })
+})

@@ -11,17 +11,24 @@
  *
  * Rules applied
  *   §6.1 / §5.5 **NO SCRIM** — for a layer presented as a `drawer`, which is
- *               the default and is what `notifications` and `account` are. The
+ *               the default and is what **all three layers are again**. The
  *               workspace behind stays legible AND interactive (**AC-20**).
  *
- *               **The 360° PROFILE is now `presentation="modal"` and takes a
- *               scrim.** Requested in these words: *"should be full screen no
- *               need to show me any of the navigation more like popup"*. The
- *               ruling is not repealed and the other two layers are untouched;
- *               what changed is that this one layer is no longer a thing you
- *               consult beside your work. §5.5's own test is whether the page
- *               behind is still being worked in, and for a record that fills
- *               the screen the answer is no.
+ *               **The 360° profile was `presentation="modal"` and is not any
+ *               more.** Instruction 1: *"should be full screen no need to show
+ *               me any of the navigation more like popup"* — a record that
+ *               fills the screen, on the reasoning that §5.5's own test is
+ *               whether the page behind is still being worked in and a full
+ *               record answered no. Instruction 2, which is **current**,
+ *               reverses it: the profile is a side panel beside the console.
+ *               So this clause is back in force with no exception to it, and
+ *               `ProfileLayer` carries the whole record of both instructions.
+ *
+ *               `presentation="modal"` itself is NOT removed. It is a
+ *               correctly-built capability with no caller today, and its two
+ *               departures are described on the prop below so that the next
+ *               layer that reaches for it inherits the reasoning rather than
+ *               rediscovering it.
  *   §7.3.3      **THE SCRIM DECIDES THE TRAP** — *"If a surface dims the page,
  *               it owns the keyboard. If it does not, it does not."*
  *
@@ -119,12 +126,24 @@ export interface ShellLayerProps {
    * visible and interactive beside it, which is right for a layer an operator
    * consults WHILE working — notifications, the account menu.
    *
-   * `'modal'` covers the shell behind a scrim. The 360° profile takes it on the
-   * owner's instruction — the record layer should show none of the navigation
-   * and read as a popup — and the reason it is the right call there is that a
-   * record is not something you consult beside your work; for as long as it is
-   * open it IS the work, and a 480px column beside a lit console was making a
-   * full record read like a footnote to the table behind it.
+   * `'modal'` covers the shell behind a scrim. **It has no caller today.** The
+   * 360° profile took it on an owner instruction — the record layer should show
+   * none of the navigation and read as a popup, because a record is not
+   * something you consult beside your work — and the owner has since reversed
+   * that and sent the profile back to `drawer`. The mode is kept rather than
+   * deleted because it is built correctly and because a future layer may want
+   * it; what it costs, whoever takes it, is spelled out here rather than
+   * rediscovered:
+   *
+   *   · §6.1/§5.5's no-scrim ruling, which is what makes the page behind a
+   *     layer legible and interactive (AC-20);
+   *   · §7.3.3 then trades the trap back in — *the scrim decides the trap* —
+   *     so Tab stops leaving the panel;
+   *   · §9.5's mirrored enter transform, because a surface centred over the
+   *     page arrives from nowhere and cannot claim a direction;
+   *   · §5.5's *"a modal nested inside a drawer is FORBIDDEN"* becomes
+   *     *"inside a modal"*, which is the same prohibition against the same
+   *     nesting and is not a relaxation.
    */
   presentation?: 'drawer' | 'modal'
   /**

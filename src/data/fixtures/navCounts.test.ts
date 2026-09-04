@@ -288,7 +288,7 @@ describe('one authority per number — spec §19, AC-720 to AC-724', () => {
      *
      * An engineer who makes the tile read 7 has put two lapsed documents inside
      * a number labelled "applications"; one who makes the badge read 5 has
-     * hidden a captain driving on an expired inspection certificate.
+     * hidden a captain driving on an expired national ID.
      */
     const applications = await listApplicants({ pageSize: 200 })
     const waiting = applications.items.filter(

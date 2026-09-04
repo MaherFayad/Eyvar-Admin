@@ -333,8 +333,36 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.chart.read.down': '{title} is down {delta} against {from} – {to}.',
   'overview.chart.read.flat': '{title} is unchanged against {from} – {to}.',
   'overview.chart.read.noBaseline': 'No comparison period yet, so there is no trend to state.',
-  /* §3.7's report icon at top right. An imperative naming the destination. */
+  /* §3.7's report icon at top right. An imperative naming the destination.
+     **Kept, and no longer rendered by a metric board.** The icon-only corner
+     link it labelled became the named action below; other surfaces that draw a
+     bare `↗` still want a name that says what it opens. */
   'overview.report.open': 'Open the {report} report',
+
+  /* ── §E4 / §E7 — Amplitude's `Open Analysis →`, as a NAMED action ──────
+     The tile used to be a link and cannot be one any more: a lead figure is
+     now a radio choosing which chart the band draws, and a control cannot be
+     both a link and a radio. So the destination left the figure and took an
+     affordance of its own, which is the reference's own shape.
+
+     **Two keys rather than an `aria-label`, and that is §7.2's label-in-name.**
+     The visible label is short because it repeats under every figure on the
+     page; the accessible name still has to say WHICH analysis, so the report
+     title arrives as a trailing run a screen reader hears and the eye does
+     not. An `aria-label` naming the report would have REPLACED the visible
+     words, leaving a control whose spoken name does not contain the label a
+     voice user can see and would say.
+
+     A fragment, so no terminal period (R6). `analysisFor` is a trailing
+     prepositional phrase and takes none either — it is half of one name. */
+  'overview.report.analysis': 'Open analysis',
+  'overview.report.analysisFor': 'for {report}',
+
+  /* ── §E4 — the lead row is a CHOICE, and this names the group ──────────
+     Three figures that redraw one chart beneath them are one control, not
+     three. A radiogroup with no accessible name is three unrelated buttons to
+     anyone who cannot see that they share a band. */
+  'overview.hero.group': 'Lead metrics — pick one to chart',
 
   /* ── the whole-board empty state (R8, AC-38) ─────────────────────────
      The heading names what the section is FOR, never the absence of data. */
@@ -553,6 +581,23 @@ export const OVERVIEW_EN: Dictionary = {
   'chart.support.overview.contactsPerThousandTrips': 'Contacts per 1,000 trips',
   'chart.admin.overview.activityEvents': 'Activity events',
   'chart.support.fairness.earningsPerEngagedHour': 'Earnings per engaged hour',
+
+  /* ── §E4 — the four titles that make the lead row a CHOICE ─────────────
+     Each of these charts shares its key with a metric on the same board, which
+     is what `BoardHeroRow`'s radiogroup joins on. They are titled here rather
+     than borrowed from `metric.*` because that namespace separation is
+     deliberate and live — `chart.management.performance.cancellationRate` says
+     `Quick-ride cancellation rate` where its tile says something else, and a
+     fallback would silently collapse the distinction.
+
+     Where a chart and its tile genuinely want the same words, they say the same
+     words, twice. That is the cost of the separation and it is the right one:
+     the alternative is a title that changes when somebody edits a tile. */
+  'chart.management.overview.grossRevenue': 'Gross revenue',
+  'chart.management.performance.tripsCompleted': 'Trips completed',
+  'chart.support.fairness.overturnRate': 'Appeals overturned',
+  'chart.support.overview.openIncidents': 'Open safety incidents',
+  'chart.support.overview.unacknowledgedCriticalIncidents': 'Unacknowledged critical incidents',
 
   /* ══════════════════ breakdowns — R4-4 §4.1 ═══════════════════════════
      A heading is a fragment stating **dimension, ranking and cut-off**

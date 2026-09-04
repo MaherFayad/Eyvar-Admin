@@ -66,6 +66,7 @@ import type {
   IsoDateTime,
   Paginated,
 } from '@/data/types'
+import { COMPLIANCE_DOC_TYPES } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -79,14 +80,14 @@ import { setRefusal, type SetRefusal } from '../bulkRefusal'
 import { useNowIso } from './useNowIso'
 import { VIEW_CAPTAINS, type ViewChrome } from './views'
 
-/** The five, in the legacy order (`DOC_TYPES`, `:13277`), with their column keys. */
-const DOC_COLUMNS: ReadonlyArray<{ type: ComplianceDocType; key: string }> = [
-  { type: 'license', key: 'people.col.doc.license' },
-  { type: 'vehicle_reg', key: 'people.col.doc.vehicleReg' },
-  { type: 'inspection', key: 'people.col.doc.inspection' },
-  { type: 'insurance', key: 'people.col.doc.insurance' },
-  { type: 'operating_card', key: 'people.col.doc.operatingCard' },
-]
+/**
+ * The three expiring documents, **read from `COMPLIANCE_DOC_TYPES`** rather
+ * than restated. It used to be a hand-written list of five, which was a second
+ * home for both the order and the label keys; the constant owns both now, so a
+ * change to the document set reaches this table without an edit here.
+ */
+const DOC_COLUMNS: ReadonlyArray<{ type: ComplianceDocType; key: string }> =
+  COMPLIANCE_DOC_TYPES.map((d) => ({ type: d.key, key: d.labelKey }))
 
 export function ComplianceView({ chrome, t, language, canWrite }: ViewChrome) {
   const location = useLocation()

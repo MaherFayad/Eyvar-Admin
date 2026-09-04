@@ -24,11 +24,22 @@
  *   §5.5 / AC-20 an outside pointer-down does NOT close the layer — it is
  *               forwarded to the page, which is the whole point of no scrim.
  *               `Escape` closes and restores focus to the opener (AC-66).
- *   §1.2 / C12  `--ev-drawer-w` = 406px, a named figure R13 preserves. NOT
- *               648px: at 1280px a 648px drawer leaves 552px of content, which
- *               is narrower than a detail page's main column and destroys the
- *               only reason a drawer beat a modal. Width is solved by the
- *               full-page escape at `/entity/:entityId`, not by eating the page.
+ *   §1.2 / C12  `--ev-drawer-w` = **480px** — re-derived by D7 §4.7 against the
+ *               reference. This line said 406px long after the token moved, and
+ *               a width doc that disagrees with its own token is worse than
+ *               none: the next person measures against the wrong number.
+ *               Still NOT 648px: at 1280px a 648px drawer leaves 552px of
+ *               content, narrower than a detail page's main column, which
+ *               destroys the only reason a drawer beat a modal. Width is solved
+ *               by the full-page escape at `/entity/:entityId`, not by eating
+ *               the page.
+ *
+ *               **This refusal has now been tested rather than reasoned.** The
+ *               rider profile's two-column body was measured at 480 / 560 / 640:
+ *               it first renders without overflow at 640, and at 480 the rail
+ *               overruns its box by 11px and the wallet figure by 28px. The
+ *               surface restacked to one column instead of widening, so the
+ *               clause held under the one case built to test it.
  *   §6.1        anchored inline-END, starting below the shell banner and the
  *               top bar, running to the bottom of the viewport. The top bar
  *               stays reachable: a layer can be open while a form is dirty.
@@ -322,10 +333,20 @@ function SheetContent({
           // Inline-end: the shell layers. Starts below the top bar so the save
           // bar stays reachable while the layer is open (§6.1).
           "data-[side=inline-end]:top-topbar data-[side=inline-end]:bottom-0",
+          /* **`max-w-full` is a clamp, not a second width**, and it engages only
+             below 480. `--ev-drawer-w` is a fixed 480 with nothing capping it,
+             so on a 390px phone every inline drawer in the product — the
+             record sheets, notifications, the account menu — hung 90px off the
+             screen with its inline-start edge and the first ~19% of every line
+             cut off. Measured at 390 × 844 in Chromium: panel width 480 on a
+             390 viewport, on the rider sheet and the request sheet alike, which
+             is what says it is the token and not a caller.
+             Above 480 the clamp never binds and nothing changes. */
           "data-[side=inline-end]:end-0 data-[side=inline-end]:w-drawer",
+          "data-[side=inline-end]:max-w-full",
           "data-[side=inline-end]:border-s data-[side=inline-end]:border-border",
           "data-[side=inline-start]:inset-y-0 data-[side=inline-start]:start-0",
-          "data-[side=inline-start]:w-drawer data-[side=inline-start]:border-e data-[side=inline-start]:border-border",
+          "data-[side=inline-start]:w-drawer data-[side=inline-start]:max-w-full data-[side=inline-start]:border-e data-[side=inline-start]:border-border",
           "data-[side=block-start]:inset-x-0 data-[side=block-start]:top-0",
           "data-[side=block-start]:border-b data-[side=block-start]:border-border",
           "data-[side=block-end]:inset-x-0 data-[side=block-end]:bottom-0",

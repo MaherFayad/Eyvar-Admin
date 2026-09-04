@@ -15,15 +15,25 @@
  * neither nav column highlights anything, and `resolveRoute` returns a `detail`
  * shape with no `workspaceId`, which is correct rather than a gap.
  *
- * ## This screen is now a ROUTER between two presentations
+ * ## This screen is now a ROUTER between three presentations
  *
  * A rider gets `RiderProfilePage` — the band, the three-up strip, the
- * two-column body and the ledger the owner's design asks for. **Every other
- * kind keeps the card stack**, which is not a stopgap: `ProfileSections` and
- * `profileRail()` are the same components the sheet renders, from the same
- * registry, and a captain, a trip or a plan has no rider-shaped design to move
- * to yet. Splitting on `entityType` here rather than inside the presentation is
- * what keeps that true — neither branch can be given a different section list.
+ * two-column body and the ledger the owner's design asks for.
+ *
+ * A **captain** gets `DriverProfilePage`, which is the same *pattern* and
+ * deliberately not the same page: the strip leads with `Standing` rather than
+ * money because a suspended captain earns nothing; `Documents` is the first
+ * section because five documents expire on their own and take a captain off the
+ * road with nobody acting; and the money band is a **payable** (`liability.driver`,
+ * where a credit means Eyvar owes *more*) rather than a wallet. Those are
+ * structural differences between two kinds of record, not two skins.
+ *
+ * **The other nine kinds keep the card stack**, which is not a stopgap:
+ * `ProfileSections` and `profileRail()` are the same components the sheet
+ * renders, from the same registry, and a trip or a plan has no purpose-built
+ * design to move to yet. Splitting on `entityType` here rather than inside the
+ * presentation is what keeps that true — no branch can be given a different
+ * section list.
  *
  * ## The back affordance — owner amendment 1
  *
@@ -47,8 +57,8 @@
  * reported rather than edited.
  */
 
-import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { resolveProfile } from '@/data/clients'
 import { isApiError, type ProfileRef } from '@/data/types'
@@ -63,9 +73,23 @@ import {
   profileRail,
   useProfileRecord,
 } from '@/components/profile'
+import {
+  COMPLIANCE_VIEW_PERMISSION,
+  PAYOUTS_VIEW_PERMISSION,
+  driverComplianceHref,
+  driverPayoutsHref,
+} from '@/components/profile/driver'
 import { useShell } from '@/shell/ShellContext'
+import { withOverlay } from '@/shell/routeState'
+/* The one clock this console measures countdowns against. `EYVAR_NOW` under the
+   mock — every fixture is written against it, so the host clock would render
+   every compliance document as long expired — and the shared `useTick` interval
+   under `http`. Never a module-scope `Date.now()` (`types/driver.ts`). */
+import { useNowIso } from '@/screens/operations/people/useNowIso'
 import { INDEX_ROUTE, useReturnFrom } from './entity/back'
+import { DriverProfilePage } from './entity/DriverProfilePage'
 import { RiderProfilePage } from './entity/RiderProfilePage'
+import { TripProfilePage } from './entity/TripProfilePage'
 
 export function EntityPageScreen() {
   const shell = useShell()
@@ -91,11 +115,21 @@ export function EntityPageScreen() {
     const index = profile.data === null ? null : INDEX_ROUTE[profile.data.entityType]
     const to = from ?? index?.path ?? shell.session?.landingRoute ?? '/'
     const name = index === null ? t('shell.topbar.back') : t(index.labelKey)
+    /* **`Back to {name}` is one sentence living under two prefixes**, and that
+       is a naming defect rather than a duplication of meaning:
+       `entity.rider.backTo` was minted for the rider page and then used for all
+       eleven kinds, so a captain's back button currently reads out of the
+       rider's namespace. The captain arm takes its own key so it does not
+       depend on another surface's, and the shared string should move to
+       `profile.back.to` — **reported**, because collapsing it touches the rider
+       page's dictionary and its tests. */
+    const labelKey =
+      profile.data?.entityType === 'driver' ? 'entity.driver.backTo' : 'entity.rider.backTo'
     return {
       to,
       /* Where there is no index to name — an unresolved id — the control keeps
          the shared word rather than inventing a destination it cannot promise. */
-      label: index === null ? t('shell.topbar.back') : t('entity.rider.backTo', { name }),
+      label: index === null ? t('shell.topbar.back') : t(labelKey, { name }),
     }
   }, [from, profile.data, shell.session?.landingRoute, t])
 
@@ -151,6 +185,16 @@ export function EntityPageScreen() {
     )
   }
 
+  if (profile.data.entityType === 'driver') {
+    return (
+      <ResolvedDriverPage entity={profile.data} backTo={back.to} backLabel={back.label} />
+    )
+  }
+
+  if (profile.data.entityType === 'trip') {
+    return <ResolvedTripPage entity={profile.data} backTo={back.to} backLabel={back.label} />
+  }
+
   return <ResolvedEntityPage entity={profile.data} header={header} />
 }
 
@@ -200,7 +244,118 @@ function ResolvedRiderPage({
 }
 
 /**
- * The card stack, for the ten kinds that have no rider-shaped design yet.
+ * The captain presentation. A child, so the record read starts when there is a
+ * ref to read against — and so the page receives ONE `AsyncResult` rather than
+ * fetching the record a second time beside the sheet's.
+ *
+ * **The two destinations and their permissions come from `hrefs.ts`**, which
+ * both surfaces import, so the sheet and the page cannot send an operator to
+ * two different places or refuse the same control on two different grounds
+ * (§3). The permission ids are the route table's own `viewPermission` values,
+ * named as constants so a typo here cannot silently refuse a control that would
+ * have worked.
+ */
+function ResolvedDriverPage({
+  entity,
+  backTo,
+  backLabel,
+}: {
+  entity: ProfileRef
+  backTo: string
+  backLabel: string
+}) {
+  const shell = useShell()
+  const { t, language, dir } = shell.language
+  const record = useProfileRecord(entity)
+  const nowIso = useNowIso()
+
+  /* `useProfileRecord` returns the discriminated union every kind shares. The
+     narrowing is here, at the one place that already knows this is a captain,
+     so the page below takes a `Driver` and cannot be handed anything else. */
+  const driver = useMemo(
+    () => ({
+      ...record,
+      data: record.data?.entityType === 'driver' ? record.data.data : null,
+    }),
+    [record],
+  )
+
+  const { permissions } = shell.permissions
+
+  return (
+    <DriverProfilePage
+      entity={entity}
+      driver={driver}
+      backTo={backTo}
+      backLabel={backLabel}
+      complianceHref={driverComplianceHref(entity.entityId)}
+      payoutsHref={driverPayoutsHref(entity.entityId)}
+      canOpenCompliance={permissions.includes(COMPLIANCE_VIEW_PERMISSION)}
+      canOpenPayouts={permissions.includes(PAYOUTS_VIEW_PERMISSION)}
+      nowIso={nowIso}
+      t={t}
+      language={language}
+      dir={dir}
+    />
+  )
+}
+
+/**
+ * The ride presentation. A child, for the same reason the two above are: the
+ * record read starts when there is a ref to read against, and the page receives
+ * ONE `AsyncResult` rather than fetching the record a second time beside the
+ * sheet's.
+ */
+function ResolvedTripPage({
+  entity,
+  backTo,
+  backLabel,
+}: {
+  entity: ProfileRef
+  backTo: string
+  backLabel: string
+}) {
+  const shell = useShell()
+  const location = useLocation()
+  const { t, language, dir } = shell.language
+  const record = useProfileRecord(entity)
+  const nowIso = useNowIso()
+
+  const trip = useMemo(
+    () => ({
+      ...record,
+      data: record.data?.entityType === 'trip' ? record.data.data : null,
+    }),
+    [record],
+  )
+
+  /* The four records a ride names, as `?entity=` links on THIS page — so
+     opening the rider from the ride page puts the rider's sheet over the ride
+     rather than replacing it. `ProfileLayer` builds the same address from the
+     same helper. */
+  const hrefFor = useCallback(
+    (id: string | null) =>
+      id === null ? null : `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    [location.pathname, location.search],
+  )
+
+  return (
+    <TripProfilePage
+      entity={entity}
+      trip={trip}
+      backTo={backTo}
+      backLabel={backLabel}
+      nowIso={nowIso}
+      hrefFor={hrefFor}
+      t={t}
+      language={language}
+      dir={dir}
+    />
+  )
+}
+
+/**
+ * The card stack, for the eight kinds that have no purpose-built design yet.
  *
  * A child, so the record read starts when there is a ref to read against and
  * the rail and the main column share **one** result rather than two requests

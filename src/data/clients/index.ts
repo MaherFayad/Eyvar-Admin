@@ -121,11 +121,16 @@ export { PROFILE_OPERATIONS, resolveProfile, resolveProfiles, search } from './p
 
 /* ── wave 1: Operations › People, Trips, Subscriptions, Corporate ────── */
 export {
+  COMPLIANCE_SCAN_PERMISSIONS,
   DRIVER_OPERATIONS,
+  getComplianceDocumentFile,
   getDriver,
   getDriverComplianceFacets,
   getDriverFacets,
   getDriverCompliance,
+  getDriverMoneyMovements,
+  getDriverSupportPresence,
+  getDriverTimeline,
   listDriverCompliance,
   listDrivers,
   reinstateDriver,
@@ -151,9 +156,13 @@ export {
   claimApplicant,
   getApplicant,
   getApplicantFacets,
+  getApplicationDocumentFile,
   listApplicants,
   rejectApplicant,
+  rejectApplicantDocument,
   releaseApplicant,
+  requestApplicantDocumentReupload,
+  verifyApplicantDocument,
   type ApplicantQuery,
 } from './applicants'
 
@@ -162,6 +171,7 @@ export {
   TRIP_OPERATIONS,
   getTrip,
   getTripFacets,
+  getTripTelemetry,
   listTrips,
   setTripFlag,
   flagTrip,

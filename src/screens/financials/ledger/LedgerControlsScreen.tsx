@@ -77,7 +77,7 @@ import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 const VIEWS: readonly ScreenView[] = [
   { id: 'trial-balance', titleKey: 'fin.controls.view.trialBalance' },

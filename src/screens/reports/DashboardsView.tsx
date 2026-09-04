@@ -48,8 +48,18 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
-import { deleteDashboard, listDashboards, listTeamUsers, saveDashboard } from '@/data/clients'
-import { REPORT_NAME_MAX, type Dashboard, type TeamUser } from '@/data/types'
+import {
+  EYVAR_TODAY,
+  deleteDashboard,
+  listDashboards,
+  listTeamUsers,
+  localDayOf,
+  resolveWindow,
+  saveDashboard,
+} from '@/data/clients'
+import { useNowIso } from '@/screens/queues'
+import { REPORT_NAME_MAX, type Dashboard, type DashboardTile, type TeamUser } from '@/data/types'
+import { tileSpan } from '@/data/types/report'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { reportsViewTabs, type ReportsView } from './views'
 
@@ -91,19 +101,32 @@ export function DashboardsView({
   })
 
   const rows = dashboards.data?.items ?? []
+  const now = useNowIso()
+  /* Passed to `resolveWindow`, never read from an ambient clock: the `Range`
+     column prints the days a preset means, and a preset resolved against the
+     host clock in one place and the fixed clock in another is two answers. */
+  const today = now ? localDayOf(now) : EYVAR_TODAY
 
   const columns: Array<DataColumn<Dashboard>> = [
     {
       id: 'name',
       header: t('rb.dashboards.col.name'),
       alwaysVisible: true,
-      minWidth: 260,
+      minWidth: 300,
       sortField: 'name',
       dataType: 'text',
       cell: (row) => (
-        /* User content. Layout on the box, isolation on the run (AC-898). */
-        <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
-          <bdi {...isolatedRunProps().run}>{row.name}</bdi>
+        /* §E6/§E7 — Amplitude's content list leads with a thumbnail, and this
+           is that slot, filled with the one preview this product can produce
+           honestly. See `LayoutPreview`. Layout on the box, isolation on the
+           run (AC-898); the preview sits OUTSIDE the isolated run, because a
+           `<bdi>` resolves its direction from its first strong character and a
+           graphic inside one can push the name to the wrong edge. */
+        <span className="flex min-w-0 items-center gap-2">
+          <LayoutPreview tiles={row.tiles} />
+          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+            <bdi {...isolatedRunProps().run}>{row.name}</bdi>
+          </span>
         </span>
       ),
       /* What the board is FOR, on the second line - the same treatment the
@@ -143,6 +166,35 @@ export function DashboardsView({
       cell: (row) => <span className="tabular-nums">{row.tiles.length}</span>,
     },
     {
+      /* **§C4's board range, in the list.** A board that imposes a window and
+         a board that lets every report keep its own answer two different
+         questions, and until now the list could not tell them apart — which is
+         the same reading failure the tile's period sub-line closed one level
+         down. Both states are on the record; neither is invented. */
+      id: 'range',
+      header: t('rb.dashboards.col.range'),
+      width: 170,
+      dataType: 'text',
+      cell: (row) => {
+        if (row.range === null) {
+          /* R8/rule 10 — an absence is stated in words, never left blank. */
+          return <span className="text-muted-foreground">{t('rb.dashboard.range.own')}</span>
+        }
+        if (row.range.kind === 'preset') return <span>{t(`rb.preset.${row.range.preset}`)}</span>
+        const resolved = resolveWindow(row.range, today)
+        /* `<bdi>` and `tabular-nums`: `13 Aug – 11 Sep` opens with a digit,
+           which the UBA throws to the far end of an Arabic line. */
+        return (
+          <bdi className="tabular-nums">
+            {t('rb.control.window.range', {
+              from: formatDate(resolved.from, { style: 'day-month', language }),
+              to: formatDate(resolved.to, { style: 'day-month', language }),
+            })}
+          </bdi>
+        )
+      },
+    },
+    {
       id: 'updated',
       header: t('rb.dashboards.col.updated'),
       width: 160,
@@ -152,10 +204,52 @@ export function DashboardsView({
     },
   ]
 
+  /**
+   * §B4's `Copy`, and it needs no endpoint that does not exist.
+   *
+   * A board is a name, a description, an ordered list of report ids and a
+   * scope — so a duplicate is one `saveDashboard` with `id: null` and the same
+   * four fields. **The reports are not copied**, which is the whole point of a
+   * tile being a reference: the copy shows the same current definitions, and
+   * editing one report still updates every board that holds it (AC-867).
+   *
+   * Tile ids are regenerated rather than carried. They are unique within a
+   * board and every operation over them is scoped to one, so carrying them
+   * would work — and two boards sharing `TIL-1` is the kind of thing that reads
+   * as a bug to the next person to look at it.
+   */
+  const duplicate = async (row: Dashboard) => {
+    try {
+      const outcome = await saveDashboard({
+        id: null,
+        name: t('rb.dashboards.duplicate.name', { name: row.name }),
+        description: row.description,
+        tiles: row.tiles.map((tile, index) => ({
+          ...tile,
+          tileId: `TIL-copy-${index + 1}-${tile.reportId}`,
+        })),
+        range: row.range,
+        filters: row.filters,
+      })
+      if (outcome.status === 'invalid') {
+        /* The one reason a copy can be refused: §4.2 caps a name at 80 and
+           `{name} (copy)` is six characters longer than what it copies. Stated
+           where the action was taken rather than swallowed. */
+        toast.error(t('rb.dashboards.duplicate.failed', { name: row.name }))
+        return
+      }
+      toast.success(t('rb.dashboards.created.toast', { name: outcome.dashboard.name }))
+      dashboards.refetch()
+    } catch {
+      toast.error(t('rb.dashboards.duplicate.failed', { name: row.name }))
+    }
+  }
+
   const rowActions: Array<RowAction<Dashboard>> = [
     /* **P0-2 — the declared row-click target.** `Delete` is the other
        action on this table and must stay unreachable from a row click. */
     { label: t('rb.dashboards.open'), onSelect: onOpen, rowClick: true },
+    { label: t('rb.dashboards.duplicate'), onSelect: (row) => void duplicate(row) },
     {
       label: t('rb.dashboards.delete'),
       onSelect: (row) => setPending({ dashboard: row, failed: false }),
@@ -262,6 +356,107 @@ export function DashboardsView({
         </AlertDialogContent>
       </AlertDialog>
     </SingleColumnPage>
+  )
+}
+
+/**
+ * **§E6/§E7's thumbnail — the board's LAYOUT, never its numbers.**
+ *
+ * Amplitude's content list leads every row with a preview of the dashboard, and
+ * a list of names with a count beside them is the thinnest surface in this
+ * module. The obvious port is a miniature of the charts, and it is the one
+ * thing this cannot be: painting it means running every report on every row of
+ * every page — nine `reports.run` calls to draw one 40px graphic — and a
+ * *stale* or *sampled* miniature is a picture of numbers that are not the
+ * numbers, which is the defect this module refuses everywhere else.
+ *
+ * What is real, on the record, and free is **the arrangement**: how many tiles
+ * the board holds and how wide each one is. That is what this draws — the same
+ * hero-over-grid shape the board itself lays out, at 1/20 scale — so two boards
+ * are told apart at a glance by their shape and by their size, and nothing on
+ * screen claims to be data.
+ *
+ * `aria-hidden`, because the count it depicts is already the `Reports` column
+ * and a second reading of one number is a second thing that can disagree with
+ * the first. Every fill is a token. It does not mirror (§9.5): it is an object,
+ * and there is no reading direction in a grid of rectangles.
+ */
+function LayoutPreview({ tiles }: { tiles: readonly DashboardTile[] }) {
+  const CELL = 9
+  const GAP = 2
+  const COLUMNS = 2
+  /* Nine is what fits at this size; past it the shapes stop being
+     distinguishable and start being texture. The board's own order is the
+     order drawn, so the hero is where the hero is. */
+  const CAP = 9
+  const ordered = [...tiles].sort((a, b) => a.order - b.order).slice(0, CAP)
+
+  const boxes: Array<{ x: number; y: number; w: number }> = []
+  let column = 0
+  let rowIndex = 0
+  for (const tile of ordered) {
+    const full = tileSpan(tile) === 'full'
+    /* A full tile takes a whole row, so a half tile left dangling beside it
+       moves down — the same reflow CSS grid does with `col-span-2`. */
+    if (full && column === 1) {
+      column = 0
+      rowIndex += 1
+    }
+    boxes.push({
+      x: column * (CELL + GAP),
+      y: rowIndex * (CELL + GAP),
+      w: full ? COLUMNS * CELL + GAP : CELL,
+    })
+    if (full) {
+      column = 0
+      rowIndex += 1
+    } else if (column === COLUMNS - 1) {
+      column = 0
+      rowIndex += 1
+    } else {
+      column += 1
+    }
+  }
+
+  const width = COLUMNS * CELL + GAP
+  const rows = Math.max(1, column === 0 ? rowIndex : rowIndex + 1)
+  const height = rows * CELL + (rows - 1) * GAP
+
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox={`0 0 ${width} ${Math.max(height, CELL)}`}
+      className="size-7 shrink-0"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* A board with no tiles is a valid record (AC-865) and it gets the frame
+          it will fill, not a blank cell: the empty outline says *a board,
+          empty* where nothing at all says *a bug*. */}
+      {boxes.length === 0 ? (
+        <rect
+          x="0.5"
+          y="0.5"
+          width={width - 1}
+          height={CELL - 1}
+          rx="1.5"
+          fill="none"
+          className="stroke-border"
+        />
+      ) : (
+        boxes.map((box, index) => (
+          <rect
+            key={index}
+            x={box.x}
+            y={box.y}
+            width={box.w}
+            height={CELL}
+            rx="1.5"
+            className="fill-muted-foreground"
+          />
+        ))
+      )}
+    </svg>
   )
 }
 

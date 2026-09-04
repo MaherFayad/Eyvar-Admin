@@ -199,6 +199,7 @@ export const PROFILE_AR: Dictionary = {
   'profile.kind.ticket': 'تذكرة',
   'profile.kind.corporate-account': 'حساب مؤسسي',
   'profile.kind.plan': 'باقة',
+  'profile.kind.request': 'طلب رحلة',
   'profile.tripStatus.requested': 'مطلوبة',
   'profile.tripStatus.assigned': 'مُسنَدة',
   'profile.tripStatus.en-route': 'في الطريق',

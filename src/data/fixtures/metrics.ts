@@ -225,8 +225,19 @@ import type {
   SeriesWindow,
   TimeSeries,
 } from '../types/metrics'
+import type { IsoDate } from '../types/common'
 import { EYVAR_NOW } from '../mock/clock'
+import { addDays } from '../reporting/buckets'
 import { SNAPSHOT_CURRENT, SNAPSHOT_PREVIOUS, snapshotsBetween } from './dailySnapshots'
+/* **Fixture rows, read by the four §E4 charts below.** Every one of those is a
+   reconstruction over rows this layer already serves rather than a curve
+   somebody drew, so the store is imported and queried here exactly as
+   `snapshotWindow` queries `dailySnapshots`. No cycle: `trips` reaches drivers,
+   riders and subscriptions, `safety` reaches trips, `fairness` reaches drivers
+   and riders, and none of the four reaches this file. */
+import { allTripFixtures } from './trips'
+import { safetyIncidentFixtures } from './safety'
+import { fairnessCaseFixtures } from './fairness'
 
 /**
  * What a fixture carries. `deltaPercent` and `direction` are the client's.
@@ -283,6 +294,96 @@ const snapshotWindow = (
   periodEnd: window.end,
   points: snapshotsBetween(window.start, window.end).map((s) => ({ at: s.date, value: pick(s) })),
 })
+
+/**
+ * One window of a chart whose reading is **reconstructed per day from the rows
+ * another store already holds** — trips that finished, incidents still open,
+ * appeals decided.
+ *
+ * Same contract as `snapshotWindow` above, and the same sentence applies: this
+ * READS rows, it does not generate any. Hand-edit a trip's `endedAt` or close an
+ * incident a day later and the chart moves, with nothing else to update. What
+ * differs is only where the rows live — a `DailySnapshot` is already one row per
+ * day, so a chart reads a field off it; these stores hold one row per *event*,
+ * so the day is the thing being counted over rather than the thing being read.
+ *
+ * **`readingOn` returns `null` for a day with no reading, and that stays a gap.**
+ * A day the store covers and answers zero for returns `0`. The distinction is
+ * the whole of `SeriesPoint`'s contract and the reason this helper takes a
+ * `number | null` rather than a `number` with a `0` fallback: a fallback is how
+ * an outage gets drawn as a collapse in demand.
+ */
+const reconstructedWindow = (
+  window: { start: string; end: string },
+  readingOn: (day: IsoDate) => number | null,
+): SeriesWindow => {
+  const points: SeriesPoint[] = []
+  for (let at: IsoDate = window.start; at <= window.end; at = addDays(at, 1)) {
+    points.push({ at, value: readingOn(at) })
+  }
+  return { periodStart: window.start, periodEnd: window.end, points }
+}
+
+/** The calendar day an instant falls on. Riyadh, like every other stamp here. */
+const dayOf = (instant: string | null): string | null => instant?.slice(0, 10) ?? null
+
+/**
+ * Trips that **finished** on a day. `endedAt`, never `startedAt` — the same
+ * choice `completedIn()` in `clients/metrics.ts` makes, and for the same reason:
+ * a trip that started on the 24th and ended on the 25th is the 25th's work.
+ */
+const tripsCompletedOn = (day: IsoDate): number =>
+  allTripFixtures.filter((t) => t.status === 'done' && dayOf(t.endedAt) === day).length
+
+/**
+ * Incidents **still open at the close of a day** — a stock, not a flow. Opened
+ * on or before it and either never closed or closed after it.
+ */
+const incidentsOpenOn = (day: IsoDate) =>
+  safetyIncidentFixtures.filter(
+    (i) => dayOf(i.openedAt)! <= day && (i.closedAt === null || dayOf(i.closedAt)! > day),
+  )
+
+/**
+ * Of those, the ones that are critical **and** whose first-response clock had
+ * already breached by that day. `02-work-queues` §4.3: this is the one number in
+ * the product whose bad value is `1`.
+ */
+const unacknowledgedCriticalOn = (day: IsoDate): number =>
+  incidentsOpenOn(day).filter(
+    (i) =>
+      i.severity === 'critical' &&
+      i.firstResponseBreachedAt !== null &&
+      dayOf(i.firstResponseBreachedAt)! <= day,
+  ).length
+
+/**
+ * **The overturn rate as it stood at the close of a day** — overturned as a
+ * share of *decided*, over every appeal decided on or before it.
+ *
+ * `withdrawn` is not a decision and is not in the denominator, which is the
+ * definition `DERIVED['support.fairness.overturnRate']` uses. Applying the
+ * tile's own definition at each date is what makes the last point of a window
+ * *be* the number the tile prints for that window, rather than merely resemble
+ * it.
+ *
+ * `null` before the first decision exists: a rate over a zero denominator has no
+ * answer, and a gap is what that is. Unreachable in both seeded windows — the
+ * appeal store goes back to 16 May — and kept because the day it becomes
+ * reachable is the day a `0` here would claim a perfect record.
+ */
+const overturnRateThrough = (day: IsoDate): number | null => {
+  const decided = fairnessCaseFixtures.filter(
+    (c) =>
+      (c.status === 'upheld' || c.status === 'overturned') &&
+      c.decidedAt !== null &&
+      dayOf(c.decidedAt)! <= day,
+  )
+  if (decided.length === 0) return null
+  return Math.round(
+    (decided.filter((c) => c.status === 'overturned').length / decided.length) * 100,
+  )
+}
 
 /* ═══════════════════════════════ metrics ═══════════════════════════════ */
 
@@ -2013,8 +2114,8 @@ export const metricSeeds: MetricSeed[] = [
     /**
      * Captains whose worst document has already lapsed — off dispatch —
      * `complianceScan()` (`:13296`), `worst === 0` (`:13322`). **Two**, and one
-     * of them is `DRV-0104`, a gold captain with 524 trips on an inspection
-     * certificate that expired on 2026-06-20.
+     * of them is `DRV-0104`, a gold captain with 524 trips on a national ID
+     * that expired on 2026-06-20.
      */
     key: 'operations.overview.complianceExpired',
     subTabId: 'operations-overview',
@@ -3190,6 +3291,197 @@ export const timeSeriesFixtures: TimeSeries[] = [
     higherIsBetter: true,
     awaitingStore: null,
   },
+  /* ═════════ the five §E4 series — a lead figure that charts something ═════
+     `BoardHero`'s lead row becomes a `radiogroup` when a board carries two or
+     more `rank: 'lead'` metrics whose keys a `TimeSeries` also carries, because
+     that join — `charts.find(c => c.key === metric.key)` — is the whole of what
+     selecting does. Before these four, `management-performance` and
+     `support-fairness` had exactly one such lead each and the other seven boards
+     had none, so the mechanism was built, correct and unreachable. Four of these
+     five make a board a CHOICE; the fifth gives `management-overview` its single
+     charted lead, which is the middle of §E4's three states and was otherwise
+     reachable only from a constructed board.
+
+     **The join was not loosened to reach it, and these are not invented to reach
+     it either.** Every one is a reconstruction over rows this layer already
+     serves, and every one is pinned against the tile it sits under in
+     `clients/metrics.test.ts` §14: the window's own last point or sum IS the
+     number the tile prints. A series that shares a key with a metric and
+     disagrees with it is worse than no series, because the operator has two
+     numbers for one measure and no way to tell which is the measure.
+
+     **None declares a `windowTotal`, and that is the rule rather than an
+     omission.** `types/metrics.ts`: a chart whose key matches a metric shows
+     THAT metric, which is the number the board already owns. The eight
+     declarations above are exactly the eight charts owning no tile, and the
+     biconditional is asserted over the real fixtures rather than left as a
+     count that is right by coincidence.                                       */
+  {
+    /**
+     * **The board's headline figure, given its shape — and the one new series
+     * that makes no radiogroup, deliberately.**
+     *
+     * Management › Overview's other two leads cannot honestly be charted:
+     * `contributionMargin` is a seeded literal with Q7 open under it, and
+     * `activeSubscriptions` has three definitions that disagree (pinned in
+     * `clients/metrics.test.ts` §14). So this board carries **exactly one**
+     * charted lead, which is the case the screen handles by hoisting the chart
+     * under the band and leaving the row the plain list it always was. That case
+     * is worth having in the real fixtures rather than only in a constructed
+     * board: it is what six of the nine boards would look like the day they gain
+     * a first chartable lead.
+     *
+     * **Every point is `totalRevenueHalalas` off a snapshot row ported verbatim
+     * from `:13803`–`:13832`**, so the fifteen current days sum to the tile and
+     * the fifteen previous to its baseline, exactly — the best-reconciled series
+     * in this file.
+     *
+     * **It is the sum of the two cards below it, and that is the point rather
+     * than a duplication.** `quickRideRevenue` and `subscriptionRevenue` are its
+     * two halves from the same rows, and the note on the first of them says the
+     * two *"sum to the gross-revenue tile above them, so a reader can check the
+     * board against itself"*. Hoisted full width above them, the total's line
+     * sits over its own two components and that check becomes something a reader
+     * does by looking rather than by adding.
+     */
+    key: 'management.overview.grossRevenue',
+    subTabId: 'management-overview',
+    unit: 'money',
+    currency: 'SAR',
+    asOf: EYVAR_NOW,
+    current: snapshotWindow(SNAPSHOT_CURRENT, (s) => s.totalRevenueHalalas),
+    comparison: snapshotWindow(SNAPSHOT_PREVIOUS, (s) => s.totalRevenueHalalas),
+    higherIsBetter: true,
+    awaitingStore: null,
+  },
+  {
+    /**
+     * **Management › Performance's second joinable lead, and the cleanest of the
+     * four.**
+     *
+     * A FLOW — each day's reading is work that happened that day — counted off
+     * `endedAt` on the same trip rows `completedIn()` counts. Both windows
+     * reconcile exactly: the fifteen current days sum to the **40** the tile
+     * prints and the fifteen previous days to the **35** it compares against, so
+     * the line under the figure is the figure, arithmetically.
+     *
+     * **4 June is a `0` and not a gap.** The trip store covers 12 May to 25
+     * June, so that day was queried and nothing finished on it — a real answer,
+     * and the same call `management.zones.unservedRequests` makes seven times
+     * over. A `null` there would claim we stopped measuring on a day we did not.
+     *
+     * It shares the snapshot pair with `cancellationRate` beside it, which is
+     * what makes the two selectable in one row honest: a radiogroup that
+     * redraws between two different windows would move the x-axis under an
+     * operator who only asked to change the measure.
+     */
+    key: 'management.performance.tripsCompleted',
+    subTabId: 'management-performance',
+    unit: 'count',
+    currency: null,
+    asOf: EYVAR_NOW,
+    current: reconstructedWindow(SNAPSHOT_CURRENT, tripsCompletedOn),
+    comparison: reconstructedWindow(SNAPSHOT_PREVIOUS, tripsCompletedOn),
+    higherIsBetter: true,
+    awaitingStore: null,
+  },
+  {
+    /**
+     * **Support › Fairness's second joinable lead — the board's reason to
+     * exist, over time.**
+     *
+     * The tile's own definition evaluated at each date: overturned as a share of
+     * decided, cumulative. So the last point of a window is not *close to* the
+     * tile, it **is** the tile — 63 % on 25 June, and 63 % on 10 June, which is
+     * the baseline the tile names. Both ends land, which is the strongest
+     * reconciliation available to any series in this file.
+     *
+     * **The fifteen-day snapshot pair, not the seven-day chart pair its
+     * board-mate uses.** On the seven-day pair the comparison window closes at
+     * 62 against a recorded 63, and a dotted line ending one point away from the
+     * number the tile names as its baseline is a contradiction an operator can
+     * see. That leaves this board charting two windows —
+     * `earningsPerEngagedHour` is on the seven-day pair — which is **F-7**, the
+     * missing board-level period, and not a new finding. Correctness of the
+     * number wins over tidiness of the axis until F-7 is closed.
+     *
+     * It is not a flat line, which is what makes it worth charting rather than
+     * printing: the rate falls four points on 19 June, when three appeals are
+     * decided and only one is overturned.
+     */
+    key: 'support.fairness.overturnRate',
+    subTabId: 'support-fairness',
+    unit: 'percent',
+    currency: null,
+    asOf: EYVAR_NOW,
+    current: reconstructedWindow(SNAPSHOT_CURRENT, overturnRateThrough),
+    comparison: reconstructedWindow(SNAPSHOT_PREVIOUS, overturnRateThrough),
+    /* Higher is *better* — "a high overturn rate on this page is not a failure,
+       it means the appeal route is doing its job" (`:15690`). Mirrored off the
+       tile so the card cannot tint a trend the figure above it calls good. */
+    higherIsBetter: true,
+    awaitingStore: null,
+  },
+  {
+    /**
+     * **Support › Overview, first of a pair — and the one board of the three
+     * that ships with NO comparison line.**
+     *
+     * A STOCK: incidents open at the close of each day, reconstructed from
+     * `openedAt` and `closedAt` on the rows the Safety queue serves. The last
+     * point is **6**, which is the tile. The shape is the board's news — nothing
+     * open for most of the fortnight, then 1, 3, 6 across the last three days.
+     *
+     * **`comparison: null`, and it is a refusal rather than an absence.** The
+     * tile's baseline is **4 open at the close of 10 June**, and the seed says
+     * where that came from: it is *recorded*, because *"every incident opened
+     * before 10 Jun in `fixtures/safety.ts` was closed the same day, so a
+     * reconstruction reads zero"*. Plotting that reconstruction would put a
+     * dotted line closing at 0 beside a figure naming 4 — two claims about one
+     * fortnight, on one card, with no way for a reader to tell which is the
+     * measurement. The tile keeps its recorded baseline and its delta; the chart
+     * plots only what can honestly be rebuilt. `clients/metrics.test.ts` §14
+     * pins the disagreement, so this cannot be quietly "fixed" later by seeding
+     * the zeros.
+     *
+     * The zeros that ARE here are measured: the store holds rows across this
+     * range and none of them was open on those days.
+     */
+    key: 'support.overview.openIncidents',
+    subTabId: 'support-overview',
+    unit: 'count',
+    currency: null,
+    asOf: EYVAR_NOW,
+    current: reconstructedWindow(SNAPSHOT_CURRENT, (day) => incidentsOpenOn(day).length),
+    comparison: null,
+    higherIsBetter: false,
+    awaitingStore: null,
+  },
+  {
+    /**
+     * **Support › Overview, second of the pair — fourteen measured zeros and
+     * then two, which is the news and not a defect in the seed.**
+     *
+     * Safety outranks load on this board, so this is its first figure even when
+     * it reads zero — *"a board whose headline is a zero is a board reporting
+     * the thing it most wants to be zero"*. The chart is what turns that from a
+     * number into a statement: **it was zero for a fortnight and it is two this
+     * morning**, which no tile and no delta can say.
+     *
+     * Same construction and same refusal as `openIncidents` above — the recorded
+     * baseline is 1 and a reconstruction of that fortnight reads 0, so there is
+     * no comparison window to plot.
+     */
+    key: 'support.overview.unacknowledgedCriticalIncidents',
+    subTabId: 'support-overview',
+    unit: 'count',
+    currency: null,
+    asOf: EYVAR_NOW,
+    current: reconstructedWindow(SNAPSHOT_CURRENT, unacknowledgedCriticalOn),
+    comparison: null,
+    higherIsBetter: false,
+    awaitingStore: null,
+  },
 ]
 
 /* ════════════════════════════ breakdowns ═══════════════════════════════ */
@@ -3456,7 +3748,7 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
           drilldownRoute: '/operations/people?view=captains',
         }),
         entityRow('DRV-0104', 'Hassan Al-Ghamdi', {
-          /* The gold captain driving on a lapsed inspection certificate. Two
+          /* The gold captain driving on a lapsed national ID. Two
              different problems on one row is what a board is for, and R5-5's
              middot join is what lets one sub-label carry both:
              `Document expired · 3 of 19 trips ran late`. */
@@ -4002,7 +4294,7 @@ function rotaDay(day: string, gaps: number, highRisk: number): MetricBreakdownRo
  * it out: *"five applications awaiting a decision plus two lapsed compliance
  * documents"*, and both halves are named there with dates. `APP-2204` went past
  * its window 20 hours ago; `DRV-0104` is a gold captain with 524 trips on an
- * inspection certificate that expired on 2026-06-20. An Ops Manager opening the
+ * national ID that expired on 2026-06-20. An Ops Manager opening the
  * console on Thursday morning has both on their plate at once, and the count of
  * each is on the board above.
  *
@@ -4095,7 +4387,7 @@ export const boardNotices: Record<string, BoardNotice[]> = {
     {
       key: 'notice.operations.complianceExpired',
       /* `complianceScan()` `worst === 0` (`:13322`) — off dispatch. One is
-         `DRV-0104`, 524 trips, inspection certificate expired 2026-06-20. */
+         `DRV-0104`, 524 trips, national ID expired 2026-06-20. */
       params: { count: 2 },
       /* Statutory, and the deadline is the issuing authority's. R4-10b clauses
          1 and 2 both pass on their own terms. */

@@ -39,7 +39,45 @@
  * base is on the card next to it does not.
  */
 
-import type { BucketAggregate, ReportSeries } from '@/data/types'
+import type { BucketAggregate, Measure, ReportSeries } from '@/data/types'
+
+/**
+ * **Whether the measure's declared aggregate is about THIS series' numbers.**
+ *
+ * `rollUpSeries` applies an aggregate; this decides whether there is one to
+ * apply. The two belong together, and the reason is a defect that shipped
+ * three times before it was caught in one place.
+ *
+ * A cohort series carries `measureKey: 'riders.joined'` — a `count` measure —
+ * but `resolveCohort` re-declares the series `unit: 'percent'`. Look the
+ * aggregate up by measure and you sum twelve retention rates: `ResultTable`'s
+ * summary column rendered **`1,200% total`**, and `PanelCard`'s headline and
+ * readings base computed the same figure the same wrong way. The rollup rule
+ * was right each time; it was being handed a series the catalogue entry was
+ * not about.
+ *
+ * The triple below is `pairRefusal`'s, deliberately reused rather than
+ * restated: it is already this product's definition of *numbers that may be
+ * combined*. `null` means **no honest aggregate exists for this pair** — and a
+ * caller must render nothing rather than fall back to a plausible one. An
+ * absent number with a stated reason beats a confident wrong one, which is the
+ * same ruling `pairRefusal`, the redacted series and the gap all take.
+ *
+ * It lives here rather than in a component because four call sites now need it
+ * (`ResultTable`'s summary, `PanelCard`'s headline and base, `DistributionCard`'s
+ * total) and a component importing another component to borrow it is how the
+ * fourth copy appears.
+ */
+export function declaredAggregate(
+  series: ReportSeries,
+  measure: Measure | undefined,
+): BucketAggregate | null {
+  if (measure === undefined) return null
+  if (series.temporality !== measure.temporality) return null
+  if (series.unit !== measure.unit) return null
+  if (series.currency !== measure.currency) return null
+  return measure.bucketAggregate
+}
 
 export interface Rollup {
   /** `null` when nothing could be computed — no readings, or an aggregate this file will not guess. */

@@ -30,6 +30,7 @@ export type {
   NavBadgeTone,
   Paginated,
   QueryParams,
+  RelatedCount,
   Single,
   SortDirection,
   SortSpec,
@@ -105,18 +106,36 @@ export type {
   BankAccountChange,
   BankAccountStatus,
   ComplianceDoc,
+  ComplianceDocDateSource,
+  ComplianceDocFile,
   ComplianceDocState,
   ComplianceDocType,
+  DocumentType,
+  ComplianceDocumentFileRead,
   Driver,
+  DriverBalance,
   DriverCompliance,
+  DriverMoneyMovement,
+  DriverMoneyMovements,
+  DriverMovementSource,
   DriverStatus,
+  DriverSupportPresence,
   DriverTier,
+  DriverTimelineDetail,
+  DriverTimelineEvent,
+  DriverTimelineKind,
   MovementLogEntry,
   PlanAccess,
   VehicleClass,
 } from './driver'
 
-export { COMPLIANCE_DOC_TYPES } from './driver'
+export {
+  COMPLIANCE_DOC_FILE_KIND,
+  COMPLIANCE_DOC_TYPES,
+  DOCUMENT_TYPES,
+  documentLabelKey,
+  DRIVER_BALANCE_ACCOUNT,
+} from './driver'
 
 export type {
   ChurnReason,
@@ -136,11 +155,23 @@ export type {
   RiderTimelineKind,
 } from './rider'
 
-export type { Applicant, ApplicantDoc, ApplicantDocStatus, ApplicantStatus } from './applicant'
+export type {
+  Applicant,
+  ApplicantDoc,
+  ApplicantDocField,
+  ApplicantDocRejectionCode,
+  ApplicantDocStatus,
+  ApplicantStatus,
+} from './applicant'
+/* A value, not a type: the five reason codes a document rejection may carry. */
+export { APPLICANT_DOC_REJECTION_CODES } from './applicant'
 
 export type { Trip, TripKind, TripStatus } from './trip'
 /* Values, not types: the one shared answer to "is this trip still open". */
 export { OPEN_TRIP_STATUSES, isOpenTrip, isOpenTripStatus } from './trip'
+/* What happened DURING a trip. A separate resource for a separate cardinality —
+   see the header on `tripTelemetry.ts`. */
+export type { TripStage, TripStageKind, TripTelemetry } from './tripTelemetry'
 
 export type { PlanKey, Subscription, SubscriptionStatus } from './subscription'
 

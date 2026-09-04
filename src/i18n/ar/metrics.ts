@@ -122,6 +122,14 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.chart.read.flat': '{title} دون تغيير مقارنة بـ{from} – {to}.',
   'overview.chart.read.noBaseline': 'لا توجد فترة للمقارنة بعد، فلا يمكن بيان اتجاه.',
   'overview.report.open': 'فتح تقرير {report}',
+  /* الإجراء المسمّى أسفل كل رقم — «فتح التحليل». الجزء الثاني لاحقة يسمعها
+     قارئ الشاشة ولا تُرى، فيبقى الاسم المنطوق محتويًا على النص المرئي (§7.2).
+     المصدر على الأزرار (R6)، وبلا نقطة ختامية لأنه شقّ من اسم واحد. */
+  'overview.report.analysis': 'فتح التحليل',
+  'overview.report.analysisFor': 'لـ{report}',
+  /* اسم مجموعة الاختيار في البند العلوي: الأرقام الرئيسية الثلاثة تختار
+     المخطط المرسوم تحتها، فهي عنصر تحكّم واحد لا ثلاثة أزرار متفرقة. */
+  'overview.hero.group': 'المؤشرات الرئيسية — اختر واحدًا لعرض مخططه',
   'overview.empty.heading': 'الكباتن والركاب والرحلات والاشتراكات، على لوحة واحدة',
   'overview.empty.body': 'تعرض هذه اللوحة الكباتن والركاب والرحلات والاشتراكات. تظهر الأرقام هنا فور وجود نشاط يمكن إحصاؤه.',
   'overview.empty.action': 'الانتقال إلى الرحلات الفورية',
@@ -233,6 +241,12 @@ export const OVERVIEW_AR: Dictionary = {
   'chart.support.overview.contactsPerThousandTrips': 'التواصلات لكل 1,000 رحلة',
   'chart.admin.overview.activityEvents': 'أحداث النشاط',
   'chart.support.fairness.earningsPerEngagedHour': 'الأرباح لكل ساعة مشغولة',
+  /* §E4 — عناوين المخططات الأربعة التي تجعل صفّ المؤشرات الرئيسية اختيارًا. */
+  'chart.management.overview.grossRevenue': 'إجمالي الإيرادات',
+  'chart.management.performance.tripsCompleted': 'الرحلات المكتملة',
+  'chart.support.fairness.overturnRate': 'التظلّمات المنقوضة',
+  'chart.support.overview.openIncidents': 'حوادث السلامة المفتوحة',
+  'chart.support.overview.unacknowledgedCriticalIncidents': 'حوادث حرِجة بلا إقرار',
   'breakdown.performance.captainsByLateShare': 'أعلى 5 كباتن في نسبة الرحلات المتأخرة',
   'breakdown.risk.highValueRidersAtRisk': 'أعلى 5 ركاب معرَّضين للتسرّب، حسب القيمة الإجمالية',
   'breakdown.risk.subscriptionsByRenewalLikelihood': 'أقل 5 اشتراكات احتمالًا للتجديد',

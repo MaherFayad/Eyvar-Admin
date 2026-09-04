@@ -67,6 +67,7 @@ let riderFixtures!: Fixtures['riderFixtures']
 let allSubscriptionFixtures!: Fixtures['allSubscriptionFixtures']
 let ticketFixtures!: Fixtures['ticketFixtures']
 let allTripFixtures!: Fixtures['allTripFixtures']
+let allRequestFixtures!: Fixtures['allRequestFixtures']
 onFixturesLoaded((f) => {
   corporateAccountFixtures = f.corporateAccountFixtures
   allDriverFixtures = f.allDriverFixtures
@@ -79,6 +80,7 @@ onFixturesLoaded((f) => {
   allSubscriptionFixtures = f.allSubscriptionFixtures
   ticketFixtures = f.ticketFixtures
   allTripFixtures = f.allTripFixtures
+  allRequestFixtures = f.allRequestFixtures
 })
 
 export const PROFILE_OPERATIONS = {
@@ -101,7 +103,8 @@ registerOperations(...Object.values(PROFILE_OPERATIONS))
  *      was searched (§9.2 `overlay-not-found`), which is why `notFound` carries it.
  *
  * Prefix-based resolution mirrors the id scheme the whole product already uses
- * (`RDR-`, `DRV-`, `TRP-`, `SUB-`, `PAY-`, `CMP-`, `TKT-`, `APP-`, `CORP-`).
+ * (`RDR-`, `DRV-`, `TRP-`, `SUB-`, `PAY-`, `CMP-`, `TKT-`, `APP-`, `CORP-`,
+ * `REQ-` and `SREQ-`).
  * Legacy resolves by scanning collections in an arbitrary `for…in` order
  * (`:3266`); prefixes make it deterministic and make the five missing types
  * (§4.3.1) a one-line addition each rather than a rewrite.
@@ -241,6 +244,17 @@ const SECTIONS: Record<ProfileEntityType, ProfileSectionKey[]> = {
   ticket: ['identity', 'tickets', 'disputes'],
   'corporate-account': ['identity', 'subscriptions', 'payments'],
   plan: ['identity', 'subscriptions'],
+  /**
+   * **One section, and the one that is honest.** A request is a record about a
+   * ride that has not happened: there is no trip behind it, no payment, no
+   * dispute and no ledger — those all belong to the trip it becomes. `identity`
+   * carries the whole of what the row knows, and the DRAWER does not render
+   * this stack at all (it has its own arrangement, exactly as a rider and a
+   * captain do). This list is what the full-page escape at `/entity/REQ-*`
+   * draws, and a card claiming a request has payments would be a card that
+   * always fails.
+   */
+  request: ['identity'],
 }
 
 /**
@@ -287,6 +301,28 @@ function resolveLocally(entityId: string): ProfileRef | null {
 
   const complaint = complaintFixtures.find((c) => c.id === id)
   if (complaint) return ref(id, 'complaint', id, complaint.driverName)
+
+  /**
+   * `REQ-*` and `SREQ-*`. Both channels are one resource and one prefix space,
+   * so one lookup answers both — see `types/request.ts` on why the two legacy
+   * collections became one type.
+   *
+   * **The route is deliberately NOT the title or the subtitle**, though it is
+   * what an operator recognises. A route is `{pickup} → {destination}` and that
+   * arrow **mirrors**: the Arabic form is `←`, and §9.5 fixes the swap at
+   * string-construction time, which is the dictionary — not here. A pre-joined
+   * route string minted in the data layer is exactly `Trip.route`, which
+   * `components/profile/rider/copy.ts` records as unusable for that reason: *"one
+   * pre-joined string with a hard-coded `→` that no dictionary can mirror, no
+   * `<bdi>` can isolate and no translator can reach."*
+   *
+   * So the ref carries the id and the person, the same shape `payment` and
+   * `complaint` use, and `RequestBand` builds the route itself from
+   * `requests.route` once the record lands. Both place names are still
+   * searchable — see `searchEntities`.
+   */
+  const request = allRequestFixtures.find((r) => r.id === id)
+  if (request) return ref(id, 'request', id, request.riderName)
 
   /* Plan ids are catalogue slugs (`weekly`), not prefixed keys, so the
      uppercase normalisation above does not apply to them. The ref carries the
@@ -410,6 +446,16 @@ function searchEntities(needle: string): SearchResult[] {
   /* `alsoKnownAs` carries the rider who complained: an operator hunting a
      complaint usually remembers one of the two people on it, not which side. */
   complaintFixtures.forEach((c) => push(c.id, 'complaint', c.id, c.driverName, [c.riderName]))
+  /* **The two place names ride in `alsoKnownAs`, at NAME weight**, and that is
+     the right weight rather than a generous one: an operator typing `KAFD` into
+     the palette has named the ride as precisely as one typing the rider, and a
+     request is the only record whose two most memorable facts are both places.
+     The subtitle is the rider, matching the ref `resolveLocally` mints — and
+     neither carries the route's arrow, which cannot mirror outside a
+     dictionary. */
+  allRequestFixtures.forEach((r) =>
+    push(r.id, 'request', r.id, r.riderName, [r.pickup, r.destination]),
+  )
 
   return out
 }

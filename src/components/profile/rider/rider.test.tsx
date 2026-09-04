@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -30,15 +31,15 @@ import {
 } from '@/data/clients'
 import type { Paginated, Rider, RiderTimelineEvent } from '@/data/types'
 import type { AsyncResult } from '@/hooks'
-import { createTranslator, formatMoney, type Translate } from '@/lib'
+import { createTranslator, formatMoney, type Translator } from '@/lib'
 import { riderTimelineStrings } from '@/i18n/vocabulary/copy'
 import { AR, EN } from '@/i18n/dictionaries'
 import { ProfileLayer } from '@/shell/layers/ProfileLayer'
 import { RiderPanels } from './RiderPanels'
 import type { RiderProfileReads } from './RiderProfile'
 
-const t: Translate = createTranslator({ dictionary: EN })
-const ar: Translate = createTranslator({ dictionary: AR, language: 'ar' })
+const t: Translator = createTranslator({ dictionary: EN })
+const ar: Translator = createTranslator({ dictionary: AR, language: 'ar' })
 const en = (key: string) => EN[key] as string
 /** The English template with its placeholders filled, so an assertion is the real sentence. */
 const fill = (key: string, params: Record<string, string | number>) =>
@@ -78,6 +79,20 @@ async function riderWithUnassignedOpenTrip(): Promise<{
     if (event) return { rider, event }
   }
   throw new Error('no rider with an unassigned open trip in the fixtures')
+}
+
+/**
+ * A rider at a named churn level.
+ *
+ * Discovered rather than pinned, like every other record here: the ruling under
+ * test is *"only `high` is coloured"*, which needs one rider at each level and
+ * no particular rider at any of them.
+ */
+async function riderAtChurn(level: Rider['churnRisk']): Promise<Rider> {
+  const page = await listRiders({ pageSize: 500 })
+  const rider = page.items.find((row) => row.churnRisk === level)
+  expect(rider, `no rider with churnRisk '${level}' in the fixtures`).toBeDefined()
+  return rider!
 }
 
 /** A rider with money captured and not settled — `Rider.heldHalalas` non-zero. */
@@ -132,19 +147,31 @@ function Layer({
   language = 'en' as const,
 }: {
   entityId: string
-  translate?: Translate
+  /* `Translator`, not `Translate`: the layer's captain arm counts documents and
+     trips, and a count that governs a noun needs the plural family. The value
+     here has always been one — `createTranslator` returns a `Translator` — so
+     this annotation was discarding it. */
+  translate?: Translator
   language?: 'en' | 'ar'
 }) {
   const [open, setOpen] = useState(true)
   return (
-    <ProfileLayer
-      entityId={entityId}
-      open={open}
-      onClose={() => setOpen(false)}
-      onOpenFullProfile={() => undefined}
-      t={translate}
-      language={language}
-    />
+    /* **A router, because the layer now builds addresses.** The sheet's links
+       into the 360° layer are `?entity=` on the CURRENT route, so `ProfileLayer`
+       reads `useLocation` — the same reason the captain harness has had one
+       since its own links landed. Without it the layer throws on render and
+       every assertion below fails for a reason that has nothing to do with what
+       it is testing. */
+    <MemoryRouter>
+      <ProfileLayer
+        entityId={entityId}
+        open={open}
+        onClose={() => setOpen(false)}
+        onOpenFullProfile={() => undefined}
+        t={translate}
+        language={language}
+      />
+    </MemoryRouter>
   )
 }
 
@@ -157,7 +184,7 @@ async function openSheet(entityId: string): Promise<HTMLElement> {
 /* === 1 . content ====================================================== */
 
 describe('content — the record renders, in the arrangement the rider sheet declares', () => {
-  it('paints the band from the record: kind, id, name, phone and the joined date', async () => {
+  it('paints the band from the record: kind, id, name, phone and city — and NOT the identity fields', async () => {
     const { rider } = await riderWithUnassignedOpenTrip()
     const dialog = await openSheet(rider.id)
 
@@ -167,7 +194,20 @@ describe('content — the record renders, in the arrangement the rider sheet dec
        and it is the record's, not the layer's. */
     expect(await within(dialog).findByRole('heading', { name: rider.name })).toBeInTheDocument()
     expect(await within(dialog).findByText(rider.phone)).toBeInTheDocument()
-    expect(within(dialog).getByText(/Joined/)).toBeInTheDocument()
+    expect(within(dialog).getByText(rider.city)).toBeInTheDocument()
+
+    /* **The band carries two facts, not five, and the negative half is the
+       point of this assertion.** The status, the tier and the joined date came
+       out of the band on an owner instruction — and they are legal to remove
+       only because all three remain fields in the Identity block on BOTH
+       surfaces, so no fact changed surface, value or rank (§3).
+
+       Scoped to the band rather than the dialog for exactly that reason: they
+       are still on this screen, one scroll down, and a dialog-wide `queryBy`
+       would fail on the copy that is SUPPOSED to be there. */
+    const band = within(dialog).getByText(rider.phone).closest('div')!
+    expect(within(band).queryByText(/Joined/)).toBeNull()
+    expect(within(band).queryByText(/tier/i)).toBeNull()
   })
 
   it('shows the wallet balance the RECORD carries, from the one money read', async () => {
@@ -627,6 +667,116 @@ describe('Arabic — the sheet survives `dir="rtl"` and the arrow mirrors', () =
 })
 
 /* === 8 . the token floor ============================================== */
+
+/* === the drawer's one column ========================================== */
+
+describe('the sheet is ONE column at `--ev-drawer-w`, rail above the tabs', () => {
+  it('puts the whole rail before the tab row in DOM order', async () => {
+    const { rider } = await riderWithUnassignedOpenTrip()
+    const dialog = await openSheet(rider.id)
+
+    /* The four rail blocks and the tab row, read in document order. §6.2's
+       one-column rule is *"the rail restacks above the tab row — it is the
+       summary, and a summary below its own detail is not a summary"*, and the
+       last rail block still has to precede the first tab. */
+    const wallet = await within(dialog).findByRole('heading', {
+      name: en('profile.section.wallet'),
+    })
+    const churn = within(dialog).getByRole('heading', { name: en('profile.field.churnRisk') })
+    const tabs = within(dialog).getByRole('tablist')
+
+    const follows = Node.DOCUMENT_POSITION_FOLLOWING
+    expect(wallet.compareDocumentPosition(churn) & follows).toBeTruthy()
+    expect(churn.compareDocumentPosition(tabs) & follows).toBeTruthy()
+  })
+
+  it('separates the rail from the panels on the BLOCK axis, which has no side to mirror', async () => {
+    const { rider } = await riderWithUnassignedOpenTrip()
+    const dialog = await openSheet(rider.id)
+    const wallet = await within(dialog).findByRole('heading', {
+      name: en('profile.section.wallet'),
+    })
+    /* The rail's ground: the nearest ancestor that draws the separating edge.
+       `border-e` was correct while the rail was a column BESIDE the panels and
+       is wrong now — an inline edge between two stacked blocks is a rule down
+       one side of the sheet. */
+    const ground = wallet.closest('div')!
+    expect(ground.className).toContain('border-b')
+    expect(ground.className).not.toContain('border-e')
+    /* And nothing in the sheet still declares a fractional column width, which
+       is what produced a 159px rail inside a 170px content box at 480. */
+    const fractions = [...dialog.querySelectorAll<HTMLElement>('*')]
+      .flatMap((element) => [...element.classList])
+      .filter((name) => /^w-\d+\/\d+$/.test(name))
+    expect([...new Set(fractions)]).toEqual([])
+  })
+})
+
+/* === R5a use #5 — churn risk `high` ==================================== */
+
+describe('churn risk: `high` is red, and only `high`', () => {
+  it('paints the level word with the churn token when the level is high', async () => {
+    const rider = await riderAtChurn('high')
+    const dialog = await openSheet(rider.id)
+    await within(dialog).findByRole('heading', { name: en('profile.field.churnRisk') })
+
+    const word = dialog.querySelector<HTMLElement>('[data-churn-risk="high"]')!
+    expect(word).not.toBeNull()
+    expect(word.textContent).toBe(en('people.churn.high'))
+    /* The token's full name, deliberately unshortened: Tailwind generates
+       `bg-`, `border-` and `ring-` from one `--color-*`, so the name is what
+       keeps the badge out. See `churn.ts`. */
+    expect(word.className).toContain('text-churn-high-foreground')
+  })
+
+  it('leaves `medium` and `low` in ordinary ink — a red at every level signals nothing', async () => {
+    for (const level of ['medium', 'low'] as const) {
+      const rider = await riderAtChurn(level)
+      const { unmount } = render(<Layer entityId={rider.id} />)
+      const dialog = await screen.findByRole('dialog')
+      await within(dialog).findByRole('heading', { name: en('profile.field.churnRisk') })
+
+      const word = dialog.querySelector<HTMLElement>(`[data-churn-risk="${level}"]`)!
+      expect(word, `no churn word rendered for '${level}'`).not.toBeNull()
+      expect(word.className).toContain('text-foreground')
+      expect(word.className).not.toContain('churn-high')
+      unmount()
+    }
+  })
+
+  it('is still not a badge, not a control and not focusable — §12.1 stands', async () => {
+    const rider = await riderAtChurn('high')
+    const dialog = await openSheet(rider.id)
+    const label = await within(dialog).findByRole('heading', {
+      name: en('profile.field.churnRisk'),
+    })
+    const block = label.closest('section')!
+    const word = block.querySelector<HTMLElement>('[data-churn-risk]')!
+
+    /* The colour was the whole of the ruling. No pill, no plate, no edge, no
+       ring, no tab stop, no role. */
+    expect(word.tagName).toBe('P')
+    expect(within(block).queryByRole('button')).toBeNull()
+    expect(word.getAttribute('tabindex')).toBeNull()
+    expect(word.className).not.toMatch(/\b(bg-|border|rounded|ring-)/)
+  })
+
+  it('keeps §8.2 reason line beside it, in ordinary secondary ink', async () => {
+    const rider = await riderAtChurn('high')
+    const dialog = await openSheet(rider.id)
+    const label = await within(dialog).findByRole('heading', {
+      name: en('profile.field.churnRisk'),
+    })
+    const block = label.closest('section')!
+    /* §7.5 — colour is never the only carrier, and the ruling did not suspend
+       it: the level is a word, the basis is a sentence, the hue is third. The
+       reason line is a sibling of the coloured word and is NOT coloured. */
+    const reason = block.querySelector<HTMLElement>('p:not([data-churn-risk])')!
+    expect(reason.textContent?.trim().length ?? 0).toBeGreaterThan(0)
+    expect(reason.className).toContain('text-muted-foreground')
+    expect(reason.className).not.toContain('churn-high')
+  })
+})
 
 describe('no physical direction utility reaches the DOM', () => {
   it('renders no `ml-`, `pl-`, `left-` or `text-right` anywhere in the sheet', async () => {

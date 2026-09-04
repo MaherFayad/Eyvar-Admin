@@ -85,9 +85,13 @@
  *               `PageHeader` and has exactly one `<h1>`, the name.
  *   D18/X-4     no uppercase-plus-letter-spacing label off the band. The
  *               eyebrow is the single licensed exception (§5.1).
- *   R5a/X-1     no red anywhere. `Expired` is neutral ink at figure rank.
+ *   R5a/X-1     `Expired` is neutral ink at figure rank — a status word is not
+ *               a permitted use of red and did not become one. The single red
+ *               on this page is a `high` churn level, the owner's fifth use;
+ *               see `ChurnReading` and `profile/rider/churn.ts`.
  *   §8.1/X-3    churn risk is a **prediction**, so it wears no status chrome:
  *               label plus value in words, not focusable, with its derivation.
+ *               The colour changed; the chrome did not.
  *   §9.1        logical utilities only; the strip's dividers are
  *               `border-inline-start`, never `border-l`.
  */
@@ -131,6 +135,12 @@ import {
 import { cn } from '@/lib/utils'
 import { CHURN_RISK, RIDER_STATUS, RIDER_TIER } from '@/screens/operations/people/domain'
 import { SUBSCRIPTION_STATUS } from '@/components/profile/domain'
+/* The owner's fifth use of red, read from the module that owns the ruling
+   rather than re-decided here. Imported by path and not through
+   `components/profile/rider`'s barrel: that barrel reaches the sheet's
+   components, and a page pulling a sheet in to read one predicate is how two
+   surfaces start sharing more than the fact they agreed on. */
+import { churnLevelInk } from '@/components/profile/rider/churn'
 import { ReturnControl } from './ReturnControl'
 import { RiderMovementsTable } from './RiderMovementsTable'
 import { RiderOpenTrip } from './RiderOpenTrip'
@@ -245,7 +255,6 @@ export function RiderProfilePage({
             backTo={backTo}
             backLabel={backLabel}
             t={t}
-            language={language}
             dir={dir}
           />
           <SummaryStrip
@@ -319,7 +328,6 @@ function RiderBandBlock({
   backTo,
   backLabel,
   t,
-  language,
   dir,
 }: {
   entity: ProfileRef
@@ -327,18 +335,21 @@ function RiderBandBlock({
   backTo: string
   backLabel: string
   t: Translator
-  language: Language
   dir: Direction
 }) {
   const meta: string[] = rider
     ? [
+        /* **Two facts, not five — owner instruction, and legal under §3 because
+           nothing was lost.** The status, the tier and the joined date all
+           remain fields in the Identity block on BOTH surfaces
+           (`profile.field.status`, `.tier`, `.joined`), so no fact changed
+           surface, value or rank — the band stopped repeating what the record
+           states further down. What stays is what an operator uses to REACH
+           this person rather than to describe them: a number to call and a city
+           to place them in. Five items put a rule between every pair and gave
+           `Joined 22 Jun` the same rank as the phone number. */
         rider.phone,
-        t(RIDER_STATUS[rider.status].key),
-        t('profile.value.tier', { tier: t(RIDER_TIER[rider.tier]) }),
         rider.city,
-        t('profile.rider.joined', {
-          date: formatDate(rider.joinedAt, { style: 'day-month-year', language }),
-        }),
       ].filter((value) => value !== '')
     : /* Before the record lands the band still says who this is, from the ref
          that resolved first. Nothing waits for the read (§9.2). */
@@ -594,26 +605,40 @@ function StripSkeleton() {
 }
 
 /**
- * **Churn risk — a status, and not a badge either** (§8.1, X-3, AC-RP-25).
+ * **Churn risk — a reading, and not a badge either** (§8.1, X-3, AC-RP-25).
  *
  * Not a control: §8 slot 3 forbids a status inside an action cluster and §12.1
- * makes a badge non-interactive by type. Not red: R5a enumerates four uses and
- * a risk chip is not one. And **not a badge at all**, which is the ruling rather
- * than the lookup — churn risk is a *prediction*, and the badge family
- * communicates *status*; a prediction wearing status chrome claims a certainty
- * the value does not have.
+ * makes a badge non-interactive by type. And **not a badge at all**, which is
+ * the ruling rather than the lookup — churn risk is a *prediction*, and the
+ * badge family communicates *status*; a prediction wearing status chrome claims
+ * a certainty the value does not have.
+ *
+ * **`high` IS red now, on the owner's ruling, and only `high`.** The refusal
+ * that used to sit in this paragraph — *"R5a enumerates four uses and a risk
+ * chip is not one"* — was mine and the designer's, and the owner has written
+ * the fifth use. The scope, the reason it stops at one level, and the token
+ * that is still pending are in `components/profile/rider/churn.ts`, which the
+ * sheet's rail reads from too: one ruling, one module, two surfaces. Nothing on
+ * this page decides any part of it, which is what stops the two surfaces
+ * colouring different levels.
  *
  * **The reason line is mandatory** (§8.2): `Rider.churnRisk` is computed, and a
  * computed level with no stated basis is the legacy defect §8.2 exists to
  * close. `churnReason` is `null` only when the risk is `low`, and `null` there
- * means *no negative signal on record* — a sentence, not a blank (§3.5).
+ * means *no negative signal on record* — a sentence, not a blank (§3.5). The
+ * colour does not replace those words, and §7.5 is not suspended by it.
  */
 function ChurnReading({ rider, t }: { rider: Rider; t: Translator }) {
   return (
     <div className="flex flex-col gap-0.5 pt-1">
       <p className="text-sm text-foreground">
         <span className="text-muted-foreground">{t('profile.field.churnRisk')}</span>{' '}
-        <span className="font-medium">{t(CHURN_RISK[rider.churnRisk].key)}</span>
+        <span
+          data-churn-risk={rider.churnRisk}
+          className={cn('font-medium', churnLevelInk(rider.churnRisk))}
+        >
+          {t(CHURN_RISK[rider.churnRisk].key)}
+        </span>
       </p>
       <p className="text-xs text-muted-foreground">
         <bdi>

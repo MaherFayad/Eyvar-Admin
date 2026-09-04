@@ -94,6 +94,7 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.error.retry': 'إعادة القراءة',
   'fin.error.mutation': 'أعد المحاولة.',
   'fin.error.row': 'لم يتم ذلك. أعد المحاولة.',
+  'fin.ledger.empty.period': 'لا توجد قيود بين {start} و{end}.',
   'fin.empty.noMatch': 'لا توجد قيود تطابق عوامل التصفية هذه.',
   'fin.empty.clear': 'مسح عوامل التصفية',
   'fin.empty.firstRun.heading': 'هذا الحساب، قيدًا بقيد',

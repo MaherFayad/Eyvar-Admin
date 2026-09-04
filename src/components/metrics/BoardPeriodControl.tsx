@@ -31,13 +31,15 @@
  *            it; `Popover` traps and restores focus.
  *   §9.5     the calendar mark does not mirror — a calendar is an object, not a
  *            direction. The chevron does not mirror either: it points DOWN,
- *            which is the same down in both directions.
+ *            which is the same down in both directions. The arrow BETWEEN the
+ *            two date fields does mirror, and it is an SVG rather than a text
+ *            `→` precisely so that it can.
  *   R6       `Reset` is a fragment on a button, not a sentence.
  *   AC-443   one key, named placeholders, for the range label.
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { ArrowRightIcon, CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -242,9 +244,18 @@ export function BoardPeriodControl({
                     }
                   />
                 </label>
-                <span aria-hidden="true" className="pb-2 text-muted-foreground">
-                  &rarr;
-                </span>
+                {/* A reading-order mark between two fields whose order mirrors,
+                    so it mirrors with them (§9.5) — unlike the calendar glyph on
+                    the trigger, which is an object. This was `&rarr;`, a text
+                    CHARACTER: `rtl:rotate-180` cannot reach a glyph, so in
+                    Arabic the row read `[To] → [From]` with the arrow pointing
+                    from the end date back to the start. `WindowControl` (the
+                    sibling control that does the same job) already had this
+                    right; the two now match. */}
+                <ArrowRightIcon
+                  aria-hidden="true"
+                  className="mb-2 size-4 shrink-0 text-muted-foreground rtl:rotate-180"
+                />
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                   {t('overview.period.to')}
                   <Input

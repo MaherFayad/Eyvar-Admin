@@ -251,7 +251,15 @@ describe('ChartCard — the four states of a window (§3.7, SeriesWindow)', () =
     renderCard(series([]), '/management/risk')
     expect(screen.getByText('There was no data found for this date range.')).toBeInTheDocument()
     expect(screen.getByText('Open signals')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open the Open signals report' })).toBeInTheDocument()
+    /* **MOVED, and the destination is unchanged.** §3.7 requires an empty card
+       to keep its card, title AND REPORT LINK, which is exactly what is
+       asserted. What changed is the link's SHAPE: §E7 replaces the header's
+       icon-only `↗` with a named `Open analysis →` at the foot of the card, so
+       the accessible name is now built from the visible words plus the report
+       title rather than from an `aria-label` that replaced them. */
+    expect(
+      screen.getByRole('link', { name: 'Open analysis for Open signals' }),
+    ).toBeInTheDocument()
   })
 
   it('an ALL-ZERO window says the values are zero — not that the data is missing', () => {
@@ -538,7 +546,20 @@ describe('MetricTile — a value that is absent says why (R5-1)', () => {
        isolate never carries anything but the isolation). What matters is that
        the dash is not reachable, not which element says so. */
     for (const dash of dashes) expect(dash.closest('[aria-hidden="true"]')).not.toBeNull()
-    expect(container.querySelector('.sr-only')).toBeNull()
+    /* **NARROWED, and only in what it excludes.** The claim is *the FIGURE
+       explains its absence in visible words and hides nothing behind a
+       screen-reader-only run* — the whole `.sr-only` selector stood in for
+       "the figure" while the figure was the only thing this tile rendered.
+       §E4 moved the drilldown out of the figure and onto its own named action
+       (`Open analysis`), whose accessible name legitimately carries the report
+       title as a hidden trailing run so that §7.2's label-in-name holds. That
+       run is not part of the figure and is not about the em dash. Everything
+       the assertion was protecting is still asserted, over exactly the box it
+       was always about. */
+    const hidden = [...container.querySelectorAll('.sr-only')].filter(
+      (node) => node.closest('[data-slot="open-analysis"]') === null,
+    )
+    expect(hidden).toHaveLength(0)
     expect(screen.getByText('Not captured yet')).toBeVisible()
   })
 

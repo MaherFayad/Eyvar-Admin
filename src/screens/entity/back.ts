@@ -83,6 +83,16 @@ export const INDEX_ROUTE: Readonly<Record<ProfileEntityType, IndexRoute>> = {
   /* Payments are controlled from Ledger & Payment Controls and nowhere else. */
   payment: { path: '/financials/ledger', labelKey: 'subtab.financials.ledger' },
   plan: { path: '/financials/pricing', labelKey: 'subtab.financials.pricing' },
+  /* **Ride requests, not subscription requests**, and the choice is forced.
+     The queue is two sub-tabs now and a record kind cannot know which one a
+     given row is on — `INDEX_ROUTE` is keyed by TYPE, and both channels share
+     one. Ride requests is the larger of the two and the one every drilldown in
+     the product already lands on; a subscription request opened from search
+     therefore returns to the neighbouring tab rather than to nowhere. */
+  request: {
+    path: '/operations/ride-requests',
+    labelKey: 'subtab.operations.rideRequests',
+  },
 }
 
 /**

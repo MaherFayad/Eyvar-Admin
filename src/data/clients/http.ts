@@ -138,9 +138,87 @@ async function safeJson(response: Response): Promise<unknown> {
   }
 }
 
+/**
+ * **The one read that does not return JSON.**
+ *
+ * `request` above assumes a JSON body on every response, which is right for 46
+ * of the 47 clients and wrong for the object-store read behind a compliance
+ * scan — `types/driver.ts` calls it *"a separate, streaming, separately-permitted
+ * read"* and it hands back image or PDF bytes with a `Content-Type`, not a
+ * document.
+ *
+ * Three answers, and the middle one is the reason this is not just `fetch`:
+ *
+ *   - **200** — bytes, with the media type the store holds them under.
+ *   - **204** — the record exists and holds no object. **Not an error**, so it
+ *     resolves as `null` rather than throwing. The caller turns it into its own
+ *     honest outcome; see `ComplianceDocumentFileRead`.
+ *   - anything else — the same `ApiError` every other client throws, so a 403
+ *     stays a refusal and a 503 stays a failure, and the two do not merge.
+ *
+ * `Accept` is set by the caller: only the caller knows which media types its
+ * own type union can actually decode.
+ */
+async function requestBytes(
+  path: string,
+  init: { params?: RequestParams } & HttpRequestOptions = {},
+): Promise<{ mimeType: string; bytes: Uint8Array } | null> {
+  const url = buildUrl(path, init.params)
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      signal: init.signal,
+      credentials: 'include',
+      headers: { Accept: '*/*', ...init.headers },
+    })
+  } catch (cause) {
+    const aborted = (cause as Error | undefined)?.name === 'AbortError'
+    throw new ApiError({
+      status: 0,
+      kind: 'network',
+      code: aborted ? 'aborted' : 'network_error',
+      message: aborted ? 'Request aborted' : 'Could not reach the server',
+      retryable: !aborted,
+    })
+  }
+
+  if (response.status === 204) return null
+
+  if (!response.ok) {
+    /* An error body is JSON even on a binary endpoint — a store that streams
+       bytes on success still has to explain a 403 in words — but **a body this
+       cannot parse must not change the status**. `request` throws
+       `malformed_response` on unreadable JSON, which is right for an endpoint
+       whose success case is JSON and wrong here: an object store answering a
+       403 with an HTML error page would arrive as a retryable 502, and a
+       refusal read as a failure is the one confusion this endpoint exists to
+       avoid. The status is the diagnosis; the body only decorates it. */
+    const body = await safeJson(response).catch(() => null) as {
+      code?: string
+      message?: string
+      details?: ApiError['details']
+    } | null
+    throw new ApiError({
+      status: response.status,
+      kind: kindForStatus(response.status),
+      code: body?.code ?? 'http_error',
+      message: body?.message ?? response.statusText ?? 'Request failed',
+      details: body?.details ?? [],
+      requestId: response.headers.get('x-request-id'),
+    })
+  }
+
+  const mimeType = (response.headers.get('content-type') ?? '').split(';')[0]?.trim() ?? ''
+  return { mimeType, bytes: new Uint8Array(await response.arrayBuffer()) }
+}
+
 export const http = {
   get: <T>(path: string, params?: RequestParams, opts?: HttpRequestOptions) =>
     request<T>('GET', path, { params, ...opts }),
+  /** Bytes rather than JSON, `null` on a 204. See `requestBytes`. */
+  bytes: (path: string, params?: RequestParams, opts?: HttpRequestOptions) =>
+    requestBytes(path, { params, ...opts }),
   post: <T>(path: string, body?: unknown, opts?: HttpRequestOptions) => request<T>('POST', path, { body, ...opts }),
   patch: <T>(path: string, body?: unknown, opts?: HttpRequestOptions) => request<T>('PATCH', path, { body, ...opts }),
   put: <T>(path: string, body?: unknown, opts?: HttpRequestOptions) => request<T>('PUT', path, { body, ...opts }),

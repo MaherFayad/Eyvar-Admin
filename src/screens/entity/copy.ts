@@ -156,4 +156,31 @@ export const ENTITY_RIDER_EN: Dictionary = {
   'entity.rider.payments.count#one': '{count} payment',
   'entity.rider.payments.count#other': '{count} payments',
   'entity.rider.payments.underReview': '{amount} under review',
+
+  /* ── the payments TABLE ───────────────────────────────────────────────
+     Three of its four column headers are `fin.ledger.col.*`, the wallet
+     ledger's own, because two money tables stacked on one page must not spell
+     `Date` and `Reference` two ways. Only the amount header is this table's,
+     and it is its own key rather than a borrowed `fin.escrow.col.amount`: the
+     product already keeps one `col.*` namespace per table (`fin.refund.col.
+     amount`, `fin.escrow.col.amount`, `fin.deduction.col.amount` are three
+     keys for one English word, deliberately), because a shared header key is a
+     shared contract between tables that have nothing else in common.
+
+     §8.3.1 — the unit is in the header once and in no cell. */
+  'entity.rider.payments.col.amount': 'Amount (SAR)',
+  'entity.rider.payments.search': 'Search payments',
+  /* §11.5. Not `entity.rider.movements.noMatch`, which says *movements*: the
+     two tables on this page hold disjoint rows and an operator who searched one
+     must not be told about the other. */
+  'entity.rider.payments.noMatch': 'No payments match this search.',
+  /* §11.1 — and **not reachable today**, which is recorded here as well as at
+     the call site rather than left for a translator to wonder about. The
+     section answers its own zero-records case with one grey sentence, per the
+     design spec's empties table (`Payments, none | card`), and `DataTable`
+     forces `no-match` for every ledger-mode table besides. The copy is honest
+     for the state it names so that it is not a `TODO` if either gate moves. */
+  'entity.rider.payments.empty.heading': 'No card payments yet',
+  'entity.rider.payments.empty.body':
+    'This rider has not paid for a trip by card. Quick ride fares appear here as they are captured.',
 }

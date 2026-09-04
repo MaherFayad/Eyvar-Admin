@@ -15,6 +15,11 @@ export {
   type DurationPrecision,
   type FormatDurationOptions,
 } from './format/duration'
+export {
+  FILE_SIZE_MESSAGES_EN,
+  formatFileSize,
+  type FileSizeMessageKey,
+} from './format/fileSize'
 export { ABSENT, MINUS_SIGN, formatMoney, type FormatMoneyOptions } from './format/money'
 export {
   formatLocalisedText,
@@ -117,6 +122,7 @@ export {
   SLA_MESSAGES_EN,
   compareBySla,
   formatSlaLabel,
+  queueClock,
   slaBand,
   slaClock,
   slaLabelDescriptor,
@@ -125,6 +131,8 @@ export {
   slaTrackPercent,
   type SlaBand,
   type SlaClock,
+  type QueueClockInput,
+  type QueueClockResult,
   type SlaInput,
   type SlaLabelDescriptor,
   type SlaMessageKey,

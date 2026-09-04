@@ -251,6 +251,18 @@ describe('`Mark all as read` names the count and is disabled at zero', () => {
 
 /* ═══════════ 5 · the unread marker carries a word ══════════════════════ */
 
+/**
+ * The unread GROUND, as a selector. `bg-info/50` composites to #f5f8ff over
+ * the card and the popover alike — the strongest tint the row's own
+ * `text-muted-foreground` (#6b7280) can sit on and still clear 4.5 : 1
+ * (4.548, against 4.234 at full `bg-info`).
+ */
+const UNREAD_GROUND = '[class~="bg-info/50"]'
+
+/** The row container carrying that ground, walked up from the title's own node. */
+const groundOf = (scope: HTMLElement, title: string) =>
+  within(scope).getByText(title).closest(UNREAD_GROUND)
+
 describe('the unread marker is not colour and shape alone', () => {
   it('names itself on the bell row (§7.5)', async () => {
     const user = userEvent.setup()
@@ -265,5 +277,49 @@ describe('the unread marker is not colour and shape alone', () => {
     expect(row).toHaveAccessibleName(
       new RegExp(escapeForRegExp(en('shell.notifications.unread'))),
     )
+  })
+
+  /**
+   * **The two surfaces used to disagree about what unread LOOKS like** — a dot
+   * in the bell popover, a font-weight step in the drawer — so an operator
+   * learned one marker and met a different one one click later. Both now carry
+   * the same three: the tint, the dot, and the visually hidden word. The word
+   * is the carrier; the other two are redundancy, which is why this asserts the
+   * word on the same rows it asserts the ground on rather than the ground
+   * alone.
+   */
+  it('marks unread with the same ground on the drawer and on the bell, and read rows with none of it', async () => {
+    const user = userEvent.setup()
+    const page = await listNotifications({ filter: 'all', pageSize: 50 })
+    const unread = page.items.filter((each) => !each.read)
+    const read = page.items.filter((each) => each.read)
+    expect(unread.length, 'the fixture seeds unread rows').toBeGreaterThan(0)
+    expect(read.length, 'and read ones, or the negative half proves nothing').toBeGreaterThan(0)
+
+    renderShell(LAYER_PATH)
+    const layer = await screen.findByRole('dialog')
+    for (const each of page.items) {
+      const ground = groundOf(layer, each.title)
+      if (each.read) expect(ground, `${each.id} is read`).toBeNull()
+      else expect(ground, `${each.id} is unread`).not.toBeNull()
+    }
+    /* And the word is on exactly the rows the ground is on. Filtered to the
+       visually hidden ones because `Unread` is also the fifth filter chip's
+       visible label — same six characters, entirely different job. */
+    const words = within(layer)
+      .getAllByText(en('shell.notifications.unread'))
+      .filter((each) => each.classList.contains('sr-only'))
+    expect(words).toHaveLength(unread.length)
+
+    /* The same state, the same mark, on the other surface. */
+    await user.keyboard('{Escape}')
+    await user.click(await screen.findByRole('button', { name: en('shell.topbar.notifications') }))
+    const end = await screen.findByText(en('shell.notifications.endOfList'))
+    const popover = end.closest('[data-slot="popover-content"]') as HTMLElement
+    const shown = within(popover).getAllByText(en('shell.notifications.unread'))
+    expect(shown.length, 'the preview shows unread rows').toBeGreaterThan(0)
+    for (const word of shown) {
+      expect(word.closest(UNREAD_GROUND), 'every worded row is a tinted row').not.toBeNull()
+    }
   })
 })

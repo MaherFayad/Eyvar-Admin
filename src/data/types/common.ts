@@ -127,6 +127,27 @@ export interface CountResult {
 }
 
 /**
+ * How many records of one kind reference a subject, and how many still need
+ * somebody.
+ *
+ * `open` and `total` are both here because they answer different sentences and
+ * because **`0` open beside a non-zero `total` is a real state** — *"three
+ * complaints, all resolved"* is not the same page as *"no complaints"*, and a
+ * single count cannot say which. A boolean *"is there anything here"* loses the
+ * distinction that killed the reference design's composed absence sentence.
+ *
+ * It lives in `common.ts` and not beside the first resource that needed it: the
+ * rider profile's presence read declared it as `RiderRelatedCount`, the captain
+ * profile's needs exactly the same shape, and two names for one concept is the
+ * defect `types/rider.ts` retired `WalletTransaction` over. The rider's name
+ * survives as an alias so nothing that imports it has to change.
+ */
+export interface RelatedCount {
+  total: number
+  open: number
+}
+
+/**
  * A `select` / `multi-select` filter's option set, **derived from the data**.
  *
  * The alternative is a hand-written list in the screen, and that list is wrong

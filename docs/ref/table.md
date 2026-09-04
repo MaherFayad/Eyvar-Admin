@@ -97,8 +97,66 @@ selection (`:413`), row actions (`:449`), column hideability (`:674`), the skele
 
 The table owns them; the screen forwards `status`. Do not add a second loading branch inside
 a screen — every financials screen already forwards correctly, and a screen-level spinner is
-a double-render, not a fix. `emptyKind: 'first-run' | 'cleared'` is a discriminated union and
-both arms are required. See [states.md](states.md).
+a double-render, not a fix. `emptyKind: 'first-run' | 'cleared' | 'no-match'` is a
+discriminated union and each arm carries its own required copy. See [states.md](states.md).
+
+**`no-match` is the third arm, and it exists because the branch used to infer it.** The empty
+state read `table.isFiltered || isLedger`, so **no ledger-mode table could ever render
+`first-run`** — a rider whose wallet had never moved was told *"No movements match this
+search."* having searched for nothing, and the declared first-run copy was unreachable code.
+
+The comment on that line cited §9.2's *"a ledger is NEVER first-run empty"*, which had since
+been **narrowed**: `design/10-financials-money-flows.md` **LR-1** rules that *a
+platform-subject ledger is never first-run empty; a party-subject ledger can be*, with
+**AC-427** requiring it and **LR-2** putting the decision on the subject's lifetime — a
+captain with years of history and one quiet month is `cleared`, not `first-run`. The code went
+on encoding the un-narrowed sentence.
+
+So the screen now declares the arm rather than the component inferring it. Note the trap that
+made the naive fix wrong: removing `|| isLedger` alone flips the Financials ledgers'
+quiet-period empty to `first-run` (**D-F29** returning), which is why `LedgerCard` and
+`AlertHistoryDialog` declare `no-match` explicitly. Guarded by
+`table/ledgerEmptyState.test.tsx`.
+
+## Two slots a section-level table wants
+
+Both are optional and both are additive — a table passing neither renders byte-identically to
+before, proven by capture-and-diff rather than asserted.
+
+**`heading` / `subheading`** put the section's title inside the toolbar row, so the title and
+the control cluster (search, filter, columns, export) share one line and the count reads as a
+subtitle beneath the title rather than beside it. **A table has view tabs or a heading, never
+both** — that is a union in `table/IndexToolbar.types.tsx`, so it does not compile, and the
+error names the one offending property rather than dumping the union. The heading level is
+fixed at `h2`, matching `SectionHeading`: a `level` prop is a judgement made forty times
+against a document outline nothing checks. A long heading **wraps before it truncates**,
+because a flex line breaks on base sizes before anything on it shrinks — a clipped tab is an
+unreachable control, a clipped heading is only a lost sentence, and this product has no
+tooltip convention to recover either.
+
+**`caption`** renders a real `<caption>` between the toolbar and the header row, for a
+standing convention that must be read **before** the first number — the case is
+`liability.driver`, the one credit-normal ledger in the console, where a credit means Eyvar
+owes *more* and an operator reading it as a wallet reads every row backwards.
+
+Three properties are the reason it is a `<caption>` and not a paragraph the screen renders
+above the table:
+
+- It becomes the table's **accessible name** (`getByRole('table', { name })`) and is announced
+  when a reader enters the table. A paragraph above is announced *before* the table and
+  skipped, so the convention never reaches a screen-reader operator at all.
+- It sits at the point of confusion, `px-3` so the sentence begins exactly where the headers
+  it defines begin — measured identical in both directions.
+- It is reusable: `ar.driver` is inverted the same way, so a screen-local paragraph would be
+  reinvented per screen.
+
+`ui/table.tsx` is **untouched** and still `caption-bottom` product-wide: `caption-side` is
+inherited, so a declaration on the `<caption>` itself wins outright without touching a
+primitive forty screens share, and a bottom caption stays available to whoever wants one.
+Below the breakpoint there is no `<table>`, so the same node renders as a paragraph above the
+cards — it loses only the announcement, which no markup can give it without a table. It
+renders in `content` only: a skeleton has no headers to define, `error` drops the header row,
+and a sign convention over an empty is noise. Guarded by `table/tableCaption.test.tsx`.
 
 ## Bidi — A2, CLOSED 2026-09-02, and the symptom did not reproduce
 

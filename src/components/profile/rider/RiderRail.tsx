@@ -21,19 +21,25 @@
  *  Lifetime value    0.00 SAR
  *  ────────────────────────
  *  CHURN RISK
- *  High
+ *  High                    <- RED, and only at `high`. See `churn.ts`.
  *  The plan lapsed with nothing used.
  * ```
  *
  * Rules applied
- *   R5a        **no red anywhere in this rail.** Red has exactly four permitted
- *              uses and a status word is none of them, so `Expired` is ink and
- *              the churn block has no fill. The reference draws both in red;
- *              this refuses both, and the refusal is recorded in the handoff.
- *   §12.1      the churn block is **not a badge**. Churn risk is a PREDICTION
- *              and the badge family communicates STATUS; a prediction wearing
- *              status chrome claims a certainty the value does not have. Label
- *              plus word, no fill, no border, not focusable.
+ *   R5a        **one red in this rail, and it is the owner's fifth permitted
+ *              use**: a `high` churn level. `medium` and `low` are ink, and
+ *              `Expired` is still ink — R5a's four uses plus one is not a
+ *              licence for a status word, and the plan's status did not gain
+ *              one. The scope, the reason it is only `high`, and the token that
+ *              is still pending are all in `churn.ts`; nothing here decides
+ *              anything about it.
+ *   §12.1      the churn block is **not a badge**, and the colour did not make
+ *              it one. Churn risk is a PREDICTION and the badge family
+ *              communicates STATUS; a prediction wearing status chrome claims a
+ *              certainty the value does not have. Label plus word, no fill, no
+ *              border, not focusable.
+ *   §7.5       and the colour is never the only carrier: the level is a word,
+ *              the basis is the sentence beneath it, and the hue is third.
  *   §8.2       the churn REASON is mandatory, not decorative, and it comes from
  *              `Rider.churnReason` — a `LocalisedText` the server mints. It is
  *              never composed here: a level with a reason the client inferred
@@ -90,6 +96,7 @@ import {
 } from '@/lib'
 import { CHURN_RISK } from '@/screens/operations/people/domain'
 import { SUBSCRIPTION_STATUS } from '../domain'
+import { churnLevelInk } from './churn'
 import { cn } from '@/lib/utils'
 
 /**
@@ -126,10 +133,11 @@ export function RiderRail({
   const churn = CHURN_RISK[rider.churnRisk]
 
   return (
-    /* The rule between the rail and the column is `border-e`, which follows the
-       document's direction. Below 768 the rail sits ABOVE the column instead, so
-       the same rule becomes a `border-b` — one edge either way, never two. */
-    <div className="flex h-full flex-col divide-y divide-border border-e border-border bg-muted compact:border-e-0 compact:border-b">
+    /* The rail sits ABOVE the panels at every width the drawer has (see
+       `RiderProfile`), so its separating rule is a `border-b` on the block
+       axis — one edge, and one that has no side to mirror. It was a `border-e`
+       while the rail was a column beside the panels. */
+    <div className="flex flex-col divide-y divide-border border-b border-border bg-muted">
       {/* ── wallet ─────────────────────────────────── */}
       <RailBlock label={t('profile.section.wallet')}>
         <Figure>
@@ -156,7 +164,21 @@ export function RiderRail({
             />
             <span className="text-2xs text-muted-foreground">{t('profile.rider.rail.unit')}</span>
           </Figure>
-          <p className="text-xs text-muted-foreground">{t('profile.rider.rail.underReviewNote')}</p>
+          {/* **The shared fragment, not a second spelling of it** — owner
+              amendment 3, §16.3 #2. `Captured, not settled. Not part of the
+              balance.` was two sentences and only the second was load-bearing:
+              the block's own label already says *not settled*. The clause that
+              remains is the key the money rows already render, so one fact is
+              stated in one set of words on both surfaces.
+
+              The page's strip renders NO held line at all and needs no
+              equivalent (§16.4, `RiderProfilePage.tsx`): the misread this line
+              closes is created by the sheet's single-column stack, where 98.00
+              sits directly beneath a balance it is not part of. That asymmetry
+              is intentional and is asserted, not tolerated (AC-RP-109). */}
+          <p className="text-xs text-muted-foreground">
+            {t('profile.rider.money.outsideBalance')}
+          </p>
         </RailBlock>
       )}
 
@@ -231,7 +253,17 @@ export function RiderRail({
 
       {/* ── churn ──────────────────────────────────────────────────── */}
       <RailBlock label={t('profile.field.churnRisk')}>
-        <p className="text-xl font-medium text-foreground">{t(churn.key)}</p>
+        {/* The owner's fifth use of red, scoped to `high` alone — `churn.ts`
+            holds the whole ruling and both surfaces read it from there. Still
+            a paragraph: no pill, no border, nothing focusable (§12.1). The
+            `data-churn-risk` hook is what makes the scope assertable while the
+            token is still pending. */}
+        <p
+          data-churn-risk={rider.churnRisk}
+          className={cn('text-xl font-medium', churnLevelInk(rider.churnRisk))}
+        >
+          {t(churn.key)}
+        </p>
         {/* §8.2 — the reason is mandatory. `null` is a real value and means "no
             negative signal", which is a sentence of its own rather than a blank
             (§3.5). */}

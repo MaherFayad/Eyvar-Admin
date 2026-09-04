@@ -107,7 +107,7 @@ import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
 import { bulkRefusal, claimWithheldFrom, deviationHalalas } from '../shared/derive'
 import { bulkRefusalText } from '../shared/text'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 /**
  * §11.2 over a set, for the queue's one bulk command — **D21**.
@@ -628,6 +628,9 @@ function ReconciliationQueue({
         emptyKind="cleared"
         cleared={{ heading: t('fin.cash.empty.heading'), body: t('fin.cash.empty.body') }}
         firstRun={{
+          /* LR-3 — no Financials empty carries an illustration. See
+             `PayoutsScreen`'s first declaration for the full reasoning. */
+          illustration: null,
           heading: t('fin.cash.empty.heading'),
           body: t('fin.cash.empty.body'),
           actions: [
@@ -876,6 +879,9 @@ function CaptainDebtIndex({
           ) : undefined
         }
         firstRun={{
+          /* LR-3 — no Financials empty carries an illustration. See
+             `PayoutsScreen`'s first declaration for the full reasoning. */
+          illustration: null,
           heading: t('fin.debt.empty.heading'),
           body: t('fin.debt.empty.body'),
           actions: [

@@ -15,7 +15,40 @@ import { offsetFromNow } from '../mock/clock'
 import { claimFixtures } from './claims'
 import { cycle, cycleRecord } from './cycle'
 import { fillerDrivers } from './drivers'
-import type { Applicant } from '../types/applicant'
+import type {
+  Applicant,
+  ApplicantDoc,
+  ApplicantDocField,
+  ApplicantDocRejectionCode,
+} from '../types/applicant'
+import type { ComplianceDocFile, DocumentType } from '../types/driver'
+
+/**
+ * **The seed shape, and why the file is written in it.**
+ *
+ * A document row below states the three facts a person reviewing this fixture
+ * cares about — which document, what state it is in, when it expires. The other
+ * four (`id`, `file`, `readFields`, `rejectionCode`) are **derived**, by
+ * `withDocDetail` at the bottom of this file, because each is a pure function
+ * of those three plus the applicant:
+ *
+ *   - `id` is `<applicant>-<type>`, one format in one place;
+ *   - `file` exists exactly when something was uploaded, which is exactly
+ *     `status !== 'missing'`;
+ *   - `readFields` are filled exactly when a reviewer has opened it, which is
+ *     `verified` or `rejected` — a `pending` document has nothing read off it
+ *     yet, and that is the viewer's empty state;
+ *   - `rejectionCode` exists exactly when `status === 'rejected'`.
+ *
+ * Writing those four out by hand on 51 applicants would be 204 rows nobody
+ * reads, that drift from the status beside them the first time one is edited,
+ * and that make *"does the file agree with the state"* something a person has
+ * to check. `fixtures/tripTelemetry.ts` states the same rule for the same
+ * reason one resource over.
+ */
+type ApplicantSeed = Omit<Applicant, 'docs'> & {
+  docs: ReadonlyArray<Pick<ApplicantDoc, 'type' | 'status' | 'expiresOn'>>
+}
 
 /** 48 h from submission. **Not in the legacy data** — the work-queue pattern needs one; the window is product-owner's. */
 const SLA_HOURS = 48
@@ -24,7 +57,7 @@ function sla(appliedAt: string): string {
   return new Date(Date.parse(appliedAt) + SLA_HOURS * 3_600_000).toISOString()
 }
 
-const namedApplicants: Applicant[] = [
+const namedApplicantSeeds: ApplicantSeed[] = [
   {
     id: 'APP-2201',
     name: 'Saad Al-Quraishi',
@@ -60,12 +93,12 @@ const namedApplicants: Applicant[] = [
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: '2028-01-20' },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: '2028-01-20' },
       { type: 'vehicle_reg', status: 'verified', expiresOn: '2027-05-11' },
-      /* Background check pending — the one blocker on an otherwise clean file. */
-      { type: 'background', status: 'pending', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: '2026-12-01' },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'verified', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-24', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -112,11 +145,12 @@ const namedApplicants: Applicant[] = [
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: '2027-11-30' },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: '2027-11-30' },
       { type: 'vehicle_reg', status: 'pending', expiresOn: null },
-      { type: 'background', status: 'verified', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: '2027-02-14' },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'missing', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-25', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -164,11 +198,12 @@ const namedApplicants: Applicant[] = [
       status: 'Pending verification',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: '2029-04-02' },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: '2029-04-02' },
       { type: 'vehicle_reg', status: 'verified', expiresOn: '2027-08-19' },
-      { type: 'background', status: 'verified', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: '2027-01-05' },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'verified', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-23', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -217,11 +252,12 @@ const namedApplicants: Applicant[] = [
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: '2027-06-30' },
       { type: 'id_card', status: 'pending', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: '2027-06-30' },
       { type: 'vehicle_reg', status: 'verified', expiresOn: '2026-09-14' },
-      { type: 'background', status: 'verified', expiresOn: null },
-      { type: 'insurance', status: 'pending', expiresOn: null },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'missing', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-22', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -269,11 +305,12 @@ const namedApplicants: Applicant[] = [
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'pending', expiresOn: null },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'pending', expiresOn: null },
       { type: 'vehicle_reg', status: 'verified', expiresOn: '2028-03-22' },
-      { type: 'background', status: 'pending', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: '2026-10-30' },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'verified', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-21', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -324,11 +361,12 @@ const namedApplicants: Applicant[] = [
       status: 'Rejected',
     },
     docs: [
-      { type: 'license', status: 'rejected', expiresOn: '2026-05-01' },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'rejected', expiresOn: '2026-05-01' },
       { type: 'vehicle_reg', status: 'missing', expiresOn: null },
-      { type: 'background', status: 'rejected', expiresOn: null },
-      { type: 'insurance', status: 'missing', expiresOn: null },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'missing', expiresOn: null },
     ],
     movementLog: [
       { at: '2026-06-19', action: 'Application submitted', location: 'Riyadh, SA' },
@@ -338,7 +376,7 @@ const namedApplicants: Applicant[] = [
     cancelledTrips: 0,
     claim: null,
     approvedDriverId: null,
-    rejectionReason: 'Driving licence expired 2026-05-01 and background check returned a disqualifying result',
+    rejectionReason: 'Driving licence expired 2026-05-01 and no vehicle licence was ever uploaded',
     decidedAt: '2026-06-20T14:10:00+03:00',
     decidedByUserId: 'USR-1',
   },
@@ -379,11 +417,12 @@ const namedApplicants: Applicant[] = [
     },
     /* Every document missing — the empty-file case, distinct from "all pending". */
     docs: [
-      { type: 'license', status: 'missing', expiresOn: null },
       { type: 'id_card', status: 'missing', expiresOn: null },
+      { type: 'license', status: 'missing', expiresOn: null },
       { type: 'vehicle_reg', status: 'missing', expiresOn: null },
-      { type: 'background', status: 'missing', expiresOn: null },
-      { type: 'insurance', status: 'missing', expiresOn: null },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'missing', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-16', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -431,11 +470,12 @@ const namedApplicants: Applicant[] = [
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: '2030-02-11' },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: '2030-02-11' },
       { type: 'vehicle_reg', status: 'verified', expiresOn: '2028-09-01' },
-      { type: 'background', status: 'pending', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: '2027-07-19' },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: 'verified', expiresOn: null },
     ],
     movementLog: [{ at: '2026-06-25', action: 'Application submitted', location: 'Riyadh, SA' }],
     acceptedTrips: 0,
@@ -473,9 +513,9 @@ const FILLER_APPLICANT_VEHICLES: ReadonlyArray<{ readonly model: string; readonl
 ]
 
 const REJECTION_REASONS: readonly string[] = [
-  'Background check returned an unspent traffic conviction',
+  'Driving licence is not valid for the vehicle class applied for',
   'Vehicle is older than the eight-year limit for the class applied for',
-  'Insurance certificate names a policyholder who is not the applicant',
+  'Vehicle licence names a keeper who is not the applicant',
   'Identity document and bank account holder do not match',
 ]
 
@@ -502,7 +542,7 @@ const REJECTION_REASONS: readonly string[] = [
  * and every timestamp descends from a single per-row offset, so a decision
  * cannot precede its application.
  */
-export const fillerApplicants: Applicant[] = Array.from({ length: 43 }, (_, i) => {
+const fillerApplicantSeeds: ApplicantSeed[] = Array.from({ length: 43 }, (_, i) => {
   const person = cycle(FILLER_APPLICANT_NAMES, i)
   const vehicle = cycle(FILLER_APPLICANT_VEHICLES, i)
   const name = `${person.given} ${person.family}`
@@ -560,11 +600,12 @@ export const fillerApplicants: Applicant[] = Array.from({ length: 43 }, (_, i) =
       status: 'Verified',
     },
     docs: [
-      { type: 'license', status: 'verified', expiresOn: `202${8 + (i % 2)}-0${(i % 9) + 1}-1${i % 9}` },
       { type: 'id_card', status: 'verified', expiresOn: null },
+      { type: 'license', status: 'verified', expiresOn: `202${8 + (i % 2)}-0${(i % 9) + 1}-1${i % 9}` },
       { type: 'vehicle_reg', status: 'verified', expiresOn: `2027-0${(i % 9) + 1}-2${i % 8}` },
-      { type: 'background', status: status === 'rejected' ? 'rejected' : 'verified', expiresOn: null },
-      { type: 'insurance', status: 'verified', expiresOn: `2027-1${i % 3}-0${(i % 8) + 1}` },
+      /* A profile photo has no expiry — `DOCUMENT_TYPES` says so, and it is the
+         one document on the file whose review is a look rather than a date. */
+      { type: 'photo', status: i % 3 !== 0 ? 'verified' : 'missing', expiresOn: null },
     ],
     movementLog: [
       { at: appliedAt.slice(0, 10), action: 'Application submitted', location: 'Riyadh, SA' },
@@ -581,8 +622,147 @@ export const fillerApplicants: Applicant[] = Array.from({ length: 43 }, (_, i) =
     rejectionReason: status === 'rejected' ? cycle(REJECTION_REASONS, i) : null,
     decidedAt: offsetFromNow({ minutes: -appliedMinutesAgo + decidedAfter }),
     decidedByUserId: status === 'withdrawn' ? null : cycle(['USR-1', 'USR-5'], i),
-  } satisfies Applicant
+  } satisfies ApplicantSeed
 })
+
+/* ── the derived half of a document row ──────────────────────────────── */
+
+/**
+ * A small, stable integer from a string. FNV-1a, the same one the dispatch
+ * board and the trip telemetry use, and for the same reason: a file size that
+ * changed on every render would make a screenshot un-diffable.
+ */
+function hash(seed: string): number {
+  let value = 0x811c9dc5
+  for (let i = 0; i < seed.length; i++) {
+    value ^= seed.charCodeAt(i)
+    value = Math.imul(value, 0x01000193)
+  }
+  return value >>> 0
+}
+
+/**
+ * What each document arrives as.
+ *
+ * A phone photograph for the two cards and the portrait; a broker's PDF for the
+ * vehicle licence. All three media types are represented, because the viewer
+ * renders all three and a fixture that only ever produced JPEGs would leave two
+ * of its branches untested.
+ */
+const DOC_FILE: Readonly<
+  Record<DocumentType, Pick<ComplianceDocFile, 'name' | 'mimeType'> & { baseBytes: number }>
+> = {
+  id_card: { name: 'national-id.png', mimeType: 'image/png', baseBytes: 780_000 },
+  license: { name: 'driving-licence.jpg', mimeType: 'image/jpeg', baseBytes: 1_100_000 },
+  vehicle_reg: { name: 'istimara.pdf', mimeType: 'application/pdf', baseBytes: 240_000 },
+  photo: { name: 'profile-photo.jpg', mimeType: 'image/jpeg', baseBytes: 420_000 },
+}
+
+/**
+ * The five rejection codes, cycled by document id so the rejected state is
+ * reachable with more than one reason across the fixture set.
+ */
+const REJECTION_CODES: readonly ApplicantDocRejectionCode[] = [
+  'unclear',
+  'expired',
+  'mismatch',
+  'wrong_type',
+  'suspected_forgery',
+]
+
+/**
+ * What a reviewer read off one document.
+ *
+ * **Every value comes off the applicant's own record wherever the application
+ * carries the same fact** — the name, the national id, the date of birth, the
+ * city, the plate, the expiry. That is the whole point of the panel: an
+ * operator compares what the card says with what the applicant typed, and a
+ * fixture whose two halves were independently invented would make every row
+ * look like a mismatch.
+ *
+ * The licence number is the one field with no counterpart on the application,
+ * so it is derived from the id — stable, and obviously not a real licence.
+ */
+function readFieldsFor(
+  applicant: ApplicantSeed,
+  doc: ApplicantSeed['docs'][number],
+): ApplicantDocField[] {
+  const serial = String(1_000_000_000 + (hash(`${applicant.id}-${doc.type}`) % 899_999_999))
+  switch (doc.type) {
+    case 'license':
+      return [
+        { labelKey: 'applicant.read.licenceNo', value: serial },
+        { labelKey: 'applicant.read.class', value: 'Private — 3' },
+        { labelKey: 'applicant.read.expiry', value: doc.expiresOn ?? '' },
+        { labelKey: 'applicant.read.issuingCity', value: applicant.city },
+        { labelKey: 'applicant.read.nameOnDocument', value: applicant.name },
+      ]
+    case 'id_card':
+      return [
+        { labelKey: 'applicant.read.idNo', value: applicant.nationalId },
+        { labelKey: 'applicant.read.dateOfBirth', value: applicant.dateOfBirth },
+        { labelKey: 'applicant.read.nationality', value: 'Saudi' },
+        { labelKey: 'applicant.read.nameOnDocument', value: applicant.name },
+      ]
+    case 'vehicle_reg':
+      return [
+        { labelKey: 'applicant.read.plate', value: applicant.plate },
+        { labelKey: 'applicant.read.vehicle', value: applicant.vehicle },
+        { labelKey: 'applicant.read.expiry', value: doc.expiresOn ?? '' },
+        { labelKey: 'applicant.read.keeper', value: applicant.name },
+      ]
+    case 'photo':
+      /* A portrait has nothing printed on it. The panel says so rather than
+         rendering an empty grid, which is why the array may be empty and the
+         viewer has an empty state at all. */
+      return []
+  }
+}
+
+/** One seed row, with the four derived fields filled. */
+function withDocDetail(applicant: ApplicantSeed): Applicant {
+  return {
+    ...applicant,
+    docs: applicant.docs.map((doc): ApplicantDoc => {
+      const id = `${applicant.id}-${doc.type}`
+      const spec = DOC_FILE[doc.type]
+      const uploaded = doc.status !== 'missing'
+      const reviewed = doc.status === 'verified' || doc.status === 'rejected'
+      return {
+        id,
+        type: doc.type,
+        status: doc.status,
+        expiresOn: doc.expiresOn,
+        file: uploaded
+          ? {
+              name: spec.name,
+              mimeType: spec.mimeType,
+              /* Up to +50% on the type's base, stable per document. */
+              sizeBytes: spec.baseBytes + (hash(id) % Math.round(spec.baseBytes / 2)),
+              /* Uploaded an hour before the application was submitted — a
+                 document cannot arrive after the form that carries it. */
+              uploadedAt: new Date(Date.parse(applicant.appliedAt) - 3_600_000).toISOString(),
+              /* `null` — the applicant uploaded it from the driver app. The
+                 convention is `ComplianceDocFile`'s: a `USR-*` means a member
+                 of staff acted, `null` means the subject of the record did. */
+              uploadedByUserId: null,
+              uploadedByUserName: applicant.name,
+            }
+          : null,
+        readFields: reviewed ? readFieldsFor(applicant, doc) : [],
+        rejectionCode:
+          doc.status === 'rejected'
+            ? (REJECTION_CODES[hash(id) % REJECTION_CODES.length] ?? 'unclear')
+            : null,
+      }
+    }),
+  }
+}
+
+const namedApplicants: Applicant[] = namedApplicantSeeds.map(withDocDetail)
+
+/** 43 decided applications — see the header above the seeds. */
+export const fillerApplicants: Applicant[] = fillerApplicantSeeds.map(withDocDetail)
 
 /** 51 rows — eight hand-written files and forty-three decided. */
 export const applicantFixtures: Applicant[] = [...namedApplicants, ...fillerApplicants]

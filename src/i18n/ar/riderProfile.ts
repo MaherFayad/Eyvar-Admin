@@ -20,7 +20,6 @@ export const RIDER_PROFILE_AR: Dictionary = {
 
   'profile.rider.rail.unit': 'ر.س',
   'profile.rider.rail.underReview': 'مدفوعات قيد المراجعة',
-  'profile.rider.rail.underReviewNote': 'تم تحصيلها ولم تُسوَّ. غير مدرجة في الرصيد.',
   'profile.rider.rail.plan': 'الاشتراك',
   'profile.rider.rail.noPlan': 'لا يوجد اشتراك على هذا السجل',
   'profile.rider.rail.planLegs': 'استُخدمت {used} من {total} رحلة',
@@ -51,5 +50,9 @@ export const RIDER_PROFILE_AR: Dictionary = {
 
   'profile.rider.action.assign': 'إسناد كابتن',
   'profile.rider.refusal.assignAssigned': 'يوجد كابتن مُسنَد بالفعل إلى هذه الرحلة.',
-  'profile.rider.refusal.assign': 'يُسنَد الكابتن من لوحة التوزيع. هذه الطبقة لا تنفّذ أي إجراء.',
+  /* G1 — the English dropped a second sentence naming a design rule ("this
+     layer commits nothing"), which no operator can act on, and moved from the
+     singular present, which read as though a captain had already been assigned.
+     The Arabic follows: the practice, plural, and nothing about layers. */
+  'profile.rider.refusal.assign': 'يُسنَد الكباتن من لوحة التوزيع.',
 }

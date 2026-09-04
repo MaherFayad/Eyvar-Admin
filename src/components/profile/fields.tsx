@@ -264,7 +264,9 @@ export function FieldList({
  * missing costs a click to recover information the reader had before this
  * change. It is shorter, not hidden.
  */
-function AbsentLine({ labels, t }: { labels: readonly string[]; t: Translate }) {
+/* Exported for the captain page's tabbed panels, which need the same one-line
+   summary outside `FieldList`. One export, no signature change. */
+export function AbsentLine({ labels, t }: { labels: readonly string[]; t: Translate }) {
   if (labels.length === 0) return null
   return (
     <p className="text-xs text-muted-foreground">

@@ -33,6 +33,8 @@ import { fairnessCaseFixtures } from '../fixtures/fairness'
 import { allTripFixtures } from '../fixtures/trips'
 import { riderFixtures } from '../fixtures/riders'
 import { allSubscriptionFixtures } from '../fixtures/subscriptions'
+import { safetyIncidentFixtures } from '../fixtures/safety'
+import { addDays } from '../reporting/buckets'
 import { listDrivers } from './drivers'
 import { listSafetyIncidents } from './safety'
 import { listSubscriptions } from './subscriptions'
@@ -44,6 +46,7 @@ import {
   listMetrics,
 } from './metrics'
 import { getRouteTable } from './routes'
+import type { TimeSeries } from '../types/metrics'
 
 beforeEach(() => {
   disableMockLatency()
@@ -355,6 +358,11 @@ describe('board coverage', () => {
     const board = await getMetricBoard('management-risk')
     expect(board.metrics.length).toBeGreaterThan(0)
     expect(board.metrics.every((m) => m.category === 'risk')).toBe(true)
+    /* **The guard the title needs.** `[].every()` is vacuously `true`, and the
+       length assertion above covers `metrics` only — so `management-risk`
+       could stop seeding a single series and this line, in a test that says
+       "metrics AND series", would still be green over nothing. */
+    expect(board.charts.length, 'the board seeds series, not only tiles').toBeGreaterThan(0)
     expect(board.charts.every((c) => c.comparison === null)).toBe(true)
   })
 })
@@ -1312,6 +1320,10 @@ describe('12 — a window the operator asks for moves what it can, and declares 
     /* Asking for the window a board already answers is not a divergence, and a
        banner stating one would be a banner that is false. */
     const board = await getMetricBoard('support-fairness', { from: '2026-06-19', to: '2026-06-25' })
+    /* Without this the `.every()` below is `true` over an empty array, and a
+       `getMetricBoard` that returned no tiles at all for a windowed request
+       would pass the test written to catch exactly that. */
+    expect(board.metrics.length, 'the windowed board still carries its tiles').toBeGreaterThan(0)
     expect(
       board.metrics.every((m) => m.periodStart === null || m.periodStart === '2026-06-19'),
     ).toBe(true)
@@ -1323,6 +1335,12 @@ describe('12 — a window the operator asks for moves what it can, and declares 
        claims a window, so nothing on them diverges from one. */
     for (const subTabId of ['operations-overview', 'admin-overview']) {
       const board = await getMetricBoard(subTabId, PICKED)
+      /* `[].some()` is `false`, so without this the whole subject of the test
+         goes unverified the moment a windowed point-in-time board returns no
+         metrics: the claim "nothing on them claims a window" would be carried
+         by there being nothing on them at all. The sibling at the top of this
+         file guards; this one did not. */
+      expect(board.metrics.length, subTabId).toBeGreaterThan(0)
       expect(
         board.metrics.some((m) => m.periodStart !== null),
         subTabId,
@@ -1338,5 +1356,634 @@ describe('12 — a window the operator asks for moves what it can, and declares 
       const board = await getMetricBoard(subTabId)
       expect(board.notices.map((n) => n.key), subTabId).not.toContain(PERIOD_NOTICE_KEY)
     }
+  })
+})
+
+/* ═══════════════════════ 13 — §E4, the KPI row that drives a chart ═══════
+   `BoardHero`'s lead row becomes a `radiogroup` when a board carries TWO OR
+   MORE `rank: 'lead'` metrics whose keys a `TimeSeries` also carries
+   (`MetricBoardScreen`: `charts.find(c => c.key === metric.key)`). One
+   selectable lead hoists its chart under the band and leaves the row the plain
+   list it always was; none hoists nothing.
+
+   The join is a fact about THIS FIXTURE and about nothing else, so it is
+   pinned here rather than inferred on a screen. Everything below fails in both
+   directions — a series that stops matching a metric and a series that starts
+   matching one both change what a board renders, and neither should happen
+   without somebody deciding it.                                             */
+
+describe('13 — the metric ↔ series join that §E4 selects on', () => {
+  const seriesKeys = async () => {
+    const keys: string[] = []
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const chart of (await getMetricBoard(subTabId)).charts) keys.push(chart.key)
+    }
+    return keys
+  }
+
+  it('gives every chart a key no other chart uses — `getMetricSeries` finds by key', async () => {
+    const keys = await seriesKeys()
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  /**
+   * **The whole join, as one list.**
+   *
+   * Seven of the fifteen series share a key with a metric; the other eight are
+   * the charts that own no tile, and those two facts are the same fact — see
+   * the `windowTotal` assertion below, which is its other half.
+   *
+   * Four of the seven arrived with §E4 and are the reason the radiogroup is
+   * reachable from real data at all. They were **not** produced by loosening
+   * the join: each is a reconstruction over rows this layer already serves, and
+   * each is pinned against the tile it sits under in section 14.
+   */
+  it('shares a key with a metric on exactly eight of the sixteen series', async () => {
+    const metricKeys = new Set((await allMetrics()).map((m) => m.key))
+    const shared = (await seriesKeys()).filter((k) => metricKeys.has(k)).sort()
+    expect(shared).toEqual([
+      'management.overview.grossRevenue',
+      'management.performance.cancellationRate',
+      'management.performance.tripsCompleted',
+      'support.fairness.earningsPerEngagedHour',
+      'support.fairness.overturnRate',
+      'support.overview.contactsPerThousandTrips',
+      'support.overview.openIncidents',
+      'support.overview.unacknowledgedCriticalIncidents',
+    ])
+    expect((await seriesKeys()).length).toBe(16)
+  })
+
+  /**
+   * **Which boards render the radiogroup, per board, with the keys in the order
+   * the row draws them.**
+   *
+   * Read as a table rather than as a predicate. A board is a *choice* at two and
+   * a plain list below it, and the difference is announced — a radiogroup of one
+   * is *"radio button, checked, 1 of 1"* about a control with no second state,
+   * which is why `MetricBoardScreen` sets the threshold at two.
+   *
+   * **Three boards are live.** `management-performance`, `support-fairness` and
+   * `support-overview` each carry two charted leads, so each renders a real
+   * radiogroup whose selection redraws the chart under the band.
+   *
+   * The order matters and is asserted, not incidental: `getMetricBoard` sorts
+   * the leads into `BOARD_LEADS` order, so the FIRST entry here is the one the
+   * band checks on arrival and the chart it hoists. `tripsCompleted` before
+   * `cancellationRate` is that table's editorial sequence — *volume, then the
+   * way it failed* — surviving into the rendered row.
+   *
+   * **`management-overview` is the ONE board with exactly one charted lead**, so
+   * it hoists `grossRevenue`'s line under the band and leaves the row a plain
+   * list. That case is worth having in the real fixtures and not only in a
+   * constructed board — it is what every other board looks like the day it gains
+   * a first chartable lead.
+   *
+   * **Five boards stay a plain list with nothing hoisted, and none is a gap to
+   * close.** They carry no lead that anything can honestly chart:
+   * `management-risk` and `admin-overview` lead with point-in-time readings
+   * nothing records a history of; `management-zones` leads with a 30-day rolling
+   * total; `management-growth` and `operations-overview` lead with measures
+   * whose daily reconstruction crosses stores that keep no dated rows. Inventing
+   * a series for any of them is the one thing this fixture will not do.
+   */
+  it('gives three boards a real choice, and leaves six a plain list', async () => {
+    const joinable: Record<string, string[]> = {}
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId)
+      const charted = new Set(board.charts.map((c) => c.key))
+      joinable[subTabId] = board.metrics
+        .filter((m) => m.rank === 'lead' && charted.has(m.key))
+        .map((m) => m.key)
+    }
+    expect(joinable).toEqual({
+      'management-overview': ['management.overview.grossRevenue'],
+      'management-performance': [
+        'management.performance.tripsCompleted',
+        'management.performance.cancellationRate',
+      ],
+      'management-risk': [],
+      'management-growth': [],
+      'management-zones': [],
+      'operations-overview': [],
+      'support-overview': [
+        'support.overview.unacknowledgedCriticalIncidents',
+        'support.overview.openIncidents',
+      ],
+      'admin-overview': [],
+      'support-fairness': [
+        'support.fairness.overturnRate',
+        'support.fairness.earningsPerEngagedHour',
+      ],
+    })
+    const live = Object.entries(joinable)
+      .filter(([, leads]) => leads.length >= 2)
+      .map(([subTabId]) => subTabId)
+    expect(live).toEqual(['management-performance', 'support-overview', 'support-fairness'])
+  })
+
+  /**
+   * **The chart the band hoists on arrival is a chart the board actually has.**
+   *
+   * `MetricBoardScreen` falls back to `selectableLeads[0]?.key` when the
+   * operator has chosen nothing, and lifts that chart out of the detail row. If
+   * a lead were charted by a series on ANOTHER board the find would return
+   * nothing and the band would hoist an empty slot, so the join is checked
+   * within the board rather than across the fixture.
+   */
+  it('keeps every joinable lead’s chart on the same board as the figure', async () => {
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      const board = await getMetricBoard(subTabId)
+      for (const chart of board.charts) {
+        const owner = board.metrics.find((m) => m.key === chart.key)
+        if (!owner) continue
+        expect(owner.subTabId, chart.key).toBe(chart.subTabId)
+        expect(chart.subTabId, chart.key).toBe(subTabId)
+      }
+    }
+  })
+
+  /**
+   * **`windowTotal` is declared by exactly the charts that own no tile**, which
+   * is what `types/metrics.ts` says it is for: *"a chart whose key matches a
+   * metric on the same board shows THAT metric, which is the number the board
+   * already owns"*.
+   *
+   * Stated as a biconditional over the real fixtures rather than as a count of
+   * eight, because the count is right by coincidence the moment a series is
+   * added and another removed. A twelfth series that shared a key with a metric
+   * AND declared a `sum` would print two different numbers for one measure at
+   * the top of one card, and only this shape catches that.
+   */
+  it('declares a windowTotal on a chart if and only if no metric owns its key', async () => {
+    const metricKeys = new Set((await allMetrics()).map((m) => m.key))
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const chart of (await getMetricBoard(subTabId)).charts) {
+        const ownsATile = metricKeys.has(chart.key)
+        const declares = chart.windowTotal !== undefined && chart.windowTotal !== null
+        expect(declares, `${chart.key} — owned by a tile: ${ownsATile}`).toBe(!ownsATile)
+      }
+    }
+  })
+
+  it('gives a series that owns a tile that tile’s unit, currency and valence', async () => {
+    const metrics = await allMetrics()
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const chart of (await getMetricBoard(subTabId)).charts) {
+        const owner = metrics.find((m) => m.key === chart.key)
+        if (!owner) continue
+        expect(chart.unit, chart.key).toBe(owner.unit)
+        expect(chart.currency, chart.key).toBe(owner.currency)
+        /* The tile's valence and the card's must agree, or one of them tints a
+           trend the other calls good. */
+        expect(chart.higherIsBetter, chart.key).toBe(owner.higherIsBetter)
+      }
+    }
+  })
+
+  /**
+   * **A gap is `null` and a zero is `0`, on every point of every series.**
+   *
+   * Section 4 pins the three named cases; this pins the property over the whole
+   * fixture, so a series added later cannot quietly fill a missing day with a
+   * zero. There is nothing to assert about *which* days are gaps — that is
+   * editorial — but there is something to assert about the alternative never
+   * being reached for: every point is a finite number or `null`, and both kinds
+   * exist, so neither clause is vacuous.
+   */
+  it('carries a number or a null on every point, and never a stand-in for a gap', async () => {
+    let nulls = 0
+    let zeros = 0
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const chart of (await getMetricBoard(subTabId)).charts) {
+        for (const window of [chart.current, chart.comparison]) {
+          if (!window) continue
+          for (const point of window.points) {
+            expect(point.at, chart.key).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+            if (point.value === null) {
+              nulls += 1
+              continue
+            }
+            expect(Number.isFinite(point.value), `${chart.key} @ ${point.at}`).toBe(true)
+            if (point.value === 0) zeros += 1
+          }
+        }
+      }
+    }
+    expect(nulls).toBe(1)
+    expect(zeros).toBeGreaterThan(0)
+  })
+
+  it('keeps a gap and a measured zero in different series, not different days of one', async () => {
+    const gap = await getMetricSeries('management.performance.onTimePickup')
+    const zeroes = await getMetricSeries('management.zones.unservedRequests')
+    expect(gap.current.points.filter((p) => p.value === null)).toHaveLength(1)
+    expect(gap.current.points.filter((p) => p.value === 0)).toHaveLength(0)
+    expect(zeroes.current.points.filter((p) => p.value === null)).toHaveLength(0)
+    expect(zeroes.current.points.filter((p) => p.value === 0)).toHaveLength(7)
+  })
+
+  /**
+   * **Every scalar on every board, as one fingerprint.**
+   *
+   * `value`, `deltaPercent`, `direction` and the comparison, for all of them,
+   * in board order. A diff here is one of exactly two things and both want a
+   * human:
+   *
+   *   - a number in `fixtures/metrics.ts` moved, which is the case this exists
+   *     to catch — **seeding a chart must not move a tile**;
+   *   - a fixture this client DERIVES from moved (drivers, riders, trips,
+   *     subscriptions, safety, fairness, zones), in which case the owner of
+   *     that fixture updates this block deliberately and the change is visible
+   *     in their diff rather than absorbed silently.
+   */
+  it('has not moved a single tile — value, delta, direction or comparison', async () => {
+    const fingerprint: string[] = []
+    for (const subTabId of METRIC_BOARD_SUB_TABS) {
+      for (const m of (await getMetricBoard(subTabId)).metrics) {
+        const against =
+          m.comparison.kind === 'none'
+            ? `none:${m.comparison.reason}`
+            : `${m.comparison.kind}:${m.comparison.value}`
+        fingerprint.push(`${m.key} = ${m.value} · ${m.deltaPercent} ${m.direction} vs ${against}`)
+      }
+    }
+    expect(fingerprint).toMatchInlineSnapshot(`
+      [
+        "management.overview.grossRevenue = 807570 · 57 up vs previous-period:514322",
+        "management.overview.contributionMargin = 11 · -15.4 down vs previous-period:13",
+        "management.overview.activeSubscriptions = 47 · 46.9 up vs previous-period:32",
+        "management.overview.activeCaptains = 51 · 2 up vs previous-period:50",
+        "management.overview.netSubscriptionMovement = 30 · -3.2 down vs previous-period:31",
+        "management.overview.sameCaptainKept = 83 · -12.6 down vs target:95",
+        "management.overview.onTimePickup = 91 · -4.2 down vs target:95",
+        "management.overview.arpa = 86131 · 435.9 up vs previous-period:16072",
+        "management.overview.revenueMix = 50.1 · -19.7 down vs previous-period:62.4",
+        "management.overview.revenuePerActiveCaptain = 128186 · 1171.2 up vs previous-period:10084",
+        "management.overview.tripMix = 0.5 · null null vs none:no-history",
+        "management.performance.tripsCompleted = 40 · 14.3 up vs previous-period:35",
+        "management.performance.cancellationRate = 6.7 · 28.8 up vs previous-period:5.2",
+        "management.performance.avgCaptainRating = 4 · 2.6 up vs previous-period:3.9",
+        "management.performance.avgRenewalRate = 62 · null null vs none:insufficient-data",
+        "management.performance.complaintRatePer100Trips = 5.8 · -15.9 down vs previous-period:6.9",
+        "management.performance.repeatLatenessConcentration = 62.4 · 7.4 up vs previous-period:58.1",
+        "management.risk.revenueAtRisk = 184700 · 13.7 up vs previous-period:162400",
+        "management.risk.churnPredictedSubscriptions = 2 · -33.3 down vs previous-period:3",
+        "management.risk.atRiskCaptains = 3 · 50 up vs previous-period:2",
+        "management.risk.identityCollisions = 0 · -100 down vs previous-period:1",
+        "management.risk.repeatIncidentCaptains = 1 · -50 down vs previous-period:2",
+        "management.risk.paymentRiskRenewals = 1 · -75 down vs previous-period:4",
+        "management.risk.revenueAtRiskShareOfMrr = 11.9 · 14.4 up vs previous-period:10.4",
+        "management.risk.daysToRenewalAtRisk = 13 · -23.5 down vs previous-period:17",
+        "management.growth.newRiders = 0 · -100 down vs previous-period:1",
+        "management.growth.activationRate7d = 1.8 · 20 up vs previous-period:1.5",
+        "management.growth.ltvCacRatio = 5.2 · 18.2 up vs previous-period:4.4",
+        "management.growth.promoROI = 1.3 · 18.2 up vs previous-period:1.1",
+        "management.growth.promoBudgetConsumed = 42 · null null vs none:no-target",
+        "management.growth.subscriptionsFromPromos = 219 · 30.4 up vs previous-period:168",
+        "management.growth.registeredRiders = 55 · 1.9 up vs previous-period:54",
+        "management.growth.dormantRiderShare = 2 · -50 down vs previous-period:4",
+        "management.growth.referralAndIncentiveSpend = 9500 · 15.9 up vs previous-period:8200",
+        "management.growth.qrToSubConversionRate = 10 · 16.3 up vs previous-period:8.6",
+        "management.growth.cacPerSubscription = 13571 · -14.6 down vs previous-period:15900",
+        "management.zones.unservedRequests30d = 31 · 29.2 up vs previous-period:24",
+        "management.zones.starvedZones = 2 · -33.3 down vs previous-period:3",
+        "management.zones.liveCities = 1 · -75 down vs target:4",
+        "management.zones.captainsNeeded = 3 · -40 down vs previous-period:5",
+        "management.zones.avgFailureRate = 45 · 15.4 up vs previous-period:39",
+        "management.zones.steerOffersLive = 0 · null null vs none:insufficient-data",
+        "management.zones.worstDemandSupplyRatio = 7 · 34.6 up vs previous-period:5.2",
+        "management.zones.unservedDemandCities = 18 · 50 up vs previous-period:12",
+        "management.zones.applicantPipelinePerCity = 5 · 66.7 up vs previous-period:3",
+        "management.zones.steerOfferAcceptanceRate = 68.5 · -3.8 down vs previous-period:71.2",
+        "operations.overview.slaAttainmentPercent = 80.4 · -6.7 down vs previous-period:86.2",
+        "operations.overview.breachedWorkItems = 13 · 44.4 up vs previous-period:9",
+        "operations.overview.unclaimedWork = 20 · 17.6 up vs previous-period:17",
+        "operations.overview.applicationsPastWindow = 2 · -60 down vs previous-period:5",
+        "operations.overview.pendingApplications = 5 · 150 up vs previous-period:2",
+        "operations.overview.legsUncovered = 4 · -33.3 down vs previous-period:6",
+        "operations.overview.openRequests = 7 · 16.7 up vs previous-period:6",
+        "operations.overview.complianceExpired = 2 · -33.3 down vs previous-period:3",
+        "operations.overview.captainsAvailable = 50 · 8.7 up vs previous-period:46",
+        "operations.overview.oldestItemWaitingMinutes = 7259 · 26 up vs previous-period:5760",
+        "operations.overview.medianTimeToAssign = 60 · 15.4 up vs previous-period:52",
+        "operations.overview.riderAbandonmentRate = 3.7 · -24.5 down vs previous-period:4.9",
+        "support.overview.unacknowledgedCriticalIncidents = 2 · 100 up vs previous-period:1",
+        "support.overview.openIncidents = 6 · 50 up vs previous-period:4",
+        "support.overview.medianTimeToFirstResponse = 14 · 27.3 up vs previous-period:11",
+        "support.overview.contactsPerThousandTrips = null · null null vs none:no-history",
+        "support.overview.uncodedContactShare = null · null null vs target:3",
+        "support.overview.openFairnessCases = 14 · 600 up vs previous-period:2",
+        "support.overview.overturnRate = 63 · 0 flat vs previous-period:63",
+        "support.overview.repeatContactRate = 1.8 · -25 down vs previous-period:2.4",
+        "admin.overview.operatorsWithoutTwoFactor = 3 · null up vs target:0",
+        "admin.overview.erasureOverdue = 1 · -50 down vs previous-period:2",
+        "admin.overview.rotaGaps = 42 · 0 flat vs previous-period:42",
+        "admin.overview.activeOperators = 4 · 33.3 up vs previous-period:3",
+        "admin.overview.itemsResolvedPerOperatorHour = 4.8 · 17.1 up vs previous-period:4.1",
+        "admin.overview.workloadBalance = 1.4 · 16.7 up vs previous-period:1.2",
+        "support.fairness.overturnRate = 63 · 0 flat vs previous-period:63",
+        "support.fairness.suspendedCaptains = 1 · -50 down vs previous-period:2",
+        "support.fairness.earningsPerEngagedHour = 4180 · -9.5 down vs previous-period:4620",
+        "support.fairness.earningsP10 = 417 · 6.4 up vs previous-period:392",
+        "support.fairness.earningsP90 = 1474 · -2.9 down vs previous-period:1518",
+        "support.fairness.suspensionRatePer100 = 2 · -42.9 down vs previous-period:3.5",
+      ]
+    `)
+  })
+})
+
+/* ═════ 14 — the four §E4 series, each against the tile it sits under ═════
+   A chart whose key matches a metric shows THAT metric (`types/metrics.ts`), so
+   the window's own answer and the figure above it cannot be two numbers. Each
+   test below does the same two things: it rebuilds the series from the rows it
+   claims to read, and it checks that what the fixture actually serves is that
+   rebuild — so a hand-edited point cannot drift away from the store it came
+   from — and then it checks the rebuild against the tile's seeded value and,
+   where one can honestly exist, its seeded baseline.
+
+   This is the pairing that makes the radiogroup safe to operate. Selecting a
+   figure redraws the chart beneath it, and an operator reads the two as one
+   claim; a series that agreed with its tile only by coincidence would break
+   that the first time somebody edited a trip.                                */
+
+describe('14 — the four §E4 series reconcile with their tiles', () => {
+  /** Every calendar day of a window, inclusive, as `YYYY-MM-DD`. */
+  const daysOf = (w: { start: string; end: string }): string[] => {
+    const out: string[] = []
+    for (let at = w.start; at <= w.end; at = addDays(at, 1)) out.push(at)
+    return out
+  }
+  const dayOf = (instant: string | null): string | null => instant?.slice(0, 10) ?? null
+
+  const metric = async (key: string) => (await allMetrics()).find((m) => m.key === key)!
+  const baselineOf = async (key: string) => {
+    const comparison = (await metric(key)).comparison
+    return comparison.kind === 'none' ? null : comparison.value
+  }
+  const sum = (points: { value: number | null }[]) =>
+    points.reduce((total, p) => total + (p.value ?? 0), 0)
+
+  /**
+   * **`management.performance.tripsCompleted` — Management › Performance's
+   * second joinable lead, and the cleanest of the four.**
+   *
+   * A FLOW: trips that finished on each day, from `endedAt` on the same trip
+   * rows `completedIn()` counts. Both windows reconcile exactly — the current
+   * one sums to the tile, the previous one to the tile's own baseline — so the
+   * card's line and the figure above it cannot disagree.
+   *
+   * 4 June is a genuine `0` and not a gap: the trip store covers 12 May to
+   * 25 June, so that day was queried and nothing finished on it.
+   */
+  const completedPerDay = (w: { start: string; end: string }) =>
+    daysOf(w).map((at) => ({
+      at,
+      value: allTripFixtures.filter((t) => t.status === 'done' && dayOf(t.endedAt) === at).length,
+    }))
+
+  it('trips completed — the daily counts sum to the tile, both windows', async () => {
+    const series = await getMetricSeries('management.performance.tripsCompleted')
+    const current = completedPerDay(SNAPSHOT_CURRENT)
+    const previous = completedPerDay(SNAPSHOT_PREVIOUS)
+
+    /* What is served IS the reconstruction, day for day. */
+    expect(series.current.points).toEqual(current)
+    expect(series.comparison!.points).toEqual(previous)
+    expect(series.current.periodStart).toBe(SNAPSHOT_CURRENT.start)
+    expect(series.current.periodEnd).toBe(SNAPSHOT_CURRENT.end)
+    expect(current).toHaveLength(15)
+    expect(previous).toHaveLength(15)
+
+    expect(sum(current)).toBe((await metric('management.performance.tripsCompleted')).value)
+    expect(sum(previous)).toBe(await baselineOf('management.performance.tripsCompleted'))
+    /* A measured zero inside a covered range, which is the point of seeding it
+       as `0` rather than as a gap. */
+    expect(previous.find((p) => p.at === '2026-06-04')!.value).toBe(0)
+    expect(series.current.points.every((p) => p.value !== null)).toBe(true)
+  })
+
+  /**
+   * **`support.fairness.overturnRate` — Support › Fairness's second joinable
+   * lead.**
+   *
+   * The tile's own definition applied at each date: overturned as a share of
+   * *decided* (`upheld` + `overturned`; `withdrawn` is not a decision), over
+   * every case decided on or before that day. So the last point of a window IS
+   * the number the tile prints for that window, by construction rather than by
+   * coincidence — and both ends land: 25 June reproduces the tile, 10 June
+   * reproduces the baseline the tile compares against.
+   *
+   * **The fifteen-day snapshot pair, not the seven-day chart pair.** The
+   * seven-day comparison window closes at 62 against a recorded 63, and a
+   * dotted line ending one point away from the number the tile names as its
+   * baseline is a contradiction an operator can see. Its board-mate
+   * `earningsPerEngagedHour` is on the seven-day pair, which makes this an
+   * instance of **F-7** — the missing board-level period — and not a new
+   * finding.
+   */
+  const cumulativeOverturnRate = (upTo: string): number | null => {
+    const decided = fairnessCaseFixtures.filter(
+      (c) =>
+        (c.status === 'upheld' || c.status === 'overturned') &&
+        c.decidedAt !== null &&
+        dayOf(c.decidedAt)! <= upTo,
+    )
+    if (decided.length === 0) return null
+    return Math.round(
+      (decided.filter((c) => c.status === 'overturned').length / decided.length) * 100,
+    )
+  }
+
+  it('overturn rate — the last point of each window is the number the tile prints', async () => {
+    const series = await getMetricSeries('support.fairness.overturnRate')
+    const current = daysOf(SNAPSHOT_CURRENT).map((at) => ({ at, value: cumulativeOverturnRate(at) }))
+    const previous = daysOf(SNAPSHOT_PREVIOUS).map((at) => ({ at, value: cumulativeOverturnRate(at) }))
+
+    expect(series.current.points).toEqual(current)
+    expect(series.comparison!.points).toEqual(previous)
+    expect(current).toHaveLength(15)
+    expect(previous).toHaveLength(15)
+
+    expect(current.at(-1)!.value).toBe((await metric('support.fairness.overturnRate')).value)
+    expect(previous.at(-1)!.value).toBe(await baselineOf('support.fairness.overturnRate'))
+    /* No gaps: appeals have been decided since 16 May, so every day in both
+       windows has a denominator. A rate over nothing would be `null`, and this
+       reconstruction is the one that would produce it. */
+    expect(current.every((p) => p.value !== null)).toBe(true)
+    expect(previous.every((p) => p.value !== null)).toBe(true)
+    /* It is not a flat line, which is what makes it worth charting: the rate
+       falls four points on 19 June when three appeals are decided and one is
+       overturned. */
+    expect(new Set(current.map((p) => p.value)).size).toBeGreaterThan(1)
+    /* Percent, and mirroring the tile's counter-intuitive valence. */
+    expect(series.unit).toBe('percent')
+    expect(series.higherIsBetter).toBe(true)
+  })
+
+  /**
+   * **`support.overview.openIncidents` and
+   * `support.overview.unacknowledgedCriticalIncidents` — Support › Overview's
+   * pair, and the one board of the three that ships with NO comparison line.**
+   *
+   * Both are STOCKS reconstructed from `openedAt` / `closedAt` on the incident
+   * rows the Safety queue serves, and both close on the number their tile
+   * prints.
+   *
+   * **Their previous windows are not plotted, and the fixture already says
+   * why**: the two baselines — 4 open, 1 unacknowledged — are *recorded*
+   * numbers, and *"every incident opened before 10 Jun in `fixtures/safety.ts`
+   * was closed the same day, so a reconstruction reads zero"*. A dotted line
+   * closing at 0 beside a tile naming 4 is two claims about one fortnight on one
+   * board. The assertions below are what keep that a decision rather than an
+   * omission somebody later "fixes" by seeding the zeros.
+   */
+  const openIncidentsOn = (at: string) =>
+    safetyIncidentFixtures.filter(
+      (i) => dayOf(i.openedAt)! <= at && (i.closedAt === null || dayOf(i.closedAt)! > at),
+    )
+
+  it('open incidents — the last point is the tile, and the previous window is unplottable', async () => {
+    const series = await getMetricSeries('support.overview.openIncidents')
+    const current = daysOf(SNAPSHOT_CURRENT).map((at) => ({ at, value: openIncidentsOn(at).length }))
+
+    expect(series.current.points).toEqual(current)
+    expect(current).toHaveLength(15)
+    expect(current.at(-1)!.value).toBe((await metric('support.overview.openIncidents')).value)
+    /* Real zeros, not gaps: the store holds rows over this range and none of
+       them was open on those days. */
+    expect(current.filter((p) => p.value === 0).length).toBeGreaterThan(0)
+    expect(current.every((p) => p.value !== null)).toBe(true)
+
+    /* The reconstruction of the comparison window and the tile's recorded
+       baseline disagree, which is why no comparison window is seeded. */
+    expect(series.comparison).toBeNull()
+    expect(openIncidentsOn(SNAPSHOT_PREVIOUS.end).length).toBe(0)
+    expect(await baselineOf('support.overview.openIncidents')).toBe(4)
+  })
+
+  it('unacknowledged critical incidents — same shape, same unplottable baseline', async () => {
+    const unacknowledgedOn = (at: string) =>
+      openIncidentsOn(at).filter(
+        (i) =>
+          i.severity === 'critical' &&
+          i.firstResponseBreachedAt !== null &&
+          dayOf(i.firstResponseBreachedAt)! <= at,
+      ).length
+    const series = await getMetricSeries('support.overview.unacknowledgedCriticalIncidents')
+    const current = daysOf(SNAPSHOT_CURRENT).map((at) => ({ at, value: unacknowledgedOn(at) }))
+
+    expect(series.current.points).toEqual(current)
+    expect(current).toHaveLength(15)
+    expect(current.at(-1)!.value).toBe(
+      (await metric('support.overview.unacknowledgedCriticalIncidents')).value,
+    )
+    /* Fourteen measured zeros and then two, which is the news this board exists
+       to carry rather than a defect in the seed. */
+    expect(current.slice(0, -1).every((p) => p.value === 0)).toBe(true)
+
+    expect(series.comparison).toBeNull()
+    expect(unacknowledgedOn(SNAPSHOT_PREVIOUS.end)).toBe(0)
+    expect(await baselineOf('support.overview.unacknowledgedCriticalIncidents')).toBe(1)
+  })
+
+  /**
+   * **`management.overview.grossRevenue` — seeded, and the only one of the five
+   * that makes no radiogroup.**
+   *
+   * It is the best-reconciled series anywhere in this fixture: every point is
+   * `totalRevenueHalalas` off a snapshot row ported verbatim from
+   * `:13803`–`:13832`, and the two windows sum exactly to the tile and to its
+   * baseline. It is also the sum of the two revenue cards already on that board,
+   * which is why it earns the hoisted slot ABOVE them rather than a third place
+   * beside them — a total over its own two halves is a check a reader performs
+   * by looking.
+   *
+   * Management › Overview's other two leads cannot be charted honestly
+   * (`contributionMargin` is a literal with Q7 open; `activeSubscriptions` is
+   * disqualified below), so this board carries **exactly one** charted lead and
+   * renders the plain list with a hoisted chart. That is the third of the three
+   * states §E4 has, and it is the only board that reaches it from real data.
+   */
+  it('gross revenue — the snapshot rows sum to the tile and to its baseline', async () => {
+    const series = await getMetricSeries('management.overview.grossRevenue')
+    const sumOver = (w: { start: string; end: string }) =>
+      snapshotsBetween(w.start, w.end).reduce((total, s) => total + s.totalRevenueHalalas, 0)
+
+    expect(series.current.points).toHaveLength(15)
+    expect(sum(series.current.points)).toBe(sumOver(SNAPSHOT_CURRENT))
+    expect(sum(series.comparison!.points)).toBe(sumOver(SNAPSHOT_PREVIOUS))
+    expect(sumOver(SNAPSHOT_CURRENT)).toBe((await metric('management.overview.grossRevenue')).value)
+    expect(sumOver(SNAPSHOT_PREVIOUS)).toBe(await baselineOf('management.overview.grossRevenue'))
+
+    /* Integer halalas on every point, so nothing here carries a float through a
+       ledger. */
+    for (const point of series.current.points) expect(Number.isInteger(point.value)).toBe(true)
+    for (const s of dailySnapshotFixtures) expect(Number.isInteger(s.totalRevenueHalalas)).toBe(true)
+
+    /* **And it really is the two cards below it — AC-695's argument one level
+       up.** A board that states a total and its parts has to agree with itself,
+       and here it does where it matters: the WINDOW totals are equal to the
+       halala, both windows.
+
+       Day by day the two halves can miss the total by **one halala**, on 4 of
+       the 30 ported rows. That is a property of `:13803`–`:13832` — legacy
+       rounded `quickRideRevenue` and `subRevenue` independently from SAR strings
+       and the pair does not always re-add to the rounded total — and it is
+       recorded here rather than corrected, because correcting it would change a
+       seeded number. It is invisible on the chart (one halala on a 44,000-halala
+       point) and it cancels out over a window. */
+    const quick = await getMetricSeries('management.overview.quickRideRevenue')
+    const subs = await getMetricSeries('management.overview.subscriptionRevenue')
+    const halves = (series: TimeSeries, i: number) => series.current.points[i]!.value!
+    series.current.points.forEach((point, i) => {
+      const parts = halves(quick, i) + halves(subs, i)
+      expect(Math.abs(point.value! - parts), point.at).toBeLessThanOrEqual(1)
+    })
+    expect(sum(series.current.points)).toBe(
+      sum(quick.current.points) + sum(subs.current.points),
+    )
+    expect(sum(series.comparison!.points)).toBe(
+      sum(quick.comparison!.points) + sum(subs.comparison!.points),
+    )
+  })
+
+  /**
+   * **`management.overview.activeSubscriptions` is disqualified, and the reason
+   * is a finding rather than a fixture choice.**
+   *
+   * The tile counts `status === 'active'`. Its baseline is documented as the
+   * *date* predicate — *"`startedOn` on or before it, `endsOn` on or after it,
+   * not cancelled by then"* — and section 6 already asserts that predicate
+   * reproduces 32 at the close of 10 June. Run the same predicate at 25 June
+   * and it gives 60, not the 47 the tile prints.
+   *
+   * So a stock series built the only way it can be built would close 13 above
+   * the figure it sits under. It is not seeded for that reason. What the
+   * assertion below records is that **the tile already compares two different
+   * definitions of "active"** — a status count against a date-predicate count —
+   * which is defect L-3's shape on a tile nobody has looked at from this angle.
+   * `DailySnapshot.activeSubs` is a third definition again and reads 6.
+   */
+  it('active subscriptions — a stock series would close 13 above its own tile', async () => {
+    const activeOn = (at: string) =>
+      allSubscriptionFixtures.filter(
+        (s) =>
+          s.startedOn <= at &&
+          s.endsOn >= at &&
+          (s.cancelledAt === null || dayOf(s.cancelledAt)! > at),
+      ).length
+
+    const tile = await metric('management.overview.activeSubscriptions')
+    expect(activeOn(SNAPSHOT_PREVIOUS.end)).toBe(
+      await baselineOf('management.overview.activeSubscriptions'),
+    )
+    expect(activeOn(SNAPSHOT_CURRENT.end)).not.toBe(tile.value)
+    expect(activeOn(SNAPSHOT_CURRENT.end)).toBe(60)
+    expect(tile.value).toBe(47)
+    /* And the snapshot rollup is a third answer again. */
+    expect(snapshotsBetween(SNAPSHOT_CURRENT.end, SNAPSHOT_CURRENT.end)[0]!.activeSubs).toBe(6)
+    /* Unseeded, for the same reason gross revenue is. */
+    await expect(getMetricSeries('management.overview.activeSubscriptions')).rejects.toThrow()
   })
 })

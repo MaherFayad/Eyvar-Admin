@@ -51,7 +51,13 @@
  */
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+/* Deep import, not the `@/components/reports` barrel, which does not export it.
+   `PanelFrame` is the product's one answer to *"draw this surface, or draw it
+   without a frame because my caller already drew one"* — `PanelCard` and
+   `DistributionCard` are both on it. A second implementation here would be a
+   second set of rules about what an unframed surface keeps. */
+import { PanelFrame } from '@/components/reports/PanelCard'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -78,6 +84,26 @@ export interface ReportModeCanvasProps {
   violations: readonly QueryViolation[]
   measuresByKey: Readonly<Record<string, Measure>>
   onRetry: () => void
+  /**
+   * **The freshness sentence, and where it lives now** — the same prop, for the
+   * same reason, as `ResultCanvas.withMeta`. It moved to `ChartToolbar` (§A7),
+   * which renders above ALL FIVE canvases, so switching mode still does not
+   * change where the refresh is. Default `true` so any caller without a toolbar
+   * keeps it.
+   */
+  withMeta?: boolean
+  /**
+   * **Whether this canvas draws its own frame.** `true` by default, because on
+   * the builder it is the outermost surface.
+   *
+   * `ResultCanvas` has carried this since the tile stopped drawing two
+   * hairlines round every board panel, and this canvas needs it for the same
+   * reason and the same caller: `DashboardTile` is itself a `Card`, and a
+   * cohort pinned to a board drew a frame inside a frame — measured on
+   * `DSH-3`, two `[data-slot="card"]` boxes with a 1px border each against the
+   * trend tile's one.
+   */
+  framed?: boolean
   /** §3.7's sentence, passed in so it stays byte-identical with every board. */
   noDataSentence: string
   t: Translator
@@ -91,6 +117,8 @@ export function ReportModeCanvas({
   violations,
   measuresByKey,
   onRetry,
+  withMeta = true,
+  framed = true,
   noDataSentence,
   t,
   language,
@@ -114,36 +142,40 @@ export function ReportModeCanvas({
           action={{ label: t('rb.canvas.error.retry'), onClick: onRetry }}
         />
       ) : status === 'invalid' ? (
-        <Card className="w-full py-0">
+        <PanelFrame framed={framed} className="w-full py-0">
           <div role="alert" className="flex flex-col items-center gap-2 px-3 py-8 text-center">
             <p className="text-sm text-muted-foreground">{t('rb.canvas.invalid')}</p>
             <Reasons items={violations} t={t} />
           </div>
-        </Card>
+        </PanelFrame>
       ) : result ? (
         <>
           {/* Freshness and the way to change it in one control, identical to
               `ResultCanvas`'s — switching mode must not change where the
               refresh is. The sentence keeps its own `role="status"`; the
-              button stays outside the live region. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
-              {stale
-                ? t('rb.canvas.stale', {
-                    time: formatDate(result.asOf, { style: 'day-month-time', language }),
-                  })
-                : t('rb.canvas.asOf', {
-                    time: formatDate(result.asOf, { style: 'day-month-time', language }),
-                  })}
-            </p>
-            <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-              {t('rb.canvas.error.retry')}
-            </Button>
-          </div>
+              button stays outside the live region. Suppressed when a
+              `ChartToolbar` is carrying both above the canvas. */}
+          {withMeta && (
+            <div className="flex flex-wrap items-center gap-2">
+              <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
+                {stale
+                  ? t('rb.canvas.stale', {
+                      time: formatDate(result.asOf, { style: 'day-month-time', language }),
+                    })
+                  : t('rb.canvas.asOf', {
+                      time: formatDate(result.asOf, { style: 'day-month-time', language }),
+                    })}
+              </p>
+              <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+                {t('rb.canvas.error.retry')}
+              </Button>
+            </div>
+          )}
           <Conditions result={result} t={t} />
           <Body
             result={result}
             measuresByKey={measuresByKey}
+            framed={framed}
             noDataSentence={noDataSentence}
             t={t}
             language={language}
@@ -185,12 +217,14 @@ function Conditions({ result, t }: { result: ReportResult; t: Translator }) {
 function Body({
   result,
   measuresByKey,
+  framed,
   noDataSentence,
   t,
   language,
 }: {
   result: ReportResult
   measuresByKey: Readonly<Record<string, Measure>>
+  framed: boolean
   noDataSentence: string
   t: Translator
   language: Language
@@ -204,13 +238,20 @@ function Body({
   const readable = result.series.filter((s) => s.blocked === null)
 
   if (result.series.length === 0) {
-    return <NoData title={t(`rb.${mode}.heading`)} sentence={noDataSentence} t={t} />
+    return (
+      <NoData
+        title={t(`rb.${mode}.heading`)}
+        sentence={noDataSentence}
+        framed={framed}
+        t={t}
+      />
+    )
   }
 
   return (
-    <Card className="w-full min-w-0">
+    <PanelFrame framed={framed} className="w-full min-w-0">
       <CardHeader>
-        <CardTitle>{t(`rb.${mode}.heading`)}</CardTitle>
+        <CardTitle className={framed ? undefined : 'text-sm'}>{t(`rb.${mode}.heading`)}</CardTitle>
       </CardHeader>
       <CardContent className="min-w-0">
         {blocked.length > 0 && (
@@ -241,21 +282,30 @@ function Body({
           />
         )}
       </CardContent>
-    </Card>
+    </PanelFrame>
   )
 }
 
 /** AC-844 — the run returned nothing, in a card that keeps its title and frame. */
-function NoData({ title, sentence }: { title: string; sentence: string; t: Translator }) {
+function NoData({
+  title,
+  sentence,
+  framed,
+}: {
+  title: string
+  sentence: string
+  framed: boolean
+  t: Translator
+}) {
   return (
-    <Card className="w-full">
+    <PanelFrame framed={framed} className="w-full">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className={framed ? undefined : 'text-sm'}>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="py-10 text-center text-sm text-muted-foreground">{sentence}</p>
       </CardContent>
-    </Card>
+    </PanelFrame>
   )
 }
 

@@ -137,9 +137,9 @@ describe('typo tolerance', () => {
   })
 })
 
-/* ═════════════════════ defect 3 — six of eleven types ═════════════════════ */
+/* ═════════════════════ defect 3 — six of twelve types ═════════════════════ */
 
-describe('all eleven entity types are searchable', () => {
+describe('all twelve entity types are searchable', () => {
   /** One query per type that an operator would plausibly type. */
   const QUERIES: Record<ProfileEntityType, string> = {
     rider: 'RDR-1041',
@@ -153,6 +153,7 @@ describe('all eleven entity types are searchable', () => {
     ticket: 'TKT-501',
     'corporate-account': 'CORP-001',
     plan: 'weekly',
+    request: 'REQ-503',
   }
 
   it('covers every declared type — no gaps in the map above', () => {

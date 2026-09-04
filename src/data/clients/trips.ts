@@ -12,6 +12,7 @@ import { mock, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { Trip, TripKind, TripStatus } from '../types/trip'
+import type { TripTelemetry } from '../types/tripTelemetry'
 import { http } from './http'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -20,14 +21,17 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
 let allTripFixtures!: Fixtures['allTripFixtures']
+let tripTelemetryFixtures!: Fixtures['tripTelemetryFixtures']
 onFixturesLoaded((f) => {
   allTripFixtures = f.allTripFixtures
+  tripTelemetryFixtures = f.tripTelemetryFixtures
 })
 
 export const TRIP_OPERATIONS = {
   facets: 'trips.facets',
   list: 'trips.list',
   get: 'trips.get',
+  telemetry: 'trips.telemetry',
   flag: 'trips.flag',
 } as const
 
@@ -170,6 +174,38 @@ export async function getTrip(id: string, signal?: AbortSignal): Promise<Trip> {
   if (DATA_SOURCE === 'http') return http.get<Trip>(`/trips/${id}`, undefined, { signal })
   return mock(TRIP_OPERATIONS.get, signal, () => {
     const row = allTripFixtures.find((t) => t.id === id)
+    if (!row) throw notFound('trip', id)
+    return row
+  })
+}
+
+/**
+ * GET /api/v1/trips/:id/telemetry
+ *   -> TripTelemetry
+ *
+ * **The stage log, and the projection for a trip still running.** A separate
+ * read from `GET /trips/:id` on purpose: `types/tripTelemetry.ts` argues the
+ * cardinality, and the practical half is that the ride sheet's map and its
+ * stage rail are the only two consumers in the product — a list of 137 trips
+ * must not carry six stages each to a table that draws none of them.
+ *
+ * `404` when the trip does not exist, which is the same not-found the record
+ * read gives and lets the sheet keep one sentence for it.
+ *
+ * **What the backend must send that the mock derives** — see the fixture's
+ * header. The stage log is written by the driver app as the ride happens; only
+ * `arrived.deltaMinutes` exists in the record today (as `Trip.latenessMinutes`)
+ * and everything else is modelled from it.
+ */
+export async function getTripTelemetry(
+  id: string,
+  signal?: AbortSignal,
+): Promise<TripTelemetry> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<TripTelemetry>(`/trips/${id}/telemetry`, undefined, { signal })
+  }
+  return mock(TRIP_OPERATIONS.telemetry, signal, () => {
+    const row = tripTelemetryFixtures.get(id)
     if (!row) throw notFound('trip', id)
     return row
   })

@@ -1,17 +1,25 @@
 /**
- * The rider sheet's body: a rail of standing facts and a column of history,
+ * The rider sheet's body: a rail of standing facts ABOVE a column of history,
  * and the four reads that feed both.
  *
  * ```
- *  ┌───────────────┬──────────────────────────────────────────────┐
- *  │ WALLET        │  Activity 4 │ Money 4 │ Identity             │
- *  │ UNDER REVIEW  │  ────────────────────────────────────────    │
- *  │ PLAN          │  ● Open right now                            │
- *  │ TRIPS         │  EARLIER …                                   │
- *  │ CHURN RISK    │                                              │
- *  └───────────────┴──────────────────────────────────────────────┘
- *      ~1/3, --color-muted        the rest, --color-card
+ *  ┌──────────────────────────────────────┐
+ *  │ WALLET                               │
+ *  │ UNDER REVIEW                         │   the rail, --color-muted
+ *  │ PLAN                                 │   full width, blocks stacked
+ *  │ TRIPS                                │
+ *  │ CHURN RISK                           │
+ *  ├──────────────────────────────────────┤
+ *  │  Activity 4 │ Money 4 │ Identity     │
+ *  │  ─────────────────────────────────   │   the panels, --color-card
+ *  │  ● Open right now                    │
+ *  │  EARLIER …                           │
+ *  └──────────────────────────────────────┘
+ *            --ev-drawer-w, 480
  * ```
+ *
+ * One column, unconditionally — see the note on `RiderProfile` below for the
+ * measurement that decided it against widening the drawer.
  *
  * ## The four reads, and why each is one read
  *
@@ -39,8 +47,12 @@
  *              same rail blocks, the same tab row. Never a spinner.
  *   §9.2 #14   each read owns its own four states inside the panel that renders
  *              it, so one failed collection does not take the sheet down.
- *   §9.1       the two columns are a flex row and reverse with the document;
- *              the rail's separating rule is `border-e`, which follows.
+ *   §9.1       nothing here is placed on a physical side. The one column is a
+ *              `flex-col`, which has no direction to mirror, and the rail's
+ *              separating rule is a `border-b` on the block axis for the same
+ *              reason — it was a `border-e` while the rail was a column beside
+ *              the panels, and an inline edge is the thing that would have had
+ *              to mirror.
  */
 
 import {
@@ -123,30 +135,60 @@ export function useRiderReads(riderId: string, enabled = true): RiderProfileRead
   return { timeline, money, support, subscriptions }
 }
 
+/**
+ * **ONE COLUMN — the rail above the tabs — and the measurement that decided it.**
+ *
+ * This body was laid out for the modal presentation, which was ~1232px across
+ * at the 1280 floor. The layer is a `drawer` again (`ProfileLayer`), so the
+ * body is `--ev-drawer-w` = **480px**, and the two-column arrangement does not
+ * survive that. Measured in Chromium at 1280 × 900 on `RDR-4002`, panel forced
+ * to each width, `scrollWidth > clientWidth` counted on every descendant:
+ *
+ * | panel | rail box | rail needs | overflowing elements |
+ * |---|---|---|---|
+ * | **480** | 159 | **170** | the rail, its ground, its first block, and the wallet figure (`200.00 SAR` wants **154** in a **126** box) |
+ * | 560 | 186 | 186 | one truncated caption (200 → 185) |
+ * | **640** | 213 | 213 | **none** |
+ * | 800 | 266 | 266 | none |
+ *
+ * So at the drawer's own width the two columns do not compress — the rail
+ * **overflows its own box by 11px and the wallet figure by 28px**, spilling
+ * across the divider into the tab column. Two columns first become clean at
+ * **640px**, and a 640px drawer is a width `sheet.tsx` §1.2/C12 has already
+ * refused in writing (*"NOT 648px: at 1280px a 648px drawer leaves 552px of
+ * content, which is narrower than a detail page's main column and destroys the
+ * only reason a drawer beat a modal. Width is solved by the full-page escape at
+ * `/entity/:entityId`"*). That escape is this sheet's own footer link.
+ *
+ * Restacked at 480 the same sweep reports **zero** overflowing elements, on all
+ * three tabs, at 1280 and at 1440, in both directions.
+ *
+ * **Unconditional, not `compact:`.** `compact` is `@media (width < 768px)` — a
+ * VIEWPORT query (`globals.css:284`). A 480px panel inside a 1280px viewport
+ * never matches it, so the `compact:` overrides this file used to carry could
+ * not have restacked anything. The single column is now the only arrangement,
+ * which is also why `RiderRail` no longer needs a `compact:` rule of its own:
+ * its separating edge is a `border-b`, always.
+ *
+ * The order — summary first, then detail — is the one the design spec already
+ * ordains for the one-column case (§6.2: *"the rail restacks above the tab row
+ * — it is the summary, and a summary below its own detail is not a summary"*).
+ * Nothing is dropped and nothing is reordered inside either part.
+ */
 export function RiderProfile({ rider, reads, t, language }: RiderProfileProps) {
   return (
     /* **`-m-3` cancels `ShellLayer`'s body padding, deliberately.** The rail is
        a GROUND and a ground that stops 12px short of the sheet's edge reads as
        a card that failed to fill, not as a column. The band above it already
-       bleeds for the same reason. The utility is symmetric, so it mirrors.
-
-       **Two columns at every width the console supports, one only on a phone.**
-       Not the `wide` variant: that is a 1344px VIEWPORT query and this sheet is
-       `max-w-measure` inset 24px, so at the 1280 floor it is already 1232px
-       across — wide enough for a 320px rail and 900px of history. Gating on the
-       viewport would collapse a 1232px surface into one column to solve a
-       problem it does not have. `compact` is the real break: below 768 the
-       modal goes edge to edge and a rail beside a tab set has nowhere to go. */
-    <div className="-m-3 flex min-h-full flex-row items-stretch compact:flex-col">
-      <div className="w-1/3 max-w-xs shrink-0 compact:w-full compact:max-w-none">
-        <RiderRail
-          rider={rider}
-          subscription={reads.subscriptions.data?.items.at(0) ?? null}
-          subscriptionLoading={reads.subscriptions.status === 'loading'}
-          t={t}
-          language={language}
-        />
-      </div>
+       bleeds for the same reason. The utility is symmetric, so it mirrors. */
+    <div className="-m-3 flex min-h-full flex-col">
+      <RiderRail
+        rider={rider}
+        subscription={reads.subscriptions.data?.items.at(0) ?? null}
+        subscriptionLoading={reads.subscriptions.status === 'loading'}
+        t={t}
+        language={language}
+      />
       <RiderPanels rider={rider} reads={reads} t={t} language={language} />
     </div>
   )

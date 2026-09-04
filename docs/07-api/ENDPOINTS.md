@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**293 endpoints across 46 client modules.**
+**298 endpoints across 46 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -165,13 +165,17 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
+| GET | `/api/v1/compliance/documents/:documentId/file` | `the bytes, with Content-Type: image/jpeg | image/png | application/pdf` | - | **204** when the document exists and holds no file — NOT an error, and the common case<br>**403** when the operator lacks view_operations or view_profiles<br>**404** when no document has that id<br>**502** when the store returns a media type this app cannot decode | `getComplianceDocumentFile()` |
 | GET | `/api/v1/compliance/drivers` | `Paginated<DriverCompliance>` | `q · page · pageSize · sort · filter · view=compliance\|needs-attention` | - | `listDriverCompliance()` |
-| GET | `/api/v1/compliance/drivers/:driverId` | `DriverCompliance` | - | - | `getDriverCompliance()` |
+| GET | `/api/v1/compliance/drivers/:driverId` | `DriverCompliance` | - | **404** when the captain has no compliance record | `getDriverCompliance()` |
 | GET | `/api/v1/compliance/drivers/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getDriverComplianceFacets()` |
 | GET | `/api/v1/drivers` | `Paginated<Driver>` | `q · status · page · pageSize · sort=<field>:<dir> · filter=<field>:<op>:<value>` | - | `listDrivers()` |
 | GET | `/api/v1/drivers/:id` | `Driver` | - | **404** when the id does not exist | `getDriver()` |
+| GET | `/api/v1/drivers/:id/movements` | `DriverMoneyMovements` | - | **404** when the captain does not exist | `getDriverMoneyMovements()` |
 | POST | `/api/v1/drivers/:id/reinstate` | `Driver` | - | - | `reinstateDriver()` |
+| GET | `/api/v1/drivers/:id/support` | `DriverSupportPresence` | - | **404** when the captain does not exist | `getDriverSupportPresence()` |
 | POST | `/api/v1/drivers/:id/suspend` | `Driver` | `{ reason: string }` | - | `suspendDriver()` |
+| GET | `/api/v1/drivers/:id/timeline` | `Paginated<DriverTimelineEvent> — newest first` | `page · pageSize · sort · filter (kind, at)` | **404** when the captain does not exist | `getDriverTimeline()` |
 | GET | `/api/v1/drivers/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getDriverFacets()` |
 
 ## `src/data/clients/emails.ts`
@@ -500,6 +504,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/trips` | `Paginated<Trip>` | `q · kind · status · riderId · driverId · subscriptionId ·` | - | `listTrips()` |
 | GET | `/api/v1/trips/:id` | `Trip` | - | - | `getTrip()` |
 | POST | `/api/v1/trips/:id/flag` | `Trip` | `{ flagged: boolean }` | - | `setTripFlag()` |
+| GET | `/api/v1/trips/:id/telemetry` | `TripTelemetry` | - | - | `getTripTelemetry()` |
 | GET | `/api/v1/trips/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getTripFacets()` |
 
 ## `src/data/clients/wallets.ts`

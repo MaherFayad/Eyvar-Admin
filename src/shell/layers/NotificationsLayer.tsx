@@ -42,6 +42,11 @@
  *               whenever the row is unread — never on `:hover` alone — and on
  *               un-navigable rows too, which is the only way those rows can be
  *               marked read at all.
+ *   §7.5        **unread is a GROUND, a dot and a word, and the same three on
+ *               the bell.** It was a font-weight step here and a dot there —
+ *               one state, two marks, and the one this surface used reaches no
+ *               screen reader and very few eyes. See `UNREAD_GROUND` below for
+ *               why the tint is `bg-info/50` and not `bg-info`.
  */
 
 import { useCallback, useState } from 'react'
@@ -239,6 +244,26 @@ export function NotificationsLayer({
 }
 
 /**
+ * **Unread is a GROUND, not a weight.** §H of the reference tints the row; this
+ * product carried the state on `font-semibold` alone in the drawer and on a dot
+ * alone in the bell, so the same state had two marks and neither was a ground.
+ *
+ * `bg-info` is `--ev-blue-lt` #eaf0fe. **At full strength it fails**: the row's
+ * timestamp and body are `text-muted-foreground` = `--ev-text-2` #6b7280, which
+ * is 4.834 : 1 on the card's white and only **4.234 : 1 on #eaf0fe** — under the
+ * 4.5 floor, and exactly the trap where the obvious fix is worse than the
+ * defect. Composited at 50% over the card the ground is **#f5f8ff**, where the
+ * same ink reads **4.548 : 1 ✓**, the title ink #171a21 reads 16.377 : 1 and the
+ * dot #1b51c4 reads 6.539 : 1. So the tint is as strong as the muted ink on it
+ * will allow and not one step stronger.
+ *
+ * It is never the sole carrier — §7.5. The row also carries the dot and the
+ * visually hidden word, either of which survives a reader who cannot see the
+ * ground at all.
+ */
+const UNREAD_GROUND = 'bg-info/50'
+
+/**
  * One row: the notification, plus its own read control.
  *
  * §11.2 — a notification routing to a forbidden or absent destination renders
@@ -272,9 +297,24 @@ function Row({
   const bodyClassName = 'flex min-w-0 flex-1 flex-col gap-0.5 text-start'
   const body = (
     <>
-      <span className="text-xs text-muted-foreground">
-        {formatDate(notification.createdAt, { style: 'day-month-time', language })}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">
+          {formatDate(notification.createdAt, { style: 'day-month-time', language })}
+        </span>
+        {/* THE SAME DOT THE BELL DRAWS, from the same token, at the same size.
+            The two surfaces used to disagree — a dot here, a weight step there
+            — so an operator learned one marker on the popover and met a
+            different one in the drawer. `bg-info-foreground` is `--ev-blue-dk`
+            #1b51c4: 6.539 : 1 on the unread row's own ground #f5f8ff, past the
+            3 : 1 a meaningful graphic owes §7.5. It is `aria-hidden` because
+            the word beside it is the carrier. */}
+        {!notification.read && (
+          <span
+            aria-hidden="true"
+            className="size-1.5 shrink-0 rounded-full bg-info-foreground"
+          />
+        )}
+      </div>
       <span
         dir="auto"
         className={cn('text-sm', notification.read ? 'font-normal' : 'font-semibold')}
@@ -282,9 +322,10 @@ function Row({
         {notification.title}
       </span>
       {/* §7.5 — G5's weight-only marker. Font weight is not a carrier a screen
-          reader has, and it is the same on both surfaces only if both say the
-          word. Outside the title's `dir="auto"` span so it cannot flip the
-          direction the title inferred. */}
+          reader has, and neither is a tint or a dot, so the word stays and the
+          other three are redundancy around it, never the carrier. Outside the
+          title's `dir="auto"` span so it cannot flip the direction the title
+          inferred. */}
       {!notification.read && <span className="sr-only">{t('shell.notifications.unread')}</span>}
       {notification.body && (
         <span dir="auto" className="text-sm text-muted-foreground">
@@ -295,7 +336,7 @@ function Row({
   )
 
   return (
-    <div className="flex items-start gap-2 px-3 py-2">
+    <div className={cn('flex items-start gap-2 px-3 py-2', !notification.read && UNREAD_GROUND)}>
       {navigable ? (
         <button
           type="button"

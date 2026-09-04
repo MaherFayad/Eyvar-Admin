@@ -477,6 +477,16 @@ function BoardBody({
   t: Translate
   language: Language
 }) {
+  /**
+   * **§E4 — which lead figure the band has checked**, held here because this
+   * screen owns the board. `null` until an operator picks one; the board's own
+   * first chartable lead is what renders until then.
+   *
+   * Declared before the four states, because a hook cannot sit behind an early
+   * return. It is read only in the content branch.
+   */
+  const [featured, setFeatured] = useState<string | null>(null)
+
   /* AC-35 — the tile-shaped skeleton, never a spinner. */
   if (loading) return <LoadingSkeleton pattern="P5" />
   if (board === null) {
@@ -490,6 +500,45 @@ function BoardBody({
   }
   const leads = board.metrics.filter((metric) => metric.rank === 'lead')
   const supporting = board.metrics.filter((metric) => metric.rank !== 'lead')
+
+  /**
+   * **§E4 — the lead row that drives the chart beneath the band, on the one
+   * metrics board that is not `MetricBoardScreen`.**
+   *
+   * The expressions below are that screen's, verbatim, and they have to be:
+   * `board.test.ts` counts `support-fairness` among the three boards with two
+   * charted leads, so this board **qualifies** for the mechanism and was
+   * excluded from it only because it renders somewhere else. A reader arriving
+   * from Support › Overview found a row that looks selectable on one board and
+   * is inert on the next, which is worse than a board that never offered it.
+   *
+   * A lead is selectable exactly when the board charts a series under the same
+   * key; the row becomes a `radiogroup` at two, because a group of one radio
+   * cannot be operated and is announced *"radio button, checked, 1 of 1"*. No
+   * series is invented for an uncharted lead — it renders as the plain figure
+   * it always was.
+   *
+   * **Known, and stated rather than hidden: this board's two radios plot two
+   * different windows.** `overturnRate` is seeded on the fifteen-day snapshot
+   * pair and `earningsPerEngagedHour` on the seven-day chart pair, so choosing
+   * the other measure also re-scales the x-axis. That is **F-7** — the missing
+   * board-level period — and the `overturnRate` seed books it there itself,
+   * having taken the fifteen days because the seven-day comparison would close
+   * one point away from the baseline its tile names. The card's own sub-line
+   * states the window it drew, so the change is visible rather than silent; it
+   * is not worked around here by dropping a qualifying lead out of the group,
+   * which would hide a data question inside a screen.
+   */
+  const chartedKeys = new Set(board.charts.map((chart) => chart.key))
+  const selectableLeads = leads.filter((metric) => chartedKeys.has(metric.key))
+  const leadChoice = selectableLeads.length >= 2
+  const featuredKey =
+    featured !== null && chartedKeys.has(featured) ? featured : (selectableLeads[0]?.key ?? null)
+  /* Hoisted, and REMOVED from the row below rather than repeated in it: a board
+     that drew one series twice would leave an operator checking whether the two
+     plots agreed, and they always would. */
+  const featuredChart = board.charts.find((chart) => chart.key === featuredKey) ?? null
+  const detailCharts = board.charts.filter((chart) => chart !== featuredChart)
 
   return (
     /* 48px, matching `MetricBoardScreen`. With no card edges, space is the only
@@ -513,13 +562,26 @@ function BoardBody({
             and a second page title on one page is the redundancy the band was
             supposed to remove. */
         <BoardBand shape="inset">
-          <BoardHeroRow>
+          <BoardHeroRow groupLabel={leadChoice ? t('overview.hero.group') : null}>
             {leads.map((metric) => (
-              <BoardHeroItem key={metric.key}>
+              <BoardHeroItem key={metric.key} inGroup={leadChoice}>
                 <MetricTile
                   metric={metric}
                   boardAsOf={board.asOf}
                   surface="band"
+                  selection={
+                    leadChoice && chartedKeys.has(metric.key)
+                      ? {
+                          selected: metric.key === featuredKey,
+                          onSelect: () => setFeatured(metric.key),
+                          /* Roving: the checked radio is the group's one tab
+                             stop, so `Tab` enters the row at the figure whose
+                             chart is on screen rather than always at the
+                             first. */
+                          tabIndex: metric.key === featuredKey ? 0 : -1,
+                        }
+                      : undefined
+                  }
                   t={t}
                   language={language}
                 />
@@ -527,6 +589,25 @@ function BoardBody({
             ))}
           </BoardHeroRow>
         </BoardBand>
+      )}
+
+      {/* **§E4 — the chart the band is driving, directly under the band.**
+          Selecting a figure above redraws THIS card and nothing else moves.
+
+          It takes the same `frame` and the same `reportHref` as the cards in
+          the row below, deliberately: this screen draws its charts chromeless
+          and every fairness metric's `drilldownRoute` is this page, so a link
+          here would offer an operator the screen they are already on. Full
+          width — it is the board's headline evidence. */}
+      {featuredChart && (
+        <ChartCard
+          key={featuredChart.key}
+          series={featuredChart}
+          frame="plain"
+          reportHref={null}
+          t={t}
+          language={language}
+        />
       )}
       {/* The supporting figures in chapters, exactly as `MetricBoardScreen`
           renders them. Fairness's seven metrics fall into three categories, so
@@ -550,9 +631,20 @@ function BoardBody({
           </ChapterFigures>
         </Chapter>
       ))}
-      {board.charts.length > 0 && (
-        <div className="grid grid-cols-2 gap-x-11 gap-y-12 border-t border-border pt-12 compact:grid-cols-1">
-          {board.charts.map((chart) => (
+      {detailCharts.length > 0 && (
+        <div
+          className={
+            /* **One panel takes the width.** With the §E4 card hoisted above,
+               this row is usually a single chart, and holding it in a
+               two-column grid would leave a half-width plot beside an empty
+               cell. Static class strings both ways: a computed column count is
+               a class Tailwind's scanner never sees. */
+            detailCharts.length > 1
+              ? 'grid grid-cols-2 gap-x-11 gap-y-12 border-t border-border pt-12 compact:grid-cols-1'
+              : 'grid grid-cols-1 gap-y-12 border-t border-border pt-12'
+          }
+        >
+          {detailCharts.map((chart) => (
             <ChartCard
               key={chart.key}
               series={chart}

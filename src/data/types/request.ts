@@ -24,7 +24,7 @@
  * only on `instant`. Each is documented at its field.
  */
 
-import type { Claim, IsoDateTime } from './common'
+import type { Claim, Halalas, IsoDateTime } from './common'
 import type { VehicleClass } from './driver'
 import type { PlanKey } from './subscription'
 import type { SlaTracked } from './workQueue'
@@ -92,6 +92,44 @@ export interface RideRequest extends SlaTracked {
   vehicleClass: VehicleClass
 
   requestedAt: IsoDateTime
+
+  /* ── the money at stake, one field per channel ───────────────────────── */
+  /**
+   * **Instant only.** The fare quoted to the rider when they asked, in halalas.
+   * `null` on a subscription request, exactly as `offeredToDriverId` is.
+   *
+   * It is a QUOTE and not a charge: nothing has been captured, the ride has not
+   * happened, and the row may still expire. The trip that follows carries the
+   * real `fareHalalas` (`types/trip.ts`), and the two are allowed to differ —
+   * a longer route, a wait, an extra stop. Any surface rendering this must say
+   * *estimated*, which is why `profile.request.rail.fare` reads
+   * `Estimated fare` and never `Fare`.
+   *
+   * **Nullable within the channel too.** A quote needs a priced route, and the
+   * fixtures' `REQ-508` was cancelled before one was returned. `null` there is
+   * *no quote was produced*, not zero — §3.5's distinction, and the rail prints
+   * a sentence rather than `0.00 SAR`.
+   *
+   * **On the handover.** `GET /requests` does not return this today; it is
+   * modelled here because the request sheet cannot answer *what is this ride
+   * worth* without it, and an operator deciding whether to chase a breach is
+   * asking exactly that.
+   */
+  quotedFareHalalas: Halalas | null
+  /**
+   * **Subscription only.** The rider's payment authorisation, in halalas —
+   * placed when they signed up, captured when a captain is assigned.
+   *
+   * This is the field behind §5.1's *"this is the only queue where money moves
+   * on disposition"*. `RequestsScreen`'s assign confirmation already says the
+   * capture cannot be undone from here; this is the amount it captures, and an
+   * operator committing that ought to be able to see it first.
+   *
+   * `null` on an instant request. Equal to the first cycle's charge on the
+   * subscription this request would create — the same figure
+   * `Subscription.paidHalalas` carries once it exists.
+   */
+  authorisationHoldHalalas: Halalas | null
 
   /* ── subscription-only ──────────────────────────────────────────────── */
   /** `null` on an instant request. Legacy `plan:'weekly'` (`:2794`). */

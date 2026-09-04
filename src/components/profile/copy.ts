@@ -232,6 +232,9 @@ export const PROFILE_EN: Dictionary = {
   'profile.kind.ticket': 'Ticket',
   'profile.kind.corporate-account': 'Corporate account',
   'profile.kind.plan': 'Plan',
+  /* **`Ride request`, not `Request`.** The word alone is what an operator calls
+     every queue in the console; the noun has to say which. */
+  'profile.kind.request': 'Ride request',
 
   /* ── statuses this module is the first to need a label for ────────── */
   'profile.tripStatus.requested': 'Requested',

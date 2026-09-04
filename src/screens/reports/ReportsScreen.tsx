@@ -31,6 +31,50 @@
  * picture of the thing rather than on a list, and it is what lets the core ship
  * with Q1 open (§9.2, AC-853 … AC-855).
  *
+ * ## Switching a view amends the address; it never composes a new one
+ *
+ * `selectView` used to write `search: v === 'reports' ? '' : '?view=' + v`.
+ * **That threw the rest of the query string away in both directions**, and the
+ * rest of the query string is not decoration:
+ *
+ * - `?q=` — the composed report. Compose a question, look at Dashboards, come
+ *   back, and every control was empty again. That is the owner's own sentence:
+ *   *"I shouldn't keep choosing all values over and over again everytime I
+ *   change one tab."*
+ * - `?q=` / `?sort=` / `?page=` / `?filter=` **as `useUrlTableState` writes
+ *   them** — the library's search text, its sort and its filter chips. §3.1's
+ *   index-table state lives in the address (`useUrlTableState.ts`), so a
+ *   composed `search` string wiped the operator's list query too.
+ * - `?failSeries=` — the partial-failure seam AC-852 rides on.
+ *
+ * So every writer here goes through `URLSearchParams` built **from the current
+ * search**, and the view switch goes through `withView` — `routeState.ts`'s one
+ * writer for `?view=`, the same helper `useScreenViews` uses on the other seven
+ * screens. There is no second copy of this rule in this file.
+ *
+ * ## `?view=` decides the surface; `?q=` rides along
+ *
+ * A composed question used to win over `?view=` unconditionally, which is why
+ * preserving it is not enough on its own: `?q=…&view=dashboards` would have
+ * rendered the builder and the Dashboards tab would have looked broken. The
+ * view decides **which of the four surfaces renders**, and the question is
+ * *retained state* that the Reports view picks back up. Both directions of the
+ * round trip therefore work, and neither loses anything.
+ *
+ * ## `?q=` has two owners, and one of them is not this screen
+ *
+ * `useUrlTableState` writes the index table's free-text search as a **bare
+ * `q`** whenever the table is mounted under the default view (`tableScope`
+ * returns `''` with no `?view=`). `ReportLibrary` passes no `urlKey`, so typing
+ * `nora` into the library's search box puts `?q=nora` in the address — which
+ * this screen read as a composed report and answered with an empty builder.
+ *
+ * The guard below is the local half of the fix: a `?q=` that is not an empty
+ * string and does not deserialise is **not a report query**, so the library
+ * renders and its search keeps working. The real fix is a `urlKey` on
+ * `ReportLibrary`'s table so the two parameters never share a name; that file
+ * has another owner and it is named in the handoff rather than edited here.
+ *
  * ## The no-data sentence comes from the metric boards' own key
  *
  * §3.7 requires it byte-identical everywhere, punctuation included. This screen
@@ -44,7 +88,17 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
-import { EYVAR_TODAY, REPORT_QUERY_PARAM, getReport, localDayOf } from '@/data/clients'
+/* `?view=` has exactly one writer in this product and it is not this file
+   (`routeState.ts`). Importing it is what keeps "a view switch preserves every
+   other parameter" one rule rather than eight screens agreeing today. */
+import { withView } from '@/shell/routeState'
+import {
+  EYVAR_TODAY,
+  REPORT_QUERY_PARAM,
+  deserialiseReportQuery,
+  getReport,
+  localDayOf,
+} from '@/data/clients'
 import type { SavedReport, SubTabRoute } from '@/data/types'
 import { AlertsView } from './AlertsView'
 import { DashboardsView } from './DashboardsView'
@@ -106,7 +160,21 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   const today = now ? localDayOf(now) : EYVAR_TODAY
   const params = new URLSearchParams(location.search)
   const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as ReportsView
-  const composed = params.get(REPORT_QUERY_PARAM)
+
+  /**
+   * The composed question, **only when it is one**.
+   *
+   * Two things write `?q=` on this address: `serialiseReportQuery` and — with
+   * no `?view=` in the URL — `useUrlTableState`'s free-text search. An empty
+   * value is `New report` (R8's second kind of empty). A value that
+   * deserialises is a question. Anything else is somebody else's parameter and
+   * this screen does not claim it. See the file header.
+   */
+  const encoded = params.get(REPORT_QUERY_PARAM)
+  const composed =
+    encoded === null || (encoded !== '' && deserialiseReportQuery(encoded) === null)
+      ? null
+      : encoded
 
   const title = row ? t(row.titleKey) : t('rb.page.title')
   /* One key, resolved once, passed down. See the file header. */
@@ -116,22 +184,56 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
     (report: SavedReport) => navigate(`/management/reports/${report.id}`),
     [navigate],
   )
-  const newReport = useCallback(
-    () => navigate({ pathname: location.pathname, search: `?${REPORT_QUERY_PARAM}=` }),
-    [navigate, location.pathname],
-  )
+  /**
+   * `New report` — an **empty** question, and nothing else disturbed.
+   *
+   * It used to write `?q=` as the whole search string, which dropped the view
+   * and the library's own list query on the way into the builder. The empty
+   * value is deliberate and is not a default leaking into the address: it is
+   * the difference between *"the builder, on nothing"* and *"the library"*.
+   */
+  const newReport = useCallback(() => {
+    const next = new URLSearchParams(location.search)
+    next.set(REPORT_QUERY_PARAM, '')
+    /* The builder is the Reports view's surface, so an explicit `?view=` from
+       another tab would land the operator back on that tab holding a question
+       they cannot see. */
+    next.delete('view')
+    navigate({ pathname: location.pathname, search: `?${next.toString()}` })
+  }, [navigate, location.pathname, location.search])
 
+  /**
+   * **The tab switch, and the whole of TASK 1's defect.**
+   *
+   * `withView` amends: it sets or clears `view` and leaves every other
+   * parameter byte-identical, so the composed `?q=`, the library's search text,
+   * its sort, its filter chips and `?failSeries=` all survive a round trip
+   * through Dashboards and back. `reports` clears the parameter rather than
+   * writing `view=reports`, because absent *is* the default — and because
+   * `tableScope` derives an index table's parameter namespace from `?view=`,
+   * so writing the default would move the library's own query to a second set
+   * of names and lose it exactly the way this fix exists to prevent.
+   */
   const selectView = useCallback(
     (v: ReportsView) => {
-      navigate({ pathname: location.pathname, search: v === 'reports' ? '' : `?view=${v}` })
+      navigate({
+        pathname: location.pathname,
+        search: withView(location.search, v === 'reports' ? null : v),
+      })
     },
-    [navigate, location.pathname],
+    [navigate, location.pathname, location.search],
   )
 
   /* A composed question opens the builder. An empty `?q=` is `New report` —
      the builder on the unstarted question, which is R8's second kind of empty
-     and not a first-run illustration. */
-  if (composed !== null) {
+     and not a first-run illustration.
+
+     **`?view=` is checked first**, because the question is now RETAINED across
+     a view switch rather than dropped by it (see the file header). Without this
+     arm, `?q=…&view=dashboards` would answer the Dashboards tab with the
+     builder — the tab strip would look broken and the fix above would be
+     unusable. */
+  if (composed !== null && view === 'reports') {
     return (
       <ReportBuilder
         report={null}
@@ -139,7 +241,6 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
         title={title}
         t={t}
         language={language}
-        dir={dir}
         onSaved={openReport}
       />
     )
@@ -182,6 +283,11 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
       onSelectView={selectView}
       onOpen={openReport}
       onNew={newReport}
+      /* The SAME `today` `AlertsView` is given above. `Create alert` opens one
+         dialog from two places; threading it here is what stops the two paths
+         resolving a rule's test series against two different days the moment
+         `DATA_SOURCE` stops being `mock`. */
+      today={today}
       t={t}
       language={language}
       dir={dir}
@@ -206,7 +312,7 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
   const shell = useShell()
   const navigate = useNavigate()
   const { reportId = '' } = useParams()
-  const { t, dir, language } = shell.language
+  const { t, language } = shell.language
 
   const report = useAsync(async (signal) => {
     try {
@@ -239,7 +345,6 @@ export function SavedReportScreen({ row }: ReportsScreenProps) {
       title={title}
       t={t}
       language={language}
-      dir={dir}
       onSaved={(saved) => navigate(`/management/reports/${saved.id}`)}
     />
   )

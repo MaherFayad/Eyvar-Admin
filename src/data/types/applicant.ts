@@ -14,7 +14,7 @@
 import type { Claim, IsoDate, IsoDateTime } from './common'
 import type { SlaTracked } from './workQueue'
 import type { MovementLogEntry, BankAccount, VehicleClass } from './driver'
-import type { ComplianceDocType } from './driver'
+import type { ComplianceDocFile, DocumentType } from './driver'
 
 /**
  * Legacy `status: 'pending'` is the only seeded value; `'approved'` and
@@ -33,8 +33,80 @@ export type ApplicantStatus = 'pending' | 'in-review' | 'approved' | 'rejected' 
  */
 export type ApplicantDocStatus = 'verified' | 'pending' | 'rejected' | 'missing'
 
+/**
+ * **Why a document was rejected** — legacy's five reason codes (`:11040`), as an
+ * enum rather than as the free text the reject dialog used to collect.
+ *
+ * A code can be counted, filtered and translated; a sentence typed by whoever
+ * was on shift can be none of those, and the applicant is told the reason in
+ * their own language. `types/driver.ts` records that these five exist in the
+ * legacy app and that nothing modelled them.
+ */
+export type ApplicantDocRejectionCode =
+  | 'unclear'
+  | 'expired'
+  | 'mismatch'
+  | 'wrong_type'
+  | 'suspected_forgery'
+
+/** The five, with their label keys, in the order the reject form offers them. */
+export const APPLICANT_DOC_REJECTION_CODES: ReadonlyArray<{
+  key: ApplicantDocRejectionCode
+  labelKey: string
+}> = [
+  { key: 'unclear', labelKey: 'applicant.docReason.unclear' },
+  { key: 'expired', labelKey: 'applicant.docReason.expired' },
+  { key: 'mismatch', labelKey: 'applicant.docReason.mismatch' },
+  { key: 'wrong_type', labelKey: 'applicant.docReason.wrongType' },
+  { key: 'suspected_forgery', labelKey: 'applicant.docReason.suspectedForgery' },
+]
+
+/**
+ * One field **read off the document itself** — a licence number, a class, an
+ * issuing city, the name printed on the card.
+ *
+ * ## Why this is on the record and not derived at render
+ *
+ * It is the answer to the only question a reviewer opens a scan to ask: *does
+ * what the document says match what the application says*. `design/…-captain-profile.md`
+ * §6.4 records the defect this closes — a date typed on the application and a
+ * date read off the document rendered *in the same grey*, so an operator could
+ * not tell which one anybody had actually checked.
+ *
+ * `labelKey`, never a label: the data layer states the field, the UI states the
+ * word. Same rule as `DOCUMENT_TYPES`, and the same reason — a `label` here
+ * would be untranslatable for everything that read it.
+ *
+ * **The value is a string and is never parsed.** A licence number is not a
+ * number, an issuing city is a place name in whichever script it was printed
+ * in, and a date read off a card is what the card says even when that is not a
+ * date the parser likes. Comparing it to the application's own field is the
+ * reviewer's job and the UI shows both.
+ */
+export interface ApplicantDocField {
+  labelKey: string
+  value: string
+}
+
 export interface ApplicantDoc {
-  type: ComplianceDocType | 'id_card' | 'background'
+  /**
+   * **One of the product's four documents, and nothing else** —
+   * `DOCUMENT_TYPES` in `types/driver.ts`. This field used to widen the
+   * compliance set with `'id_card' | 'background'`, which meant an application
+   * could carry a document a captain's file had no way to hold: approve the
+   * applicant and the background check vanished, because `approveDriver` copies
+   * only what compliance models. One set, both sides of the approval.
+   */
+  /**
+   * `APP-2205-license` — the application and the document, in that order.
+   *
+   * The same shape and the same rule as `ComplianceDoc.id`: **treat it as
+   * opaque**. It exists because a viewer needs something to address — a React
+   * key, a `?doc=` param, an id a test can name — and deriving one inside a
+   * component would put the format in three places.
+   */
+  id: string
+  type: DocumentType
   status: ApplicantDocStatus
   /**
    * Legacy `docExpiry` (`:11040`) — an **operator-editable** map, filled in on
@@ -42,6 +114,32 @@ export interface ApplicantDoc {
    * "missing dates" warning (`:11180`) counts the nulls.
    */
   expiresOn: IsoDate | null
+
+  /**
+   * The uploaded scan's record, or `null` for **nothing uploaded** — which is
+   * exactly `status === 'missing'` and is the ordinary case on a half-finished
+   * application, not an error.
+   *
+   * `ComplianceDocFile` is reused rather than re-declared: an application's
+   * upload and a captain's are the same object with the same fields, and
+   * `approveDriver` copies one into the other. Two shapes for one file is how
+   * the two sides of an approval end up disagreeing about what was uploaded.
+   */
+  file: ComplianceDocFile | null
+
+  /**
+   * What a reviewer read off the document. **Empty until somebody opens it** —
+   * which is the honest state of a `pending` document, and the reason the
+   * viewer's panel has an empty state at all.
+   */
+  readFields: readonly ApplicantDocField[]
+
+  /**
+   * Why it was rejected. `null` unless `status === 'rejected'`, and the
+   * implication runs both ways — a rejected document without a code is a
+   * decision nobody can appeal.
+   */
+  rejectionCode: ApplicantDocRejectionCode | null
 }
 
 export interface Applicant extends SlaTracked {

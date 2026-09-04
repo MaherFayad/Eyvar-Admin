@@ -114,7 +114,22 @@ export function FactGrid({ facts, minColumn = '11rem', className }: FactGridProp
           {/* H1/H3 — the value outranks its label on BOTH channels at once,
               size and colour. It is the thing being scanned for; the label is
               how you found it. */}
-          <dd className="min-w-0 text-sm font-medium text-foreground">{fact.value}</dd>
+          {/* `break-words` is load-bearing, and it is a defect fix rather than a
+              precaution. A value with no space in it — an email, a URL, an IBAN
+              typed without gaps — has no wrap opportunity, and `overflow-wrap:
+              normal` then paints the glyphs straight out of the track. Measured
+              at 1440 on the captain's Identity tab: the cell is 191px and
+              `a.alqahtani.aldosari.riyadh.operations@example-domain-that-is-long.com`
+              needs 330, so 139px of ink landed on top of the Gender column's
+              value. The BOX never overflowed — `min-w-0` was already doing its
+              job — which is why this was invisible to every layout assertion.
+
+              `break-word` and not `anywhere`: it breaks only a word that cannot
+              fit on a line of its own, so ordinary values wrap exactly as they
+              did. And not `truncate`, which is right for the LABEL above (you
+              found the row by it) and wrong for the value: half an email
+              address is not a shorter fact, it is a wrong one. */}
+          <dd className="min-w-0 break-words text-sm font-medium text-foreground">{fact.value}</dd>
         </div>
       ))}
     </dl>

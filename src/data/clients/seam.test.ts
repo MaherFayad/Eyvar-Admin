@@ -25,7 +25,14 @@ import { getMetricBoard, getMetricSeries, listMetrics } from './metrics'
 import { listWorkItems } from './myWork'
 import { listRequests } from './requests'
 import { listSafetyIncidents, resetSafetyIncidents, useQuietSafetyQueue } from './safety'
-import { listDriverCompliance, listDrivers } from './drivers'
+import {
+  getComplianceDocumentFile,
+  getDriverMoneyMovements,
+  getDriverSupportPresence,
+  getDriverTimeline,
+  listDriverCompliance,
+  listDrivers,
+} from './drivers'
 import { getNavCounts, resetNavCounts, useEmptyNavCounts } from './navCounts'
 import { getNotificationSummary, listNotifications, resetNotifications } from './notifications'
 import { resolveProfile, search } from './profile'
@@ -52,6 +59,20 @@ const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
   { op: 'search.query', call: () => search('Nora') },
   { op: 'drivers.list', call: () => listDrivers() },
   { op: 'compliance.list', call: () => listDriverCompliance() },
+  /* The captain profile's three record-scoped reads, listed here for the same
+     reason the rider's three are: properties 1-3 are the seam's, not the
+     resource's, and a client absent from this list is a client nobody
+     checked. */
+  { op: 'drivers.timeline', call: () => getDriverTimeline('DRV-0101') },
+  { op: 'drivers.movements', call: () => getDriverMoneyMovements('DRV-0101') },
+  { op: 'drivers.support', call: () => getDriverSupportPresence('DRV-0101') },
+  /* The scan behind one compliance document. Listed here for the same reason as
+     the three above: a client absent from this list is a client nobody checked,
+     and this one is the only read in the layer that returns bytes rather than
+     JSON — a determinism regression in an encoder would be invisible anywhere
+     else. `DRV-0101-license` carries a JPEG; `complianceScan.test.ts` covers the
+     other two media types and the outcome that is not bytes at all. */
+  { op: 'compliance.documentFile', call: () => getComplianceDocumentFile('DRV-0101-license') },
   { op: 'riders.list', call: () => listRiders() },
   { op: 'riders.listNew', call: () => listNewRiders() },
   /* The 360 profile's three rider-scoped reads. Listed here and not only in

@@ -30,7 +30,7 @@
  *   R-3 §1.3    tier 2, through `PopoverContent`.
  */
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,6 +60,7 @@ export function NotificationBell({
   onOpenNotification,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false)
+  const countId = useId()
   /* D-11 — set only by `See all`, which hands off to the shell layer. See the
      note on `onCloseAutoFocus` below. */
   const handedOff = useRef(false)
@@ -90,18 +91,40 @@ export function NotificationBell({
           size="icon"
           className="relative"
           aria-label={t('shell.topbar.notifications')}
+          /* **The count was inaudible twice over.** It hung on the `Badge` as an
+             `aria-label`, and a `Badge` is a `<span>` with no role, where
+             `aria-label` is not supported and is dropped; and even had it been
+             honoured, this button's own `aria-label` replaces its whole subtree
+             in the name computation. A reader heard `Notifications, button`
+             at 0 unread and at 12.
+
+             It rides the DESCRIPTION rather than the name, deliberately: the
+             name is the control's identity and must not change under the
+             operator (nor under the twelve tests that address this button by
+             it). A description is the right place for a standing quantity, it
+             is announced after the name, and it changes freely. */
+          aria-describedby={unread > 0 ? countId : undefined}
         >
           <BellGlyph />
           {/* AC-26 — nothing at zero. Not a `0`, not an empty chip. */}
           {unread > 0 && (
-            <Badge
-              size="count"
-              tone={hasCritical ? 'warning' : 'neutral'}
-              className="absolute -top-0.5 -end-0.5"
-              aria-label={t('shell.notifications.unreadCount', { count: unread })}
-            >
-              {formatCount(unread, language)}
-            </Badge>
+            <>
+              <Badge
+                size="count"
+                tone={hasCritical ? 'warning' : 'neutral'}
+                className="absolute -top-0.5 -end-0.5"
+              >
+                {formatCount(unread, language)}
+              </Badge>
+              {/* `formatCount`, not the raw JS number the `aria-label` passed:
+                 Arabic gets Arabic-Indic digits here exactly as the badge and
+                 the popover heading already do. */}
+              <span id={countId} className="sr-only">
+                {t('shell.notifications.unreadCount', {
+                  count: formatCount(unread, language),
+                })}
+              </span>
+            </>
           )}
         </Button>
       </PopoverTrigger>
@@ -258,8 +281,9 @@ function NotificationRow({
              `--ev-brand` is the wrong swap — it is #0c6944, a GREEN, and would
              have changed what the dot means. The informational blue is
              `--ev-blue-dk` #1b51c4, reached through `bg-info-foreground`:
-             6.95 : 1 on the popover's white, well past the 3 : 1 a meaningful
-             graphic owes §7.5.
+             6.952 : 1 on the popover's white and 6.539 : 1 on the unread row's
+             own ground #f5f8ff, both past the 3 : 1 a meaningful graphic owes
+             §7.5.
 
              **Now fixed:** the dot used to be colour and shape with no word and
              no accessible name — §7.5's never-colour-alone rule — and the fix
@@ -290,7 +314,20 @@ function NotificationRow({
     </div>
   )
 
-  const className = 'flex w-full flex-col gap-1 px-4 py-3 text-start transition-colors bg-popover'
+  /* **Unread is a ground on this surface too.** The bell marked unread with a
+     dot and the drawer marked the same state with a weight step; the two
+     surfaces now carry the same three marks — tint, dot, hidden word — so an
+     operator learns the marker once. `bg-info` at full strength is #eaf0fe,
+     where this row's `text-muted-foreground` timestamp (`--ev-text-2`
+     #6b7280) reads **4.234 : 1** and fails the 4.5 floor; composited at 50%
+     over the popover's white the ground is **#f5f8ff** and the same ink reads
+     **4.548 : 1 ✓**. Written as a branch rather than appended to the base
+     string because two background utilities in one class list are resolved by
+     stylesheet order, not by the order they were typed. */
+  const className = cn(
+    'flex w-full flex-col gap-1 px-4 py-3 text-start transition-colors',
+    notification.read ? 'bg-popover' : 'bg-info/50',
+  )
 
   if (!navigable) return <div className={className}>{body}</div>
 

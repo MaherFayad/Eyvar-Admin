@@ -188,6 +188,26 @@ describe('the direction pin (§9.2)', () => {
         <ChartCard series={series()} reportHref="/management/risk" t={tAr} language="ar" />
       </MemoryRouter>,
     )
+    /* **NARROWED to everything but the `Open analysis` action, and the
+       narrowing is the rule rather than an exception to it.**
+
+       §9.5's line is not *nothing flips*; it is *a mark that encodes a
+       direction of READING flips, and a mark that encodes anything else does
+       not*. When this was written the card carried two marks and both were on
+       the far side of that line: a delta caret, which is a magnitude on the
+       vertical axis, and the header's arrow, which pointed out of the card.
+
+       §E7 replaced that arrow with `Open analysis`, whose trailing arrow IS a
+       reading mark -- *"and then, the analysis"* -- so in Arabic it points the
+       other way. It is the one element allowed to, and this proves it is the
+       ONLY one by removing it and re-checking the rest of the card. The claim
+       is therefore stronger than it was, not weaker: it now says which element
+       mirrors as well as which do not. */
+    const action = container.querySelector('[data-slot="open-analysis"]')
+    expect(action, 'the one mark that may mirror is missing').not.toBeNull()
+    expect(action?.querySelector('svg')?.getAttribute('class')).toMatch(/rtl:rotate-180/u)
+    action?.remove()
+
     const html = container.innerHTML
     /* `rtl:` variants, a mirrored transform and a rotation are the three ways a
        glyph gets flipped for Arabic. None of the three belongs on a chart:

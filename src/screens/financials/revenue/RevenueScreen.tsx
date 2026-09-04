@@ -73,7 +73,7 @@ import { FinancialsPage, periodLabel, usePeriod } from '../shared/FinancialsPage
 import { PeriodControl } from '../shared/PeriodControl'
 import { Figure, FigureGrid, FigureItem, FigureRow, Percent } from '../shared/Figures'
 import { marginBreakdown, percentOrNull } from '../shared/derive'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 const VIEWS: readonly ScreenView[] = [
   { id: 'all', titleKey: 'fin.revenue.view.all' },

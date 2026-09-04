@@ -56,9 +56,52 @@ export interface ToolbarTab {
   label: string
 }
 
-export interface IndexToolbarProps {
+/**
+ * **The inline-start slot holds ONE of these, and the type says so.**
+ *
+ * `tabs` and `heading` are the same slot, and at the 1280 floor that slot is
+ * **647px** — the row's 1232 less the control cluster's measured 577 and one
+ * 8px gap; **519px at 1152**. Wave 2's tab tracks alone run 565–582. So "both"
+ * is not a layout that exists at either width: it is a layout where the second
+ * one wraps to a line of its own and the section grows a row's worth of height
+ * to hold a heading beside a tab strip that is already scrolling.
+ *
+ * `DataTable` mirrors this union outward, which is where the exclusion is worth
+ * enforcing; this file has one caller.
+ *
+ * **Type-level, and it cost the forty callers nothing** — every existing one
+ * passes `tabs` or neither and satisfies the first arm unchanged, which
+ * `IndexToolbar.types.tsx` asserts rather than assumes. A runtime `throw` would
+ * move a layout mistake from the compiler to an operator's screen, and a
+ * convention in prose is what several of the defects on this table's docket
+ * already were.
+ *
+ * The `?: never` arms mean a caller may still pass `heading={undefined}`
+ * explicitly, which is what a conditional in a screen produces.
+ */
+export type ToolbarLeadingSlot =
+  | {
+      tabs?: readonly ToolbarTab[]
+      /**
+       * §7.1 — the section's own heading, rendered INSIDE band 2 at the
+       * inline-start so the title and the control cluster share one row.
+       * `subheading` sits UNDER the title, not beside it. Both optional; a
+       * toolbar with neither renders exactly as it did before this slot
+       * existed.
+       */
+      heading?: never
+      subheading?: never
+    }
+  | {
+      tabs?: never
+      heading: string
+      subheading?: string | null
+    }
+
+export type IndexToolbarProps = IndexToolbarBaseProps & ToolbarLeadingSlot
+
+interface IndexToolbarBaseProps {
   t: Translate
-  tabs: readonly ToolbarTab[]
   activeTab: string
   onSelectTab: (id: string) => void
   searchPlaceholder: string
@@ -81,7 +124,9 @@ export interface IndexToolbarProps {
 }
 
 export function IndexToolbar(props: IndexToolbarProps) {
-  const { t, tabs, activeTab, onSelectTab, searchPlaceholder, query, onQueryChange } = props
+  const { t, activeTab, onSelectTab, searchPlaceholder, query, onQueryChange } = props
+  const { heading, subheading } = props
+  const tabs = props.tabs ?? []
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -113,6 +158,90 @@ export function IndexToolbar(props: IndexToolbarProps) {
        instead of a fixed 56. Desktop-first: the unprefixed classes are still
        the desktop answer and nothing above 768 reads these overrides. */
     <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 px-3 py-2">
+      {/* Truthy, not merely `!== undefined`: the type requires a `string` on
+          this arm, but a screen that builds its title from a record still in
+          flight can hand over `''`, and an EMPTY `h2` is worse than no heading
+          — it is a stop in the heading outline that names nothing. An empty
+          string renders the row exactly as a table with neither prop does. */}
+      {heading !== undefined && heading !== '' && (
+        /* **THE HEADING TAKES THE TAB TRACK'S DEGRADE, NOT A NEW ONE — it
+           wraps before it ellipsises, and it never clips a control.** Measured
+           in Chromium at 1280 and 1152, en and ar, against the ledger's five
+           columns:
+
+             heading                    band 2   what happened
+             `Wallet and payments`       62      one row, 199px wide
+             `المحفظة والمدفوعات`         62      one row, 152px wide
+             a 25-word heading          102      wrapped to its own line
+             a 50-word heading          102      wrapped, THEN ellipsised
+
+           The order is the point, and it is `flex-wrap`'s rather than
+           `shrink`'s: a flex line breaks on the items' *base* sizes before
+           anything on it shrinks, so an over-long heading goes to its own line
+           at full width and only truncates if it overruns THAT. `min-w-0` is
+           what permits the second stage; without it `truncate` cannot engage at
+           all. **The cluster's width did not move in any of the twelve
+           measurements — 577 en, 542 ar — and `clusterEnd` stayed inside the
+           row in every one.** No control is ever clipped or pushed off the
+           viewport, which is the tab track's whole objection and it is answered
+           the same way.
+
+           **A heading is text, so wrapping beats truncating here** — and that is
+           a decision rather than an accident of the container. A clipped TAB is
+           an unreachable control; a clipped heading is just a lost sentence,
+           and this product has no tooltip convention to recover it
+           (`PageShell.tsx` truncates a page title with no `title` attribute
+           either). `المحفظة والمدفوعات وسجل الحركات الما…` is a worse thing to
+           put on screen than a 102px band.
+
+           **The cluster does NOT get `shrink-0` to make any of this work, and
+           it must not.** The block below it measured all three options at the
+           1280 floor: `shrink-0` was the WORST of them (People's track 289
+           against 342 at the default), because it disables the cluster's own
+           min-content floor. Nothing here needs it.
+
+           **`min-h-14` is a MINIMUM, so the stack is free to be taller than the
+           32px controls beside it.** Measured: 18px title (28px line) + 2px gap
+           + 12px subline (16px line) = 46, plus `py-2`'s 16 = **62**. Band 2
+           goes 56 -> 62 on a table that passes this prop and is untouched on
+           one that does not. **That six costs no row and the change buys one:**
+           at 1280 x 900 the same ledger fits **16** rows with a heading in its
+           own row above the toolbar and **17** with the heading in it, and the
+           figures are identical at 1152.
+
+           **`h2`, fixed, and that is a ruling rather than an omission.** A
+           page's one `h1` is `PageHeader`'s; a `DataTable` names a SECTION of
+           that page, which is level 2 wherever it sits. The product already
+           fixes this: `metrics/Chapter.tsx`'s `SectionHeading` is an `h2` and
+           renders the same 18px/500 type, so a screen moving its title in here
+           keeps both its outline and its type. A `level` prop would be a
+           judgement made forty times against a document outline nothing
+           checks — the same shape as the defects this file's rules exist to
+           stop. If a table ever genuinely nests under an `h2`, the screen knows
+           that and the prop can be added then, with a reason.
+
+           **No rule.** `SectionHeading` closes itself with a hairline to the end
+           of the measure; here the control cluster closes the row, and a second
+           terminator between the title and `Search` would read as a divider
+           between two toolbars. */
+        <div className="flex min-w-0 shrink flex-col gap-0.5">
+          {/* `truncate` is the BACKSTOP, not the first degrade — see above. It
+              engages only once the heading has already taken its own line and
+              overrun that too, which is the only case where letting it wrap
+              onto a third and fourth line would push the table down for a
+              title. Ellipsis is `text-overflow`, so it lands at the inline-END
+              in both directions with no logical-property work to do; measured
+              in Arabic at both widths. */}
+          <h2 className="truncate text-lg font-medium text-foreground">{heading}</h2>
+          {/* `null` is the documented absence and `''` is what a screen's
+              `join` produces when it has nothing to join — neither should draw
+              an empty 16px line under the title. */}
+          {subheading != null && subheading !== '' && (
+            <span className="truncate text-xs text-muted-foreground">{subheading}</span>
+          )}
+        </div>
+      )}
+
       {tabs.length > 0 && (
         /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. This was `shrink-0`,
            measured against People's four short labels (375px of track). Wave 2's

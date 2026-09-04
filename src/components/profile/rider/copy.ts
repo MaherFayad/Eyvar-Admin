@@ -58,7 +58,6 @@ export const RIDER_PROFILE_EN: Dictionary = {
       reads as *held out of your balance*, and none of the rider's balance is.
       See `RiderRail`. */
   'profile.rider.rail.underReview': 'Payments under review',
-  'profile.rider.rail.underReviewNote': 'Captured, not settled. Not part of the balance.',
   /** Not `Subscription` and not `Last plan`. See `RiderRail`. */
   'profile.rider.rail.plan': 'Plan',
   'profile.rider.rail.noPlan': 'No plan on this record',
@@ -89,7 +88,19 @@ export const RIDER_PROFILE_EN: Dictionary = {
   /** The rows do not sum to the balance and are not meant to — a card capture
       never touched the wallet, and an unsettled posting is outside the balance
       by AC-312. Said on the rows it is true of, so nobody adds the column up
-      and concludes the screen is wrong. */
+      and concludes the screen is wrong.
+
+      **Two call sites, and both are load-bearing** (owner amendment 3, §16.5):
+      the money rows in `RiderPanels`, where it names WHICH rows sit outside the
+      balance, and the `Payments under review` block in `RiderRail`, where the
+      figure stacks directly under the wallet balance in one column and the
+      misread is available. It replaced `profile.rider.rail.underReviewNote`'s two
+      sentences there rather than a second key being minted: a second spelling
+      of a shared sentence is a second contract that has not noticed yet.
+
+      The RANK differs by context and that is correct — `text-xs` in the rail,
+      where it is the block's only secondary line, and `text-2xs` on a money
+      row, where it is a third line under a label and a timestamp (§2.3). */
   'profile.rider.money.outsideBalance': 'Not counted in the wallet balance',
 
   /* ── what else references this rider ─────────────────── */
@@ -110,6 +121,19 @@ export const RIDER_PROFILE_EN: Dictionary = {
   /* ── the one blocked write (§11.2). See `refusals.ts`. ────────────── */
   'profile.rider.action.assign': 'Assign a captain',
   'profile.rider.refusal.assignAssigned': 'A captain is already on this trip.',
-  'profile.rider.refusal.assign':
-    'A captain is assigned on the dispatch board. This layer commits nothing.',
+  /**
+   * **A refusal names the next step, never the rule behind it** (finding G1).
+   *
+   * This used to read *"A captain is assigned on the dispatch board. This layer
+   * commits nothing."* Both sentences were wrong for an operator.
+   *
+   * The second named a design rule. §5.7 is that a control explains itself in
+   * the reader's terms, and no operator knows what a layer commits — it is the
+   * reason the control is disabled, not anything they can act on.
+   *
+   * The first was mis-tensed and said the opposite of what it meant: *"a
+   * captain **is** assigned"* reads as *one already has been*, directly under a
+   * line saying none has. The plural present states the practice instead.
+   */
+  'profile.rider.refusal.assign': 'Captains are assigned on the dispatch board.',
 }

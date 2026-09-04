@@ -624,6 +624,20 @@ export interface SavedReport {
   pinnedToDashboardIds: string[]
 }
 
+/**
+ * How many columns of the board grid one tile occupies — Amplitude §C5's
+ * different-sized tiles, and the reason a board reads as a composition rather
+ * than as a uniform 2-up.
+ *
+ * **Two values, not a pixel geometry.** §11.2 costed a persisted geometry per
+ * breakpoint and refused it; this is one enum on the tile, the grid decides
+ * what it means at each width, and nothing has to be re-laid-out when the
+ * breakpoints move. `'full'` spans the row at every width the grid is more
+ * than one column wide; below that every tile is already full width, so the
+ * value is inert rather than wrong.
+ */
+export type DashboardTileSpan = 'half' | 'full'
+
 export interface DashboardTile {
   tileId: string
   /** **A reference, never a copy.** §11.3 — editing a report changes every dashboard that pins it. */
@@ -636,6 +650,19 @@ export interface DashboardTile {
   pinnedName: string
   /** `Move up` / `Move down` — keyboard-operable by construction. §11.2 rejects a drag grid for the core. */
   order: number
+  /**
+   * §C5's tile size. **Absent means `'half'`**, on the wire and in a record
+   * saved before this field existed — the same additive contract
+   * `ReportQuery.mode` states, for the same reason: every board an operator has
+   * already arranged must keep the arrangement it had. Read it through
+   * `tileSpan(tile)`, never directly.
+   */
+  span?: DashboardTileSpan
+}
+
+/** The **one** reader of `tile.span`. See `DashboardTile.span`. */
+export function tileSpan(tile: Pick<DashboardTile, 'span'>): DashboardTileSpan {
+  return tile.span ?? 'half'
 }
 
 export interface Dashboard {
@@ -651,6 +678,43 @@ export interface Dashboard {
   description: string | null
   ownerId: string
   tiles: DashboardTile[]
+  /**
+   * **§C4's board-level range — the window every tile answers at.**
+   *
+   * A board without one is nine unrelated windows: each tile renders whatever
+   * its report happened to be saved with, and two tiles side by side can be a
+   * week and a year without saying so. Amplitude's dashboards carry their own
+   * period control and every tile answers to it; this is that control's
+   * storage.
+   *
+   * **`null` is a first-class value and the default**, and it means *every tile
+   * answers with its own saved window*. It is not "unset": a board whose author
+   * has deliberately not imposed a range and a board that has never had one are
+   * the same board, and the control says so in those words rather than showing
+   * a range nothing is using.
+   *
+   * A tile whose report **cannot legally run at this window** — a cohort whose
+   * horizon no longer fits, a grain that would exceed the bucket cap — keeps
+   * its own and **says so on the tile**. Silently narrowing a matrix to fewer
+   * columns than its report declares is the class of defect this module refuses
+   * everywhere else.
+   */
+  range: ReportWindow | null
+  /**
+   * **§C4's `Add Filter`, in the existing vocabulary.**
+   *
+   * The same `FilterSpec` an index table emits and the same one
+   * `ReportQuery.filters` carries — **there is no second filter model**
+   * (AC-814), and `columnFilter.ts` is explicit that there must never be one.
+   *
+   * It applies to a tile **only where the tile's report can legally take it**:
+   * `QueryPlan.legalFilterFields` is the intersection of every measure's
+   * `filterableFields`, and a board filter on `trip.kind` means nothing to a
+   * report counting subscriptions. A tile that cannot take one **names the
+   * field it dropped** rather than rendering numbers that quietly ignore the
+   * filter the operator can see above them.
+   */
+  filters: FilterSpec[]
   createdAt: IsoDateTime
   updatedAt: IsoDateTime
 }

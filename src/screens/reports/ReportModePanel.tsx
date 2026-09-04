@@ -12,7 +12,7 @@
  *  │  [Add a step]        │
  *  │ Time to convert      │
  *  │ Date range           │
- *  │ [Run]                │
+ *  │ [Refresh]            │
  *  └──────────────────────┘
  * ```
  *
@@ -28,7 +28,8 @@
  * greyed out on a cohort report.
  *
  * So the builder renders `QueryPanel` for `trend` and `table` **unchanged**,
- * and this for the other three. One mode switcher above both, and one `Run`.
+ * and this for the other three. One mode switcher above both, and one
+ * `Refresh` — the canvas follows the question in every mode (`ReportBuilder`).
  *
  * ## It computes no legality, exactly as `QueryPanel` computes none
  *
@@ -47,10 +48,14 @@
  * disabling the primary, not by an error after the fact.
  *
  * Rules applied
- *   §5.3        control order; nothing runs until `Run` (AC-809).
+ *   §5.3        control order. AC-809's *nothing runs until `Run`* is
+ *               superseded by the owner's own instruction; the builder's
+ *               header records it and this panel simply stopped being the
+ *               commit.
  *   D9 CQ-3     illegal options disabled in place with a reason, never hidden.
- *   §3.2        `Run` is off while the query carries a violation.
- *   R3          `Run` is the panel's one primary.
+ *   §3.2        `Refresh` is off while the query carries a violation, and so
+ *               is the auto-run.
+ *   R3          `Refresh` is the panel's one primary.
  *   §7.2        every control is a real focusable element with the primitive's
  *               own ring; every reason is readable, not a tooltip on a disabled
  *               control.
@@ -58,6 +63,13 @@
  */
 
 import { useId, useState } from 'react'
+import {
+  FilterIcon,
+  GitBranchIcon,
+  LineChartIcon,
+  RepeatIcon,
+  Table2Icon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -72,7 +84,7 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { LegalityOptions, WindowControl } from '@/components/reports'
+import { LegalityOptions } from '@/components/reports'
 import {
   MAX_COHORT_HORIZON,
   MAX_FUNNEL_STEPS,
@@ -93,7 +105,7 @@ import {
   type ReportMode,
   type ReportQuery,
 } from '@/data/types'
-import type { Language, Translator } from '@/lib'
+import type { Translator } from '@/lib'
 
 /** Shared by both rails, so a mode card and a query card sit on one surface. */
 const CARD = 'flex flex-col gap-4 rounded-xl border border-border bg-card p-3 shadow-1'
@@ -111,11 +123,8 @@ export interface ReportModePanelProps {
   /** The catalogue's own four states. Everything already chosen keeps rendering. */
   catalogueStatus: 'loading' | 'error' | 'empty' | 'content'
   onRetryCatalogue: () => void
-  /** The day presets resolve against. Passed, never read from an ambient clock. */
-  today: string
   running: boolean
   t: Translator
-  language: Language
 }
 
 export function ReportModePanel({
@@ -127,10 +136,8 @@ export function ReportModePanel({
   dimensions,
   catalogueStatus,
   onRetryCatalogue,
-  today,
   running,
   t,
-  language,
 }: ReportModePanelProps) {
   const mode = reportMode(query)
   const reasons = (field: QueryViolation['field']) => plan.violations.filter((v) => v.field === field)
@@ -180,26 +187,23 @@ export function ReportModePanel({
         />
       )}
 
-      {/* §5.3 item 5, from the one shared control — see `WindowControl.tsx`.
-          **Never `disabled` here**, which is the concrete reason this panel
-          exists: a cohort's window decides how many columns it can reach, and
-          `QueryPanel` turns the range off while `measures` is empty. */}
-      <WindowControl
-        id="rb-mode-window"
-        query={query}
-        onChange={onChange}
-        today={today}
-        t={t}
-        language={language}
-      />
-      <Reasons items={reasons('window')} t={t} />
+      {/* **§5.3 item 5 left this panel** — the date range is `ChartToolbar`'s
+          now, on the row above the plot (§A7), and it renders there for all
+          five modes. **Never `disabled` for these three**, which is the
+          concrete reason the toolbar takes an `unstarted` prop rather than
+          reading `measures.length`: a retention window decides how many columns
+          the matrix can reach, so it must be reachable before anything else is.
+          Its violations moved with it. */}
       {/* The grain is not a control here and it is not hidden either: the mode
           decided it, and the sentence says which mode and what it decided. */}
       <Reasons items={reasons('grain')} t={t} />
 
-      {/* R3 — the panel's one primary, and the ONLY thing that issues a
-          request. §3.2: an illegal query disables it rather than failing after
-          submit. */}
+      {/* R3 — the panel's one primary. **No longer the only thing that issues a
+          request**: the builder re-runs the question 350ms after the last edit,
+          so this is the explicit *ask it again* for an operator who wants the
+          numbers as of now. §3.2 is unchanged — an illegal query disables it,
+          and gates the auto-run on the same predicate, rather than failing
+          after submit. */}
       <Button
         type="button"
         onClick={onRun}
@@ -230,7 +234,7 @@ export interface ModeFieldProps {
  *
  * Each option carries one line saying what the question is, because *Retention*
  * and *Journeys* are not self-evident to an operator who has not used an
- * analytics tool before, and a mode switched into by mistake costs a `Run`.
+ * analytics tool before, and a mode switched into by mistake costs a run.
  *
  * ## Why a strip and not a `Select`
  *
@@ -247,9 +251,39 @@ export interface ModeFieldProps {
  * `radiogroup` because a radio group takes one tab stop and owns arrow-key
  * navigation, which is a second interaction model for a five-item strip.
  *
- * No icons: no icon set has been specified for these five, and inventing one
- * would be five design decisions taken in a component.
+ * ## The icons, and why there are five of them now
+ *
+ * There were none, and the reason given was that no set had been specified.
+ * One has: **lucide**, already the product's only icon set across 42 files, at
+ * 16px, inheriting `currentColor`. §A1 puts a glyph on every entry of
+ * Amplitude's chart-type strip and it is what makes five words read as five
+ * *kinds* of question rather than as a row of buttons.
+ *
+ * Each glyph is the closest honest match for **this product's** five, not for
+ * Amplitude's:
+ *
+ * | Mode | Glyph | Why |
+ * |---|---|---|
+ * | `trend` | `LineChartIcon` | a number over a range is a line |
+ * | `funnel` | `FilterIcon` | successive narrowing — lucide has no funnel |
+ * | `table` | `Table2Icon` | the same numbers, listed |
+ * | `cohort` | `RepeatIcon` | came back, and came back again |
+ * | `journey` | `GitBranchIcon` | what people did next, as a branch |
+ *
+ * Every one is `aria-hidden`: **the label carries the name**, so the
+ * accessible name of the funnel button is still `Funnel` and the `aria-pressed`
+ * selection is still what is announced. None of them mirrors — a chart glyph is
+ * an object, not a reading-order mark (§9.5).
  */
+/** One glyph per mode. Decorative; the label beside it carries the name. */
+const MODE_ICONS: Record<ReportMode, typeof LineChartIcon> = {
+  trend: LineChartIcon,
+  funnel: FilterIcon,
+  table: Table2Icon,
+  cohort: RepeatIcon,
+  journey: GitBranchIcon,
+}
+
 export function ModeField({ query, onChange, t }: ModeFieldProps) {
   const mode = reportMode(query)
   const labelId = useId()
@@ -260,6 +294,7 @@ export function ModeField({ query, onChange, t }: ModeFieldProps) {
         <div role="group" aria-labelledby={labelId} className="flex flex-wrap gap-1">
           {REPORT_MODES.map((value) => {
             const selected = value === mode
+            const Glyph = MODE_ICONS[value]
             return (
               <Button
                 key={value}
@@ -269,6 +304,9 @@ export function ModeField({ query, onChange, t }: ModeFieldProps) {
                 aria-pressed={selected}
                 onClick={() => onChange(value)}
               >
+                {/* 16px, `currentColor` through the button, and decorative —
+                    see the table in this component's doc comment. */}
+                <Glyph aria-hidden="true" className="size-4" />
                 {t(`rb.mode.${value}`)}
               </Button>
             )

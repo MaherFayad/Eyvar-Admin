@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 5044,
-    "en": 4805,
-    "ar": 5044,
+    "keys": 5455,
+    "en": 5184,
+    "ar": 5455,
     "arMissing": 0,
-    "arExtra": 239,
-    "copyFiles": 32,
+    "arExtra": 271,
+    "copyFiles": 35,
     "unregisteredKeys": 167,
-    "pluralForms": 37,
+    "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2
   },
@@ -17,7 +17,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 693,
+      "keys": 694,
       "notInEN": 0
     },
     {
@@ -25,7 +25,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 483,
+      "keys": 566,
       "notInEN": 0
     },
     {
@@ -33,7 +33,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 264,
+      "keys": 263,
       "notInEN": 0
     },
     {
@@ -41,7 +41,7 @@
       "exports": [
         "PROFILE_EN"
       ],
-      "keys": 248,
+      "keys": 249,
       "notInEN": 0
     },
     {
@@ -49,7 +49,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 240,
+      "keys": 248,
       "notInEN": 0
     },
     {
@@ -133,6 +133,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/components/profile/driver/copy.ts",
+      "exports": [
+        "DRIVER_PROFILE_EN"
+      ],
+      "keys": 108,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/support/disputes/copy.ts",
       "exports": [
         "DISPUTES_EN"
@@ -157,6 +165,24 @@
       "notInEN": 0
     },
     {
+      "file": "src/i18n/vocabulary/copy.ts",
+      "exports": [
+        "DRIVER_VOCABULARY_EN",
+        "RIDER_VOCABULARY_EN",
+        "VOCABULARY_EN"
+      ],
+      "keys": 88,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/trip/copy.ts",
+      "exports": [
+        "TRIP_PROFILE_EN"
+      ],
+      "keys": 82,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/operations/requests/copy.ts",
       "exports": [
         "REQUESTS_EN"
@@ -173,15 +199,6 @@
       "notInEN": 0
     },
     {
-      "file": "src/i18n/vocabulary/copy.ts",
-      "exports": [
-        "RIDER_VOCABULARY_EN",
-        "VOCABULARY_EN"
-      ],
-      "keys": 73,
-      "notInEN": 0
-    },
-    {
       "file": "src/screens/management/zones/copy.ts",
       "exports": [
         "ZONES_EN"
@@ -195,6 +212,14 @@
         "FAIRNESS_EN"
       ],
       "keys": 63,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/request/copy.ts",
+      "exports": [
+        "REQUEST_PROFILE_EN"
+      ],
+      "keys": 59,
       "notInEN": 0
     },
     {
@@ -222,19 +247,19 @@
       "notInEN": 0
     },
     {
-      "file": "src/components/profile/rider/copy.ts",
-      "exports": [
-        "RIDER_PROFILE_EN"
-      ],
-      "keys": 31,
-      "notInEN": 0
-    },
-    {
       "file": "src/screens/entity/copy.ts",
       "exports": [
         "ENTITY_RIDER_EN"
       ],
-      "keys": 28,
+      "keys": 33,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/rider/copy.ts",
+      "exports": [
+        "RIDER_PROFILE_EN"
+      ],
+      "keys": 30,
       "notInEN": 0
     },
     {

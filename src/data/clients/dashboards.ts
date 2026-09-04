@@ -33,20 +33,41 @@
  * is keyboard-operable by construction, one integer per tile, no breakpoint
  * interaction — and an ordered list is a valid input to a grid, so nothing is
  * redesigned when phase two arrives.
+ *
+ * **A tile's `span` is the one thing that ordering could not say.** Amplitude's
+ * boards are compositions — a hero across the top, a grid beneath it — and a
+ * uniform 2-up reads as a contact sheet rather than as a board. `span` is an
+ * enum on the tile, not a geometry: the grid decides what `'full'` means at
+ * each width, so nothing here has to know a breakpoint and the keyboard
+ * objection never arises (it is a menu item, like every other tile control).
+ *
+ * ## §C4 — the board has a range and filters, and they are the same vocabulary
+ *
+ * `Dashboard.range` and `Dashboard.filters` are the board-level controls
+ * Amplitude puts in the dashboard header. `applyBoardScope` below is the whole
+ * definition of what they mean, as a pure function over one tile's saved query,
+ * and it refuses rather than distorts: a filter a report cannot take is not
+ * sent, a range that would invalidate a report is not applied, and both
+ * refusals are RETURNED so the tile can name them. A board control that
+ * silently did nothing to three of nine tiles would be worse than no control.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
-import type { Paginated, QueryParams, Single } from '../types/common'
+import type { FilterSpec, Paginated, QueryParams, Single } from '../types/common'
+import type { Dimension, Measure } from '../types/measure'
 import {
   REPORT_NAME_MAX,
   type Dashboard,
   type DashboardTile,
+  type ReportQuery,
+  type ReportWindow,
   type SaveDashboardOutcome,
   type SaveInvalidReason,
 } from '../types/report'
+import { planReportQuery } from './catalogue'
 import { currentMockUserId } from './session'
 import { http } from './http'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -130,6 +151,22 @@ export interface SaveDashboardInput {
    */
   description: string | null
   tiles: DashboardTile[]
+  /**
+   * §C4's board range. **Optional, and `undefined` means *leave it alone*.**
+   *
+   * The asymmetry with `description` is deliberate and it is a property of the
+   * VALUES, not a shortcut. `description: null` is the only way to clear a
+   * description, so an omitted key and a cleared field would be
+   * indistinguishable and a tile write would silently blank one. `range: null`
+   * is not a cleared range — it is the live value *"every tile answers with its
+   * own window"*, which a board holds most of the time. So `null` can carry
+   * "no override" and `undefined` is free to carry "not part of this write",
+   * which is what lets a rename, a reorder and a pin each send only what they
+   * edit.
+   */
+  range?: ReportWindow | null
+  /** §C4's board filters. `undefined` means *leave them alone*; `[]` clears them. */
+  filters?: FilterSpec[]
 }
 
 /**
@@ -177,7 +214,17 @@ export async function saveDashboard(
     if (input.id) {
       const existing = dashboards.find((d) => d.id === input.id)
       if (!existing) throw notFound('dashboard', input.id)
-      const updated: Dashboard = { ...existing, name, description, tiles, updatedAt: EYVAR_NOW }
+      const updated: Dashboard = {
+        ...existing,
+        name,
+        description,
+        tiles,
+        /* `undefined` is *not part of this write*, which is why a rename does
+           not have to know a board range exists. See `SaveDashboardInput`. */
+        range: input.range === undefined ? existing.range : input.range,
+        filters: input.filters === undefined ? existing.filters : [...input.filters],
+        updatedAt: EYVAR_NOW,
+      }
       dashboards = dashboards.map((d) => (d.id === updated.id ? updated : d))
       return { status: 'saved' as const, dashboard: { ...updated } }
     }
@@ -188,6 +235,11 @@ export async function saveDashboard(
       description,
       ownerId: currentMockUserId(),
       tiles,
+      /* A new board imposes nothing. Every tile answers with its own window
+         until somebody decides otherwise, which is the honest starting state
+         and the one the control names in those words. */
+      range: input.range ?? null,
+      filters: input.filters ? [...input.filters] : [],
       createdAt: EYVAR_NOW,
       updatedAt: EYVAR_NOW,
     }
@@ -263,6 +315,131 @@ export function moveTile(tiles: readonly DashboardTile[], tileId: string, direct
   const index = ordered.findIndex((t) => t.tileId === tileId)
   if (index === -1) return ordered
   return moveTileTo(ordered, tileId, index + 1 + direction)
+}
+
+/* ─────────────── §C4 — the board scope, resolved per tile ──────────────── */
+
+/** What the board imposes. The two fields `Dashboard` persists, and nothing else. */
+export interface BoardScope {
+  range: ReportWindow | null
+  filters: readonly FilterSpec[]
+}
+
+/** The board scope that imposes nothing — every tile answers with its own window. */
+export const OPEN_BOARD_SCOPE: BoardScope = { range: null, filters: [] }
+
+/**
+ * One tile's question, after the board has had its say.
+ *
+ * **The refusals are returned, not swallowed.** A tile that quietly ignored the
+ * filter an operator can read two inches above it is the worst outcome
+ * available here: the numbers are right for a question nobody asked and nothing
+ * on screen says which question that was.
+ */
+export interface ScopedTileQuery {
+  /** What to run. Never illegal — every override that would make it so was backed out. */
+  query: ReportQuery
+  /** True when the board range was refused and the report's own window stands. */
+  rangeRefused: boolean
+  /** Board filter fields this report cannot take, in board order. */
+  refusedFilterFields: string[]
+  /** Board filter fields that really did narrow this tile. */
+  appliedFilterFields: string[]
+}
+
+/**
+ * **Apply a dashboard's range and filters to one tile's saved query.**
+ *
+ * Pure, and deliberately here rather than in the tile: it is the definition of
+ * what a board-level control *means*, it is the thing a test can pin without
+ * rendering anything, and a component that computed it privately would be a
+ * second answer the moment a second surface needed one.
+ *
+ * ## Three rules, in this order
+ *
+ * 1. **A filter applies only where the report can legally take it.**
+ *    `QueryPlan.legalFilterFields` is the intersection of every measure's
+ *    `filterableFields`, so a board filter on `trip.kind` is meaningless to a
+ *    report counting subscriptions and **is not sent**. Sending it would come
+ *    back `no-shared-filter-field` and turn a healthy tile into §8.3 state 12,
+ *    which is a lie about the report: nothing is wrong with it.
+ * 2. **A board filter replaces the report's own filter on the same field**,
+ *    rather than joining it. Two `eq` filters on one field is the empty set,
+ *    and an operator who typed `Riyadh` on the board did not ask for
+ *    *Riyadh AND Jeddah*.
+ * 3. **The range is applied only if it introduces no NEW violation.** A cohort
+ *    over `last-365d` whose horizon reaches `M3` does not fit in `last-7d`, and
+ *    the honest answer is the report's own window plus a sentence — not four
+ *    columns quietly becoming one. Compared against the report's own plan
+ *    rather than against zero, so a report that is *already* invalid is not
+ *    blamed on the board.
+ */
+export function applyBoardScope(
+  query: ReportQuery,
+  scope: BoardScope,
+  catalogue: { measures: readonly Measure[]; dimensions: readonly Dimension[] },
+  today: string,
+): ScopedTileQuery {
+  const own = planReportQuery(query, catalogue, today)
+
+  const applied: FilterSpec[] = []
+  const refusedFilterFields: string[] = []
+  for (const filter of scope.filters) {
+    if (own.legalFilterFields.includes(filter.field)) applied.push(filter)
+    else refusedFilterFields.push(filter.field)
+  }
+
+  const filters =
+    applied.length === 0
+      ? query.filters
+      : [
+          ...query.filters.filter(
+            (existing) => !applied.some((board) => board.field === existing.field),
+          ),
+          ...applied,
+        ]
+
+  let window = query.window
+  let rangeRefused = false
+  if (scope.range !== null) {
+    const candidate: ReportQuery = { ...query, filters, window: scope.range }
+    const introduced = planReportQuery(candidate, catalogue, today).violations.filter(
+      (violation) =>
+        !own.violations.some(
+          (existing) => existing.code === violation.code && existing.field === violation.field,
+        ),
+    )
+    if (introduced.length > 0) rangeRefused = true
+    else window = scope.range
+  }
+
+  return {
+    query: { ...query, filters, window },
+    rangeRefused,
+    refusedFilterFields,
+    appliedFilterFields: applied.map((filter) => filter.field),
+  }
+}
+
+/**
+ * Every field some measure in the catalogue can be filtered by — the board
+ * filter control's vocabulary.
+ *
+ * **Derived from the catalogue, never from a hand-kept list.** A board does not
+ * resolve its tiles (that is the whole of AC-872), so it cannot know which
+ * fields *this* board's reports accept without nine extra reads. What it can
+ * know honestly is which fields exist at all; `applyBoardScope` then decides
+ * per tile, and a tile that cannot take one says so. Offering the union and
+ * refusing per tile is truthful in both directions. Filtering the list down to
+ * fields no dimension names would leave a control with no label to render.
+ */
+export function boardFilterFields(measures: readonly Measure[], dimensions: readonly Dimension[]): string[] {
+  const named = new Set(dimensions.map((dimension) => dimension.key))
+  const fields = new Set<string>()
+  for (const measure of measures) {
+    for (const field of measure.filterableFields) if (named.has(field)) fields.add(field)
+  }
+  return [...fields].sort()
 }
 
 export function resetDashboards(): void {

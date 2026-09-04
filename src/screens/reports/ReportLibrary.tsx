@@ -41,9 +41,25 @@
  *
  * It is not the row-click target and never could be: `Open` is (§11.2 allows
  * one), and this one opens a form that writes.
+ *
+ * ## The row carries its kind (Amplitude's content lists)
+ *
+ * Every row now leads with a glyph for the report's `chartType` and names that
+ * kind in words on the quiet line beneath, ahead of the description. Both are
+ * **derived from `report.query`** — the saved definition — so neither can go
+ * stale against the report it labels, and neither is stored on the row.
+ *
+ * **Two things Amplitude's row has that this one still does not, and why.** An
+ * owner name would need `SavedReport.ownerId` resolved through a users client
+ * this screen does not call, and an id is not a name; and the row overflow's
+ * `MoreHorizontal` trigger and its per-item leading glyphs live in `DataTable`
+ * and `table/rowActions.tsx` (`RowAction.label` is a `string`; there is no
+ * `icon` field), which are the table layer's files and land on forty screens.
+ * Both are reported rather than reached into or invented.
  */
 
 import { useState } from 'react'
+import { BarChart3Icon, LineChartIcon, PieChartIcon, Table2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
@@ -62,7 +78,7 @@ import {
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
 import { EYVAR_TODAY, deleteReport, listReports } from '@/data/clients'
-import type { SavedReport } from '@/data/types'
+import type { ChartType, SavedReport } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { AlertRuleDialog } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
@@ -73,20 +89,44 @@ export interface ReportLibraryProps {
   onSelectView?: (view: ReportsView) => void
   onOpen: (report: SavedReport) => void
   onNew: () => void
-  views?: React.ReactNode
+  /* `views?: React.ReactNode` stood here and on `AlertsViewProps` — the sixth
+     dead prop: never destructured, never read, never passed. Deleted rather
+     than wired; `AlertsViewProps` carries the argument. */
   /**
    * The day `Create alert` resolves the chosen report's series against.
    *
-   * Optional, and defaulted to the mock clock's today rather than read from an
-   * ambient one inside the dialog — `ReportsScreen` derives a ticking `today`
-   * for `AlertsView` and can thread the same value here in one line. Recorded
-   * as a follow-up rather than taken, because that screen has another owner
-   * right now.
+   * Passed down, never read from an ambient clock inside the dialog —
+   * `ReportsScreen` derives one ticking `today` and gives the same value to
+   * this list and to `AlertsView`, so the one `AlertRuleDialog` answers the
+   * same way whichever of the two opened it.
+   *
+   * Still optional, and the default is the fixed clock's day rather than a live
+   * one: a test that mounts this list on its own must get a deterministic
+   * answer, and `EYVAR_TODAY` is the day every fixture is written against. It
+   * is a floor for an unmounted caller, not the value the app runs on.
    */
   today?: string
   t: Translator
   language: Language
   dir: 'ltr' | 'rtl'
+}
+
+/**
+ * **The row's type glyph** — Amplitude's content lists carry one, and it is the
+ * same four shapes `ChartToolbar` and `DashboardTile` already use for the same
+ * four `ChartType`s. One map per file is a third copy of a three-line
+ * `Record`; a shared one would be a component in someone else's directory, and
+ * the register is what has to match, not the module.
+ *
+ * **Derived, never stored.** It is read off `report.query.chartType` — the
+ * saved definition — so a report re-saved as a pie stops being drawn as a line
+ * the moment it is re-listed. Nothing about the kind is written to the row.
+ */
+const CHART_ICONS: Record<ChartType, typeof LineChartIcon> = {
+  line: LineChartIcon,
+  bar: BarChart3Icon,
+  pie: PieChartIcon,
+  table: Table2Icon,
 }
 
 interface PendingDelete {
@@ -107,7 +147,25 @@ export function ReportLibrary({
   language,
   dir,
 }: ReportLibraryProps) {
-  const table = useIndexTable<SavedReport>({ mode: 'index', getRowId: (row) => row.id })
+  const table = useIndexTable<SavedReport>({
+    mode: 'index',
+    getRowId: (row) => row.id,
+    /* **`urlKey` is load-bearing here, not cosmetic.**
+
+       `tableScope('', '')` is `''` (`useIndexTable.test.ts:623`), and the
+       library is the one table in this sub-tab that mounts under the DEFAULT
+       view — `selectView` writes no `?view=` for `reports`. Unscoped, this
+       table's search parameter is a bare `?q=`, which is character-for-character
+       `REPORT_QUERY_PARAM`. Typing one letter into the library's search box
+       therefore wrote a `?q=` that `ReportsScreen` read back as a composed
+       report and rendered an empty builder over the list.
+
+       `ReportsScreen` also guards it (a non-empty `?q=` that does not
+       deserialise is not a report query), and that guard stays — it defends the
+       screen against any future writer of the same parameter. This is the fix at
+       the source: the two questions now have two names. */
+    urlKey: 'lib',
+  })
   const [pending, setPending] = useState<PendingDelete | null>(null)
   /* The report `Create alert` was pressed on. Held rather than passed straight
      into the dialog so the dialog's own reset effect is the single place the
@@ -130,20 +188,48 @@ export function ReportLibrary({
       minWidth: 260,
       sortField: 'name',
       dataType: 'text',
-      cell: (row) => (
-        /* User content. Never translated, and it must render right-to-left
-           inside an English UI (AC-898). Layout on the box, isolation on the
-           run — never the other way round. */
-        <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
-          <bdi {...isolatedRunProps().run}>{row.name}</bdi>
+      cell: (row) => {
+        const Glyph = CHART_ICONS[row.query.chartType]
+        return (
+          <span className="flex min-w-0 items-center gap-1.5">
+            {/* Amplitude's per-row type glyph. Decorative and declared so: the
+                kind is named in words on the line beneath, so this is a second
+                channel and not the only one (§7.5). It is an object and does
+                not mirror (§9.5). */}
+            <Glyph
+              aria-hidden="true"
+              data-chart-kind={row.query.chartType}
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+            {/* User content. Never translated, and it must render right-to-left
+                inside an English UI (AC-898). Layout on the box, isolation on
+                the run — never the other way round. */}
+            <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+              <bdi {...isolatedRunProps().run}>{row.name}</bdi>
+            </span>
+          </span>
+        )
+      },
+      /* **The kind in words, then the description.** The chart kind is a
+         translated UI string and the description is user content, so they are
+         two runs and not one sentence: no `+`, no interpolation, and the
+         separator between them is punctuation rather than a word anybody has to
+         translate. The description keeps its own isolate. */
+      secondaryLine: (row) => (
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="shrink-0">{t(`rb.chartType.${row.query.chartType}`)}</span>
+          {row.description !== null && (
+            <>
+              <span aria-hidden="true" className="shrink-0">
+                ·
+              </span>
+              <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+                <bdi {...isolatedRunProps().run}>{row.description}</bdi>
+              </span>
+            </>
+          )}
         </span>
       ),
-      secondaryLine: (row) =>
-        row.description === null ? null : (
-          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
-            <bdi {...isolatedRunProps().run}>{row.description}</bdi>
-          </span>
-        ),
     },
     {
       id: 'visibility',
@@ -188,7 +274,11 @@ export function ReportLibrary({
       const outcome = await deleteReport(pending.report.id, { force })
       if (outcome.status === 'pinned') {
         /* Refused, WITH the names. §11.3, AC-868. */
-        setPending({ ...pending, dashboards: outcome.dashboards, failed: false })
+        setPending({
+          ...pending,
+          dashboards: outcome.dashboards,
+          failed: false,
+        })
         return
       }
       setPending(null)
@@ -237,11 +327,20 @@ export function ReportLibrary({
           firstRun={{
             heading: t('rb.library.firstRun.heading'),
             body: t('rb.library.firstRun.body'),
-            actions: [{ label: t('rb.library.firstRun.action'), onClick: onNew, primary: true }],
+            actions: [
+              {
+                label: t('rb.library.firstRun.action'),
+                onClick: onNew,
+                primary: true,
+              },
+            ],
           }}
           noMatch={{
             message: t('rb.library.noMatch'),
-            action: { label: t('rb.library.noMatch.action'), onClick: table.clearAll },
+            action: {
+              label: t('rb.library.noMatch.action'),
+              onClick: table.clearAll,
+            },
           }}
           error={{ message: t('rb.library.error'), onRetry: reports.refetch }}
         />

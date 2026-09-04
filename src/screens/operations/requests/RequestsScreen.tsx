@@ -96,9 +96,9 @@ import {
   Cell,
   DateCell,
   DecisionBadge,
-  Identity,
   MutedCell,
   OwnerChip,
+  SubjectIdentity,
   QueuePage,
   QueueTable,
   SlaCell,
@@ -445,7 +445,10 @@ export function RequestsScreen({ row }: { row: SubTabRoute }) {
     now,
     canWrite,
     currentUserId,
-  profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    /* The overlay for any id this screen names. It is handed the REQUEST's own
+       id by the identity cell now, and a captain's or a rider's by the columns
+       that name one — the function is about `?entity=`, not about a kind. */
+    profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
     /* **P8-T1 — resolution is ASKED, not assumed.** A captain the resolver
        cannot find renders as text with its reason rather than as a link into
        the overlay's own not-found state. */
@@ -643,33 +646,64 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
 
   return [
     {
-      id: 'rider',
+      id: 'ride',
       emphasis: 'primary',
-      csv: (row) => row.riderName,
-      header: t('requests.col.rider'),
+      csv: (row) => `${row.pickup} / ${row.destination}`,
+      header: t('requests.col.ride'),
       /* AC-104 / AC-106 — the identity is implicitly pinned and R5a's marker
          rides it, which is what keeps a breached row's marker visible at every
          horizontal scroll offset. */
       alwaysVisible: true,
       minWidth: 168,
       dataType: 'text',
-      sortField: 'riderName',
+      /* Sorts by PICKUP, which is the half of the route the eye reads first and
+         the half an operator groups by — six requests out of Al Sahafa are a
+         supply problem in Al Sahafa. `pickup` is a scalar field on the row and
+         the shape resolves it; the rendered two-line cell is not a field and
+         could not be ordered as one. */
+      sortField: 'pickup',
       cell: (row) => (
         <>
           {/* **R5a (b)** — 3px `--ev-red` on the row's leading edge, and only
               when the promise is broken and still owed (Q-17). At most ONE red
               carrier per row, and this is it. */}
           {clockFor(row).breached && <RowCriticalMarker />}
-          <Identity
-            to={deps.profileHref(row.riderId)}
-            name={row.riderName}
-            /* §7.7 — line 2 QUALIFIES line 1. The route is what an operator
-               reads next after the name, which is what retires two columns. */
-            secondary={t('requests.route', {
+          {/**
+           * **The row's subject is the RIDE, and this is where that changed.**
+           *
+           * It was an `Identity` — an avatar of the rider's initials, their
+           * name on line one, the route demoted to the qualifier beneath — and
+           * it opened `?entity=<riderId>`. So selecting the thing an operator
+           * is deciding about produced a person's wallet balance and churn
+           * risk: facts about a rider, on a surface that had been asked a
+           * question about a journey. One rider may have three requests open,
+           * and none of the three is answered by their record.
+           *
+           * `SubjectIdentity` is the cell for exactly this — *"a queue whose
+           * identity is a sentence rather than a person"* — and dropping the
+           * avatar is part of the fix rather than a side effect: a placeholder
+           * circle beside `KAFD → Airport T5` is furniture depicting nobody.
+           *
+           * The rider is not lost. They are the qualifier on line two, they are
+           * a labelled field in the sheet's Rider group, and that field is a
+           * link back to their own record (`RequestPanels.riderHref`).
+           */}
+          <SubjectIdentity
+            to={deps.profileHref(row.id)}
+            /* One key, two named placeholders, and the Arabic entry carries
+               `←`: §9.5 swaps a mirroring glyph at string-construction time,
+               never with CSS. The sheet's own title is built from the same key
+               for the same reason. */
+            title={t('requests.route', {
               pickup: row.pickup,
               destination: row.destination,
             })}
-            label={t('requests.a11y.open', { name: row.riderName })}
+            /* §7.7 — line 2 QUALIFIES line 1. Who is waiting on this ride. */
+            secondary={row.riderName}
+            label={t('requests.a11y.open', {
+              pickup: row.pickup,
+              destination: row.destination,
+            })}
           />
         </>
       ),

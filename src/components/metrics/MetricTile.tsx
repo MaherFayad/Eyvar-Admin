@@ -90,10 +90,39 @@
  *               outright. The paragraph below already recorded the complaint in
  *               those terms.
  *
- *               The valence is now a WORD beside the chip, plus the caret
- *               tinted to match. §7.5 is satisfied the right way round: the
- *               word is the carrier, the colour is the redundancy. Nothing new
- *               is introduced — no tone, no badge, no colour value.
+ *               **The valence WORD is gone, and this paragraph used to say
+ *               it was here.** It read *"the valence is now a WORD beside the
+ *               chip … the word is the carrier, the colour is the
+ *               redundancy"*. That was true when it was written and stopped
+ *               being true at `:722` below, where the owner's later ruling
+ *               removed the chip and the word together — and this paragraph
+ *               was never amended, so the file argued for a carrier it no
+ *               longer draws.
+ *
+ *               **What ships, measured on `/management/risk` in Chromium
+ *               rather than read off this file:** the caret (`aria-hidden`),
+ *               the signed numeral in a `<bdi>`, an `sr-only` clause reading
+ *               *"up, which is worse"* / *"down, which is better"* on every one
+ *               of the twelve deltas on that board, and the run tinted by
+ *               `metricValence`. No ancestor carries an `aria-label`, so the
+ *               clause is in the computed accessible name and not merely in
+ *               the DOM.
+ *
+ *               **So the verdict does reach a non-sighted reader, and for a
+ *               sighted one hue is the only carrier of valence.** Rendered in
+ *               greyscale, `↓ −50%` (better) and `↑ +14.4%` (worse) are
+ *               typographically identical; `Chapter`'s *"2 of 5 moved the
+ *               wrong way"* is the only non-colour carrier on the board and it
+ *               names no tile. That is a consequence of the owner's ruling
+ *               which nothing in the tree had recorded. It is recorded here,
+ *               it is named in the handoff, and it is deliberately **not**
+ *               patched here: restoring a visible word would reverse a ruling
+ *               this file does not own. `overview.valence.better` / `.worse`
+ *               are still in both dictionaries, unread, ready for whichever
+ *               way it is decided.
+ *
+ *               Nothing new is introduced by any of this — no tone, no badge,
+ *               no colour value.
  *
  *               **This settles §3.7's "deltas MUST be colour-coded" and the
  *               data layer's expectation** (`Metric.higherIsBetter` says its
@@ -109,18 +138,34 @@
  *   §3.7 / §7.5 a delta carries a **direction caret** as well as a number. The
  *               caret encodes DIRECTION and its colour encodes VALENCE, and the
  *               two are not the same fact — a metric can fall and be better.
- *               Neither is colour-only: the sign is beside the caret and the
- *               valence word is beside the chip.
+ *
+ *               **DIRECTION is never colour-only**: the caret is a shape and
+ *               the sign is in the text. **VALENCE is colour-only for a
+ *               sighted reader on a tile**, and is carried in words for
+ *               everyone else by the `sr-only` clause `MetricDelta` renders.
+ *               This line used to claim *"neither is colour-only … the valence
+ *               word is beside the chip"*; there is no valence word. The §4.9
+ *               note above has the measurement and says who owns the decision.
  *   §3.7 / D-08 / **AC-16** — the tile deep-links to the surface that owns the
  *               number, from `Metric.drilldownRoute`. The legacy exec tiles are
  *               not clickable at all.
- *   §7.2 / §7.4 a linked tile **is** an `<a>` wrapping the card, not a `<div>`
+ *   §7.2 / §7.4 a linked tile **was** an `<a>` wrapping the card, not a `<div>`
  *               with a stretched pseudo-element: the focusable element and the
- *               visible box are then the same object, the ring needs no
- *               `focus-within` proxy, and there is no stretched-pseudo-element
+ *               visible box were then the same object, the ring needed no
+ *               `focus-within` proxy, and there was no stretched-pseudo-element
  *               arbitrary value in the tree. A tile with no destination is a
  *               plain card and is not in the tab order — a focus stop that
  *               does nothing is worse than no focus stop.
+ *
+ *               **AMENDED for §E4, and the wrapping anchor is gone.** A lead
+ *               figure now chooses which chart the band draws, and a control
+ *               cannot be both a link and a radio. The destination moved to a
+ *               named trailing action (`OpenAnalysis`, below), which is the
+ *               reference's own shape and is the SAME action on both surfaces
+ *               so an operator learns one. Everything §7.4 was protecting
+ *               survives: the focusable thing is still a real `<a>`, it still
+ *               has a visible ring, it still has an accessible name, and a
+ *               figure with no destination still contributes no focus stop.
  *
  *               **The sentence above used to NAME that arbitrary value, in
  *               backticks, and Tailwind emitted a rule for it.** v4 scans
@@ -134,7 +179,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowRightIcon, ArrowUpIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
@@ -161,6 +206,29 @@ export interface MetricTileProps {
    * caller on the band is the one that has to say so.
    */
   surface?: MetricSurface
+  /**
+   * **§E4 — this figure CHOOSES which chart is drawn beneath the band.**
+   *
+   * Given, the figure becomes a `role="radio"` inside the row's radiogroup and
+   * states `aria-checked`. Absent, it renders exactly as it did before — which
+   * is what a lead metric with no chart of the same key gets, because a radio
+   * that redraws nothing is a control that does not work.
+   *
+   * The three fields are the whole of the roving-tabindex pattern: `selected`
+   * is the state, `onSelect` is the transition, and `tabIndex` is which one of
+   * the group the tab key reaches. The GROUP owns the arrow keys — see
+   * `BoardHeroRow` — because moving between radios is a fact about the set and
+   * not about any one of them.
+   */
+  selection?: MetricSelection
+}
+
+/** The three fields of a roving-tabindex radio. See `MetricTileProps`. */
+export interface MetricSelection {
+  selected: boolean
+  onSelect: () => void
+  /** `0` on the one radio the tab key reaches; `-1` on the rest. */
+  tabIndex: 0 | -1
 }
 
 /**
@@ -183,6 +251,7 @@ export function MetricTile({
   t,
   language,
   surface = 'page',
+  selection,
 }: MetricTileProps) {
   const label = t(`metric.${metric.key}`)
   const isStale = new Date(metric.asOf).getTime() < new Date(boardAsOf).getTime()
@@ -402,28 +471,132 @@ export function MetricTile({
     </div>
   )
 
-  if (!metric.drilldownRoute) return figure
+  /**
+   * **§E4 — the drilldown left the figure, and this is why it had to.**
+   *
+   * The whole tile was an `<a>`. §7.2 / §7.4's argument for that is unchanged
+   * and still right *for a tile that only navigates*: the focusable element and
+   * the visible box are then the same object and the ring needs no proxy.
+   *
+   * A lead figure now also CHOOSES which chart the band draws, and **a control
+   * cannot be both a link and a radio** — one role, one activation, one
+   * `Enter`. So the destination moved onto an affordance of its own, which is
+   * the reference's own shape (`Open Analysis →`), and the figure above it is
+   * free to be either a plain block or a radio.
+   *
+   * It is the same action on the page as on the band, deliberately: a figure
+   * whose drilldown you reach one way in the band and another way six inches
+   * below it is two patterns, and an operator learns the second one by
+   * failing at the first.
+   *
+   * A figure with no `drilldownRoute` gets nothing here and is not a focus
+   * stop — a stop that does nothing is worse than no stop.
+   */
+  const action = metric.drilldownRoute ? (
+    <OpenAnalysis href={metric.drilldownRoute} report={label} onBand={onBand} t={t} />
+  ) : null
+
+  if (!selection && !action) return figure
 
   return (
-    /* **The affordance had to change with the card.** A borderless figure has
-       no background to tint on hover, so what moves is the LABEL — it takes
-       the foreground colour and an underline, which is the same signal a link
-       in prose gives. The focus ring traces the figure's own box.
+    /* `h-full` IS LOAD-BEARING, not tidiness: `figure` carries `h-full`, which
+       resolves against THIS box, and a box that sizes to its content makes that
+       percentage resolve to the content height — so a figure with an action
+       under it stops filling its grid cell and the row goes ragged. The figure
+       takes the slack (`flex-1`) so the action sits on the cell's bottom edge
+       and every action in a row is on one line. */
+    <div className="flex h-full min-w-0 flex-col items-start gap-2.5">
+      {selection ? (
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selection.selected}
+          tabIndex={selection.tabIndex}
+          onClick={selection.onSelect}
+          /* **No `aria-label`.** `radio` presents its children, so a label here
+             would REPLACE the eyebrow, the numeral and the delta clause rather
+             than summarise them — and the name computed from the contents
+             already reads *"Gross revenue 8,075.70 SAR +57% up, which is
+             better"*, which is the whole tile and is what a reader wants.
 
-       `h-full` IS LOAD-BEARING, not tidiness: the figure below carries
-       `h-full`, which resolves against THIS anchor, and an anchor that sizes
-       to its content makes that percentage resolve to the content height — so
-       a linked figure stops filling its grid cell and the row goes ragged. */
+             **The selected ring is `ring-offset`, not padding.** The reference
+             outlines the chosen tile; drawn as a box the tile would gain
+             padding and shift its neighbours' columns as the selection moved.
+             An offset ring is painted outside the border box and costs no
+             layout, so the three tracks hold still. */
+          className={cn(
+            'block w-full flex-1 rounded-lg text-start outline-none transition-shadow',
+            'focus-visible:ring-2 focus-visible:ring-offset-4',
+            onBand
+              ? 'focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
+              : 'focus-visible:ring-ring focus-visible:ring-offset-background',
+            selection.selected &&
+              (onBand
+                ? 'ring-2 ring-hero-foreground ring-offset-4 ring-offset-hero'
+                : 'ring-2 ring-ring ring-offset-4 ring-offset-background'),
+          )}
+        >
+          {figure}
+        </button>
+      ) : (
+        <div className="w-full flex-1">{figure}</div>
+      )}
+      {action}
+    </div>
+  )
+}
+
+/**
+ * **§E7's `Open Analysis →`** — the one named way off a figure or a card.
+ *
+ * ## Two runs, and the second one is not decoration
+ *
+ * The visible words are short because they repeat under every figure on a
+ * board; the accessible name still has to say which analysis, so the report's
+ * own name is appended as a screen-reader run. Written this way round rather
+ * than as an `aria-label`, and the reason is §7.2's label-in-name: an
+ * `aria-label` of *"Open the Gross revenue report"* REPLACES the visible words,
+ * so a voice user saying what they can read — *"open analysis"* — matches
+ * nothing. Appending instead makes the spoken name a superset of the visible
+ * one, which is the property the rule is about.
+ *
+ * ## The arrow mirrors, and the delta caret does not
+ *
+ * They are not the same kind of mark and §9.5 separates them: this one points
+ * FORWARD THROUGH READING — *"and then, the analysis"* — so in Arabic it points
+ * the other way; a delta's caret encodes magnitude on the vertical axis, which
+ * has no reading order to follow. `rtl:rotate-180` on this one and on nothing
+ * else on the card.
+ *
+ * `size-4` — §1.5's 16px, monochrome, inheriting `currentColor` from the link.
+ */
+export function OpenAnalysis({
+  href,
+  report,
+  onBand = false,
+  t,
+}: {
+  href: string
+  /** The thing being analysed — a metric's label, or a chart's title. */
+  report: string
+  onBand?: boolean
+  t: Translate
+}) {
+  return (
     <Link
-      to={metric.drilldownRoute}
+      to={href}
+      data-slot="open-analysis"
       className={cn(
-        'group/tile block h-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4',
+        'inline-flex w-fit items-center gap-1.5 rounded-lg text-xs font-medium outline-none transition-colors',
+        'focus-visible:ring-2 focus-visible:ring-offset-2',
         onBand
-          ? 'focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
-          : 'focus-visible:ring-offset-background',
+          ? 'text-hero-muted hover:text-hero-foreground focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
+          : 'text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background',
       )}
     >
-      {figure}
+      {t('overview.report.analysis')}
+      <span className="sr-only">{t('overview.report.analysisFor', { report })}</span>
+      <ArrowRightIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
     </Link>
   )
 }
@@ -641,7 +814,12 @@ function comparisonParts({
  *   - **THE SENTENCE** under the headline (`trendRead`) says the same thing in
  *     words, from the same number.
  *
- * So the hue is redundancy on every surface and the carrier on none.
+ * So the hue is redundancy wherever a fourth carrier is present — a chart
+ * card's `trendRead` sentence states the verdict in visible words — and on a
+ * metric TILE, which has no such sentence, it is the only carrier a **sighted**
+ * reader has. That is measured, not inferred; the §4.9 note in this file's
+ * header carries the measurement and names it as an open decision. For every
+ * other reader the clause below is the carrier and the hue is the redundancy.
  *
  * ## The two grounds, and why the tone foregrounds are not enough
  *

@@ -15,7 +15,19 @@
 
 import type { IsoDateTime } from './common'
 
-/** All eleven. The five marked below have no resolver in the legacy app. */
+/**
+ * All twelve. The five marked below have no resolver in the legacy app, and
+ * `request` is the twelfth — added after the eleven, and for a different
+ * reason from any of them.
+ *
+ * **Why a request is a record and not a row.** Requests were the one work
+ * queue whose row opened *the rider* — `RequestsScreen` handed the identity
+ * cell `riderId`, so clicking the thing an operator is deciding about opened
+ * somebody's wallet balance and churn risk. The subject of that queue is the
+ * RIDE: where it goes, what it is worth, how long it has been waiting and who
+ * has been offered it. None of that is on a person's record, and the two are
+ * not interchangeable — one rider may have three requests open.
+ */
 export type ProfileEntityType =
   | 'rider'
   | 'driver'
@@ -29,6 +41,8 @@ export type ProfileEntityType =
   | 'ticket'
   | 'corporate-account'
   | 'plan'
+  /* ↓ the ride an operator is actually deciding about */
+  | 'request'
 
 export const PROFILE_ENTITY_TYPES: readonly ProfileEntityType[] = [
   'rider',
@@ -42,6 +56,7 @@ export const PROFILE_ENTITY_TYPES: readonly ProfileEntityType[] = [
   'ticket',
   'corporate-account',
   'plan',
+  'request',
 ] as const
 
 /** The five that return "No record found" today. Kept as data so QA can assert the fix, not eyeball it. */

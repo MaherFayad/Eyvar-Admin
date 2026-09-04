@@ -7,6 +7,9 @@
 
 export { Basemap, BasemapAttribution, type BasemapProps } from './Basemap'
 export { MapZoomControls, type MapZoomControlsProps } from './MapZoomControls'
+/* The gazetteer. It began inside the dispatch screen; `places.ts` says why a
+   second surface drawing the same names had to move it here. */
+export { locate } from './places'
 export {
   clampView,
   fitProjection,

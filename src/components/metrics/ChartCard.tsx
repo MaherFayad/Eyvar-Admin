@@ -3,14 +3,16 @@
  *
  * ```
  *  ┌──────────────────────────────────────────────────────┐
- *  │ Revenue                                           ↗  │  title + report link
- *  │ Computed 25 Jun 09:14                                │  fact 2 — this card's asOf
+ *  │ ▤ Revenue                                 ∿ riyals   │  measure glyph + title │ meta
+ *  │ 19 Jun 2026 – 25 Jun 2026                            │  §E7's period sub-line
+ *  │ 8,075.70 SAR  ↑ +57%                                 │  §3.7 value + delta
+ *  │ Revenue is up 57% against 12 – 18 Jun.               │  §A8's derived read
  *  │ ─────────────────────────────────────────────────    │
  *  │ No reading on 2 of 7 days.                            │  a GAP, said in words
  *  │            ╱╲      ╱                                  │
  *  │  ╱╲    ╱╲╱   ╲   ╱                                    │
  *  │ ─────────────────────────────────────────────────    │
- *  │ ▬ 19 – 25 Jun    ┄ 12 – 18 Jun                        │  legend, both periods
+ *  │ ▬ 19 – 25 Jun  ┄ 12 – 18 Jun       Open analysis →   │  legend, both periods
  *  └──────────────────────────────────────────────────────┘
  * ```
  *
@@ -55,12 +57,35 @@
  *               `scope="card"` renders that, with a required retry. Empty is
  *               not error and they do not share a shape.
  *   §7.2        the report link is an `<a>` with a visible ring and an
- *               accessible name; the `↗` is a mark and is hidden.
+ *               accessible name. **It is now NAMED rather than a corner glyph**
+ *               (§E7): `Open analysis →` at the foot of the card, whose spoken
+ *               name contains the visible words — see `OpenAnalysis`. The
+ *               header's top-right is spent instead on the measure meta, which
+ *               is what the reference puts there.
+ *   §1.5        **two knowing departures, recorded rather than absorbed.** A
+ *               measure glyph sits ON the card heading and a chart-type glyph
+ *               sits in the card's corner meta; §1.5 forbids the first outright
+ *               and does not contemplate the second. Both are lucide, one style,
+ *               16px, `currentColor`, and both name the UNIT — never decoration.
+ *               The owner has ruled the reference's anatomy takes priority; the
+ *               amendment is on the record in the handoff.
+ *   §9.5        one mark on this card mirrors and it is the `Open analysis`
+ *               arrow, which points forward through reading. The delta caret
+ *               does not — it encodes magnitude on the vertical axis — and
+ *               neither does the plot.
  *   §9.2        the card mirrors. The PLOT does not — see `TrendChart`.
  */
 
-import { ArrowUpRightIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import {
+  BanknoteIcon,
+  ChartLineIcon,
+  ClockIcon,
+  DivideIcon,
+  HashIcon,
+  PercentIcon,
+  StarIcon,
+} from 'lucide-react'
 import { TrendChart } from './TrendChart'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import {
@@ -74,7 +99,7 @@ import {
 } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { PLAIN_FRAME, PLAIN_FRAME_SLOT } from './Chapter'
-import { MetricDelta } from './MetricTile'
+import { MetricDelta, OpenAnalysis } from './MetricTile'
 import { formatDate, isolatedRunProps, type Language, type Translate } from '@/lib'
 import type { CurrencyCode, Metric, MetricUnit, SeriesWindow, TimeSeries } from '@/data/types'
 import {
@@ -132,6 +157,9 @@ export function ChartCard({
   const title = t(`chart.${series.key}`)
   const plain = frame === 'plain'
   const facts = headlineFacts(series, headline)
+  /* Whether this card draws a line at all — which decides whether the legend
+     below exists, and so which end of the card names the scale. */
+  const hasPlot = series.current.points.length > 0
 
   return (
     /* **The panel stretches and the PLOT takes the slack.** The two detail
@@ -142,7 +170,49 @@ export function ChartCard({
        part of a chart that is better for being taller. */
     <Card className={cn('min-w-0', plain && cn(PLAIN_FRAME, 'h-full'))}>
       <CardHeader className={cn(plain && PLAIN_FRAME_SLOT)}>
-        <CardTitle>{title}</CardTitle>
+        {/* **§E7 — the measure glyph beside the heading, and it is a knowing
+            departure from §1.5.**
+
+            §1.5's rule is *"MUST NOT put icons on table column headers, form
+            labels, card headings, or page-header buttons"*, observed off a
+            reference whose card headings are `Pricing`, `Notes`, `Customer` —
+            nouns a reader already knows the shape of. An analytics board is the
+            case that rule was not measured on: eight cards whose headings are
+            all measures, differing in WHAT IS BEING COUNTED and in nothing
+            else, and the glyph is the only mark that says *this one is money*
+            before the numeral is read. The reference this board is now dressed
+            from puts it here.
+
+            **Recorded as a §1.5 amendment, not absorbed.** It is one set
+            (lucide), one style, 16px, `currentColor`, and it is the unit —
+            never decoration and never a second meaning. */}
+        <CardTitle className="flex min-w-0 items-center gap-2">
+          <MeasureIcon unit={series.unit} />
+          <span className="min-w-0 truncate">{title}</span>
+        </CardTitle>
+        {/* **§E7's period sub-line, directly beneath the title.**
+
+            The reference writes `Last 30 Days` — a PRESET, which is a name for
+            a window rather than the window. This card has the resolved range
+            and prints that instead: a preset goes stale against a board whose
+            read was given explicit dates, and *"last 30 days"* under a plot
+            covering seven is the kind of caption a reader trusts and should
+            not. `overview.period` is the same key the band's own pill states
+            its window with, so the two cannot word it differently.
+
+            `<bdi>`: `19 – 25 Jun` is a numeral run around a bidi-neutral en
+            dash and reorders in an Arabic line without isolation. */}
+        <CardDescription>
+          <bdi>
+            {t('overview.period', {
+              from: formatDate(series.current.periodStart, {
+                style: 'day-month-year',
+                language,
+              }),
+              to: formatDate(series.current.periodEnd, { style: 'day-month-year', language }),
+            })}
+          </bdi>
+        </CardDescription>
         {/* **The headline, between the title and the plot — and it never
             stands alone.** A chart's title says what is being drawn and its
             plot says how it moved; without this line the panel never states
@@ -156,45 +226,79 @@ export function ChartCard({
             a figure, a caret and a legend into a claim. See `headlineFacts`
             for where the two branches' numbers come from. */}
         {facts && <Headline facts={facts} title={title} t={t} language={language} />}
-        {/* Fact 2 — this card's own computation time, not the board's.
-            **Not on a board.** The band at the top of the page already states
-            when the board was computed, in the same words; repeating it under
-            every chart title put a grey timestamp between the panel's number
-            and its plot, which is the one place a reader's eye travels. A
-            chart whose own `asOf` differs from the board's is the case this
-            line exists for, and `MetricTile` already draws exactly that on the
-            figure that owns the measure. */}
-        {!plain && (
-          <CardDescription>
-            {t('overview.asOf', {
-              time: formatDate(series.asOf, { style: 'day-month-time', language }),
-            })}
-          </CardDescription>
-        )}
-        {reportHref && (
-          /* `CardAction`, not a bare div carrying the slot attribute: the slot
-             is what switches `CardHeader` to `1fr auto`, and the COMPONENT also
-             carries the grid placement — second column, spanning both rows —
-             that puts the link beside the title instead of under it.
+        {/* **The card's own `Computed …` line is GONE, and §E7's period sub-line
+            above is what took its place.**
 
-             **That placement used to be spelled out here, in backticks, and
-             Tailwind emitted both rules into `dist` for no reason but this
-             sentence.** v4 scans comments as plain text and has no idea what a
-             comment is. Describe a utility; never spell it, and verify in
-             `dist` rather than in `src`. `scratch/prose-class-leak.mjs` is the
-             check that found these two. */
-          <CardAction>
-            <Link
-              to={reportHref}
-              aria-label={t('overview.report.open', { report: title })}
-              className="inline-flex size-6 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {/* A mark. It points out of the card, not forwards through
-                  prose, so it does not mirror (§9.5). */}
-              <ArrowUpRightIcon aria-hidden="true" className="size-4" />
-            </Link>
-          </CardAction>
-        )}
+            It was already suppressed on a board — *"the band at the top of the
+            page already states when the board was computed, in the same words;
+            repeating it under every chart title put a grey timestamp between
+            the panel's number and its plot, which is the one place a reader's
+            eye travels"* — and the condition it was suppressed by was `plain`.
+            §E7 gave the board's panels their card frames back, so that
+            condition silently inverted and every board card grew the line the
+            note exists to forbid.
+
+            Rather than find a second flag for the same fact: the reference's
+            card anatomy is title, period, content, and the slot under the title
+            is the PERIOD's. A card that needs to state its own freshness has
+            `MetricTile`'s rule available — a figure states its `asOf` only when
+            it is STALER than the surface's own — and no caller wants an
+            unconditional third grey line. */}
+        {/* **§E7 / §C5 — the quiet meta at the card's top-right, naming the
+            measure the scale is in.**
+
+            The reference draws two labels here, the project and the measure
+            (`📈 Uniques`). This product has one project, so it draws one thing:
+            the chart type as a glyph and the unit as a word. It is the fact a
+            reader needs before the plot means anything and it is currently only
+            available at the FOOT of the card, in the legend, past the picture it
+            explains.
+
+            `CardAction`, not a bare div carrying the slot attribute: the slot
+            is what switches `CardHeader` to two columns, and the COMPONENT also
+            carries the grid placement — second column, spanning both rows —
+            that puts this beside the title instead of under it.
+
+            **That placement used to be spelled out here, in backticks, and
+            Tailwind emitted both rules into `dist` for no reason but this
+            sentence.** v4 scans comments as plain text and has no idea what a
+            comment is. Describe a utility; never spell it, and verify in
+            `dist` rather than in `src`. `scratch/prose-class-leak.mjs` is the
+            check that found those two.
+
+            The glyph is hidden and the noun is drawn, but what a screen reader
+            gets is the whole sentence the legend already carries — `Measured in
+            riyals`, not the bare word `riyals`, which on its own says nothing
+            about what it is doing at the corner of a card. */}
+        <CardAction>
+          {/* **Hidden from a reader, in both of the two cases, and for two
+              different reasons — which is why it is unconditional.**
+
+              With a plot: the legend at the foot already carries the full
+              sentence, `Measured in riyals`. This corner is a VISUAL
+              restatement of it for someone scanning a grid of cards, and two
+              announcements of one fact a dozen words apart is noise rather than
+              redundancy.
+
+              Without a plot: **there is no scale to name.** §A9's own test is
+              that the card *"says nothing when there is no plot to put a scale
+              under"*, and an empty card that announced its unit would be
+              claiming a measurement it does not have. The word stays on screen
+              because the reference's card keeps its meta through the empty
+              state and because a sighted reader is reading it as a LABEL for
+              the card, not as a claim about data.
+
+              A visible run hidden from a reader is normally a smell. It is the
+              right call here on both branches, and it is written down so the
+              next person does not have to re-derive it. */}
+          <span
+            aria-hidden="true"
+            className="flex items-center gap-1.5 text-2xs text-muted-foreground"
+          >
+            <ChartLineIcon className="size-4 shrink-0" />
+            {t(unitNounKey(series.unit))}
+          </span>
+        </CardAction>
       </CardHeader>
 
       <CardContent className={cn('min-w-0', plain && cn(PLAIN_FRAME_SLOT, 'flex min-h-0 flex-1 flex-col'))}>
@@ -213,7 +317,18 @@ export function ChartCard({
         </ErrorBoundary>
       </CardContent>
 
-      {series.current.points.length > 0 && (
+      {/* **The footer renders whenever there is anything to put in it, and
+          `Open analysis` is one of those things — which is what closes a real
+          §3.7 defect.**
+
+          It used to render only when the plot had points, and the report link
+          lived in the header. Moving the link here to the reference's own
+          corner (§E7: `⊟ Open Analysis` bottom-right) would have deleted it
+          from every empty card — and §3.7 is explicit that *a chart with no
+          data MUST keep its card, title, AND REPORT LINK*. So the condition is
+          the union: a card with no points and a destination still draws its
+          footer, carrying the action alone. */}
+      {(hasPlot || reportHref !== null) && (
         <CardFooter
           className={cn(
             'flex-wrap gap-x-4 gap-y-1.5',
@@ -225,7 +340,14 @@ export function ChartCard({
             plain && 'border-t-0 px-0 pt-1',
           )}
         >
-          <Legend series={series} t={t} language={language} />
+          {hasPlot && <Legend series={series} t={t} language={language} />}
+          {reportHref && (
+            /* Pushed to the inline END — the reference's bottom-right, which
+               under `dir="rtl"` is the bottom-left without a second rule. */
+            <span className="ms-auto">
+              <OpenAnalysis href={reportHref} report={title} t={t} />
+            </span>
+          )}
         </CardFooter>
       )}
     </Card>
@@ -340,7 +462,13 @@ function Headline({
   const sentence = isolatedRunProps({ className: 'text-xs text-muted-foreground' })
 
   return (
-    <>
+    /* **One grid item, not two, and that is a placement fix rather than a
+       wrapper.** `CardHeader` is a two-column grid once a `CardAction` is in it,
+       and a fragment put the quantity in the first column and the derived
+       sentence in the SECOND — so the card's own read of itself rendered
+       right-aligned beside the numeral instead of under it. One box, explicitly
+       in the first column, and the two lines stack the way §A8 states them. */
+    <div className="col-start-1 flex min-w-0 flex-col gap-1">
       <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <span data-slot="metric-value" className="text-kpi font-semibold text-foreground">
           <bdi>{split.value}</bdi>
@@ -368,7 +496,34 @@ function Headline({
       <p {...sentence.box}>
         <bdi {...sentence.run}>{t(read.key, read.params)}</bdi>
       </p>
-    </>
+    </div>
+  )
+}
+
+/**
+ * **§3.7's one centred sentence, inside the card frame** — §E7's *"cards carry
+ * their own empty state"*.
+ *
+ * The three absences below differ in what they SAY and in nothing else, so they
+ * share one box and there is no way for one of them to acquire a spinner, an
+ * illustration or a different height by drifting.
+ *
+ * **Not an illustration.** §1.5 requires one for an empty state and R8 narrows
+ * it to whole-page, zero-records-ever states: a chart with no data does not mean
+ * the resource has never existed, and a first-run drawing inside a card would
+ * claim it had.
+ *
+ * `min-h-40` keeps a card with nothing to draw the height of a card with
+ * something to draw, which is what stops a row of three going ragged around the
+ * one that came back empty. It is a floor on the BODY and does not touch the
+ * panel's width — the 268px floor is a column-width rule and is settled by the
+ * board's grid, not here.
+ */
+function CardEmpty({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex min-h-40 items-center justify-center text-center text-sm text-muted-foreground">
+      {children}
+    </p>
   )
 }
 
@@ -416,14 +571,12 @@ function Body({
    * or not the data exists.
    */
   if (series.awaitingStore !== null) {
-    return (
-      <p className="py-12 text-center text-sm text-muted-foreground">{t('overview.notRecorded')}</p>
-    )
+    return <CardEmpty>{t('overview.notRecorded')}</CardEmpty>
   }
 
   /* No data for THIS RANGE — the query ran and returned nothing. */
   if (points.length === 0) {
-    return <p className="py-12 text-center text-sm text-muted-foreground">{t('overview.noData')}</p>
+    return <CardEmpty>{t('overview.noData')}</CardEmpty>
   }
 
   /* The remaining states all draw a plot, because in all of them the
@@ -511,6 +664,40 @@ function Legend({
       </span>
     </>
   )
+}
+
+/**
+ * **The measure's glyph, one per `MetricUnit`** — §E7's card-heading mark.
+ *
+ * A `switch` with no `default`, for the same reason `unitNounKey` has none: a
+ * seventh unit makes this fall off its end without returning an element, which
+ * is a compile error, where a `default` would ship a wrong glyph on a real
+ * chart and nobody would notice for a quarter.
+ *
+ * It says WHAT THE SCALE IS IN and never what the series counts — the title
+ * beside it already names that. `aria-hidden`, because the unit is stated in
+ * words at the card's corner and again in the legend; a third announcement of
+ * the same fact is noise, and a glyph that repeats an adjacent word is exactly
+ * what §7.5 asks to be hidden.
+ *
+ * 16px, monochrome, inheriting `currentColor` from the heading (§1.5).
+ */
+function MeasureIcon({ unit }: { unit: MetricUnit }) {
+  const shared = 'size-4 shrink-0 text-muted-foreground'
+  switch (unit) {
+    case 'money':
+      return <BanknoteIcon aria-hidden="true" className={shared} />
+    case 'count':
+      return <HashIcon aria-hidden="true" className={shared} />
+    case 'percent':
+      return <PercentIcon aria-hidden="true" className={shared} />
+    case 'minutes':
+      return <ClockIcon aria-hidden="true" className={shared} />
+    case 'rating':
+      return <StarIcon aria-hidden="true" className={shared} />
+    case 'ratio':
+      return <DivideIcon aria-hidden="true" className={shared} />
+  }
 }
 
 /**

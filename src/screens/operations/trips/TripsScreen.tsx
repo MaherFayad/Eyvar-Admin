@@ -75,13 +75,12 @@ import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
-import { useRouteState, withView } from '@/shell/routeState'
+import { useRouteState, withOverlay, withView } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from '@/screens/queues/cells'
 import { EntityLink, useEntityLinks } from '../EntityLink'
 import { withFallback } from '../localCopy'
 import { TRIPS_EN } from './copy'
 import { FlagTripModal } from './FlagTripModal'
-import { TripDetailDrawer } from './TripDetailDrawer'
 
 /**
  * R7 tones, keyed on the **union** so a new status cannot silently fall through
@@ -181,7 +180,6 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
    * toast, and watches the row stay unflagged.
    */
   const [overrides, setOverrides] = useState<ReadonlyMap<string, Trip>>(() => new Map())
-  const [drawerTripId, setDrawerTripId] = useState<string | null>(null)
   /** The trips the flag form is asking about — one from a kebab, N from the bar. */
   const [flagging, setFlagging] = useState<readonly Trip[]>([])
 
@@ -685,7 +683,17 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
     () => [
       {
         label: t('trips.action.view'),
-        onSelect: (trip: Trip) => setDrawerTripId(trip.id),
+        /* **The ride sheet is the 360° layer, not a drawer this screen owns.**
+           It used to be `TripDetailDrawer`, a second record surface built here
+           — which meant a trip opened from the trips table and a trip opened
+           from a rider's profile were two different sheets showing two subsets
+           of one record. `?entity=TRP-*` is the one address, and
+           `components/profile/trip` is the one arrangement behind it. */
+        onSelect: (trip: Trip) =>
+          navigate({
+            pathname: location.pathname,
+            search: withOverlay(location.search, 'entity', trip.id),
+          }),
         /* **P0-2 — the declared row-click target.** `Flag` and `Unflag` both
            mutate; neither may carry this. */
         rowClick: true,
@@ -818,13 +826,6 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         }}
         noMatch={{ message: t('trips.empty.noMatch') }}
         error={{ message: t('trips.error.list'), onRetry: data.refetch }}
-      />
-
-      <TripDetailDrawer
-        tripId={drawerTripId}
-        onClose={() => setDrawerTripId(null)}
-        language={language}
-        t={t}
       />
 
       <FlagTripModal

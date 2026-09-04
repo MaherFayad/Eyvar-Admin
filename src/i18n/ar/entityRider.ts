@@ -78,4 +78,14 @@ export const ENTITY_RIDER_AR: Dictionary = {
   'entity.rider.payments.count#many': '{count} دفعة',
   'entity.rider.payments.count#other': '{count} دفعة',
   'entity.rider.payments.underReview': '{amount} قيد المراجعة',
+
+  /* جدول المدفوعات. ثلاثة من عناوين أعمدته هي `fin.ledger.col.*` نفسها التي
+     يستخدمها سجل المحفظة فوقه، فلا يُكتب «التاريخ» و«المرجع» بصيغتين في صفحة
+     واحدة. وحده عنوان المبلغ خاص بهذا الجدول. */
+  'entity.rider.payments.col.amount': 'المبلغ (SAR)',
+  'entity.rider.payments.search': 'ابحث في المدفوعات',
+  'entity.rider.payments.noMatch': 'لا توجد مدفوعات مطابقة لهذا البحث.',
+  'entity.rider.payments.empty.heading': 'لا توجد مدفوعات بالبطاقة بعد',
+  'entity.rider.payments.empty.body':
+    'لم يدفع هذا الراكب قيمة رحلة بالبطاقة. تظهر أجرة الرحلات السريعة هنا عند تحصيلها.',
 }

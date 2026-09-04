@@ -82,7 +82,14 @@ import type {
   MessageVisibility,
   Paginated,
 } from '@/data/types'
-import { formatCount, formatDate, type Direction, type Language, type Translate } from '@/lib'
+import {
+  formatCount,
+  formatDate,
+  formatFileSize,
+  type Direction,
+  type Language,
+  type Translate,
+} from '@/lib'
 import { useAsync, useTick } from '@/hooks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -839,9 +846,18 @@ function Attachments({
         <li key={attachment.id}>
           <bdi>
             <StatusBadge tone="neutral">
+              {/* **The size carries its unit, and it did not.** This read
+                  `formatCount(bytes / 1024)` into `{filename} · {size}`, a key
+                  that names no unit — so `report.pdf · 240` shipped, in both
+                  languages, with nothing on the screen saying 240 of what.
+                  `formatFileSize` is the product's one answer (`src/lib/format/
+                  fileSize.ts`) and the unit is a dictionary key, never a literal
+                  here (§9.6 / AC-75). The key itself is unchanged: the unit
+                  belongs to the VALUE, or every sentence that mentions a size
+                  would need a KB copy and an MB copy. */}
               {t('conversations.thread.attachment', {
                 filename: attachment.filename,
-                size: formatCount(Math.round(attachment.sizeBytes / 1024), language),
+                size: formatFileSize(attachment.sizeBytes, t, language),
               })}
             </StatusBadge>
           </bdi>

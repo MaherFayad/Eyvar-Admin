@@ -19,7 +19,7 @@
  *   spec §3.4           the 34 sub-tab display names
  *   `docs/ref/copy.md`  sentence case, verbs on buttons, R6 on periods
  *
- * **`ar` IS NO LONGER EMPTY.** The translation of 4,805 operator-facing strings
+ * **`ar` IS NO LONGER EMPTY.** The translation of 5,184 operator-facing strings
  * is done and lives in `./ar`, one module per English dictionary, spread in the
  * same order so the two sides diff file by file. §9.3's objection was to a
  * HALF-translated console, not to a translated one: every key reachable from
@@ -44,7 +44,7 @@
  */
 
 import type { Dictionary, Language } from '@/lib'
-import { SLA_MESSAGES_EN } from '@/lib'
+import { FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
 /* A Phase 1 screen owns its own copy and exports it as a `Dictionary`; the
    assembly below is the only place they meet. One import and one spread per
    screen, so adding a screen never edits another screen's strings.
@@ -135,7 +135,7 @@ import { COMMUNICATIONS_EN } from '@/screens/admin/communications/copy'
    full-page rider profile. `types/rider.ts` names the defect that follows from
    letting either screen declare them — *"`RDR-4002` would carry two different
    explanations of one badge on two surfaces of the same record."* */
-import { RIDER_VOCABULARY_EN, VOCABULARY_EN } from './vocabulary/copy'
+import { DRIVER_VOCABULARY_EN, RIDER_VOCABULARY_EN, VOCABULARY_EN } from './vocabulary/copy'
 /* G5 — the shared confirmation's own string. `ConfirmDialog` renders on every
    workspace, so its `Cancel` cannot live in one screen's namespace; the
    component owns it, exactly as `components/profile/copy.ts` owns the profile's.
@@ -157,6 +157,28 @@ import { RIDER_PROFILE_EN } from '@/components/profile/rider/copy'
    two labels and the movements table's furniture. It restates nothing
    `RIDER_PROFILE_EN` already says; its header lists what it reads instead. */
 import { ENTITY_RIDER_EN } from '@/screens/entity/copy'
+/* The 360° profile's CAPTAIN presentation, and its full page. Two dictionaries
+   for the same reason the rider has two: everything that names a fact about a
+   captain is in `DRIVER_PROFILE_EN` and is rendered by BOTH surfaces, and
+   `ENTITY_DRIVER_EN` holds only what a page has and a sheet does not — a back
+   affordance that names a route, and a ledger table's furniture. Neither
+   restates anything `PROFILE_EN` already says. */
+import { DRIVER_PROFILE_EN } from '@/components/profile/driver/copy'
+import { ENTITY_DRIVER_EN } from '@/screens/entity/DriverCopy'
+/* The 360° profile's REQUEST presentation — the sheet a Requests row opens.
+   One dictionary and no full-page twin: `/entity/REQ-*` renders the generic
+   card stack, whose strings are `PROFILE_EN`'s. Its header lists the six key
+   families it reuses rather than restates, `requests.route` chief among them —
+   that key carries the arrow, and the Arabic entry carries `←`. */
+import { REQUEST_PROFILE_EN } from '@/components/profile/request/copy'
+/* The 360° profile's TRIP presentation — the ride sheet a trips row opens, and
+   the ride page behind `Open full record`. **One dictionary for both**, because
+   they are two arrangements of one record; a second would be a second chance
+   for them to call the same thing by two names. It restates nothing from
+   `TRIPS_EN` — the status words, the flag label and the kind nouns are already
+   there and are read from there, so a trip's status cannot be spelled one way
+   on the table and another on the record. */
+import { TRIP_PROFILE_EN } from '@/components/profile/trip/copy'
 /* P6-T4 — Admin › Data & Compliance. Carries the `integrity.check.*` and
    `integrity.detail.*` families the DATA layer emits as `LocalisedText`: a
    finding crosses the seam as a key plus params and is worded here, so
@@ -684,7 +706,15 @@ const shell: Dictionary = {
   /* Read state is REVERSIBLE per row, not only in bulk: a notification with no
      destination was previously unreachable by `markNotificationRead` entirely. */
   'shell.notifications.markRead': 'Mark as read',
-  'shell.notifications.markReadA11y': 'Mark "{title}" as read',
+  /* **The visible label comes FIRST and whole; the row's title is appended.**
+     This read `Mark "{title}" as read`, which threaded the title through the
+     middle of the visible label — so the six characters an operator can see
+     were not a contiguous run of the accessible name, and a voice-control user
+     saying "click mark as read" matched nothing. WCAG 2.5.3 asks only that the
+     visible label be CONTAINED in the name; it says nothing about where the
+     rest goes, so the distinguishing half moves to the end and both halves
+     keep their job. Same rule, same shape, in Arabic. */
+  'shell.notifications.markReadA11y': 'Mark as read: {title}',
   /* The bulk action names the count, and renders DISABLED at zero rather than
      hidden (§11.2). */
   'shell.notifications.markAllReadCount': 'Mark all {count} as read',
@@ -977,6 +1007,12 @@ const form: Dictionary = {
  * The provider takes ONE input; a dictionary assembled in two places is a
  * dictionary that disagrees with itself the first time a caller forgets a
  * merge. The keys are the same either way.
+ *
+ * `FILE_SIZE_MESSAGES_EN` lands the same way and for the same reason. Both are
+ * `src/lib` families: a helper that encodes a rule owns the keys the rule needs,
+ * because a unit built by concatenation at the call site is the defect (AC-75)
+ * — `formatFileSize` exists because three screens had each answered `240 KB`
+ * differently and one of them printed no unit at all.
  */
 /*
  * **Every screen dictionary is still spread here, and removing them is BLOCKED —
@@ -1020,6 +1056,7 @@ export const EN: Dictionary = {
   ...table,
   ...form,
   ...SLA_MESSAGES_EN,
+  ...FILE_SIZE_MESSAGES_EN,
   ...COMMANDS_EN,
   ...ADMIN_ACTIVITY_EN,
   ...ADMIN_DATA_EN,
@@ -1049,10 +1086,15 @@ export const EN: Dictionary = {
   ...PROFILE_EN,
   ...RIDER_PROFILE_EN,
   ...ENTITY_RIDER_EN,
+  ...DRIVER_PROFILE_EN,
+  ...ENTITY_DRIVER_EN,
+  ...REQUEST_PROFILE_EN,
+  ...TRIP_PROFILE_EN,
   ...FINANCIALS_EN,
   ...COMMUNICATIONS_EN,
   ...VOCABULARY_EN,
   ...RIDER_VOCABULARY_EN,
+  ...DRIVER_VOCABULARY_EN,
   ...CONFIRM_EN,
   ...PWA_EN,
 }

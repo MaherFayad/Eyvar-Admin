@@ -27,6 +27,7 @@ import type {
   DisputeStatus,
   FairnessCaseStatus,
   PlanStatus,
+  RequestStatus,
   SettlementState,
   SubscriptionStatus,
   TicketStatus,
@@ -61,6 +62,28 @@ export const SUBSCRIPTION_STATUS: Readonly<Record<SubscriptionStatus, ToneAndKey
   frozen: { tone: 'info', key: 'profile.subStatus.frozen' },
   cancelled: { tone: 'neutral', key: 'profile.subStatus.cancelled' },
   expired: { tone: 'neutral', key: 'profile.subStatus.expired' },
+}
+
+/**
+ * **One map, two surfaces, and the keys are the QUEUE's own.**
+ *
+ * `RequestsScreen` held this inline while the queue was the only surface that
+ * drew a request. The request sheet draws the same six states, and a second map
+ * would be a second answer to *is `no-drivers` warning or red* — a question
+ * R5a has already ruled on (**no red badge**: `no-drivers` is `warning`, and
+ * the escalation is carried by the row marker and the word).
+ *
+ * The copy keys are `requests.status.*`, unchanged, because `REQUESTS_EN` is
+ * spread into the shell dictionary and a second spelling of `Searching` is how
+ * two surfaces start disagreeing about a word.
+ */
+export const REQUEST_STATUS: Readonly<Record<RequestStatus, ToneAndKey>> = {
+  searching: { tone: 'info', key: 'requests.status.searching' },
+  offered: { tone: 'new', key: 'requests.status.offered' },
+  assigned: { tone: 'success', key: 'requests.status.assigned' },
+  'no-drivers': { tone: 'warning', key: 'requests.status.noDrivers' },
+  expired: { tone: 'neutral', key: 'requests.status.expired' },
+  cancelled: { tone: 'neutral', key: 'requests.status.cancelled' },
 }
 
 export const TICKET_STATUS: Readonly<Record<TicketStatus, ToneAndKey>> = {

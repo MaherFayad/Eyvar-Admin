@@ -55,6 +55,16 @@
  * look broken. **AC-891 is blocked on D4** and the field is absent rather than
  * wrong.
  *
+ * ## The bell, and the report it arrives with (§A6)
+ *
+ * Amplitude puts a bell in the chart header, and this dialog is where that path
+ * lands. The glyph is on the title — decorative, `aria-hidden`, the words still
+ * carrying the name — and the description **names the report** whenever one is
+ * chosen, which on the `Create alert` path is the row the operator was standing
+ * on. That third branch also closes the copy defect `alerts.parity.test.tsx`
+ * recorded: the *"save this one first"* sentence was the fallback for every
+ * incomplete rule, so it rendered over a perfectly well saved one.
+ *
  * Rules applied
  *   §3.2        validate by disabling the primary, not by an error after submit.
  *   §8.3        a failed save never closes the dialog it came from, and the
@@ -65,6 +75,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { BellIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -274,24 +285,60 @@ export function AlertRuleDialog({
   }
 
   const noSavedReports = reports.status === 'content' && reportItems.length === 0
+  /**
+   * **The report this rule is on, resolved for the header.** `reportId` is
+   * whatever the picker holds — the record's on an edit, `presetReportId`'s on
+   * a create opened from a library row — so this is the one place that turns it
+   * into something with a name, and it is `null` while the list is still
+   * arriving rather than a guess at what the preset points to.
+   */
+  const chosenReport = reportItems.find((report) => report.id === reportId) ?? null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>{rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {/* §A6 — Amplitude puts a bell on the alert affordance in a chart
+                header, and this dialog is where that path lands. Decorative:
+                `aria-hidden`, with the title's own words carrying the name, so
+                `getByRole('heading')` still reads `New alert`. */}
+            <BellIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+            {rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}
+          </DialogTitle>
           {/* AC-878 — what will happen, in words, as one key with named
               parameters. It updates as the controls do, so the operator reads
-              the rule rather than reconstructing it from four fields. */}
+              the rule rather than reconstructing it from four fields.
+
+              **Three sentences, not two, and the third closes a copy defect.**
+              `rb.alert.form.report.unsaved` used to be the fallback for every
+              incomplete rule, so an operator arriving from `Create alert` on a
+              perfectly well saved report was told *"An alert watches a saved
+              report. Save this one first."* — which is false and unactionable
+              on that path. `alerts.parity.test.tsx` recorded it rather than
+              working around it. Now the fallback branches on what is actually
+              true: the report is named where one is chosen, the reason is given
+              where none can be, and the instruction is given where one has yet
+              to be picked. */}
           <DialogDescription>
-            {series && threshold !== null
-              ? t('rb.alert.sentence', {
-                  measure: t(`rb.measure.${series.measureKey}`),
-                  comparator: t(`rb.alert.comparator.${comparator}`),
-                  threshold: formatMetricValue(threshold, series.unit, language),
-                  grain: t(`rb.grainNoun.${grain}`),
-                })
-              : t('rb.alert.form.report.unsaved')}
+            {series && threshold !== null ? (
+              t('rb.alert.sentence', {
+                measure: t(`rb.measure.${series.measureKey}`),
+                comparator: t(`rb.alert.comparator.${comparator}`),
+                threshold: formatMetricValue(threshold, series.unit, language),
+                grain: t(`rb.grainNoun.${grain}`),
+              })
+            ) : chosenReport ? (
+              /* The name is user content inside a translated sentence, so the
+                 whole run is isolated — a right-to-left report name in an
+                 English sentence otherwise drags the trailing punctuation with
+                 it. */
+              <bdi>{t('rb.alert.form.preset', { name: chosenReport.name })}</bdi>
+            ) : noSavedReports ? (
+              t('rb.alert.form.report.unsaved')
+            ) : (
+              t('rb.alert.form.series.unstarted')
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -321,7 +368,10 @@ export function AlertRuleDialog({
                 scope="card"
                 card={false}
                 message={t('rb.alert.form.report.error')}
-                action={{ label: t('rb.library.error.retry'), onClick: reports.refetch }}
+                action={{
+                  label: t('rb.library.error.retry'),
+                  onClick: reports.refetch,
+                }}
               />
             ) : (
               <Select
@@ -374,7 +424,10 @@ export function AlertRuleDialog({
                 scope="card"
                 card={false}
                 message={t('rb.alert.form.series.error')}
-                action={{ label: t('rb.library.error.retry'), onClick: resolved.refetch }}
+                action={{
+                  label: t('rb.library.error.retry'),
+                  onClick: resolved.refetch,
+                }}
               />
             ) : resolved.status === 'empty' ? (
               /* Stated, not an empty menu. §13.1's redaction can empty this
@@ -432,7 +485,9 @@ export function AlertRuleDialog({
             {/* AC-876 — the unit is STATED and never selected. */}
             {series && (
               <p className="text-xs text-muted-foreground">
-                {t('rb.alert.form.threshold.unit', { unit: t(`rb.unit.${series.unit}`) })}
+                {t('rb.alert.form.threshold.unit', {
+                  unit: t(`rb.unit.${series.unit}`),
+                })}
               </p>
             )}
           </div>
@@ -486,7 +541,10 @@ export function AlertRuleDialog({
                   mutedUntil === null
                     ? t('rb.alert.form.muted.none')
                     : t('rb.alert.muted', {
-                        time: formatDate(mutedUntil, { style: 'day-month-time', language }),
+                        time: formatDate(mutedUntil, {
+                          style: 'day-month-time',
+                          language,
+                        }),
                       })
                 }
               />
@@ -550,7 +608,13 @@ export function AlertRuleDialog({
           <Button
             type="button"
             variant="default"
-            disabled={saving || name.trim() === '' || reportId === null || seriesId === '' || threshold === null}
+            disabled={
+              saving ||
+              name.trim() === '' ||
+              reportId === null ||
+              seriesId === '' ||
+              threshold === null
+            }
             onClick={() => void submit()}
           >
             {t('rb.alert.form.save')}

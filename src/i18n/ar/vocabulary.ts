@@ -146,3 +146,70 @@ export const RIDER_VOCABULARY_AR: Dictionary = {
      sentence and not a second spelling. */
   'rider.trip.noCaptainYet': 'لم يُسنَد كابتن بعد.',
 }
+
+/**
+ * Arabic — the captain timeline vocabulary (`driver.*`), the mirror of
+ * `DRIVER_VOCABULARY_EN` in `src/i18n/vocabulary/copy.ts`, key for key and in
+ * the same order.
+ *
+ * ## The five shared titles are the SAME WORDS as the rider's
+ *
+ * `account-registered` and the four trip kinds are worded here exactly as they
+ * are in `RIDER_VOCABULARY_AR` — `تسجيل الحساب`, `طلب رحلة`, `اكتمال رحلة`,
+ * `إلغاء رحلة`, `عدم حضور في رحلة`. It is the same event on a different record.
+ * An operator moving between a rider's profile and a captain's should not have
+ * to notice which one they are on to read the word, and two spellings of one
+ * event is the drift this module exists to stop.
+ *
+ * They are **restated rather than referenced**, because a dictionary is a flat
+ * map of literals — a value read from another object is a value no extractor
+ * and no reviewer can see beside its key. `vocabulary.test.ts` asserts the five
+ * pairs still agree, in both languages, so the duplication cannot drift.
+ *
+ * ## The rulings this follows
+ *
+ * `design/20-arabic-glossary.md`: Arabic punctuation (R1), the terminal full
+ * stop last (R2), one MSA register (R3), Latin proper nouns and acronyms left
+ * alone (R4), Western digits (R8). Titles are nominal — `انتهاء صلاحية مستند`,
+ * `تغيير الحساب البنكي` — for the reason the rider's are: a timeline title names
+ * an event rather than instructing an operator, and a consistent masdar-shaped
+ * noun phrase reads as a dated log where a past-tense verb reads as prose.
+ *
+ * **`←` and not `→`** on the bank change. §9.5: a glyph that mirrors is swapped
+ * at string-construction time and never with CSS. `{fromBank} ← {toBank}` is a
+ * transition read the other way, the same rule the rider's route follows.
+ *
+ * ## Two interpolations that are NOT translated
+ *
+ * `{fromBank}` / `{toBank}` are bank names and `{reason}` is operator prose.
+ * R4 leaves a proper noun alone and nothing translates what somebody wrote, so
+ * all three travel as data. Each is a strong-first-character run and the render
+ * site isolates it in a bare content-sized `<bdi>` — a Latin bank name inside
+ * this Arabic sentence reorders around the arrow otherwise.
+ */
+
+export const DRIVER_VOCABULARY_AR: Dictionary = {
+  /* The five shared with the rider's timeline, character for character. */
+  'driver.timeline.account-registered.title': 'تسجيل الحساب',
+  'driver.timeline.trip-requested.title': 'طلب رحلة',
+  'driver.timeline.trip-completed.title': 'اكتمال رحلة',
+  'driver.timeline.trip-cancelled.title': 'إلغاء رحلة',
+  'driver.timeline.trip-no-show.title': 'عدم حضور في رحلة',
+  /* The two the captain's record has and the rider's does not. */
+  'driver.timeline.document-expired.title': 'انتهاء صلاحية مستند',
+  'driver.timeline.bank-account-changed.title': 'تغيير الحساب البنكي',
+
+  /* `فئة {tier}` keeps the noun because `people.tier.*` are FEMININE adjectives
+     — `ذهبية`, `فضية`, `قياسية` — which agree with `فئة` and would be
+     ungrammatical after a masculine noun such as `المستوى`. `مركبة` does the
+     same work for `people.class.*` (`اقتصادية`, `مريحة`). */
+  'driver.timeline.account-registered.subtitle': 'فئة {tier} · مركبة {vehicleClass}',
+  'driver.timeline.trip-requested.subtitle': 'الراكب: {riderName}',
+  'driver.timeline.trip-completed.subtitle': 'الراكب: {riderName}',
+  'driver.timeline.trip-cancelled.subtitle': 'الراكب: {riderName}',
+  'driver.timeline.trip-no-show.subtitle': 'الراكب: {riderName}',
+  'driver.timeline.document-expired.subtitle': 'المستند: {docType}',
+  'driver.timeline.bank-account-changed.subtitle': '{fromBank} ← {toBank}',
+
+  'driver.timeline.bank-account-changed.note': 'السبب: {reason}',
+}

@@ -3,19 +3,21 @@
  * more than one surface renders, as keys (**AC-74**), each with the resolver
  * every surface goes through.
  *
- * Two families live here today and they are here for one reason:
+ * Three families live here today and they are here for one reason:
  *
  *   `reason.*`   — a reason code, minted on a ticket, a complaint, a fairness
  *                  case, a ledger posting, a refund and an audit line.
  *   `rider.*`    — `Rider.churnReason` and `RiderTimelineEvent.kind`, rendered
  *                  by the rider side sheet AND the full-page rider profile.
+ *   `driver.*`   — `DriverTimelineEvent.kind`, rendered by the captain side
+ *                  sheet AND the full-page captain profile.
  *
  * **The test for membership is "how many surfaces mint it", not "what is it
  * about".** A string one screen renders belongs in that screen's `copy.ts`. A
  * string the data layer hands to whoever asks belongs here, because six copies
  * of its label is six chances to disagree about what the code means.
  *
- * The `rider.*` half is set out under its own heading below `VOCABULARY_EN`.
+ * Each family is set out under its own heading below `VOCABULARY_EN`.
  *
  * ## `reason.*` — the defect this closes (gap A3, `docs/ref/i18n.md`)
  *
@@ -79,7 +81,16 @@
  * screen already did rather than to a crash or a blank.
  */
 
-import type { RiderTier, RiderTimelineDetail, RiderTimelineKind } from '@/data/types'
+import type {
+  ComplianceDocType,
+  DriverTier,
+  DriverTimelineEvent,
+  DriverTimelineKind,
+  RiderTier,
+  RiderTimelineDetail,
+  RiderTimelineKind,
+  VehicleClass,
+} from '@/data/types'
 import { formatCount, formatDate } from '@/lib'
 import type { Dictionary, Language, Translate } from '@/lib'
 
@@ -531,5 +542,250 @@ export function riderTimelineStrings(
       }
       return { title, subtitle: null, note }
     }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE CAPTAIN VOCABULARY — `driver.*`
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * **The captain timeline, seven kinds — and the family that needed no fallback
+ * keys, because the type made the trap unreachable.**
+ *
+ * Same argument as `rider.*` above: `getDriverTimeline` emits
+ * `{ at, kind, recordId, recordType, detail }` and **no rendered string**, a
+ * sheet and a full page both draw it, so the sentences are minted once here.
+ *
+ * ## What is different from the rider's, and it is the interesting part
+ *
+ * The rider's family needed **nineteen** keys for eight kinds because
+ * `RiderTimelineDetail` is a bag of optional keys whose builder *omits* what it
+ * cannot fill, and `interpolate()` throws on an omitted parameter. Three of
+ * those keys exist only to catch an absence.
+ *
+ * `DriverTimelineEvent` closes that at the type level instead. It is a
+ * **discriminated union with `detail` typed per arm**, and `types/driver.ts`
+ * states the rule outright: *"no arm below has an optional key and no arm has a
+ * nullable value. A builder that omits one does not compile, and every
+ * placeholder any sentence can declare is guaranteed present."*
+ *
+ * So this family is **exactly fourteen** — a title and a subtitle per kind —
+ * plus one note key that a layout needs rather than an absence. There is no
+ * `…NoPlace`, no `…PickupOnly`, and nothing here can throw on well-typed input
+ * for a reason stronger than care: the branch that would have needed a fallback
+ * cannot be constructed.
+ *
+ * Where the source value *could* be absent, the field is not carried at all:
+ *
+ *   - **no `location` on `account-registered`** — `DRV-0203` came through the
+ *     applicant flow and its movement log reads `'Application approved'`, so
+ *     there is no registration row to take a place from. `Driver.city` is not
+ *     substituted; a home city is not a registration place.
+ *   - **no route on the trip arms** — `Trip.pickup` and `Trip.destination` are
+ *     both `string | null`, which is precisely the trap. A captain's timeline is
+ *     a list of *who they carried*; the rider's is a list of *where they went*.
+ *     `{riderName}` is non-null on `Trip` and is the only detail carried.
+ *
+ * ## Two families that are NOT here, and must not be added
+ *
+ * **No `driver.risk.*`.** The data layer declined to model a captain risk score
+ * — unstated weights, a band already logged as a defect, and a recorded literal
+ * behind the metric. Minting the vocabulary for a concept the data layer
+ * refused to model is how a screen invents product policy, and a label is not
+ * the place to do it.
+ *
+ * **No `suspended` timeline sentence.** `Driver.suspended` is a boolean and
+ * `suspensionReason` a string; **neither carries a timestamp**, so the single
+ * most important event in a captain's history has no date to sort by. A
+ * suspension is a current-state banner, not a dated event, until
+ * `Driver.suspendedAt` exists. A key with no event to render it is an invitation
+ * to fabricate the event — most likely by regex-matching `'Suspended — expired
+ * operating card'` out of `DRV-0202`'s movement log, which is the legacy defect
+ * this layer exists to stop.
+ *
+ * ## Three enum labels, reused and not re-spelled
+ *
+ * `tier`, `vehicleClass` and `docType` reach the subtitle as enum members, and
+ * all three already have translated labels: `people.tier.*` (`DriverTier` is
+ * `gold | silver | standard`, all three present), `people.class.*` and
+ * `people.col.doc.*`. They are resolved through the maps below rather than
+ * restated, for the reason this module exists.
+ *
+ * **`people.col.doc.*` is a column header being read as a document name, and
+ * that is a naming wart worth stating.** The strings are right in both
+ * languages — `الاستمارة`, `بطاقة التشغيل` — and a second spelling would be
+ * worse than a `col.` in a key. The real defect is one layer down and belongs to
+ * whoever owns it: `COMPLIANCE_DOC_TYPES` (`types/driver.ts:205`) carries
+ * **hard-coded English labels** in the data layer, so a document type is
+ * untranslatable anywhere that reads the constant instead of a key. Reported,
+ * not papered over.
+ *
+ * ## `reason` travels as data
+ *
+ * `BankAccountChange.reason` is operator prose. Nothing translates what somebody
+ * wrote — the same reading `Complaint.subject` takes — so it is interpolated
+ * verbatim into `…bank-account-changed.note` and never looked up. It is a
+ * `note` and not a third clause in the subtitle because §9.6 forbids welding a
+ * value onto a sentence, and because a bank change reads better as *what
+ * changed* over *why* than as one three-fact line.
+ */
+export const DRIVER_VOCABULARY_EN: Dictionary = {
+  /* ── one title per `DriverTimelineKind` ───────────────────────────────
+     `account-registered` and the four trip kinds are worded EXACTLY as the
+     rider's are. It is the same event on a different record, and an operator who
+     moves between the two profiles should not have to notice which one they are
+     on to read the word. */
+  'driver.timeline.account-registered.title': 'Account registered',
+  'driver.timeline.trip-requested.title': 'Trip requested',
+  'driver.timeline.trip-completed.title': 'Trip completed',
+  'driver.timeline.trip-cancelled.title': 'Trip cancelled',
+  'driver.timeline.trip-no-show.title': 'Trip recorded as a no-show',
+  'driver.timeline.document-expired.title': 'Document expired',
+  'driver.timeline.bank-account-changed.title': 'Bank account changed',
+
+  /* ── one subtitle per kind ────────────────────────────────────────────
+     The four trip kinds carry the same subtitle by VALUE and not by reference,
+     exactly as the rider's four routes do: four keys so one kind can diverge
+     deliberately, and a test that fails when one diverges by accident. */
+  'driver.timeline.account-registered.subtitle': '{tier} tier · {vehicleClass} vehicle',
+  'driver.timeline.trip-requested.subtitle': 'Rider: {riderName}',
+  'driver.timeline.trip-completed.subtitle': 'Rider: {riderName}',
+  'driver.timeline.trip-cancelled.subtitle': 'Rider: {riderName}',
+  'driver.timeline.trip-no-show.subtitle': 'Rider: {riderName}',
+  /* `Document: {docType}` and not a bare `{docType}`: a key whose entire string
+     is one placeholder is a pass-through, and `types/metrics.ts` deleted one for
+     being "a fig leaf". It also matches `Rider: {riderName}` above — a one-fact
+     subtitle takes a noun to anchor it. */
+  'driver.timeline.document-expired.subtitle': 'Document: {docType}',
+  'driver.timeline.bank-account-changed.subtitle': '{fromBank} → {toBank}',
+
+  /* ── the one note ─────────────────────────────────────────────────────
+     §9.6: its own sentence, never a clause welded onto the subtitle. `{reason}`
+     is operator prose and is interpolated, not translated. */
+  'driver.timeline.bank-account-changed.note': 'Reason: {reason}',
+}
+
+/**
+ * `DriverTier` is `gold | silver | standard` — a subset of the five
+ * `people.tier.*` the riders table already renders, and the same three words.
+ */
+const DRIVER_TIER_LABEL_KEY: Readonly<Record<DriverTier, string>> = {
+  gold: 'people.tier.gold',
+  silver: 'people.tier.silver',
+  standard: 'people.tier.standard',
+}
+
+/** `VehicleClass` is `'Economy' | 'Comfort'` — capitalised VALUES, lower-cased keys. */
+const VEHICLE_CLASS_LABEL_KEY: Readonly<Record<VehicleClass, string>> = {
+  Economy: 'people.class.economy',
+  Comfort: 'people.class.comfort',
+}
+
+/** The three expiring documents. See the header on `people.col.doc.*`. */
+const DOC_TYPE_LABEL_KEY: Readonly<Record<ComplianceDocType, string>> = {
+  id_card: 'people.col.doc.nationalId',
+  license: 'people.col.doc.license',
+  vehicle_reg: 'people.col.doc.vehicleReg',
+}
+
+/**
+ * Every `DriverTimelineKind`, built from a `Record` for the reason
+ * `RIDER_TIMELINE_KINDS` is: an array `satisfies readonly Kind[]` proves every
+ * entry is a kind and says nothing about whether every kind is an entry. An
+ * eighth kind added to `types/driver.ts` and not listed here does not compile.
+ */
+const DRIVER_TIMELINE_KINDS_PRESENT: Readonly<Record<DriverTimelineKind, true>> = {
+  'account-registered': true,
+  'trip-requested': true,
+  'trip-completed': true,
+  'trip-cancelled': true,
+  'trip-no-show': true,
+  'document-expired': true,
+  'bank-account-changed': true,
+}
+
+export const DRIVER_TIMELINE_KINDS = Object.keys(
+  DRIVER_TIMELINE_KINDS_PRESENT,
+) as readonly DriverTimelineKind[]
+
+/**
+ * The two fields the vocabulary reads, **with the per-arm `detail` narrowing
+ * intact**.
+ *
+ * `Pick<DriverTimelineEvent, 'kind' | 'detail'>` would NOT do: `Pick` is not
+ * homomorphic over `K`, so it does not distribute across the union and collapses
+ * to `{ kind: DriverTimelineKind; detail: DriverTimelineDetail }` — every arm's
+ * detail on every arm's kind, and the guarantee this whole family rests on is
+ * gone. A conditional over a naked type parameter does distribute.
+ */
+type PerKind<T> = T extends { kind: infer K; detail: infer D } ? { kind: K; detail: D } : never
+export type DriverTimelineRow = PerKind<DriverTimelineEvent>
+
+/**
+ * One captain timeline row's strings.
+ *
+ * **`subtitle` is `string`, not `string | null`** — and the difference from
+ * `RiderTimelineStrings` is the point. Every arm of `DriverTimelineEvent`
+ * carries every field its sentence declares, so there is no event this can fail
+ * to describe. A component written against the rider's shape still accepts this
+ * one, because `string` is assignable to `string | null`.
+ */
+export interface DriverTimelineStrings {
+  title: string
+  subtitle: string
+  note: string | null
+}
+
+/**
+ * The strings for one captain timeline event — **the resolver both captain
+ * profile surfaces go through**.
+ *
+ * Takes the row rather than the strings so the *branching* is shared and not
+ * just the vocabulary, exactly as `riderTimelineStrings` does. There is less to
+ * brancx here, which is the type doing its job rather than this function being
+ * simpler: the `switch` narrows `detail` per arm, so every field it reads is
+ * guaranteed by the compiler rather than by a check.
+ */
+export function driverTimelineStrings(
+  t: Translate,
+  row: DriverTimelineRow,
+): DriverTimelineStrings {
+  const title = t(`driver.timeline.${row.kind}.title`)
+  const subtitleKey = `driver.timeline.${row.kind}.subtitle`
+
+  switch (row.kind) {
+    case 'account-registered':
+      return {
+        title,
+        subtitle: t(subtitleKey, {
+          tier: t(DRIVER_TIER_LABEL_KEY[row.detail.tier]),
+          vehicleClass: t(VEHICLE_CLASS_LABEL_KEY[row.detail.vehicleClass]),
+        }),
+        note: null,
+      }
+
+    case 'trip-requested':
+    case 'trip-completed':
+    case 'trip-cancelled':
+    case 'trip-no-show':
+      return { title, subtitle: t(subtitleKey, { riderName: row.detail.riderName }), note: null }
+
+    case 'document-expired':
+      return {
+        title,
+        subtitle: t(subtitleKey, { docType: t(DOC_TYPE_LABEL_KEY[row.detail.docType]) }),
+        note: null,
+      }
+
+    case 'bank-account-changed':
+      return {
+        title,
+        subtitle: t(subtitleKey, {
+          fromBank: row.detail.fromBank,
+          toBank: row.detail.toBank,
+        }),
+        note: t('driver.timeline.bank-account-changed.note', { reason: row.detail.reason }),
+      }
   }
 }

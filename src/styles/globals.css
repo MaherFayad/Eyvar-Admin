@@ -929,10 +929,76 @@
                              is the same warm-brown family, one step brighter,
                              and keeps AAA. */
 
-  /* D — R5a's four permitted uses only, and there is still no red badge (R5).
-     --ev-red-lt 5.921, white 6.574, white-on-red 6.574, --ev-bg2 6.122. It
-     passes as a destructive-button FILL and as the 3px breached-row marker
-     (3:1 needed, 6.574 delivered). */
+  /* D — R5a's permitted uses only, and there is still no red badge (R5).
+     --ev-red-lt 5.921, white 6.574, white-on-red 6.574, --ev-bg2 **6.172**.
+     It passes as a destructive-button FILL and as the 3px breached-row marker
+     (3:1 needed, 6.574 delivered).
+
+     RATIO CORRECTED, 2026-09-04. This line read `--ev-bg2 6.122`. Recomputed
+     from relative luminance it is **6.172** — which is also what the badge-
+     budget table further down this file has said all along (`critical
+     --ev-red #b42318 … 6.172`). The file disagreed with itself by 0.05 and
+     the table was right. No verdict moves; the number is corrected in place
+     rather than quoted forward, the same way --tone-warning-graphic's was.
+
+     ── R5a AMENDED, 2026-09-04: THE FIFTH USE OF RED. ────────────────────
+     R5a enumerates FOUR uses — a destructive button, one page-level critical
+     banner, the 3px breached-row leading edge, the map marker — and says a
+     fifth needs a ruling. **The BUSINESS OWNER has ruled, and the fifth use
+     is a RIDER'S CHURN RISK AT LEVEL `high`.**
+
+     It is written down here, beside the colour, rather than left to appear in
+     a component one day, because the four-use limit is the entire mechanism:
+     red means *this one* only for as long as it is rationed, and an
+     enumeration that grows without a record stops being an enumeration. The
+     rider profile spec REFUSED red on exactly this reading (see
+     `RiderRail.tsx` and `RiderProfilePage.tsx` X-1/X-3, both of which cite
+     R5a to do it). That refusal was correct under the rule as it stood; the
+     rule has now changed above it, and those two headers are the consumers'
+     to update, not this file's.
+
+     WHAT IT IS SCOPED TO, exactly:
+       · A RIDER's churn risk, at level `high`. **`medium` and `low` do not
+         change** and stay --ev-ink. A red that appears at every level of a
+         scale signals nothing, which is the failure the four-use limit exists
+         to prevent — spending the ruling on all three levels would spend it
+         on nothing.
+       · TWO SURFACES: the rider sheet's rail block (`RiderRail`) and the
+         rider full page's summary-strip cell (`RiderProfilePage`). Both are
+         `bg-muted`, so both are ONE ground — see the slot at layer 2.
+       · INK ONLY. Not a fill, not a border, not a badge, not focusable, no
+         focus ring. **§12.1's reasoning survives the ruling intact**: churn
+         risk is a PREDICTION and the badge family communicates STATUS, so a
+         prediction in status chrome still claims a certainty the value does
+         not have. The owner ruled that the reading is red. Nothing ruled that
+         it is a chip.
+       · §7.5 is untouched, and this is the reason the ruling is cheap: the
+         LEVEL is already a word and §8.2 already requires the reason line
+         beside it. Both ship today. The colour adds emphasis to text that
+         says it in words; it is never the carrier.
+
+     WHAT IT IS **NOT** SCOPED TO: a driver's churn risk, any other
+     prediction, any other risk or fraud score, and any table row or cell.
+     Each of those is a SIXTH use and needs its own ruling. Extending this one
+     by analogy — "a driver is like a rider" — is precisely the drift the
+     enumeration exists to stop, and it is the one thing R5a cannot survive.
+
+     ── ONE NUMBERING COLLISION. ESCALATED, NOT DECIDED HERE. ─────────────
+     `DECISIONS.md` §6.2 **D-14** proposes ratifying the INLINE FIELD ERROR's
+     1px border as R5a's fifth use. It sits in the AWAITING THE OWNER'S
+     SIGNATURE register — proposed by the designer, **not signed**. This
+     ruling IS signed, so it takes the fifth slot and D-14, if signed later,
+     lands as the SIXTH. Renumbering the register is the register's business
+     and the owner's; it is reported rather than done here, and nothing about
+     D-14's substance changes either way.
+
+     ── NO NEW RAW VALUE, DELIBERATELY. ──────────────────────────────────
+     The ruling adds a USE, not a colour. #b42318 already clears AA on the one
+     ground the use lands on, in both themes (ratios at the slot). Minting an
+     `--ev-red-churn` would put a second literal of the same red into the
+     ramp, which is how a ramp starts disagreeing with itself — the argument
+     the brand block a few hundred lines up makes against a second near-black.
+     The new name is at LAYER 2: `--churn-high-foreground`. */
   --ev-red: #b42318;
   --ev-red-lt: #fef0ee; /* D — critical banner fill */
 
@@ -2042,6 +2108,71 @@
   --row-critical-emphasis: var(--ev-row-critical-emphasis);
   --row-critical-foreground: var(--ev-text-2-row-critical);
 
+  /* --- R5a USE #5 — A RIDER'S CHURN RISK AT `high`. Ruled by the business
+     owner, 2026-09-04. The amendment, its scope and the D-14 numbering
+     collision are recorded at --ev-red in layer 1; read that before this.
+
+     **IT IS DELIBERATELY NOT A TONE, AND IT IS DELIBERATELY NOT NEXT TO
+     THEM.** R7 closes the badge set at five and there is no critical tone in
+     it; this slot sits down here with --row-critical, the other surface R5a
+     licenses, so that nobody reads it as a sixth --tone-* and reaches for
+     `<Badge tone="churn">`. There is no such tone and there is no fill token
+     to build one from.
+
+     ── THE ONE THING EXPOSED IS AN INK, AND THE NAME IS THE DEFENCE. ─────
+     Tailwind v4 generates `bg-`, `text-`, `border-`, `fill-` and `ring-` from
+     a single `--color-*`; there is no way to publish a text colour and
+     withhold the fill. So the guard is in the NAME. `text-churn-high-
+     foreground` reads correct; `bg-churn-high-foreground` and
+     `border-churn-high-foreground` read as obvious nonsense in a diff and
+     grep as one literal string each. Naming the slot `--churn-high` would
+     have made `bg-churn-high` read LEGITIMATE — a saturated #b42318 plate
+     behind an 11px word — which is the badge R5 forbids, arriving through a
+     door this file held open. It is not mechanised in the cascade for the
+     reason the badge budget above is not: a defence that silently restyles
+     something a designer meant is worse than a lint. `/token-audit` and
+     review own it.
+
+     ── EVERY INK ON EVERY GROUND THE BLOCK CAN SIT ON, BOTH THEMES. ──────
+     Both consumers are `bg-muted` (= --ev-bg2), so the churn block has ONE
+     ground per theme, not two. The other two rows are the grounds a third
+     consumer could plausibly land it on; they are computed now rather than
+     discovered later.
+
+       ground                                    light      dark
+       --ev-bg2 / bg-muted  (rail + strip)      #f6f8f9    #101319
+       --ev-surface / bg-card                   #ffffff    #1a1f26
+       --ev-bg / page                           #ffffff    #14181e
+
+       ink on --ev-bg2, the ground it ships on  light      dark
+       THIS TOKEN   = --ev-red   the word `High`  6.172     7.653   AA ✓
+       --ev-ink     `Medium` / `Low`, UNCHANGED  16.344    15.674   AAA ✓
+       --ev-text-2  §8.2's reason line            4.538     7.470   AA ✓
+
+       THIS TOKEN on the other two grounds        light     dark
+       on --ev-surface / bg-card                  6.574     6.816   AA ✓
+       on --ev-bg / the page                      6.574     7.329   AA ✓
+
+     All five clear 4.5:1, so the reading is legal at BODY size and not only
+     at the 20px it renders at in the rail — a consumer may set it at 14px in
+     the strip (it does) without re-deriving anything. The §8.2 reason line
+     beside it keeps --muted-foreground on both themes: 4.538 is thin but it
+     is the same --ev-text-2-on---ev-bg2 figure the whole product already
+     rests on, and this ruling does not move that ground.
+
+     **THE DARK VALUE COMES FOR FREE AND THAT IS THE POINT OF LAYER 1.**
+     `.dark` redeclares --ev-red to #f08a7e; this slot is a var() that
+     resolves at use time on the element, so the token needs no `.dark` entry
+     of its own and no `dark:` utility is written in `src/`. Contrast this
+     with --ev-row-critical, whose dark half had to be DERIVED against a dark
+     table surface — there is no new surface here, only a word on a ground
+     that already exists in both themes.
+
+     ── SCOPE, RESTATED WHERE A CONSUMER WILL READ IT. ────────────────────
+     `high` only. `medium` and `low` keep `text-foreground`. A rider only —
+     a driver's churn risk is a sixth use of red and needs its own ruling. */
+  --churn-high-foreground: var(--ev-red);
+
   /* --- Charts. DESIGN.md §3.7: single-hue line, very pale area fill,
      comparison series the SAME hue dotted, no gridlines beyond the axis
      baseline. There is therefore no categorical chart palette and no
@@ -2097,6 +2228,37 @@
   --color-brand-field: var(--ev-brand-field);
   --color-brand-field-foreground: var(--ev-brand-field-fg);
 
+  /* `bg-brand-lt` — the pale brand wash. Mapped straight from layer 1 for
+     --color-brand-field's reason: it is an Eyvar surface, not a shadcn role,
+     and its light/dark pair resolves at layer 1 where `.dark` redeclares
+     --ev-brand-lt, so the var() picks up whichever won on the element.
+
+     **THIS CLOSES A GAP, IT DOES NOT ADD A SHADE.** --ev-brand-lt had two
+     live consumers and no utility: --chart-fill reached it through a slot,
+     and a screen that wanted the wash itself could only write
+     `bg-chart-fill` — a lie about what it is — or fall back to `bg-muted`,
+     which is what actually happened. A token with a derivation, a value and
+     no way to spell it is a token that gets replaced by a palette class.
+
+     ⚠ **THE INK ON IT IS NOT --muted-foreground, AND THIS IS MEASURED.**
+       ink on --ev-brand-lt                     light #e7f0ec  dark #14291f
+       --ev-ink     `text-foreground`              14.984        12.950  ✓
+       --ev-brand   `text-primary`                  5.793         5.816  ✓
+       --ev-text-2  `text-muted-foreground`      **4.161 ✗**      6.172  ✓
+     The muted level FAILS AA on this ground in LIGHT and passes in DARK —
+     the worst shape a failure can take, because the component reviews clean
+     on whichever theme the reviewer had open. **Inside `bg-brand-lt`, a
+     secondary line takes `text-foreground` or `text-primary`, never
+     `text-muted-foreground`.**
+
+     No muted ink is minted for it. --ev-text-2-rail and
+     --ev-text-2-row-critical were each licensed by a surface carrying ROWS
+     OF DATA, where every cell defaults to the muted level; this is a small
+     accent wash where the ink is chosen once. If a consumer needs a muted
+     level on a large brand field, that is a new surface and it comes back
+     here with its ground named — the same bar --ev-brand-field cleared. */
+  --color-brand-lt: var(--ev-brand-lt);
+
   /* The board band, mapped straight from layer 1 for --color-brand-field's
      reason: it is an Eyvar surface and there is no shadcn role it belongs in.
      It does not pass through layer 2 because it has no light/dark pair to
@@ -2141,6 +2303,11 @@
   --color-row-critical: var(--row-critical);
   --color-row-critical-emphasis: var(--row-critical-emphasis);
   --color-row-critical-foreground: var(--row-critical-foreground);
+
+  /* `text-churn-high-foreground` — R5a use #5, and the ONLY spelling of it.
+     See the slot in layer 2 for why the name is this long: it is what makes
+     `bg-`/`border-` on the same token read as the defect it would be. */
+  --color-churn-high-foreground: var(--churn-high-foreground);
 
   --color-chart-series: var(--chart-series);
   --color-chart-comparison: var(--chart-comparison);
@@ -3092,9 +3259,21 @@
       fill: var(--muted);
     }
     .recharts-layer,
-    .recharts-sector,
-    .recharts-surface {
+    .recharts-sector {
       outline: none;
+    }
+    /* **`.recharts-surface` is NOT in the list above, and must not go back.**
+       Recharts gives the surface `tabIndex=0` and `role="application"` under
+       `accessibilityLayer` (`container/RootSurface.js`), which every chart in
+       this product sets — so the one focusable element of every plot was a real
+       tab stop carrying `outline: none` and no replacement, four lines below
+       the comment at `:3072` saying components never opt out. Measured
+       2026-09-04: 38 Tabs into `/management/reports/RPT-1` lands on the plot
+       and nothing was drawn. The ring is the product default, restored at this
+       specificity so the block above cannot silently outrank it again. */
+    .recharts-surface:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
     }
   }
 }

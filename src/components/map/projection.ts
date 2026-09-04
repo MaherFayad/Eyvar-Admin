@@ -116,6 +116,27 @@ export interface FitOptions {
    */
   reserveStart?: number
   reserveEnd?: number
+  /**
+   * The same thing on the BLOCK axis: view units a floating card covers at the
+   * top and at the bottom of the canvas.
+   *
+   * The two boards float their panels at the inline ends and needed neither of
+   * these. The request sheet floats at the top and the bottom — a 480px drawer
+   * has no inline room to spare — and without a block reserve the pickup mark
+   * lands *under* the card naming it, which is the one arrangement worse than
+   * not drawing it at all.
+   *
+   * Deliberately not folded into `pad`. `pad` is symmetric and applies to both
+   * axes at once, so buying 40 units of headroom that way would also spend 40
+   * units of width the canvas has not got — and it would centre the fit in the
+   * whole box rather than in the strip the cards leave.
+   *
+   * Like the inline pair, a reserve moves what is DRAWN and never what is
+   * paved: the tiles still cover the whole box, so the city runs edge to edge
+   * behind the cards.
+   */
+  reserveTop?: number
+  reserveBottom?: number
   /** Which physical side each of those is — the panels follow the document. */
   rtl?: boolean
   /**
@@ -149,6 +170,8 @@ export function fitProjection(points: readonly GeoPoint[], options: FitOptions):
     viewH,
     reserveStart = 0,
     reserveEnd = 0,
+    reserveTop = 0,
+    reserveBottom = 0,
     rtl = false,
     view = VIEW_IDENTITY,
     pad = VIEW_PAD,
@@ -175,9 +198,16 @@ export function fitProjection(points: readonly GeoPoint[], options: FitOptions):
      hand cover and `reserveEnd` is the left-hand one. */
   const usableW = Math.max(VIEW_W - reserveStart - reserveEnd, pad * 3)
   const leftCover = rtl ? reserveEnd : reserveStart
-  const fitScale = Math.min((usableW - pad * 2) / spanX, (viewH - pad * 2) / spanY)
+  /* The block axis, the exact mirror of the inline one above. `reserveTop` is
+     a TOP cover in every locale — the geography does not mirror (§9.1), and
+     neither does gravity. */
+  const usableH = Math.max(viewH - reserveTop - reserveBottom, pad * 3)
+  const fitScale = Math.min((usableW - pad * 2) / spanX, (usableH - pad * 2) / spanY)
   const fitX = leftCover + (usableW - spanX * fitScale) / 2
-  const fitY = (viewH - spanY * fitScale) / 2
+  /* `fitY` is measured from the BOTTOM, because the y form below is inverted —
+     so the bottom cover is what offsets it and the top cover is absorbed by
+     `usableH`. */
+  const fitY = reserveBottom + (usableH - spanY * fitScale) / 2
 
   /* `k * base + t`, folded into the same five numbers everything downstream
      already agrees on — see `MapView`. The y form is inverted, so its offset

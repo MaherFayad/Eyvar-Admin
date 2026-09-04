@@ -28,9 +28,10 @@
  * | `RPT-8` a journey rooted at signup | `mode: 'journey'`, and `mode-not-resolved` on the wire |
  * | `RPT-9` a daily data table | `mode: 'table'` — a real grain and a real split, unlike the other three |
  * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
- * | `DSH-1` two tiles | a rendered dashboard |
+ * | `DSH-1` three tiles, the first `span: 'full'` | a rendered dashboard, and §C5's hero-over-grid layout |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
  * | `DSH-3` a dangling `reportId` | §11.3's missing tile, which cannot be created through the UI |
+ * | `DSH-3` `range` + `filters` | §C4's board scope: one tile answering the board's window, one refusing it, one filter one tile takes and one it cannot |
  * | `ALR-1` `firing` | §8.3 state 14, with `N11` in the notification centre |
  * | `ALR-2` `armed`, muted | `mutedUntil` in the future, evaluation continuing |
  * | `ALR-3` `suspended` | §13.3 — the owner lost access to the measure |
@@ -323,7 +324,10 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -8 }),
     updatedAt: offsetFromNow({ days: -8 }),
-    pinnedToDashboardIds: [],
+    /* Pinned to `DSH-3`, whose board range it cannot answer at — the reverse
+       index is kept in step so §11.3's refused delete still names the board a
+       delete would leave with a dangling tile. */
+    pinnedToDashboardIds: ['DSH-3'],
   },
   {
     id: 'RPT-8',
@@ -376,10 +380,27 @@ export const dashboardFixtures: Dashboard[] = [
     description: 'The three numbers the owner asks about before anything else.',
     ownerId: 'USR-1',
     tiles: [
-      { tileId: 'TIL-1', reportId: 'RPT-1', pinnedName: 'Captains vs riders — 30 days', order: 1 },
+      {
+        tileId: 'TIL-1',
+        reportId: 'RPT-1',
+        pinnedName: 'Captains vs riders — 30 days',
+        order: 1,
+        /* §C5 — the hero. A board reads as a composition when its first tile is
+           the one the board is named after and the rest sit under it; a uniform
+           2-up reads as a contact sheet. RPT-1 is the owner's standing question
+           and it draws TWO panels, so it is the tile that most wants the width.
+           Every other tile leaves `span` absent, which is `'half'` — the
+           default is never written, exactly as `ReportQuery.mode` is not. */
+        span: 'full',
+      },
       { tileId: 'TIL-2', reportId: 'RPT-2', pinnedName: 'Completed trips by pickup district', order: 2 },
       { tileId: 'TIL-3', reportId: 'RPT-4', pinnedName: 'New subscriptions by plan', order: 3 },
     ],
+    /* `null` — every tile answers with its own window. The commonest state of a
+       board, the honest default, and the one the control names in those words
+       rather than showing a range nothing is using. */
+    range: null,
+    filters: [],
     createdAt: offsetFromNow({ days: -14 }),
     updatedAt: offsetFromNow({ days: -2 }),
   },
@@ -393,6 +414,8 @@ export const dashboardFixtures: Dashboard[] = [
     description: 'Built for Thursday’s finance review. Nothing pinned to it yet.',
     ownerId: 'USR-2',
     tiles: [],
+    range: null,
+    filters: [],
     createdAt: offsetFromNow({ days: -2 }),
     updatedAt: offsetFromNow({ days: -2 }),
   },
@@ -416,7 +439,57 @@ export const dashboardFixtures: Dashboard[] = [
         pinnedName: 'Promo ROI by campaign',
         order: 2,
       },
+      {
+        /**
+         * **The tile that REFUSES the board's range, seeded so the state is
+         * reachable without composing one.**
+         *
+         * `RPT-7` is a monthly cohort reaching `M3`, which needs four calendar
+         * months in its window; this board asks for seven days. `planQuery`
+         * answers `cohort-window-too-short`, so `applyBoardScope` backs the
+         * override out, the tile runs at its own `last-365d`, and it says so on
+         * itself — an `Own range` marker on the caption and one sentence under
+         * the header. Quietly narrowing a four-column matrix to one column
+         * because a board asked is the defect that sentence exists to prevent.
+         */
+        tileId: 'TIL-6',
+        reportId: 'RPT-7',
+        pinnedName: 'Rider retention by joining month — M0 to M3',
+        order: 3,
+        /* A retention matrix is thirteen columns wide. At half width it renders
+           as a column of single characters, which is the reading failure §C5's
+           different-sized tiles exist to fix — measured on the running board,
+           not predicted. */
+        span: 'full',
+      },
     ],
+    /**
+     * **A board that imposes its own window, so §C4's override is reachable
+     * without composing one.**
+     *
+     * `RPT-4` is saved at `last-30d`; this board asks it at `last-7d`, and the
+     * tile answers at seven days while the report is untouched — which is the
+     * whole point of a board-level range and the state QA otherwise has to
+     * build by hand. The dangling tile beside it is unaffected: a range cannot
+     * resolve a reference that is gone.
+     */
+    range: { kind: 'preset', preset: 'last-7d' },
+    /**
+     * **And a filter two of the three seeded boards' reports cannot take.**
+     *
+     * `subscription.status` is legal for `subscriptions.started` (`RPT-4`) and
+     * for nothing else on any seeded board — `RPT-1` intersects driver and
+     * rider fields to nothing at all, and `RPT-2` is a trips measure. So this
+     * one fixture reaches BOTH halves of §C4's filter: a tile that narrows, and
+     * a tile that says out loud that it cannot.
+     *
+     * **Status rather than plan**, deliberately: `RPT-4` splits BY plan and
+     * draws a pie, so a plan filter would leave it one slice — a legal answer
+     * that reads as a broken chart. A status narrows the population without
+     * collapsing the split it is drawn by. `active` is a seeded value, not an
+     * invented one.
+     */
+    filters: [{ field: 'subscription.status', op: 'eq', value: 'active' }],
     createdAt: offsetFromNow({ days: -21 }),
     updatedAt: offsetFromNow({ days: -6 }),
   },

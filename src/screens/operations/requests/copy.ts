@@ -16,7 +16,11 @@ export const REQUESTS_EN: Dictionary = {
   'requests.search': 'Search by rider, pickup, destination or ID',
 
   /* ── columns ────────────────────────────────────────────────────────── */
-  'requests.col.rider': 'Rider',
+  /* **`Ride`, not `Rider`.** The column's subject changed with the cell: the
+     row's first line is the route and the rider is its qualifier, because the
+     thing an operator is deciding about is the journey. The rider still has a
+     name on line two and a link in the sheet. */
+  'requests.col.ride': 'Ride',
   'requests.col.type': 'Type',
   'requests.col.pickup': 'Pickup',
   'requests.col.destination': 'Destination',
@@ -72,7 +76,10 @@ export const REQUESTS_EN: Dictionary = {
   'requests.action.assign.help': 'Assign a captain to this request',
   'requests.action.expire': 'Close',
   'requests.action.expire.help': 'Close this request with no captain found',
-  'requests.a11y.open': 'Open the record for {name}',
+  /* Names the RIDE, because that is what activating the link opens. It read
+     `Open the record for {name}` while the cell opened the rider, and a label
+     that announces a person and lands on a journey is worse than no label. */
+  'requests.a11y.open': 'Open the ride from {pickup} to {destination}',
 
   'requests.assign.title': 'Assign a captain to {id}?',
   /* §5.1 — **this is the only queue where money moves on disposition.** The

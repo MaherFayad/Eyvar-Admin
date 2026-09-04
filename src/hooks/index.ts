@@ -106,3 +106,8 @@ export {
   type ResolvedTheme,
   type ThemeState,
 } from './useTheme'
+/* The `?view=` tab row. Promoted out of `screens/financials/shared/views.ts` on
+   its seventh consumer — the captain profile page — because a screen module
+   importing a hook from another screen module is the coupling this directory
+   exists to hold instead. Moved unchanged. */
+export { useScreenViews, type ScreenView, type ScreenViews } from './useScreenViews'

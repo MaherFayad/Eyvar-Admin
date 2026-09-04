@@ -119,13 +119,20 @@
  *               that choice is mechanical rather than a judgement at the call
  *               site. A column filter sets it exactly like a toolbar filter, so
  *               neither criterion needed amending.
- *   §4.7/AC-234 **`first-run` vs `cleared` is the call site's, and it has to
- *               be.** `specs/02-work-queues.md` **F-3** was raised against this
- *               file: an unfiltered empty QUEUE rendered the illustrated
- *               first-run state, telling an operator who had just cleared their
- *               queue that they have never had one. `emptyKind` is the fix, and
- *               it is a prop rather than a `mode` branch because Safety &
- *               Incidents reaches both kinds (Q-37) on one route.
+ *   §4.7/AC-234 **which empty an UNFILTERED zero is, is the call site's, and it
+ *               has to be.** `specs/02-work-queues.md` **F-3** was raised
+ *               against this file: an unfiltered empty QUEUE rendered the
+ *               illustrated first-run state, telling an operator who had just
+ *               cleared their queue that they have never had one. `emptyKind`
+ *               is the fix, and it is a prop rather than a `mode` branch
+ *               because Safety & Incidents reaches two of its three kinds
+ *               (Q-37) on one route.
+ *   LR-1/AC-427 **`mode === 'ledger'` no longer forces `no-match`.** It used to
+ *               be OR-ed into the `isFiltered` test, which made `first-run`
+ *               unreachable for every ledger — see the branch's own comment. A
+ *               ledger that must not offer first-run declares
+ *               `emptyKind="no-match"`; it is not derived from the mode,
+ *               because **LR-2** puts the decision on the subject's lifetime.
  */
 
 import {
@@ -142,6 +149,7 @@ import { Download } from 'lucide-react'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableFooter,
   TableHead,
@@ -182,7 +190,7 @@ import { LoadingSkeleton } from './LoadingSkeleton'
 import { ColumnHeaderCell } from './table/ColumnHeaderCell'
 import { ColumnLayoutPopover } from './table/ColumnLayoutPopover'
 import { AddFilterPopover, FilterChipRow } from './table/FilterChipRow'
-import { IndexToolbar, type ToolbarTab } from './table/IndexToolbar'
+import { IndexToolbar, type ToolbarLeadingSlot } from './table/IndexToolbar'
 import { NarrowRowCards } from './table/NarrowRowCards'
 import { SortControl } from './table/SortControl'
 import {
@@ -324,7 +332,26 @@ function BoundaryRow({
   )
 }
 
-export interface DataTableProps<T> {
+/**
+ * **`tabs` or `heading`, never both — and it is the type that says so.**
+ *
+ * The exclusion is re-exported from `IndexToolbar`, where the two share one
+ * shrinking slot at the inline-start of band 2. It is a **type-level**
+ * impossibility rather than a runtime assertion or a comment because it costs
+ * the existing callers nothing: every one of them passes `tabs` or neither, so
+ * every one of them satisfies the first arm unchanged, which
+ * `table/IndexToolbar.types.tsx` asserts rather than assumes. A `throw` would
+ * move a layout mistake from the compiler to an operator's screen; and a rule
+ * that lives only in prose is precisely how the empty-state branch below spent
+ * a release rendering `no-match` for every ledger — §9.2's sentence was
+ * narrowed in one document and the code went on encoding the old one.
+ *
+ * `T` is inferred from `DataTableBaseProps<T>`, which is outside the union, so
+ * the union arm never participates in inference.
+ */
+export type DataTableProps<T> = DataTableBaseProps<T> & ToolbarLeadingSlot
+
+interface DataTableBaseProps<T> {
   /** From `useIndexTable`. **The mode is `table.mode`** — see the header. */
   table: AnyTable<T>
   rows: readonly T[]
@@ -350,8 +377,8 @@ export interface DataTableProps<T> {
    */
   view?: string | null
 
-  /** §9.1 — the view tabs, rendered by the toolbar this component owns. */
-  tabs?: readonly ToolbarTab[]
+  /* §9.1's view tabs and §7.1's `heading` / `subheading` are declared together
+     on `ToolbarLeadingSlot`, above, because they are one slot. */
   activeTab?: string
   onSelectTab?: (id: string) => void
   searchPlaceholder: string
@@ -407,8 +434,51 @@ export interface DataTableProps<T> {
    */
   bulkActions?: ReadonlyArray<BulkAction>
 
-  /** §11.1 — the `first-run` copy. Required so the empty state cannot be a TODO. */
-  firstRun: { heading: string; body: string; actions: EmptyAction[] }
+  /**
+   * §11.1 — the `first-run` copy. Required so the empty state cannot be a TODO.
+   *
+   * **`illustration` is a passthrough of `EmptyState`'s three-valued prop, and
+   * the three values are three different statements:** a node draws that node,
+   * **`null` draws NONE**, and omitting it takes the default art. `EmptyState`
+   * models it that way deliberately — `illustration ?? <Default/>` used to make
+   * declining impossible — and this component narrowing it to a boolean, or to
+   * nothing, is what put a picture on a ledger.
+   *
+   * ## The default is `null` for a ledger, and that is a DEFAULT, not a rule
+   *
+   * **LR-3** (`10-financials-money-flows.md`): *"R8 permits an illustration on
+   * a whole-page zero-records-ever state; it does not require one. Financials
+   * declines it, because an operator never creates a posting … so the
+   * illustration would sit above an action the product does not offer."*
+   * **AC-RP-62** and **AC-RP-83** were amended to match, so the rider and
+   * captain ledgers give the same answer.
+   *
+   * A ledger therefore defaults to declining, because no ledger screen should
+   * have to remember a rule that reaches all of them.
+   *
+   * **Read the next sentence before you "tidy" this into a branch.** The thing
+   * removed from the empty-state branch below was `table.isFiltered ||
+   * isLedger`, and what made it a defect was not that it mentioned the mode —
+   * it was that the call site **could not overrule it**, so a rule that had
+   * since been narrowed went on being enforced by a mechanism. This is the
+   * opposite construction: `isLedger` chooses only what happens when the caller
+   * has said NOTHING, and any caller — ledger or not — can state either answer
+   * and be obeyed. A default can be wrong for one screen; a rule in a mechanism
+   * is wrong for every screen at once and cannot be seen from the call site.
+   *
+   * **It does not discharge LR-3, and must not be recorded as though it does.**
+   * LR-3's scope is **Financials**, which crosses this default in both
+   * directions: Financials' INDEX tables are not ledger mode and still take the
+   * default art, while the entity ledgers this default does reach are not
+   * Financials at all — they are covered by AC-RP-62/83 instead. The Financials
+   * index tables are named in the handoff as a separate finding for their owner.
+   */
+  firstRun: {
+    heading: string
+    body: string
+    actions: EmptyAction[]
+    illustration?: ReactNode | null
+  }
   /** §11.5 — the `no-match` sentence. The ACTION is optional; this supplies a default. */
   noMatch: { message: string; action?: EmptyAction }
   /**
@@ -423,9 +493,26 @@ export interface DataTableProps<T> {
    * distinction is not derivable from the mode either. **The call site knows;
    * this component does not.**
    *
+   * **`'no-match'` is the third arm, and it is what `mode === 'ledger'` used to
+   * stand in for.** The branch below read `table.isFiltered || isLedger`, on
+   * `10-financials-money-flows.md` §9.2's absolute *"a ledger is NEVER
+   * first-run empty"* — so a ledger-mode table took the `no-match` sentence
+   * whether anything was narrowing or not, and its declared `firstRun` was
+   * unreachable code. **§9.2's absolute was narrowed by LR-1** in that same
+   * file: *"a platform-subject ledger is never first-run empty; a
+   * party-subject ledger CAN be"*, and **AC-427** requires it. A rider whose
+   * wallet has never moved was being told `No movements match this search.`
+   * having searched for nothing.
+   *
+   * The mode was never the question. **LR-2** says which empty a ledger shows
+   * is decided by *the subject's lifetime* — a server fact this component
+   * cannot see and the call site can. So a ledger that must not offer
+   * `first-run` says so, in the same prop every other table uses, and the
+   * three values are exactly `EmptyState`'s three `kind`s.
+   *
    * Defaults to `'first-run'`, so every existing caller is unchanged.
    */
-  emptyKind?: 'first-run' | 'cleared'
+  emptyKind?: 'first-run' | 'cleared' | 'no-match'
   /**
    * §4.7 **E1** — required when `emptyKind` is `'cleared'`, and this is the one
    * place where the copy names the SCOPE that is clear. Per queue **and per
@@ -434,6 +521,50 @@ export interface DataTableProps<T> {
    * telling three of them a half-truth.
    */
   cleared?: { heading: string; body: string }
+  /**
+   * **A sentence that defines the COLUMNS, rendered as a real `<caption>`
+   * between the toolbar row and the header row.**
+   *
+   * The case it exists for: `liability.driver` is credit-normal, so on the
+   * captain earnings ledger a **credit means Eyvar owes MORE** — the inverse of
+   * every wallet in the console. An operator who reads that ledger as a wallet
+   * reads every row backwards, and `ar.driver` (cash debt) inverts the same
+   * way. It is a trap in the data, not a caption in the decorative sense.
+   *
+   * ## Why a `<caption>` and not a paragraph the screen renders above the table
+   *
+   * 1. **Position.** It sits directly above the two headers it defines, at the
+   *    point of confusion, instead of above a title that separates it from
+   *    them.
+   * 2. **It is the only form assistive technology reads as part of the table.**
+   *    A `<caption>` is announced when the reader ENTERS the table; a paragraph
+   *    before the table is announced before it and is routinely skipped by
+   *    anyone navigating by table or by heading. A convention that never
+   *    reaches a screen-reader operator is a convention that is not shipped.
+   * 3. **Reuse.** Three ledgers need this sentence. A screen-local paragraph
+   *    gets written three times and drifts twice.
+   *
+   * ## What was refused, so it is not re-proposed
+   *
+   * **Renaming the columns** (`Credit` -> `Earned`) breaks §8.3.3's MUST that
+   * the six ledger headers are named literally, forks `ledgerColumns` against
+   * every financials screen where the convention is the opposite, and swaps a
+   * visible trap for a private vocabulary. **`subheading`** is refused because
+   * it is `text-xs`, truncates, and already carries the count and the window.
+   *
+   * ## Where it does NOT render, which is a decision
+   *
+   * Only in `content` (and during a `refreshing` repaint), because that is the
+   * only state with a header row to define. `loading` has a skeleton, `error`
+   * deliberately drops the header row (§11.3), and both empties have no row to
+   * misread — a sign convention over R8's one grey sentence is noise. Below the
+   * compact breakpoint there is no `<table>` at all, so the same node renders as
+   * a paragraph above the cards; see the render site.
+   *
+   * `ReactNode` rather than `string` so a screen can emphasise the two words it
+   * is defining without this component parsing its sentence.
+   */
+  caption?: ReactNode
   /** §11.2 — card-scoped error copy. */
   error: { message: string; onRetry: () => void }
 
@@ -603,7 +734,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
     language,
     tableId,
     view: viewKey,
-    tabs = [],
     activeTab = '',
     onSelectTab,
     searchPlaceholder,
@@ -613,6 +743,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     rowActions,
     rowActionsWidth,
     bulkActions,
+    caption,
     firstRun,
     noMatch,
     emptyKind = 'first-run',
@@ -626,6 +757,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
     infiniteScroll = true,
     className,
   } = props
+
+  /* **Not destructured with the rest, deliberately.** `tabs`, `heading` and
+     `subheading` are one union — see `ToolbarLeadingSlot` — and pulling the
+     three out as three constants is what turns an exclusive choice back into
+     three independent optionals. Rebuilt here as the union it is and handed to
+     the toolbar in one piece, so the arm chosen at the call site is the arm
+     that arrives. */
+  const leadingSlot: ToolbarLeadingSlot =
+    props.heading === undefined
+      ? { tabs: props.tabs ?? [] }
+      : { heading: props.heading, subheading: props.subheading }
+
+  /* **One predicate, two renderings.** The caption renders as a `<caption>` on
+     the desktop and as a paragraph in the compact rendering, and the two must
+     agree on WHETHER there is one — a screen whose title is still resolving
+     hands over `''`, and an empty `<caption>` is a table announcing a
+     description it does not have. Falsy covers `''`, `null`, `undefined` and
+     the `false` that `cond && <x/>` yields; a real node is always truthy. */
+  const hasCaption = Boolean(caption)
 
   const announce = useAnnounce()
   const direction = directionFor(language)
@@ -1725,7 +1875,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
           horizontal scroll container and does not move when the table scrolls. */}
       <IndexToolbar
         t={t}
-        tabs={tabs}
+        /* **The inline-start slot, forwarded WHOLE rather than field by
+           field.** `ToolbarLeadingSlot` is a union and spreading its three
+           fields separately would re-assemble them as three independent
+           optionals — which is the one shape the union exists to forbid, and
+           the compiler would stop seeing the exclusion at exactly the seam
+           where it is enforced. */
+        {...leadingSlot}
         activeTab={activeTab}
         onSelectTab={onSelectTab ?? (() => undefined)}
         searchPlaceholder={searchPlaceholder}
@@ -1823,20 +1979,36 @@ export function DataTable<T>(props: DataTableProps<T>) {
           />
         )}
 
-        {/* **AC-37 / AC-38 / AC-234 — two decisions, not one.**
+        {/* **AC-37 / AC-38 / AC-234 — two decisions, not one, and they are now
+            asked as two questions.**
 
-            The FIRST is still mechanical and still `isFiltered`: something is
+            The FIRST is mechanical and is `isFiltered`, alone: something is
             narrowing, so the answer is `no-match` and the call site cannot
-            override it. A ledger is NEVER `first-run` empty (§9.2), so it
-            collapses here too.
+            override it.
+
+            **`|| isLedger` used to ride on that test and it was answering the
+            SECOND question in the first one's clothes.** `mode` is not
+            `isFiltered`; it never was. The effect was that no ledger-mode table
+            could reach a `first-run` empty at all — a rider whose wallet has
+            never moved read `No movements match this search.` with an empty
+            search box, and `RiderMovementsTable`'s declared first-run, action
+            and copy were unreachable code. The reading it came from,
+            §9.2's *"a ledger is NEVER first-run empty"*, was **narrowed by
+            LR-1** in `10-financials-money-flows.md` and is now a statement
+            about a *platform-subject* ledger; **AC-427** requires a
+            party-subject ledger to render first-run, and **LR-2** puts the
+            decision on the subject's lifetime, which is a server fact.
 
             The SECOND is the one F-3 says this component was getting wrong. An
-            unfiltered zero is `first-run` on an index and **`cleared`** on a
-            work queue worked to zero, and no property of the table distinguishes
-            them — not `isFiltered`, and not `mode` either, because Safety &
-            Incidents reaches BOTH (Q-37). So `emptyKind` comes from the call
-            site and defaults to `first-run`. `cleared` copy is required with it;
-            without it this falls back rather than rendering a blank card. */}
+            unfiltered zero is `first-run` on an index, **`cleared`** on a work
+            queue worked to zero, and **`no-match`** on a ledger that must not
+            offer first-run — and no property of the table distinguishes them.
+            Not `isFiltered`, not `mode` either, because Safety & Incidents
+            reaches both of the first two (Q-37) and Financials reaches the
+            third only when `hasHistory` says so. So `emptyKind` comes from the
+            call site and defaults to `first-run`. `cleared` copy is required
+            with it; without it this falls back rather than rendering a blank
+            card. */}
         {/* **`card={false}` on all three, and it is D-18 catching up.**
             `EmptyState` cards by default because it used to render straight onto
             `--ev-bg` with nothing under it. Under D-18 **the table is the
@@ -1851,7 +2023,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
             where all of them render. Disclosed in the handoff rather than left
             for visual-QA to find as a difference between two waves. */}
         {status === 'empty' &&
-          (table.isFiltered || isLedger ? (
+          (table.isFiltered || emptyKind === 'no-match' ? (
             <EmptyState
               card={false}
               kind="no-match"
@@ -1867,6 +2039,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
               heading={firstRun.heading}
               body={firstRun.body}
               actions={firstRun.actions}
+              /* **Three values forwarded as three, which is the whole point.**
+                 `EmptyState` reads `illustration === null ? null : (illustration
+                 ?? <Default/>)`, so `undefined` MUST reach it as `undefined` to
+                 take the default art — collapsing the two with `??` here would
+                 make declining impossible again, one layer up from where that
+                 was last fixed.
+
+                 `isLedger` supplies the answer only when the caller supplied
+                 none (LR-3 / AC-RP-62 / AC-RP-83 — nobody creates a posting, so
+                 the picture would sit above an action the product does not
+                 offer). An explicit `illustration` always wins, including an
+                 explicit one on a ledger. See the prop's own doc for why this
+                 is a default rather than the branch that was just removed. */
+              illustration={
+                firstRun.illustration !== undefined ? firstRun.illustration : isLedger ? null : undefined
+              }
             />
           ))}
 
@@ -1883,26 +2071,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
              not in the document, so the desktop rendering is unchanged by
              construction rather than by assertion. */
           (compact ? (
-            <NarrowRowCards
-              rows={rows}
-              /* The VISIBLE set, so the columns popover governs both modes. */
-              visible={visible}
-              /* The DECLARED set — `emphasisOf` anchors to this, never to the
-                 visible one, which is what stops hiding a column moving which
-                 value becomes the card's heading. */
-              declared={columns}
-              getRowId={getRowId}
-              isRowCritical={props.isRowCritical}
-              rowClassName={props.rowClassName}
-              hasRowClickAction={hasRowClickAction}
-              onRowClick={handleTableRowClick}
-              rowItemProps={rowItemProps}
-              renderRowActions={kebabs ? rowActionControls : undefined}
-              cellValue={(isolated, children) => (
-                <CellValue isolated={isolated}>{children}</CellValue>
+            /* **The caption degrades to a paragraph here, and that is the
+               honest form rather than a second implementation.** There is no
+               `<table>` below the compact breakpoint, so there is nothing for a
+               `<caption>` to be the caption OF — but the sentence is needed
+               MORE on a phone, not less: a card renders `Credit  120.00` as a
+               labelled field with no column context at all, so the one cue that
+               the sign is inverted is gone. Same node, same type, same
+               inline-start edge; it loses only the announcement that a real
+               `<caption>` buys, which no markup can give it here. */
+            <>
+              {hasCaption && (
+                <p className="px-3 pb-2 text-xs text-muted-foreground">{caption}</p>
               )}
-              boundary={isLedger ? ledgerBoundaryRows : null}
-            />
+              <NarrowRowCards
+                rows={rows}
+                /* The VISIBLE set, so the columns popover governs both modes. */
+                visible={visible}
+                /* The DECLARED set — `emphasisOf` anchors to this, never to the
+                   visible one, which is what stops hiding a column moving which
+                   value becomes the card's heading. */
+                declared={columns}
+                getRowId={getRowId}
+                isRowCritical={props.isRowCritical}
+                rowClassName={props.rowClassName}
+                hasRowClickAction={hasRowClickAction}
+                onRowClick={handleTableRowClick}
+                rowItemProps={rowItemProps}
+                renderRowActions={kebabs ? rowActionControls : undefined}
+                cellValue={(isolated, children) => (
+                  <CellValue isolated={isolated}>{children}</CellValue>
+                )}
+                boundary={isLedger ? ledgerBoundaryRows : null}
+              />
+            </>
           ) : (
             /* §14.4 — ONE scroll container per table, wrapping the `<table>`, and
                under D-19 it is the BOUNDED one: it flexes on both counts with
@@ -1928,6 +2130,48 @@ export function DataTable<T>(props: DataTableProps<T>) {
               style={{ minInlineSize: tableMinInlineSize, maxInlineSize: tableMaxInlineSize }}
               onScroll={handleTableScroll}
             >
+              {/* **`caption-top`, declared HERE and not by flipping the shared
+                  primitive.** `ui/table.tsx:117` puts `caption-bottom` on every
+                  `<table>` in the product, and `caption-side` is an INHERITED
+                  property — so a declaration on the caption itself beats the
+                  inherited value outright, with no specificity contest and no
+                  change to a primitive forty screens share.
+
+                  Checked before choosing: `TableCaption` has **no other
+                  consumer**. `grep` over `src` finds no `<caption>` and no
+                  `TableCaption` outside its own file, and `git log -S` finds it
+                  untouched since the commit that scaffolded it. So flipping the
+                  global would in fact have been safe today — and it is still
+                  the wrong edit, because it changes the default for every
+                  future caller in order to serve the first one, and a bottom
+                  caption is a legitimate thing for some other table to want.
+                  The narrow declaration cannot be wrong later.
+
+                  (The `mt-4` recorded against this caption in that file's
+                  header at `:68` is stale in the other direction: the class is
+                  `py-2`. The header line says `mt-4` was REMOVED on arrival,
+                  which is what it is describing.)
+
+                  **`px-3` is the cells' inset, not a guess.** A sentence that
+                  defines two columns has to begin where those columns' headers
+                  begin, or it reads as a note about the card. Measured: with
+                  `px-3` the caption's text run starts at **x = 37** and the
+                  first `<th>`'s text run starts at **x = 37**; in Arabic both
+                  land on **x = 1243**. `text-start` for the same reason and
+                  logical, so neither needs an RTL branch.
+
+                  **No `truncate` and no line clamp.** §5.4's truncation
+                  statement is about the toolbar's sub-line; this sentence is
+                  two definitions and clipping it drops one of them. Measured at
+                  1280 and 1152, en and ar: it wraps, `scrollWidth` never
+                  exceeds `clientWidth`, and the caption box is the full table
+                  width in both directions. It costs **one row** — 17 to 16 —
+                  which is the honest price of not reading every row backwards,
+                  and it is charged only to a table that asks for it. */}
+              {hasCaption && (
+                <TableCaption className="caption-top px-3 text-start">{caption}</TableCaption>
+              )}
+
               {headerRow}
 
               {/* P1-5 — the roving group's container. `useRovingFocus` finds its

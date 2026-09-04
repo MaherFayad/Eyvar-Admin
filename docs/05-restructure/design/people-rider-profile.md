@@ -12,7 +12,11 @@
 | Reference record | `RDR-4002` (`src/data/fixtures/riders.ts:505`) |
 
 Read `§2` (the pattern), then `§3` (the parity contract — this is the ruling everything else
-hangs off), then your surface's section. `§14` is the numbered acceptance criteria.
+hangs off), then your surface's section. `§15` is the numbered acceptance criteria. **`§16` is
+owner amendment 3 — the rail's under-review caption loses a clause and re-uses a shipped string,
+and the ⓘ tooltip is refused on both surfaces (D-RP-6). A builder waiting on it should read
+`§16.2` and `§16.3` and nothing else first; the full argument is
+[`people-captain-profile.md` §13](./people-captain-profile.md).**
 
 ---
 
@@ -207,6 +211,24 @@ Three divergences between the two reference drawings, found by applying it:
 | Sheet lists movements under *Activity*; a *Money* tab also counts them | Money movements live in **Money only**; *Activity* is the event timeline. Against the real data that resolves to `Activity 3` / `Money 4` — the owner's own counts. See §6.4. |
 | Sheet blocks `Release`; page does not offer it | **Neither offers it.** §8.3 |
 
+### 3.6 The proof: the sheet's layout was rebuilt and not one fact moved
+
+The owner reversed the modal instruction after this spec was written, and the sheet went from
+a ~1232px two-column modal to a **480px single-column drawer** (§6.1). That is as complete a
+layout change as this screen can have: the rail stopped being a rail, `beside` became `above`,
+the separating edge changed axis, the scrim and the focus trap came and went, and one
+deviation (D-RP-3) lapsed outright.
+
+**Not one fact changed surface, value or rank.** §4's table did not move. The placement maps
+did not move. The parity test did not move.
+
+That is the whole argument for narrowing `ProfileLayer`'s rule from **geometry** to **facts**,
+and it is worth keeping in front of anyone who wants to re-freeze the layout: had the original
+rule still been in force — *"the same stack on both surfaces… nothing can be passed
+differently"* — this reversal would have been illegal, and the sheet would have had to keep a
+two-column arrangement that **measurably overflows its own box by 11px at 480** (§6.1). The
+rule would have been protecting a geometry at the cost of the thing it was written to protect.
+
 ---
 
 ## 4. The shared fact table
@@ -364,62 +386,112 @@ under `:root:lang(ar)`, and `uppercase` is a no-op in a script with no case.
 
 ### 6.1 Surface
 
-**Modal, scrim, focus trapped.** Already shipped: `ShellLayer presentation="modal"`,
-`side="overlay"`, `inset-6`, `rounded-xl`, `max-w-measure` (1440), full-bleed under
-`compact:`. §7.3.3 — *the scrim decides the trap* — so the trap follows from the scrim and
-nothing else needs deciding.
+**Drawer, no scrim, focus not trapped. `--ev-drawer-w` 480px, anchored inline-end.**
 
-Three §6.1/§6.2 clauses this design departs from, each named in §11: the drawer geometry (already
-departed from, in code), the collapsible card stack, and *"the layer commits nothing"*.
+**This reverses an earlier instruction and the reversal is recorded, not hidden.** The layer
+shipped briefly as `presentation="modal"` (`side="overlay"`, scrim, focus trapped) on the
+owner's instruction that the record *"should be full screen… more like popup"*. The owner has
+since reversed it. `ProfileLayer` is `presentation="drawer"` again, and every clause the modal
+suspended is **back in force**:
 
-### 6.2 Layout — main + rail, inside the modal
+| Clause | Status |
+|---|---|
+| §6.1 / §5.5 — **no scrim**, the workspace stays legible and interactive (AC-20) | restored |
+| §7.3.3 — *the scrim decides the trap*, so **no focus trap**; Tab leaves and continues into the page | restored |
+| §5.5 — **a modal nested inside a drawer is forbidden** | restored, and it is now what licenses D-RP-4 |
+| §6.2 — **the layer commits nothing** | restored; the footer is `Open full profile` alone (§6.8) |
+| §9.5 — the enter transform mirrors, `+X` in LTR and `−X` in RTL | restored |
+
+**Do not propose widening the drawer. It has been measured and refused twice.** The next
+person to read §6.2 will see a single column where the reference draws two and reach for the
+width. In order:
+
+- `sheet.tsx` §1.2 / **C12** already refuses a wide drawer in writing: *"NOT 648px: at 1280px
+  a 648px drawer leaves 552px of content, which is narrower than a detail page's main column
+  and destroys the only reason a drawer beat a modal. Width is solved by the full-page escape
+  at `/entity/:entityId`."* That escape is this sheet's own footer link.
+- The two-column body was then measured directly, in Chromium at 1280 × 900 on `RDR-4002`,
+  counting `scrollWidth > clientWidth` on every descendant:
+
+| panel width | rail box | rail needs | overflowing elements |
+|---|---|---|---|
+| **480** | 159 | **170** | the rail, its ground, its first block, and the wallet figure — `200.00 SAR` wants **154** in a **126** box |
+| 560 | 186 | 186 | one truncated caption |
+| **640** | 213 | 213 | **none** |
+
+  Two columns first become clean at **640px** — precisely the width C12 refuses. Restacked at
+  480 the same sweep reports **zero** overflow, on all three tabs, at 1280 and 1440, in both
+  directions.
+
+So the layout changed and **no token, no `globals.css`, no `ShellLayer` and no `sheet.tsx`
+changed with it.** That is the correct trade: a shared width token exists to be obeyed, and
+one screen's arrangement is the cheaper thing to move.
+
+### 6.2 Layout — one column: the summary above the detail
+
+**Unconditional, not a `compact:` override.** `compact` is `@media (width < 768px)`, a
+**viewport** query — a 480px panel inside a 1280px viewport never matches it, so a `compact:`
+rule could not have restacked anything. There is one arrangement.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────┐
-│  ProfileBand  (§5)                                                              ✕    │
-├───────────────────────────┬──────────────────────────────────────────────────────────┤
-│ bg-muted                  │ bg-background                                            │
-│                           │  ┌ Activity 3 ┬ Money 4 ┬ Identity ┐                     │
-│  Wallet                   │  └────────────┴─────────┴──────────┴───────────────────┐ │
-│  200.00 SAR               │                                                        │ │
-│  Lifetime value 0.00 SAR  │   Open right now                                       │ │
-│  · · · · · · · · · · · ·  │  ┌──────────────────────────────────────────────────┐  │ │
-│  Payments under review    │  │ حي حطين  ←  مستشفى الملك فيصل التخصصي   0.00 SAR │  │ │
-│  98.00 SAR    ⟨ Held ⟩    │  │ TRP-9104 · 25 Jun 09:11 · Requested              │  │ │
-│  PAY-6150 · held 23 Jun   │  ├──────────────────────────────────────────────────┤  │ │
-│  ─────────────────────    │  │ No captain assigned yet    [ Assign a captain ]  │  │ │
-│  Plan                     │  └──────────────────────────────────────────────────┘  │ │
-│  Expired                  │                                                        │ │
-│  ▭▭▭▭▭                    │   Earlier                                              │ │
-│  0 of 5 trips used        │   Account registered            22 Jun · Riyadh, SA    │ │
-│  Weekly Economy · 1–8 Jun │   …                                                    │ │
-│  ─────────────────────    │                                                        │ │
-│  Trips completed          │                                                        │ │
-│  0                        │                                                        │ │
-│  Since 22 Jun             │                                                        │ │
-│  ─────────────────────    │                                                        │ │
-│  Churn risk               │                                                        │ │
-│  High                     │                                                        │ │
-│  Lapsed with nothing used │                                                        │ │
-│                           │                                                        │ │
-│  │← ~1/3, min 260px →│    │  │←────────────── ~2/3, minmax(0,1fr) ──────────────→│ │ │
-├───────────────────────────┴──────────────────────────────────────────────────────────┤
-│  Open full profile                                                    [ Renew plan ] │
-└──────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────┐  ← --ev-drawer-w, 480
+│  ProfileBand  (§5)              ✕    │
+├──────────────────────────────────────┤
+│  Wallet                              │  the summary — bg-muted, full width,
+│  200.00 SAR                          │  blocks stacked, separated by a
+│  Lifetime value 0.00 SAR             │  block-axis rule
+│  · · · · · · · · · · · · · · · · · · │
+│  Payments under review               │
+│  98.00 SAR   ⟨ Held ⟩                │
+│  PAY-6150 · held 23 Jun              │
+│  ──────────────────────────────────  │
+│  Plan                                │
+│  Expired    ▭▭▭▭▭                    │
+│  0 of 5 trips used                   │
+│  Weekly Economy · 1–8 Jun            │
+│  ──────────────────────────────────  │
+│  Trips completed                     │
+│  0        Since 22 Jun               │
+│  ──────────────────────────────────  │
+│  Churn risk                          │
+│  High · Lapsed with nothing used     │
+├──────────────────────────────────────┤
+│  Activity 4 │ Money 4 │ Identity     │  the detail — bg-card
+│  ──────────────────────────────────  │
+│  ● Open right now                    │
+│  ┌────────────────────────────────┐  │
+│  │ حي حطين ← مستشفى الملك فيصل    │  │
+│  │ TRP-9104 · 25 Jun 09:11        │  │
+│  ├────────────────────────────────┤  │
+│  │ No captain assigned yet        │  │
+│  │            [ Assign a captain ]│  │
+│  └────────────────────────────────┘  │
+│  Earlier                             │
+│  Account registered   22 Jun · Riyadh│
+├──────────────────────────────────────┤
+│  Open full profile                   │
+└──────────────────────────────────────┘
 ```
 
-- `grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr)`. **The 2 : 1 ratio binds; the px
-  are indicative** (§7.2, R13).
-- Under `compact:` the grid collapses to one column and the rail **restacks above** the tab
-  row — it is the summary, and a summary below its own detail is not a summary. This is the
-  one place the sheet's restack differs from §7.2's rail-below rule, and it differs because
-  the sheet's rail is above-the-fold chrome, not a set of §2.2 rail cards.
-- Both columns scroll as one region. The band and the footer do not scroll (§6.1).
+- **Summary first, then detail.** A summary below its own detail is not a summary. The order
+  is the one this spec already ordained for the one-column case, and nothing is dropped or
+  reordered inside either part.
+- The summary's separating edge is a **block-axis** rule (`border-b`), not an inline one. That
+  is the whole mirroring cost of the restack: an inline edge is the thing that would have had
+  to mirror, and there no longer is one.
+- The body cancels `ShellLayer`'s 12px padding (`-m-3`) so the summary reads as a **ground**
+  rather than as a card that failed to fill. The utility is symmetric and mirrors.
+- Band and footer do not scroll; the body between them does.
 
-### 6.3 The rail — four blocks
+**Nothing in §3 or §4 moved for this.** The rail became a stack, `beside` became `above`, and
+**not one fact changed surface, value or rank.** That is the fact-rank contract doing exactly
+what it was written for — see §3.5.
 
-One block shape, four instances. `ProfileSummaryBlock`, in
-`src/components/profile/SummaryBlock.tsx`, shared with the page's strip (§7.4).
+### 6.3 The summary — four blocks
+
+One block shape, four instances, shared with the page's strip (§7.4). On the sheet they stack
+full-width under the band; on the page they sit side by side in the three-up strip. **Same
+component, same facts, same order — only the axis differs.**
 
 ```
 Label            text-xs text-muted-foreground, sentence case
@@ -428,8 +500,9 @@ Value            text-kpi tabular-nums text-foreground        ← the figure
 Caption          text-xs text-muted-foreground                ← always present
 ```
 
-Blocks are separated by `border-block-end border-border`, not by cards. The rail ground is
-`bg-muted` — see §11 D-RP-2.
+Blocks are separated by `border-block-end border-border`, not by cards. The ground is
+`bg-muted` — see §11 D-RP-2. On the sheet the block-axis rule is the only separator; there is
+no inline edge, and therefore nothing here to mirror.
 
 | Block | Value | Aside | Caption |
 |---|---|---|---|
@@ -518,27 +591,35 @@ PAY-6150 · held 23 Jun
    statement, and the reader cannot tell it from a real zero.
 5. The count is a `Badge tone="neutral"`, not parentheses.
 
-**The arithmetic, against the real fixture** — measured by running the data layer, not
-assumed. `SECTIONS.rider` declares eight sections and a rider has no `disputes` or `fairness`
-section at all, so `CMP-343` does not appear on this profile:
+**The arithmetic, against the shipped data layer** — measured by running it, not assumed.
+Two first-class resources now answer the two countable tabs, which is better than summing
+sections and is what the counts are read from:
 
-| Tab | Sections | Count |
+| Tab | Source | Count for `RDR-4002` |
 |---|---|---|
-| `Activity` | `subscriptions` 1 + `trips` 1 + `movement` 1 + `tickets` 0 | **3** |
-| `Money` | `wallet` 2 postings + `payments` 2 | **4** |
-| `Identity` | `identity`, `devices` — fields, not records | **none** |
+| `Activity` | `getRiderTimeline().total` | **4** — trip requested, account registered, subscription expired, subscription started |
+| `Money` | `getRiderMoneyMovements().movements.length` | **4** — 2 wallet top-ups + `PAY-6150` + `PAY-6151` |
+| `Identity` | one record, not a list | **none** |
 
-That is exactly the `Activity 3` / `Money 4` the owner drew, and it is what settles
-`subscriptions` into Activity: with it in Money the two counts would read 2 and 5, and both
-would contradict the reference. **The drawn counts are evidence, and they agree with the
-placement map.**
+`Money 4` is exactly what the owner drew. **`Activity` is 4 and the owner drew 3**, and the
+difference is correct rather than a defect: a subscription contributes **two** events to a
+timeline — the cycle starting and the cycle expiring — where an earlier draft of this spec
+counted the subscription as one record. A timeline counts events; that is what a timeline is.
+
+The rule is unchanged and is the load-bearing part: **the count is the total behind the tab,
+never the rows on screen.** `Activity 4` over `Showing 6 of 23.` reconciles by reading.
+
+**The two collections are disjoint, and the data layer enforces it rather than this spec
+promising it**: money is deliberately absent from the timeline resource, so a top-up cannot be
+counted under both tabs.
 
 Tab labels, final: `Activity` · `Money` · `Identity`. Sentence case, no counts in the string.
 
 ### 6.5 The open-trip card
 
-The **one filled button on the sheet** lives here (R3: the primary is the only filled button
-on the screen).
+The sheet's **one filled button** lives here, and on the sheet **it is disabled** (R3 caps the
+count at one; §11.2 requires it be present and explained rather than removed). On the page the
+same control is enabled and navigates. Both come from one declaration.
 
 ```
 Open right now                                          ← eyebrow, text-xs, sentence case, ● static dot
@@ -617,21 +698,28 @@ The reference draws five segments because the reference record's plan includes f
 ### 6.8 The footer
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────┐
-│  Open full profile                                                    [ Renew plan ] │
-└──────────────────────────────────────────────────────────────────────────────────────┘
-   link, variant="link", inline-start                    secondary buttons, inline-end
+┌─────────────────────────────────────┐
+│  Open full profile                  │
+└─────────────────────────────────────┘
+   link, variant="link", inline-start
 ```
 
 - `Open full profile` — `Button variant="link"`, inline-start, as §6.2 requires.
   **No `↗`.** §9.5 classifies `↗` as the *external-link* mark; this navigates in place, and
   teaching the operator that `↗` means nothing in particular costs more than the glyph buys.
-- Inline-end: record-scoped commands from `RIDER_COMMANDS`, at most two, **all
-  `variant="secondary"`**. There is no primary in the footer: R3 gives the surface one filled
-  button and it is the open-trip card's `Assign a captain`.
-- `Release 98.00` is **not** here and is not anywhere else either — releasing a fraud-review
-  hold is ruled out of scope for this surface. §8.3.
-- §6.2's *"no primary — the layer commits nothing"* is **suspended**; see §11 D-RP-3.
+- **Nothing else. The footer is the link alone**, which is exactly what §6.2's *"no primary
+  — the layer commits nothing"* asks for, now that the clause is back in force with the
+  drawer (§6.1).
+- `Release 98.00` is **not** here and is not anywhere else — releasing a fraud-review hold is
+  ruled out of scope for this surface (§8.3).
+- `Renew plan` is **not** here either. It has no client operation (§13 C), and a command with
+  no operation is not declared in `RIDER_COMMANDS` at all — so it is absent from both surfaces
+  together. That is the contract working, not a gap.
+- **`Assign a captain` survives, and it is in the BODY, not the footer.** §6.2's clause
+  legislates the footer, which is now the link alone; and the control commits nothing in any
+  case — there is no assign operation on the seam, so it is disabled on the sheet and
+  navigates on the page (§7.4). §11.2 forbids hiding it, so hiding it was never the
+  alternative to showing it.
 
 ---
 
@@ -642,7 +730,7 @@ The reference draws five segments because the reference record's plan includes f
 ```
 ┌─ content region ───────────────────────────────────────────────────────────────────┐
 │ ┌────────────────────────────────────────────────────────────────────────────────┐ │
-│ │ ←  ProfileBand (§5)                                        [ Renew plan ]      │ │  band
+│ │ ←  ProfileBand (§5)                                                            │ │  band
 │ └────────────────────────────────────────────────────────────────────────────────┘ │
 │ ┌──────────────────┬──────────────────────┬──────────────────────────────────────┐ │
 │ │ Money            │ Engagement           │ Plan                                 │ │  strip
@@ -746,9 +834,9 @@ surface.**
 
 | Command | Target | Renders on | Both surfaces? |
 |---|---|---|---|
-| `rider.renewPlan` — `Renew plan` | the rider's current subscription (there is at most one) | the action cluster: page header / sheet footer. `variant="secondary"` | yes |
+| ~~`rider.renewPlan`~~ | — | **nowhere.** No client operation exists (§13 C), so it is undeclared and therefore absent from both surfaces **together** | — |
 | ~~`escrow.release`~~ | — | **nowhere. Ruled out of scope — §8.3** | — |
-| `trip.assign` — `Assign a captain` | **one trip** | the open-trip card. `variant="default"` — the one filled button | yes |
+| `trip.assign` — `Assign a captain` | **one trip** | the open-trip card, in the **body**. Disabled on the sheet, navigating on the page — see below | yes |
 | `profile.openFullPage` — `Open full profile` | navigation | sheet footer, inline-start, `variant="link"` | sheet only |
 
 Consequences, each of which removes a duplicate the references drew:
@@ -758,6 +846,17 @@ Consequences, each of which removes a duplicate the references drew:
   with two open trips the header button would be ambiguous while the card button never is.
   R3 also refuses it: two filled buttons on one surface.
 - **`Release` leaves the sheet footer and does not land anywhere else.** §8.3.
+
+**`Assign a captain` survives §6.2's restored "the layer commits nothing" clause**, and the
+reasoning is worth stating because it looks like a collision and is not:
+
+1. The clause **legislates the footer** — *"`Open full profile` as a plain link at
+   inline-start; no primary"* — and the footer is now the link alone (§6.8).
+2. **The control commits nothing anywhere.** There is no assign operation on the seam
+   (§13 C), so on the sheet it is disabled in place with its reason and on the page it
+   navigates to Live dispatch. Neither mutates.
+3. **§11.2 forbids hiding it.** Removing it was never the alternative to showing it; the
+   alternatives were *disabled with a reason* and *disabled without one*.
 - **No record pager `‹ ›`.** §8 slot 5 permits one on *"record-detail pages in an ordered list
   only"*. `/entity/:id` is reached from search, from any table, from a notification and from
   the sheet; there is no list, so there is no pager.
@@ -777,7 +876,8 @@ cannot open a §5.3 confirmation dialog, because §5.5 forbids a modal nested in
 Ruled: **confirm in place, on both surfaces**, using §4.7's expand-in-place pattern that §6.4
 already sanctions for the account layer. One mechanism, both surfaces, and everything §5.3
 asks for survives — a question naming the object, a body saying what does *not* change, and a
-primary restating the verb. This currently applies to `Renew plan` and to nothing else.
+primary restating the verb. **Nothing on either surface commits today**, so this is a standing
+rule for the first thing that does rather than a description of a control that exists.
 
 ### 7.5 The side column
 
@@ -896,9 +996,34 @@ inline-start and `{count} movements` at the inline-end — **`2 movements` for `
 from `Ledger.totalPostings` — both capped to `tableCeiling(columns)` so the summary ends where
 the table ends.
 
-**The reference's `four movements · 98.00 SAR still held` is wrong on both counts** and
-neither half survives: there are two postings, and the 98.00 is a payment on another ledger
-(§6.3.1). The held figure does not appear on the wallet band at all.
+**The reference's `four movements · 98.00 SAR still held` does not survive, and the reason is
+not just the count.**
+
+`getRiderMoneyMovements` returns **four** movements for this rider — two wallet top-ups and
+two card payments — so "four" is a real number. But it is the count of a **unified money
+story across two ledgers**, and this band is a §8.3.3 **ledger** with a running balance. The
+two payments have `inWalletBalance: false` and `balanceAfterHalalas: null`: they never touched
+the wallet. Putting them in this table would mean:
+
+- half the Balance column rendering `—`, which §8.3.3 permits for a *pending posting on this
+  ledger*, not for a record from another one; and
+- a boundary row that **cannot reconcile**. AC-319 computes the column totals from the
+  rendered rows, so the closing row would read credits 200.00, debits 162.00 and a closing
+  balance of 200.00 — three numbers that do not add up, under a header whose whole promise is
+  that they do.
+
+A ledger whose columns do not sum to its balance is worse than two lists. **So the band is the
+wallet ledger — 2 postings, reconciling — and the two payments render in the page's payments
+section**, which `PAGE_PLACEMENT` already sends to `main`. Both surfaces carry all four
+movements; the sheet unifies them, the page splits them by ledger.
+
+**This is the fact-rank amendment (§3.2) earning its keep a second time.** The running balance
+is `detail`-rank and page-only, exactly as §8.3.3 requires; the four movements are
+`summary`-rank and appear on both. The sheet can unify them precisely *because* it omits the
+balance column, so the reconciliation problem it would create does not arise there.
+
+And it is the same error as §6.3.1 with the sign flipped: the reference summed two ledgers in
+the caption here, and subtracted across two ledgers in the wallet block there.
 
 ### 7.7 The `History` timeline
 
@@ -1067,8 +1192,9 @@ hidden.**
 |---|---|---|
 | Open-trip card, no open trip | card | `No trip is open right now.` |
 | History / movement log, no entries | card | `Nothing is recorded here yet.` |
-| Ledger, **no postings ever** (`lifetimePostings === 0`) | **first-run**, whole band | heading `No money has moved yet` · body `This rider's wallet has no postings. Movements appear here as trips are paid for and refunds are issued.` · action `View wallets` |
-| Ledger, has history, window empty | `no-match` | `No postings in this range.` + `Clear all filters` (supplied by `DataTable`) |
+| Ledger, **no postings ever** (`lifetimePostings === 0`) | **first-run**, whole band, **no illustration** | heading `No money has moved through this wallet` · body `A top-up, a refund to the wallet or a goodwill credit opens it. Nothing has yet.` · action `Back to wallets` |
+| Ledger, has history, window quiet, **nothing narrowing** | `no-match`, **no action** | `No postings between {start} and {end}.` |
+| Ledger, a search or filter narrowed it to zero | `no-match` | `No postings match these filters.` + `Clear all filters` (supplied by `DataTable`) |
 | Payments, none | card | `Nothing is recorded here yet.` |
 | Tickets, none | card | `No tickets reference this rider.` |
 | Identity absent fields | not an empty | the `Not recorded:` group, §7.5 |
@@ -1206,8 +1332,8 @@ Each names the rule it suspends, or it is not a deviation — it is an error.
 |---|---|---|---|
 | **D-RP-1** | The body is **a rail plus tabbed sections** (sheet) and **a strip plus a two-column body plus a ledger band** (page), not a stack of collapsible cards | `00-shell.md` **§6.2**, *"a stack of collapsible cards"* | What §6.2 protects is the **contract** — *"contributed by workspaces as a declared contract… not one 600-line builder"* — and the contract is `ProfileRef.sections`, which is untouched. The stack was a *geometry*, and both of the owner's references replace it. §3.4's total placement maps preserve the guarantee that mattered: every declared section lands somewhere, and no surface can drop one. A collapsed card and a closed tab hide the same amount of content; both name what is inside. |
 | **D-RP-2** | `--ev-bg2` gains a **seventh job: the record-summary band** (the sheet's rail, the page's strip) | §6.2 **D-11**'s derived list of six jobs for the one subdued fill | The fill does work a border cannot: it says *this is a readout of what is below, not another card of content*. Shopify solves the same band with a border (`orders-list-with-metrics-row.webp`) because its canvas is grey and its cards white — an inversion **D7 removed**, so the borrowed treatment does not transfer. **No new colour and no new token**, which is what the "no new colour" rule exists to protect. |
-| **D-RP-3** | The sheet's footer **carries committing actions** | `00-shell.md` **§6.2**, *"`Open full profile` as a plain link at inline-start; no primary — the layer commits nothing"* | That clause rested on §6.1's premise — a 406px no-scrim drawer *consulted beside* the work. The premise is already gone: the layer is `presentation="modal"` on the owner's instruction, and §6.1's own footer rule then applies on its own terms (*"present only when the layer commits"*). Refusing footer actions while the body already carries `Assign a captain` would be incoherent. The link stays at the inline-start exactly as §6.2 requires, and there is still **no primary** in the footer (R3 spends the one filled button on the trip card). |
-| **D-RP-4** | A committing action **confirms in place** rather than in a modal | §5.0, *"Destructive / irreversible → Modal"* | §5.5 forbids a modal nested inside the profile modal, and one confirmation mechanism across both surfaces is worth more than the modal's chrome. §4.7's expand-in-place pattern is already sanctioned for exactly this in §6.4. Everything §5.3 requires survives: a question naming the object, a body saying what does not change, a primary restating the verb. Applies to `Renew plan` and, today, to nothing else. |
+| ~~**D-RP-3**~~ | ~~The sheet's footer carries committing actions~~ | — | **LAPSED, 2026-09-04 — the premise was withdrawn.** It suspended §6.2's *"the layer commits nothing"* on the ground that the layer was a **modal**, and therefore no longer a thing consulted beside the work. The owner reversed that instruction; the layer is a drawer again (§6.1), so the clause is back in force **and the design already complies** — the footer is `Open full profile` alone. A deviation whose premise is gone is not narrowed, it is void. Kept rather than deleted so the numbering and the reasoning survive. |
+| **D-RP-4** | A committing action inside the sheet **confirms in place** rather than in a modal | §5.0, *"Destructive / irreversible → Modal"* | **Its basis changed with the drawer and it got stronger.** It used to rest on "no modal inside a modal", which was an inference; it now rests on §5.5's explicit clause — *"a modal nested inside a drawer is FORBIDDEN"* — which is back in force and is a rule rather than a reading. §4.7's expand-in-place pattern is already sanctioned for exactly this in §6.4. Everything §5.3 requires survives: a question naming the object, a body saying what does not change, a primary restating the verb. **Nothing on either surface commits today**, so this is a standing rule for the first thing that does. |
 | **D-RP-5** | `DetailPage` gains a **`below`** full-width slot | §7.2's two-slot shape | §8.3.3 fixes the ledger at six columns and forbids hiding any; §7.3's budget for that set is 832px; §7.2's main column is ~696px at 1440. A table that fits at 1280 and overflows at 1440 cannot be read as intentional. See §13 A. |
 
 ### 11.2 Refusals — things the references draw that this design does not build
@@ -1229,7 +1355,7 @@ Each is a place the reference contradicts `DESIGN.md`, with the rule I ruled for
 | **X-11** | `Assign a captain` in the **page header** *and* `Assign` on the trip card | The card only | **R3** — one filled button per surface. And its target is the trip, not the rider |
 | **X-12** | `Release 98.00` in the sheet footer | **No release control anywhere.** The hold is shown and linked; the decision is not taken here | §8.3 — the hold is a fraud-review hold on a `Payment`, its basis spans two riders, no operation exists, and the payments client is read-only by decision |
 | **X-15** | `98.00 SAR HELD` **inside** the `Wallet` block, under `200.00` | A separate labelled group below a rule, `Payments under review` | **§8.3.4** — a pending amount is never part of a balance. The 98.00 is on a different ledger; the wallet is fully available. §6.3.1 |
-| **X-16** | `four movements · 98.00 SAR still held` | `2 movements` | Measured: `totalPostings` is 2, and the held payment is not a wallet posting |
+| **X-16** | `four movements · 98.00 SAR still held` on the page's ledger band | `2 movements` | Two ledgers, one band. See below — this one has a second, sharper reason than the count |
 | **X-17** | The trip route as one string | Built from `pickup` and `destination` | **§9.5 / §9.6** — `Trip.route`'s baked-in `→` cannot mirror, isolate or translate |
 | **X-13** | Two eyebrows for one fact — `LIVE · REQUESTED 09:11` and `OPEN RIGHT NOW` | `Open right now`, both surfaces | **§3** — the parity contract |
 | **X-14** | A pulsing `●` | A static dot | **R18** — the ambient-loop licence is for *"this feed is live"*; a record card is not a feed. Legacy defect **D24** is what misapplying it looks like |
@@ -1299,7 +1425,7 @@ fragments, labels and buttons do not (**R6**). Errors are imperatives naming the
 | Key | English | Variant |
 |---|---|---|
 | `profile.action.assign` | `Assign a captain` | `default` — the one filled button |
-| `profile.action.renew` | `Renew plan` | `secondary` |
+| ~~`profile.action.renew`~~ | ~~`Renew plan`~~ | **not shipped — no operation (§13 C)** |
 | `shell.layer.openFullProfile` | `Open full profile` | `link` |
 | `profile.back.riders` | `Back to riders` | `aria-label` + tooltip on the `←` |
 | `shell.layer.close` | `Close` | `aria-label` on the `✕` |
@@ -1308,7 +1434,22 @@ fragments, labels and buttons do not (**R6**). Errors are imperatives naming the
 
 | Key | English |
 |---|---|
+| `profile.rider.refusal.assign` | `Captains are assigned on the dispatch board.` |
+| `profile.rider.refusal.assignAssigned` | `A captain is already on this trip.` |
 | `profile.refuse.renewNoPlan` | `This rider has no plan to renew.` |
+
+**Copy correction to what shipped.** `profile.rider.refusal.assign` currently reads
+*"A captain is assigned on the dispatch board. **This layer commits nothing.**"* The second
+sentence is this spec's internal rationale leaking onto an operator's screen: it names a
+design rule instead of a next step, and no operator knows or cares what a layer commits.
+§5.7 wants the fix, not the reason we cannot do it here. **One sentence, naming where the
+work happens.** The first sentence is also re-tensed — *"a captain **is** assigned"* reads as
+a statement that one already has been, which is the opposite of what the card says one line
+above.
+
+**State beats capability.** Where a trip already has a captain, `assignAssigned` renders
+instead: that is the reason the operator can act on, and naming the captain is more useful
+than naming the board.
 | `profile.refuse.loading` | `Loading this record.` |
 | `profile.refuse.permission` | *(from `roleRefusal`, never worded here)* |
 
@@ -1316,24 +1457,39 @@ fragments, labels and buttons do not (**R6**). Errors are imperatives naming the
 
 | Key | English |
 |---|---|
-| `profile.confirm.renew.question` | `Renew Weekly Economy for this rider?` — `Renew {plan} for this rider?` |
-| `profile.confirm.renew.body` | `A new cycle starts today. The rider's wallet balance and trip history do not change.` |
-| `profile.confirm.renew.primary` | `Renew plan` |
-| `profile.confirm.cancel` | `Cancel` |
+**There is nothing to confirm on either surface today.** Both writes the references drew are
+out of scope — `Release` by ruling (§8.3), `Renew plan` for want of an operation (§13 C) — and
+a command absent from `RIDER_COMMANDS` is absent from both surfaces together.
 
-Rendered **in place** (D-RP-4), never as a nested dialog. The exact charge wording is settled
-when `renewSubscription` lands and its semantics are known — flagged in §13 C rather than
-guessed at here.
+The shape below is the **standing pattern for the first control that does commit**, kept so
+nobody invents a second one. It renders **in place** (D-RP-4), never as a nested dialog,
+because §5.5 forbids a modal inside a drawer:
+
+| Slot | Rule |
+|---|---|
+| Question | names the object and, where money moves, the amount |
+| Body | says what does **not** change — §5.3's requirement, and the half most often dropped |
+| Primary | restates the verb and the object. Never `OK`, never `Confirm` |
+| Secondary | `Cancel` |
+
+Exact strings are written when the operation exists and its semantics are known. **Writing
+them now would be inventing the behaviour** — whether a renewal charges the wallet, starts
+today or at the old cycle's end, and whether it can be undone are all unanswered.
 
 ### 12.6 Toasts — R9: one line, names the object exactly, ≤ 60 characters, no period
 
 | Event | Toast | Chars |
 |---|---|---|
-| Plan renewed | `Plan renewed for RDR-4002` | 25 |
+| — | — | — |
 
-**One toast, because there is one mutation on this screen.** It names the object exactly and
-carries no action link, no emoji and no period. If the object name grows, **truncate the
-object, never the verb**.
+**No toast fires from either surface, because neither surface mutates anything.** That is not
+an omission: R9 spends a toast on a mutation of an object, and the two writes the references
+drew are out of scope (§8.3, §13 C). Navigating away — `Open full profile`, or `Assign a
+captain` on the page — is not a mutation and gets no toast.
+
+When the first mutation lands: one line, naming the object exactly, ≤ 60 characters, no
+period, no emoji, no action link. `Plan renewed for RDR-4002` is the shape. If the object name
+grows, **truncate the object, never the verb**.
 
 ### 12.7 Errors
 
@@ -1349,9 +1505,11 @@ object, never the verb**.
 
 ## 13. Interaction and keyboard
 
-**Tab order, sheet:** heading (focus lands here on open) → `✕` → rail blocks' controls
-(the under-review link) → tab list → active panel → footer link → footer actions. **Focus is trapped**
-(the scrim decides the trap, §7.3.3). `Escape` closes and returns focus to the opener.
+**Tab order, sheet:** heading (focus lands here on open) → `✕` → the summary's one control
+(the under-review link) → tab list → active panel → footer link. **Focus is NOT trapped** — the
+drawer carries no scrim, and *the scrim decides the trap* (§7.3.3). Tab leaves the panel and
+continues into the page behind it, which stays interactive (AC-20). `Escape` closes and
+returns focus to the opener (AC-66).
 
 **Tab order, page:** back arrow → band actions → the under-review link → main → side →
 ledger band. No trap. The ledger's roving focus is `DataTable`'s.
@@ -1365,7 +1523,7 @@ ledger band. No trap. The ledger's roving focus is `DataTable`'s.
 | Browser `Back` | Sheet: closes the layer, stays on the underlying route (AC-21). Page: §7.2 |
 
 **Clickable, and nothing else is:** the `✕`; each tab; `Assign a captain`; the under-review
-group's link to `PAY-6150`; `Renew plan` and its in-place confirm pair; `Open full profile`;
+group's link to `PAY-6150`; `Open full profile`;
 the back arrow; a ledger row's source link
 where `sourceLinkFor` returns one; `View wallets` in the ledger's first-run state; each
 `Learn more` where one exists. **The trip card as a whole is not a click target** — only its
@@ -1400,10 +1558,12 @@ changes, which trades one defect for another. **Disabled in place means in place
 **C — One missing operation, and one question that is not mine.** Owner:
 **mock-data-engineer**, with **product-owner** on the question.
 - `renewSubscription(subscriptionId, signal): Promise<Subscription>` — `clients/subscriptions.ts`
-  ships `freeze` and `cancel` and no renew. `Renew plan` cannot ship without it, and its
-  confirmation copy (§12.5) is provisional until the operation's semantics are known: whether
-  it charges the wallet, starts today or on the old cycle's end date, and whether it can be
-  undone.
+  ships `freeze` and `cancel` and no renew. **`Renew plan` is therefore not built on either
+  surface** — undeclared, not disabled: §11.2 governs a control the operator *may not* use,
+  not one the product cannot perform. Its confirmation copy is deliberately unwritten (§12.5),
+  because whether a renewal charges the wallet, starts today or at the old cycle's end, and
+  whether it can be undone, are all unanswered — and writing the copy would be inventing the
+  answers.
 - Trip assignment. `clients/trips.ts` has no assign; `assignRequest` acts on a `RideRequest`.
   **This spec routes around it** — `Assign a captain` navigates to Live dispatch (§7.4) — so it
   is not a blocker. Say so if you disagree.
@@ -1440,6 +1600,22 @@ leaves a rider on demand, and assert the invariant in a test. §8.2.
 no `EscrowHold`; `tripsRequired` appears in one fixture file and no row references this rider.
 Q-F4 (a hold left by a mid-cycle cancellation) remains open for **product-owner** on the
 Financials surfaces that do render escrow — it simply does not arise here.
+
+**G0 — two stale comments left by the modal reversal.** Owner: **frontend-engineer**.
+Neither breaks anything; both will mislead.
+- `sheet.tsx` §1.2 / C12 still says *"`--ev-drawer-w` = 406px"*. `globals.css` has it at
+  **480** since D7. The C12 *argument* is sound and is load-bearing — §6.1 leans on it — but
+  its stated figure is two versions old.
+- The `overlay` side, its scrim and `isModal` remain in `sheet.tsx` with no consumer now that
+  the profile is a drawer again. Leave them or remove them, but do not let a reader infer from
+  their presence that a layer somewhere is still a modal. If they stay, say what for.
+
+**G1 — a design rationale is leaking onto an operator's screen.** Owner: **frontend-engineer**.
+`profile.rider.refusal.assign` reads *"A captain is assigned on the dispatch board. This layer
+commits nothing."* The second sentence names a design rule instead of a next step, and no
+operator knows what a layer commits (§5.7). The first is mis-tensed — *"a captain **is**
+assigned"* reads as *one already has been*, the opposite of the line above it. Final copy is
+in §12.4: **`Captains are assigned on the dispatch board.`**
 
 **G — `flagsOf()` builds four strings by concatenation.** Owner: whoever owns
 `src/components/profile/rail.tsx`. `` `${t('profile.field.churnRisk')}: ${t(churn.key)}` ``
@@ -1510,11 +1686,21 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
 20. **AC-RP-20** `Open full profile` sets `state.from` to the route the sheet was open over;
     Back from the page returns there **with the sheet re-opened**.
 
-### The summary rail and strip
+### The summary blocks and the strip
 
-21. **AC-RP-21** The four rail blocks and the three strip cells render from one
-    `ProfileSummaryBlock` component.
-22. **AC-RP-22** The `Churn risk` block is pinned to the rail's block-end.
+> **These criteria are about ORDER, not position.** The sheet stacks the summary above the
+> tabs in one column (§6.2); the page lays the same blocks side by side in the strip (§7.1).
+> "First", "last" and "above" are testable against both; "in the rail" and "beside" are not,
+> and any criterion phrased that way has been re-worded rather than dropped. **The facts are
+> identical on both surfaces — that is AC-RP-03's job, and it is unaffected by the axis.**
+
+21. **AC-RP-21** The sheet's four summary blocks and the page's three strip cells render from
+    one `ProfileSummaryBlock` component, with the same facts in the same order.
+22. **AC-RP-22** `Churn risk` is **last** in the summary's order on both surfaces — the final
+    stacked block on the sheet, the last cell's final line on the page.
+22a. **AC-RP-22a** On the sheet the summary renders **before** the tab row in DOM order, and
+    the two are separated by a **block-axis** rule. No inline-axis border separates them, so
+    there is nothing at that seam to mirror.
 23. **AC-RP-23** The held amount renders as `StatusBadge tone="warning"`, radius 8px, not a
     stadium.
 24. **AC-RP-24** `Expired` renders in `--ev-ink`. **No element on either surface computes to
@@ -1548,12 +1734,16 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
 ### The tabs
 
 36. **AC-RP-36** Each tab's count equals the `total` behind it, not the number of rows shown.
-    For `RDR-4002` they render **`Activity 3`** and **`Money 4`** against the live data layer.
-37. **AC-RP-37** No record is counted under two tabs. The wallet postings are counted under
-    `Money` only and do not appear in `Activity`. `subscriptions` is counted under `Activity`.
+    For `RDR-4002` they render **`Activity 4`** (`getRiderTimeline().total`) and **`Money 4`**
+    (`getRiderMoneyMovements().movements.length`) against the live data layer.
+37. **AC-RP-37** The two collections are **disjoint**, enforced by the data layer: no money
+    movement appears in the timeline, so a top-up cannot be counted under both tabs.
+37a. **AC-RP-37a** A subscription contributes **two** timeline events — started and expired —
+    not one. `SUB-2003` produces both.
 38. **AC-RP-38** `Identity` carries no count.
-39. **AC-RP-39** While any section behind a tab is loading, that tab renders **no count** —
-    not `0`, not a skeleton.
+39. **AC-RP-39** While a tab's read is in flight, that tab renders **no count** — not `0`, not
+    a rendered digit of any kind. A `0` before a read returns is indistinguishable from a real
+    zero.
 40. **AC-RP-40** The active tab is in the URL (`&tab=money`) and is restored on reload.
 41. **AC-RP-41** Under `dir="rtl"`, `←` on the tab list moves to the *next* tab.
 
@@ -1570,9 +1760,15 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
     from `Trip.pickup` and `Trip.destination`, and the arrow is `←` under `dir="rtl"`.
 46a. **AC-RP-46a** **`Trip.route` is never rendered on either surface.** Grep for `.route`
     across both surfaces' files returns nothing.
-47. **AC-RP-47** `Assign a captain` is the only `variant="default"` button on each surface.
-48. **AC-RP-48** `Assign a captain` navigates to `/operations/dispatch?trip={id}` and performs
-    no mutation.
+47. **AC-RP-47** `Assign a captain` is the only `variant="default"` button on each surface,
+    and it is in the card **body** — never in the sheet's footer or the page's action cluster.
+48. **AC-RP-48** On the **sheet** it renders **disabled, with its reason as real text beside
+    it** (`aria-describedby`-linked, never a tooltip, never `title`); on the **page** it
+    navigates to `/operations/dispatch?trip={id}`. **Neither mutates anything**, which is what
+    keeps it legal under §6.2's restored *"the layer commits nothing"*.
+48a. **AC-RP-48a** Its reason names the destination and **nothing about layers or commits**.
+    `Captains are assigned on the dispatch board.` Where the trip already has a captain,
+    `A captain is already on this trip.` renders instead — state beats capability.
 49. **AC-RP-49** The trip card as a whole is not a click target.
 
 ### The movements table
@@ -1600,9 +1796,17 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
     in parentheses.
 61. **AC-RP-61** A `failed` or `escalated` posting takes `RowCriticalMarker` **and** the word in
     its description. No badge.
-62. **AC-RP-62** With `lifetimePostings === 0` the ledger renders the first-run empty
-    (illustration, heading, body, one action). With history and an empty window it renders
-    `no-match`. The two are never swapped.
+62. **AC-RP-62** **AMENDED — `10-financials-money-flows.md` LR-2/LR-3/LR-4.** With
+    `lifetimePostings === 0` the ledger renders the first-run empty as **heading, body and one
+    action, and no illustration**. With history it renders `no-match` — the **period** sentence
+    where nothing is narrowing, the **filters** sentence where something is, and never both.
+    The three are never swapped, and the choice is made from `lifetimePostings`, never from
+    `totalPostings` or the row count.
+    *(This criterion previously read "illustration, heading, body, one action" and named two
+    empties. **LR-3** rules that no Financials empty carries an illustration — an operator never
+    creates a posting, so the picture would sit above an action the product does not offer — and
+    **LR-4** draws three ledger empties, not two. The rider spec was written before that ruling
+    and is corrected to it, so the rider and captain ledgers do not ship two answers.)*
 63. **AC-RP-63** A truncated ledger states `Showing {shown} of {total} postings` below the last
     row.
 64. **AC-RP-64** `sourceLinkFor` is the only per-row control, and it renders text rather than a
@@ -1622,7 +1826,17 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
 
 69. **AC-RP-69** `Open full profile` is `variant="link"` at the footer's inline-start, with no
     `↗`.
-70. **AC-RP-70** The footer contains no `variant="default"` button.
+70. **AC-RP-70** The sheet's footer contains **`Open full profile` and nothing else** — no
+    button of any variant, disabled or otherwise. §6.2's *"the layer commits nothing"* is in
+    force.
+70a. **AC-RP-70a** The layer renders **no scrim**, does **not** trap focus, and a pointer-down
+    outside it does not close it — the event reaches the page behind (AC-20).
+70b. **AC-RP-70b** The sheet's body is **one column at every viewport width**, with no
+    `compact:` variant deciding it. At 480px, on all three tabs, at 1280 and 1440, in both
+    directions, **no descendant reports `scrollWidth > clientWidth`**.
+70c. **AC-RP-70c** `--ev-drawer-w`, `globals.css`, `ShellLayer` and `sheet.tsx` are
+    **unchanged** by this screen. The layout was solved by arrangement, not by widening a
+    shared token.
 71. **AC-RP-71** **No control on either surface releases, clears, approves or reverses a
     payment hold.** No such affordance renders in any state, enabled or disabled, and
     `RIDER_COMMANDS` declares no release command. Grep for `release` across both surfaces'
@@ -1640,10 +1854,12 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
     the wallet balance.
 75a. **AC-RP-75a** A rider with no pending-settlement payment renders **neither the
     under-review group nor its rule** — not a zero, not an em dash, not an empty label.
-75b. **AC-RP-75b** `Renew plan`'s confirmation renders **in place**; no second dialog element
-    mounts on either surface. Success fires one toast, `Plan renewed for RDR-4002`, ≤ 60
-    characters, no period, no action link, and no banner for the same event (R10).
-76. **AC-RP-76** The page header renders no `Churn risk` control and no record pager.
+75b. **AC-RP-75b** **Neither surface mutates anything, so no toast fires from either.** No
+    `sonner` call originates in any file this spec governs. If a committing control is added,
+    it confirms **in place** — no second dialog element mounts inside the drawer (§5.5).
+76. **AC-RP-76** The page header renders no `Churn risk` control, no record pager, and no
+    `Renew plan` — the command is undeclared, so it is absent from **both** surfaces together
+    rather than from one.
 77. **AC-RP-77** Every action disabled by the loading state renders `Loading this record.` as
     real text.
 
@@ -1659,8 +1875,12 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
     sheet stays dismissible / the page's back arrow still works.
 82. **AC-RP-82** Each of the eight empties in §9.3 renders its exact copy, and the three kinds
     are never interchanged.
-83. **AC-RP-83** The ledger's first-run band is the **only** illustration on either surface
-    (R8).
+83. **AC-RP-83** **AMENDED — LR-3.** **No illustration renders anywhere on either surface, in
+    any state**, the ledger's first-run band included. R8 *permits* an illustration on a
+    whole-page zero-records-ever state; it does not require one, and Financials declines it
+    because an operator never creates a posting.
+    *(This criterion previously licensed exactly one illustration. It now licenses none, which
+    is simpler to test and puts the rider and the captain on one answer.)*
 84. **AC-RP-84** Every domain state in §9.4 has fixture data and renders as specified.
 
 ### Arabic
@@ -1688,9 +1908,254 @@ Testable, numbered, and ordered by the section they come from. QA owns these.
     any colour (§7.5).
 97. **AC-RP-97** All band text clears its measured ratio: name and figures 13.44 : 1, meta
     8.61 : 1, eyebrow 5.89 : 1.
-98. **AC-RP-98** The sheet's focus is trapped and returns to the opener on close; the page traps
-    nothing.
+98. **AC-RP-98** **Neither surface traps focus.** The sheet moves focus in on open, Tab leaves
+    it and continues into the page, and `Escape` closes and restores focus to the opener.
 99. **AC-RP-99** Every spacing value is on the 4px grid (§6.3 D15) — this holds regardless of
     which deviation is in force, and **D-2 may not be cited to make anything smaller**.
 100. **AC-RP-100** No motion loops. The `Open right now` dot is static and nothing on either
      surface animates for longer than 300ms.
+
+---
+
+## 16. OWNER AMENDMENT 3 — the explanatory sentences, and the ⓘ that is refused
+
+**Date** 2026-09-04. **Instruction, verbatim:** *"I want you to read the driver and rider,
+pages, and sheets and remove any un neded comments or really secondary and add them in an i
+icon with a tool tip to tell that info"*. **"Comments" means the on-screen explanatory
+sentences**, not code comments.
+
+**This is the rider half of one ruling.** The captain half is
+[`people-captain-profile.md` §13](./people-captain-profile.md), written in the same pass. **§13
+holds the full argument, the reference evidence and the seven-reason refusal of the ⓘ; this
+section does not restate it.** What is here is the rider's own inventory, its one deletion, and
+the one asymmetry between this page and this sheet that a reader will otherwise file as a parity
+defect.
+
+**A builder waiting on this needs §16.2 and §16.3.**
+
+### 16.1 The test, inherited
+
+§13.1 in full, unchanged:
+
+> **The removal test.** Delete the sentence and read the figure again. If the figure still
+> means exactly one thing, the sentence was **commentary** — delete it. If the figure now means
+> two things, the sentence is **the answer** — it stays, visible, in ordinary text.
+
+with its four corollaries: **A** already behind a disclosure → out of scope; **B** the block's
+sole content → stays; **C** renders only when an uncommon condition is true → a fact about the
+record, stays; **D** renders on every record in every state under a figure its own label already
+names → **this is the clutter.**
+
+**The rider surfaces are far cleaner than the captain's, and the measurement says so.** A
+Chromium probe of `/entity/RDR-4002` surfaced exactly one candidate outside the sheet's rail:
+`2 payments · 98.00 SAR under review`, which is a **count and an amount** — a fact, not a
+sentence. **Rule D catches exactly one string on this record, and it is in the sheet only.**
+
+### 16.2 THE AFFORDANCE RULING — D-RP-6: no tooltip and no popover on either rider surface
+
+> **D-RP-6.** Neither rider surface carries a tooltip, a popover, a hover card or a `title`
+> attribute that holds an explanation. `ReturnControl`'s destination tooltip — which this spec's
+> own §7.2 introduced under owner amendment 1 — remains the only tooltip on either surface, and
+> its rule is unchanged: *it names the control and carries no explanation.*
+
+The seven reasons are `people-captain-profile.md` §13.2 and they apply verbatim. **Three bind
+harder here than on the captain**, and they are the reason the answer does not change between
+the 480px sheet and the page:
+
+1. **`RiderRail.tsx` contains zero `<button>`, `<a>`, `<Button>` or `<Link>`** — verified by
+   grep. The rail is a pure readout. Putting an ⓘ in it converts a region that costs the
+   keyboard nothing into one an operator tabs through on the way to the tabs, in a drawer where
+   `Tab` **leaves and continues into the page** (§6.1, no focus trap) — so the stops are on the
+   path out, not in a dead end.
+2. **The sheet is 480px and the rail is a single column.** §6.1 refused a widening **twice**, on
+   measurement, in writing. A per-line control on the surface whose width is already the
+   binding constraint is the wrong direction.
+3. **§3's parity contract is on facts.** A fact that is hoverable on the page and plain on the
+   sheet — or present on one and absent on the other — is precisely what that contract exists to
+   prevent. So the ruling is one ruling for both surfaces.
+
+**If the ⓘ is ordered anyway**, the one permitted shape is
+`people-captain-profile.md` §13.6 — a **popover**, not a tooltip, one per card, a real
+`<button>`, click/tap-triggered, accessible name `About these figures`, content keeping its
+sentence periods (`DESIGN.md:3292` names *toast, tooltip, badge, menu item* and **not** popover).
+It carries a self-voiding test and that test is AC-RP-110.
+
+### 16.3 THE TABLE — every string on both rider surfaces
+
+Rendered strings only, `t()` keys resolved. `⟳` = renders on every record in every state.
+
+#### The sheet's rail
+
+| # | String | Where | Verdict |
+|---|---|---|---|
+| 1 | `Captured, not settled. Not part of the balance.` ⟳ | `RiderRail.tsx:167`, under the `Payments under review` figure | **DELETE the key, KEEP one clause via a string that already exists** — see #2. Clause 1 restates the block's own label: `Payments under review` already says *not settled*, and the settlement badge on each money row says which state it is in. Clause 2 is the only load-bearing half. |
+| 2 | — *(re-used, not new)* `Not counted in the wallet balance` | same position | **REPLACES #1.** This is `profile.rider.money.outsideBalance`, **already declared, already translated, already reasoned** — the rows it labels in the Money tab make the identical statement. Using the shipped string rather than minting a second one is this spec's own rule: *a second spelling of a shared sentence is a second contract that has not noticed yet*. **Two sentences become one fragment, and the dictionary gets smaller.** |
+| 3 | `Payments under review` ⟳ | rail block label | **STAYS.** It is the block's heading and §8.3.4's *separate labelled line*. Deliberately not `Held` — §12.1 already ruled that `Held` under a wallet balance reads as *held out of your balance*, which is false. |
+| 4 | `No negative signal on record.` | `RiderRail.tsx:259`, `RiderProfilePage.tsx:646`, when `churnReason === null` | **STAYS.** Rule B — it is the `Churn risk` block's reason line, and §8.2 makes the reason mandatory. `churnReason === null` is a **real value** meaning *no negative signal*, and §3.5 requires a sentence rather than a blank. Demote it and a `Low` churn block is a word over nothing. |
+| 5 | `rider.churn.*` — `No subscription — quick rides only.` · `A cancelled subscription is on record.` · `Complaints on record: {count}` · `Rating below 4.` · `Renewal rate {percent}%.` · `The plan lapsed with nothing used.` | same position, when there is a reason | **STAYS, all six.** §8.2 — a derived value states its reason. **The reason IS the answer** to the question `Churn risk: High` raises, and it is the only thing on the block that tells an operator what to do. Hiding the reason behind hover while leaving the risk word visible is the exact inversion §7.5 forbids. |
+| 6 | `No plan on this record` · `{plan} · ends {date}` · `{used} of {total} trips used` · `Since {date}` | `Plan` block | **STAYS.** Facts. The meter is `aria-hidden`; the caption **is** the value. |
+| 7 | `No trip allowance on this plan` | when `tripsIncluded === 0` | **STAYS.** Rule C — §6.6's zero case; an empty meter would claim a quota that does not exist. |
+
+#### The page's strip
+
+| # | String | Where | Verdict |
+|---|---|---|---|
+| 8 | `SAR in wallet` ⟳ | `RiderProfilePage.tsx:463` | **STAYS.** Removal test: `200.00` alone is a balance, a lifetime value or a fare. It is the figure's unit and subject, not commentary. |
+| 9 | `Balance is below zero` | when negative | **STAYS.** Rule C, and §7.5 — a negative balance is U+2212 in ordinary ink and the condition must be carried by a **word** as well. This is that word. Never red, never a badge (R5a). |
+| 10 | `{n} quick rides` · `last trip {date}` · `last trip not recorded` · `Lifetime value` | strip | **STAYS.** Facts. |
+| 11 | **No held/under-review line at all** ⟳ | strip, `Money` cell | **STAYS ABSENT — and this is deliberate, not a parity defect. See §16.4.** |
+
+#### Both surfaces — panels, cards, tables
+
+| # | String | Verdict |
+|---|---|---|
+| 12 | `Not counted in the wallet balance` — per money row, when `inWalletBalance` is false | **STAYS, per row, unchanged.** It is not commentary: it names **which rows** are outside the balance, and that is a property of the row. Rule C — it renders only on the rows it is true of. `RiderPanels.tsx:429` states the stake: the rows do not sum to the balance and an operator adding the column up *"would reasonably conclude the screen is wrong"*. |
+| 13 | `A captain is on this trip.` · `No captain assigned yet.` | **STAYS.** The open-trip card's whole question, answered beside the `Assign a captain` control. Rule B. |
+| 14 | `Captains are assigned on the dispatch board.` · `A captain is already on this trip.` · `Opening dispatch needs the operations permission.` | **STAYS, and may never be a tooltip.** §11.2 — a refusal is real text, `aria-describedby`-linked, never hidden. `design/12-refusal-and-undo-surfaces.md` §2.4: *"Neither surface may use a tooltip, ever."* Already ruled; §13.2 reason 5. |
+| 15 | `Nothing has happened on this record yet.` · `No money has moved on this record yet.` · `No trip is open right now.` · `No movements match this search.` · `No payments match this search.` · `No money has moved yet` + body · `No card payments yet` + body | **STAYS, all.** Rule B. An empty state behind an ⓘ is a blank card — exactly what `copy.md` rule 10 and R8 forbid. |
+| 16 | `Showing {shown} of {total}.` | **STAYS.** §5.4 / §8.3.4 — a truncated list states its truncation in words. A silent cap must not ship. |
+| 17 | `{total} on record · {open} open` · `{total} on record · none open` · `None` | **STAYS.** §12.1 already ruled that `{total: 3, open: 0}` and `{total: 0}` are different states and take different sentences. Facts. |
+| 18 | `Joined {date}` · `{id} · {date} · {status}` · `{origin} to {destination}` · `{n} more open` | **STAYS.** Facts. |
+| 19 | `2 payments · 98.00 SAR under review` (`entity.rider.payments.count` + `.underReview`) | **STAYS.** A count and an amount over the group whose records they describe. The probe surfaced this as the page's only candidate; it is not a sentence and not a definition. |
+
+**Net effect: one key deleted, one key re-used, nothing added.** The rider dictionary gets one
+string smaller and the rail loses one line.
+
+```
+  before (sheet rail)                     after
+  PAYMENTS UNDER REVIEW                   PAYMENTS UNDER REVIEW
+  98.00  SAR                              98.00  SAR
+  Captured, not settled. Not part         Not counted in the wallet balance
+  of the balance.
+```
+
+### 16.4 The page has no held line and the sheet does — intentional, and recorded so it is not "fixed"
+
+A reader comparing the two surfaces will find `Payments under review` as a rail block on the
+sheet and **nothing** in the page's `Money` strip cell, and reach for §3's parity contract.
+**Do not.** The two surfaces put the figure in different places, and the caption follows the
+placement rather than the fact:
+
+- **The sheet** stacks `Wallet 200.00` and then `Payments under review 98.00` as the next block
+  in one column. The 98.00 sits directly beneath a balance it is not part of, so the misread is
+  available and one line has to close it. That is what #2 is for.
+- **The page** deliberately renders **no held line in the strip at all** —
+  `RiderProfilePage.tsx:454` says so and gives the reason: *"`held` printed under a balance
+  reads as held out of your balance, which would be a false statement."* The figure appears once
+  on the page, over the `Payments` group where its records are, as
+  `2 payments · 98.00 SAR under review`. **The page never creates the misread, so it needs no
+  sentence to close one.**
+
+**§3's contract is that the same facts are present at the same rank on both surfaces**, not that
+the same *captions about layout* appear. `heldHalalas` is present on both, at figure rank on
+both. What differs is a reconciliation line whose need is created by the sheet's single-column
+stack. **A caption is not a fact; it is a repair for an adjacency.** Recorded as AC-RP-109.
+
+### 16.5 Copy — final
+
+**Deleted. One key, English and Arabic.**
+
+| Key | Was |
+|---|---|
+| `profile.rider.rail.underReviewNote` | `Captured, not settled. Not part of the balance.` |
+
+`src/components/profile/rider/copy.ts:61` and `src/i18n/ar/riderProfile.ts:23`.
+
+**Added. None.** `RiderRail.tsx:167` renders **`profile.rider.money.outsideBalance`** in its
+place — the key that already exists:
+
+| Key | English | Arabic |
+|---|---|---|
+| `profile.rider.money.outsideBalance` | `Not counted in the wallet balance` | `غير محتسبة ضمن رصيد المحفظة` |
+
+- **Fragment, no period, both languages** (R6) — unchanged from what ships today on the money
+  rows.
+- **The rank differs by context and that is correct**: `text-xs text-muted-foreground` in the
+  rail, where it is the block's only secondary line; `text-2xs text-muted-foreground` on a money
+  row, where it is a third line under a label and a timestamp. Same string, same meaning, rank
+  set by its neighbours (§2.3).
+- **Its comment in `copy.ts` must be widened** when the key gains its second call site: it
+  currently reads *"Said on the rows it is true of"* and will be true of a rail block as well.
+  A comment that names one of two call sites is how the second one gets deleted.
+
+**Unchanged, and named so a builder does not "tidy" them by mistake:**
+`profile.rider.rail.churnNone`, `.underReview`, `.noPlan`, `.planLegs`, `.since`, every
+`rider.churn.*`, `profile.rider.activity.*`, `profile.rider.money.empty`, every
+`profile.rider.support.*`, every `profile.rider.refusal.*`, `rider.trip.noCaptainYet`, and
+every `entity.rider.*` string on the page.
+
+### 16.6 Deviations — there are none
+
+Identical to `people-captain-profile.md` §13.7, which checks each candidate rule one at a time.
+The short form:
+
+- **`DESIGN.md:3291`** (*constraints in helper text, not a tooltip*) and **`:3278`**'s
+  `(tooltip on an ⓘ icon)` **Don't** are **§5.7 — §1–§5**, and the Precedence ladder makes them
+  descriptions of Shopify rather than orders to Eyvar unless §6 adopts them. §6 does not adopt
+  them for captions on read-only figures, and both are written about **form fields** in any
+  case. **Nothing is suspended.** This amendment moves in the same direction as those rules: it
+  takes prose out of tooltips by never putting it in one.
+- **`DESIGN.md:3107`** (*every icon-only control gets a ≤3-word tooltip*) is **not reached** —
+  no icon-only control is added. `ReturnControl` already satisfies it.
+- **`DESIGN.md:3292`** (*no period on a tooltip*) is **not reached** — no tooltip is added.
+  §13.6 resolves it for the override case, and the resolution is that a popover is not on that
+  rule's list.
+- **§8.3.4** (*a pending amount MUST appear as a separate labelled line beneath the balance*) is
+  **satisfied, unchanged** — the rail **block** is the labelled line. The sentence under it never
+  was.
+- **§8.2** (*a derived value states its derivation*) is **satisfied** — every `rider.churn.*`
+  reason is untouched.
+
+**The gap this exposes in `DESIGN.md` is finding CP-P1** in the captain spec: the document has
+no rule for *secondary explanation on a read-only record*, because §5.7 and §5.0 are both
+written about fields and controls. **A gap, not a deviation.** Proposed wording is in §13.8 and
+is raised to the owner of `docs/06-design-reference/_partials/`. I do not edit `DESIGN.md`.
+
+### 16.7 Findings
+
+- **RP-P1 — `profile.rider.rail.underReviewNote` had one call site and two clauses, and only one
+  clause was load-bearing.** Recorded because it is the shape to look for elsewhere: a caption
+  whose first clause restates its own block label.
+- **RP-P2 — the page/sheet held-figure asymmetry is intentional** (§16.4). It has been reached
+  and re-litigated once already; §16.4 exists so it is not reached a third time.
+- **RP-P3 — `profile.state.emptyCommitment` = `No missed legs recorded. Commitment is clean.`
+  has the same two-clause shape** — clause 2 restates clause 1 — and lives in
+  `src/components/profile/copy.ts:50`, which **neither rider surface renders**. Out of this
+  amendment's scope, and flagged for whoever owns the generic profile sections so it is fixed
+  where it ships rather than here.
+- **RP-P4 — `docs/ref/copy.md` rule 7 presents a §1–§5 MUST as flat law**, with no ladder
+  caveat. See CP-P2 in the captain spec. Owner of `docs/ref/` to decide; not my file.
+
+### 16.8 Acceptance criteria — owner amendment 3
+
+101. **AC-RP-101** No `Tooltip`, `TooltipTrigger`, `TooltipContent`, `Popover`, `HoverCard` or
+     `title=` attribute appears anywhere in `src/components/profile/rider/*` or
+     `src/screens/entity/RiderProfilePage.tsx`. **`ReturnControl`'s destination tooltip remains
+     the only tooltip on either rider surface.**
+102. **AC-RP-102** `RiderRail` contains **zero focusable elements**. `within(rail).queryAllByRole('button')`
+     and `queryAllByRole('link')` are both empty.
+103. **AC-RP-103** No string on either rider surface is reachable only by hover. Every rendered
+     sentence is in the accessibility tree at rest.
+104. **AC-RP-104** `profile.rider.rail.underReviewNote` is **deleted** from
+     `src/components/profile/rider/copy.ts` and `src/i18n/ar/riderProfile.ts`. Grep returns no
+     key and no consumer.
+105. **AC-RP-105** The `Payments under review` rail block renders
+     `profile.rider.money.outsideBalance` in its place — **the same key the money rows render**.
+     No new key is declared for this fact.
+106. **AC-RP-106** That block renders **one** secondary line, not two. It rendered two sentences.
+107. **AC-RP-107** `profile.rider.money.outsideBalance` still renders per money row, **only** on
+     rows where `inWalletBalance` is false, unchanged.
+108. **AC-RP-108** `profile.rider.rail.churnNone` and every `rider.churn.*` reason render
+     unchanged, in ordinary text, on both surfaces. A `Churn risk` block is never a word over a
+     blank (§8.2, §3.5).
+109. **AC-RP-109** The page's `Money` strip cell renders **no held or under-review line**, and
+     the sheet's rail renders the block **with** its one caption. This asymmetry is asserted, not
+     tolerated: a test names both and cites §16.4.
+110. **AC-RP-110** *(applies only if §13.6 is invoked)* Every string placed inside a popover
+     passes §16.1's removal test — the figure it accompanies means exactly one thing without it.
+     **A string that fails the test may not be put in the popover.**
+111. **AC-RP-111** `rider.test.tsx` asserts that `Captured, not settled.` renders **nowhere** on
+     either surface, **in both languages**.
+112. **AC-RP-112** Nothing in this amendment adds a token, a Tailwind palette class, an arbitrary
+     value, a raw hex, a physical-direction utility, a badge tone or an illustration.
+     `/token-audit` passes.

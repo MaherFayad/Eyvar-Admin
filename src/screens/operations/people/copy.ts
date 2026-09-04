@@ -78,11 +78,14 @@ export const PEOPLE_EN: Dictionary = {
   'people.col.plate': 'Plate',
   'people.col.docs': 'Documents',
   'people.col.dispatch': 'Dispatch',
-  'people.col.doc.license': 'Licence',
-  'people.col.doc.vehicleReg': 'Registration',
-  'people.col.doc.inspection': 'Inspection',
-  'people.col.doc.insurance': 'Insurance',
-  'people.col.doc.operatingCard': 'Operating card',
+  /* **The product's four documents and nothing else** — `DOCUMENT_TYPES` in
+     `types/driver.ts` is the enum, these are its words. The inspection
+     certificate, the insurance policy and the operating card were removed from
+     the model, so their keys are gone rather than merely unused. */
+  'people.col.doc.nationalId': 'National ID',
+  'people.col.doc.license': 'Driving licence',
+  'people.col.doc.vehicleReg': 'Vehicle licence',
+  'people.col.doc.photo': 'Profile photo',
 
   /* ── domain labels ──────────────────────────────────────────────────── */
   /* R7 tones live in code; the WORD lives here, because §7.5 forbids colour

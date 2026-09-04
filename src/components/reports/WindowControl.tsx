@@ -67,12 +67,13 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { ArrowRightIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { ArrowRightIcon, CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { resolveWindow } from '@/data/clients'
 import { REPORT_PRESETS } from '@/data/clients/reports'
 import type { ReportQuery } from '@/data/types'
@@ -116,6 +117,21 @@ export interface WindowControlProps {
    * render in one document. It also names the two date fields.
    */
   id?: string
+  /**
+   * **§A7 — the toolbar variant.**
+   *
+   * The rail stacks a `Label` over every control because the rail is a form.
+   * The toolbar sets its controls side by side, so the label moves onto the
+   * trigger as an `aria-label` and a 16px calendar glyph carries it visually —
+   * which is §1.5's own "input affix / disclosure" case, and the one Amplitude
+   * puts at the end of its toolbar row.
+   *
+   * **The trigger's TEXT does not change.** It still prints the preset name
+   * over the resolved range, because those are the two facts §3.7's chip rule
+   * requires and dropping one to save width is how "which thirty days?" becomes
+   * a two-click question again.
+   */
+  compact?: boolean
   t: Translator
   language: Language
 }
@@ -126,6 +142,7 @@ export function WindowControl({
   today,
   disabled = false,
   id = 'rb-window',
+  compact = false,
   t,
   language,
 }: WindowControlProps) {
@@ -166,9 +183,7 @@ export function WindowControl({
     to: formatDate(resolved.to, { style: 'day-month', language }),
   })
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{t('rb.control.window')}</Label>
+  const control = (
       <Popover open={open} onOpenChange={(next) => (next ? setOpen(true) : abandon())}>
         <PopoverTrigger asChild>
           <Button
@@ -176,8 +191,15 @@ export function WindowControl({
             type="button"
             variant="secondary"
             disabled={disabled}
-            className="h-auto justify-between py-1.5"
+            /* The label is on the trigger in the toolbar and above it in the
+               rail. Exactly one of the two, so the accessible name is the same
+               string either way. */
+            aria-label={compact ? t('rb.control.window') : undefined}
+            className={cn('h-auto justify-between py-1.5', compact && 'gap-2')}
           >
+            {/* A calendar is an OBJECT, not a reading-order mark, so it does not
+                mirror (§9.5). It inherits `currentColor` through the button. */}
+            {compact && <CalendarIcon aria-hidden="true" className="size-4 shrink-0" />}
             <span className="flex flex-col items-start gap-0.5">
               <span>{headline}</span>
               {/* `<bdi>` isolates it: `13 Aug – 11 Sep` is a numeral run whose
@@ -324,6 +346,14 @@ export function WindowControl({
           </div>
         </PopoverContent>
       </Popover>
+  )
+
+  if (compact) return control
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{t('rb.control.window')}</Label>
+      {control}
     </div>
   )
 }

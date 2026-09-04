@@ -105,6 +105,7 @@ import {
   DOC_STATE_LABEL,
   FAIRNESS_STATUS,
   PLAN_STATUS,
+  REQUEST_STATUS,
   SETTLEMENT_LABEL_KEY,
   SUBSCRIPTION_STATUS,
   TICKET_STATUS,
@@ -402,6 +403,35 @@ export function identityFields(
         ...(pay.failureReason === null
           ? []
           : [{ label: t('profile.field.failureReason'), value: formatLocalisedText(pay.failureReason, t) }]),
+      ]
+    }
+    case 'request': {
+      const r = record.data
+      /* **The ride, and only what the ROW knows.** The rider's own facts — tier,
+         wallet, churn — belong to the rider's record and are one click away
+         through the name; repeating them here would put two answers to *who is
+         this* on two surfaces. What this record uniquely holds is the journey,
+         its money and its clock. */
+      return [
+        { label: t('profile.field.status'), value: badge(REQUEST_STATUS[r.status].tone, t(REQUEST_STATUS[r.status].key)) },
+        { label: t('profile.request.field.channel'), value: t(`requests.channel.${r.channel}`) },
+        { label: t('profile.request.field.pickup'), value: text(r.pickup) },
+        { label: t('profile.request.field.destination'), value: text(r.destination) },
+        { label: t('profile.request.field.vehicleClass'), value: text(r.vehicleClass) },
+        { label: t('profile.request.field.requestedAt'), value: date(r.requestedAt, language, 'day-month-time') },
+        { label: t('profile.field.rider'), value: text(r.riderName) },
+        /* One of the two is `null` on every row by construction — see
+           `types/request.ts`. `splitAbsent` groups them once three facts are
+           absent together, so a subscription request does not print
+           `Estimated fare — not recorded` beside its own hold. */
+        { label: t('profile.request.field.fare'), value: money(r.quotedFareHalalas) },
+        { label: t('profile.request.field.hold'), value: money(r.authorisationHoldHalalas) },
+        /* `subs.plan.*`, reused — the subscriptions queue already names these three
+           and a fourth spelling of `Weekly` is a fourth thing to translate. */
+        { label: t('profile.request.field.plan'), value: r.planKey === null ? null : t(`subs.plan.${r.planKey}`) },
+        { label: t('profile.request.field.preferredTime'), value: text(r.preferredPickupTime) },
+        { label: t('profile.request.field.captain'), value: text(r.assignedDriverName ?? r.offeredToDriverName) },
+        { label: t('profile.request.field.notes'), value: text(r.notes) },
       ]
     }
     case 'complaint': {

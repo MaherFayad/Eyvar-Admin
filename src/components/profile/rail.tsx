@@ -68,6 +68,7 @@ import {
   COMPLAINT_STATUS,
   CORPORATE_STATUS,
   PLAN_STATUS,
+  REQUEST_STATUS,
   SETTLEMENT_LABEL_KEY,
   SUBSCRIPTION_STATUS,
   TICKET_STATUS,
@@ -205,6 +206,10 @@ export function statusOf(
     case 'applicant': {
       const s = APPLICANT_STATUS[record.data.status]
       return { tone: s.tone, label: t(s.key) }
+    }
+    case 'request': {
+      const r = REQUEST_STATUS[record.data.status]
+      return { tone: r.tone, label: t(r.key) }
     }
     case 'trip': {
       const s = TRIP_STATUS[record.data.status]
@@ -403,6 +408,23 @@ function summaryFields(record: ProfileRecord, t: Translate, language: Language):
         { label: t('profile.field.paid'), value: <MoneyValue amount={s.paidHalalas} /> },
         { label: t('profile.field.escrow'), value: <MoneyValue amount={s.escrowHeldHalalas} /> },
         { label: t('profile.field.refunded'), value: <MoneyValue amount={s.refundedHalalas} /> },
+      ]
+    }
+    case 'request': {
+      const r = record.data
+      /* One figure or the other, never both — the channel decides which, and
+         `types/request.ts` documents why they are two fields rather than one
+         with two meanings. A `null` renders §3.5's placeholder, and with the
+         clock and the two people also absent on some rows `splitAbsent` groups
+         them into a single line rather than four em dashes. */
+      return [
+        { label: t('profile.request.field.fare'), value: r.quotedFareHalalas === null ? null : <MoneyValue amount={r.quotedFareHalalas} /> },
+        { label: t('profile.request.field.hold'), value: r.authorisationHoldHalalas === null ? null : <MoneyValue amount={r.authorisationHoldHalalas} /> },
+        { label: t('profile.request.field.vehicleClass'), value: r.vehicleClass },
+        {
+          label: t('profile.request.field.slaDue'),
+          value: r.slaDueAt === null ? null : formatDate(r.slaDueAt, { style: 'day-month-time', language }),
+        },
       ]
     }
     case 'corporate-account': {
@@ -609,6 +631,17 @@ function metadataFields(
         { label: t('profile.field.instrument'), value: pay.instrumentLast4 },
         { label: t('profile.field.invoice'), value: pay.invoiceNumber },
         { label: t('profile.field.paymentId'), value: pay.tripId },
+      ]
+    }
+    case 'request': {
+      const r = record.data
+      return [
+        ...common,
+        { label: t('profile.request.field.channel'), value: t(`requests.channel.${r.channel}`) },
+        { label: t('profile.field.rider'), value: r.riderName },
+        { label: t('profile.request.field.pickup'), value: r.pickup },
+        { label: t('profile.request.field.destination'), value: r.destination },
+        { label: t('profile.request.field.requestedAt'), value: formatDate(r.requestedAt, { style: 'day-month-time', language }) },
       ]
     }
     case 'complaint': {

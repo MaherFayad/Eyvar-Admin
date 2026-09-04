@@ -30,7 +30,7 @@ import { disableMockLatency, getRouteTable } from '@/data/clients'
 import { resetDefaultUiStores } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { AppLayout } from './AppLayout'
-import { ShellProvider } from './ShellContext'
+import { ShellProvider, useShell } from './ShellContext'
 import { NotFoundScreen } from '@/screens/RouteStates'
 
 const table = getRouteTable()
@@ -61,7 +61,7 @@ const subTabNavLabel = (EN['shell.nav.subTabsFor'] as string).replace(
   EN['workspace.operations'] as string,
 )
 
-function renderShell(path: string) {
+function renderShell(path: string, extra?: React.ReactNode) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
@@ -73,6 +73,7 @@ function renderShell(path: string) {
             <Route path="*" element={<NotFoundScreen />} />
           </Route>
         </Routes>
+        {extra}
       </ShellProvider>
     </MemoryRouter>,
   )
@@ -146,54 +147,55 @@ describe('D5 — the sub-tab column is always rendered', () => {
 
 describe('AC-20, AC-22, AC-66 — the shell layers', () => {
   /**
-   * **AC-20 is now split by presentation, and these two tests are the split.**
+   * **AC-20 was split by presentation and is now WHOLE again, and these three
+   * tests are the record of both moves.**
    *
-   * The rule used to be one sentence for all three layers: the route behind
-   * stays rendered, visible and interactive, and there is no scrim. It still
-   * holds for the two layers it was written about — notifications and account,
-   * which an operator consults WHILE working — and the test below pins it there
-   * on the account layer so the coverage is not lost.
+   * The rule is one sentence for all three layers: the route behind stays
+   * rendered, visible and interactive, and there is no scrim.
    *
-   * The **360° profile** was moved to `presentation="modal"` on the owner's
-   * instruction — it should be full screen and show none of the navigation —
-   * and §7.3.3 supplies the rest: a surface that dims the page owns the
-   * keyboard. So for that one layer the assertions invert, and they are
-   * rewritten rather than deleted: the route must still be MOUNTED behind it
-   * (a layer is still not a destination, and Escape must return to it) while
-   * being hidden from the accessible tree, and the scrim must exist.
+   * It was suspended for the **360° profile** alone while that layer was
+   * `presentation="modal"` on the owner's instruction — *"should be full screen
+   * no need to show me any of the navigation more like popup"* — and §7.3.3
+   * supplied the rest: a surface that dims the page owns the keyboard. Two
+   * tests here asserted the inversion: that the rail left the accessible tree,
+   * and that a scrim existed.
+   *
+   * **The owner has reversed that**: the profile is a side panel beside the
+   * console again. So the two inverted assertions are re-inverted rather than
+   * deleted — the rail must be reachable and the scrim must be ABSENT — and
+   * they are kept on the profile layer specifically, because that is the layer
+   * the exception was carved out of and the one a future carve-out would be
+   * taken from again.
    */
   it('opens the 360° profile from ?entity= over a route that stays MOUNTED', async () => {
     renderShell('/operations/people?entity=RDR-1041')
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
-    /* AC-20's surviving half: the layer is not a destination, so the route
-       behind it is still mounted and its workspace is still the current one.
-       `getByText` reaches it through the DOM rather than the accessible tree,
-       which is exactly the distinction this layer now draws. */
+    /* AC-20: the layer is not a destination, so the route behind it is still
+       mounted and its workspace is still the current one. */
     expect(screen.getByText('screen: operations-people')).toBeInTheDocument()
-    /* Reached through the DOM rather than by role, deliberately: the rail is
-       `aria-hidden` under the modal, which is the previous assertion's whole
-       point, so a role query would fail here for the RIGHT reason and hide
-       whether the tile is still current. */
     const opsTile = document.querySelector('a[aria-current="page"]')
     expect(opsTile?.textContent).toContain(EN['nav.rail.operations'] as string)
   })
 
-  it('hides the navigation from the accessible tree — the modal presentation', async () => {
+  it('keeps the navigation in the accessible tree beside the profile — AC-20, restored', async () => {
     renderShell('/operations/people?entity=RDR-1041')
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
-    /* *"no need to show me any of the navigation"*. Radix marks everything
-       outside a modal `aria-hidden`, so the rail's links leave the accessible
-       tree while staying in the document — which is the correct reading of the
-       instruction: hidden from the operator, not unmounted from under them. */
+    /* The assertion the modal presentation inverted. A drawer does not make
+       Radix mark the rest of the document `aria-hidden`, so the workspace rail
+       is a reachable navigation landmark while a record is open beside it —
+       which is the whole reason §5.5 removed the scrim. */
     expect(
-      screen.queryByRole('navigation', { name: EN['shell.nav.workspaces'] as string }),
-    ).toBeNull()
+      screen.getByRole('navigation', { name: EN['shell.nav.workspaces'] as string }),
+    ).toBeInTheDocument()
   })
 
-  it('renders the scrim for the modal profile — §7.3.3, the scrim decides the trap', async () => {
+  it('renders NO scrim for the profile either — §5.5 / §7.3.3, restored', async () => {
     renderShell('/operations/people?entity=RDR-1041')
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
-    expect(document.querySelector('[data-slot="sheet-overlay"]')).not.toBeNull()
+    /* `sheet.tsx` renders no overlay ELEMENT under `modal={false}` rather than
+       a transparent one, because a transparent overlay still eats pointer
+       events. And §7.3.3 makes the trap follow: no scrim, no trap. */
+    expect(document.querySelector('[data-slot="sheet-overlay"]')).toBeNull()
   })
 
   it('renders NO scrim for a DRAWER layer — §5.5, the page behind stays interactive', async () => {
@@ -307,10 +309,67 @@ describe('AC-67 — focus enters the layer, and Tab is NOT trapped', () => {
    */
 })
 
+/** Turns a standing condition on from inside the provider, the way the app does. */
+function Conditions({
+  apply,
+}: {
+  apply: Parameters<ReturnType<typeof useShell>['setConditions']>[0]
+}) {
+  const shell = useShell()
+  return <button onClick={() => shell.setConditions(apply)}>qa-apply-conditions</button>
+}
+
+/**
+ * Every shell banner is a `Banner`, and every `Banner` is an `Alert`, which
+ * stamps `data-slot="alert"`. Counting THAT rather than `role="alert"` is the
+ * point of this helper: `AppLayout` renders one of its banner paths as
+ * `role="status"` (the idle-warning strip is a deadline, not a rejection), and
+ * a `queryByRole('alert')` cannot see that one at all — so the assertion that
+ * used to stand here could not have caught a second banner even if one had been
+ * rendered right beside it.
+ */
+const bannerStrips = () => document.querySelectorAll('[data-slot="alert"]')
+
 describe('AC-40 — at most one shell banner, ever', () => {
   it('renders none when no condition is true', async () => {
     renderShell('/operations/people')
     await screen.findByRole('main')
-    expect(screen.queryByRole('alert')).toBeNull()
+    expect(bannerStrips()).toHaveLength(0)
+  })
+
+  /**
+   * **The precondition the old test lacked.** `expect(queryByRole('alert'))
+   * .toBeNull()` on a route where no condition holds is true of a shell that
+   * renders one banner, and equally true of a shell that renders no
+   * `<ShellBanner>` at all — so deleting the strip outright left it green. This
+   * pair pins both halves: nothing when there is nothing to say, and exactly
+   * one strip carrying the condition's own words when there is.
+   */
+  it('renders exactly one, carrying the condition, once one is true', async () => {
+    const user = userEvent.setup()
+    renderShell(
+      '/operations/people',
+      <Conditions apply={{ impersonating: { name: 'Nora Alqahtani' } }} />,
+    )
+    await screen.findByRole('main')
+    await user.click(screen.getByRole('button', { name: 'qa-apply-conditions' }))
+
+    await waitFor(() => expect(bannerStrips()).toHaveLength(1))
+    expect(bannerStrips()[0]).toHaveTextContent('Nora Alqahtani')
+  })
+
+  /** Two conditions is still ONE strip — the merge, not a second banner. */
+  it('stays at one strip when a second condition joins the first', async () => {
+    const user = userEvent.setup()
+    renderShell(
+      '/operations/people',
+      <Conditions apply={{ impersonating: { name: 'Nora Alqahtani' }, offline: true }} />,
+    )
+    await screen.findByRole('main')
+    await user.click(screen.getByRole('button', { name: 'qa-apply-conditions' }))
+
+    await waitFor(() => expect(bannerStrips()).toHaveLength(1))
+    expect(bannerStrips()[0]).toHaveTextContent('Nora Alqahtani')
+    expect(bannerStrips()[0]).toHaveTextContent(EN['state.offline.message'] as string)
   })
 })

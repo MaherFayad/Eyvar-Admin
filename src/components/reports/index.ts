@@ -13,13 +13,30 @@
  * changing, and what lets a dashboard tile reuse the same panel as the builder.
  */
 
+export {
+  ChartToolbar,
+  visualisationOf,
+  type ChartToolbarProps,
+  type VisualisationId,
+} from './ChartToolbar'
 export { DashboardTile, type DashboardTileProps } from './DashboardTile'
 export { DistributionCard, type DistributionCardProps } from './DistributionCard'
+/* `hintLines` ships beside `InfoHint` rather than being re-implemented per rail:
+   both `QueryPanel` and `ReportModePanel` stack an explanation and a violation
+   in one hint, and two copies of that would drift. */
+export { InfoHint, hintLines, type InfoHintProps } from './InfoHint'
 export { LegalityOptions, type LegalityOptionsProps } from './LegalityOptions'
 export { PanelCard, panelTitle, type PanelCardProps } from './PanelCard'
 export { PanelChart, seriesOfPanel, type PanelChartProps } from './PanelChart'
 export { QueryPanel, type QueryPanelProps } from './QueryPanel'
 export { ResultCanvas, type CanvasStatus, type ResultCanvasProps } from './ResultCanvas'
 export { ResultTable, type ResultTableProps } from './ResultTable'
+export {
+  SeriesChart,
+  seriesColor,
+  seriesFill,
+  type SeriesChartProps,
+} from './SeriesChart'
+export { SeriesHeadlines, type SeriesHeadlinesProps } from './SeriesHeadlines'
 export { WindowControl, type WindowControlProps } from './WindowControl'
-export { periodDelta, rollUpSeries, type Rollup } from './rollup'
+export { declaredAggregate, periodDelta, rollUpSeries, type Rollup } from './rollup'

@@ -52,6 +52,7 @@ import {
   Basemap,
   BasemapAttribution,
   fitProjection,
+  locate,
   MapZoomControls,
   useMapViewport,
   VIEW_W,
@@ -61,7 +62,7 @@ import {
 import type { Driver, RideRequest, Trip } from '@/data/types'
 import { formatCount, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
-import { captainPoint, locate, MAP_BOUNDS } from './geo'
+import { captainPoint, MAP_BOUNDS } from './geo'
 
 /* ─────────────────────────── the floating panels ───────────────────────── */
 

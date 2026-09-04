@@ -30,6 +30,41 @@
  * a ruling that named the other two would be deciding a question nobody asked
  * me. **Raised in the handoff for a ruling.**
  *
+ * ## The layer is a DRAWER again, and §6.2's *"the layer commits nothing"* is
+ * ## back in force. This control survives it, and here is the whole argument.
+ *
+ * The design spec suspended that clause as **D-RP-3** — *"the sheet's footer
+ * carries committing actions"* — and named its premise in terms: *"That clause
+ * rested on §6.1's premise, a no-scrim drawer consulted beside the work. The
+ * premise is already gone: the layer is `presentation="modal"` on the owner's
+ * instruction."* The layer is not a modal any more, so **D-RP-3's stated
+ * premise is gone with it and the departure lapses.** §6.2 applies again on its
+ * own terms.
+ *
+ * It costs this control nothing, for one reason: **it commits nothing.**
+ *
+ *   · §6.2 legislates the FOOTER — *"`Open full profile` as a plain link at
+ *     inline-start; no primary"* — and the footer already is exactly that.
+ *     `RiderFooter` has carried no command since `Release` and `Renew plan`
+ *     were removed, so the restored rule finds nothing to remove.
+ *   · The clause it is measured against is *commits*, and there is no
+ *     commit here to find. There is no operation on the seam, the control is
+ *     `disabled`, and it writes nothing on either surface — the page's
+ *     equivalent NAVIGATES to Live dispatch, and navigating out of a layer is
+ *     what `Open full profile` does too.
+ *   · §11.2 is the rule that actually reaches it: *a blocked control is
+ *     disabled in place with a stated reason, never hidden.* Deleting it to
+ *     satisfy a clause it does not violate, at the cost of one it does satisfy,
+ *     would be the wrong trade in both directions.
+ *
+ * **So it is KEPT, deliberately and not by omission**, and the question above
+ * — whether a command with no operation anywhere should exist at all, which is
+ * the footer's own test and which this control fails — is unchanged and still
+ * open. If the owner rules it out, it comes out of **both surfaces in the same
+ * change** (`RiderPanels`' `OpenTripCard` and `screens/entity/RiderOpenTrip`),
+ * because §3's parity contract is what makes a command's absence a fact about
+ * the product rather than about one screen.
+ *
  * **There is no permission gate here, deliberately.** `live_ops` can change
  * nothing while there is no operation behind it, so a permission check would be
  * a branch that never decides anything — the defect `shell/permissions.ts`

@@ -12,7 +12,7 @@
  * computed in three screens produces three answers.
  */
 
-import type { Halalas, IsoDate, IsoDateTime, LocalisedText } from './common'
+import type { Halalas, IsoDate, IsoDateTime, LocalisedText, RelatedCount } from './common'
 import type { MovementLogEntry } from './driver'
 import type { PostingDirection, SettlementState } from './ledger'
 import type { ProfileEntityType } from './profile'
@@ -387,11 +387,14 @@ export interface RiderMoneyMovement {
  * because **`0` open beside a non-zero `total` is a real state** — *"three
  * complaints, all resolved"* is not the same page as *"no complaints"*, and a
  * single count cannot say which.
+ *
+ * **Now an alias.** The captain profile's presence read needs the identical
+ * shape, and a second interface with the same two fields is the "two shapes for
+ * one concept" defect this file retired `WalletTransaction` over. The shape
+ * moved to `common.ts` as `RelatedCount`; this name stays so nothing that
+ * imports it has to change.
  */
-export interface RiderRelatedCount {
-  total: number
-  open: number
-}
+export type RiderRelatedCount = RelatedCount
 
 /**
  * **The presence of every support record that references this rider, from one

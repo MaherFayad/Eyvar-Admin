@@ -162,6 +162,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.error.mutation': 'Try that again.',
   'fin.error.row': 'That did not go through. Try again.',
 
+  /* LR-4's second ledger empty: a window with nothing in it. NOT
+     captain-specific -- the rider's wallet needs the identical sentence, and a
+     second spelling under an entity prefix is how the two drift. No action: a
+     window the operator did not narrow is not theirs to clear. */
+  'fin.ledger.empty.period': 'No postings between {start} and {end}.',
   'fin.empty.noMatch': 'No postings match these filters.',
   'fin.empty.clear': 'Clear filters',
   'fin.empty.firstRun.heading': 'This account, posting by posting',

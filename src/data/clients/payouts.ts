@@ -149,6 +149,19 @@ export function captainPayoutRows(): CaptainPayout[] {
 }
 
 /**
+ * The live deduction rows, for the captain profile's money block and support
+ * presence.
+ *
+ * The sibling of `escrowHoldRows()` above, and it exists for the same reason:
+ * `applyDeduction` and `waiveDeduction` mutate `deductionState`, so a surface
+ * reading `deductionFixtures` would keep counting a deduction that was waived
+ * two clicks ago. `clients/drivers.ts` is the caller.
+ */
+export function deductionRows(): Deduction[] {
+  return deductionState
+}
+
+/**
  * The next payout document number, derived from what has already been issued
  * rather than from a module-scope counter — so it survives `resetPayouts()`
  * and is identical on every run. `PO-0001` – `PO-0003` are seeded.

@@ -233,6 +233,14 @@ describe('the movements table is the product DataTable in ledger mode', () => {
 
   it('states its columns once, with the unit in the header and not in a cell', async () => {
     await renderPage()
+    /* **Scoped to the band, because the page now carries TWO money tables** and
+       three of their headers are deliberately the same key: `Date`,
+       `Reference` and `Description` are `fin.ledger.col.*` on the wallet ledger
+       and on the payments table both, so that two tables stacked on one page do
+       not spell one column two ways. An unscoped `findByText` therefore matches
+       twice, which is the parity working rather than a duplicate. */
+    const heading = await screen.findByText(en('entity.rider.movements.title'))
+    const band = heading.closest('section') as HTMLElement
     for (const key of [
       'fin.ledger.col.date',
       'fin.ledger.col.reference',
@@ -241,7 +249,7 @@ describe('the movements table is the product DataTable in ledger mode', () => {
       'fin.ledger.col.credit',
       'fin.ledger.col.balance',
     ]) {
-      expect(await screen.findByText(en(key))).toBeInTheDocument()
+      expect(within(band).getByText(en(key))).toBeInTheDocument()
     }
   })
 })
@@ -272,6 +280,67 @@ describe('money captured and not settled is its own group, not a line under the 
     const moneyCell = inWallet.closest('section')
     expect(within(moneyCell as HTMLElement).queryByText(/held/i)).toBeNull()
   })
+
+  /**
+   * **The payments group is a TABLE that pages** — owner instruction. It was a
+   * `<ul>`, which has one length behaviour: all of them.
+   */
+  it('renders the payments group as a DataTable with manual paging, not an infinite list', async () => {
+    await renderPage()
+    const heading = await screen.findByText(en('profile.section.payments'))
+    const group = heading.closest('section') as HTMLElement
+
+    expect(within(group).getByRole('table')).toBeInTheDocument()
+    /* `infiniteScroll={false}` is the whole mechanism: band 5 renders the two
+       controls instead of the `scrollMore` hint. Both are present and the first
+       page disables `Previous`, which is what says the paging is real rather
+       than decorative. */
+    const previous = within(group).getByRole('button', { name: en('table.previous') })
+    expect(previous).toBeDisabled()
+    expect(within(group).getByRole('button', { name: en('table.next') })).toBeInTheDocument()
+    expect(within(group).queryByText(en('table.scrollMore'))).toBeNull()
+  })
+
+  it('carries NO opening or closing balance row — a payments list totals nothing', async () => {
+    await renderPage()
+    const heading = await screen.findByText(en('profile.section.payments'))
+    const group = heading.closest('section') as HTMLElement
+    /* `ledgerBoundaryRows` is the wallet ledger's and only the wallet ledger's.
+       Both labels exist ON THIS PAGE — the ledger above draws them — so the
+       assertion has to be scoped to this group to mean anything. */
+    expect(within(group).queryByText(en('fin.ledger.opening'))).toBeNull()
+    expect(within(group).queryByText(en('fin.ledger.closing'))).toBeNull()
+  })
+
+  it('keeps the row: the PAY- reference as a link, the state badge, the date and the amount', async () => {
+    const movements = await getRiderMoneyMovements(RIDER_ID)
+    const payments = movements.movements.filter((row) => !row.inWalletBalance)
+    expect(payments.length).toBeGreaterThan(0)
+    await renderPage()
+    const heading = await screen.findByText(en('profile.section.payments'))
+    const group = heading.closest('section') as HTMLElement
+
+    for (const payment of payments) {
+      const reference = payment.paymentId ?? payment.id
+      const link = within(group).getByRole('link', { name: reference })
+      /* `?entity=` opens the 360° layer OVER this page rather than replacing
+         it, so the operator does not lose the profile to read one payment. */
+      expect(link).toHaveAttribute('href', expect.stringContaining(`entity=${reference}`))
+      expect(within(group).getByText(en(`fin.settlement.${payment.state}`))).toBeInTheDocument()
+      expect(
+        within(group).getAllByText(formatMoney(payment.amountHalalas, { unit: 'none' })).length,
+      ).toBeGreaterThan(0)
+    }
+  })
+
+  it('offers no selection in the payments table — no bulk action, so no checkbox (AC-48)', async () => {
+    await renderPage()
+    const heading = await screen.findByText(en('profile.section.payments'))
+    const group = heading.closest('section') as HTMLElement
+    /* `mode: 'ledger'` makes this a compile error as well as a DOM assertion:
+       `LedgerTable` has no `selectedIds` and no `toggleRow` to bind to. */
+    expect(within(group).queryAllByRole('checkbox')).toHaveLength(0)
+  })
 })
 
 /* ═══════════ 4 · the strip, and the rulings inside it ═════════════════ */
@@ -297,8 +366,9 @@ describe('the summary strip', () => {
     const rider = await getRider(RIDER_ID)
     await renderPage()
     const label = await screen.findByText(en('profile.field.churnRisk'))
-    /* §8 slot 3 / §12.1 / R5a — it is a prediction, so it wears no status
-       chrome: no button, no link, nothing in the tab order. */
+    /* §8 slot 3 / §12.1 — it is a prediction, so it wears no status chrome: no
+       button, no link, nothing in the tab order. **The owner's ruling coloured
+       it and changed nothing else**, so this assertion is unamended. */
     expect(label.closest('button')).toBeNull()
     expect(label.closest('a')).toBeNull()
     /* §8.2 — a computed level owes its derivation, and the reason is mandatory. */
@@ -306,6 +376,30 @@ describe('the summary strip', () => {
     expect(
       await screen.findByText(en(rider.churnReason?.key ?? '')),
     ).toBeInTheDocument()
+  })
+
+  /**
+   * **R5a use #5, on the second of its two surfaces.**
+   *
+   * The sheet's copy of this is in `components/profile/rider/rider.test.tsx`.
+   * Both read `churnLevelInk` from the one module, which is what makes the
+   * pair a parity assertion rather than two independent coincidences: the page
+   * cannot colour a level the sheet does not.
+   */
+  it('paints a HIGH churn level with the churn token, and wears no plate for it', async () => {
+    const rider = await getRider(RIDER_ID)
+    expect(rider.churnRisk, 'the pinned record is the high-churn one').toBe('high')
+    await renderPage()
+    await screen.findByText(en('profile.field.churnRisk'))
+
+    const word = document.querySelector<HTMLElement>('[data-churn-risk="high"]')!
+    expect(word).not.toBeNull()
+    expect(word.textContent).toBe(en('people.churn.high'))
+    expect(word.className).toContain('text-churn-high-foreground')
+    /* Ink only. Tailwind mints `bg-`/`border-`/`ring-` from the same slot, so
+       the assertion is against the plate rather than against the name. */
+    expect(word.className).not.toMatch(/\b(bg-|border|rounded|ring-)/)
+    expect(word.getAttribute('tabindex')).toBeNull()
   })
 })
 

@@ -239,3 +239,86 @@ export function formatSlaLabel(clock: SlaClock, t: Translate): string {
   const { key, params } = slaLabelDescriptor(clock)
   return t(key, params)
 }
+
+/* ─────── §4.4 · breached, late, and old — the one rule, for every queue ───────
+   Lifted here from `screens/queues/queue.tsx`, unchanged. It is a pure function
+   over `slaClock` with no React and no knowledge of a screen, and it now has
+   two kinds of consumer: the five work queues, and the request sheet in
+   `components/profile/request`, which may not import from a screen. The
+   alternative was a second implementation of *breach is a stamp, never
+   `dueAt < now`* — the one rule in this area that must have exactly one answer,
+   because a queue row and the sheet it opens disagreeing about whether a
+   promise was broken is worse than either being wrong alone. */
+
+/** The three SLA fields any wave-2 row carries, in whichever pair is running. */
+export interface QueueClockInput {
+  startedAt: IsoDateTime | null
+  dueAt: IsoDateTime | null
+  targetMinutes: number | null
+  /** **The stamp.** `types/workQueue.ts`: breach is a stamp, never `dueAt < now`. */
+  breachedAt: IsoDateTime | null
+}
+
+export interface QueueClockResult {
+  /** What the countdown pill renders. `NO_CLOCK` where nothing is running. */
+  clock: SlaClock
+  /** **Q-17** — R5a's three parts hang off this and nothing else. */
+  breached: boolean
+  /**
+   * The deadline is behind us and **the promise was not broken**. See below;
+   * this is why the function exists.
+   */
+  deadlinePassedUnbroken: boolean
+}
+
+/**
+ * **§4.4, Q-17 – Q-20, resolved once for all five queues.**
+ *
+ * `types/workQueue.ts` is unambiguous: *"breach is a stamp, never
+ * `slaDueAt < now`"*, because a naive comparison calls every closed row in the
+ * archive overdue. So `breached` reads `slaBreachedAt` and adds Q-17's second
+ * clause — **still awaiting a decision**. A decided row is `late-decided`
+ * (Q-18), its badge says so, and it carries **no marker**: the R5a leading edge
+ * is reserved for work still owed. That is wave 1's finding **G9**, answered.
+ *
+ * **The case this function exists for, and it is a live one.** Four Trip
+ * Assurance rows — `UST-1`, `UST-2`, `UST-5`, `UST-7` — are past their
+ * `slaDueAt` (21:00 the evening before) and carry `slaBreachedAt: null`. That
+ * is not a fixture error: `UST-5` was auto-handed-off to its backup, so the
+ * system kept the promise, and `UST-3` vs `UST-5` are documented as *"same
+ * cut-off, same null acknowledgement, opposite breach states"*. Driving the
+ * pill from the live clock would print `overdue 12h` on a row the data says was
+ * never breached — and then either the marker contradicts the pill (R5a
+ * requires all three parts together, **AC-220**) or the pill contradicts the
+ * banner (**AC-219**).
+ *
+ * So a passed-but-unbroken deadline renders as **a date, not a countdown**:
+ * `Due 24 Jun 21:00`, neutral, no track, no marker. It is one clock readout per
+ * row (**AC-211**), it is true, and it agrees with everything else on screen.
+ *
+ * It is also exactly what the data layer asked for on this queue: `slaSource`
+ * is `unset` and `slaTargetMinutes` is `null` on every `AssuranceTrip`, and
+ * §6's own note says *"the screen can show 'due 21:00' and **cannot** draw a
+ * progress track. Inventing a start is the `/90` bug at `:11652`."* (**Q8-b**,
+ * open, product-owner.)
+ */
+export function queueClock(
+  input: QueueClockInput,
+  now: IsoDateTime,
+  { terminal }: { terminal: boolean },
+): QueueClockResult {
+  const base = slaClock(
+    { dueAt: input.dueAt, startedAt: input.startedAt, targetMinutes: input.targetMinutes },
+    now,
+  )
+
+  /* Q-18 — a decided row's clock has stopped. The decision badge carries the
+     record of when, and how late it was. Nothing is owed, so nothing counts. */
+  if (terminal) return { clock: NO_CLOCK, breached: false, deadlinePassedUnbroken: false }
+
+  const breached = input.breachedAt !== null
+  if (base.kind === 'breached' && !breached) {
+    return { clock: NO_CLOCK, breached: false, deadlinePassedUnbroken: true }
+  }
+  return { clock: base, breached, deadlinePassedUnbroken: false }
+}

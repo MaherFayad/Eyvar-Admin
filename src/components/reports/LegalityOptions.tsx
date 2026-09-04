@@ -17,14 +17,46 @@
  * and it never inspects a query. There is no `query` prop and there is not
  * meant to be one.
  *
- * ## Why a reason list and not a tooltip
+ * ## Two options, one reason, and it printed twice
  *
- * A tooltip does not open on a disabled control — pointer events are off and
- * `Escape` is the only key that reaches it — so a tooltip'd reason is a reason
- * nobody can read, which is worse than no reason because it looks answered.
- * The reasons render as a list **beneath the group**, each `<li>` carrying the
- * `id` its own disabled button points at with `aria-describedby`. Sighted and
- * screen-reader operators get the same sentence from the same node (AC-899).
+ * `planCohortGrains` (`plan.ts:679`) marks **both** `day` and `week` illegal
+ * with `rb.cohort.grainUnavailable`, and that sentence interpolates nothing —
+ * so the two options resolved to the identical 33-word string and the rail
+ * printed it once under the other. The owner sent the screenshot.
+ *
+ * The fix is a dedupe **on the resolved string, not on the reason key and not
+ * on the option value.** A key is not the unit: `{grain: 'day'}` and
+ * `{grain: 'week'}` are different params that *could* produce two different
+ * sentences, and where they do, both must still show. What an operator reads is
+ * the sentence, so the sentence is the identity.
+ *
+ * When two options collapse to one sentence, **both keep an `aria-describedby`
+ * that resolves** — they point at the one surviving node. A disabled control
+ * whose reason has no target is worse than a duplicate: it looks answered and
+ * is not.
+ *
+ * ## Where the reasons render now
+ *
+ * Beside the group's label, in an `InfoHint`, with the surviving sentences
+ * **also** in an `sr-only` list that carries the `id`s. That split is
+ * deliberate and it is the one part of AC-899 that moved:
+ *
+ * - a tooltip's content is **only in the DOM while it is open**, so it can
+ *   never be the target of an `aria-describedby` on a control that is not
+ *   focused. The `sr-only` list is always mounted, so the association a
+ *   disabled option carries is always live.
+ * - a tooltip does not open on a **disabled** control either — pointer events
+ *   are off — which is why the hint hangs off the *group's label*, one Tab
+ *   away and reachable, rather than off the option that cannot be reached.
+ *
+ * So the sentence is one sentence in two carriers rather than in two nodes an
+ * operator can both see. It is not the "same node" the old comment promised;
+ * it is the same string, always present for assistive tech and one hover or
+ * Tab away for everyone else.
+ *
+ * **The one thing that did not move**: `disabledReason`. When the whole group
+ * is off, the reason stays on the page. An operator who cannot use any option
+ * needs to know why without hunting for an icon.
  *
  * Rules applied
  *   D9 CQ-3    disabled in place with a reason. Never hidden, never removed,
@@ -39,11 +71,13 @@
  *              selection announced rather than merely coloured (§7.5).
  */
 
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import type { OptionLegality } from '@/data/types'
 import type { Translate } from '@/lib'
+import { InfoHint, hintLines } from './InfoHint'
 
 export interface LegalityOptionsProps<T extends string> {
   /** Already translated. Labels the group for a screen reader and on screen. */
@@ -71,6 +105,31 @@ export interface LegalityOptionsProps<T extends string> {
    * are option values and which are plain numbers.
    */
   resolveParams?: (params: Record<string, string | number>) => Record<string, string | number>
+  /**
+   * **§1.5 / §A7 — a leading 16px glyph per option, `currentColor`, decorative.**
+   *
+   * The chart-type group is the one control an operator finds by shape rather
+   * than by reading, and Amplitude's toolbar puts an icon on every entry of it.
+   * The glyph is `aria-hidden` at the call site: the label carries the name, so
+   * the accessible name of a `Pie` button is still `Pie` and the reason a
+   * disabled one points at is unchanged.
+   *
+   * Optional, and absent by default — the grain and cohort-grain groups have no
+   * honest glyph and inventing five would be five design decisions taken in a
+   * component.
+   */
+  iconFor?: (value: T) => ReactNode
+  /**
+   * **The label still exists; it is only unseen.**
+   *
+   * A toolbar sets its controls side by side and names them by shape and by
+   * position (§A7). A stacked `Label` over each would be four words of chrome
+   * per control on one row. The `<Label>` element stays — it is what
+   * `aria-labelledby` points at, so the group keeps its accessible name and a
+   * `getByLabelText` still finds it — and only its box is visually hidden.
+   * **Never use this where a control is alone on its own row.**
+   */
+  hideLabel?: boolean
   t: Translate
 }
 
@@ -83,16 +142,62 @@ export function LegalityOptions<T extends string>({
   disabled = false,
   disabledReason,
   resolveParams = (params) => params,
+  iconFor,
+  hideLabel = false,
   t,
 }: LegalityOptionsProps<T>) {
   const groupId = useId()
-  const reasonId = (option: OptionLegality<T>) => `${groupId}-${option.value}`
 
-  const illegal = options.filter((option) => !option.legal)
+  /**
+   * The resolved sentence, once per illegal option. **This is the dedupe key**
+   * — see the header. `t` and `resolveParams` run here and nowhere else in this
+   * component, so what is compared is exactly what is read.
+   */
+  const sentenceOf = (option: OptionLegality<T>) =>
+    option.reasonKey
+      ? t(option.reasonKey, resolveParams(option.reasonParams))
+      : labelFor(option.value)
+
+  /* Insertion order is the option order, so `day`'s node survives and `week`
+     points at it — the first option to state a reason owns it. */
+  const bySentence = new Map<string, { id: string; text: string }>()
+  /* Every illegal option -> the id of the node that carries its sentence. Two
+     options that collapse to one `<li>` share one id, which is legal:
+     `aria-describedby` is an IDREF list and nothing forbids two controls
+     naming the same target. */
+  const describedBy = new Map<T, string>()
+
+  for (const option of options) {
+    if (option.legal) continue
+    const text = sentenceOf(option)
+    const held = bySentence.get(text)
+    if (held) {
+      describedBy.set(option.value, held.id)
+      continue
+    }
+    const id = `${groupId}-${option.value}`
+    bySentence.set(text, { id, text })
+    describedBy.set(option.value, id)
+  }
+
+  const reasons = [...bySentence.values()]
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label id={`${groupId}-label`}>{label}</Label>
+    <div className={cn('flex flex-col', hideLabel ? 'gap-0.5' : 'gap-1.5')}>
+      {/* The label and its hint share one row — that is the whole point of the
+          change: the row keeps its height and the paragraph disappears. The
+          `InfoHint` is a SIBLING of the `<Label>`, never a child: a `<button>`
+          inside a `<label>` joins the field's accessible name, so the group
+          would be called "Cohort grain What this means". */}
+      <div className="flex items-center gap-1.5">
+        <Label id={`${groupId}-label`} className={hideLabel ? 'sr-only' : undefined}>
+          {label}
+        </Label>
+        {/* Nothing to explain when the whole group is off — `disabledReason`
+            below is on the page instead, and repeating it in a hint would be
+            the same sentence twice, which is the bug this change removes. */}
+        {!disabled && <InfoHint t={t}>{hintLines(reasons.map((reason) => reason.text))}</InfoHint>}
+      </div>
       {/* `group`, not `radiogroup`: a radio group owns arrow-key navigation and
           takes one tab stop, and an option here can be disabled — which a
           roving-focus group has to skip, silently, exactly where the reason
@@ -110,26 +215,31 @@ export function LegalityOptions<T extends string>({
               variant={selected ? 'secondary' : 'ghost'}
               aria-pressed={selected}
               disabled={off}
-              aria-describedby={option.legal ? undefined : reasonId(option)}
+              aria-describedby={option.legal ? undefined : describedBy.get(option.value)}
               onClick={() => onChange(option.value)}
             >
+              {iconFor?.(option.value)}
               {labelFor(option.value)}
             </Button>
           )
         })}
       </div>
 
+      {/* **Stays on the page.** The group is off entirely; there is no option
+          to reach and no reason to make the operator find an icon first. */}
       {disabled && disabledReason ? (
         <p className="text-xs text-muted-foreground">{disabledReason}</p>
       ) : null}
 
-      {!disabled && illegal.length > 0 && (
-        <ul className="flex list-none flex-col gap-0.5">
-          {illegal.map((option) => (
-            <li key={option.value} id={reasonId(option)} className="text-xs text-muted-foreground">
-              {option.reasonKey
-                ? t(option.reasonKey, resolveParams(option.reasonParams))
-                : labelFor(option.value)}
+      {/* The `aria-describedby` targets, always mounted. A tooltip's content is
+          not in the DOM while it is closed, so it cannot be the target of a
+          description on a disabled control — this list is what keeps the
+          association live. `sr-only`, because the visible copy is the hint. */}
+      {!disabled && reasons.length > 0 && (
+        <ul className="sr-only">
+          {reasons.map((reason) => (
+            <li key={reason.id} id={reason.id}>
+              {reason.text}
             </li>
           ))}
         </ul>

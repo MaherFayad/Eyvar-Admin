@@ -14,9 +14,10 @@
 import type { Dictionary } from '@/lib'
 import { SHELL_AR } from './shell'
 import { SLA_MESSAGES_AR } from './sla'
+import { FILE_SIZE_MESSAGES_AR } from './fileSize'
 import { CONFIRM_AR } from './confirm'
 import { PWA_AR } from './pwa'
-import { RIDER_VOCABULARY_AR, VOCABULARY_AR } from './vocabulary'
+import { DRIVER_VOCABULARY_AR, RIDER_VOCABULARY_AR, VOCABULARY_AR } from './vocabulary'
 import { QUEUE_SHARED_AR } from './queues'
 import { COMMANDS_AR } from './commands'
 import { MY_WORK_AR } from './myWork'
@@ -39,6 +40,10 @@ import { FINANCIALS_AR } from './financials'
 import { PROFILE_AR } from './profile'
 import { RIDER_PROFILE_AR } from './riderProfile'
 import { ENTITY_RIDER_AR } from './entityRider'
+import { DRIVER_PROFILE_AR } from './driverProfile'
+import { ENTITY_DRIVER_AR } from './entityDriver'
+import { REQUEST_PROFILE_AR } from './requestProfile'
+import { TRIP_PROFILE_AR } from './tripProfile'
 import { AUTH_AR } from './auth'
 import { ONBOARDING_AR } from './onboarding'
 import { ADMIN_ACTIVITY_AR } from './adminActivity'
@@ -51,10 +56,12 @@ import { COMMUNICATIONS_AR } from './communications'
 export const AR: Dictionary = {
   ...SHELL_AR,
   ...SLA_MESSAGES_AR,
+  ...FILE_SIZE_MESSAGES_AR,
   ...CONFIRM_AR,
   ...PWA_AR,
   ...VOCABULARY_AR,
   ...RIDER_VOCABULARY_AR,
+  ...DRIVER_VOCABULARY_AR,
   ...QUEUE_SHARED_AR,
   ...COMMANDS_AR,
   ...MY_WORK_AR,
@@ -77,6 +84,10 @@ export const AR: Dictionary = {
   ...PROFILE_AR,
   ...RIDER_PROFILE_AR,
   ...ENTITY_RIDER_AR,
+  ...DRIVER_PROFILE_AR,
+  ...ENTITY_DRIVER_AR,
+  ...REQUEST_PROFILE_AR,
+  ...TRIP_PROFILE_AR,
   ...AUTH_AR,
   ...ONBOARDING_AR,
   ...ADMIN_ACTIVITY_AR,

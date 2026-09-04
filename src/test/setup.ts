@@ -128,6 +128,30 @@ if (typeof Element !== 'undefined' && typeof Element.prototype.scrollIntoView !=
 }
 
 /**
+ * jsdom implements **neither `URL.createObjectURL` nor `URL.revokeObjectURL`**,
+ * and the captain's scan viewer owns an object URL's whole lifecycle: the
+ * compliance file read hands back a `Uint8Array` — deliberately, so no
+ * URL-shaped field ever goes on the record — and the component makes the URL,
+ * points a new tab and a download anchor at it, and revokes it on collapse.
+ *
+ * Without these the component throws `URL.createObjectURL is not a function`
+ * from inside the read's `then`, which surfaces as an unhandled rejection in
+ * whichever file happens to be running rather than as a failure of the test.
+ *
+ * Same class as the four stubs above and the same rule: **this lets the code
+ * path run, it does not simulate a blob URL.** The handle is a counter so a
+ * test can assert that a URL was created and later revoked; nothing resolves
+ * it, and nothing renders from it. A test that needs a real object URL, a real
+ * new tab or a real download belongs in Playwright — which is where the
+ * viewer's own object-URL assertions live.
+ */
+if (typeof URL.createObjectURL !== 'function') {
+  let handle = 0
+  URL.createObjectURL = () => `blob:eyvar-test/${++handle}`
+  URL.revokeObjectURL = () => {}
+}
+
+/**
  * jsdom implements no pointer capture either, and Sonner calls
  * `setPointerCapture` on `pointerdown` to drive its swipe-to-dismiss gesture.
  *

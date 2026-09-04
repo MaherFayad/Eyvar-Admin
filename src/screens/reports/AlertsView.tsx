@@ -71,9 +71,42 @@
  * `attention` means *a breach whose harm is irreversible or statutory*, which a
  * threshold typed into a form last Tuesday cannot satisfy. **The notification
  * centre is the only surface** (AC-884).
+ *
+ * ## A state is a shape before it is a word (§H, §A6)
+ *
+ * Amplitude's inbox is built so that what needs attention reads at a glance,
+ * and five badges in one geometry differing only in fill is the opposite of
+ * that. `STATE_GLYPH` gives each of the five a literal glyph, and `muted`,
+ * `enabled: false` and `cadence: null` — three facts that are **not** states —
+ * get their own, so none of them can be mistaken for a sixth badge. Every glyph
+ * is `aria-hidden` and every word is still present, so the glyph is redundancy
+ * and never the carrier (§7.5).
+ *
+ * The `Threshold` column joins them for the same reason: `Last reading` had
+ * nothing beside it to be read against, and the line it is tested against lived
+ * only inside the rule sentence in the identity cell.
+ *
+ * **What could not be done here, and where it belongs.** §1.5 and the register
+ * `ChartToolbar` and `DashboardTile` set also want the row overflow to carry a
+ * `MoreHorizontal` glyph and a leading glyph per menu item. Both live in
+ * `DataTable` (the trigger renders a text `⋯`) and in `table/rowActions.tsx`
+ * (`RowAction.label` is a `string` and there is no `icon` field), which are the
+ * table layer's files and land on forty screens. Reported to that owner rather
+ * than reached into from here.
  */
 
 import { useState } from 'react'
+import {
+  BellOffIcon,
+  BellRingIcon,
+  CalendarClockIcon,
+  CalendarOffIcon,
+  CircleAlertIcon,
+  HourglassIcon,
+  PauseIcon,
+  PowerOffIcon,
+  ShieldCheckIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Banner, BannerConditionList } from '@/components/Banner'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
@@ -102,9 +135,22 @@ import { reportsViewTabs, type ReportsView } from './views'
 
 export interface AlertsViewProps {
   title: string
+  /**
+   * §A11's view strip, as **state plus a callback rather than as markup**.
+   *
+   * There used to be a third member here, `views?: React.ReactNode`, and it was
+   * the sixth dead prop the audit found: declared on this interface and on
+   * `ReportLibraryProps`, never destructured, never read, never passed. It is
+   * **deleted rather than wired**, and the reason is that wiring it would have
+   * created a second way to put the same strip on the same screen. Every view
+   * builds its own tabs from `reportsViewTabs` (`./views`) — one list, so the
+   * three views cannot offer different sets — and a caller-supplied node would
+   * be a parallel source that agrees today and drifts later. `ReportsScreen`
+   * already owns the only decision a caller has: which view is current, and
+   * what happens when another is chosen.
+   */
   activeView?: ReportsView
   onSelectView?: (view: ReportsView) => void
-  views?: React.ReactNode
   /** The day a `Test this rule` and the form's series resolution run against. */
   today: string
   t: Translator
@@ -126,6 +172,36 @@ const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'n
   cooling: 'info',
   suspended: 'neutral',
   error: 'neutral',
+}
+
+/**
+ * **The same five states, each carrying a glyph as well as its word** — §A6/§H.
+ *
+ * Amplitude's principle on an inbox is that *what needs attention reads at a
+ * glance*: a state is a shape before it is a word, so a scan down the column
+ * separates `Firing` from `Armed` without reading either. Five badge words in
+ * the same geometry, differing only in fill, is exactly the scan this replaces.
+ *
+ * **The glyph is redundancy and never the carrier.** Every one is
+ * `aria-hidden`, the word stays inside the `StatusBadge` beside it, and
+ * `StatusBadge`'s own type requires that word — so a glyph-only state is
+ * unrepresentable rather than merely discouraged (§7.5). Remove colour and
+ * remove the glyph and the state still reads; that is the test.
+ *
+ * The choices are literal rather than decorative: a bell that is *ringing* for
+ * `firing`, an hourglass *running* for `cooling`, a shield *set* for `armed`, a
+ * pause for a rule stopped on purpose, and the ordinary "something is wrong
+ * with this object" disc for `error`. None of them is red — R5a's four uses do
+ * not include a threshold breach (see the header), and each renders in
+ * `text-muted-foreground`, so the badge's tone remains the only colour in the
+ * cell.
+ */
+const STATE_GLYPH: Record<AlertRule['state'], typeof ShieldCheckIcon> = {
+  armed: ShieldCheckIcon,
+  firing: BellRingIcon,
+  cooling: HourglassIcon,
+  suspended: PauseIcon,
+  error: CircleAlertIcon,
 }
 
 /**
@@ -151,7 +227,10 @@ export function AlertsView({
      value rather than a flag — the same shape `saveReport` uses. */
   const [editing, setEditing] = useState<AlertRule | null>(null)
   const [formOpen, setFormOpen] = useState(false)
-  const table = useIndexTable<AlertRule>({ mode: 'index', getRowId: (row) => row.id })
+  const table = useIndexTable<AlertRule>({
+    mode: 'index',
+    getRowId: (row) => row.id,
+  })
   const rules = useAsync((signal) => listAlertRules(table.params, signal), {
     /* `table.params` is the fetcher's only input; saving a rule calls
        `rules.refetch`, which bypasses the cache read. */
@@ -241,7 +320,10 @@ export function AlertsView({
       id: 'state',
       emphasis: 'data',
       header: t('rb.alerts.col.state'),
-      width: 140,
+      /* 160, up from 140: the glyph and its 6px gap are 22px the badge did not
+         have to share the cell with, and `Not working` is the longest of the
+         five words in English. Measured rather than rounded up twice. */
+      width: 160,
       dataType: 'enum',
       /* **The filter that could never fire, made reachable.** It used to live
          on `params.view` in `alerts.ts`, which `useIndexTable` feeds from
@@ -257,24 +339,61 @@ export function AlertsView({
           label: t(`rb.alert.state.${state}`),
         })),
       },
-      cell: (row) => (
-        <span className="flex flex-col items-start gap-1">
-          <StatusBadge tone={STATE_TONE[row.state]}>{t(`rb.alert.state.${row.state}`)}</StatusBadge>
-          {/* `enabled: false` is the OPERATOR's switch; `suspended` is the
-              server's; `mutedUntil` silences without stopping. Three different
-              facts and none of them is the other. */}
-          {!row.enabled && (
-            <span className="text-xs text-muted-foreground">{t('rb.alert.disabled')}</span>
-          )}
-          {row.mutedUntil && (
-            <span className="text-xs text-muted-foreground">
-              {t('rb.alert.muted', {
-                time: formatDate(row.mutedUntil, { style: 'day-month-time', language }),
-              })}
+      cell: (row) => {
+        const Glyph = STATE_GLYPH[row.state]
+        return (
+          <span className="flex flex-col items-start gap-1">
+            <span className="flex items-center gap-1.5">
+              {/* Decorative by declaration, and identified for the test by a
+                  data attribute rather than by a class name — a lucide icon's
+                  own `lucide-bell-ring` class is the library's, and asserting on
+                  it would make a lucide upgrade a UI test failure. */}
+              <Glyph
+                aria-hidden="true"
+                data-state-glyph={row.state}
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+              <StatusBadge tone={STATE_TONE[row.state]}>
+                {t(`rb.alert.state.${row.state}`)}
+              </StatusBadge>
             </span>
-          )}
-        </span>
-      ),
+            {/* `enabled: false` is the OPERATOR's switch; `suspended` is the
+                server's; `mutedUntil` silences without stopping. Three different
+                facts and none of them is the other — so each gets its own glyph
+                and its own word, and neither of these two is a state badge. */}
+            {!row.enabled && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <PowerOffIcon
+                  aria-hidden="true"
+                  data-state-glyph="disabled"
+                  className="size-4 shrink-0"
+                />
+                {t('rb.alert.disabled')}
+              </span>
+            )}
+            {row.mutedUntil && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <BellOffIcon
+                  aria-hidden="true"
+                  data-state-glyph="muted"
+                  className="size-4 shrink-0"
+                />
+                {/* A timestamp opens the sentence's tail with digits, which the
+                    UBA throws to the far end of an Arabic line without an
+                    isolate. */}
+                <bdi>
+                  {t('rb.alert.muted', {
+                    time: formatDate(row.mutedUntil, {
+                      style: 'day-month-time',
+                      language,
+                    }),
+                  })}
+                </bdi>
+              </span>
+            )}
+          </span>
+        )
+      },
       /**
        * The qualifier, in the slot the suspended and error reasons already use.
        *
@@ -306,13 +425,56 @@ export function AlertsView({
       header: t('rb.alerts.col.cadence'),
       width: 120,
       /* Unset, and rendered AS unset. Not blank, not a guess, not a dash that
-         could be read as "none needed". */
+         could be read as "none needed". The glyph is the same fact in a second
+         channel — a calendar with a line through it — and the word is still the
+         one thing that carries it. */
       cell: (row) =>
         row.cadence === null ? (
-          <span className="text-muted-foreground">{t('rb.alert.cadence.unset')}</span>
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <CalendarOffIcon
+              aria-hidden="true"
+              data-state-glyph="cadence-unset"
+              className="size-4 shrink-0"
+            />
+            {t('rb.alert.cadence.unset')}
+          </span>
         ) : (
-          <span>{row.cadence}</span>
+          <span className="flex items-center gap-1.5">
+            <CalendarClockIcon aria-hidden="true" className="size-4 shrink-0" />
+            {row.cadence}
+          </span>
         ),
+    },
+    {
+      /* **The line, beside the reading tested against it.** It was only ever
+         inside the rule sentence on the identity cell, so an operator scanning
+         the `Last reading` column had nothing to compare it with without
+         reading a paragraph two columns away. §H's principle: what needs
+         attention reads at a glance.
+
+         The unit is STATED under the number rather than assumed from the
+         format (AC-876's sentence, the same key the rule form uses): a count
+         formats as a bare numeral, and a bare numeral in a `Threshold` column
+         is the one reading nobody can check. */
+      id: 'threshold',
+      emphasis: 'data',
+      header: t('rb.alerts.col.threshold'),
+      width: 150,
+      align: 'end',
+      dataType: 'number',
+      csv: (row) => row.threshold,
+      cell: (row) => (
+        <span className="tabular-nums">
+          {formatMetricValue(row.threshold, row.thresholdUnit, language)}
+        </span>
+      ),
+      secondaryLine: (row) => (
+        <span className="text-xs text-muted-foreground">
+          {t('rb.alert.form.threshold.unit', {
+            unit: t(`rb.unit.${row.thresholdUnit}`),
+          })}
+        </span>
+      ),
     },
     {
       id: 'lastValue',
@@ -340,7 +502,12 @@ export function AlertsView({
         row.lastEvaluatedAt === null ? (
           <span className="text-muted-foreground">{t('rb.alert.lastEvaluated.never')}</span>
         ) : (
-          <bdi>{formatDate(row.lastEvaluatedAt, { style: 'day-month-time', language })}</bdi>
+          <bdi>
+            {formatDate(row.lastEvaluatedAt, {
+              style: 'day-month-time',
+              language,
+            })}
+          </bdi>
         ),
     },
   ]
@@ -490,7 +657,10 @@ export function AlertsView({
           }}
           noMatch={{
             message: t('rb.alerts.noMatch'),
-            action: { label: t('rb.alerts.noMatch.action'), onClick: table.clearAll },
+            action: {
+              label: t('rb.alerts.noMatch.action'),
+              onClick: table.clearAll,
+            },
           }}
           error={{ message: t('rb.alerts.error'), onRetry: rules.refetch }}
         />
@@ -525,12 +695,7 @@ export function AlertsView({
         language={language}
       />
 
-      <ConfirmDialog
-        request={confirm}
-        onClose={() => setConfirm(null)}
-        busy={deleting}
-        t={t}
-      />
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={deleting} t={t} />
     </SingleColumnPage>
   )
 }
@@ -563,9 +728,11 @@ function AlertSentence({
         /* The noun, not the control label. */
         grain: t(`rb.grainNoun.${rule.evaluationGrain}`),
       })}{' '}
-      {t(crossingIsGoodNews(rule, described.params['higherIsBetter'] === true)
-        ? 'rb.alert.direction.good'
-        : 'rb.alert.direction.bad')}
+      {t(
+        crossingIsGoodNews(rule, described.params['higherIsBetter'] === true)
+          ? 'rb.alert.direction.good'
+          : 'rb.alert.direction.bad',
+      )}
     </span>
   )
 }
@@ -587,14 +754,21 @@ function crossingIsGoodNews(rule: AlertRule, higherIsBetter: boolean): boolean {
   return crossingUpward === higherIsBetter
 }
 
-function describeEvaluation(evaluation: AlertEvaluation, t: Translator, language: Language): string {
+function describeEvaluation(
+  evaluation: AlertEvaluation,
+  t: Translator,
+  language: Language,
+): string {
   switch (evaluation.outcome) {
     case 'would-fire':
     case 'would-not-fire':
       return t(evaluation.wouldFire ? 'rb.alert.test.wouldFire' : 'rb.alert.test.wouldNotFire', {
         value: formatMetricValue(evaluation.value, evaluation.unit, language),
         bucket: evaluation.bucketStart
-          ? formatDate(evaluation.bucketStart, { style: 'day-month', language })
+          ? formatDate(evaluation.bucketStart, {
+              style: 'day-month',
+              language,
+            })
           : '',
         grain: t('rb.grainNoun.day'),
       })

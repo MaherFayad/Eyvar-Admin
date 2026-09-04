@@ -47,20 +47,30 @@
  *
  * ## The one place this file overrides `DataTable`, and why
  *
- * `DataTable` renders `no-match` for **every** empty ledger — its §9.2 reading
- * is *"a ledger is NEVER first-run empty"*. **AC-427 says the opposite**: *"a
+ * **The conflict this was written against is now closed at the source.**
+ * `DataTable` used to render `no-match` for **every** empty ledger, on §9.2's
+ * reading *"a ledger is NEVER first-run empty"*, against **AC-427**'s *"a
  * ledger with no postings ever renders the first-run empty state — heading,
- * body and at least one action."* Both cannot hold.
+ * body and at least one action."* Both could not hold, and it was reported to
+ * the shell owner as a genuine conflict rather than worked around silently.
+ * **LR-1 narrowed §9.2** — the absolute is true of a *platform* ledger and was
+ * generalised from one — and `DataTable`'s branch no longer keys off the mode
+ * at all. Its `emptyKind` prop now carries the decision, and this file passes
+ * `emptyKind="no-match"` below.
  *
- * They are reconciled here rather than in `DataTable`, which is Phase 0's file:
- * when the caller says this subject has **no history at all**, the first-run
- * state renders in place of the table; when it has history and the query
- * narrowed it to nothing, `DataTable`'s `no-match` renders exactly as it does
- * today. That is §7.1's own distinction — *"a wallet with a zero balance and no
+ * **The guard below stays**, and it is no longer a workaround. **LR-3** says a
+ * Financials first-run carries **no illustration**, and `EmptyState` cannot
+ * express that from inside `DataTable`'s branch, which passes none of the three
+ * knobs LR-3 needs. More to the point, the state replaces the whole card — the
+ * toolbar and the column header row have nothing to operate on when a subject
+ * has never had a posting — and `DataTable` has no branch that removes itself.
+ * So the split is: **this file answers "has the subject ever posted"**
+ * (`hasHistory`, a subject-lifetime server fact — **AC-485**, never the
+ * envelope's window count), and `DataTable` answers "is this query narrowed".
+ * That is §7.1's own distinction — *"a wallet with a zero balance and no
  * history is first-run; a wallet with history filtered to a date range with
- * nothing in it is filtered-to-zero"* — and the caller is the only one that
- * knows which it is holding. Reported to the shell owner as a genuine conflict
- * between AC-427 and `DataTable`'s ledger branch.
+ * nothing in it is filtered-to-zero"* — and it is now asked as two questions in
+ * two places instead of one question standing in for both.
  */
 
 import { useMemo, type ReactNode } from 'react'
@@ -394,6 +404,18 @@ export function LedgerCard({
           heading={firstRun.heading}
           body={firstRun.body}
           actions={[firstRun.action]}
+          /* **LR-3, and this branch is where Financials actually renders it.**
+             *"No Financials empty state carries an illustration … an operator
+             never creates a posting, so the illustration would sit above an
+             action the product does not offer."* The action stays; the picture
+             does not.
+
+             Declared here rather than left to `DataTable`'s ledger default,
+             because this `EmptyState` is not `DataTable`'s — the guard above
+             replaces the whole card, so nothing in `DataTable` is mounted and
+             no default it holds can reach this call. Every Financials ledger's
+             first-run comes out of these six lines. */
+          illustration={null}
         />
       </div>
     )
@@ -484,7 +506,32 @@ export function LedgerCard({
           heading: firstRun.heading,
           body: firstRun.body,
           actions: [firstRun.action],
+          /* Stated rather than inherited from `DataTable`'s ledger default.
+             **LR-3 is a FINANCIALS rule, not a ledger-mode one** — it reaches
+             this screen's index tables too, which are not ledger mode — so
+             Financials declaring it is the honest direction. Unreachable while
+             the guard above answers every first-run, and correct the moment it
+             does not. */
+          illustration: null,
         }}
+        /**
+         * **LR-2, declared rather than inherited from the mode.**
+         *
+         * `DataTable` used to force `no-match` on every ledger, so this said
+         * nothing and got the right answer anyway. It no longer does, and
+         * without this line the branch reached below would be **first-run** —
+         * which is **D-F29** coming back: a quiet month on a ledger with years
+         * of history rendering `No money has moved through this wallet`
+         * directly beneath a header carrying a real opening balance.
+         *
+         * The guard above already answered the only first-run case there is
+         * (`!hasHistory && !table.isFiltered`, **AC-427**). Everything that
+         * reaches this table therefore has history, so an unfiltered zero here
+         * is a **narrowed** empty in LR-2's sense — a quiet window — and takes
+         * the one grey sentence. `hasHistory` decides it, exactly as **AC-485**
+         * requires; the mode never could.
+         */
+        emptyKind="no-match"
         noMatch={{ message: t('fin.empty.noMatch') }}
         error={{ message: t('fin.error.read'), onRetry }}
       />

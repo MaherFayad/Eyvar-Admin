@@ -80,8 +80,23 @@ const GLOBALS = join(SRC, 'styles', 'globals.css')
  * The lookahead is the whole precision of the check: a utility starts with a
  * lowercase letter, an arbitrary-value bracket, a variable bracket or a minus.
  * A digit, a space, a quote or a backtick after the colon is prose.
+ *
+ * **`@` is in the left boundary, and it is not a loophole.** `@xl:grid-cols-2`
+ * is a CONTAINER query, not a viewport one. It reads `--container-xl`, which
+ * this product does not delete and which `@theme inline` only ever adds to
+ * (`--container-page`, `--container-measure`); the deletion is `--breakpoint-*:
+ * initial`, and it reaches the media variants alone. Compiled against the
+ * shipped `globals.css`, `@xl:grid-cols-2` emits
+ * `@container (width >= 36rem){.\@xl\:grid-cols-2{…}}` — a real rule, at a
+ * real width, which is the exact opposite of what this gate exists to catch.
+ *
+ * Without the `@`, `@sm:`/`@md:`/`@lg:`/`@xl:` were all flagged and `@4xl:` was
+ * not, purely because a digit happens to sit in the boundary class — so the
+ * gate was inconsistent as well as wrong, and it fired on
+ * `MetricBoardScreen.panelColumns`, which is the one row in the product whose
+ * width the viewport genuinely cannot predict.
  */
-const DEAD_VARIANT = /(?<![\w./$-])(2xl|sm|md|lg|xl):(?=[a-z[(-])/g
+const DEAD_VARIANT = /(?<![\w./$@-])(2xl|sm|md|lg|xl):(?=[a-z[(-])/g
 
 /** What a reader gets told when they trip it. */
 const WHY = [
@@ -223,6 +238,35 @@ describe('Tailwind’s responsive variants are deleted, so a utility using one i
   it('leaves the two variants this product actually has alone', () => {
     expect(deadVariantsIn(`'grid grid-cols-3 ${'compact'}:${'grid-cols-1'}'`)).toEqual([])
     expect(deadVariantsIn(`'${'wide'}:${'grid-cols-4'} ${'rtl'}:${'translate-x-1/2'}'`)).toEqual([])
+  })
+
+  /* A container query is a different variant reading a different namespace, and
+     `--container-*` is not deleted. See `DEAD_VARIANT`. All five are asserted
+     because four of them used to fire and `@4xl` never did — an inconsistency
+     that is itself evidence the boundary, not the layout, was wrong. */
+  it('leaves CONTAINER queries alone — they read --container-*, which survives', () => {
+    for (const size of ['sm', 'md', 'lg', 'xl', '2xl', '4xl']) {
+      expect(
+        deadVariantsIn(`'grid-cols-1 @${size}:${'grid-cols-2'}'`),
+        `@${size}: is a container query and compiles to a real rule`,
+      ).toEqual([])
+    }
+    /* The line that tripped it: `MetricBoardScreen.panelColumns`, verbatim. */
+    expect(
+      deadVariantsIn(`'grid-cols-1 @${'xl'}:${'grid-cols-2'} @4xl:${'grid-cols-3'}'`),
+    ).toEqual([])
+    /* And the bare form is still dead, so widening the boundary cost nothing. */
+    expect(deadVariantsIn(`'grid-cols-1 ${'xl'}:${'grid-cols-2'}'`)).toEqual(['1:xl'])
+  })
+
+  /* The premise behind that exemption, asserted rather than assumed — the same
+     move the `globals.css` check below makes for the deletion itself. */
+  it('rests on globals.css NOT deleting the container scale', () => {
+    const css = readFileSync(GLOBALS, 'utf8')
+    expect(
+      css,
+      'the container scale is now deleted too — the container-query exemption above is wrong',
+    ).not.toMatch(/--container-\*:\s*initial/)
   })
 
   it('does not fire on the text these two-letter tokens really appear in', () => {

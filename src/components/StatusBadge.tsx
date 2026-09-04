@@ -79,7 +79,14 @@ export function RowCriticalMarker({ className }: { className?: string } = {}) {
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-y-0 w-[3.5px] bg-destructive z-10",
+        /* `w-marker`, not an arbitrary value. `--ev-marker: 3px` is a figure the
+           design spec NAMES — the SLA countdown track, §2.3's active nav bar and
+           this lane are one token used three times rather than three literals —
+           and it is published as `--spacing-marker`. This lane had drifted to a
+           hand-written `3.5px`, which is both off the named figure and a bypass
+           of a live token: the marker no longer matched the two rules it is
+           supposed to be the same width as. */
+        "pointer-events-none absolute inset-y-0 w-marker bg-destructive z-10",
         /* **The inset is declared by the ROW, not fixed here.**
          *
          * This span is absolutely positioned, so it resolves against the

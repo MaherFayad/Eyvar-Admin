@@ -60,7 +60,7 @@ import type {
 } from '@/data/types'
 import { isApiError, MAX_LOGO_BYTES } from '@/data/types'
 import { useAsync } from '@/hooks'
-import { formatDate } from '@/lib'
+import { ABSENT, formatDate, formatFileSize } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -91,10 +91,14 @@ const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
 /** The one element every page-level refusal on this screen describes itself by. */
 const READ_ONLY_REASON_ID = 'admin-workspace-read-only-reason'
 
-/** `1 of 1024` rather than a raw byte count. Kilobytes only — the cap is 200 KB. */
-function formatBytes(bytes: number): string {
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`
-}
+/* **`formatBytes` is gone; the size comes from `formatFileSize` (`@/lib`).**
+   It read `` `${Math.max(1, Math.round(bytes / 1024))} KB` `` — a user-visible
+   string built by template literal, outside the dictionary, which §9.6 / AC-75
+   forbid: under `lang="ar"` that `KB` could never be anything else, and no
+   extractor could ever see it. The `Math.max(1, …)` floor was the one thing
+   this screen got right and it moved into the shared formatter with it, so
+   `0 KB` on a file that exists is still unrepresentable. The unit is now
+   `fileSize.kb` / `fileSize.mb`, resolved through `t`. */
 
 export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -224,7 +228,9 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
     if (file.size > MAX_LOGO_BYTES) {
       /* Checked here so the operator hears about it before a round trip, and
          checked AGAIN in the client so a second surface cannot skip it. */
-      toast.error(t('admin.workspace.logo.tooLarge', { size: formatBytes(file.size) }))
+      toast.error(
+        t('admin.workspace.logo.tooLarge', { size: formatFileSize(file.size, t, language) }),
+      )
       return
     }
     setLogoBusy(true)
@@ -461,7 +467,15 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
                     ? t('admin.workspace.logo.none')
                     : t('admin.workspace.logo.meta', {
                         file: logo.fileName,
-                        size: formatBytes(logo.sizeBytes ?? 0),
+                        /* `?? 0` before, which now reads `1 KB` — the KB floor
+                           turns an unknown size into a stated one. `sizeBytes`
+                           is `number | null` and the em dash is what absence
+                           looks like (`format/money.ts`'s `ABSENT`), so a null
+                           does not reach the formatter at all. */
+                        size:
+                          logo.sizeBytes === null
+                            ? ABSENT
+                            : formatFileSize(logo.sizeBytes, t, language),
                       })}
                 </span>
                 <span className="text-xs text-muted-foreground">

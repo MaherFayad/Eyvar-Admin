@@ -95,6 +95,10 @@ import { useShell } from './ShellContext'
 import { visibleSubTabs, visibleWorkspaces } from './permissions'
 import { useRouteState, withOverlay } from './routeState'
 import { ProfileLayer } from './layers/ProfileLayer'
+import {
+  COMPLIANCE_VIEW_PERMISSION,
+  PAYOUTS_VIEW_PERMISSION,
+} from '@/components/profile/driver'
 import { NotificationsLayer } from './layers/NotificationsLayer'
 import { AccountLayer } from './layers/AccountLayer'
 import { OnboardingLayer } from '@/screens/onboarding'
@@ -761,6 +765,23 @@ export function AppLayout() {
              it: a formatter that reads the language itself is a second source
              for the one the shell already owns. */
           language={language}
+          /* A captain's two ways out of the sheet — the compliance file and the
+             payouts ledger. Passed rather than read inside the layer, so the
+             layer stays mountable without a shell above it, and §11.2 gets its
+             answer: an operator without the permission sees the control
+             disabled in place with its reason, not hidden and not offered. */
+          canOpenCompliance={shell.permissions.permissions.includes(COMPLIANCE_VIEW_PERMISSION)}
+          canOpenPayouts={shell.permissions.permissions.includes(PAYOUTS_VIEW_PERMISSION)}
+          /* **The address of another record, on this route.** The request sheet
+             links to the rider waiting on the ride — the path from that queue
+             to the person, which making the row open the RIDE would otherwise
+             have removed. Built here because this is where the route lives;
+             `ProfileLayer`'s own prop note says why it must not reach for the
+             router itself. One layer at a time is still enforced by
+             `withOverlay`, which is the same call `openLayer` makes. */
+          entityHref={(id) =>
+            `${location.pathname}${withOverlay(location.search, 'entity', id)}`
+          }
         />
       )}
       {route.overlay === 'notifications' && (

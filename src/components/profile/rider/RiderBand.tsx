@@ -57,30 +57,38 @@ import { XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SheetClose, SheetTitle } from '@/components/ui/sheet'
 import type { ProfileRef, Rider } from '@/data/types'
-import { formatDate, type Language, type Translate } from '@/lib'
-import { RIDER_STATUS, RIDER_TIER } from '@/screens/operations/people/domain'
+import type { Translate } from '@/lib'
 
 export interface RiderBandProps {
   entity: ProfileRef
   /** `null` until the record arrives. The name and the id do not wait for it. */
   rider: Rider | null
   t: Translate
-  language: Language
 }
 
-export function RiderBand({ entity, rider, t, language }: RiderBandProps) {
+export function RiderBand({ entity, rider, t }: RiderBandProps) {
   /* Built as data so the row can drop an absent fact without leaving an orphan
      separator — the separators are placed BETWEEN what survives, not beside
      what might not. */
+  /**
+   * **Two facts, not five — owner instruction.** The status, the tier and the
+   * joined date came out of the band.
+   *
+   * **Nothing was lost, and that is why this is legal under §3.** All three are
+   * fields in the Identity block on BOTH surfaces (`profile.field.status`,
+   * `.tier`, `.joined`), so no fact changed surface, value or rank — the band
+   * stopped repeating what the record already states one scroll down. The band
+   * keeps the two an operator uses to *reach* this person rather than to
+   * describe them: a number to call and a city to place them in.
+   *
+   * What was actually wrong: five items at this width put a rule between every
+   * pair and read as a toolbar of unrelated chips, with `Joined 22 Jun` — the
+   * least operational of them — taking the same rank as the phone number.
+   */
   const meta: string[] = rider
     ? [
         rider.phone,
-        t(RIDER_STATUS[rider.status].key),
-        t('profile.value.tier', { tier: t(RIDER_TIER[rider.tier]) }),
         rider.city,
-        t('profile.rider.joined', {
-          date: formatDate(rider.joinedAt, { style: 'day-month', language }),
-        }),
       ].filter((value) => value !== '')
     : [entity.subtitle ?? ''].filter((value) => value !== '')
 

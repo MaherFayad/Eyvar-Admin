@@ -7,9 +7,16 @@
  * **No bare `vi.spyOn` on a client namespace.** A spy with no implementation
  * does not intercept the barrel's live binding: a positive assertion fails
  * loudly, and a **negative one passes vacuously**. So nothing here spies. The
- * "no query runs until Run" criterion is asserted through its *observable
- * consequence* — the canvas is still unstarted and no panel exists — which an
- * implementation that ran on change could not satisfy.
+ * "an illegal query is never sent" criterion is asserted through its
+ * *observable consequence* — the canvas is still unstarted and no freshness
+ * sentence exists — which an implementation that ran on change could not
+ * satisfy.
+ *
+ * **AC-809's other half is gone.** *"No query runs until `Run` is activated"*
+ * was overridden by the business owner (*"the run button click it it should
+ * happen automatically"*); the canvas follows the question now. The case that
+ * asserted it is rewritten in place, with the reason, and the replacement
+ * behaviour lives in `autorun.test.tsx`.
  *
  * **A presence check on a placement rule passes in the case the rule forbids.**
  * Where the rule is a relationship, the relationship is asserted: a reason is
@@ -39,6 +46,8 @@ import {
 import type { AlertRule, SavedReport } from '@/data/types'
 import { OVERVIEW_EN } from '@/screens/metrics/copy'
 import { REPORTS_EN } from './copy'
+/* The module's own number, not a literal that can drift away from it. */
+import { AUTO_RUN_DEBOUNCE_MS } from './ReportBuilder'
 import { ReportsScreen } from './ReportsScreen'
 
 beforeEach(() => {
@@ -120,21 +129,40 @@ describe('AC-807, AC-809 — nothing but the measure picker, and nothing runs', 
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
-  it('issues no query when a control changes — the canvas stays unstarted', async () => {
-    const user = userEvent.setup()
+  /**
+   * **Moved, because AC-809 was superseded and this assertion asserted it.**
+   *
+   * This case used to read *"issues no query when a control changes — the
+   * canvas stays unstarted"*, and it was the observable consequence of AC-809's
+   * *"no query runs until `Run` is activated"*. The business owner overrode
+   * that rule directly — *"the run button click it it should happen
+   * automatically"* — so the canvas now follows the question after
+   * `AUTO_RUN_DEBOUNCE_MS` of quiet.
+   *
+   * The half of AC-809 that survives is asserted here and is the half that was
+   * always load-bearing: **an illegal question is never sent.** An empty
+   * report carries `no-measure`, so nothing is requested and the canvas holds
+   * R8's second kind of empty — which is also what makes the auto-run safe,
+   * because the gate is the planner and not a timer. The other half — that a
+   * legal question resolves itself — is in `autorun.test.tsx`, where it can be
+   * asserted on the timing it actually depends on.
+   */
+  it('requests nothing while the question is illegal, however long it is left', async () => {
     renderAt(`/management/reports?q=`, <ReportsScreen />)
 
     const measure = await screen.findByLabelText(REPORTS_EN['rb.control.measure'] as string)
-    await user.click(measure)
-    await user.click(await screen.findByRole('option', { name: REPORTS_EN['rb.measure.captains.registered'] as string }))
+    expect(measure).toBeEnabled()
 
-    /* Choosing a measure ENABLES the rest (AC-808) and runs nothing (AC-809).
-       Both are asserted, because an implementation that ran on change would
-       satisfy the first and fail the second. */
-    await waitFor(() =>
-      expect(screen.getByLabelText(REPORTS_EN['rb.control.groupBy'] as string)).toBeEnabled(),
-    )
+    /* Well past the debounce, and still unstarted — because the planner, not a
+       timer, decides whether a question may be asked. A canvas that had run
+       would carry the freshness sentence; this one carries R8's second kind of
+       empty and nothing else. */
+    await new Promise((resolve) => setTimeout(resolve, AUTO_RUN_DEBOUNCE_MS * 3))
     expect(screen.getByText(REPORTS_EN['rb.canvas.unstarted'] as string)).toBeInTheDocument()
+    const asOf = REPORTS_EN['rb.canvas.asOf'] as string
+    expect(
+      screen.queryByText(asOf.slice(0, asOf.indexOf('{')), { exact: false }),
+    ).toBeNull()
   })
 })
 

@@ -72,7 +72,7 @@ import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 /** **AC-389** — the four views the route table declares, read from it. */
 const VIEWS: readonly ScreenView[] = [

@@ -102,7 +102,7 @@ import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
 import { useMoneyActions } from '../shared/actions'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 /**
  * **AC-382** — the two wallet facts that are DERIVED and so belong to no
@@ -521,6 +521,9 @@ function WalletIndex({
         /* §6.4 — the two derived facts no column carries. See the function. */
         extraFilters={walletExtraFilters(t)}
         firstRun={{
+          /* LR-3 — no Financials empty carries an illustration. See
+             `PayoutsScreen`'s first declaration for the full reasoning. */
+          illustration: null,
           heading: t('fin.wallet.empty.heading'),
           body: t('fin.wallet.empty.body'),
           actions: [{ label: t('fin.wallet.empty.action'), onClick: () => onSelectTab('all-wallets') }],

@@ -1026,10 +1026,34 @@ every other control in the panel is disabled and states why.
 **AC-808** — Choosing a measure enables the second-measure, split-by, filter, range, grain, compare
 and chart-type controls, and does not run a query.
 
-**AC-809** — No query runs until `Run` is activated. Changing any control does not issue a request.
+**AC-809** — ~~No query runs until `Run` is activated. Changing any control does not issue a
+request.~~ **SUPERSEDED by AC-809a on the owner's direct instruction.**
 
-**AC-810** — After a control is changed, the canvas continues to show the previous result, visibly
-marked as showing an earlier `asOf`, until `Run` is activated.
+**AC-809a** — The canvas runs itself. A legal query re-runs automatically ~350 ms after the last
+edit; an illegal one does not run at all and keeps stating why, exactly as before. An in-flight
+run is cancelled by a newer edit rather than raced. `Run` is retired as a gate and survives only
+as `Refresh`, for asking the same question again.
+
+> **Why this changed.** The owner's words were *"the run button click it it should happen
+> automatically"*. AC-809 was written to protect an operator from a request they did not ask for;
+> in practice it made the builder read as a form to be submitted rather than an instrument that
+> answers. The protection AC-809 actually bought — never issuing a request for a question that
+> cannot be answered — is kept in full by the legality gate, which is the part that was load
+> bearing. What was discarded is the manual trigger, not the guard.
+
+**AC-810** — ~~After a control is changed, the canvas continues to show the previous result,
+visibly marked as showing an earlier `asOf`, until `Run` is activated.~~ **SUPERSEDED by AC-810a.**
+
+**AC-810a** — Between an edit and its automatic run, the canvas keeps the previous result and says
+so. That state is now transient by construction rather than standing, so it must never settle:
+a number shown under a question that no longer produced it is the defect AC-810 existed to
+prevent, and auto-run narrows the window rather than removing the requirement.
+
+**AC-810b** — A composed query survives leaving and re-entering the sub-tab. Switching to
+`dashboards` or `alerts` and back preserves every value, because `?q=` is carried across the view
+switch rather than rebuilt. Recorded as an acceptance criterion because it shipped broken: the
+view switcher wrote a fresh `search` string and dropped the query, so an operator who glanced at
+another tab had to re-pick everything.
 
 **AC-811** — With one measure, a 30-day window and `grain: day`, the result contains exactly one
 series and exactly 30 buckets.

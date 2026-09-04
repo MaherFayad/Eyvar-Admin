@@ -73,7 +73,7 @@
  *   `support-fairness`     an appeal four and a half days past a 24-hour window
  *                          that nobody has answered at all (`FC-0004`)
  *   `operations-people`    `APP-2204` and `APP-2205` past a 48-hour window, and
- *                          `DRV-0104` driving on a lapsed inspection certificate
+ *                          `DRV-0104` driving on a lapsed national ID
  *
  * Four breaches, two slots, and one of the two is spent permanently on
  * `financials-cash` (below). **That conflict is now settled: the cap moved.**
@@ -266,7 +266,7 @@ export const navCountFixtures: SubTabCount[] = [
    * the applications are past their deadline — `APP-2204` (submitted
    * 2026-06-22 13:05, due 2026-06-24 13:05, **20 hours ago**) and `APP-2205`
    * (due 2026-06-23 16:30) — and `DRV-0104` is a gold captain with 524 trips
-   * driving on an inspection certificate that expired 2026-06-20.
+   * driving on a national ID that expired 2026-06-20.
    *
    * Those are real. What is **not** real is the denominator underneath the
    * first two: the 48-hour application SLA is a placeholder, `slaSource` on

@@ -30,16 +30,28 @@
  *
  * Rules applied
  *   §8.3        ledger mode: append-only, no sort, no row actions, no selection.
- *   §5.4        the four states, in order, all four present — the empty is the
- *               ledger's `no-match` because `DataTable` collapses a ledger's
- *               first-run into it (*"a ledger is NEVER first-run empty"*).
+ *   §5.4        the four states, in order, all four present, and **the two
+ *               empties are now told apart above the table**. A search that
+ *               matched none of this rule's firings is still the `no-match`
+ *               sentence, DECLARED as `emptyKind="no-match"` and no longer
+ *               inherited from `DataTable` collapsing every ledger into it. A
+ *               rule that has never fired is the illustrated state §H asks for,
+ *               rendered instead of the table — a departure from R8, argued at
+ *               the branch rather than absorbed.
+ *   §H / §1.5   that illustration is DRAWN at the size it is read at. It is not
+ *               a 16px lucide glyph scaled up, which reads as a broken image —
+ *               see `NoFiringsIllustration`.
+ *   §A6         the header carries one lucide glyph, 16px, `currentColor`,
+ *               `aria-hidden`, with the title's words carrying the name.
  *   R7          no tone is spent on either notification reading.
  *   §9.2        a rule NAME is user content: never translated, `<bdi>`-isolated.
  *   §7.2        focus is the dialog's; nothing here kills an outline.
  */
 
 import { useMemo } from 'react'
+import { HistoryIcon } from 'lucide-react'
 import { DataTable } from '@/components/DataTable'
+import { EmptyState } from '@/components/EmptyState'
 import type { DataColumn } from '@/components/table/columns'
 import { Button } from '@/components/ui/button'
 import {
@@ -190,7 +202,12 @@ export function AlertHistoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex min-w-0 items-center gap-2">
+            {/* The register the rest of the module now carries: one lucide
+                glyph, 16px, `currentColor`, `aria-hidden`, with the words
+                beside it carrying the name. A ledger's glyph is the ledger's —
+                a clock turning back — not the bell that made the entries. */}
+            <HistoryIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             {/* The rule's NAME is user content — never translated, and it must
                 render right-to-left inside an English UI (AC-898). */}
             <span {...isolatedRunProps({ className: 'min-w-0' }).box}>
@@ -205,43 +222,89 @@ export function AlertHistoryDialog({
           <DialogDescription>{t('rb.alert.history.description')}</DialogDescription>
         </DialogHeader>
 
-        <DataTable
-          table={table}
-          rows={rows}
-          columns={columns}
-          getRowId={(firing) => firing.id}
-          status={status}
-          total={rows.length}
-          t={t}
-          language={language}
-          tableId="management-reports-alert-history"
-          searchPlaceholder={t('rb.alert.history.search')}
-          skeletonPattern="P1"
-          /* Unreachable by construction and supplied anyway, because the prop is
-             required: `DataTable` collapses a LEDGER's unfiltered zero into
-             `no-match` (*"a ledger is NEVER first-run empty"*, §9.2). The
-             sentence an operator actually reads is `noMatch.message` below. */
-          firstRun={{
-            heading: t('rb.alert.history.empty'),
-            body: t('rb.alert.history.empty'),
-            actions: [],
-          }}
-          /* Both empties, told apart by the call site — the component cannot.
+        {/* **A rule that has never fired gets the illustrated state, and the
+            table is not rendered at all** (§H).
+
+            Amplitude's notifications page answers zero the same way: a bell
+            line-illustration, one sentence, and no list chrome. This surface
+            used to render the whole `DataTable` — a search field, a header row
+            and a column layout control — over one grey line reading *"This rule
+            has not fired."*, which is a toolbar for narrowing nothing.
+
+            **This is a departure from R8 and it is named rather than absorbed.**
+            R8 rules a section's zero-records state to one grey sentence with no
+            illustration, and the previous author applied that reading here. The
+            counter-argument is that this dialog IS the surface — it is the
+            whole of what the operator opened, not a card inside a page — so
+            §11.1's page-level first-run is the shape that fits, with `card`
+            off because the dialog is already the frame. `actions: []` is
+            deliberate and is the one thing §11.1 asks for that cannot be given:
+            **nobody creates a firing**, and an action here would be an invitation
+            to do something impossible.
+
+            The FILTERED zero is untouched and stays `no-match` below — one grey
+            sentence and a way back — because those two facts are different and
+            §11.1's illustration on a search result would claim the rule has
+            never fired when it has. */}
+        {history.status === 'empty' ? (
+          <EmptyState
+            kind="first-run"
+            card={false}
+            illustration={<NoFiringsIllustration />}
+            heading={t('rb.alert.history.empty.heading')}
+            body={t('rb.alert.history.empty')}
+            actions={[]}
+          />
+        ) : (
+          <DataTable
+            table={table}
+            rows={rows}
+            columns={columns}
+            getRowId={(firing) => firing.id}
+            status={status}
+            total={rows.length}
+            t={t}
+            language={language}
+            tableId="management-reports-alert-history"
+            searchPlaceholder={t('rb.alert.history.search')}
+            skeletonPattern="P1"
+            /* **The only empty this table can still reach is the FILTERED one**,
+             and `emptyKind` keeps it a `no-match`: one grey sentence and a way
+             back, no illustration and no heading.
+
+             `DataTable` used to collapse a LEDGER's unfiltered zero into
+             `no-match` too; that collapse was the defect and **LR-1** narrowed
+             §9.2's absolute, so the branch no longer keys off the mode. The
+             unfiltered zero is now handled ABOVE this component, with the
+             illustration §H asks for — which is why the `firstRun` below is
+             genuinely unreachable rather than merely unlikely. It stays because
+             the prop is required and the copy is honest. */
+            emptyKind="no-match"
+            firstRun={{
+              heading: t('rb.alert.history.empty'),
+              body: t('rb.alert.history.empty'),
+              actions: [],
+            }}
+            /* Both empties, told apart by the call site — the component cannot.
              *This rule has not fired* and *your search matched none of its
              firings* are different facts, and the second one has a way back. */
-          noMatch={
-            needle === ''
-              ? { message: t('rb.alert.history.empty') }
-              : {
-                  message: t('rb.alert.history.noMatch'),
-                  action: {
-                    label: t('rb.alert.history.noMatch.action'),
-                    onClick: table.clearAll,
-                  },
-                }
-          }
-          error={{ message: t('rb.alert.history.error'), onRetry: history.refetch }}
-        />
+            noMatch={
+              needle === ''
+                ? { message: t('rb.alert.history.empty') }
+                : {
+                    message: t('rb.alert.history.noMatch'),
+                    action: {
+                      label: t('rb.alert.history.noMatch.action'),
+                      onClick: table.clearAll,
+                    },
+                  }
+            }
+            error={{
+              message: t('rb.alert.history.error'),
+              onRetry: history.refetch,
+            }}
+          />
+        )}
 
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
@@ -250,5 +313,50 @@ export function AlertHistoryDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/**
+ * **A bell that has not rung — an ILLUSTRATION, and the distinction is the
+ * whole point of §1.5.**
+ *
+ * §H's empty notifications page is a bell line-illustration. The tempting
+ * shortcut is `<BellIcon className="size-36" />`, and it is forbidden: a 16px
+ * glyph enlarged nine times keeps its 2px stroke, which at that size reads as a
+ * hairline outline of nothing — an operator sees a broken image, not a picture.
+ * §1.5 sizes the icon set at 16px for exactly this reason, and the rule is not
+ * waived by the Amplitude pass.
+ *
+ * So this is drawn at the size it is read at, in the same register and the same
+ * `viewBox` as `EmptyState`'s own `DefaultIllustration`: a quiet ground, one
+ * subject, two resting rules. **Every fill is a token**, so it cannot introduce
+ * a colour — `fill-info` on its own pale ground is the one place blue survives
+ * in an illustration here, which is the ruling `DefaultIllustration` already
+ * carries, and it is `--ev-blue-lt` rather than anything borrowed from
+ * Amplitude.
+ *
+ * It does not mirror (§9.5): a bell is an object and has no reading direction.
+ */
+function NoFiringsIllustration() {
+  return (
+    <svg
+      viewBox="0 0 160 96"
+      className="w-full"
+      aria-hidden="true"
+      focusable="false"
+      data-illustration="alert-history"
+    >
+      <rect x="16" y="8" width="128" height="80" rx="14" className="fill-muted" />
+      {/* the bell: a handle, a shoulder, a flared body and a rim */}
+      <path
+        d="M80 22a4 4 0 0 1 4 4v2.6a20 20 0 0 1 16 19.6V58l5 8.4a2 2 0 0 1-1.7 3H56.7a2 2 0 0 1-1.7-3L60 58v-9.8a20 20 0 0 1 16-19.6V26a4 4 0 0 1 4-4z"
+        className="fill-info"
+      />
+      {/* the clapper, at rest */}
+      <path d="M72 73.4h16a8 8 0 0 1-16 0z" className="fill-info-foreground" />
+      {/* two resting rules: the ledger either side of it, with nothing posted */}
+      <rect x="30" y="76" width="24" height="4" rx="2" className="fill-muted-foreground" />
+      <rect x="106" y="76" width="24" height="4" rx="2" className="fill-muted-foreground" />
+    </svg>
   )
 }

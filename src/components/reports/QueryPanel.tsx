@@ -12,12 +12,35 @@
  *  4  Filters          the existing FilterSpec vocabulary, scoped to the
  *                      intersection. An empty intersection disables it and
  *                      says why (AC-813)
- *  5  Date range       the nine presets, or an explicit pair of dates
- *  6  Grain            illegal grains disabled IN PLACE with a reason
- *  7  Compare to       a SEPARATE control carrying the PERIOD comparison only
- *  8  Chart type       illegal types disabled in place with a reason
- *  9  Run              the explicit commit. Nothing re-runs on keystroke
+ *  5  Refresh          NOT a commit any more — see below
  * ```
+ *
+ * ## Item 5 stopped being the commit
+ *
+ * The canvas follows the question: `ReportBuilder` re-runs 350ms after the last
+ * edit, whenever the plan is legal. So this button no longer *makes the report
+ * happen* — it asks the same question again, for an operator who wants the
+ * numbers as of now rather than as of their last edit, and for one who would
+ * rather not wait out the debounce. It kept its key (`rb.control.run`) and lost
+ * its word.
+ *
+ * It is still `disabled` while the query carries a violation, and that is the
+ * same §3.2 rule it always was: **an illegal question is not asked**, by the
+ * button or by the debounce. Nothing about the legality machinery moved.
+ *
+ * ## Four controls left this panel and did not come back
+ *
+ * §5.3 items 5-8 — **date range, grain, compare-to and chart type** — are now
+ * `ChartToolbar`'s, on the row directly above the plot (Amplitude §A7). The
+ * order above is still §5.3's order; four of its rows moved rather than
+ * changed. The reason is a split, not a tidy-up: this panel asks *what am I
+ * asking*, and those four answer *how am I looking at it*. Nothing is rendered
+ * twice — a setting with two controls is a setting whose two controls will
+ * disagree on screen.
+ *
+ * `Second measure` (§6.1) stays here: it changes the QUESTION. `Compare to`
+ * (§6.3) leaves. AC-829's independence between the two is unaffected, because
+ * neither ever wrote the other's field.
  *
  * ## This component computes no legality
  *
@@ -47,18 +70,39 @@
  * same one `catalogue.measures` filters on server-side, so the picker and the
  * run agree by construction. An empty list is a real answer and says so.
  *
+ * ## The rail stopped being a wall of prose
+ *
+ * Every control here used to carry a standing
+ * `<p className="text-xs text-muted-foreground">` under it — the population
+ * predicate, the *why this is off* sentence, the violation list. Eight
+ * paragraphs in a 288px column. The owner's instruction was to move them behind
+ * an `i`, and that is all that happened: **every sentence keeps its key and its
+ * words and changes carrier only** (`InfoHint`). The label row absorbs the icon
+ * without growing.
+ *
+ * Two things did **not** move, and the line between them is *does this describe
+ * the control, or is it the control's state*:
+ *
+ * - `rb.control.groupBy.cleared` is `role="status"`. It reports something that
+ *   happened **behind the operator's back** — AC-812 cleared their split when
+ *   they added a second measure. An announcement they have to open is not an
+ *   announcement.
+ * - the `LoadingSkeleton` and `ErrorState` branches in the measure picker are
+ *   states, not descriptions, and AC-847's retry has to be on the page.
+ *
  * Rules applied
  *   §5.3        control order, and every control but the measure picker
  *               disabled in place on an unstarted report.
  *   D9 CQ-3     disabled with a reason, never hidden.
  *   §3.2        validate by disabling the primary, not by an error after
- *               submit: `Run` is off while the query carries a violation, and
- *               each violation renders beside the control it belongs to.
+ *               submit: `Refresh` is off while the query carries a violation,
+ *               the auto-run is gated on the same predicate, and each violation
+ *               renders beside the control it belongs to.
  *   §7.2        every control is reachable by keyboard with a visible focus
  *               ring, and every disabled reason is available to a screen
  *               reader (AC-899).
  *   §9.1        logical spacing throughout; nothing is placed by a side.
- *   R3          `Run` is the panel's one primary.
+ *   R3          `Refresh` is the panel's one primary.
  */
 
 import { useMemo, useState } from 'react'
@@ -76,20 +120,10 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { InfoHint, hintLines } from './InfoHint'
 import { pairableWith } from '@/data/clients'
-import type {
-  Dimension,
-  Measure,
-  QueryPlan,
-  ReportGrain,
-  ReportQuery,
-  ChartType,
-} from '@/data/types'
-import type { Language, Translator } from '@/lib'
-import { LegalityOptions } from './LegalityOptions'
-import { WindowControl } from './WindowControl'
-
-const COMPARISONS: ReportQuery['periodComparison'][] = ['none', 'previous-period', 'previous-year']
+import type { Dimension, Measure, QueryPlan, ReportQuery } from '@/data/types'
+import type { Translator } from '@/lib'
 
 /** The sentinel a `Select` uses for "none". Radix forbids an empty-string item value. */
 const NONE = '__none__'
@@ -97,6 +131,12 @@ const NONE = '__none__'
 export interface QueryPanelProps {
   query: ReportQuery
   onChange: (query: ReportQuery) => void
+  /**
+   * Re-run the question on screen, now. **Not the commit** — the builder's
+   * debounce is. It is `'ask'` on the builder's side, so it is the one run that
+   * spends a history entry, because it is the one an operator performed
+   * deliberately.
+   */
   onRun: () => void
   plan: QueryPlan
   measures: readonly Measure[]
@@ -104,11 +144,8 @@ export interface QueryPanelProps {
   /** The catalogue's own four states. The panel stays usable for what is already chosen. */
   catalogueStatus: 'loading' | 'error' | 'empty' | 'content'
   onRetryCatalogue: () => void
-  /** The day presets resolve against. Passed, never read from an ambient clock. */
-  today: string
   running: boolean
   t: Translator
-  language: Language
 }
 
 export function QueryPanel({
@@ -120,10 +157,8 @@ export function QueryPanel({
   dimensions,
   catalogueStatus,
   onRetryCatalogue,
-  today,
   running,
   t,
-  language,
 }: QueryPanelProps) {
   const byKey = useMemo(() => new Map(measures.map((m) => [m.key, m])), [measures])
   const first = query.measures[0] ? byKey.get(query.measures[0].key) ?? null : null
@@ -138,15 +173,6 @@ export function QueryPanel({
     catalogueStatus !== 'content' && field === 'measures'
       ? []
       : plan.violations.filter((v) => v.field === field)
-
-  /* The planner speaks in enum values; the panel owns their labels. */
-  const grainLabels = (params: Record<string, string | number>) => ({
-    ...params,
-    ...(params['grain'] !== undefined ? { grain: t(`rb.grain.${String(params['grain'])}`) } : {}),
-    ...(params['minGrain'] !== undefined
-      ? { minGrain: t(`rb.grain.${String(params['minGrain'])}`) }
-      : {}),
-  })
 
   /* §6.2's refusal, as the list the picker offers. Same predicate as the
      server-side `pairableWith` filter, so the two cannot disagree. */
@@ -184,7 +210,27 @@ export function QueryPanel({
     >
       {/* ── 1 · measure ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-measure">{t('rb.control.measure')}</Label>
+        {/* The hint is a SIBLING of the `<Label>`, never a child: a `<button>`
+            inside a `<label>` joins the field's accessible name, and the
+            picker would be called "Measure What this means". */}
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-measure">{t('rb.control.measure')}</Label>
+          <InfoHint t={t}>
+            {hintLines([
+              /* R5-15 at the point of choosing: the population of the measure
+                 the operator has actually picked. */
+              first && t(first.population.predicateKey),
+              /* `rb.catalogue.empty` is a description of the picker, not a
+                 branch of it — the `LoadingSkeleton` and `ErrorState` below
+                 are the branches that stay on the page. */
+              catalogueStatus !== 'loading' &&
+                catalogueStatus !== 'error' &&
+                measures.length === 0 &&
+                t('rb.catalogue.empty'),
+              ...reasonSentences(violationsFor('measures'), t),
+            ])}
+          </InfoHint>
+        </div>
         {catalogueStatus === 'loading' ? (
           /* A skeleton list, not a spinner. The rest of the panel keeps
              rendering what has already been chosen (§8.1). */
@@ -199,7 +245,9 @@ export function QueryPanel({
             action={{ label: t('rb.catalogue.retry'), onClick: onRetryCatalogue }}
           />
         ) : measures.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t('rb.catalogue.empty')}</p>
+          /* The sentence moved to the hint on the label row above; there is no
+             picker to render and nothing else belongs here. */
+          null
         ) : (
           <Select
             value={query.measures[0]?.key ?? ''}
@@ -291,66 +339,14 @@ export function QueryPanel({
         t={t}
       />
 
-      {/* ── 5 · date range ───────────────────────────────────────────────── */}
-      <WindowControl
-        query={query}
-        onChange={onChange}
-        today={today}
-        disabled={unstarted}
-        t={t}
-        language={language}
-      />
-      <Reasons items={violationsFor('window')} t={t} />
+      {/* ── 5 · refresh ──────────────────────────────────────────────────── */}
 
-      {/* ── 6 · grain ────────────────────────────────────────────────────── */}
-      <LegalityOptions
-        label={t('rb.control.grain')}
-        options={plan.grains}
-        value={query.grain}
-        onChange={(grain: ReportGrain) => onChange({ ...query, grain })}
-        labelFor={(grain) => t(`rb.grain.${grain}`)}
-        resolveParams={grainLabels}
-        disabled={unstarted}
-        disabledReason={t('rb.control.disabled.unstarted')}
-        t={t}
-      />
-
-      {/* ── 7 · compare to — a SEPARATE control (§6.3, AC-829) ───────────── */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-compare">{t('rb.control.compare')}</Label>
-        <Select
-          value={query.periodComparison}
-          disabled={unstarted}
-          onValueChange={(value) =>
-            onChange({ ...query, periodComparison: value as ReportQuery['periodComparison'] })
-          }
-        >
-          <SelectTrigger id="rb-compare" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {COMPARISONS.map((value) => (
-              <SelectItem key={value} value={value}>
-                {t(`rb.compare.${value}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* ── 8 · chart type ───────────────────────────────────────────────── */}
-      <LegalityOptions
-        label={t('rb.control.chartType')}
-        options={plan.chartTypes}
-        value={query.chartType}
-        onChange={(chartType: ChartType) => onChange({ ...query, chartType })}
-        labelFor={(chart) => t(`rb.chartType.${chart}`)}
-        disabled={unstarted}
-        disabledReason={t('rb.control.disabled.unstarted')}
-        t={t}
-      />
-
-      {/* ── 9 · run ──────────────────────────────────────────────────────── */}
+      {/* **Items 5-8 moved to `ChartToolbar` and are deliberately not here.**
+          The date range, the grain, the comparison and the chart type are
+          decisions about *how the answer is read*, and §A7 puts them on the row
+          above the plot they change. Rendering them here as well would give one
+          setting two controls that can disagree on screen. See
+          `ChartToolbar.tsx` for the split and for where each one went. */}
       <Button
         type="button"
         variant="default"
@@ -459,12 +455,28 @@ function Filters({
                 type="button"
                 size="xs"
                 variant="secondary"
-                aria-label={t('rb.control.filters.remove', { field: labelFor(filter.field) })}
                 onClick={() =>
                   onChange({ ...query, filters: query.filters.filter((f) => f.field !== filter.field) })
                 }
               >
                 <bdi>{String(filter.value)}</bdi>
+                {/* **SC 2.5.3, Label in Name.** This was an `aria-label` reading
+                    `Remove the City filter` over a chip whose visible text is
+                    `Riyadh` — the two shared not one character, so a voice-control
+                    operator looking straight at the chip said "click Riyadh" and
+                    nothing happened; the only phrase that worked was one nothing
+                    on screen showed them.
+
+                    An `aria-label` REPLACES the subtree, so it can never be a
+                    superset of it. Dropping it and appending the context as
+                    hidden text makes the name `Riyadh Remove the City filter` —
+                    which opens with the visible label, unbroken. Same rule as
+                    `shell.notifications.markReadA11y`: the visible label first
+                    and whole, the distinguishing half after it. The key is
+                    unchanged; only the carrier moved. */}
+                <span className="sr-only">
+                  {t('rb.control.filters.remove', { field: labelFor(filter.field) })}
+                </span>
               </Button>
             </li>
           ))}

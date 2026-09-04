@@ -39,6 +39,36 @@
  * `rb.alert.sentence` is AC-878's single key with named parameters; there is no
  * `a + ' vs ' + b` in this module and no fragment assembly.
  *
+ * ## A key with no reader is not a translation, it is a liability
+ *
+ * **Fifteen keys were deleted from this file and from `i18n/ar/reports.ts` in
+ * one change**, after a full sweep: every `rb.*` key here was matched against
+ * all of `src/` with comments stripped, both as a literal and against every
+ * template that builds a key (`` `rb.grain.${g}` ``, `` `rb.${mode}.heading` ``
+ * and thirty-five others). The fifteen had **no reader at all** — not in a
+ * component, not in a resolver, not in a test.
+ *
+ * They cost more than the bytes. Each one was a string a translator had already
+ * been paid to write, an entry in the count `dictionaries.ts` states, and — the
+ * expensive part — a piece of *evidence for a feature that does not exist*.
+ * `rb.panel.expand` outlived the prop it named by exactly the commit that
+ * deleted the prop; `rb.panel.axis` described a y-axis label the plot has never
+ * drawn; `rb.library.tab.all / .mine / .team` describe a three-tab filter the
+ * library does not have. Reading this file, all three looked shipped.
+ *
+ * The deleted set, with what each one claimed:
+ *
+ *   `rb.panel.coverage`   `rb.panel.axis`   `rb.panel.expand`
+ *   `rb.table.bucket`     `rb.report.changed`  `rb.report.changed.action`
+ *   `rb.library.tab.all`  `rb.library.tab.mine`  `rb.library.tab.team`
+ *   `rb.library.col.owner`  `rb.library.col.pinned`  `rb.dashboard.back`
+ *   `rb.alerts.col.rule`  `rb.alert.rearm.unset`  `rb.alert.test.running`
+ *
+ * A deletion is reversible and a wrong claim is not, so the rule going forward
+ * is the sweep's: **a key lands in the same change as its reader.** The scan
+ * takes about a second and there is nothing clever in it — strip comments, then
+ * look for the literal or a template whose shape it fits.
+ *
  * Rules applied (`docs/ref/copy.md`)
  *   1   sentence case; only proper nouns capitalised mid-string.
  *   4   imperative, naming the fix. No `please`, no `invalid`, no blame.
@@ -167,8 +197,75 @@ export const REPORTS_EN: Dictionary = {
   'rb.control.grain': 'Grain',
   'rb.control.compare': 'Compare to',
   'rb.control.chartType': 'Chart type',
-  'rb.control.run': 'Run',
+  /* **`Run` became `Refresh`, and the KEY did not move.**
+     The canvas follows the question now — it re-runs itself 350ms after the
+     last edit — so the rail's primary is no longer the thing that makes the
+     report happen; it is the thing that asks the same question again, for an
+     operator who wants the numbers as of now rather than as of the last edit.
+     "Run" would name a commit that no longer exists.
+     The key stays `rb.control.run` deliberately: it is this control's stable
+     id, three suites owned by other roles resolve the button through it, and
+     renaming it would orphan a key and break them for a word. Flagged in the
+     handoff for i18n to rename with its call sites when it is cheap. */
+  'rb.control.run': 'Refresh',
   'rb.control.disabled.unstarted': 'Choose a measure first.',
+
+  /* ─────────────────────────── the chart toolbar ────────────────────────── */
+
+  /* §A7 — the row above the plot. The rail is *what am I asking*; this row is
+     *how am I looking at it*, and its strings are labels for controls that sit
+     side by side without a stacked `<Label>` above each one. */
+  'rb.toolbar.heading': 'Chart controls',
+  'rb.toolbar.range': 'Quick range',
+  /* The four rolling windows, short enough to sit in a segmented group. They
+     name THIS product's own presets — the nine in `REPORT_PRESETS` — and the
+     full nine stay one click away in the range popover. Never assembled from a
+     number and a word (AC-896). */
+  'rb.toolbar.range.last-7d': '7 days',
+  'rb.toolbar.range.last-30d': '30 days',
+  'rb.toolbar.range.last-90d': '90 days',
+  'rb.toolbar.range.last-365d': '365 days',
+  /* The comparison carries its own way off — a control that can only be turned
+     off by finding "No comparison" in a menu is one an operator leaves on by
+     accident. */
+  'rb.toolbar.compare.clear': 'Clear the comparison',
+
+  /* ── the visualisation picker — ONE control, seven shapes ──────────────
+     The mode strip is gone. Amplitude's `Line chart ⌄` is the only place a
+     shape is chosen, and the business owner's ruling folds the three mode
+     reports into it: *"rather than funnel, or retention or journeys, make
+     them chart types"*. So these seven labels name what the answer LOOKS
+     like, and `(mode, chartType)` is the pair each one resolves to — the
+     query type is untouched.
+
+     They are full names — `Line chart`, not `Line` — because the trigger
+     shows the chosen one on its own with no group label beside it, and a
+     trigger reading `Line` names nothing. `rb.chartType.*` keeps the short
+     words: they still label the legality reasons, where the sentence around
+     them supplies the noun. */
+  'rb.viz.label': 'Chart type',
+  'rb.viz.line': 'Line chart',
+  'rb.viz.bar': 'Bar chart',
+  'rb.viz.pie': 'Pie chart',
+  'rb.viz.table': 'Data table',
+  'rb.viz.cohort': 'Retention',
+  'rb.viz.funnel': 'Funnel',
+  'rb.viz.journey': 'Journeys',
+
+  /* ── the numbers above the plot (§A8) ──────────────────────────────────
+     Amplitude puts one big figure per series directly above the chart, over
+     two grey lines: what the number covers, and what its delta is measured
+     against. Both are dates, so both are keys rather than assembled strings
+     (AC-896). */
+  'rb.headline.window': 'over {range}',
+  'rb.headline.from': 'from {date}',
+  'rb.headline.noCompare': 'no comparison',
+
+  /* The `i` beside a label. One accessible name for every one of them, and it
+     names the ACTION rather than the field — the field is already announced by
+     the label the button sits beside, and repeating it would make every hint
+     in the rail announce as a different control doing the same thing. */
+  'rb.hint.show': 'What this means',
 
   /* Preset names are keys, never `'Last ' + n + ' days'` (AC-896). */
   'rb.preset.today': 'Today',
@@ -364,11 +461,22 @@ export const REPORTS_EN: Dictionary = {
   'rb.canvas.heading': 'Result',
   /* R8's SECOND kind of empty. Not the illustration: the data exists, the
      question has not been asked (AC-843). */
-  'rb.canvas.unstarted': 'Choose a measure, then run the report.',
+  /* **No longer "then run the report".** The report runs itself the moment the
+     question is legal, so an instruction to press something names a step that
+     does not exist and sends the operator hunting for a button. What is left is
+     the one thing still owed: the measure. */
+  'rb.canvas.unstarted': 'Choose a measure to see the report.',
   /* The same second kind of empty, worded for a mode that has no measure
      picker: *choose a measure* is not what a funnel is waiting for. */
-  'rb.canvas.unstarted.mode': 'Finish the question in the panel, then run the report.',
-  'rb.canvas.stale': 'Showing the previous run, computed {time}. Run to update it.',
+  'rb.canvas.unstarted.mode': 'Finish the question in the panel to see the report.',
+  /* §8.3 state 2. It used to end *"Run to update it."*; the canvas updates
+     itself now, and the sentence must not promise an action that is gone. What
+     is left is the fact — these numbers are the previous run's — which is true
+     both in the moment before the debounce fires AND in the one case where it
+     stands: a question that is currently illegal, whose reason is already on
+     screen beside the control that carries it. The leading clause is unchanged
+     so the claim reads identically wherever it is quoted. */
+  'rb.canvas.stale': 'Showing the previous run, computed {time}.',
   'rb.canvas.asOf': 'Computed {time}',
   'rb.canvas.loading': 'Running the report',
   'rb.canvas.error': 'The report didn’t run. Your question is unchanged.',
@@ -416,13 +524,55 @@ export const REPORTS_EN: Dictionary = {
      one sentence doing both would be wrong in whichever case it was not
      written for. */
   'rb.panel.parts': '{readings} of {total} groups have a reading.',
-  'rb.panel.coverage': 'Recorded from {from} to {to}.',
   'rb.panel.other': 'Other',
   'rb.panel.blocked': 'You don’t have the "{permission}" permission, so this measure isn’t shown.',
   'rb.panel.failed': 'This measure didn’t load. The rest of the report did.',
   'rb.panel.failed.retry': 'Load this measure',
-  'rb.panel.axis': 'Measured in {unit}',
   'rb.panel.chart.description': '{title}, {from} to {to}',
+
+  /* ── §A12 / §1.5 — the card's own chrome ───────────────────────────────
+     `chartKind` is the sr-only name behind the corner glyph: §7.5 says a shape
+     is never the sole carrier, and a `title` on the SVG would be a name only a
+     mouse could reach. `reload` is worded for a panel that loaded FINE —
+     `rb.panel.failed.retry` ("Load this measure") is the failed body's button
+     and reads as a first attempt, which is wrong in a standing menu. */
+  'rb.panel.chartKind': 'Shown as a {chartType} chart',
+  'rb.panel.actions': 'Actions for this panel',
+  'rb.panel.reload': 'Reload this measure',
+
+  /* §A9's `TOP 4` pill. It is rendered ONLY where the split was actually
+     capped, so the word "top" is a fact about the picture and not a flourish. */
+  'rb.panel.top': 'Top {count}',
+  /* §A9's `[Previous] name` marker, in front of the dated chip rather than
+     instead of it — §3.7 requires the legend to name both periods with dates
+     (AC-832) and that is strictly more than the marker alone says. */
+  'rb.panel.legend.previous': '[Previous]',
+
+  /* §A10 — the tooltip card. `on {date}` names the bucket a COMPARISON reading
+     was taken in: the two windows are zipped by index, so it is a different day
+     from the heading's by definition, and printing the two under one date is a
+     false statement rather than a missing one. */
+  'rb.panel.tooltip.on': 'on {date}',
+  /* The footer. A real destination, resolved from `displayedAsMetricKeys`, or
+     no footer at all — never "Click for Actions" over nothing. */
+  'rb.panel.tooltip.board': 'Also on the {board} board',
+  /* §A10's `Click for Actions`, as a fact rather than a slogan. It replaces the
+     line above ONLY where the mark under the cursor really is clickable, so the
+     tooltip never promises an action the panel does not draw. Amplitude's own
+     line is text, not a link — and a link here would be unreachable anyway,
+     because a Recharts tooltip wrapper is not a pointer-events target. */
+  'rb.panel.tooltip.action': 'Click to open the {board} board',
+
+  /* §P4 — the thing the click actually does, as a real anchor one row under the
+     plot. An imperative, because it is an action; §A12's strip below it is a
+     statement about the catalogue and is worded as one. */
+  'rb.panel.action.open': 'Open the {board} board',
+
+  /* ── §A12 — the closing strip ──────────────────────────────────────────
+     Amplitude's `Related Charts` is a similarity model. This is not: it is
+     F-9's back-reference, naming the boards that display THIS measure over THIS
+     population. The heading says exactly that and claims nothing more. */
+  'rb.related.heading': 'This measure also appears on',
 
   'rb.unit.count': 'whole numbers',
   'rb.unit.money': 'Saudi riyals',
@@ -432,12 +582,45 @@ export const REPORTS_EN: Dictionary = {
   'rb.unit.minutes': 'minutes',
   'rb.unit.days': 'days',
 
-  'rb.table.bucket': 'Bucket',
   'rb.table.value': 'Value',
   'rb.table.series': 'Series',
   'rb.table.partial': 'Incomplete',
   'rb.table.role.current': 'This period',
   'rb.table.role.comparison': 'Previous period',
+
+  /* ── §A11 — the table's own header row ─────────────────────────────────
+     The search and the export sit WITH the rows they act on, not in the page's
+     overflow: a CSV button three clicks away in a menu is a button nobody
+     finds, and §A11 puts `⎙ Export CSV` on the table for that reason.
+     `sort` is the button's accessible name; the `<th>`'s `aria-sort` carries
+     which way it is currently sorted, so the two are not one string doing two
+     jobs. */
+  'rb.table.search': 'Search series',
+  'rb.table.search.empty': 'No series match that search.',
+  'rb.table.export': 'Export CSV',
+  'rb.table.sort': 'Sort by {column}',
+
+  /* ── §A11's trailing column — and it is NOT `Row Average` ───────────────
+     Amplitude closes every row with an average. An average of thirty daily
+     counts is not a number anybody asked for, and an average of thirty
+     end-of-period levels is not even a level. So the header names the SPAN
+     ("over the window") and each cell names its own measure's declared
+     aggregate, which is the only honest way one column can carry two measures.
+     The note renders only where the table actually holds an incomplete bucket:
+     the rollup leaves it out (§3.5 / AC-818) and a number that quietly excludes
+     something is a number that misreports its base. */
+  'rb.table.window': 'Over the window',
+  'rb.table.window.note': 'Complete buckets only.',
+  'rb.table.window.sum': 'total',
+  'rb.table.window.mean': 'average',
+  'rb.table.window.latest': 'latest reading',
+  /* The fourth answer, and the one that stops a number being invented. A
+     cohort series is retention PER CENT — the catalogue's `count` aggregate
+     belongs to the measure it was anchored on, not to these numbers, and
+     applying it rendered `1,200% total` on a shipped dashboard. Lowercase and
+     in the same slot as the three above, because it is the same fact about the
+     cell: what kind of number is this. Here, the honest answer is none. */
+  'rb.table.window.undeclared': 'no stated way to combine these',
 
   'rb.legend.range': '{from} – {to}',
   'rb.legend.noCompare': 'No comparison period',
@@ -499,23 +682,44 @@ export const REPORTS_EN: Dictionary = {
 
   'rb.export': 'Export CSV',
 
+  /* ───────────────── the title block and the header actions ─────────────── */
+
+  /* §A5 — the report names itself and says what question it answers, in the
+     header, editable in place. The name is a DRAFT until `Save` writes it:
+     nothing in this module commits on a keystroke. */
+  'rb.title.label': 'Report name',
+  'rb.title.placeholder': 'Untitled report',
+  'rb.description.label': 'Report description',
+  'rb.description.placeholder': 'What question does this report answer?',
+  /* R7 tones: `Draft` is `info` — not yet live. `Saved` is `neutral` — an inert
+     factual outcome, and deliberately not `success`, which R7 reserves for
+     money settled and work complete. */
+  'rb.state.draft': 'Draft',
+  'rb.state.saved': 'Saved',
+  /* Derived from `pinnedToDashboardIds`, which is why it belongs in §8's meta
+     slot: it changes when the data changes. A plural FAMILY, never
+     `count + ' dashboards'` — Arabic marks exactly-two grammatically. */
+  'rb.header.dashboards#one': 'On 1 dashboard',
+  'rb.header.dashboards#other': 'On {count} dashboards',
+
+  /* §A6 / B4 — the overflow's export submenu. §11.2: gate at RENDER. PNG and
+     PDF are listed, off, and say why; hiding them would leave an operator
+     hunting for an export this product does not have. */
+  'rb.export.menu': 'Export',
+  'rb.export.png': 'Export PNG',
+  'rb.export.pdf': 'Export PDF',
+  'rb.export.blocked': 'Image export isn’t built. Export CSV instead.',
+
   /* §8.3 states 11 and 12. */
-  'rb.report.changed': 'Someone else saved this report. Your edits are untouched.',
-  'rb.report.changed.action': 'Reload it',
   'rb.report.deleted': 'This report was deleted. You can still save what you have as a new one.',
 
   /* ─────────────────────────── the library ──────────────────────────────── */
 
   'rb.library.new': 'New report',
   'rb.library.search': 'Search reports',
-  'rb.library.tab.all': 'All',
-  'rb.library.tab.mine': 'Mine',
-  'rb.library.tab.team': 'Team',
   'rb.library.col.name': 'Report',
-  'rb.library.col.owner': 'Owner',
   'rb.library.col.visibility': 'Visibility',
   'rb.library.col.updated': 'Updated',
-  'rb.library.col.pinned': 'On dashboards',
   'rb.library.open': 'Open',
   /* An alert is an action ON a report, not only a destination. Without this the
      only route in is the Alerts sub-tab, which then asks the operator to
@@ -593,7 +797,6 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboards.created.toast': '{name} created',
   'rb.dashboards.deleted.toast': '{name} deleted',
 
-  'rb.dashboard.back': 'All dashboards',
   'rb.dashboard.loading': 'Loading the dashboard',
   'rb.dashboard.error': 'The dashboard didn’t load.',
   'rb.dashboard.retry': 'Try again',
@@ -614,7 +817,30 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.rename.failed': 'The dashboard wasn’t saved. Nothing was changed.',
   'rb.dashboard.saved.toast': '{name} saved',
 
-  'rb.dashboard.add': 'Add a report',
+  /* §C4/§C2 — the header primary is `Add content`, not `Add a report`, because
+     it now opens a chooser rather than the picker: a report is one of the
+     things that can go on a board and the word has to leave room for the
+     second. The KEY is unchanged so nothing that references it has to move. */
+  'rb.dashboard.add': 'Add content',
+  /* §C2's described list. Amplitude offers four — `Existing content`,
+     `New chart`, `Generate with AI`, `Text`. Two of those are real here.
+     `Generate with AI` has no model endpoint behind it, and §11 defines a
+     dashboard as a named ordered list of saved report ids, which a `Text` tile
+     reopens; both are absent rather than disabled, because there is no feature
+     to enable. The hints follow §E3: a name and a one-line purpose, never a
+     bare label. */
+  'rb.dashboard.addContent.title': 'Add content',
+  'rb.dashboard.addContent.body': 'Pick what goes on the board next.',
+  'rb.dashboard.addContent.existing': 'Existing report',
+  'rb.dashboard.addContent.existing.hint':
+    'Pin a report someone has already saved. The board shows its current definition.',
+  'rb.dashboard.addContent.new': 'New report',
+  'rb.dashboard.addContent.new.hint':
+    'Open the builder on an empty question. Save the report, then pin it here.',
+  /* The chooser and the picker are two steps of ONE surface, so the way back is
+     a step and not a dismissal — cancelling here would lose the choice as well
+     as the step. */
+  'rb.dashboard.addContent.back': 'Back',
   'rb.dashboard.add.title': 'Add a report to this dashboard',
   /* AC-867 stated where the decision is made: the tile points at the report,
      so editing the report changes every board that holds it. */
@@ -629,9 +855,20 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.add.already': 'Already on this dashboard.',
   'rb.dashboard.add.cancel': 'Cancel',
 
+  /* §C1's empty board: an illustration, ONE sentence, ONE primary. Amplitude's
+     sentence is *"Add a chart, insert text, or use a template to get started"*
+     and names two things this product does not have — a text tile and a
+     template gallery. Naming them here would advertise features nobody has
+     built, so the sentence names what is actually on the other side of the
+     button. */
   'rb.dashboard.empty.heading': 'This dashboard has no reports yet',
   'rb.dashboard.empty.body': 'Add a saved report and it appears here, in the order you choose.',
-  'rb.dashboard.empty.action': 'Add a report',
+  'rb.dashboard.empty.action': 'Add content',
+  /* §C4 — the description placeholder. The field is on the record and the
+     rename dialog is where it is written, so this is a real control and not a
+     decorative sentence: an empty description is the commonest state of a board
+     somebody else made, and it is the one that costs the next reader the most. */
+  'rb.dashboard.description.add': 'Say what this board is for',
   'rb.dashboard.tile.moveUp': 'Move {name} up',
   'rb.dashboard.tile.moveDown': 'Move {name} down',
   /* The visible label names the ACTION; the accessible name names the tile, so
@@ -643,6 +880,11 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.tile.retry': 'Try again',
   'rb.dashboard.tile.error': 'This tile didn’t load. The rest of the dashboard did.',
   'rb.dashboard.tile.open': 'Open {name}',
+  /* §C5's `⊞`, in the tile's inline-end corner. The same destination as the
+     title link and a DIFFERENT accessible name: two buttons in one tile both
+     answering to `Open {name}` is an ambiguity a screen-reader user cannot
+     resolve by listening. */
+  'rb.dashboard.tile.expand': 'Open {name} in the builder',
 
   /* §8.3 state 12 / AC-825 — a query invalidated by a catalogue change is NOT
      a deleted report, and it must not be offered `Remove tile` as its only
@@ -662,14 +904,89 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.tile.removed.toast': '{name} removed from this dashboard',
   'rb.dashboard.reordered.toast': 'Order saved',
 
+  /* ───────────── §C4 — the board range, and what it drives ─────────────── */
+
+  /* Amplitude's dashboards carry their own period control and every tile
+     answers to it. Without one a board is nine unrelated windows: two tiles
+     side by side can be a week and a year and nothing says so.
+
+     **The default is named, not blank.** `Each report’s own range` is a real
+     answer and the commonest one — it is what a board holds until somebody
+     decides otherwise — so the trigger says it in those words rather than
+     showing a range nothing is using. */
+  'rb.dashboard.range': 'Board range',
+  'rb.dashboard.range.own': 'Each report’s own range',
+  'rb.dashboard.range.own.hint': 'Every tile answers with the window its report was saved with.',
+  'rb.dashboard.range.custom': 'Custom range',
+  'rb.dashboard.range.apply': 'Apply',
+  'rb.dashboard.range.cancel': 'Cancel',
+  'rb.dashboard.range.from': 'From',
+  'rb.dashboard.range.to': 'To',
+  'rb.dashboard.range.saved.toast': 'Board range saved',
+  'rb.dashboard.range.cleared.toast': 'Board range cleared',
+
+  /* §C4's `Add Filter`, in the EXISTING vocabulary — the same `FilterSpec` an
+     index table emits (AC-814). There is no second filter model. */
+  'rb.dashboard.filters': 'Board filters',
+  'rb.dashboard.filters.add': 'Add filter',
+  'rb.dashboard.filters.field': 'Field',
+  'rb.dashboard.filters.value': 'Value',
+  /* Distinct from the trigger's own `Add filter`: two buttons with one name
+     in one surface is an ambiguity a screen-reader user cannot resolve by
+     listening, and neither can a voice-control operator. */
+  'rb.dashboard.filters.apply': 'Apply filter',
+  'rb.dashboard.filters.cancel': 'Cancel',
+  /* The consequence, stated under the control rather than in a help doc
+     (principle 6): a board does not resolve its tiles, so which tiles this
+     narrows is decided per tile and said on the tile. */
+  'rb.dashboard.filters.hint':
+    'Applies to every tile whose report can be filtered by that field. Any that can’t will say so.',
+  'rb.dashboard.filters.empty': 'No measure in the catalogue can be filtered yet.',
+  /* SC 2.5.3 — the visible chip text comes FIRST and whole in the accessible
+     name, so a voice-control operator can say what they can see. */
+  'rb.dashboard.filters.remove': 'Remove the {field} board filter',
+  'rb.dashboard.filters.chip': '{field}: {value}',
+  'rb.dashboard.filter.added.toast': '{field} filter added to this dashboard',
+  'rb.dashboard.filter.removed.toast': '{field} filter removed from this dashboard',
+
+  /* The per-tile indication. A tile that quietly ignored a control the operator
+     can read two inches above it is the worst outcome available here: the
+     numbers are right for a question nobody asked. */
+  'rb.dashboard.tile.ownRange': 'Own range',
+  'rb.dashboard.tile.ownRange.why':
+    'The board range doesn’t work for this report, so it keeps the one it was saved with.',
+  'rb.dashboard.tile.filterRefused': 'Not filtered by {field} — this report can’t be.',
+
+  /* §C5 — the tile size, as a menu item rather than a drag. §11.2 rejected a
+     drag grid on keyboard-operability grounds and that ruling has not moved. */
+  'rb.dashboard.tile.span.full': 'Make full width',
+  'rb.dashboard.tile.span.half': 'Make half width',
+  'rb.dashboard.tile.span.fullA11y': 'Make {name} full width',
+  'rb.dashboard.tile.span.halfA11y': 'Make {name} half width',
+  'rb.dashboard.tile.span.toast': 'Layout saved',
+
+  /* §E6/§E7 — the content list carries a preview. This one draws the board's
+     LAYOUT, not its numbers: tile count and each tile's width are on the
+     record, and running nine reports to paint a row of a table is not. */
+  'rb.dashboards.col.range': 'Range',
+  /* The preview itself carries no text and is `aria-hidden`: the count it
+     draws is already a column, and a second reading of the same number is a
+     second thing that can disagree with the first. */
+  'rb.dashboards.duplicate': 'Duplicate',
+  'rb.dashboards.duplicate.name': '{name} (copy)',
+  'rb.dashboards.duplicate.failed': '{name} wasn’t duplicated. Nothing was changed.',
+
   /* ──────────────────────────── alerts (§12) ────────────────────────────── */
 
   'rb.alerts.new': 'New alert',
   'rb.alerts.search': 'Search alerts',
   'rb.alerts.col.name': 'Alert',
   'rb.alerts.col.state': 'State',
-  'rb.alerts.col.rule': 'Fires when',
   'rb.alerts.col.cadence': 'Checked',
+  /* The line the rule watches, beside the reading that is tested against it.
+     Amplitude §H's principle — what needs attention reads at a glance — needs
+     both numbers in view; one of them was only ever inside the rule sentence. */
+  'rb.alerts.col.threshold': 'Threshold',
   'rb.alerts.col.lastValue': 'Last reading',
   'rb.alerts.col.lastEvaluated': 'Last checked',
   'rb.alerts.firstRun.heading': 'Be told when a number crosses a line',
@@ -734,7 +1051,6 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.cadence.unset': 'Not set',
   'rb.alert.cadence.explain':
     'No checking schedule has been set for this product, and nothing checks these rules while the tab is closed. Until that is decided, a rule keeps its settings and does not run.',
-  'rb.alert.rearm.unset': 'Not set',
   'rb.alert.rearm.explain':
     'A rule fires once on crossing and re-arms when the value comes back inside the line. No minimum wait has been set.',
   /* Per row, in the State cell's secondary slot, when `cadence === null`. The
@@ -750,6 +1066,13 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.form.name': 'Name',
   'rb.alert.form.report': 'Report',
   'rb.alert.form.report.unsaved': 'An alert watches a saved report. Save this one first.',
+  /* **The preselected report, NAMED.** `rb.alert.form.report.unsaved` used to do
+     double duty as this dialog's description until a series and a threshold
+     existed — so an operator who pressed `Create alert` on a perfectly well
+     saved report was told to save it first. `alerts.parity.test.tsx` reported
+     that as a copy defect rather than working around it; this is the key it
+     asked for, and it says which report the rule will watch. */
+  'rb.alert.form.preset': 'Watching “{name}”. Choose a series and a threshold.',
   'rb.alert.form.series': 'Series',
   'rb.alert.form.comparator': 'Fires when the value',
   'rb.alert.form.threshold': 'Threshold',
@@ -778,7 +1101,6 @@ export const REPORTS_EN: Dictionary = {
 
   /* AC-877 — it says *would have fired*, never *fired*. */
   'rb.alert.test': 'Test this rule',
-  'rb.alert.test.running': 'Testing',
   'rb.alert.test.wouldFire':
     'It read {value} for the {grain} starting {bucket}. It would have fired.',
   'rb.alert.test.wouldNotFire':
@@ -811,6 +1133,10 @@ export const REPORTS_EN: Dictionary = {
      `warning`, and R7 puts a terminal factual outcome in neutral. */
   'rb.alert.history.notification.present': 'In the notification centre',
   'rb.alert.history.notification.cleared': 'No longer in the notification centre',
+  /* §11.1 — the heading names what the ledger is FOR, never the absence of
+     rows. *No firings yet* would be the absence; this is the section. The
+     sentence beneath it is the fact. */
+  'rb.alert.history.empty.heading': 'A record of every crossing',
   'rb.alert.history.empty': 'This rule has not fired.',
   'rb.alert.history.error': 'The firing history didn’t load.',
   /* The toolbar's search is unconditional, so it is wired rather than left

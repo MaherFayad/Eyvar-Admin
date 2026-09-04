@@ -271,23 +271,45 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
   const [period, setPeriod] = useState<MetricPeriod | null>(null)
   useEffect(() => setPeriod(null), [row.subTabId])
 
+  /**
+   * **§E4 — which lead figure the chart under the band is drawing.**
+   *
+   * `null` means *I have not chosen*, and the board falls through to its first
+   * chartable lead. It is not seeded with that key on mount for the same reason
+   * `period` is not seeded with the resolved window: pinning it would freeze the
+   * board to a metric that stops being its first the day the data or the
+   * `BOARD_LEADS` order moves.
+   *
+   * **Component state, and deliberately not `localStorage`.** Which of three
+   * numbers an operator is looking at right now is a fact about this visit to
+   * this board, not a preference — restoring it a week later would open the
+   * board on a chart nobody asked for, with no affordance saying why. The
+   * period control persists nothing either, for the same reason.
+   *
+   * Reset by sub-tab: a key chosen on Overview names a metric Risk & Signals
+   * does not have, and the fallback below would silently re-pick anyway. The
+   * reset makes that explicit rather than incidental.
+   */
+  const [featured, setFeatured] = useState<string | null>(null)
+  useEffect(() => setFeatured(null), [row.subTabId])
+
   const from = period?.start ?? null
   const to = period?.end ?? null
 
   const board = useAsync<MetricBoard>(
-    (signal) =>
-      getMetricBoard(row.subTabId, from && to ? { from, to } : undefined, signal),
+    (signal) => getMetricBoard(row.subTabId, from && to ? { from, to } : undefined, signal),
     {
-    /* `subTabId` picks the board; `from`/`to` are the window it is asked for.
+      /* `subTabId` picks the board; `from`/`to` are the window it is asked for.
        Each metrics sub-tab keys separately - switching between two and back
        paints the second board's own rows instead of a skeleton - and a new
        window re-reads rather than re-filtering what is already here, which is
        what the backend will do. Two primitives rather than the object, because
        a fresh `{from,to}` each render is a fresh dep every render. */
-    deps: [row.subTabId, from, to],
-    cacheKey: 'metrics.board',
-    isEmpty: isBoardEmpty,
-  })
+      deps: [row.subTabId, from, to],
+      cacheKey: 'metrics.board',
+      isEmpty: isBoardEmpty,
+    },
+  )
 
   const title = t(row.titleKey)
   const data = board.status === 'content' ? board.data : null
@@ -316,6 +338,60 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
     <BoardHero title={title} lede={lede} asOf={null} period={null} t={t} language={language} />
   )
 
+  /**
+   * **§E4 — which lead figures are a CHOICE, and which are just figures.**
+   *
+   * A lead is selectable exactly when the board charts a series under the same
+   * key, because that is the whole of what selecting does: it decides which
+   * chart is drawn beneath the band. A lead with no such chart **renders exactly
+   * as it does today** — a plain figure, not a radio — and no series is
+   * fabricated for it. There is no honest thing to draw and drawing a
+   * plausible-looking one would be the worst available answer.
+   *
+   * The lookup is `charts.find(c => c.key === metric.key)`, which is the join
+   * this file already makes further down to give each card its headline and its
+   * report link. One join, one meaning: **the metric with a chart's key is the
+   * figure that owns that number.**
+   */
+  const leads = data ? data.metrics.filter((metric) => metric.rank === 'lead') : []
+  const chartedKeys = new Set(data ? data.charts.map((chart) => chart.key) : [])
+  const selectableLeads = leads.filter((metric) => chartedKeys.has(metric.key))
+  /* The operator's choice while it still names a chart this board has; the
+     board's own first chartable lead otherwise. `null` on a board where no lead
+     is charted — the row is then a plain list and nothing is hoisted. */
+  const featuredKey =
+    featured !== null && chartedKeys.has(featured) ? featured : (selectableLeads[0]?.key ?? null)
+
+  /**
+   * **A choice needs two options, and a board with one chartable lead has
+   * none.**
+   *
+   * A radiogroup of one radio, always checked, cannot be operated: every key
+   * that would move it moves it back to itself. That is the *"affordance that
+   * works and does nothing"* the band's own period pill refuses to be, and it
+   * would be worse here because it is announced — a reader would be told
+   * *"radio button, checked, 1 of 1"* about a control with no second state.
+   *
+   * So the row becomes a radiogroup at **two**. Below that the chart is still
+   * hoisted under the band — it is the board's headline evidence either way,
+   * and the reference puts it there for that reason and not because it is
+   * selectable — and the figures render exactly as they always have.
+   *
+   * **Three boards clear it and the fixtures are what decide which**, so the
+   * count is asserted over the real boards rather than described here:
+   * `board.test.ts` pins `management-performance`, `support-overview` and
+   * `support-fairness` at two charted leads each, `management-overview` at
+   * exactly one — the case where the chart is hoisted with no control — and the
+   * remaining five at none. `support-fairness` renders on its own screen
+   * (`FairnessScreen`), which carries the same mechanism for the same reason.
+   *
+   * This paragraph used to say no board cleared the bar and the mechanism was
+   * inert. It was written before the §E4 series were seeded and was false from
+   * the commit that seeded them, with the test that disproves it landing in the
+   * same change.
+   */
+  const leadChoice = selectableLeads.length >= 2
+
   return (
     /* `flow` rather than the default `fill`. The board is now a long page —
        a band, then chapters, then a chart row — and `fill` claims the content
@@ -338,20 +414,35 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
             t={t}
             language={language}
           >
-            <BoardHeroRow>
-              {data.metrics
-                .filter((metric) => metric.rank === 'lead')
-                .map((metric) => (
-                  <BoardHeroItem key={metric.key}>
-                    <MetricTile
-                      metric={metric}
-                      boardAsOf={data.asOf}
-                      surface="band"
-                      t={t}
-                      language={language}
-                    />
-                  </BoardHeroItem>
-                ))}
+            {/* §E4 — a row of figures that DRIVES the chart below it. The row
+                is a radiogroup only when at least one of its figures charts
+                something; on a board where none does it stays the plain list it
+                was, because a group of one non-choice is not a control. */}
+            <BoardHeroRow groupLabel={leadChoice ? t('overview.hero.group') : null}>
+              {leads.map((metric) => (
+                <BoardHeroItem key={metric.key} inGroup={leadChoice}>
+                  <MetricTile
+                    metric={metric}
+                    boardAsOf={data.asOf}
+                    surface="band"
+                    selection={
+                      leadChoice && chartedKeys.has(metric.key)
+                        ? {
+                            selected: metric.key === featuredKey,
+                            onSelect: () => setFeatured(metric.key),
+                            /* Roving: the checked radio is the group's one tab
+                               stop, so `Tab` enters the row at the figure whose
+                               chart is on screen rather than always at the
+                               first. */
+                            tabIndex: metric.key === featuredKey ? 0 : -1,
+                          }
+                        : undefined
+                    }
+                    t={t}
+                    language={language}
+                  />
+                </BoardHeroItem>
+              ))}
             </BoardHeroRow>
           </BoardHero>
         ) : (
@@ -360,12 +451,12 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
       }
     >
       {board.status === 'loading' ? (
-        <div className="flex flex-col gap-12">
+        <div className="flex flex-col gap-8">
           {/* AC-35 — the figure-shaped skeleton, not a spinner. */}
           <LoadingSkeleton pattern="P5" label={t('overview.loading', { resource: title })} />
         </div>
       ) : board.status === 'error' ? (
-        <div className="flex flex-col gap-12">
+        <div className="flex flex-col gap-8">
           {/* AC-24 — the SCREEN fails, the shell does not. `Try again` re-runs
               the same request; it is the one primary on a page showing nothing
               else. */}
@@ -373,11 +464,14 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
             scope="page"
             heading={t('state.pageError.title', { resource: title })}
             message={t('state.pageError.body')}
-            action={{ label: t('state.pageError.action'), onClick: board.refetch }}
+            action={{
+              label: t('state.pageError.action'),
+              onClick: board.refetch,
+            }}
           />
         </div>
       ) : board.status === 'empty' || !data ? (
-        <div className="flex flex-col gap-12">
+        <div className="flex flex-col gap-8">
           {/* R8 / AC-38 — whole page, zero records ever: the illustrated state,
               with a heading naming what the section is FOR rather than what is
               missing from it. */}
@@ -394,7 +488,13 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
           />
         </div>
       ) : (
-        <BoardContent board={data} t={t} language={language} navigate={navigate} />
+        <BoardContent
+          board={data}
+          featuredKey={featuredKey}
+          t={t}
+          language={language}
+          navigate={navigate}
+        />
       )}
     </SingleColumnPage>
   )
@@ -416,11 +516,19 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
  */
 function BoardContent({
   board: loaded,
+  featuredKey,
   t,
   language,
   navigate,
 }: {
   board: MetricBoard
+  /**
+   * §E4 — the `Metric.key` of the lead figure the band has checked, and so the
+   * `TimeSeries.key` of the chart hoisted directly under it. `null` on a board
+   * where no lead is charted; nothing is hoisted then and the detail row is
+   * exactly what it was.
+   */
+  featuredKey: string | null
   t: Translate
   language: Language
   navigate: (to: string) => void
@@ -440,14 +548,35 @@ function BoardContent({
   const supporting = loaded.metrics.filter((metric) => metric.rank !== 'lead')
   const chapters = chaptersOf(supporting)
 
-  return (
-    /* 48px between the band and the first chapter, and between chapters. It is
-       four times the 12px the bordered grid used between tiles, and it has to
-       be: with no card edges, SPACE is the only thing that says one chapter has
-       ended and another has begun. The rule in each chapter heading closes the
-       previous one; this is what opens the next. */
-    <div className="flex flex-col gap-12">
+  /**
+   * **§E4 — the one chart the band is driving, lifted out of the detail row.**
+   *
+   * It is REMOVED from the row below rather than repeated in it. A board that
+   * drew the same series twice would leave an operator checking whether the two
+   * plots agreed, and they always would, which is the worst kind of question to
+   * make somebody answer.
+   *
+   * `find` by identity on the key, so a board whose `featuredKey` names nothing
+   * it charts hoists nothing and loses nothing — the same total set of panels
+   * renders either way.
+   */
+  const featured = loaded.charts.find((chart) => chart.key === featuredKey) ?? null
+  const detailCharts = loaded.charts.filter((chart) => chart !== featured)
+  const featuredOwner =
+    featured === null
+      ? null
+      : (loaded.metrics.find((metric) => metric.key === featured.key) ?? null)
 
+  return (
+    /* **32px between the band and the first chapter, and between chapters —
+       down from 48 (§E7 density).** With no card edges, SPACE is the only thing
+       that says one chapter has ended and another has begun, so it cannot go to
+       the gutter's 24; but 48 was set when a chapter's own internal pitch was 36
+       and its heading sat 24 above its figures, and both of those came down
+       with it. What matters is the RATIO — 32 between chapters against 28 within
+       one and 16 under a heading — and it is preserved. The rule in each chapter
+       heading closes the previous one; this is what opens the next. */
+    <div className="flex flex-col gap-8">
       {/* R4-4 §4.3 — the page banner slot, holding exactly one notice however
           many the board declared. §11.4 puts a banner first in the content
           block, above every card; **the band is this page's header, so first in
@@ -481,6 +610,33 @@ function BoardContent({
         />
       )}
 
+      {/* **§E4 — THE CHART THE BAND IS DRIVING, directly under the band.**
+          This is the reference's best single idea and the one part of it this
+          product had every piece of and connected none: a row of lead figures,
+          a set of charts keyed by the same `Metric.key`, and a `find` over both
+          already written thirty lines below to give each card its headline.
+          Selecting a figure above redraws THIS card and nothing else moves.
+
+          **It sits after the banner rather than before it**, which is the one
+          place *"directly under the band"* is qualified: §11.4 puts a page
+          banner first in the content block, above every card, and a breached
+          statutory clock does not queue behind a chart. On the six boards with
+          no notice — which is most renders — the card is the first thing under
+          the band with nothing between.
+
+          Full width, and carded. It is the board's headline evidence, and the
+          reference gives its hero card the whole column. */}
+      {featured && (
+        <ChartCard
+          key={featured.key}
+          series={featured}
+          headline={featuredOwner}
+          reportHref={featuredOwner?.drilldownRoute ?? null}
+          t={t}
+          language={language}
+        />
+      )}
+
       {/* **The supporting figures, in chapters.** Nine equal cells in one grid
           said nothing about what any of them had to do with each other;
           `Metric.category` already knew, and this is that field rendered. The
@@ -500,12 +656,7 @@ function BoardContent({
           <ChapterFigures>
             {chapter.metrics.map((metric) => (
               <MetricTileItem key={metric.key}>
-                <MetricTile
-                  metric={metric}
-                  boardAsOf={loaded.asOf}
-                  t={t}
-                  language={language}
-                />
+                <MetricTile metric={metric} boardAsOf={loaded.asOf} t={t} language={language} />
               </MetricTileItem>
             ))}
           </ChapterFigures>
@@ -581,45 +732,64 @@ function BoardContent({
           unchanged: a figure is a summary, a chart is its shape over time, and
           a list is which rows are responsible. **A lone panel takes the
           width**; two or more flow two-up. */}
-      {(loaded.charts.length > 0 || loaded.breakdowns.length > 0) && (
+      {(detailCharts.length > 0 || loaded.breakdowns.length > 0) && (
         <section
           className={cn(
-            /* 72px between panels, which is the reference's gutter and is what
-               a chromeless panel needs: with no card edges, space is the only
-               thing separating one plot's axis labels from the next panel's
-               title. */
-            'grid gap-x-18 gap-y-12 border-t border-border pt-12 compact:grid-cols-1',
-            loaded.charts.length + loaded.breakdowns.length === 1
-              ? 'grid-cols-1'
-              : 'grid-cols-2',
+            /* **20px between panels and 20px between rows — §3.7's stated grid,
+               and the panels took their card frames back to earn it.**
+
+               It was 72/48 and had to be: the panels were chromeless, so space
+               was the only thing separating one plot's axis labels from the
+               next panel's title. §3.7 measures the reference's own analytics
+               grid at a **~19–20px gutter**, and the reference can spend 20
+               because every tile on it is a bordered card — the border does the
+               separating that 72px of air was doing here. Taking the frame back
+               (below) is what buys the density, and the two changes are one
+               change.
+
+               `@container` — see `panelColumns` for why this row is the one
+               place in the product that earns one. */
+            '@container border-t border-border pt-8',
           )}
         >
-          {loaded.charts.map((chart) => {
-            /* ONE lookup, feeding both the headline and the report link. The
+          {/* **The grid is a CHILD of the container and cannot be the
+              container itself.** `container-type: inline-size` establishes a
+              query context for an element's DESCENDANTS, so a grid carrying
+              both its own `@container` and its own `@xl:` column count queries
+              the next container up — which on this page is nothing, so every
+              conditional column silently resolves to one. Measured before it
+              was noticed: one column at all six widths, on all three boards,
+              with the classes present in the markup and correct. */}
+          <div
+            className={cn(
+              'grid gap-5',
+              panelColumns(detailCharts.length + loaded.breakdowns.length),
+            )}
+          >
+            {detailCharts.map((chart) => {
+              /* ONE lookup, feeding both the headline and the report link. The
                metric with the same key is the surface that owns the number, by
                definition; `null` when the board charts something it does not
                also tile, which is legal — `TimeSeries.windowTotal` is how those
                eight state their own. */
-            const owner = loaded.metrics.find((metric) => metric.key === chart.key) ?? null
-            return (
-              <ChartCard
-                key={chart.key}
-                series={chart}
-                headline={owner}
-                frame="plain"
-                reportHref={owner?.drilldownRoute ?? null}
-                t={t}
-                language={language}
-              />
-            )
-          })}
+              const owner = loaded.metrics.find((metric) => metric.key === chart.key) ?? null
+              return (
+                <ChartCard
+                  key={chart.key}
+                  series={chart}
+                  headline={owner}
+                  reportHref={owner?.drilldownRoute ?? null}
+                  t={t}
+                  language={language}
+                />
+              )
+            })}
 
-          {loaded.breakdowns.map((breakdown) => (
-            <BreakdownList
-              key={breakdown.key}
-              breakdown={breakdown}
-              frame="plain"
-              /* **What the export attributes the file to.** A `MetricBreakdown`
+            {loaded.breakdowns.map((breakdown) => (
+              <BreakdownList
+                key={breakdown.key}
+                breakdown={breakdown}
+                /* **What the export attributes the file to.** A `MetricBreakdown`
                  is a ranking and carries no board, no sub-tab and no dates, so
                  the surface that renders it hands them over — and a list with
                  no scope offers no export, rather than writing a CSV that
@@ -628,11 +798,15 @@ function BoardContent({
                  The window is the board's own, read off the metrics exactly as
                  the band's period pill reads it, so the pill and the file name
                  the same range. */
-              scope={{ subTabId: loaded.subTabId, period: boardPeriod(loaded.metrics) }}
-              t={t}
-              language={language}
-            />
-          ))}
+                scope={{
+                  subTabId: loaded.subTabId,
+                  period: boardPeriod(loaded.metrics),
+                }}
+                t={t}
+                language={language}
+              />
+            ))}
+          </div>
         </section>
       )}
     </div>
@@ -640,28 +814,112 @@ function BoardContent({
 }
 
 /**
- * **The window the board's numbers cover**, for the band's period pill.
+ * **How many columns a row of `n` panels takes, and every answer is measured
+ * against R4-1's 268px floor.**
+ *
+ * §3.7's grid is three columns. R4-1's floor is 268px per panel. Reconciling
+ * them takes a container query, and this row is the one place in the product
+ * that earns one — `ui/field.tsx` declines a container query for the opposite
+ * and correct reason, that *"the pane is always the content region's width"*.
+ * This row is not: what is left for it is the viewport less the 80px rail, less
+ * the sub-tab column, less two page paddings, capped at the measure. A
+ * VIEWPORT breakpoint cannot see any of that, and the console has only two of
+ * them (768 and 1344) in any case.
+ *
+ * **The first attempt used them anyway, and the measurement is why it did not
+ * survive.** `grid-cols-2` below `wide` reads as two comfortable halves and is
+ * two 206px panels at an 800px viewport — under the floor, and 62px under it
+ * rather than marginally. The arithmetic that predicted 318 there was wrong
+ * about the content width by the whole sub-tab column, which is exactly the
+ * quantity a container query does not have to guess at. `scratch/board-
+ * density.mjs` is the check; it walks six widths on the three busiest boards
+ * and fails on any panel under 268.
+ *
+ * Measured, after (`@container` widths in brackets):
+ *
+ * | viewport | 3 panels | 2 panels |
+ * |---|---|---|
+ * | 800 | 1 x **432** | 1 x **432** |
+ * | 1024 | 2 x **318** | 2 x **318** |
+ * | 1280 | 3 x **291** | 2 x **446** |
+ * | 1344 | 3 x **301** | 2 x **462** |
+ * | 1440 | 3 x **333** | 2 x **510** |
+ * | 1920 | 3 x **435** | 2 x **662** |
+ *
+ * The two thresholds are the nearest container sizes ABOVE the arithmetic:
+ * two columns need 2 × 268 + 20 = 556 and take `@xl` (576); three need
+ * 3 × 268 + 40 = 844 and take `@4xl` (896). Rounding upward is what makes the
+ * floor a guarantee rather than a near miss.
+ *
+ * A single panel takes the width at every size — the reference's rule and not a
+ * fallback: one chart across the measure is a plot you can read a day off.
+ *
+ * **Static class strings, always.** A computed column count is a class
+ * Tailwind's scanner never sees and therefore never emits, and the failure mode
+ * is a one-column grid on a production build that every dev server renders
+ * correctly.
+ */
+function panelColumns(panels: number): string {
+  if (panels <= 1) return 'grid-cols-1'
+  if (panels === 2) return 'grid-cols-1 @xl:grid-cols-2'
+  return 'grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3'
+}
+
+/**
+ * **The window the board's LEAD figures cover**, for the band's period pill.
  *
  * A board has no period of its own — `MetricBoard` carries an `asOf` and
  * nothing else — so it is read off the metrics, which each carry the window
- * they were computed over. The first metric that has one wins, and the metrics
- * arrive leads-first, so the pill states the window of the number the board is
- * most about.
+ * they were computed over. The first that has one wins.
  *
- * `null` when no metric has one, and that is the common case rather than an
- * edge: a point-in-time metric has `periodStart` and `periodEnd` both `null` by
- * design — *"active captains right now is not a period, and giving it one
- * invites a date-range control that would do nothing"* — so a board made
- * entirely of them shows no pill at all. Which is correct: it is not filtered
- * to a range, and a pill would say it was.
+ * ## Why it stops at the leads, and the two boards that proved it has to
  *
- * **It does NOT check that the metrics agree.** They are computed by one
- * server pass over one window and `clients/metrics.ts` is where that would be
- * enforced; a screen that re-verified it would be asserting a data invariant
- * from the outside, in a place that could only respond by rendering nothing.
+ * It used to walk every metric on the board. The metrics arrive leads-first, so
+ * on a board whose headline figures declare a window the answer is unchanged —
+ * `management-overview` and `management-performance` both resolve to 11–25 Jun
+ * either way, which is also the window their hoisted chart plots.
+ *
+ * On a board whose leads are **point-in-time** the loop walked straight past
+ * them into the supporting figures and elevated one of those to *the board's*
+ * window. Measured on the shipped fixtures:
+ *
+ * | board | leads | what the old loop found | what the board charts |
+ * |---|---|---|---|
+ * | `support-overview` | three, all point-in-time | `contactsPerThousandTrips`, **19–25 Jun** — one tile of eight | two of its three series run **11–25 Jun** |
+ * | `management-risk` | three, all point-in-time | `repeatIncidentCaptains`, **25 May–25 Jun** — one tile of eight | its only series runs **19–25 Jun** |
+ *
+ * On `support-overview` that pill sits in the band ~100px above the §E4 chart
+ * hoisted beneath it, both drawn as bare `{from} – {to}` runs, neither labelled
+ * as belonging to a different thing — so a reader who takes the pill as the
+ * board's window reads a fifteen-day plot as seven days. **The chart is right
+ * about itself; the pill was wrong about the board**, and it was wrong the same
+ * way on `management-risk`, where no chart is hoisted and nobody had noticed.
+ *
+ * A lead has no window, so there is none to state, and the pill falls to
+ * `overview.period.none` — *All time* — which is exactly true: nothing has been
+ * filtered, and the picker would say the same if it were opened. The alternative
+ * considered and rejected was deriving the pill from the hoisted chart, which
+ * would make the band lie about the tiles instead.
+ *
+ * `null` is therefore the common case rather than an edge: a point-in-time
+ * metric has `periodStart` and `periodEnd` both `null` by design — *"active
+ * captains right now is not a period, and giving it one invites a date-range
+ * control that would do nothing"*.
+ *
+ * **One derivation, two readers.** The band's pill and the breakdown export's
+ * `scope.period` both call this, so the range on screen and the range in the
+ * CSV cannot disagree. A board that states no window writes none, which
+ * `BreakdownScope.period` already declares as a real answer rather than a gap.
+ *
+ * **It does NOT check that the leads agree with each other.** They are computed
+ * by one server pass over one window and `clients/metrics.ts` is where that
+ * would be enforced; a screen that re-verified it would be asserting a data
+ * invariant from the outside, in a place that could only respond by rendering
+ * nothing.
  */
 function boardPeriod(metrics: readonly Metric[]): { start: IsoDate; end: IsoDate } | null {
   for (const metric of metrics) {
+    if (metric.rank !== 'lead') continue
     if (metric.periodStart !== null && metric.periodEnd !== null) {
       return { start: metric.periodStart, end: metric.periodEnd }
     }

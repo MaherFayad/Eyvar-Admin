@@ -18,6 +18,7 @@ export {
   BoardHero,
   BoardHeroItem,
   BoardHeroRow,
+  FIGURE_GUTTER,
   type BoardHeroProps,
 } from './BoardHero'
 export { BreakdownList, type BreakdownListProps } from './BreakdownList'
@@ -32,7 +33,14 @@ export {
   type ChapterProps,
 } from './Chapter'
 export { ChartCard, type ChartCardProps } from './ChartCard'
-export { MetricDelta, MetricTile, type MetricSurface, type MetricTileProps } from './MetricTile'
+export {
+  MetricDelta,
+  MetricTile,
+  OpenAnalysis,
+  type MetricSelection,
+  type MetricSurface,
+  type MetricTileProps,
+} from './MetricTile'
 export { MetricTileItem } from './MetricTileRow'
 export { TrendChart, type TrendChartProps } from './TrendChart'
 export {

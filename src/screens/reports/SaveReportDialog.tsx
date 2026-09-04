@@ -131,6 +131,17 @@ export interface SaveReportDialogProps {
   onOpenChange: (open: boolean) => void
   /** `null` creates. A value updates in place. */
   report: SavedReport | null
+  /**
+   * **What the header's inline title and description already hold** (§A5).
+   *
+   * The builder's title block is editable in place and commits nothing — this
+   * module runs on explicit commits and a name is no exception. So the draft
+   * travels here and seeds the fields, and the operator does not type the same
+   * name twice. `undefined` (not `null`) means *no draft*, and the dialog falls
+   * back to the record's own values exactly as it always did.
+   */
+  draftName?: string
+  draftDescription?: string
   query: ReportQuery
   onSaved: (report: SavedReport) => void
   t: Translator
@@ -150,12 +161,14 @@ export function SaveReportDialog({
   open,
   onOpenChange,
   report,
+  draftName,
+  draftDescription,
   query,
   onSaved,
   t,
 }: SaveReportDialogProps) {
-  const [name, setName] = useState(report?.name ?? '')
-  const [description, setDescription] = useState(report?.description ?? '')
+  const [name, setName] = useState(draftName ?? report?.name ?? '')
+  const [description, setDescription] = useState(draftDescription ?? report?.description ?? '')
   const [visibility, setVisibility] = useState<SavedReport['visibility']>(
     report?.visibility ?? 'private',
   )
@@ -181,14 +194,18 @@ export function SaveReportDialog({
      render: that would overwrite what the operator is typing. */
   useEffect(() => {
     if (!open) return
-    setName(report?.name ?? '')
-    setDescription(report?.description ?? '')
+    setName(draftName ?? report?.name ?? '')
+    setDescription(draftDescription ?? report?.description ?? '')
     setVisibility(report?.visibility ?? 'private')
     setDashboardId(NO_DASHBOARD)
     setReasons([])
     setFailed(false)
     setSaved(null)
     setPinFailed(false)
+    /* **Keyed on `open`, not on the draft.** Re-seeding while the operator is
+       typing in the dialog would overwrite what they are typing with what the
+       header holds. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, report])
 
   /**

@@ -150,7 +150,7 @@ import {
   payWithheldFrom,
   releaseWithheldFrom,
 } from '../shared/derive'
-import { useScreenViews, type ScreenView } from '../shared/views'
+import { useScreenViews, type ScreenView } from '@/hooks'
 
 /**
  * **§11.2 over a set reads differently from §11.2 over a row**, so each cause
@@ -960,6 +960,18 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         bulkActions={bulkActions}
         rowActionsWidth={96}
         firstRun={{
+          /* **LR-3 — no Financials empty state carries an illustration**, and
+             this spends none of R8's licence: R8 *permits* one on a whole-page
+             zero-records-ever state, it does not require one. Financials
+             declines it, because an operator never creates a posting. The
+             heading, the body and the action all stay (AC-427).
+
+             Stated here rather than derived from the mode, because LR-3's scope
+             is FINANCIALS and ledger mode crosses it in both directions: these
+             are `mode: 'index'` tables a mode-derived default would miss, and
+             the entity ledgers the default does reach are not Financials at
+             all. */
+          illustration: null,
           heading: t('fin.escrow.empty.heading'),
           body: t('fin.escrow.empty.body'),
           actions: [{ label: t('fin.escrow.empty.action'), onClick: () => onSelectTab('payouts') }],
@@ -1336,6 +1348,9 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         rowActions={rowActions}
         bulkActions={bulkActions}
         firstRun={{
+          /* LR-3 — no Financials empty carries an illustration. See
+             `PayoutsScreen`'s first declaration for the full reasoning. */
+          illustration: null,
           heading: t('fin.deduction.empty.heading'),
           body: t('fin.deduction.empty.body'),
           actions: [

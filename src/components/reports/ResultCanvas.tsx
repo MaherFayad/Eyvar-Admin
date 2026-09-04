@@ -57,15 +57,23 @@
 import { useId } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import type { Measure, QueryViolation, ReportResult } from '@/data/types'
+import type {
+  CurrencyCode,
+  Measure,
+  MetricUnit,
+  QueryViolation,
+  ReportPanel,
+  ReportResult,
+} from '@/data/types'
 import { formatDate, type Language, type Translator } from '@/lib'
 import { DistributionCard } from './DistributionCard'
-import { PanelCard } from './PanelCard'
+import { PanelCard, PanelFrame, panelTitle } from './PanelCard'
+import { SeriesChart, seriesColor } from './SeriesChart'
+import { SeriesHeadlines } from './SeriesHeadlines'
 import { ResultTable } from './ResultTable'
 
 export type CanvasStatus = 'unstarted' | 'loading' | 'error' | 'invalid' | 'content'
@@ -82,6 +90,11 @@ export interface ResultCanvasProps {
   coercedFrom: string | null
   /** `line` or `bar` for a small-multiple; `pie` / `bar` for a distribution; `table` for the table. */
   effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
+  /**
+   * Re-runs the whole result. Reached from three places, all of them real: the
+   * error state's `Run again`, `Meta`'s refresh beside the freshness line, and
+   * — on the builder, which renders neither — `ChartToolbar`'s own refresh.
+   */
   onRetry: () => void
   onRetrySeries: (measureKey: string) => void
   /**
@@ -92,14 +105,58 @@ export interface ResultCanvasProps {
    * is the same composer as the builder"* (AC-873) checkable rather than
    * aspirational. It also means anything added here lands on a dashboard.
    *
-   * A per-bucket table is thirty columns wide on a thirty-day report and a
-   * `Run again` beside the freshness line duplicates the tile's own refetch, so
-   * neither belongs inside a tile — the tile is a *reading*, the builder is a
+   * A per-bucket table is thirty columns wide on a thirty-day report, so it
+   * does not belong inside a tile — the tile is a *reading*, the builder is a
    * *workspace*. Off by default: the caller that wants the workspace says so,
    * and a tile inherits nothing it did not ask for.
    */
-  withRefresh?: boolean
   withTable?: boolean
+  /**
+   * **The freshness sentence AND its refresh, together — which is the whole of
+   * principle 3.**
+   *
+   * `Meta` — *"Computed 25 Jun 09:14"* / *"Showing the previous run…"* plus the
+   * button that acts on it — moved to `ChartToolbar` for the builder, because
+   * §A7 puts freshness and the way to act on it in the row above the plot
+   * rather than between the plot and its chrome. The builder therefore passes
+   * `false` and gets exactly one of each.
+   *
+   * A **dashboard tile has no toolbar** and still owes its reader the instant
+   * its numbers were computed, so the default is `true`.
+   *
+   * **There is no second prop for the button.** There was one — `withRefresh`,
+   * defaulting `false` — and no caller ever passed it, so every dashboard tile
+   * stated a freshness with no way to act on it and P3 was false on every board
+   * in the product. The two are one decision: *does this caller draw the
+   * freshness line here?* A caller that does has a reader who can read *"Showing
+   * the previous run"* and no way to change it, which is the state the sentence
+   * exists to let them leave. `DashboardTile` passes `onRetry={tileData.refetch}`
+   * — a real refetch that was already wired for the error branch — so the
+   * control was one flag away from working the whole time.
+   */
+  withMeta?: boolean
+  /**
+   * **Writes the CSV for the table beneath the picture.**
+   *
+   * Only ever reached when `withTable` is on, and only ever passed by the
+   * builder — `ReportBuilder.exportCsv`, the same call the page overflow's
+   * `Export CSV` makes, so the file the header-row button writes and the file
+   * the menu writes are one function rather than two that agree today. Absent
+   * by default: §A11 puts the export **beside the thing it exports**, and an
+   * `Export CSV` button with no exporter behind it is a dead affordance.
+   */
+  onExport?: (() => void) | undefined
+  /**
+   * **Whether the panels draw their own frames.** `true` by default, because a
+   * panel is the outermost surface wherever this canvas is the page.
+   *
+   * `DashboardTile` is itself a `Card`, so it passes `false` and the panels
+   * render flush inside the tile's one frame. This replaces a structural
+   * selector the tile used to carry (`[&_[data-slot=card]]:border-0` and
+   * friends), which reached into `PanelCard`'s internals from the outside and
+   * would have broken silently the day that markup moved.
+   */
+  framed?: boolean
   /** §3.7's sentence, passed in so it stays byte-identical with every board. */
   noDataSentence: string
   t: Translator
@@ -116,8 +173,10 @@ export function ResultCanvas({
   effectiveChartType,
   onRetry,
   onRetrySeries,
-  withRefresh = false,
   withTable = false,
+  withMeta = true,
+  onExport,
+  framed = true,
   noDataSentence,
   t,
   language,
@@ -125,10 +184,13 @@ export function ResultCanvas({
   return (
     /* The canvas scrolls, the panel does not move. A split by district is
        twelve panels; without this the ninth is below the fold with no way to
-       reach it, because the shell's content region is height-constrained. */
+       reach it, because the shell's content region is height-constrained.
+
+       `@container` — the small-multiples grid below asks THIS box how wide it
+       is, because nothing else can know. See `Body`. */
     <section
       aria-label={t('rb.canvas.heading')}
-      className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto"
+      className="@container flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto"
     >
       {status === 'unstarted' ? (
         /* R8's SECOND kind. One grey sentence — an illustration would claim the
@@ -148,13 +210,9 @@ export function ResultCanvas({
         <InvalidQuery violations={violations} t={t} />
       ) : result ? (
         <>
-          <Meta
-            result={result}
-            stale={stale}
-            onRetry={withRefresh ? onRetry : null}
-            t={t}
-            language={language}
-          />
+          {withMeta && (
+            <Meta result={result} stale={stale} onRetry={onRetry} t={t} language={language} />
+          )}
           <Conditions result={result} t={t} />
           <Body
             result={result}
@@ -163,6 +221,7 @@ export function ResultCanvas({
             effectiveChartType={effectiveChartType}
             onRetrySeries={onRetrySeries}
             combinedTable={withTable}
+            framed={framed}
             noDataSentence={noDataSentence}
             t={t}
             language={language}
@@ -178,7 +237,13 @@ export function ResultCanvas({
               on the wire; letting the table hide a series would make the
               picture disagree with the question that produced it. */}
           {withTable && result.panels.length > 0 && (
-            <NumbersBehind result={result} t={t} language={language} />
+            <NumbersBehind
+              result={result}
+              onExport={onExport}
+              measuresByKey={measuresByKey}
+              t={t}
+              language={language}
+            />
           )}
         </>
       ) : null}
@@ -201,8 +266,12 @@ function Meta({
 }: {
   result: ReportResult
   stale: boolean
-  /** `null` on a dashboard tile, which has its own refetch. See the prop docs. */
-  onRetry: (() => void) | null
+  /**
+   * The caller's re-run. Not optional and not nullable: this block renders only
+   * under `withMeta`, and `withMeta` is the caller saying *I draw the freshness
+   * here* — which is the same caller that owes the reader a way to act on it.
+   */
+  onRetry: () => void
   t: Translator
   language: Language
 }) {
@@ -216,16 +285,20 @@ function Meta({
        The sentence keeps its own `role="status"` — the live region is the
        claim about the numbers, and wrapping the button in it would announce a
        button label every time the query goes dirty. Ghost, `xs`: R3 leaves the
-       one primary on the rail. */
+       one primary on the rail.
+
+       **Unconditional.** The button used to be gated on a second prop that
+       nothing passed, so the sentence shipped alone on every dashboard tile in
+       the product. A freshness line with no refresh is P3 stated and not kept:
+       it tells a reader the number may be old and leaves them nothing to do
+       about it. The two render together or neither does. */
     <div className="flex flex-wrap items-center gap-2">
       <p role={stale ? 'status' : undefined} className="text-xs text-muted-foreground">
         {stale ? t('rb.canvas.stale', { time }) : t('rb.canvas.asOf', { time })}
       </p>
-      {onRetry && (
-        <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-          {t('rb.canvas.error.retry')}
-        </Button>
-      )}
+      <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+        {t('rb.canvas.error.retry')}
+      </Button>
     </div>
   )
 }
@@ -237,10 +310,19 @@ function Meta({
  */
 function NumbersBehind({
   result,
+  onExport,
+  measuresByKey,
   t,
   language,
 }: {
   result: ReportResult
+  onExport: (() => void) | undefined
+  /**
+   * §A11's trailing summary column reads `Measure.bucketAggregate` from this —
+   * the canvas already holds the catalogue for the panels, so the table gets
+   * the same objects rather than a second lookup that could disagree.
+   */
+  measuresByKey: Readonly<Record<string, Measure>>
   t: Translator
   language: Language
 }) {
@@ -250,7 +332,24 @@ function NumbersBehind({
       <h3 id={headingId} className="text-sm font-medium text-foreground">
         {t('rb.canvas.table.heading')}
       </h3>
-      <ResultTable result={result} t={t} language={language} />
+      {/* **`chrome` unconditionally, because this subtree IS the opt-in.**
+          `NumbersBehind` renders only under `withTable`, and the only caller
+          that asks for the table is the builder — the workspace §A11 describes,
+          where a search, a sort and an export belong. A dashboard tile pinned as
+          a table takes the other path through `Body` and gets the bare table it
+          has always had, so the chrome cannot leak onto a board.
+
+          The export is the caller's, not this component's: `ResultTable` draws
+          the button only when a handler arrives, so the affordance and the thing
+          behind it ship together or not at all. */}
+      <ResultTable
+        result={result}
+        chrome
+        onExport={onExport}
+        measuresByKey={measuresByKey}
+        t={t}
+        language={language}
+      />
     </section>
   )
 }
@@ -321,6 +420,7 @@ function Body({
   effectiveChartType,
   onRetrySeries,
   combinedTable,
+  framed,
   noDataSentence,
   t,
   language,
@@ -330,8 +430,17 @@ function Body({
   coercedFrom: string | null
   effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
   onRetrySeries: (measureKey: string) => void
-  /** The caller renders the table itself, beneath this body. See `withTable`. */
+  /**
+   * The caller renders the table itself, beneath this body (see `withTable`) —
+   * **and it is the builder-versus-tile signal**, which is why §A12's related
+   * strip rides on it. Only the builder asks for the workspace, and a strip of
+   * navigation cards under every panel of a nine-tile board is eighteen links
+   * nobody asked for. One signal, so the two cannot disagree about which caller
+   * this is.
+   */
   combinedTable: boolean
+  /** `false` inside a caller that already drew the frame. See `ResultCanvasProps`. */
+  framed: boolean
   noDataSentence: string
   t: Translator
   language: Language
@@ -345,14 +454,16 @@ function Body({
     /* The run succeeded and produced nothing at all. §3.7's sentence, inside a
        card that keeps its frame — not a spinner and not an empty plot. */
     return (
-      <Card className="w-full">
+      /* Framed like a panel, and unframed for the same caller — a tile that
+         resolved to nothing draws one hairline, not two. */
+      <PanelFrame framed={framed} className="w-full">
         <CardHeader>
           <CardTitle>{t('rb.canvas.heading')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="py-10 text-center text-sm text-muted-foreground">{noDataSentence}</p>
         </CardContent>
-      </Card>
+      </PanelFrame>
     )
   }
 
@@ -367,7 +478,13 @@ function Body({
      exactly, because a tile pinned as a table is a table and thirty columns of
      numbers under a chart is not a tile. */
   if (effectiveChartType === 'table' && !combinedTable) {
-    return <ResultTable result={result} t={t} language={language} />
+    /* No `chrome` — a search box and an export button inside a 300px tile is
+       chrome competing with the reading it frames. **The summary column is not
+       chrome**: it is a reading, and it is the one a tile has the least room to
+       work out by eye across thirty columns, so the catalogue goes in here too. */
+    return (
+      <ResultTable result={result} measuresByKey={measuresByKey} t={t} language={language} />
+    )
   }
 
   /* A single bucket is a distribution, not a set of axes. See the file header. */
@@ -391,6 +508,7 @@ function Body({
             kind="bar"
             coercedFrom={null}
             onRetrySeries={onRetrySeries}
+            framed={framed}
             noDataSentence={noDataSentence}
             t={t}
             language={language}
@@ -406,6 +524,7 @@ function Body({
                measure split into parts, and titling it with whichever group
                happened to rank first reads as a chart of that group. */
             title={measure ? t(measure.labelKey) : t('rb.canvas.heading')}
+            framed={framed}
             t={t}
             language={language}
           />
@@ -414,52 +533,233 @@ function Body({
     )
   }
 
-  /* **Small multiples, two across — the metric boards' own chart grid.**
-     R4-4 §4.5 puts charts and breakdowns in ONE two-column grid, each at half
-     the content width, and **R5-8 settled halves rather than thirds by
-     measurement**: at 13px an Eyvar label truncates in a ~320px card, and V-4
-     proved truncation is destructive in Arabic. A panel is a chart card, so it
-     takes a chart card's column count.
-     
-     **This is a deviation from R4-1 §1.4, which files panels on the metric
-     TILE grid**, and it is raised in the handoff rather than absorbed: a fixed
-     three-across grid inside the builder's canvas measured **237px per panel at
-     1440** — below R4-1's own stated 268px floor — because the canvas is
-     narrower than a full-width tile row by the width of the query panel. Two
-     columns give 360px at 1440 and 280px at the 1280 floor, both above it.
-     Product-designer rules which grid a panel belongs on; until then the rule
-     whose floor is satisfied is the one in force.
+  /**
+   * **One plot, every series in it** — the small-multiples grid is gone.
+   *
+   * This used to map `result.panels` to one `PanelCard` each and lay them out
+   * two across. The business owner's sentence retired it: *"compound charts
+   * that compare those data to each other not every one in it's own chart"*.
+   * The defect that sentence names is real and specific — six districts drew
+   * six charts, each auto-scaled to its own maximum, so a district with 40
+   * rides and one with 4,000 produced **the same shaped line at the same
+   * height**, and the comparison the split exists to make was the one thing the
+   * picture could not show.
+   *
+   * ## Panels still decide what may share an axis
+   *
+   * A `ReportPanel` is *"a y-axis … the reason two measures cannot silently
+   * share a scale"*. So the grouping here is by `(unit, currency)` — two thirds
+   * of the triple `pairRefusal` uses to decide whether two numbers may be
+   * combined at all — and each group gets one plot with one axis.
+   *
+   * For the case that matters this is exactly one group: a split by district is
+   * one measure over N groups, every panel carrying the same unit. Two measures
+   * in different units still get two plots, and that is the correct answer
+   * rather than a limitation — halalas and a count on one axis is the
+   * fabrication this whole module is built to refuse.
+   *
+   * ## The numbers are above the plot
+   *
+   * `SeriesHeadlines` renders one figure per series, dot-coloured to match its
+   * line. That mapping is the entire justification for a compound chart: it is
+   * what lets a reader tie a number to a curve without counting legend rows.
+   *
+   * ## A series that cannot be drawn is not folded into the plot
+   *
+   * A blocked or failed series has no points and its own thing to say — a
+   * permission to ask for, or a retry. Those keep their `PanelCard`, above the
+   * plot, exactly as they were: dropping them into the compound chart would
+   * draw a redacted series as a flat line at zero, which is §13.1's silent
+   * redaction wearing a nicer picture.
+   */
+  const drawable = result.panels.filter((panel) => {
+    const series = result.series.find((s) => s.panelId === panel.panelId && s.role === 'current')
+    return !(series?.blocked || series?.failed)
+  })
+  const undrawable = result.panels.filter((panel) => !drawable.includes(panel))
 
-     Static class strings both ways: a computed column count is a class
-     Tailwind's scanner never sees and therefore never emits. */
-  const columns = result.panels.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+  /* Grouped by what may share an axis, in first-appearance order so the first
+     group is always the first measure the operator chose. The palette index is
+     the panel's position in `result.panels` — the result's own documented draw
+     order — so a second unit group does not restart at the brand colour and
+     claim to be the first series. */
+  const axisGroups = new Map<
+    string,
+    { unit: MetricUnit; currency: CurrencyCode | null; panels: ReportPanel[]; colorIndexes: number[] }
+  >()
+  drawable.forEach((panel) => {
+    const key = `${panel.unit}|${panel.currency ?? ''}`
+    const group = axisGroups.get(key) ?? {
+      unit: panel.unit,
+      currency: panel.currency,
+      panels: [] as ReportPanel[],
+      colorIndexes: [] as number[],
+    }
+    group.panels.push(panel)
+    group.colorIndexes.push(result.panels.indexOf(panel))
+    axisGroups.set(key, group)
+  })
 
   return (
-    <ul role="list" className={cn('grid list-none gap-3', columns)}>
-      {result.panels.map((panel) => (
-        <li key={panel.panelId} className="min-w-0">
-          {/* **P1-8 — one boundary per panel, so a panel fails alone.** The
-              grid is a set of small multiples over one run: if the third one
-              throws inside recharts, the other five are still correct and
-              still worth reading. Carded (the default), because the boundary
-              replaces the whole card here rather than its body — the title
-              lives inside `PanelCard` and is not reachable once it has
-              thrown. Generic copy for the same reason. */}
-          <ErrorBoundary scope="card" t={t}>
-            <PanelCard
-              panel={panel}
-              result={result}
-              measure={measureOf(panel.panelId)}
-              kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
-              coercedFrom={coercedFrom}
-              onRetrySeries={onRetrySeries}
-              noDataSentence={noDataSentence}
-              t={t}
-              language={language}
-            />
+    <div className="flex flex-col gap-3">
+      {undrawable.map((panel) => (
+        <PanelCard
+          key={panel.panelId}
+          panel={panel}
+          result={result}
+          measure={measureOf(panel.panelId)}
+          kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
+          coercedFrom={null}
+          onRetrySeries={onRetrySeries}
+          framed={framed}
+          noDataSentence={noDataSentence}
+          t={t}
+          language={language}
+        />
+      ))}
+
+      {[...axisGroups.entries()].map(([key, group]) => {
+        const titles = group.panels.map((panel) => panelTitle(panel, t).text)
+        return (
+          /* **P1-8 — one boundary per plot**, so one axis failing inside
+             recharts does not take the other down with it. Carded, because the
+             boundary replaces the whole card here rather than its body. */
+          <ErrorBoundary key={key} scope="card" t={t}>
+            <PanelFrame framed={framed} className="w-full">
+              <CardContent className="flex flex-col gap-3 px-3">
+                {/* **The planner refused the shape and drew another one, and
+                    that is stated on the plot it changed.** It used to sit
+                    inside each `PanelCard`; with one plot per axis it belongs
+                    once, above that plot, rather than repeated per series. */}
+                {coercedFrom !== null && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('rb.warning.chartCoerced', {
+                      chartType: t(`rb.chartType.${effectiveChartType === 'bar' ? 'bar' : 'line'}`),
+                      requested: t(`rb.chartType.${coercedFrom}`),
+                    })}
+                  </p>
+                )}
+                <SeriesHeadlines
+                  panels={group.panels}
+                  result={result}
+                  titles={titles}
+                  colorIndexes={group.colorIndexes}
+                  measuresByKey={measuresByKey}
+                  unit={group.unit}
+                  currency={group.currency}
+                  t={t}
+                  language={language}
+                />
+                <SeriesChart
+                  panels={group.panels}
+                  result={result}
+                  kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
+                  unit={group.unit}
+                  /* The plot's accessible name lists what is in it: the marks
+                     are inert and carry no text of their own. */
+                  description={titles.join(', ')}
+                  titles={titles}
+                  colorIndexes={group.colorIndexes}
+                  /* Taller in the workspace than in a tile. The builder has one
+                     plot where it used to have six, and the height that gives
+                     back belongs to the plot rather than to whitespace. */
+                  heightClass={combinedTable ? 'h-80' : 'h-56'}
+                  t={t}
+                  language={language}
+                />
+                <SeriesLegend
+                  panels={group.panels}
+                  titles={titles}
+                  colorIndexes={group.colorIndexes}
+                  /* The dashed entry appears only where a dashed line does —
+                     `SeriesChart` draws the comparison for at most two series,
+                     and a legend naming a line that is not on the plot is a
+                     legend that lies. */
+                  hasComparison={
+                    result.query.periodComparison !== 'none' && group.panels.length <= 2
+                  }
+                  t={t}
+                />
+              </CardContent>
+            </PanelFrame>
           </ErrorBoundary>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * §3.7's legend, laid out to §A9 — **a mark and a name per series, centred
+ * beneath the plot**, each mark in its series' own hue.
+ *
+ * The mark is a **line**, not a dot, and that is deliberate: the comparison
+ * differs by dash rather than by hue (§3.7), and a dashed dot is not a shape.
+ * Drawn as SVG so the dash rhythm matches the plot's exactly — a CSS dashed
+ * border and an SVG dash array do not produce the same pattern, and a legend
+ * that does not match its own line is worse than no legend.
+ *
+ * The comparison gets **one** entry rather than one per series: it is a
+ * statement about the window, not about a series, and N dashed entries in N
+ * hues would read as N more series.
+ *
+ * Absent entirely for a single series with no comparison — the headline above
+ * the plot already names it, in the same hue, and a legend repeating one entry
+ * is chrome.
+ */
+function SeriesLegend({
+  panels,
+  titles,
+  colorIndexes,
+  hasComparison,
+  t,
+}: {
+  panels: readonly ReportPanel[]
+  titles: readonly string[]
+  colorIndexes: readonly number[]
+  hasComparison: boolean
+  t: Translator
+}) {
+  if (panels.length < 2 && !hasComparison) return null
+
+  return (
+    <ul role="list" className="flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1">
+      {panels.map((panel, index) => (
+        <li key={panel.panelId} className="flex min-w-0 items-center gap-1.5">
+          <Swatch color={seriesColor(colorIndexes[index] ?? index)} dashed={false} />
+          {/* A group value is user content and carries its own direction. */}
+          <span className="min-w-0 truncate text-xs text-muted-foreground">
+            <bdi>{titles[index] ?? ''}</bdi>
+          </span>
         </li>
       ))}
+      {hasComparison && (
+        <li className="flex items-center gap-1.5">
+          <Swatch color="var(--chart-axis)" dashed />
+          {/* Square brackets are bidi-neutral and would swap ends of an Arabic
+              line unisolated, so the marker is its own isolated run. */}
+          <span className="text-xs text-muted-foreground">
+            <bdi>{t('rb.panel.legend.previous')}</bdi>
+          </span>
+        </li>
+      )}
     </ul>
+  )
+}
+
+/** The line swatch. The dash is the only difference between the two (§3.7). */
+function Swatch({ color, dashed }: { color: string; dashed: boolean }) {
+  return (
+    <svg aria-hidden="true" width="14" height="8" viewBox="0 0 14 8" className="shrink-0">
+      <line
+        x1="0"
+        y1="4"
+        x2="14"
+        y2="4"
+        stroke={color}
+        strokeWidth="2"
+        strokeDasharray={dashed ? '4 3' : undefined}
+      />
+    </svg>
   )
 }

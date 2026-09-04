@@ -623,6 +623,33 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/compliance/documents/:documentId/file",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getComplianceDocumentFile",
+      "params": null,
+      "body": null,
+      "returns": "the bytes, with Content-Type: image/jpeg | image/png | application/pdf",
+      "statuses": [
+        {
+          "code": "204",
+          "when": "when the document exists and holds no file — NOT an error, and the common case"
+        },
+        {
+          "code": "403",
+          "when": "when the operator lacks view_operations or view_profiles"
+        },
+        {
+          "code": "404",
+          "when": "when no document has that id"
+        },
+        {
+          "code": "502",
+          "when": "when the store returns a media type this app cannot decode"
+        }
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/compliance/drivers",
       "client": "src/data/clients/drivers.ts",
       "function": "listDriverCompliance",
@@ -639,7 +666,12 @@
       "params": null,
       "body": null,
       "returns": "DriverCompliance",
-      "statuses": []
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the captain has no compliance record"
+        }
+      ]
     },
     {
       "method": "GET",
@@ -1109,6 +1141,21 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/api/v1/drivers/:id/movements",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverMoneyMovements",
+      "params": null,
+      "body": null,
+      "returns": "DriverMoneyMovements",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the captain does not exist"
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/v1/drivers/:id/reinstate",
       "client": "src/data/clients/drivers.ts",
@@ -1119,6 +1166,21 @@
       "statuses": []
     },
     {
+      "method": "GET",
+      "path": "/api/v1/drivers/:id/support",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverSupportPresence",
+      "params": null,
+      "body": null,
+      "returns": "DriverSupportPresence",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the captain does not exist"
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/v1/drivers/:id/suspend",
       "client": "src/data/clients/drivers.ts",
@@ -1127,6 +1189,21 @@
       "body": "{ reason: string }",
       "returns": "Driver",
       "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/drivers/:id/timeline",
+      "client": "src/data/clients/drivers.ts",
+      "function": "getDriverTimeline",
+      "params": "page · pageSize · sort · filter (kind, at)",
+      "body": null,
+      "returns": "Paginated<DriverTimelineEvent> — newest first",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the captain does not exist"
+        }
+      ]
     },
     {
       "method": "GET",
@@ -3149,6 +3226,16 @@
       "params": null,
       "body": "{ flagged: boolean }",
       "returns": "Trip",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/:id/telemetry",
+      "client": "src/data/clients/trips.ts",
+      "function": "getTripTelemetry",
+      "params": null,
+      "body": null,
+      "returns": "TripTelemetry",
       "statuses": []
     },
     {
