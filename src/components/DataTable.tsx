@@ -185,6 +185,7 @@ import {
   useRovingFocus,
 } from '@/hooks'
 import type { AnyTable } from '@/hooks'
+import { rowIntentFor } from '@/commands/shortcuts'
 import { EmptyState, type EmptyAction } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingSkeleton } from './LoadingSkeleton'
@@ -1213,6 +1214,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
      of it; `nothingToNarrow` is the branch where every control is inert. */
   const emptyReasonId = useId()
   const pageSizeLabelId = useId()
+  /** T6.2 — the row whose kebab is open, so `.` and a click reach one state. */
+  const [openActionsRow, setOpenActionsRow] = useState<string | null>(null)
   const narrowed = table.isFiltered || emptyKind === 'no-match'
   const nothingToNarrow = status === 'empty' && !narrowed
   const emptyDescribedBy = status === 'empty' ? emptyReasonId : undefined
@@ -1803,7 +1806,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ))}
       </div>
     ) : (
-      <DropdownMenu>
+      /* T6.2 — controlled so `.` on the row can open it. Uncontrolled, the only
+         way in was a synthetic pointer event, which is a simulation rather than
+         the thing itself. `undefined` here would make it uncontrolled again. */
+      <DropdownMenu
+        open={openActionsRow === id}
+        onOpenChange={(next) => setOpenActionsRow(next ? id : null)}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -1826,6 +1835,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
       </DropdownMenu>
     )
 
+  /* T6.2 — the row's actions, from the row. A kebab opens; one or two direct
+     buttons have no menu, so focus lands on the first, which is where the menu
+     would have put it anyway. */
+  const openRowActions = (rowNode: HTMLElement, id: string): void => {
+    if (actionShape !== 'direct') {
+      setOpenActionsRow(id)
+      return
+    }
+    rowNode.querySelector<HTMLElement>('[data-row-actions]')?.focus()
+  }
+
   const rowItemProps = (index: number, row: T) => {
     const base = rowRoving.itemProps(index)
     return {
@@ -1845,6 +1865,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
              also jump the body a page down. */
           event.preventDefault()
           activateRow(row)
+          return
+        }
+
+        /* T6.2 — `j`/`k`/`.` as `commands/shortcuts.ts` declares them. The
+           table resolves a named intent and never reads a key itself. */
+        const intent = rowIntentFor(event)
+        if (intent !== null) {
+          event.preventDefault()
+          if (intent === 'row.actions') openRowActions(event.currentTarget, getRowId(row))
+          else
+            rowRoving.setActiveIndex(
+              Math.min(
+                Math.max(0, index + (intent === 'row.next' ? 1 : -1)),
+                Math.max(0, rows.length - 1),
+              ),
+            )
           return
         }
 

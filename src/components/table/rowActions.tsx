@@ -231,6 +231,8 @@ export function SingleRowAction<T>({
         variant="secondary"
         size="xs"
         className="w-full justify-center truncate"
+        /* T6.2 — how `.` finds the row's actions when there is no menu. */
+        data-row-actions="direct"
         disabled={disabled}
         aria-describedby={reason === null ? undefined : reasonId}
         onClick={() => action.onSelect(row)}
