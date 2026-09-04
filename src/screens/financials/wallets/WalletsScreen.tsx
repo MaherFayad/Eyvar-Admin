@@ -84,7 +84,6 @@ import {
 import type {
   AuthorityCheck,
   FinancialsOverview,
-  Halalas,
   Ledger,
   LedgerPosting,
   Paginated,
@@ -96,7 +95,7 @@ import { formatCount, formatDate, formatMoney, type Language, type Translate } f
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn, type ExtraFilterSpec } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { Money, MoneyCell } from '@/components/Money'
+import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
@@ -104,6 +103,7 @@ import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmM
 import { EntityName, useEntityLinks } from '../shared/entityLinks'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
 import { LedgerCard } from '../shared/LedgerCard'
+import { ViewHeader } from '../shared/ViewHeader'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
 
@@ -504,7 +504,10 @@ function WalletIndex({
         id: 'actions',
         header: t('queue.col.actions'),
         dataType: 'enum',
-        width: 190,
+        width: 112,
+        /* **R2-4** — the lane holds the one MUTATING action. `View ledger` left
+           it: the ledger is this route's own address, so the row opens it by
+           click and by `Enter`, and the rider's name is the same link. */
         cell: (wallet) => (
           <span className="flex items-center gap-1">
             <Button
@@ -516,28 +519,30 @@ function WalletIndex({
             >
               {t('fin.wallet.action.adjust')}
             </Button>
-            <Button variant="secondary" size="xs" onClick={() => onOpenLedger(wallet.riderId)}>
-              {t('fin.wallet.action.ledger')}
-            </Button>
           </span>
         ),
       },
     ],
-    [t, language, gate, actions, onOpenLedger, openAdjust, hrefFor, location],
+    [t, language, gate, actions, openAdjust, hrefFor, location],
   )
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {overview.data && (
-        <WalletsHeader
-          liabilityHalalas={overview.data.riderWalletLiabilityHalalas}
-          walletCount={allWallets.data?.total ?? 0}
-          negativeCount={negativeTotal}
-          authority={envelope.data}
-          t={t}
-          language={language}
-        />
-      )}
+      <ViewHeader
+        loading={overview.data === null}
+        heading={t('fin.wallets.header.label')}
+        caption={t('fin.wallets.header.caption', {
+          wallets: formatCount(allWallets.data?.total ?? 0, language),
+          negative: formatCount(negativeTotal, language),
+        })}
+        detail={<WalletsAuthority authority={envelope.data} t={t} language={language} />}
+        figures={[
+          {
+            label: t('fin.ledger.balance'),
+            amountHalalas: overview.data?.riderWalletLiabilityHalalas ?? null,
+          },
+        ]}
+      />
       <DataTable
         table={table}
         rows={rows}
@@ -557,6 +562,10 @@ function WalletIndex({
            and the derivation lives here so the tint and the leading-edge marker
            read one comparison. */
         isRowCritical={(wallet) => wallet.balanceHalalas < 0}
+        /* **R2-4**, as Payouts does it: the row opens this rider's ledger by
+           click and by `Enter`, and `Adjust` stays a declared control because it
+           moves money and must not be reachable by a stray click. */
+        onRowClick={(wallet) => onOpenLedger(wallet.riderId)}
         skeletonPattern="P1"
         /* §6.4 — the two derived facts no column carries. See the function. */
         extraFilters={walletExtraFilters(t)}
@@ -588,64 +597,37 @@ function WalletIndex({
 }
 
 /**
- * **§5.3 / V-20** — the header in `LedgerCard`'s Balance shape: the subject and
- * its facts on the inline-start, the position on the inline-end. `Goodwill`
- * adds the operator's own envelope, so the ceiling is known before the adjust
- * dialog opens rather than discovered inside it (**AC-384**).
+ * **AC-384** — the operator's own envelope, so the ceiling is known before the
+ * adjust dialog opens rather than discovered inside it. It rides `ViewHeader`'s
+ * `detail` slot rather than being a figure: a used-of-cap pair and a caps line
+ * are not one numeral.
  */
-function WalletsHeader({
-  liabilityHalalas,
-  walletCount,
-  negativeCount,
+function WalletsAuthority({
   authority,
   t,
   language,
 }: {
-  liabilityHalalas: Halalas
-  walletCount: number
-  negativeCount: number
   authority: AuthorityCheck | null
   t: Translate
   language: Language
 }) {
+  if (authority === null) return null
+
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-1">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="truncate text-sm font-semibold text-foreground">
-          {t('fin.wallets.header.label')}
-        </h2>
-        {/* **V-3** in the console's own face: `MetricTile` records the owner's
-            ruling against the reference's monospace, and `globals.css` refuses
-            `--ev-text-3` as a text colour — so size, case, tracking, muted ink. */}
-        <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-          {t('fin.wallets.header.caption', {
-            wallets: formatCount(walletCount, language),
-            negative: formatCount(negativeCount, language),
-          })}
-        </span>
-      </div>
-
-      {authority !== null && (
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-xs text-muted-foreground">
-            {t('fin.wallets.authority.label')}
-          </span>
-          <span className="text-sm font-medium tabular-nums text-foreground">
-            {t('fin.wallets.authority.daily', {
-              used: formatMoney(authority.dailyUsedHalalas),
-              cap: formatMoney(authority.dailyCapHalalas),
-            })}
-          </span>
-          <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-            {t('fin.wallets.authority.caps', {
-              perCase: formatMoney(authority.perCaseCapHalalas),
-              countCap: formatCount(authority.per30dCountCap, language),
-            })}
-          </span>
-        </div>
-      )}
-
-      <Money amount={liabilityHalalas} className="text-lg font-semibold" />
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="text-xs text-muted-foreground">{t('fin.wallets.authority.label')}</span>
+      <span className="text-sm font-medium tabular-nums text-foreground">
+        {t('fin.wallets.authority.daily', {
+          used: formatMoney(authority.dailyUsedHalalas),
+          cap: formatMoney(authority.dailyCapHalalas),
+        })}
+      </span>
+      <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+        {t('fin.wallets.authority.caps', {
+          perCase: formatMoney(authority.perCaseCapHalalas),
+          countCap: formatCount(authority.per30dCountCap, language),
+        })}
+      </span>
     </div>
   )
 }

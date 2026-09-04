@@ -429,7 +429,9 @@ describe('§5.3 — the sub-tab states the position it is an index of', () => {
       ),
     ).toBeTruthy()
     expect(
-      screen.getAllByText(formatMoney(overview.riderWalletLiabilityHalalas)).length,
+      /* **R2-1** — the header's figure is the numeral; `SAR` is its unit line. */
+      screen.getAllByText(formatMoney(overview.riderWalletLiabilityHalalas, { unit: 'none' }))
+        .length,
     ).toBeGreaterThan(0)
   })
 
@@ -456,5 +458,55 @@ describe('§5.3 — the sub-tab states the position it is an index of', () => {
           .replace('{cap}', formatMoney(envelope.dailyCapHalalas)),
       ),
     ).toBeTruthy()
+  })
+})
+
+/* ═════════ FINANCIALS-UX-PLAN R2-4 — the row IS the open action ═════════ */
+
+describe('R2-4 — one inline action per row, and the row opens the ledger', () => {
+  /**
+   * *"Wallets follows Payouts: the open path is the row click and its keyboard
+   * equivalent, the lane holds the one mutating action."* Both halves here: the
+   * lane no longer offers `View ledger`, and the row still opens it.
+   */
+  it('the action lane holds Adjust alone', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+    const row = rowFor('Nora Al-Harbi')
+
+    expect(
+      within(row).getByRole('button', { name: EN['fin.wallet.action.adjust'] as string }),
+    ).toBeTruthy()
+    expect(
+      within(row).queryByRole('button', { name: EN['fin.wallet.action.ledger'] as string }),
+      'View ledger left the lane',
+    ).toBeNull()
+  })
+
+  it('clicking the row opens that rider\u2019s wallet ledger', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    await user.click(rowFor('Nora Al-Harbi'))
+
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
+    )
+    expect(screen.getByRole('button', { name: EN['fin.wallet.back'] as string })).toBeTruthy()
+  })
+
+  /** The same contract by keyboard: `Enter` on the focused row (P1-5). */
+  it('Enter on the focused row opens the same ledger', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    rowFor('Nora Al-Harbi').focus()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
+    )
   })
 })
