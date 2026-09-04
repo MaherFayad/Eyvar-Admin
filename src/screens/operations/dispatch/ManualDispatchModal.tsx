@@ -215,7 +215,9 @@ export function ManualDispatchModal({
                 <SelectContent>
                   {availableDrivers.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
-                      {d.name} ({d.city} · ★{d.rating !== null ? d.rating.toFixed(1) : '—'})
+                      {/* O9 — an unrated captain drops the clause, never a glyph. */}
+                      {d.name} ({d.city}
+                      {d.rating === null ? '' : ` · ★${d.rating.toFixed(1)}`})
                     </SelectItem>
                   ))}
                 </SelectContent>

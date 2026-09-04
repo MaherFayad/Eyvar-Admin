@@ -27,8 +27,8 @@
  *   §9.1 / R4  numeric, currency and count values are `text-end` with
  *              `tabular-nums`. In Arabic the COLUMN mirrors and the numeral
  *              run does not (**AC-73**).
- *   §8.3.1     `—` (U+2014, `ABSENT`) is reserved for not-applicable or
- *              unknown. A zero is `0`, and the two never share a rendering.
+ *   O9         an absent value is BLANK, or a muted word when the operator acts
+ *              on the absence. A zero is `0`, and the two never share a rendering.
  *   §9.1       the identity **never truncates**: a long name wraps and the row
  *              grows. `DRV-0201`'s 61-character Arabic name is the fixture
  *              that proves it.
@@ -36,7 +36,7 @@
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ABSENT, type Translate } from '@/lib'
+import type { Translate } from '@/lib'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -97,13 +97,13 @@ export function DateCell({ children, className }: { children: ReactNode; classNa
   )
 }
 
-/** `—`, and only for not-applicable or unknown (§8.3.1). Never for a zero. */
-export function Absent({ numeric = false }: { numeric?: boolean }) {
-  const content = (
-    <span className="text-muted-foreground" aria-label={ABSENT}>
-      {ABSENT}
-    </span>
-  )
+/**
+ * An absent value (O9). Blank when the value is simply not applicable; a muted
+ * `word` — already translated — only when the absence is a fact the operator
+ * acts on (`No owner`, `Not set`). Never a zero, never a fill, never a glyph.
+ */
+export function Absent({ numeric = false, word }: { numeric?: boolean; word?: string }) {
+  const content = word === undefined ? null : <span className="text-muted-foreground">{word}</span>
   return numeric ? <NumCell>{content}</NumCell> : <Cell>{content}</Cell>
 }
 

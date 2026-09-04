@@ -1,12 +1,12 @@
 {
   "totals": {
-    "keys": 5553,
-    "en": 5282,
-    "ar": 5553,
+    "keys": 5559,
+    "en": 5287,
+    "ar": 5559,
     "arMissing": 0,
-    "arExtra": 271,
+    "arExtra": 272,
     "copyFiles": 36,
-    "unregisteredKeys": 167,
+    "unregisteredKeys": 168,
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2
@@ -121,7 +121,7 @@
       "exports": [
         "SUBSCRIPTIONS_EN"
       ],
-      "keys": 110,
+      "keys": 111,
       "notInEN": 0
     },
     {
@@ -153,7 +153,15 @@
       "exports": [
         "TRIPS_EN"
       ],
-      "keys": 102,
+      "keys": 103,
+      "notInEN": 0
+    },
+    {
+      "file": "src/components/profile/trip/copy.ts",
+      "exports": [
+        "TRIP_PROFILE_EN"
+      ],
+      "keys": 89,
       "notInEN": 0
     },
     {
@@ -172,14 +180,6 @@
         "VOCABULARY_EN"
       ],
       "keys": 88,
-      "notInEN": 0
-    },
-    {
-      "file": "src/components/profile/trip/copy.ts",
-      "exports": [
-        "TRIP_PROFILE_EN"
-      ],
-      "keys": 86,
       "notInEN": 0
     },
     {
@@ -293,8 +293,8 @@
       "exports": [
         "CORPORATE_EN"
       ],
-      "keys": 92,
-      "notInEN": 91
+      "keys": 93,
+      "notInEN": 92
     },
     {
       "file": "src/screens/operations/dispatch/copy.ts",

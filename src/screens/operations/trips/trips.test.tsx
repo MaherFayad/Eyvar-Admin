@@ -294,3 +294,53 @@ describe('P4-T1 — the bulk action reaches the data layer', () => {
     )
   })
 })
+
+/**
+ * **T9.3 / O9 — the fare cell.** The rule is about the trip's STATUS, not the
+ * number. Every open, cancelled and no-show trip carries `fareHalalas: 0`, so
+ * a cell keyed off the value prints `0.00 SAR` on a ride nobody has paid for
+ * and on one that never happened. Neither is true, and only a render shows it.
+ */
+describe('T9.3 / O9 — the fare column says what it knows and nothing more', () => {
+  /** The `Fare` cell of the row naming `trip`, found through the header. */
+  function fareCell(trip: Trip): HTMLElement {
+    const row = screen.getByText(trip.id).closest('tr')
+    if (!row) throw new Error(`No row for ${trip.id}`)
+    const headers = Array.from(row.closest('table')!.querySelectorAll('thead th'))
+    const index = headers.findIndex((th) => th.textContent?.includes(t('trips.col.fare')))
+    if (index < 0) throw new Error('No Fare column header')
+    return row.cells[index] as HTMLElement
+  }
+
+  it('reads Not settled while a trip is still under way', async () => {
+    const open = page.find((trip) =>
+      ['requested', 'assigned', 'en-route', 'in-trip'].includes(trip.status),
+    )
+    if (!open) throw new Error('Page one must carry an open trip or this test asserts nothing.')
+    renderApp()
+    await screen.findByText(open.id)
+
+    expect(fareCell(open)).toHaveTextContent(t('trips.fare.notSettled'))
+  })
+
+  it('is blank on a cancelled or no-show trip, not a zero and not a mark', async () => {
+    const ended = page.find((trip) => trip.status === 'cancelled' || trip.status === 'no-show')
+    if (!ended) throw new Error('Page one must carry a cancelled trip or this test asserts nothing.')
+    renderApp()
+    await screen.findByText(ended.id)
+
+    /* `textContent`, not `toHaveTextContent('')` — jest-dom treats the empty
+       string as a substring match and passes on any content at all. */
+    expect(fareCell(ended).textContent).toBe('')
+  })
+
+  it('still prints the money on a completed trip', async () => {
+    const done = page.find((trip) => trip.status === 'done' || trip.status === 'late')
+    if (!done) throw new Error('Page one must carry a completed trip or this test asserts nothing.')
+    renderApp()
+    await screen.findByText(done.id)
+
+    expect(fareCell(done)).toHaveTextContent(/\d/)
+    expect(fareCell(done)).not.toHaveTextContent(t('trips.fare.notSettled'))
+  })
+})

@@ -26,15 +26,14 @@
  *              `5 / 4` in an RTL paragraph without it, and `25 Jun` as
  *              `Jun 25` — the bidi algorithm resolves the neutral against the
  *              paragraph direction, so isolation is not decoration.
- *   §8.3.1     `—` is reserved for not-applicable or unknown. A zero is `0`,
- *              and the two never share a rendering.
+ *   O9         an absent value is BLANK, or a muted word when the operator acts
+ *              on the absence. A zero is `0`, and the two never share a rendering.
  *   §7.2       the focus ring is `globals.css`'s `:focus-visible` default.
  *              Nothing here removes an outline, so nothing here restores one.
  */
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ABSENT } from '@/lib'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -99,13 +98,13 @@ export function DateCell({ children, className }: { children: ReactNode; classNa
   )
 }
 
-/** `—`, and only for not-applicable or unknown (§8.3.1). Never for a zero. */
-export function Absent({ numeric = false }: { numeric?: boolean }) {
-  const content = (
-    <span className="text-muted-foreground" aria-label={ABSENT}>
-      {ABSENT}
-    </span>
-  )
+/**
+ * An absent value (O9). Blank when the value is simply not applicable; a muted
+ * `word` — already translated — only when the absence is a fact the operator
+ * acts on (`Not settled`, `No owner`). Never a zero, never a fill, never a glyph.
+ */
+export function Absent({ numeric = false, word }: { numeric?: boolean; word?: string }) {
+  const content = word === undefined ? null : <span className="text-muted-foreground">{word}</span>
   return numeric ? <NumCell>{content}</NumCell> : <Cell>{content}</Cell>
 }
 

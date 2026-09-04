@@ -35,6 +35,7 @@ export const TRIPS_AR: Dictionary = {
   'trips.col.payment': 'الدفع',
   'trips.col.distance': 'المسافة',
   'trips.col.duration': 'المدة',
+  'trips.fare.notSettled': 'لم تُسوَّ',
   'trips.route': '{pickup} ← {destination}',
   'trips.kind.subscription': 'اشتراك',
   'trips.kind.quickRide': 'رحلة فورية',

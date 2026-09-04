@@ -171,6 +171,8 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'sub.changeDriver.empty':
     'No other captain is active right now. Reassignment reopens when one comes online.',
   'sub.currentDriver': 'Current captain',
+  /* O9 — the absence is why the operator opened Change captain. */
+  'sub.noDriver': 'No captain assigned',
   'sub.plan': 'Plan',
   'sub.progress': 'Trips completed',
   'sub.selectDriver': 'New captain',

@@ -48,6 +48,7 @@ export const CORPORATE_AR: Dictionary = {
   'corp.contact': 'الشخص المسؤول',
   'corp.email': 'بريد الفوترة الإلكتروني',
   'corp.phone': 'الهاتف',
+  'corp.phone.notSet': 'غير محدد',
   'corp.createdAt': 'تاريخ فتح الحساب',
   'corp.card.usagePolicy': 'سياسة رحلات الموظفين واستخدامهم',
   'corp.card.usagePolicyDesc': 'حدود الإنفاق وفئات المركبات وقواعد موافقة المدير.',
