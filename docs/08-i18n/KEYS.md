@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values carrying an em dash (the ratchet)** | **111** |
+| **Arabic values carrying an em dash (the ratchet)** | **114** |
+| **English values over their word budget (the ratchet)** | **189** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **111** English and **114** Arabic, measured **111** and **114**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -69,7 +69,6 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/subscriptions.ts` | 3 |
 | ar | `src/i18n/ar/tickets.ts` | 1 |
 | ar | `src/i18n/ar/tripProfile.ts` | 2 |
-| ar | `src/i18n/ar/zones.ts` | 1 |
 | en | `src/components/profile/subscription/copy.ts` | 1 |
 | en | `src/components/profile/trip/copy.ts` | 2 |
 | en | `src/i18n/dictionaries.ts` | 1 |
@@ -80,7 +79,6 @@ Both ceilings only ever fall.
 | en | `src/screens/admin/workspace/copy.ts` | 18 |
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
-| en | `src/screens/management/zones/copy.ts` | 1 |
 | en | `src/screens/metrics/copy.ts` | 2 |
 | en | `src/screens/onboarding/copy.ts` | 7 |
 | en | `src/screens/operations/assurance/copy.ts` | 4 |
@@ -323,15 +321,13 @@ Both ceilings only ever fall.
 | ar | `profile.trip.fare.reconcile` | مجموع هذه البنود لا يساوي الإجمالي — {amount} ريال غير مُفسَّرة. |
 | en | `profile.trip.party.ratingWithNote` | {rating} — “{note}” |
 | en | `profile.trip.fare.reconcile` | These lines do not add up to the total — {amount} SAR is unaccounted for. |
-| ar | `zones.steer.body` | الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده. |
-| en | `zones.steer.body` | Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended. |
 | en | `table.bulk.refusalLabelled` | {action} — {reason} |
 
 </details>
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **189**, measured **189**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
@@ -339,10 +335,10 @@ Measured on English only, and a placeholder counts as one word.
 | Class | Budget, in words | Over |
 |---|---:|---:|
 | title | 4 | 94 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
+| empty body | 12 | 47 |
 | button | 3 | 19 |
-| meta | 6 | 9 |
+| empty title | 5 | 19 |
+| meta | 6 | 8 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
 
@@ -394,7 +390,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 18 | `admin.integrations.delivery.empty.body` | Once an endpoint is registered and one of its events happens, every attempt and every response appears here. |
 | empty body | 18 | `assurance.empty.firstRun.body` | Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue. |
 | empty body | 18 | `comms.template.empty.body` | A template turns a system event into the message a customer reads. Each one is written per language. |
-| empty body | 18 | `zones.empty.body` | A zone is a district where demand and supply are measured. None is tracked in this city yet. |
 | empty body | 17 | `dispute.empty.body` | Fare adjustments, cancellation fees and property damage claims arrive here from the support ticket that raised them. |
 | empty body | 17 | `ticket.thread.empty.body` | This ticket was raised from an operations event. The first message or logged call will appear here. |
 | empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
@@ -424,7 +419,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 9 | `subs.empty.firstRun.heading` | Standing journeys, and the captain committed to each one |
 | empty title | 8 | `admin.activity.empty.heading` | The record of who did what, and when |
 | empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
-| empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
 | empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
 | empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
@@ -439,7 +433,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
 | empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
 | empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
-| meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
 | meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
 | meta | 10 | `adminData.meta` | Data exports, retention schedules and the integrity checks behind them |
 | meta | 10 | `policy.meta` | Dispatch, operating cities, safety limits, reason codes and SLA targets |

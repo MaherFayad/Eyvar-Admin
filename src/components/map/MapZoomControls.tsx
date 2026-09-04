@@ -10,7 +10,7 @@
  * board's panels float, so the side is the caller's to name — see `side`.
  */
 
-import { Minus, Plus } from 'lucide-react'
+import { ZoomInIcon, ZoomOutIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ZOOM_STEP } from './projection'
 
@@ -57,7 +57,7 @@ export function MapZoomControls({
         aria-label={zoomInLabel}
         className={`${BUTTON} border-b border-border`}
       >
-        <Plus aria-hidden="true" className="size-3.5" />
+        <ZoomInIcon aria-hidden="true" className="size-3.5" />
       </button>
       <button
         type="button"
@@ -66,7 +66,7 @@ export function MapZoomControls({
         aria-label={zoomOutLabel}
         className={BUTTON}
       >
-        <Minus aria-hidden="true" className="size-3.5" />
+        <ZoomOutIcon aria-hidden="true" className="size-3.5" />
       </button>
     </div>
   )

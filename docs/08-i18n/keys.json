@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
-    "overBudget": 192
+    "emDashEn": 111,
+    "emDashAr": 114,
+    "overBudget": 189
   },
   "registered": [
     {
@@ -1671,18 +1671,6 @@
       "value": "These lines do not add up to the total — {amount} SAR is unaccounted for."
     },
     {
-      "file": "src/i18n/ar/zones.ts",
-      "lang": "ar",
-      "key": "zones.steer.body",
-      "value": "الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده."
-    },
-    {
-      "file": "src/screens/management/zones/copy.ts",
-      "lang": "en",
-      "key": "zones.steer.body",
-      "value": "Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended."
-    },
-    {
       "file": "src/i18n/dictionaries.ts",
       "lang": "en",
       "key": "table.bulk.refusalLabelled",
@@ -2043,14 +2031,6 @@
       "value": "A template turns a system event into the message a customer reads. Each one is written per language."
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.empty.body",
-      "class": "empty body",
-      "words": 18,
-      "budget": 12,
-      "value": "A zone is a district where demand and supply are measured. None is tracked in this city yet."
-    },
-    {
       "file": "src/screens/support/disputes/copy.ts",
       "key": "dispute.empty.body",
       "class": "empty body",
@@ -2283,14 +2263,6 @@
       "value": "Captains, riders, trips and subscriptions, on one board"
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.empty.heading",
-      "class": "empty title",
-      "words": 8,
-      "budget": 5,
-      "value": "Where demand and supply meet, district by district"
-    },
-    {
       "file": "src/screens/admin/communications/copy.ts",
       "key": "comms.log.empty.outbox.heading",
       "class": "empty title",
@@ -2401,14 +2373,6 @@
       "words": 6,
       "budget": 5,
       "value": "This dashboard has no reports yet"
-    },
-    {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.meta",
-      "class": "meta",
-      "words": 11,
-      "budget": 6,
-      "value": "{zones} zones · {starved} starved · {cities} of {allCities} cities live"
     },
     {
       "file": "src/screens/admin/activity/copy.ts",
@@ -3234,19 +3198,19 @@
     ],
     [
       "empty body",
-      48
-    ],
-    [
-      "empty title",
-      20
+      47
     ],
     [
       "button",
       19
     ],
     [
+      "empty title",
+      19
+    ],
+    [
       "meta",
-      9
+      8
     ],
     [
       "badge",
