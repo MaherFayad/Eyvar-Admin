@@ -151,7 +151,7 @@ export const webhookEndpointFixtures: readonly WebhookEndpoint[] = [
   },
   {
     id: 'WHK-2',
-    name: 'Fleet partner — driver lifecycle',
+    name: 'Fleet partner · driver lifecycle',
     url: 'https://api.najm-fleet.example/v2/eyvar/events',
     events: ['driver.approved', 'trip.cancelled', 'payment.failed'],
     state: 'enabled',
