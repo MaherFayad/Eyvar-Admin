@@ -1,2 +1,0 @@
-src/i18n/dictionaries.ts(73,1): error TS6133: 'TRIPS_EN' is declared but its value is never read.
-src/i18n/dictionaries.ts(74,1): error TS6133: 'SUBSCRIPTIONS_EN' is declared but its value is never read.
