@@ -120,7 +120,7 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { InfoHint, hintLines } from './InfoHint'
+import { InfoHint, hintLines } from '@/components/InfoHint'
 import { pairableWith } from '@/data/clients'
 import type { Dimension, Measure, QueryPlan, ReportQuery } from '@/data/types'
 import type { Translator } from '@/lib'

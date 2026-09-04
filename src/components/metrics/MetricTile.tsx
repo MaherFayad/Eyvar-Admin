@@ -179,11 +179,13 @@
  */
 
 import type { ReactNode } from 'react'
-import { ArrowDownIcon, ArrowRightIcon, ArrowUpIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
+import { forwardIcon } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ABSENT,
+  directionFor,
   formatDate,
   invariant,
   isolatedRunProps,
@@ -493,7 +495,13 @@ export function MetricTile({
    * stop — a stop that does nothing is worse than no stop.
    */
   const action = metric.drilldownRoute ? (
-    <OpenAnalysis href={metric.drilldownRoute} report={label} onBand={onBand} t={t} />
+    <OpenAnalysis
+      href={metric.drilldownRoute}
+      report={label}
+      onBand={onBand}
+      t={t}
+      language={language}
+    />
   ) : null
 
   if (!selection && !action) return figure
@@ -560,28 +568,25 @@ export function MetricTile({
  * nothing. Appending instead makes the spoken name a superset of the visible
  * one, which is the property the rule is about.
  *
- * ## The arrow mirrors, and the delta caret does not
- *
- * They are not the same kind of mark and §9.5 separates them: this one points
- * FORWARD THROUGH READING — *"and then, the analysis"* — so in Arabic it points
- * the other way; a delta's caret encodes magnitude on the vertical axis, which
- * has no reading order to follow. `rtl:rotate-180` on this one and on nothing
- * else on the card.
- *
- * `size-4` — §1.5's 16px, monochrome, inheriting `currentColor` from the link.
+ * The arrow points FORWARD THROUGH READING, so it is picked by `dir` and turns
+ * around in Arabic (§9.5, O10); a delta's caret encodes magnitude on the
+ * vertical axis and never mirrors. `size-4` is §1.5's 16px, monochrome.
  */
 export function OpenAnalysis({
   href,
   report,
   onBand = false,
   t,
+  language,
 }: {
   href: string
   /** The thing being analysed — a metric's label, or a chart's title. */
   report: string
   onBand?: boolean
   t: Translate
+  language: Language
 }) {
+  const ForwardArrow = forwardIcon(directionFor(language))
   return (
     <Link
       to={href}
@@ -596,7 +601,7 @@ export function OpenAnalysis({
     >
       {t('overview.report.analysis')}
       <span className="sr-only">{t('overview.report.analysisFor', { report })}</span>
-      <ArrowRightIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
+      <ForwardArrow aria-hidden="true" className="size-4" />
     </Link>
   )
 }

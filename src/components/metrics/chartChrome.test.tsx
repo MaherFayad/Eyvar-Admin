@@ -205,7 +205,8 @@ describe('the direction pin (§9.2)', () => {
        mirrors as well as which do not. */
     const action = container.querySelector('[data-slot="open-analysis"]')
     expect(action, 'the one mark that may mirror is missing').not.toBeNull()
-    expect(action?.querySelector('svg')?.getAttribute('class')).toMatch(/rtl:rotate-180/u)
+    /* O10: the glyph is CHOSEN, so in Arabic it is the left arrow itself. */
+    expect(action?.querySelector('svg')?.getAttribute('class')).toMatch(/lucide-arrow-left/u)
     action?.remove()
 
     const html = container.innerHTML

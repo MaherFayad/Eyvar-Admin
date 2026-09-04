@@ -345,7 +345,7 @@ export function ChartCard({
             /* Pushed to the inline END — the reference's bottom-right, which
                under `dir="rtl"` is the bottom-left without a second rule. */
             <span className="ms-auto">
-              <OpenAnalysis href={reportHref} report={title} t={t} />
+              <OpenAnalysis href={reportHref} report={title} t={t} language={language} />
             </span>
           )}
         </CardFooter>

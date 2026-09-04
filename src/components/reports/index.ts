@@ -21,10 +21,9 @@ export {
 } from './ChartToolbar'
 export { DashboardTile, type DashboardTileProps } from './DashboardTile'
 export { DistributionCard, type DistributionCardProps } from './DistributionCard'
-/* `hintLines` ships beside `InfoHint` rather than being re-implemented per rail:
-   both `QueryPanel` and `ReportModePanel` stack an explanation and a violation
-   in one hint, and two copies of that would drift. */
-export { InfoHint, hintLines, type InfoHintProps } from './InfoHint'
+/* `InfoHint` and `hintLines` moved to `@/components/InfoHint` (T9.5): the rails
+   were the first caller, not the only one, and the accessible name is now the
+   shell's `shell.hint.show`. Import them from there. */
 export { LegalityOptions, type LegalityOptionsProps } from './LegalityOptions'
 export {
   PanelCard,

@@ -326,8 +326,8 @@ describe('under dir="rtl" the marks behave', () => {
     const { container } = renderRtl(upResult())
     const caret = container.querySelector('svg.lucide-arrow-up')
     expect(caret).not.toBeNull()
-    /* §9.5's closed set of marks that do not mirror. Nothing may add an
-       `rtl:-scale-x-100` or an `rtl:rotate-180` to it. */
+    /* §9.5's closed set of marks that do not mirror. No `rtl:` variant and
+       no CSS rotation may reach it. */
     const className = caret?.getAttribute('class') ?? ''
     expect(className).not.toMatch(/rtl:/)
     expect(className).not.toMatch(/scale-x/)

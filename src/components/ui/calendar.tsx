@@ -18,8 +18,8 @@
  *              never build its own.
  *   §14        Western digits 0-9 in both languages; the numeral run does not
  *              reorder (AC-73).
- *   §14        the month-navigation chevrons MIRROR in Arabic; the grid's week
- *              order follows `dir`.
+ *   §14/O10    the month-navigation chevrons are PICKED BY `dir` in code, never
+ *              rotated by CSS; the grid's week order follows `dir`.
  *   §7.4       every day cell is a `<button>` with a visible focus ring.
  *   §9.4/D18   no `text-transform` and no `letter-spacing` on weekday headers.
  */
@@ -35,7 +35,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, nextIcon, previousIcon, useIconDirection } from "@/components/icons"
 
 function Calendar({
   className,
@@ -51,14 +51,16 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  /* O10 - the month chevrons are chosen by `dir`, never rotated by CSS. */
+  const dir = useIconDirection()
+  const PreviousChevron = previousIcon(dir)
+  const NextChevron = nextIcon(dir)
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
         "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
       )}
       captionLayout={captionLayout}
@@ -185,15 +187,11 @@ function Calendar({
         },
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("rtl:rotate-180 size-4", className)} {...props} />
-            )
+            return <PreviousChevron className={cn("size-4", className)} {...props} />
           }
 
           if (orientation === "right") {
-            return (
-              <ChevronRightIcon className={cn("rtl:rotate-180 size-4", className)} {...props} />
-            )
+            return <NextChevron className={cn("size-4", className)} {...props} />
           }
 
           return (

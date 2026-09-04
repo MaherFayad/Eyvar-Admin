@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 565 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 564 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 248 |

@@ -7,9 +7,8 @@
  *   §9.1       A TRUNCATED LIST STATES ITS TRUNCATION IN WORDS. The legacy silent
  *              row cap (`:12250`) must not ship. The shared string is
  *              `Showing {shown} of {total} {plural-noun}.`
- *   §14        the chevrons MIRROR in Arabic. Kept as `rtl:rotate-180` on the
- *              glyph, which is correct for a chevron: §9.5 mirrors arrows and
- *              chevrons, and does not mirror objects, marks or the magnifier.
+ *   §14/O10    the chevrons MIRROR in Arabic, PICKED BY `dir` in code. §9.5
+ *              mirrors arrows and chevrons, never objects or the magnifier.
  *   §9.2/§7.4  a LEDGER's pager MUST NOT IMPLY RE-ORDERING: a ledger is not
  *              user-sortable - oldest-first by posting time, always (AC-48).
  *   §1.2       controls are `--ev-control-h`, so the pager sits on the same
@@ -23,7 +22,8 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
+import { MoreHorizontalIcon } from "lucide-react"
+import { nextIcon, previousIcon, useIconDirection } from "@/components/icons"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -87,6 +87,7 @@ function PaginationPrevious({
   text = "Previous",
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const PreviousChevron = previousIcon(useIconDirection())
   return (
     <PaginationLink
       aria-label="Go to previous page"
@@ -94,7 +95,7 @@ function PaginationPrevious({
       className={cn("ps-1.5!", className)}
       {...props}
     >
-      <ChevronLeftIcon data-icon="inline-start" className="rtl:rotate-180" />
+      <PreviousChevron data-icon="inline-start" />
       <span>{text}</span>
     </PaginationLink>
   )
@@ -105,6 +106,7 @@ function PaginationNext({
   text = "Next",
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const NextChevron = nextIcon(useIconDirection())
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -113,7 +115,7 @@ function PaginationNext({
       {...props}
     >
       <span>{text}</span>
-      <ChevronRightIcon data-icon="inline-end" className="rtl:rotate-180" />
+      <NextChevron data-icon="inline-end" />
     </PaginationLink>
   )
 }

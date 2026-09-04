@@ -56,6 +56,15 @@ Record the restyle in the component file header: which rules you applied.
 - **`shadcn` blocks/templates wholesale.** They encode someone else's page shapes; ours are
   in `patterns.md`.
 
+## Icons: one registry, five places (§1.5)
+
+Every glyph comes from `src/components/icons.ts` — one lucide icon per entity kind, per
+badge state, per action — never from a direct `lucide-react` import in a screen.
+Icons lead **menu items, state badges, empty states, nav and the top bar**, and nothing
+else: never a card title, never a field label. Sizes are `size-4` inline and `size-5` in
+the top bar; the stroke is 1.75 and the registry applies it. A directional glyph is chosen
+by `dir` through `directionalIcon` (O10), never rotated with CSS.
+
 ## What shadcn does not give you
 
 §8 has no equivalent anywhere: the monitoring shell, the append-only ledger, the work

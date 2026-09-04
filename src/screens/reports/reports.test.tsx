@@ -45,6 +45,7 @@ import {
 } from '@/data/clients'
 import type { AlertRule, SavedReport } from '@/data/types'
 import { OVERVIEW_EN } from '@/screens/metrics/copy'
+import { EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 /* The module's own number, not a literal that can drift away from it. */
 import { AUTO_RUN_DEBOUNCE_MS } from './ReportBuilder'
@@ -214,7 +215,7 @@ async function measureHint(user: ReturnType<typeof userEvent.setup>): Promise<st
     name: REPORTS_EN['rb.panel.heading'] as string,
   })
   const hints = within(panel).getAllByRole('button', {
-    name: REPORTS_EN['rb.hint.show'] as string,
+    name: EN['shell.hint.show'] as string,
   })
   await user.hover(hints[0]!)
   const tip = await screen.findByRole('tooltip')

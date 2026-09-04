@@ -81,7 +81,8 @@ import * as React from "react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { CheckIcon, ChevronRightIcon } from "lucide-react"
+import { CheckIcon } from "lucide-react"
+import { nextIcon, useIconDirection } from "@/components/icons"
 
 function DropdownMenu({
   ...props
@@ -298,6 +299,7 @@ function DropdownMenuSubTrigger({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
   inset?: boolean
 }) {
+  const SubChevron = nextIcon(useIconDirection())
   return (
     <DropdownMenuPrimitive.SubTrigger
       data-slot="dropdown-menu-sub-trigger"
@@ -309,7 +311,8 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRightIcon className="rtl:rotate-180 ms-auto" />
+      {/* O10 - the submenu points toward the inline END, picked by `dir`. */}
+      <SubChevron className="ms-auto" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }

@@ -521,6 +521,9 @@ const shell: Dictionary = {
 
   /* §4 — the top bar, slot by slot. */
   'shell.topbar.back': 'Back',
+  /* The `i` beside a label (X15). One accessible name for every hint, naming
+     the ACTION and not the field, which the label beside it already announces. */
+  'shell.hint.show': 'What this means',
   'shell.topbar.search': 'Search',
   'shell.topbar.searchShortcut': '⌘ K',
   'shell.topbar.searchShortcutWin': 'Ctrl K',

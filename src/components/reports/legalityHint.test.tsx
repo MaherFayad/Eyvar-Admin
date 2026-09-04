@@ -40,7 +40,7 @@ import { LegalityOptions } from './LegalityOptions'
 
 const t = createTranslator({ dictionary: EN })
 
-const HINT = EN['rb.hint.show'] as string
+const HINT = EN['shell.hint.show'] as string
 const GROUP = EN['rb.cohort.grain'] as string
 const UNAVAILABLE = t('rb.cohort.grainUnavailable')
 

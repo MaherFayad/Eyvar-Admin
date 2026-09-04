@@ -601,10 +601,8 @@ describe('the marks that must not mirror keep not mirroring', () => {
     await user.click(screen.getByRole('button', { name: 'Sort by 19 Jun' }))
     const caret = container.querySelector('svg.lucide-arrow-up')
     expect(caret).not.toBeNull()
-    /* §9.5's closed set. Nothing may add an `rtl:-scale-x-100` or an
-       `rtl:rotate-180` to it — the same assertion `panelCard.test.tsx:325`
-       makes about the delta's caret, on the other icon that carries a
-       magnitude. */
+    /* §9.5's closed set. No `rtl:` variant and no CSS rotation may reach it;
+       the same assertion `panelCard.test.tsx` makes about the delta's caret. */
     const className = caret?.getAttribute('class') ?? ''
     expect(className).not.toMatch(/rtl:/)
     expect(className).not.toMatch(/scale-x/)

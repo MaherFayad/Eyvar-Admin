@@ -77,7 +77,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { OptionLegality } from '@/data/types'
 import type { Translate } from '@/lib'
-import { InfoHint, hintLines } from './InfoHint'
+import { InfoHint, hintLines } from '@/components/InfoHint'
 
 export interface LegalityOptionsProps<T extends string> {
   /** Already translated. Labels the group for a screen reader and on screen. */

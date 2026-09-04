@@ -194,6 +194,7 @@ export const SHELL_AR: Dictionary = {
   'shell.nav.countOverflow': '99+',
   'shell.nav.backlog': 'عناصر بحاجة إلى انتباهك: {count}',
   'shell.topbar.back': 'رجوع',
+  'shell.hint.show': 'ما معنى هذا',
   'shell.topbar.search': 'بحث',
   'shell.topbar.searchShortcut': '⌘ K',
   'shell.topbar.searchShortcutWin': 'Ctrl K',

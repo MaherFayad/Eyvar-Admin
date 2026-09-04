@@ -397,7 +397,8 @@ describe('Arabic — the reading mark flips and the magnitude mark does not', ()
     /* The action's arrow points FORWARD THROUGH READING — *and then, the
        analysis* — so it turns around in a mirrored line. */
     const action = container.querySelector('[data-slot="open-analysis"]')
-    expect(action?.querySelector('svg')?.getAttribute('class')).toMatch(/rtl:rotate-180/u)
+    /* O10: the glyph is CHOSEN, so in Arabic it is the left arrow itself. */
+    expect(action?.querySelector('svg')?.getAttribute('class')).toMatch(/lucide-arrow-left/u)
 
     /* Everything else on the figure — the delta's caret above all — encodes a
        magnitude on the vertical axis and has no reading order to follow. The

@@ -260,12 +260,6 @@ export const REPORTS_EN: Dictionary = {
   'rb.headline.window': 'over {range}',
   'rb.headline.from': 'from {date}',
 
-  /* The `i` beside a label. One accessible name for every one of them, and it
-     names the ACTION rather than the field — the field is already announced by
-     the label the button sits beside, and repeating it would make every hint
-     in the rail announce as a different control doing the same thing. */
-  'rb.hint.show': 'What this means',
-
   /* Preset names are keys, never `'Last ' + n + ' days'` (AC-896). */
   'rb.preset.today': 'Today',
   'rb.preset.yesterday': 'Yesterday',
