@@ -1061,28 +1061,51 @@ describe('the returned-payouts banner acts, and the run states its figures', () 
   })
 
   /**
-   * **TL-2 / Q-F13** — `listCaptainPayouts` takes no window, so the page states
-   * no period; `getCaptainPayableLedger` takes one, so the ledger does and
-   * offers the control that changes it.
+   * **TL-2 / Q-F13** — `listCaptainPayouts` takes no window, so the index
+   * offers no period control; `getCaptainPayableLedger` takes one, so the
+   * ledger carries it on its title row.
    */
-  it('Q-F13 — the index prints no period, and the ledger prints one with its control', async () => {
+  it('Q-F13 — only the ledger offers the period control, on the title row', async () => {
     const { unmount } = mount(payoutsRow(), '/financials/payouts?view=payouts')
     await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
-    expect(screen.queryByText(/^Period /)).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: EN['fin.overview.period.previous'] as string }),
+    ).toBeNull()
     unmount()
 
     mount(payoutsRow(), '/financials/payouts?view=payouts&captain=DRV-0101')
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
-    expect(screen.getByText(/^Period /)).toBeTruthy()
     expect(
       screen.getByRole('button', { name: EN['fin.overview.period.previous'] as string }),
     ).toBeTruthy()
   })
 
-  /** Q-F4 — the cancelled holds are counted at the top of the Escrow view. */
+  /**
+   * **R2-2** — the drill-in is one header: the meta names the parent view and
+   * the captain, and the way back is a link in the header rather than a chip on
+   * a row of its own.
+   */
+  it('R2-2 — the ledger page states the parent view and the captain, and offers the way back', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=payouts&captain=DRV-0101')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByText(/^Payouts · /)).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: `Back to ${EN['fin.payouts.view.payouts'] as string}`,
+      }),
+    ).toBeTruthy()
+  })
+
+  /** Q-F4 — the cancelled holds are counted in the Escrow view's header. */
   it('§5.1 — the Escrow view states how many holds sit on a cancelled subscription', async () => {
     mount(payoutsRow(), '/financials/payouts?view=escrow')
     await waitFor(() => expect(screen.getByText('ESC-1052')).toBeTruthy())
-    expect(screen.getByText(EN['fin.escrow.cancelledTotal'] as string)).toBeTruthy()
+    const header = screen.getByRole('region', {
+      name: EN['fin.escrow.figures.heading'] as string,
+    })
+    expect(within(header).getByText(EN['fin.escrow.figure.cancelled'] as string)).toBeTruthy()
+    expect(within(header).getByText(EN['fin.escrow.figure.held'] as string)).toBeTruthy()
+    expect(within(header).getByText(EN['fin.escrow.figure.ready'] as string)).toBeTruthy()
   })
 })

@@ -206,7 +206,11 @@ describe('AC-375 / AC-376 — rendering and opening the queue change nothing', (
       }),
     )
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
-    await user.click(screen.getByRole('button', { name: EN['fin.debt.empty.action'] as string }))
+    await user.click(
+      screen.getByRole('button', {
+        name: `Back to ${EN['fin.cash.view.ledger'] as string}`,
+      }),
+    )
     await waitFor(() => expect(screen.getByText('Khalid Mansour')).toBeTruthy())
 
     const after = (await listCashReports({ view: 'all', pageSize: 100 })).items.map((report) => ({
@@ -820,17 +824,39 @@ describe('the escalated banner, the debt strip, and the period', () => {
 
   /**
    * **TL-2 / Q-F13** — `listCashReports` and `listCaptainDebts` take no window,
-   * so the page states no period; `getCaptainDebtLedger` takes one.
+   * so the queue offers no period control; `getCaptainDebtLedger` takes one.
    */
-  it('Q-F13 — the queue prints no period, and the receivable ledger prints one', async () => {
+  it('Q-F13 — only the receivable ledger offers the period control', async () => {
     const { unmount } = mount('/financials/cash?view=reconciliation-queue')
     await waitFor(() => expect(screen.getByText('CASH-0001')).toBeTruthy())
-    expect(screen.queryByText(/^Period /)).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: EN['fin.overview.period.previous'] as string }),
+    ).toBeNull()
     unmount()
 
     mount('/financials/cash?view=captain-debt-ledger&captain=DRV-0103')
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
-    expect(screen.getByText(/^Period /)).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: EN['fin.overview.period.previous'] as string }),
+    ).toBeTruthy()
+  })
+
+  /**
+   * **R2-2** — the drill-in is one header: the meta names the parent view and
+   * the captain, and the one row under it carries the way back and the cap that
+   * every balance is read against.
+   */
+  it('R2-2 — the receivable ledger states its parent view, its captain, the cap and the way back', async () => {
+    mount('/financials/cash?view=captain-debt-ledger&captain=DRV-0103')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByText(/^Captain debt ledger · /)).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: `Back to ${EN['fin.cash.view.ledger'] as string}`,
+      }),
+    ).toBeTruthy()
+    expect(screen.getByText(EN['fin.debt.figure.cap'] as string)).toBeTruthy()
   })
 
   /**
