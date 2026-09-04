@@ -121,12 +121,20 @@ interface IndexToolbarBaseProps {
    * operator performs it in.
    */
   exportControl?: ReactNode
+  /**
+   * §11.2 / T5.13 — the id of the empty state's sentence when there is nothing
+   * to narrow. Search and filter render disabled in place and point at it.
+   * `null` whenever a filter emptied the table: disabling `Filter` there traps
+   * the operator behind their own narrowing.
+   */
+  inertReasonId?: string | null
 }
 
 export function IndexToolbar(props: IndexToolbarProps) {
   const { t, activeTab, onSelectTab, searchPlaceholder, query, onQueryChange } = props
   const { heading, subheading } = props
   const tabs = props.tabs ?? []
+  const inert = props.inertReasonId ?? null
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -419,6 +427,8 @@ export function IndexToolbar(props: IndexToolbarProps) {
                but it is the same clip in both directions and it is padding,
                not direction. */
             className={cn('ps-8', query === '' ? 'pe-2.5' : 'pe-8')}
+            disabled={inert !== null}
+            aria-describedby={inert ?? undefined}
             onKeyDown={(event) => {
               if (event.key === 'Escape') onQueryChange('')
             }}
@@ -440,7 +450,7 @@ export function IndexToolbar(props: IndexToolbarProps) {
         </div>
 
         {props.filterTrigger(
-          <Button variant="secondary">
+          <Button variant="secondary" disabled={inert !== null} aria-describedby={inert ?? undefined}>
             <ListFilter aria-hidden="true" />
             {t('table.filter')}
             {/* §4.3's measured `Filter 1`. A COUNT, not a tone: R7 keeps the

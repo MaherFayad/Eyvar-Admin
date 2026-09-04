@@ -49,9 +49,19 @@ export interface SortControlProps<T> {
    * sort by a column you cannot see.
    */
   columns: ReadonlyArray<DataColumn<T>>
+  /** §11.2 / T5.13 — there are no rows to sort. Disabled in place, never gone. */
+  disabled?: boolean
+  /** The id of the sentence that says why. Real text on screen, not a `title`. */
+  describedBy?: string | undefined
 }
 
-export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
+export function SortControl<T>({
+  t,
+  sorting,
+  columns,
+  disabled = false,
+  describedBy,
+}: SortControlProps<T>) {
   const sortable = columns.filter((column) => column.sortField !== undefined)
   if (sortable.length === 0) return null
 
@@ -66,7 +76,7 @@ export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
         {activeColumn === null || active === null ? (
           /* §4.3 — a LABELLED outline button, not a bare glyph. The trailing
              `⌄` is §1.5's menu-opener mark. */
-          <Button variant="secondary">
+          <Button variant="secondary" disabled={disabled} aria-describedby={describedBy}>
             <ArrowUpDown aria-hidden="true" />
             {t('table.sort')}
             <ChevronDown aria-hidden="true" />
@@ -78,6 +88,8 @@ export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
              (§7.5). It grows horizontally; nothing shifts vertically. */
           <Button
             variant="secondary"
+            disabled={disabled}
+            aria-describedby={describedBy}
             aria-label={t('table.sort.active', { column: activeColumn.header })}
           >
             <ArrowUpDown aria-hidden="true" />

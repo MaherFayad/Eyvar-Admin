@@ -1205,6 +1205,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }, [status])
   const refreshing = status === 'loading' && hasShownContent.current
 
+  /* §11.2 / T5.13 — narrowing and export act on nothing when the table is
+     empty. `narrowed` keeps search, filter, columns and sort live on a
+     `no-match` empty, because taking the filter back off is the only way out
+     of it; `nothingToNarrow` is the branch where every control is inert. */
+  const emptyReasonId = useId()
+  const narrowed = table.isFiltered || emptyKind === 'no-match'
+  const nothingToNarrow = status === 'empty' && !narrowed
+  const emptyDescribedBy = status === 'empty' ? emptyReasonId : undefined
+
   /**
    * **R20 — row height is the TABLE's, not the row's, and there are no
    * exceptions.** `04-index-screen-redesign.md` §7.6: `DESIGN.md` §3.1's prose
@@ -1904,24 +1913,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
               /* §9 — a ledger's column set is fixed by §8.3.3; it gets pin
                    toggles and no visibility checkboxes. */
               showVisibility={!isLedger}
+              disabled={nothingToNarrow}
+              describedBy={nothingToNarrow ? emptyReasonId : undefined}
             />
           ) : null
         }
         sortControl={
-          sorting === null ? null : <SortControl t={t} sorting={sorting} columns={columns} />
+          sorting === null ? null : (
+            <SortControl
+              t={t}
+              sorting={sorting}
+              columns={columns}
+              disabled={nothingToNarrow}
+              describedBy={nothingToNarrow ? emptyReasonId : undefined}
+            />
+          )
         }
-        /* Only where there is something to export. In `loading`, `error` and
-           both empties `rows` is empty, and a control that hands the operator a
-           file with a header block and no records is a control that has to be
-           explained. */
+        /* T5.13 — on an empty table the control stays where it is, disabled,
+           pointing at the sentence that says why; it is absent only in
+           `loading` and `error`, where the table has not said anything yet. A
+           file with a header block and no records still never leaves. */
         exportControl={
           status === 'content' && rows.length > 0 ? (
             <Button variant="secondary" onClick={handleExport}>
               <Download aria-hidden="true" />
               {t('table.export')}
             </Button>
+          ) : status === 'empty' ? (
+            <Button variant="secondary" disabled aria-describedby={emptyDescribedBy}>
+              <Download aria-hidden="true" />
+              {t('table.export')}
+            </Button>
           ) : null
         }
+        inertReasonId={nothingToNarrow ? emptyReasonId : null}
       />
 
       {/* **BAND 3 — the query strip**, on the ground, with a declared 12 above
@@ -2022,8 +2047,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
             **This changes wave 1's empty states too**, because `DataTable` is
             where all of them render. Disclosed in the handoff rather than left
             for visual-QA to find as a difference between two waves. */}
-        {status === 'empty' &&
-          (table.isFiltered || emptyKind === 'no-match' ? (
+        {/* T5.13 — the id the disabled toolbar controls point at. The sentence
+            is already on screen and is the true reason; a second wording of it
+            on a `title` would be a sentence only a mouse can reach. */}
+        {status === 'empty' && (
+          <div id={emptyReasonId}>
+          {narrowed ? (
             <EmptyState
               card={false}
               kind="no-match"
@@ -2056,7 +2085,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 firstRun.illustration !== undefined ? firstRun.illustration : isLedger ? null : undefined
               }
             />
-          ))}
+          )}
+          </div>
+        )}
 
         {(status === 'content' || refreshing) &&
           /* **The compact render mode.** Below `--ev-bp-compact` a nine-column
