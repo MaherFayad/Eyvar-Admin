@@ -7,7 +7,7 @@
  *      counting: the number of rows carrying a check title equals the number of
  *      finding rows. A test that looked for *one* check name would pass against
  *      a table that named the check on the first row only.
- *   2. **`TKT-501` reaches the screen.** The data-layer test proves the check
+ *   2. **`TKT-504` reaches the screen.** The data-layer test proves the check
  *      finds it; this proves an operator can read it, in English, with the
  *      check that found it beside it.
  *   3. **"Not run" and "found nothing" are different words.** Before any run the
@@ -169,15 +169,15 @@ describe('the rule — every finding names the check that produced it', () => {
     }
   })
 
-  it('puts TKT-501’s contradiction in front of the operator, in English', async () => {
+  it('puts TKT-504’s contradiction in front of the operator, in English', async () => {
     const user = userEvent.setup()
     renderScreen()
     await runAllChecks(user)
     await user.click(screen.getByRole('button', { name: text('adminData.integrity.findings.showAll') }))
 
-    const cell = await screen.findByText(/Calls RDR-1041 “Mohammed Al-Ghamdi”/u)
+    const cell = await screen.findByText(/Calls DRV-0104 “Sultan Al-Harbi”/u)
     expect(cell).toBeInTheDocument()
-    expect(cell.textContent).toContain('Nora Al-Harbi')
+    expect(cell.textContent).toContain('Hassan Al-Ghamdi')
   })
 })
 

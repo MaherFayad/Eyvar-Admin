@@ -6,9 +6,11 @@
  *
  *   1. **Every finding names the check that produced it.** The defining rule.
  *      Asserted over every finding, not a sample.
- *   2. **The `TKT-501` contradiction is found.** Ticket `TKT-501` names rider
- *      `RDR-1041` as *"Mohammed Al-Ghamdi"*; `fixtures/riders.ts:22` calls that
- *      same id *"Nora Al-Harbi"*. It is the acceptance test for the whole pane.
+ *   2. **The `TKT-504` contradiction is found.** Ticket `TKT-504` names captain
+ *      `DRV-0104` as *"Sultan Al-Harbi"*; `fixtures/drivers.ts` calls that same
+ *      id *"Hassan Al-Ghamdi"*. It is the acceptance test for the whole pane.
+ *      (`TKT-501` used to be the seed; the customer-facing rider name was
+ *      corrected, so the captain-side row carries the seed now.)
  *   3. **Two runs over unchanged data are identical.** An integrity report that
  *      cannot be diffed cannot be acted on: nobody can tell a new finding from
  *      an old one. This is the test that catches a `Date.now()` or a
@@ -62,28 +64,28 @@ describe('the rule: every finding names the check that produced it', () => {
   })
 })
 
-describe('the acceptance test — TKT-501 contradicts RDR-1041', () => {
-  it('finds the ticket that calls a rider by another person’s name', async () => {
+describe('the acceptance test — TKT-504 contradicts DRV-0104', () => {
+  it('finds the ticket that calls a captain by another person’s name', async () => {
     const run = await runIntegrityChecks()
-    const found = run.findings.find((f) => f.entityId === 'TKT-501' && f.field === 'entityName')
+    const found = run.findings.find((f) => f.entityId === 'TKT-504' && f.field === 'entityName')
 
     expect(found).toBeDefined()
     expect(found?.checkId).toBe('agree.party-name')
     expect(found?.entityType).toBe('ticket')
-    expect(found?.counterpartId).toBe('RDR-1041')
+    expect(found?.counterpartId).toBe('DRV-0104')
     /* Keyed, never an assembled sentence: the wording is the screen's. */
     expect(found?.detail.key).toBe('integrity.detail.nameDisagrees')
     expect(found?.detail.params).toMatchObject({
-      id: 'RDR-1041',
-      carried: 'Mohammed Al-Ghamdi',
-      canonical: 'Nora Al-Harbi',
+      id: 'DRV-0104',
+      carried: 'Sultan Al-Harbi',
+      canonical: 'Hassan Al-Ghamdi',
     })
   })
 
-  it('finds the same fault on TKT-504, which nobody had recorded', async () => {
+  it('no longer flags TKT-501, whose requester name now matches the rider record', async () => {
     const run = await runIntegrityChecks()
-    const found = run.findings.find((f) => f.entityId === 'TKT-504' && f.field === 'entityName')
-    expect(found?.detail.params).toMatchObject({ id: 'DRV-0104', carried: 'Sultan Al-Harbi' })
+    const found = run.findings.find((f) => f.entityId === 'TKT-501' && f.field === 'entityName')
+    expect(found).toBeUndefined()
   })
 
   /**

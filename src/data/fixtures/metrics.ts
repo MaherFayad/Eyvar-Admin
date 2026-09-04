@@ -2592,7 +2592,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'riders',
-    drilldownRoute: '/support/contacts',
+    drilldownRoute: '/support/contact-centre',
   },
 
   /* ── Admin › Overview ────────────────────────────────────────────────────

@@ -92,6 +92,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
+import { RefusalLine } from '@/components/table/rowActions'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import {
@@ -853,9 +854,22 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
       width: 160,
       dataType: 'date',
       /* AC-114 — no sort. §4.6's order is a rule, not a preference. */
+      /* A decided row says WHEN it was decided rather than drawing a dash: the
+         page sweep measured this column empty on 16 of 17 rows while the
+         banner counted two breaches the column could not show. */
       cell: (row) =>
         isDecided(row) ? (
-          <Absent />
+          row.decidedAt === null ? (
+            <Absent />
+          ) : (
+            <MutedCell>
+              <bdi>
+                {t('fairness.decided.on', {
+                  date: formatDate(row.decidedAt, { style: 'day-month', language }),
+                })}
+              </bdi>
+            </MutedCell>
+          )
         ) : (
           <SlaCell result={clockFor(row)} dueAt={row.slaDueAt} t={t} language={language} />
         ),
@@ -871,9 +885,15 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
         trueLabel: t('queue.owner.unclaimed'),
         falseLabel: t('queue.filter.breached.no'),
       },
+      /* On a decided row the owner is whoever decided it; the chip is for work
+         still open. Same shape as Safety's closed row. */
       cell: (row) =>
         isDecided(row) ? (
-          <Absent />
+          row.decidedByUserName === null ? (
+            <Absent />
+          ) : (
+            <MutedCell>{row.decidedByUserName}</MutedCell>
+          )
         ) : (
           <OwnerChip
             claim={row.claim}
@@ -931,31 +951,37 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
         }
 
         /* §9.6 — a closed set of exactly two, both neutral, both confirmed,
-           both requiring a rationale. R3: no filled primary in a row. */
+           both requiring a rationale. R3: no filled primary in a row.
+           §11.2 / D17 clause 3 — the refusal is rendered text beneath the pair,
+           once, never a `title`. The help text stays a `title` because it is a
+           description of an ENABLED control, not a reason it is refused. */
+        const refusalId = `fairness-decide-refusal-${row.id}`
+        const refused = !deps.canWrite
         return (
-          <span className="flex items-center gap-1">
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={() => deps.onDecide(row, 'upheld')}
-              disabled={!deps.canWrite}
-              title={
-                deps.canWrite ? t('fairness.action.uphold.help') : t('queue.action.noPermission')
-              }
-            >
-              {t('fairness.action.uphold')}
-            </Button>
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={() => deps.onDecide(row, 'overturned')}
-              disabled={!deps.canWrite}
-              title={
-                deps.canWrite ? t('fairness.action.overturn.help') : t('queue.action.noPermission')
-              }
-            >
-              {t('fairness.action.overturn')}
-            </Button>
+          <span className="flex flex-col items-start gap-1">
+            <span className="flex items-center gap-1">
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => deps.onDecide(row, 'upheld')}
+                disabled={refused}
+                title={refused ? undefined : t('fairness.action.uphold.help')}
+                aria-describedby={refused ? refusalId : undefined}
+              >
+                {t('fairness.action.uphold')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => deps.onDecide(row, 'overturned')}
+                disabled={refused}
+                title={refused ? undefined : t('fairness.action.overturn.help')}
+                aria-describedby={refused ? refusalId : undefined}
+              >
+                {t('fairness.action.overturn')}
+              </Button>
+            </span>
+            {refused && <RefusalLine id={refusalId}>{t('queue.action.noPermission')}</RefusalLine>}
           </span>
         )
       },

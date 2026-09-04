@@ -96,6 +96,7 @@ import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
+import { RefusalLine } from '@/components/table/rowActions'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import {
@@ -773,9 +774,21 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
         }
 
         const blocked = total - done
+        /* §11.2 / D17 clause 3 — ONE refusal sentence for the lane, as text,
+           pointed at by every refused control in it; never a `title`. The most
+           specific reason wins: no permission, then the outstanding count. */
+        const refusalId = `safety-protocol-refusal-${incident.id}`
+        const refusal: string | null = !deps.canWrite
+          ? t('queue.action.noPermission')
+          : blocked === 1
+            ? t('safety.action.close.blockedOne')
+            : blocked > 1
+              ? t('safety.action.close.blocked', { count: formatCount(blocked, language) })
+              : null
         return (
+          <span className="flex flex-col items-start gap-1">
           <span className="flex items-center gap-2">
-            {/* **AC-308's visible half — four boxes ARE the count.**
+            {/* **AC-308's visible half: four boxes ARE the count.**
                 §7.3's budget left 144px of content in this lane and a `2 of 4`
                 span beside the boxes did not fit inside it. It is also
                 redundant: four checkboxes, two ticked, states how many remain
@@ -815,12 +828,11 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
                       step: t(STEP_LABEL[key]),
                       incident: incident.id,
                     })}
-                    title={
-                      blockedByOrder
-                        ? t('safety.step.documentBlocked')
-                        : deps.canWrite
-                          ? t(STEP_LABEL[key])
-                          : t('queue.action.noPermission')
+                    /* The step's NAME is a description of the control and may
+                       stay a `title`; a refusal may not. */
+                    title={disabled ? undefined : t(STEP_LABEL[key])}
+                    aria-describedby={
+                      blockedByOrder ? `${refusalId}-document` : disabled ? refusalId : undefined
                     }
                     onCheckedChange={(next) => deps.onToggleStep(incident, key, next === true)}
                   />
@@ -835,21 +847,25 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
               /* **AC-308** — disabled while any step is outstanding, and the
                  reason says HOW MANY. Gated at render, so `closeSafetyIncident`'s
                  422 `protocol_incomplete` is unreachable from this screen. */
-              disabled={!deps.canWrite || blocked > 0}
-              title={
-                !deps.canWrite
-                  ? t('queue.action.noPermission')
-                  : blocked === 1
-                    ? t('safety.action.close.blockedOne')
-                    : blocked > 1
-                      ? t('safety.action.close.blocked', {
-                          count: formatCount(blocked, language),
-                        })
-                      : t('safety.action.close.help')
-              }
+              disabled={refusal !== null}
+              title={refusal === null ? t('safety.action.close.help') : undefined}
+              aria-describedby={refusal === null ? undefined : refusalId}
             >
               {t('safety.action.close')}
             </Button>
+          </span>
+            {refusal !== null && <RefusalLine id={refusalId}>{refusal}</RefusalLine>}
+            {deps.canWrite &&
+              incident.protocol.some(
+                (entry) =>
+                  entry.key === 'document' &&
+                  !entry.done &&
+                  incident.protocol.some((other) => other.key !== 'document' && !other.done),
+              ) && (
+                <RefusalLine id={`${refusalId}-document`}>
+                  {t('safety.step.documentBlocked')}
+                </RefusalLine>
+              )}
           </span>
         )
       },

@@ -76,11 +76,8 @@
  * customer* is the failure mode, and the product owner promoted it above the
  * stale-metric class of finding for exactly that reason.
  *
- * **`fixtures/tickets.ts` still names her Mohammed on `TKT-501` and is owned
- * elsewhere.** That is the remaining half and it is one line:
- * `entityName: 'Mohammed Al-Ghamdi'` → `'Nora Al-Harbi'`, with the two message
- * bodies that greet her by name. `TKT-505` is the row to pattern-match — its
- * `entityName` already matches the rider record exactly.
+ * `fixtures/tickets.ts` now agrees: `TKT-501` names her Nora Al-Harbi, and
+ * the integrity scanner's seeded contradiction moved to `TKT-504`.
  */
 
 import { offsetFromNow } from '../mock/clock'

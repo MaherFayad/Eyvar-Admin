@@ -772,7 +772,6 @@ export const SUB_TABS: SubTabRoute[] = [
       ['in-progress', 'view.tickets.inProgress'],
       ['waiting', 'view.tickets.waiting'],
       ['resolved', 'view.tickets.resolved'],
-      ['by-reason-code', 'view.tickets.byReasonCode'],
     ),
     detailRoutes: [TICKET_DETAIL],
     legacyPageIds: ['support', 'ticket-detail'],

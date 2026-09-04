@@ -178,7 +178,9 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'subject',
         header: t('ticket.col.subject'),
-        minWidth: 240,
+        /* 200, not 240: at 1280 the table scrolled 140px sideways (page sweep
+           3.9), and the subject is the one column that can give it back. */
+        minWidth: 200,
         dataType: 'text',
         sortField: 'subject',
         cell: (tk) => (
@@ -383,7 +385,7 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
         }
         searchPlaceholder={t('ticket.search')}
         rowActions={rowActions}
-        rowActionsWidth={200}
+        rowActionsWidth={176}
         firstRun={{
           heading: t('ticket.empty.heading'),
           body: t('ticket.empty.body'),

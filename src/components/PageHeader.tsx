@@ -53,8 +53,9 @@
  *   R-3 §1.3    no elevation. The page header is content, not a surface.
  */
 
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { RefusalLine } from '@/components/table/rowActions'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +71,12 @@ export interface PageAction {
   onClick: () => void
   /** §8 — renders greyed IN PLACE, never removed. */
   disabled?: boolean
+  /**
+   * §11.2's second clause: why the control is disabled, as rendered text the
+   * button points `aria-describedby` at. Same field and same construction as
+   * `RowAction.reason` (AC-368). Ignored when `disabled` is false.
+   */
+  reason?: string | null
   /** Overflow only. Last and separated; still not red (§5.4). */
   destructive?: boolean
 }
@@ -142,6 +149,7 @@ export function PageHeader({
   const BackArrow = backIcon(dir)
   const PreviousChevron = previousIcon(dir)
   const NextChevron = nextIcon(dir)
+  const reasonId = useId()
   const visibleSecondaries = secondaryActions.slice(0, SECONDARY_CAP)
   /* Everything past the cap SPILLS into the overflow rather than wrapping —
      §8's rule, applied here so no screen has to remember it. */
@@ -181,15 +189,17 @@ export function PageHeader({
         <div className="flex shrink-0 items-center gap-2">
           {aside}
 
-          {visibleSecondaries.map((action) => (
-            <Button
-              key={action.label}
-              variant="secondary"
-              onClick={action.onClick}
-              disabled={action.disabled}
-            >
-              {action.label}
-            </Button>
+          {visibleSecondaries.map((action, index) => (
+            <ActionWithReason key={action.label} action={action} id={`${reasonId}-s${index}`}>
+              <Button
+                variant="secondary"
+                onClick={action.onClick}
+                disabled={action.disabled}
+                aria-describedby={refusalOf(action) === null ? undefined : `${reasonId}-s${index}`}
+              >
+                {action.label}
+              </Button>
+            </ActionWithReason>
           ))}
 
           {overflow.length > 0 && (
@@ -236,13 +246,16 @@ export function PageHeader({
 
           {/* R3 — the one primary. */}
           {primaryAction && (
-            <Button
-              variant="default"
-              onClick={primaryAction.onClick}
-              disabled={primaryAction.disabled}
-            >
-              {primaryAction.label}
-            </Button>
+            <ActionWithReason action={primaryAction} id={`${reasonId}-p`}>
+              <Button
+                variant="default"
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled}
+                aria-describedby={refusalOf(primaryAction) === null ? undefined : `${reasonId}-p`}
+              >
+                {primaryAction.label}
+              </Button>
+            </ActionWithReason>
           )}
 
           {/* §8 slot 5 — rightmost of all. Chevrons are picked by `dir`. */}
@@ -279,5 +292,34 @@ export function PageHeader({
         <p className="text-sm text-muted-foreground">{meta}</p>
       )}
     </div>
+  )
+}
+
+/** A refusal only while the control is disabled; an enabled control has none. */
+function refusalOf(action: PageAction): string | null {
+  return action.disabled && action.reason ? action.reason : null
+}
+
+/**
+ * §11.2 — the button, and beneath it the sentence saying why it is disabled.
+ * The line is real text (`RefusalLine`), never a `title`, and it is bounded to
+ * the button's own column so a long reason does not push the cluster apart.
+ */
+function ActionWithReason({
+  action,
+  id,
+  children,
+}: {
+  action: PageAction
+  id: string
+  children: ReactNode
+}) {
+  const reason = refusalOf(action)
+  if (reason === null) return <>{children}</>
+  return (
+    <span className="flex max-w-56 flex-col items-stretch gap-1">
+      {children}
+      <RefusalLine id={id}>{reason}</RefusalLine>
+    </span>
   )
 }

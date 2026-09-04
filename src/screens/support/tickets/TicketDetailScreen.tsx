@@ -267,6 +267,7 @@ export function TicketDetailScreen() {
         label: t('ticket.action.resolve'),
         onClick: () => void handleResolve(),
         disabled: resolveRefusal !== null,
+        reason: resolveRefusal,
       }}
       t={t}
       dir={dir}

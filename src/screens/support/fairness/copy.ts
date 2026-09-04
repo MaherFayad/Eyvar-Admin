@@ -64,6 +64,8 @@ export const FAIRNESS_EN: Dictionary = {
   'fairness.rating.voidedOnly': '{rating} of 5 · score voided, average unchanged',
 
   'fairness.suspension.none': 'No reason on record',
+  /* A decided row states when it was decided; the deadline column is for work still owed. */
+  'fairness.decided.on': 'Decided {date}',
 
   /* ── dispositions (§9.6) ────────────────────────────────────────────── */
   'fairness.action.uphold': 'Uphold',

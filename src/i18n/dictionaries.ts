@@ -439,7 +439,6 @@ const views: Dictionary = {
   'view.tickets.inProgress': 'In progress',
   'view.tickets.waiting': 'Waiting',
   'view.tickets.resolved': 'Resolved',
-  'view.tickets.byReasonCode': 'By reason code',
 
   'view.disputes.disputes': 'Disputes',
   'view.disputes.lostAndFound': 'Lost & found',

@@ -152,7 +152,6 @@ const ticketShape: QueryShape<Ticket> = {
     'in-progress': (t) => t.status === 'in-progress',
     waiting: (t) => t.status === 'waiting',
     resolved: (t) => t.status === 'resolved' || t.status === 'closed',
-    'by-reason-code': () => true,
   },
 }
 

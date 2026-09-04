@@ -160,7 +160,6 @@ export const SHELL_AR: Dictionary = {
   'view.tickets.inProgress': 'قيد التنفيذ',
   'view.tickets.waiting': 'بالانتظار',
   'view.tickets.resolved': 'محلولة',
-  'view.tickets.byReasonCode': 'حسب رمز السبب',
   'view.disputes.disputes': 'النزاعات',
   'view.disputes.lostAndFound': 'المفقودات',
   'view.fairness.suspensionAppeals': 'تظلّمات الإيقاف',

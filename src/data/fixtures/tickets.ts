@@ -24,7 +24,7 @@ export const ticketFixtures: Ticket[] = [
     id: 'TKT-501',
     subject: 'Fare calculation discrepancy on surge trip',
     entityId: 'RDR-1041',
-    entityName: 'Mohammed Al-Ghamdi',
+    entityName: 'Nora Al-Harbi',
     entityType: 'rider',
     category: 'Billing',
     reasonCode: 'fare_dispute',
@@ -49,7 +49,7 @@ export const ticketFixtures: Ticket[] = [
       {
         id: 'MSG-01',
         senderId: 'RDR-1041',
-        senderName: 'Mohammed Al-Ghamdi',
+        senderName: 'Nora Al-Harbi',
         senderType: 'customer',
         body: 'I was charged 145 SAR for my morning commute which normally costs 85 SAR. The app showed 1.2x surge but final charge was much higher.',
         sentAt: offsetFromNow({ hours: -2 }),
@@ -227,8 +227,8 @@ export const ticketFixtures: Ticket[] = [
    * into, because nobody has opened a thread.
    *
    * `entityName` agrees with `riders.ts:95` exactly, so this row adds no new
-   * finding to `clients/integrity.ts` — the `TKT-501` contradiction stays the
-   * one that test is about.
+   * finding to `clients/integrity.ts`; `TKT-504` is the seeded contradiction
+   * that test is about.
    */
   {
     id: 'TKT-505',

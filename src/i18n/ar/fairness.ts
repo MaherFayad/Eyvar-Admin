@@ -46,6 +46,7 @@ export const FAIRNESS_AR: Dictionary = {
   'fairness.rating.recomputed': '{rating} من 5 · أُعيد احتساب المتوسط',
   'fairness.rating.voidedOnly': '{rating} من 5 · أُلغيت النتيجة، والمتوسط دون تغيير',
   'fairness.suspension.none': 'لا سبب مسجَّل',
+  'fairness.decided.on': 'بُتّ فيها في {date}',
   'fairness.action.uphold': 'تأييد',
   'fairness.action.uphold.help': 'يبقى القرار الأصلي قائمًا',
   'fairness.action.overturn': 'نقض',
