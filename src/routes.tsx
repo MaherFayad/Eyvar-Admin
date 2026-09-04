@@ -127,6 +127,9 @@ const TicketDetailScreen = lazy(() =>
 const DisputesScreen = lazy(() =>
   import('@/screens/support/disputes').then((m) => ({ default: m.DisputesScreen })),
 )
+const DisputeDetailScreen = lazy(() =>
+  import('@/screens/support/disputes').then((m) => ({ default: m.DisputeDetailScreen })),
+)
 const SafetyScreen = lazy(() =>
   import('@/screens/support/safety').then((m) => ({ default: m.SafetyScreen })),
 )
@@ -558,6 +561,9 @@ function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
   }
   if (row.subTabId === 'support-tickets') {
     return <TicketDetailScreen />
+  }
+  if (detail.kind === 'dispute') {
+    return <DisputeDetailScreen />
   }
   return <SubTabScreen row={row} />
 }

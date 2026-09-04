@@ -88,6 +88,8 @@ export type DetailKind =
   | 'entity'
   | 'report'
   | 'dashboard'
+  /** Support › Disputes › one claim (S-7). */
+  | 'dispute'
   /* Support › Contact Centre. The conversation pane is a **page**, not a
      drawer, and the reasoning is worth keeping because the first answer was
      wrong for a revealing reason: it was chosen as a drawer only because this

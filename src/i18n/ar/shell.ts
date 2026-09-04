@@ -178,6 +178,7 @@ export const SHELL_AR: Dictionary = {
   'route.corporate.detail': 'حساب مؤسسي',
   'route.people.applicantDetail': 'الطلب',
   'route.tickets.detail': 'التذكرة',
+  'route.disputes.detail': 'مطالبة',
   'route.contacts.conversation': 'المحادثة',
   'route.pricing.planEditor': 'تعديل الباقة',
   'shellLayer.profile': 'الملف الشخصي',

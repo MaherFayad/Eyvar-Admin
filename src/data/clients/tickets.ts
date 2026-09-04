@@ -32,6 +32,7 @@ import {
   type TicketStatus,
 } from '../types/ticket'
 import { appendAudit } from './audit'
+import { claimFor as claimForEntity, doneClaim, releasedClaim } from './claims'
 import { http } from './http'
 import { pushNotification } from './notifications'
 import { currentPolicy } from './policy'
@@ -162,43 +163,8 @@ function audit(
   })
 }
 
-/** A claim for `owner`, taking over a live one when asked and refusing otherwise. */
 function claimFor(ticket: Ticket, owner: { id: string; name: string }, takeOver: boolean): Claim {
-  const held = liveClaim(ticket.claim)
-  if (held && held.ownerId !== owner.id && !takeOver) {
-    throw new ApiError({
-      status: 409,
-      kind: 'conflict',
-      code: 'claimed_by_other',
-      message: `${held.ownerName} is holding this ticket`,
-      retryable: false,
-    })
-  }
-  const handedOver = held !== null && held.ownerId !== owner.id
-  return {
-    key: `ticket:${ticket.id}`,
-    entityType: 'ticket',
-    entityId: ticket.id,
-    ownerId: owner.id,
-    ownerName: owner.name,
-    claimedAt: held?.ownerId === owner.id ? held.claimedAt : EYVAR_NOW,
-    touchedAt: EYVAR_NOW,
-    state: 'claimed',
-    releasedAt: null,
-    releaseReason: null,
-    takeovers: handedOver
-      ? [
-          ...held.takeovers,
-          {
-            fromUserId: held.ownerId,
-            fromUserName: held.ownerName,
-            toUserId: owner.id,
-            toUserName: owner.name,
-            at: EYVAR_NOW,
-          },
-        ]
-      : (held?.takeovers ?? []),
-  }
+  return claimForEntity('ticket', ticket.id, ticket.claim, owner, takeOver)
 }
 
 /** A customer-visible act answers the first-response promise and restarts the update clock. */
@@ -351,13 +317,9 @@ export async function releaseTicket(id: string, signal?: AbortSignal): Promise<T
   }
   return mockMutation(TICKET_OPERATIONS.release, signal, () => {
     const { index, ticket } = find(id)
-    const held = liveClaim(ticket.claim)
     const next = commit(index, {
       ...ticket,
-      claim:
-        held === null
-          ? ticket.claim
-          : { ...held, state: 'released', releasedAt: EYVAR_NOW, releaseReason: 'manual' },
+      claim: releasedClaim(ticket.claim),
       status: ticket.status === 'in-progress' ? 'open' : ticket.status,
     })
     audit('ticket.release', next, null)
@@ -662,16 +624,14 @@ export async function resolveTicket(id: string, signal?: AbortSignal): Promise<T
   return mockMutation(TICKET_OPERATIONS.resolve, signal, () => {
     const { index, ticket } = find(id)
     refuseDecided(ticket, 'ticket_decided', 'This ticket is already decided.')
-    const held = liveClaim(ticket.claim)
     const me = operator()
-    const claim: Claim = held ?? claimFor(ticket, me, false)
     const next = commit(index, {
       ...ticket,
       ...pauseFor(ticket, 'resolved'),
       status: 'resolved',
       resolvedAt: EYVAR_NOW,
       firstResponseAt: ticket.firstResponseAt ?? EYVAR_NOW,
-      claim: { ...claim, state: 'done', touchedAt: EYVAR_NOW },
+      claim: doneClaim(ticket.claim, claimFor(ticket, me, true)),
     })
     audit('ticket.resolve', next, null)
     return next

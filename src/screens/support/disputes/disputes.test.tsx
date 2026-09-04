@@ -226,32 +226,89 @@ describe('§11.2 — a refused action is disabled in place and says why', () => 
     ).toBeInTheDocument()
   })
 
-  it('names the operator holding a claim rather than hiding Take', async () => {
+  /* AC-S-10 on this queue: the owner chip names the holder and Take over confirms. */
+  it('names the operator holding a claim on the row, and taking it over confirms', async () => {
+    const user = userEvent.setup()
     renderApp(INDEX)
     await screen.findByText('DSP-101')
-    const row = (await screen.findByText('DSP-116')).closest('tr')
-    const take = within(row as HTMLElement).getByRole('button', {
-      name: en('dispute.action.take'),
-    })
-    expect(take).toBeDisabled()
-    expect(
-      within(row as HTMLElement).getByText(
-        fill('dispute.action.take.blocked.owned', { name: 'Lina Al-Otaibi' }),
-      ),
-    ).toBeInTheDocument()
+    const row = (await screen.findByText('DSP-116')).closest('tr')!
+    expect(within(row).getByText('Lina Al-Otaibi')).toBeInTheDocument()
+    await user.click(within(row).getByRole('button', { name: en('queue.takeOver') }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(fill('queue.takeOver.title', { name: 'Lina Al-Otaibi' }))).toBeInTheDocument()
   })
 
   it('refuses the captain step on a report with no captain, in place', async () => {
+    const user = userEvent.setup()
     renderApp(LOST_FOUND)
     await screen.findByText('LF-201')
-    const row = (await screen.findByText('LF-208')).closest('tr')
-    const found = within(row as HTMLElement).getByRole('button', {
-      name: en('dispute.lf.action.found'),
-    })
-    expect(found).toBeDisabled()
-    expect(
-      within(row as HTMLElement).getByText(en('dispute.lf.action.found.blocked.noCaptain')),
-    ).toBeInTheDocument()
+    const row = (await screen.findByText('LF-208')).closest('tr')!
+    await user.click(within(row).getByRole('button', { name: fill('table.rowActions', { row: 'LF-208' }) }))
+    const found = await screen.findByRole('menuitem', { name: en('dispute.lf.action.found') })
+    expect(found).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByText(en('dispute.lf.action.found.blocked.noCaptain'))).toBeInTheDocument()
+  })
+
+  /* AC-S-20 */
+  it('gives up the search after a confirmation with a reason, and records the step', async () => {
+    const user = userEvent.setup()
+    renderApp(LOST_FOUND)
+    await screen.findByText('LF-201')
+    const row = (await screen.findByText('LF-202')).closest('tr')!
+    await user.click(within(row).getByRole('button', { name: fill('table.rowActions', { row: 'LF-202' }) }))
+    await user.click(await screen.findByRole('menuitem', { name: en('dispute.lf.action.unrecoverable') }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: en('dispute.lf.unrecoverable.confirm') })).toBeDisabled()
+    await user.type(within(dialog).getByLabelText(en('dispute.lf.unrecoverable.reason')), 'Checked twice, nothing.')
+    await user.click(within(dialog).getByRole('button', { name: en('dispute.lf.unrecoverable.confirm') }))
+    await expect.poll(async () => (await listLostFound({ pageSize: 500 })).items.find((l) => l.id === 'LF-202')?.status).toBe('unrecoverable')
+    const item = (await listLostFound({ pageSize: 500 })).items.find((l) => l.id === 'LF-202')!
+    expect(item.transitions.at(-1)).toMatchObject({ to: 'unrecoverable', note: 'Checked twice, nothing.' })
+  })
+
+  /* AC-S-19 */
+  it('opens a claim at its own route with the claim in full and the evidence', async () => {
+    renderApp('/support/disputes/DSP-101')
+    expect(await screen.findByText(en('dispute.resolve.evidence'))).toBeInTheDocument()
+    expect(screen.getByText(/airport toll gate was billed twice/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: en('dispute.action.resolve') })).toBeInTheDocument()
+  })
+
+  it('raises a claim from the queue', async () => {
+    const user = userEvent.setup()
+    renderApp(INDEX)
+    await screen.findByText('DSP-101')
+    await user.click(screen.getByRole('button', { name: en('dispute.new') }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByPlaceholderText(en('dispute.new.claimant.placeholder')), 'Nora')
+    await user.click(await within(dialog).findByRole('button', { name: /Nora Al-Harbi/ }))
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: en('dispute.kind.toll-charge') }))
+    await user.type(within(dialog).getByLabelText(en('dispute.new.amount')), '12')
+    await user.type(within(dialog).getByLabelText(en('dispute.new.claim')), 'Charged the toll twice.')
+    await user.click(within(dialog).getByRole('button', { name: en('dispute.new.confirm') }))
+    await expect
+      .poll(async () => (await listDisputes({ pageSize: 100 })).items.some((d) => d.claim === 'Charged the toll twice.'))
+      .toBe(true)
+    const created = (await listDisputes({ pageSize: 100 })).items.find((d) => d.claim === 'Charged the toll twice.')!
+    expect(created.amountHalalas).toBe(1200)
+    expect(created.slaDueAt).not.toBeNull()
+  })
+
+  it('reports a lost item from the queue', async () => {
+    const user = userEvent.setup()
+    renderApp(LOST_FOUND)
+    await screen.findByText('LF-201')
+    await user.click(screen.getByRole('button', { name: en('dispute.lf.new') }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByPlaceholderText(en('dispute.lf.new.rider.placeholder')), 'Nora')
+    await user.click(await within(dialog).findByRole('button', { name: /Nora Al-Harbi/ }))
+    await user.type(within(dialog).getByLabelText(en('dispute.lf.new.item')), 'Blue umbrella')
+    await user.type(within(dialog).getByLabelText(en('dispute.lf.new.trip')), 'TRP-9101')
+    await user.click(within(dialog).getByRole('button', { name: en('dispute.lf.new.confirm') }))
+    await expect
+      .poll(async () => (await listLostFound({ pageSize: 500 })).items.some((l) => l.item === 'Blue umbrella'))
+      .toBe(true)
   })
 })
 

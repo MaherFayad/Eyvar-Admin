@@ -31,13 +31,16 @@
  */
 
 import { useCallback, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   advanceLostFoundItem,
   claimDispute,
   listDisputes,
   listLostFound,
+  liveClaim,
+  markLostFoundUnrecoverable,
+  releaseDispute,
   resolveDispute,
   type ResolveDisputeInput,
 } from '@/data/clients'
@@ -65,10 +68,13 @@ import { DataTable, type DataColumn, type RowAction } from '@/components/DataTab
 import { MoneyCell } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
-import { StatusBadge } from '@/components/StatusBadge'
+import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { BreachBanner, OwnerChip } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withView } from '@/shell/routeState'
 import { ResolveDisputeModal } from './ResolveDisputeModal'
+import { NewDisputeModal, NewLostFoundModal } from './NewRecordModals'
 import { withFallback } from '../../operations/localCopy'
 import { DISPUTES_EN } from './copy'
 
@@ -82,6 +88,8 @@ const LOST_FOUND_STATUS_TONE: Record<LostFoundItem['status'], BadgeTone> = {
   searching: 'warning',
   'with-captain': 'info',
   returned: 'success',
+  /* Q-28: a terminal factual outcome is neutral, never red. */
+  unrecoverable: 'neutral',
 }
 
 const LOST_FOUND_VIEW = 'lost-and-found'
@@ -170,18 +178,91 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
   /* ── mutations ────────────────────────────────────────────────────── */
 
   const [activeDispute, setActiveDispute] = useState<Dispute | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const [creating, setCreating] = useState<'dispute' | 'lost-found' | null>(null)
+  const [busy, setBusy] = useState(false)
+  const scoped = disputeTable.filters.some((filter) => filter.field === 'breached')
+
+  /* R5a (a): open claims past their verdict deadline, counted over the whole queue. */
+  const breached = useAsync<Paginated<Dispute>>(
+    (signal) =>
+      listDisputes({ pageSize: 1, filters: [{ field: 'breached', op: 'eq', value: true }] }, signal),
+    { deps: ['breached'], cacheKey: 'disputes.list', enabled: !onLostFound },
+  )
 
   const handleTake = useCallback(
+    async (dispute: Dispute, takeOver = false) => {
+      setBusy(true)
+      try {
+        await claimDispute(dispute.id, currentUserId, currentUserName, { takeOver })
+        toast.success(takeOver ? t('queue.toast.takenOver') : t('dispute.toast.taken', { id: dispute.id }))
+        disputes.refetch()
+        breached.refetch()
+      } catch {
+        toast.error(t('dispute.toast.failed', { id: dispute.id }))
+      } finally {
+        setBusy(false)
+        setConfirm(null)
+      }
+    },
+    [breached, currentUserId, currentUserName, disputes, t],
+  )
+
+  const handleRelease = useCallback(
     async (dispute: Dispute) => {
       try {
-        await claimDispute(dispute.id, currentUserId, currentUserName)
-        toast.success(t('dispute.toast.taken', { id: dispute.id }))
+        await releaseDispute(dispute.id)
+        toast.success(t('queue.toast.released'))
         disputes.refetch()
       } catch {
         toast.error(t('dispute.toast.failed', { id: dispute.id }))
       }
     },
-    [currentUserId, currentUserName, disputes, t],
+    [disputes, t],
+  )
+
+  /** AC-S-10's rule on this queue too: a take-over confirms and names the holder. */
+  const askTakeOver = useCallback(
+    (dispute: Dispute) => {
+      const owner = liveClaim(dispute.ownership)?.ownerName ?? ''
+      setConfirm({
+        title: t('queue.takeOver.title', { name: owner }),
+        body: t('queue.takeOver.body', { name: owner }),
+        confirmLabel: t('queue.takeOver.confirm'),
+        onConfirm: () => void handleTake(dispute, true),
+      })
+    },
+    [handleTake, t],
+  )
+
+  /** S-7: giving up on an item is a decision with a reason, so it confirms. */
+  const askUnrecoverable = useCallback(
+    (item: LostFoundItem) => {
+      setConfirm({
+        title: t('dispute.lf.unrecoverable.title', { id: item.id }),
+        body: t('dispute.lf.unrecoverable.body'),
+        confirmLabel: t('dispute.lf.unrecoverable.confirm'),
+        reason: {
+          label: t('dispute.lf.unrecoverable.reason'),
+          help: t('dispute.lf.unrecoverable.reasonHelp'),
+          message: t('dispute.lf.unrecoverable.reasonMessage'),
+        },
+        onConfirm: ({ reason }) => {
+          setBusy(true)
+          void markLostFoundUnrecoverable({ id: item.id, note: reason })
+            .then(() => {
+              toast.success(t('dispute.lf.toast.unrecoverable', { id: item.id }))
+              lostFound.refetch()
+            })
+            .catch(() => toast.error(t('dispute.lf.toast.failed', { id: item.id })))
+            .finally(() => {
+              setBusy(false)
+              setConfirm(null)
+            })
+        },
+      })
+    },
+    [lostFound, t],
   )
 
   /**
@@ -244,7 +325,18 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
         width: 96,
         dataType: 'text',
         alwaysVisible: true,
-        cell: (d) => <span className="font-mono text-xs font-semibold text-foreground">{d.id}</span>,
+        cell: (d) => (
+          <span className="flex items-center gap-2">
+            {d.status !== 'resolved' && d.slaBreachedAt !== null && <RowCriticalMarker />}
+            <Link
+              to={`/support/disputes/${d.id}${location.search}`}
+              className="rounded-sm font-mono text-xs font-semibold text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              aria-label={t('dispute.a11y.open', { id: d.id })}
+            >
+              {d.id}
+            </Link>
+          </span>
+        ),
       },
       {
         id: 'what',
@@ -321,13 +413,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
           })),
         },
         secondaryLine: (d) =>
-          d.resolution === null ? (
-            <span className="block truncate text-xs text-muted-foreground">
-              {d.ownerName === null
-                ? t('dispute.line.unowned')
-                : t('dispute.line.owner', { name: d.ownerName })}
-            </span>
-          ) : (
+          d.resolution === null ? null : (
             <span className="block truncate text-xs text-muted-foreground">
               {d.resolution.refundHalalas === 0
                 ? t('dispute.line.settledNothing', {
@@ -360,8 +446,36 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
           )
         },
       },
+      {
+        id: 'owner',
+        header: t('queue.col.owner'),
+        width: 176,
+        dataType: 'enum',
+        filter: {
+          kind: 'boolean',
+          field: 'unclaimed',
+          trueLabel: t('queue.owner.unclaimed'),
+          falseLabel: t('queue.filter.breached.no'),
+        },
+        cell: (d) =>
+          d.status === 'resolved' ? (
+            <span className="text-xs text-muted-foreground">{d.ownerName ?? ''}</span>
+          ) : (
+            <OwnerChip
+              claim={d.ownership}
+              currentUserId={currentUserId}
+              now={now}
+              t={t}
+              canWrite={canWrite}
+              disabledReason={t('dispute.action.take.blocked.permission')}
+              onClaim={() => void handleTake(d)}
+              onRelease={() => void handleRelease(d)}
+              onTakeOver={() => askTakeOver(d)}
+            />
+          ),
+      },
     ],
-    [now, t],
+    [askTakeOver, canWrite, currentUserId, handleRelease, handleTake, location.search, now, t],
   )
 
   const lfColumns: DataColumn<LostFoundItem>[] = useMemo(
@@ -452,19 +566,6 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
   const disputeActions: RowAction<Dispute>[] = useMemo(
     () => [
       {
-        label: t('dispute.action.take'),
-        onSelect: (d) => void handleTake(d),
-        disabled: (d) => !canWrite || d.status === 'resolved' || d.ownerId !== null,
-        reason: (d) => {
-          if (!canWrite) return t('dispute.action.take.blocked.permission')
-          if (d.status === 'resolved') return t('dispute.action.take.blocked.resolved')
-          if (d.ownerId !== null) {
-            return t('dispute.action.take.blocked.owned', { name: d.ownerName ?? d.ownerId })
-          }
-          return null
-        },
-      },
-      {
         label: t('dispute.action.resolve'),
         onSelect: (d) => setActiveDispute(d),
         disabled: (d) => !canWrite || d.status === 'resolved',
@@ -482,7 +583,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
         },
       },
     ],
-    [canWrite, handleTake, language, t],
+    [canWrite, language, t],
   )
 
   const lfActions: RowAction<LostFoundItem>[] = useMemo(
@@ -506,11 +607,23 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
           if (!canWrite) return t('dispute.lf.action.returned.blocked.permission')
           if (l.status === 'searching') return t('dispute.lf.action.returned.blocked.searching')
           if (l.status === 'returned') return t('dispute.lf.action.returned.blocked.done')
+          if (l.status === 'unrecoverable') return t('dispute.lf.action.blocked.unrecoverable')
+          return null
+        },
+      },
+      {
+        label: t('dispute.lf.action.unrecoverable'),
+        onSelect: askUnrecoverable,
+        disabled: (l) => !canWrite || l.status === 'returned' || l.status === 'unrecoverable',
+        reason: (l) => {
+          if (!canWrite) return t('dispute.lf.action.returned.blocked.permission')
+          if (l.status === 'returned') return t('dispute.lf.action.returned.blocked.done')
+          if (l.status === 'unrecoverable') return t('dispute.lf.action.blocked.unrecoverable')
           return null
         },
       },
     ],
-    [canWrite, handleAdvance, t],
+    [askUnrecoverable, canWrite, handleAdvance, t],
   )
 
   /* ── render ───────────────────────────────────────────────────────── */
@@ -525,7 +638,34 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
     : t.plural('dispute.meta', { count: total })
 
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}>
+    <SingleColumnPage
+      header={
+        <PageHeader
+          title={t(row.titleKey)}
+          meta={meta}
+          primaryAction={{
+            label: t(onLostFound ? 'dispute.lf.new' : 'dispute.new'),
+            onClick: () => setCreating(onLostFound ? 'lost-found' : 'dispute'),
+            disabled: !canWrite,
+            reason: canWrite ? null : t('dispute.action.take.blocked.permission'),
+          }}
+          t={t}
+          dir={dir}
+        />
+      }
+    >
+      {!onLostFound && (
+        <BreachBanner
+          id="support-disputes-sla"
+          count={breached.data?.total ?? 0}
+          scoped={scoped}
+          onShowBreached={() => disputeTable.setFilter({ field: 'breached', op: 'eq', value: true })}
+          t={t}
+          language={language}
+          oneKey="dispute.banner.one"
+          otherKey="dispute.banner.other"
+        />
+      )}
       {onLostFound ? (
         <DataTable
           table={lfTable}
@@ -604,6 +744,27 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
         onConfirm={handleResolve}
         t={t}
         language={language}
+      />
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={busy} t={t} />
+      <NewDisputeModal
+        open={creating === 'dispute'}
+        onClose={() => setCreating(null)}
+        onCreated={(created) => {
+          setCreating(null)
+          toast.success(t('dispute.toast.created', { id: created.id }))
+          disputes.refetch()
+        }}
+        t={t}
+      />
+      <NewLostFoundModal
+        open={creating === 'lost-found'}
+        onClose={() => setCreating(null)}
+        onCreated={(created) => {
+          setCreating(null)
+          toast.success(t('dispute.lf.toast.created', { id: created.id }))
+          lostFound.refetch()
+        }}
+        t={t}
       />
     </SingleColumnPage>
   )

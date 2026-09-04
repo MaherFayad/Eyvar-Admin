@@ -22,7 +22,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import type { Claim, Facets, Paginated, QueryParams } from '../types/common'
+import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { DisputeKind } from '../types/dispute'
 import type { FairnessCaseKind } from '../types/fairness'
 import type { SafetyIncidentType } from '../types/safety'
@@ -154,34 +154,6 @@ function assuranceTitle(
     return { titleKey: 'myWork.item.assurance.unconfirmed.noCaptain', titleParams: {} }
   }
   return { titleKey: 'myWork.item.assurance.unconfirmed', titleParams: { captain: driverName } }
-}
-
-/**
- * A `Claim` for a queue that records ownership as two columns rather than as a
- * claim record. Tickets and Disputes both do; everything the inbox needs
- * — who holds it, and is it live — is present either way.
- */
-function ownerClaim(
-  entityType: string,
-  entityId: string,
-  ownerId: string | null,
-  ownerName: string | null,
-  since: string,
-): Claim | null {
-  if (ownerId === null) return null
-  return {
-    key: `${entityType}:${entityId}`,
-    entityType,
-    entityId,
-    ownerId,
-    ownerName: ownerName ?? ownerId,
-    claimedAt: since,
-    touchedAt: EYVAR_NOW,
-    state: 'claimed',
-    releasedAt: null,
-    releaseReason: null,
-    takeovers: [],
-  }
 }
 
 /**
@@ -418,7 +390,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
      stamp, so the clock is the comparison the queue itself makes. */
   for (const d of currentDisputes()) {
     if (d.status === 'resolved') continue
-    const breached = d.dueAt !== null && Date.parse(d.dueAt) < Date.parse(EYVAR_NOW)
+    const breached = d.slaBreachedAt !== null
     items.push({
       key: `dispute:${d.id}`,
       queue: 'dispute',
@@ -434,12 +406,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       entityType: d.claimantType,
       route: route('dispute', d.id),
       routedToMyRole: WORK_ROUTING.dispute.includes(role),
-      claim: ownerClaim('dispute', d.id, d.ownerId, d.ownerName, d.filedAt),
-      slaStartedAt: d.filedAt,
-      slaDueAt: d.dueAt,
-      slaTargetMinutes: null,
-      slaBreachedAt: breached ? d.dueAt : null,
-      slaSource: 'legacy-policy',
+      claim: d.ownership,
+      slaStartedAt: d.slaStartedAt,
+      slaDueAt: d.slaDueAt,
+      slaTargetMinutes: d.slaTargetMinutes,
+      slaBreachedAt: d.slaBreachedAt,
+      slaSource: d.slaSource,
       firstResponseDueAt: null,
       firstResponseAt: null,
       firstResponseBreachedAt: null,

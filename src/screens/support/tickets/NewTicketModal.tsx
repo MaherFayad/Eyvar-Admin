@@ -5,19 +5,17 @@
  * (AC-S-15), and the promises the chosen code makes are stated before commit (§8).
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   createTicket,
   createTicketForConversation,
   getOperationalPolicy,
   listReasonCodeOptions,
-  search,
 } from '@/data/clients'
 import {
   CONVERSATION_CHANNELS,
   isApiError,
   type ConversationChannel,
-  type SearchResult,
   type Ticket,
   type TicketPriority,
 } from '@/data/types'
@@ -39,12 +37,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { RefusalLine } from '@/components/table/rowActions'
+import { RequesterPicker, type Requester } from '../shared/RequesterPicker'
 
-export interface TicketRequester {
-  entityId: string
-  entityName: string
-  entityType: 'rider' | 'driver' | 'corporate'
-}
+export type TicketRequester = Requester
 
 export interface NewTicketModalProps {
   open: boolean
@@ -58,17 +53,7 @@ export interface NewTicketModalProps {
 
 const PRIORITIES: readonly TicketPriority[] = ['Critical', 'High', 'Medium', 'Low']
 
-function requesterOf(result: SearchResult): TicketRequester | null {
-  if (result.kind !== 'entity' || !('entityId' in result.target)) return null
-  const type = result.target.entityType
-  const entityType =
-    type === 'rider' ? 'rider' : type === 'driver' ? 'driver' : type === 'corporate-account' ? 'corporate' : null
-  if (entityType === null) return null
-  return { entityId: result.target.entityId, entityName: result.title, entityType }
-}
-
 export function NewTicketModal({ open, onClose, onCreated, t, language, locked = null }: NewTicketModalProps) {
-  const [query, setQuery] = useState('')
   const [requester, setRequester] = useState<TicketRequester | null>(null)
   const [reasonCode, setReasonCode] = useState<string>('')
   const [priority, setPriority] = useState<TicketPriority | ''>('')
@@ -84,7 +69,6 @@ export function NewTicketModal({ open, onClose, onCreated, t, language, locked =
   const lockKey = locked === null ? '' : `${locked.conversationId ?? ''}:${locked.requester.entityId}:${locked.channel}`
   useEffect(() => {
     if (!open) return
-    setQuery('')
     setRequester(locked?.requester ?? null)
     setReasonCode('')
     setPriority('')
@@ -106,18 +90,6 @@ export function NewTicketModal({ open, onClose, onCreated, t, language, locked =
     cacheKey: 'policy.get',
     enabled: open,
   })
-  const matches = useAsync((signal) => search(query, { limit: 8 }, signal), {
-    deps: [query],
-    enabled: open && locked === null && query.trim().length >= 2,
-  })
-  const candidates = useMemo(
-    () =>
-      (matches.data?.results ?? [])
-        .map(requesterOf)
-        .filter((r): r is TicketRequester => r !== null),
-    [matches.data],
-  )
-
   const code = (codes.data ?? []).find((each) => each.key === reasonCode) ?? null
   /* The code's tier names the priority; the operator may override it. */
   const effectivePriority: TicketPriority | '' = priority !== '' ? priority : code ? PRIORITY_BY_TIER[code.tier] : ''
@@ -181,52 +153,15 @@ export function NewTicketModal({ open, onClose, onCreated, t, language, locked =
         <FieldGroup>
           <Field id="new-ticket-requester">
             <FieldLabel>{t('ticket.new.requester')}</FieldLabel>
-            {locked !== null || requester !== null ? (
-              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium text-foreground">{requester?.entityName}</span>
-                  <bdi className="font-mono text-muted-foreground">{requester?.entityId}</bdi>
-                </span>
-                {locked === null && (
-                  <Button variant="ghost" size="xs" onClick={() => setRequester(null)}>
-                    {t('ticket.new.requester.change')}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <FieldControl>
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t('ticket.new.requester.placeholder')}
-                    autoComplete="off"
-                  />
-                </FieldControl>
-                {query.trim().length >= 2 && (
-                  <ul className="mt-1 flex flex-col rounded-md border border-border" aria-label={t('ticket.new.requester')}>
-                    {candidates.length === 0 ? (
-                      <li className="px-3 py-2 text-xs text-muted-foreground">
-                        {matches.status === 'loading' ? t('ticket.new.requester.searching') : t('ticket.new.requester.none')}
-                      </li>
-                    ) : (
-                      candidates.map((candidate) => (
-                        <li key={candidate.entityId}>
-                          <button
-                            type="button"
-                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            onClick={() => setRequester(candidate)}
-                          >
-                            <span className="font-medium text-foreground">{candidate.entityName}</span>
-                            <bdi className="font-mono text-muted-foreground">{candidate.entityId}</bdi>
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                )}
-              </>
-            )}
+            <RequesterPicker
+              value={requester}
+              onChange={setRequester}
+              accept={['rider', 'driver', 'corporate']}
+              locked={locked !== null}
+              placeholderKey="ticket.new.requester.placeholder"
+              copyPrefix="ticket.new.requester"
+              t={t}
+            />
           </Field>
 
           <Field id="new-ticket-reason">

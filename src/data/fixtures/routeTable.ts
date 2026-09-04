@@ -128,6 +128,16 @@ const CONVERSATION_DETAIL: DetailRoute = {
   patterns: ['P2'],
 }
 
+const DISPUTE_DETAIL: DetailRoute = {
+  kind: 'dispute',
+  path: '/support/disputes/:disputeId',
+  parentSubTabId: 'support-disputes',
+  paramName: 'disputeId',
+  titleKey: 'route.disputes.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
 const TICKET_DETAIL: DetailRoute = {
   kind: 'ticket',
   path: '/support/tickets/:ticketId',
@@ -792,7 +802,7 @@ export const SUB_TABS: SubTabRoute[] = [
     titleKey: 'subtab.support.disputes',
     subtitleKey: 'subtab.support.disputes.sub',
     views: views(['disputes', 'view.disputes.disputes'], ['lost-and-found', 'view.disputes.lostAndFound']),
-    detailRoutes: [],
+    detailRoutes: [DISPUTE_DETAIL],
     legacyPageIds: ['support'],
     legacySettingsPanes: [],
     patterns: ['P9'],

@@ -467,6 +467,7 @@ const routes: Dictionary = {
   'route.corporate.detail': 'Corporate account',
   'route.people.applicantDetail': 'Application',
   'route.tickets.detail': 'Ticket',
+  'route.disputes.detail': 'Claim',
   'route.contacts.conversation': 'Conversation',
   'route.pricing.planEditor': 'Edit plan',
 

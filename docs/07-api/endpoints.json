@@ -1211,6 +1211,25 @@
       "statuses": []
     },
     {
+      "method": "POST",
+      "path": "/api/v1/disputes",
+      "client": "src/data/clients/disputes.ts",
+      "function": "createDispute",
+      "params": null,
+      "body": "NewDisputeInput",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "`claim_required` on an empty claim"
+        },
+        {
+          "code": "422",
+          "when": "`amount_required` at or below zero. Legacy could not create one (`13b` §18.1)."
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/disputes/:id",
       "client": "src/data/clients/disputes.ts",
@@ -1245,6 +1264,18 @@
         {
           "code": "409",
           "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        },
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds a live claim and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "`already_resolved` on a decided claim"
         }
       ]
     },
@@ -1263,7 +1294,7 @@
         },
         {
           "code": "409",
-          "when": "`already_resolved` when the dispute is resolved"
+          "when": "`already_resolved` on a decided claim. Ownership only; the clock does not reset."
         }
       ]
     },
@@ -2048,6 +2079,25 @@
       "statuses": []
     },
     {
+      "method": "POST",
+      "path": "/api/v1/lost-found",
+      "client": "src/data/clients/disputes.ts",
+      "function": "createLostFoundItem",
+      "params": null,
+      "body": "NewLostFoundInput",
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "`item_required` on an empty description"
+        },
+        {
+          "code": "422",
+          "when": "`trip_required` on no trip. Legacy could not create one (`13b` §18.2)."
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/lost-found/:id",
       "client": "src/data/clients/disputes.ts",
@@ -2078,6 +2128,25 @@
         {
           "code": "422",
           "when": "when the next step needs a captain and the report has none"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/lost-found/:id/unrecoverable",
+      "client": "src/data/clients/disputes.ts",
+      "function": "markLostFoundUnrecoverable",
+      "params": null,
+      "body": "{ note }",
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`already_closed` on a returned or unrecoverable report"
+        },
+        {
+          "code": "422",
+          "when": "`note_required`. The ladder's other exit (S-7): giving up is a decision with a reason."
         }
       ]
     },

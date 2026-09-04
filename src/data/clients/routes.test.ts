@@ -198,7 +198,7 @@ describe('§3.10 — page shapes', () => {
    * a 45-second first-response promise an operator is in the conversation for
    * twenty minutes.
    */
-  it('declares exactly the eight level-3 routes — §3.4’s five, D1a’s two, D19’s one', () => {
+  it('declares exactly the nine level-3 routes — §3.4’s five, D1a’s two, D19’s one, S-7’s one', () => {
     const kinds = [
       ...SUB_TABS.flatMap((r) => r.detailRoutes.map((d) => d.kind)),
       ...SHELL_LAYERS.filter((l) => l.fullPagePath).map(() => 'entity' as const),
@@ -208,6 +208,7 @@ describe('§3.10 — page shapes', () => {
       'conversation',
       'corporate',
       'dashboard',
+      'dispute',
       'entity',
       'plan-editor',
       'report',
