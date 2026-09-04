@@ -201,6 +201,7 @@ import {
   filterEntries,
   filterFieldOf,
   isolatesValue,
+  refusalReasonColumnId,
   tableCeiling,
   type DataColumn,
   type ExtraFilterSpec,
@@ -218,9 +219,11 @@ import { tableCsvFilename, tableCsvText } from './table/csv'
    nothing else, so this edge is not a cycle back into the screens layer. */
 import { downloadCsv } from '@/screens/reports/csv'
 import {
+  RefusalLine,
   RowActionMenuItem,
   SingleRowAction,
   refusalFor,
+  rowRefusals,
   type RowAction,
 } from './table/rowActions'
 import {
@@ -1224,6 +1227,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
      of it; `nothingToNarrow` is the branch where every control is inert. */
   const emptyReasonId = useId()
   const pageSizeLabelId = useId()
+  /* R2-3 — one prefix per table, so a refusal's anchor is unique across the
+     page without a row id ever reaching an `id` attribute. */
+  const refusalIdPrefix = useId()
   /** T6.2 — the row whose kebab is open, so `.` and a click reach one state. */
   const [openActionsRow, setOpenActionsRow] = useState<string | null>(null)
   const narrowed = table.isFiltered || emptyKind === 'no-match'
@@ -1772,33 +1778,31 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const activeRowIndex = Math.min(rowRoving.activeIndex, Math.max(0, rows.length - 1))
 
   /**
-   * **The row's declared actions, built ONCE and rendered in two places.**
-   * The desktop lane puts this inside a pinned `TableCell`; the compact card
-   * puts it at the card's inline-end with no lane to pin to. Extracting it is
-   * what stops the two modes drifting — D8's *"one action is a button, not a
-   * menu"* is a rule about the COUNT of declared actions, and a second copy of
-   * that rule is a second place for it to be got wrong.
-   *
-   * Nothing about the desktop output changes: the JSX below is the lane's
-   * former contents, moved and not rewritten, which is why the column widths
-   * and the row pitch measure identical at 1440.
+   * **R2-3 — the refused row's reason, rendered IN the row rather than under
+   * the button.** It used to sit in the action lane, so a refused row was
+   * taller than its neighbours and every row on the page reserved two lines to
+   * hide that. It now lands in the cell `refusalReasonColumnId` names and only
+   * the refused row grows; `refusalTextId` is the anchor both ends agree on.
    */
-  /**
-   * **Does any row on THIS page carry a refusal?** If so every row reserves the
-   * refusal line's two lines and the table keeps one row pitch; if not, nothing
-   * is reserved and the page is exactly as dense as before.
-   *
-   * Per page rather than per table, deliberately: `Claim` is refused on the two
-   * disputes someone else already owns and on none of the other twenty-six, so
-   * a table-wide reservation would cost every row height for a condition that
-   * is usually absent. `rows` is the page, so this answers the question the
-   * reader can actually see.
-   */
-  const reserveRefusal =
-    actionShape === 'direct' &&
-    rows.some((row) => declaredActions.some((action) => refusalFor(action, row) !== null))
+  const refusalColumnId = refusalReasonColumnId(visible, columns)
+  const rowRefusalsOf = (row: T): string[] =>
+    actionShape === 'direct' ? rowRefusals(declaredActions, row) : []
+  const refusalTextId = (rowId: string, index: number): string =>
+    `${refusalIdPrefix}refusal-${rowId.replace(/\s+/g, '_')}-${index}`
+  const refusalAnchorId = (row: T, rowId: string, action: RowAction<T>): string | undefined => {
+    const reason = refusalFor(action, row)
+    if (reason === null) return undefined
+    const index = rowRefusalsOf(row).indexOf(reason)
+    return index < 0 ? undefined : refusalTextId(rowId, index)
+  }
 
-  const rowActionControls = (row: T, id: string): ReactNode =>
+  /**
+   * **The row's declared actions, built ONCE and rendered in two places.** The
+   * desktop lane puts this inside a pinned `TableCell`; the compact card puts
+   * it at the card's inline-end with no lane to pin to. One copy is what stops
+   * D8's *"one action is a button, not a menu"* being got wrong twice.
+   */
+  const rowActionControls = (row: T, id: string, describeInRow = false): ReactNode =>
     actionShape === 'direct' ? (
       /* One or two, side by side. The lane was sized from the same count
          above, so two never overflow into the cell beside them. */
@@ -1811,7 +1815,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
             key={action.label}
             action={action}
             row={row}
-            reserveRefusal={reserveRefusal}
+            /* R2-3 — the row states the reason, so the lane does not. The
+               narrow card has no row to state it in and passes nothing. */
+            reasonId={describeInRow ? refusalAnchorId(row, id, action) : undefined}
           />
         ))}
       </div>
@@ -2198,10 +2204,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
                In a page declared `flow` this same box reports the table's real
                height instead and there is nothing to scroll INSIDE it, which is
                the correct reading of "one scroll container": a nested scrollport
-               inside a scrolling page is two ways to move the same rows. */
+               inside a scrolling page is two ways to move the same rows.
+
+               **R2-8 — the floor holds a SKELETON open, not a rendered table.**
+               It is inert above 216px, so the only thing it ever did to content
+               was leave ~42px of empty card under a one-row ledger's closing
+               balance. Once rows have rendered the scroller ends where the
+               table ends. */
             <Table
               containerRef={scrollRef}
-              containerClassName="min-h-54 flex-1 overflow-y-auto"
+              containerClassName={cn(
+                'flex-1 overflow-y-auto',
+                (refreshing || rows.length === 0) && 'min-h-54',
+              )}
               /* **P0-3** — see `tableMinInlineSize`. A style rather than a class
                  because the value is arithmetic over the declared column widths
                  and changes with the visible set, the resize handles and the
@@ -2521,6 +2536,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                     {column.secondaryLine(row)}
                                   </span>
                                 )}
+                                {/* R2-3 — the refused row's reason, as this
+                                      cell's last line. Only a refused row
+                                      renders one, so no row grows because a
+                                      sibling is refused; the disabled control
+                                      in the action lane points its
+                                      `aria-describedby` here. */}
+                                {column.id === refusalColumnId &&
+                                  rowRefusalsOf(row).map((reason, index) => (
+                                    <RefusalLine key={reason} id={refusalTextId(id, index)}>
+                                      {reason}
+                                    </RefusalLine>
+                                  ))}
                               </TableCell>
                             )
                           })}
@@ -2552,7 +2579,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                     The controls themselves are built by
                                     `rowActionControls`, which the compact card
                                     also calls. */}
-                              {rowActionControls(row, id)}
+                              {rowActionControls(row, id, true)}
                             </TableCell>
                           )}
                         </TableRow>

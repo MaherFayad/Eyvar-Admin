@@ -23,8 +23,9 @@
  * floor under a 41px row is inert, and leaving it would make compact do
  * nothing on exactly the single-line tables it helps most.
  *
- * **Measured in Chromium, both densities, both viewports** (row pitch in px —
- * the delta between two rows' box tops, so it includes the hairline):
+ * **Measured in Chromium at 1280 x 900, both densities** (row pitch in px —
+ * the delta between two rows' box tops, so it includes the hairline). Re-taken
+ * 2026-09-05 after R2-3 took the refusal line out of the action lane:
  *
  * | | comfortable | compact |
  * |---|---:|---:|
@@ -32,18 +33,23 @@
  * | Trips — two-line identity | 53 | **45** |
  * | Rider wallets | 53 | **45** |
  * | People — declared media | 60 | **45** |
- * | Payouts — two labelled actions | 77 | **69** |
- * | Support queue | 77 | **69** |
- * | Email log | 77 | **69** |
+ * | Payouts — a row with nothing refused | 41 | **40** |
+ * | Payouts, Escrow, Deductions, Disputes — a REFUSED row | 69 | **61** |
+ * | Email log — refused, over a two-line identity | 81 | **73** |
  *
- * So compact is **a constant 8px a row** — the block padding, and nothing
- * else — except on the media views, where it is 15 because it also takes the
- * declared 60px floor. Rows visible at 1512x900 go 10 → 12 on Corporate and
- * Trips and 9 → 12 on People; at 1280x800, 8 → 10 and 7 → 10.
+ * So compact is **8px a row** — the block padding, and nothing else — except on
+ * the media views, where it is 15 because it also takes the declared 60px
+ * floor. Rows visible at 1512x900 go 10 -> 12 on Corporate and Trips and
+ * 9 -> 12 on People.
  *
- * The three tables at 77 were at 109, 93 and 141 before `rowActions.tsx`
- * bounded the refusal sentence; that was a taller defect than density is a win,
- * and it is recorded there with its own measurement.
+ * **The 77px block is gone (R2-3).** Payouts, Escrow, Deductions, Disputes,
+ * the support queue and the email log all shipped a flat 77 because
+ * `reserveRefusal` held two empty lines open on every row of a page where any
+ * row was refused. The reason now renders in the refused row's own cell, so
+ * only that row is tall: Payouts at 1280x900 fits **8 rows against 5**. The one
+ * table that lost is the email log, 77 -> 81, whose identity cell already
+ * carries a bounce message and now carries the refusal under it — closed by
+ * that screen declaring `carriesRefusalReason`, not here.
  *
  * ## Why a module store rather than a prop or a context
  *
