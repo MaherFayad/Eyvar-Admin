@@ -9,19 +9,19 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5609** |
+| **Translatable keys, all dictionaries** | **5628** |
 | Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5609 |
+| Keys in `AR` | 5628 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 298 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 175 |
+| Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **112** |
 | **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values over their word budget (the ratchet)** | **190** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -331,7 +331,7 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **190**, measured **190**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
@@ -340,8 +340,8 @@ Measured on English only, and a placeholder counts as one word.
 |---|---:|---:|
 | title | 4 | 94 |
 | empty body | 12 | 48 |
-| empty title | 5 | 20 |
-| button | 3 | 19 |
+| empty title | 5 | 19 |
+| button | 3 | 18 |
 | meta | 6 | 9 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
@@ -355,7 +355,6 @@ Measured on English only, and a placeholder counts as one word.
 | button | 5 | `fin.empty.firstRun.action` | Read the chart of accounts |
 | button | 4 | `auth.activate.tokenInvalid.action` | Go to sign in |
 | button | 4 | `auth.reset.tokenInvalid.action` | Request a new link |
-| button | 4 | `corp.action.backToAccounts` | Back to corporate accounts |
 | button | 4 | `fin.debt.empty.action` | Read the reconciliation queue |
 | button | 4 | `fin.deduction.empty.action` | Read the payable ledger |
 | button | 4 | `fin.gateway.empty.action` | Read the trial balance |
@@ -430,7 +429,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
 | empty title | 7 | `trips.empty.firstRun.heading` | Every journey taken, and what it earned |
 | empty title | 6 | `admin.integrations.webhook.empty.heading` | Tell another system when something happens |
-| empty title | 6 | `corp.empty.heading` | Company ride budgets, on one invoice |
 | empty title | 6 | `entity.driver.ledger.empty.heading` | No earnings have reached this captain |
 | empty title | 6 | `entity.driver.trips.empty.heading` | This captain has taken no trips |
 | empty title | 6 | `fairness.empty.firstRun.heading` | The route back for a captain |
@@ -593,7 +591,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
-| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 93 | 92 |
+| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 112 | 111 |
 | `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
 
 ## Screens with no `copy.ts`

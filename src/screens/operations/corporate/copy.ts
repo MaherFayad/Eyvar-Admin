@@ -1,33 +1,8 @@
 /**
- * Operations › Corporate Accounts — every operator-facing string in the module.
- *
- * **Why this file now exists.** The four corporate files carried **59
- * `t('key', { defaultValue: 'English here' })` calls**, which put the English
- * copy inside the JSX instead of in a dictionary. That arrangement bypasses
- * `createTranslator`'s missing-key guard, cannot be handed to a translator, and
- * drifts the first time one of the strings is edited in place. `withFallback`
- * (`../localCopy`) resolves these against this dictionary until
- * `src/i18n/dictionaries.ts` — which has a single owner — imports it, at which
- * point the wrapper deletes with a one-line diff per file.
- *
- * **The copy was rewritten, not merely relocated** (`docs/ref/copy.md`):
- *
- *   - **Sentence case throughout.** `Company Name`, `Billing Email`, `Total
- *     Lifetime Spend`, `Employee Ride & Usage Policy` were Title Case.
- *   - **No `successfully`, no `Failed to`.** `Usage policy updated
- *     successfully` and `Failed to link employee` were both in the tree; rule 3
- *     forbids the first and rule 4 forbids the second. An error is an
- *     imperative that names the fix.
- *   - **British spelling.** `centralized` → `centralised`.
- *   - **The required marker is gone.** `Company Name *` used an asterisk, which
- *     §10.2 forbids anywhere in this product. A required field says nothing; an
- *     optional one carries `field.optional` as a suffix.
- *   - **Constraints moved into helper text** (rule 7). `Invoice Day (1-28)` put
- *     the constraint in the label; the label is now `Invoice day` and the range
- *     is a `FieldDescription`.
- *   - **No concatenation** (AC-75). `Method:` + value was assembled in JSX with
- *     a literal colon; it is one key with a placeholder now.
- *   - **`…` not `...`** on in-flight button labels.
+ * Operations › Corporate Accounts - every operator-facing string, per AC-74.
+ * Sentence case, no asterisk on a required label (§10.2), no concatenation
+ * (AC-75). An explanatory sentence lives under `corp.hint.*` and opens from an
+ * `InfoHint` (X15); one that changes what the operator does next stays inline.
  */
 
 import type { Dictionary } from '@/lib'
@@ -45,30 +20,40 @@ export const CORPORATE_EN: Dictionary = {
   'corp.meta.count': '{count} corporate accounts',
   'corp.newAccount': 'New corporate account',
   'corp.searchPlaceholder': 'Search corporate accounts',
-  'corp.empty.heading': 'Company ride budgets, on one invoice',
+  'corp.empty.heading': 'Company rides, one invoice',
   'corp.empty.body':
     'Register a corporate client to manage centralised ride allowances and consolidated billing.',
   'corp.empty.noMatch': 'No corporate accounts match these filters',
-  /* Rule 4 — an error names the fix and never blames. `Failed to load` did
-     neither. */
+  /* Rule 4 — an error names the fix and never blames. */
   'corp.error.read': "Couldn't load corporate accounts. Try again.",
   'corp.action.noPermission':
     'You cannot change this account’s policy. Ask an Owner for the “Subscription control” permission.',
-  'corp.action.unlink.unavailable': 'Unlinking an employee is not connected yet. Nothing would be saved.',
-  'corp.action.invoice.unavailable': 'Invoice generation is not connected yet. Nothing would be sent.',
 
-  /* ── toasts — R9: one line, names the object, ≤ 60 characters, no period ── */
+  /* ── the four states an account can be in (X2: keyed, never the value) ── */
+  'corp.status.Active': 'Active',
+  'corp.status.Trial': 'Trial',
+  'corp.status.Pending': 'Pending',
+  'corp.status.Suspended': 'Suspended',
+
+  /* ── toasts — R9: one line, names the object, no period ─────────────── */
   'corp.toast.created': '{name} created',
   'corp.toast.policySaved': 'Usage policy updated',
   'corp.toast.policyError': "Couldn't update the usage policy",
   'corp.toast.employeeAdded': '{name} linked to this account',
   'corp.toast.employeeError': "Couldn't link the rider. Nothing was changed.",
+  'corp.toast.employeeRemoved': '{name} unlinked from this account',
+  'corp.toast.employeeRemoveError': "Couldn't unlink the rider. Nothing changed.",
+  'corp.toast.invoiceSent': 'Invoice generated for {name}',
+  'corp.toast.invoiceError': "Couldn't generate the invoice. Nothing was sent.",
 
   /* ── the detail page ───────────────────────────────────────────────── */
   'corp.error.notFound': 'Corporate account not found',
   'corp.error.notFoundDesc': 'Account {id} does not exist, or it has been removed.',
+  /* AC-75 — the whole meta line is one key, so bidi never has to reconcile a
+     separator assembled in JSX. */
+  'corp.detail.meta': '{id} · {billing} · {status}',
   'corp.card.companyDetails': 'Company and billing',
-  'corp.card.companyDetailsDesc': 'Primary billing coordinates and representative.',
+  'corp.hint.companyDetails': 'Primary billing coordinates and representative.',
   'corp.contact': 'Contact person',
   'corp.email': 'Billing email',
   'corp.phone': 'Phone',
@@ -77,47 +62,58 @@ export const CORPORATE_EN: Dictionary = {
   'corp.createdAt': 'Account opened',
 
   'corp.card.usagePolicy': 'Employee ride and usage policy',
-  'corp.card.usagePolicyDesc': 'Spend caps, vehicle classes and manager approval rules.',
-  /* The create and edit refusals name DIFFERENT actions, and shared one key
-     until the `defaultValue` literals were consolidated. A refusal that names
-     the wrong action is worse than a generic one. */
+  'corp.hint.usagePolicy':
+    'Spend caps, vehicle classes and manager approval rules. Work hours allow rides between 08:00 and 18:00 on weekdays only.',
   'corp.action.noPermission.create':
     'You cannot open a corporate account. Ask an Owner for the “Subscription control” permission.',
   'corp.action.linking': 'Linking…',
   'action.savePolicy': 'Save policy',
   'corp.policy.monthlyCap': 'Monthly spend cap',
+  'corp.policy.monthlyCap.placeholder': 'No limit',
   'corp.policy.monthlyCapHelp': 'In riyals, across every employee on the account.',
   'corp.policy.vehicleTier': 'Allowed vehicle tier',
   'corp.policy.approvalThreshold': 'Approval required above',
+  'corp.policy.approvalThreshold.placeholder': 'Not required',
   'corp.policy.approvalThresholdHelp': 'In riyals, per trip. A manager approves anything higher.',
   'corp.policy.workHoursOnly': 'Work-hours restriction',
-  'corp.policy.workHoursDesc': 'Allow rides between 08:00 and 18:00 on weekdays only.',
   'corp.policy.approverEmail': 'Approver email',
+  'corp.policy.approverEmail.placeholder': 'manager@company.sa',
   'corp.policy.approverEmailHelp': 'Where an approval request is sent.',
+  /* §10.2 — the in-field inline-START prefix on a money input. */
+  'corp.sar': 'SAR',
   'corp.tier.any': 'Any tier',
   'corp.tier.economy': 'Economy only',
   'corp.tier.comfort': 'Comfort and Economy',
 
   'corp.card.linkedEmployees': 'Linked employee riders',
-  'corp.card.linkedEmployeesDesc': 'Employees whose rides are consolidated onto this invoice.',
+  'corp.hint.linkedEmployees': 'Employees whose rides are consolidated onto this invoice.',
   'corp.linkEmployee': 'Link employee',
   'corp.noEmployees': 'No employees linked yet',
   'corp.noEmployeesBody':
     'Link an employee rider to include their rides on the monthly consolidated invoice.',
   'corp.activeSubs': '{count} active subscriptions',
   'corp.unlinkEmployee': 'Unlink {name}',
+  'corp.action.unlinking': 'Unlinking…',
+  'corp.unlink.confirm.title': 'Unlink {name}?',
+  'corp.unlink.confirm.body': 'Past rides stay billed here. New rides are not.',
+  'corp.unlink.confirm.action': 'Unlink employee',
+  /* §11.2 — refused in place before the click, because the account already
+     carries the fact each refusal turns on. */
+  'corp.unlink.blocked.unbilled': 'This account has an unsent invoice. Send it before unlinking.',
 
   'corp.lifetimeSpend': 'Total lifetime spend',
-  'corp.activeRidersCount': '{count} riders on account',
+  'corp.hint.lifetimeSpend': 'Every ride billed to this account, across {count} linked riders.',
   'corp.invoicingSchedule': 'Invoicing schedule',
-  /* AC-75 — the colon is inside the key so a translator can make it an Arabic
-     one, and so bidi never has to reconcile a JSX-assembled `label + ':'`. */
   'corp.method': 'Method',
   'corp.billingDay': 'Billing cycle',
-  'corp.billingDay.value': 'Day {day} of each month',
+  'corp.billingDay.value': 'Day {day} of month',
   'corp.nextInvoice': 'Next invoice',
   'corp.nextInvoice.upcoming': 'Not scheduled',
   'corp.sendInvoice': 'Generate invoice',
+  'corp.action.invoicing': 'Generating…',
+  'corp.invoice.blocked.notActive': 'Only an active account can be invoiced.',
+  'corp.invoice.blocked.prepaid': 'A prepaid account is never invoiced.',
+  'corp.invoice.blocked.noSpend': 'There is no spend to invoice yet.',
 
   /* ── new-account dialog ────────────────────────────────────────────── */
   'corp.new.saveError': "Couldn't create the account. Nothing was saved.",
@@ -148,11 +144,9 @@ export const CORPORATE_EN: Dictionary = {
   'corp.selectRiderPlaceholder': 'Choose a rider',
   'corp.linkRider': 'Link employee',
   'corp.linking': 'Linking…',
-  /* Screen-specific, NOT the generic `action.*` key. `action.saving`,
-     `action.goBack` and `sub.selectDriver` each carried a DIFFERENT value in a
-     different screen dictionary, and the last spread into `EN` wins - so
-     registering this dictionary would have silently relabelled three modals.
-     A key that means four things is not a key. */
+  /* Screen-specific, NOT the generic `action.*` key: `action.saving` and
+     `action.goBack` each carry a different value in another dictionary, and the
+     last spread into `EN` wins. */
   'corp.action.savingPolicy': 'Saving…',
-  'corp.action.backToAccounts': 'Back to corporate accounts',
+  'corp.action.backToAccounts': 'Back to accounts',
 }

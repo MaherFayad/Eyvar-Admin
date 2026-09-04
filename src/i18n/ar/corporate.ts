@@ -1,18 +1,9 @@
 /**
- * Arabic - Operations > Corporate Accounts.
- *
- * Emitted as one flat `Dictionary` so a reviewer reads a key beside its string
- * and nothing else. Every key here exists in the English dictionary of the same
- * name; `src/i18n/ar/index.ts` spreads this into `AR` in the same order
- * `dictionaries.ts` spreads the English side, so a duplicated key resolves the
- * same way in both languages.
- *
- * Conventions this file follows, from `design/20-arabic-glossary.md`:
- * Arabic punctuation (R1), the terminal full stop last (R2), one MSA register
- * (R3), Latin proper nouns and acronyms left alone (R4), masdar on buttons (R6),
- * and Western digits (R8). A plural family carries all six CLDR categories -
- * `zero one two few many other` - because Arabic marks exactly-two
- * grammatically and an English pair is wrong at 2.
+ * Arabic - Operations > Corporate Accounts. One flat `Dictionary`, spread into
+ * `AR` by `src/i18n/ar/index.ts` in the English order. Conventions from
+ * `design/20-arabic-glossary.md`: Arabic punctuation (R1), terminal full stop
+ * last (R2), one MSA register (R3), Latin proper nouns and `SAR` left alone
+ * (R4), masdar on buttons (R6), Western digits (R8).
  */
 
 import type { Dictionary } from '@/lib'
@@ -29,60 +20,80 @@ export const CORPORATE_AR: Dictionary = {
   'corp.meta.count': '{count} من الحسابات المؤسسية',
   'corp.newAccount': 'حساب مؤسسي جديد',
   'corp.searchPlaceholder': 'ابحث في الحسابات المؤسسية',
-  'corp.empty.heading': 'ميزانيات رحلات الشركات، على فاتورة واحدة',
+  'corp.empty.heading': 'رحلات الشركة على فاتورة واحدة',
   'corp.empty.body': 'سجّل عميلًا مؤسسيًا لإدارة مخصصات الرحلات المركزية والفوترة الموحَّدة.',
   'corp.empty.noMatch': 'لا توجد حسابات مؤسسية تطابق عوامل التصفية هذه',
   'corp.error.read': 'تعذّر تحميل الحسابات المؤسسية. أعد المحاولة.',
   'corp.action.noPermission': 'لا يمكنك تعديل سياسة هذا الحساب. اطلب من المالك صلاحية “التحكم في الاشتراكات”.',
-  'corp.action.unlink.unavailable': 'فك ارتباط الموظف غير موصول بعد. لن يُحفظ أي شيء.',
-  'corp.action.invoice.unavailable': 'إصدار الفواتير غير موصول بعد. لن يُرسَل أي شيء.',
+  'corp.status.Active': 'نشط',
+  'corp.status.Trial': 'تجريبي',
+  'corp.status.Pending': 'معلّق',
+  'corp.status.Suspended': 'موقوف',
   'corp.toast.created': 'أُنشئ {name}',
   'corp.toast.policySaved': 'حُدِّثت سياسة الاستخدام',
   'corp.toast.policyError': 'تعذّر تحديث سياسة الاستخدام',
   'corp.toast.employeeAdded': 'رُبط {name} بهذا الحساب',
   'corp.toast.employeeError': 'تعذّر ربط الراكب. لم يتغيّر شيء.',
+  'corp.toast.employeeRemoved': 'فُك ارتباط {name} بهذا الحساب',
+  'corp.toast.employeeRemoveError': 'تعذّر فك ارتباط الراكب. لم يتغيّر شيء.',
+  'corp.toast.invoiceSent': 'أُصدرت فاتورة {name}',
+  'corp.toast.invoiceError': 'تعذّر إصدار الفاتورة. لم يُرسَل شيء.',
   'corp.error.notFound': 'الحساب المؤسسي غير موجود',
   'corp.error.notFoundDesc': 'الحساب {id} غير موجود، أو أنه أُزيل.',
+  'corp.detail.meta': '{id} · {billing} · {status}',
   'corp.card.companyDetails': 'الشركة والفوترة',
-  'corp.card.companyDetailsDesc': 'بيانات الفوترة الأساسية والممثّل.',
+  'corp.hint.companyDetails': 'بيانات الفوترة الأساسية والممثّل.',
   'corp.contact': 'الشخص المسؤول',
   'corp.email': 'بريد الفوترة الإلكتروني',
   'corp.phone': 'الهاتف',
   'corp.phone.notSet': 'غير محدد',
   'corp.createdAt': 'تاريخ فتح الحساب',
   'corp.card.usagePolicy': 'سياسة رحلات الموظفين واستخدامهم',
-  'corp.card.usagePolicyDesc': 'حدود الإنفاق وفئات المركبات وقواعد موافقة المدير.',
+  'corp.hint.usagePolicy':
+    'حدود الإنفاق وفئات المركبات وقواعد موافقة المدير. تسمح ساعات العمل بالرحلات بين 08:00 و18:00 في أيام العمل فقط.',
   'corp.action.noPermission.create': 'لا يمكنك فتح حساب مؤسسي. اطلب من المالك صلاحية “التحكم في الاشتراكات”.',
   'corp.action.linking': 'جارٍ الربط…',
   'action.savePolicy': 'حفظ السياسة',
   'corp.policy.monthlyCap': 'حد الإنفاق الشهري',
+  'corp.policy.monthlyCap.placeholder': 'بلا حد',
   'corp.policy.monthlyCapHelp': 'بالريال، لكل الموظفين على الحساب.',
   'corp.policy.vehicleTier': 'فئة المركبة المسموحة',
   'corp.policy.approvalThreshold': 'الموافقة مطلوبة فوق',
+  'corp.policy.approvalThreshold.placeholder': 'غير مطلوبة',
   'corp.policy.approvalThresholdHelp': 'بالريال، لكل رحلة. ويوافق المدير على ما يفوق ذلك.',
   'corp.policy.workHoursOnly': 'التقييد بساعات العمل',
-  'corp.policy.workHoursDesc': 'السماح بالرحلات بين 08:00 و18:00 في أيام العمل فقط.',
   'corp.policy.approverEmail': 'بريد المُوافِق الإلكتروني',
+  'corp.policy.approverEmail.placeholder': 'manager@company.sa',
   'corp.policy.approverEmailHelp': 'إلى أين يُرسَل طلب الموافقة.',
+  'corp.sar': 'SAR',
   'corp.tier.any': 'أي فئة',
   'corp.tier.economy': 'الاقتصادية فقط',
   'corp.tier.comfort': 'المريحة والاقتصادية',
   'corp.card.linkedEmployees': 'الركاب الموظفون المرتبطون',
-  'corp.card.linkedEmployeesDesc': 'الموظفون الذين تُوحَّد رحلاتهم على هذه الفاتورة.',
+  'corp.hint.linkedEmployees': 'الموظفون الذين تُوحَّد رحلاتهم على هذه الفاتورة.',
   'corp.linkEmployee': 'ربط موظف',
   'corp.noEmployees': 'لا موظفين مرتبطين بعد',
   'corp.noEmployeesBody': 'اربط راكبًا موظفًا لإدراج رحلاته في الفاتورة الشهرية الموحَّدة.',
   'corp.activeSubs': '{count} من الاشتراكات النشطة',
   'corp.unlinkEmployee': 'فك ارتباط {name}',
+  'corp.action.unlinking': 'جارٍ فك الارتباط…',
+  'corp.unlink.confirm.title': 'فك ارتباط {name}؟',
+  'corp.unlink.confirm.body': 'تبقى الرحلات السابقة على هذه الفاتورة. أما الجديدة فلا.',
+  'corp.unlink.confirm.action': 'فك ارتباط الموظف',
+  'corp.unlink.blocked.unbilled': 'على هذا الحساب فاتورة لم تُرسَل. أرسلها قبل فك أي ارتباط.',
   'corp.lifetimeSpend': 'إجمالي الإنفاق التراكمي',
-  'corp.activeRidersCount': '{count} راكب على الحساب',
+  'corp.hint.lifetimeSpend': 'كل رحلة فُوترت على هذا الحساب، عبر {count} راكب مرتبط.',
   'corp.invoicingSchedule': 'جدول الفوترة',
   'corp.method': 'الطريقة',
   'corp.billingDay': 'دورة الفوترة',
-  'corp.billingDay.value': 'اليوم {day} من كل شهر',
+  'corp.billingDay.value': 'اليوم {day} من الشهر',
   'corp.nextInvoice': 'الفاتورة القادمة',
   'corp.nextInvoice.upcoming': 'غير مجدولة',
   'corp.sendInvoice': 'إصدار فاتورة',
+  'corp.action.invoicing': 'جارٍ الإصدار…',
+  'corp.invoice.blocked.notActive': 'لا يُفوتَر إلا حساب نشط.',
+  'corp.invoice.blocked.prepaid': 'الحساب المدفوع مسبقًا لا يُفوتَر.',
+  'corp.invoice.blocked.noSpend': 'لا يوجد إنفاق لفوترته بعد.',
   'corp.new.saveError': 'تعذّر إنشاء الحساب. لم يُحفظ شيء.',
   'corp.new.title': 'حساب مؤسسي جديد',
   'corp.new.desc': 'سجّل حساب شركة لفوترة رحلات الموظفين موحَّدة.',
@@ -92,7 +103,7 @@ export const CORPORATE_AR: Dictionary = {
   'corp.contactPhone': 'الهاتف',
   'corp.billingType': 'طريقة الفوترة',
   'corp.billing.monthly': 'فاتورة شهرية',
-  'corp.billing.prepaid': 'رصيد مدفوع مسبقًا',
+  'corp.billing.prepaid': 'رصيد مسبق',
   'corp.expectedEmployees': 'عدد الموظفين المتوقَّع',
   'corp.invoiceDay': 'يوم الفاتورة',
   'corp.invoiceDayHelp': 'يوم من الشهر بين 1 و28.',
@@ -110,5 +121,5 @@ export const CORPORATE_AR: Dictionary = {
   'corp.linkRider': 'ربط الموظف',
   'corp.linking': 'جارٍ الربط…',
   'corp.action.savingPolicy': 'جارٍ الحفظ…',
-  'corp.action.backToAccounts': 'العودة إلى الحسابات المؤسسية',
+  'corp.action.backToAccounts': 'العودة إلى الحسابات',
 }

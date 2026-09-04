@@ -19,13 +19,26 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { disableMockLatency, listCorporateAccounts, mockFailures, resetDataLayer } from '@/data/clients'
+import {
+  disableMockLatency,
+  getCorporateAccount,
+  listCorporateAccounts,
+  mockFailures,
+  resetDataLayer,
+} from '@/data/clients'
 import type { CorporateAccount } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
+import { Toaster } from '@/components/ui/sonner'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppRoutes } from '@/routes'
+import { CORPORATE_EN } from './copy'
 
 const en = (key: string) => EN[key] as string
+/* Corporate is not registered in `dictionaries.ts`, so its own copy is the
+   source these assertions read (`../localCopy`). */
+const corp = (key: string) => CORPORATE_EN[key] as string
+const corpFill = (key: string, params: Record<string, string>) =>
+  Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, v), corp(key))
 const fill = (key: string, params: Record<string, string>) =>
   Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, v), en(key))
 
@@ -53,6 +66,9 @@ function renderApp(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AppRoutes />
+        {/* R9 - the outcome toast is part of what each write must produce, so
+            the surface that renders it is mounted here. */}
+        <Toaster />
       </ShellProvider>
     </MemoryRouter>,
   )
@@ -232,5 +248,111 @@ describe('AddEmployeeModal — the rider picker reads through the seam', () => {
 
     await waitFor(() => expect(within(dialog).queryByText(message)).not.toBeInTheDocument())
     expect(within(dialog).getByRole('combobox')).toBeInTheDocument()
+  })
+})
+
+/**
+ * **T1.2 - the two writes, and the two refusals they make unnecessary.**
+ *
+ * Each write is asserted twice: the surface changes, and a fresh read through
+ * the client agrees. Each refusal is asserted where §11.2 puts it - on the
+ * disabled control, as a sentence the operator can read.
+ */
+describe('T1.2 - Unlink employee', () => {
+  /** Riders linked, and no unsent invoice, so the 409 cannot fire. */
+  let unlinkable: CorporateAccount
+  /** Riders linked AND an unsent invoice: the 409 the refusal states. */
+  let unlinkBlocked: CorporateAccount
+
+  beforeAll(async () => {
+    const accounts = (await listCorporateAccounts({ pageSize: 100 })).items
+    const open = accounts.find((c) => c.riderIds.length > 0 && !c.invoiceOverdue)
+    const blocked = accounts.find((c) => c.riderIds.length > 0 && c.invoiceOverdue)
+    if (!open || !blocked) {
+      throw new Error('Fixtures carry no corporate account for each unlink branch.')
+    }
+    unlinkable = open
+    unlinkBlocked = blocked
+  })
+
+  it('the write lands: the row goes and the next read agrees', async () => {
+    const user = userEvent.setup()
+    const riderId = unlinkable.riderIds[0] as string
+    renderApp(`${INDEX}/${unlinkable.id}`)
+
+    const row = (await screen.findByText(riderId, { exact: false })).closest('div')
+      ?.parentElement as HTMLElement
+    const name = within(row).getByRole('link').textContent as string
+
+    await user.click(
+      within(row).getByRole('button', { name: corpFill('corp.unlinkEmployee', { name }) }),
+    )
+    /* §5.3 - nothing is written until the modal's primary repeats the verb. */
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(corpFill('corp.unlink.confirm.title', { name }))).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: corp('corp.unlink.confirm.action') }))
+
+    expect(await screen.findByText(corpFill('corp.toast.employeeRemoved', { name }))).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByText(riderId, { exact: false })).not.toBeInTheDocument(),
+    )
+    expect((await getCorporateAccount(unlinkable.id)).riderIds).not.toContain(riderId)
+  })
+
+  it('§11.2 - an unsent invoice refuses the unlink in place, with the sentence', async () => {
+    renderApp(`${INDEX}/${unlinkBlocked.id}`)
+    await screen.findByRole('heading', { level: 1, name: unlinkBlocked.companyName })
+
+    const sentence = await screen.findByText(corp('corp.unlink.blocked.unbilled'))
+    const buttons = await screen.findAllByRole('button', { name: /^Unlink / })
+    expect(buttons.length).toBeGreaterThan(0)
+    for (const button of buttons) {
+      expect(button).toBeDisabled()
+      expect(button).toHaveAttribute('aria-describedby', sentence.id)
+    }
+  })
+})
+
+describe('T1.2 - Generate invoice', () => {
+  /** Active, invoiced monthly, with spend: every 409 and 422 is off. */
+  let invoiceable: CorporateAccount
+  /** Active and prepaid: the 422 `prepaid_account` the refusal states. */
+  let prepaid: CorporateAccount
+
+  beforeAll(async () => {
+    const accounts = (await listCorporateAccounts({ pageSize: 100 })).items
+    const ready = accounts.find(
+      (c) =>
+        c.status === 'Active' && c.billingType === 'Monthly invoice' && c.totalSpendHalalas > 0,
+    )
+    const never = accounts.find((c) => c.status === 'Active' && c.billingType === 'Prepaid balance')
+    if (!ready || !never) {
+      throw new Error('Fixtures carry no corporate account for each invoice branch.')
+    }
+    invoiceable = ready
+    prepaid = never
+  })
+
+  it('the write lands: the toast names the account and the next read is invoiced', async () => {
+    const user = userEvent.setup()
+    renderApp(`${INDEX}/${invoiceable.id}`)
+    await screen.findByRole('heading', { level: 1, name: invoiceable.companyName })
+
+    await user.click(screen.getByRole('button', { name: corp('corp.sendInvoice') }))
+
+    expect(
+      await screen.findByText(corpFill('corp.toast.invoiceSent', { name: invoiceable.companyName })),
+    ).toBeInTheDocument()
+    expect((await getCorporateAccount(invoiceable.id)).lastInvoiceGeneratedAt).not.toBeNull()
+  })
+
+  it('§11.2 - a prepaid account refuses the invoice in place, with the sentence', async () => {
+    renderApp(`${INDEX}/${prepaid.id}`)
+    await screen.findByRole('heading', { level: 1, name: prepaid.companyName })
+
+    const sentence = await screen.findByText(corp('corp.invoice.blocked.prepaid'))
+    const button = screen.getByRole('button', { name: corp('corp.sendInvoice') })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-describedby', sentence.id)
   })
 })
