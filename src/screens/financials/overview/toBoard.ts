@@ -97,8 +97,11 @@ interface FigureInput {
 /**
  * One figure, built from the response and its comparison.
  *
- * The `none` arm is taken exactly when the prior value is absent, so a tile can
- * never draw a delta against a number nobody has (R5-1, AC-605).
+ * **The two reasons are different facts and read differently.** `no-history` is
+ * *there is no earlier window* and belongs to `comparison === null` alone;
+ * a prior window that exists and carries nothing to divide by is
+ * `insufficient-data` (R5-1, `types/metrics.ts`). Emitting the first for both
+ * put *No comparison period yet* beside *vs 1 May – 31 May* on one row.
  */
 function figureOf(
   input: FigureInput,
@@ -106,24 +109,28 @@ function figureOf(
   before: FinancialsComparison | null,
 ): Metric {
   const priorWindow = before?.period ?? null
-  const hasPrior = input.before !== null && priorWindow !== null
-  const comparison: MetricComparison = hasPrior
-    ? {
-        kind: 'previous-period',
-        value: input.before as number,
-        periodStart: priorWindow.start,
-        periodEnd: priorWindow.end,
-      }
-    : { kind: 'none', reason: 'no-history' }
-
-  const deltaPercent =
-    input.value === null || !hasPrior
+  const delta =
+    input.value === null || input.before === null || priorWindow === null
       ? null
       : input.points !== undefined
         ? input.points === null
           ? null
           : round1(input.points)
         : changePercent(input.value, input.before)
+
+  /* A comparison is STATED only when it produces a delta. A `previous-period`
+     arm with no percentage is the branch AC-605 reserves for a target. */
+  const comparable = delta !== null
+  const comparison: MetricComparison = comparable
+    ? {
+        kind: 'previous-period',
+        value: input.before as number,
+        periodStart: priorWindow!.start,
+        periodEnd: priorWindow!.end,
+      }
+    : { kind: 'none', reason: before === null ? 'no-history' : 'insufficient-data' }
+
+  const deltaPercent = comparable ? delta : null
 
   return {
     key: input.key,
@@ -378,6 +385,26 @@ export function toBoard(data: FinancialsOverview, language: Language): OverviewB
     ),
   ]
 
+  /* One bucket-to-point rule, both windows, so the solid line and the dotted
+     one below it cannot be two different derivations of the same measure. */
+  const grossPoints = (buckets: FinancialsOverview['daily']) =>
+    buckets.map((each) => ({ at: each.date, value: each.grossBookingsHalalas }))
+  /* AC-342 into the plot: a zero-gross day is a GAP, not a `0%` point.
+     `percentOrNull` is the same rule the tile reads. */
+  const contributionPoints = (buckets: FinancialsOverview['daily']) =>
+    buckets.map((each) => ({
+      at: each.date,
+      value: percentOrNull(
+        each.grossBookingsHalalas - each.captainEarningsHalalas - each.givebackHalalas,
+        each.grossBookingsHalalas,
+      ),
+    }))
+
+  const priorWindow =
+    before && data.dailyComparison
+      ? { periodStart: before.period.start, periodEnd: before.period.end }
+      : null
+
   const series: TimeSeries[] = [
     {
       key: 'financials.overview.grossByDay',
@@ -389,11 +416,12 @@ export function toBoard(data: FinancialsOverview, language: Language): OverviewB
       current: {
         periodStart: data.period.start,
         periodEnd: data.period.end,
-        points: data.daily.map((day) => ({ at: day.date, value: day.grossBookingsHalalas })),
+        points: grossPoints(data.daily),
       },
-      /* The response carries no prior daily series, so there is no dotted line
-         to draw. The headline above the plot is the tile's own comparison. */
-      comparison: null,
+      comparison:
+        priorWindow && data.dailyComparison
+          ? { ...priorWindow, points: grossPoints(data.dailyComparison) }
+          : null,
       higherIsBetter: true,
       awaitingStore: null,
     },
@@ -407,17 +435,12 @@ export function toBoard(data: FinancialsOverview, language: Language): OverviewB
       current: {
         periodStart: data.period.start,
         periodEnd: data.period.end,
-        /* AC-342 into the plot: a zero-gross day is a GAP, not a `0%` point.
-           `percentOrNull` is the same rule the tile reads. */
-        points: data.daily.map((day) => ({
-          at: day.date,
-          value: percentOrNull(
-            day.grossBookingsHalalas - day.captainEarningsHalalas - day.givebackHalalas,
-            day.grossBookingsHalalas,
-          ),
-        })),
+        points: contributionPoints(data.daily),
       },
-      comparison: null,
+      comparison:
+        priorWindow && data.dailyComparison
+          ? { ...priorWindow, points: contributionPoints(data.dailyComparison) }
+          : null,
       higherIsBetter: true,
       awaitingStore: null,
     },

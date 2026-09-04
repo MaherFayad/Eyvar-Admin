@@ -234,6 +234,55 @@ describe('§3 — the board', () => {
     }
   })
 
+  /**
+   * **The two absences are different facts.** `no-history` is *there is no
+   * earlier window*; a window that exists and carries nothing to divide by is
+   * `insufficient-data`. Emitting the first for both put *No comparison period
+   * yet* on one figure beside *vs 1 May – 31 May* on the next.
+   */
+  it('a prior window with nothing to divide by reads as too little data, not no history', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    expect(data.comparison, 'the fixtures must carry a comparison window').not.toBeNull()
+    expect(
+      data.comparison!.captainEarningsHalalas,
+      'this figure is the worked case only while its prior value is zero',
+    ).toBe(0)
+
+    const board = toBoard(data, 'en')
+    const earnings = board.flows.find((each) => each.key.endsWith('captainEarnings'))
+    expect(earnings?.comparison).toEqual({ kind: 'none', reason: 'insufficient-data' })
+    expect(earnings?.deltaPercent).toBeNull()
+
+    mount(FULL_MONTH)
+    await settled()
+    const period = chapter(copy('fin.overview.chapter.period'))
+    expect(within(period).getAllByText(copy('overview.noCompare.insufficient-data')).length)
+      .toBeGreaterThan(0)
+    expect(within(period).queryByText(copy('overview.noCompare.no-history'))).toBeNull()
+  })
+
+  /**
+   * §3.7's dotted line. A legend reading *No comparison period yet* under a
+   * headline reading *up 5,024.3% against 1 May – 31 May* is one card making
+   * two claims about one window.
+   */
+  it('each chart carries the prior window as its comparison series', async () => {
+    const data = await getFinancialsOverview({
+      period: { start: '2026-06-01', end: '2026-06-30' },
+    })
+    expect(data.dailyComparison).not.toBeNull()
+    expect(data.dailyComparison).toHaveLength(31)
+
+    const board = toBoard(data, 'en')
+    for (const series of board.series) {
+      expect(series.comparison, `${series.key} draws no dotted line`).not.toBeNull()
+      expect(series.comparison!.periodStart).toBe(data.comparison!.period.start)
+      expect(series.comparison!.points).toHaveLength(data.dailyComparison!.length)
+    }
+  })
+
   /** §3.0 — each decision row opens the view that can act on it. */
   it('the decision list links to the view that can act', async () => {
     mount(FULL_MONTH)

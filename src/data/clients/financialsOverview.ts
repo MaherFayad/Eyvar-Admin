@@ -197,22 +197,25 @@ export async function getFinancialsOverview(
        with no posting at all. A day the books were quiet is a measured zero;
        the plot's gap comes from `percentOrNull` over it, never from a hole in
        this array. */
-    const daily: FinancialsDailyPoint[] = daysOf(period).map((date) => {
-      const day = { from: date, to: date }
-      const lines = givebackOver(entries, day)
-      return {
-        date,
-        grossBookingsHalalas: grossOver(entries, day),
-        captainEarningsHalalas: accountFlowFrom(entries, 'expense.driver_pay', 'debit', day),
-        givebackHalalas:
-          lines.promoHalalas +
-          lines.referralHalalas +
-          lines.incentiveHalalas +
-          lines.refundsHalalas +
-          lines.goodwillHalalas +
-          lines.emergencyCoverHalalas,
-      }
-    })
+    const bucketsOver = (window: FinancialsPeriod): FinancialsDailyPoint[] =>
+      daysOf(window).map((date) => {
+        const day = { from: date, to: date }
+        const lines = givebackOver(entries, day)
+        return {
+          date,
+          grossBookingsHalalas: grossOver(entries, day),
+          captainEarningsHalalas: accountFlowFrom(entries, 'expense.driver_pay', 'debit', day),
+          givebackHalalas:
+            lines.promoHalalas +
+            lines.referralHalalas +
+            lines.incentiveHalalas +
+            lines.refundsHalalas +
+            lines.goodwillHalalas +
+            lines.emergencyCoverHalalas,
+        }
+      })
+
+    const daily: FinancialsDailyPoint[] = bucketsOver(period)
 
     /* §2.1 — the same flows over the previous window, and the balances as at
        its end. `null` on the first window of trading, so a delta is never
@@ -256,6 +259,9 @@ export async function getFinancialsOverview(
       lifetimePostings: entries.length,
       comparison,
       daily,
+      /* `null` iff `comparison` is `null` — the dotted line and the delta are
+         the same claim about the same window. */
+      dailyComparison: comparison === null ? null : bucketsOver(comparison.period),
       grossBookingsHalalas,
       captainEarningsHalalas,
 

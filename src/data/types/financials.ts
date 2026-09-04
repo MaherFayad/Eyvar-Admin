@@ -122,6 +122,11 @@ export interface FinancialsOverview {
    * `percentOrNull` over a zero denominator (AC-342), never from a missing day.
    */
   daily: FinancialsDailyPoint[]
+  /**
+   * The same buckets over `comparison.period` — the dotted line §3.7 requires
+   * beside the solid one. **`null` if and only if `comparison` is `null`.**
+   */
+  dailyComparison: FinancialsDailyPoint[] | null
 }
 
 /**
