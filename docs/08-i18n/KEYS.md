@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5609** |
-| Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5609 |
+| **Translatable keys, all dictionaries** | **5636** |
+| Reachable from `EN` (what the shell renders) | 5357 |
+| Keys in `AR` | 5636 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values carrying an em dash (the ratchet)** | **105** |
+| **Arabic values carrying an em dash (the ratchet)** | **108** |
+| **English values over their word budget (the ratchet)** | **184** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **105** English and **108** Arabic, measured **105** and **108**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -62,15 +62,11 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/policy.ts` | 5 |
 | ar | `src/i18n/ar/pwa.ts` | 1 |
 | ar | `src/i18n/ar/reports.ts` | 3 |
-| ar | `src/i18n/ar/requests.ts` | 3 |
 | ar | `src/i18n/ar/safety.ts` | 2 |
 | ar | `src/i18n/ar/shell.ts` | 1 |
-| ar | `src/i18n/ar/subscriptionProfile.ts` | 1 |
-| ar | `src/i18n/ar/subscriptions.ts` | 3 |
 | ar | `src/i18n/ar/tickets.ts` | 1 |
 | ar | `src/i18n/ar/tripProfile.ts` | 2 |
 | ar | `src/i18n/ar/zones.ts` | 1 |
-| en | `src/components/profile/subscription/copy.ts` | 1 |
 | en | `src/components/profile/trip/copy.ts` | 2 |
 | en | `src/i18n/dictionaries.ts` | 1 |
 | en | `src/pwa/copy.ts` | 1 |
@@ -86,8 +82,6 @@ Both ceilings only ever fall.
 | en | `src/screens/operations/assurance/copy.ts` | 4 |
 | en | `src/screens/operations/my-work/copy.ts` | 1 |
 | en | `src/screens/operations/people/copy.ts` | 2 |
-| en | `src/screens/operations/requests/copy.ts` | 3 |
-| en | `src/screens/operations/subscriptions/copy.ts` | 3 |
 | en | `src/screens/reports/copy.ts` | 3 |
 | en | `src/screens/support/conversations/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
@@ -298,25 +292,11 @@ Both ceilings only ever fall.
 | en | `rb.funnel.duplicateStep` | Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own. |
 | en | `rb.panel.measureByGroup` | {measure} — {group} |
 | en | `rb.dashboard.tile.filterRefused` | Not filtered by {field} — this report can’t be. |
-| ar | `requests.offered.withCaptain` | معروض على {name} — بانتظار ردّه |
-| ar | `requests.offered.unnamed` | معروض على أحد الكباتن — بانتظار ردّه |
-| ar | `requests.offered.waiting` | — بانتظار ردّه |
-| en | `requests.offered.withCaptain` | Offered to {name} — waiting for their reply |
-| en | `requests.offered.unnamed` | Offered to a captain — waiting for their reply |
-| en | `requests.offered.waiting` | — waiting for their reply |
 | ar | `safety.step.a11y` | {step} — {incident} |
 | ar | `safety.empty.firstRun.body` | نداء استغاثة من سيارة مسرعة، أو اصطدام، أو بلاغ ضد كابتن أو راكب — كل واحدة يستلمها شخص محدَّد وتُعالج عبر أربع خطوات. |
 | en | `safety.step.a11y` | {step} — {incident} |
 | en | `safety.empty.firstRun.body` | An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps. |
 | ar | `table.bulk.refusalLabelled` | {action} — {reason} |
-| ar | `subs.bulk.freeze.blocked` | {count} من {total} من الاشتراكات المحدَّدة لا يمكن تجميدها — فهي ملغاة أو منتهية. |
-| ar | `subs.toast.cancelled` | تم إلغاء الاشتراك — استُرد {amount} |
-| ar | `sub.driverOption` | {name} — {city} · {rating} · {active}/{max} اشتراك |
-| en | `subs.bulk.freeze.blocked` | {count} of {total} selected subscriptions cannot be frozen — they are cancelled or expired. |
-| en | `subs.toast.cancelled` | Subscription cancelled — {amount} refunded |
-| en | `sub.driverOption` | {name} — {city} · {rating} · {active}/{max} subs |
-| ar | `profile.subscription.rail.window` | {from} — {to} |
-| en | `profile.subscription.rail.window` | {from} — {to} |
 | ar | `ticket.guide.heading` | دليل المكالمة — {scenario} |
 | en | `ticket.guide.heading` | Call guide — {scenario} |
 | ar | `profile.trip.party.ratingWithNote` | {rating} — «{note}» |
@@ -331,17 +311,17 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **184**, measured **184**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 94 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
+| title | 4 | 92 |
+| empty body | 12 | 44 |
 | button | 3 | 19 |
+| empty title | 5 | 18 |
 | meta | 6 | 9 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
@@ -377,7 +357,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 30 | `safety.empty.firstRun.body` | An SOS from a moving car, a collision, a report against a captain or a rider — each one is claimed by a named person and worked through four steps. |
 | empty body | 25 | `admin.workspace.empty.body` | Nothing has been set for this workspace yet — no name, no support address, no legal versions. Set them and every screen picks them up. |
 | empty body | 25 | `policy.reasons.empty.body` | A reason code is the closed vocabulary operators pick from when they dispose of work. Without one, every disposition is free text nobody can count. |
-| empty body | 23 | `subs.empty.firstRun.body` | A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed. |
 | empty body | 22 | `adminData.integrity.empty.body` | Nothing is scanned in the background. Run the checks and each one reports what it found, with its name on every row. |
 | empty body | 22 | `comms.log.empty.outbox.body` | Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them. |
 | empty body | 22 | `dispatch.empty.board.body` | Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts. |
@@ -387,7 +366,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 20 | `overview.empty.body` | This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count. |
 | empty body | 20 | `people.empty.applications.body` | Every captain who applies lands in this queue with their documents, so you can approve or reject in one place. |
 | empty body | 20 | `people.empty.compliance.body` | Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected. |
-| empty body | 20 | `trips.empty.firstRun.body` | Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating. |
 | empty body | 19 | `comms.identity.empty.body` | A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email. |
 | empty body | 19 | `entity.rider.payments.empty.body` | This rider has not paid for a trip by card. Quick ride fares appear here as they are captured. |
 | empty body | 18 | `admin.activity.empty.body` | The log is append-only and starts empty. The first payout, suspension or settings change writes the first line. |
@@ -404,7 +382,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
 | empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
-| empty body | 15 | `requests.empty.firstRun.body` | Every instant ride and every subscription sign-up waiting on a captain appears in this queue. |
 | empty body | 14 | `entity.driver.trips.empty.body` | Every trip they drive lands here, with what it earned and how it ended. |
 | empty body | 14 | `fin.empty.firstRun.body` | Postings appear the moment a fare, a payout or a credit touches this account. |
 | empty body | 13 | `conversations.empty.firstRun.body` | Chat and email conversations appear here as soon as a customer opens one. |
@@ -417,18 +394,15 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 13 | `fin.trial.empty.body` | Every account in the chart is listed the moment anything posts to it. |
 | empty body | 13 | `fin.wallet.empty.body` | A top-up, a goodwill credit or a refund to the wallet opens one. |
 | empty body | 13 | `rb.dashboard.empty.body` | Add a saved report and it appears here, in the order you choose. |
-| empty body | 13 | `sub.changeDriver.empty` | No other captain is active right now. Reassignment reopens when one comes online. |
 | empty body | 13 | `ticket.empty.body` | Inbound customer care tickets and the calls operators log against them arrive here. |
 | empty title | 10 | `admin.team.empty.heading` | Everyone who can sign in, and what each may do |
 | empty title | 10 | `adminData.integrity.empty.heading` | Find out where a stored total stops matching its records |
-| empty title | 9 | `subs.empty.firstRun.heading` | Standing journeys, and the captain committed to each one |
 | empty title | 8 | `admin.activity.empty.heading` | The record of who did what, and when |
 | empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
 | empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
 | empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
 | empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
-| empty title | 7 | `trips.empty.firstRun.heading` | Every journey taken, and what it earned |
 | empty title | 6 | `admin.integrations.webhook.empty.heading` | Tell another system when something happens |
 | empty title | 6 | `corp.empty.heading` | Company ride budgets, on one invoice |
 | empty title | 6 | `entity.driver.ledger.empty.heading` | No earnings have reached this captain |
@@ -538,8 +512,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `rb.library.firstRun.heading` | Ask the business a question |
 | title | 5 | `rb.related.heading` | This measure also appears on |
 | title | 5 | `rb.saveAs.title` | Save as a new report |
-| title | 5 | `requests.assign.title` | Assign a captain to {id}? |
-| title | 5 | `requests.expire.title` | Close {id} with no captain? |
 | title | 5 | `rider.timeline.trip-no-show.title` | Trip recorded as a no-show |
 | title | 5 | `ticket.logCall.title` | Log a call on {id} |
 
@@ -560,17 +532,17 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 164 |
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
+| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 112 |
-| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 111 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
+| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 104 |
-| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 103 |
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
-| `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
+| `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |

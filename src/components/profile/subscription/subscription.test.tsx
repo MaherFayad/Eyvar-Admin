@@ -189,7 +189,7 @@ describe('the table’s commands are on the sheet, behind the table’s own pred
 
     /* §11.2 — disabled in place, never hidden, and the reason is on the control
        rather than only in a tooltip. It is the SAME sentence the table shows,
-       because both come from `freezeRefusal`. */
+       because both resolve `SUBSCRIPTION_COMMANDS`. */
     const freeze = await within(dialog).findByRole('button', { name: en('subs.action.freeze') })
     expect(freeze).toBeDisabled()
     expect(freeze.getAttribute('title')).toBeTruthy()
@@ -210,20 +210,31 @@ describe('the table’s commands are on the sheet, behind the table’s own pred
     expect(freeze.getAttribute('title')).toBe(en('subs.action.noPermission'))
   })
 
-  it('never enables Change captain, because no write exists behind it', async () => {
+  /** T1.2 — the write landed, so the control is live on a running cycle. */
+  it('enables Change captain on a cycle that can take one', async () => {
     const live = await find(
       (s) => s.status !== 'cancelled' && s.status !== 'expired',
       'a cycle that is not terminal',
     )
     const dialog = await openSheet(live.id)
 
-    /* §11.2 — rendered and refused, and the sentence says the write does not
-       exist rather than implying a missing permission. */
+    expect(
+      await within(dialog).findByRole('button', { name: en('subs.action.changeDriver') }),
+    ).toBeEnabled()
+  })
+
+  it('refuses Change captain on a terminal cycle, IN PLACE and with the reason', async () => {
+    const dead = await find(
+      (s) => s.status === 'cancelled' || s.status === 'expired',
+      'a terminal cycle',
+    )
+    const dialog = await openSheet(dead.id)
+
     const button = await within(dialog).findByRole('button', {
       name: en('subs.action.changeDriver'),
     })
     expect(button).toBeDisabled()
-    expect(button.getAttribute('title')).toBe(en('subs.action.changeDriver.unavailable'))
+    expect(button.getAttribute('title')).toBe(en('subs.action.changeDriver.blocked.one'))
   })
 
   it('opens the queue’s own Freeze form from the sheet', async () => {

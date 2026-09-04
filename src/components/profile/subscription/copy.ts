@@ -49,8 +49,9 @@ export const SUBSCRIPTION_PROFILE_EN: Dictionary = {
   'profile.subscription.rail.captain': 'Captain',
   'profile.subscription.rail.noCaptain': 'No captain assigned to this cycle',
   'profile.subscription.rail.cycle': 'Cycle',
-  /* One key, two named placeholders — never two dates joined in JSX (§9.6). */
-  'profile.subscription.rail.window': '{from} — {to}',
+  /* One key, two named placeholders (§9.6). X14 keeps the EN dash on a
+     numeric range and takes the em dash everywhere else. */
+  'profile.subscription.rail.window': '{from} – {to}',
   'profile.subscription.rail.frozenUntil': 'Frozen until {date}',
   'profile.subscription.rail.cancelledOn': 'Cancelled {date}',
   'profile.subscription.rail.escrow': 'Held in escrow',

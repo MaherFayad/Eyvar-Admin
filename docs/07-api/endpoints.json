@@ -3088,6 +3088,21 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/api/v1/subscriptions/:id/unfreeze",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "unfreezeSubscription",
+      "params": null,
+      "body": null,
+      "returns": "Subscription  (`status: 'active'`, `frozenUntil: null`)",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`not_frozen` when the subscription is not frozen"
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/subscriptions/facets",
       "client": "src/data/clients/subscriptions.ts",

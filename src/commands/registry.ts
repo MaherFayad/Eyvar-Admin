@@ -206,6 +206,42 @@ export interface CommandConfirmRequest {
   confirmLabel: string
   /** Present when the domain requires a stated reason. Empty is not submittable. */
   reason?: { label: string; help: string; message: string }
+  /**
+   * A closed set the operator picks from before confirming — `subscription.freeze`'s
+   * duration. The wave-1 note asked for a typed option list rather than a text
+   * box parsed into a date, and this is it (X9, T6.1).
+   */
+  choice?: CommandConfirmChoice
+}
+
+/** One option of a confirm step's closed set. `ConfirmDialog`'s own shape. */
+export interface CommandConfirmOption {
+  /** The domain's own token, handed back verbatim. Never translated. */
+  value: string
+  /** Already translated. */
+  label: string
+  /** A second line — what choosing this one means. Never the only carrier. */
+  hint?: string | null
+}
+
+/**
+ * Structurally `ConfirmDialog`'s `choice` plus the two fields a command needs,
+ * so a host that already renders one renders this. **Additive:** `confirm`
+ * still resolves the reason or `null`, so no other registry, host or surface
+ * changes; the pick reaches `run` through `onSelect` as the selection moves.
+ */
+export interface CommandConfirmChoice {
+  /** All four already translated. */
+  label: string
+  help: string
+  message: string
+  placeholder: string
+  options: readonly CommandConfirmOption[]
+  /** §11.6 — an empty option list is a sentence, never an empty popover. */
+  emptyMessage: string
+  /** The option selected when the question opens. Names one of `options`. */
+  initial: string
+  onSelect(value: string): void
 }
 
 /**

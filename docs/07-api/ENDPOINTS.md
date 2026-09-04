@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**311 endpoints across 47 client modules.**
+**312 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -480,6 +480,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/subscriptions/:id/cancel` | `Subscription  (with `refundedHalalas` computed for unused trips)` | `{ reason: string }` | - | `cancelSubscription()` |
 | POST | `/api/v1/subscriptions/:id/driver` | `Subscription` | `{ driverId: string, reason: string }` | **404** when the subscription or the captain does not exist<br>**409** `not_reassignable` when the subscription is cancelled or expired<br>**422** `same_driver` when the captain named already holds it<br>**422** `driver_unavailable` when the captain is not active<br>**422** `vehicle_class_below_plan` when their vehicle is below the plan's tier | `reassignSubscriptionDriver()` |
 | POST | `/api/v1/subscriptions/:id/freeze` | `Subscription` | `{ until: IsoDate }` | **409** when the subscription is cancelled or expired | `freezeSubscription()` |
+| POST | `/api/v1/subscriptions/:id/unfreeze` | `Subscription  (`status: 'active'`, `frozenUntil: null`)` | - | **409** `not_frozen` when the subscription is not frozen | `unfreezeSubscription()` |
 | GET | `/api/v1/subscriptions/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getSubscriptionFacets()` |
 
 ## `src/data/clients/team.ts`

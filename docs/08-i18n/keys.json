@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5609,
-    "en": 5330,
-    "ar": 5609,
+    "keys": 5636,
+    "en": 5357,
+    "ar": 5636,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
-    "overBudget": 192
+    "emDashEn": 105,
+    "emDashAr": 108,
+    "overBudget": 184
   },
   "registered": [
     {
@@ -104,6 +104,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/operations/subscriptions/copy.ts",
+      "exports": [
+        "SUBSCRIPTIONS_EN"
+      ],
+      "keys": 138,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/team/copy.ts",
       "exports": [
         "ADMIN_TEAM_EN"
@@ -117,14 +125,6 @@
         "ASSURANCE_EN"
       ],
       "keys": 112,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "exports": [
-        "SUBSCRIPTIONS_EN"
-      ],
-      "keys": 111,
       "notInEN": 0
     },
     {
@@ -144,19 +144,19 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/disputes/copy.ts",
+      "file": "src/screens/operations/trips/copy.ts",
       "exports": [
-        "DISPUTES_EN"
+        "TRIPS_EN"
       ],
       "keys": 104,
       "notInEN": 0
     },
     {
-      "file": "src/screens/operations/trips/copy.ts",
+      "file": "src/screens/support/disputes/copy.ts",
       "exports": [
-        "TRIPS_EN"
+        "DISPUTES_EN"
       ],
-      "keys": 103,
+      "keys": 104,
       "notInEN": 0
     },
     {
@@ -190,7 +190,7 @@
       "exports": [
         "REQUESTS_EN"
       ],
-      "keys": 81,
+      "keys": 80,
       "notInEN": 0
     },
     {
@@ -1521,42 +1521,6 @@
       "value": "Not filtered by {field} — this report can’t be."
     },
     {
-      "file": "src/i18n/ar/requests.ts",
-      "lang": "ar",
-      "key": "requests.offered.withCaptain",
-      "value": "معروض على {name} — بانتظار ردّه"
-    },
-    {
-      "file": "src/i18n/ar/requests.ts",
-      "lang": "ar",
-      "key": "requests.offered.unnamed",
-      "value": "معروض على أحد الكباتن — بانتظار ردّه"
-    },
-    {
-      "file": "src/i18n/ar/requests.ts",
-      "lang": "ar",
-      "key": "requests.offered.waiting",
-      "value": "— بانتظار ردّه"
-    },
-    {
-      "file": "src/screens/operations/requests/copy.ts",
-      "lang": "en",
-      "key": "requests.offered.withCaptain",
-      "value": "Offered to {name} — waiting for their reply"
-    },
-    {
-      "file": "src/screens/operations/requests/copy.ts",
-      "lang": "en",
-      "key": "requests.offered.unnamed",
-      "value": "Offered to a captain — waiting for their reply"
-    },
-    {
-      "file": "src/screens/operations/requests/copy.ts",
-      "lang": "en",
-      "key": "requests.offered.waiting",
-      "value": "— waiting for their reply"
-    },
-    {
       "file": "src/i18n/ar/safety.ts",
       "lang": "ar",
       "key": "safety.step.a11y",
@@ -1585,54 +1549,6 @@
       "lang": "ar",
       "key": "table.bulk.refusalLabelled",
       "value": "{action} — {reason}"
-    },
-    {
-      "file": "src/i18n/ar/subscriptions.ts",
-      "lang": "ar",
-      "key": "subs.bulk.freeze.blocked",
-      "value": "{count} من {total} من الاشتراكات المحدَّدة لا يمكن تجميدها — فهي ملغاة أو منتهية."
-    },
-    {
-      "file": "src/i18n/ar/subscriptions.ts",
-      "lang": "ar",
-      "key": "subs.toast.cancelled",
-      "value": "تم إلغاء الاشتراك — استُرد {amount}"
-    },
-    {
-      "file": "src/i18n/ar/subscriptions.ts",
-      "lang": "ar",
-      "key": "sub.driverOption",
-      "value": "{name} — {city} · {rating} · {active}/{max} اشتراك"
-    },
-    {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "lang": "en",
-      "key": "subs.bulk.freeze.blocked",
-      "value": "{count} of {total} selected subscriptions cannot be frozen — they are cancelled or expired."
-    },
-    {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "lang": "en",
-      "key": "subs.toast.cancelled",
-      "value": "Subscription cancelled — {amount} refunded"
-    },
-    {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "lang": "en",
-      "key": "sub.driverOption",
-      "value": "{name} — {city} · {rating} · {active}/{max} subs"
-    },
-    {
-      "file": "src/i18n/ar/subscriptionProfile.ts",
-      "lang": "ar",
-      "key": "profile.subscription.rail.window",
-      "value": "{from} — {to}"
-    },
-    {
-      "file": "src/components/profile/subscription/copy.ts",
-      "lang": "en",
-      "key": "profile.subscription.rail.window",
-      "value": "{from} — {to}"
     },
     {
       "file": "src/i18n/ar/tickets.ts",
@@ -1907,14 +1823,6 @@
       "value": "A reason code is the closed vocabulary operators pick from when they dispose of work. Without one, every disposition is free text nobody can count."
     },
     {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "key": "subs.empty.firstRun.body",
-      "class": "empty body",
-      "words": 23,
-      "budget": 12,
-      "value": "A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed."
-    },
-    {
       "file": "src/screens/admin/data/copy.ts",
       "key": "adminData.integrity.empty.body",
       "class": "empty body",
@@ -1985,14 +1893,6 @@
       "words": 20,
       "budget": 12,
       "value": "Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected."
-    },
-    {
-      "file": "src/screens/operations/trips/copy.ts",
-      "key": "trips.empty.firstRun.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating."
     },
     {
       "file": "src/screens/admin/communications/copy.ts",
@@ -2123,14 +2023,6 @@
       "value": "A completed trip accrues earnings here, and a payout takes them out. Neither has happened."
     },
     {
-      "file": "src/screens/operations/requests/copy.ts",
-      "key": "requests.empty.firstRun.body",
-      "class": "empty body",
-      "words": 15,
-      "budget": 12,
-      "value": "Every instant ride and every subscription sign-up waiting on a captain appears in this queue."
-    },
-    {
       "file": "src/screens/entity/DriverCopy.ts",
       "key": "entity.driver.trips.empty.body",
       "class": "empty body",
@@ -2227,14 +2119,6 @@
       "value": "Add a saved report and it appears here, in the order you choose."
     },
     {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "key": "sub.changeDriver.empty",
-      "class": "empty body",
-      "words": 13,
-      "budget": 12,
-      "value": "No other captain is active right now. Reassignment reopens when one comes online."
-    },
-    {
       "file": "src/screens/support/tickets/copy.ts",
       "key": "ticket.empty.body",
       "class": "empty body",
@@ -2257,14 +2141,6 @@
       "words": 10,
       "budget": 5,
       "value": "Find out where a stored total stops matching its records"
-    },
-    {
-      "file": "src/screens/operations/subscriptions/copy.ts",
-      "key": "subs.empty.firstRun.heading",
-      "class": "empty title",
-      "words": 9,
-      "budget": 5,
-      "value": "Standing journeys, and the captain committed to each one"
     },
     {
       "file": "src/screens/admin/activity/copy.ts",
@@ -2313,14 +2189,6 @@
       "words": 7,
       "budget": 5,
       "value": "One word for each way work ends"
-    },
-    {
-      "file": "src/screens/operations/trips/copy.ts",
-      "key": "trips.empty.firstRun.heading",
-      "class": "empty title",
-      "words": 7,
-      "budget": 5,
-      "value": "Every journey taken, and what it earned"
     },
     {
       "file": "src/screens/admin/workspace/copy.ts",
@@ -3195,22 +3063,6 @@
       "value": "Save as a new report"
     },
     {
-      "file": "src/screens/operations/requests/copy.ts",
-      "key": "requests.assign.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Assign a captain to {id}?"
-    },
-    {
-      "file": "src/screens/operations/requests/copy.ts",
-      "key": "requests.expire.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Close {id} with no captain?"
-    },
-    {
       "file": "src/i18n/vocabulary/copy.ts",
       "key": "rider.timeline.trip-no-show.title",
       "class": "title",
@@ -3230,19 +3082,19 @@
   "overBudgetByClass": [
     [
       "title",
-      94
+      92
     ],
     [
       "empty body",
-      48
-    ],
-    [
-      "empty title",
-      20
+      44
     ],
     [
       "button",
       19
+    ],
+    [
+      "empty title",
+      18
     ],
     [
       "meta",

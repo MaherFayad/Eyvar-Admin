@@ -191,6 +191,7 @@ export {
   listSubscriptions,
   reassignSubscriptionDriver,
   subscriptionCount,
+  unfreezeSubscription,
   type SubscriptionQuery,
 } from './subscriptions'
 

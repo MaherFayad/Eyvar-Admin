@@ -526,11 +526,24 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         dataType: 'money',
         sortField: 'fareHalalas',
         /* O9 — the fare is a fact of the STATUS, not of the number. An open
-           trip has one coming, so it reads `Not settled`; a cancelled or
-           no-show trip has none, so the cell is blank. `fareHalalas` is `0` on
-           both and `0.00 SAR` would be a lie, the same lie `distanceKm` avoids. */
+           trip has one coming, so it reads `Not settled`; a cancelled trip has
+           none, so the cell is blank rather than `0.00 SAR`. A no-show that
+           charged a fee is money that moved, so it prints, qualified — the
+           qualifier is what stops it reading as a completed fare (TRP-9101). */
         cell: (trip) => {
           if (isOpenTrip(trip)) return <Absent numeric word={t('trips.fare.notSettled')} />
+          if (trip.status === 'no-show' && trip.fareHalalas > 0) {
+            return (
+              <Cell className="flex flex-col items-end tabular-nums">
+                <bdi className="font-medium">
+                  <Money amount={trip.fareHalalas} />
+                </bdi>
+                <span className="truncate text-xs text-muted-foreground">
+                  {t('trips.fare.noShowFee')}
+                </span>
+              </Cell>
+            )
+          }
           if (trip.status === 'cancelled' || trip.status === 'no-show')
             return <Absent numeric />
           return (

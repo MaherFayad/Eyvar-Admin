@@ -701,61 +701,10 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
         </>
       ),
     },
-    {
-      id: 'type',
-      emphasis: 'data',
-      header: t('requests.col.type'),
-      /* 104 -> 128. The old measure was sized for an 11px BADGE LABEL, and with
-         the badge gone `Subscription` truncated to `Subscripti…` at 14px —
-         verified at 1512 in the browser, not reasoned about. A width derived
-         from a chip does not survive the chip's removal unchanged. */
-      width: 128,
-      dataType: 'enum',
-      sortField: 'channel',
-      filter: {
-        kind: 'select',
-        field: 'channel',
-        options: [
-          { value: 'instant', label: t('requests.channel.instant') },
-          { value: 'subscription', label: t('requests.channel.subscription') },
-        ],
-      },
-      /* **AC-240** — the type is legible without opening the row, and it is a
-         visible column rather than a filter, because §5.1's whole point is that
-         these two are not variants of each other. */
-      /**
-       * **H7 — the badge budget, and this column was over it.** A default row
-       * on this queue carried FOUR tone fills: type, status, SLA and owner.
-       * `globals.css` states the rule — *"at most one tone-filled badge per
-       * row, and it lives in the ONE status column"* — and the reason: colour
-       * is a channel with a fixed capacity, so a fourth chip does not add a
-       * fourth signal, it removes the first three.
-       *
-       * Type is the one to give up, and not by elimination.
-       * `design/15-hierarchy-and-scannability.md` §2.1 names this queue's DATA
-       * tier as *"**type** · clock · status"* — DATA is `--ev-ink`,
-       * `--text-sm`, 400. So the type was already specified as ink text; the
-       * badge was the thing that disagreed with the spec, and AC-240's
-       * requirement (*"legible without opening the row"*) is a requirement on
-       * the COLUMN, which survives untouched. The precedent is on this
-       * product's own `AssuranceScreen`, §9.1 / D-21: *"a value may be a badge
-       * only if it is a lifecycle state the operator can act on"*. A channel
-       * is neither a lifecycle nor actionable.
-       */
-      cell: (row) => (
-        /* No colour class: the column already declares `emphasis: 'data'`, so
-           `DataTable` gives the cell ink. Writing it again here would be a
-           second source for one decision, and the tier is the one that
-           survives a column being hidden or reordered. */
-        <Cell>
-          {t(
-            row.channel === 'instant'
-              ? 'requests.channel.instant'
-              : 'requests.channel.subscription',
-          )}
-        </Cell>
-      ),
-    },
+    /* **T5.2 — no `Type` column.** The sub-tab names the kind: `Instant` on
+       every row of *Ride requests* is the same redundancy D1b removed from
+       Trips, and it cost 128px the identity needs (X8). `channel` is still a
+       pinned query filter above, and the request sheet still names it. */
     {
       id: 'status',
       emphasis: 'data',

@@ -312,7 +312,11 @@ export function SubscriptionMap({
           !isInline && 'items-start',
           )}
         >
-          {figures}
+          {/* **T5.11** — the expand control is a 28px button at `end-2` on this
+              same corner, and the `Paid` tile was reading `PA` under it. The
+              tile row keeps clear of it while the control is drawn; the
+              expanded map has none, so it takes the full measure. */}
+          <div className={cn(isInline && 'pe-9')}>{figures}</div>
 
           <div className="flex flex-col gap-1 rounded-lg border border-border bg-card/95 px-3 py-2">
             <Endpoint

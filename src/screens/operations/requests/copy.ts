@@ -21,7 +21,6 @@ export const REQUESTS_EN: Dictionary = {
      thing an operator is deciding about is the journey. The rider still has a
      name on line two and a link in the sheet. */
   'requests.col.ride': 'Ride',
-  'requests.col.type': 'Type',
   'requests.col.pickup': 'Pickup',
   'requests.col.destination': 'Destination',
   'requests.col.requested': 'Requested',
@@ -46,9 +45,10 @@ export const REQUESTS_EN: Dictionary = {
   'requests.status.cancelled': 'Cancelled',
 
   /* **AC-246** — a request in the `offered` state offers no assign action and
-     states that the offer is with the captain, not with ops. */
-  'requests.offered.withCaptain': 'Offered to {name} — waiting for their reply',
-  'requests.offered.unnamed': 'Offered to a captain — waiting for their reply',
+     states that the offer is with the captain, not with ops. X14 takes the em
+     dash: the qualifier follows the product's own separator. */
+  'requests.offered.withCaptain': 'Offered to {name} · awaiting their reply',
+  'requests.offered.unnamed': 'Offered to a captain · awaiting their reply',
 
   'requests.tag.vip': 'VIP',
   /* Legacy `🔁 Existing subscriber` (`:9909`). AC-76 takes the emoji. */
@@ -81,7 +81,8 @@ export const REQUESTS_EN: Dictionary = {
      that announces a person and lands on a journey is worse than no label. */
   'requests.a11y.open': 'Open the ride from {pickup} to {destination}',
 
-  'requests.assign.title': 'Assign a captain to {id}?',
+  /* X18 — a title is at most 4 words. */
+  'requests.assign.title': 'Assign {id} a captain?',
   /* §5.1 — **this is the only queue where money moves on disposition.** The
      confirmation says so, and says what does not change. */
   'requests.assign.body.instant':
@@ -95,7 +96,7 @@ export const REQUESTS_EN: Dictionary = {
   'requests.assign.choice.placeholder': 'Choose a captain',
   'requests.assign.choice.empty': 'No active captain is available to assign right now.',
 
-  'requests.expire.title': 'Close {id} with no captain?',
+  'requests.expire.title': 'Close {id} unmatched?',
   'requests.expire.body':
     'The rider is told nobody is available. Any authorisation hold is released and nothing is charged.',
   'requests.expire.confirm': 'Close request',
@@ -125,7 +126,7 @@ export const REQUESTS_EN: Dictionary = {
      an `<a>`: AC-75 forbids assembling a sentence around a component, and a
      translator cannot move a link that is inside a template. The one-name
      version stays for the row that has no captain id to open. */
-  'requests.offered.waiting': '— waiting for their reply',
+  'requests.offered.waiting': '· awaiting their reply',
 
   'requests.bulk.claim': 'Claim',
   'requests.action.claim.blocked.one': 'This request is already claimed, or already decided.',
@@ -156,8 +157,9 @@ export const REQUESTS_EN: Dictionary = {
      so this collapses into E1 and these strings never render. They stay
      because `DataTable` requires the copy, so an empty state cannot be a TODO. */
   'requests.empty.firstRun.heading': 'Ride requests land here',
+  /* X18 — an empty body is one sentence of at most 12 words. */
   'requests.empty.firstRun.body':
-    'Every instant ride and every subscription sign-up waiting on a captain appears in this queue.',
+    'A ride or a sign-up waiting on a captain appears here.',
   'requests.empty.firstRun.action': 'Show all requests',
 
   'requests.empty.noMatch': 'No request matches this search.',
