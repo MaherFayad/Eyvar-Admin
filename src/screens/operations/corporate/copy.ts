@@ -72,6 +72,8 @@ export const CORPORATE_EN: Dictionary = {
   'corp.contact': 'Contact person',
   'corp.email': 'Billing email',
   'corp.phone': 'Phone',
+  /* O9 — a missing contact number is a fact the operator acts on. */
+  'corp.phone.notSet': 'Not set',
   'corp.createdAt': 'Account opened',
 
   'corp.card.usagePolicy': 'Employee ride and usage policy',

@@ -44,6 +44,9 @@ export const TRIPS_EN: Dictionary = {
   'trips.col.distance': 'Distance',
   'trips.col.duration': 'Duration',
 
+  /* O9 — the fare of a trip still under way. A cancelled trip renders blank. */
+  'trips.fare.notSettled': 'Not settled',
+
   /* §7.7 — line 2 qualifies line 1. ONE key with two named placeholders;
      `pickup + ' → ' + destination` is exactly what AC-75 forbids. */
   'trips.route': '{pickup} → {destination}',

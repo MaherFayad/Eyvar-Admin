@@ -62,6 +62,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { listTrips } from '@/data/clients'
+import { isOpenTrip } from '@/data/types'
 import type { Paginated, SubTabRoute, Trip, TripStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
@@ -524,11 +525,20 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         align: 'end',
         dataType: 'money',
         sortField: 'fareHalalas',
-        cell: (trip) => (
-          <NumCell className="font-medium">
-            <Money amount={trip.fareHalalas} />
-          </NumCell>
-        ),
+        /* O9 — the fare is a fact of the STATUS, not of the number. An open
+           trip has one coming, so it reads `Not settled`; a cancelled or
+           no-show trip has none, so the cell is blank. `fareHalalas` is `0` on
+           both and `0.00 SAR` would be a lie, the same lie `distanceKm` avoids. */
+        cell: (trip) => {
+          if (isOpenTrip(trip)) return <Absent numeric word={t('trips.fare.notSettled')} />
+          if (trip.status === 'cancelled' || trip.status === 'no-show')
+            return <Absent numeric />
+          return (
+            <NumCell className="font-medium">
+              <Money amount={trip.fareHalalas} />
+            </NumCell>
+          )
+        },
       },
       {
         id: 'startedAt',

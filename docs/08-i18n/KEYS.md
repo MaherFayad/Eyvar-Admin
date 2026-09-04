@@ -9,14 +9,14 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5553** |
-| Reachable from `EN` (what the shell renders) | 5282 |
-| Keys in `AR` | 5553 |
+| **Translatable keys, all dictionaries** | **5561** |
+| Reachable from `EN` (what the shell renders) | 5289 |
+| Keys in `AR` | 5561 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 271 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 272 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 167 |
+| Keys in a `copy.ts` the shell has NOT registered | 168 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **112** |
@@ -557,14 +557,14 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 112 |
-| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 110 |
+| `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 111 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 104 |
-| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 102 |
+| `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 103 |
+| `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
-| `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 86 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
@@ -588,7 +588,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
-| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 92 | 91 |
+| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 93 | 92 |
 | `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 78 | 76 |
 
 ## Screens with no `copy.ts`

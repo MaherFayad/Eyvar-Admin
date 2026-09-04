@@ -31,7 +31,7 @@
  *               weight — never colour alone.
  */
 
-import { ArrowUpDown, ChevronDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -49,9 +49,19 @@ export interface SortControlProps<T> {
    * sort by a column you cannot see.
    */
   columns: ReadonlyArray<DataColumn<T>>
+  /** §11.2 / T5.13 — there are no rows to sort. Disabled in place, never gone. */
+  disabled?: boolean
+  /** The id of the sentence that says why. Real text on screen, not a `title`. */
+  describedBy?: string | undefined
 }
 
-export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
+export function SortControl<T>({
+  t,
+  sorting,
+  columns,
+  disabled = false,
+  describedBy,
+}: SortControlProps<T>) {
   const sortable = columns.filter((column) => column.sortField !== undefined)
   if (sortable.length === 0) return null
 
@@ -66,7 +76,7 @@ export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
         {activeColumn === null || active === null ? (
           /* §4.3 — a LABELLED outline button, not a bare glyph. The trailing
              `⌄` is §1.5's menu-opener mark. */
-          <Button variant="secondary">
+          <Button variant="secondary" disabled={disabled} aria-describedby={describedBy}>
             <ArrowUpDown aria-hidden="true" />
             {t('table.sort')}
             <ChevronDown aria-hidden="true" />
@@ -78,11 +88,19 @@ export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
              (§7.5). It grows horizontally; nothing shifts vertically. */
           <Button
             variant="secondary"
+            disabled={disabled}
+            aria-describedby={describedBy}
             aria-label={t('table.sort.active', { column: activeColumn.header })}
           >
             <ArrowUpDown aria-hidden="true" />
             <span className="max-w-24 truncate">{activeColumn.header}</span>
-            <span aria-hidden="true">{active.dir === 'desc' ? '↓' : '↑'}</span>
+            {/* T9.10 — drawn, not a font glyph: a glyph takes the text weight
+                and depends on the loaded font, which differs in Arabic. */}
+            {active.dir === 'desc' ? (
+              <ArrowDown aria-hidden="true" className="size-4" />
+            ) : (
+              <ArrowUp aria-hidden="true" className="size-4" />
+            )}
             <ChevronDown aria-hidden="true" />
           </Button>
         )}
@@ -123,7 +141,11 @@ export function SortControl<T>({ t, sorting, columns }: SortControlProps<T>) {
                 active?.dir === direction && 'bg-accent font-semibold',
               )}
             >
-              <span aria-hidden="true">{direction === 'asc' ? '↑' : '↓'}</span>
+              {direction === 'asc' ? (
+                <ArrowUp aria-hidden="true" className="size-4" />
+              ) : (
+                <ArrowDown aria-hidden="true" className="size-4" />
+              )}
               {activeColumn === null
                 ? t(direction === 'asc' ? 'table.sort.textAsc' : 'table.sort.textDesc')
                 : sortLabel(t, activeColumn, direction)}

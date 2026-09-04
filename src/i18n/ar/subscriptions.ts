@@ -118,6 +118,7 @@ export const SUBSCRIPTIONS_AR: Dictionary = {
   'sub.changeDriver.error': 'لم تُحمَّل قائمة الكباتن. أعد المحاولة، أو أغلق هذه النافذة وأعد الإسناد من ملف الكابتن.',
   'sub.changeDriver.empty': 'لا يوجد كابتن آخر نشط الآن. تعود إعادة الإسناد عندما يتصل أحدهم.',
   'sub.currentDriver': 'الكابتن الحالي',
+  'sub.noDriver': 'لا يوجد كابتن معيَّن',
   'sub.plan': 'الباقة',
   'sub.progress': 'الرحلات المكتملة',
   'sub.selectDriver': 'الكابتن الجديد',

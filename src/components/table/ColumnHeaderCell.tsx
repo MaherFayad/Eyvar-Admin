@@ -53,7 +53,7 @@
  */
 
 import { useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react'
 import { TableHead } from '@/components/ui/table'
 import {
   DropdownMenu,
@@ -226,12 +226,14 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
     </span>
   )
 
-  /* §3.4 — an ARROW, never a chevron, and only on the one sorted column. */
-  const arrow = direction === null ? null : (
-    <span aria-hidden="true" className="shrink-0 text-foreground">
-      {direction === 'desc' ? '↓' : '↑'}
-    </span>
-  )
+  /* §3.4 / T9.10 — an ARROW, never a chevron, and only on the one sorted
+     column. A drawn icon rather than a font glyph: a glyph takes the text
+     weight and depends on the loaded font, which differs in Arabic. */
+  const Arrow = direction === 'desc' ? ArrowDown : ArrowUp
+  const arrow =
+    direction === null ? null : (
+      <Arrow aria-hidden="true" className="size-4 shrink-0 text-foreground" />
+    )
 
   const caret = <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
 
@@ -376,11 +378,11 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
                 }}
               >
                 <DropdownMenuRadioItem value="asc">
-                  <span aria-hidden="true">↑</span>
+                  <ArrowUp aria-hidden="true" className="size-4" />
                   {sortLabel(t, column, 'asc')}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="desc">
-                  <span aria-hidden="true">↓</span>
+                  <ArrowDown aria-hidden="true" className="size-4" />
                   {sortLabel(t, column, 'desc')}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>

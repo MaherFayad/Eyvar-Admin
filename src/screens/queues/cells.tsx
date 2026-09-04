@@ -26,15 +26,14 @@
  *              `5 / 4` in an RTL paragraph without it, and `25 Jun` as
  *              `Jun 25` — the bidi algorithm resolves the neutral against the
  *              paragraph direction, so isolation is not decoration.
- *   §8.3.1     `—` is reserved for not-applicable or unknown. A zero is `0`,
- *              and the two never share a rendering.
+ *   O9         an absent value is BLANK, or a muted word when the operator acts
+ *              on the absence. A zero is `0`, and the two never share a rendering.
  *   §7.2       the focus ring is `globals.css`'s `:focus-visible` default.
  *              Nothing here removes an outline, so nothing here restores one.
  */
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ABSENT } from '@/lib'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -99,13 +98,13 @@ export function DateCell({ children, className }: { children: ReactNode; classNa
   )
 }
 
-/** `—`, and only for not-applicable or unknown (§8.3.1). Never for a zero. */
-export function Absent({ numeric = false }: { numeric?: boolean }) {
-  const content = (
-    <span className="text-muted-foreground" aria-label={ABSENT}>
-      {ABSENT}
-    </span>
-  )
+/**
+ * An absent value (O9). Blank when the value is simply not applicable; a muted
+ * `word` — already translated — only when the absence is a fact the operator
+ * acts on (`Not settled`, `No owner`). Never a zero, never a fill, never a glyph.
+ */
+export function Absent({ numeric = false, word }: { numeric?: boolean; word?: string }) {
+  const content = word === undefined ? null : <span className="text-muted-foreground">{word}</span>
   return numeric ? <NumCell>{content}</NumCell> : <Cell>{content}</Cell>
 }
 
@@ -115,7 +114,7 @@ export interface IdentityProps {
   name: string
   /** §7.7 — line 2 qualifies line 1: a route, a plan, a reason code, an id. */
   secondary?: ReactNode
-  /** §9.1 — semibold when the identity is a CODE (`INC-014`), regular for a name. */
+  /** §9.1 / T5.3 — a CODE (`INC-014`) is mono and semibold, and carries no avatar. */
   code?: boolean
   /** The accessible name, already interpolated. One key, never concatenated (AC-75). */
   label: string
@@ -134,18 +133,23 @@ export interface IdentityProps {
 export function Identity({ to, name, secondary = null, code = false, label }: IdentityProps) {
   return (
     <span className="flex max-w-80 items-center gap-2">
-      <Avatar className="size-8 rounded-full">
-        <AvatarFallback className="rounded-full text-xs font-medium">
-          {initialsOf(name)}
-        </AvatarFallback>
-      </Avatar>
+      {/* T5.3 — an avatar stands for a PERSON. `TRP-9012` has no face, and
+          `initialsOf` was rendering its first two letters as one. A code-led
+          record leads with the code, in mono, and takes the 40px back. */}
+      {!code && (
+        <Avatar className="size-8 rounded-full">
+          <AvatarFallback className="rounded-full text-xs font-medium">
+            {initialsOf(name)}
+          </AvatarFallback>
+        </Avatar>
+      )}
       <span className="flex min-w-0 flex-col justify-center">
         <Link
           to={to}
           aria-label={label}
           className={cn(
             'truncate rounded-sm text-foreground group-hover/row:underline',
-            code ? 'font-semibold tabular-nums' : 'font-medium',
+            code ? 'font-mono font-semibold' : 'font-medium',
           )}
         >
           {name}

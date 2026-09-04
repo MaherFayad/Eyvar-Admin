@@ -25,15 +25,23 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { Toaster } from '@/components/ui/sonner'
-import { disableMockLatency, listDrivers, resetDataLayer } from '@/data/clients'
+import {
+  disableMockLatency,
+  getSubTabs,
+  getWorkspaces,
+  listDrivers,
+  resetDataLayer,
+} from '@/data/clients'
 import type { Driver } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { CaptainsView } from '@/screens/operations/people/CaptainsView'
 import { CAPTAIN_COMMANDS } from './captains'
+import { SubTabShortcuts } from './SubTabShortcuts'
+import { rowIntentFor, subTabForLetter, subTabLetters } from './shortcuts'
 import {
   commandApplies,
   paletteCommands,
@@ -549,5 +557,139 @@ describe('CM-3 in CaptainsView', () => {
 
     await waitFor(() => expect(screen.getByText('Captain suspended')).toBeInTheDocument())
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+})
+
+/**
+ * **T6.2 — the keyboard grammar.** The two halves are tested differently on
+ * purpose: the mapping is a pure function and is asserted as one, and the
+ * wiring is driven through the real DOM, because a grammar nothing installs is
+ * the same defect as a preference nothing reads.
+ */
+describe('T6.2 — j / k / . / g, resolved through the registry', () => {
+  /** The same roster CM-3 drives, for the same reason: it is a real table. */
+  function mountRoster() {
+    return render(
+      <MemoryRouter initialEntries={['/operations/people?view=captains']}>
+        <CaptainsView
+          chrome={{
+            tabs: [{ id: 'captains', label: 'Captains' }],
+            activeTab: 'captains',
+            onSelectTab: () => {},
+            onTotal: () => {},
+          }}
+          t={t}
+          language="en"
+          canWrite
+          currentUserId="USR-001"
+        />
+      </MemoryRouter>,
+    )
+  }
+
+  /** The path an operator takes to a row that is not on page one. */
+  async function rosterRow(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await screen.findByRole('table')
+    await user.type(screen.getByLabelText('Search captains'), name)
+    const tr = (await screen.findByText(name)).closest('tr')
+    if (!tr) throw new Error(`No row for ${name}`)
+    return tr
+  }
+
+  /** The router's current path, read where a component can see it. */
+  function locationProbe(): { read: () => string; Probe: () => null } {
+    let path = ''
+    return {
+      read: () => path,
+      Probe: () => {
+        path = useLocation().pathname
+        return null
+      },
+    }
+  }
+
+  it('names the three row intents and yields every other press', () => {
+    const bare = { metaKey: false, ctrlKey: false, altKey: false }
+    expect(rowIntentFor({ ...bare, key: 'j' })).toBe('row.next')
+    expect(rowIntentFor({ ...bare, key: 'k' })).toBe('row.previous')
+    expect(rowIntentFor({ ...bare, key: '.' })).toBe('row.actions')
+
+    /* Not ours, and each for its own reason: `Escape` belongs to whatever is
+       above the row, `J` is a capital in a field, ⌘K is global search. */
+    expect(rowIntentFor({ ...bare, key: 'Escape' })).toBeNull()
+    expect(rowIntentFor({ ...bare, key: 'J' })).toBeNull()
+    expect(rowIntentFor({ ...bare, key: 'k', metaKey: true })).toBeNull()
+  })
+
+  it('gives every sub-tab of a workspace its own letter', () => {
+    for (const workspace of getWorkspaces()) {
+      const rows = getSubTabs(workspace.id)
+      const letters = subTabLetters(rows)
+      expect(letters.size, `${workspace.id} loses a sub-tab to a letter clash`).toBe(rows.length)
+      expect(subTabForLetter(workspace.id, 'zz')).toBeNull()
+    }
+    /* The mapping is the id's, not the title's — a translated title would give
+       an Arabic operator a different keyboard from an English one. */
+    expect(subTabForLetter('operations', 'a')?.subTabId).toBe('operations-assurance')
+  })
+
+  it('moves row focus with j and k', async () => {
+    const user = userEvent.setup()
+    mountRoster()
+    const table = await screen.findByRole('table')
+    const rows = within(table).getAllByRole('row').slice(1)
+    rows[0]!.focus()
+
+    await user.keyboard('j')
+    expect(rows[1]).toHaveFocus()
+    await user.keyboard('k')
+    expect(rows[0]).toHaveFocus()
+  })
+
+  it('opens the focused row’s actions with a full stop', async () => {
+    const user = userEvent.setup()
+    mountRoster()
+    const row = await rosterRow(user, 'Ahmed Salem')
+    row.focus()
+
+    await user.keyboard('.')
+
+    expect(await screen.findByRole('menuitem', { name: 'Suspend captain' })).toBeInTheDocument()
+  })
+
+  it('jumps to a sub-tab on g then its letter, and not on the letter alone', async () => {
+    const user = userEvent.setup()
+    const { read, Probe } = locationProbe()
+    render(
+      <MemoryRouter initialEntries={['/operations/overview']}>
+        <SubTabShortcuts />
+        <Probe />
+      </MemoryRouter>,
+    )
+
+    /* A bare letter is somebody's search query, not a navigation. */
+    await user.keyboard('a')
+    expect(read()).toBe('/operations/overview')
+
+    await user.keyboard('ga')
+    expect(read()).toBe(subTabForLetter('operations', 'a')?.path)
+  })
+
+  it('leaves the grammar alone while the operator is typing', async () => {
+    const user = userEvent.setup()
+    const { read, Probe } = locationProbe()
+    render(
+      <MemoryRouter initialEntries={['/operations/overview']}>
+        <SubTabShortcuts />
+        <Probe />
+        <input aria-label="Search" />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByLabelText('Search'))
+    await user.keyboard('ga')
+
+    expect(read()).toBe('/operations/overview')
+    expect(screen.getByLabelText('Search')).toHaveValue('ga')
   })
 })

@@ -32,6 +32,7 @@ import { DirectionProvider } from '@/components/ui/direction'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { AppRoutes } from '@/routes'
+import { SubTabShortcuts } from '@/commands/SubTabShortcuts'
 import { ShellProvider, useShell } from '@/shell/ShellContext'
 import { InstallAffordance } from '@/pwa'
 
@@ -56,6 +57,11 @@ function App() {
               able to suppress an offline warning.
             */}
             <InstallAffordance />
+            {/*
+              T6.2 — `g` then a letter. One document listener, mounted here for
+              the reason `Toaster` is: a route change must not reinstall it.
+            */}
+            <SubTabShortcuts />
           </TooltipProvider>
         </DirectionBridge>
       </ShellProvider>

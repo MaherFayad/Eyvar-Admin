@@ -92,8 +92,12 @@ export const TRIP_PROFILE_EN: Dictionary = {
   'profile.trip.party.vehicle': 'Vehicle',
   'profile.trip.party.standing': 'Standing',
   /* Three facts about a captain, one line, one key — the same rule as the
-     band's meta. */
+     band's meta. O9 drops the clause an absent figure would leave dangling;
+     four shapes, four whole sentences, never a join in code (AC-75). */
   'profile.trip.party.standingValue': '{rating} rating · {trips} trips · {onTime} on time',
+  'profile.trip.party.standingValueNoRating': '{trips} trips · {onTime} on time',
+  'profile.trip.party.standingValueNoOnTime': '{rating} rating · {trips} trips',
+  'profile.trip.party.standingValueTripsOnly': '{trips} trips',
   'profile.trip.party.vehicleValue': '{vehicle} · {tier}',
   'profile.trip.party.openRider': 'Open {name}’s profile',
   'profile.trip.party.openCaptain': 'Open {name}’s profile',

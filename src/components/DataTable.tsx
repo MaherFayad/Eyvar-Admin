@@ -145,7 +145,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
-import { Download } from 'lucide-react'
+import { Download, Ellipsis } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -165,6 +165,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import {
   directionFor,
@@ -184,6 +185,7 @@ import {
   useRovingFocus,
 } from '@/hooks'
 import type { AnyTable } from '@/hooks'
+import { rowIntentFor } from '@/commands/shortcuts'
 import { EmptyState, type EmptyAction } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingSkeleton } from './LoadingSkeleton'
@@ -192,6 +194,7 @@ import { ColumnLayoutPopover } from './table/ColumnLayoutPopover'
 import { AddFilterPopover, FilterChipRow } from './table/FilterChipRow'
 import { IndexToolbar, type ToolbarLeadingSlot } from './table/IndexToolbar'
 import { NarrowRowCards } from './table/NarrowRowCards'
+import { TABLE_PAGE_SIZES, setTablePageSize } from './table/pageSize'
 import { SortControl } from './table/SortControl'
 import {
   emphasisOf,
@@ -1205,6 +1208,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }, [status])
   const refreshing = status === 'loading' && hasShownContent.current
 
+  /* §11.2 / T5.13 — narrowing and export act on nothing when the table is
+     empty. `narrowed` keeps search, filter, columns and sort live on a
+     `no-match` empty, because taking the filter back off is the only way out
+     of it; `nothingToNarrow` is the branch where every control is inert. */
+  const emptyReasonId = useId()
+  const pageSizeLabelId = useId()
+  /** T6.2 — the row whose kebab is open, so `.` and a click reach one state. */
+  const [openActionsRow, setOpenActionsRow] = useState<string | null>(null)
+  const narrowed = table.isFiltered || emptyKind === 'no-match'
+  const nothingToNarrow = status === 'empty' && !narrowed
+  const emptyDescribedBy = status === 'empty' ? emptyReasonId : undefined
+
   /**
    * **R20 — row height is the TABLE's, not the row's, and there are no
    * exceptions.** `04-index-screen-redesign.md` §7.6: `DESIGN.md` §3.1's prose
@@ -1791,7 +1806,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ))}
       </div>
     ) : (
-      <DropdownMenu>
+      /* T6.2 — controlled so `.` on the row can open it. Uncontrolled, the only
+         way in was a synthetic pointer event, which is a simulation rather than
+         the thing itself. `undefined` here would make it uncontrolled again. */
+      <DropdownMenu
+        open={openActionsRow === id}
+        onOpenChange={(next) => setOpenActionsRow(next ? id : null)}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -1801,7 +1822,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                the row's hover OR its focus-within. Never zero opacity. */
             className="text-muted-foreground group-hover/row:bg-accent group-hover/row:text-foreground group-focus-within/row:bg-accent group-focus-within/row:text-foreground"
           >
-            <span aria-hidden="true">⋯</span>
+            <Ellipsis aria-hidden="true" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -1813,6 +1834,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </DropdownMenuContent>
       </DropdownMenu>
     )
+
+  /* T6.2 — the row's actions, from the row. A kebab opens; one or two direct
+     buttons have no menu, so focus lands on the first, which is where the menu
+     would have put it anyway. */
+  const openRowActions = (rowNode: HTMLElement, id: string): void => {
+    if (actionShape !== 'direct') {
+      setOpenActionsRow(id)
+      return
+    }
+    rowNode.querySelector<HTMLElement>('[data-row-actions]')?.focus()
+  }
 
   const rowItemProps = (index: number, row: T) => {
     const base = rowRoving.itemProps(index)
@@ -1833,6 +1865,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
              also jump the body a page down. */
           event.preventDefault()
           activateRow(row)
+          return
+        }
+
+        /* T6.2 — `j`/`k`/`.` as `commands/shortcuts.ts` declares them. The
+           table resolves a named intent and never reads a key itself. */
+        const intent = rowIntentFor(event)
+        if (intent !== null) {
+          event.preventDefault()
+          if (intent === 'row.actions') openRowActions(event.currentTarget, getRowId(row))
+          else
+            rowRoving.setActiveIndex(
+              Math.min(
+                Math.max(0, index + (intent === 'row.next' ? 1 : -1)),
+                Math.max(0, rows.length - 1),
+              ),
+            )
           return
         }
 
@@ -1904,24 +1952,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
               /* §9 — a ledger's column set is fixed by §8.3.3; it gets pin
                    toggles and no visibility checkboxes. */
               showVisibility={!isLedger}
+              disabled={nothingToNarrow}
+              describedBy={nothingToNarrow ? emptyReasonId : undefined}
             />
           ) : null
         }
         sortControl={
-          sorting === null ? null : <SortControl t={t} sorting={sorting} columns={columns} />
+          sorting === null ? null : (
+            <SortControl
+              t={t}
+              sorting={sorting}
+              columns={columns}
+              disabled={nothingToNarrow}
+              describedBy={nothingToNarrow ? emptyReasonId : undefined}
+            />
+          )
         }
-        /* Only where there is something to export. In `loading`, `error` and
-           both empties `rows` is empty, and a control that hands the operator a
-           file with a header block and no records is a control that has to be
-           explained. */
+        /* T5.13 — on an empty table the control stays where it is, disabled,
+           pointing at the sentence that says why; it is absent only in
+           `loading` and `error`, where the table has not said anything yet. A
+           file with a header block and no records still never leaves. */
         exportControl={
           status === 'content' && rows.length > 0 ? (
             <Button variant="secondary" onClick={handleExport}>
               <Download aria-hidden="true" />
               {t('table.export')}
             </Button>
+          ) : status === 'empty' ? (
+            <Button variant="secondary" disabled aria-describedby={emptyDescribedBy}>
+              <Download aria-hidden="true" />
+              {t('table.export')}
+            </Button>
           ) : null
         }
+        inertReasonId={nothingToNarrow ? emptyReasonId : null}
       />
 
       {/* **BAND 3 — the query strip**, on the ground, with a declared 12 above
@@ -2022,8 +2086,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
             **This changes wave 1's empty states too**, because `DataTable` is
             where all of them render. Disclosed in the handoff rather than left
             for visual-QA to find as a difference between two waves. */}
-        {status === 'empty' &&
-          (table.isFiltered || emptyKind === 'no-match' ? (
+        {/* T5.13 — the id the disabled toolbar controls point at. The sentence
+            is already on screen and is the true reason; a second wording of it
+            on a `title` would be a sentence only a mouse can reach. */}
+        {status === 'empty' && (
+          <div id={emptyReasonId}>
+          {narrowed ? (
             <EmptyState
               card={false}
               kind="no-match"
@@ -2056,7 +2124,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 firstRun.illustration !== undefined ? firstRun.illustration : isLedger ? null : undefined
               }
             />
-          ))}
+          )}
+          </div>
+        )}
 
         {(status === 'content' || refreshing) &&
           /* **The compact render mode.** Below `--ev-bp-compact` a nine-column
@@ -2504,6 +2574,43 @@ export function DataTable<T>(props: DataTableProps<T>) {
               total: formatCount(range.total),
             })}
           </span>
+          {/* T6.3 — `ui.pageSize`, the operator's, not the screen's. Under
+              infinite scroll it is still the size of a page, just one the
+              scroll fetches. Absent on a ledger (a card inside another surface)
+              and below one page at the smallest size, where it acts on nothing
+              (T5.13). */}
+          {!isLedger && range.total > TABLE_PAGE_SIZES[0]! && (
+            <div className="flex items-center gap-2">
+              <span id={pageSizeLabelId} className="text-xs text-muted-foreground">
+                {t('table.pageSize')}
+              </span>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={String(table.pageSize)}
+                aria-labelledby={pageSizeLabelId}
+                onValueChange={(next) => {
+                  /* Radix emits `''` when the pressed item is pressed again;
+                     a page size has no cleared state. Page 1 because page 4 of
+                     25 is past the end of the same list at 100. */
+                  const size = Number(next)
+                  if (!TABLE_PAGE_SIZES.includes(size)) return
+                  table.setPage(1)
+                  setTablePageSize(size)
+                }}
+              >
+                {TABLE_PAGE_SIZES.map((size) => (
+                  <ToggleGroupItem
+                    key={size}
+                    value={String(size)}
+                    aria-label={t('table.pageSize.option', { count: formatCount(size) })}
+                  >
+                    {formatCount(size)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+          )}
           {infiniteScroll === false ? (
             <div className="flex items-center gap-2">
               <Button
@@ -2632,7 +2739,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                       aria-label={t('shell.moreActions')}
                       className="h-8 w-8 rounded-lg bg-background/20 text-background hover:bg-background/30 hover:text-background focus-visible:ring-background"
                     >
-                      <span aria-hidden="true">⋯</span>
+                      <Ellipsis aria-hidden="true" className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

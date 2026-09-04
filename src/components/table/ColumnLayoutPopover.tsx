@@ -66,6 +66,10 @@ export interface ColumnLayoutPopoverProps<T> {
   onReset: () => void;
   /** §9 — a ledger renders pin toggles only. */
   showVisibility: boolean;
+  /** §11.2 / T5.13 — there are no rows to lay out. Disabled in place, never gone. */
+  disabled?: boolean;
+  /** The id of the sentence that says why. Real text on screen, not a `title`. */
+  describedBy?: string | undefined;
 }
 
 export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
@@ -80,6 +84,8 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
     onTogglePin,
     onReset,
     showVisibility,
+    disabled = false,
+    describedBy,
   } = props;
 
   /* **D16's `ui.density`, and this is the surface that was missing.** The
@@ -97,7 +103,11 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
     <Popover>
       <PopoverTrigger asChild>
         {/* §4.3 — labelled, with §1.5's trailing menu-opener caret. */}
-        <Button variant="secondary">
+        <Button
+          variant="secondary"
+          disabled={disabled}
+          aria-describedby={describedBy}
+        >
           <Columns3 aria-hidden="true" />
           {t("table.columns.title")}
           <ChevronDown aria-hidden="true" />

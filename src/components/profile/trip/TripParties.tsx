@@ -58,6 +58,14 @@ import { formatCount, formatDecimal, formatPercent, type Language, type Translat
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+/** O9 — the standing line's shape, so an absent figure drops its clause. */
+function standingKey(rating: number | null, onTime: number | null): string {
+  if (rating === null && onTime === null) return 'profile.trip.party.standingValueTripsOnly'
+  if (rating === null) return 'profile.trip.party.standingValueNoRating'
+  if (onTime === null) return 'profile.trip.party.standingValueNoOnTime'
+  return 'profile.trip.party.standingValue'
+}
+
 export interface TripPartiesProps {
   trip: Trip
   /** The rider's own row, for the phone and the rating note. `null` while it loads or fails. */
@@ -192,21 +200,21 @@ export function TripParties({
                 },
                 {
                   label: t('profile.trip.party.standing'),
+                  /* `onTime` is the captain's own figure, not a count of late
+                     trips this week: the record carries the first and nothing
+                     carries the second. O9 — an absent figure drops its whole
+                     clause rather than leaving a mark behind a separator. */
                   value: (
                     <bdi>
-                      {t('profile.trip.party.standingValue', {
+                      {t(standingKey(captain.rating, captain.onTimePercent), {
                         rating:
                           captain.rating === null
-                            ? '—'
+                            ? ''
                             : formatDecimal(captain.rating, 1, language),
                         trips: formatCount(captain.totalTrips, language),
-                        /* The captain's own on-time figure, not a count of
-                           late trips this week — the record carries the first
-                           and nothing carries the second, and a number the
-                           data cannot source is one an operator will act on. */
                         onTime:
                           captain.onTimePercent === null
-                            ? '—'
+                            ? ''
                             : formatPercent(captain.onTimePercent, language),
                       })}
                     </bdi>

@@ -179,7 +179,12 @@ export function ChangeDriverModal({
           <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs flex flex-col gap-1.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('sub.currentDriver')}:</span>
-              <span className="font-medium text-foreground">{subscription.driverName ?? '—'}</span>
+              {/* O9 — an unassigned subscription is the reason this modal is open. */}
+              {subscription.driverName === null ? (
+                <span className="font-medium text-muted-foreground">{t('sub.noDriver')}</span>
+              ) : (
+                <span className="font-medium text-foreground">{subscription.driverName}</span>
+              )}
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('sub.plan')}:</span>
@@ -225,7 +230,10 @@ export function ChangeDriverModal({
                 <SelectContent>
                   {qualifiedDrivers.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
-                      {d.name} ({d.city} · ★{d.rating !== null ? d.rating.toFixed(1) : '—'} · {d.activeSubscriptions}/{d.maxSubscriptions} subs)
+                      {/* O9 — an unrated captain drops the clause, never a glyph. */}
+                      {d.name} ({d.city}
+                      {d.rating === null ? '' : ` · ★${d.rating.toFixed(1)}`} ·{' '}
+                      {d.activeSubscriptions}/{d.maxSubscriptions} subs)
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -29,6 +29,7 @@ import {
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { ABSENT } from '@/lib'
+import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { ZONES_EN } from './copy'
 import { ZonesScreen } from './ZonesScreen'
@@ -218,8 +219,10 @@ describe('the zone list and the panel', () => {
     })
     expect(steer).toHaveLength(1)
     expect(recruit).toHaveLength(1)
-    /* Not behind a kebab: there is no actions menu trigger on this panel. */
-    expect(within(panel).queryByText('⋯')).toBeNull()
+    /* Not behind a kebab: there is no actions menu trigger on this panel. By
+       ROLE and NAME since T9.10 — the kebab is a drawn icon, and querying its
+       former text would assert nothing at all. */
+    expect(within(panel).queryByRole('button', { name: EN['shell.moreActions'] })).toBeNull()
   })
 
   it('the five tiles render, and two of them are toggles that narrow the zones', async () => {

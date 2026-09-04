@@ -324,7 +324,12 @@ export function CorporateDetailScreen() {
             </div>
             <div>
               <span className="text-muted-foreground block mb-0.5">{t('corp.phone')}</span>
-              <span className="font-medium text-foreground">{data.contactPhone ?? '—'}</span>
+              {/* O9 — a missing contact number is a fact the operator chases. */}
+              {data.contactPhone === null ? (
+                <span className="font-medium text-muted-foreground">{t('corp.phone.notSet')}</span>
+              ) : (
+                <span className="font-medium text-foreground">{data.contactPhone}</span>
+              )}
             </div>
             <div>
               <span className="text-muted-foreground block mb-0.5">{t('corp.createdAt')}</span>
