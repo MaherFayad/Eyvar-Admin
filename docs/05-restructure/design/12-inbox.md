@@ -492,6 +492,13 @@ shadcn slot. Ratios are against the token that sits on them; the steward re-deri
 | `--ev-note` | `#faf7ef` | `#26231a` | `--ev-ink` 15.7:1 / 13.2:1; `--ev-text-2` 4.52:1 / 6.3:1 (the note header line) |
 | `--ev-note-bar` | `#9a8a4e` | `#c2ad63` | 3.2:1 / 7.1:1 non-text against `--ev-note` |
 
+**D33 does not reach a bubble or a note.** D33 makes a *surface* recess — a card, container,
+popover, dialog or sheet is darker than the page it sits on — and these five values run the
+other way in dark. That is correct and stays: a bubble and a note block are content objects
+inside a thread, not surfaces. A thread reads as a column of utterances, and sinking each one
+into the page makes the conversation harder to follow. D34 does reach them, and there is no
+shadow anywhere in the thread or the composer.
+
 `--ev-note` is a warm neutral, deliberately not `--ev-amber-lt`: a note is not a warning (R17)
 and the banner tint must keep one meaning (R14's principle). Dimension tokens are §2's three.
 No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-sm`.
