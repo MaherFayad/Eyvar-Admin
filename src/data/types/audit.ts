@@ -39,6 +39,9 @@ export type AuditAction =
   | 'gateway.toggle'
   | 'gateway.setDefault'
   | 'plan.save'
+  | 'plan.create'
+  | 'quickRide.save'
+  | 'quickRide.create'
   /* P6-T3 — Admin › Policy. `policy.save` carries the changed field paths in
      `detail.params.fields`, which is what makes a save that flattens tier
      inheritance (legacy F-014) visible in the log rather than silent. */

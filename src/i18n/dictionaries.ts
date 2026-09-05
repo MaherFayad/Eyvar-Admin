@@ -507,6 +507,9 @@ const routes: Dictionary = {
   'route.fairness.detail': 'Case',
   'route.contacts.conversation': 'Conversation',
   'route.pricing.planEditor': 'Edit plan',
+  'route.pricing.planCreate': 'New plan',
+  'route.pricing.quickRideEditor': 'Edit class',
+  'route.pricing.quickRideCreate': 'New class',
 
   'shellLayer.profile': 'Profile',
   'shellLayer.notifications': 'Notifications',

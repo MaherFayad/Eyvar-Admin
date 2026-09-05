@@ -24,15 +24,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getLiveRateCard, getPlan, savePlan } from '@/data/clients'
-import type { PlanKey, RateCard, SubscriptionPlan } from '@/data/types'
+import { createPlan, getLiveRateCard, getPlan, savePlan } from '@/data/clients'
+import type { RateCard, SubscriptionPlan } from '@/data/types'
 import { useAsync, useForm, type Field } from '@/hooks'
+import { invalidate } from '@/hooks/requestCache'
 import { formatCount, formatMoney, formatPercent, type Language } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { ErrorState } from '@/components/ErrorState'
 import { FullBleedEditorShell } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -98,14 +100,19 @@ export function PlanEditorScreen() {
   const shell = useShell()
   const { t, dir, language, translatorFor } = shell.language
   const navigate = useNavigate()
-  const { planId = '' } = useParams<{ planId: string }>()
+  const { planId } = useParams<{ planId: string }>()
+  /* `/plans/new` has no id: the same screen on a blank record (§12). */
+  const creating = planId === undefined
 
-  const plan = useAsync<SubscriptionPlan>((signal) => getPlan(planId as PlanKey, signal), {
-    /* `planId` is the fetcher's only input, so one plan cannot be edited under
-       another plan's id. */
-    deps: [planId],
-    cacheKey: 'pricing.plan',
-  })
+  const plan = useAsync<SubscriptionPlan | null>(
+    (signal) => (planId === undefined ? Promise.resolve(null) : getPlan(planId, signal)),
+    {
+      /* `planId` is the fetcher's only input, so one plan cannot be edited under
+         another plan's id. */
+      deps: [planId],
+      cacheKey: 'pricing.plan',
+    },
+  )
 
   /* The rider preview states whether prices include VAT, and that is the RATE
      CARD's claim rather than this screen's. Read separately so a rate card that
@@ -117,10 +124,12 @@ export function PlanEditorScreen() {
 
   const exit = useCallback(() => navigate('/financials/pricing'), [navigate])
 
-  if (plan.status === 'loading') {
+  /* A new plan's pricing half comes from the live rate card, so the blank
+     form waits for the card the way the edit form waits for the plan. */
+  if (plan.status === 'loading' || (creating && rateCard.status === 'loading')) {
     return (
       <FullBleedEditorShell
-        title={planId}
+        title={planId ?? t('fin.planEditor.create.title')}
         onExit={exit}
         onSave={() => undefined}
         canSave={false}
@@ -133,10 +142,10 @@ export function PlanEditorScreen() {
     )
   }
 
-  if (plan.status === 'error' || plan.data === null) {
+  if (plan.status === 'error' || (!creating && plan.data === null)) {
     return (
       <FullBleedEditorShell
-        title={planId}
+        title={planId ?? ''}
         onExit={exit}
         onSave={() => undefined}
         canSave={false}
@@ -154,7 +163,8 @@ export function PlanEditorScreen() {
 
   return (
     <PlanEditorForm
-      plan={plan.data}
+      plan={plan.data ?? blankPlan(rateCard.status === 'content' ? rateCard.data : null)}
+      creating={creating}
       onExit={exit}
       t={t}
       dir={dir}
@@ -165,8 +175,39 @@ export function PlanEditorScreen() {
   )
 }
 
+/**
+ * The record a blank form is built on: the catalogue half empty, the pricing
+ * half the live rate card's, as `createPlan()` will assign it (§12).
+ */
+function blankPlan(card: RateCard | null): SubscriptionPlan {
+  const economy = card?.classes.find((c) => c.id === 'economy')
+  const comfort = card?.classes.find((c) => c.id === 'comfort')
+  return {
+    id: '',
+    nameEn: '',
+    nameAr: '',
+    durationDays: 0,
+    executeDays: 0,
+    cancelCap: 0,
+    sortOrder: 0,
+    status: 'draft',
+    features: [],
+    economyActive: true,
+    comfortActive: true,
+    commissionPercent: card?.commission.subscriptionPercent ?? 0,
+    discountPercent: 0,
+    economyPerMinuteHalalas: economy?.perMinHalalas ?? 0,
+    economyPerKmHalalas: economy?.perKmHalalas ?? 0,
+    comfortPerMinuteHalalas: comfort?.perMinHalalas ?? 0,
+    comfortPerKmHalalas: comfort?.perKmHalalas ?? 0,
+    pricingSource: 'rate-card',
+    pricingEditable: false,
+  }
+}
+
 function PlanEditorForm({
   plan,
+  creating,
   onExit,
   t,
   dir,
@@ -175,6 +216,8 @@ function PlanEditorForm({
   vatIncluded,
 }: {
   plan: SubscriptionPlan
+  /** A blank record: numbers start empty, and Save creates rather than updates. */
+  creating: boolean
   onExit: () => void
   t: ReturnType<typeof useShell>['language']['t']
   dir: ReturnType<typeof useShell>['language']['dir']
@@ -222,10 +265,11 @@ function PlanEditorForm({
     initialValues: {
       nameEn: plan.nameEn,
       nameAr: plan.nameAr,
-      durationDays: plan.durationDays,
-      executeDays: plan.executeDays,
-      cancelCap: plan.cancelCap,
-      sortOrder: plan.sortOrder,
+      /* Blank is `null`, never `0` — a new plan's numbers are not yet chosen. */
+      durationDays: creating ? null : plan.durationDays,
+      executeDays: creating ? null : plan.executeDays,
+      cancelCap: creating ? null : plan.cancelCap,
+      sortOrder: creating ? null : plan.sortOrder,
       status: plan.status,
       features: plan.features.map((feature) => ({ ...feature })),
       economyActive: plan.economyActive,
@@ -277,7 +321,7 @@ function PlanEditorForm({
       /* **AC-401** — every editable control is read by the save handler,
          including `status`, which `savePlan()` reads from nothing today (§8.6).
          The nulls cannot arrive here: `validate` blocks the save. */
-      await savePlan(plan.id, {
+      const input = {
         nameEn: values.nameEn.trim(),
         nameAr: values.nameAr.trim(),
         durationDays: values.durationDays ?? 0,
@@ -288,7 +332,16 @@ function PlanEditorForm({
         features: values.features,
         economyActive: values.economyActive,
         comfortActive: values.comfortActive,
-      })
+      }
+      if (creating) {
+        await createPlan(input)
+        invalidate('pricing.plan')
+        toast.success(t('fin.planEditor.toast.created'))
+        onExit()
+        return
+      }
+      await savePlan(plan.id, input)
+      invalidate('pricing.plan')
       /* G9 — a completed mutation is `success`, never a bare `toast()`. */
       toast.success(t('fin.planEditor.toast.saved'))
     },
@@ -324,15 +377,17 @@ function PlanEditorForm({
 
   return (
     <FullBleedEditorShell
-      title={form.values.nameEn || plan.id}
+      title={form.values.nameEn || (creating ? t('fin.planEditor.create.title') : plan.id)}
       badge={
-        <StatusBadge
-          tone={
-            plan.status === 'active' ? 'success' : plan.status === 'draft' ? 'info' : 'neutral'
-          }
-        >
-          {t(`fin.pricing.plan.status.${plan.status}`)}
-        </StatusBadge>
+        creating ? undefined : (
+          <StatusBadge
+            tone={
+              plan.status === 'active' ? 'success' : plan.status === 'draft' ? 'info' : 'neutral'
+            }
+          >
+            {t(`fin.pricing.plan.status.${plan.status}`)}
+          </StatusBadge>
+        )
       }
       onExit={onExit}
       onSave={submit}
@@ -370,6 +425,7 @@ function PlanEditorForm({
           <PlanDetails
             form={form}
             plan={plan}
+            creating={creating}
             t={t}
             language={language}
           />
@@ -397,11 +453,13 @@ function PlanEditorForm({
 function PlanDetails({
   form,
   plan,
+  creating,
   t,
   language,
 }: {
   form: ReturnType<typeof useForm<PlanValues, PlanDerived>>
   plan: SubscriptionPlan
+  creating: boolean
   t: ReturnType<typeof useShell>['language']['t']
   language: Language
 }) {
@@ -501,23 +559,36 @@ function PlanDetails({
       </Card>
 
       {/* ── the feature points — the counted fields §8.6 names ─────── */}
-      {form.values.features.length > 0 && (
-        <Card className="gap-3">
-          <div className="flex flex-col gap-3 px-(--card-spacing)">
-            <h2 className="text-sm font-semibold text-foreground">
-              {t('fin.planEditor.section.features')}
-            </h2>
+      <Card className="gap-3">
+        <div className="flex flex-col gap-3 px-(--card-spacing)">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t('fin.planEditor.section.features')}
+          </h2>
             {/* **AC-400 / §8.6** — the message lands on the field. The form keys
                 errors by editable field, so all feature lines share one message;
                 the row that caused it is the one whose count has gone past its
                 maximum, which is why the count renders on every row. */}
             {form.values.features.map((feature, index) => (
               <div key={index} className="flex flex-col gap-1">
-                <p className="text-xs font-medium text-muted-foreground">
-                  {t('fin.planEditor.feature.label', {
-                    index: formatCount(index + 1, language),
-                  })}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {t('fin.planEditor.feature.label', {
+                      index: formatCount(index + 1, language),
+                    })}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() =>
+                      form.setValue(
+                        'features',
+                        form.values.features.filter((_, at) => at !== index),
+                      )
+                    }
+                  >
+                    {t('fin.planEditor.feature.remove')}
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <FeatureField
                     id={`plan-feature-${index}-en`}
@@ -565,9 +636,20 @@ function PlanDetails({
             {form.errors.features !== undefined && (
               <p className="text-xs text-destructive">{form.errors.features}</p>
             )}
+            {/* A new line arrives blank in both languages and blocks Save until
+                filled, which is the rule the server enforces (AC-448). */}
+            <div>
+              <Button
+                size="xs"
+                onClick={() =>
+                  form.setValue('features', [...form.values.features, { en: '', ar: '' }])
+                }
+              >
+                {t('fin.planEditor.feature.add')}
+              </Button>
+            </div>
           </div>
         </Card>
-      )}
 
       {/* ── the pricing half — §4.6's DISABLED treatment ───────────── */}
       <Card className="gap-3">
@@ -575,7 +657,9 @@ function PlanDetails({
           <h2 className="text-sm font-semibold text-foreground">
             {t('fin.planEditor.section.pricing')}
           </h2>
-          <p className="text-xs text-muted-foreground">{t('fin.planEditor.pricing.disabled')}</p>
+          <p className="text-xs text-muted-foreground">
+            {creating ? t('fin.planEditor.pricing.fromRateCard') : t('fin.planEditor.pricing.disabled')}
+          </p>
 
           {/* **AC-392's near half.** These are DISABLED INPUTS: a bordered field
               at reduced contrast, focusable, in the tab order, and carrying

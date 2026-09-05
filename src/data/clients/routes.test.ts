@@ -174,9 +174,14 @@ describe('§3.10 — page shapes', () => {
     ])
   })
 
-  it('makes the plan editor the only full-bleed route', () => {
+  it('makes the two pricing editors, each with its create form, the only full-bleed routes', () => {
     const bleed = SUB_TABS.flatMap((r) => r.detailRoutes).filter((d) => d.shape === 'bleed')
-    expect(bleed.map((d) => d.path)).toEqual(['/financials/pricing/plans/:planId/edit'])
+    expect(bleed.map((d) => d.path)).toEqual([
+      '/financials/pricing/plans/:planId/edit',
+      '/financials/pricing/plans/new',
+      '/financials/pricing/quick-rides/:typeId/edit',
+      '/financials/pricing/quick-rides/new',
+    ])
   })
 
   /**
@@ -213,6 +218,9 @@ describe('§3.10 — page shapes', () => {
       'fairness-case',
       'incident',
       'plan-editor',
+      'plan-editor',
+      'quick-ride-editor',
+      'quick-ride-editor',
       'report',
       'ticket',
     ])
