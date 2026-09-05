@@ -22,6 +22,8 @@ const ROUTES = [
   ['safety', '/support/safety'],
   ['fairness', '/support/fairness'],
   ['contact-centre', '/support/contact-centre'],
+  /* The three-pane inbox (design 12); scripts/harness/support-inbox.mjs is the deep probe. */
+  ['contact-centre-thread', '/support/contact-centre/CNV-102'],
 ]
 
 async function switchToArabic(page) {

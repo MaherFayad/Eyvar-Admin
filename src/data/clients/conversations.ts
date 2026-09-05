@@ -72,7 +72,7 @@ import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, paginate, runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type Claim, type Facets, type IsoDateTime, type Paginated, type QueryParams } from '../types/common'
-import { channelReportsRead } from '../types/conversation'
+import { channelReportsRead, lastMessageAuthorKindOf } from '../types/conversation'
 import type {
   AgentPresence,
   Conversation,
@@ -131,6 +131,7 @@ export const CONVERSATION_OPERATIONS = {
   transfer: 'conversations.transfer',
   close: 'conversations.close',
   snooze: 'conversations.snooze',
+  markRead: 'conversations.markRead',
   reopen: 'conversations.reopen',
   reply: 'conversations.reply',
   retry: 'conversations.retry',
@@ -627,6 +628,26 @@ export async function snoozeConversation(
       snoozedUntil: until,
       waitingSince: null,
     }
+    return commit(updated, { type: 'conversation.updated', conversationId: id, conversation: updated })
+  })
+}
+
+/**
+ * POST /api/v1/conversations/:id/read
+ *   -> Conversation
+ *   404 naming the id
+ * Reader opened the thread: `unreadCount` becomes 0 and `conversation.updated` is
+ * announced, so the list clears its dot without a refetch (AC-CC-07). Idempotent.
+ * Not folded into `getConversation`: reading and marking read are two intents.
+ */
+export async function markConversationRead(id: string, signal?: AbortSignal): Promise<Conversation> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Conversation>(`/conversations/${id}/read`, undefined, { signal })
+  }
+  return mockMutation(CONVERSATION_OPERATIONS.markRead, signal, () => {
+    const existing = find(id)
+    if (existing.unreadCount === 0) return existing
+    const updated: Conversation = { ...existing, unreadCount: 0 }
     return commit(updated, { type: 'conversation.updated', conversationId: id, conversation: updated })
   })
 }
@@ -1439,6 +1460,57 @@ export function useEmptyConversationQueue(): void {
 }
 
 /**
+ * The customer's next message, arriving over the transport. Mock only: in
+ * `http` mode the server appends it and the console hears `message.created`.
+ * Unread follows the rule on `Conversation.unreadCount` (plan §2.1, §4): one
+ * more unless the signed-in operator holds the conversation. A closed thread
+ * is refused with a 409; a snoozed one keeps its status and its paused clocks.
+ */
+export function receiveInboundMessage(conversationId: string, body: string): Message {
+  const existing = find(conversationId)
+  if (existing.status === 'closed') {
+    throw new ApiError({
+      status: 409,
+      kind: 'conflict',
+      code: 'conversation_closed',
+      message: `${conversationId} is closed`,
+      retryable: false,
+    })
+  }
+  const customer = existing.participants.find((p) => p.kind === 'customer')
+  const message: Message = {
+    id: nextMessageId(),
+    conversationId,
+    channel: existing.channel,
+    direction: 'inbound',
+    authorId: customer?.id ?? existing.entityId,
+    authorName: customer?.name ?? existing.entityName,
+    authorKind: 'customer',
+    body,
+    visibility: 'customer',
+    delivery: null,
+    deliveryHistory: [],
+    subject: existing.channel === 'email' ? existing.subject : null,
+    sentAt: EYVAR_NOW,
+    attachments: [],
+  }
+  const heldByMe = liveClaim(existing.claim)?.ownerId === currentUserId()
+  const snoozed = existing.status === 'snoozed'
+  const updated: Conversation = {
+    ...existing,
+    messages: [...existing.messages, message],
+    messageCount: existing.messageCount + 1,
+    status: snoozed ? existing.status : 'waiting',
+    waitingSince: snoozed ? existing.waitingSince : (existing.waitingSince ?? EYVAR_NOW),
+    unreadCount: heldByMe ? existing.unreadCount : existing.unreadCount + 1,
+    lastMessageAt: EYVAR_NOW,
+    lastMessagePreview: body,
+  }
+  commit(updated, { type: 'message.created', conversationId, message })
+  return message
+}
+
+/**
  * Back to fixtures, back to the first minted message id, back to the seeded
  * presence. All three matter: a suite that reset the array but not the counter
  * would see `CMSG-9001` in its first run and `CMSG-9004` in its second, which is
@@ -1468,7 +1540,10 @@ function find(id: string): Conversation {
  * updated the array and stayed silent leaves every other console stale, and one
  * that announced without writing back is a lie the next `list` contradicts.
  */
-function commit(updated: Conversation, event: ConversationEvent): Conversation {
+function commit(next: Conversation, event: ConversationEvent): Conversation {
+  /* Derived here, once, so every mutation that appends a message — reply,
+     ticket mirror, inbound — keeps the preview's author current (plan §4). */
+  const updated: Conversation = { ...next, lastMessageAuthorKind: lastMessageAuthorKindOf(next.messages) }
   const index = dynamicConversations.findIndex((c) => c.id === updated.id)
   if (index >= 0) dynamicConversations[index] = updated
   emitMockEvent<ConversationEvent>(conversationTopic(updated.id), event.type, event)

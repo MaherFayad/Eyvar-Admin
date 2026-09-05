@@ -449,16 +449,11 @@ export function deliveryAttempts(message: Message): MessageDelivery[] {
  * `transfer` is the one operation that writes an owner who is not the caller,
  * and it records a `ClaimTakeover` exactly as a take-over does.
  *
- * ## The SLA fields are mostly `unset`, on purpose
+ * ## The SLA fields
  *
- * There is no legacy chat, so there is no shipped first-response promise for
- * one, and **inventing a number here would be inventing a domain rule**
- * (`slaSource: 'unset'`, the same answer `Applicant` gave to Q8). A
- * conversation that belongs to a ticket inherits *that ticket's* reason-code
- * SLA, which is real and already computed — so `slaSource:
- * 'legacy-reason-code'` appears on exactly the rows that have a `ticketId`.
- * **Open question for the owner:** what is the first-response promise on a
- * chat with no ticket behind it?
+ * A chat carries D22's promise (`stampChatClocks`, `slaSource: 'chat-policy'`).
+ * A conversation that belongs to a ticket inherits that ticket's reason-code
+ * SLA (`slaSource: 'legacy-reason-code'`). Phone promises nothing (`unset`).
  */
 export interface Conversation extends WorkQueueRow {
   /** `CNV-101`. Stable, string, server-minted. */
@@ -515,12 +510,24 @@ export interface Conversation extends WorkQueueRow {
    */
   lastMessagePreview: string | null
   /**
+   * Who wrote the message `lastMessagePreview` shows — the newest
+   * customer-visible one — so the list can tint a preview as ours or theirs
+   * without loading the thread (CONTACT-CENTRE-REDESIGN-PLAN §2.1, §4).
+   * `null` exactly when the preview is `null`. Derived, never stored.
+   */
+  lastMessageAuthorKind: ParticipantKind | null
+  /**
    * When the oldest unanswered inbound arrived. **This is the queue's sort
    * key** — "oldest waiting first" (P5-T4). `null` when nothing is waiting,
    * which sorts last, exactly as `dueAt: null` does in My Work.
    */
   waitingSince: IsoDateTime | null
-  /** Inbound messages the assigned operator has not opened. `0`, never `null`. */
+  /**
+   * Inbound messages the reader has not opened. `0`, never `null`. The rule
+   * (CONTACT-CENTRE-REDESIGN-PLAN §2.1, §4): an inbound customer message adds
+   * one unless the reader holds the conversation; an outbound reply, a close
+   * and `markConversationRead` reset it; an internal note leaves it alone.
+   */
   unreadCount: number
 
   /* ── links ──────────────────────────────────────────────────────────── */
@@ -533,6 +540,57 @@ export interface Conversation extends WorkQueueRow {
   snoozedUntil: IsoDateTime | null
   closedAt: IsoDateTime | null
   closeReason: ConversationCloseReason | null
+}
+
+/* ─────────────────────── the chat promise (D22) ─────────────────────── */
+
+/** D22: a chat is answered within 45 s. Seconds, because `slaTargetMinutes` cannot carry 0.75 honestly. */
+export const CHAT_FIRST_RESPONSE_SECONDS = 45
+
+/** D22: a chat is finished within 20 min — a conversion prompt, not an escalation. */
+export const CHAT_RESOLUTION_MINUTES = 20
+
+/**
+ * A chat's clock fields from the instant it opened, stamped from D22 the way
+ * `stampTicketClocks` stamps a ticket. The SLA policy grid is keyed on
+ * `WorkQueueId`, which has no chat member, so the two constants above stand in.
+ * Breach fields stay `null`: a breach is a stamp, never `dueAt < now` (R5a).
+ */
+export function stampChatClocks(
+  openedAt: IsoDateTime,
+): Pick<
+  Conversation,
+  | 'slaStartedAt'
+  | 'slaDueAt'
+  | 'slaTargetMinutes'
+  | 'slaBreachedAt'
+  | 'slaSource'
+  | 'firstResponseDueAt'
+  | 'firstResponseBreachedAt'
+> {
+  const opened = Date.parse(openedAt)
+  return {
+    slaStartedAt: openedAt,
+    slaDueAt: new Date(opened + CHAT_RESOLUTION_MINUTES * 60_000).toISOString(),
+    slaTargetMinutes: CHAT_RESOLUTION_MINUTES,
+    slaBreachedAt: null,
+    slaSource: 'chat-policy',
+    firstResponseDueAt: new Date(opened + CHAT_FIRST_RESPONSE_SECONDS * 1_000).toISOString(),
+    firstResponseBreachedAt: null,
+  }
+}
+
+/**
+ * `Conversation.lastMessageAuthorKind`, derived: the author of the newest
+ * customer-visible message, which is the message the preview shows. `null`
+ * when there is none — an empty thread, or a phone thread of call notes.
+ */
+export function lastMessageAuthorKindOf(messages: readonly Message[]): ParticipantKind | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i]
+    if (message !== undefined && message.visibility === 'customer') return message.authorKind
+  }
+  return null
 }
 
 /* ─────────────────────── presence and typing ────────────────────────── */

@@ -842,6 +842,21 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/conversations/:id/read",
+      "client": "src/data/clients/conversations.ts",
+      "function": "markConversationRead",
+      "params": null,
+      "body": null,
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "naming the id"
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/conversations/:id/release",
       "client": "src/data/clients/conversations.ts",
       "function": "releaseConversation",

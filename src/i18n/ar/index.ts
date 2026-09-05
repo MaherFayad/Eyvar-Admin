@@ -15,6 +15,7 @@ import type { Dictionary } from '@/lib'
 import { SHELL_AR } from './shell'
 import { SLA_MESSAGES_AR } from './sla'
 import { FILE_SIZE_MESSAGES_AR } from './fileSize'
+import { DATE_MESSAGES_AR } from './date'
 import { CONFIRM_AR } from './confirm'
 import { PWA_AR } from './pwa'
 import { DRIVER_VOCABULARY_AR, RIDER_VOCABULARY_AR, VOCABULARY_AR } from './vocabulary'
@@ -34,6 +35,7 @@ import { FAIRNESS_AR } from './fairness'
 import { SAFETY_AR } from './safety'
 import { SUPPORT_DESK_AR } from './supportDesk'
 import { CONVERSATIONS_AR } from './conversations'
+import { INBOX_AR } from './inbox'
 import { OVERVIEW_AR } from './metrics'
 import { ZONES_AR } from './zones'
 import { GROWTH_AR } from './growth'
@@ -60,6 +62,7 @@ export const AR: Dictionary = {
   ...SHELL_AR,
   ...SLA_MESSAGES_AR,
   ...FILE_SIZE_MESSAGES_AR,
+  ...DATE_MESSAGES_AR,
   ...CONFIRM_AR,
   ...PWA_AR,
   ...VOCABULARY_AR,
@@ -81,6 +84,7 @@ export const AR: Dictionary = {
   ...SAFETY_AR,
   ...SUPPORT_DESK_AR,
   ...CONVERSATIONS_AR,
+  ...INBOX_AR,
   ...OVERVIEW_AR,
   ...ZONES_AR,
   ...GROWTH_AR,

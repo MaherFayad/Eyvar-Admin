@@ -1,13 +1,13 @@
 {
   "totals": {
     "keys": 6820,
-    "en": 6474,
+    "en": 6470,
     "ar": 6820,
     "arMissing": 0,
-    "arExtra": 346,
+    "arExtra": 350,
     "copyFiles": 37,
     "unregisteredKeys": 194,
-    "pluralForms": 63,
+    "pluralForms": 65,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 84,
@@ -96,11 +96,12 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "exports": [
-        "CONVERSATIONS_EN"
+        "CONVERSATIONS_EN",
+        "INBOX_EN"
       ],
-      "keys": 184,
+      "keys": 178,
       "notInEN": 0
     },
     {
@@ -322,12 +323,6 @@
       "screens": [
         "EntityPageScreen.tsx",
         "SubTabScreen.tsx"
-      ]
-    },
-    {
-      "dir": "src/screens/support/contacts",
-      "screens": [
-        "ContactCentreScreen.tsx"
       ]
     }
   ],
@@ -778,13 +773,13 @@
       "value": "لم تصل — {reason}"
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "lang": "en",
       "key": "conversations.promise.paused",
       "value": "Snoozed — both clocks are paused."
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "lang": "en",
       "key": "conversations.delivery.failedReason",
       "value": "Not delivered — {reason}"
@@ -1662,7 +1657,7 @@
       "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "key": "conversations.empty.cleared.unassigned",
       "class": "empty body",
       "words": 15,
@@ -1694,7 +1689,7 @@
       "value": "Postings appear the moment a fare, a payout or a credit touches this account."
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "key": "conversations.empty.firstRun.body",
       "class": "empty body",
       "words": 13,

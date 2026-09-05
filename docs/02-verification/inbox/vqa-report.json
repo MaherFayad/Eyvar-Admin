@@ -1,0 +1,6124 @@
+[
+ {
+  "name": "list-wide-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-wide-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(227, 231, 234)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 139,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 139,
+    "end": 48,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 400,
+    "parentW": 400,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 108,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 60,
+  "headerButtons": [
+   {
+    "label": "Create ticket",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(255, 255, 255)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(255, 255, 255)",
+    "mb": "-1px",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(255, 255, 255)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write a reply to Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 601,
+     "y": 739,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "1",
+    "rect": {
+     "x": 722,
+     "y": 739,
+     "w": 105,
+     "h": 24
+    }
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(12, 105, 68)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 927,
+     "y": 735,
+     "w": 56,
+     "h": 32
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "Sent to Nora Al-Harbi by Chat",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Nora Al-Harbi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 693,
+    "tabBottom": 643,
+    "listBottom": 643,
+    "tabTop": 611,
+    "inactiveX": 812
+   },
+   "activeColumn": [
+    "635:#ffffff",
+    "636:#ffffff",
+    "637:#ffffff",
+    "638:#ffffff",
+    "639:#ffffff",
+    "640:#ffffff",
+    "641:#ffffff",
+    "642:#ffffff",
+    "643:#ffffff",
+    "644:#ffffff",
+    "645:#ffffff",
+    "646:#ffffff",
+    "647:#ffffff",
+    "648:#ffffff",
+    "649:#ffffff",
+    "650:#ffffff"
+   ],
+   "inactiveColumn": [
+    "635:#f6f8f9",
+    "636:#f6f8f9",
+    "637:#f6f8f9",
+    "638:#f6f8f9",
+    "639:#f6f8f9",
+    "640:#f6f8f9",
+    "641:#f6f8f9",
+    "642:#d0d7dd",
+    "643:#ffffff",
+    "644:#ffffff",
+    "645:#ffffff",
+    "646:#ffffff",
+    "647:#ffffff",
+    "648:#ffffff",
+    "649:#ffffff",
+    "650:#ffffff"
+   ]
+  }
+ },
+ {
+  "name": "note-wide-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(227, 231, 234)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 139,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 139,
+    "end": 48,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 400,
+    "parentW": 400,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 108,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 60,
+  "headerButtons": [
+   {
+    "label": "Create ticket",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": true,
+    "bg": "rgb(250, 247, 239)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(250, 247, 239)",
+    "mb": "-1px",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(250, 247, 239)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write an internal note…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(250, 247, 239)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 601,
+     "y": 739,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Add note",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 900,
+     "y": 735,
+     "w": 83,
+     "h": 32
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "Internal note. Not sent to the customer.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter adds an internal note · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 892,
+    "tabBottom": 643,
+    "listBottom": 643,
+    "tabTop": 611,
+    "inactiveX": 613
+   },
+   "activeColumn": [
+    "635:#faf7ef",
+    "636:#faf7ef",
+    "637:#faf7ef",
+    "638:#faf7ef",
+    "639:#faf7ef",
+    "640:#faf7ef",
+    "641:#faf7ef",
+    "642:#faf7ef",
+    "643:#faf7ef",
+    "644:#faf7ef",
+    "645:#faf7ef",
+    "646:#faf7ef",
+    "647:#faf7ef",
+    "648:#faf7ef",
+    "649:#faf7ef",
+    "650:#faf7ef"
+   ],
+   "inactiveColumn": [
+    "635:#f6f8f9",
+    "636:#f6f8f9",
+    "637:#f6f8f9",
+    "638:#f6f8f9",
+    "639:#f6f8f9",
+    "640:#f6f8f9",
+    "641:#f6f8f9",
+    "642:#d0d7dd",
+    "643:#faf7ef",
+    "644:#faf7ef",
+    "645:#faf7ef",
+    "646:#faf7ef",
+    "647:#faf7ef",
+    "648:#faf7ef",
+    "649:#faf7ef",
+    "650:#faf7ef"
+   ]
+  }
+ },
+ {
+  "name": "list-compact-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "thread": null,
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "0px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-compact-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 132,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "Back to conversations",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Details",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(255, 255, 255)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(255, 255, 255)",
+    "mb": "-1px",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 198,
+     "h": 44
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 215,
+     "y": 643,
+     "w": 158,
+     "h": 43
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(255, 255, 255)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write a reply to Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 198,
+     "h": 44
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 215,
+     "y": 643,
+     "w": 158,
+     "h": 43
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 25,
+     "y": 783,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "1",
+    "rect": {
+     "x": 146,
+     "y": 783,
+     "w": 105,
+     "h": 24
+    }
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(12, 105, 68)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 309,
+     "y": 773,
+     "w": 56,
+     "h": 44
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "Sent to Nora Al-Harbi by Chat",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Nora Al-Harbi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": []
+ },
+ {
+  "name": "note-compact-en-light",
+  "dir": "ltr",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 132,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "Back to conversations",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Details",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 196,
+     "h": 43
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": true,
+    "bg": "rgb(250, 247, 239)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(250, 247, 239)",
+    "mb": "-1px",
+    "rect": {
+     "x": 213,
+     "y": 643,
+     "w": 160,
+     "h": 44
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(250, 247, 239)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write an internal note…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 196,
+     "h": 43
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(250, 247, 239)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 213,
+     "y": 643,
+     "w": 160,
+     "h": 44
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 25,
+     "y": 783,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Add note",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 282,
+     "y": 773,
+     "w": 83,
+     "h": 44
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "Internal note. Not sent to the customer.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter adds an internal note · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": []
+ },
+ {
+  "name": "list-wide-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-wide-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(38, 45, 54)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 139,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 139,
+    "end": 48,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 400,
+    "parentW": 400,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 108,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 60,
+  "headerButtons": [
+   {
+    "label": "Create ticket",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(26, 31, 38)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(26, 31, 38)",
+    "mb": "-1px",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(26, 31, 38)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write a reply to Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 601,
+     "y": 739,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "1",
+    "rect": {
+     "x": 722,
+     "y": 739,
+     "w": 105,
+     "h": 24
+    }
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(79, 177, 131)",
+    "color": "rgb(26, 31, 38)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 927,
+     "y": 735,
+     "w": 56,
+     "h": 32
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "Sent to Nora Al-Harbi by Chat",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter sends to Nora Al-Harbi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 693,
+    "tabBottom": 643,
+    "listBottom": 643,
+    "tabTop": 611,
+    "inactiveX": 812
+   },
+   "activeColumn": [
+    "635:#1a1f26",
+    "636:#1a1f26",
+    "637:#1a1f26",
+    "638:#1a1f26",
+    "639:#1a1f26",
+    "640:#1a1f26",
+    "641:#1a1f26",
+    "642:#1a1f26",
+    "643:#1a1f26",
+    "644:#1a1f26",
+    "645:#1a1f26",
+    "646:#1a1f26",
+    "647:#1a1f26",
+    "648:#1a1f26",
+    "649:#1a1f26",
+    "650:#1a1f26"
+   ],
+   "inactiveColumn": [
+    "635:#101319",
+    "636:#101319",
+    "637:#101319",
+    "638:#101319",
+    "639:#101319",
+    "640:#101319",
+    "641:#101319",
+    "642:#333c47",
+    "643:#1a1f26",
+    "644:#1a1f26",
+    "645:#1a1f26",
+    "646:#1a1f26",
+    "647:#1a1f26",
+    "648:#1a1f26",
+    "649:#1a1f26",
+    "650:#1a1f26"
+   ]
+  }
+ },
+ {
+  "name": "note-wide-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(38, 45, 54)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 60,
+  "rowH": 60,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 139,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 139,
+    "end": 48,
+    "w": 245,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 400,
+    "parentW": 400,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 108,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 60,
+  "headerButtons": [
+   {
+    "label": "Create ticket",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": true,
+    "bg": "rgb(38, 35, 26)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(38, 35, 26)",
+    "mb": "-1px",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(38, 35, 26)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write an internal note…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 593,
+     "y": 611,
+     "w": 199,
+     "h": 31
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(38, 35, 26)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 792,
+     "y": 611,
+     "w": 199,
+     "h": 32
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 601,
+     "y": 739,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Add note",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 900,
+     "y": 735,
+     "w": 83,
+     "h": 32
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "Internal note. Not sent to the customer.",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter adds an internal note · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 892,
+    "tabBottom": 643,
+    "listBottom": 643,
+    "tabTop": 611,
+    "inactiveX": 613
+   },
+   "activeColumn": [
+    "635:#26231a",
+    "636:#26231a",
+    "637:#26231a",
+    "638:#26231a",
+    "639:#26231a",
+    "640:#26231a",
+    "641:#26231a",
+    "642:#26231a",
+    "643:#26231a",
+    "644:#26231a",
+    "645:#26231a",
+    "646:#26231a",
+    "647:#26231a",
+    "648:#26231a",
+    "649:#26231a",
+    "650:#26231a"
+   ],
+   "inactiveColumn": [
+    "635:#101319",
+    "636:#101319",
+    "637:#101319",
+    "638:#101319",
+    "639:#101319",
+    "640:#101319",
+    "641:#101319",
+    "642:#333c47",
+    "643:#26231a",
+    "644:#26231a",
+    "645:#26231a",
+    "646:#26231a",
+    "647:#26231a",
+    "648:#26231a",
+    "649:#26231a",
+    "650:#26231a"
+   ]
+  }
+ },
+ {
+  "name": "list-compact-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "thread": null,
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "0px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-compact-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 132,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "Back to conversations",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Details",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(26, 31, 38)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(26, 31, 38)",
+    "mb": "-1px",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 198,
+     "h": 44
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 215,
+     "y": 643,
+     "w": 158,
+     "h": 43
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(26, 31, 38)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write a reply to Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 198,
+     "h": 44
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 215,
+     "y": 643,
+     "w": 158,
+     "h": 43
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 25,
+     "y": 783,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "1",
+    "rect": {
+     "x": 146,
+     "y": 783,
+     "w": 105,
+     "h": 24
+    }
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(79, 177, 131)",
+    "color": "rgb(26, 31, 38)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 309,
+     "y": 773,
+     "w": 56,
+     "h": 44
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "Sent to Nora Al-Harbi by Chat",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter sends to Nora Al-Harbi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": []
+ },
+ {
+  "name": "note-compact-en-dark",
+  "dir": "ltr",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "Today",
+    "size": "12px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [
+   {
+    "text": "Delivered",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 132,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "Back to conversations",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Details",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 196,
+     "h": 43
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "active": true,
+    "bg": "rgb(38, 35, 26)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(38, 35, 26)",
+    "mb": "-1px",
+    "rect": {
+     "x": 213,
+     "y": 643,
+     "w": 160,
+     "h": 44
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(38, 35, 26)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "Write an internal note…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 643,
+     "w": 196,
+     "h": 43
+    }
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(38, 35, 26)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 213,
+     "y": 643,
+     "w": 160,
+     "h": 44
+    }
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 25,
+     "y": 783,
+     "w": 113,
+     "h": 24
+    }
+   },
+   {
+    "label": "Add note",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 282,
+     "y": 773,
+     "w": 83,
+     "h": 44
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "Internal note. Not sent to the customer.",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter adds an internal note · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [
+   {
+    "text": "Active",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "overdue 2m",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Internal note",
+    "px": 11,
+    "badge": true
+   },
+   {
+    "text": "Insert template",
+    "px": 11,
+    "badge": false
+   }
+  ],
+  "errors": []
+ },
+ {
+  "name": "list-wide-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-wide-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": {
+    "x": 0,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(227, 231, 234)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 360,
+    "parentW": 360,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "إنشاء تذكرة",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "تحويل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(255, 255, 255)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(255, 255, 255)",
+    "mb": "-1px",
+    "rect": {
+     "x": 462,
+     "y": 599,
+     "w": 185,
+     "h": 36
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 173,
+     "h": 35
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(255, 255, 255)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ردًّا إلى Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 462,
+     "y": 599,
+     "w": 185,
+     "h": 36
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 173,
+     "h": 35
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 558,
+     "y": 735,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "الرد عبر البريد الإلكتروني",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "1",
+    "rect": {
+     "x": 412,
+     "y": 735,
+     "w": 138,
+     "h": 24
+    }
+   },
+   {
+    "label": "إرسال",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(12, 105, 68)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 297,
+     "y": 729,
+     "w": 52,
+     "h": 36
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "يُرسل إلى Nora Al-Harbi عبر محادثة",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter يُرسل إلى Nora Al-Harbi · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 555,
+    "tabBottom": 635,
+    "listBottom": 635,
+    "tabTop": 599,
+    "inactiveX": 309
+   },
+   "activeColumn": [
+    "627:#ffffff",
+    "628:#ffffff",
+    "629:#ffffff",
+    "630:#ffffff",
+    "631:#ffffff",
+    "632:#ffffff",
+    "633:#ffffff",
+    "634:#ffffff",
+    "635:#ffffff",
+    "636:#ffffff",
+    "637:#ffffff",
+    "638:#ffffff",
+    "639:#ffffff",
+    "640:#ffffff",
+    "641:#ffffff",
+    "642:#ffffff"
+   ],
+   "inactiveColumn": [
+    "627:#f6f8f9",
+    "628:#f6f8f9",
+    "629:#f6f8f9",
+    "630:#f6f8f9",
+    "631:#f6f8f9",
+    "632:#f6f8f9",
+    "633:#f6f8f9",
+    "634:#d0d7dd",
+    "635:#ffffff",
+    "636:#ffffff",
+    "637:#ffffff",
+    "638:#ffffff",
+    "639:#ffffff",
+    "640:#ffffff",
+    "641:#ffffff",
+    "642:#ffffff"
+   ]
+  }
+ },
+ {
+  "name": "note-wide-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": {
+    "x": 0,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(227, 231, 234)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 360,
+    "parentW": 360,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "إنشاء تذكرة",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "تحويل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 463,
+     "y": 599,
+     "w": 184,
+     "h": 35
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": true,
+    "bg": "rgb(250, 247, 239)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(250, 247, 239)",
+    "mb": "-1px",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 174,
+     "h": 36
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(250, 247, 239)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ملاحظة داخلية…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 463,
+     "y": 599,
+     "w": 184,
+     "h": 35
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(250, 247, 239)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 174,
+     "h": 36
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 558,
+     "y": 735,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "إضافة ملاحظة",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 297,
+     "y": 729,
+     "w": 96,
+     "h": 36
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "ملاحظة داخلية. لا تُرسل إلى العميل.",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter يضيف ملاحظة داخلية · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 376,
+    "tabBottom": 635,
+    "listBottom": 635,
+    "tabTop": 599,
+    "inactiveX": 483
+   },
+   "activeColumn": [
+    "627:#faf7ef",
+    "628:#faf7ef",
+    "629:#faf7ef",
+    "630:#faf7ef",
+    "631:#faf7ef",
+    "632:#faf7ef",
+    "633:#faf7ef",
+    "634:#faf7ef",
+    "635:#faf7ef",
+    "636:#faf7ef",
+    "637:#faf7ef",
+    "638:#faf7ef",
+    "639:#faf7ef",
+    "640:#faf7ef",
+    "641:#faf7ef",
+    "642:#faf7ef"
+   ],
+   "inactiveColumn": [
+    "627:#f6f8f9",
+    "628:#f6f8f9",
+    "629:#f6f8f9",
+    "630:#f6f8f9",
+    "631:#f6f8f9",
+    "632:#f6f8f9",
+    "633:#f6f8f9",
+    "634:#d0d7dd",
+    "635:#faf7ef",
+    "636:#faf7ef",
+    "637:#faf7ef",
+    "638:#faf7ef",
+    "639:#faf7ef",
+    "640:#faf7ef",
+    "641:#faf7ef",
+    "642:#faf7ef"
+   ]
+  }
+ },
+ {
+  "name": "list-compact-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "thread": null,
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "0px rgb(227, 231, 234)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 68,
+  "rowH": 68,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-compact-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 68,
+  "headerButtons": [
+   {
+    "label": "العودة إلى المحادثات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "التفاصيل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(255, 255, 255)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(255, 255, 255)",
+    "mb": "-1px",
+    "rect": {
+     "x": 188,
+     "y": 631,
+     "w": 185,
+     "h": 48
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 171,
+     "h": 47
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(255, 255, 255)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ردًّا إلى Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 188,
+     "y": 631,
+     "w": 185,
+     "h": 48
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 171,
+     "h": 47
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 284,
+     "y": 779,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "الرد عبر البريد الإلكتروني",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "1",
+    "rect": {
+     "x": 138,
+     "y": 779,
+     "w": 138,
+     "h": 24
+    }
+   },
+   {
+    "label": "إرسال",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(12, 105, 68)",
+    "color": "rgb(255, 255, 255)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 25,
+     "y": 767,
+     "w": 52,
+     "h": 48
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "يُرسل إلى Nora Al-Harbi عبر محادثة",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter يُرسل إلى Nora Al-Harbi · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "note-compact-ar-light",
+  "dir": "rtl",
+  "dark": false,
+  "tokens": {
+   "--ev-ink": "rgb(23, 26, 33)",
+   "--ev-text-2": "rgb(107, 114, 128)",
+   "--ev-bg": "rgb(255, 255, 255)",
+   "--ev-bg2": "rgb(246, 248, 249)",
+   "--ev-surface": "rgb(255, 255, 255)",
+   "--ev-hairline": "rgb(227, 231, 234)",
+   "--ev-hairline-control": "rgb(208, 215, 221)",
+   "--ev-bubble-in": "rgb(234, 238, 242)",
+   "--ev-bubble-out": "rgb(226, 237, 233)",
+   "--ev-bubble-out-ink": "rgb(23, 26, 33)",
+   "--ev-note": "rgb(250, 247, 239)",
+   "--ev-note-bar": "rgb(154, 138, 78)",
+   "--ev-brand": "rgb(12, 105, 68)",
+   "--primary": "rgb(12, 105, 68)",
+   "--ring": "rgb(12, 105, 68)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(234, 238, 242)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(226, 237, 233)",
+    "color": "rgb(23, 26, 33)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(107, 114, 128)",
+    "rule": "rgb(227, 231, 234)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(250, 247, 239)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(154, 138, 78)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(23, 26, 33)"
+    },
+    "bodyColor": "rgb(23, 26, 33)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 68,
+  "headerButtons": [
+   {
+    "label": "العودة إلى المحادثات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "التفاصيل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(107, 114, 128)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 189,
+     "y": 631,
+     "w": 184,
+     "h": 47
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": true,
+    "bg": "rgb(250, 247, 239)",
+    "weight": "600",
+    "color": "rgb(23, 26, 33)",
+    "borderTop": "2px rgb(23, 26, 33)",
+    "borderBottom": "1px rgb(250, 247, 239)",
+    "mb": "-1px",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 172,
+     "h": 48
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(208, 215, 221) bg rgb(246, 248, 249)",
+  "surfaceBg": "rgb(250, 247, 239)",
+  "surfaceBorder": "1px rgb(208, 215, 221)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ملاحظة داخلية…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(107, 114, 128)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 189,
+     "y": 631,
+     "w": 184,
+     "h": 47
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(250, 247, 239)",
+    "color": "rgb(23, 26, 33)",
+    "border": "2px rgb(23, 26, 33)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 172,
+     "h": 48
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 284,
+     "y": 779,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "إضافة ملاحظة",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(255, 255, 255)",
+    "color": "rgb(23, 26, 33)",
+    "border": "1px rgb(208, 215, 221)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 25,
+     "y": 767,
+     "w": 96,
+     "h": 48
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "ملاحظة داخلية. لا تُرسل إلى العميل.",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter يضيف ملاحظة داخلية · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "list-wide-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-wide-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": {
+    "x": 0,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(38, 45, 54)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 360,
+    "parentW": 360,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "إنشاء تذكرة",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "تحويل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(26, 31, 38)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(26, 31, 38)",
+    "mb": "-1px",
+    "rect": {
+     "x": 462,
+     "y": 599,
+     "w": 185,
+     "h": 36
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 173,
+     "h": 35
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(26, 31, 38)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ردًّا إلى Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 462,
+     "y": 599,
+     "w": 185,
+     "h": 36
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 173,
+     "h": 35
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 558,
+     "y": 735,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "الرد عبر البريد الإلكتروني",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "1",
+    "rect": {
+     "x": 412,
+     "y": 735,
+     "w": 138,
+     "h": 24
+    }
+   },
+   {
+    "label": "إرسال",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(79, 177, 131)",
+    "color": "rgb(26, 31, 38)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 297,
+     "y": 729,
+     "w": 52,
+     "h": 36
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "يُرسل إلى Nora Al-Harbi عبر محادثة",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter يُرسل إلى Nora Al-Harbi · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 555,
+    "tabBottom": 635,
+    "listBottom": 635,
+    "tabTop": 599,
+    "inactiveX": 309
+   },
+   "activeColumn": [
+    "627:#1a1f26",
+    "628:#1a1f26",
+    "629:#1a1f26",
+    "630:#1a1f26",
+    "631:#1a1f26",
+    "632:#1a1f26",
+    "633:#1a1f26",
+    "634:#1a1f26",
+    "635:#1a1f26",
+    "636:#1a1f26",
+    "637:#1a1f26",
+    "638:#1a1f26",
+    "639:#1a1f26",
+    "640:#1a1f26",
+    "641:#1a1f26",
+    "642:#1a1f26"
+   ],
+   "inactiveColumn": [
+    "627:#101319",
+    "628:#101319",
+    "629:#101319",
+    "630:#101319",
+    "631:#101319",
+    "632:#101319",
+    "633:#101319",
+    "634:#333c47",
+    "635:#1a1f26",
+    "636:#1a1f26",
+    "637:#1a1f26",
+    "638:#1a1f26",
+    "639:#1a1f26",
+    "640:#1a1f26",
+    "641:#1a1f26",
+    "642:#1a1f26"
+   ]
+  }
+ },
+ {
+  "name": "note-wide-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 664,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 272,
+    "y": 52,
+    "w": 392,
+    "h": 748
+   },
+   "rail": {
+    "x": 0,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "1px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": {
+    "is": "1px rgb(38, 45, 54)"
+   },
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 64,
+  "rowH": 64,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 219,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 360,
+    "parentW": 360,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 64,
+  "headerButtons": [
+   {
+    "label": "إنشاء تذكرة",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "تحويل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 36
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 463,
+     "y": 599,
+     "w": 184,
+     "h": 35
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": true,
+    "bg": "rgb(38, 35, 26)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(38, 35, 26)",
+    "mb": "-1px",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 174,
+     "h": 36
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(38, 35, 26)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ملاحظة داخلية…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 463,
+     "y": 599,
+     "w": 184,
+     "h": 35
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(38, 35, 26)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 289,
+     "y": 599,
+     "w": 174,
+     "h": 36
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 558,
+     "y": 735,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "إضافة ملاحظة",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 297,
+     "y": 729,
+     "w": 96,
+     "h": 36
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "ملاحظة داخلية. لا تُرسل إلى العميل.",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter يضيف ملاحظة داخلية · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [],
+  "errors": [],
+  "seam": {
+   "geo": {
+    "x": 376,
+    "tabBottom": 635,
+    "listBottom": 635,
+    "tabTop": 599,
+    "inactiveX": 483
+   },
+   "activeColumn": [
+    "627:#26231a",
+    "628:#26231a",
+    "629:#26231a",
+    "630:#26231a",
+    "631:#26231a",
+    "632:#26231a",
+    "633:#26231a",
+    "634:#26231a",
+    "635:#26231a",
+    "636:#26231a",
+    "637:#26231a",
+    "638:#26231a",
+    "639:#26231a",
+    "640:#26231a",
+    "641:#26231a",
+    "642:#26231a"
+   ],
+   "inactiveColumn": [
+    "627:#101319",
+    "628:#101319",
+    "629:#101319",
+    "630:#101319",
+    "631:#101319",
+    "632:#101319",
+    "633:#101319",
+    "634:#333c47",
+    "635:#26231a",
+    "636:#26231a",
+    "637:#26231a",
+    "638:#26231a",
+    "639:#26231a",
+    "640:#26231a",
+    "641:#26231a",
+    "642:#26231a"
+   ]
+  }
+ },
+ {
+  "name": "list-compact-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "thread": null,
+   "rail": null
+  },
+  "paneBorders": {
+   "list": {
+    "ie": "0px rgb(38, 45, 54)",
+    "is": "0px"
+   },
+   "rail": null,
+   "listBg": "rgba(0, 0, 0, 0)"
+  },
+  "rows": 7,
+  "rowPitch": 68,
+  "rowH": 68,
+  "overflowX": 0,
+  "bubbles": [],
+  "bubbleSidesOk": true,
+  "dividers": [],
+  "avatars": 0,
+  "delivery": [],
+  "notes": [],
+  "systemLines": [],
+  "headerH": null,
+  "headerButtons": [],
+  "tabs": [],
+  "tabListBorder": null,
+  "surfaceBg": null,
+  "surfaceBorder": null,
+  "fieldBg": null,
+  "fieldPlaceholder": null,
+  "fieldDisabled": null,
+  "composerButtons": [],
+  "sendEdge": null,
+  "consequence": [],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "thread-compact-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 68,
+  "headerButtons": [
+   {
+    "label": "العودة إلى المحادثات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "التفاصيل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": true,
+    "bg": "rgb(26, 31, 38)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(26, 31, 38)",
+    "mb": "-1px",
+    "rect": {
+     "x": 188,
+     "y": 631,
+     "w": 185,
+     "h": 48
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 171,
+     "h": 47
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(26, 31, 38)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ردًّا إلى Nora Al-Harbi…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 188,
+     "y": 631,
+     "w": 185,
+     "h": 48
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 171,
+     "h": 47
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 284,
+     "y": 779,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "الرد عبر البريد الإلكتروني",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "1",
+    "rect": {
+     "x": 138,
+     "y": 779,
+     "w": 138,
+     "h": 24
+    }
+   },
+   {
+    "label": "إرسال",
+    "filled": true,
+    "disabled": true,
+    "bg": "rgb(79, 177, 131)",
+    "color": "rgb(26, 31, 38)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 25,
+     "y": 767,
+     "w": 52,
+     "h": 48
+    }
+   }
+  ],
+  "sendEdge": 9,
+  "consequence": [
+   {
+    "text": "يُرسل إلى Nora Al-Harbi عبر محادثة",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter يُرسل إلى Nora Al-Harbi · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "note-compact-ar-dark",
+  "dir": "rtl",
+  "dark": true,
+  "tokens": {
+   "--ev-ink": "rgb(232, 236, 241)",
+   "--ev-text-2": "rgb(155, 165, 180)",
+   "--ev-bg": "rgb(20, 24, 30)",
+   "--ev-bg2": "rgb(16, 19, 25)",
+   "--ev-surface": "rgb(26, 31, 38)",
+   "--ev-hairline": "rgb(38, 45, 54)",
+   "--ev-hairline-control": "rgb(51, 60, 71)",
+   "--ev-bubble-in": "rgb(35, 42, 51)",
+   "--ev-bubble-out": "rgb(39, 66, 60)",
+   "--ev-bubble-out-ink": "rgb(230, 242, 236)",
+   "--ev-note": "rgb(38, 35, 26)",
+   "--ev-note-bar": "rgb(194, 173, 99)",
+   "--ev-brand": "rgb(79, 177, 131)",
+   "--primary": "rgb(79, 177, 131)",
+   "--ring": "rgb(79, 177, 131)"
+  },
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "paneBorders": {
+   "list": null,
+   "rail": null,
+   "listBg": null
+  },
+  "rows": 0,
+  "rowPitch": null,
+  "rowH": null,
+  "overflowX": 0,
+  "bubbles": [
+   {
+    "dir": "inbound",
+    "start": 125,
+    "end": 48,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(35, 42, 51)",
+    "color": "rgb(232, 236, 241)",
+    "radius": "8px/4px/8px/8px",
+    "textColors": []
+   },
+   {
+    "dir": "outbound",
+    "start": 48,
+    "end": 125,
+    "w": 217,
+    "border": "0px",
+    "bg": "rgb(39, 66, 60)",
+    "color": "rgb(230, 242, 236)",
+    "radius": "4px/8px/8px/8px",
+    "textColors": []
+   }
+  ],
+  "bubbleSidesOk": true,
+  "dividers": [
+   {
+    "text": "اليوم",
+    "size": "13px",
+    "weight": "600",
+    "color": "rgb(155, 165, 180)",
+    "rule": "rgb(38, 45, 54)"
+   }
+  ],
+  "avatars": 2,
+  "delivery": [],
+  "notes": [
+   {
+    "w": 358,
+    "parentW": 358,
+    "bg": "rgb(38, 35, 26)",
+    "radius": "8px",
+    "bar": {
+     "w": 3,
+     "h": 120,
+     "bg": "rgb(194, 173, 99)",
+     "fromStart": 0
+    },
+    "header": {
+     "size": "14px",
+     "color": "rgb(232, 236, 241)"
+    },
+    "bodyColor": "rgb(232, 236, 241)"
+   }
+  ],
+  "systemLines": [],
+  "headerH": 68,
+  "headerButtons": [
+   {
+    "label": "العودة إلى المحادثات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "مزيد من الإجراءات",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   },
+   {
+    "label": "التفاصيل",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 48
+   }
+  ],
+  "tabs": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "active": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "weight": "500",
+    "color": "rgb(155, 165, 180)",
+    "borderTop": "2px rgba(0, 0, 0, 0)",
+    "borderBottom": "0px rgba(0, 0, 0, 0)",
+    "mb": "0px",
+    "rect": {
+     "x": 189,
+     "y": 631,
+     "w": 184,
+     "h": 47
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "active": true,
+    "bg": "rgb(38, 35, 26)",
+    "weight": "600",
+    "color": "rgb(232, 236, 241)",
+    "borderTop": "2px rgb(232, 236, 241)",
+    "borderBottom": "1px rgb(38, 35, 26)",
+    "mb": "-1px",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 172,
+     "h": 48
+    },
+    "clipped": false,
+    "overflow": "visible",
+    "disabled": false
+   }
+  ],
+  "tabListBorder": "1px rgb(51, 60, 71) bg rgb(16, 19, 25)",
+  "surfaceBg": "rgb(38, 35, 26)",
+  "surfaceBorder": "1px rgb(51, 60, 71)",
+  "fieldBg": "rgba(0, 0, 0, 0)",
+  "fieldPlaceholder": "اكتب ملاحظة داخلية…",
+  "fieldDisabled": false,
+  "composerButtons": [
+   {
+    "label": "الرد على Nora Al-Harbi",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(155, 165, 180)",
+    "border": "2px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 189,
+     "y": 631,
+     "w": 184,
+     "h": 47
+    }
+   },
+   {
+    "label": "ملاحظة داخلية",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgb(38, 35, 26)",
+    "color": "rgb(232, 236, 241)",
+    "border": "2px rgb(232, 236, 241)",
+    "opacity": "1",
+    "rect": {
+     "x": 17,
+     "y": 631,
+     "w": 172,
+     "h": 48
+    }
+   },
+   {
+    "label": "إدراج قالب",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "opacity": "1",
+    "rect": {
+     "x": 284,
+     "y": 779,
+     "w": 81,
+     "h": 24
+    }
+   },
+   {
+    "label": "إضافة ملاحظة",
+    "filled": false,
+    "disabled": true,
+    "bg": "rgb(26, 31, 38)",
+    "color": "rgb(232, 236, 241)",
+    "border": "1px rgb(51, 60, 71)",
+    "opacity": "0.5",
+    "rect": {
+     "x": 25,
+     "y": 767,
+     "w": 96,
+     "h": 48
+    }
+   }
+  ],
+  "sendEdge": null,
+  "consequence": [
+   {
+    "text": "ملاحظة داخلية. لا تُرسل إلى العميل.",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   },
+   {
+    "text": "Enter يضيف ملاحظة داخلية · Shift + Enter يضيف سطرًا",
+    "size": "13px",
+    "color": "rgb(155, 165, 180)"
+   }
+  ],
+  "small": [],
+  "errors": []
+ },
+ {
+  "name": "state-CNV-101-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Claim",
+    "filled": true,
+    "disabled": false,
+    "bg": "rgb(12, 105, 68)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Transfer",
+   "Snooze until…",
+   "Create ticket",
+   "Close conversation"
+  ],
+  "tabs": [
+   {
+    "label": "Reply to الجوهرة بنت عبد العزيز بن سعود آل مقرن العتيبي",
+    "active": true
+   },
+   {
+    "label": "Internal note",
+    "active": false
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Reply to الجوهرة بنت عبد العزيز بن سعود آل مقرن العتيبي",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Sent to الجوهرة بنت عبد العزيز بن سعود آل مقرن العتيبي by Ch",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to الجوهرة بنت عبد العزيز بن سعود آل مقرن العتيب",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Grab this conversation before replying.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "state-CNV-103-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Take over",
+    "filled": true,
+    "disabled": false,
+    "bg": "rgb(12, 105, 68)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Transfer",
+   "Snooze until…",
+   "Create ticket",
+   "Close conversation"
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Layla Al-Faraj",
+    "active": true
+   },
+   {
+    "label": "Internal note",
+    "active": false
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Reply to Layla Al-Faraj",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Sent to Layla Al-Faraj by Chat",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Layla Al-Faraj · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "No email address on file for this rider.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Lina Al-Otaibi is handling this conversation.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "state-CNV-106-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Reopen",
+    "filled": true,
+    "disabled": false,
+    "bg": "rgb(12, 105, 68)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Create ticket"
+  ],
+  "tabs": [
+   {
+    "label": "Internal note",
+    "active": true
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Add note",
+    "filled": false,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Internal note. Not sent to the customer.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter adds an internal note · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "This conversation is closed. Reopen it to reply.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "state-CNV-111-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Close conversation",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Create ticket"
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Sara Al-Ghamdi",
+    "active": true
+   },
+   {
+    "label": "Internal note",
+    "active": false
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Reply to Sara Al-Ghamdi",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Sent to Sara Al-Ghamdi by Chat",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Sara Al-Ghamdi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "No email address on file for this rider.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Grab this conversation before replying.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "state-CNV-104-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Claim",
+    "filled": true,
+    "disabled": false,
+    "bg": "rgb(12, 105, 68)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Transfer",
+   "Snooze until…",
+   "Create ticket",
+   "Close conversation"
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "active": true
+   },
+   {
+    "label": "Internal note",
+    "active": false
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Reply to Nora Al-Harbi",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Sent to Nora Al-Harbi by Email",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Nora Al-Harbi · Shift + Enter adds a line",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Grab this conversation before replying.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "state-CNV-108-en-light",
+  "errors": [],
+  "headerButtons": [
+   {
+    "label": "Create ticket",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "Transfer",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 32
+   }
+  ],
+  "menu": [
+   "Snooze until…",
+   "Close conversation"
+  ],
+  "tabs": [
+   {
+    "label": "Reply to Mohammed Al-Qahtani",
+    "active": true
+   },
+   {
+    "label": "Internal note",
+    "active": false
+   }
+  ],
+  "composerButtons": [
+   {
+    "label": "Reply to Mohammed Al-Qahtani",
+    "filled": false,
+    "disabled": false
+   },
+   {
+    "label": "Internal note",
+    "filled": false,
+    "disabled": false
+   },
+   {
+    "label": "Insert template",
+    "filled": false,
+    "disabled": false
+   },
+   {
+    "label": "Reply by email",
+    "filled": false,
+    "disabled": true
+   },
+   {
+    "label": "Send",
+    "filled": true,
+    "disabled": true
+   }
+  ],
+  "consequence": [
+   {
+    "text": "Sent to Mohammed Al-Qahtani by Chat",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "Enter sends to Mohammed Al-Qahtani · Shift + Enter adds a li",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   },
+   {
+    "text": "No email address on file for this rider.",
+    "size": "12px",
+    "color": "rgb(107, 114, 128)"
+   }
+  ],
+  "fieldPlaceholder": "Write a reply to Mohammed Al-Qahtani…",
+  "panes": {
+   "list": {
+    "x": 304,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   },
+   "thread": {
+    "x": 576,
+    "y": 52,
+    "w": 432,
+    "h": 748
+   },
+   "rail": {
+    "x": 1008,
+    "y": 52,
+    "w": 272,
+    "h": 748
+   }
+  }
+ },
+ {
+  "name": "focus-en-light",
+  "rowFacts": {
+   "tag": "A",
+   "href": "/support/contact-centre/CNV-104",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(12, 105, 68) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(12, 105, 68)"
+  },
+  "rowFV": {
+   "active": "A.flex h-control items-center gap-2 ps-8 p",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(12, 105, 68) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(12, 105, 68)"
+  },
+  "tabFV": {
+   "role": "tab",
+   "label": "Reply to Nora Al-Harbi",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(255, 255, 255) 0px 0px 0px 2px, rgb(12, 105, 68) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "solid 1px rgb(23, 29, 34)",
+   "rect": {
+    "x": 593,
+    "y": 611,
+    "w": 199,
+    "h": 32
+   }
+  },
+  "afterArrow": {
+   "label": "Internal note",
+   "state": "active"
+  }
+ },
+ {
+  "name": "focus-en-dark",
+  "rowFacts": {
+   "tag": "A",
+   "href": "/support/contact-centre/CNV-104",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(79, 177, 131) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(79, 177, 131)"
+  },
+  "rowFV": {
+   "active": "A.flex h-control items-center gap-2 ps-8 p",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(79, 177, 131) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(79, 177, 131)"
+  },
+  "tabFV": {
+   "role": "tab",
+   "label": "Reply to Nora Al-Harbi",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(20, 24, 30) 0px 0px 0px 2px, rgb(79, 177, 131) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "solid 1px rgb(232, 236, 241)",
+   "rect": {
+    "x": 593,
+    "y": 611,
+    "w": 199,
+    "h": 32
+   }
+  },
+  "afterArrow": {
+   "label": "Internal note",
+   "state": "active"
+  }
+ },
+ {
+  "name": "focus-ar-light",
+  "rowFacts": {
+   "tag": "A",
+   "href": "/support/contact-centre/CNV-104",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(12, 105, 68) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(12, 105, 68)"
+  },
+  "rowFV": {
+   "active": "DIV.min-h-0 flex-1 overflow-y-auto",
+   "matchesFV": true,
+   "boxShadow": "none",
+   "outline": "solid 2px rgb(12, 105, 68)"
+  },
+  "tabFV": {
+   "role": "tab",
+   "label": "الرد على Nora Al-Harbi",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(255, 255, 255) 0px 0px 0px 2px, rgb(12, 105, 68) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "solid 1px rgb(23, 29, 34)",
+   "rect": {
+    "x": 462,
+    "y": 599,
+    "w": 185,
+    "h": 36
+   }
+  },
+  "afterArrow": {
+   "label": "ملاحظة داخلية",
+   "state": "active"
+  }
+ },
+ {
+  "name": "focus-ar-dark",
+  "rowFacts": {
+   "tag": "A",
+   "href": "/support/contact-centre/CNV-104",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(79, 177, 131) 0px 0px 0px 2px inset, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "none 2px rgb(79, 177, 131)"
+  },
+  "rowFV": {
+   "active": "DIV.min-h-0 flex-1 overflow-y-auto",
+   "matchesFV": true,
+   "boxShadow": "none",
+   "outline": "solid 2px rgb(79, 177, 131)"
+  },
+  "tabFV": {
+   "role": "tab",
+   "label": "الرد على Nora Al-Harbi",
+   "matchesFV": true,
+   "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(20, 24, 30) 0px 0px 0px 2px, rgb(79, 177, 131) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+   "outline": "solid 1px rgb(232, 236, 241)",
+   "rect": {
+    "x": 462,
+    "y": 599,
+    "w": 185,
+    "h": 36
+   }
+  },
+  "afterArrow": {
+   "label": "ملاحظة داخلية",
+   "state": "active"
+  }
+ },
+ {
+  "name": "state-CNV-101-compact-en-light",
+  "headerButtons": [
+   {
+    "label": "Back to conversations",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Claim",
+    "filled": true,
+    "disabled": false,
+    "bg": "rgb(12, 105, 68)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "More actions",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   },
+   {
+    "label": "Details",
+    "filled": false,
+    "disabled": false,
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "1px rgba(0, 0, 0, 0)",
+    "h": 44
+   }
+  ],
+  "panes": {
+   "list": null,
+   "thread": {
+    "x": 0,
+    "y": 52,
+    "w": 390,
+    "h": 792
+   },
+   "rail": null
+  },
+  "overflowX": 0,
+  "composerButtons": [
+   {
+    "label": "Reply to الجوهرة بنت عبد العزيز بن سعود آل مقرن العتيبي",
+    "filled": false
+   },
+   {
+    "label": "Internal note",
+    "filled": false
+   },
+   {
+    "label": "Insert template",
+    "filled": false
+   },
+   {
+    "label": "Reply by email",
+    "filled": false
+   },
+   {
+    "label": "Send",
+    "filled": true
+   }
+  ]
+ }
+]

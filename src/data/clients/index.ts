@@ -1207,3 +1207,7 @@ export {
   retryMessage,
   type ConversationTicketInput,
 } from './conversations'
+
+/* The inbox seam (CONTACT-CENTRE-REDESIGN-PLAN §4): the read stamp the list
+   clears its dot on, and the mock-only inbound that makes it reachable. */
+export { markConversationRead, receiveInboundMessage } from './conversations'

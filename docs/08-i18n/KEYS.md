@@ -10,11 +10,11 @@ this file is stale or when the `defaultValue` ratchet slips.
 | | |
 |---|---:|
 | **Translatable keys, all dictionaries** | **6820** |
-| Reachable from `EN` (what the shell renders) | 6474 |
+| Reachable from `EN` (what the shell renders) | 6470 |
 | Keys in `AR` | 6820 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 346 |
-| Plural forms (`key#category`) inside `EN` | 63 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
+| Plural forms (`key#category`) inside `EN` | 65 |
 | `copy.ts` files | 37 |
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
@@ -71,9 +71,9 @@ Both ceilings only ever fall.
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
 | en | `src/screens/onboarding/copy.ts` | 2 |
-| en | `src/screens/support/conversations/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
 | en | `src/screens/support/fairness/copy.ts` | 1 |
+| en | `src/screens/support/inbox/copy.ts` | 2 |
 | en | `src/screens/support/safety/copy.ts` | 2 |
 | en | `src/screens/support/tickets/copy.ts` | 1 |
 
@@ -439,7 +439,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 236 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 206 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 189 |
-| `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 184 |
+| `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 178 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 173 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
@@ -485,7 +485,6 @@ somewhere else -- the shell dictionary, or a `defaultValue`.
 | Directory | Screens |
 |---|---|
 | `src/screens` | `EntityPageScreen.tsx`, `SubTabScreen.tsx` |
-| `src/screens/support/contacts` | `ContactCentreScreen.tsx` |
 
 ## Fragment templates
 

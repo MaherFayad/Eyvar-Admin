@@ -550,6 +550,10 @@ per §5.6. The `Verdict` extra filter stays.
 
 ### 8.7 Contact centre
 
+> **Superseded by the three-pane inbox, `design/12-inbox.md`** (CONTACT-CENTRE-REDESIGN-PLAN.md,
+> Phase D). The queue table, its `Owner` column and the pane are gone; snooze, log a call, the
+> typing line and templates live in design 12 §4.1, §4.2 and §5. Kept for the record.
+
 - Default view stays `Unassigned`; the `Owner` column moves behind the column control **on that
   view only** (H5) and returns on `Mine` and `Active`, where it carries information. `QueueTable`
   needs per-view `defaultHidden` — table-density engineer.

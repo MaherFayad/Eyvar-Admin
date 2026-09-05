@@ -275,6 +275,10 @@ deleted in the same PR (D5, no hook left behind); the harness route list gains t
 `docs/05-restructure/design/11-conversation-composer.md` is rewritten as `12-inbox.md` with
 the frames from the harness as its reference captures; `SUPPORT-UX-PLAN.md` §8.7 points here.
 
+**Status, 2026-09-05: done on `support/inbox`.** `InboxScreen` is the route; `conversations/`
+and `contacts/` are deleted, with `sla.ts`, `drafts.ts`, `vocabulary.ts` and the `conversations.*`
+copy moved under `screens/support/inbox/`; both harnesses cover the panes; design 11 is a pointer.
+
 ---
 
 ## 7. Phase E — what a real chat tool has that ours will still lack (backlog, owner to rank)
