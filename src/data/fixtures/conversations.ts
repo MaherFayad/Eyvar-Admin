@@ -602,9 +602,83 @@ const CNV_112_MESSAGES: Message[] = [
 const CNV_108_TOTAL = 64
 const CNV_108_PAGE = 25
 
+/* One turn per pair of messages, so the thread reads as a conversation rather
+   than as a counter. Thirty-two of each: the whole thread is written, nothing
+   repeats, and two runs are byte-identical. */
+const CNV_108_RIDER = [
+  'My booking has been waiting for a captain for ten minutes and nobody has accepted it.',
+  'I am at the north entrance of Kingdom Tower, going to King Khalid airport.',
+  'My flight is at 14:30, so I have about two hours.',
+  'Two captains showed on the map a moment ago and then both disappeared.',
+  'It still says searching. Should I cancel and book again?',
+  'All right, I will leave it running.',
+  'Nothing yet. The app has been on the searching screen the whole time.',
+  'I have two suitcases, so I need the larger car if that matters.',
+  'Yes, I chose the family size on purpose.',
+  'How long does a wider search usually take?',
+  'It has been twenty five minutes now.',
+  'A captain accepted and then cancelled straight away.',
+  'It only said the captain cancelled. No reason given.',
+  'That is the second one now.',
+  'I am starting to worry about the flight.',
+  'If it is going to be another twenty minutes I will take a taxi from the road.',
+  'All right, five more minutes.',
+  'Still nothing.',
+  'Can you book it for me from your side?',
+  'The address is fine, I have used it before from this building.',
+  'I have moved to the taxi rank on the east side, that might be easier to reach.',
+  'I dropped a pin on the rank.',
+  'Someone accepted. Ahmed, white Sonata.',
+  'He is eight minutes away.',
+  'He has not moved for three minutes.',
+  'Now it says four minutes and he is moving again.',
+  'He is here.',
+  'We are on the road.',
+  'Thank you for staying with me through that.',
+  'Will I be charged for the two cancellations?',
+  'That is fair. Thank you.',
+  'Understood. I will tell you when I am at the terminal.',
+] as const
+
+const CNV_108_OPERATOR = [
+  'I can see the request. Let me check what dispatch is doing with it.',
+  'Thank you. I have your pickup and your destination in front of me.',
+  'Noted. I will treat this as time sensitive.',
+  'Those two were offered the trip and let it time out. It is back in the queue now.',
+  'Please keep it running. Cancelling puts you at the back of the queue.',
+  'I am widening the search radius from my side now.',
+  'The request is live and going out to captains as they come free.',
+  'It does. Family size narrows the pool, which is part of what you are seeing.',
+  'Then we keep it. I would rather find you the right car than the wrong one.',
+  'On a normal morning, two to four minutes. The airport road is busy today.',
+  'I know, and I am sorry. I have flagged the request to the dispatch team.',
+  'I can see that. Let me look at why.',
+  'The captain marked it as too far to reach you. That is on us, not on you.',
+  'It is. I have blocked both from this request so they cannot pick it up again.',
+  'Understood. If we are not moving in ten minutes I will say so plainly.',
+  'That is a reasonable call and I will not talk you out of it.',
+  'Thank you. I am watching the queue myself.',
+  'Nothing I can promise yet. I am raising the priority on the request.',
+  'I have just done that. It is out to every family size captain within six kilometres.',
+  'Good, that rules out the address.',
+  'That helps. Send me a pin and I will move the pickup.',
+  'Pickup moved to the rank.',
+  'I can see him. He is on his way to you.',
+  'That matches what I have here.',
+  'He is at the barrier on the ring road exit. It should clear shortly.',
+  'Good. You should see him at the rank.',
+  'Have a safe trip.',
+  'I will keep this conversation open until you are at the terminal.',
+  'You waited a long time for that, and you were patient about it.',
+  'No. Neither cancellation was yours, so neither is charged.',
+  'You are welcome.',
+  'Thank you. I am here if anything changes before you fly.',
+] as const
+
 const CNV_108_ALL: Message[] = Array.from({ length: CNV_108_TOTAL }, (_, i): Message => {
   const inbound = i % 2 === 0
   const minutesAgo = -(CNV_108_TOTAL - i) * 3
+  const turn = Math.floor(i / 2)
   return {
     id: `CMSG-8${String(100 + i)}`,
     conversationId: 'CNV-108',
@@ -613,9 +687,7 @@ const CNV_108_ALL: Message[] = Array.from({ length: CNV_108_TOTAL }, (_, i): Mes
     authorId: inbound ? 'RDR-1080' : 'USR-1',
     authorName: inbound ? 'Mohammed Al-Qahtani' : 'Sarah Al-Rashid',
     authorKind: inbound ? 'customer' : 'operator',
-    body: inbound
-      ? `Message ${i + 1}: the driver still has not accepted, this is the ${i + 1}th time I am asking.`
-      : `Message ${i + 1}: thank you for your patience — I am checking dispatch again now.`,
+    body: (inbound ? CNV_108_RIDER[turn] : CNV_108_OPERATOR[turn]) ?? '',
     visibility: 'customer',
     delivery: inbound
       ? null
@@ -1269,7 +1341,8 @@ const namedConversations: ConversationSeed[] = [
     messageCount: CNV_108_TOTAL,
     hasMoreBefore: true,
     lastMessageAt: offsetFromNow({ minutes: -3 }),
-    lastMessagePreview: `Message ${CNV_108_TOTAL}: thank you for your patience — I am checking dispatch again now.`,
+    /* Read from the thread, never restated: the preview cannot drift from the body. */
+    lastMessagePreview: CNV_108_ALL[CNV_108_TOTAL - 1]?.body ?? null,
     waitingSince: null,
     unreadCount: 0,
     ticketId: null,
