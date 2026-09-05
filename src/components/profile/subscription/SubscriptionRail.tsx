@@ -46,6 +46,7 @@
  *              block axis — an edge with no side to mirror.
  */
 
+import { InfoHint } from '@/components/InfoHint'
 import { Money } from '@/components/Money'
 import type { Subscription } from '@/data/types'
 import { formatDate, formatPercent, type Language, type Translate } from '@/lib'
@@ -112,27 +113,25 @@ export function SubscriptionRail({ subscription, t, language }: SubscriptionRail
       </RailBlock>
 
       {/* ── escrow ────────────────────────────────────────────────────── */}
-      <RailBlock label={t('profile.subscription.rail.escrow')}>
+      <RailBlock
+        label={t('profile.subscription.rail.escrow')}
+        hint={<InfoHint t={t}>{t('profile.subscription.rail.escrowNote')}</InfoHint>}
+      >
         {subscription.escrowHeldHalalas === null ? (
           <p className="text-sm text-muted-foreground">
             {t('profile.subscription.rail.noEscrow')}
           </p>
         ) : (
-          <>
-            <div className="flex items-baseline gap-1.5">
-              <Money
-                amount={subscription.escrowHeldHalalas}
-                unit="none"
-                className="text-xl font-medium"
-              />
-              <span className="text-2xs text-muted-foreground">
-                {t('profile.request.rail.unit')}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t('profile.subscription.rail.escrowNote')}
-            </p>
-          </>
+          <div className="flex items-baseline gap-1.5">
+            <Money
+              amount={subscription.escrowHeldHalalas}
+              unit="none"
+              className="text-xl font-medium"
+            />
+            <span className="text-2xs text-muted-foreground">
+              {t('profile.request.rail.unit')}
+            </span>
+          </div>
         )}
       </RailBlock>
 
@@ -154,11 +153,23 @@ export function SubscriptionRail({ subscription, t, language }: SubscriptionRail
   )
 }
 
-function RailBlock({ label, children }: { label: string; children: React.ReactNode }) {
+/* **X15** — a sentence that EXPLAINS the block sits behind `hint`, beside the
+   label it explains; a sentence that states a fact about this record stays in
+   the block. */
+function RailBlock({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section data-numeric className="flex flex-col gap-1.5 px-4 py-4">
-      <h3 className="text-2xs font-medium tracking-widest text-muted-foreground uppercase">
+      <h3 className="flex items-center gap-0.5 text-2xs font-medium tracking-widest text-muted-foreground uppercase">
         {label}
+        {hint}
       </h3>
       {children}
     </section>
