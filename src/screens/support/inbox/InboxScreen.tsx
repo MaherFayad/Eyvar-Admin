@@ -486,6 +486,11 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
                   ? t('conversations.composer.noHandle')
                   : null
 
+  /* §8.6.8, one sentence per screen: the closed sentence is the composer's, and a
+     refused `Create ticket` points at it rather than printing it again (D-1). */
+  const composerReasonId = record === null ? '' : `inbox-composer-reason-${record.id}`
+  const headerReasonId = record === null ? '' : `inbox-header-reason-${record.id}`
+  const closedByComposer = record !== null && record.status === 'closed' && writeRefusal === null
   const createTicketRefusal: string | null =
     record === null
       ? null
@@ -497,43 +502,48 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
             : record.status === 'closed'
               ? t('conversations.composer.closed')
               : null)
+  const createTicketReasonId = closedByComposer && createTicketRefusal === composerRefusal ? composerReasonId : headerReasonId
 
   /* §4.1's table: which controls are visible, which overflow, which is filled. */
   const header = useMemo(() => {
     if (record === null || sla === null) return { visible: [] as HeaderAction[], overflow: [] as HeaderAction[], filledFirst: false }
-    const closedRefusal = record.status === 'closed' ? t('conversations.composer.closed') : null
     const action = (id: string, label: string, onClick: () => void, refusal: string | null): HeaderAction => ({
       id,
       label,
       onClick,
       refusal,
     })
-    const transfer = action('transfer', t('conversations.transfer'), () => askTransfer(record), writeRefusal ?? closedRefusal)
+    const transfer = action('transfer', t('conversations.transfer'), () => askTransfer(record), writeRefusal)
     const snooze = action(
       'snooze',
       t('conversations.snooze'),
       () => askSnooze(record),
-      writeRefusal ?? closedRefusal ?? (record.status === 'snoozed' ? t('conversations.snooze.blocked') : null),
+      writeRefusal ?? (record.status === 'snoozed' ? t('conversations.snooze.blocked') : null),
     )
-    const close = action('close', t('conversations.close'), () => askClose(record), writeRefusal ?? closedRefusal)
-    const createTicket = action('ticket', t('conversations.ticket.create'), () => setTicketFor(record), createTicketRefusal)
+    const close = action('close', t('conversations.close'), () => askClose(record), writeRefusal)
+    const createTicket: HeaderAction =
+      createTicketReasonId === composerReasonId
+        ? { ...action('ticket', t('conversations.ticket.create'), () => setTicketFor(record), null), disabledBy: composerReasonId }
+        : action('ticket', t('conversations.ticket.create'), () => setTicketFor(record), createTicketRefusal)
     const logCall = action(
       'log-call',
       t('conversations.logCall'),
       () => askLogCall(record),
-      writeRefusal ?? closedRefusal ?? (record.ticketId === null ? t('conversations.logCall.blocked.noTicket') : null),
+      writeRefusal ?? (record.ticketId === null ? t('conversations.logCall.blocked.noTicket') : null),
     )
     const phone = record.channel === 'phone' ? [logCall] : []
 
+    /* §4.1's table as restated under D8-b: a `⋯` only at three or more. */
     if (record.status === 'closed') {
       return {
-        visible: [action('reopen', t('conversations.reopen'), () => reopen(record), writeRefusal)],
-        overflow: [createTicket],
+        visible: [action('reopen', t('conversations.reopen'), () => reopen(record), writeRefusal), createTicket],
+        overflow: [],
         filledFirst: true,
       }
     }
     if (record.status === 'snoozed') {
-      return { visible: [transfer, close], overflow: [createTicket], filledFirst: false }
+      /* §10 row 12: Close is reachable after wake; three ghosts left no room for the name. */
+      return { visible: [transfer, createTicket], overflow: [], filledFirst: false }
     }
     if (!heldByMe) {
       const takeOver = owner !== null
@@ -551,11 +561,11 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
       }
     }
     if (sla.resolutionBreached && record.ticketId === null) {
-      return { visible: [createTicket, transfer], overflow: [snooze, ...phone, close], filledFirst: false }
+      return { visible: [createTicket], overflow: [transfer, snooze, ...phone, close], filledFirst: false }
     }
-    return { visible: [transfer, snooze], overflow: [...phone, createTicket, close], filledFirst: false }
+    return { visible: [transfer], overflow: [snooze, ...phone, createTicket, close], filledFirst: false }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the askers close over `record`, which is in the list.
-  }, [record, sla, heldByMe, owner, writeRefusal, grabRefusal, createTicketRefusal, t, presence.transferTargets])
+  }, [record, sla, heldByMe, owner, writeRefusal, grabRefusal, createTicketRefusal, createTicketReasonId, composerReasonId, t, presence.transferTargets])
 
   /* Enter on a row: select, then focus the composer (or the thread when refused). */
   useEffect(() => {
@@ -703,7 +713,7 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
           ticketHref,
           onCreateTicket: () => setTicketFor(record),
           createTicketRefusal,
-          reasonId: `inbox-header-reason-${record.id}`,
+          reasonId: createTicketReasonId,
           canWrite: canWrite && !capBlocked,
           claimRefusal: capReason ?? t('queue.action.noPermission'),
           onClaim: () => claim(record, false),
@@ -835,6 +845,7 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
           <div className={cn(compact && 'sticky bottom-0 bg-background')}>
             <Composer
               ref={composer}
+              reasonId={composerReasonId}
               conversationId={record.id}
               channel={record.channel}
               customerName={record.entityName}

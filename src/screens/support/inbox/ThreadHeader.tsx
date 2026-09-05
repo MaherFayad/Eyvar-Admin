@@ -2,10 +2,12 @@
  * Pane B's header (design 12 §4.1): 60px, avatar, name as a link to the 360°
  * layer, channel · status · the one running clock, then the actions. `Claim`,
  * `Take over` and `Reopen` are the only filled buttons; while held, `Send` is
- * the screen's (§8.6, R2). The rest overflow into `⋯` as §4.1's table splits
- * them. A refusal renders once beneath, pointed at by every refused control (§8.6.8).
+ * the screen's (§8.6, R2). A `⋯` exists only when it holds three or more (D8-b);
+ * fewer render as labelled ghosts. Line 2 clips in order: channel word, status
+ * badge, never the clock. A refusal renders once beneath (§8.6.8).
  */
 
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Conversation, IsoDateTime } from '@/data/types'
 import type { Direction, Language, Translate } from '@/lib'
@@ -27,8 +29,10 @@ export interface HeaderAction {
   id: string
   label: string
   onClick: () => void
-  /** The reason it is refused, or `null` when live. */
+  /** The reason it is refused, printed once under the header, or `null` when live. */
   refusal: string | null
+  /** Disabled with its reason printed elsewhere (the composer's sentence): the id to describe by. */
+  disabledBy?: string
 }
 
 export interface ThreadHeaderProps {
@@ -69,11 +73,14 @@ export function ThreadHeader({
   const reasonId = `inbox-header-reason-${conversation.id}`
   const refusals = [...visible, ...overflow].filter((action) => action.refusal !== null)
   const reason = refusals[0]?.refusal ?? null
-  /* §4.1's table fixes the split; the pane is 432px, so the rest always overflows.
-     Compact (§2, with the back arrow) keeps only a filled primary beside the name. */
+  /* D8-b: the `⋯` begins at three; two or fewer render as labelled ghosts. Compact
+     (§2, with the back arrow) keeps only a filled primary beside the name. */
   const compact = onBack !== null
-  const shown = compact ? visible.slice(0, filledFirst ? 1 : 0) : visible
-  const menu = compact ? [...visible.slice(shown.length), ...overflow] : overflow
+  const kept = compact ? visible.slice(0, filledFirst ? 1 : 0) : visible
+  const pool = compact ? [...visible.slice(kept.length), ...overflow] : overflow
+  const menu = pool.length >= 3 ? pool : []
+  const shown = pool.length >= 3 ? kept : [...kept, ...pool]
+  const { line2, hideBadge } = useLine2Clip()
 
   return (
     <header className="flex flex-col border-b border-border">
@@ -83,7 +90,8 @@ export function ThreadHeader({
             <BackIcon />
           </Button>
         )}
-        <Avatar name={conversation.entityName} />
+        {/* §10 row 13: below compact the avatar yields its 44px to the running clock. */}
+        {!compact && <Avatar name={conversation.entityName} />}
         <div className="flex min-w-0 flex-1 flex-col">
           <Link
             to={profileHref}
@@ -91,13 +99,16 @@ export function ThreadHeader({
           >
             {conversation.entityName}
           </Link>
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Glyph className="size-3.5" />
-              {t(CHANNEL_KEY[conversation.channel])}
+          <div ref={line2} data-inbox-line2="" className="flex min-w-0 items-center gap-2 overflow-hidden text-xs text-muted-foreground">
+            <span className="flex min-w-0 items-center gap-1">
+              <Glyph className="size-3.5 shrink-0" />
+              <span className="min-w-0 truncate">{t(CHANNEL_KEY[conversation.channel])}</span>
             </span>
-            <StatusBadge tone={STATUS_TONE[conversation.status]}>{t(STATUS_KEY[conversation.status])}</StatusBadge>
+            <span data-inbox-badge="" className={hideBadge ? 'hidden' : 'shrink-0'}>
+              <StatusBadge tone={STATUS_TONE[conversation.status]}>{t(STATUS_KEY[conversation.status])}</StatusBadge>
+            </span>
             {running.result.clock.kind !== 'no-clock' && !running.result.deadlinePassedUnbroken && (
+              <span data-inbox-clock="" className="shrink-0">
               <SlaCell
                 result={running.result}
                 dueAt={running.input?.dueAt ?? null}
@@ -109,6 +120,7 @@ export function ThreadHeader({
                     : 'conversations.promise.resolution',
                 )}
               />
+              </span>
             )}
           </div>
         </div>
@@ -118,8 +130,8 @@ export function ThreadHeader({
               key={action.id}
               variant={filledFirst && index === 0 ? 'default' : 'ghost'}
               size="default"
-              disabled={action.refusal !== null}
-              aria-describedby={action.refusal !== null ? reasonId : undefined}
+              disabled={action.refusal !== null || action.disabledBy !== undefined}
+              aria-describedby={action.refusal !== null ? reasonId : action.disabledBy}
               onClick={action.onClick}
             >
               {action.label}
@@ -136,8 +148,8 @@ export function ThreadHeader({
                 {menu.map((action) => (
                   <DropdownMenuItem
                     key={action.id}
-                    disabled={action.refusal !== null}
-                    aria-describedby={action.refusal !== null ? reasonId : undefined}
+                    disabled={action.refusal !== null || action.disabledBy !== undefined}
+                    aria-describedby={action.refusal !== null ? reasonId : action.disabledBy}
                     onSelect={action.onClick}
                   >
                     {action.label}
@@ -160,4 +172,35 @@ export function ThreadHeader({
       )}
     </header>
   )
+}
+
+/** The channel word already truncates; the badge shrinks to nothing so the pill never clips. */
+const CHANNEL_MIN_PX = 24
+const GAP_PX = 8
+
+/* Line 2 clips in order (V-1): the channel word truncates first, then the
+   status badge hides, and the running clock is never clipped. Measured with a
+   ResizeObserver; a zero-width line (jsdom) hides nothing. */
+function useLine2Clip(): { line2: React.RefObject<HTMLDivElement | null>; hideBadge: boolean } {
+  const line2 = useRef<HTMLDivElement | null>(null)
+  const badgeWidth = useRef(0)
+  const [hideBadge, setHideBadge] = useState(false)
+  useLayoutEffect(() => {
+    const el = line2.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const measure = () => {
+      const badge = el.querySelector<HTMLElement>('[data-inbox-badge]')
+      const clock = el.querySelector<HTMLElement>('[data-inbox-clock]')
+      if (badge && badge.offsetWidth > 0) badgeWidth.current = badge.offsetWidth
+      const width = el.clientWidth
+      if (width === 0) return
+      const needed = CHANNEL_MIN_PX + GAP_PX + badgeWidth.current + (clock ? GAP_PX + clock.offsetWidth : 0)
+      setHideBadge(needed > width)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  })
+  return { line2, hideBadge }
 }

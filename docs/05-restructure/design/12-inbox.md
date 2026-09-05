@@ -89,7 +89,7 @@ or composer. Nothing in C is a primary.
 button opens it as a `Sheet side="inline-end"` (no scrim, §5.5). A and B unchanged.
 
 **Below `--ev-bp-compact` (768).** A is the screen. Selecting a row pushes B over it, full
-width, with a back button (`inbox.header.back`) leading the thread header. C is a full-width
+width, with a back button (`inbox.header.back`) leading the thread header and no avatar (§10 row 13). C is a full-width
 `Sheet` from the header's `Details` icon button. The composer is `position: sticky; bottom: 0`
 on the viewport. Folders are a `Select` above the search field, not a list.
 
@@ -187,14 +187,14 @@ phone conversation shows no pill — never the words `No clock` (Q-CC4).
 
 **Actions, inline-end, in this order.** `Button size="sm"` (32px):
 
-| Conversation | Visible | In `⋯` (`DropdownMenu`, D8: three or more) | Filled |
+| Conversation | Visible | In `⋯` (`DropdownMenu`, **D8-b**: a `⋯` exists only when it holds three or more; with two or fewer they render as labelled ghosts and there is no `⋯`) | Filled |
 |---|---|---|---|
 | Unheld, open | `Claim` | Transfer · Snooze until… · Create ticket · Close conversation | **`Claim`** (`default`) |
 | Held by another | `Take over` | same | **`Take over`** |
-| Held by you | `Transfer` · `Snooze until…` | Log a call (phone) · Create ticket · Close conversation | **none** — `Send` is the screen's filled button (§8.6, R2) |
-| Held by you, resolution breached, no ticket | `Create ticket` · `Transfer` | Snooze until… · Close conversation | none; see §10 D22 |
-| Closed | `Reopen` | Create ticket | **`Reopen`** |
-| Snoozed | `Transfer` · `Close conversation` | Create ticket | none |
+| Held by you | `Transfer` | Snooze until… · Log a call (phone) · Create ticket · Close conversation | **none** — `Send` is the screen's filled button (§8.6, R2). See §10 row 11 |
+| Held by you, resolution breached, no ticket | `Create ticket` | Transfer · Snooze until… · Log a call (phone) · Close conversation | none; see §10 D22 |
+| Closed | `Reopen` · `Create ticket` | none | **`Reopen`** |
+| Snoozed | `Transfer` · `Create ticket` | none | none. `Close conversation` is reachable after wake; see §10 row 12 |
 
 Every visible non-primary is `variant="ghost"`. A refused control renders disabled in place
 and its reason renders **once** under the header in `text-xs` `--ev-text-2` with
@@ -318,7 +318,10 @@ verbatim. Draft per conversation and register, in memory only, indicated nowhere
 Six carriers at once, none colour alone. (1) The register is a wide segmented pair on the
 composer's top edge, icon plus full label: `Reply to {name}` (send icon) and `Internal note`
 (eye-off icon); the active segment shares the composer surface's colour so it reads as the tab
-of the card beneath it. (2) In the note register the whole surface and the field move to
+of the card beneath it. On a long name the name is its own span with `truncate` inside a
+`min-w-0` trigger; the verb and the icon are `shrink-0`; `Internal note` is `shrink-0` and never
+truncates; the trigger's accessible name stays the full `inbox.composer.label` string. No
+Reply-only form, no first-name form. (2) In the note register the whole surface and the field move to
 `--ev-note` with the 3px `--ev-note-bar` inline-start edge; there is no pale field inside a
 tinted card. (3) A standing label line between the tabs and the field states the consequence:
 `Sent to {name} by {channel}` / `Internal note. Not sent to the customer.` with the icon; always
@@ -409,6 +412,9 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 | 8 | `Create ticket` on a resolution breach is the first visible ghost, not filled | **D22**, AC-964, design 11 §3.5 | §3.9 / CLAUDE.md rule 6: one filled button per screen, and §8.6 gives it to `Send`. The prompt still renders (`conversations.ticket.overdue` in C). **Owner decision Q-CC6** |
 | 9 | No attachment control | plan §2.2 | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved before `Reply by email`. **Q-CC7** |
 | 10 | Bubble time on hover/focus-within plus visually hidden | §7.3 hover-only | the group's last time is always visible and bounds the rest within 5 min; AT gets every time |
+| 12 | Snoozed: `Close conversation` is not offered until wake | §4.1's first draft (`Transfer` · `Close conversation` visible) | Three labelled ghosts leave the identity 0px wide at 1280 in English (harness `identityWidth`); D8-b forbids a `⋯` of one, and D8-c drops the control before it falls back to a kebab. Close is reachable the moment the snooze wakes |
+| 13 | The compact header has no avatar | §4.1 anatomy (avatar 32) | Below `--ev-bp-compact` the back arrow, `Claim`, `⋯` and `Details` leave the identity 78px, under the running clock's own width; the clock is never clipped (V-1), so the one decorative element yields |
+| 11 | Held by you: `Transfer` alone visible, `Snooze until…` in `⋯` | §4.1's first draft (`Transfer` · `Snooze until…` visible) | D8-b: on a chat the `⋯` would hold two (Create ticket · Close) and must not exist, and four labelled ghosts do not fit beside the identity in 432px (V-1). Moving `Snooze until…` in makes the `⋯` three. D8-c's discipline applied to a header: the lane shrinks before anything hides |
 
 Nothing here spends a sixth badge tone, a red badge, a new radius or a physical edge.
 
