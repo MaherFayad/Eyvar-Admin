@@ -74,6 +74,8 @@ cannot — but where they overlap, the sweep is the number to quote:
 | `fin-overview.mjs` | Financials Overview as a board: two day-charts, seventeen numerals, the band's ground, the period control inside it, no card around a figure, `overflowX === 0`. 1280/1440, light/dark/Arabic. Reads `HARNESS_BASE` |
 | `fin-revenue.mjs` | the Revenue by plan master-detail: four sparklines, the composed day plot, the composition bar, the 280px list column, the table's footer total and the H6 column preset, at 1280 and 1440 and in Arabic |
 | `onboarding.mjs` | the getting-started layer: auto-open after a user switch, the checklist for each of the four roles at 1280, every illustration rendered and inside 96×64 (160×112 for the completed state), the account-menu path, Arabic with the art at inline-end. Reads `HARNESS_BASE` |
+| `growth.mjs` | T7.1: Management › Growth at 1280 × 800, all five `?view=` states, both languages. Prints the tab strip, per-column widths, columns off the measure, row pitch, truncated identity and body cells, page and table overflow, and em dashes. Takes a label; `HARNESS_BASE` overrides port 4365 |
+| `reports-chrome.mjs` | T9.13/T9.14/T9.15: per row height, wrapped and clipped cells, em dashes and overflow on the three Reports list views, both languages, at 1280. Port 4343 |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here
 small; a harness nobody runs is scratch, and scratch is not committed.

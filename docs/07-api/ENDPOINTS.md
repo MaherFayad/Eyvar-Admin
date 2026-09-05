@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**313 endpoints across 47 client modules.**
+**323 endpoints across 48 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -230,6 +230,21 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/financials/overview` | `FinancialsOverview` | `from · to` | - | `getFinancialsOverview()` |
+
+## `src/data/clients/growth.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/growth/incentives` | `Paginated<GrowthIncentive>` | `q · page · pageSize · sort · filter` | - | `listGrowthIncentives()` |
+| PATCH | `/api/v1/growth/incentives/:id` | `GrowthIncentive` | `{ active: boolean }` | **404** when the rule does not exist | `setGrowthIncentiveActive()` |
+| GET | `/api/v1/growth/incentives/facets` | `Facets` | - | - | `getGrowthIncentiveFacets()` |
+| GET | `/api/v1/growth/messages` | `Paginated<GrowthBulkMessage>` | `q · page · pageSize · sort · filter` | - | `listGrowthBulkMessages()` |
+| GET | `/api/v1/growth/messages/facets` | `Facets` | - | - | `getGrowthMessageFacets()` |
+| GET | `/api/v1/growth/promos` | `Paginated<GrowthPromo>` | `q · page · pageSize · sort · filter` | - | `listGrowthPromos()` |
+| PATCH | `/api/v1/growth/promos/:code/status` | `GrowthPromo` | `{ status: 'active' \| 'paused' }` | **404** unknown code · 409 `campaign_not_pausable` when exhausted or expired | `setGrowthPromoStatus()` |
+| GET | `/api/v1/growth/promos/facets` | `Facets` | - | - | `getGrowthPromoFacets()` |
+| GET | `/api/v1/growth/referrals` | `Paginated<GrowthReferral>` | `q · page · pageSize · sort · filter` | - | `listGrowthReferrals()` |
+| GET | `/api/v1/growth/referrals/facets` | `Facets` | - | - | `getGrowthReferralFacets()` |
 
 ## `src/data/clients/integrations.ts`
 

@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 5834,
-    "en": 5484,
-    "ar": 5834,
+    "keys": 5885,
+    "en": 5594,
+    "ar": 5885,
     "arMissing": 0,
-    "arExtra": 350,
-    "copyFiles": 36,
-    "unregisteredKeys": 194,
-    "pluralForms": 65,
+    "arExtra": 291,
+    "copyFiles": 37,
+    "unregisteredKeys": 187,
+    "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 92,
@@ -36,7 +36,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 338,
+      "keys": 335,
       "notInEN": 0
     },
     {
@@ -112,6 +112,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/metrics/growth/copy.ts",
+      "exports": [
+        "GROWTH_EN"
+      ],
+      "keys": 123,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/team/copy.ts",
       "exports": [
         "ADMIN_TEAM_EN"
@@ -124,7 +132,7 @@
       "exports": [
         "ASSURANCE_EN"
       ],
-      "keys": 115,
+      "keys": 114,
       "notInEN": 0
     },
     {
@@ -202,19 +210,19 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "exports": [
-        "MY_WORK_EN"
-      ],
-      "keys": 69,
-      "notInEN": 0
-    },
-    {
       "file": "src/screens/management/zones/copy.ts",
       "exports": [
         "ZONES_EN"
       ],
       "keys": 67,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "exports": [
+        "MY_WORK_EN"
+      ],
+      "keys": 64,
       "notInEN": 0
     },
     {
@@ -246,7 +254,7 @@
       "exports": [
         "QUEUE_SHARED_EN"
       ],
-      "keys": 47,
+      "keys": 46,
       "notInEN": 0
     },
     {
@@ -304,8 +312,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 89,
-      "notInEN": 87
+      "keys": 82,
+      "notInEN": 80
     }
   ],
   "noCopyFile": [

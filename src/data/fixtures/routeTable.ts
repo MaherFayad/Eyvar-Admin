@@ -213,7 +213,15 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 4,
     titleKey: 'subtab.management.growth',
     subtitleKey: 'subtab.management.growth.sub',
-    views: [],
+    /* T7.1 / O3 — the P1 half of `patterns` below, as four `?view=` tables under
+       the board. `board` is first, so a bare route is the board alone. */
+    views: views(
+      ['board', 'growth.view.board'],
+      ['promos', 'growth.view.promos'],
+      ['referrals', 'growth.view.referrals'],
+      ['incentives', 'growth.view.incentives'],
+      ['messages', 'growth.view.messages'],
+    ),
     detailRoutes: [],
     legacyPageIds: ['growth'],
     legacySettingsPanes: [],

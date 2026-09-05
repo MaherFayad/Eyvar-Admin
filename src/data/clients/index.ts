@@ -56,6 +56,8 @@ import { resetRetention as resetRetentionState } from './retention'
 import { resetEmails as resetEmailState } from './emails'
 import { resetIntegrations as resetIntegrationsState } from './integrations'
 import { resetPreferences as resetPreferencesState } from './preferences'
+/* T7.1 — the four Growth lists. Pause and activate are session state. */
+import { resetGrowth as resetGrowthState } from './growth'
 
 const clearFailures = () => failureRegistry.clear()
 
@@ -215,6 +217,22 @@ export {
   type CorporateQuery,
   type CreateCorporateAccountInput,
 } from './corporateAccounts'
+
+/* T7.1 — Management › Growth, the four `?view=` index tables (O3). */
+export {
+  GROWTH_OPERATIONS,
+  getGrowthIncentiveFacets,
+  getGrowthMessageFacets,
+  getGrowthPromoFacets,
+  getGrowthReferralFacets,
+  listGrowthBulkMessages,
+  listGrowthIncentives,
+  listGrowthPromos,
+  listGrowthReferrals,
+  resetGrowth,
+  setGrowthIncentiveActive,
+  setGrowthPromoStatus,
+} from './growth'
 
 /* Live Dispatch — T1.1 and T1.2. The telemetry read replaces a `TELEMETRY`
    literal; the intervention writes replace two controls that toasted success
@@ -726,6 +744,7 @@ export function resetDataLayer(): void {
      changes — an acknowledgement, an unlinked employee, a sent invoice. */
   resetDispatchState()
   resetCorporateState()
+  resetGrowthState()
   /* P6-T4. `integrity` holds a run counter and a per-check last-run stamp; a
      leaked one makes the next file's first run `IRUN-0004` and its catalogue
      already dated, which is exactly the non-determinism the checks are written

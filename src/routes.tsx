@@ -200,6 +200,13 @@ const ZonesScreen = lazy(() =>
    `REPORTS_SUB_TAB_ID` is imported from `./ids`, NOT from the barrel: keying the
    router on a symbol declared inside `ReportsScreen` would pull the whole
    builder into the entry chunk and undo the split. */
+/* T7.1 / O3 — Growth is the board plus four `?view=` tables. `GrowthScreen`
+   hands the board its `below` slot and owns nothing above it, so the board
+   screen still draws the board. */
+const GrowthScreen = lazy(() =>
+  import('@/screens/metrics/growth').then((m) => ({ default: m.GrowthScreen })),
+)
+
 const ReportsScreen = lazy(() =>
   import('@/screens/reports').then((m) => ({ default: m.ReportsScreen })),
 )
@@ -502,6 +509,7 @@ function screenFor(row: SubTabRoute) {
 
   /* Management */
   if (row.subTabId === 'management-zones') return <ZonesScreen row={row} />
+  if (row.subTabId === 'management-growth') return <GrowthScreen row={row} />
 
   if (row.subTabId !== 'support-fairness' && METRIC_BOARD_SUB_TABS.includes(row.subTabId)) {
     return <MetricBoardScreen row={row} />
