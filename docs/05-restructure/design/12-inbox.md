@@ -194,7 +194,7 @@ phone conversation shows no pill — never the words `No clock` (Q-CC4).
 | Held by you | `Transfer` | Snooze until… · Log a call (phone) · Create ticket · Close conversation | **none** — `Send` is the screen's filled button (§8.6, R2). See §10 row 11 |
 | Held by you, resolution breached, no ticket | `Create ticket` | Transfer · Snooze until… · Log a call (phone) · Close conversation | none; see §10 D22 |
 | Closed | `Reopen` · `Create ticket` | none | **`Reopen`** |
-| Snoozed | `Transfer` · `Create ticket` | none | none. `Close conversation` is reachable after wake; see §10 row 12 |
+| Snoozed | `Create ticket` | Transfer · Close conversation · Snooze until… (a new wake time, the same call) | none |
 
 Every visible non-primary is `variant="ghost"`. A refused control renders disabled in place
 and its reason renders **once** under the header in `text-xs` `--ev-text-2` with
@@ -412,7 +412,7 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 | 8 | `Create ticket` on a resolution breach is the first visible ghost, not filled | **D22**, AC-964, design 11 §3.5 | §3.9 / CLAUDE.md rule 6: one filled button per screen, and §8.6 gives it to `Send`. The prompt still renders (`conversations.ticket.overdue` in C). **Owner decision Q-CC6** |
 | 9 | No attachment control | plan §2.2 | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved before `Reply by email`. **Q-CC7** |
 | 10 | Bubble time on hover/focus-within plus visually hidden | §7.3 hover-only | the group's last time is always visible and bounds the rest within 5 min; AT gets every time |
-| 12 | Snoozed: `Close conversation` is not offered until wake | §4.1's first draft (`Transfer` · `Close conversation` visible) | Three labelled ghosts leave the identity 0px wide at 1280 in English (harness `identityWidth`); D8-b forbids a `⋯` of one, and D8-c drops the control before it falls back to a kebab. Close is reachable the moment the snooze wakes |
+| 12 | Snoozed: `Create ticket` alone visible, `Transfer` · `Close conversation` · `Snooze until…` in `⋯` | §4.1's first draft (`Transfer` · `Close conversation` visible, `Create ticket` in a `⋯` of one) | D8-b: a `⋯` of one may not exist and three labelled ghosts leave the identity 0px at 1280 in English. Changing the wake time is a real act on a snoozed conversation (`snoozeConversation` sets a new `snoozedUntil`), so the `⋯` holds three and nothing is withheld; row 8 keeps `Create ticket` the first ghost |
 | 14 | Line 2 yields in order: the channel word goes `sr-only` when it cannot show whole, then the status badge hides, never the clock | §4.1 anatomy | The glyph beside it carries the channel; a word cut to one letter is decoded, not read (§5.7). The clock is the one fact that decides the next act |
 | 13 | The compact header has no avatar | §4.1 anatomy (avatar 32) | Below `--ev-bp-compact` the back arrow, `Claim`, `⋯` and `Details` leave the identity 78px, under the running clock's own width; the clock is never clipped (V-1), so the one decorative element yields |
 | 11 | Held by you: `Transfer` alone visible, `Snooze until…` in `⋯` | §4.1's first draft (`Transfer` · `Snooze until…` visible) | D8-b: on a chat the `⋯` would hold two (Create ticket · Close) and must not exist, and four labelled ghosts do not fit beside the identity in 432px (V-1). Moving `Snooze until…` in makes the `⋯` three. D8-c's discipline applied to a header: the lane shrinks before anything hides |

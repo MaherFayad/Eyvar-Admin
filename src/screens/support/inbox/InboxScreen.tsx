@@ -518,7 +518,7 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
       'snooze',
       t('conversations.snooze'),
       () => askSnooze(record),
-      writeRefusal ?? (record.status === 'snoozed' ? t('conversations.snooze.blocked') : null),
+      writeRefusal,
     )
     const close = action('close', t('conversations.close'), () => askClose(record), writeRefusal)
     const createTicket: HeaderAction =
@@ -542,8 +542,8 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
       }
     }
     if (record.status === 'snoozed') {
-      /* §10 row 12: Close is reachable after wake; three ghosts left no room for the name. */
-      return { visible: [transfer, createTicket], overflow: [], filledFirst: false }
+      /* §10 row 12: a `⋯` of three; Snooze until… sets a new wake time (D8-b). */
+      return { visible: [createTicket], overflow: [transfer, close, snooze], filledFirst: false }
     }
     if (!heldByMe) {
       const takeOver = owner !== null
