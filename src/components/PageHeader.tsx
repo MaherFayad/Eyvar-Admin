@@ -125,6 +125,12 @@ export interface PageHeaderProps {
   secondaryActions?: PageAction[]
   /** §8 slot 4b — always in the overflow menu, after any spilled secondaries. */
   overflowActions?: PageAction[]
+  /**
+   * `auto` (default) applies D8-b: a menu only at three or more. `always` keeps
+   * the menu at any count, for the report builder and boards where Amplitude
+   * fidelity outranks D8-b (docs/RULINGS.md).
+   */
+  overflow?: 'auto' | 'always'
   /** §8 slot 4c — AT MOST ONE. The type says one; R3 says one. */
   primaryAction?: PageAction
   /** §8 slot 5 — record-detail pages in an ordered list only. */
@@ -145,6 +151,7 @@ export function PageHeader({
   onBack,
   secondaryActions = [],
   overflowActions = [],
+  overflow = 'auto',
   primaryAction,
   pager,
   t,
@@ -162,8 +169,8 @@ export function PageHeader({
      D8-b — a menu is a disclosure for a LIST: it exists only when three or more
      would go in it; one or two render inline as labelled buttons instead. */
   const wouldSpill = [...secondaryActions.slice(SECONDARY_CAP), ...overflowActions]
-  const overflow = wouldSpill.length >= 3 ? wouldSpill : []
-  const inline = overflow.length > 0 ? visibleSecondaries : [...visibleSecondaries, ...wouldSpill]
+  const menu = overflow === 'always' || wouldSpill.length >= 3 ? wouldSpill : []
+  const inline = menu.length > 0 ? visibleSecondaries : [...visibleSecondaries, ...wouldSpill]
   /* §11.2 / plan §3 item 5 — each distinct refusal renders ONCE, under the
      group, at 12px; every refused control points aria-describedby at its line. */
   const refusals: string[] = []
@@ -222,7 +229,7 @@ export function PageHeader({
               </Button>
             ))}
 
-            {overflow.length > 0 && (
+            {menu.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary">
@@ -235,7 +242,7 @@ export function PageHeader({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {overflow
+                  {menu
                     .filter((a) => !a.destructive)
                     .map((action) => (
                       <DropdownMenuItem
@@ -246,8 +253,8 @@ export function PageHeader({
                         {action.label}
                       </DropdownMenuItem>
                     ))}
-                  {overflow.some((a) => a.destructive) && <DropdownMenuSeparator />}
-                  {overflow
+                  {menu.some((a) => a.destructive) && <DropdownMenuSeparator />}
+                  {menu
                     .filter((a) => a.destructive)
                     /* §5.4 — LAST and separated, but NOT red: the confirmation
                        that follows carries the weight. */

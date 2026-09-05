@@ -339,6 +339,9 @@ export function DashboardDetailScreen() {
            never hidden. */
         disabled: row === null,
       }}
+      /* Amplitude's board header keeps its ⋯ at any count; that fidelity outranks
+         D8-b here (docs/RULINGS.md). */
+      overflow="always"
       overflowActions={[
         {
           /* DESIGN.md:2779 forbids an inline editor that collapses on blur, so
