@@ -519,16 +519,32 @@ export function MetricTile({
     />
   ) : null
 
-  if (!selection && !action) return figure
+  /* D33 — selection is a darker GROUND under the whole tile, never an outline.
+     No token sits below `--ev-hero`, so on the band `hero-2` stands in and the
+     step is the wrong way round until one exists. The ring's offset paints
+     whichever ground it lands on, or a selected tile draws a pale halo. */
+  const selected = selection?.selected === true
+  const ground = onBand ? 'bg-hero-2' : 'bg-muted'
+  const ringOffset = selected
+    ? onBand
+      ? 'focus-visible:ring-offset-hero-2'
+      : 'focus-visible:ring-offset-muted'
+    : onBand
+      ? 'focus-visible:ring-offset-hero'
+      : 'focus-visible:ring-offset-background'
 
   return (
-    /* `h-full` IS LOAD-BEARING, not tidiness: `figure` carries `h-full`, which
-       resolves against THIS box, and a box that sizes to its content makes that
-       percentage resolve to the content height — so a figure with an action
-       under it stops filling its grid cell and the row goes ragged. The figure
-       takes the slack (`flex-1`) so the action sits on the cell's bottom edge
-       and every action in a row is on one line. */
-    <div className="flex h-full min-w-0 flex-col items-start gap-2.5">
+    /* `h-full` is load-bearing: `figure` resolves its own `h-full` against THIS
+       box, so a box sizing to its content leaves a figure with an action under
+       it short of its grid cell. Padding is permanent, so moving the selection
+       costs no layout, and its inline half is bled back out so the three tracks
+       keep the x they had — 12px is half `FIGURE_GUTTER`. */
+    <div
+      className={cn(
+        '-ms-3 -me-3 flex h-full min-w-0 flex-col items-start gap-2.5 rounded-lg p-3 transition-colors',
+        selected && ground,
+      )}
+    >
       {selection ? (
         <button
           type="button"
@@ -540,23 +556,12 @@ export function MetricTile({
              would REPLACE the eyebrow, the numeral and the delta clause rather
              than summarise them — and the name computed from the contents
              already reads *"Gross revenue 8,075.70 SAR +57% up, which is
-             better"*, which is the whole tile and is what a reader wants.
-
-             **The selected ring is `ring-offset`, not padding.** The reference
-             outlines the chosen tile; drawn as a box the tile would gain
-             padding and shift its neighbours' columns as the selection moved.
-             An offset ring is painted outside the border box and costs no
-             layout, so the three tracks hold still. */
+             better"*, which is the whole tile and is what a reader wants. */
           className={cn(
             'block w-full flex-1 rounded-lg text-start outline-none transition-shadow',
             'focus-visible:ring-2 focus-visible:ring-offset-4',
-            onBand
-              ? 'focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
-              : 'focus-visible:ring-ring focus-visible:ring-offset-background',
-            selection.selected &&
-              (onBand
-                ? 'ring-2 ring-hero-foreground ring-offset-4 ring-offset-hero'
-                : 'ring-2 ring-ring ring-offset-4 ring-offset-background'),
+            onBand ? 'focus-visible:ring-hero-foreground' : 'focus-visible:ring-ring',
+            ringOffset,
           )}
         >
           {figure}

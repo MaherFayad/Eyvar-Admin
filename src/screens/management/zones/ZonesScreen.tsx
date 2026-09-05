@@ -113,6 +113,13 @@ const STEER_DEFAULT_BONUS_HALALAS = 12_00
 const STEER_BUDGET_CAP_HALALAS = 300_00
 const STEER_DURATION_MINUTES = 120
 
+/** The band's view tabs. The `line` variant takes PAGE inks and on this ground
+    they are not inks: measured, the active label read 1.295 : 1 and its
+    underline 1.997 : 1. The hero ramp is substituted; the underline stays the
+    non-colour carrier and the ring keeps the band as its offset. */
+const VIEW_TAB =
+  'h-auto flex-none px-0 pb-1.5 text-xs text-hero-label after:bg-hero-foreground hover:text-hero-foreground focus-visible:ring-hero-foreground focus-visible:ring-offset-hero focus-visible:outline-hero-foreground data-active:text-hero-foreground'
+
 export function ZonesScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
@@ -542,31 +549,26 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       bleed={
         <>
         <BoardBand density="bar">
-          {/* **The band carries §8's slots 1 and 2, and one control.** The
-              measure switch sits in the panel above the list it orders; the
-              shading toggle is gone — see `SHADE_FLOOR`. What stands at the
-              band's inline-end is the surface choice, which is about the whole
-              board rather than about any one reading.
-
-              **The summary is a SUBTITLE, not a tail**: on the title's own
-              baseline it read as one run with the name. It is the slot every
-              other board fills with its lede, one line under the name. */}
-          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-            <div className="flex min-w-0 flex-col gap-3">
-              <h1 className="text-band font-medium text-hero-foreground">{t(row.titleKey)}</h1>
-              {health.data && (
-                <span className="max-w-prose text-sm text-hero-muted">
-                  <bdi>
-                    {t('zones.meta', {
-                      zones: formatCount(health.data.zonesTracked, language),
-                      starved: formatCount(health.data.starvedZones, language),
-                      cities: formatCount(liveCities, language),
-                      allCities: formatCount(allCities, language),
-                    })}
-                  </bdi>
-                </span>
-              )}
-            </div>
+          {/* **The band carries §8's slots 1 and 2, then the control.** Title,
+              summary, then the surface choice, in that order: the switch names
+              what the whole board is about to become, so it reads after the
+              thing it changes is named rather than beside it. The summary is a
+              SUBTITLE, not a tail — on the title's baseline it read as one run
+              with the name. */}
+          <div className="flex min-w-0 flex-col items-start gap-3">
+            <h1 className="text-band font-medium text-hero-foreground">{t(row.titleKey)}</h1>
+            {health.data && (
+              <span className="max-w-prose text-sm text-hero-muted">
+                <bdi>
+                  {t('zones.meta', {
+                    zones: formatCount(health.data.zonesTracked, language),
+                    starved: formatCount(health.data.starvedZones, language),
+                    cities: formatCount(liveCities, language),
+                    allCities: formatCount(allCities, language),
+                  })}
+                </bdi>
+              </span>
+            )}
 
             {/* **The view switch (T7.3, owner decision O5).** A map answers
                 *where is demand starved*; a table answers *which of thirty
@@ -578,10 +580,10 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
                 aria-label={t('zones.view.label')}
                 className="h-auto gap-4 p-0"
               >
-                <TabsTrigger value="map" className="h-auto flex-none px-0 pb-1.5 text-xs">
+                <TabsTrigger value="map" className={VIEW_TAB}>
                   {t('zones.view.map')}
                 </TabsTrigger>
-                <TabsTrigger value="table" className="h-auto flex-none px-0 pb-1.5 text-xs">
+                <TabsTrigger value="table" className={VIEW_TAB}>
                   {t('zones.view.table')}
                 </TabsTrigger>
               </TabsList>
@@ -846,7 +848,7 @@ function ZoneStrip({
       role="list"
       className="mx-auto grid w-full max-w-measure list-none grid-cols-3 border-b border-border bg-card px-page-pad wide:grid-cols-5 wide:px-page-pad-wide"
     >
-      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+      <li className="flex min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <TileToggle
           edge="start"
           label={t('zones.tile.captainsNeeded')}
@@ -856,7 +858,7 @@ function ZoneStrip({
           onToggle={() => onView(view === 'needs-captains' ? 'all' : 'needs-captains')}
         />
       </li>
-      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+      <li className="flex min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <TileToggle
           label={t('zones.tile.starvedZones')}
           value={formatCount(summary.starvedZones, language)}
@@ -868,14 +870,14 @@ function ZoneStrip({
           onToggle={() => onView(view === 'starved' ? 'all' : 'starved')}
         />
       </li>
-      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+      <li className="flex min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <Reading
           label={t('zones.tile.unservedRequests30d')}
           value={formatCount(summary.unservedRequests30d, language)}
           note={t('zones.tile.unservedRequests30d.note')}
         />
       </li>
-      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+      <li className="flex min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <Reading
           label={t('zones.tile.avgFailureRate')}
           /* R4-12 — `null` is not zero. A month with no requests at all has no
@@ -889,7 +891,7 @@ function ZoneStrip({
           tone={summary.avgFailureRate !== null ? 'critical' : undefined}
         />
       </li>
-      <li className="min-w-0 border-s border-border first:border-s-0 last:border-e-0">
+      <li className="flex min-w-0 border-s border-border first:border-s-0 last:border-e-0">
         <Reading
           edge="end"
           label={t('zones.tile.worstDemandSupplyRatio')}
@@ -948,7 +950,9 @@ function Reading({
   edge?: Edge
 }) {
   return (
-    <div className={cn('flex h-full flex-col gap-1 px-5 py-3', EDGE_PAD[edge ?? 'mid'])}>
+    /* `flex-1` because the cell is now a flex container, so a reading that
+       sized to its own content would leave the track short. */
+    <div className={cn('flex h-full min-w-0 flex-1 flex-col gap-1 px-5 py-3', EDGE_PAD[edge ?? 'mid'])}>
       <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
@@ -994,17 +998,19 @@ function TileToggle({
       type="button"
       aria-pressed={pressed}
       onClick={onToggle}
-      /* **The ring moved INSIDE the cell.** With the card gone the button has no
-         box of its own to trace, and an outward ring on a cell in a divided
-         strip would sit under its neighbour's rule. `-inset` draws it within
-         the cell instead, which is also what makes the pressed state legible
-         against a strip that has no gaps between its cells. */
+      /* D33 — pressed is a darker GROUND, never an outline; hover keeps the
+         lighter `accent` so the two states stay different facts. The ring is
+         `-inset`: an outward one would sit under its neighbour's rule. An end
+         cell BLEEDS instead of taking `EDGE_PAD` — the ground reaches into the
+         strip's own padding and the text keeps the line it aligned on. */
       className={cn(
-        'group/tile relative block h-full w-full text-start transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-        pressed && 'bg-muted ring-2 ring-inset ring-ring',
+        'group/tile relative block h-full min-w-0 flex-1 text-start transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        (edge === 'start' || edge === 'both') && '-ms-5',
+        (edge === 'end' || edge === 'both') && '-me-5',
+        pressed && 'bg-muted hover:bg-muted',
       )}
     >
-      <span className={cn('flex h-full flex-col gap-1 px-5 py-3', EDGE_PAD[edge ?? 'mid'])}>
+      <span className="flex h-full flex-col gap-1 px-5 py-3">
         <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
