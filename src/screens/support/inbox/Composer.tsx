@@ -207,10 +207,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       >
         {note && <span aria-hidden="true" className="absolute inset-y-0 start-0 w-marker bg-note-bar" />}
 
-        {/* Carrier 1: two wide tabs on the surface's top edge. The selected one
-            is fused with the body (same ground, its bottom border covers the
-            track's hairline) and carries a 2px top edge, weight 600 and its
-            icon; the other sits recessed on the `bg-muted` track (AC-CC-11). */}
+        {/* Carrier 1: a tab pair anchored at the inline-start of the top edge,
+            each sized to its own content. The selected one is fused with the
+            body (same ground, its bottom border covers the track's hairline)
+            and carries a 2px top edge, weight 600 and its icon (AC-CC-11). */}
         <Tabs
           value={register}
           onValueChange={(next) => {
@@ -228,7 +228,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
                 disabled={blocked}
                 aria-describedby={describedBy}
                 aria-label={t('inbox.composer.label', { name: customerName })}
-                className={cn(tabClass('data-active:bg-card', 'data-active:border-b-card'), 'min-w-0')}
+                className={cn(tabClass('data-active:bg-card', 'data-active:border-b-card'), 'min-w-0 flex-initial')}
               >
                 <SendIcon className="shrink-0" />
                 <span className="shrink-0">{t('inbox.composer.tab.verb')}</span>
@@ -354,7 +354,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 /** The fused tab: `ground` is the body's own, `edge` recolours the bottom border to match it. */
 function tabClass(ground: string, edge: string): string {
   return cn(
-    'h-auto rounded-none border-0 border-t-2 border-t-transparent ps-3 pe-3 font-medium text-muted-foreground hover:text-foreground',
+    /* `justify-start`: the primitive centres its label, which on a 400px composer
+       read as a heading across the whole top edge rather than as a tab. */
+    'h-auto justify-start rounded-none border-0 border-t-2 border-t-transparent ps-3 pe-3 font-medium text-muted-foreground hover:text-foreground',
     'data-active:-mb-px data-active:border-b data-active:border-t-foreground data-active:font-semibold data-active:text-foreground',
     ground,
     edge,
