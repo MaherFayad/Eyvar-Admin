@@ -294,7 +294,6 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
   useEffect(() => setFeatured(null), [row.subTabId])
 
   const from = period?.start ?? null
-
   const to = period?.end ?? null
 
   const board = useAsync<MetricBoard>(
