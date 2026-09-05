@@ -242,3 +242,59 @@ P1 alone answers the ask in the screenshot. P2 is what makes it *"actually power
 ## 10. Files this would touch
 
 `src/shell/GlobalSearch.tsx` (becomes the trigger plus a `CommandDialog`), `src/components/command/CommandPalette.tsx` (rows, groups, footer), `src/commands/usePalette.ts` (rest-state diet, argument carry, record step, prefixes, ranking), `src/commands/copy.ts` and `src/i18n/ar/commands.ts` (new keys), `src/commands/<domain>.ts` (F6), `docs/RULINGS.md` (the override), `docs/05-restructure/design/05-command-centre.md` (CQ-1 superseded, §3 gains the record step), `scripts/harness/palette.mjs` (new), `src/commands/palette.test.tsx` (extended).
+
+---
+
+## 11. F6 status — the registry, as built
+
+**43 commands in 15 registries**, up from 13 in 5. Every id below is declared in
+`src/commands/<domain>.ts` and asserted by `src/commands/domains.test.ts`.
+
+| Domain | File | Command ids | Arity | Affordance |
+|---|---|---|---|---|
+| Captains | `captains.ts` | `captain.openProfile` · `captain.suspend` · `captain.reinstate` | target / input / target | default |
+| Trips | `trips.ts` | `trip.flag` · `trip.unflag` | input / target | default |
+| Applications | `applicants.ts` | `applicant.approve` · `applicant.reject` | target / input | default |
+| Tickets | `tickets.ts` | `ticket.claim` · `ticket.resolve` · `ticket.reopen` | target | default |
+| Subscriptions | `subscriptions.ts` | `subscription.freeze` · `subscription.unfreeze` · `subscription.cancel` | input / target / input | default · default · **destructive** |
+| **Dispatch** | `requests.ts` | `request.claimNext` **immediate** · `request.claim` · `request.assign` · `request.expire` | immediate / target / input / target | default ×3 · **destructive** |
+| **Wallets** | `wallets.ts` | `wallet.adjust` · `wallet.goodwill` | input | default |
+| **Complaints** | `complaints.ts` | `complaint.uphold` · `complaint.dismiss` | input | affirm / reject |
+| **Team** | `team.ts` | `operator.suspend` · `operator.reinstate` · `operator.resendInvite` · `operator.revokeInvite` · `operator.offboard` | input / target / target / target / input | default ×3 · **destructive** ×2 |
+| **Pricing** | `pricing.ts` | `plan.publish` · `plan.archive` | target | default (both carry an undo) |
+| **Safety** | `safety.ts` | `incident.claim` · `incident.suspend` · `incident.close` | target / input / target | default ×2 · **destructive** |
+| **Cash** | `cash.ts` | `cashReport.resolve` · `cashReport.escalate` | input | affirm / reject |
+| **Disputes** | `disputes.ts` | `dispute.refund` · `dispute.decline` | input | affirm / reject |
+| **Fairness** | `fairness.ts` | `fairnessCase.overturn` · `fairnessCase.uphold` | input | affirm / reject |
+| **Session** | `sessionCommands.ts` | `session.arabic` · `session.english` · `session.themeLight` · `session.themeDark` · `session.themeSystem` · `session.signOut` | immediate | default |
+
+**Reachable from ⌘K:** ten registries. `TARGET_SOURCES` gained five entries —
+`request`, `rider` (a wallet is keyed by its rider), `complaint`, `operator`,
+`plan` — beside the five that existed.
+
+**Not reachable, and why (CM-4).** Twelve commands in `safety`, `cash`,
+`disputes` and `fairness` carry `hiddenFromPalette`: those records have **no
+`ProfileEntityType`**, so `search()` cannot rank one and `CommandScope`'s
+`entity` kind cannot name them. They are declared for the row menu and the bulk
+bar, which is C-1's value on its own. Unblocking ⌘K for them needs `incident`,
+`cash-report`, `dispute` and `fairness-case` in `PROFILE_ENTITY_TYPES`, in
+`resolveLocally` and in `searchEntities` — mock-data-engineer.
+
+**Left out, with the reason.** `Invite operator` (three typed fields;
+`CommandConfirmRequest` collects one reason, one closed choice and one amount).
+`Change role` (no role-change operation exists in `clients/team.ts`).
+`Duplicate plan` (no `createPlan`). `Freeze wallet` (no such operation).
+`Release` / `take over` on every queue (`CommandSession` carries no operator
+identity). A wallet **debit** (the screen only ever credits; taking money out
+from a palette is a product decision nobody has made).
+
+**Contract additions, both additive.** `CommandConfirmRequest.amount`
+(`CommandConfirmAmount`, structurally `ConfirmMoneyDialog`'s own `amount` plus
+the `onChange` callback `choice.onSelect` established) and three optional
+`CommandHost` capabilities — `setLanguage`, `setTheme`, `signOut` — which the
+session commands refuse with a keyed sentence until `GlobalSearch` wires them.
+
+**`COMMAND_GROUPS`** (`targets.ts`) is new: `TARGET_SOURCES` answers *how do I
+find a record*, which is a different question from *what commands exist*, and
+the conflation made every global and route command invisible. A surface
+iterates the first for commands and the second for targets.

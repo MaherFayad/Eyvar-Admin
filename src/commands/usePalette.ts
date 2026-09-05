@@ -147,6 +147,16 @@ export interface PaletteRow {
    */
   narrow: { label: string; run: () => void } | null
   onSelect: () => void
+  /* ── The centred-palette contract (COMMAND-PALETTE-DISCOVERY.md §3, §5). Optional
+     until every producer fills them; a renderer treats absence as the plain row. ── */
+  /** What the row is, so the renderer can pick its glyph and its line count. */
+  kind?: 'command' | 'destination' | 'record' | 'target' | 'queue' | 'resume' | 'recent' | 'guide' | 'hatch'
+  /** Space-separated keys (`G O`); each token renders as one kbd chip at inline-end. */
+  shortcut?: string | null
+  /** Enter goes to another step rather than running; renders a chevron. */
+  descends?: boolean
+  /** F2 — ArrowRight on an active record row opens its actions in place. */
+  onDescend?: (() => void) | null
 }
 
 /** A labelled run of rows. Renders nothing when empty — a `Queues (0)` heading is noise. */
@@ -156,7 +166,7 @@ export interface PaletteBlock {
   rows: readonly PaletteRow[]
 }
 
-export type PaletteStep = 'root' | 'target' | 'confirm'
+export type PaletteStep = 'root' | 'record' | 'target' | 'confirm'
 
 /** A committed step, as a removable chip inside the field (§5's scope chip, same shape). */
 export interface PaletteChip {
@@ -193,6 +203,10 @@ export interface PaletteModel {
   confirm: PaletteConfirm | null
   /** `Backspace` on empty and `Escape`. Returns `true` when it consumed the key. */
   handleKeyDown: (event: { key: string; preventDefault: () => void }) => boolean
+  /** Rows across every block, for the footer's count. Optional until the model fills it. */
+  count?: number
+  /** F7 — a typed prefix (`>` `#` `@` `/`) as a removable chip before the query. */
+  scope?: { label: string; onRemove: () => void } | null
 }
 
 export interface UsePaletteOptions {
