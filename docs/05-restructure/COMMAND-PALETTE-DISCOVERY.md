@@ -242,3 +242,33 @@ P1 alone answers the ask in the screenshot. P2 is what makes it *"actually power
 ## 10. Files this would touch
 
 `src/shell/GlobalSearch.tsx` (becomes the trigger plus a `CommandDialog`), `src/components/command/CommandPalette.tsx` (rows, groups, footer), `src/commands/usePalette.ts` (rest-state diet, argument carry, record step, prefixes, ranking), `src/commands/copy.ts` and `src/i18n/ar/commands.ts` (new keys), `src/commands/<domain>.ts` (F6), `docs/RULINGS.md` (the override), `docs/05-restructure/design/05-command-centre.md` (CQ-1 superseded, §3 gains the record step), `scripts/harness/palette.mjs` (new), `src/commands/palette.test.tsx` (extended).
+
+---
+
+## 11. P2 model status — `pal/model`
+
+Built in `src/commands/usePalette.ts` (plus additive helpers in `recents.ts` and
+`shortcuts.ts`); proved in `src/commands/palette.model.test.tsx`, nine tests, one per
+criterion.
+
+| Item | State |
+|---|---|
+| **F1** rest state as context | done. `On this screen` · `Resume` · `Recent commands` · `Go to`, each capped at 3 and the whole at 10 rows in 4 groups. `Queues` does not render at rest; the guide row keeps its place inside `Resume` and inside the cap. |
+| **AC-CP4** queues on demand | done. `command.queue.keywords` is a comma-separated, translated match vocabulary (`queue, queues, waiting, backlog` / `طابور, الطوابير, منتظر, بانتظار, قوائم العمل`); a queue's own title also matches. The block renders first when it is asked for. |
+| **F3** argument carry | done. A command whose leading tokens name it is **scored on those tokens**, not on the whole query — without that, `suspend nora` scores below `MIN_MATCH_SCORE` and the palette could not take an argument at all. The remainder shows on the row as `command.carry` and pre-fills the target step. |
+| **F7** prefix modes | done. `>` commands, `#` records whose id contains the query, `@` people records, `/` destinations. The glyph is stripped into `model.scope = { label, onRemove }`; `Backspace` and `Escape` take the scope off before they ascend. `>` with an empty query lists every command. |
+| **F2** record step | done. `step: 'record'`, one block `command.block.recordActions` naming the record, `Open 360° profile` first, then the entity's commands with their §11.2 refusals. `Enter` on a record row still opens the profile (`descends: false`); `onDescend` is the second affordance. |
+| **F4** shortcuts, data side | done for `Go to`: `subTabChord` reads the same letters `useSubTabShortcut` assigns, rendered `G X`. No chords invented for commands — no scheme exists to match. |
+| **F5** ranking that learns | done. `deriveCommandUsage` over the existing `paletteRecents` log; frequency and recency weight the text score by at most 7 %, so a habit breaks a tie and never beats a better match. |
+| **§6** telemetry | `palette.ran` (command id, step depth, keystrokes, ms since open) and `palette.abandoned` (query length, step). `palette.opened` stays the surface's. |
+| Contract fields | `kind`, `shortcut`, `descends`, `onDescend` filled on every row the model emits; `count` and `scope` filled on the model. |
+
+**Persistence (Q-P5) needed no new key.** `UI_STATE_KEYS.paletteRecents` already exists and
+`createCachedStore` already namespaces by operator id, so ranking, `Resume` and `Recent
+commands` read one per-operator log. `src/lib/persistence.ts` is unchanged.
+
+**Three tests in `palette.test.tsx` now fail, and must change**, because AC-CP3 removed the
+block they assert: *offers live queue counts … with nothing typed*, *does not show a prompt
+where it now has something to offer*, and *ascends on Backspace … and closes only from
+root* (this last one uses the `Queues` group only as a proxy for "still open"; any rest-state
+group works). The file's owner is the surface.
