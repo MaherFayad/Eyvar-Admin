@@ -909,4 +909,29 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.deduction.blocked.applied': 'جرى تطبيق هذا الخصم بالفعل.',
   'fin.deduction.blocked.waived': 'جرى إسقاط هذا الخصم بالفعل.',
   /* ── end lane D ── */
+
+  /* ── FINANCIALS-UX-PLAN §11 Plan editor ── */
+
+  'fin.planEditor.tab.details': 'التفاصيل',
+  'fin.planEditor.tab.calculations': 'الحسابات',
+
+  'fin.planEditor.calc.unit.minutes': '{value} دقيقة',
+  'fin.planEditor.calc.unit.km': '{value} كم',
+  'fin.planEditor.calc.unit.trips': '{value} رحلة',
+  'fin.planEditor.calc.assumptions': 'ما يفترضه هذا المثال',
+
+  'fin.planEditor.preview.language.label': 'لغة المعاينة',
+  'fin.planEditor.preview.language.en': 'EN',
+  'fin.planEditor.preview.language.ar': 'AR',
+  'fin.planEditor.preview.caption': 'معاينة تطبيق الراكب.',
+  'fin.planEditor.preview.caption.vat': 'معاينة تطبيق الراكب. الأسعار شاملة ضريبة القيمة المضافة.',
+  'fin.planEditor.rider.perTrip': 'للرحلة الواحدة',
+  'fin.planEditor.rider.plan': 'الباقة',
+  'fin.planEditor.rider.duration': '{days} يومًا',
+  'fin.planEditor.rider.trips': '{count} رحلة',
+  'fin.planEditor.rider.included': 'ما تشمله الباقة',
+  'fin.planEditor.rider.classes': 'اركب مع',
+  'fin.planEditor.rider.subscribe': 'اشتراك',
+  'fin.planEditor.rider.unnamed': 'باقة بلا اسم',
+  /* ── end §11 ── */
 }

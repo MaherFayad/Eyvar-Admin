@@ -1,10 +1,9 @@
 /**
  * The one view row every Financials screen renders — **§10.4**.
  *
- * The stadium (or, on a drill-in, the way back) at the inline-start; the view's
- * figures at the inline-end. **No heading**: the selected pill already names the
- * view, and a heading cost every view a row of its own. Words that are not a
- * figure ride the caption line under the figures.
+ * One start-aligned group, never `justify-between`: the stadium (or the way
+ * back), then the figures 32px after it, then the caption under them. Only a
+ * view's own control (Revenue's `Charts | Table`) sits at the inline-end.
  */
 
 import { Fragment, useEffect, type ReactNode } from 'react'
@@ -83,59 +82,50 @@ export function ViewRow({ lead, label, facts, control, className }: ViewRowProps
   const { figures = [], caption = [] } = facts ?? NO_FACTS
 
   return (
-    /* `min-h-11` is the figure block's own height, so the row is the same
-       height and the table below starts at the same place on a view that has
-       figures and on one that has none. `flex-wrap` puts a wide screen's
-       figures under its stadium rather than past the page's edge. */
+    /* `min-h-11` is the figure block's own height, so the table below starts at
+       the same place on a view with figures and on one without. `gap-x-8` is
+       the 32px between the stadium and the first figure; wrapping puts the
+       figures under the stadium at the inline-START, not past it. */
     <div
-      className={cn(
-        'flex min-h-11 min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-1',
-        className,
-      )}
+      className={cn('flex min-h-11 min-w-0 flex-wrap items-center gap-x-8 gap-y-1', className)}
     >
       {lead}
-      {(control || figures.length > 0 || caption.length > 0) && (
-        /* `ms-auto` and not `justify-between` alone: when the figures wrap to a
-           line of their own under a wide stadium, a lone flex item sits at the
-           line's START. The auto inline-start margin puts it at the end on
-           both the shared line and the wrapped one. */
-        <div className="flex ms-auto min-w-0 flex-wrap items-start justify-end gap-x-6 gap-y-1">
-          {control}
-          {(figures.length > 0 || caption.length > 0) && (
-            /* One cluster: the figures, and the caption directly beneath them
-               sharing their inline-start. A caption never sits across the row
-               from the numeral it describes. */
-            <div className="flex min-w-0 flex-col items-start gap-0.5 text-start">
-              {figures.length > 0 && (
-                <ul
-                  data-numeric
-                  role="list"
-                  aria-label={label}
-                  className="flex list-none flex-wrap items-start justify-end gap-x-6 gap-y-1"
-                >
-                  {figures.map((figure) => (
-                    <li key={figure.label}>
-                      <ViewFigureBlock figure={figure} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {caption.length > 0 && (
-                /* V-9.4 — size, case, tracking and muted ink in the console's
-                   own face; `globals.css` refuses `--ev-text-3` as text ink. */
-                <span className="max-w-full truncate text-2xs leading-none font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-                  {caption.map((line, index) => (
-                    <Fragment key={line}>
-                      {index > 0 && <span aria-hidden="true"> · </span>}
-                      <bdi>{line}</bdi>
-                    </Fragment>
-                  ))}
-                </span>
-              )}
-            </div>
+      {(figures.length > 0 || caption.length > 0) && (
+        /* One cluster: the figures, and the caption directly beneath them
+           sharing their inline-start. A caption never sits across the row
+           from the numeral it describes. */
+        <div className="flex min-w-0 flex-col items-start gap-0.5 text-start">
+          {figures.length > 0 && (
+            <ul
+              data-numeric
+              role="list"
+              aria-label={label}
+              className="flex list-none flex-wrap items-start gap-x-8 gap-y-1"
+            >
+              {figures.map((figure) => (
+                <li key={figure.label}>
+                  <ViewFigureBlock figure={figure} />
+                </li>
+              ))}
+            </ul>
+          )}
+          {caption.length > 0 && (
+            /* V-9.4 — size, case, tracking and muted ink in the console's
+               own face; `globals.css` refuses `--ev-text-3` as text ink. */
+            <span className="max-w-full truncate text-2xs leading-none font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+              {caption.map((line, index) => (
+                <Fragment key={line}>
+                  {index > 0 && <span aria-hidden="true"> · </span>}
+                  <bdi>{line}</bdi>
+                </Fragment>
+              ))}
+            </span>
           )}
         </div>
       )}
+      {/* The one thing still allowed at the far inline-end: `ms-auto` keeps it
+          there on the shared line and on a wrapped one. */}
+      {control && <div className="flex ms-auto items-center gap-2">{control}</div>}
     </div>
   )
 }
