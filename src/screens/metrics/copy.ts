@@ -545,8 +545,8 @@ export const OVERVIEW_EN: Dictionary = {
      3 (`:14659`). It gates the ranked list below it: above the ceiling, the
      ranking is not trustworthy. */
   'caption.uncodedCeiling': 'The ceiling is 3%.',
-  'caption.csatSevenDay': 'Mean rating out of 5 over the last seven days.',
-  'caption.firstContactResolution': 'Resolved with one reply or one call, as a share of resolved tickets.',
+  'caption.csatSevenDay': 'Mean of 5, last seven days.',
+  'caption.firstContactResolution': 'One reply or one call, over resolved.',
   /* AC-675. `higherIsBetter` is true on this tile and every instinct says
      otherwise, so the tile has to say why.
 
