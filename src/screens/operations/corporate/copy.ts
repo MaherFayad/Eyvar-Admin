@@ -62,23 +62,23 @@ export const CORPORATE_EN: Dictionary = {
   'corp.createdAt': 'Account opened',
 
   'corp.card.usagePolicy': 'Employee ride and usage policy',
+  /* X15 - the three field help sentences fold in here: `SAR` on the two money
+     inputs now carries "in riyals", and what is left is scope, not a
+     constraint, so §5.7 r7 keeps nothing below a control. */
   'corp.hint.usagePolicy':
-    'Spend caps, vehicle classes and manager approval rules. Work hours allow rides between 08:00 and 18:00 on weekdays only.',
+    'The cap is monthly across every employee. The approval threshold is per trip. Work hours allow rides 08:00 to 18:00 on weekdays.',
   'corp.action.noPermission.create':
     'You cannot open a corporate account. Ask an Owner for the “Subscription control” permission.',
   'corp.action.linking': 'Linking…',
   'action.savePolicy': 'Save policy',
   'corp.policy.monthlyCap': 'Monthly spend cap',
   'corp.policy.monthlyCap.placeholder': 'No limit',
-  'corp.policy.monthlyCapHelp': 'In riyals, across every employee on the account.',
   'corp.policy.vehicleTier': 'Allowed vehicle tier',
   'corp.policy.approvalThreshold': 'Approval required above',
   'corp.policy.approvalThreshold.placeholder': 'Not required',
-  'corp.policy.approvalThresholdHelp': 'In riyals, per trip. A manager approves anything higher.',
   'corp.policy.workHoursOnly': 'Work-hours restriction',
   'corp.policy.approverEmail': 'Approver email',
   'corp.policy.approverEmail.placeholder': 'manager@company.sa',
-  'corp.policy.approverEmailHelp': 'Where an approval request is sent.',
   /* §10.2 — the in-field inline-START prefix on a money input. */
   'corp.sar': 'SAR',
   'corp.tier.any': 'Any tier',
@@ -92,8 +92,10 @@ export const CORPORATE_EN: Dictionary = {
   'corp.noEmployeesBody':
     'Link an employee rider to include their rides on the monthly consolidated invoice.',
   'corp.activeSubs': '{count} active subscriptions',
+  /* AC-75 - the employee meta line is one key; the separator is never
+     assembled in JSX, so bidi has one run to reconcile. */
+  'corp.employee.meta': '{id} · {phone} · {city}',
   'corp.unlinkEmployee': 'Unlink {name}',
-  'corp.action.unlinking': 'Unlinking…',
   'corp.unlink.confirm.title': 'Unlink {name}?',
   'corp.unlink.confirm.body': 'Past rides stay billed here. New rides are not.',
   'corp.unlink.confirm.action': 'Unlink employee',
@@ -143,7 +145,6 @@ export const CORPORATE_EN: Dictionary = {
   'corp.noRidersAvailableBody': 'There is no registered rider left to add to {company}.',
   'corp.selectRiderPlaceholder': 'Choose a rider',
   'corp.linkRider': 'Link employee',
-  'corp.linking': 'Linking…',
   /* Screen-specific, NOT the generic `action.*` key: `action.saving` and
      `action.goBack` each carry a different value in another dictionary, and the
      last spread into `EN` wins. */

@@ -9,14 +9,14 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5628** |
+| **Translatable keys, all dictionaries** | **5624** |
 | Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5628 |
+| Keys in `AR` | 5624 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 298 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 294 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 194 |
+| Keys in a `copy.ts` the shell has NOT registered | 190 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **112** |
@@ -591,7 +591,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
-| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 112 | 111 |
+| `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 108 | 107 |
 | `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
 
 ## Screens with no `copy.ts`

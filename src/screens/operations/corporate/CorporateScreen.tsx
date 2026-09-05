@@ -90,10 +90,10 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
   }, [createdAccounts, data.data?.items])
 
   /**
-   * **T5.4 - the width contract, §7.3.** `Company` is the one flexible column
-   * (`minWidth`, no `width`); the other six declare px and sum with it to the
-   * 910 the content region gives a table at 1280. Every line inside a cell
-   * truncates rather than wrapping, so the row pitch is one value.
+   * **T5.4 - the width contract, §7.3.** `Company` is the one flexible column;
+   * the six px columns sum with its floor to 870, the ARABIC inner width and
+   * the binding one, so nothing is fitted away and English's 40px residual
+   * lands on the identity. Every line truncates, so the pitch is one value.
    */
   const columns: DataColumn<CorporateAccount>[] = useMemo(
     () => [
@@ -103,7 +103,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         emphasis: 'primary',
         csv: (c) => c.companyName,
         header: t('column.company'),
-        minWidth: 176,
+        minWidth: 192,
         dataType: 'text',
         /* AC-43 - the identity is a `<Link>`: middle-clickable, its address can
            be copied, and it keeps `globals.css`'s `:focus-visible` ring. */
@@ -120,11 +120,10 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'contact',
         header: t('column.contact'),
-        width: 144,
-        /* A shrink FLOOR, not a second flexible column: `fitColumnWidths` takes
-           the Arabic 40px out of the widest slack, and without this the contact
-           name is the value that pays for it. */
-        minWidth: 140,
+        width: 140,
+        /* A floor for the operator's own resize, not a second flexible column:
+           140 is the widest contact name on the fixtures plus its padding. */
+        minWidth: 132,
         dataType: 'text',
         /* H1 - the person is DATA, the address is META. T5.4: the address is a
            second line only where the column is wide enough to hold it, which at
@@ -142,8 +141,8 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         id: 'headcount',
         emphasis: 'data',
         header: t('column.employees'),
-        width: 108,
-        minWidth: 104,
+        width: 80,
+        minWidth: 76,
         align: 'end',
         dataType: 'number',
         /* AC-73 - `0 / 40` is two numerals around a bidi-NEUTRAL slash, so an
@@ -161,7 +160,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         emphasis: 'data',
         csv: (c) => c.totalSpendHalalas,
         header: t('column.totalSpend'),
-        width: 116,
+        width: 112,
         align: 'end',
         dataType: 'money',
         cell: (c) => (
@@ -182,6 +181,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         sortField: 'billingType',
         header: t('column.billing'),
         width: 152,
+        minWidth: 120,
         dataType: 'enum',
         cell: (c) => <span className="block truncate">{t(BILLING[c.billingType])}</span>,
       },
@@ -195,7 +195,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         sortField: 'status',
         emphasis: 'data',
         header: t('column.status'),
-        width: 96,
+        width: 80,
         dataType: 'enum',
         cell: (c) => (
           <StatusBadge tone={STATUS[c.status].tone}>{t(STATUS[c.status].key)}</StatusBadge>
@@ -204,9 +204,10 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
       {
         id: 'nextInvoice',
         header: t('column.nextInvoice'),
-        width: 130,
-        /* The floor `Day {day} of month` needs in Arabic; see `contact`. */
-        minWidth: 118,
+        width: 114,
+        /* Arabic wants 121 here and the 870 budget has 114 left after the
+           identity; the schedule line is the value that pays, not the name. */
+        minWidth: 100,
         dataType: 'date',
         cell: (c) => (
           <div className="flex min-w-0 flex-col text-xs">

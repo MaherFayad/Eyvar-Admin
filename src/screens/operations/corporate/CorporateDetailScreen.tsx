@@ -548,9 +548,16 @@ export function CorporateDetailScreen() {
                     >
                       {rider.name}
                     </Link>
-                    <span className="truncate font-mono text-xs text-muted-foreground">
-                      {rider.id} · {rider.phone} · {rider.city}
-                    </span>
+                    {/* AC-75 - one key, one separator. The row sets `text-xs`,
+                        so the line inherits its size rather than restating it
+                        as the 12px paragraph X15 counts. */}
+                    <bdi className="truncate font-mono text-muted-foreground">
+                      {t('corp.employee.meta', {
+                        id: rider.id,
+                        phone: rider.phone,
+                        city: rider.city,
+                      })}
+                    </bdi>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-muted-foreground">

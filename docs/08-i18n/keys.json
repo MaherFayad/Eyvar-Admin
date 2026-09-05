@@ -1,12 +1,12 @@
 {
   "totals": {
-    "keys": 5628,
+    "keys": 5624,
     "en": 5330,
-    "ar": 5628,
+    "ar": 5624,
     "arMissing": 0,
-    "arExtra": 298,
+    "arExtra": 294,
     "copyFiles": 36,
-    "unregisteredKeys": 194,
+    "unregisteredKeys": 190,
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
@@ -296,8 +296,8 @@
       "exports": [
         "CORPORATE_EN"
       ],
-      "keys": 112,
-      "notInEN": 111
+      "keys": 108,
+      "notInEN": 107
     },
     {
       "file": "src/screens/operations/dispatch/copy.ts",
