@@ -241,45 +241,56 @@ export function MessageComposer({
 
   const noteRegister = register === 'internal'
 
+  /* Carrier 1 (§8.6.2, AC-CC-11): the register is a pair of real tabs on the
+     field's top edge. The selected tab shares the field's ground and covers the
+     track's hairline; the other sits recessed on a track of the other material.
+     Weight 600 and the top edge carry the selection without colour (§7.5). */
+  const ground = noteRegister ? 'bg-muted' : 'bg-card'
+  const track = noteRegister ? 'bg-card' : 'bg-muted'
+  const tab = [
+    'relative -mb-px h-control flex-1 rounded-none border-b border-t-2 border-b-transparent border-t-transparent px-3 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground aria-checked:border-t-primary aria-checked:text-foreground',
+    noteRegister
+      ? 'aria-checked:bg-muted! aria-checked:border-b-muted'
+      : 'aria-checked:bg-card! aria-checked:border-b-card',
+  ].join(' ')
+
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-3">
-      {/* Carrier 1 — the register, **at rest, above the field**. Never a
-          checkbox, never a menu item, never a modifier on the send button
-          (§8.6.2). `ToggleGroup` is a roving-focus group, so `←`/`→` move
-          between the segments and the primitive mirrors them in Arabic. */}
-      {!noteOnly && (
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          value={register}
-          aria-label={t('conversations.composer.register')}
-          onValueChange={(next) => {
-            if (next === 'customer' || next === 'internal') setRegister(next)
-          }}
-          className="w-fit"
-        >
-          <ToggleGroupItem
-            value="customer"
-            disabled={blocked}
-            aria-describedby={refusal ? reasonId : undefined}
+      <div
+        className={`overflow-hidden rounded-lg border border-input ${ground} focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background`}
+      >
+        {!noteOnly && (
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={register}
+            aria-label={t('conversations.composer.register')}
+            onValueChange={(next) => {
+              if (next === 'customer' || next === 'internal') setRegister(next)
+            }}
+            className={`w-full gap-0 rounded-none border-b border-input ${track}`}
           >
-            {t('conversations.composer.reply')}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="internal"
-            disabled={blocked}
-            aria-describedby={refusal ? reasonId : undefined}
-          >
-            {t('conversations.composer.note')}
-          </ToggleGroupItem>
-        </ToggleGroup>
-      )}
+            <ToggleGroupItem
+              value="customer"
+              disabled={blocked}
+              aria-describedby={refusal ? reasonId : undefined}
+              className={tab}
+            >
+              {t('conversations.composer.reply')}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="internal"
+              disabled={blocked}
+              aria-describedby={refusal ? reasonId : undefined}
+              className={tab}
+            >
+              {t('conversations.composer.note')}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
 
-      {/* Carrier 2 — **the field's ground changes material** between registers,
-          and carrier 3, the placeholder, changes with it. Both are tokens the
-          system already has: `bg-card` is `--ev-surface`, `bg-muted` is
-          `--ev-bg2`. No new colour. */}
+      {/* Carriers 2 and 3: the field shares the register's ground and the
+          placeholder names the register (§8.6.2). The ring is the box's. */}
       <Textarea
         ref={field}
         rows={3}
@@ -292,7 +303,7 @@ export function MessageComposer({
             ? 'conversations.composer.placeholder.note'
             : 'conversations.composer.placeholder.reply',
         )}
-        className={noteRegister ? 'bg-muted' : 'bg-card'}
+        className="min-h-16 rounded-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         onChange={(event) => {
           setBody(event.target.value)
           if (channel !== 'chat' || noteRegister) return
@@ -319,6 +330,7 @@ export function MessageComposer({
           }
         }}
       />
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {/* §8.6.5 — one toggle, `aria-pressed`, and **the label never changes**.
