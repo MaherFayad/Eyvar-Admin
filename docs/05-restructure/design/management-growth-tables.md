@@ -22,19 +22,21 @@ shape and stays it. The board is the page's bleed; the tab strip and the table a
 ```
 ┌────────────────────────────────────────────────────────────────────┐  bleed
 │ Growth                                                    ⟳  All time│  BoardHero
-│ Where the next subscription comes from                              │  §8 slots 1-2
+│ Where new riders come from, what they cost, and whether the         │  §8 slots 1-2
+│ promotions are paying for themselves.                               │
 │  ┌────────┐ ┌────────┐ ┌────────┐                                   │
-│  │ 1.3×   │ │  42 %  │ │  219   │      lead figures (radiogroup)    │
+│  │   0    │ │  1.8 % │ │  5.2×  │      lead figures (radiogroup)    │
 │  └────────┘ └────────┘ └────────┘                                   │
 └────────────────────────────────────────────────────────────────────┘
+
+   ( Board )( Promos )( Referrals )( Incentives )( Messages )            the strip,
+   ────────────────────────────────────────────────────────────────      y = 507
+
    ┌ hoisted chart card ────────────┐                                    board content,
    └────────────────────────────────┘                                    unchanged
    ── chapters, charts, breakdowns ──                                    (?view= absent)
 
-   ( Board )( Promos )( Referrals )( Incentives )( Messages )            the strip
-   ────────────────────────────────────────────────────────────────      §3.2
-
-?view=promos — the strip becomes the table's own toolbar row:
+?view=promos — the strip becomes the table's own toolbar row, still first:
 
    ( Board )( Promos )( Referrals )…      [ Search ]  Filter  Columns  ⇅  ⤓
    ─────────────────────────────────────────────────────────────────────
@@ -43,8 +45,18 @@ shape and stays it. The board is the page's bleed; the tab strip and the table a
    ☐ │ EYVAR30         │ 30 % │        84 % │       61 │  1.3×  │ 31 Jul  │ Active │ Pause
    │ │ New riders      │      │Nearly spent │          │        │         │        │
    ─────────────────────────────────────────────────────────────────────
-                                              Showing 1–4 of 4      ‹ ›
+                                              Showing 1–10 of 10     ‹ ›
+
+   ── the board's chart, chapters and breakdowns follow the table ──
 ```
+
+**The strip leads the page block, and that is measured rather than preferred.**
+With the strip trailing the board's evidence it sat at **y = 1663** on an 800px
+viewport: two full scrolls from the top, on the control that reaches four
+tables. Above the evidence it is at **y = 507** and the table at **605**, both
+inside the first viewport. What stays above it is the band, which carries the
+`<h1>`, the lede, the freshness line, the period picker and the three lead
+figures: the board an operator reads before choosing a list.
 
 The board is `MetricBoardScreen`'s and is **not reimplemented**: it gains one optional
 `below` slot, rendered as the last thing in its page block, and the other seven boards pass
@@ -92,30 +104,31 @@ estimated:
 | Column | Width | Align | Type | Notes |
 |---|---:|---|---|---|
 | Code | flex, min 128 | start | text | Identity. Monospace, weight 600. Second line: target segment |
-| Discount | 100 | end | number | `30 %`. 80 wrapped the header in English |
+| Discount | 92 | end | number | `30 %`. 80 wrapped the header in English |
 | Budget burn | 108 | end | percent | `84 %`, with `Nearly spent` beneath in the 80-99 band |
-| New subs | 92 | end | number | |
-| Return | 80 | end | ratio | `1.3×` |
-| Expires | 112 | start | date | 96 clipped an Arabic month |
-| Status | 98 | start | enum | Badge. `Budget spent` is the widest |
+| New subs | 84 | end | number | |
+| Return | 76 | end | ratio | `1.3×` |
+| Expires | 104 | start | date | 96 clipped an Arabic month |
+| Status | 124 | start | enum | Badge. 98 clipped `Budget spent` |
 | Uses | 76 | end | number | `defaultHidden` — the column picker restores it |
 | Target | 148 | start | enum | `defaultHidden`; it is the identity's second line |
 
-590 fixed + 128 floor + 40 + 152 = **910**, which is the English measure exactly;
-Arabic's 870 squeezes the four numeric columns and clips nothing.
+588 fixed + 128 floor + 40 + 152 = **908**; the identity takes the 2px back and
+measures 130 in English. Arabic's 870 squeezes the numeric columns to 87 / 99 /
+82 / 76 and clips none of them.
 
 **Referrals** — no selection, no action lane:
 
 | Column | Width | Align | Type |
 |---|---:|---|---|
-| Referrer | flex, min 160 | start | text (link). Measured 310 in English, 270 in Arabic |
-| Referee | 140 | start | text (link) |
-| Referrer bonus | 112 | end | money |
-| Referee bonus | 112 | end | money |
-| Credited | 128 | start | date |
-| Signal | 108 | start | enum |
+| Referrer | flex, min 160 | start | text (link). Measured 302 in English, 262 in Arabic |
+| Referee | 172 | start | text (link). 140 clipped five names of seven |
+| Referrer bonus | 104 | end | money |
+| Referee bonus | 104 | end | money |
+| Credited | 112 | start | date |
+| Signal | 116 | start | enum. 108 clipped `Shared device` |
 
-600 + 160 = **760**.
+608 fixed + 160 floor = **768**; the identity takes the rest.
 
 **Incentives** — action lane 152, no selection (§9.3: no declared bulk command,
 so no checkbox column):
@@ -123,30 +136,31 @@ so no checkbox column):
 | Column | Width | Align | Type |
 |---|---:|---|---|
 | Incentive | flex, min 200 | start | text |
-| Reward | 176 | start | text |
+| Reward | 184 | start | text |
 | Earned | 88 | end | number |
 | Total paid | 112 | end | money |
-| Status | 88 | start | enum |
+| Status | 80 | start | enum |
 | Condition | 176 | start | enum |
 
 **The condition rides under the name, not in a column of its own**, the way a
 promo's target does. Measured with its own column: every rule's condition
 truncated to four words and the reward was left 128px, which clipped
 `Commission 20% to 17%`. It stays a sortable, filterable, `defaultHidden`
-column. 464 fixed + 200 floor + 152 = **816**; the identity takes the rest.
+column. 464 fixed + 200 floor + 152 = **816**; the identity takes the rest and
+measures 294 in English, 254 in Arabic.
 
 **Messages** — no selection, no action lane:
 
 | Column | Width | Align | Type |
 |---|---:|---|---|
 | Message | flex, min 240 | start | text. Measured 290; the full body is in the sheet |
-| Segment | 168 | start | enum |
+| Segment | 180 | start | enum. 168 clipped four sends of eight |
 | Channel | 96 | start | enum |
-| Recipients | 100 | end | number |
+| Recipients | 92 | end | number |
 | Sent | 128 | start | date |
-| Sent by | 128 | start | text |
+| Sent by | 128 | start | text. 116 clipped every Arabic sender |
 
-620 + 240 = **860**.
+624 fixed + 240 floor = **864**; the body measures 286 in English, 246 in Arabic.
 
 ## The budget-burn cell
 
@@ -368,7 +382,8 @@ Every control has a visible `:focus-visible` ring; nothing on this screen sets
 | What | Rule suspended | Why |
 |---|---|---|
 | A fifth tab, `Board`, that renders no table | §3.2's *"saved views over one dataset"* | The strip switches between the board and four datasets, not between four slices of one. `Board` first mirrors the reference's `All` first, and without it the board would be reachable only by editing the address |
-| `MetricBoardScreen` gains a `below` slot | the board screen's *"no per-screen file"* | The alternative was a second Growth board, which is the drift that rule exists to prevent. One optional prop, defaulted away on the other seven boards |
+| `MetricBoardScreen` gains a `views` slot | the board screen's *"no per-screen file"* | The alternative was a second Growth board, which is the drift that rule exists to prevent. One optional prop, defaulted away on the other seven boards |
+| The strip and its table sit **above** the board's chart and chapters | §3.7's *"metric tiles then chart cards"* | The tiles are still first: they are in the band. What moves is the CONTROL, and a control at y = 1663 on an 800px viewport is a control the operator does not have. §3.7 orders content, not chrome |
 | One table carries selection and a bulk bar; three do not | §9.4's uniformity | §9.3 gates the checkbox column on a declared bulk command. `promos` declares `Pause`; `incentives` has a row act but no set-shaped one, and `referrals` and `messages` are logs with no act at all, so a checkbox on any of the three would select rows for nothing |
 | The row lane renders two direct controls rather than a kebab | — | D8: two declared actions is not a kebab, and only one of the two ever renders on a given row |
 | No page primary at all | R3's *one* primary | §8 slot 4c already withholds an action from a board, and the spec puts every creating act out of scope. R3 sets a ceiling, not a floor |

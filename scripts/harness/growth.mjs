@@ -16,9 +16,17 @@ const LABEL = process.argv[2] ?? 'now'
 const OUT = './scripts/harness/shots'
 mkdirSync(OUT, { recursive: true })
 
-const measure = () =>
+const measure = () => {
+  /* +2, not +1: a checkbox control reports a one-pixel overshoot on its own
+     root and would otherwise count as a clipped cell in every row. */
+  const isClipped = (cell) =>
+    [cell, ...cell.querySelectorAll('*')].some(
+      (el) => el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2,
+    )
+  const clipped = (table, selector) =>
+    [...table.querySelectorAll(selector)].filter(isClipped).length
   // eslint-disable-next-line no-undef
-  ({
+  return {
     viewport: { w: window.innerWidth, h: window.innerHeight },
     dir: document.documentElement.dir,
     h1: (document.querySelector('h1')?.textContent ?? '').trim(),
@@ -52,13 +60,36 @@ const measure = () =>
           const r = t.querySelector('tbody tr')
           return r ? Math.round(r.getBoundingClientRect().height) : null
         })(),
-        /* T5.1 — an identity cell whose content is wider than its box. */
-        identityTruncated: [...t.querySelectorAll('tbody tr td:first-child')].filter(
-          (td) => td.scrollWidth > td.clientWidth + 1,
-        ).length,
-        anyCellTruncated: [...t.querySelectorAll('tbody tr td')].filter(
-          (td) => td.scrollWidth > td.clientWidth + 1,
-        ).length,
+        /* T5.1 — a cell whose content is wider than its box. The comparison is
+           on the TRUNCATING element, not on the `td`: `truncate` sits on an
+           inner span, so a `td` measurement reports zero on a clipped name. */
+        /* The identity is the first column with a header, which is not cell 0
+           on a table that carries a selection column. */
+        identityTruncated: (() => {
+          const heads = [...t.querySelectorAll('thead th')]
+          const index = heads.findIndex((th) => (th.textContent ?? '').trim() !== '')
+          if (index < 0) return 0
+          return [...t.querySelectorAll('tbody tr')].filter((row) =>
+            row.children[index] ? isClipped(row.children[index]) : false,
+          ).length
+        })(),
+        anyCellTruncated: clipped(t, 'tbody tr td'),
+        clippedByColumn: (() => {
+          const heads = [...t.querySelectorAll('thead th')].map((th) =>
+            (th.textContent ?? '').trim(),
+          )
+          const counts = {}
+          for (const row of t.querySelectorAll('tbody tr')) {
+            ;[...row.children].forEach((cell, i) => {
+              /* A column with no header is chrome - the selection box, the
+                 action lane - and has no text to clip. */
+              const name = heads[i]
+              if (!name) return
+              if (isClipped(cell)) counts[name] = (counts[name] ?? 0) + 1
+            })
+          }
+          return counts
+        })(),
       }
     })(),
     pagination: (() => {
@@ -77,7 +108,18 @@ const measure = () =>
       0,
       document.documentElement.scrollHeight - document.documentElement.clientHeight,
     ),
-  })
+    /* The strip and the table must be reachable without scrolling two
+       viewports, which is what put `views` above the board's evidence. */
+    stripTop: (() => {
+      const el = document.querySelector('[role="tab"]')
+      return el ? Math.round(el.getBoundingClientRect().top) : null
+    })(),
+    tableTop: (() => {
+      const el = document.querySelector('table')
+      return el ? Math.round(el.getBoundingClientRect().top) : null
+    })(),
+  }
+}
 
 const browser = await chromium.launch()
 

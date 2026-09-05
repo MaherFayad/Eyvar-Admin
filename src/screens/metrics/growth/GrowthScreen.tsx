@@ -1,8 +1,8 @@
 /**
  * **Management › Growth** — the board, and the four `?view=` index tables under
  * it (T7.1, owner decision O3, `design/management-growth-tables.md`).
- * The board is `MetricBoardScreen`'s, unchanged: this screen hands it a `below`
- * slot and owns only what hangs there. R4-6's shape, and the sibling
+ * The board is `MetricBoardScreen`'s, unchanged: this screen fills its `views`
+ * slot and owns only what sits there. R4-6's shape, and the sibling
  * `ZonesScreen` took the same one for T7.3.
  */
 
@@ -119,8 +119,8 @@ export function GrowthScreen({ row }: { row: SubTabRoute }) {
   return (
     <MetricBoardScreen
       row={row}
-      below={
-        <section className="flex flex-col gap-4 pt-8">
+      views={
+        <section className="flex flex-col gap-4 pb-2">
           {views.activeTab === 'board' ? (
             <GrowthViewStrip views={views} label={t('growth.view.label')} />
           ) : views.activeTab === 'promos' ? (
@@ -298,7 +298,7 @@ function PromosView({
         sortField: 'discountPercent',
         emphasis: 'data',
         header: t('growth.promo.column.discount'),
-        width: 100,
+        width: 92,
         align: 'end',
         dataType: 'number',
         cell: (p) => <span className="tabular-nums">{formatPercent(p.discountPercent, language)}</span>,
@@ -330,7 +330,7 @@ function PromosView({
         sortField: 'newSubscriptions',
         emphasis: 'data',
         header: t('growth.promo.column.newSubs'),
-        width: 92,
+        width: 84,
         align: 'end',
         dataType: 'number',
         cell: (p) => <span className="tabular-nums">{formatCount(p.newSubscriptions, language)}</span>,
@@ -340,7 +340,7 @@ function PromosView({
         sortField: 'roi',
         emphasis: 'data',
         header: t('growth.promo.column.roi'),
-        width: 80,
+        width: 76,
         align: 'end',
         dataType: 'number',
         csv: (p) => p.roi,
@@ -350,7 +350,7 @@ function PromosView({
         id: 'expiresOn',
         sortField: 'expiresOn',
         header: t('growth.promo.column.expires'),
-        width: 112,
+        width: 104,
         dataType: 'date',
         cell: (p) => <span className="block truncate">{formatDate(p.expiresOn, { language })}</span>,
       },
@@ -359,7 +359,7 @@ function PromosView({
         sortField: 'status',
         emphasis: 'data',
         header: t('growth.promo.column.status'),
-        width: 98,
+        width: 124,
         dataType: 'enum',
         filter: {
           kind: 'select',
@@ -500,7 +500,7 @@ function ReferralsView({
         id: 'referee',
         sortField: 'refereeName',
         header: t('growth.referral.column.referee'),
-        width: 140,
+        width: 172,
         dataType: 'text',
         csv: (r) => r.refereeName,
         cell: (r) => <RiderLink id={r.refereeId} name={r.refereeName} />,
@@ -510,7 +510,7 @@ function ReferralsView({
         sortField: 'referrerBonusHalalas',
         emphasis: 'data',
         header: t('growth.referral.column.referrerBonus'),
-        width: 112,
+        width: 104,
         align: 'end',
         dataType: 'money',
         csv: (r) => r.referrerBonusHalalas,
@@ -525,7 +525,7 @@ function ReferralsView({
         sortField: 'refereeBonusHalalas',
         emphasis: 'data',
         header: t('growth.referral.column.refereeBonus'),
-        width: 112,
+        width: 104,
         align: 'end',
         dataType: 'money',
         csv: (r) => r.refereeBonusHalalas,
@@ -539,14 +539,14 @@ function ReferralsView({
         id: 'creditedAt',
         sortField: 'creditedAt',
         header: t('growth.referral.column.credited'),
-        width: 128,
+        width: 112,
         dataType: 'date',
         cell: (r) => <span className="block truncate">{formatDate(r.creditedAt, { language })}</span>,
       },
       {
         id: 'sharedDeviceFlag',
         header: t('growth.referral.column.signal'),
-        width: 108,
+        width: 116,
         dataType: 'enum',
         csv: (r) => String(r.sharedDeviceFlag),
         filter: {
@@ -708,7 +708,7 @@ function IncentivesView({
       {
         id: 'reward',
         header: t('growth.incentive.column.reward'),
-        width: 176,
+        width: 184,
         dataType: 'text',
         csv: (i) => i.reward.kind,
         cell: (i) => <span className="block truncate">{reward(i)}</span>,
@@ -755,7 +755,7 @@ function IncentivesView({
         sortField: 'active',
         emphasis: 'data',
         header: t('growth.incentive.column.status'),
-        width: 88,
+        width: 80,
         dataType: 'enum',
         csv: (i) => String(i.active),
         filter: {
@@ -879,7 +879,7 @@ function MessagesView({
         id: 'segment',
         sortField: 'segment',
         header: t('growth.message.column.segment'),
-        width: 168,
+        width: 180,
         dataType: 'enum',
         csv: (m) => m.segment,
         filter: {
@@ -914,7 +914,7 @@ function MessagesView({
         sortField: 'recipientCount',
         emphasis: 'data',
         header: t('growth.message.column.recipients'),
-        width: 100,
+        width: 92,
         align: 'end',
         dataType: 'number',
         cell: (m) => <span className="tabular-nums">{formatCount(m.recipientCount, language)}</span>,

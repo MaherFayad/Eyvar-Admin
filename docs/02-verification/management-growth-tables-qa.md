@@ -12,7 +12,7 @@ all three pre-existing**, confirmed by re-running them against a stashed working
 
 **Browser evidence:** `node scripts/harness/growth.mjs` against `vite preview` on 4365,
 five views × two languages at 1280 × 800. Captures in `scripts/harness/shots/`
-(`growth-*-{en,ar}-1280-t71e.png`, plus a table-anchored second shot per list view).
+(`growth-*-{en,ar}-1280-t71i.png`, plus a table-anchored second shot per list view).
 
 ## Criteria
 
@@ -50,18 +50,44 @@ five views × two languages at 1280 × 800. Captures in `scripts/harness/shots/`
 | AC-G30 | Arabic everywhere; no raw enum in a cell | PASS | two tests: dictionary parity, and the promos table rendered in Arabic |
 | AC-G31 | no nav badge | PASS | `AC-G31: the Growth sub-tab raises no nav badge` |
 
-## Browser measurements — `growth.mjs`, label `t71e`
+## Browser measurements — `growth.mjs`, label `t71i`
 
-| View | Lang | page overflow-X | table overflow-X | columns off the measure | row pitch | truncated identity cells | truncated cells |
-|---|---|---:|---:|---:|---:|---:|---:|
-| board | en / ar | 0 / 0 | — | — | — | — | — |
-| promos | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 53 / 61 | 0 / 0 | 0 / 0 |
-| referrals | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 40 / 44 | 0 / 0 | 0 / 0 |
-| incentives | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 53 / 61 | 0 / 0 | 0 / 0 |
-| messages | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 40 / 44 | 0 / 0 | 0 / 0 |
+| View | Lang | page overflow-X | table overflow-X | columns off the measure | row pitch | strip top | table top | clipped identity cells |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| board | en / ar | 0 / 0 | — | — | — | 507 / 511 | — | — |
+| promos | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 53 / 61 | 515 / 519 | 605 / 617 | 3 / 1 of 10 |
+| referrals | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 40 / 44 | 515 / 519 | 605 / 617 | 0 / 1 of 7 |
+| incentives | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 53 / 61 | 515 / 519 | 605 / 617 | 0 / 0 of 4 |
+| messages | en / ar | 0 / 0 | 0 / 0 | 0 / 0 | 40 / 44 | 515 / 519 | 605 / 617 | 8 / 8 of 8 |
 
-The Arabic run mirrors, the campaign codes stay LTR inside their `<bdi>`, and nothing is
-clipped at either measure.
+**Overflow is 0 on every page and every table, in both languages, and no column falls
+outside the measure.** The Arabic run mirrors and the campaign codes stay LTR inside their
+`<bdi>`.
+
+The clipping that remains is deliberate and named:
+
+| View · column | Clipped | Why it is not a defect |
+|---|---:|---|
+| promos · `Code` | 3 en / 1 ar of 10 | `SUMMERLONGWEEKEND` is a fixture written to be longer than any real code, and two rows clip the `Lapsed subscribers` sub-line. `Target` is a column-picker column and the sheet states it in full |
+| referrals · `Referee` | 2 en / 2 ar of 7 | Both cells are links to the rider's profile; the referrer, which is the identity, clips once in Arabic on the 46-character name the fixtures carry for exactly this test |
+| incentives · `Reward` | 1 en / 0 ar of 4 | The sheet states the reward in full |
+| messages · `Message` | 8 of 8 | By design: the body is prose, the cell is one line of it, and the sheet holds the whole message (AC-G24) |
+| messages · `Segment`, `Sent by` | 4 / 2 en | `Subscriptions with no backup` is the longest label in the set; the sheet names the segment in full |
+
+Each of these was measured against a wider setting first: `Status` at 98 clipped
+`Budget spent`, `Signal` at 108 clipped `Shared device`, `Referee` at 140 clipped five names
+of seven, and `Segment` at 168 clipped four sends of eight. All four were widened and
+re-measured; the table above is the final state.
+
+## Layout
+
+| Question | Before | After |
+|---|---:|---:|
+| Where the view strip sits on an 800px viewport | y = **1663** | y = **507** |
+| Where the table starts on `?view=promos` | y = **1761** | y = **605** |
+
+The strip trailing the board's chart and chapters put the control that reaches four tables
+two full scrolls below the fold. It now leads the page block, under the band.
 
 ## Defects found and fixed during the run
 
@@ -69,7 +95,10 @@ clipped at either measure.
 |---|---|---|---|
 | Major | Every promo row printed `This campaign is over` twice in its action lane, because both `Pause` and `Resume` declare a domain refusal and only one of them ever applies. Row pitch **77px** against 40 on the other three tables | `growth-promos-en-1280-table-t71.png` | Domain refusals render as a disabled control with **no** sentence; the row's badge already says `Budget spent` / `Expired`. Only the permission refusal keeps a sentence. Pitch 77 → 53 |
 | Minor | `Discount` wrapped its header (`Discoun`/`t`) at 80px; `Expires` clipped an Arabic month at 96px | same capture, and the Arabic one | Discount 100, Expires 112, row lane 176 → 152 |
-| Minor | On incentives, a `Condition` column of its own truncated every rule and left `Reward` 128px, clipping `Commission 20% to 17%` | `growth-incentives-en-1280-table-t71d.png` | The condition moved under the identity, the way a promo's target sits under its code; it stays a sortable, filterable `defaultHidden` column. Reward 176 |
+| Minor | On incentives, a `Condition` column of its own truncated every rule and left `Reward` 128px, clipping `Commission 20% to 17%` | `growth-incentives-en-1280-table-t71d.png` | The condition moved under the identity, the way a promo's target sits under its code; it stays a sortable, filterable `defaultHidden` column. Reward 184 |
+| Major | The view strip sat at y = 1663 and the table at y = 1761 on an 800px viewport, because the slot trailed the board's chart and chapters. Two full scrolls to reach the control the whole task exists to add | measured with Playwright, recorded above | The slot moved to the top of the page block (`MetricBoardScreen`'s prop renamed `below` to `views`). Strip y = 507, table y = 605 |
+| Minor | Four columns clipped their own longest value: `Status` (`Budget spent`), `Signal` (`Shared device`), `Referee`, `Segment` | `growth.mjs` per-column clip counts | Widened and re-measured; the residual clipping is the table above |
+| Minor | The harness under-reported clipping: it compared the `td`, and `truncate` sits on an inner span, so a clipped name measured as clean | the same run | `growth.mjs` now walks the cell's descendants, skips chrome columns with no header, and reports clipping per column |
 
 All three were fixed and re-measured; the table above is the post-fix run.
 
