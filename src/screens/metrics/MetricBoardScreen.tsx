@@ -73,7 +73,7 @@
  *               like the tiles it replaces. Never a centred spinner.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { getMetricBoard } from '@/data/clients'
@@ -239,7 +239,10 @@ function noticeTitle(notice: BoardNotice, t: Translate): string {
   return t(`${notice.key}.${count === 1 ? 'one' : 'many'}`, params)
 }
 
-export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
+/* T7.1 — `below` is what a sub-tab hangs under its board, and Growth is the one
+   caller (O3: four `?view=` tables under the board). Undefined on the other
+   eight, so those render exactly as before. */
+export function MetricBoardScreen({ row, below }: { row: SubTabRoute; below?: ReactNode }) {
   const shell = useShell()
   const navigate = useNavigate()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
@@ -475,6 +478,11 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
         )
       }
     >
+      {/* The board's four states, then whatever the sub-tab hangs beneath them.
+          `below` is outside the switch because its read is its own: a board
+          that failed must not blank a table that arrived (AC-24, one level
+          down). */}
+      <>
       {board.status === 'loading' ? (
         <div className="flex flex-col gap-8">
           {/* AC-35 — the figure-shaped skeleton, not a spinner. */}
@@ -521,6 +529,8 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
           navigate={navigate}
         />
       )}
+      {below}
+      </>
     </SingleColumnPage>
   )
 }

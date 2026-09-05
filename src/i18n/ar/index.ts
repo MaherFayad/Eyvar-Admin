@@ -35,6 +35,7 @@ import { SAFETY_AR } from './safety'
 import { CONVERSATIONS_AR } from './conversations'
 import { OVERVIEW_AR } from './metrics'
 import { ZONES_AR } from './zones'
+import { GROWTH_AR } from './growth'
 import { REPORTS_AR } from './reports'
 import { FINANCIALS_AR } from './financials'
 import { PROFILE_AR } from './profile'
@@ -80,6 +81,7 @@ export const AR: Dictionary = {
   ...CONVERSATIONS_AR,
   ...OVERVIEW_AR,
   ...ZONES_AR,
+  ...GROWTH_AR,
   ...REPORTS_AR,
   ...FINANCIALS_AR,
   ...PROFILE_AR,

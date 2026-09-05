@@ -225,6 +225,7 @@ import { REPORTS_EN } from '@/screens/reports/copy'
 import { REQUESTS_EN } from '@/screens/operations/requests/copy'
 import { SAFETY_EN } from '@/screens/support/safety/copy'
 import { ZONES_EN } from '@/screens/management/zones/copy'
+import { GROWTH_EN } from '@/screens/metrics/growth/copy'
 /* Arabic, whole. One module per English dictionary; see `./ar/index.ts`. */
 import { AR } from './ar'
 
@@ -1100,6 +1101,7 @@ export const EN: Dictionary = {
   ...REQUESTS_EN,
   ...SAFETY_EN,
   ...ZONES_EN,
+  ...GROWTH_EN,
   ...PEOPLE_EN,
   ...TICKETS_EN,
   ...TRIPS_EN,

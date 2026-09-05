@@ -9,13 +9,13 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5762** |
-| Reachable from `EN` (what the shell renders) | 5471 |
-| Keys in `AR` | 5762 |
+| **Translatable keys, all dictionaries** | **5885** |
+| Reachable from `EN` (what the shell renders) | 5594 |
+| Keys in `AR` | 5885 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 291 |
 | Plural forms (`key#category`) inside `EN` | 53 |
-| `copy.ts` files | 36 |
+| `copy.ts` files | 37 |
 | Keys in a `copy.ts` the shell has NOT registered | 187 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
@@ -457,6 +457,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 164 |
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
+| `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 114 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |

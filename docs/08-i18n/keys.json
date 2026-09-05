@@ -1,11 +1,11 @@
 {
   "totals": {
-    "keys": 5762,
-    "en": 5471,
-    "ar": 5762,
+    "keys": 5885,
+    "en": 5594,
+    "ar": 5885,
     "arMissing": 0,
     "arExtra": 291,
-    "copyFiles": 36,
+    "copyFiles": 37,
     "unregisteredKeys": 187,
     "pluralForms": 53,
     "defaultValue": 0,
@@ -109,6 +109,14 @@
         "SUBSCRIPTIONS_EN"
       ],
       "keys": 138,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/metrics/growth/copy.ts",
+      "exports": [
+        "GROWTH_EN"
+      ],
+      "keys": 123,
       "notInEN": 0
     },
     {
