@@ -65,12 +65,11 @@ export function ThreadCard({
           </span>
         ) : (
           <>
-            {sla.firstResponse !== null && (
+            {/* An answered promise has nothing left to count; `No clock` never renders (Q-CC4). */}
+            {sla.firstResponse !== null && conversation.firstResponseAt === null && (
               <ClockRow
                 label={t('conversations.promise.firstResponse')}
-                result={queueClock(sla.firstResponse, now, {
-                  terminal: sla.terminal || conversation.firstResponseAt !== null,
-                })}
+                result={queueClock(sla.firstResponse, now, { terminal: sla.terminal })}
                 dueAt={sla.firstResponse.dueAt}
                 t={t}
                 language={language}

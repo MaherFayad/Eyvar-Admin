@@ -192,8 +192,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const surface = note ? 'bg-note' : 'bg-card'
 
   return (
-    <div className="mx-4 mb-2 flex flex-col gap-1">
+    <div data-inbox-composer="" className="mx-4 mb-2 flex flex-col gap-1">
       <div
+        data-inbox-composer-surface=""
         className={cn(
           'relative overflow-hidden rounded-lg border border-border-control transition-colors',
           'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background',
@@ -202,7 +203,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       >
         {note && <span aria-hidden="true" className="absolute inset-y-0 start-0 w-marker bg-note-bar" />}
 
-        {/* Carrier 1: the wide segmented pair on the surface's top edge. */}
+        {/* Carrier 1: two wide tabs on the surface's top edge. The selected one
+            is fused with the body (same ground, its bottom border covers the
+            track's hairline) and carries a 2px top edge, weight 600 and its
+            icon; the other sits recessed on the `bg-muted` track (AC-CC-11). */}
         <Tabs
           value={register}
           onValueChange={(next) => {
@@ -211,16 +215,15 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           className="gap-0"
         >
           <TabsList
-            variant="line"
             aria-label={t('conversations.composer.register')}
-            className="h-control w-full rounded-none border-b border-border-control bg-muted p-0"
+            className="h-control w-full items-stretch gap-0 rounded-none border-b border-border-control bg-muted p-0"
           >
             {!noteOnly && (
               <TabsTrigger
                 value="customer"
                 disabled={blocked}
                 aria-describedby={describedBy}
-                className={cn('h-full rounded-none border-0 px-3', 'data-active:bg-card')}
+                className={tabClass('data-active:bg-card', 'data-active:border-b-card')}
               >
                 <SendIcon />
                 {t('inbox.composer.label', { name: customerName })}
@@ -230,7 +233,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               value="internal"
               disabled={blocked}
               aria-describedby={describedBy}
-              className={cn('h-full rounded-none border-0 px-3', 'data-active:bg-note')}
+              className={tabClass('data-active:bg-note', 'data-active:border-b-note')}
             >
               <NoteIcon />
               {t('conversations.composer.note')}
@@ -339,6 +342,16 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     </div>
   )
 })
+
+/** The fused tab: `ground` is the body's own, `edge` recolours the bottom border to match it. */
+function tabClass(ground: string, edge: string): string {
+  return cn(
+    'h-auto rounded-none border-0 border-t-2 border-t-transparent ps-3 pe-3 font-medium text-muted-foreground hover:text-foreground',
+    'data-active:-mb-px data-active:border-b data-active:border-t-foreground data-active:font-semibold data-active:text-foreground',
+    ground,
+    edge,
+  )
+}
 
 interface Draft {
   id: string

@@ -634,7 +634,8 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
       aria-label={t('inbox.list.label')}
       className={cn('flex min-h-0 flex-col', !compact && 'border-e border-border')}
     >
-      <div className="relative p-3">
+      {/* §10 row 2: eight rows at 800px with the folders open needs the list's top at 320. */}
+      <div className="relative px-3 pt-2">
         <SearchIcon className="pointer-events-none absolute top-1/2 start-5.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
@@ -739,11 +740,7 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
     )
 
   const paneB = (
-    <section
-      data-inbox-pane="thread"
-      aria-label={record === null ? t('inbox.list.label') : t('inbox.thread.label', { name: record.entityName })}
-      className="flex min-h-0 min-w-0 flex-col"
-    >
+    <section data-inbox-pane="thread" className="flex min-h-0 min-w-0 flex-col">
       {openId === null ? (
         firstRun ? (
           <div className="flex flex-1 items-center justify-center p-6">

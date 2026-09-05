@@ -2,8 +2,8 @@
  * Pane B's header (design 12 §4.1): 60px, avatar, name as a link to the 360°
  * layer, channel · status · the one running clock, then the actions. `Claim`,
  * `Take over` and `Reopen` are the only filled buttons; while held, `Send` is
- * the screen's (§8.6, R2). Three or more overflow into `⋯` (D8). A refusal
- * renders once beneath, pointed at by every refused control (§8.6.8).
+ * the screen's (§8.6, R2). The rest overflow into `⋯` as §4.1's table splits
+ * them. A refusal renders once beneath, pointed at by every refused control (§8.6.8).
  */
 
 import { Link } from 'react-router-dom'
@@ -69,9 +69,11 @@ export function ThreadHeader({
   const reasonId = `inbox-header-reason-${conversation.id}`
   const refusals = [...visible, ...overflow].filter((action) => action.refusal !== null)
   const reason = refusals[0]?.refusal ?? null
-  /* D8: a menu is for three or more; fewer render as visible ghosts. */
-  const menu = overflow.length >= 3 ? overflow : []
-  const shown = overflow.length >= 3 ? visible : [...visible, ...overflow]
+  /* §4.1's table fixes the split; the pane is 432px, so the rest always overflows.
+     Compact (§2, with the back arrow) keeps only a filled primary beside the name. */
+  const compact = onBack !== null
+  const shown = compact ? visible.slice(0, filledFirst ? 1 : 0) : visible
+  const menu = compact ? [...visible.slice(shown.length), ...overflow] : overflow
 
   return (
     <header className="flex flex-col border-b border-border">

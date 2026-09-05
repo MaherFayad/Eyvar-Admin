@@ -54,6 +54,8 @@ export function Bubble({
       )}
       <div className={cn('flex max-w-full items-end gap-2', outbound && 'flex-row-reverse')}>
         <div
+          data-bubble=""
+          data-direction={outbound ? 'outbound' : 'inbound'}
           className={cn(
             'max-w-2/3 rounded-lg px-3 py-2 text-sm whitespace-pre-wrap',
             failed
