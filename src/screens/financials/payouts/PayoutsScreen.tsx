@@ -1031,8 +1031,11 @@ function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         reason: (hold) => {
           const withheld = releaseWithheldFrom(hold, gate.canWrite)
           if (withheld === null) return null
+          /* The refusal KEY is the identity the bulk bar orders on; the
+             SENTENCE names the state in its own words, so it never inherits
+             the badge's casing (`already Released.`). */
           return withheld === 'fin.escrow.blocked.state'
-            ? t(withheld, { state: t(`fin.settlement.${hold.settlement}`) })
+            ? t(`fin.escrow.blocked.${hold.settlement}`)
             : t(withheld)
         },
       },
@@ -1196,8 +1199,9 @@ function deductionRefusal(
 ): string | null {
   const withheld = deductionWithheldFrom(deduction, canWrite)
   if (withheld === null) return null
+  /* As Escrow: the key is the identity, the sentence names the state. */
   return withheld === 'fin.deduction.blocked.decided'
-    ? t(withheld, { state: t(`fin.deduction.status.${deduction.status}`) })
+    ? t(`fin.deduction.blocked.${deduction.status}`)
     : t(withheld)
 }
 
