@@ -6,7 +6,7 @@
 
 **Rules:** `design/07-rulings-r4.md` **R4-4** §4.1 / §4.2 / §4.3 (amended here, in place of
 their text), **R4-11** §11.2 (applied, not amended), **R4-6b** §6.6.4 (corrected)
-**Answers:** `build/08-breakdowns-and-notices.md` **B-1, B-2, B-3, B-8** ·
+**Answers:** the breakdowns build's **B-1, B-2, B-3, B-8** ·
 `02-verification/metrics-boards-visual.md` **V-2, V-3, V-5, V-9, V-11, V-12, V-13**
 **Owner:** product-designer
 **Precedence:** these are rulings. They sit above every `DESIGN.md` section and above every
@@ -185,7 +185,7 @@ heights. Keep them apart.
 **It converts a board that reads as broken into one that reads as honestly empty. It does not
 make the board fuller.** Four tiles saying `Not captured yet` are four tiles saying nothing, and
 the owner's *"there is so much still can be known"* is not answered by better wording of an
-absence. `build/08` §10 is right: **a contact log is the highest-value data capture left in the
+absence. The breakdowns build is right: **a contact log is the highest-value data capture left in the
 product.** Nobody should read this ruling as the answer to that complaint. See §14, question 1.
 
 ---
@@ -370,7 +370,7 @@ board would contradict a ruling one round old.
    with a reading of zero are different facts"*. The phrase form is the only one of the two that
    can render that difference. **That is the strongest argument in this ruling and it arrived
    from the fixture, not from the reference.**
-3. **`build/08` §3.1's "the column is a property of the LIST" reasoning becomes moot.** It was a
+3. **The "a column is a property of the LIST" reasoning becomes moot.** It was a
    good solution to the problem as posed — per-row would have given Riyadh a figure and three
    rows a hole. **I am changing the problem, not overruling the answer.**
 

@@ -469,7 +469,7 @@ sort moved out of the toolbar.
 
 ### 6.5 What the strip replaces
 
-`03-visual-language.md` §4.4 put the strip above the card. `build/03-table-controls.md`
+`03-visual-language.md` §4.4 put the strip above the card. The table-controls build
 put it inside the card at a 0 px block-end gap. **Both are superseded**: with the card gone
 (§7.1) there is no inside, and the strip is a first-class band with a declared 12 px on both
 sides. Owner: `src/components/table/FilterChipRow.tsx`.
@@ -514,7 +514,7 @@ Consequences, all of them wanted:
 2. **The horizontal scrollbar, when it exists, is always in the viewport.** Craft-critique
    **F1** part 3: the scrollbar that would recover a clipped money value sat ~430 px below
    the fold. It now sits at the block-end of a 492 px box.
-3. **`<thead>` sticky finally works.** `build/03-table-controls.md` §2.1 recorded that the
+3. **`<thead>` sticky finally works.** The table-controls build recorded that the
    vertical sticky was inert because the scroller had no height constraint. It has one now.
    The declarations were already correct; they start working with no code change.
 4. **Every control stays fixed while the data moves.** That is the difference between a
@@ -772,7 +772,7 @@ is gone.
   fill the pin paints digits away instead of occluding them.
 - 1 px **`--ev-hairline-control` `#dde0e4`** on its scroll-facing edge (`inline-end` for a
   start-pinned column, `inline-start` for an end-pinned one).
-- **No shadow.** `build/03-table-controls.md` §2.1 ruled that separation at both sticky
+- **No shadow.** The table-controls build ruled that separation at both sticky
   boundaries is a hairline, never a shadow, and the whole reference language is 1 px border
   with no shadow. That ruling stands; what was missing was a *visible* hairline.
 
@@ -1499,7 +1499,7 @@ not a deviation.**
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
 | **D-18** | **The index page has no card.** The table carries its own 1 px border and 8 px radius; the control row, query strip and pagination sit on the white content ground. | `specs/00-foundation.md` §7.1 `Container`; `DESIGN.md` §3.1's one-card rule — both §1–§5 Shopify observations replaced by **D7** | It is what the reference does in all six table frames; it collapses four inner left edges to one (F9); and it gives the border something to separate (F17). Already ordered by `03-visual-language.md` fix-list item 8. |
-| **D-19** | **The table body is a bounded scroller; the page does not scroll.** | Nothing named. Recorded so it is not mistaken for drift. | It is the only construction that puts the pagination row, the horizontal scrollbar and the sticky header inside the viewport at once — and each of those is a live defect (N2, S16′, F1 part 3, `build/03` §2.1). |
+| **D-19** | **The table body is a bounded scroller; the page does not scroll.** | Nothing named. Recorded so it is not mistaken for drift. | It is the only construction that puts the pagination row, the horizontal scrollbar and the sticky header inside the viewport at once — and each of those was a live defect (N2, S16′, F1 part 3). |
 | **D-20** | **View tabs are a segmented control in the control row**, not a tab strip inside the card. | `DESIGN.md` §3.2's tab-strip placement; **AC-47** | Owner instruction, plus §2.2 — it deletes a band. The dropdown argument is recorded and overruled in §2.3. |
 | **D-2′ (amended)** | **The page gutter is 32 below `--ev-bp-wide` and 48 at and above it**, against a reference measuring 68. | Nothing in §1–§5 (D7 replaced their visual content). A departure from the **reference**. | 32 is what the 1280 column budget can afford (§7.3); 48 buys back air at 1440 through the **existing** `wide:` variant, so no token is redefined inside a media query and the one-breakpoint check still passes. This closes finding 2 of `03-visual-language.md` §11. |
 | **D-21** | **The resting value of a lifecycle column is plain text; only departures from rest take a tone.** | Narrows §3.4's *permission* to badge a lifecycle state; suspends nothing | 25 of 25 identical badges communicate nothing and make the two rows that matter invisible. Craft-critique F4, F8. |
@@ -1574,7 +1574,7 @@ the placeholder class (`gray-400` → `--ev-text-2`), and the nav section headin
 | | §4.8 banners | **CONFIRMED**, unchanged. |
 | | §11 finding 2 (`--ev-page-pad` at 1440) | **CLOSED** by D-2′ amended. |
 | | §11 finding 1 (the drawer scrim) | **CLOSED** — non-modal, no scrim, focus enters without trapping (AC-67 as amended). |
-| `build/03-table-controls.md` | §2.1 *"the vertical sticky is inert"* | **CLOSED** by D-19 — the scroller now has a height constraint and the existing declarations start working. |
+| the table-controls build | *"the vertical sticky is inert"* | **CLOSED** by D-19 — the scroller has a height constraint and the existing declarations work. |
 | | §7.5 the strip inside the card | **SUPERSEDED** by §6. |
 | `DECISIONS.md` **D8** | the rendering rule | **IMPLEMENTED** in §7.8, with the five §7 constraints specified rather than left to the engineer. |
 

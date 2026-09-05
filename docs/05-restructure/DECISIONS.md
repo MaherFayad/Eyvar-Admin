@@ -1138,7 +1138,7 @@ content that determines it. **Q-107 and Q-115 stay open on their own merits rega
 
 ## OPEN AFTER WAVE R4-4 — four items, none blocking
 
-From `build/08-breakdowns-and-notices.md`. Recorded so they are decided rather than rediscovered.
+Raised by the metric-board build. Recorded so they are decided rather than rediscovered.
 
 > **Two of the four closed on 2026-08-27 by `design/09-rulings-r5.md`, and the text below is left
 > standing rather than deleted, because the reasoning is the record.**

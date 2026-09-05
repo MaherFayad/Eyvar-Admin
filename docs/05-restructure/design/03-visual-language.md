@@ -729,7 +729,7 @@ Work straight down. Item 1 alone changes the look of every screen.
 | **19** | Run `/token-audit`. Then re-shoot the Arabic frames — `--text-xl`'s Arabic floor and the eight dimension overrides are untested. | — | |
 
 **`components.json` is frozen. No `shadcn add` in any of the above.** Every element in this
-document is built from the 38 primitives already listed in `build/00-primitives.md`; the two
+document is built from the 38 primitives the product already carries; the two
 new elements (section heading, chip strip) are composition, not primitives.
 
 ---

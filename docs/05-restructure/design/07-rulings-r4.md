@@ -46,8 +46,8 @@
 | **R4-2** | Three surfaces map to no §6.4 row | report builder, auth ×2 | **Three rows minted, one new page shape.** Partial edit + rebuild. | No | AC-801 · every screen in `04-auth` §4.1 · design start on both specs |
 | **R4-3** | The shell has three layers, auth wants five | `04-auth-and-onboarding.md` | **Four, not five. Re-authentication is a modal, not a layer** — §7.3.3's own rule forces it. | No | `route.overlay`, `src/shell/`, AC-593–616 |
 | **R4-4** | `MetricBoard` cannot express breakdowns, captions or a banner | `05-metrics-content.md` | **All three granted.** The breakdown shape already exists in §3.7; only the contract is missing. | No | AC-690–697, AC-641, AC-674, AC-675, AC-351 |
-| **R4-5** | §3.7 requires a coloured delta, D7 §4.9 forbids one | `build/06-overviews.md` | **D7 wins, and R5a ends the argument** — a red delta is a fifth use of red nobody authorised. | No | Wave 4 sign-off |
-| **R4-6** | Market & Zones: table or board? | `build/06-overviews.md` | **Both, table primary.** The KPI tiles are filters into the table, exactly as legacy has them. | No | Wave 4 sign-off |
+| **R4-5** | §3.7 requires a coloured delta, D7 §4.9 forbids one | the metric-board build | **D7 wins, and R5a ends the argument** — a red delta is a fifth use of red nobody authorised. | No | Wave 4 sign-off |
+| **R4-6** | Market & Zones: table or board? | the metric-board build | **Both, table primary.** The KPI tiles are filters into the table, exactly as legacy has them. | No | Wave 4 sign-off |
 | **R4-6b** | *Added this pass.* Zones by failure rate has no surface | coordinator | **It does not die and does not move.** It lives in the zone-health table; what is missing is a fixture and a build slot, and §6.6 names an owner for each. | No | `management-zones`; `05-metrics-content.md` AC-652, F-8 |
 | **R4-7** | R15 says never a stadium; one ships | `IndexToolbar`, D12 | **Amend R15 to state its scope.** It never governed the bulk bar. Avatars: already amended — flip the primitive. | **Yes** — D12 reserved this to the owner | D12's open item; `ui/avatar.tsx`; five stale code comments |
 | **R4-8** | R-3 has no tier for a 28px raised pill | D12 | **The gap is real. Tier 0.5, scoped to a part inside a control.** Today's build is the interim state, so nothing is blocked. | **Yes** — §12 **D-13** | D12's open measurement |
@@ -742,7 +742,7 @@ compensation.
 |---|---|---|
 | `Metric.higherIsBetter`'s doc comment says *"Drives the delta's colour"*. **It does not, and has not since D7.** Rewrite: *"Drives the delta's screen-reader valence phrase. It does NOT drive colour — the chip is neutral (D7 §4.9, R5a). See `design/07-rulings-r4.md` R4-5."* | `src/data/types/metrics.ts` | mock-data-engineer |
 | §3.7's Rules block: the colour-coding MUST is annotated **void**, with R5a and D7 §4.9 named | `_partials/03-data-display.md` | product-designer (§14) |
-| **W4-F2 closed.** Wave 4 signs off on this item. | `build/06-overviews.md` | qa |
+| **W4-F2 closed.** | the metric-board build | qa |
 
 ---
 
@@ -796,7 +796,7 @@ array was short.
 
 Three changes, none large:
 
-1. **The four tiles become filter controls, not `<a>` wrappers.** `build/06-overviews.md` §5.2
+1. **The four tiles are filter controls, not `<a>` wrappers.** The metric-board build
    made a tile an anchor around the card; a zone tile is a **toggle** that filters the table
    below it. Same card, same anatomy, `aria-pressed`, and the focus ring traces the card
    exactly as it does today. The generic `MetricTile` keeps the anchor form for the seven
@@ -829,7 +829,7 @@ table's default sort is worst-first and the badge should agree with its first ro
 **Raised by the coordinator:** the two most valuable lists on Market & Zones — *zones by
 failure rate* and *zones by subscription-demand momentum* — have no surface.
 `05-metrics-content.md` **AC-652** declares them as board breakdowns; **§6.4 clause 3 above**
-redirected them into the zone-health table; and `build/08-breakdowns-and-notices.md` §10 then
+redirected them into the zone-health table; and the breakdowns build then
 records that they *"do not ship, because R4-6 assigns them to a `P1` table that is not built and
 zones are not yet a resource in `src/data`."* **They were not dropped by a decision. They fell
 between two documents.** Ruling on it, because §6.4 is mine and this is my sentence's
@@ -937,7 +937,7 @@ unit and this is its first real consumer.
 | Document | Change |
 |---|---|
 | `05-metrics-content.md` **AC-652** | *"Zones renders three breakdowns"* → **"Zones renders no breakdown. Its three declared breakdowns are columns of the zone-health table (R4-6, R4-6b); a board breakdown duplicating the table below it is a defect."* Its **F-8** — *"nothing today"* — is answered: the destination is the table, and the table needs gap 1 and gap 2 |
-| `build/08-breakdowns-and-notices.md` §10 | Correct as written and stays. *"Do not ship"* was the right call; it now has a reason with an owner instead of reading as an unexplained absence |
+| the breakdowns build's contact-log finding | Correct as written and stays. *"Do not ship"* was the right call; it now has a reason with an owner instead of reading as an unexplained absence |
 | `specs/00-foundation.md` §3.4 Management row 5 | Already amended by §6.3 above. Unchanged |
 
 **Nothing in wave 4 is reopened and nothing built is undone.** Market & Zones ships its strip
@@ -1452,6 +1452,6 @@ ratio' is ambiguous."* It is, and legacy writes `2.4× demand/supply` (`:6953`).
 > right-aligned against another number (**R4**) and cannot be translated (**AC-713**).
 >
 > **In Arabic the `×` stays trailing the number inside a `<bdi>`**, with the numeral run
-> isolated — the same fix `build/06-overviews.md` §5.4 already applied to four numeral runs.
+> isolated — the same fix already applied to four numeral runs on the metric boards.
 > `formatRatio` belongs in `src/lib/format/number.ts` beside `formatCount`, which is
 > **W4-F5**'s request and this is its fifth call site.

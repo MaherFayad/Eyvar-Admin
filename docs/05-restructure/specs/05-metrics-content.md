@@ -64,7 +64,7 @@ log built; an absent card is how a gap stops being asked about. **It is still an
 sentence names the gap; it does not close it.
 
 That breakdown is the one this spec calls **the most valuable list in the product** (§11.3), and
-`build/08` §10 reaches the same conclusion independently from the rendering side: *"a contact log
+The breakdowns build reaches the same conclusion independently from the rendering side: *"a contact log
 is the highest-value data capture left, and no amount of layout fixes it."* `DB.reasonCodes`
 (`:14690`+) is already a full registry — 26 codes, each with a category, an SLA tier, English and
 Arabic labels and a **root-cause owner**. The dimension exists. The volume does not.
@@ -161,7 +161,7 @@ em-dash and a stated reason. It does **not** ship with a plausible literal.
 
 **Q-102 — A seeded literal is a `NEW DATA` metric wearing a number.** Four metrics are literals
 today (`totalRevenue`, `contributionMargin`, `revenueAtRisk`, `earningsPerEngagedHour`) and
-`build/05` §6 **M-2** already says so. Under Q-101 they become `value: null` with a reason,
+The wave-2 data layer's **M-2** already says so. Under Q-101 they become `value: null` with a reason,
 **unless** the derivation below names an existing source. Where I have named one, they stop
 being literals.
 
@@ -446,7 +446,7 @@ is stated once, at §21.4, so the next person can run it rather than re-read thi
 
 | Chart | Plots | Bucket | Window | Why a chart rather than a tile | What the operator does differently |
 |---|---|---|---|---|---|
-| **On-time pickups** | share of non-late trips | day | 30 days | Overview carries the *tile*; the decay is only visible as a slope. The existing fixture deliberately carries a **gap in the middle** (`build/05` §8) — a break in the line, never a dip to the axis. | A three-day slide is a dispatch or capacity problem worth acting on today; one bad day is weather. |
+| **On-time pickups** | share of non-late trips | day | 30 days | Overview carries the *tile*; the decay is only visible as a slope. The existing fixture deliberately carries a **gap in the middle** — a break in the line, never a dip to the axis. | A three-day slide is a dispatch or capacity problem worth acting on today; one bad day is weather. |
 | **Cancellation rate** | `cancelRatePct` `:13803`+ | day | 30 days | The rate is noisy day to day and means nothing except against its own recent spread. | A sustained rise triggers a look at zone supply (§9) before it arrives as churn in Risk (§7). |
 
 **Q-104 — A chart may appear on a board whose tile lives elsewhere.** `ChartCard` already resolves
@@ -630,7 +630,7 @@ checked.
 
 **`NEW DATA`.** `failures30d` is a rolling **total** on the zone record (`:13952`+), not a series.
 The existing fixture is *all zeroes across the whole range* — deliberately, as the "every value is
-a real zero" case (`build/05` §8). Until a daily failed-match count is captured it ships as a flat
+a real zero" case. Until a daily failed-match count is captured it ships as a flat
 line with the all-zero sentence, and never as a shape somebody drew.
 
 **Zone demand by hour is not buildable.** `showZoneHourly(z.name)` exists in legacy;
@@ -756,7 +756,7 @@ read-only surface is a lie the moment somebody else claims one.
 
 **`NEW DATA` for the series.** `cptStats()` computes the rate over the whole contact log at a
 point in time (`:14984`); no daily count is captured. The existing fixture has **no points at
-all** — deliberately, as the no-data-sentence case (`build/05` §8) — and ships that way, with
+all** — deliberately, as the no-data-sentence case — and ships that way, with
 §3.7's sentence verbatim.
 
 ### 11.3 Breakdowns
@@ -918,7 +918,7 @@ load-bearing here, because §4.1 Q-101 deliberately ships `null` tiles.
 
 ## 14. Count authority — the `navCounts` cross-check
 
-The wave-2 data layer already caught one of these (13 against 12 on My Work, `build/05` §7.5).
+The wave-2 data layer already caught one of these: 13 against 12 on My Work.
 These are the rules, and the collisions that exist today.
 
 **Q-108 — `navCounts` is authoritative for the nav badge. A metric tile is authoritative for the
@@ -1747,7 +1747,7 @@ Recorded, not silently ported and not silently fixed.
 | **Q-114 → D15** | **Which of the five Management surfaces would survive a cut to three?** ~~I am **not** recommending it today.~~ **That sentence is withdrawn on the seventh R5 pass — not because I changed my mind, but because the evidence arrived.** `07-rulings-r4.md` §11.3 recommended the merge from **one** board's literals; a corrected §11.2 sort (**F-17**) takes **Growth to three** and **Admin to two**, which is §11.3's shape on **four** boards. **The option stopped being a discovery and became a blocker.** | Business owner — it is a **D1 amendment**, recorded as **D15** in `DECISIONS.md` with the evidence table | **Q-D16, Q-D18 and every per-board tile count.** A tile count for a sub-tab cannot be settled before it is settled that the sub-tab exists. |
 | **D4** | **The role model.** §16 is provisional against five legacy operator records. | Business owner | **AC-689, AC-703, AC-712.** Every board ships with visibility computed from today's 13 broad keys, and Admin › Overview is Owner-only in the meantime. |
 | **Q7** | **Which of the four pricing models is real.** | Finance lead, with the business owner | **Overview's gross-revenue and contribution-margin tiles**, and Growth's ROI tile, in that all three depend on what "revenue" means. `contributionMargin()` (`:15720`) is internally consistent and is what this spec specifies against; if Finance names a different model, those three tiles change and nothing else on the eight boards does. |
-| **Q8** | **SLA targets.** | **Closed** by `specs/02-work-queues.md` §4.3. | Nothing. The 48-hour application window is now a decision and **AC-657** rests on it. Note `build/05` §6 still lists Q8-a…e as open; that document predates the closure. |
+| **Q8** | **SLA targets.** | **Closed** by `specs/02-work-queues.md` §4.3. | Nothing. The 48-hour application window is now a decision and **AC-657** rests on it. |
 | **Q1** | **Persistence.** | Engineering lead | Nothing on these eight boards. A board has no view, no filter and no sort to persist — the one place Q1 does not bite. |
 
 ---
@@ -2035,7 +2035,7 @@ than left to be inferred:
   the product. The rule was never broken; the exemption was accidental, and an accidental exemption
   is one an engineer talks themselves across.
 - **AC-695**'s cross-check had two instances and R5-5 withdraws the carrier for one. Zones survives
-  (`captains needed` is the row's one number). Operations does not: `build/08`'s fixture note records
+  (`captains needed` is the row's one number). Operations does not: the breakdowns build's fixture note records
   that *"the breached column sums to the breached tile and the unclaimed column sums to the unclaimed
   tile"*, and both columns are now withdrawn. AC-664 rehomes what can be rehomed; AC-659 keeps the
   rest.

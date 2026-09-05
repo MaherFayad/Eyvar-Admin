@@ -10,7 +10,7 @@
 >
 > **Numbering:** acceptance criteria run from **AC-200**. AC-01–79 belong to
 > `specs/00-foundation.md`; AC-80–116 belong to the table-controls pass
-> (`design/01-table-controls.md`, `build/03-table-controls.md`).
+> (`design/01-table-controls.md`).
 >
 > **This spec closes foundation open question Q8** (§4.3) and takes a position on **Q13** (§11).
 >
@@ -381,7 +381,7 @@ into E1.
 
 **F-3 — the current implementation cannot express E1.** The wave-1 build records that
 *"the kind comes from `table.isFiltered` inside `DataTable`; no call site can choose it"*
-(`build/01-people.md` §4, AC-37). A queue that is genuinely clear therefore renders **first-run** —
+(AC-37). A queue that is genuinely clear therefore renders **first-run** —
 the exact wrong answer. **Request to the shell / `src/components/` owner:** `DataTable` must accept
 an explicit empty *kind* from its call site, or grow a third `queue-clear` kind, so that
 `isFiltered === false` on a `mode: 'queue'` table does not imply first-run. Not worked around here;
@@ -1522,7 +1522,7 @@ colliding with `docs/ref/defects.md` D1–D25 and foundation `D-L1`–`D-L12`.
 |---|---|---|---|
 | **F-1** | `coverage` and `commitment` are filed under Metric tiles (§6.4) | Both carry claimable items with deadlines and closed disposition sets — §8.4's own definition of a queue | `patterns.md`; `:16972`, `:17054`, `:17550` |
 | **F-2** | `safety` is filed under P9 with no detail route | An incident is claimed, clocked, decided once and leaves. It is a queue that also has a record | `patterns.md`; `routeTable.ts:600` |
-| **F-3** | `DataTable` derives the empty *kind* from `isFiltered`, so a cleared queue renders first-run | The illustration says "create the first one" about a queue nobody creates items in | `build/01-people.md` §4 |
+| **F-3** | `DataTable` derives the empty *kind* from `isFiltered`, so a cleared queue renders first-run | The illustration says "create the first one" about a queue nobody creates items in | the People build |
 | **F-4** | `commitment`, `inbox` and `fairness` have **no** `PAGE_PERMISSIONS` entry; `safety.view` is declared and never enforced | These four surfaces can suspend a captain, forfeit earnings, terminate plan access and close a safety incident | `:10564`–`:10651`; `10e` §16.13 |
 | **F-5** | A `declined` subscription request matches no status view | `reqStatusMatch` handles three status groups and `declined` is in none | `:10047`–`:10055` |
 | **F-6** | Two seeded subscription requests point at `SUB-1052b`, which does not exist | `View sub` opens a broken profile | `:2796`, `:2799` |
