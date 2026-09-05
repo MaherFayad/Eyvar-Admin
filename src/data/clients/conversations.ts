@@ -71,7 +71,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, paginate, runQuery, type QueryShape } from '../mock/query'
-import { ApiError, type Claim, type Facets, type Paginated, type QueryParams } from '../types/common'
+import { ApiError, type Claim, type Facets, type IsoDateTime, type Paginated, type QueryParams } from '../types/common'
 import { channelReportsRead } from '../types/conversation'
 import type {
   AgentPresence,
@@ -90,7 +90,7 @@ import type { Ticket, TicketPriority } from '../types/ticket'
 import { http } from './http'
 import { liveClaim, nextClaim } from './requests'
 import { currentMockUserId } from './session'
-import { mintTicket } from './tickets'
+import { mintTicket, mirrorConversationReply } from './tickets'
 import {
   emitMockEvent,
   enqueueMockEvent,
@@ -761,8 +761,99 @@ export async function replyConversation(
 
     commit(updated, { type: 'message.created', conversationId: id, message })
     if (!internal) scriptDelivery(existing, message)
+    /* S-3: one thread. A customer-visible reply reaches the linked ticket too (AC-S-16). */
+    if (!internal && existing.ticketId !== null) mirrorConversationReply(existing.ticketId, message)
     return message
   })
+}
+
+/**
+ * S-3 (AC-S-16): the linked conversation's messages, read synchronously by
+ * `clients/tickets.ts` so a ticket's thread carries the customer's own words.
+ * Empty when the conversation is unknown; never throws from a read.
+ */
+export function conversationThread(conversationId: string): readonly Message[] {
+  return rows().find((c) => c.id === conversationId)?.messages ?? []
+}
+
+/**
+ * S-3 (AC-S-16): a reply written on the ticket goes down the conversation's
+ * pipe with the same id, so neither side shows it twice.
+ */
+export function mirrorTicketReply(
+  conversationId: string,
+  reply: { id: string; senderId: string; senderName: string; body: string; sentAt: IsoDateTime },
+): void {
+  const existing = rows().find((c) => c.id === conversationId)
+  if (!existing || existing.status === 'closed') return
+  if (existing.messages.some((m) => m.id === reply.id)) return
+  const message: Message = {
+    id: reply.id,
+    conversationId,
+    channel: existing.channel,
+    direction: 'outbound',
+    authorId: reply.senderId,
+    authorName: reply.senderName,
+    authorKind: 'operator',
+    body: reply.body,
+    visibility: 'customer',
+    delivery: {
+      state: 'queued',
+      updatedAt: reply.sentAt,
+      failureCode: null,
+      failureMessage: null,
+      providerMessageId: null,
+    },
+    deliveryHistory: [],
+    subject: existing.channel === 'email' ? existing.subject : null,
+    sentAt: reply.sentAt,
+    attachments: [],
+  }
+  const updated: Conversation = {
+    ...existing,
+    messages: [...existing.messages, message],
+    messageCount: existing.messageCount + 1,
+    status: 'active',
+    waitingSince: null,
+    unreadCount: 0,
+    lastMessageAt: reply.sentAt,
+    lastMessagePreview: reply.body,
+    firstResponseAt: existing.firstResponseAt ?? reply.sentAt,
+  }
+  commit(updated, { type: 'message.created', conversationId, message })
+  scriptDelivery(existing, message)
+}
+
+/**
+ * S-3 / O4 (AC-S-18): a call logged on the ticket is a system line on the phone
+ * conversation, so the two consoles tell the same story of the call.
+ */
+export function mirrorTicketCall(
+  conversationId: string,
+  entry: { id: string; body: string; loggedAt: IsoDateTime },
+): void {
+  const existing = rows().find((c) => c.id === conversationId)
+  if (!existing || existing.messages.some((m) => m.id === entry.id)) return
+  const message: Message = {
+    id: entry.id,
+    conversationId,
+    channel: existing.channel,
+    direction: 'outbound',
+    authorId: null,
+    authorName: 'System',
+    authorKind: 'system',
+    body: entry.body,
+    visibility: 'internal',
+    delivery: null,
+    deliveryHistory: [],
+    subject: null,
+    sentAt: entry.loggedAt,
+    attachments: [],
+  }
+  commit(
+    { ...existing, messages: [...existing.messages, message], messageCount: existing.messageCount + 1 },
+    { type: 'message.created', conversationId, message },
+  )
 }
 
 /* ─────────────────────────── the retry ──────────────────────────────── */

@@ -383,6 +383,17 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
             onChange(setLimits(draft, { maxRiderDailyCancellations: next ?? 0 }))
           }
         />
+        <IntegerField
+          id="limits-chat-cap"
+          label={t('policy.limits.chatCap')}
+          help={t('policy.limits.chatCap.help')}
+          value={draft.limits.maxConcurrentChatsPerOperator}
+          step={1}
+          disabled={!canWrite}
+          onCommit={(next) =>
+            onChange(setLimits(draft, { maxConcurrentChatsPerOperator: next ?? 0 }))
+          }
+        />
         {blockedReason ? (
           <p className="col-span-3 text-xs text-muted-foreground compact:col-span-1">{blockedReason}</p>
         ) : null}

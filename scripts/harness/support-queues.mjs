@@ -15,6 +15,7 @@ const OUT = './scripts/harness/shots'
 mkdirSync(OUT, { recursive: true })
 
 const ROUTES = [
+  ['overview', '/support/overview'],
   ['disputes', '/support/disputes'],
   ['lost-found', '/support/disputes?view=lost-and-found'],
   ['dispute-detail', '/support/disputes/DSP-101'],
@@ -52,7 +53,20 @@ for (const language of ['en', 'ar']) {
       const strip = tabs[0]?.parentElement?.getBoundingClientRect() ?? null
       const firstTabClipped =
         firstTab && strip ? firstTab.left < strip.left - 1 || firstTab.right > strip.right + 1 : null
-      if (!table) return { table: false, overflowX, dir, firstTabClipped, text: document.body.innerText.replace(/\s+/g, ' ').slice(0, 160) }
+      const availability = [...document.querySelectorAll('header button')].find((b) =>
+        /^(Availability|التوفّر)/.test(b.getAttribute('aria-label') ?? ''),
+      )
+      const desk = document.querySelector('[data-slot="card"]')
+      if (!table)
+        return {
+          table: false,
+          overflowX,
+          dir,
+          firstTabClipped,
+          availability: availability?.textContent?.trim() ?? null,
+          deskDashes: desk ? (desk.textContent?.match(/—/g) ?? []).length : null,
+          text: document.body.innerText.replace(/\s+/g, ' ').slice(0, 160),
+        }
       const rows = [...table.querySelectorAll('tbody tr')]
       const tops = rows.map((r) => r.getBoundingClientRect().top)
       const pitches = tops.slice(1).map((t, i) => Math.round(t - tops[i]))

@@ -170,6 +170,9 @@ const AdminActivityScreen = lazy(() =>
 const MetricBoardScreen = lazy(() =>
   import('@/screens/metrics').then((m) => ({ default: m.MetricBoardScreen })),
 )
+const SupportDesk = lazy(() =>
+  import('@/screens/support/desk/SupportDesk').then((m) => ({ default: m.SupportDesk })),
+)
 
 /* Wave 3 - the seven Financials sub-tabs and the one full-bleed editor. */
 const FinancialsOverviewScreen = lazy(() =>
@@ -513,7 +516,7 @@ function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'management-zones') return <ZonesScreen row={row} />
 
   if (row.subTabId !== 'support-fairness' && METRIC_BOARD_SUB_TABS.includes(row.subTabId)) {
-    return <MetricBoardScreen row={row} />
+    return <MetricBoardScreen row={row} prelude={row.subTabId === 'support-overview' ? <SupportDesk /> : undefined} />
   }
 
   return <SubTabScreen row={row} />

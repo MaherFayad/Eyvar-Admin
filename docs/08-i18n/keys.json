@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 5700,
-    "en": 5421,
-    "ar": 5700,
+    "keys": 5914,
+    "en": 5639,
+    "ar": 5914,
     "arMissing": 0,
-    "arExtra": 279,
+    "arExtra": 275,
     "copyFiles": 36,
     "unregisteredKeys": 175,
-    "pluralForms": 53,
+    "pluralForms": 51,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 112,
@@ -44,7 +44,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 250,
+      "keys": 253,
       "notInEN": 0
     },
     {
@@ -61,6 +61,14 @@
         "ADMIN_WORKSPACE_EN"
       ],
       "keys": 238,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "exports": [
+        "TICKETS_EN"
+      ],
+      "keys": 211,
       "notInEN": 0
     },
     {
@@ -92,7 +100,7 @@
       "exports": [
         "POLICY_EN"
       ],
-      "keys": 164,
+      "keys": 166,
       "notInEN": 0
     },
     {
@@ -100,7 +108,15 @@
       "exports": [
         "CONVERSATIONS_EN"
       ],
-      "keys": 164,
+      "keys": 165,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/disputes/copy.ts",
+      "exports": [
+        "DISPUTES_EN"
+      ],
+      "keys": 163,
       "notInEN": 0
     },
     {
@@ -128,27 +144,11 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/tickets/copy.ts",
-      "exports": [
-        "TICKETS_EN"
-      ],
-      "keys": 110,
-      "notInEN": 0
-    },
-    {
       "file": "src/components/profile/driver/copy.ts",
       "exports": [
         "DRIVER_PROFILE_EN"
       ],
       "keys": 108,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/disputes/copy.ts",
-      "exports": [
-        "DISPUTES_EN"
-      ],
-      "keys": 104,
       "notInEN": 0
     },
     {
@@ -202,6 +202,22 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/support/fairness/copy.ts",
+      "exports": [
+        "FAIRNESS_EN"
+      ],
+      "keys": 77,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "exports": [
+        "SAFETY_EN"
+      ],
+      "keys": 68,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/management/zones/copy.ts",
       "exports": [
         "ZONES_EN"
@@ -218,27 +234,11 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/fairness/copy.ts",
-      "exports": [
-        "FAIRNESS_EN"
-      ],
-      "keys": 63,
-      "notInEN": 0
-    },
-    {
       "file": "src/components/profile/request/copy.ts",
       "exports": [
         "REQUEST_PROFILE_EN"
       ],
       "keys": 61,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/safety/copy.ts",
-      "exports": [
-        "SAFETY_EN"
-      ],
-      "keys": 56,
       "notInEN": 0
     },
     {

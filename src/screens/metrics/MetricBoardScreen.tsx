@@ -73,7 +73,7 @@
  *               like the tiles it replaces. Never a centred spinner.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { getMetricBoard } from '@/data/clients'
@@ -239,7 +239,8 @@ function noticeTitle(notice: BoardNotice, t: Translate): string {
   return t(`${notice.key}.${count === 1 ? 'one' : 'many'}`, params)
 }
 
-export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
+/** `prelude` renders under the banner and above the tiles: Support's desk (S-5). */
+export function MetricBoardScreen({ row, prelude }: { row: SubTabRoute; prelude?: ReactNode }) {
   const shell = useShell()
   const navigate = useNavigate()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
@@ -494,6 +495,7 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
           t={t}
           language={language}
           navigate={navigate}
+          prelude={prelude}
         />
       )}
     </SingleColumnPage>
@@ -520,8 +522,10 @@ function BoardContent({
   t,
   language,
   navigate,
+  prelude,
 }: {
   board: MetricBoard
+  prelude?: ReactNode
   /**
    * §E4 — the `Metric.key` of the lead figure the band has checked, and so the
    * `TimeSeries.key` of the chart hoisted directly under it. `null` on a board
@@ -609,6 +613,7 @@ function BoardContent({
           }}
         />
       )}
+      {prelude}
 
       {/* **§E4 — THE CHART THE BAND IS DRIVING, directly under the band.**
           This is the reference's best single idea and the one part of it this

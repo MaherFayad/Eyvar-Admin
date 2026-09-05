@@ -101,6 +101,8 @@ export interface TopBarProps {
   /** Forwarded to `AccountMenu`; the top bar itself never reads it. */
   theme: ThemeChoice
   onSetTheme: (next: ThemeChoice) => void
+  /** §6.3: the operator's availability control, or `null` for an operator off the roster. */
+  availability?: ReactNode
   /** Who is on the rota right now. `null` is the gap the chip exists to show. */
   onCallName: string | null
   /**
@@ -133,6 +135,7 @@ export function TopBar({
   theme,
   onSetTheme,
   onCallName,
+  availability = null,
   menu = null,
   compact = false,
 }: TopBarProps) {
@@ -160,7 +163,8 @@ export function TopBar({
       {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}
       <GlobalSearch t={t} onOpenEntity={onOpenEntity} />
 
-      <div className="flex min-w-0 flex-1 compact:flex-none items-center justify-end gap-1.5">
+      {/* `shrink-0`: three chips, the bell and the avatar keep their width and the search field gives (§2.1). */}
+      <div className="flex shrink-0 compact:flex-none items-center justify-end gap-1.5">
         {/* Slot 3a — `Mine`. Renders nothing at zero (AC-26). Routes to
             `/operations/my-work`, which is D-L1's fix. No emoji (AC-76). */}
         {!compact && (session?.claimedCount ?? 0) > 0 && (
@@ -195,6 +199,8 @@ export function TopBar({
             `!compact &&`, not a `hidden` class. A chip that is painted away is
             still in the tab order and still announced, which on the surface an
             operator navigates a phone with is worse than absent. */}
+        {!compact && availability}
+
         {!compact && (
         <Button variant="secondary" size="xs" asChild>
           <Link to="/admin/team">

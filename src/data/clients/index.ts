@@ -1015,7 +1015,7 @@ export {
    away, and `resetTickets` is exported beside it because a logged call is
    session state that has to be resettable — see the note on `resetDataLayer`
    below. */
-export { logTicketCall, resetTickets } from './tickets'
+export { logTicketCall, resetTickets, takeNextTicket } from './tickets'
 
 /* ── Payments and Complaints ─────────────────────────────────────────────
    The two id spaces the product referenced everywhere and modelled nowhere:

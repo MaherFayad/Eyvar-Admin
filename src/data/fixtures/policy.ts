@@ -696,6 +696,7 @@ export const operationalPolicyFixture: OperationalPolicy = {
     maxCaptainDailyDrivingMinutes: 600,
     maxConcurrentSubscriptionsPerCaptain: 5,
     maxRiderDailyCancellations: 3,
+    maxConcurrentChatsPerOperator: 3,
   },
   reasonCodes: reasonCodeFixtures,
   sla: slaPolicyFixture,

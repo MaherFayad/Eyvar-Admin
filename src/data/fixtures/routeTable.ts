@@ -382,6 +382,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.myWork.sub',
     views: views(
       ['mine', 'view.myWork.mine'],
+      ['handed', 'view.myWork.handed'],
       ['unassigned', 'view.myWork.unassigned'],
       ['everything', 'view.myWork.everything'],
     ),

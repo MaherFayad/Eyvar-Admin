@@ -32,6 +32,7 @@ import {
   type TicketStatus,
 } from '../types/ticket'
 import { appendAudit } from './audit'
+import { conversationThread, mirrorTicketCall, mirrorTicketReply } from './conversations'
 import { claimFor as claimForEntity, doneClaim, releasedClaim } from './claims'
 import { http } from './http'
 import { pushNotification } from './notifications'
@@ -61,6 +62,7 @@ export const TICKET_OPERATIONS = {
   reopen: 'tickets.reopen',
   create: 'tickets.create',
   logCall: 'tickets.logCall',
+  takeNext: 'tickets.takeNext',
   setStatus: 'tickets.setStatus',
   recode: 'tickets.recode',
   setPriority: 'tickets.setPriority',
@@ -265,7 +267,62 @@ export async function getTicket(id: string, signal?: AbortSignal): Promise<Ticke
   if (DATA_SOURCE === 'http') {
     return http.get<Ticket>(`/tickets/${id}`, undefined, { signal })
   }
-  return mock(TICKET_OPERATIONS.get, signal, () => find(id).ticket)
+  return mock(TICKET_OPERATIONS.get, signal, () => withThread(find(id).ticket))
+}
+
+/**
+ * S-3 (AC-S-16): the ticket's thread is the union of what was written on the
+ * ticket and what the customer and operators wrote on the linked conversation,
+ * in time order, deduplicated by id. Internal conversation notes stay there.
+ */
+function withThread(ticket: Ticket): Ticket {
+  if (ticket.conversationId === null) return ticket
+  const known = new Set(ticket.messages.map((m) => m.id))
+  const merged: TicketMessage[] = conversationThread(ticket.conversationId)
+    .filter((m) => !known.has(m.id) && m.visibility === 'customer')
+    .map((m) => ({
+      id: m.id,
+      senderId: m.authorId ?? 'system',
+      senderName: m.authorName,
+      senderType: m.authorKind === 'customer' ? 'customer' : m.authorKind === 'operator' ? 'agent' : 'system',
+      body: m.body,
+      sentAt: m.sentAt,
+      visibility: 'customer',
+    }))
+  if (merged.length === 0) return ticket
+  const messages = [...ticket.messages, ...merged].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt))
+  return { ...ticket, messages }
+}
+
+/**
+ * S-3 (AC-S-16): a customer-visible reply written on the conversation lands on
+ * the linked ticket as an agent message and counts as touching the customer.
+ * A closed ticket keeps the line without changing state.
+ */
+export function mirrorConversationReply(
+  ticketId: string,
+  message: { id: string; authorId: string | null; authorName: string; body: string; sentAt: IsoDateTime },
+): void {
+  const found = dynamicTickets.findIndex((t) => t.id === ticketId)
+  if (found < 0) return
+  const ticket = dynamicTickets[found]!
+  if (ticket.messages.some((m) => m.id === message.id)) return
+  const line: TicketMessage = {
+    id: message.id,
+    senderId: message.authorId ?? 'system',
+    senderName: message.authorName,
+    senderType: 'agent',
+    body: message.body,
+    sentAt: message.sentAt,
+    visibility: 'customer',
+  }
+  const live = ticket.status !== 'closed' && ticket.status !== 'resolved'
+  commit(found, {
+    ...ticket,
+    ...(live ? touchedCustomer(ticket, message.sentAt) : {}),
+    messages: [...ticket.messages, line],
+    status: ticket.status === 'open' ? 'in-progress' : ticket.status,
+  })
 }
 
 /* ─────────────────────────────── ownership ────────────────────────────── */
@@ -438,7 +495,37 @@ export async function replyTicket(
       status: ticket.status === 'open' ? 'in-progress' : ticket.status,
     })
     audit('ticket.reply', next, null, { channel: ticket.channel }, senderId)
-    return next
+    if (ticket.conversationId !== null) mirrorTicketReply(ticket.conversationId, message)
+    return withThread(next)
+  })
+}
+
+/**
+ * POST /api/v1/tickets/take-next
+ * body: none
+ * -> Ticket
+ * 404 nothing is waiting to be claimed
+ * §6.5: the most urgent unheld live ticket, in the queue's own order, becomes the caller's.
+ */
+export async function takeNextTicket(signal?: AbortSignal): Promise<Ticket> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Ticket>('/tickets/take-next', {}, { signal })
+  }
+  return mockMutation(TICKET_OPERATIONS.takeNext, signal, () => {
+    const me = operator()
+    const candidates = dynamicTickets
+      .map((ticket, index) => ({ ticket, index }))
+      .filter(({ ticket }) => ticketIsLive(ticket) && liveClaim(ticket.claim) === null)
+      .sort((a, b) => urgencyOf(a.ticket) - urgencyOf(b.ticket))
+    const first = candidates[0]
+    if (!first) throw notFound('ticket', 'next')
+    const next = commit(first.index, {
+      ...first.ticket,
+      claim: claimFor(first.ticket, me, false),
+      status: first.ticket.status === 'open' ? 'in-progress' : first.ticket.status,
+    })
+    audit('ticket.claim', next, null, { via: 'take-next' }, me.id)
+    return withThread(next)
   })
 }
 
@@ -488,8 +575,27 @@ export async function logTicketCall(
           : ticket.claim,
     })
     audit('ticket.callLog', next, entry.notes, { outcome: input.outcome }, userId)
+    if (ticket.conversationId !== null) {
+      mirrorTicketCall(ticket.conversationId, {
+        id: entry.id,
+        body: callLine(entry),
+        loggedAt: entry.loggedAt,
+      })
+    }
     return next
   })
+}
+
+/* The seam's own words for a call, as the fixtures write system lines. */
+function callLine(entry: TicketCallLog): string {
+  const outcome: Record<TicketCallOutcome, string> = {
+    'resolved-on-call': 'resolved on the call',
+    'waiting-on-customer': 'waiting on the customer',
+    escalated: 'escalated',
+    'no-answer': 'no answer',
+  }
+  const head = `Call logged by ${entry.loggedByUserName}: ${outcome[entry.outcome]}.`
+  return entry.notes ? `${head} ${entry.notes}` : head
 }
 
 function nextStatusAfterCall(status: TicketStatus, outcome: TicketCallOutcome): TicketStatus {

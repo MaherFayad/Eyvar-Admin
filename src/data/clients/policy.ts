@@ -105,6 +105,9 @@ let policyState!: OperationalPolicy
  * inside one `mockMutation` (`clients/tickets.ts`). Mock only: in http mode
  * the server resolves an SLA and this is never called.
  */
+/** D22: the cap's ceiling. Four already breaks the 45-second promise. */
+export const CHAT_CAP_MAX = 8
+
 export function currentPolicy(): OperationalPolicy {
   return policyState
 }
@@ -647,6 +650,7 @@ export function diffPolicy(before: OperationalPolicy, after: OperationalPolicy):
     'maxCaptainDailyDrivingMinutes',
     'maxConcurrentSubscriptionsPerCaptain',
     'maxRiderDailyCancellations',
+    'maxConcurrentChatsPerOperator',
   ] as const) {
     if (before.limits[field] !== after.limits[field]) changed.push(`limits.${field}`)
   }
@@ -753,6 +757,14 @@ function validatePolicyInput(input: SaveOperationalPolicyInput): ApiErrorDetail[
     1,
   )
   positive('limits.maxRiderDailyCancellations', input.limits.maxRiderDailyCancellations, 0)
+  positive('limits.maxConcurrentChatsPerOperator', input.limits.maxConcurrentChatsPerOperator, 1)
+  if (input.limits.maxConcurrentChatsPerOperator > CHAT_CAP_MAX) {
+    details.push({
+      field: 'limits.maxConcurrentChatsPerOperator',
+      code: 'range',
+      message: `At most ${CHAT_CAP_MAX} chats per operator`,
+    })
+  }
 
   const seenCityIds = new Set<string>()
   for (const city of input.cities) {

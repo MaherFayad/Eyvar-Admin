@@ -115,9 +115,9 @@ export const DISPUTES_EN: Dictionary = {
   'dispute.lf.empty.noMatch': 'No reports match these filters.',
   'dispute.lf.error.read': 'The lost property reports could not be loaded.',
 
-  'dispute.lf.action.unrecoverable': 'Give up the search',
+  'dispute.lf.action.unrecoverable': 'Stop searching',
   'dispute.lf.action.blocked.unrecoverable': 'The search for this item was given up.',
-  'dispute.lf.unrecoverable.title': 'Give up the search for {id}?',
+  'dispute.lf.unrecoverable.title': 'Stop searching for {id}?',
   'dispute.lf.unrecoverable.body':
     'The report closes as not recovered and leaves the open views. The rider, the captain and the trip stay on the record.',
   'dispute.lf.unrecoverable.confirm': 'Give up the search',

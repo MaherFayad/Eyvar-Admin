@@ -12,6 +12,7 @@ import { listNotifications, resetNotifications } from './notifications'
 import { disableMockLatency, mockFailures } from '../config'
 import { currentPolicy } from './policy'
 import { resetMockSession, switchMockUser } from './session'
+import { getConversation, replyConversation, resetConversations } from './conversations'
 import {
   claimTicket,
   createTicket,
@@ -25,6 +26,7 @@ import {
   resolveTicket,
   setTicketStatus,
   sweepTicketSla,
+  takeNextTicket,
   transferTicket,
 } from './tickets'
 
@@ -32,6 +34,7 @@ beforeEach(() => {
   disableMockLatency()
   mockFailures.clear()
   resetTickets()
+  resetConversations()
   resetAudit()
   resetNotifications()
   resetMockSession()
@@ -282,5 +285,83 @@ describe('the seeded rows reach every reading', () => {
     const lost = await getTicket('TKT-502')
     expect(lost.updateDueAt).not.toBeNull()
     expect(Date.parse(lost.updateDueAt!)).toBeGreaterThan(Date.parse(offsetFromNow({ minutes: 0 })))
+  })
+})
+
+describe('one thread across the ticket and its conversation (S-3)', () => {
+  /* AC-S-16: TKT-501 is linked to CNV-104, an email thread that is waiting. */
+  it('shows what the customer wrote on the conversation, on the ticket', async () => {
+    const ticket = await getTicket('TKT-501')
+    const conversation = await getConversation('CNV-104')
+    const visible = conversation.messages.filter((m) => m.visibility === 'customer')
+    expect(visible.length).toBeGreaterThan(0)
+    for (const message of visible) {
+      expect(ticket.messages.map((m) => m.id)).toContain(message.id)
+    }
+    const stamps = ticket.messages.map((m) => Date.parse(m.sentAt))
+    expect([...stamps].sort((a, b) => a - b)).toEqual(stamps)
+  })
+
+  it('sends a ticket reply down the conversation, once, with the same id', async () => {
+    const before = (await getConversation('CNV-104')).messages.length
+    const replied = await replyTicket('TKT-501', 'We have refunded the charge.', 'USR-1', 'Sarah Al-Rashid')
+    const conversation = await getConversation('CNV-104')
+    expect(conversation.messages.length).toBe(before + 1)
+    const last = conversation.messages.at(-1)!
+    expect(last.body).toBe('We have refunded the charge.')
+    expect(last.direction).toBe('outbound')
+    expect(replied.messages.filter((m) => m.id === last.id).length).toBe(1)
+    expect((await getTicket('TKT-501')).messages.filter((m) => m.id === last.id).length).toBe(1)
+  })
+
+  it('lands a conversation reply on the ticket and counts it as touching the customer', async () => {
+    const message = await replyConversation('CNV-104', { body: 'Checking the receipt now.' })
+    const ticket = await getTicket('TKT-501')
+    const mirrored = ticket.messages.filter((m) => m.id === message.id)
+    expect(mirrored.length).toBe(1)
+    expect(mirrored[0]!.visibility).toBe('customer')
+    expect(ticket.firstResponseAt).not.toBeNull()
+  })
+
+  it('keeps an internal note on the conversation off the ticket thread', async () => {
+    const note = await replyConversation('CNV-104', { body: 'Card issuer says pending.', visibility: 'internal' })
+    const ticket = await getTicket('TKT-501')
+    expect(ticket.messages.some((m) => m.id === note.id)).toBe(false)
+  })
+
+  /* AC-S-18 / O4: TKT-502 is linked to CNV-106, a phone conversation. */
+  it('records a logged call on the phone conversation as an internal system line', async () => {
+    await logTicketCall(
+      { ticketId: 'TKT-502', outcome: 'no-answer', notes: 'Rang twice.' },
+      'USR-3',
+      'Lina Al-Otaibi',
+    )
+    const conversation = await getConversation('CNV-106')
+    const line = conversation.messages.at(-1)!
+    expect(line.authorKind).toBe('system')
+    expect(line.visibility).toBe('internal')
+    expect(line.body).toContain('Lina Al-Otaibi')
+    expect(line.body).toContain('Rang twice.')
+  })
+})
+
+describe('Take next (§6.5)', () => {
+  it('claims the most urgent unheld live ticket for the signed-in operator', async () => {
+    await switchMockUser('USR-3')
+    const queue = await listTickets({ view: 'unassigned', sort: { field: 'urgency', dir: 'asc' }, pageSize: 1 })
+    const expected = queue.items[0]!
+    const taken = await takeNextTicket()
+    expect(taken.id).toBe(expected.id)
+    expect(taken.ownerId).toBe('USR-3')
+    expect(taken.status).not.toBe('open')
+  })
+
+  it('answers not found when nothing is waiting', async () => {
+    let open = await listTickets({ view: 'unassigned', pageSize: 50 })
+    while (open.items.length > 0) {
+      await takeNextTicket()
+      open = await listTickets({ view: 'unassigned', pageSize: 50 })
+    }
+    await expect(takeNextTicket()).rejects.toSatisfy((e: unknown) => isApiError(e) && e.status === 404)
   })
 })

@@ -224,6 +224,7 @@ import { POLICY_EN } from '@/screens/admin/policy/copy'
 import { REPORTS_EN } from '@/screens/reports/copy'
 import { REQUESTS_EN } from '@/screens/operations/requests/copy'
 import { SAFETY_EN } from '@/screens/support/safety/copy'
+import { SUPPORT_DESK_EN } from '@/screens/support/desk/copy'
 import { ZONES_EN } from '@/screens/management/zones/copy'
 /* Arabic, whole. One module per English dictionary; see `./ar/index.ts`. */
 import { AR } from './ar'
@@ -397,6 +398,7 @@ const subTabs: Dictionary = {
 
 const views: Dictionary = {
   'view.myWork.mine': 'Mine',
+  'view.myWork.handed': 'Handed to me',
   'view.myWork.unassigned': 'Unassigned',
   'view.myWork.everything': 'Everything',
 
@@ -561,6 +563,27 @@ const shell: Dictionary = {
   'shell.topbar.mineA11y': 'Work assigned to you: {count} items',
   'shell.topbar.onCall': 'On call: {name}',
   'shell.topbar.onCallUnassigned': 'On call: unassigned',
+  'shell.presence.title': 'Your availability',
+  'shell.presence.label': 'Availability: {state}',
+  'shell.presence.online': 'Online',
+  'shell.presence.away': 'Away',
+  'shell.presence.offline': 'Offline',
+  'shell.presence.toast.online': 'You are online',
+  'shell.presence.toast.away': 'You are away',
+  'shell.presence.toast.offline': 'You are offline',
+  'shell.presence.handover.title': 'Hand over your chats?',
+  'shell.presence.handover.body':
+    'You hold {count} live chats. Hand them to a colleague who is online, or keep them; a kept chat stays yours until its claim goes stale.',
+  'shell.presence.handover.to': 'Hand over to',
+  'shell.presence.handover.choose': 'Choose a colleague',
+  'shell.presence.handover.option': '{name}, {count} live',
+  'shell.presence.handover.nobody': 'Nobody else is online. Keep the chats or stay on.',
+  'shell.presence.handover.note': 'Handed over: the previous operator went offline.',
+  'shell.presence.handover.cancel': 'Stay on',
+  'shell.presence.handover.keep': 'Keep and go offline',
+  'shell.presence.handover.confirm': 'Hand over and go offline',
+  'shell.presence.handover.done': 'Handed {count} chats to {name}',
+  'shell.presence.handover.failed': 'The handover did not complete. Your chats are still yours.',
 
   /* §4 — the account menu. Verb-first where they are actions. */
   'shell.account.myProfile': 'My profile',
@@ -1104,6 +1127,7 @@ export const EN: Dictionary = {
   ...REPORTS_EN,
   ...REQUESTS_EN,
   ...SAFETY_EN,
+  ...SUPPORT_DESK_EN,
   ...ZONES_EN,
   ...PEOPLE_EN,
   ...TICKETS_EN,

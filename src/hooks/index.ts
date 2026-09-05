@@ -111,3 +111,14 @@ export {
    importing a hook from another screen module is the coupling this directory
    exists to hold instead. Moved unchanged. */
 export { useScreenViews, type ScreenView, type ScreenViews } from './useScreenViews'
+export {
+  usePresence,
+  useAutoAway,
+  capAppliesTo,
+  AUTO_AWAY_MINUTES,
+  CONCURRENT_CHAT_CAP_DEFAULT,
+  CONCURRENT_CHAT_CAP_MAX,
+  CONCURRENT_CHAT_CAP_MIN,
+  type PresenceModel,
+  type UsePresenceOptions,
+} from './usePresence'

@@ -3589,6 +3589,21 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/api/v1/tickets/take-next",
+      "client": "src/data/clients/tickets.ts",
+      "function": "takeNextTicket",
+      "params": null,
+      "body": "none",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "nothing is waiting to be claimed"
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/trips",
       "client": "src/data/clients/trips.ts",

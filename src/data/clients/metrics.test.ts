@@ -1401,7 +1401,7 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
    * the join: each is a reconstruction over rows this layer already serves, and
    * each is pinned against the tile it sits under in section 14.
    */
-  it('shares a key with a metric on exactly eight of the sixteen series', async () => {
+  it('shares a key with a metric on exactly nine of the seventeen series', async () => {
     const metricKeys = new Set((await allMetrics()).map((m) => m.key))
     const shared = (await seriesKeys()).filter((k) => metricKeys.has(k)).sort()
     expect(shared).toEqual([
@@ -1412,9 +1412,10 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
       'support.fairness.overturnRate',
       'support.overview.contactsPerThousandTrips',
       'support.overview.openIncidents',
+      'support.overview.ticketsBreaching',
       'support.overview.unacknowledgedCriticalIncidents',
     ])
-    expect((await seriesKeys()).length).toBe(16)
+    expect((await seriesKeys()).length).toBe(17)
   })
 
   /**
@@ -1674,6 +1675,8 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
         "support.overview.unacknowledgedCriticalIncidents = 2 · 100 up vs previous-period:1",
         "support.overview.openIncidents = 6 · 50 up vs previous-period:4",
         "support.overview.medianTimeToFirstResponse = 14 · 27.3 up vs previous-period:11",
+        "support.overview.ticketsBreaching = 1 · 0 flat vs previous-period:1",
+        "support.overview.promiseKept = 50 · -37.5 down vs previous-period:80",
         "support.overview.contactsPerThousandTrips = null · null null vs none:no-history",
         "support.overview.uncodedContactShare = null · null null vs target:3",
         "support.overview.openFairnessCases = 14 · 600 up vs previous-period:2",

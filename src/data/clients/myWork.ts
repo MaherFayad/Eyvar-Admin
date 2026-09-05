@@ -494,6 +494,12 @@ const workShape: QueryShape<WorkItem> = {
   views: {
     /* The three the route table declares (`fixtures/routeTable.ts:236`). */
     mine: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === currentMockUserId(),
+    /* §6.4: held by me because someone handed it over, not because I claimed it. */
+    handed: (w) => {
+      const me = currentMockUserId()
+      const last = w.claim?.state === 'claimed' ? w.claim.takeovers.at(-1) : undefined
+      return w.claim?.ownerId === me && last !== undefined && last.toUserId === me && last.fromUserId !== me
+    },
     unassigned: (w) => w.claim === null || w.claim.state !== 'claimed',
     everything: () => true,
 

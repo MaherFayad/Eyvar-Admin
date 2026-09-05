@@ -238,6 +238,8 @@ import { SNAPSHOT_CURRENT, SNAPSHOT_PREVIOUS, snapshotsBetween } from './dailySn
 import { allTripFixtures } from './trips'
 import { safetyIncidentFixtures } from './safety'
 import { fairnessCaseFixtures } from './fairness'
+import { ticketFixtures } from './tickets'
+import { ticketIsLive } from '../types/ticket'
 
 /**
  * What a fixture carries. `deltaPercent` and `direction` are the client's.
@@ -339,6 +341,28 @@ const tripsCompletedOn = (day: IsoDate): number =>
  * Incidents **still open at the close of a day** — a stock, not a flow. Opened
  * on or before it and either never closed or closed after it.
  */
+/* §3.6: a ticket counts as breaching on a day once a breach stamp exists and it
+   was not yet resolved. The stamp is the server's (R5a); nothing here compares
+   a deadline with a clock. */
+const ticketsBreachingOn = (day: IsoDate): number =>
+  ticketFixtures.filter((t) => {
+    const stamp = t.firstResponseBreachedAt ?? t.slaBreachedAt
+    if (stamp === null || stamp.slice(0, 10) > day) return false
+    return t.resolvedAt === null || t.resolvedAt.slice(0, 10) > day
+  }).length
+
+const ticketsBreachingNow = ticketFixtures.filter(
+  (t) => ticketIsLive(t) && (t.firstResponseBreachedAt !== null || t.slaBreachedAt !== null),
+).length
+
+/* §3.6: first replies inside their promise, as a share of first replies given. */
+const promiseKeptPercent = (() => {
+  const answered = ticketFixtures.filter((t) => t.firstResponseAt !== null && t.firstResponseDueAt !== null)
+  if (answered.length === 0) return null
+  const kept = answered.filter((t) => Date.parse(t.firstResponseAt!) <= Date.parse(t.firstResponseDueAt!)).length
+  return Math.round((kept / answered.length) * 100)
+})()
+
 const incidentsOpenOn = (day: IsoDate) =>
   safetyIncidentFixtures.filter(
     (i) => dayOf(i.openedAt)! <= day && (i.closedAt === null || dayOf(i.closedAt)! > day),
@@ -2350,6 +2374,50 @@ export const metricSeeds: MetricSeed[] = [
     drilldownRoute: '/support/safety?view=critical',
   },
   {
+    key: 'support.overview.ticketsBreaching',
+    subTabId: 'support-overview',
+    category: 'risk',
+    value: ticketsBreachingNow,
+    absenceReason: null,
+    unit: 'count',
+    currency: null,
+    asOf: EYVAR_NOW,
+    periodStart: null,
+    periodEnd: null,
+    comparison: {
+      kind: 'previous-period',
+      value: 1,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
+    higherIsBetter: false,
+    caption: null,
+    sourceResource: 'tickets',
+    drilldownRoute: '/support/tickets?view=open&filter=breached',
+  },
+  {
+    key: 'support.overview.promiseKept',
+    subTabId: 'support-overview',
+    category: 'service',
+    value: promiseKeptPercent,
+    absenceReason: promiseKeptPercent === null ? 'not-computable' : null,
+    unit: 'percent',
+    currency: null,
+    asOf: EYVAR_NOW,
+    periodStart: SNAPSHOT_CURRENT.start,
+    periodEnd: SNAPSHOT_CURRENT.end,
+    comparison: {
+      kind: 'previous-period',
+      value: 80,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
+    higherIsBetter: true,
+    caption: null,
+    sourceResource: 'tickets',
+    drilldownRoute: '/support/tickets?view=done',
+  },
+  {
     key: 'support.overview.openIncidents',
     subTabId: 'support-overview',
     category: 'risk',
@@ -3478,6 +3546,17 @@ export const timeSeriesFixtures: TimeSeries[] = [
     currency: null,
     asOf: EYVAR_NOW,
     current: reconstructedWindow(SNAPSHOT_CURRENT, unacknowledgedCriticalOn),
+    comparison: null,
+    higherIsBetter: false,
+    awaitingStore: null,
+  },
+  {
+    key: 'support.overview.ticketsBreaching',
+    subTabId: 'support-overview',
+    unit: 'count',
+    currency: null,
+    asOf: EYVAR_NOW,
+    current: reconstructedWindow(SNAPSHOT_CURRENT, ticketsBreachingOn),
     comparison: null,
     higherIsBetter: false,
     awaitingStore: null,

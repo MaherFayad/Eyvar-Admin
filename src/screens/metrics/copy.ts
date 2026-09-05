@@ -469,6 +469,8 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.support.overview.overturnRate': 'Appeals overturned',
   'metric.support.overview.medianTimeToFirstResponse': 'Median time to first response',
   'metric.support.overview.repeatContactRate': 'Repeat-contact rate',
+  'metric.support.overview.ticketsBreaching': 'Tickets past their promise',
+  'metric.support.overview.promiseKept': 'First replies inside the promise',
 
   /* Admin › Overview — "Is the console itself safe, staffed, and inside its
      statutory obligations?" */
@@ -597,6 +599,7 @@ export const OVERVIEW_EN: Dictionary = {
   'chart.management.performance.tripsCompleted': 'Trips completed',
   'chart.support.fairness.overturnRate': 'Appeals overturned',
   'chart.support.overview.openIncidents': 'Open safety incidents',
+  'chart.support.overview.ticketsBreaching': 'Tickets past their promise',
   'chart.support.overview.unacknowledgedCriticalIncidents': 'Unacknowledged critical incidents',
 
   /* ══════════════════ breakdowns — R4-4 §4.1 ═══════════════════════════

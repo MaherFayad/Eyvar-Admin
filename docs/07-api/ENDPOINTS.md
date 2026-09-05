@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**319 endpoints across 47 client modules.**
+**320 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -522,6 +522,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** `ticket_decided` when already resolved or closed. The claim becomes | `resolveTicket()` |
 | POST | `/api/v1/tickets/:id/status` | `Ticket` | `{ status: 'waiting' \| 'in-progress' }` | **409** `ticket_decided` on a resolved or closed ticket. `waiting` pauses the | `setTicketStatus()` |
 | POST | `/api/v1/tickets/:id/transfer` | `Ticket` | `{ toUserId, note }` | **404** when the id or the operator does not exist<br>**409** `ticket_decided` on a resolved or closed ticket<br>**422** `note_required` when the note is empty. The note lands as an internal message (AC-S-13). | `transferTicket()` |
+| POST | `/api/v1/tickets/take-next` | `Ticket` | `none` | **404** nothing is waiting to be claimed | `takeNextTicket()` |
 
 ## `src/data/clients/trips.ts`
 

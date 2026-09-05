@@ -64,7 +64,7 @@ export const TICKETS_EN: Dictionary = {
 
   /* ── the cleared empties, per view (§4.7) ───────────────────────────── */
   'ticket.empty.cleared.heading': 'Nothing is waiting',
-  'ticket.empty.cleared.unassigned': 'Every open ticket has an operator. New ones appear here as they arrive.',
+  'ticket.empty.cleared.unassigned': 'Every open ticket has an operator. New ones appear here.',
   'ticket.empty.cleared.mine': 'You are not holding any tickets.',
   'ticket.empty.cleared.open': 'No ticket is open.',
   'ticket.empty.cleared.waiting': 'No ticket is waiting on a customer.',
@@ -164,7 +164,7 @@ export const TICKETS_EN: Dictionary = {
   'ticket.transfer.noteHelp': 'Posted to the thread as an internal note. The customer never sees it.',
   'ticket.transfer.noteMessage': 'Write a note for the receiving operator.',
 
-  'ticket.recode.title': 'Change the reason code on {id}?',
+  'ticket.recode.title': 'Re-code {id}?',
   'ticket.recode.body':
     'The priority and all three promises are re-derived from the new code, counted from when the ticket opened. Nothing on the thread changes.',
   'ticket.recode.confirm': 'Change reason code',
@@ -174,7 +174,7 @@ export const TICKETS_EN: Dictionary = {
   'ticket.recode.choicePlaceholder': 'Choose a reason code',
   'ticket.recode.choiceEmpty': 'No other reason code is available for tickets.',
 
-  'ticket.priority.title': 'Change the priority on {id}?',
+  'ticket.priority.title': 'Change priority on {id}?',
   'ticket.priority.body': 'Priority orders nothing by itself; the promises stay as they are.',
   'ticket.priority.confirm': 'Change priority',
   'ticket.priority.choiceLabel': 'Priority',

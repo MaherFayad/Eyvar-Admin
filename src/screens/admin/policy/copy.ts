@@ -87,6 +87,8 @@ export const POLICY_EN: Dictionary = {
   'policy.limits.drivingHours.help': '{value} hours.',
   'policy.limits.concurrentSubs': 'Concurrent subscriptions per captain',
   'policy.limits.riderCancels': 'Rider daily cancellations',
+  'policy.limits.chatCap': 'Concurrent chats per operator',
+  'policy.limits.chatCap.help': 'From 1 to 8. Owners are exempt.',
 
   /* ── 4a. SLA tier defaults ────────────────────────────────────── */
   'policy.sla.tiers.title': 'SLA tier defaults',

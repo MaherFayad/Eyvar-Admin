@@ -334,6 +334,8 @@ export interface SafetyLimits {
   maxCaptainDailyDrivingMinutes: number
   maxConcurrentSubscriptionsPerCaptain: number
   maxRiderDailyCancellations: number
+  /** D22: live chats one operator may hold at once. Owner is exempt. Range 1 to 8. */
+  maxConcurrentChatsPerOperator: number
 }
 
 /* ═══════════════════ the document ═══════════════════ */
