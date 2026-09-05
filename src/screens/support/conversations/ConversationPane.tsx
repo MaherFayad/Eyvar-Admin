@@ -82,6 +82,7 @@ import type {
   MessageVisibility,
   Paginated,
 } from '@/data/types'
+import { TYPING_TTL_SECONDS } from '@/data/types'
 import {
   formatCount,
   formatDate,
@@ -138,6 +139,10 @@ export interface ConversationPaneProps {
   onTakeOver: () => void
   onTransfer: () => void
   onClose: () => void
+  onSnooze: () => void
+  /** X2: on a phone conversation, logs the call on the linked ticket. */
+  onLogCall: () => void
+  logCallRefusal: string | null
   onReopen: () => void
   /** D19 / AC-947: opens the ticket form with this conversation's party and channel locked. */
   onCreateTicket: () => void
@@ -162,12 +167,16 @@ export function ConversationPane({
   onTakeOver,
   onTransfer,
   onClose,
+  onSnooze,
+  onLogCall,
+  logCallRefusal,
   onReopen,
   onCreateTicket,
   createTicketRefusal,
   profileHref,
   ticketHref,
 }: ConversationPaneProps) {
+  const [typingBy, setTypingBy] = useState<{ name: string; receivedAt: number } | null>(null)
   const [windowSize, setWindowSize] = useState(THREAD_PAGE)
   const [restored, setRestored] = useState<{
     body: string
@@ -230,6 +239,8 @@ export function ConversationPane({
         setLive((current) => appendOnce(current, event.message))
       } else if (event.type === 'message.delivery') {
         setDeliveries((current) => new Map(current).set(event.messageId, event.delivery))
+      } else if (event.type === 'typing' && event.typing.actorId !== currentUserId) {
+        setTypingBy(event.typing.typing ? { name: event.typing.actorName, receivedAt: Date.now() } : null)
       }
     })
   }, [id])
@@ -434,12 +445,33 @@ export function ConversationPane({
       disabled: writeRefusal !== null || conversation.status === 'closed',
     },
     {
+      label: t('conversations.snooze'),
+      onClick: onSnooze,
+      disabled: writeRefusal !== null || conversation.status === 'closed' || conversation.status === 'snoozed',
+    },
+    ...(conversation.channel === 'phone'
+      ? [
+          {
+            label: t('conversations.logCall'),
+            onClick: onLogCall,
+            disabled: writeRefusal !== null || logCallRefusal !== null || conversation.status === 'closed',
+            reason: writeRefusal ?? logCallRefusal,
+          },
+        ]
+      : []),
+    {
       label: t('conversations.close'),
       onClick: onClose,
       disabled: writeRefusal !== null || conversation.status === 'closed',
     },
     ...(primary === createTicketAction ? [] : [createTicketAction]),
   ]
+
+  /* §8.7: one muted line while the customer types; it expires on the TTL, read on the tick. */
+  const typingLine =
+    typingBy !== null && Date.now() - typingBy.receivedAt < TYPING_TTL_SECONDS * 1000 && tick >= 0
+      ? typingBy
+      : null
 
   /* ── the composer's refusal, resolved ONCE (§8.6.3, §8.6.8) ─────────── */
 
@@ -572,6 +604,12 @@ export function ConversationPane({
           {/* §8.6.1 — **the composer at the foot**, sticky to the column's
               bottom edge so the thread scrolls behind it. `bg-background` is the
               page's own ground; nothing new is introduced to make it opaque. */}
+          {typingLine !== null && (
+            <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+              {t('conversations.typing', { name: typingLine.name })}
+            </p>
+          )}
+
           <div className="sticky bottom-0 mt-3 bg-background pb-1">
             <MessageComposer
               conversationId={id}

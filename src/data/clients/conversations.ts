@@ -129,6 +129,7 @@ export const CONVERSATION_OPERATIONS = {
   release: 'conversations.release',
   transfer: 'conversations.transfer',
   close: 'conversations.close',
+  snooze: 'conversations.snooze',
   reopen: 'conversations.reopen',
   reply: 'conversations.reply',
   retry: 'conversations.retry',
@@ -587,6 +588,43 @@ export async function closeConversation(
       waitingSince: null,
       unreadCount: 0,
       claim,
+    }
+    return commit(updated, { type: 'conversation.updated', conversationId: id, conversation: updated })
+  })
+}
+
+/**
+ * POST /api/v1/conversations/:id/snooze
+ *   body: { until }
+ *   -> Conversation
+ *   409 when the conversation is closed
+ *
+ * O6 / D22: parked until `until`; both clocks pause while it is snoozed.
+ */
+export async function snoozeConversation(
+  id: string,
+  until: IsoDateTime,
+  signal?: AbortSignal,
+): Promise<Conversation> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Conversation>(`/conversations/${id}/snooze`, { until }, { signal })
+  }
+  return mockMutation(CONVERSATION_OPERATIONS.snooze, signal, () => {
+    const existing = find(id)
+    if (existing.status === 'closed') {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'conversation_closed',
+        message: `${id} is closed and cannot be snoozed`,
+        retryable: false,
+      })
+    }
+    const updated: Conversation = {
+      ...existing,
+      status: 'snoozed',
+      snoozedUntil: until,
+      waitingSince: null,
     }
     return commit(updated, { type: 'conversation.updated', conversationId: id, conversation: updated })
   })
@@ -1220,6 +1258,23 @@ function scriptDelivery(conversation: Conversation, message: Message): void {
       failureCode: null,
       failureMessage: null,
       providerMessageId: null,
+    })
+  }
+
+  /* §8.7: on chat the customer starts typing once they have read it. The
+     state expires on its own (`TYPING_TTL_SECONDS`); nothing sends `false`. */
+  if (message.channel === 'chat' && customer !== undefined && customer.leftAt == null) {
+    enqueueMockEvent<ConversationEvent>(topic, 'typing', {
+      type: 'typing',
+      conversationId: conversation.id,
+      typing: {
+        conversationId: conversation.id,
+        actorId: conversation.entityId,
+        actorName: conversation.entityName,
+        actorKind: 'customer',
+        typing: true,
+        at: EYVAR_NOW,
+      },
     })
   }
 }

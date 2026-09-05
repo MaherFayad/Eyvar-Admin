@@ -595,6 +595,7 @@ export {
   PRESENCE_TOPIC,
   claimConversation,
   closeConversation,
+  snoozeConversation,
   conversationAssignee,
   conversationTopic,
   customerVisible,

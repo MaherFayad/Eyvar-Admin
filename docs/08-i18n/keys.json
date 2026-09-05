@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5920,
-    "en": 5645,
-    "ar": 5920,
+    "keys": 5939,
+    "en": 5664,
+    "ar": 5939,
     "arMissing": 0,
     "arExtra": 275,
     "copyFiles": 36,
@@ -80,6 +80,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/support/conversations/copy.ts",
+      "exports": [
+        "CONVERSATIONS_EN"
+      ],
+      "keys": 184,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/communications/copy.ts",
       "exports": [
         "COMMUNICATIONS_EN"
@@ -101,14 +109,6 @@
         "POLICY_EN"
       ],
       "keys": 166,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/conversations/copy.ts",
-      "exports": [
-        "CONVERSATIONS_EN"
-      ],
-      "keys": 165,
       "notInEN": 0
     },
     {

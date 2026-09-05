@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**320 endpoints across 47 client modules.**
+**321 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -124,6 +124,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/conversations/:id/messages/:messageId/retry` | `Message   (the **same** message, with a fresh delivery attempt)` | - | **404** naming the conversation, or the message inside it<br>**409** `conversation_closed`<br>**409** `retry_refused` when the message's current delivery is not `failed` — | `retryMessage()` |
 | POST | `/api/v1/conversations/:id/release` | `Conversation` | - | - | `releaseConversation()` |
 | POST | `/api/v1/conversations/:id/reopen` | `Conversation` | - | **409** `conversation_not_closed` — reopening an open conversation would | `reopenConversation()` |
+| POST | `/api/v1/conversations/:id/snooze` | `Conversation` | `{ until }` | **409** when the conversation is closed | `snoozeConversation()` |
 | POST | `/api/v1/conversations/:id/ticket` | `{ conversation: Conversation, ticket: Ticket }` | `{ subject?, category, reasonCode, priority }` | **409** `ticket_exists` when this conversation already has one<br>**422** `entity_not_ticketable` for an entity `Ticket` cannot describe | `createTicketForConversation()` |
 | POST | `/api/v1/conversations/:id/transfer` | `Conversation` | `{ toUserId: string, note?: string }` | **422** when `toUserId` is not an operator<br>**409** when the conversation is closed | `transferConversation()` |
 | POST | `/api/v1/conversations/:id/typing` | `204` | `{ typing: boolean }` | - | `sendTypingIndicator()` |

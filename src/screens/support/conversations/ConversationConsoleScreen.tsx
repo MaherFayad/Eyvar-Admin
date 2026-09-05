@@ -86,6 +86,8 @@ import { useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
+  getTicket,
+  snoozeConversation,
   claimConversation,
   closeConversation,
   conversationAssignee,
@@ -133,6 +135,8 @@ import {
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { ConversationPane } from './ConversationPane'
 import { NewTicketModal, type TicketRequester } from '@/screens/support/tickets/NewTicketModal'
+import { LogCallModal } from '@/screens/support/tickets/LogCallModal'
+import type { Ticket } from '@/data/types'
 import { PresenceBar } from './PresenceBar'
 import { useAutoAway, usePresence, type PresenceModel } from './presence'
 import { compareForQueue, conversationSla, runningClock, type ConversationSla } from './sla'
@@ -265,6 +269,7 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   /** The conversation a ticket is being raised from, or `null`. */
   const [ticketFor, setTicketFor] = useState<Conversation | null>(null)
+  const [callFor, setCallFor] = useState<{ conversation: Conversation; ticket: Ticket } | null>(null)
   /**
    * **R5a's scope, and it is a SCOPE and not a filter** (§9.4). It cannot be a
    * `FilterSpec`: the breach it narrows to is derived from D22's channel policy
@@ -482,6 +487,46 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
   }
 
   /** The disposition. Four reasons, from the type's closed set. */
+  /* O6: three fixed wake times; the server clock is `now`, never the browser's. */
+  function snoozeUntil(choice: string): IsoDateTime {
+    const base = Date.parse(now)
+    if (choice === '30m') return new Date(base + 30 * 60_000).toISOString()
+    if (choice === '2h') return new Date(base + 2 * 60 * 60_000).toISOString()
+    const tomorrow = new Date(base + 24 * 60 * 60_000)
+    return `${tomorrow.toISOString().slice(0, 10)}T09:00:00${now.slice(-6)}`
+  }
+
+  function askSnooze(conversation: Conversation) {
+    setConfirm({
+      title: t('conversations.snooze.title'),
+      body: t('conversations.snooze.body'),
+      confirmLabel: t('conversations.snooze.confirm'),
+      choice: {
+        label: t('conversations.snooze.choiceLabel'),
+        help: t('conversations.snooze.choiceHelp'),
+        message: t('conversations.snooze.choiceMessage'),
+        placeholder: t('conversations.snooze.choicePlaceholder'),
+        emptyMessage: t('conversations.snooze.choiceEmpty'),
+        options: ['30m', '2h', 'tomorrow'].map((value) => ({
+          value,
+          label: t(`conversations.snooze.option.${value}`),
+        })),
+      },
+      onConfirm: ({ choice }) => {
+        setConfirm(null)
+        run(conversation.id, 'conversations.error.row.snooze', 'conversations.toast.snoozed', () =>
+          snoozeConversation(conversation.id, snoozeUntil(choice)),
+        )
+      },
+    })
+  }
+
+  /* X2: a call on a phone conversation is logged on its ticket (S-3 mirrors it back). */
+  function askLogCall(conversation: Conversation) {
+    if (conversation.ticketId === null) return
+    void getTicket(conversation.ticketId).then((ticket) => setCallFor({ conversation, ticket }))
+  }
+
   function askClose(conversation: Conversation) {
     setConfirm({
       title: t('conversations.close.title'),
@@ -573,6 +618,13 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
           onTakeOver={() => askTakeOver(record)}
           onTransfer={() => askTransfer(record)}
           onClose={() => askClose(record)}
+          onSnooze={() => askSnooze(record)}
+          onLogCall={() => askLogCall(record)}
+          logCallRefusal={
+            record.channel === 'phone' && record.ticketId === null
+              ? t('conversations.logCall.blocked.noTicket')
+              : null
+          }
           onReopen={() =>
             run(
               record.id,
@@ -594,6 +646,21 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
           busy={actions.busy}
           t={t}
         />
+        {callFor !== null && (
+          <LogCallModal
+            ticket={callFor.ticket}
+            open
+            onClose={() => setCallFor(null)}
+            onLogged={() => {
+              const id = callFor.conversation.id
+              setCallFor(null)
+              run(id, 'conversations.error.row.reopen', 'conversations.toast.callLogged', () => getConversation(id))
+            }}
+            actorId={currentUserId}
+            actorName={shell.session?.name ?? ''}
+            t={t}
+          />
+        )}
         <NewTicketModal
           open={ticketFor !== null}
           onClose={() => setTicketFor(null)}
@@ -733,6 +800,19 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
                 : conversation.status === 'closed'
                   ? t('conversations.transfer.blocked.closed')
                   : t('conversations.transfer.blocked.noTargets'),
+          },
+          {
+            label: t('conversations.snooze'),
+            onSelect: askSnooze,
+            disabled: (conversation) =>
+              !canWrite ||
+              shell.isFrozen ||
+              conversation.status === 'closed' ||
+              conversation.status === 'snoozed',
+            reason: (conversation) =>
+              conversation.status === 'closed' || conversation.status === 'snoozed'
+                ? t('conversations.snooze.blocked')
+                : t('queue.action.noPermission'),
           },
           {
             label: t('conversations.close'),

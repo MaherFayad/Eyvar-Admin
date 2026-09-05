@@ -946,3 +946,29 @@ describe('canned responses in the composer (SUPPORT-UX-PLAN.md §7.3)', () => {
     expect((await getConversation('CNV-102')).messages.length).toBe(before)
   })
 })
+
+describe('contact centre polish (SUPPORT-UX-PLAN.md §8.7)', () => {
+  /* O6 / D22: snoozing parks the conversation until a chosen time and pauses both clocks. */
+  it('snoozes a held conversation until a chosen time from the pane', async () => {
+    renderConsole(paneAt('CNV-102'))
+    await userEvent.click(await screen.findByRole('button', { name: copy('conversations.snooze') }))
+    const dialog = await screen.findByRole('dialog')
+    await userEvent.click(within(dialog).getByRole('combobox'))
+    await userEvent.click(await screen.findByRole('option', { name: copy('conversations.snooze.option.2h') }))
+    await userEvent.click(within(dialog).getByRole('button', { name: copy('conversations.snooze.confirm') }))
+    await expect.poll(async () => (await byId('CNV-102')).status).toBe('snoozed')
+    const snoozed = await byId('CNV-102')
+    expect(Date.parse(snoozed.snoozedUntil!) - Date.parse(EYVAR_NOW)).toBe(2 * 60 * 60_000)
+  })
+
+  /* §8.7: the customer's typing shows as one muted line beneath the thread. */
+  it('shows that the customer is typing after they read the reply', async () => {
+    renderConsole(paneAt('CNV-102'))
+    const field = await screen.findByLabelText(copy('conversations.composer.reply'))
+    await userEvent.type(field, 'Checking now.{Enter}')
+    const conversation = await byId('CNV-102')
+    expect(
+      await screen.findByText(copy('conversations.typing').replace('{name}', conversation.entityName), {}, { timeout: 9000 }),
+    ).toBeInTheDocument()
+  })
+})

@@ -54,6 +54,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { MessagingTemplateSurface } from '@/data/types/email'
 import { TemplatePicker } from '../shared/TemplatePicker'
+import { sendTypingIndicator } from '@/data/clients'
 import type { ConversationChannel, Message, MessageVisibility } from '@/data/types'
 import type { Translate } from '@/lib'
 import { Button } from '@/components/ui/button'
@@ -138,6 +139,8 @@ export function MessageComposer({
   const [body, setBody] = useState(() => readDraft(conversationId, noteOnly ? 'internal' : 'customer'))
   const [byEmail, setByEmail] = useState(false)
   const [sending, setSending] = useState(false)
+  /* §8.7: re-published at most once a second while the operator types on chat. */
+  const typingSentAt = useRef(0)
   /* The rejection sentence — §8.6 §6: *"the optimistic message is removed, the
      body is restored to the field, and the reason renders under the composer."* */
   const [rejection, setRejection] = useState<string | null>(null)
@@ -197,6 +200,7 @@ export function MessageComposer({
     const outgoing = body
     setSending(true)
     setRejection(null)
+    if (channel === 'chat' && !noteRegister) void sendTypingIndicator(conversationId, false).catch(() => undefined)
     /* §8.6 §6 — **the composer clears immediately.** The message is already in
        the thread reading `Sending…`; leaving the text in the field as well
        shows the operator their sentence twice. */
@@ -289,7 +293,14 @@ export function MessageComposer({
             : 'conversations.composer.placeholder.reply',
         )}
         className={noteRegister ? 'bg-muted' : 'bg-card'}
-        onChange={(event) => setBody(event.target.value)}
+        onChange={(event) => {
+          setBody(event.target.value)
+          if (channel !== 'chat' || noteRegister) return
+          const at = Date.now()
+          if (at - typingSentAt.current < 1000) return
+          typingSentAt.current = at
+          void sendTypingIndicator(conversationId, true).catch(() => undefined)
+        }}
         onKeyDown={(event) => {
           /* §8.6 §6 — `Enter` sends in **both** registers. A special case here
              is a surprise, and the line beneath already states which register
