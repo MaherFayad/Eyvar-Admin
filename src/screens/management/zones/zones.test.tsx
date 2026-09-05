@@ -22,6 +22,7 @@ import {
   getRouteTable,
   getZoneHealth,
   listCities,
+  listMetrics,
   listZones,
   resetDataLayer,
   starvedZoneCount,
@@ -30,7 +31,6 @@ import {
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { ABSENT } from '@/lib'
-import { metricSeeds } from '@/data/fixtures/metrics'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { ZONES_EN } from './copy'
@@ -401,10 +401,14 @@ describe('T7.3 — ?view=table restores the index table', () => {
    * left unrendered fails here instead of shipping unseen.
    */
   it('renders the seeded management-zones metrics as the board half (R4-6b)', async () => {
-    const seeded = metricSeeds.filter((seed) => seed.subTabId === 'management-zones')
+    /* Through the client, not `fixtures/metrics`: `seam.test.ts` property 4
+       forbids a fixture import outside `src/data`. `listMetrics` is a second
+       read of the same seeds, so the cross-check still catches a board that
+       drops one. */
+    const seeded = await listMetrics({ subTabId: 'management-zones', pageSize: 200 })
     const board = await getMetricBoard('management-zones')
     expect(board.metrics.map((each) => each.key).sort()).toEqual(
-      seeded.map((each) => each.key).sort(),
+      seeded.items.map((each) => each.key).sort(),
     )
 
     renderZones(TABLE)

@@ -14,12 +14,15 @@ import {
   disableMockLatency,
   getNavCounts,
   getRouteTable,
+  listWorkItems,
   resetDataLayer,
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
-import { EN } from '@/i18n/dictionaries'
+import { AR, EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
+import { createTranslator, placeholdersIn } from '@/lib/i18n/translate'
 import { MY_WORK_EN } from './copy'
+import { workText } from './MyWorkScreen'
 import { MyWorkScreen } from './MyWorkScreen'
 
 const copy = (key: string) => (MY_WORK_EN[key] ?? EN[key]) as string
@@ -86,5 +89,44 @@ describe('X15 — the surprising count explains itself, when asked', () => {
     const hint = await screen.findByRole('button', { name: EN['shell.hint.show'] as string })
     await userEvent.hover(hint)
     expect(await screen.findByRole('tooltip')).toHaveTextContent(copy('myWork.meta.hint'))
+  })
+})
+
+/**
+ * **The `Item` column's line one is an identity, never a sentence.**
+ *
+ * Wave 2 measured 593px and 666px of wanted width in a 208px column, both on a
+ * row whose line one was prose: an incident summary and a ticket subject. The
+ * fix is in the projection, so the assertion is on what the projection produces
+ * rather than on a rendered pixel.
+ */
+describe('T4.1 / T5.1 - the identity on line one', () => {
+  const PROSE = ['text', 'summary', 'subject', 'detail', 'note']
+
+  it('interpolates no free-text field into any title, in either language', async () => {
+    const page = await listWorkItems({ pageSize: 100, includeOtherRoles: true })
+    expect(page.items.length).toBeGreaterThan(0)
+    const offenders: string[] = []
+    for (const item of page.items) {
+      for (const dictionary of [EN, AR]) {
+        const template = (dictionary[item.titleKey] ?? '') as string
+        for (const name of placeholdersIn(template)) {
+          if (PROSE.includes(name)) offenders.push(item.titleKey + ': {' + name + '}')
+        }
+      }
+    }
+    expect([...new Set(offenders)], 'prose on line one of the Item column').toEqual([])
+  })
+
+  it('keeps every rendered line one inside the widest identity the fixtures carry', async () => {
+    const page = await listWorkItems({ pageSize: 100, includeOtherRoles: true })
+    const t = createTranslator({ dictionary: AR, fallback: EN, language: 'ar' })
+    for (const item of page.items) {
+      const line = workText(t, item.titleKey, item.titleParams)
+      /* The longest identity in the fixtures is a 46-character Arabic name, and
+         it measures 251px in a 208px column. A line past 60 characters is prose
+         again, whatever it happens to measure. */
+      expect(line.length, item.key + ' ' + line).toBeLessThanOrEqual(60)
+    }
   })
 })

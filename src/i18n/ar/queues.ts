@@ -35,7 +35,11 @@ export const QUEUE_SHARED_AR: Dictionary = {
   'queue.toast.claimed': 'تم الاستلام',
   'queue.toast.released': 'تم الترك',
   'queue.toast.takenOver': 'تم التولّي',
-  'queue.sla.missed': 'فات موعده {date}',
+  /* O7 — `Missed {date}`. `فات موعده` restates the column header
+     (`الموعد النهائي`) and needs 153px in a 147px cell, so the row clipped in
+     Arabic and not in English. `فات` is the same verb and the same reading with
+     the restated object dropped. */
+  'queue.sla.missed': 'فات {date}',
   'queue.showBreached': 'عرض ما تجاوز الموعد النهائي فقط',
   'queue.filter.breached': 'تجاوز الموعد النهائي',
   'queue.filter.breached.yes': 'تجاوز موعده النهائي',
