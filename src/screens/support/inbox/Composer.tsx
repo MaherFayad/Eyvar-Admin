@@ -232,14 +232,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               >
                 <SendIcon className="shrink-0" />
                 <span className="shrink-0">{t('inbox.composer.tab.verb')}</span>
-                <span className="min-w-0 truncate">{customerName}</span>
+                <span data-inbox-tab-name="" className="min-w-0 truncate">{customerName}</span>
               </TabsTrigger>
             )}
             <TabsTrigger
               value="internal"
               disabled={blocked}
               aria-describedby={describedBy}
-              className={cn(tabClass('data-active:bg-note', 'data-active:border-b-note'), 'shrink-0')}
+              className={cn(tabClass('data-active:bg-note', 'data-active:border-b-note'), 'flex-none')}
             >
               <NoteIcon className="shrink-0" />
               {t('conversations.composer.note')}

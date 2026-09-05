@@ -319,8 +319,8 @@ Six carriers at once, none colour alone. (1) The register is a wide segmented pa
 composer's top edge, icon plus full label: `Reply to {name}` (send icon) and `Internal note`
 (eye-off icon); the active segment shares the composer surface's colour so it reads as the tab
 of the card beneath it. On a long name the name is its own span with `truncate` inside a
-`min-w-0` trigger; the verb and the icon are `shrink-0`; `Internal note` is `shrink-0` and never
-truncates; the trigger's accessible name stays the full `inbox.composer.label` string. No
+`min-w-0` trigger; the verb and the icon are `shrink-0`; `Internal note` is `flex-none` at its
+natural width so the reply tab takes the rest and an ordinary name never elides; the trigger's accessible name stays the full `inbox.composer.label` string. No
 Reply-only form, no first-name form. (2) In the note register the whole surface and the field move to
 `--ev-note` with the 3px `--ev-note-bar` inline-start edge; there is no pale field inside a
 tinted card. (3) A standing label line between the tabs and the field states the consequence:

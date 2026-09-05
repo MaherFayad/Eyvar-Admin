@@ -147,6 +147,9 @@ async function probe(page, opts, compact) {
         return r.left >= p.left - 1 && r.right <= p.right + 1
       }) : true
       const identityWidth = line2 ? Math.round(line2.getBoundingClientRect().width) : null
+      /* R-1: the customer's name in the reply tab fits whole unless it truly cannot. */
+      const tabName = composer ? composer.querySelector('[data-inbox-tab-name]') : null
+      const nameFits = tabName ? tabName.scrollWidth <= tabName.clientWidth : true
       /* V-2: neither register tab leaves the list's box. */
       const tabList = composer ? composer.querySelector('[role="tablist"]') : null
       const tabsOutside = tabList
@@ -186,6 +189,7 @@ async function probe(page, opts, compact) {
         clockVisible,
         identityWidth,
         tabsOutside,
+        nameFits,
         headerButtons: header ? [...header.querySelectorAll('button')].filter(visible).map((b) => b.textContent?.trim() || b.getAttribute('aria-label')) : [],
         text: opts.emptyThread ? (thread?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 120) : undefined,
       }
@@ -227,6 +231,7 @@ for (const language of ['en', 'ar']) {
         if (facts.headerCollisions !== 0) bad.push(`header collisions ${facts.headerCollisions}`)
         if (!facts.clockVisible) bad.push('clock clipped')
         if (facts.tabsOutside !== 0) bad.push(`tabs outside list ${facts.tabsOutside}`)
+        if (!opts.longName && !facts.nameFits) bad.push('tab name truncated')
         /* Zero filled in the header while held; `Claim` is the one filled button when unheld (§4.1). */
         if (facts.headerFilled !== (facts.held ? 0 : 1)) bad.push(`header filled ${facts.headerFilled} (held ${facts.held})`)
         if (facts.composerFilled !== (opts.note ? 0 : 1)) bad.push(`composer filled ${facts.composerFilled}`)
