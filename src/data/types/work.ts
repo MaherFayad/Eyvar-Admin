@@ -158,8 +158,21 @@ export const WORK_QUEUE_ROUTE: Record<WorkQueueId, string> = {
   fairness: '/support/fairness',
   incident: '/support/safety?view=open',
   application: '/operations/people/applications/:id',
+  /* The DEFAULT for the queue. A request's channel decides which of the two
+     sub-tabs holds it, and `WORK_REQUEST_ROUTE` below is where that is made:
+     each sub-tab pins its own channel, so a subscription request opened here
+     landed on a queue that cannot contain it (AC-281). */
   request: '/operations/ride-requests',
   assurance: '/operations/assurance?view=departing-24h',
   absence: '/operations/assurance?view=absences',
   erasure: '/admin/data',
+}
+
+/**
+ * The two sub-tabs the `request` queue is split across — `RequestsScreen` pins
+ * `channel` per route, so the row has to be sent to the one that holds it.
+ */
+export const WORK_REQUEST_ROUTE: Readonly<Record<'instant' | 'subscription', string>> = {
+  instant: '/operations/ride-requests',
+  subscription: '/operations/subscription-requests',
 }

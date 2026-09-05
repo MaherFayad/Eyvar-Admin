@@ -60,7 +60,7 @@ import {
   type Projection,
 } from '@/components/map'
 import type { Driver, RideRequest, Trip } from '@/data/types'
-import { formatCount, type Language, type Translate } from '@/lib'
+import { formatCount, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { captainPoint, MAP_BOUNDS } from './geo'
 
@@ -125,7 +125,7 @@ export interface DispatchMapProps {
   /** Floats over the inline-end. */
   endPanel: ReactNode
   language: Language
-  t: Translate
+  t: Translator
 }
 
 export function DispatchMap({
@@ -482,7 +482,7 @@ export function DispatchMap({
             )}
           >
             {unplaced > 0 && (
-              <span>{t('dispatch.map.unplaced', { count: formatCount(unplaced, language) })}</span>
+              <span>{t.plural('dispatch.map.unplaced', { count: unplaced })}</span>
             )}
             <BasemapAttribution />
           </div>

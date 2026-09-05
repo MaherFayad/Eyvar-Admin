@@ -82,6 +82,7 @@ import {
   type Applicant,
   type ApplicantDoc,
   type ApplicantDocRejectionCode,
+  type BankAccountStatus,
   type DocumentType,
 } from '@/data/types'
 import { useAsync } from '@/hooks'
@@ -122,6 +123,15 @@ import {
 } from './documentReview'
 
 const QUEUE_PATH = '/operations/people?view=applications'
+
+/* X2 — `BankAccountStatus`'s members are English display strings on the record,
+   so the rail badge printed Latin on an Arabic page. Keyed by member, exhaustive
+   so a fourth member fails the build here rather than leaking to the operator. */
+const BANK_STATUS_KEY: Readonly<Record<BankAccountStatus, string>> = {
+  Verified: 'applicant.bank.status.verified',
+  'Pending verification': 'applicant.bank.status.pending',
+  Rejected: 'applicant.bank.status.rejected',
+}
 
 export function ApplicantDetailScreen() {
   const shell = useShell()
@@ -510,7 +520,7 @@ export function ApplicantDetailScreen() {
               label={t('applicant.bankStatus')}
               value={
                 <StatusBadge tone={record.bank.status === 'Verified' ? 'success' : 'warning'}>
-                  {record.bank.status}
+                  {t(BANK_STATUS_KEY[record.bank.status])}
                 </StatusBadge>
               }
             />

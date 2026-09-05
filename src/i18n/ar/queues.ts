@@ -25,7 +25,12 @@ export const QUEUE_SHARED_AR: Dictionary = {
   'queue.owner.unclaimed': 'غير مُستلَم',
   'queue.owner.mine': 'لك · {duration}',
   'queue.owner.heldBy': 'بحوزة {name}',
-  'queue.owner.expiry': 'يُلغى الاستلام بعد {minutes} دقيقة دون نشاط.',
+  'queue.owner.expiry#zero': 'يُلغى الاستلام فور توقّف النشاط.',
+  'queue.owner.expiry#one': 'يُلغى الاستلام بعد دقيقة واحدة دون نشاط.',
+  'queue.owner.expiry#two': 'يُلغى الاستلام بعد دقيقتين دون نشاط.',
+  'queue.owner.expiry#few': 'يُلغى الاستلام بعد {minutes} دقائق دون نشاط.',
+  'queue.owner.expiry#many': 'يُلغى الاستلام بعد {minutes} دقيقة دون نشاط.',
+  'queue.owner.expiry#other': 'يُلغى الاستلام بعد {minutes} دقيقة دون نشاط.',
   'queue.takeOver.title': 'التولّي من {name}؟',
   'queue.takeOver.body': 'يفقد {name} هذا العنصر دون استئذان، ويُسجَّل الاسمان في السجل. لا يتغيّر أي شيء آخر في العنصر.',
   'queue.takeOver.confirm': 'تولٍّ',
@@ -35,7 +40,11 @@ export const QUEUE_SHARED_AR: Dictionary = {
   'queue.toast.claimed': 'تم الاستلام',
   'queue.toast.released': 'تم الترك',
   'queue.toast.takenOver': 'تم التولّي',
-  'queue.sla.missed': 'فات موعده {date}',
+  /* O7 — `Missed {date}`. `فات موعده` restates the column header
+     (`الموعد النهائي`) and needs 153px in a 147px cell, so the row clipped in
+     Arabic and not in English. `فات` is the same verb and the same reading with
+     the restated object dropped. */
+  'queue.sla.missed': 'فات {date}',
   'queue.showBreached': 'عرض ما تجاوز الموعد النهائي فقط',
   'queue.filter.breached': 'تجاوز الموعد النهائي',
   'queue.filter.breached.yes': 'تجاوز موعده النهائي',

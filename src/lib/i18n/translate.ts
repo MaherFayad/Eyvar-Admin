@@ -86,6 +86,7 @@ export interface TranslatorOptions {
 }
 
 const PLACEHOLDER = /\{(\w+)\}/g
+const DEFAULT_VALUE = 'defaultValue'
 
 function defaultOnMissingKey(key: string): string {
   if (isDevEnvironment()) {
@@ -130,7 +131,8 @@ export function createTranslator(options: TranslatorOptions): Translator {
 
     const template =
       selectPluralForm(dictionary, key, count, language) ??
-      selectPluralForm(fallback, key, count, fallbackLanguage)
+      selectPluralForm(fallback, key, count, fallbackLanguage) ??
+      selectPluralForm(pluralDefaults(key, params), key, count, fallbackLanguage)
 
     if (template === undefined) {
       /* Name the form, not the family: `auth.reset.done#few` tells whoever reads
@@ -142,6 +144,25 @@ export function createTranslator(options: TranslatorOptions): Translator {
   }
 
   return Object.assign(translate, { plural })
+}
+
+/**
+ * The forms a caller passed as `defaultValue#<selector>` parameters, read back
+ * as a dictionary `selectPluralForm` can walk.
+ *
+ * `screens/operations/localCopy.ts` prepares them: a screen whose `copy.ts` is
+ * not registered in `dictionaries.ts` reaches its own strings ONLY through
+ * `defaultValue`, and a plural family has no bare key for the existing
+ * `defaultValue` path to carry. Without this, `t.plural` on such a screen
+ * throws on every family the screen owns.
+ */
+function pluralDefaults(key: string, params: TranslateParams): Dictionary {
+  const forms: Record<string, string> = {}
+  for (const [name, value] of Object.entries(params)) {
+    if (!name.startsWith(DEFAULT_VALUE) || typeof value !== 'string') continue
+    forms[`${key}${name.slice(DEFAULT_VALUE.length)}`] = value
+  }
+  return forms
 }
 
 /**

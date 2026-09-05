@@ -22,18 +22,22 @@ import type { ComplianceDocumentFileRead, DocumentType } from '../types/driver'
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { persistRow } from './requests'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
+/* A session COPY: a claim is written back here (AC-288). See `requests.ts`. */
+let applicantSeed!: Fixtures['applicantFixtures']
 let applicantFixtures!: Fixtures['applicantFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 let OWNERSHIP_STALE_MINUTES!: Fixtures['OWNERSHIP_STALE_MINUTES']
 let complianceScanBytes!: Fixtures['complianceScanBytes']
 onFixturesLoaded((f) => {
-  applicantFixtures = f.applicantFixtures
+  applicantSeed = f.applicantFixtures
+  applicantFixtures = [...f.applicantFixtures]
   teamUserFixtures = f.teamUserFixtures
   OWNERSHIP_STALE_MINUTES = f.OWNERSHIP_STALE_MINUTES
   complianceScanBytes = f.complianceScanBytes
@@ -274,7 +278,7 @@ export async function claimApplicant(
             ]
           : (held?.takeovers ?? []),
     }
-    return { ...row, claim }
+    return persistRow(applicantFixtures, { ...row, claim })
   }))
 }
 
@@ -290,10 +294,10 @@ export async function releaseApplicant(id: string, signal?: AbortSignal): Promis
     const row = applicantFixtures.find((a) => a.id === id)
     if (!row) throw notFound('application', id)
     if (!row.claim) return row
-    return {
+    return persistRow(applicantFixtures, {
       ...row,
       claim: { ...row.claim, state: 'released', releasedAt: EYVAR_NOW, releaseReason: 'manual' },
-    }
+    })
   })
 }
 
@@ -589,4 +593,27 @@ export async function getApplicantFacets(
     return http.get<Facets>('/applications/facets', { view: view ?? undefined }, { signal })
   }
   return mock(APPLICANT_OPERATIONS.facets, signal, () => computeFacets(applicantFixtures, applicantShape, view))
+}
+
+/* ── AC-288 session state ──────────────────────────────────────────────── */
+
+/**
+ * Back to the seeded rows. Registered in `resetDataLayer`, for the reason
+ * `tickets.ts` gives: one file's claim would otherwise ride into the next
+ * file's count of open applications.
+ */
+export function resetApplicants(): void {
+  if (!fixturesLoaded()) return
+  applicantFixtures = [...applicantSeed]
+}
+
+/**
+ * The session's rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts`. Reads the same array a claim writes, so a claim made
+ * from My Work is the claim this queue reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentApplicants(): readonly Applicant[] {
+  return applicantFixtures ?? []
 }

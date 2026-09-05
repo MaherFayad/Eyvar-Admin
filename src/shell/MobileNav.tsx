@@ -64,7 +64,7 @@ import { Button } from '@/components/ui/button'
 import { ModuleRail } from './ModuleRail'
 import { PageNav } from './PageNav'
 import type { NavCounts, SubTabRoute, Workspace, WorkspaceId } from '@/data/types'
-import type { Translate } from '@/lib'
+import type { Translate, Translator } from '@/lib'
 
 /**
  * `DialogContent` is not reused and the raw primitive is used instead: the
@@ -114,7 +114,7 @@ export interface MobileNavProps {
   activeWorkspaceId: WorkspaceId | null
   activeSubTabId: string | null
   landingRoute: string
-  t: Translate
+  t: Translator
 }
 
 /**

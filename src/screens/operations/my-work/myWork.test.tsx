@@ -22,9 +22,11 @@ import {
 } from '@/data/clients'
 import type { SubTabRoute, WorkItem } from '@/data/types'
 import { QUEUE_SHARED_EN } from '@/screens/queues/copy'
-import { EN } from '@/i18n/dictionaries'
+import { AR, EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
+import { createTranslator, placeholdersIn } from '@/lib/i18n/translate'
 import { MY_WORK_EN } from './copy'
+import { workText } from './MyWorkScreen'
 import { MyWorkScreen } from './MyWorkScreen'
 
 const copy = (key: string) => (MY_WORK_EN[key] ?? QUEUE_SHARED_EN[key] ?? EN[key]) as string
@@ -74,7 +76,7 @@ function renderMyWork(search = '') {
 
 /** The number in the page header's meta line, whichever plural key it used. */
 async function headerCount(): Promise<number> {
-  const other = copy('myWork.meta.other')
+  const other = copy('myWork.meta#other')
   const pattern = new RegExp(`^${other.replace('{count}', '([\\d,٠-٩]+)')}$`)
   const line = await screen.findByText(pattern)
   return Number(line.textContent!.replace(/[^\d]/g, ''))
@@ -106,6 +108,45 @@ describe('X15 — the surprising count explains itself, when asked', () => {
     const hint = await screen.findByRole('button', { name: EN['shell.hint.show'] as string })
     await userEvent.hover(hint)
     expect(await screen.findByRole('tooltip')).toHaveTextContent(copy('myWork.meta.hint'))
+  })
+})
+
+/**
+ * **The `Item` column's line one is an identity, never a sentence.**
+ *
+ * Wave 2 measured 593px and 666px of wanted width in a 208px column, both on a
+ * row whose line one was prose: an incident summary and a ticket subject. The
+ * fix is in the projection, so the assertion is on what the projection produces
+ * rather than on a rendered pixel.
+ */
+describe('T4.1 / T5.1 - the identity on line one', () => {
+  const PROSE = ['text', 'summary', 'subject', 'detail', 'note']
+
+  it('interpolates no free-text field into any title, in either language', async () => {
+    const page = await listWorkItems({ pageSize: 100, includeOtherRoles: true })
+    expect(page.items.length).toBeGreaterThan(0)
+    const offenders: string[] = []
+    for (const item of page.items) {
+      for (const dictionary of [EN, AR]) {
+        const template = (dictionary[item.titleKey] ?? '') as string
+        for (const name of placeholdersIn(template)) {
+          if (PROSE.includes(name)) offenders.push(item.titleKey + ': {' + name + '}')
+        }
+      }
+    }
+    expect([...new Set(offenders)], 'prose on line one of the Item column').toEqual([])
+  })
+
+  it('keeps every rendered line one inside the widest identity the fixtures carry', async () => {
+    const page = await listWorkItems({ pageSize: 100, includeOtherRoles: true })
+    const t = createTranslator({ dictionary: AR, fallback: EN, language: 'ar' })
+    for (const item of page.items) {
+      const line = workText(t, item.titleKey, item.titleParams)
+      /* The longest identity in the fixtures is a 46-character Arabic name, and
+         it measures 251px in a 208px column. A line past 60 characters is prose
+         again, whatever it happens to measure. */
+      expect(line.length, item.key + ' ' + line).toBeLessThanOrEqual(60)
+    }
   })
 })
 
@@ -279,13 +320,12 @@ describe('AC-288 — a claim made here is the same claim in the queue that owns 
   }
 
   /**
-   * **DEFECT — no claim written from any queue survives the read that follows.**
-   * `claimRequest` returns `{ ...row, claim }` and never writes it back to
-   * `allRequestFixtures` (`clients/requests.ts:237-241`); the same shape is in
-   * `applicants.ts:238-278` and `assurance.ts:250-254`. My Work re-reads after
-   * a claim, so the row it just claimed paints `Unclaimed` again.
+   * The claim is written into the client's session rows now (`persistRow`), so
+   * the read that follows reports it. Every queue client held its rows for one
+   * call and dropped the write, which made My Work repaint `Unclaimed` on the
+   * row an operator had just taken.
    */
-  it.skip('claiming a request from the projection shows the same claim on the Requests client', async () => {
+  it('claiming a request from the projection shows the same claim on the Requests client', async () => {
     const user = userEvent.setup()
     const unassigned = await projection('unassigned')
     const candidates = new Set(
@@ -345,13 +385,11 @@ describe('AC-288 — a claim made here is the same claim in the queue that owns 
   })
 
   /**
-   * **DEFECT — a subscription request opened from My Work lands on the wrong
-   * queue.** `WORK_QUEUE_ROUTE.request` is `/operations/ride-requests` for both
-   * channels (`data/types/work.ts:161`), and that sub-tab pins
-   * `channel: 'instant'`, so `SREQ-003` opens a queue that cannot contain it.
-   * AC-281 asks for *the item's owning queue*. Skipped until it is fixed.
+   * `WORK_REQUEST_ROUTE` sends each channel to the sub-tab that holds it. Both
+   * used to open Ride requests, which pins `channel: 'instant'`, so `SREQ-003`
+   * opened a queue that cannot contain it.
    */
-  it.skip('AC-281 — a subscription request opens the queue that holds it', async () => {
+  it('AC-281 — a subscription request opens the queue that holds it', async () => {
     const items = await projection('everything')
     const sub = items.find((item) => item.queue === 'request' && item.id.startsWith('SREQ'))
     if (!sub) throw new Error('The fixtures must carry a subscription request in the projection.')

@@ -84,7 +84,7 @@ import { toast } from 'sonner'
 import { useAsync, useIndexTable } from '@/hooks'
 import { setRefusal } from '../bulkRefusal'
 import { EntityLink, useEntityLinks } from '../EntityLink'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate, type Translator } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
@@ -198,7 +198,7 @@ function LegsView({
   t,
   dir,
   language,
-}: ViewProps & { t: Translate; dir: 'ltr' | 'rtl'; language: Language }) {
+}: ViewProps & { t: Translator; dir: 'ltr' | 'rtl'; language: Language }) {
   const shell = useShell()
   const location = useLocation()
   const now = useNowIso()
@@ -730,7 +730,7 @@ function reasonKeyOf(trip: AssuranceTrip): string {
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 export interface LegDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   canWrite: boolean

@@ -46,7 +46,11 @@ export const QUEUE_SHARED_EN: Dictionary = {
   /* Q-53 — the replacement for `'🔒 ' + claimedBy`. One key, one placeholder. */
   'queue.owner.heldBy': 'Held by {name}',
   /* **AC-207** — the 30-minute expiry, stated on the queue. */
-  'queue.owner.expiry': 'A claim is released after {minutes} minutes without activity.',
+  /* A plural family: `{minutes} minutes` is `دقيقتين` at two and `دقائق` at
+     three, and no single Arabic string covers both. */
+  'queue.owner.expiry#one': 'A claim is released after {minutes} minute without activity.',
+  'queue.owner.expiry#other':
+    'A claim is released after {minutes} minutes without activity.',
 
   /* **AC-203** — the confirmation names the current owner and states that they
      lose the item **without being asked**. Rule 9: it also says what does not

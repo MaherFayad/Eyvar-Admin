@@ -318,12 +318,12 @@ export function AppLayout() {
    * TOAST and not a banner, one line, no action. The name is interpolated from
    * the same key the menu item renders, so the two can never disagree.
    *
-   * The `t` this closure holds is the **pre-switch** translator — state has not
-   * re-rendered yet — and that is row 23's own example: *"Interface language
-   * set to Arabic"*, an English sentence naming the language just chosen. The
-   * operator reads the confirmation in the language they were reading a moment
-   * ago, which is the one they can definitely read. (While `AR` is empty the
-   * two are identical anyway; this comment is here for the day it is not.)
+   * **The toast is written in the language just chosen**, through
+   * `translatorFor(next)`. `shell.language.t` is still the PRE-switch
+   * translator inside this closure — state has not re-rendered — so using it
+   * put an English sentence on a page that had already become Arabic, which is
+   * the one piece of Latin left on the screen at the moment an operator is
+   * checking whether the switch worked.
    *
    * **The choice now survives reload, and Q1 is closed.** It did not, and the
    * reason was not the one recorded here: `defaultUiStore` already gives the
@@ -346,10 +346,9 @@ export function AppLayout() {
       /* G9 — `info`. Switching language changed a preference, not an
          object, so it is not a `success` in R9's sense; and a bare `toast()`
          is no longer a kind this product has. */
+      const after = shell.language.translatorFor(next)
       toast.info(
-        shell.language.t('state.languageSwitched.toast', {
-          language: shell.language.t(`shell.language.${next}`),
-        }),
+        after('state.languageSwitched.toast', { language: after(`shell.language.${next}`) }),
       )
     },
     [shell.language],

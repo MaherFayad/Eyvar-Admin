@@ -57,6 +57,7 @@ import {
   type QueueClockResult,
   type SlaClock,
   type Translate,
+  type Translator,
 } from '@/lib'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -184,7 +185,7 @@ export interface OwnerChipProps {
   currentUserId: string
   /** For `Yours · 4m`: the elapsed hold time. */
   now: string
-  t: Translate
+  t: Translator
   onClaim: () => void
   onRelease: () => void
   onTakeOver: () => void
@@ -227,7 +228,7 @@ export function OwnerChip({
   const blocked = !canWrite || unavailableReason !== null
   const reason = unavailableReason ?? disabledReason
   /* AC-207 — the expiry period, stated on the queue itself. */
-  const expiry = t('queue.owner.expiry', { minutes: String(CLAIM_EXPIRY_MINUTES) })
+  const expiry = t.plural('queue.owner.expiry', { minutes: CLAIM_EXPIRY_MINUTES })
 
   if (held === null) {
     return (
