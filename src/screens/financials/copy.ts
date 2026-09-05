@@ -355,12 +355,16 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.escrow.col.captain': 'Captain',
   'fin.escrow.col.rider': 'Rider',
   'fin.escrow.col.amount': 'Amount (SAR)',
-  'fin.escrow.col.progress': 'Progress',
+  /* Named for what it counts: `Progress` wrapped mid-word in the width the
+     refusal's column left it, and the cell already reads `4/5 trips`. */
+  'fin.escrow.col.progress': 'Trips',
   'fin.escrow.col.state': 'State',
   'fin.escrow.progress': '{completed}/{required} trips',
   'fin.escrow.action.release': 'Release',
   'fin.escrow.blocked.trips': 'Release when every plan trip is delivered.',
-  'fin.escrow.blocked.state': 'This hold is already {state}.',
+  /* The refusal's own sentence, state-free: the two below name the state and
+     are what the row renders, so no sentence borrows a badge's casing. */
+  'fin.escrow.blocked.state': 'This hold has already been settled.',
   'fin.escrow.cancelled': 'Subscription cancelled mid-plan',
   'fin.escrow.search': 'Search holds',
   'fin.escrow.empty.heading': 'Nothing is held in escrow',
@@ -386,7 +390,7 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.search': 'Search deductions',
   'fin.deduction.action.apply': 'Apply',
   'fin.deduction.action.waive': 'Waive',
-  'fin.deduction.blocked.decided': 'This deduction is already {state}.',
+  'fin.deduction.blocked.decided': 'This deduction has already been decided.',
   'fin.deduction.empty.heading': 'No deductions raised',
   'fin.deduction.empty.body': 'A late pickup or a cleanliness report raises one against the captain.',
   'fin.deduction.empty.action': 'Read the payable ledger',
@@ -1253,5 +1257,9 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.wallets.figure.dailyUsed': 'Daily used',
   'fin.wallets.authority.envelope':
     'Daily cap {cap} · per case {perCase} · {countCap} per rider in 30 days',
+  'fin.escrow.blocked.released': 'This hold has already been released.',
+  'fin.escrow.blocked.reversed': 'This hold has already been reversed.',
+  'fin.deduction.blocked.applied': 'This deduction has already been applied.',
+  'fin.deduction.blocked.waived': 'This deduction has already been waived.',
   /* ── end lane D ── */
 }

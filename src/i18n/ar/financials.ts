@@ -234,12 +234,12 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.escrow.col.captain': 'الكابتن',
   'fin.escrow.col.rider': 'الراكب',
   'fin.escrow.col.amount': 'المبلغ (SAR)',
-  'fin.escrow.col.progress': 'التقدّم',
+  'fin.escrow.col.progress': 'الرحلات',
   'fin.escrow.col.state': 'الحالة',
   'fin.escrow.progress': '{completed}/{required} رحلة',
   'fin.escrow.action.release': 'إفراج',
   'fin.escrow.blocked.trips': 'الإفراج يتم عند تنفيذ كل رحلات الباقة.',
-  'fin.escrow.blocked.state': 'هذا الحجز {state} بالفعل.',
+  'fin.escrow.blocked.state': 'جرت تسوية هذا الحجز بالفعل.',
   'fin.escrow.cancelled': 'أُلغي الاشتراك في منتصف الباقة',
   'fin.escrow.search': 'ابحث في الحجوزات',
   'fin.escrow.empty.heading': 'لا شيء محجوز كضمان',
@@ -262,7 +262,7 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.deduction.search': 'ابحث في الخصومات',
   'fin.deduction.action.apply': 'تطبيق',
   'fin.deduction.action.waive': 'إسقاط',
-  'fin.deduction.blocked.decided': 'هذا الخصم {state} بالفعل.',
+  'fin.deduction.blocked.decided': 'صدر قرار في هذا الخصم بالفعل.',
   'fin.deduction.empty.heading': 'لم تُرفع أي خصومات',
   'fin.deduction.empty.body': 'التأخّر في الالتقاء أو بلاغ النظافة يرفع خصمًا على الكابتن.',
   'fin.deduction.empty.action': 'قراءة دفتر المستحقات',
@@ -904,5 +904,9 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.wallets.figure.dailyUsed': 'المستخدم اليوم',
   'fin.wallets.authority.envelope':
     'السقف اليومي {cap} · لكل حالة {perCase} · {countCap} لكل راكب خلال 30 يومًا',
+  'fin.escrow.blocked.released': 'جرى الإفراج عن هذا الحجز بالفعل.',
+  'fin.escrow.blocked.reversed': 'جرى عكس هذا الحجز بالفعل.',
+  'fin.deduction.blocked.applied': 'جرى تطبيق هذا الخصم بالفعل.',
+  'fin.deduction.blocked.waived': 'جرى إسقاط هذا الخصم بالفعل.',
   /* ── end lane D ── */
 }
