@@ -39,8 +39,8 @@ number and given one row there.
 | D-12 — peek is the drawer, not a sixth surface | Decided |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused | Decided |
 | D-F32 — a `Metric` derived from a server response is not a minted literal | Decided |
-| D21a — Admin: three things the workspace deliberately does not do | Decided |
-| D21b — five cross-cutting rules from the Management and Operations pass | Decided |
+| D31 — Admin: three things the workspace deliberately does not do | Decided |
+| D32 — five cross-cutting rules from the Management and Operations pass | Decided |
 | AWAITING THE OWNER'S SIGNATURE — seven items | **Open** |
 | OPEN — four metric-board items, none blocking | **Open** |
 | OPEN — six financials-data findings for product-owner | **Open** |
@@ -4648,7 +4648,7 @@ are all still open and all still ship as the plan's defaults.
 
 ---
 
-## D21a — Admin: three things the workspace deliberately does not do
+## D31 — Admin: three things the workspace deliberately does not do
 
 **Status:** decided.
 
@@ -4667,7 +4667,7 @@ carrying a literal.
 
 ---
 
-## D21b — Five cross-cutting rules settled during the Management and Operations pass
+## D32 — five cross-cutting rules settled during the Management and Operations pass
 
 **Status:** decided and implemented.
 
