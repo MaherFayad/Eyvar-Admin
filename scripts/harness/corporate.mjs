@@ -68,6 +68,9 @@ async function measure(page, lang) {
     const clipping = headers.map((h, i) => {
       let clipped = 0
       let short = 0
+      /* `scrollWidth` on the cell's own elements. It reads 0 inside an
+         `@container` cell, where the engine reports the client width, so the
+         contact column is checked in the capture and not by this number. */
       for (const r of rows) {
         const cell = r.querySelectorAll('td')[i]
         if (!cell) continue
@@ -87,6 +90,9 @@ async function measure(page, lang) {
         clippedCells: clipped,
         shortBy: Math.round(short),
         headerClipped: label.scrollWidth - label.clientWidth > 1,
+        /* A header that WRAPS is the other failure, and in Arabic it breaks
+           mid-word, so it has to be measured separately from clipping. */
+        headerLines: Math.round(label.scrollHeight / lineHeight),
       }
     })
     return {

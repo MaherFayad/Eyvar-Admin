@@ -103,7 +103,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         emphasis: 'primary',
         csv: (c) => c.companyName,
         header: t('column.company'),
-        minWidth: 192,
+        minWidth: 172,
         dataType: 'text',
         /* AC-43 - the identity is a `<Link>`: middle-clickable, its address can
            be copied, and it keeps `globals.css`'s `:focus-visible` ring. */
@@ -141,8 +141,8 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         id: 'headcount',
         emphasis: 'data',
         header: t('column.employees'),
-        width: 80,
-        minWidth: 76,
+        width: 100,
+        minWidth: 96,
         align: 'end',
         dataType: 'number',
         /* AC-73 - `0 / 40` is two numerals around a bidi-NEUTRAL slash, so an
@@ -205,9 +205,9 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         id: 'nextInvoice',
         header: t('column.nextInvoice'),
         width: 114,
-        /* Arabic wants 121 here and the 870 budget has 114 left after the
-           identity; the schedule line is the value that pays, not the name. */
-        minWidth: 100,
+        /* Arabic wants 121 and the 870 budget leaves 114 once every header
+           fits on one line; the schedule line is what pays for the shortfall. */
+        minWidth: 104,
         dataType: 'date',
         cell: (c) => (
           <div className="flex min-w-0 flex-col text-xs">
