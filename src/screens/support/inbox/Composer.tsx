@@ -301,7 +301,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           {emailSwitch !== null && !note && (
             <Toggle
               variant="outline"
-              size="sm"
+              size="default"
               pressed={byEmail}
               disabled={blocked || emailSwitch.refusal !== null}
               aria-describedby={blocked ? describedBy : emailSwitch.refusal !== null ? `${reasonId}-email` : undefined}

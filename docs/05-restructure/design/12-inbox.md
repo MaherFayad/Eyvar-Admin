@@ -302,8 +302,8 @@ Docked at B's foot, `--ev-surface`, 1px `--ev-hairline-control` border, radius 8
 |---|---|---|
 | Register | `Tabs` restyled: `TabsList` flush to the surface's top edge, `TabsTrigger` 32px, `←`/`→` between tabs | §8.6.2's five non-colour carriers stay; `--ev-note` is a sixth, added, not substituted |
 | Field | `Textarea` `rows={2}`, `field-sizing-content`, `max-h` 8 lines, transparent ground, focus ring on the composer surface (`focus-within`) | placeholder blank while refused |
-| `Insert template` | existing `TemplatePicker` trigger as `Button ghost xs` with `FileTextIcon` | surface `chat` / `email`; present in both registers; absent on phone (no surface) |
-| `Reply by email` | `Toggle variant="outline" size="sm"` `aria-pressed` | §8.6.5: only on `chat`; refusal on the toggle with `conversations.composer.noHandle` |
+| `Insert template` | existing `TemplatePicker` trigger as `Button ghost` (`default`, 32px: `xs` is 11px in Latin) with `FileTextIcon` | surface `chat` / `email`; present in both registers; absent on phone (no surface) |
+| `Reply by email` | `Toggle variant="outline"` (`default`, 32px, one height with `Insert template`) `aria-pressed` | §8.6.5: only on `chat`; refusal on the toggle with `conversations.composer.noHandle` |
 | Attachment slot | **not rendered** in v1 | see §10 |
 | `Send` / `Add note` | `Button variant="default" size="sm"` | the only filled button on the screen while held (AC-CC-09); disabled while empty with no reason |
 | Refusal line | `<p id=…>` `text-xs` `--ev-text-2` under the surface, once | §8.6.3 / §8.6.8: real text beneath, never in the placeholder |
