@@ -30,7 +30,7 @@ export function SkipToContent({ t }: { t: Translate }) {
         'focus-visible:inline-flex focus-visible:h-control focus-visible:items-center',
         'focus-visible:rounded-lg focus-visible:border focus-visible:border-border',
         'focus-visible:bg-card focus-visible:px-2.5 focus-visible:text-sm focus-visible:font-medium',
-        'focus-visible:text-foreground focus-visible:shadow-2',
+        'focus-visible:text-foreground',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       ].join(' ')}
     >

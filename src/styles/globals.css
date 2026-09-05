@@ -393,6 +393,25 @@
      licenses the firm weight for "anything the operator can click", and every
      raised surface is. */
   --ev-surface-2-edge: var(--ev-hairline-control);
+  /* ── **D33a.** A SURFACE THAT COVERS THE PAGE IS NOT A SURFACE THAT SITS
+     ON IT. The modal sheet, the dialog and the command palette REPLACE the
+     page; their ground is the scrim, not the canvas. So in LIGHT they stay
+     white, because darkening the thing the operator was just sent to look at
+     until it is duller than the page behind it is backwards. In DARK they
+     recess with everything else, where a darker panel against a dark scrim is
+     what reads as the focused object.
+
+       light  #ffffff  the page's own value, over a page dimmed to ~1.24 : 1
+                       under it by the scrim, plus --ev-surface-2-edge at
+                       1.634 : 1
+       dark   #000000  1.179 : 1 under the page, edge 1.554 : 1
+
+     **THE ANCHORED TIER IS A DIFFERENT SURFACE AND KEEPS --ev-surface-2.** A
+     dropdown, a select and a popover hang off a control and rest ON the page
+     rather than covering it, so D33 applies to them unchanged: light #e0e5ea,
+     1.130 under the card they usually open over. Judgement call, recorded so
+     it can be reversed in one line if it reads badly. */
+  --ev-surface-modal: #ffffff;
   /* The neutral badge plate. The same tint as --ev-bg2, one step under the
      card it sits on; its own name so dark can move the plate without moving
      the strip (R7). Its ink is --ev-text-2 at 4.934 : 1 here. */
@@ -1806,6 +1825,8 @@
   --ev-bg: #14181e;
   --ev-surface: #080a0d;
   --ev-surface-2: #000000;
+  /* D33a: the covering tier recesses in dark, so it is the raised value. */
+  --ev-surface-modal: var(--ev-surface-2);
   --ev-surface-edge: var(--ev-hairline);
 
   --ev-nav-hover: #171c23;
@@ -2210,6 +2231,14 @@
      step of 1.000 against it and no shadow to make up the difference. See
      --ev-surface-2-edge for the six ratios. */
   --popover-border: var(--ev-surface-2-edge);
+  /* D33a. `bg-modal` / `text-modal-foreground` / `border-modal-border`: the
+     COVERING tier, which is the dialog, the modal sheet and the command
+     palette. White in light and the deepest value in dark; see
+     --ev-surface-modal. Its edge is the raised tier's, because both are
+     floating surfaces and D34 leaves that line load-bearing. */
+  --modal: var(--ev-surface-modal);
+  --modal-foreground: var(--ev-ink);
+  --modal-border: var(--ev-surface-2-edge);
 
   /* **D7 §1.2 IS AMENDED HERE: THE PRIMARY ACTION IS BRAND GREEN.**
      R3 stays killed and D-1 stays void — the primary action did not go back
@@ -2633,6 +2662,9 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover-border: var(--popover-border);
+  --color-modal: var(--modal);
+  --color-modal-foreground: var(--modal-foreground);
+  --color-modal-border: var(--modal-border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   /* The large brand SURFACE — `bg-brand-field` / `text-brand-field-foreground`.

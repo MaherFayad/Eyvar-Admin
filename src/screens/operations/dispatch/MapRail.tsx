@@ -54,7 +54,7 @@ export function MapRail({
   )
   return (
     <>
-      <Card className="shrink-0 gap-0 py-3 shadow-2">
+      <Card className="shrink-0 gap-0 py-3">
         <CardHeader className="px-3 pb-2">
           <CardTitle className={CARD_TITLE}>{t('dispatch.layers.title')}</CardTitle>
         </CardHeader>
@@ -99,7 +99,7 @@ export function MapRail({
                  red on this ground measures 3.26 : 1 (globals.css:588), which
                  is a graphic contrast and not a text one — so the red is the
                  dot, where 3 : 1 is the bar it has to clear. */
-              'flex w-full items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-row-critical px-3 py-2.5 text-start shadow-2 transition-colors',
+              'flex w-full items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-row-critical px-3 py-2.5 text-start transition-colors',
               'hover:bg-row-critical-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               interventionsOpen && 'rounded-b-none border-b-0',
             )}
@@ -120,7 +120,7 @@ export function MapRail({
         </div>
       )}
 
-      <Card className="shrink-0 gap-0 py-3 shadow-2">
+      <Card className="shrink-0 gap-0 py-3">
         <CardHeader className="px-3 pb-2">
           <CardTitle className={CARD_TITLE}>
             {t('dispatch.legend.title')}

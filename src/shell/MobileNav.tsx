@@ -202,7 +202,7 @@ export function MobileNavPanel({
            wrong side of the drawer under `dir="rtl"` and would look correct in
            every English review. `globals.css` remaps the pair behind a
            `[dir="rtl"]` hook so the call site does not have to know. */
-        className="fixed inset-y-0 start-0 z-50 flex w-auto shadow-3 outline-none transition-transform duration-200 ease-out pt-safe-top pb-safe-bottom ps-safe-start data-closed:-translate-x-full rtl:data-closed:translate-x-full"
+        className="fixed inset-y-0 start-0 z-50 flex w-auto border-e border-popover-border outline-none transition-transform duration-200 ease-out pt-safe-top pb-safe-bottom ps-safe-start data-closed:-translate-x-full rtl:data-closed:translate-x-full"
       >
         {/* Radix requires an accessible title on a dialog and warns to the
             console without one. Visually hidden: the drawer's two landmarks

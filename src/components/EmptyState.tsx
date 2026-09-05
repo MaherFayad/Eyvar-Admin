@@ -105,7 +105,7 @@ export interface EmptyAction {
  *
  * The card recipe itself is NOT re-typed here — it is `Card`, with its own
  * padding-block zeroed so the state owns its vertical rhythm. One source for the
- * radius, the border and `--ev-shadow-1`; one override.
+ * radius and the border; one override.
  */
 function StateCard({ children }: { children: ReactNode }) {
   return <Card className="w-full py-0">{children}</Card>

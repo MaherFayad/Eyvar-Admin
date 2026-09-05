@@ -46,7 +46,7 @@ export function MapZoomControls({
   return (
     <div
       className={cn(
-        'absolute z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2',
+        'absolute z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-card',
         side === 'start' ? 'bottom-3 start-3' : 'bottom-10 end-3',
       )}
     >

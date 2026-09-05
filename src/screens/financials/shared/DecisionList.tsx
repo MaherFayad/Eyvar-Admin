@@ -29,7 +29,7 @@ export function DecisionList({
   const rtl = directionFor(language) === 'rtl'
 
   return (
-    <Card className="min-w-0 border border-border shadow-xs">
+    <Card className="min-w-0 border border-border">
       <CardHeader className="border-b border-border/50 pb-3">
         <CardTitle id={headingId}>{t('fin.overview.decisions.heading')}</CardTitle>
       </CardHeader>

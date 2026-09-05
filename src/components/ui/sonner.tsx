@@ -100,7 +100,7 @@ function Toaster({ toastOptions, ...props }: ToasterProps) {
             "flex min-h-8 w-fit max-w-160 items-center gap-2",
             "rounded-lg border-0 px-3 py-1.5",
             "bg-foreground text-background",
-            "text-sm font-normal shadow-2",
+            "text-sm font-normal",
           ].join(" "),
           title: "text-sm font-normal",
           description: "text-sm text-background/80",

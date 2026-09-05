@@ -74,7 +74,7 @@ export function OnboardingBeacon({
           <button
             type="button"
             aria-label={`${label}, ${percent}`}
-            className="relative flex size-12 items-center justify-center rounded-full border border-border bg-popover shadow-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="relative flex size-12 items-center justify-center rounded-full border border-border bg-popover outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <svg viewBox="0 0 40 40" className="absolute inset-0 size-full" aria-hidden="true" focusable="false">
               <circle cx="20" cy="20" r={RADIUS} className="fill-none stroke-border" strokeWidth={3} />

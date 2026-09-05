@@ -5,12 +5,12 @@
  *   R15 / C3    radius 12px = `--ev-radius-card`, exposed as `rounded-xl`.
  *               Larger than the 8px control radius, and R13 preserves the
  *               measured figure.
- *   §1.1 / D1   the card is `--ev-surface` (white) on an `--ev-bg` canvas, so
- *               canvas and card are finally distinct. This closes legacy
- *               defect D1, where both were white.
- *   §2.1        separated from the canvas by `border-card-border`: the 1px
- *               hairline in light, nothing in dark, where the card's lift and
- *               the inset highlight in `shadow-1` carry the edge (AC-CC-01).
+ *   D33         the card is `--ev-surface`, one value step RECESSED under the
+ *               page in both themes. This closes legacy defect D1 and D-11,
+ *               where the card and the page were both white.
+ *   D34         its second carrier is `border-card-border`, a real 1px
+ *               hairline in BOTH themes. There is no shadow and no inset
+ *               highlight; a step plus a line is the whole of elevation.
  *   §10.1       ONE CONCERN PER CARD. Bold card title, 12px internal padding,
  *               12px between cards. `--card-spacing` is 12px, not the stock
  *               16px — D-2, density is the product.
@@ -39,7 +39,7 @@ function Card({
       data-size={size}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden",
-        "rounded-xl border border-card-border bg-card shadow-1 py-(--card-spacing)",
+        "rounded-xl border border-card-border bg-card py-(--card-spacing)",
         "text-sm text-card-foreground",
         "[--card-spacing:--spacing(3)] data-[size=sm]:[--card-spacing:--spacing(2)]",
         "has-data-[slot=card-footer]:pb-0",

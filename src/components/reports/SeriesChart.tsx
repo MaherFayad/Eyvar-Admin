@@ -572,7 +572,7 @@ export function SeriesTooltip({
     <div
       dir={directionFor(language)}
       data-slot="series-tooltip"
-      className="grid min-w-48 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-2"
+      className="grid min-w-48 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs"
     >
       <p className="font-medium text-foreground">
         <bdi>{row.label}</bdi>

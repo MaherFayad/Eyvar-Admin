@@ -95,7 +95,7 @@
  *               `0 2px 8px -2px` reached 6px below the edge and the measured
  *               reference falloff is ~19px, so the token moved to
  *               `0 8px 24px -2px`. Nothing here changes; the value moved under
- *               the `shadow-2` utility `sheet.tsx` already applies.
+ *               the `` utility `sheet.tsx` already applies.
  *   D7 §4.7     width re-measured against the reference: its drawer's leading
  *               edge is at destination x = 505.5 of a 767.5 frame → 491px, and
  *               480 is the nearest 16px value. **R13's named-figure carve-out

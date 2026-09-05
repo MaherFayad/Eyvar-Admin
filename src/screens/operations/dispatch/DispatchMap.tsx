@@ -451,7 +451,7 @@ export function DispatchMap({
               resetView()
             }}
             className={cn(
-              'absolute z-10 rounded-lg border border-border bg-card px-2 py-1 text-xs shadow-2 transition-colors',
+              'absolute z-10 rounded-lg border border-border bg-card px-2 py-1 text-xs transition-colors',
               'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
               fittedBounds === null ? 'text-muted-foreground' : 'text-foreground',
               freeSide === 'start' ? 'bottom-18 start-3' : 'bottom-25 end-3',

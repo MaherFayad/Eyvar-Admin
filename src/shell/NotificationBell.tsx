@@ -141,7 +141,7 @@ export function NotificationBell({
         */}
       <PopoverContent
         align="end"
-        className="w-96 compact:w-88 max-h-[85vh] flex flex-col gap-0 p-0 bg-popover text-popover-foreground shadow-2xl border border-border rounded-xl overflow-hidden z-50"
+        className="w-96 compact:w-88 max-h-[85vh] flex flex-col gap-0 p-0 bg-popover text-popover-foreground border border-border rounded-xl overflow-hidden z-50"
         onCloseAutoFocus={(event) => {
           if (!handedOff.current) return
           handedOff.current = false

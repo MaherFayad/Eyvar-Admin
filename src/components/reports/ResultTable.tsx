@@ -415,7 +415,7 @@ export function ResultTable({
           the primitive's doc predicted, and it is why the radius travels to the
           container as well — the header's `bg-muted` would otherwise square off
           the two top corners it scrolls under. */}
-      <div className="rounded-xl border border-card-border bg-card shadow-1">
+      <div className="rounded-xl border border-card-border bg-card">
         <Table
           containerClassName="rounded-xl"
           /* §9.1 — see the file header. Intrinsic width, floored at the card. */

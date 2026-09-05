@@ -154,7 +154,7 @@ export function MapExpandButton({ label, onClick, className }: MapExpandButtonPr
       aria-label={label}
       title={label}
       className={cn(
-        'absolute top-2 end-2 z-10 flex size-7 items-center justify-center rounded-lg border border-border bg-card/95 text-foreground shadow-2',
+        'absolute top-2 end-2 z-10 flex size-7 items-center justify-center rounded-lg border border-border bg-card/95 text-foreground',
         'hover:bg-card focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none',
         className,
       )}

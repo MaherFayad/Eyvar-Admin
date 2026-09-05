@@ -104,7 +104,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
                 <Skeleton className="h-3 w-full" />
                 <Skeleton className="h-3 w-3/4" />
               </div>
-              <div className="col-span-2 rounded-xl border border-card-border bg-card shadow-1 p-3">
+              <div className="col-span-2 rounded-xl border border-card-border bg-card p-3">
                 {[0, 1, 2, 3, 4].map((field) => (
                   <div key={field} className="mb-3 flex flex-col gap-1 last:mb-0">
                     <Skeleton className="h-3.5 w-24" />
@@ -133,7 +133,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
           {[0, 1, 2, 3].map((tile) => (
             <div
               key={tile}
-              className="flex flex-col gap-1.5 rounded-xl border border-card-border bg-card shadow-1 p-3"
+              className="flex flex-col gap-1.5 rounded-xl border border-card-border bg-card p-3"
             >
               <Skeleton className="size-4 rounded-sm" />
               <Skeleton className="h-6 w-20" />
@@ -162,7 +162,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
        skeleton must not promise furniture that will not arrive. */
     case 'P7':
       return (
-        <div className="rounded-xl border border-card-border bg-card shadow-1">
+        <div className="rounded-xl border border-card-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <Skeleton className="h-4 w-56" />
             <Skeleton className="h-4 w-28" />
@@ -220,7 +220,7 @@ function shapeFor(pattern: SkeletonPattern, rows: number) {
 /** P1 / P9, and P8 with two extra blocks per row. */
 function IndexShape({ rows, queue = false }: { rows: number; queue?: boolean }) {
   return (
-    <div className="rounded-xl border border-card-border bg-card shadow-1">
+    <div className="rounded-xl border border-card-border bg-card">
       {/* toolbar, 40px */}
       <div className="flex h-10 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ function RowBars({
 /** One card outline with N body lines. Carries tier-1 elevation, like a card. */
 function CardOutline({ lines }: { lines: number }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-card-border bg-card shadow-1 p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-card-border bg-card p-3">
       <Skeleton className="h-4 w-28" />
       {Array.from({ length: lines }, (_, i) => (
         <Skeleton key={i} className="h-3 w-full last:w-2/3" />

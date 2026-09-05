@@ -138,7 +138,7 @@ export function FeedPanel({
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card shadow-2',
+        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card',
         /* Collapsed, the panel is its own header and nothing else, so it must
            NOT claim the region's height — hence the growth is conditional
            rather than a constant `flex-1`. */

@@ -25,7 +25,7 @@
  *            The **mark inside it does not mirror** (§9.5) — it is brand — but
  *            there is no mark here, only text and two buttons.
  *   §5.7     heading states the value; both buttons are verbs.
- *   tokens   `bg-card`, `border-border`, `shadow-1`, `rounded-xl` and the type
+ *   tokens   `bg-card`, `border-border`, ``, `rounded-xl` and the type
  *            scale, all lifted from `components/ui/card.tsx` rather than
  *            invented. No arbitrary values, no palette classes, no hex.
  */
@@ -53,7 +53,7 @@ export function InstallAffordance() {
          none. An operator reading a queue must not be interrupted by an offer to
          install — the offer waits until they look at it. */
       aria-label={t('pwa.install.title')}
-      className="fixed bottom-4 end-4 z-50 w-80 rounded-xl border border-card-border bg-card p-3 text-sm text-card-foreground shadow-1"
+      className="fixed bottom-4 end-4 z-50 w-80 rounded-xl border border-card-border bg-card p-3 text-sm text-card-foreground"
     >
       <p className="font-medium">{t('pwa.install.title')}</p>
       <p className="mt-1 text-muted-foreground">{t('pwa.install.body')}</p>

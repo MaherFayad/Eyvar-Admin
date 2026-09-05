@@ -2702,7 +2702,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
            * the container is bottom-aligned inside a zero-height sticky row, so
            * a refusal appearing moves nothing on the page.
            */}
-          <div className="pointer-events-auto flex flex-col rounded-xl bg-foreground text-background shadow-3">
+          <div className="pointer-events-auto flex flex-col rounded-xl bg-foreground text-background">
             {refusalLines.length > 0 && (
               <>
                 <div className="flex max-w-prose flex-col gap-1 px-4 py-2 text-start">

@@ -56,7 +56,7 @@
  *               at all — no empty row, no dead link. `Help` is not among them:
  *               Eyvar has no help centre. This is what **AC-503**'s trailing
  *               clause (spec §19.3 C-1) exists for.
- *   R-3 tier 2  `--ev-shadow-2`, pre-assigned in `00-decisions-r3.md` §1.2.
+ *   D34         no elevation. The card is its value step and its hairline.
  *   §9 / rtl    every utility is logical, so the card mirrors with no second
  *               rule. It does **not** widen in Arabic — only the eight
  *               dimensions in `03-navattic-language.md` §1.7 step up, and the

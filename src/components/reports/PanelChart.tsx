@@ -562,7 +562,7 @@ export function PanelTooltip({
     <div
       dir={directionFor(language)}
       data-slot="panel-tooltip"
-      className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-2"
+      className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs"
     >
       <div className="grid gap-0.5">
         {/* The series, then the bucket. A panel title may carry a group value,

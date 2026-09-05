@@ -43,7 +43,7 @@
  *   §6.1        anchored inline-END, starting below the shell banner and the
  *               top bar, running to the bottom of the viewport. The top bar
  *               stays reachable: a layer can be open while a form is dirty.
- *   §1.3        elevation is `shadow-2` — the drawer tier — AND the 1px
+ *   §1.3        elevation is `` — the drawer tier — AND the 1px
  *               inline-start hairline. Both, per the R-3 ruling: tier 3 is
  *               reserved for the scrimmed modals, and a drawer that outranked
  *               a modal would misreport the stacking order it deliberately
@@ -305,8 +305,8 @@ function SheetContent({
           onInteractOutside?.(event)
         }}
         className={cn(
-          "fixed z-50 flex flex-col bg-popover text-sm text-popover-foreground",
-          "shadow-2 transition-transform duration-200 ease-out",
+          "fixed z-50 flex flex-col bg-modal text-sm text-modal-foreground",
+          "transition-transform duration-200 ease-out",
           /* **`overlay` — a modal over the whole shell, not a panel at an
              edge.** Inset 24px at and above 768px so it reads as a POPUP: a
              panel with all four edges visible over a dimmed console. Edge to
