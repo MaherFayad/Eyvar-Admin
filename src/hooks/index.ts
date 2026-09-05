@@ -85,6 +85,7 @@ export {
 export { useOnline } from './useOnline'
 export { useCompactShell, useDrawerDisclosure, type DisclosureState } from './useCompactShell'
 export { useRovingFocus, type RovingFocus, type RovingItemProps, type UseRovingFocusOptions } from './useRovingFocus'
+export { useStickToBottom, STICK_TO_BOTTOM_THRESHOLD_PX, type StickToBottom } from './useStickToBottom'
 export {
   useNow,
   useTick,

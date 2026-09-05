@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EYVAR_NOW, EYVAR_TODAY } from '@/data/clients'
-import { RIYADH_TIME_ZONE, formatDate, toDate } from './date'
+import { createTranslator, placeholdersIn } from '../i18n/translate'
+import { DATE_MESSAGES_EN, RIYADH_TIME_ZONE, calendarDay, formatDate, toDate } from './date'
 
 describe('formatDate', () => {
   it('renders the styles in English', () => {
@@ -132,5 +133,106 @@ describe('formatDate', () => {
 
   it('accepts a Date as well as an ISO string', () => {
     expect(formatDate(new Date('2026-06-25T09:14:00+03:00'), { style: 'day-month' })).toBe('25 Jun')
+  })
+})
+
+/* ── relative: the inbox row age and the thread header (design 12 §3.1) ── */
+
+describe('formatDate relative', () => {
+  const t = createTranslator({ dictionary: DATE_MESSAGES_EN })
+  /* Kept as its own literal rather than importing `src/i18n/ar/date.ts`, so
+     `src/lib` stays free of `src/i18n`, as `fileSize.test.ts` does. */
+  const arabic = createTranslator({
+    dictionary: {
+      'date.age.now': 'الآن',
+      'date.age.minutes': '{count}m',
+      'date.age.hours': '{count}h',
+      'date.age.days': '{count}d',
+    },
+    fallback: DATE_MESSAGES_EN,
+    language: 'ar',
+  })
+  const nowMs = Date.parse(EYVAR_NOW)
+  const ago = (ms: number): Date => new Date(nowMs - ms)
+  const MINUTE = 60_000
+  const HOUR = 3_600_000
+  const DAY = 86_400_000
+
+  it('reads now under a minute', () => {
+    expect(formatDate(ago(0), { style: 'relative', now: EYVAR_NOW, t })).toBe('now')
+    expect(formatDate(ago(59_999), { style: 'relative', now: EYVAR_NOW, t })).toBe('now')
+  })
+
+  it('reads whole minutes under an hour, floored', () => {
+    expect(formatDate(ago(2 * MINUTE), { style: 'relative', now: EYVAR_NOW, t })).toBe('2m')
+    expect(formatDate(ago(2 * MINUTE + 59_000), { style: 'relative', now: EYVAR_NOW, t })).toBe('2m')
+    expect(formatDate(ago(59 * MINUTE + 59_000), { style: 'relative', now: EYVAR_NOW, t })).toBe('59m')
+  })
+
+  it('reads whole hours under a day', () => {
+    expect(formatDate(ago(HOUR), { style: 'relative', now: EYVAR_NOW, t })).toBe('1h')
+    expect(formatDate(ago(4 * HOUR + 30 * MINUTE), { style: 'relative', now: EYVAR_NOW, t })).toBe('4h')
+    expect(formatDate(ago(24 * HOUR - 1), { style: 'relative', now: EYVAR_NOW, t })).toBe('23h')
+  })
+
+  it('reads whole days under seven', () => {
+    expect(formatDate(ago(DAY), { style: 'relative', now: EYVAR_NOW, t })).toBe('1d')
+    expect(formatDate(ago(3 * DAY + 5 * HOUR), { style: 'relative', now: EYVAR_NOW, t })).toBe('3d')
+    expect(formatDate(ago(7 * DAY - 1), { style: 'relative', now: EYVAR_NOW, t })).toBe('6d')
+  })
+
+  it('falls back to day-month from the seventh day', () => {
+    expect(formatDate(ago(7 * DAY), { style: 'relative', now: EYVAR_NOW, t })).toBe('18 Jun')
+    expect(formatDate(ago(40 * DAY), { style: 'relative', now: EYVAR_NOW, t })).toBe('16 May')
+  })
+
+  it('reads a future instant as now rather than a negative age', () => {
+    expect(formatDate(new Date(nowMs + 5 * MINUTE), { style: 'relative', now: EYVAR_NOW, t })).toBe('now')
+  })
+
+  it('accepts the clock as an ISO string or a Date', () => {
+    expect(formatDate(ago(HOUR), { style: 'relative', now: new Date(nowMs), t })).toBe('1h')
+  })
+
+  it('renders in Arabic with Western digits and a translated now', () => {
+    const opts = { style: 'relative' as const, now: EYVAR_NOW, t: arabic, language: 'ar' as const }
+    expect(formatDate(ago(0), opts)).toBe('الآن')
+    expect(formatDate(ago(4 * HOUR), opts)).toBe('4h')
+    expect(formatDate(ago(40 * DAY), opts)).not.toMatch(/[٠-٩]/)
+    expect(formatDate(ago(40 * DAY), opts)).toContain('16')
+  })
+
+  it('refuses to run without a clock, so no caller reaches for Date.now()', () => {
+    expect(() => formatDate(ago(0), { style: 'relative', t })).toThrow(/now/)
+  })
+
+  it('refuses to run without a translator, so the unit cannot be concatenated', () => {
+    expect(() => formatDate(ago(0), { style: 'relative', now: EYVAR_NOW })).toThrow(/translator/)
+  })
+
+  it('declares every placeholder its keys use', () => {
+    for (const template of Object.values(DATE_MESSAGES_EN)) {
+      expect(placeholdersIn(template).every((p) => p === 'count')).toBe(true)
+    }
+  })
+})
+
+describe('calendarDay', () => {
+  it('returns the Riyadh calendar day of an instant', () => {
+    expect(calendarDay(EYVAR_NOW)).toBe(EYVAR_TODAY)
+    expect(calendarDay('2026-06-24T21:00:30Z')).toBe('2026-06-25')
+    expect(calendarDay('2026-06-24T20:59:30Z')).toBe('2026-06-24')
+  })
+
+  it('takes a bare date as that day', () => {
+    expect(calendarDay('2026-03-01')).toBe('2026-03-01')
+  })
+
+  it('pads month and day to two digits', () => {
+    expect(calendarDay('2026-01-05T12:00:00+03:00')).toBe('2026-01-05')
+  })
+
+  it('honours a caller-supplied zone', () => {
+    expect(calendarDay('2026-06-24T21:00:30Z', 'UTC')).toBe('2026-06-24')
   })
 })

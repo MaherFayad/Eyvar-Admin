@@ -37,7 +37,7 @@
  */
 
 import type { Dictionary, Language } from '@/lib'
-import { FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
+import { DATE_MESSAGES_EN, FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
 /* A Phase 1 screen owns its own copy and exports it as a `Dictionary`; the
    assembly below is the only place they meet. One import and one spread per
    screen, so adding a screen never edits another screen's strings.
@@ -1152,6 +1152,7 @@ export const EN: Dictionary = {
   ...form,
   ...SLA_MESSAGES_EN,
   ...FILE_SIZE_MESSAGES_EN,
+  ...DATE_MESSAGES_EN,
   ...COMMANDS_EN,
   ...ADMIN_ACTIVITY_EN,
   ...ADMIN_DATA_EN,
