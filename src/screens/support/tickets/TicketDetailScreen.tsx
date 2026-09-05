@@ -545,6 +545,8 @@ export function TicketDetailScreen() {
               </p>
             )}
             <div className="flex items-start justify-between gap-3">
+              {/* The two tools sit together at the start; Send alone at the end (§8.6.3). */}
+              <span className="flex items-start gap-2">
               <span className="flex flex-col items-start gap-1">
                 <Button
                   variant="secondary"
@@ -568,6 +570,7 @@ export function TicketDetailScreen() {
                 onInsert={(text) => setReplyText((current) => (current.trim() ? `${current}\n${text}` : text))}
                 t={t}
               />
+              </span>
               <span className="flex flex-col items-end gap-1">
                 <Button
                   variant="secondary"
