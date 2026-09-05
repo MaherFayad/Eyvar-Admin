@@ -74,9 +74,9 @@ beforeEach(() => {
   mockFailures.clear()
 })
 
-function renderScreen() {
+function renderScreen(path = '/admin/data') {
   return render(
-    <MemoryRouter initialEntries={['/admin/data']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AdminDataScreen row={row()} />
       </ShellProvider>
@@ -129,9 +129,10 @@ describe('the integrity pane — the four states', () => {
     mockFailures.always('integrity.checks')
     renderScreen()
     expect(await screen.findByText(text('adminData.integrity.error.message'))).toBeInTheDocument()
-    /* §11.2 / AC-24 — one card failing does not take the page with it. */
-    expect(screen.getByText(text('adminData.export.title'))).toBeInTheDocument()
-    expect(screen.getByText(text('adminData.retention.title'))).toBeInTheDocument()
+    /* §11.2 / AC-24 — one pane failing does not take the page with it: the
+       other panes stay reachable through the view strip. */
+    expect(screen.getByRole('tab', { name: 'Exports' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Retention & erasure' })).toBeInTheDocument()
   })
 })
 
@@ -233,7 +234,7 @@ describe('the findings table can be grouped two ways', () => {
 describe('retention actually saves', () => {
   it('persists a change and reads it back on a fresh mount', async () => {
     const user = userEvent.setup()
-    const first = renderScreen()
+    const first = renderScreen('/admin/data?view=retention')
 
     const trigger = await screen.findByRole('combobox', {
       name: text('adminData.retention.telemetry'),
@@ -248,14 +249,14 @@ describe('retention actually saves', () => {
     await waitFor(() => expect(screen.getByText(/Last saved/u)).toBeInTheDocument())
 
     first.unmount()
-    renderScreen()
+    renderScreen('/admin/data?view=retention')
     expect(
       await screen.findByRole('combobox', { name: text('adminData.retention.telemetry') }),
     ).toHaveTextContent(text('adminData.retention.days.180'))
   })
 
   it('disables the save in place, with a reason, while nothing has changed', async () => {
-    renderScreen()
+    renderScreen('/admin/data?view=retention')
     const save = await screen.findByRole('button', { name: text('adminData.retention.save') })
     expect(save).toBeDisabled()
     /* §11.2 / §8.4.4 — the reason is rendered text pointed at by
@@ -271,7 +272,7 @@ describe('retention actually saves', () => {
 describe('the export offers only what it can produce', () => {
   it('keeps the unbuildable dataset visible and disabled with its reason', async () => {
     const user = userEvent.setup()
-    renderScreen()
+    renderScreen('/admin/data?view=exports')
     const trigger = await screen.findByRole('combobox', { name: text('adminData.export.dataset') })
     await user.click(trigger)
     const support = await screen.findByRole('option', {
@@ -283,7 +284,7 @@ describe('the export offers only what it can produce', () => {
   })
 
   it('states that only CSV is produced rather than silently renaming the file', async () => {
-    renderScreen()
+    renderScreen('/admin/data?view=exports')
     expect(await screen.findByText(text('adminData.export.format.blocked'))).toBeInTheDocument()
   })
 
@@ -316,7 +317,7 @@ describe('the export offers only what it can produce', () => {
     HTMLAnchorElement.prototype.click = () => undefined
 
     try {
-      renderScreen()
+      renderScreen('/admin/data?view=exports')
       await user.click(await screen.findByRole('button', { name: text('adminData.export.action') }))
       await waitFor(() => expect(chunks.length).toBe(1))
 

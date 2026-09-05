@@ -150,6 +150,46 @@ export function resetEmails(): void {
   broadcastSequence = 900
 }
 
+/**
+ * A send another client makes through the product (the invitation, O-T6),
+ * recorded on the log as `queued`. Sync, so a mutation elsewhere can call it
+ * inside its own `mockMutation` body; the sender is the default identity.
+ */
+export function recordEmailDelivery(input: {
+  recipient: string
+  recipientName: string | null
+  templateKey: EmailTemplateKey
+  locale: EmailLocale
+}): EmailDelivery | null {
+  if (!fixturesLoaded()) return null
+  const identity = identities.find((row) => row.isDefault) ?? identities[0]
+  const template = templates.find((row) => row.key === input.templateKey && row.locale === input.locale) ?? null
+  if (!identity) return null
+  deliverySequence += 1
+  const row: EmailDelivery = {
+    id: `EML-${deliverySequence}`,
+    direction: 'outbound',
+    recipient: input.recipient,
+    recipientName: input.recipientName,
+    from: identity.address,
+    senderIdentityId: identity.id,
+    templateKey: input.templateKey,
+    templateId: template?.id ?? null,
+    locale: input.locale,
+    subject: template?.subject ?? input.templateKey,
+    state: 'queued',
+    queuedAt: EYVAR_NOW,
+    updatedAt: EYVAR_NOW,
+    failure: null,
+    canResend: false,
+    resendOf: null,
+    inReplyTo: null,
+    ticketId: null,
+  }
+  deliveries = [row, ...deliveries]
+  return { ...row }
+}
+
 /* ────────────────────── pure template mechanics ────────────────────── */
 
 /**

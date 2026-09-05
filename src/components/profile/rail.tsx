@@ -195,6 +195,13 @@ export function statusOf(
   t: Translate,
 ): { tone: Parameters<typeof StatusBadge>[0]['tone'] | null; label: string } | null {
   switch (record.entityType) {
+    case 'operator': {
+      const status = record.data.status
+      return {
+        tone: status === 'Active' ? 'success' : status === 'Invited' ? 'info' : 'neutral',
+        label: t(`profile.operator.status.${status}`),
+      }
+    }
     case 'rider': {
       const s = RIDER_STATUS[record.data.status]
       return { tone: s.tone, label: t(s.key) }
@@ -323,6 +330,9 @@ function flagsOf(record: ProfileRecord, t: Translate, language: Language): strin
  */
 function summaryFields(record: ProfileRecord, t: Translate, language: Language): Field[] {
   switch (record.entityType) {
+    /* An operator's figures are their access, drawn by the operator arrangement. */
+    case 'operator':
+      return []
     case 'rider': {
       const r = record.data
       return [
@@ -508,6 +518,8 @@ function metadataFields(
   ]
 
   switch (record.entityType) {
+    case 'operator':
+      return common
     case 'rider': {
       const r = record.data
       return [

@@ -149,6 +149,8 @@ const I18N_KEY_FIELDS = [
 
 /** Dotted, but an identifier. Translating one of these would be the defect. */
 const IDENTIFIER_KEY_FIELDS = [
+  /* An `EmailTemplateKey` (`trip.receipt`, `team.invite`): the template's id, not its copy. */
+  'templateKey',
   'measureKey',
   'anchorMeasureKey',
   'rootMeasureKey',

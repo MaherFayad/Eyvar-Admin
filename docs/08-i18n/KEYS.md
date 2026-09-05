@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5700** |
-| Reachable from `EN` (what the shell renders) | 5421 |
-| Keys in `AR` | 5700 |
+| **Translatable keys, all dictionaries** | **5860** |
+| Reachable from `EN` (what the shell renders) | 5581 |
+| Keys in `AR` | 5860 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -19,8 +19,8 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
+| **English values carrying an em dash (the ratchet)** | **109** |
+| **Arabic values carrying an em dash (the ratchet)** | **113** |
 | **English values over their word budget (the ratchet)** | **192** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **109** English and **113** Arabic, measured **109** and **113**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -47,7 +47,7 @@ Both ceilings only ever fall.
 | Language | File | Values |
 |---|---|---:|
 | ar | `src/i18n/ar/adminData.ts` | 13 |
-| ar | `src/i18n/ar/adminTeam.ts` | 6 |
+| ar | `src/i18n/ar/adminTeam.ts` | 4 |
 | ar | `src/i18n/ar/adminWorkspace.ts` | 18 |
 | ar | `src/i18n/ar/assurance.ts` | 4 |
 | ar | `src/i18n/ar/auth.ts` | 1 |
@@ -76,7 +76,7 @@ Both ceilings only ever fall.
 | en | `src/pwa/copy.ts` | 1 |
 | en | `src/screens/admin/data/copy.ts` | 13 |
 | en | `src/screens/admin/policy/copy.ts` | 5 |
-| en | `src/screens/admin/team/copy.ts` | 6 |
+| en | `src/screens/admin/team/copy.ts` | 3 |
 | en | `src/screens/admin/workspace/copy.ts` | 18 |
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
@@ -127,14 +127,9 @@ Both ceilings only ever fall.
 | en | `adminData.retention.months.13` | 13 months — a year plus headroom |
 | ar | `admin.team.sessions.title` | الجلسات — {name} |
 | ar | `admin.team.matrix.desc` | ما يستطيع كل دور فعله. تعديلها موقوف على نموذج الأدوار — انظر الملاحظة أسفل الجدول. |
-| ar | `admin.team.rota.option` | {name} — {role} |
-| ar | `admin.audit.team.permissionsChanged` | تغيّرت صلاحيات {name} — أُضيفت {added} وأُزيلت {removed} |
 | ar | `admin.audit.team.securityPolicy` | حُفظت سياسة الأمان — الخمول {idleMinutes} دقيقة، والانتهاء المطلق {expiryHours} ساعة، وتغيّر اشتراط عامل التحقق الثاني: {twoFactor} |
 | ar | `admin.audit.team.rota` | حُفظ جدول المناوبة — الأساسي {primary} |
 | en | `admin.team.sessions.title` | Sessions — {name} |
-| en | `admin.team.matrix.desc` | What each role can do. Editing it is blocked on the role model — see the note below the table. |
-| en | `admin.team.rota.option` | {name} — {role} |
-| en | `admin.audit.team.permissionsChanged` | Changed {name}’s permissions — {added} added, {removed} removed |
 | en | `admin.audit.team.securityPolicy` | Security policy saved — idle {idleMinutes} min, absolute expiry {expiryHours} h, second-factor requirement changed: {twoFactor} |
 | en | `admin.audit.team.rota` | On-call rota saved — primary {primary} |
 | ar | `admin.workspace.empty.body` | لم يُضبط شيء لمساحة العمل هذه بعد — لا اسم ولا عنوان دعم ولا نسخ قانونية. اضبطها لتلتقطها كل شاشة. |
@@ -552,15 +547,15 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 785 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 564 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
+| `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
-| `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
-| `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 188 |
+| `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 214 |
+| `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 189 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
-| `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 164 |
+| `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 166 |
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
-| `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 112 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 111 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
@@ -570,8 +565,8 @@ Measured on English only, and a placeholder counts as one word.
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
+| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 81 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
-| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
@@ -581,7 +576,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
-| `src/screens/admin/activity/copy.ts` | `ADMIN_ACTIVITY_EN` | 22 |
+| `src/screens/admin/activity/copy.ts` | `ADMIN_ACTIVITY_EN` | 25 |
 | `src/pwa/copy.ts` | `PWA_EN` | 4 |
 
 ### Not registered in `src/i18n/dictionaries.ts`

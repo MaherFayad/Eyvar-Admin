@@ -322,7 +322,7 @@ describe('the screen', () => {
   })
 
   it('disables Make default on an unverified identity and says why — AC-C7', async () => {
-    mount()
+    mount('/admin/communications?view=senders')
     const careers = await screen.findByText('careers@eyvar.sa')
     const listItem = careers.closest('li')
     expect(listItem).not.toBeNull()
@@ -334,14 +334,14 @@ describe('the screen', () => {
   })
 
   it('shows which language a template family is missing — AC-C3', async () => {
-    mount()
+    mount('/admin/communications?view=templates')
     expect(await screen.findByText('Weekly payout processed')).toBeInTheDocument()
     expect(screen.getAllByText('No Arabic version').length).toBeGreaterThan(0)
   })
 
   it('previews a template with its sample values substituted — AC-C4', async () => {
     const user = userEvent.setup()
-    mount()
+    mount('/admin/communications?view=templates')
     const receipt = await screen.findByText('Trip receipt')
     const family = receipt.closest('li')
     const editButtons = within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })
@@ -355,7 +355,7 @@ describe('the screen', () => {
 
   it('blocks the save and names the undeclared variable — AC-C5', async () => {
     const user = userEvent.setup()
-    mount()
+    mount('/admin/communications?view=templates')
     const reset = await screen.findByText('Reset your password')
     const family = reset.closest('li')
     await user.click(within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })[0] as HTMLElement)
@@ -375,7 +375,7 @@ describe('the screen', () => {
 
   it('warns before saving a template that is in use — AC-C6', async () => {
     const user = userEvent.setup()
-    mount()
+    mount('/admin/communications?view=templates')
     const receipt = await screen.findByText('Trip receipt')
     const family = receipt.closest('li')
     await user.click(within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })[0] as HTMLElement)
@@ -414,7 +414,7 @@ describe('the screen', () => {
        is the reason `getMockLatency` is non-zero by default. */
     const { setMockLatency } = await import('@/data/config')
     setMockLatency(40)
-    mount()
+    mount('/admin/communications?view=senders')
     expect(await screen.findByLabelText('Sender identities')).toBeInTheDocument()
     setMockLatency(0)
   })
@@ -429,11 +429,13 @@ describe('the screen', () => {
     document.documentElement.setAttribute('dir', 'rtl')
     document.documentElement.setAttribute('lang', 'ar')
     try {
-      mount()
+      const log = mount()
       expect(await screen.findByText('nora.alharbi@example.com')).toBeInTheDocument()
+      log.unmount()
       /* The Arabic template's own subject line, rendered beside the English
-         one on the same coverage row. */
-      expect(screen.getByText('إيصال إيفار لرحلتك {{tripId}}')).toBeInTheDocument()
+         one on the same coverage row of the Templates pane. */
+      mount('/admin/communications?view=templates')
+      expect(await screen.findByText('إيصال إيفار لرحلتك {{tripId}}')).toBeInTheDocument()
     } finally {
       /* In a `finally`, so a failed assertion cannot leak `dir="rtl"` into the
          next test in this file — which is how one failure becomes two. */
@@ -444,7 +446,7 @@ describe('the screen', () => {
 
   it('sends a push broadcast through the client and shows the recorded count — AC-C13', async () => {
     const user = userEvent.setup()
-    mount()
+    mount('/admin/communications?view=push')
     await user.click(await screen.findByRole('button', { name: 'Send push broadcast' }))
 
     await user.type(await screen.findByLabelText('Title'), 'Weekend bonus')

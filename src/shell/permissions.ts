@@ -245,8 +245,6 @@ const PERMISSION_SET: Readonly<Record<PermissionKey, true>> = {
   manage_workspace: true,
   manage_data_governance: true,
   manage_security_policy: true,
-  /* @deprecated D17 — retired, Owner-only, gates no row. */
-  manage_settings: true,
 }
 
 /** Declaration order is the order §6.4's summary renders them in. */

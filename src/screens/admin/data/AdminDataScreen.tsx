@@ -33,21 +33,37 @@ import type { SubTabRoute } from '@/data/types'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
+import { useScreenViews, type ScreenView } from '@/hooks'
+import { ViewTabs } from '@/components/ViewTabs'
 import { ExportCard } from './ExportCard'
 import { IntegrityPane } from './IntegrityPane'
 import { RetentionCard } from './RetentionCard'
 
+/* D20's three Data & Compliance panes, as `?view=`; the route row declares the same ids. */
+const DATA_PANES: readonly ScreenView[] = [
+  { id: 'integrity', titleKey: 'view.data.integrity' },
+  { id: 'retention', titleKey: 'view.data.retention' },
+  { id: 'exports', titleKey: 'view.data.exports' },
+]
+
 export function AdminDataScreen({ row }: { row: SubTabRoute }) {
   const { t, dir } = useShell().language
+  const panes = useScreenViews(DATA_PANES, 'integrity', t)
 
   return (
     <SingleColumnPage
       header={<PageHeader title={t(row.titleKey)} meta={t('adminData.meta')} t={t} dir={dir} />}
     >
       <div className="flex max-w-6xl flex-col gap-6">
-        <IntegrityPane />
-        <ExportCard />
-        <RetentionCard />
+        <ViewTabs
+          tabs={panes.tabs}
+          activeTab={panes.activeTab}
+          onSelectTab={panes.selectTab}
+          label={t('admin.panes')}
+        />
+        {panes.activeTab === 'integrity' && <IntegrityPane />}
+        {panes.activeTab === 'retention' && <RetentionCard />}
+        {panes.activeTab === 'exports' && <ExportCard />}
       </div>
     </SingleColumnPage>
   )

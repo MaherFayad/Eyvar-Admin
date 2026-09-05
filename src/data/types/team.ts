@@ -29,9 +29,10 @@
  * actions and it is the reason D9 exists.
  */
 
+import type { DeviceSession } from './auth'
 import type { IsoDateTime } from './common'
 import type { PermissionKey } from './navigation'
-import type { RoleName, TeamUser } from './session'
+import type { RoleId, TeamUser } from './session'
 
 /* ───────────────────────────── transitions ───────────────────────────── */
 
@@ -45,7 +46,8 @@ import type { RoleName, TeamUser } from './session'
  *   `suspend`     an active operator loses access, keeps their record
  *   `reinstate`   the inverse
  *   `offboard`    the record leaves the roster. Not `Suspended`, not a flag
- *   `permissions` the permission set is rewritten
+ *   `permissions` the override (signed delta) is rewritten
+ *   `role`        the operator moves to another role; the override is cleared
  */
 export type TeamTransition =
   | 'invite'
@@ -55,6 +57,7 @@ export type TeamTransition =
   | 'reinstate'
   | 'offboard'
   | 'permissions'
+  | 'role'
 
 /** What the invite form collects. `permissions` is derived from the role by the client. */
 export interface TeamInviteInput {
@@ -62,7 +65,7 @@ export interface TeamInviteInput {
   email: string
   /** `TeamUser.phone` is nullable and the invite flow does not require one. */
   phone: string | null
-  role: RoleName
+  role: RoleId
   compensationCapHalalas: number | null
 }
 
@@ -73,6 +76,8 @@ export interface TeamInviteInput {
 export interface TeamInvite {
   userId: string
   email: string
+  /** What the activation link carries. Renewed on resend; dead after `expiresAt`. */
+  token: string
   sentAt: IsoDateTime
   expiresAt: IsoDateTime
   /** How many times `resend` has been called. An invite nobody accepts is a finding. */
@@ -94,7 +99,7 @@ export type TeamGuardCode =
   | 'not_invited'
   | 'not_active'
   | 'not_suspended'
-  | 'cross_operator_session'
+  | 'no_manage_team'
 
 /**
  * Who currently *holds* `manage_team` in the sense F-016 means.
@@ -126,16 +131,15 @@ export function manageTeamGuard(
   transition: TeamTransition,
   nextPermissions?: readonly PermissionKey[],
 ): TeamGuardCode | null {
-  if (transition !== 'suspend' && transition !== 'offboard' && transition !== 'permissions') {
-    return null
-  }
+  const guarded: readonly TeamTransition[] = ['suspend', 'offboard', 'permissions', 'role']
+  if (!guarded.includes(transition)) return null
 
   const holders = manageTeamHolders(users)
   const target = holders.find((u) => u.id === userId)
   /* Not a holder, or not the last one — nothing to protect. */
   if (target === undefined || holders.length > 1) return null
 
-  if (transition === 'permissions') {
+  if (transition === 'permissions' || transition === 'role') {
     const next = nextPermissions ?? target.permissions
     return next.includes('manage_team') ? null : 'last_manage_team_holder'
   }
@@ -187,14 +191,19 @@ export interface OnCallRota {
   updatedBy: string | null
 }
 
+/** One live session on the roster, for the Sessions & devices pane (D20). */
+export interface OperatorSession {
+  user: TeamUser
+  device: DeviceSession
+}
+
 /** What `listOperatorSessions` answers with. One row per live device session. */
 export interface OperatorSessionsResult {
   userId: string
   /**
-   * Whether *this* session may end the listed ones. `false` for another
-   * operator's list today — `auth.revokeDevice` resolves the device against the
-   * caller's own list and cannot reach a second operator's rows. §11.2: the
-   * control renders, disabled, with `reason`.
+   * Whether the caller may end the listed sessions: their own always, another
+   * operator's when they hold `manage_team` (D20, Sessions & devices pane).
+   * §11.2: a refused control renders disabled with `refusal` as its reason.
    */
   canRevoke: boolean
   /** Why not, as a code. `null` when `canRevoke` is `true`. */

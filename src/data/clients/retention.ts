@@ -29,16 +29,9 @@ import {
 } from '../types/retention'
 import { http } from './http'
 import { currentMockUserId } from './session'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { appendAudit } from './audit'
+import { findOperator } from './rosterStore'
 
-/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
-   import: a static one pins seeded data into every build, including the http
-   build that can never read it. Bound before any mock read, because `mock()`
-   and `mockMutation()` await `loadFixtures()`. */
-let teamUserFixtures!: Fixtures['teamUserFixtures']
-onFixturesLoaded((f) => {
-  teamUserFixtures = f.teamUserFixtures
-})
 
 export const RETENTION_OPERATIONS = {
   get: 'retention.get',
@@ -104,13 +97,30 @@ export async function saveRetentionPolicy(
     assertOption('auditRetentionDays', input.auditRetentionDays, AUDIT_RETENTION_OPTIONS)
     assertOption('telemetryRetentionDays', input.telemetryRetentionDays, TELEMETRY_RETENTION_OPTIONS)
     assertOption('operationalWindowMonths', input.operationalWindowMonths, OPERATIONAL_WINDOW_OPTIONS)
-    const actor = teamUserFixtures.find((u) => u.id === currentMockUserId())
+    const actor = findOperator(currentMockUserId())
     policy = {
       ...input,
       updatedAt: EYVAR_NOW,
       updatedByUserId: currentMockUserId(),
       updatedByUserName: actor?.name ?? currentMockUserId(),
     }
+    /* T8.1: the one Data & Compliance write that shipped unaudited. */
+    appendAudit({
+      action: 'retention.save',
+      subjectType: 'policy',
+      subjectId: 'retention',
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: {
+        key: 'adminData.audit.retentionSaved',
+        params: {
+          audit: input.auditRetentionDays,
+          telemetry: input.telemetryRetentionDays,
+          months: input.operationalWindowMonths,
+        },
+      },
+    })
     return { ...policy }
   })
 }

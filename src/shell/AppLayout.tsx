@@ -797,6 +797,7 @@ export function AppLayout() {
              it: a formatter that reads the language itself is a second source
              for the one the shell already owns. */
           language={language}
+          canAdministerTeam={shell.permissions.permissions.includes('manage_team')}
           /* A captain's two ways out of the sheet — the compliance file and the
              payouts ledger. Passed rather than read inside the layer, so the
              layer stays mountable without a shell above it, and §11.2 gets its

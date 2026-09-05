@@ -41,6 +41,18 @@ export const ROLE_NAMES: readonly RoleName[] = [
 ] as const
 
 /**
+ * A role as an operator carries it: one of the six built-ins, or the name of a
+ * custom role (D17: *a named role like any other*). `RoleName` stays the
+ * closed set for baselines, landing routes and onboarding tracks; a custom
+ * role reaches those through the built-in it was duplicated from.
+ */
+export type RoleId = string
+
+export function isBuiltInRole(role: string): role is RoleName {
+  return (ROLE_NAMES as readonly string[]).includes(role)
+}
+
+/**
  * @deprecated **D17 closed Q3 and both of these are now real `RoleName`s.**
  * Kept only so a stale import does not break; it is a subset of `RoleName` and
  * carries no meaning of its own. Delete on sight.
@@ -66,7 +78,7 @@ export type ProposedRoleName = 'Trust & Safety' | 'Dispatcher'
  * and not for permission changes.
  */
 export interface PermissionDelta {
-  role: RoleName
+  role: RoleId
   granted: PermissionKey[]
   revoked: PermissionKey[]
 }
@@ -113,7 +125,6 @@ export const ROLE_PERMISSIONS: Readonly<Record<RoleName, readonly PermissionKey[
     'manage_workspace',
     'manage_data_governance',
     'manage_security_policy',
-    'manage_settings',
   ],
   /* 13. Reads every workspace; writes everything operational. No money write,
      no `manage_team`, no `manage_workspace`, no governance, no security. */
@@ -198,10 +209,10 @@ export function granterRoleFor(_key: PermissionKey): RoleName {
  * operator keeps an exception through a demotion.
  */
 export function effectivePermissions(
-  role: RoleName,
+  role: RoleId,
   delta?: PermissionDelta | null,
+  baseline: readonly PermissionKey[] = isBuiltInRole(role) ? ROLE_PERMISSIONS[role] : [],
 ): PermissionKey[] {
-  const baseline = ROLE_PERMISSIONS[role]
   if (!delta || delta.role !== role) return [...baseline]
   const revoked = new Set<PermissionKey>(delta.revoked)
   const out = baseline.filter((key) => !revoked.has(key))
@@ -226,7 +237,7 @@ export interface TeamUser {
   phone: string | null
   /** Legacy seeds all five as `null` (`:2831`) — every avatar in the product is initials today. */
   photoUrl: string | null
-  role: RoleName
+  role: RoleId
   /** Legacy stores display strings `'Today 09:00'`, `'24 Jun'`, `'Not yet'` (`:2831`–`:2841`). ISO here; `null` for never. */
   lastLoginAt: IsoDateTime | null
   status: TeamUserStatus
@@ -290,7 +301,7 @@ export interface Session {
   name: string
   email: string
   photoUrl: string | null
-  role: RoleName
+  role: RoleId
   permissions: PermissionKey[]
   /** Derived from the role → workspace map (§3.3). Falls back to `/operations/overview`. */
   landingRoute: string

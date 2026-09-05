@@ -26,6 +26,7 @@
 
 export * from './applicants'
 export * from './assurance'
+export * from './audit'
 export * from './authIdentities'
 export * from './claims'
 export * from './complaints'

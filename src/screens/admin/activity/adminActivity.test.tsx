@@ -38,6 +38,7 @@ import {
   suspendOperator,
   switchMockUser,
 } from '@/data/clients'
+import { resetAuditToSeed } from '@/data/clients/audit'
 import type { SubTabRoute } from '@/data/types'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AdminActivityScreen } from './AdminActivityScreen'
@@ -57,9 +58,9 @@ beforeEach(async () => {
   await switchMockUser('USR-1')
 })
 
-function renderScreen() {
+function renderScreen(path = '/admin/activity') {
   return render(
-    <MemoryRouter initialEntries={['/admin/activity']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AdminActivityScreen row={row()} />
       </ShellProvider>
@@ -110,6 +111,14 @@ describe('the four states still hold with selection turned on', () => {
   it('shows the first-run empty when nothing has happened yet', async () => {
     renderScreen()
     expect(await screen.findByText(text('admin.activity.empty.heading'))).toBeInTheDocument()
+  })
+
+  it('opens on the seeded history rather than the first-run empty (T7.6)', async () => {
+    resetAuditToSeed()
+    renderScreen()
+    expect(await screen.findByText('Invited Noura Al-Fahad as Support')).toBeInTheDocument()
+    expect(screen.getByText('Reinstated Yousef Al-Balawi')).toBeInTheDocument()
+    expect(screen.queryByText(text('admin.activity.empty.heading'))).toBeNull()
   })
 
   it('reaches the error state and retries', async () => {
@@ -216,5 +225,25 @@ describe('D21 — the bulk bar', () => {
     await waitFor(() =>
       expect(screen.queryByRole('group', { name: /selected/i })).not.toBeInTheDocument(),
     )
+  })
+})
+
+describe('T5.3 — `?actor=` narrows the log to one operator', () => {
+  it('shows only that operator’s entries, states the filter once, and clears it', async () => {
+    const user = userEvent.setup()
+    /* Two actors write: the Owner suspends Lina; then, as Yousef, a rota change. */
+    const { suspendOperator, switchMockUser, updateOnCallRota } = await import('@/data/clients')
+    await suspendOperator('USR-3', 'test')
+    await switchMockUser('USR-5')
+    await updateOnCallRota({ primaryUserId: 'USR-5', secondaryUserId: null })
+    await switchMockUser('USR-1')
+
+    renderScreen('/admin/activity?actor=USR-1')
+    expect(await screen.findByText(text('admin.activity.actorOnly').replace('{name}', 'Sarah Al-Rashid'))).toBeInTheDocument()
+    expect(screen.getAllByText('USR-1').length).toBeGreaterThan(0)
+    expect(screen.queryByText('USR-5')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: text('admin.activity.showEveryone') }))
+    expect(await screen.findByText('USR-5')).toBeInTheDocument()
   })
 })

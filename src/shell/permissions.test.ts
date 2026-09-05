@@ -488,13 +488,6 @@ describe('the role table itself', () => {
     }
   })
 
-  it('grants the retired manage_settings to the Owner and to nobody else', () => {
-    const holders = (Object.keys(ROLE_PERMISSIONS) as RoleName[]).filter((r) =>
-      ROLE_PERMISSIONS[r].includes('manage_settings'),
-    )
-    expect(holders).toEqual(['Owner'])
-  })
-
   it('keeps manage_security_policy Owner-only — it decides how people authenticate', () => {
     const holders = (Object.keys(ROLE_PERMISSIONS) as RoleName[]).filter((r) =>
       ROLE_PERMISSIONS[r].includes('manage_security_policy'),
@@ -503,8 +496,7 @@ describe('the role table itself', () => {
   })
 
   it('matches D17 on the size of each baseline', () => {
-    /* Owner is 20 + the retired alias. */
-    expect(ROLE_PERMISSIONS.Owner).toHaveLength(21)
+    expect(ROLE_PERMISSIONS.Owner).toHaveLength(20)
     expect(ROLE_PERMISSIONS['Ops Manager']).toHaveLength(13)
     expect(ROLE_PERMISSIONS.Dispatcher).toHaveLength(4)
     expect(ROLE_PERMISSIONS['Trust & Safety']).toHaveLength(7)

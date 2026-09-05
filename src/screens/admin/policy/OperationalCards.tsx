@@ -26,8 +26,11 @@
  */
 
 import { useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
+import { ROLE_NAMES } from '@/data/types'
+import { roleLabel } from '@/screens/auth/copy'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -74,9 +77,10 @@ export function DispatchCard({ draft, onChange, canWrite, blockedReason, t }: Pa
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('policy.dispatch.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('policy.dispatch.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('policy.dispatch.title')}
+        <InfoHint t={t}>{t('policy.dispatch.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="grid grid-cols-3 gap-4 pt-4 compact:grid-cols-1">
         <IntegerField
           id="dispatch-radius"
@@ -144,9 +148,10 @@ export function CitiesCard({
       <CardHeader className="border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <CardTitle>{t('policy.cities.title')}</CardTitle>
-            <CardDescription className="text-xs">{t('policy.cities.desc')}</CardDescription>
-          </div>
+            <CardTitle>{t('policy.cities.title')}
+            <InfoHint t={t}>{t('policy.cities.desc')}</InfoHint>
+          </CardTitle>
+            </div>
           <Button
             size="xs"
             variant="secondary"
@@ -346,9 +351,10 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('policy.limits.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('policy.limits.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('policy.limits.title')}
+        <InfoHint t={t}>{t('policy.limits.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="grid grid-cols-3 gap-4 pt-4 compact:grid-cols-1">
         <IntegerField
           id="limits-driving"
@@ -387,6 +393,36 @@ export function LimitsCard({ draft, onChange, canWrite, blockedReason, t }: Pane
           <p className="col-span-3 text-xs text-muted-foreground compact:col-span-1">{blockedReason}</p>
         ) : null}
       </CardContent>
+      <CardContent className="border-t border-border pt-4">
+        <fieldset className="flex flex-col gap-3">
+          <legend className="flex items-center gap-2 text-sm font-medium text-foreground">
+            {t('policy.limits.caps')}
+            <InfoHint t={t}>{t('policy.limits.caps.help')}</InfoHint>
+          </legend>
+          <div className="grid grid-cols-3 gap-4 compact:grid-cols-1">
+            {ROLE_NAMES.map((role) => (
+              <IntegerField
+                key={role}
+                id={`limits-cap-${role.replace(/\W+/g, '-')}`}
+                label={roleLabel(t, role)}
+                value={halalasToRiyals(draft.limits.compensationCapHalalasByRole[role])}
+                step={50}
+                disabled={!canWrite}
+                onCommit={(next) =>
+                  onChange(
+                    setLimits(draft, {
+                      compensationCapHalalasByRole: {
+                        ...draft.limits.compensationCapHalalasByRole,
+                        [role]: next === null ? null : Math.round(next * 100),
+                      },
+                    }),
+                  )
+                }
+              />
+            ))}
+          </div>
+        </fieldset>
+      </CardContent>
     </Card>
   )
 }
@@ -413,7 +449,8 @@ function IntegerField({
   id: string
   label: string
   help?: string
-  value: number
+  /** `null` is an unset value and draws an empty box. */
+  value: number | null
   step: number
   disabled: boolean
   onCommit: (next: number | null) => void
@@ -443,7 +480,7 @@ function IntegerField({
           min={0}
           step={step}
           inputMode="numeric"
-          value={String(value)}
+          value={value === null ? '' : String(value)}
           className="w-24 tabular-nums"
           onChange={(event) => onCommit(parseWholeNumber(event.target.value))}
         />
@@ -456,4 +493,9 @@ function IntegerField({
 /** The measured fleet, keyed by id. Built once from the stored document. */
 export function fleetIndex(cities: readonly OperatingCity[]): ReadonlyMap<string, number> {
   return new Map(cities.map((city) => [city.id, city.activeCaptains]))
+}
+
+/** Riyals for the field; `null` (no cap) shows as an empty field. */
+function halalasToRiyals(value: number | null | undefined): number | null {
+  return value === null || value === undefined ? null : value / 100
 }

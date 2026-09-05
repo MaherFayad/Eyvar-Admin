@@ -932,7 +932,12 @@ export {
   getOperator,
   getOnCallRota,
   inviteOperator,
+  capForRole,
+  getInvite,
+  inviteExpired,
+  listAllSessions,
   listInvites,
+  setCompensationCap,
   listOperatorSessions,
   listOperators,
   manageTeamHolderCount,
@@ -943,12 +948,27 @@ export {
   resetTeam,
   revokeInvite,
   revokeOperatorSession,
-  setOperatorPermissions,
   suspendOperator,
   transitionRefusal,
   updateOnCallRota,
   useTwoManageTeamHolders,
 } from './team'
+
+/* ── Admin › Team & Access › Roles, overrides, role changes (D17, D20) ── */
+
+export {
+  RBAC_OPERATIONS,
+  changeRole,
+  createRole,
+  deleteRole,
+  holdersOf,
+  listRoles,
+  roleDeletionRefusal,
+  setPermissionDelta,
+  updateRole,
+} from './rbac'
+export { baselineFor, resolvePermissions, trackRoleFor } from './rosterStore'
+export { roleCapDefault } from './policy'
 
 /* ── Admin › Team & Access › Security policy (D20) ────────────────────── */
 

@@ -385,6 +385,52 @@ export const emailTemplateFixtures: EmailTemplate[] = [
     updatedAt: offsetFromNow({ days: -2 }),
     updatedBy: 'USR-3',
   },
+  {
+    id: 'TPL-011',
+    key: 'team.invite',
+    locale: 'en',
+    name: 'Operator invitation',
+    subject: 'You are invited to Eyvar Admin',
+    body:
+      'Hello {{name}},\n\n' +
+      'You have been invited to the Eyvar console as {{role}}. Set your password here: {{link}}\n\n' +
+      'The link expires on {{expiresAt}}.',
+    variables: [
+      { name: 'name', required: true, sample: 'Noura Al-Fahad' },
+      { name: 'role', required: true, sample: 'Support' },
+      { name: 'link', required: true, sample: 'https://admin.eyvar.sa/activate?token=INV-901' },
+      { name: 'expiresAt', required: true, sample: '2 July 2026' },
+    ],
+    version: 1,
+    status: 'active',
+    inUse: true,
+    sendCount: 1,
+    updatedAt: offsetFromNow({ days: -30 }),
+    updatedBy: 'USR-1',
+  },
+  {
+    id: 'TPL-012',
+    key: 'team.invite',
+    locale: 'ar',
+    name: 'دعوة مشغّل',
+    subject: 'أنت مدعو إلى لوحة إيفار',
+    body:
+      'مرحباً {{name}}،\n\n' +
+      'دُعيت إلى لوحة إيفار بصفة {{role}}. عيّن كلمة مرورك من هنا: {{link}}\n\n' +
+      'تنتهي صلاحية الرابط في {{expiresAt}}.',
+    variables: [
+      { name: 'name', required: true, sample: 'نورة الفهد' },
+      { name: 'role', required: true, sample: 'الدعم' },
+      { name: 'link', required: true, sample: 'https://admin.eyvar.sa/activate?token=INV-901' },
+      { name: 'expiresAt', required: true, sample: '2 يوليو 2026' },
+    ],
+    version: 1,
+    status: 'active',
+    inUse: true,
+    sendCount: 0,
+    updatedAt: offsetFromNow({ days: -30 }),
+    updatedBy: 'USR-1',
+  },
 ]
 
 /* ───────────────────────────── delivery log ───────────────────────────── */
@@ -408,6 +454,7 @@ const SENT_SUBJECT: Record<EmailTemplateKey, Record<EmailLocale, string>> = {
     en: 'Your payout of SAR 1,240.00 is on its way',
     ar: 'تم إرسال دفعتك',
   },
+  'team.invite': { en: 'You are invited to Eyvar Admin', ar: 'أنت مدعو إلى لوحة إيفار' },
   'subscription.renewalReminder': {
     en: 'Your Monthly 40 renews on 1 July 2026',
     ar: 'يتجدد اشتراك الشهري ٤٠ بتاريخ ١ يوليو ٢٠٢٦',
@@ -490,6 +537,8 @@ const OUTBOUND: readonly DeliveryRow[] = [
   ['EML-1030', -500, 'provider.outage@example.com', 'Rakan Al-Juhani', 'password.reset', 'en', 'SND-01', 'failed', 'provider-error'],
   ['EML-1031', -540, 'opted.out@example.com', 'Basma Al-Khaldi', 'subscription.renewalReminder', 'en', 'SND-01', 'failed', 'unsubscribed'],
   ['EML-1032', -600, 'ticket.reporter@example.com', 'Fatima Al-Enezi', 'ticket.reply', 'en', 'SND-02', 'delivered', null],
+  /* Noura's invitation, six days ago: the one `Invited` row in the roster. */
+  ['EML-1033', -8640, 'noura.f@eyvar.com', 'Noura Al-Fahad', 'team.invite', 'en', 'SND-01', 'delivered', null],
 ]
 
 /**

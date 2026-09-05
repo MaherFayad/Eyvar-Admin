@@ -38,13 +38,11 @@
  * clock-derived id is a different id on every run and nothing that diffs output
  * can tell a real change from the clock ticking.
  *
- * ## What is NOT here, and why
+ * ## One roster
  *
- * `session.listTeamUsers` still reads `teamUserFixtures` directly. It serves the
- * account menu and the audit actor column, and it will not see a mutation made
- * through this client. Making the two agree means `session.ts` delegating to
- * this module, which is a file I do not own and a plausible import cycle.
- * **Reported, not worked around.**
+ * The roster lives in `rosterStore.ts`, which `session.ts` reads too, so a
+ * lifecycle change here is what the next `getSession` resolves. Roles,
+ * overrides and role changes are `rbac.ts`.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -53,12 +51,12 @@ import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type LocalisedText, type Paginated, type QueryParams } from '../types/common'
 import type { PermissionKey } from '../types/navigation'
-import { ROLE_PERMISSIONS } from '../types/session'
-import type { RoleName, TeamUser } from '../types/session'
+import type { RoleId, TeamUser } from '../types/session'
 import {
   manageTeamGuard,
   manageTeamHolders,
   type OnCallRota,
+  type OperatorSession,
   type OperatorSessionsResult,
   type TeamGuardCode,
   type TeamInvite,
@@ -66,11 +64,33 @@ import {
   type TeamTransition,
 } from '../types/team'
 import type { DeviceSession } from '../types/auth'
+import type { AuditAction } from '../types/audit'
 import { appendAudit } from './audit'
 import { listDevices, revokeDevice } from './auth'
 import { http } from './http'
-import { currentMockUserId } from './session'
+import { currentMockPermissions, currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import {
+  baselineFor,
+  getInvites,
+  getRoster,
+  inviteExpired,
+  resetRosterStore,
+  setInvites,
+  setRoster,
+  withEffective,
+} from './rosterStore'
+import { recordEmailDelivery } from './emails'
+import { roleCapDefault } from './policy'
+import { notifyTeam } from './notifications'
+import { listWorkItems } from './myWork'
+import { releaseApplicant } from './applicants'
+import { releaseRequest } from './requests'
+import { releaseAssuranceTrip } from './assurance'
+import { releaseSafetyIncident } from './safety'
+import { releaseFairnessCase } from './fairness'
+import { releaseTicket } from './tickets'
+import { releaseDispute } from './disputes'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
@@ -79,14 +99,6 @@ import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixture
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   teamUserFixtures = f.teamUserFixtures
-  /* Seeded here rather than at module load: these locals are built from
-     late-bound fixtures, which are undefined until the fixture chunk lands. */
-  roster = teamUserFixtures.map((u) => ({ ...u }))
-  /* `invites` is derived from the same late-bound rows. Seeding it at module
-     load read `teamUserFixtures` before the fixture chunk had landed, which
-     threw inside `seedInvites()` and took every suite that imports the
-     `@/data/clients` barrel down at COLLECTION time - 119 of them. */
-  invites = seedInvites()
 })
 
 export const TEAM_OPERATIONS = {
@@ -98,10 +110,11 @@ export const TEAM_OPERATIONS = {
   suspend: 'team.suspend',
   reinstate: 'team.reinstate',
   offboard: 'team.offboard',
-  setPermissions: 'team.setPermissions',
   rota: 'team.rota',
   updateRota: 'team.updateRota',
   sessions: 'team.sessions',
+  allSessions: 'team.allSessions',
+  setCap: 'team.setCap',
   revokeSession: 'team.revokeSession',
 } as const
 
@@ -129,8 +142,8 @@ registerOperations(...Object.values(TEAM_OPERATIONS))
  * the router will gate them on, rather than a copy of whoever happened to be
  * seeded first.
  */
-export function permissionsForRole(role: RoleName): PermissionKey[] {
-  return [...ROLE_PERMISSIONS[role]]
+export function permissionsForRole(role: RoleId): PermissionKey[] {
+  return [...(baselineFor(role) ?? [])]
 }
 
 /**
@@ -147,10 +160,16 @@ export function permissionsForRole(role: RoleName): PermissionKey[] {
  * the fixture owner seeds it, and it is deliberately the floor rather than a
  * number invented here.
  */
-function capForRole(role: RoleName): number | null {
-  const exemplar = teamUserFixtures.find((u) => u.role === role)
+export function capForRole(role: RoleId): number | null {
+  /* The Limits pane's role default (O-T5) decides; the seed is the fallback for
+     a role the pane has not named. Sync, and callable from a closed dialog's
+     first render, before the fixture chunk has landed. */
+  const fromPolicy = roleCapDefault(role)
+  if (fromPolicy !== undefined) return fromPolicy
+  const rows: readonly TeamUser[] = teamUserFixtures ?? []
+  const exemplar = rows.find((u) => u.role === role)
   if (exemplar) return exemplar.compensationCapHalalas
-  const caps = teamUserFixtures
+  const caps = rows
     .map((u) => u.compensationCapHalalas)
     .filter((cap): cap is number => cap !== null)
   return caps.length > 0 ? Math.min(...caps) : 0
@@ -158,8 +177,6 @@ function capForRole(role: RoleName): number | null {
 
 /* ─────────────────────────── mutable mock state ────────────────────────── */
 
-let roster!: TeamUser[]
-let invites: TeamInvite[] = []
 
 /**
  * `USR-901` upward. Seeded at 900 so a session-minted id is greppably distinct
@@ -181,20 +198,6 @@ let rota: OnCallRota = {
   updatedBy: null,
 }
 
-function seedInvites(): TeamInvite[] {
-  /* USR-4 is seeded `status: 'Invited'`, `lastLoginAt: null` — the one
-     outstanding invitation in the fixture set, and the row that makes `resend`
-     and `revoke` reachable without a hand edit. */
-  return teamUserFixtures
-    .filter((u) => u.status === 'Invited')
-    .map((u) => ({
-      userId: u.id,
-      email: u.email,
-      sentAt: offsetFromNow({ days: -6 }),
-      expiresAt: offsetFromNow({ days: 1 }),
-      resendCount: 0,
-    }))
-}
 
 /** Back to the seed, and back to the first minted id. Both halves, for `tickets.ts:52`'s reason. */
 export function resetTeam(): void {
@@ -202,8 +205,7 @@ export function resetTeam(): void {
      state to reset and the rows this would read are still undefined. The
      binder in this module seeds fresh state when it does land. */
   if (!fixturesLoaded()) return
-  roster = teamUserFixtures.map((u) => ({ ...u }))
-  invites = seedInvites()
+  resetRosterStore()
   userSequence = 900
   rota = { primaryUserId: 'USR-5', secondaryUserId: 'USR-3', updatedAt: null, updatedBy: null }
 }
@@ -219,10 +221,15 @@ export function resetTeam(): void {
  * proof.
  */
 export function useTwoManageTeamHolders(): void {
-  roster = roster.map((u) =>
-    u.id === 'USR-5' && !u.permissions.includes('manage_team')
-      ? { ...u, permissions: [...u.permissions, 'manage_team'] }
-      : u,
+  setRoster(
+    getRoster().map((u) =>
+      u.id === 'USR-5' && !u.permissions.includes('manage_team')
+        ? withEffective({
+            ...u,
+            permissionDelta: { role: u.role, granted: ['manage_team'], revoked: [] },
+          })
+        : u,
+    ),
   )
 }
 
@@ -254,7 +261,7 @@ function assertNotLastManageTeamHolder(
   transition: TeamTransition,
   nextPermissions?: readonly PermissionKey[],
 ): void {
-  const code = manageTeamGuard(roster, userId, transition, nextPermissions)
+  const code = manageTeamGuard(getRoster(), userId, transition, nextPermissions)
   if (code !== null) throw refuse(code, LAST_HOLDER_MESSAGE)
 }
 
@@ -333,7 +340,7 @@ export async function listOperators(
   if (DATA_SOURCE === 'http') {
     return http.get<Paginated<TeamUser>>('/team/operators', { ...params }, { signal })
   }
-  return mock(TEAM_OPERATIONS.list, signal ?? params.signal, () => runQuery(roster, params, teamShape))
+  return mock(TEAM_OPERATIONS.list, signal ?? params.signal, () => runQuery(getRoster(), params, teamShape))
 }
 
 /**
@@ -345,7 +352,7 @@ export async function getOperator(id: string, signal?: AbortSignal): Promise<Tea
     return http.get<TeamUser>(`/team/operators/${id}`, undefined, { signal })
   }
   return mock(TEAM_OPERATIONS.get, signal, () => {
-    const found = roster.find((u) => u.id === id)
+    const found = getRoster().find((u) => u.id === id)
     if (!found) throw notFound('operator', id)
     return found
   })
@@ -363,8 +370,24 @@ export async function listInvites(signal?: AbortSignal): Promise<TeamInvite[]> {
     const res = await http.get<{ items: TeamInvite[] }>('/team/invites', undefined, { signal })
     return res.items
   }
-  return mock(TEAM_OPERATIONS.list, signal, () => invites.map((i) => ({ ...i })))
+  return mock(TEAM_OPERATIONS.list, signal, () => getInvites().map((i) => ({ ...i })))
 }
+
+/**
+ * GET /api/v1/team/invites/:userId
+ *   -> TeamInvite
+ */
+export async function getInvite(userId: string, signal?: AbortSignal): Promise<TeamInvite> {
+  if (DATA_SOURCE === 'http') return http.get<TeamInvite>(`/team/invites/${userId}`, undefined, { signal })
+  return mock(TEAM_OPERATIONS.get, signal, () => {
+    const found = getInvites().find((i) => i.userId === userId)
+    if (!found) throw notFound('invitation', userId)
+    return { ...found }
+  })
+}
+
+/** Expired against the fixed clock; the surface says so and offers resend only. */
+export { inviteExpired }
 
 /* ──────────────────────────── the lifecycle ───────────────────────────── */
 
@@ -387,7 +410,7 @@ export async function inviteOperator(
   }
   return mockMutation(TEAM_OPERATIONS.invite, signal, () => {
     const email = input.email.trim().toLowerCase()
-    if (roster.some((u) => u.email.trim().toLowerCase() === email)) {
+    if (getRoster().some((u) => u.email.trim().toLowerCase() === email)) {
       throw new ApiError({
         status: 409,
         kind: 'conflict',
@@ -411,17 +434,23 @@ export async function inviteOperator(
       permissions: permissionsForRole(input.role),
       compensationCapHalalas: input.compensationCapHalalas ?? capForRole(input.role),
     }
-    roster = [created, ...roster]
-    invites = [
-      {
-        userId: created.id,
-        email: created.email,
-        sentAt: EYVAR_NOW,
-        expiresAt: offsetFromNow({ days: 7 }),
-        resendCount: 0,
-      },
-      ...invites,
-    ]
+    setRoster([created, ...getRoster()])
+    const invite: TeamInvite = {
+      userId: created.id,
+      email: created.email,
+      token: `INV-${userSequence}`,
+      sentAt: EYVAR_NOW,
+      expiresAt: offsetFromNow({ days: 7 }),
+      resendCount: 0,
+    }
+    setInvites([invite, ...getInvites()])
+    /* The invitation is an email the product sends, so it is in the log (O-T6). */
+    recordEmailDelivery({
+      recipient: created.email,
+      recipientName: created.name,
+      templateKey: 'team.invite',
+      locale: 'en',
+    })
     writeAudit({
       action: 'team.invite',
       subject: created,
@@ -449,16 +478,24 @@ export async function resendInvite(userId: string, signal?: AbortSignal): Promis
     if (user.status !== 'Invited') {
       throw refuse('not_invited', `Operator ${userId} has no outstanding invitation to resend`)
     }
+    const invites = getInvites()
     const idx = invites.findIndex((i) => i.userId === userId)
     const existing = invites[idx]
     const next: TeamInvite = {
       userId,
       email: user.email,
+      token: existing?.token ?? `INV-${userId}`,
       sentAt: EYVAR_NOW,
       expiresAt: offsetFromNow({ days: 7 }),
       resendCount: (existing?.resendCount ?? 0) + 1,
     }
-    invites = idx === -1 ? [next, ...invites] : invites.map((i, n) => (n === idx ? next : i))
+    setInvites(idx === -1 ? [next, ...invites] : invites.map((i, n) => (n === idx ? next : i)))
+    recordEmailDelivery({
+      recipient: user.email,
+      recipientName: user.name,
+      templateKey: 'team.invite',
+      locale: 'en',
+    })
     writeAudit({
       action: 'team.inviteResend',
       subject: user,
@@ -489,8 +526,8 @@ export async function revokeInvite(
     if (user.status !== 'Invited') {
       throw refuse('not_invited', `Operator ${userId} has no outstanding invitation to revoke`)
     }
-    roster = roster.filter((u) => u.id !== userId)
-    invites = invites.filter((i) => i.userId !== userId)
+    setRoster(getRoster().filter((u) => u.id !== userId))
+    setInvites(getInvites().filter((i) => i.userId !== userId))
     writeAudit({
       action: 'team.inviteRevoke',
       subject: user,
@@ -516,19 +553,21 @@ export async function suspendOperator(
   if (DATA_SOURCE === 'http') {
     return http.post<TeamUser>(`/team/operators/${userId}/suspend`, { reason }, { signal })
   }
-  return mockMutation(TEAM_OPERATIONS.suspend, signal, () => {
+  return mockMutation(TEAM_OPERATIONS.suspend, signal, async () => {
     const user = requireOperator(userId)
     if (user.status !== 'Active') {
       throw refuse('not_active', `Operator ${userId} is ${user.status}, not Active`)
     }
     assertNotLastManageTeamHolder(userId, 'suspend')
+    const released = await releaseHoldingsOf(userId)
     const updated = replace(userId, { status: 'Suspended' })
     writeAudit({
       action: 'team.suspend',
       subject: updated,
-      detail: { key: 'admin.audit.team.suspended', params: { name: updated.name } },
+      detail: { key: 'admin.audit.team.suspended', params: { name: updated.name, released } },
       note: reason,
     })
+    notifyTeam('admin.notification.team.suspended', { name: user.name }, user.id)
     return updated
   })
 }
@@ -595,11 +634,12 @@ export async function offboardOperator(
   if (DATA_SOURCE === 'http') {
     return http.delete<{ offboarded: true }>(`/team/operators/${userId}`, { signal })
   }
-  return mockMutation(TEAM_OPERATIONS.offboard, signal, () => {
+  return mockMutation(TEAM_OPERATIONS.offboard, signal, async () => {
     const user = requireOperator(userId)
     assertNotLastManageTeamHolder(userId, 'offboard')
-    roster = roster.filter((u) => u.id !== userId)
-    invites = invites.filter((i) => i.userId !== userId)
+    await releaseHoldingsOf(userId)
+    setRoster(getRoster().filter((u) => u.id !== userId))
+    setInvites(getInvites().filter((i) => i.userId !== userId))
     if (rota.primaryUserId === userId) rota = { ...rota, primaryUserId: null }
     if (rota.secondaryUserId === userId) rota = { ...rota, secondaryUserId: null }
     writeAudit({
@@ -612,44 +652,13 @@ export async function offboardOperator(
   })
 }
 
-/**
- * PUT /api/v1/team/operators/:id/permissions
- *   body: { permissions }
- *   -> TeamUser
- *
- * **F-016 applies** — this is the *stripped of it* clause, and it is the one a
- * UI-only guard would have missed, because no screen in the product edits a
- * permission set yet (**P6-T6** is gated on D4). The rule is enforced before
- * the surface that will breach it exists, which is the whole argument for
- * enforcing it in the client.
- */
-export async function setOperatorPermissions(
-  userId: string,
-  permissions: readonly PermissionKey[],
-  signal?: AbortSignal,
-): Promise<TeamUser> {
-  if (DATA_SOURCE === 'http') {
-    return http.put<TeamUser>(`/team/operators/${userId}/permissions`, { permissions }, { signal })
-  }
-  return mockMutation(TEAM_OPERATIONS.setPermissions, signal, () => {
-    const user = requireOperator(userId)
-    assertNotLastManageTeamHolder(userId, 'permissions', permissions)
-    const added = permissions.filter((k) => !user.permissions.includes(k))
-    const removed = user.permissions.filter((k) => !permissions.includes(k))
-    const updated = replace(userId, { permissions: [...permissions] })
-    writeAudit({
-      action: 'team.permissions',
-      subject: updated,
-      detail: {
-        key: 'admin.audit.team.permissionsChanged',
-        params: { name: updated.name, added: added.length, removed: removed.length },
-      },
-    })
-    return updated
-  })
-}
 
 /* ──────────────────────────── on-call rota ────────────────────────────── */
+
+/** The rota as it stands, for a metric computed on the same clock as the chip (TA-7). */
+export function currentRota(): OnCallRota {
+  return { ...rota }
+}
 
 /**
  * GET /api/v1/team/on-call
@@ -681,14 +690,14 @@ export async function updateOnCallRota(
   return mockMutation(TEAM_OPERATIONS.updateRota, signal, () => {
     for (const id of [next.primaryUserId, next.secondaryUserId]) {
       if (id === null) continue
-      const user = roster.find((u) => u.id === id)
+      const user = getRoster().find((u) => u.id === id)
       if (!user) throw notFound('operator', id)
       if (user.status !== 'Active') {
         throw refuse('not_active', `Operator ${id} is ${user.status} and cannot be on call`)
       }
     }
     rota = { ...next, updatedAt: EYVAR_NOW, updatedBy: 'USR-1' }
-    const primary = roster.find((u) => u.id === rota.primaryUserId)
+    const primary = getRoster().find((u) => u.id === rota.primaryUserId)
     appendAudit({
       action: 'team.rota',
       subjectType: 'workspace',
@@ -705,45 +714,78 @@ export async function updateOnCallRota(
   })
 }
 
+/**
+ * PUT /api/v1/team/operators/:id/compensation-cap
+ *   -> TeamUser
+ *
+ * The operator's own cap, over the role default (O-T5). `null` is no cap.
+ */
+export async function setCompensationCap(
+  userId: string,
+  capHalalas: number | null,
+  signal?: AbortSignal,
+): Promise<TeamUser> {
+  if (DATA_SOURCE === 'http') {
+    return http.put<TeamUser>(`/team/operators/${userId}/compensation-cap`, { capHalalas }, { signal })
+  }
+  return mockMutation(TEAM_OPERATIONS.setCap, signal, () => {
+    const user = requireOperator(userId)
+    const updated = replace(userId, { compensationCapHalalas: capHalalas })
+    writeAudit({
+      action: 'team.cap',
+      subject: updated,
+      detail: { key: 'admin.audit.team.capChanged', params: { name: user.name } },
+    })
+    return updated
+  })
+}
+
 /* ─────────────────────── sessions and devices (P6-T8) ─────────────────── */
+
+/**
+ * GET /api/v1/team/sessions
+ *   -> { items: OperatorSession[] }
+ *
+ * Every live session across the roster (D20 Sessions & devices). An `Invited`
+ * operator has none by definition and is not asked.
+ */
+export async function listAllSessions(signal?: AbortSignal): Promise<OperatorSession[]> {
+  if (DATA_SOURCE === 'http') {
+    const res = await http.get<{ items: OperatorSession[] }>('/team/sessions', undefined, { signal })
+    return res.items
+  }
+  return mock(TEAM_OPERATIONS.allSessions, signal, async () => {
+    const out: OperatorSession[] = []
+    for (const user of getRoster()) {
+      if (user.status === 'Invited') continue
+      for (const device of await listDevices(user.id)) out.push({ user, device })
+    }
+    return out
+  })
+}
 
 /**
  * GET /api/v1/team/operators/:id/sessions
  *   -> { items: DeviceSession[], canRevoke, refusal }
  *
- * **P6-T8 — half of it lands, and the other half is reported rather than
- * faked.**
- *
- * `auth.listDevices(userId)` already takes an operator id — `AC-661 / AC-662`
- * anticipated exactly this surface: *"another account's sessions need
- * `manage_team`, which is why `userId` is optional here and defaults to the
- * caller."* So listing works today with no change to `auth.ts`.
- *
- * `auth.revokeDevice(deviceId)` does **not**. It resolves the row against
- * `devicesFor(signedInUserId ?? currentMockUserId())` (`auth.ts`) and has no
- * `userId` parameter, so a second operator's device is a 404 rather than a
- * revocation. Revoking therefore works on the signed-in operator's own list and
- * is refused, in place, with a stated reason, on anyone else's. The one-line
- * change that would close it is in the handoff, and `auth.ts` is not mine.
+ * Another operator's sessions are listed and ended under `manage_team` (D20,
+ * Sessions & devices). `auth.listDevices` and `auth.revokeDevice` both take
+ * the operator id, so nothing here reaches past the caller by accident.
  */
 export async function listOperatorSessions(
   userId: string,
   signal?: AbortSignal,
 ): Promise<{ items: DeviceSession[] } & OperatorSessionsResult> {
   const items = await listDevices(userId, signal)
-  /* **"Is this me?" is a session question, so it reads the session.** It used
-     to compare against a local `CURRENT_SESSION_USER_ID = 'USR-1'` literal
-     kept here to dodge an import cycle that does not exist — `session.ts`
-     imports `routes` and `http` and nothing else from this directory. The
-     literal made the answer wrong under `switchMockUser`: signed in as
-     `USR-3`, your own row said you could not revoke your own session while
-     `USR-1`'s row said you could. */
+  /* Your own sessions always; a colleague's under `manage_team` (D20). Both
+     read the live mock session, never a constant, so `switchMockUser` is seen. */
   const own = userId === currentMockUserId()
+  const canRevoke = own || currentMockPermissions().includes('manage_team')
   return {
     items,
     userId,
-    canRevoke: own,
-    refusal: own ? null : 'cross_operator_session',
+    canRevoke,
+    refusal: canRevoke ? null : 'no_manage_team',
   }
 }
 
@@ -774,7 +816,7 @@ export async function revokeOperatorSession(
      click. `revokeDevice` now takes the id (P6-T8), so the refusal is not
      merely unnecessary — it would be false. */
   const result = await revokeDevice(deviceId, userId, signal)
-  const user = roster.find((u) => u.id === userId)
+  const user = getRoster().find((u) => u.id === userId)
   if (user) {
     writeAudit({
       action: 'team.sessionRevoke',
@@ -785,20 +827,48 @@ export async function revokeOperatorSession(
   return result
 }
 
+/**
+ * T6.4: what a suspended or offboarded operator held returns to Unassigned in
+ * the same act, through each queue's own release. Returns how many.
+ */
+const RELEASE_BY_QUEUE: Record<string, (id: string) => Promise<unknown>> = {
+  application: releaseApplicant,
+  request: releaseRequest,
+  assurance: releaseAssuranceTrip,
+  incident: releaseSafetyIncident,
+  fairness: releaseFairnessCase,
+  ticket: releaseTicket,
+  dispute: releaseDispute,
+}
+
+export async function releaseHoldingsOf(userId: string): Promise<number> {
+  const page = await listWorkItems({ includeOtherRoles: true, pageSize: 500 })
+  const held = page.items.filter((w) => w.claim?.state === 'claimed' && w.claim.ownerId === userId)
+  let released = 0
+  for (const item of held) {
+    const release = RELEASE_BY_QUEUE[item.queue]
+    if (!release) continue
+    await release(item.id)
+    released += 1
+  }
+  return released
+}
+
 /* ─────────────────────────────── helpers ──────────────────────────────── */
 
 function requireOperator(userId: string): TeamUser {
-  const found = roster.find((u) => u.id === userId)
+  const found = getRoster().find((u) => u.id === userId)
   if (!found) throw notFound('operator', userId)
   return found
 }
 
 function replace(userId: string, patch: Partial<TeamUser>): TeamUser {
+  const roster = getRoster()
   const idx = roster.findIndex((u) => u.id === userId)
   const existing = roster[idx]
   if (idx === -1 || !existing) throw notFound('operator', userId)
   const updated: TeamUser = { ...existing, ...patch }
-  roster = roster.map((u, n) => (n === idx ? updated : u))
+  setRoster(roster.map((u, n) => (n === idx ? updated : u)))
   return updated
 }
 
@@ -815,15 +885,7 @@ function replace(userId: string, patch: Partial<TeamUser>): TeamUser {
  * which is exactly the three-waves-late failure that test was written to stop.
  */
 function writeAudit(input: {
-  action:
-    | 'team.invite'
-    | 'team.inviteResend'
-    | 'team.inviteRevoke'
-    | 'team.suspend'
-    | 'team.reinstate'
-    | 'team.offboard'
-    | 'team.permissions'
-    | 'team.sessionRevoke'
+  action: AuditAction
   subject: TeamUser
   detail: LocalisedText
   note?: string | null

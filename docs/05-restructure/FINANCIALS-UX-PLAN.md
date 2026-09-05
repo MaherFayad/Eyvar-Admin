@@ -406,9 +406,60 @@ names the current state, the frame's answer, and the token or component that del
 - **Numerals are `tabular-nums` and end-aligned** wherever two of them stack (R4). The mono facts line is the one place a numeral sits inline in text, and it is `<bdi>`-wrapped.
 - **Arabic and dark are free** if the tokens are used: `--ev-hero-*` has a dark set; `uppercase` and `tracking-wider` are no-ops in Arabic by design (`MetricTile.tsx:284-292`); the composition bar and sparkline mirror with the document because they are flex and SVG with no hand-mirroring.
 
-### 9.5 Order of visual payoff
+### 9.5 Order of visual payoff (round 1)
 
 1. V-1, V-4, V-6 together: drop the figure boxes, add section rules, put the lists two-up. This is most of the difference between the capture and the frame and touches only Overview.
 2. V-2, V-3: the unit line and the mono caption level. One component change in the adapter's use of `MetricTile`.
 3. V-11, V-12: the Revenue total row and the column preset. Half a day, and the by-plan table stops looking broken at 1280 even before the master-detail lands.
 4. V-16, V-18: row pitch and chrome height on the working pages.
+
+---
+
+## 10. Round 2 — the five table sub-tabs and their secondary pages, measured after round 1
+
+Captured 2026-09-05 on the merged branch at 1280 × 900, every view and every drill-in (23 screens).
+The numbers below are from the DOM, not from reading the code.
+
+### 10.1 What the captures say
+
+| Screen | First row at | Row pitch | What is wrong |
+|---|---|---|---|
+| Payouts | 490px | 77px | banner, then four **bordered** figure tiles with `SAR` at full size, then the view stadium, then the toolbar. Less than half the viewport is rows; six of them fit. The action lane is a wide empty column with one `Pay` button floating in it. |
+| Escrow, Deductions | 326 / 294px | 77px | no figures at all, so the two views a Finance lead settles a period against say nothing before the rows. |
+| Payouts drill-in (captain ledger) | 416px | 40px | a `Back to payouts` chip on its own row, then the period control on its own row, then the ledger header. Three rows of chrome that could be one. |
+| Cash queue | 400px | 69px | the captain cell wraps to three lines (*Rider has not confirmed*); otherwise sound. |
+| Cash debt ledger, Over cap | 404px | 53px | three bordered figure tiles; `tableOverflowX` 2px (a rounding overflow that draws a scrollbar). |
+| Cash drill-in (captain receivable) | 388px | 40px | one row holds `Read the reconciliation queue`, a `Cap (SAR) 300.00` figure and the period stepper, jumbled at three different heights. |
+| Wallets | 450px | 53px | the view header (round 1) is right; two inline actions where `View ledger` is the row's open path. |
+| Wallets drill-in | 356px | 40px | `Back to wallets` chip on its own row; the ledger card keeps a min-height and leaves ~80px of empty card under the closing balance. |
+| Pricing | 456px | 53px | period control on its own row (being moved to the title row in `fin/revenue-views`); two inline actions, `Open revenue` and `Edit`. |
+| Rate card, Quick rides, Cancellation fees, Plan editor | — | — | sound. No change beyond the shared items below. |
+| Ledger: Trial balance | 494px | 53px | the round-1 header is right; the six-view stadium plus toolbar plus header make the tallest chrome stack in Financials. |
+| Ledger: Journal | 416px | 59px | **raw machine identifiers reach the operator**: the `Recipe` column prints `gateway_fee`, `captain_incentive`, `cash_repayment`; the `Lines` column prints `Dr expense.gateway_fees 32.20 SAR`. Rule 7 in `CLAUDE.md` and the i18n layer both forbid this; the labels already exist (`fin.posting.*`, the trial balance's account names). |
+| Ledger: VAT & invoicing | — | — | two full-width cards whose values end at ~60% of the card; the same stranded key-value defect V-6 fixed on Overview. |
+
+### 10.2 The decisions
+
+| # | Decision |
+|---|---|
+| **R2-1 · One view header for every Financials view.** | The shape `LedgerCard` and the round-1 Wallets and Trial balance headers already use: heading and an uppercase tracked caption at the inline-start, one to three figures at the inline-end at `--text-kpi` with the unit as a small line. **Flat, no bordered tiles.** It replaces Payouts' four-tile strip and Cash's three-tile strip, and it is added to Escrow, Deductions, the Cash queue, Journal, Refused postings and Gateways. It lives once, in `src/screens/financials/shared/ViewHeader.tsx`; the local `WalletsHeader` and `TrialBalanceHeader` fold into it. |
+| **R2-2 · A drill-in is one header, not three rows.** | On `?captain=` and `?rider=` pages the page meta becomes the parent view's name with the record (`Payouts · Khalid Mansour`), a `Back` link sits at the header's inline-start where a breadcrumb would, the period control sits at the inline-end of the title row (`FinancialsPage.periodControl`, landing in `fin/revenue-views`), and the ledger header follows directly. The Cash drill-in's cap becomes a second figure in that ledger header, beside the balance. |
+| **R2-3 · The refused-action line leaves the row.** | `DataTable.tsx:1787` reserves a second line on **every** row of a page whenever any row has a refused action, which is why Payouts, Escrow and Deductions sit at 77px. AC-368 requires the reason *in place*; it does not require it under the button. The reason moves into the row's state cell as its secondary line on the refused row only, the button stays disabled with the same reason as its accessible description, and `reserveRefusal` goes. Target pitch 52px. This is a table-layer change and is done once, for all forty tables. |
+| **R2-4 · One inline action per row; `View ledger` is the row.** | Wallets and Pricing follow Payouts: the open path is the row click and its keyboard equivalent, the lane holds the one mutating action (`Adjust`, `Edit`). |
+| **R2-5 · No raw identifier on the Journal.** | `Recipe` renders the keyed label with the id as the secondary line; `Lines` renders `Dr Cash at payment gateway · 32.20` using the account's display name, the account key on hover only. |
+| **R2-6 · Key-value cards are two-up.** | VAT registration beside Invoice numbering, each half-width, `FigureRow` rows full to their edge. |
+| **R2-7 · Cell text does not wrap to three lines.** | Cash's captain cell: *Rider has not confirmed* becomes *Unconfirmed* as a secondary line, and a filter facet where an operator wants only those. |
+| **R2-8 · The empty ledger card does not reserve height.** | `LedgerCard` drops its min-height once the closing balance row has rendered; the card ends where the ledger ends. |
+
+### 10.3 Lanes, and the order they can run in
+
+`fin/revenue-views` is still running and owns `FinancialsPage`, `PageHeader`, `RevenueScreen`, `PeriodControl`, and the `PeriodControl` call sites in Payouts, Cash and Pricing. Nothing below touches those until it lands.
+
+| Lane | Scope | Can start |
+|---|---|---|
+| **A · table layer** | R2-3 in `DataTable.tsx` / `components/table/rowActions.tsx`, with the density table in `density.ts` updated and a test that a page with one refused row keeps every other row at the base pitch | now |
+| **B · Wallets + Ledger** | R2-1 (`ViewHeader` created here; Wallets, Trial balance, Journal, Refused, Gateways adopt it), R2-4 on Wallets, R2-5, R2-6, R2-8 | now |
+| **C · Payouts + Cash + Pricing** | R2-1 on Payouts, Escrow, Deductions, Cash queue, Cash debt; R2-2 on both drill-ins; R2-4 on Pricing; R2-7; the 2px overflow | after `fin/revenue-views` merges |
+| **D · consolidation** | the Refunds and Credit notes headers from `fin/revenue-views` move onto `ViewHeader` | after B and `fin/revenue-views` |
+
+Verification per lane as §6: typecheck, `test:changed`, the finance harnesses, and for lane A the full suite. Lane C re-runs the round-1 scan script and must show every first row above 400px at 1280 × 900 and every table row at 52px unless a cell genuinely carries two lines.

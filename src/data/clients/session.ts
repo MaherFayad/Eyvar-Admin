@@ -11,11 +11,11 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import type { PermissionKey, WorkspaceId } from '../types/navigation'
-import { effectivePermissions } from '../types/session'
 import type { Session, TeamUser, UserPreferences } from '../types/session'
 import { subTabViewPermissions } from './routes'
 import { http } from './http'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { findOperator, getRoster, resolvePermissions, trackRoleFor } from './rosterStore'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
@@ -24,13 +24,11 @@ import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixture
 let CURRENT_USER_ID!: Fixtures['CURRENT_USER_ID']
 let DEFAULT_LANDING!: Fixtures['DEFAULT_LANDING']
 let ROLE_LANDING!: Fixtures['ROLE_LANDING']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 let claimFixtures!: Fixtures['claimFixtures']
 onFixturesLoaded((f) => {
   CURRENT_USER_ID = f.CURRENT_USER_ID
   DEFAULT_LANDING = f.DEFAULT_LANDING
   ROLE_LANDING = f.ROLE_LANDING
-  teamUserFixtures = f.teamUserFixtures
   claimFixtures = f.claimFixtures
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
@@ -91,7 +89,7 @@ export async function listTeamUsers(signal?: AbortSignal): Promise<TeamUser[]> {
     const res = await http.get<{ items: TeamUser[] }>('/team-users', undefined, { signal })
     return res.items
   }
-  return mock(SESSION_OPERATIONS.teamUsers, signal, () => teamUserFixtures)
+  return mock(SESSION_OPERATIONS.teamUsers, signal, () => getRoster())
 }
 
 /**
@@ -101,7 +99,7 @@ export async function listTeamUsers(signal?: AbortSignal): Promise<TeamUser[]> {
 export async function getTeamUser(id: string, signal?: AbortSignal): Promise<TeamUser> {
   if (DATA_SOURCE === 'http') return http.get<TeamUser>(`/team-users/${id}`, undefined, { signal })
   return mock(SESSION_OPERATIONS.teamUsers, signal, () => {
-    const user = teamUserFixtures.find((u) => u.id === id)
+    const user = findOperator(id)
     if (!user) throw notFound('team user', id)
     return user
   })
@@ -154,7 +152,7 @@ export async function switchMockUser(userId: string, signal?: AbortSignal): Prom
     throw new Error('switchMockUser is mock-only; use the impersonation endpoint in http mode')
   }
   return mockMutation(SESSION_OPERATIONS.switchUser, signal, () => {
-    if (!teamUserFixtures.some((u) => u.id === userId)) throw notFound('team user', userId)
+    if (findOperator(userId) === undefined) throw notFound('team user', userId)
     mockUserId = userId
     return buildSession(mockUserId)
   })
@@ -192,8 +190,8 @@ export function currentMockPermissions(): readonly PermissionKey[] {
    * two implementations of "what may this operator do" is how they drift, which
    * is the whole of D17's §8.2.
    */
-  const user = teamUserFixtures.find((u) => u.id === mockUserId)
-  return user === undefined ? [] : effectivePermissions(user.role, user.permissionDelta)
+  const user = findOperator(mockUserId)
+  return user === undefined ? [] : resolvePermissions(user)
 }
 
 /**
@@ -231,9 +229,9 @@ export function resetMockSession(): void {
 /* ─────────────────────────────── derivation ────────────────────────────── */
 
 function buildSession(userId: string): Session {
-  const user = teamUserFixtures.find((u) => u.id === userId)
+  const user = findOperator(userId)
   if (!user) throw notFound('team user', userId)
-  const landing = ROLE_LANDING[user.role] ?? DEFAULT_LANDING
+  const landing = ROLE_LANDING[trackRoleFor(user.role) ?? user.role] ?? DEFAULT_LANDING
 
   return {
     userId: user.id,
@@ -246,7 +244,7 @@ function buildSession(userId: string): Session {
        operator, which is the free-floating permission set D17 rules out. The
        server computes this and delivers it resolved, so nothing in the UI ever
        re-derives its own authority (§8.2). */
-    permissions: effectivePermissions(user.role, user.permissionDelta),
+    permissions: resolvePermissions(user),
     landingRoute: landing.path,
     landingWorkspaceId: landing.workspaceId as WorkspaceId,
     /* One entry per sub-tab, derived from the route table's `viewPermission`

@@ -1,40 +1,18 @@
 /**
- * The invite dialog — the front of `clients/team.ts` `inviteOperator`.
- *
- * ## What changed, and why it is not cosmetic
- *
- * It used to call `onConfirm` behind a `setTimeout(…, 200)` and close. The
- * screen then minted an id as `USR-${users.length + 1}` and pushed a row onto a
- * component-local array. Nothing was sent, nothing persisted, and the dialog's
- * 200 ms made the whole thing feel like a request.
- *
- * Now it awaits the real mutation and stays open on failure with the message
- * under the field that caused it. The `email_taken` 409 is reachable — invite
- * `sarah@eyvar.com` — and it is the case a fire-and-forget dialog could never
- * have shown, because it had already closed by the time the server answered.
- *
- * Rules applied
- *   §10.4      the invalid field carries a 1px `--ev-red` border and a message
- *              beneath it. **No fill** — §6.2 **D-14** clause B is unsigned and
- *              `--ev-red-lt` is the critical banner's, so `input.tsx` ships
- *              border-and-message and this file does not add a fourth opinion.
- *   §7.4.5     a placeholder is never a label.
- *   §5.7       the primary repeats the verb: `Send invitation`.
- *   §11.2      the primary is disabled in place while the form is incomplete or
- *              in flight; it is never removed.
- *   §9.1       Arabic — every utility here is logical (`text-start`, `gap`).
- *   G7         the five fields are `Field`, not five hand-rolled copies of the
- *              same eight lines. `FieldControl` owns `id`, `aria-describedby`
- *              and `aria-invalid`; this file no longer spells any of them.
- *   G6         `sm` — five single-line controls and one decision. See
- *              `dialog.tsx`'s size table.
+ * The invite dialog (D20 Operators pane, plan T3.1). The role decides the
+ * cap and the preview shows what the invitee will see, through the router's
+ * own functions (TA-2, AC-924). After the send the dialog stays to hand over
+ * the activation link (O-T6). §11.2: the primary disables in place; §10.4:
+ * the field error lands under its field.
  */
 
 import { useEffect, useState } from 'react'
-import { inviteOperator } from '@/data/clients'
-import { ROLE_NAMES, type RoleName } from '@/data/types'
-import { isApiError } from '@/data/types'
+import { toast } from 'sonner'
+import { capForRole, getInvite, inviteOperator, listRoles } from '@/data/clients'
+import { isApiError, type Role, type RoleId, type TeamInvite, type TeamUser } from '@/data/types'
+import { useAsync } from '@/hooks'
 import type { Translate } from '@/lib'
+import { AccessPreview } from '@/components/access/AccessPreview'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -52,6 +30,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -60,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { roleLabel } from '@/screens/auth/copy'
 
 export interface AddUserModalProps {
   open: boolean
@@ -73,10 +53,15 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [role, setRole] = useState<RoleName>('Support')
-  const [cap, setCap] = useState('100')
+  const [role, setRole] = useState<RoleId>('Support')
+  const [cap, setCap] = useState(() => capField('Support'))
   const [busy, setBusy] = useState(false)
   const [emailError, setEmailError] = useState<string | null>(null)
+  /** The sent invitation: the dialog's second screen. */
+  const [sent, setSent] = useState<{ user: TeamUser; invite: TeamInvite | null } | null>(null)
+
+  const roles = useAsync<Role[]>((signal) => listRoles(signal), { cacheKey: 'rbac.roles', enabled: open })
+  const chosen = (roles.data ?? []).find((r) => r.name === role) ?? null
 
   /* A reopened dialog starts clean, including its server-side error. */
   useEffect(() => {
@@ -85,9 +70,16 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
     setEmail('')
     setPhone('')
     setRole('Support')
-    setCap('100')
+    setCap(capField('Support'))
     setEmailError(null)
+    setSent(null)
   }, [open])
+
+  /* The cap follows the role (`compPolicy` per role); the field stays editable. */
+  function chooseRole(next: RoleId) {
+    setRole(next)
+    setCap(capField(next))
+  }
 
   if (!open) return null
 
@@ -106,8 +98,9 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
         compensationCapHalalas:
           parsedCap !== null && Number.isFinite(parsedCap) ? parsedCap : null,
       })
+      const invite = await getInvite(created.id).catch(() => null)
       onInvited(created.name)
-      onClose()
+      setSent({ user: created, invite })
     } catch (thrown) {
       /* §10.4 — the message lands under the field it is about. `email_taken` is
          the only field-specific refusal this mutation raises; anything else is
@@ -122,9 +115,50 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
     }
   }
 
+  if (sent !== null) {
+    const link = sent.invite === null ? null : inviteLink(sent.invite)
+    return (
+      <Dialog open onOpenChange={(next) => !next && onClose()}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>{t('admin.team.invite.sentTitle', { name: sent.user.name })}</DialogTitle>
+            <DialogDescription>{t('admin.team.invite.sentBody')}</DialogDescription>
+          </DialogHeader>
+          {link !== null && (
+            <FieldGroup>
+              <Field id="admin-invite-link">
+                <FieldLabel>{t('admin.team.invite.link')}</FieldLabel>
+                <FieldControl>
+                  <Input readOnly value={link} dir="ltr" onFocus={(event) => event.currentTarget.select()} />
+                </FieldControl>
+              </Field>
+            </FieldGroup>
+          )}
+          <DialogFooter>
+            {link !== null && (
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(link)
+                  toast.info(t('admin.team.invite.copied'))
+                }}
+              >
+                {t('admin.team.invite.copyLink')}
+              </Button>
+            )}
+            <Button size="xs" onClick={onClose}>
+              {t('admin.team.invite.done')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   return (
     <Dialog open onOpenChange={(next) => !next && !busy && onClose()}>
-      <DialogContent size="sm">
+      <DialogContent size="default">
         <DialogHeader>
           <DialogTitle>{t('admin.team.invite.title')}</DialogTitle>
           <DialogDescription>{t('admin.team.invite.desc')}</DialogDescription>
@@ -161,36 +195,54 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
             </FieldControl>
           </Field>
 
-          <Field id="admin-invite-role">
-            <FieldLabel>{t('admin.team.invite.role')}</FieldLabel>
-            <Select value={role} onValueChange={(value) => setRole(value as RoleName)}>
-              <FieldControl>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-              </FieldControl>
-              <SelectContent>
-                {ROLE_NAMES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          <div className="grid grid-cols-2 gap-3 compact:grid-cols-1">
+            <Field id="admin-invite-role">
+              <FieldLabel>{t('admin.team.invite.role')}</FieldLabel>
+              <Select value={role} onValueChange={(value) => chooseRole(value)}>
+                <FieldControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FieldControl>
+                <SelectContent>
+                  {/* Built-ins and custom roles alike (D17): the list is the roles table. */}
+                  {(roles.data ?? []).map((option) => (
+                    <SelectItem key={option.name} value={option.name}>
+                      {roleLabel(t, option.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
-          <Field id="admin-invite-cap">
-            <FieldLabel optional={t('field.optional')}>{t('admin.team.invite.cap')}</FieldLabel>
-            <FieldControl>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={cap}
-                onChange={(event) => setCap(event.target.value)}
-              />
-            </FieldControl>
-            <FieldDescription>{t('admin.team.invite.capHelp')}</FieldDescription>
-          </Field>
+            <Field id="admin-invite-cap">
+              <FieldLabel optional={t('field.optional')}>{t('admin.team.invite.cap')}</FieldLabel>
+              <FieldControl>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={cap}
+                  onChange={(event) => setCap(event.target.value)}
+                />
+              </FieldControl>
+              <FieldDescription>{t('admin.team.invite.capHelp')}</FieldDescription>
+            </Field>
+          </div>
+
+          {/* Behind a disclosure: with it open the dialog outgrows an 800px
+              viewport, and the role and the cap are what the admin decides on. */}
+          {chosen !== null && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="xs" aria-controls="admin-invite-preview">
+                  {t('admin.team.invite.preview')}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent id="admin-invite-preview">
+                <AccessPreview permissions={chosen.permissions} t={t} />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </FieldGroup>
 
         <DialogFooter>
@@ -204,4 +256,16 @@ export function AddUserModal({ open, onClose, onInvited, t }: AddUserModalProps)
       </DialogContent>
     </Dialog>
   )
+}
+
+/** The role's cap in riyals as the field shows it; empty when the role has no cap. */
+function capField(role: RoleId): string {
+  const halalas = capForRole(role)
+  return halalas === null ? '' : String(halalas / 100)
+}
+
+/** The activation URL on this origin; the token is the invitation's. */
+function inviteLink(invite: TeamInvite): string {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  return `${origin}/activate?token=${encodeURIComponent(invite.token)}`
 }

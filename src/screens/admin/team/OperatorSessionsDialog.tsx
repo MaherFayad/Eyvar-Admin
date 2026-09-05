@@ -95,10 +95,9 @@ export function OperatorSessionsDialog({
 
   const rows = data.data?.items ?? []
   const canRevoke = data.data?.canRevoke ?? false
-  const refusal =
-    data.data?.refusal === 'cross_operator_session'
-      ? t('admin.team.refusal.crossOperatorSession')
-      : null
+  /* The one refusal a session list can carry today is the page-level one:
+     no `manage_team`. The banner above states it; the control disables. */
+  const refusal = canRevoke ? null : t('admin.team.refusal.noPermission')
 
   async function handleRevoke(deviceId: string) {
     if (userId === null) return

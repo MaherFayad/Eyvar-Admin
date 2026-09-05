@@ -88,6 +88,7 @@ import {
    every fixture is written against it, so the host clock would render every
    compliance document as long expired. Never a module-scope `Date.now()`. */
 import { useNowIso } from '@/screens/operations/people/useNowIso'
+import { OperatorProfile } from '@/components/profile/operator'
 import { ShellLayer } from '../ShellLayer'
 
 export interface ProfileLayerProps {
@@ -129,6 +130,8 @@ export interface ProfileLayerProps {
    */
   canOpenCompliance?: boolean
   canOpenPayouts?: boolean
+  /** `manage_team`: the colleague's full arrangement rather than the read-only card (TA-10). */
+  canAdministerTeam?: boolean
   /**
    * **The two write permissions the sheets' own actions are gated on.**
    *
@@ -199,6 +202,7 @@ export function ProfileLayer({
   canOpenPayouts = false,
   canFlagTrips = false,
   canManageSubscriptions = false,
+  canAdministerTeam = false,
   entityHref,
 }: ProfileLayerProps) {
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(entityId, signal), {
@@ -306,7 +310,10 @@ export function ProfileLayer({
      card stack. Named once so the three slots below cannot drift apart — the
      original defect in this file was a header and a body disagreeing about
      which kinds were special. */
-  const isOwnArrangement = isRider || isDriver || isTrip || isRequest || isSubscription
+  const operator = record.data?.entityType === 'operator' ? record.data.data : null
+  const isOperator = ref?.entityType === 'operator' && canAdministerTeam
+
+  const isOwnArrangement = isRider || isDriver || isTrip || isRequest || isSubscription || isOperator
 
   /**
    * **Every `?entity=` link this layer hands out, through one function.**
@@ -387,7 +394,7 @@ export function ProfileLayer({
          `banner` and `header` are mutually exclusive by construction, which is
          what keeps the surface from growing a second title. */
       header={
-        ref && !isOwnArrangement ? identityBandSlots({ entity: ref, record, t }) : undefined
+        ref && (!isOwnArrangement || isOperator) ? identityBandSlots({ entity: ref, record, t }) : undefined
       }
       banner={
         ref && isRider ? (
@@ -615,6 +622,23 @@ export function ProfileLayer({
 
       {/* §6.2's card stack, for the other seven kinds. The layer has no rail, so
           it omits nothing — the identity card is its first card. */}
+      {/* A colleague's own arrangement, under `manage_team` (TA-10). */}
+      {ref && isOperator && (
+        <>
+          {record.status === 'loading' && <LoadingSkeleton pattern="overlay" />}
+          {record.status === 'error' && (
+            <ErrorState
+              scope="card"
+              message={t('profile.state.error', { section: t('profile.kind.operator') })}
+              action={{ label: t('profile.state.retry'), onClick: record.refetch }}
+            />
+          )}
+          {operator && (
+            <OperatorProfile operator={operator} t={t} language={language} onNavigate={onOpenFullProfile} />
+          )}
+        </>
+      )}
+
       {ref && !isOwnArrangement && (
         <ProfileSections entity={ref} record={record} t={t} language={language} />
       )}

@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { listEmailTemplateCoverage, listEmailTemplates } from '@/data/clients'
 import type {
   EmailLocale,
@@ -28,7 +29,7 @@ import type {
 import { formatDate, type Language, type Translate } from '@/lib'
 import { useAsync } from '@/hooks'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -91,9 +92,10 @@ export function EmailTemplatesCard({ t, language, actorId, canWrite }: EmailTemp
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('comms.template.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('comms.template.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('comms.template.title')}
+        <InfoHint t={t}>{t('comms.template.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="p-0">
         {data.status === 'loading' && (
           <div className="p-3">

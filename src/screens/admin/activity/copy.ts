@@ -18,6 +18,9 @@ export const ADMIN_ACTIVITY_EN: Dictionary = {
 
   'admin.activity.column.event': 'Event',
   'admin.activity.column.operator': 'Operator',
+  'admin.activity.actorOnly': 'Showing {name} only',
+  'admin.activity.showEveryone': 'Show everyone',
+  'admin.activity.filterActor': 'Show only {name}',
   'admin.activity.column.action': 'Action',
   'admin.activity.column.detail': 'What happened',
   'admin.activity.column.note': 'Note',

@@ -46,6 +46,8 @@ import { listCities, resolveZones, summariseZones } from './zones'
 import { concentrationShare, median, p10, p90 } from '../reporting/distribution'
 import { addDays, daysInclusive } from '../reporting/buckets'
 import { http } from './http'
+import { getRoster } from './rosterStore'
+import { currentRota } from './team'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -70,7 +72,6 @@ let allRequestFixtures!: Fixtures['allRequestFixtures']
 let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
 let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
 let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   boardBreakdowns = f.boardBreakdowns
   boardNotices = f.boardNotices
@@ -90,7 +91,6 @@ onFixturesLoaded((f) => {
   assuranceTripFixtures = f.assuranceTripFixtures
   fairnessCaseFixtures = f.fairnessCaseFixtures
   safetyIncidentFixtures = f.safetyIncidentFixtures
-  teamUserFixtures = f.teamUserFixtures
   METRIC_KEYS.length = 0
   METRIC_KEYS.push(...metricSeeds.map((m) => m.key))
   METRIC_SERIES_KEYS.length = 0
@@ -430,10 +430,15 @@ const DERIVED: Record<string, () => number | null> = {
     )
   },
 
-  'admin.overview.activeOperators': () =>
-    teamUserFixtures.filter((u) => u.status === 'Active').length,
+  /* The live roster, so a seed that enrols or a colleague who activates moves the tile. */
+  'admin.overview.activeOperators': () => getRoster().filter((u) => u.status === 'Active').length,
   'admin.overview.operatorsWithoutTwoFactor': () =>
-    teamUserFixtures.filter((u) => u.secondFactor === null).length,
+    getRoster().filter((u) => u.secondFactor === null).length,
+  /* O-T4: one on-call model. The two rota slots, counted empty (TA-7). */
+  'admin.overview.rotaGaps': () => {
+    const rota = currentRota()
+    return [rota.primaryUserId, rota.secondaryUserId].filter((id) => id === null).length
+  },
   'admin.overview.itemsResolvedPerOperatorHour': () => 4.8,
   'admin.overview.workloadBalance': () => 1.4,
 

@@ -32,7 +32,8 @@
  *             Neither is red; nothing here is a breach.
  */
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InfoHint } from '@/components/InfoHint'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,9 +84,10 @@ export function SlaTierDefaultsCard({ draft, onChange, canWrite, blockedReason, 
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('policy.sla.tiers.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('policy.sla.tiers.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('policy.sla.tiers.title')}
+        <InfoHint t={t}>{t('policy.sla.tiers.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -186,9 +188,10 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
       <CardHeader className="border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <CardTitle>{t('policy.sla.grid.title')}</CardTitle>
-            <CardDescription className="text-xs">{t('policy.sla.grid.desc')}</CardDescription>
-          </div>
+            <CardTitle>{t('policy.sla.grid.title')}
+            <InfoHint t={t}>{t('policy.sla.grid.desc')}</InfoHint>
+          </CardTitle>
+            </div>
           <StatusBadge tone="neutral">
             {t('policy.sla.overrides.count', {
               count: formatCount(tally.overridden, language),

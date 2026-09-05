@@ -2680,6 +2680,56 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/rbac/holders/:key",
+      "client": "src/data/clients/rbac.ts",
+      "function": "holdersOf",
+      "params": null,
+      "body": null,
+      "returns": "{ items: PermissionHolder[] }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/rbac/roles",
+      "client": "src/data/clients/rbac.ts",
+      "function": "listRoles",
+      "params": null,
+      "body": null,
+      "returns": "{ items: Role[] }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/rbac/roles",
+      "client": "src/data/clients/rbac.ts",
+      "function": "createRole",
+      "params": null,
+      "body": null,
+      "returns": "Role",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/rbac/roles/:name",
+      "client": "src/data/clients/rbac.ts",
+      "function": "deleteRole",
+      "params": null,
+      "body": null,
+      "returns": "{ deleted: true }",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/rbac/roles/:name",
+      "client": "src/data/clients/rbac.ts",
+      "function": "updateRole",
+      "params": null,
+      "body": null,
+      "returns": "Role",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/refunds",
       "client": "src/data/clients/revenue.ts",
       "function": "listRefunds",
@@ -3188,6 +3238,16 @@
       "statuses": []
     },
     {
+      "method": "GET",
+      "path": "/api/v1/team/invites/:userId",
+      "client": "src/data/clients/team.ts",
+      "function": "getInvite",
+      "params": null,
+      "body": null,
+      "returns": "TeamInvite",
+      "statuses": []
+    },
+    {
       "method": "POST",
       "path": "/api/v1/team/invites/:userId/resend",
       "client": "src/data/clients/team.ts",
@@ -3259,11 +3319,21 @@
     },
     {
       "method": "PUT",
-      "path": "/api/v1/team/operators/:id/permissions",
+      "path": "/api/v1/team/operators/:id/compensation-cap",
       "client": "src/data/clients/team.ts",
-      "function": "setOperatorPermissions",
+      "function": "setCompensationCap",
       "params": null,
-      "body": "{ permissions }",
+      "body": null,
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/team/operators/:id/override",
+      "client": "src/data/clients/rbac.ts",
+      "function": "setPermissionDelta",
+      "params": null,
+      "body": null,
       "returns": "TeamUser",
       "statuses": []
     },
@@ -3272,6 +3342,16 @@
       "path": "/api/v1/team/operators/:id/reinstate",
       "client": "src/data/clients/team.ts",
       "function": "reinstateOperator",
+      "params": null,
+      "body": null,
+      "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/team/operators/:id/role",
+      "client": "src/data/clients/rbac.ts",
+      "function": "changeRole",
       "params": null,
       "body": null,
       "returns": "TeamUser",
@@ -3305,6 +3385,16 @@
       "params": null,
       "body": "{ reason }",
       "returns": "TeamUser",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/team/sessions",
+      "client": "src/data/clients/team.ts",
+      "function": "listAllSessions",
+      "params": null,
+      "body": null,
+      "returns": "{ items: OperatorSession[] }",
       "statuses": []
     },
     {

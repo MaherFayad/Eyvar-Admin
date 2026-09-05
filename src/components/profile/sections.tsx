@@ -84,6 +84,8 @@ import {
   type Translate,
 } from '@/lib'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Money } from '@/components/Money'
+import { roleLabel } from '@/screens/auth/copy'
 /* **Reused, not restated.** People already owns the tone decision for every
    captain, rider, applicant and compliance-document value, and a second copy
    here would be a second answer to "is a suspension warning or neutral". The
@@ -267,6 +269,22 @@ export function identityFields(
   language: Language,
 ): Field[] {
   switch (record.entityType) {
+    case 'operator': {
+      const u = record.data
+      const tone = u.status === 'Active' ? 'success' : u.status === 'Invited' ? 'info' : 'neutral'
+      return [
+        { label: t('profile.field.email'), value: text(u.email) },
+        { label: t('profile.field.phone'), value: text(u.phone) },
+        { label: t('profile.field.role'), value: text(roleLabel(t, u.role)) },
+        { label: t('profile.field.status'), value: badge(tone, t(`profile.operator.status.${u.status}`)) },
+        { label: t('profile.field.lastSignedIn'), value: date(u.lastLoginAt, language, 'day-month-time') },
+        {
+          label: t('profile.field.cap'),
+          value:
+            u.compensationCapHalalas === null ? text(t('profile.operator.noCap')) : <Money amount={u.compensationCapHalalas} />,
+        },
+      ]
+    }
     case 'rider': {
       const r = record.data
       return [

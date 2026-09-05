@@ -42,7 +42,8 @@ import { toast } from 'sonner'
 import { getOperationalPolicy, saveOperationalPolicy } from '@/data/clients'
 import { isApiError, type SubTabRoute } from '@/data/types'
 import type { OperationalPolicy } from '@/data/types/policy'
-import { useAsync } from '@/hooks'
+import { useAsync, useScreenViews, type ScreenView } from '@/hooks'
+import { ViewTabs } from '@/components/ViewTabs'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
@@ -55,6 +56,14 @@ import { SlaQueueGridCard, SlaTierDefaultsCard } from './SlaPolicyCards'
 import { draftFromPolicy, draftToInput, isDraftDirty, type PolicyDraft } from './policyDraft'
 import { withFallback } from '../../operations/localCopy'
 import { POLICY_EN } from './copy'
+
+/* D20's four Operational Policy panes, as `?view=`; the route row declares the same ids. */
+const POLICY_PANES: readonly ScreenView[] = [
+  { id: 'dispatch', titleKey: 'view.policy.dispatch' },
+  { id: 'cities', titleKey: 'view.policy.cities' },
+  { id: 'limits', titleKey: 'view.policy.limits' },
+  { id: 'reasons', titleKey: 'view.policy.reasons' },
+]
 
 export function AdminPolicyScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -70,6 +79,7 @@ export function AdminPolicyScreen({ row }: { row: SubTabRoute }) {
     [shell.language.t],
   )
   const { dir, language } = shell.language
+  const panes = useScreenViews(POLICY_PANES, 'dispatch', t)
 
   const canWrite = canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
   const blockedReason = canWrite ? null : t('policy.blocked.permission')
@@ -195,17 +205,27 @@ export function AdminPolicyScreen({ row }: { row: SubTabRoute }) {
   return (
     <SingleColumnPage header={header}>
       <div className="flex max-w-5xl flex-col gap-6">
-        <DispatchCard {...paneProps} />
-        <CitiesCard {...paneProps} fleetById={fleetById} />
-        <LimitsCard {...paneProps} />
-        <SlaTierDefaultsCard {...paneProps} />
-        <SlaQueueGridCard {...paneProps} />
-        <ReasonCodesCard
-          canWrite={canWrite}
-          blockedReason={blockedReason}
-          t={t}
-          language={language}
+        <ViewTabs
+          tabs={panes.tabs}
+          activeTab={panes.activeTab}
+          onSelectTab={panes.selectTab}
+          label={t('admin.panes')}
         />
+        {panes.activeTab === 'dispatch' && <DispatchCard {...paneProps} />}
+        {panes.activeTab === 'cities' && <CitiesCard {...paneProps} fleetById={fleetById} />}
+        {panes.activeTab === 'limits' && <LimitsCard {...paneProps} />}
+        {panes.activeTab === 'reasons' && (
+          <>
+            <SlaTierDefaultsCard {...paneProps} />
+            <SlaQueueGridCard {...paneProps} />
+            <ReasonCodesCard
+              canWrite={canWrite}
+              blockedReason={blockedReason}
+              t={t}
+              language={language}
+            />
+          </>
+        )}
       </div>
     </SingleColumnPage>
   )

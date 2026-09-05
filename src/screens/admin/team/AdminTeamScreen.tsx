@@ -66,11 +66,17 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   getOnCallRota,
   getSecurityPolicy,
+  inviteExpired,
+  listAgentPresence,
+  listInvites,
   listOperators,
+  listWorkItems,
   offboardOperator,
   reinstateOperator,
   resendInvite,
@@ -79,37 +85,36 @@ import {
   transitionRefusal,
   updateOnCallRota,
   updateSecurityPolicy,
+  capForRole,
 } from '@/data/clients'
 import type {
   OnCallRota,
   Paginated,
   SecurityPolicy,
+  AgentPresence,
   SubTabRoute,
   TeamGuardCode,
+  TeamInvite,
   TeamTransition,
   TeamUser,
 } from '@/data/types'
-import { isApiError, ROLE_NAMES, ROLE_PERMISSIONS } from '@/data/types'
-import { useAsync } from '@/hooks'
-import { formatDate, type Translate } from '@/lib'
+import { isApiError, isBuiltInRole } from '@/data/types'
+import { useAsync, useIndexTable, useScreenViews, type ScreenView } from '@/hooks'
+import { ViewTabs } from '@/components/ViewTabs'
+import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
+import { formatDate, formatMoney, type Translate } from '@/lib'
+import { EYVAR_NOW } from '@/data/mock/clock'
 import { Banner } from '@/components/Banner'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
-import { PERMISSION_KEYS } from '@/shell/permissions'
+import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -119,10 +124,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Check, Clock, Key, MoreHorizontal, ShieldCheck, Users, X } from 'lucide-react'
+import { Clock, ShieldCheck, Users } from 'lucide-react'
 import { AddUserModal } from './AddUserModal'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { OperatorSessionsDialog } from './OperatorSessionsDialog'
+import { ChangeRoleDialog } from './ChangeRoleDialog'
+import { RolesPane } from './panes/RolesPane'
+import { OverridesPane } from './panes/OverridesPane'
+import { SessionsPane } from './panes/SessionsPane'
 import { withFallback } from '../../operations/localCopy'
 import { ADMIN_TEAM_EN } from './copy'
 /* A role name is a KEY, never the data layer's English literal. Three sites on
@@ -131,31 +140,29 @@ import { ADMIN_TEAM_EN } from './copy'
    so there is one map from the six roles, not two. */
 import { roleLabel } from '@/screens/auth/copy'
 
-/**
- * **Q4 is CLOSED by D17, and this literal is superseded.**
- *
- * `ALL_PERMISSIONS` was *"an engineer's reading of the RBAC matrix"* — thirteen
- * keys and four roles, hand-written here because the ruling had not landed and
- * wiring a guess through the seam would have made it look ratified. It has
- * landed. The matrix now renders **the same two constants the router reads**:
- * `PERMISSION_KEYS` (the twenty, derived from the `PermissionKey` union so a
- * twenty-first is a compile error) and `ROLE_PERMISSIONS` (D17's six baselines).
- *
- * **This is what makes AC-924 true rather than plausible**: the preview lists
- * exactly the keys `forbiddenReason` and `canWriteSubTab` allow or deny on,
- * because there is now one list and not two. The labels come from the same
- * `account.permission.<key>` dictionary keys the account layer's §6.4 summary
- * uses, so a permission is described identically wherever it is named.
- *
- * The matrix stays **read-only**: editing a role baseline is Phase 6b's
- * `clients/rbac`, and D17 requires a per-user delta to render **as a delta**
- * (`Support + release_escrow`), which is a different control from a grid of
- * ticks.
- */
-const MATRIX_ROLES = ROLE_NAMES
 
 /** The one element every page-level refusal on this screen describes itself by. */
 const READ_ONLY_REASON_ID = 'admin-team-read-only-reason'
+
+const ROSTER_ACTION_IDS = ['resend', 'revoke', 'suspend', 'reinstate', 'offboard', 'role', 'sessions'] as const
+const ROSTER_ACTION_LABEL: Record<(typeof ROSTER_ACTION_IDS)[number], keyof typeof ADMIN_TEAM_EN> = {
+  resend: 'admin.team.action.resend',
+  revoke: 'admin.team.action.revoke',
+  suspend: 'admin.team.action.suspend',
+  reinstate: 'admin.team.action.reinstate',
+  offboard: 'admin.team.action.offboard',
+  role: 'admin.team.action.changeRole',
+  sessions: 'admin.team.action.sessions',
+}
+
+const TEAM_PANES: readonly ScreenView[] = [
+  { id: 'operators', titleKey: 'view.team.operators' },
+  { id: 'roles', titleKey: 'view.team.roles' },
+  { id: 'overrides', titleKey: 'view.team.overrides' },
+  { id: 'sessions', titleKey: 'view.team.sessions' },
+  { id: 'security', titleKey: 'view.team.security' },
+  { id: 'oncall', titleKey: 'view.team.oncall' },
+]
 
 const IDLE_OPTIONS = [15, 30, 60] as const
 const EXPIRY_OPTIONS = [8, 12, 24] as const
@@ -171,13 +178,15 @@ function refusalSentence(code: TeamGuardCode, t: Translate): string {
       return t('admin.team.refusal.notActive')
     case 'not_suspended':
       return t('admin.team.refusal.notSuspended')
-    case 'cross_operator_session':
-      return t('admin.team.refusal.crossOperatorSession')
+    case 'no_manage_team':
+      return t('admin.team.refusal.noPermission')
   }
 }
 
 export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
+  const navigate = useNavigate()
+  const location = useLocation()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
      own chunk. `withFallback` resolves a key the shell dictionary does
      not carry, so nothing here needs registering there. */
@@ -224,6 +233,11 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
     cacheKey: 'securityPolicy.get',
   })
   const rota = useAsync<OnCallRota>((signal) => getOnCallRota(signal), { cacheKey: 'team.rota' })
+  const invites = useAsync<TeamInvite[]>((signal) => listInvites(signal), {
+    cacheKey: 'team.invites',
+    /* An empty list is a roster with nobody invited, not an empty page. */
+    isEmpty: () => false,
+  })
 
   const users = useMemo(() => roster.data?.items ?? [], [roster.data])
 
@@ -231,7 +245,27 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
     roster.refetch()
     policy.refetch()
     rota.refetch()
+    invites.refetch()
   }
+  const inviteFor = (userId: string) => (invites.data ?? []).find((i) => i.userId === userId) ?? null
+  /* T6.2 / T6.3: who is on shift, and what each holds, from the clients that already know. */
+  const presence = useAsync<AgentPresence[]>((signal) => listAgentPresence(signal), {
+    cacheKey: 'conversations.presence',
+    isEmpty: () => false,
+  })
+  const holdings = useAsync<Record<string, number>>(
+    async (signal) => {
+      const page = await listWorkItems({ includeOtherRoles: true, pageSize: 200 }, signal)
+      const counts: Record<string, number> = {}
+      for (const item of page.items) {
+        if (item.claim?.state !== 'claimed') continue
+        counts[item.claim.ownerId] = (counts[item.claim.ownerId] ?? 0) + 1
+      }
+      return counts
+    },
+    { cacheKey: 'work.list', isEmpty: () => false },
+  )
+  const presenceFor = (userId: string) => (presence.data ?? []).find((p) => p.userId === userId) ?? null
 
   /* ── the form half: security policy + rota, one save bar ──────────────── */
 
@@ -328,6 +362,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [sessionsFor, setSessionsFor] = useState<TeamUser | null>(null)
+  const [roleFor, setRoleFor] = useState<TeamUser | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function run(work: () => Promise<void>, success: string) {
@@ -336,6 +371,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
       await work()
       setConfirm(null)
       roster.refetch()
+      invites.refetch()
       toast.success(success)
     } catch (thrown) {
       toast.error(
@@ -353,6 +389,12 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
    * client's own predicate**, plus the page-level permission gate, so a control
    * is dead here exactly when the mutation would refuse it.
    */
+  /* T6.4: the confirm names what the act releases. Two sentences, no assembly. */
+  const withHolding = (body: string, userId: string) => {
+    const count = holdings.data?.[userId] ?? 0
+    return count > 0 ? `${body} ${t('admin.team.confirm.holding', { count })}` : body
+  }
+
   function actionsFor(user: TeamUser): ReadonlyArray<{
     id: TeamTransition | 'sessions'
     label: string
@@ -418,7 +460,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         onSelect: () =>
           setConfirm({
             title: t('admin.team.confirm.suspend.title', { name: user.name }),
-            body: t('admin.team.confirm.suspend.body'),
+            body: withHolding(t('admin.team.confirm.suspend.body'), user.id),
             confirmLabel: t('admin.team.confirm.suspend.action'),
             /* Reinstatement is one click, on this same menu. R5a's red is for
                the unrecoverable; a deactivation is not that. */
@@ -454,7 +496,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         onSelect: () =>
           setConfirm({
             title: t('admin.team.confirm.offboard.title', { name: user.name }),
-            body: t('admin.team.confirm.offboard.body'),
+            body: withHolding(t('admin.team.confirm.offboard.body'), user.id),
             confirmLabel: t('admin.team.confirm.offboard.action'),
             /* R5a use #1 — the record does not come back from this screen. */
             destructive: true,
@@ -469,6 +511,13 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
                 t('admin.team.toast.offboarded', { name: user.name }),
               ),
           }),
+      },
+      {
+        id: 'role',
+        label: t('admin.team.action.changeRole'),
+        reason: gate('role'),
+        refusedByRole: !canWrite,
+        onSelect: () => setRoleFor(user),
       },
       {
         /* Read-only, so it is not gated on `manage_team` write. */
@@ -496,6 +545,131 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
           : 'content'
 
   const activeUsers = users.filter((u) => u.status === 'Active')
+  const [onlyPending, setOnlyPending] = useState(false)
+  const pendingTwoFactor = users.filter((u) => u.secondFactor === null).length
+  const rosterTable = useIndexTable<TeamUser>({ mode: 'index', getRowId: (u) => u.id, urlKey: 'roster' })
+  /* The roster is one page, so the search narrows in place (§6.4). */
+  const needle = (rosterTable.params.q ?? '').toLowerCase()
+  const visibleUsers = users.filter(
+    (u) =>
+      (!onlyPending || u.secondFactor === null) &&
+      (needle === '' ||
+        [u.name, u.email, u.id, roleLabel(t, u.role)].some((field) => field.toLowerCase().includes(needle))),
+  )
+
+  const rosterColumns: DataColumn<TeamUser>[] = [
+    {
+      id: 'operator',
+      header: t('admin.team.column.operator'),
+      /* T5.2: the name opens the colleague's 360° layer (`?entity=`). */
+      cell: (u) => (
+        <button
+          type="button"
+          className="text-start font-semibold text-foreground underline-offset-2 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => navigate({ pathname: location.pathname, search: withOverlay(location.search, 'entity', u.id) })}
+        >
+          {u.name}
+        </button>
+      ),
+      secondaryLine: (u) => `${u.email} · ${u.id}`,
+      minWidth: 210,
+    },
+    {
+      id: 'role',
+      header: t('admin.team.column.role'),
+      width: 104,
+      /* H7: a fill only where it carries a fact; the Owner and a custom role. */
+      cell: (u) =>
+        u.role === 'Owner' || !isBuiltInRole(u.role) ? (
+          <StatusBadge tone={u.role === 'Owner' ? 'new' : 'info'}>{roleLabel(t, u.role)}</StatusBadge>
+        ) : (
+          <span className="text-foreground">{roleLabel(t, u.role)}</span>
+        ),
+    },
+    {
+      id: 'twoFactor',
+      header: t('admin.team.column.twoFactor'),
+      width: 104,
+      cell: (u) =>
+        u.secondFactor === null ? (
+          <span className="text-muted-foreground">{t('admin.team.twoFactor.none')}</span>
+        ) : (
+          <span className="text-foreground">{t(`admin.team.twoFactor.${u.secondFactor.method}`)}</span>
+        ),
+    },
+    {
+      id: 'status',
+      header: t('admin.team.column.status'),
+      width: 104,
+      /* R7: `Suspended` is `neutral`. There is no red badge. Presence (T6.2)
+         is the second line of the same cell: one column answers "can they
+         work, and are they here". */
+      cell: (u) => (
+        <StatusBadge tone={u.status === 'Active' ? 'success' : u.status === 'Invited' ? 'info' : 'neutral'}>
+          {t(`admin.team.status.${u.status}`)}
+        </StatusBadge>
+      ),
+      secondaryLine: (u) => <PresenceCell presence={presenceFor(u.id)} t={t} />,
+    },
+    {
+      id: 'holding',
+      header: t('admin.team.column.holding'),
+      align: 'end',
+      dataType: 'number',
+      width: 88,
+      cell: (u) => (holdings.status === 'content' ? holdings.data?.[u.id] ?? 0 : null),
+    },
+    {
+      id: 'lastSeen',
+      header: t('admin.team.column.lastSeen'),
+      width: 104,
+      cell: (u) =>
+        u.lastLoginAt === null ? (
+          <span className="flex flex-col text-muted-foreground">
+            <span>{t('admin.team.lastSeen.never')}</span>
+            {/* T3.2: an invitation states how long it has left, or that it is over. */}
+            <InviteExpiry invite={inviteFor(u.id)} t={t} />
+          </span>
+        ) : (
+          <span className="text-muted-foreground">{formatDate(u.lastLoginAt, { language })}</span>
+        ),
+    },
+    {
+      id: 'cap',
+      header: t('admin.team.column.cap'),
+      align: 'end',
+      dataType: 'money',
+      width: 96,
+      /* O-T5: the operator's own cap, and the role default beneath it when they
+         differ. The unit is in the header once (§8.3.1). */
+      cell: (u) =>
+        u.compensationCapHalalas === null
+          ? t('admin.team.cap.unlimited')
+          : formatMoney(u.compensationCapHalalas, { unit: 'none' }),
+      secondaryLine: (u) => {
+        const roleCap = capForRole(u.role)
+        if (roleCap === u.compensationCapHalalas) return null
+        return roleCap === null
+          ? t('admin.team.cap.roleDefaultNone')
+          : t('admin.team.cap.roleDefault', { amount: formatMoney(roleCap) })
+      },
+    },
+  ]
+
+  /* D8: seven declared actions, one kebab, on every row for every role (§11.2). */
+  const rosterActions: RowAction<TeamUser>[] = ROSTER_ACTION_IDS.map((id) => ({
+    label: t(ROSTER_ACTION_LABEL[id]),
+    onSelect: (u) => actionsFor(u).find((a) => a.id === id)?.onSelect(),
+    disabled: (u) => {
+      const action = actionsFor(u).find((a) => a.id === id)
+      return busy || !action || action.refusedByRole || action.reason !== null
+    },
+    /* The role refusal is the banner's sentence and is not repeated seven times. */
+    reason: (u) => actionsFor(u).find((a) => a.id === id)?.reason ?? null,
+  }))
+
+  /* D20's panes, as `?view=`. The row declares them; this mirrors the ids. */
+  const panes = useScreenViews(TEAM_PANES, 'operators', t)
 
   const content = (
     <div className="flex min-w-0 max-w-5xl flex-col gap-6">
@@ -515,291 +689,100 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         </div>
       )}
 
-      {/* ── 1. the roster ───────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="border-b border-border pb-3">
+      <ViewTabs
+        tabs={panes.tabs}
+        activeTab={panes.activeTab}
+        onSelectTab={panes.selectTab}
+        label={t('admin.panes')}
+      />
+
+      {/* ── 1. the roster (T7.1: the shared table, so search, column state
+          and the row kebab behave as they do on every other index) ─────── */}
+      {panes.activeTab === 'operators' && (
+        <section aria-label={t('admin.team.roster.title')} className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="size-4 text-muted-foreground" aria-hidden="true" />
-                {t('admin.team.roster.title')}
-              </CardTitle>
-              <CardDescription className="text-xs">{t('admin.team.roster.desc')}</CardDescription>
-            </div>
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {t('admin.team.operators', { count: users.length })}
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Users className="size-4 text-muted-foreground" aria-hidden="true" />
+              {t('admin.team.roster.title')}
+              <InfoHint t={t}>{t('admin.team.roster.desc')}</InfoHint>
+            </h2>
+            <span className="flex flex-col items-end gap-1 text-xs tabular-nums text-muted-foreground">
+              <span>{t('admin.team.operators', { count: users.length })}</span>
+              {/* T4.3: the two-factor posture, stated once, with the filter that acts on it. */}
+              {pendingTwoFactor > 0 && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  aria-pressed={onlyPending}
+                  onClick={() => setOnlyPending((prev) => !prev)}
+                >
+                  {onlyPending
+                    ? t('admin.team.twoFactor.showAll')
+                    : t('admin.team.twoFactor.pendingCount', { count: pendingTwoFactor })}
+                </Button>
+              )}
             </span>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {/* **`relative` is load-bearing and is the whole of the 646px bug.**
-              See the note on the matrix scroller below. */}
-          <div className="relative overflow-x-auto">
-            <table className="w-full text-start text-xs">
-              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
-                <tr>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.column.operator')}
-                  </th>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.column.role')}
-                  </th>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.column.twoFactor')}
-                  </th>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.column.status')}
-                  </th>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.column.lastSeen')}
-                  </th>
-                  <th scope="col" className="p-3 text-end">
-                    {t('admin.team.column.cap')}
-                  </th>
-                  <th scope="col" className="p-3 text-end">
-                    <span className="sr-only">{t('admin.team.rowActions')}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/20 focus-within:bg-muted/20">
-                    <td className="p-3">
-                      <span className="flex flex-col">
-                        <span className="font-semibold text-foreground">{user.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {user.email} · {user.id}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <StatusBadge
-                        tone={
-                          user.role === 'Owner' ? 'new' : user.role === 'Ops Manager' ? 'info' : 'neutral'
-                        }
-                      >
-                        {roleLabel(t, user.role)}
-                      </StatusBadge>
-                    </td>
-                    <td className="p-3">
-                      {/* §7.5 — the tone is paired with a word, always. */}
-                      {user.secondFactor === null ? (
-                        <span className="font-medium text-warning-foreground">
-                          {t('admin.team.twoFactor.none')}
-                        </span>
-                      ) : (
-                        <span className="font-medium text-success-foreground">
-                          {t(`admin.team.twoFactor.${user.secondFactor.method}`)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {/* R7 — `Suspended` is `neutral`. There is no red badge. */}
-                      <StatusBadge
-                        tone={
-                          user.status === 'Active'
-                            ? 'success'
-                            : user.status === 'Invited'
-                              ? 'info'
-                              : 'neutral'
-                        }
-                      >
-                        {t(`admin.team.status.${user.status}`)}
-                      </StatusBadge>
-                    </td>
-                    <td className="p-3 text-muted-foreground">
-                      {user.lastLoginAt === null
-                        ? t('admin.team.lastSeen.never')
-                        : formatDate(user.lastLoginAt, { language })}
-                    </td>
-                    <td className="p-3 text-end font-medium text-foreground">
-                      {user.compensationCapHalalas === null ? (
-                        t('admin.team.cap.unlimited')
-                      ) : (
-                        <Money amount={user.compensationCapHalalas} />
-                      )}
-                    </td>
-                    <td className="p-3 text-end">
-                      {/* D8 — six declared actions, so the kebab is right. It
-                          renders on EVERY row, at rest, for every role: §11.2
-                          and AC-68 both. The old screen hid it for `USR-1` and
-                          for any operator without `manage_team`. */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            aria-label={t('admin.team.rowActions')}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {actionsFor(user).map((action) => (
-                            <RefusableMenuItem
-                              key={action.id}
-                              label={action.label}
-                              reason={action.reason}
-                              refusedByRole={action.refusedByRole}
-                              busy={busy}
-                              onSelect={action.onSelect}
-                            />
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── 2. the permission matrix ────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="border-b border-border pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Key className="size-4 text-muted-foreground" aria-hidden="true" />
-            {t('admin.team.matrix.title')}
-          </CardTitle>
-          <CardDescription className="text-xs">{t('admin.team.matrix.desc')}</CardDescription>
-        </CardHeader>
-        {/* **THE 646px BUG WAS `position: static` ON THIS SCROLLER, NOT THE
-            TABLE'S WIDTH.** This route was the only one of 36 that failed to
-            honour a 390px phone: it reported `innerWidth` 646 and rendered the
-            whole console at about 0.6x.
-
-            The table's own containment was never broken. Measured at 390: the
-            matrix is 610px wide inside a scroller whose right edge is 373, and
-            every ancestor from there to `main` is <= 390. The roster is the
-            same. Nothing in flow escaped, which is why capping the box with a
-            zero minimum width and a full-width maximum changed the number by
-            exactly nothing, and why giving the table a max-content width made
-            it worse (646 -> 790) rather than better.
-
-            What escaped was the visually-hidden text. The utility that hides it
-            uses `position: absolute`, and **a scroll container does not clip an
-            absolutely positioned descendant whose containing block is an
-            ancestor of the scroll container** (CSS Overflow 3). With this box
-            at `position: static` those spans resolved their containing block to
-            `body` -- measured, `offsetParent` was `body` for every one of them
-            -- so they laid out against the document at the table's UNSCROLLED
-            coordinates and pulled the document out with them. The furthest was
-            the roster's `Operator actions` label at x = 645, and
-            `documentElement.scrollWidth` was 646. One pixel of screen-reader-only
-            text, 256px of document overflow.
-
-            `relative` makes this box the containing block, so the spans are laid
-            out and clipped inside it. This is what `DataTable`'s own scroll
-            container has always declared (`ui/table.tsx:102`), which is exactly
-            why none of the twenty index routes has ever shown this and this
-            hand-rolled one did.
-
-            The zero minimum width and full-width maximum below are kept: they
-            are inert against this defect but they are not wrong, and they make
-            the intent explicit. */}
-        <CardContent className="min-w-0 p-0">
-          <div className="relative min-w-0 max-w-full overflow-x-auto">
-            <table className="w-full text-start text-xs">
-              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
-                <tr>
-                  <th scope="col" className="p-3 text-start">
-                    {t('admin.team.matrix.capability')}
-                  </th>
-                  {MATRIX_ROLES.map((role) => (
-                    <th key={role} scope="col" className="p-3 text-center">
-                      {roleLabel(t, role)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {PERMISSION_KEYS.map((permissionKey) => (
-                  <tr key={permissionKey} className="hover:bg-muted/20">
-                    <th scope="row" className="p-3 text-start font-normal">
-                      <span className="block font-medium text-foreground">
-                        {t(`account.permission.${permissionKey}`)}
-                      </span>
-                      <span className="block font-mono text-xs text-muted-foreground">
-                        {permissionKey}
-                      </span>
-                    </th>
-                    {MATRIX_ROLES.map((role) => {
-                      /* **D17's baseline, read from the one place it is
-                         declared.** Not from `holder.permissions` on a seeded
-                         operator: that array is the legacy absolute set, it is
-                         no longer what `Session.permissions` carries, and a role
-                         with no seeded holder would have rendered as an empty
-                         column rather than as its baseline. */
-                      const granted = ROLE_PERMISSIONS[role].includes(permissionKey)
-                      return (
-                        <td key={role} className="p-2 text-center">
-                          {/* **Granted carries a SHAPE; withheld carries none.
-                              Sweep S9.**
-
-                              Before this, the two outcomes differed by glyph
-                              colour alone — a 16px check at `--ev-green`
-                              #1d723c against a 16px cross at `--ev-text-2`
-                              #6b7280, on
-                              identical transparent grounds, across 126 cells.
-                              Everything else about the two cells was
-                              byte-identical, so at a glance the matrix read as
-                              one texture and the answer it exists to give could
-                              not be scanned.
-
-                              The fix is a filled marker on the granted cell and
-                              nothing on the withheld one, so the difference is
-                              PRESENCE OF A SHAPE first and colour second. It
-                              spends no new colour: the success tone is the same
-                              pair /operations/subscriptions uses for its live
-                              rows, and the check inside measures 5.332 : 1 on
-                              it. §7.5 holds four ways over — shape, ground,
-                              glyph, and the visually-hidden word that was
-                              already here. */}
-                          {granted ? (
-                            <span
-                              className="mx-auto flex size-6 items-center justify-center rounded-md border border-success-foreground/25 bg-success text-success-foreground"
-                              aria-hidden="true"
-                            >
-                              <Check className="size-4" />
-                            </span>
-                          ) : (
-                            <span
-                              className="mx-auto flex size-6 items-center justify-center text-muted-foreground"
-                              aria-hidden="true"
-                            >
-                              <X className="size-4" />
-                            </span>
-                          )}
-                          <span className="sr-only">
-                            {granted ? t('admin.team.matrix.granted') : t('admin.team.matrix.withheld')}
-                          </span>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* §11.2 — the matrix is read-only and says why, in place. */}
-          <p className="border-t border-border p-3 text-xs text-muted-foreground">
-            {t('admin.team.matrix.blocked')}
-          </p>
-        </CardContent>
-      </Card>
-
+          <DataTable
+            table={rosterTable}
+            rows={visibleUsers}
+            columns={rosterColumns}
+            getRowId={(u) => u.id}
+            status={visibleUsers.length === 0 ? 'empty' : 'content'}
+            total={visibleUsers.length}
+            t={t}
+            language={language}
+            tableId="admin-team-roster"
+            searchPlaceholder={t('admin.team.search')}
+            skeletonPattern="P1"
+            emptyKind="no-match"
+            rowActions={rosterActions}
+            firstRun={{
+              heading: t('admin.team.empty.heading'),
+              body: t('admin.team.empty.body'),
+              actions: canWrite
+                ? [{ label: t('admin.team.invite'), primary: true, onClick: () => setInviteOpen(true) }]
+                : [],
+            }}
+            noMatch={{ message: t('admin.team.noMatch') }}
+            error={{ message: t('admin.team.error'), onRetry: refetchAll }}
+          />
+        </section>
+      )}
+      {/* ── 2. roles and overrides (D20 panes) ──────────────────────────── */}
+      {panes.activeTab === 'roles' && (
+        <RolesPane canWrite={canWrite} readOnlyReasonId={READ_ONLY_REASON_ID} t={t} onChanged={roster.refetch} />
+      )}
+      {panes.activeTab === 'overrides' && (
+        <OverridesPane
+          users={users}
+          canWrite={canWrite}
+          readOnlyReasonId={READ_ONLY_REASON_ID}
+          t={t}
+          onChanged={roster.refetch}
+        />
+      )}
+      {panes.activeTab === 'sessions' && (
+        <SessionsPane canWrite={canWrite} readOnlyReasonId={READ_ONLY_REASON_ID} t={t} language={language} />
+      )}
       {/* ── 3. security & session policy ────────────────────────────────── */}
+      {panes.activeTab === 'security' && (
       <Card>
         <CardHeader className="border-b border-border pb-3">
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.team.security.title')}
+            <InfoHint t={t}>{t('admin.team.security.desc')}</InfoHint>
           </CardTitle>
-          <CardDescription className="text-xs">{t('admin.team.security.desc')}</CardDescription>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
+          {/* §11.2 and AC-957: the pane renders for `manage_team`; writing it needs
+              `manage_security_policy`, and the refusal is stated once, here. */}
+          {!canWriteSecurity && (
+            <p id="admin-team-security-refusal" role="status" className="text-xs text-foreground">
+              {t('admin.team.security.readOnly')}
+            </p>
+          )}
           <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-3">
             <span className="flex flex-col gap-0.5">
               <Label htmlFor="admin-team-2fa" className="font-medium text-foreground">
@@ -813,6 +796,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
               id="admin-team-2fa"
               checked={draftPolicy?.requireSecondFactor ?? false}
               disabled={!canWriteSecurity || draftPolicy === null}
+              aria-describedby={canWriteSecurity ? undefined : 'admin-team-security-refusal'}
               onCheckedChange={(next) =>
                 setDraftPolicy((prev) => (prev === null ? prev : { ...prev, requireSecondFactor: next }))
               }
@@ -872,22 +856,20 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
             </div>
           </div>
 
-          {/* Stated rather than hidden: the value saves, and the shell does not
-              read it yet. A pane that quietly saved a number nothing enforces
-              is the defect this whole screen is being repaired for. */}
-          <p className="text-xs text-muted-foreground">{t('admin.team.security.notWired')}</p>
         </CardContent>
       </Card>
 
+      )}
       {/* ── 4. the on-call rota ─────────────────────────────────────────── */}
+      {panes.activeTab === 'oncall' && (
       <Card>
         <CardHeader className="border-b border-border pb-3">
           <CardTitle className="flex items-center gap-2">
             <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.team.rota.title')}
+            <InfoHint t={t}>{t('admin.team.rota.desc')}</InfoHint>
           </CardTitle>
-          <CardDescription className="text-xs">{t('admin.team.rota.desc')}</CardDescription>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
           <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <RotaSelect
@@ -913,9 +895,9 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
               }
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t('admin.team.rota.notWired')}</p>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 
@@ -981,6 +963,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         onClose={() => setInviteOpen(false)}
         onInvited={(name) => {
           roster.refetch()
+          invites.refetch()
           toast.success(t('admin.team.toast.invited', { name }))
         }}
         t={t}
@@ -995,56 +978,19 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
         t={t}
         language={language}
       />
+      <ChangeRoleDialog
+        operator={roleFor}
+        users={users}
+        onClose={() => setRoleFor(null)}
+        onChanged={(updated) => {
+          roster.refetch()
+          toast.success(
+            t('admin.team.role.toast.changed', { name: updated.name, role: roleLabel(t, updated.role) }),
+          )
+        }}
+        t={t}
+      />
     </SingleColumnPage>
-  )
-}
-
-/**
- * §11.2 / §8.4.4 — a menu item that is refused stays in the menu, disabled,
- * **with the reason on a second line**. Never a tooltip: §5.7 confines a
- * tooltip to naming an icon-only control, and a hover-only explanation is
- * unreachable by keyboard and on touch.
- *
- * The accessible NAME stays the bare label — a description rendered inside the
- * item would otherwise be folded into it, and every caller that finds an action
- * by its label would stop finding it. Same construction as
- * `components/table/rowActions.tsx`, deliberately, so the two surfaces cannot
- * word or shape a refusal differently.
- */
-function RefusableMenuItem({
-  label,
-  reason,
-  refusedByRole,
-  busy,
-  onSelect,
-}: {
-  label: string
-  reason: string | null
-  refusedByRole: boolean
-  busy: boolean
-  onSelect: () => void
-}) {
-  const reasonId = `admin-team-refusal-${label.replace(/\W+/g, '-').toLowerCase()}`
-  const refused = refusedByRole || reason !== null
-  /* The role refusal is the banner's sentence; the domain refusal is its own
-     line. Either way the control POINTS AT a real element with real text. */
-  const describedBy = refusedByRole ? READ_ONLY_REASON_ID : reason !== null ? reasonId : undefined
-
-  return (
-    <DropdownMenuItem
-      disabled={refused || busy}
-      aria-label={refused ? label : undefined}
-      aria-describedby={describedBy}
-      className={reason !== null ? 'flex-col items-start gap-0.5 whitespace-normal' : undefined}
-      onSelect={onSelect}
-    >
-      {label}
-      {reason !== null && (
-        <span id={reasonId} className="block max-w-64 text-xs font-normal text-muted-foreground">
-          {reason}
-        </span>
-      )}
-    </DropdownMenuItem>
   )
 }
 
@@ -1088,5 +1034,36 @@ function RotaSelect({
         </SelectContent>
       </Select>
     </div>
+  )
+}
+
+/** The invitation's remaining life, as a sentence; nothing when there is no invitation. */
+function InviteExpiry({ invite, t }: { invite: TeamInvite | null; t: Translate }) {
+  if (invite === null) return null
+  if (inviteExpired(invite)) {
+    return <span className="text-xs text-warning-foreground">{t('admin.team.invite.expired')}</span>
+  }
+  const days = Math.max(0, Math.round((Date.parse(invite.expiresAt) - Date.parse(EYVAR_NOW)) / 86_400_000))
+  return (
+    <span className="text-xs">
+      {days === 0 ? t('admin.team.invite.expiresToday') : t('admin.team.invite.expiresIn', { days })}
+    </span>
+  )
+}
+
+/** Presence as a word with a dot beside it (§7.5); nothing when the roster does not know. */
+function PresenceCell({ presence, t }: { presence: AgentPresence | null; t: Translate }) {
+  if (presence === null) return null
+  const dot =
+    presence.state === 'online'
+      ? 'bg-success-foreground'
+      : presence.state === 'away'
+        ? 'bg-warning-foreground'
+        : 'bg-muted-foreground'
+  return (
+    <span className="flex items-center gap-1.5 text-foreground">
+      <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${dot}`} />
+      {t(`admin.team.presence.${presence.state}`)}
+    </span>
   )
 }

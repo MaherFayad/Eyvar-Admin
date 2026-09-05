@@ -55,6 +55,7 @@ import { formatCount, formatDate, formatLocalisedText, type Language, type Trans
 import { useAsync, useIndexTable } from '@/hooks'
 import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTable'
 import { Money } from '@/components/Money'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { reasonLabel } from '@/i18n/vocabulary/copy'
@@ -120,8 +121,20 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
     { deps: [table.page, table.pageSize], cacheKey: 'audit.list' },
   )
 
+  /* `?actor=` (plan T5.3): the deep link from an operator's layer and from any
+     actor cell. Applied to the page in hand, like the search box. */
+  const actor = new URLSearchParams(location.search).get('actor')
+  const actorName = data.data?.items.find((e) => e.actorId === actor)?.actorName ?? actor
+  const withActor = (next: string | null) => {
+    const query = new URLSearchParams(location.search)
+    if (next === null) query.delete('actor')
+    else query.set('actor', next)
+    const search = query.toString()
+    return search === '' ? '' : `?${search}`
+  }
+
   const rows = useMemo(() => {
-    const items = data.data?.items ?? []
+    const items = (data.data?.items ?? []).filter((e) => actor === null || e.actorId === actor)
     const query = table.params.q?.toLowerCase() ?? ''
     const matched = query
       ? items.filter((e) =>
@@ -136,7 +149,7 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
     /* Stable within a group: the client returns newest-first, and
        `Array.prototype.sort` is specified stable, so equal keys keep it. */
     return [...matched].sort((a, b) => key(a).localeCompare(key(b), language))
-  }, [data.data, table.params.q, activeTab, language])
+  }, [data.data, table.params.q, activeTab, language, actor])
 
   /* A query that matches nothing is an EMPTY table, not a content table with no
      rows — `DataTable` reads `table.isFiltered` and renders `no-match` (AC-37).
@@ -168,7 +181,14 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
         dataType: 'text',
         cell: (item) => (
           <div className="flex flex-col text-xs">
-            <span className="font-semibold text-foreground">{item.actorName}</span>
+            <button
+              type="button"
+              className="text-start font-semibold text-foreground underline-offset-2 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={t('admin.activity.filterActor', { name: item.actorName })}
+              onClick={() => navigate({ pathname: location.pathname, search: withActor(item.actorId) })}
+            >
+              {item.actorName}
+            </button>
             <span className="text-xs text-muted-foreground">{item.actorId}</span>
           </div>
         ),
@@ -378,6 +398,18 @@ export function AdminActivityScreen({ row }: { row: SubTabRoute }) {
         />
       }
     >
+      {actor !== null && (
+        <p className="flex items-center gap-2 pb-3 text-xs text-foreground">
+          {t('admin.activity.actorOnly', { name: actorName ?? actor })}
+          <Button
+            variant="link"
+            size="xs"
+            onClick={() => navigate({ pathname: location.pathname, search: withActor(null) })}
+          >
+            {t('admin.activity.showEveryone')}
+          </Button>
+        </p>
+      )}
       <DataTable
         table={table}
         rows={rows}

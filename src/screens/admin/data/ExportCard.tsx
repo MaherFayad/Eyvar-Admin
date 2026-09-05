@@ -55,13 +55,14 @@
  */
 
 import { useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { toast } from 'sonner'
 import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react'
 
 import { exportReport } from '@/data/clients'
 import type { ReportGrain, ReportPreset, ReportQuery } from '@/data/types'
 import { reportCsvToText, downloadCsv } from '@/screens/reports/csv'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useShell } from '@/shell/ShellContext'
 import { BlockedButton } from './BlockedButton'
@@ -144,9 +145,9 @@ export function ExportCard() {
         <CardTitle className="flex items-center gap-2">
           <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
           {t('adminData.export.title')}
+          <InfoHint t={t}>{t('adminData.export.desc')}</InfoHint>
         </CardTitle>
-        <CardDescription className="max-w-2xl text-xs">{t('adminData.export.desc')}</CardDescription>
-      </CardHeader>
+        </CardHeader>
 
       <CardContent className="space-y-4 pt-4 text-xs">
         <div className="grid grid-cols-4 gap-4 compact:grid-cols-1">

@@ -104,6 +104,7 @@ import type {
   SubTabView,
 } from '@/data/types'
 import { CONVERSATION_CHANNELS, CONVERSATION_STATUSES } from '@/data/types'
+import { isBuiltInRole } from '@/data/types'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { useAsync, useIndexTable } from '@/hooks'
 import type { DataColumn } from '@/components/DataTable'
@@ -257,7 +258,12 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
   const [revision, setRevision] = useState(0)
   const bump = useCallback(() => setRevision((n) => n + 1), [])
 
-  const presence = usePresence({ currentUserId, role, revision })
+  /* Presence is scoped by built-in role; a custom role reports unscoped (D17). */
+  const presence = usePresence({
+    currentUserId,
+    role: role !== null && isBuiltInRole(role) ? role : null,
+    revision,
+  })
   useAutoAway(presence.myState, () => presence.setState('away'))
 
   const actions = useRowActions<Conversation>({ t })

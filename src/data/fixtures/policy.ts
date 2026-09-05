@@ -692,6 +692,15 @@ export const operationalPolicyFixture: OperationalPolicy = {
     maxCaptainDailyDrivingMinutes: 600,
     maxConcurrentSubscriptionsPerCaptain: 5,
     maxRiderDailyCancellations: 3,
+    /* Legacy `compPolicy`, joined with the seeded operators' caps. */
+    compensationCapHalalasByRole: {
+      Owner: null,
+      'Ops Manager': 250_00,
+      Dispatcher: 50_00,
+      'Trust & Safety': 100_00,
+      Finance: 500_00,
+      Support: 100_00,
+    },
   },
   reasonCodes: reasonCodeFixtures,
   sla: slaPolicyFixture,

@@ -54,6 +54,8 @@ import type { PushBroadcast } from '@/data/types/email'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
+import { useScreenViews, type ScreenView } from '@/hooks'
+import { ViewTabs } from '@/components/ViewTabs'
 import { withCommsCopy } from './copy'
 import { EmailLogCard } from './EmailLogCard'
 import { EmailTemplatesCard } from './EmailTemplatesCard'
@@ -62,6 +64,16 @@ import { PushBroadcastsCard } from './PushBroadcastsCard'
 import { PushComposerModal } from './PushComposerModal'
 import { SenderIdentitiesCard } from './SenderIdentitiesCard'
 
+/* D20's Communications panes, as `?view=`: the two halves of the delivery log
+   (the row's original two views) plus sender identities, templates and push. */
+const COMMS_PANES: readonly ScreenView[] = [
+  { id: 'inbox', titleKey: 'view.communications.inbox' },
+  { id: 'outbox', titleKey: 'view.communications.outbox' },
+  { id: 'senders', titleKey: 'view.communications.senders' },
+  { id: 'templates', titleKey: 'view.communications.templates' },
+  { id: 'push', titleKey: 'view.communications.push' },
+]
+
 export function AdminCommunicationsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { dir, language } = shell.language
@@ -69,11 +81,13 @@ export function AdminCommunicationsScreen({ row }: { row: SubTabRoute }) {
      translator rebuilt on each render invalidates all of them for nothing. */
   const t = useMemo(() => withCommsCopy(shell.language.t), [shell.language.t])
 
+  const panes = useScreenViews(COMMS_PANES, 'outbox', t)
   const [composerOpen, setComposerOpen] = useState(false)
   const [broadcastToken, setBroadcastToken] = useState(0)
   const [totals, setTotals] = useState<{ total: number; attention: number } | null>(null)
 
-  const canWrite = shell.permissions.permissions.includes('manage_settings')
+  /* D17: Communications is `manage_workspace`, the same key as the route row. */
+  const canWrite = shell.permissions.permissions.includes('manage_workspace')
   /* `session.userId` — never a constant in a component. */
   const actorId = shell.session?.userId ?? ''
 
@@ -121,15 +135,37 @@ export function AdminCommunicationsScreen({ row }: { row: SubTabRoute }) {
         {/* §11.2 — the refusal that goes with the disabled primary, as text. */}
         {!canWrite && <p className="text-xs text-muted-foreground">{t('comms.push.blocked')}</p>}
 
-        <EmailLogCard row={row} t={t} language={language} canWrite={canWrite} onTotals={onTotals} />
+        <ViewTabs
+          tabs={panes.tabs}
+          activeTab={panes.activeTab}
+          onSelectTab={panes.selectTab}
+          label={t('admin.panes')}
+        />
 
-        <SenderIdentitiesCard t={t} language={language} actorId={actorId} canWrite={canWrite} />
+        {(panes.activeTab === 'inbox' || panes.activeTab === 'outbox') && (
+          <EmailLogCard
+            view={panes.activeTab}
+            t={t}
+            language={language}
+            canWrite={canWrite}
+            onTotals={onTotals}
+          />
+        )}
 
-        <EmailTemplatesCard t={t} language={language} actorId={actorId} canWrite={canWrite} />
+        {panes.activeTab === 'senders' && (
+          <SenderIdentitiesCard t={t} language={language} actorId={actorId} canWrite={canWrite} />
+        )}
 
-        <PushBroadcastsCard t={t} language={language} reloadToken={broadcastToken} />
+        {panes.activeTab === 'templates' && (
+          <>
+            <EmailTemplatesCard t={t} language={language} actorId={actorId} canWrite={canWrite} />
+            <MessagingTemplatesCard t={t} />
+          </>
+        )}
 
-        <MessagingTemplatesCard t={t} />
+        {panes.activeTab === 'push' && (
+          <PushBroadcastsCard t={t} language={language} reloadToken={broadcastToken} />
+        )}
       </div>
 
       <PushComposerModal

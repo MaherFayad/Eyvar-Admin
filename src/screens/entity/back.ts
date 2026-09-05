@@ -82,6 +82,8 @@ export const INDEX_ROUTE: Readonly<Record<ProfileEntityType, IndexRoute>> = {
   complaint: { path: '/support/overview', labelKey: 'subtab.support.overview' },
   /* Payments are controlled from Ledger & Payment Controls and nowhere else. */
   payment: { path: '/financials/ledger', labelKey: 'subtab.financials.ledger' },
+  /* A colleague is administered on Team & Access. */
+  operator: { path: '/admin/team', labelKey: 'subtab.admin.team' },
   plan: { path: '/financials/pricing', labelKey: 'subtab.financials.pricing' },
   /* **Ride requests, not subscription requests**, and the choice is forced.
      The queue is two sub-tabs now and a record kind cannot know which one a

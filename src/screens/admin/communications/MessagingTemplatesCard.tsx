@@ -13,11 +13,12 @@
  */
 
 import { listMessagingTemplates } from '@/data/clients'
+import { InfoHint } from '@/components/InfoHint'
 import type { Paginated } from '@/data/types'
 import type { MessagingAudience, MessagingChannel, MessagingTemplate } from '@/data/types/email'
 import type { Translate } from '@/lib'
 import { useAsync } from '@/hooks'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -52,9 +53,10 @@ export function MessagingTemplatesCard({ t }: { t: Translate }) {
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('comms.messaging.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('comms.messaging.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('comms.messaging.title')}
+        <InfoHint t={t}>{t('comms.messaging.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="p-0">
         {data.status === 'loading' && (
           <div className="p-3">

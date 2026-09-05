@@ -43,6 +43,8 @@ export type ProfileEntityType =
   | 'plan'
   /* ↓ the ride an operator is actually deciding about */
   | 'request'
+  /* ↓ a colleague, under `manage_team` (plan T5.1) */
+  | 'operator'
 
 export const PROFILE_ENTITY_TYPES: readonly ProfileEntityType[] = [
   'rider',
@@ -57,6 +59,7 @@ export const PROFILE_ENTITY_TYPES: readonly ProfileEntityType[] = [
   'corporate-account',
   'plan',
   'request',
+  'operator',
 ] as const
 
 /** The five that return "No record found" today. Kept as data so QA can assert the fix, not eyeball it. */

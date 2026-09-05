@@ -128,6 +128,8 @@ export type EmailTemplateKey =
   | 'payout.processed'
   | 'subscription.renewalReminder'
   | 'ticket.reply'
+  /* Team & Access sends this on invite and resend (O-T6). */
+  | 'team.invite'
 
 export const EMAIL_TEMPLATE_KEYS: readonly EmailTemplateKey[] = [
   'trip.receipt',
@@ -136,6 +138,7 @@ export const EMAIL_TEMPLATE_KEYS: readonly EmailTemplateKey[] = [
   'payout.processed',
   'subscription.renewalReminder',
   'ticket.reply',
+  'team.invite',
 ]
 
 /**

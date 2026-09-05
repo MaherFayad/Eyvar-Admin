@@ -160,31 +160,8 @@ export type PermissionKey =
      separate key from `manage_workspace` on purpose: folded together, the person
      who edits the logo can turn off the second factor. */
   | 'manage_security_policy'
-  /**
-   * **RETIRED by D17** — it was 39 of the console's 131 guards, held by one
-   * person (§10.5 Problem 1). It splits into `manage_ops_policy`,
-   * `manage_workspace`, `manage_data_governance` and `manage_security_policy`.
-   *
-   * **It survives in the union as a transitional alias, granted to `Owner` and
-   * to nobody else**, because five screens outside this file's owner still read
-   * it directly and deleting the key would make them read-only for the Owner
-   * mid-migration. **It gates no route-table row.** The migration each screen
-   * owner has to make:
-   *
-   * | Screen | reads today | must read |
-   * |---|---|---|
-   * | `admin/workspace/AdminWorkspaceScreen.tsx:97` | `manage_settings` | `manage_workspace` |
-   * | `admin/communications/AdminCommunicationsScreen.tsx:76` | `manage_settings` | `manage_workspace` |
-   * | `admin/policy/AdminPolicyScreen.tsx:~60` | `manage_settings` | `manage_ops_policy` |
-   * | `admin/data/RetentionCard.tsx:78` | `manage_settings` | `manage_data_governance` |
-   * | `admin/data/IntegrityPane.tsx:149` | `manage_settings` | `manage_data_governance` |
-   *
-   * **AC-925 fails until those five land**, and it fails naming this comment.
-   * Delete this member the day the last one migrates.
-   *
-   * @deprecated D17 — use one of the four successors above.
-   */
-  | 'manage_settings'
+  /* `manage_settings` was retired by D17 and deleted once its five readers moved
+     to the four successors above (AC-925). */
 
 /**
  * **Retired from the navigation model by D17; retained for the measure
@@ -236,7 +213,6 @@ export const PERMISSION_KEYS: readonly PermissionKey[] = [
   'manage_workspace',
   'manage_data_governance',
   'manage_security_policy',
-  'manage_settings',
 ]
 
 export type PermissionLevel = 'full' | 'read'

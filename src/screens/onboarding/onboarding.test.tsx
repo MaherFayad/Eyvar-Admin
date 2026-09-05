@@ -47,7 +47,7 @@ import { createTranslator } from '@/lib'
 import { ShellProvider } from '@/shell/ShellContext'
 import { OnboardingLayer } from './OnboardingLayer'
 import { PERMISSION_KEYS } from '@/data/types/navigation'
-import { ROLE_PERMISSIONS } from '@/data/types/session'
+import { ROLE_NAMES, ROLE_PERMISSIONS } from '@/data/types/session'
 
 const t = createTranslator({ dictionary: EN, fallback: EN })
 const en = (key: string) => EN[key] as string
@@ -115,7 +115,7 @@ async function allSteps(): Promise<OnboardingStep[]> {
   /* The count is the assertion. Every criterion below that says "all 21 rows"
      is only worth its wording if 21 rows actually arrived; a helper that
      quietly returned one track's seven would flatter five of them at once. */
-  expect(all, 'the union of the four tracks').toHaveLength(21)
+  expect(all, 'the union of the six tracks').toHaveLength(21)
   return all
 }
 
@@ -151,11 +151,12 @@ describe('AC-616 / AC-669 — "every operator-facing string resolves through a k
   })
 })
 
-describe('AC-618 — "steps 1, 2 and 3 are byte-identical across all four tracks, by step id"', () => {
+describe('AC-618 — "steps 1, 2 and 3 are byte-identical across every track, by step id"', () => {
   it('serves the same three ids first, and the same two keys, to every role', async () => {
     const common = ['common.account', 'common.mywork', 'common.audit']
     const byRole = await tracks()
-    expect(byRole.size).toBe(4)
+    /* One track per D17 role; the seed holds one operator per role. */
+    expect(byRole.size).toBe(ROLE_NAMES.length)
 
     /* Byte-identity **by id**: the three ids lead every track, and each one
        carries the same `titleKey` and `bodyKey` everywhere it appears. It is

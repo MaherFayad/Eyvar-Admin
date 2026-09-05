@@ -35,6 +35,7 @@ import type { RoleName } from '../types/session'
 import { currentDisputes } from './disputes'
 import { http } from './http'
 import { currentMockUserId } from './session'
+import { findOperator, trackRoleFor } from './rosterStore'
 import { currentTickets } from './tickets'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -47,14 +48,12 @@ let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
 let applicantFixtures!: Fixtures['applicantFixtures']
 let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
 let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   allRequestFixtures = f.allRequestFixtures
   assuranceTripFixtures = f.assuranceTripFixtures
   applicantFixtures = f.applicantFixtures
   fairnessCaseFixtures = f.fairnessCaseFixtures
   safetyIncidentFixtures = f.safetyIncidentFixtures
-  teamUserFixtures = f.teamUserFixtures
 })
 
 export const WORK_OPERATIONS = {
@@ -532,7 +531,9 @@ const workShape: QueryShape<WorkItem> = {
 
 /** The role the mock scopes to. Reads the same signed-in session the claim logic does. */
 function currentRole(): RoleName {
-  return teamUserFixtures.find((u) => u.id === currentMockUserId())?.role ?? 'Support'
+  const user = findOperator(currentMockUserId())
+  /* A custom role queues like the built-in it was duplicated from (D17). */
+  return (user ? trackRoleFor(user.role) : null) ?? 'Support'
 }
 
 /**

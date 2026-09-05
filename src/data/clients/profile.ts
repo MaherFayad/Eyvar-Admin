@@ -50,6 +50,7 @@ import type {
 } from '../types/profile'
 import { resolveLegacyPage } from './routes'
 import { http } from './http'
+import { getRoster } from './rosterStore'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -255,6 +256,9 @@ const SECTIONS: Record<ProfileEntityType, ProfileSectionKey[]> = {
    * always fails.
    */
   request: ['identity'],
+  /* The drawer draws its own arrangement under `manage_team`; the generic
+     stack is the read-only card everyone else gets (TA-10). */
+  operator: ['identity'],
 }
 
 /**
@@ -326,6 +330,9 @@ function resolveLocally(entityId: string): ProfileRef | null {
 
   const complaint = complaintFixtures.find((c) => matches(c.id, id))
   if (complaint) return ref(complaint.id, 'complaint', complaint.id, complaint.driverName)
+
+  const operator = getRoster().find((u) => matches(u.id, id))
+  if (operator) return ref(operator.id, 'operator', operator.name, operator.email)
 
   /**
    * `REQ-*` and `SREQ-*`. Both channels are one resource and one prefix space,
@@ -458,6 +465,8 @@ function searchEntities(needle: string): SearchResult[] {
      `payment` and `complaint`, which legacy resolved, the rebuild lost, and
      `fixtures/payments.ts` / `fixtures/complaints.ts` have now restored. */
   riderFixtures.forEach((r) => push(r.id, 'rider', r.name, r.phone))
+  /* A colleague by name (plan T5.2). */
+  getRoster().forEach((u) => push(u.id, 'operator', u.name, u.email))
   allDriverFixtures.forEach((d) => push(d.id, 'driver', d.name, d.phone))
   applicantFixtures.forEach((a) => push(a.id, 'applicant', a.name, a.phone))
   corporateAccountFixtures.forEach((c) => push(c.id, 'corporate-account', c.companyName, c.contactName))

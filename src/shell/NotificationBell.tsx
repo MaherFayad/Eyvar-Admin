@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { formatCount, formatDate } from '@/lib'
+import { formatCount, formatDate, formatLocalisedText } from '@/lib'
 import { useAsync } from '@/hooks'
 import { previewNotifications } from '@/data/clients'
 import type { Notification, NotificationSummary } from '@/data/types'
@@ -304,11 +304,11 @@ function NotificationRow({
           notification.read ? 'font-normal text-muted-foreground' : 'font-semibold text-foreground',
         )}
       >
-        {notification.title}
+        {notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title}
       </span>
-      {notification.body && (
+      {(notification.bodyText || notification.body) && (
         <span dir="auto" className="text-xs text-muted-foreground leading-relaxed break-words">
-          {notification.body}
+          {notification.bodyText ? formatLocalisedText(notification.bodyText, t) : notification.body}
         </span>
       )}
     </div>

@@ -26,8 +26,7 @@ export const teamUserFixtures: TeamUser[] = [
     lastLoginAt: '2026-06-25T09:00:00+03:00',
     status: 'Active',
     secondFactor: { method: 'totp', hint: 'Authenticator app' },
-    /* All 13 keys. Also the only holder of `manage_settings`, which gates 39 of
-       131 guards — the bus factor of one named in §11.3 item 2. */
+    /* The legacy 13, less the retired `manage_settings` (D17). */
     permissions: [
       'approve_drivers',
       'manage_subscriptions',
@@ -41,7 +40,6 @@ export const teamUserFixtures: TeamUser[] = [
       'view_profiles',
       'contact_users',
       'manage_team',
-      'manage_settings',
     ],
     compensationCapHalalas: null,
   },
@@ -118,6 +116,43 @@ export const teamUserFixtures: TeamUser[] = [
     ],
     compensationCapHalalas: 250_00,
   },
+  /* D17: every role has a seeded holder. The two roles D17 minted had none,
+     so the account-menu switch could not reach them and AC-914 / AC-916 had no
+     seed to run against. Both `Active`, both enrolled. */
+  {
+    id: 'USR-6',
+    name: 'Tariq Al-Mutairi',
+    email: 'tariq@eyvar.com',
+    phone: '+966 55 604 2218',
+    photoUrl: null,
+    role: 'Dispatcher',
+    lastLoginAt: '2026-06-25T06:02:00+03:00',
+    status: 'Active',
+    secondFactor: { method: 'sms', hint: '••••••18' },
+    permissions: ['view_operations', 'view_profiles', 'live_ops', 'contact_users'],
+    compensationCapHalalas: 50_00,
+  },
+  {
+    id: 'USR-7',
+    name: 'Hind Al-Qahtani',
+    email: 'hind@eyvar.com',
+    phone: '+966 50 318 7740',
+    photoUrl: null,
+    role: 'Trust & Safety',
+    lastLoginAt: '2026-06-24T21:40:00+03:00',
+    status: 'Active',
+    secondFactor: { method: 'totp', hint: 'Authenticator app' },
+    permissions: [
+      'view_analytics',
+      'view_operations',
+      'view_support',
+      'view_profiles',
+      'approve_drivers',
+      'manage_tickets',
+      'contact_users',
+    ],
+    compensationCapHalalas: 100_00,
+  },
 ]
 
 /**
@@ -143,6 +178,10 @@ export const ROLE_LANDING: Record<string, { workspaceId: string; path: string }>
   'Ops Manager': { workspaceId: 'operations', path: '/operations/overview' },
   Finance: { workspaceId: 'financials', path: '/financials/overview' },
   Support: { workspaceId: 'support', path: '/support/overview' },
+  /* D17: the Dispatcher lands on the board they clear; Trust & Safety on the
+     queue they own, not on Support's ticket metrics. */
+  Dispatcher: { workspaceId: 'operations', path: '/operations/dispatch' },
+  'Trust & Safety': { workspaceId: 'support', path: '/support/safety' },
 }
 
 /** §8.2 — the documented fallback when a role has no mapping. */

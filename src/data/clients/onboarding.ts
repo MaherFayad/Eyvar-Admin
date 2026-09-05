@@ -46,9 +46,9 @@ import type {
   OnboardingStep,
 } from '../types/onboarding'
 import { http } from './http'
+import { findOperator, resolvePermissions, trackRoleFor } from './rosterStore'
 import { findShellLayer, isSubTabBuilt } from './routes'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
-import { effectivePermissions } from '../types/session'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
@@ -56,12 +56,10 @@ import { effectivePermissions } from '../types/session'
    and `mockMutation()` await `loadFixtures()`. */
 let ONBOARDING_TRACKS!: Fixtures['ONBOARDING_TRACKS']
 let onboardingStepSeeds!: Fixtures['onboardingStepSeeds']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 let authIdentityFixtures!: Fixtures['authIdentityFixtures']
 onFixturesLoaded((f) => {
   ONBOARDING_TRACKS = f.ONBOARDING_TRACKS
   onboardingStepSeeds = f.onboardingStepSeeds
-  teamUserFixtures = f.teamUserFixtures
   authIdentityFixtures = f.authIdentityFixtures
 })
 
@@ -224,8 +222,11 @@ function resolveSteps(role: RoleName, held: readonly PermissionKey[]): Onboardin
  * operator do", and it is `effectivePermissions`.
  */
 function actorFor(userId: string): { role: RoleName; permissions: PermissionKey[] } {
-  const user = teamUserFixtures.find((u) => u.id === userId)
-  if (user) return { role: user.role, permissions: effectivePermissions(user.role, user.permissionDelta) }
+  const user = findOperator(userId)
+  if (user) {
+    /* A custom role follows the built-in it was duplicated from (D17). */
+    return { role: trackRoleFor(user.role) ?? 'Support', permissions: resolvePermissions(user) }
+  }
   const found = authIdentityFixtures.find((i) => i.email === userId || i.userId === userId)
   /* **Auth identities keep their explicit list.** These are deliberate §10.3
      personas — `newrole@eyvar.com` holds ZERO permissions on purpose, to reach

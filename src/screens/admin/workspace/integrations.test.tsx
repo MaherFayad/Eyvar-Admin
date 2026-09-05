@@ -74,7 +74,7 @@ beforeEach(async () => {
 
 function renderScreen() {
   return render(
-    <MemoryRouter initialEntries={['/admin/workspace']}>
+    <MemoryRouter initialEntries={['/admin/workspace?view=integrations']}>
       <ShellProvider>
         <AdminWorkspaceScreen row={row()} />
       </ShellProvider>
@@ -365,7 +365,6 @@ describe('D30 — `manage_team` and `manage_security_policy` are not offerable s
     const withheld = PERMISSION_KEYS.filter((key) => !API_KEY_SCOPES.includes(key))
     expect([...withheld].sort()).toEqual([
       'manage_security_policy',
-      'manage_settings',
       'manage_team',
     ])
     expect(API_KEY_SCOPES).toHaveLength(PERMISSION_KEYS.length - withheld.length)

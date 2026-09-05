@@ -154,6 +154,7 @@ describe('all twelve entity types are searchable', () => {
     'corporate-account': 'CORP-001',
     plan: 'weekly',
     request: 'REQ-503',
+    operator: 'USR-3',
   }
 
   it('covers every declared type — no gaps in the map above', () => {
