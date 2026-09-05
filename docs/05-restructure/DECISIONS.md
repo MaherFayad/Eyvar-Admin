@@ -261,7 +261,7 @@ The owner has authorised the neutral, so the hairline goes and §2.1 is met as w
   **`--ev-nav-hover: #f2f4f7`**. None is a taste value. `--ev-bg-nav` is the darkest grey in
   `--ev-bg`'s hue family at which `--ev-text-2` — the resting nav label — still clears AA:
   4.523 : 1, where one shade darker measures 4.482 and fails. Derived in design spec
-  `02-visual-refinement.md` V3 and **re-measured independently before it was written**; the
+  **V3** and **re-measured independently before it was written**; the
   two agree to three decimals.
 - **`border-e border-border` comes off both nav columns.** With a tonal step, the hairline is
   exactly what §2.1 forbids.

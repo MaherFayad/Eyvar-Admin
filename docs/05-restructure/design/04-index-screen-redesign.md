@@ -2,7 +2,7 @@
 
 **Status:** binding. This is a **total redesign of the index screen**, not a fix list.
 It supersedes, clause by clause, the parts of `00-shell.md`, `01-table-controls.md`,
-`02-visual-refinement.md` and `03-visual-language.md` that describe this screen's
+`00-shell.md`'s V rulings and `03-visual-language.md` that describe this screen's
 composition. §14.5 is the exhaustive supersession ledger. **No two live specs may disagree
 after this document lands.**
 
@@ -264,7 +264,7 @@ These amend `00-shell.md` §4 and close three craft-critique findings.
    400 px field and overhung on the trailing side only, covering the page title. Set
    `width: var(--radix-popover-trigger-width)`.
 
-**Not changed:** the route trail stays deleted (`02-visual-refinement.md` **V4** survives —
+**Not changed:** the route trail stays deleted (**V4** survives —
 wayfinding, not colour, and D7 did not touch it). The nav column and the H1 both name the
 page; a third naming in the top bar was the duplication V4 removed.
 
@@ -889,6 +889,65 @@ problem was always where badges were used, never how they were drawn.**
 
 ---
 
+## 9a. Emphasis — the three tiers, declared rather than improvised
+
+A UI has three channels for saying *this matters more*: **size**, **weight** and **colour**.
+Spend all three on everything and none of them signals anything. Nothing stands out because
+emphasis was added to it; it stands out because emphasis was removed from everything around it.
+
+**Every piece of text on screen belongs to exactly one of three tiers, and the tier is declared
+in data rather than chosen at the call site.**
+
+| Tier | Treatment | What belongs here |
+|---|---|---|
+| **Primary** | `--ev-ink`, `font-medium`, 14px | The identity of the thing. One per row, one per card, one per section |
+| **Data** | `--ev-ink`, `font-normal`, 14px, `tabular-nums` | **The values the operator came to read.** Amounts, counts, ratings, statuses, deadlines |
+| **Meta** | `--ev-text-2`, `font-normal`, 12px | Everything else: ids, cities, timestamps, provenance, helper text |
+
+### 9a.1 A column declares its tier
+
+`Column` carries `emphasis?: 'primary' | 'data' | 'meta'`, defaulting to `meta`. `DataTable`
+reads the tier through `emphasisOf` rather than keying emphasis off `columnIndex === 0`; column
+0 defaults to `primary`, which preserves the plain reading of a table that declares nothing.
+
+Per screen, the two to four columns the operator actually scans are marked `data`. On the
+captains view that is **status, rating, earned**; `city`, `id` and the timestamps stay `meta`.
+
+**Why this shape and not "make the table darker".** It keeps the ratio of ink to grey where it
+was; it just spends the ink on the right columns. A fifteen-column table with three ink columns
+still reads as light, and now it has a scan path.
+
+### 9a.2 The ramp, the weight, and the budget
+
+- **`text-sm` (14px) is the default for row content.** A value goes to `text-sm`; metadata
+  stays where it is. **`text-2xs` (11px) is capped to its declared job** — badge labels and
+  count-badge numerals — and no other use is licensed. No new sizes are minted: the ramp is
+  right, it was being under-used at the top and over-used at the bottom.
+- **`font-medium` is the marker of the Primary tier and nothing else.** Data and Meta are
+  `font-normal`. That is what makes the weight mean something.
+- **A badge budget.** At most **one** badge per row in the identity column, plus at most **one**
+  status column. A row carrying four coloured chips has no focal point, and R7's five tones are
+  diluted into decoration.
+
+### 9a.3 The critical row carries its own ink
+
+The critical-row tint is a token (`--ev-row-critical` and `--ev-row-critical-emphasis`), never a
+palette class, and it has **its own ink token derived against its own ground**. This is not
+cosmetic bookkeeping: on an off-token rose tint, `--ev-text-2` measures **4.40 : 1** — an AA
+failure on the rows the product most needs an operator to read, and the obvious lighter red
+measures 4.35 and is worse. Darkening or tinting a surface without re-deriving the ink on it is
+how a re-skin quietly drops below AA.
+
+### 9a.4 Column presets on a wide table
+
+A twenty-column table opens on a curated seven-column default with `All columns` one click
+away, and the preset persists per operator per view (D16). `ColumnLayoutPopover` is the control;
+what a wide table adds is the **named preset**. The pattern to copy is Trip Assurance's — four
+views, four column sets, no card ever stacked under another — generalised to Revenue, Ledger,
+Payouts, Riders, Pricing and Cash.
+
+---
+
 ## 10. Every state, drawn
 
 Four base states plus the domain states this screen introduces. **Every one holds the band
@@ -1034,7 +1093,7 @@ and flagging it because extending R8 is not mine to do alone.
 | Page header | the count renders `—`; the band stays 32 |
 | Controls | tabs, search and `Add filter` stay **enabled** — each re-issues the request, which is a retry with a different query, and disabling them would trap the operator. **`Columns` is disabled** and visible: it configures a table that is not there. |
 
-`02-visual-refinement.md` **V9** (no icon on the error state) is **superseded**: it was
+**V9** (no icon on the error state) is **superseded**: it was
 written when error and empty were distinguished by copy alone, and the craft critique
 measured the cost of that. §3.6 requires disabled page actions to remain visible, and §7.5
 requires that a state is never signalled by colour alone — the glyph plus the word
@@ -1559,7 +1618,7 @@ the placeholder class (`gray-400` → `--ev-text-2`), and the nav section headin
 | | §5.3 *"two entry points, one state"* for sort | **SUPERSEDED** — one entry point (the header menu) and one readout (the query-strip chip). §6.3. |
 | | §7.3 pinned boundary is tier `none` | **CONFIRMED** (hairline, never shadow) and **corrected**: the hairline takes `--ev-hairline-control`, because at `--ev-hairline` it is zero steps darker than every ordinary rule (**N4**). |
 | | §11.5 `no-match` copy | **AMENDED** by §10.3 — three variants, correct noun, real button. |
-| `02-visual-refinement.md` | **V4** route trail | **SURVIVES.** |
+| `00-shell.md` | **V4** route trail | **SURVIVES.** |
 | | **V5** one page width | **SURVIVES**, with `--ev-page-pad` and its `wide:` step. |
 | | **V6 / V6d** counts are neutral | **SURVIVES**, and **R21** says which shape carries them. |
 | | **V8** the three unstyled-state defects | **SURVIVES**, and §10 completes it. |

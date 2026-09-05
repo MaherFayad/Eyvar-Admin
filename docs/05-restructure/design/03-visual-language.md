@@ -740,7 +740,7 @@ Nothing is left live and disagreeing.
 
 | Document | Section | Status |
 |---|---|---|
-| `02-visual-refinement.md` | **V1** — density: rail 80, navrow 28, control 28 | **SUPERSEDED** by §1.4 and §5. `--ev-rail-w: 80` survives on its own reasoning (label width), the rest moves. |
+| `00-shell.md` | **V1** — density: rail 80, navrow 28, control 28 | **SUPERSEDED** by §1.4 and §5. `--ev-rail-w: 80` survives on its own reasoning (label width), the rest moves. |
 | | **V2** — the plain white pill | **SUPERSEDED** by §3.3. The pill is grey now. V2's *argument* — that the pill only works once the ground is right — survives and is what §3.3 re-verifies. |
 | | **V3** — `--ev-bg-nav: #eaecf1` and its derivation | **VOID.** §3.2. The derivation assumed a nav darker than the canvas; the measured nav is `#f8fafb`, a hair darker than a **white** content region. `#eaecf1` is retired. |
 | | **V4** — the top bar's route trail goes | **SURVIVES.** Wayfinding, not colour. |

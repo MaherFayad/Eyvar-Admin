@@ -425,7 +425,7 @@ someone. It does not take the work away from the person holding it.
 **work owed**: items not in a terminal state, in the queue's whole scope, regardless of the view or
 filters on screen. It is never the filtered row count.
 
-**Q-47 — Nav tone.** Per foundation Q12/V6 as closed by `design/02-visual-refinement.md`: tone lives
+**Q-47 — Nav tone.** Per foundation Q12 as closed by **V6** (`design/00-shell.md`): tone lives
 only on the sub-tab row, and only for a **breach**. A backlog is a quantity; a breach is a status.
 A queue with 40 healthy rows is `neutral`.
 

@@ -1,8 +1,8 @@
 # 20 — The Arabic glossary, and the §9.6 rulings ratified
 
 **Status:** ratified. Supersedes nothing; it *completes* `DESIGN.md` §9.6, which made the
-rulings and gave no worked examples, and `18-pwa-arabic-and-voice.md` §2.3 step 2, which
-asked for this list and sized it at ~120 terms. It lands at **146**.
+rulings and gave no worked examples. The Arabic plan asked for this list and sized it at about
+120 terms; it lands at **146**.
 
 **Who this is for.** A translator, and the reviewer of a translator's work. It is not an
 engineering document — the engineering is in [`docs/ref/i18n.md`](../../ref/i18n.md) and

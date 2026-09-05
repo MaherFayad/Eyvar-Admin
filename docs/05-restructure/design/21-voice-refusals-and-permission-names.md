@@ -2,7 +2,7 @@
 
 **Owner:** ux-writer · **Status:** the copy-value half is applied; the new-key half is a
 spec for the i18n-arabic-engineer and the product-designer.
-**Executes:** `18-pwa-arabic-and-voice.md` Part 3 (H1, H2). **Reads against:**
+**Reads against:**
 `DESIGN.md` §5.7 and §9.6, `docs/ref/copy.md`, `12-refusal-and-undo-surfaces.md`,
 `20-arabic-glossary.md`.
 
