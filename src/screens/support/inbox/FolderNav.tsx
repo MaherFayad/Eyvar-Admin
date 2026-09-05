@@ -56,7 +56,7 @@ export function FolderNav({ folders, active, hrefFor, onSelect, collapsed, onTog
   const Chevron = collapsed ? ChevronRightIcon : ChevronDownIcon
 
   return (
-    <nav aria-label={t('inbox.folders.label')} className="flex flex-col">
+    <nav aria-label={t('inbox.folders.label')} className="flex flex-col pb-1">
       <Button
         variant="ghost"
         size="default"

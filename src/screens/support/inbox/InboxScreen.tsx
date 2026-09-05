@@ -240,7 +240,11 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
   useAutoAway(presence.myState, () => presence.setState('away'))
 
   /* ── preferences ───────────────────────────────────────────────────── */
-  const [railCollapsed, setRailCollapsed] = useState(() => railStore.read() ?? false)
+  /* Collapsed by default (D16 class 2, the operator's choice still persists):
+     with the list at `--ev-inbox-list-w` the three expanded tracks leave the
+     thread under 300px at 1280, which is below the width a 14px sentence needs
+     (§2). The rail's 40px strip keeps it one press away. */
+  const [railCollapsed, setRailCollapsed] = useState(() => railStore.read() ?? true)
   const [foldersCollapsed, setFoldersCollapsed] = useState(() => foldersStore.read() ?? false)
   const [sections, setSections] = useState<RailSections>(() => sectionsStore.read() ?? { elsewhere: true, history: true })
   const [railSheet, setRailSheet] = useState(false)
@@ -643,8 +647,10 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
       aria-label={t('inbox.list.label')}
       className={cn('flex min-h-0 flex-col', !compact && 'border-e border-border')}
     >
-      {/* §10 row 2: eight rows at 800px with the folders open needs the list's top at 320. */}
-      <div className="relative px-3 pt-2">
+      {/* Three groups down the pane: the field, the folders, the rows. The
+          field carries its own block padding rather than sitting on the
+          folders' heading. */}
+      <div className="relative px-3 py-2">
         <SearchIcon className="pointer-events-none absolute top-1/2 start-5.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"

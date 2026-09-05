@@ -50,16 +50,23 @@ inline-start of C. All grounds `--ev-bg`; cards in C on `--ev-surface`.
 
 | Token (new, §9) | Value | Track |
 |---|---|---|
-| `--ev-inbox-list-w` | 272px | A |
+| `--ev-inbox-list-w` | 408px | A |
 | `--ev-inbox-rail-w` | 272px | C expanded |
 | `--ev-inbox-rail-min-w` | 40px | C collapsed |
 
-B = 976 − 544 = **432px** expanded, 664px with C collapsed. Arabic 392 / 624. Wider panes of
-300 / 320 would leave B at 356px, under the width a 14px sentence needs; see §10.
+**C opens collapsed** (owner ruling, 2026-09-06, with the list at 408). The three expanded
+tracks are 408 + 272 = 680 of 976, which leaves B at **296px** — below the 356px an earlier
+draft was already refused for. With C at its 40px strip, B is **528px** in English and
+**488px** in Arabic (936 − 408 − 40), wider than the 432px it had at a 272px list. The strip's
+control opens C in place and the choice persists (D16 class 2), so an operator who wants three
+full tracks presses once; on that press B is 296px and that is their call, not the default.
+`--ev-bp-wide` stays the only breakpoint (D2): nothing here mints a second one.
 
 ```
-┌ A · 272 ───────────┬ B · 432 ────────────────────────────────┬ C · 272 ──────────────┐
-│ [🔍 Search        ] │ (N) Nora Al-Harbi        [Transfer] [⋯] │ Customer              │
+┌ A · 408 ───────────┬ B · 528 ────────────────────────────────┬ C · 40 → 272 ─────────┐
+│ [🔍 Search        ] │ (N) Nora Al-Harbi        [Transfer] [⋯] │ Customer  (C opens to │
+│                    │                                          │  272 on the strip's   │
+│                    │                                          │  own control)         │
 │ ▾ Folders          │     Chat · Active · ⏱ 11m 20s left      │ (N) Nora Al-Harbi     │
 │   Unassigned    5  ├─────────────────────────────────────────┤ RDR-1041              │
 │   Mine          2  │            [ Load earlier messages ]    │ +966 5x xxx xxxx      │
@@ -104,10 +111,14 @@ on the viewport. Folders are a `Select` above the search field, not a list.
 
 ### 3.1 Anatomy
 
+The top of the pane reads as **three groups, not one stack**: the search field carries its own
+8px block padding, the folder block sits under it, and 4px plus the hairline separate the
+folders from the rows.
+
 ```
-┌ 272 ─────────────────────────────────────────┐
-│ ┌ 🔍 Search by name, ID or message ────────┐ │  Input, --ev-control-h 32, ps-8 icon slot
-│ └──────────────────────────────────────────┘ │
+┌ 408 ─────────────────────────────────────────┐
+│ ┌ 🔍 Search by name, ID or message ────────┐ │  Input, --ev-control-h 32, ps-8 icon slot,
+│ └──────────────────────────────────────────┘ │  py-2 on its own block
 │ ▾ Folders                                    │  collapsible heading, text-xs 600, 32px
 │   Unassigned                              5  │  32px rows; count in text-2xs tabular
 │   Mine                                    2  │  selected: --ev-bg2 fill + 600 (tabs.tsx idiom)
@@ -490,8 +501,8 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 | # | Departure | From | Why |
 |---|---|---|---|
 | 1 | Three-track full-height grid, no `DetailPage` | §6.4 has no row; §2.2's shape | R4-2's master–detail shape extended by one track. F-12-1 asks §6.4 for a row |
-| 2 | List rows are 60px | an earlier draft asked for 56 | `--ev-row-h-media` is the two-line row token; 56 is off the token set (rule 1). Harness probe: ≥ 8 rows at 800px with folders expanded, ≥ 11 collapsed |
-| 3 | Panes are 272 / 272 | an earlier draft asked for 300 / 320 | the content region is 976px, not the full 1280 |
+| 2 | List rows are 60px | an earlier draft asked for 56 | `--ev-row-h-media` is the two-line row token; 56 is off the token set (rule 1). Harness probe: **≥ 7 rows at 800px** with folders expanded (≥ 6 Arabic), ≥ 11 collapsed. It was 8; the owner's 2026-09-06 ruling spends 12px opening the top of the pane into three groups, and 8 rows at 800px had exactly 3px of slack |
+| 3 | Panes are 408 / 272, C collapsed by default | 272 / 272 with C expanded | Owner ruling, 2026-09-06: the list is worth 50% more width, and the content region is still 976px, so C yields the difference. §2 has the arithmetic |
 | 4 | Bubble radius 8 | an earlier draft asked for 12 | no 12px radius token, and this screen mints no new radius |
 | 5 | Delivery word in `--ev-text-2`, not the bubble's tint | an earlier draft tinted it | §8.6.6 fixes the colour |
 | 6 | Refusal as real text beneath, not in the placeholder | an earlier draft used the placeholder | §8.6.3; a placeholder is not real text and is not reachable by `aria-describedby` |

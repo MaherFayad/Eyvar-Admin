@@ -87,6 +87,16 @@ function renderInbox(entries = ['/support/contact-centre']) {
 
 const at = (id: string) => [`/support/contact-centre/${id}`]
 
+/**
+ * The rail opens as its 40px strip at 1280 (§2, the list is 408 wide), so a
+ * test that reads the rail's contents presses the strip's control first.
+ */
+async function showRail() {
+  const strip = screen.queryByRole('button', { name: copy('inbox.rail.show') })
+  if (strip !== null) await userEvent.setup().click(strip)
+  return screen.findByRole('complementary', { name: copy('inbox.header.details') })
+}
+
 async function nameOf(id: string): Promise<string> {
   const page = await listConversations({ pageSize: 200 })
   const found = page.items.find((each) => each.id === id)
@@ -109,7 +119,9 @@ describe('AC-CC-04 the list stays on screen while a thread is open', () => {
     renderInbox(['/support/contact-centre/CNV-102?view=mine'])
     expect(await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })).toBeInTheDocument()
     expect(list()).toBeInTheDocument()
-    expect(screen.getByRole('complementary', { name: copy('inbox.header.details') })).toBeInTheDocument()
+    /* The rail is the 40px strip until the operator opens it, and it opens in place. */
+    expect(screen.getByRole('button', { name: copy('inbox.rail.show') })).toBeInTheDocument()
+    expect(await showRail()).toBeInTheDocument()
     await waitFor(() => expect(rowFor(name)).toHaveAttribute('aria-current', 'page'))
   })
 })
@@ -448,7 +460,7 @@ describe('the four states of each pane', () => {
   it('rail: the customer, the conversation and the history render for the open thread', async () => {
     const name = await nameOf('CNV-102')
     renderInbox(at('CNV-102'))
-    const rail = await screen.findByRole('complementary', { name: copy('inbox.header.details') })
+    const rail = await showRail()
     expect(within(rail).getByText(copy('conversations.rail.customer'))).toBeInTheDocument()
     expect(within(rail).getByText(copy('conversations.rail.thisConversation'))).toBeInTheDocument()
     expect(within(rail).getByRole('button', { name: new RegExp(copy('conversations.rail.history')) })).toBeInTheDocument()
@@ -507,6 +519,7 @@ describe('Phase C · claim, take over and release', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     await liveComposer(name)
     expect(within(header()).queryByRole('button', { name: copy('queue.claim') })).toBeNull()
+    await showRail()
     expect(within(rail()).getByRole('button', { name: copy('queue.release') })).toBeInTheDocument()
   })
 
@@ -541,6 +554,7 @@ describe('Phase C · claim, take over and release', () => {
     const name = await nameOf('CNV-102')
     renderInbox(at('CNV-102'))
     await liveComposer(name)
+    await showRail()
     await user.click(within(rail()).getByRole('button', { name: copy('queue.release') }))
     expect(await screen.findByText(copy('conversations.composer.unclaimed'))).toBeInTheDocument()
     expect(headerButton(copy('queue.claim'))).toBeInTheDocument()
@@ -721,7 +735,7 @@ describe('Phase C · tickets, calls, snooze, close, transfer and reopen', () => 
     expect(ticket.conversationId).toBe('CNV-101')
     expect(ticket.channel).toBe(linked.channel)
     expect(
-      await within(rail()).findByRole('link', { name: copy('conversations.ticket.open', { id: ticket.id }) }),
+      await within(await showRail()).findByRole('link', { name: copy('conversations.ticket.open', { id: ticket.id }) }),
     ).toBeInTheDocument()
   })
 
@@ -739,7 +753,7 @@ describe('Phase C · tickets, calls, snooze, close, transfer and reopen', () => 
     await expect.poll(async () => (await byId('CNV-102')).status).toBe('snoozed')
     const snoozed = await byId('CNV-102')
     expect(Date.parse(snoozed.snoozedUntil!) - Date.parse(EYVAR_NOW)).toBe(2 * 60 * 60_000)
-    expect(await within(rail()).findByText(/Snoozed until/)).toBeInTheDocument()
+    expect(await within(await showRail()).findByText(/Snoozed until/)).toBeInTheDocument()
   })
 
   it('closes with a reason, then offers Reopen as the header primary', async () => {
@@ -854,6 +868,7 @@ describe('Phase C · the list', () => {
     const name = await nameOf('CNV-110')
     renderInbox(at('CNV-110'))
     expect(await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })).toBeInTheDocument()
+    await showRail()
     expect(within(rail()).getByText(copy('conversations.rail.thisConversation'))).toBeInTheDocument()
   })
 
@@ -911,7 +926,7 @@ describe('Phase C · the thread', () => {
     const conversation = await byId('CNV-108')
     expect(conversation.messages.length).toBeLessThan(conversation.messageCount)
     renderInbox(at('CNV-108'))
-    const details = await screen.findByRole('complementary', { name: copy('inbox.header.details') })
+    const details = await showRail()
     expect(
       await within(details).findByText(
         copy('conversations.thread.count.other', { count: formatCount(conversation.messageCount, 'en') }),
