@@ -97,8 +97,10 @@ import type {
 import { useAsync } from '@/hooks'
 import { matchScore, MIN_MATCH_SCORE } from '@/lib/search/fuzzy'
 import { formatCount, type Language, type Translate } from '@/lib'
+import { track } from '@/lib/analytics'
 import { toastOutcome } from './outcomeToast'
-import { usePaletteRecents } from './recents'
+import { LOG_LIMIT, usePaletteRecents, type CommandUsage } from './recents'
+import { subTabChord } from './shortcuts'
 import {
   paletteCommands,
   resolveCommands,
@@ -285,6 +287,75 @@ function scoreCommand(query: string, title: string, keywords: readonly string[])
   return best
 }
 
+/* ────────────────────────── F5 — ranking that learns ─────────────────────── */
+
+/**
+ * How far a habit may move a row: at most 7%, so frequency breaks a tie and
+ * never beats a better text match. Deterministic, and bounded by the log's own
+ * window, which is what keeps the order testable.
+ */
+const USAGE_WEIGHT = 0.05
+const USAGE_CAP = 5
+const RECENCY_WEIGHT = 0.02
+
+function learnedBoost(usage: CommandUsage | undefined): number {
+  if (usage === undefined) return 1
+  const often = Math.min(usage.count, USAGE_CAP) / USAGE_CAP
+  const lately = 1 - Math.min(usage.recentIndex, LOG_LIMIT) / LOG_LIMIT
+  return 1 + USAGE_WEIGHT * often + RECENCY_WEIGHT * lately
+}
+
+/* ─────────────────────── F3 — the argument that carries ──────────────────── */
+
+/**
+ * Split `suspend nora` into the tokens that NAME the command and the ones left
+ * over. Longest naming head wins, so a two-word title takes both of its words
+ * before the remainder starts. `null` when nothing but the whole query names it.
+ */
+function carryFor(
+  tokens: readonly string[],
+  title: string,
+  keywords: readonly string[],
+): { head: string; rest: string } | null {
+  for (let n = tokens.length - 1; n >= 1; n -= 1) {
+    const head = tokens.slice(0, n).join(' ')
+    if (scoreCommand(head, title, keywords) >= MIN_MATCH_SCORE) {
+      return { head, rest: tokens.slice(n).join(' ') }
+    }
+  }
+  return null
+}
+
+/* ──────────────────────────── F7 — prefix modes ──────────────────────────── */
+
+/** A leading glyph restricts what the palette answers with. Quiet: Q-P4. */
+export type PaletteScopeMode = 'commands' | 'ids' | 'people' | 'destinations'
+
+const PREFIX_MODES: readonly { glyph: string; mode: PaletteScopeMode; labelKey: string }[] = [
+  { glyph: '>', mode: 'commands', labelKey: 'command.scope.commands' },
+  { glyph: '#', mode: 'ids', labelKey: 'command.scope.ids' },
+  { glyph: '@', mode: 'people', labelKey: 'command.scope.people' },
+  { glyph: '/', mode: 'destinations', labelKey: 'command.scope.destinations' },
+]
+
+/** Which records `@` means. Every entity type that is a person, not a thing. */
+const PEOPLE_ENTITY_TYPES: readonly ProfileEntityType[] = [
+  'driver',
+  'rider',
+  'new-rider',
+  'applicant',
+  'operator',
+]
+
+/* ───────────────────────── F1 — the rest state's cap ─────────────────────── */
+
+/** AC-CP3 — ten rows in four groups, and `Queues` is not one of them. */
+const REST_ROW_LIMIT = 10
+const REST_BLOCK_LIMIT = 3
+
+/** §6 — `palette.ran` records how deep the operator was when it ran. */
+const STEP_DEPTH: Record<PaletteStep, number> = { root: 0, record: 1, target: 1, confirm: 2 }
+
 /**
  * **Order by query shape, not by fixed rank — CQ-2.**
  *
@@ -310,6 +381,8 @@ interface ScoredCommand {
   score: number
   /** The first token's score on its own — what CQ-2's "leading verb" means. */
   leadingScore: number
+  /** F3 — what the operator typed after naming the command, or `null`. */
+  carry: string | null
 }
 
 /* ──────────────────────────── free row builders ──────────────────────────── */
@@ -354,6 +427,8 @@ function destinationRow(
   count: number | null,
   prefix: string,
   chrome: RowChrome,
+  kind: PaletteRow['kind'] = 'destination',
+  shortcut: string | null = null,
 ): PaletteRow | null {
   if (route === null) return null
   return {
@@ -363,6 +438,10 @@ function destinationRow(
     refusal: null,
     badge: count === null ? null : formatCount(count, chrome.language),
     narrow: null,
+    kind,
+    shortcut,
+    descends: false,
+    onDescend: null,
     onSelect: () => {
       chrome.close()
       chrome.navigate(route.path)
@@ -425,6 +504,15 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   } = options
 
   const [query, setQuery] = useState('')
+  /** F7 — the committed prefix. Stripped from the query, rendered as a scope chip. */
+  const [mode, setMode] = useState<PaletteScopeMode | null>(null)
+  /** F2 — the record whose actions are being shown, and the query to restore on the way up. */
+  const [record, setRecord] = useState<{
+    source: TargetSource
+    id: string
+    title: string
+    previousQuery: string
+  } | null>(null)
   /**
    * The command the operator committed to. `skipped` records **how** it got its
    * targets, and it is what tells `Escape` where to go: a command whose target
@@ -453,7 +541,16 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
    */
   const confirmSubmit = useRef<(() => void) | null>(null)
 
-  const { resume, recentCommands, recordCommand } = usePaletteRecents(subTabId)
+  const { resume, recentCommands, usage, recordCommand } = usePaletteRecents(subTabId)
+
+  /* §6 — what `palette.ran` and `palette.abandoned` report. Refs, because
+     counting keystrokes in state would re-render on every one of them. */
+  const openedAt = useRef(0)
+  const keystrokes = useRef(0)
+  const ran = useRef(false)
+  const wasOpen = useRef(false)
+  const stepRef = useRef<PaletteStep>('root')
+  const queryRef = useRef('')
 
   /* ── the pre-seed, captured on the open transition (P3-T7) ─────────────
      `open` is the only trigger: re-reading on a selection change is exactly
@@ -488,8 +585,20 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   )
   const seedRecords = seed === null ? null : (seeded.data ?? null)
 
-  const step: PaletteStep = request !== null ? 'confirm' : picked !== null ? 'target' : 'root'
+  /* F2 — the record step outranks `target` because a command chosen there is
+     handed the record and never needs candidates; `picked` is only ever the
+     skipped kind while it is open. */
+  const step: PaletteStep =
+    request !== null
+      ? 'confirm'
+      : record !== null
+        ? 'record'
+        : picked !== null
+          ? 'target'
+          : 'root'
   const trimmed = query.trim()
+  stepRef.current = step
+  queryRef.current = query
 
   /* ── the two reads ───────────────────────────────────────────────────── */
 
@@ -500,7 +609,8 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
        `dri`, backspacing to `dr` and typing `i` again is one round trip, not
        three. */
     cacheKey: 'search.query',
-    enabled: open && step === 'root' && trimmed !== '',
+    /* F7 — `>` is commands only, and commands are local. No round trip. */
+    enabled: open && step === 'root' && trimmed !== '' && mode !== 'commands',
     isEmpty: (response) => response.results.length === 0,
   })
 
@@ -520,6 +630,17 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     },
   )
 
+  /* F2 — the record behind the record step. §11.2 refuses per record, and a
+     refusal cannot be read off an id. Uncached for `seeded`'s reason. */
+  const recordTarget = useAsync<readonly unknown[]>(
+    (signal) => (record === null ? Promise.resolve([]) : record.source.byIds([record.id], signal)),
+    {
+      deps: [record?.source.entityType ?? '', record?.id ?? ''],
+      enabled: open && record !== null,
+      isEmpty: () => false,
+    },
+  )
+
   /* ── dispatch (P3-T5) ────────────────────────────────────────────────── */
 
   const reset = useCallback(() => {
@@ -532,12 +653,50 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     setRequest(null)
     setReason('')
     setQuery('')
+    setMode(null)
+    setRecord(null)
     setBusy(false)
   }, [])
 
+  /* §6 — one open is one session: the counters start here and
+     `palette.abandoned` fires on the way out when nothing ran. */
   useEffect(() => {
-    if (!open) reset()
+    if (open) {
+      openedAt.current = Date.now()
+      keystrokes.current = 0
+      ran.current = false
+      wasOpen.current = true
+      return
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false
+      if (!ran.current) {
+        track('palette.abandoned', {
+          queryLength: queryRef.current.length,
+          step: stepRef.current,
+        })
+      }
+    }
+    reset()
   }, [open, reset])
+
+  /**
+   * F7 — a prefix glyph at the head of the query commits as a scope and leaves
+   * the query itself clean, so every consumer below reads one effective query.
+   */
+  const changeQuery = useCallback(
+    (value: string) => {
+      keystrokes.current += 1
+      const found = PREFIX_MODES.find((entry) => entry.glyph === value.slice(0, 1))
+      if (found !== undefined && mode === null) {
+        setMode(found.mode)
+        setQuery(value.slice(1).trimStart())
+        return
+      }
+      setQuery(value)
+    },
+    [mode],
+  )
 
   /**
    * **CQ-4 — the palette's whole write surface.**
@@ -580,6 +739,9 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   const dispatch = useCallback(
     async (command: Command, rows: readonly unknown[]) => {
+      /* Where the operator launched it from, not where the confirm step left
+         them — §6's "step depth" is about the path, not the outcome. */
+      const depth = STEP_DEPTH[stepRef.current]
       setBusy(true)
       let result
       try {
@@ -609,6 +771,13 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       /* Recorded on success only. Block ④ is *commands you ran*, and a cancelled
          confirmation is not one. */
       recordCommand(command.id)
+      ran.current = true
+      track('palette.ran', {
+        command: command.id,
+        step: depth,
+        keystrokes: keystrokes.current,
+        ms: Date.now() - openedAt.current,
+      })
       close()
       toastOutcome(result.outcome, t)
     },
@@ -626,7 +795,14 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
    * finishing rather than a second one starting.
    */
   const choose = useCallback(
-    async (command: Command, source: TargetSource | null, preseeded: readonly unknown[] | null) => {
+    async (
+      command: Command,
+      source: TargetSource | null,
+      preseeded: readonly unknown[] | null,
+      /* F3 — what the operator already typed after the verb, pre-filled into
+         the target step rather than thrown away. */
+      carry: string | null = null,
+    ) => {
       if (command.arity === 'immediate') {
         void dispatch(command, [])
         return
@@ -650,7 +826,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       }
       setPicked({ command, source, skipped: false })
       setTargets(null)
-      setQuery('')
+      setQuery(carry ?? '')
     },
     [dispatch, seed],
   )
@@ -680,12 +856,25 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       setQuery('')
       return true
     }
+    /* F2 — out of the record step, with the query that found the record. */
+    if (record !== null) {
+      setRecord(null)
+      setQuery(record.previousQuery)
+      return true
+    }
     return false
-  }, [busy, picked, request])
+  }, [busy, picked, record, request])
 
   const handleKeyDown = useCallback(
     (event: { key: string; preventDefault: () => void }): boolean => {
       if (event.key === 'Escape' || (event.key === 'Backspace' && query === '')) {
+        /* F7 — the scope chip is the innermost committed thing, so it comes off
+           before any step does (AC-CP5). */
+        if (mode !== null) {
+          setMode(null)
+          event.preventDefault()
+          return true
+        }
         if (ascend()) {
           event.preventDefault()
           return true
@@ -702,7 +891,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       }
       return false
     },
-    [ascend, query],
+    [ascend, mode, query],
   )
 
   /* ── rows that need the closure ──────────────────────────────────────── */
@@ -713,6 +902,8 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       source: TargetSource | null,
       rows: readonly unknown[] | null,
       keyPrefix: string,
+      kind: PaletteRow['kind'] = 'command',
+      carry: string | null = null,
     ): PaletteRow => {
       /* §11.2 — evaluated at RENDER against whatever the command would act on.
          With no pre-seed there is nothing to refuse yet, so the row is offered
@@ -740,20 +931,29 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         }
       }
 
+      const targeted =
+        rows === null || rows.length === 0 || source === null
+          ? null
+          : describeSet(source, rows, t, language)
+
       return {
         key: `${keyPrefix}:${command.id}`,
         title: t(command.titleKey),
-        subtitle:
-          rows === null || rows.length === 0 || source === null
-            ? null
-            : describeSet(source, rows, t, language),
+        /* F3 — the carried argument outranks the set description, because it is
+           what happens next rather than what is already committed. */
+        subtitle: carry !== null ? t('command.carry', { rest: carry }) : targeted,
         refusal,
         badge: null,
         ...(command.icon ? { icon: command.icon } : {}),
         narrow,
+        kind,
+        shortcut: null,
+        /* A command with nothing to act on descends into its target step. */
+        descends: command.arity !== 'immediate' && targeted === null,
+        onDescend: null,
         onSelect: () => {
           if (refusal !== null) return
-          void choose(command, source, rows)
+          void choose(command, source, rows, carry)
         },
       }
     },
@@ -808,7 +1008,9 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
           return byTone !== 0 ? byTone : (b.count ?? 0) - (a.count ?? 0)
         })
         .slice(0, 5)
-        .map((row) => destinationRow(findSubTabById(row.subTabId), row.count, 'queue', chrome))
+        .map((row) =>
+          destinationRow(findSubTabById(row.subTabId), row.count, 'queue', chrome, 'queue'),
+        )
         .filter((row): row is PaletteRow => row !== null)
     )
   }, [chrome, navCounts, subTabId])
@@ -818,7 +1020,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const resumeRows = useMemo<PaletteRow[]>(
     () =>
       resume
-        .map((id) => destinationRow(findSubTabById(id), null, 'resume', chrome))
+        .map((id) => destinationRow(findSubTabById(id), null, 'resume', chrome, 'resume'))
         .filter((row): row is PaletteRow => row !== null),
     [chrome, resume],
   )
@@ -832,7 +1034,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         const command = source.commands.find((each) => each.id === id)
         if (command === undefined || command.hiddenFromPalette !== undefined) continue
         const seededFor = seed !== null && seed.source === source ? seedRecords : null
-        rows.push(commandRow(command, source, seededFor, 'recent'))
+        rows.push(commandRow(command, source, seededFor, 'recent', 'recent'))
         break
       }
     }
@@ -842,38 +1044,67 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   /* ── the ranked sections, once there is a query ───────────────────────── */
 
   const scoredCommands = useMemo<ScoredCommand[]>(() => {
-    if (trimmed === '') return []
-    const leading = trimmed.split(/\s+/)[0] ?? ''
+    /* F7 — `>` with nothing typed is the whole command list, every text score
+       equal, so what the operator runs most is what they see first (F5). */
+    const listAll = trimmed === '' && mode === 'commands'
+    if (trimmed === '' && !listAll) return []
+    const tokens = trimmed === '' ? [] : trimmed.split(/\s+/)
+    const leading = tokens[0] ?? ''
     const out: ScoredCommand[] = []
     for (const source of TARGET_SOURCES) {
       for (const command of paletteCommands(source.commands)) {
         const title = t(command.titleKey)
-        const score = scoreCommand(trimmed, title, command.keywords)
-        if (score < MIN_MATCH_SCORE) continue
+        const carry = carryFor(tokens, title, command.keywords)
+        /* F3 — an argument is not a typo. `suspend nora` is scored on
+           `suspend`, or the whole string would drag the command below the
+           threshold and the palette could never take an argument at all. */
+        const named = carry === null ? trimmed : carry.head
+        const score = listAll ? 1 : scoreCommand(named, title, command.keywords)
+        if (!listAll && score < MIN_MATCH_SCORE) continue
         out.push({
           command,
           source,
-          score,
-          leadingScore: scoreCommand(leading, title, command.keywords),
+          /* F5 — frequency and recency weight the text score; they never
+             replace it, and the cap keeps a habit from beating a better match. */
+          score: score * learnedBoost(usage.get(command.id)),
+          leadingScore: listAll ? 0 : scoreCommand(leading, title, command.keywords),
+          carry: carry === null ? null : carry.rest,
         })
       }
     }
     return out.sort((a, b) => b.score - a.score)
-  }, [t, trimmed])
+  }, [mode, t, trimmed, usage])
 
   const doRows = useMemo<PaletteRow[]>(
     () =>
       scoredCommands.map((entry) => {
         const seededFor = seed !== null && seed.source === entry.source ? seedRecords : null
-        return commandRow(entry.command, entry.source, seededFor, 'do')
+        /* A pre-seeded command acts on the seed, so there is nothing to carry
+           into a target step it will skip. */
+        const carry = seededFor === null || seededFor.length === 0 ? entry.carry : null
+        return commandRow(entry.command, entry.source, seededFor, 'do', 'command', carry)
       }),
     [commandRow, scoredCommands, seed, seedRecords],
+  )
+
+  /**
+   * F2 — descend into one record's own commands, keeping the query that found
+   * it so `Backspace` puts the operator back where they were.
+   */
+  const enterRecord = useCallback(
+    (source: TargetSource, id: string, title: string) => {
+      setRecord({ source, id, title, previousQuery: query })
+      setQuery('')
+    },
+    [query],
   )
 
   const searchRows = useMemo(() => {
     function toRow(result: SearchResult): PaletteRow {
       const title = displayString(result.title, t)
       const subtitle = result.subtitle ? displayString(result.subtitle, t) : null
+      const entity = 'entityId' in result.target ? result.target : null
+      const source = entity === null ? null : targetSourceFor(entity.entityType)
       return {
         key: `${result.kind}:${title}:${subtitle ?? ''}`,
         title,
@@ -884,6 +1115,15 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         refusal: null,
         badge: null,
         narrow: null,
+        kind: entity === null ? 'destination' : 'record',
+        shortcut: null,
+        /* AC-CP7 — Enter still opens the profile. The actions are a SECOND
+           affordance on the same row, never a change to what Enter does. */
+        descends: false,
+        onDescend:
+          entity === null || source === null
+            ? null
+            : () => enterRecord(source, entity.entityId, title),
         onSelect: () => {
           close()
           if ('entityId' in result.target) {
@@ -898,11 +1138,25 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       }
     }
     const all = results.data?.results ?? []
+    const needle = trimmed.toLowerCase()
+    /* F7 — each prefix drops the sections it is not about. `#` is stricter than
+       a match: it keeps only the records whose ID actually contains what was
+       typed, which is what "by ID" means. */
+    const records = all.filter((result) => {
+      if (result.kind !== 'entity' || !('entityId' in result.target)) return false
+      if (mode === 'destinations' || mode === 'commands') return false
+      if (mode === 'ids') return result.target.entityId.toLowerCase().includes(needle)
+      if (mode === 'people') return PEOPLE_ENTITY_TYPES.includes(result.target.entityType)
+      return true
+    })
     return {
-      destinations: all.filter((r) => r.kind === 'destination').map(toRow),
-      records: all.filter((r) => r.kind === 'entity').map(toRow),
+      destinations:
+        mode === null || mode === 'destinations'
+          ? all.filter((r) => r.kind === 'destination').map(toRow)
+          : [],
+      records: records.map(toRow),
     }
-  }, [close, navigate, openProfile, results.data, t])
+  }, [close, enterRecord, mode, navigate, openProfile, results.data, t, trimmed])
 
   /* ── the candidate list, in the target step ───────────────────────────── */
 
@@ -910,12 +1164,12 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     const source = picked?.source
     const command = picked?.command
     if (!source || !command) return []
-    return (candidates.data ?? []).slice(0, TARGET_LIMIT).map((record) => {
-      const described = source.describe(record)
+    return (candidates.data ?? []).slice(0, TARGET_LIMIT).map((candidate) => {
+      const described = source.describe(candidate)
       /* §11.2 where it matters most: a captain who cannot be suspended is still
          listed, still readable, and says why. Filtering them out would leave the
          operator hunting for someone the palette had hidden from them. */
-      const refusal = unavailableReason(command, context([record]))
+      const refusal = unavailableReason(command, context([candidate]))
       return {
         key: `target:${described.id}`,
         title: described.title,
@@ -923,14 +1177,61 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         refusal,
         badge: null,
         narrow: null,
+        kind: 'target',
+        shortcut: null,
+        descends: false,
+        onDescend: null,
         onSelect: () => {
           if (refusal !== null) return
-          setTargets([record])
-          void dispatch(command, [record])
+          setTargets([candidate])
+          void dispatch(command, [candidate])
         },
       }
     })
   }, [candidates.data, context, dispatch, picked])
+
+  /* ── F2 — one record's own commands, in place ─────────────────────────
+     `Open 360° profile` first, because it is the row the operator came from
+     and the one that always applies. Then every command whose entity scope
+     matches, singular, each carrying its own §11.2 refusal (CQ-3). The rows
+     wait for the record itself: a refusal cannot be read off an id. */
+  const recordActionRows = useMemo<PaletteRow[]>(() => {
+    if (record === null) return []
+    const rows = recordTarget.data ?? null
+    if (rows === null || rows.length === 0) return []
+    const out: PaletteRow[] = []
+    const openTitle = t('command.record.openProfile')
+    if (trimmed === '' || matchScore(trimmed, openTitle) >= MIN_MATCH_SCORE) {
+      out.push({
+        key: 'record:profile',
+        title: openTitle,
+        subtitle: null,
+        refusal: null,
+        badge: null,
+        narrow: null,
+        kind: 'command',
+        shortcut: null,
+        descends: false,
+        onDescend: null,
+        onSelect: () => {
+          close()
+          openProfile(record.source.entityType, record.id)
+        },
+      })
+    }
+    const applicable = resolveCommands(record.source.commands, {
+      entityType: record.source.entityType,
+      plural: false,
+    })
+    for (const command of paletteCommands(applicable)) {
+      const title = t(command.titleKey)
+      if (trimmed !== '' && scoreCommand(trimmed, title, command.keywords) < MIN_MATCH_SCORE) {
+        continue
+      }
+      out.push(commandRow(command, record.source, rows, 'record', 'command'))
+    }
+    return out
+  }, [close, commandRow, openProfile, record, recordTarget.data, t, trimmed])
 
   /* ── block ⑤ — the rest of this workspace ──────────────────────
      At rest the surface offered `Queues` and, on a fresh session, nothing else:
@@ -947,14 +1248,26 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const goToRows = useMemo<PaletteRow[]>(() => {
     const here = subTabId === null ? null : findSubTabById(subTabId)
     if (here === null) return []
-    const alreadyOffered = new Set(queueRows.map((row) => row.key.split(':')[1]))
     /* Through the client, never the fixture — `seam.test.ts` enforces that a
-       component reaches route data the same way in `mock` and in `http`. */
-    return visibleSubTabs(permissions, getSubTabs(here.workspaceId), here.workspaceId)
-      .filter((route) => route.subTabId !== subTabId && !alreadyOffered.has(route.subTabId))
-      .map((route) => destinationRow(route, null, 'goto', chrome))
+       component reaches route data the same way in `mock` and in `http`.
+       F4 — the chord comes from the WHOLE workspace's rows, because that is
+       what `useSubTabShortcut` assigns letters from; a letter derived from the
+       filtered list would name a key that does not work. */
+    const rows = getSubTabs(here.workspaceId)
+    return visibleSubTabs(permissions, rows, here.workspaceId)
+      .filter((route) => route.subTabId !== subTabId)
+      .map((route) =>
+        destinationRow(
+          route,
+          null,
+          'goto',
+          chrome,
+          'destination',
+          subTabChord(rows, route.subTabId),
+        ),
+      )
       .filter((row): row is PaletteRow => row !== null)
-  }, [chrome, permissions, queueRows, subTabId])
+  }, [chrome, permissions, subTabId])
 
   /* ── assembly ─────────────────────────────────────────────────────────── */
 
@@ -970,6 +1283,10 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       refusal: null,
       badge: null,
       narrow: null,
+      kind: 'guide',
+      shortcut: null,
+      descends: false,
+      onDescend: null,
       onSelect: () => {
         close()
         guide.open()
@@ -981,23 +1298,66 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     trimmed !== '' &&
     scoreCommand(trimmed, guideRow.title, GUIDE_KEYWORDS) >= MIN_MATCH_SCORE
 
+  /**
+   * **AC-CP4 — the queues come when they are asked for.** They are inventory,
+   * not context (F1), so the rest state drops them and this brings them back
+   * for `queue`, `waiting`, a queue's own name, or their Arabic equivalents.
+   */
+  const queuesMatch = useMemo(() => {
+    if (trimmed === '' || mode !== null || queueRows.length === 0) return false
+    for (const word of t('command.queue.keywords').split(',')) {
+      const needle = word.trim()
+      if (needle !== '' && matchScore(trimmed, needle) >= MIN_MATCH_SCORE) return true
+    }
+    return queueRows.some((row) => matchScore(trimmed, row.title) >= MIN_MATCH_SCORE)
+  }, [mode, queueRows, t, trimmed])
+
   const blocks = useMemo<PaletteBlock[]>(() => {
     if (step === 'confirm') return []
     if (step === 'target') {
       return [{ id: 'targets', heading: t('command.target.heading'), rows: targetRows }]
     }
-    if (trimmed === '') {
+    if (step === 'record' && record !== null) {
       return [
-        { id: 'onScreen', heading: t('command.block.onScreen'), rows: onScreenRows },
-        { id: 'queues', heading: t('command.block.queues'), rows: queueRows },
         {
-          id: 'resume',
-          heading: t('command.block.resume'),
-          rows: guideRow === null ? resumeRows : [guideRow, ...resumeRows],
+          id: 'recordActions',
+          heading: t('command.block.recordActions', { name: record.title }),
+          rows: recordActionRows,
         },
-        { id: 'recent', heading: t('command.block.recent'), rows: recentRows },
-        { id: 'goTo', heading: t('command.block.goTo'), rows: goToRows },
-      ].filter((block) => block.rows.length > 0)
+      ]
+    }
+    if (trimmed === '') {
+      /* F7 — a prefix with nothing typed still answers where it can. `#` and
+         `@` cannot: an ID prefix with no ID names nothing. */
+      if (mode === 'commands') {
+        return [{ id: 'do', heading: t('command.block.do', { count: formatCount(doRows.length, language) }), rows: doRows }]
+      }
+      if (mode === 'destinations') {
+        return [{ id: 'goTo', heading: t('command.block.goTo'), rows: goToRows.slice(0, REST_ROW_LIMIT) }]
+      }
+      if (mode !== null) return []
+
+      /* **F1 / AC-CP3.** Context, not inventory: four blocks, ten rows, and no
+         `Queues`. The budget is spent in §4's order, so the block an operator
+         reads first is the one about what is in front of them. */
+      const rest: PaletteBlock[] = []
+      let budget = REST_ROW_LIMIT
+      const take = (id: string, heading: string, rows: readonly PaletteRow[], cap: number) => {
+        const slice = rows.slice(0, Math.min(cap, budget))
+        if (slice.length === 0) return
+        rest.push({ id, heading, rows: slice })
+        budget -= slice.length
+      }
+      take('onScreen', t('command.block.onScreen'), onScreenRows, REST_BLOCK_LIMIT)
+      take(
+        'resume',
+        t('command.block.resume'),
+        guideRow === null ? resumeRows : [guideRow, ...resumeRows],
+        REST_BLOCK_LIMIT,
+      )
+      take('recent', t('command.block.recent'), recentRows, REST_BLOCK_LIMIT)
+      take('goTo', t('command.block.goTo'), goToRows, budget)
+      return rest
     }
 
     const doBlock: PaletteBlock = {
@@ -1026,16 +1386,24 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     const ordered = commandsFirst(trimmed, scoredCommands)
       ? [doBlock, destinations, records]
       : [destinations, records, doBlock]
-    return ordered.filter((block) => block.rows.length > 0)
+    /* AC-CP4 — asked for by name, so it answers first. */
+    const withQueues = queuesMatch
+      ? [{ id: 'queues', heading: t('command.block.queues'), rows: queueRows }, ...ordered]
+      : ordered
+    return withQueues.filter((block) => block.rows.length > 0)
   }, [
     doRows,
     goToRows,
     guideMatches,
     guideRow,
     language,
+    mode,
     onScreenRows,
     queueRows,
+    queuesMatch,
     recentRows,
+    record,
+    recordActionRows,
     resumeRows,
     scoredCommands,
     searchRows,
@@ -1047,6 +1415,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   const listStatus: PaletteListStatus = (() => {
     if (step === 'confirm') return 'idle'
+    if (step === 'record') {
+      if (recordTarget.status === 'loading') return 'loading'
+      if (recordTarget.status === 'error') return 'error'
+      return recordActionRows.length === 0 ? 'empty' : 'content'
+    }
     if (step === 'target') {
       if (candidates.status === 'loading') return 'loading'
       if (candidates.status === 'error') return 'error'
@@ -1066,6 +1439,17 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   const chips = useMemo<PaletteChip[]>(() => {
     const out: PaletteChip[] = []
+    /* F2 — the record is the outermost committed step, so its chip leads. */
+    if (record !== null) {
+      out.push({
+        key: 'record',
+        label: record.title,
+        removeLabel: t('command.chip.remove', { label: record.title }),
+        onRemove: () => {
+          ascend()
+        },
+      })
+    }
     if (picked !== null) {
       const label = t(picked.command.titleKey)
       out.push({
@@ -1084,7 +1468,9 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
        whatever they pick will act on those two. */
     const shown = targets ?? (picked === null ? seedRecords : null)
     const source = picked?.source ?? seed?.source ?? null
-    if (shown !== null && shown.length > 0 && source !== null) {
+    /* In the record step the record's own chip already names it; a second chip
+       saying the same thing is the field spending width on a repetition. */
+    if (record === null && shown !== null && shown.length > 0 && source !== null) {
       const label = describeSet(source, shown, t, language)
       out.push({
         key: 'target',
@@ -1102,7 +1488,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       })
     }
     return out
-  }, [ascend, language, picked, seed, seedRecords, t, targets])
+  }, [ascend, language, picked, record, seed, seedRecords, t, targets])
 
   /* ── the confirm step ─────────────────────────────────────────────────── */
 
@@ -1134,17 +1520,32 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
 
   const placeholder = step === 'target' ? t('command.target.prompt') : t('shell.search.placeholder')
 
+  /* F7 — the prefix as a removable chip. Removing it keeps what was typed
+     after it, because the operator narrowed a query, not started one. */
+  const scope = useMemo(() => {
+    const found = PREFIX_MODES.find((entry) => entry.mode === mode)
+    if (found === undefined) return null
+    return { label: t(found.labelKey), onRemove: () => setMode(null) }
+  }, [mode, t])
+
+  const count = blocks.reduce((total, block) => total + block.rows.length, 0)
+
+  const retry =
+    step === 'record' ? recordTarget.refetch : step === 'target' ? candidates.refetch : results.refetch
+
   return {
     step,
     chips,
     query,
-    setQuery,
+    setQuery: changeQuery,
     placeholder,
     busy,
     blocks,
     listStatus,
-    retry: step === 'target' ? candidates.refetch : results.refetch,
+    retry,
     confirm,
     handleKeyDown,
+    count,
+    scope,
   }
 }

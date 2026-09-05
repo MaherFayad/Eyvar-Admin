@@ -421,4 +421,13 @@ export const COMMANDS_AR: Dictionary = {
   'session.action.theme.unwired': 'لا تستطيع هذه اللوحة تغيير المظهر من هنا بعد.',
   'session.action.signOut': 'تسجيل الخروج',
   'session.action.signOut.unwired': 'لا تستطيع هذه اللوحة تسجيل خروجك من هنا بعد.',
+  /* ── pal/model ── */
+  'command.block.recordActions': 'إجراءات {name}',
+  'command.record.openProfile': 'فتح الملف الشامل',
+  'command.carry': 'ثم اختر الهدف · يُنقل “{rest}”',
+  'command.scope.commands': 'الأوامر',
+  'command.scope.ids': 'بالمعرّف',
+  'command.scope.people': 'الأشخاص',
+  'command.scope.destinations': 'الوجهات',
+  'command.queue.keywords': 'طابور, الطوابير, منتظر, بانتظار, قوائم العمل',
 }
