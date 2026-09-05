@@ -234,6 +234,17 @@ AC-CC-09 the composer's filled `Send` is the only filled button while the operat
 conversation; AC-CC-10 Arabic mirrors every bubble side and keeps the composer's `Send` at
 inline-end (harness `ar`).
 
+AC-CC-11 (owner, 2026-09-05): **the register is unmistakable.** An operator must never be
+unsure whether the field sends to the customer or adds a note. Six carriers at once, none
+colour alone: (1) a wide segmented pair with icon and full label, `Reply to {name}` /
+`Internal note`; (2) the whole composer surface, field included, moves to `--ev-note` with the
+`--ev-note-bar` edge in the note register; (3) a standing label line between the tabs and the
+field states the consequence, `Sent to {name} by {channel}` versus `Internal note. Not sent to
+the customer.`; (4) the placeholder changes with the register; (5) the note register has no
+filled button, `Add note` is secondary, so a filled button on this screen always means the
+customer will see it; (6) after a note is added the register returns to Reply, and the key hint
+names the register. `Ctrl/⌘+Shift+N` toggles it and the change is announced.
+
 ---
 
 ## 5. Phase C — behaviour parity and the pieces the old pane had (one week)

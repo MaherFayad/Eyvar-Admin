@@ -313,6 +313,23 @@ Docked at B's foot, `--ev-surface`, 1px `--ev-hairline-control` border, radius 8
 Sending, rejection, `Send again`, the keyboard line and drafts are design 11 §6 and D16a
 verbatim. Draft per conversation and register, in memory only, indicated nowhere.
 
+### 5.x The register is unmistakable (AC-CC-11, owner ruling 2026-09-05)
+
+Six carriers at once, none colour alone. (1) The register is a wide segmented pair on the
+composer's top edge, icon plus full label: `Reply to {name}` (send icon) and `Internal note`
+(eye-off icon); the active segment shares the composer surface's colour so it reads as the tab
+of the card beneath it. (2) In the note register the whole surface and the field move to
+`--ev-note` with the 3px `--ev-note-bar` inline-start edge; there is no pale field inside a
+tinted card. (3) A standing label line between the tabs and the field states the consequence:
+`Sent to {name} by {channel}` / `Internal note. Not sent to the customer.` with the icon; always
+rendered. (4) Placeholder: `Write a reply to {name}…` / `Write an internal note…`. (5) Reply
+sends with the filled `Send`; a note is added with a secondary `Add note`, so a filled button on
+this screen always means the customer will see it. (6) After a note is added the register
+returns to Reply; the key hint reads `Enter sends to {name}` / `Enter adds an internal note`.
+`Ctrl/⌘+Shift+N` toggles the register; the change is announced through `useAnnounce`. Opening
+another conversation lands on Reply unless a note draft exists for it. Tests: the label line per
+register; the note register has no filled button. Harness: capture CNV-102 in both registers.
+
 ## 6. Pane C — context
 
 Cards `Card` on `--ev-surface`, gap 12, `p-3`. Order and why: **Customer** (the only links
