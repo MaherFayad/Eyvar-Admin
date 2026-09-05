@@ -176,6 +176,25 @@ export interface CommandHost {
    */
   openProfile(entityType: ProfileEntityType, entityId: string): void
   /**
+   * **The shell's three settings, as capabilities — F6, `sessionCommands.ts`.**
+   *
+   * Optional, and every one of them is. A host that has not wired them refuses
+   * the command with a sentence (§11.2) instead of throwing at the press, so
+   * the registry lands before the surface does and nothing crashes in between.
+   * `AppLayout` already owns all three (`AppLayout.tsx:347`, `:693`, `:194`).
+   */
+  setLanguage?(language: Language): void
+  /**
+   * Structurally `ThemeChoice` (`hooks/useTheme.ts`), written out rather than
+   * imported so this contract stays free of a React module.
+   */
+  setTheme?(theme: 'light' | 'dark' | 'system'): void
+  /**
+   * The **shell's** sign-out, which asks about unsaved work first
+   * (`SignOutDirtyDialog`), never `clients/auth`'s bare mutation.
+   */
+  signOut?(): void
+  /**
    * Ask the operator to confirm, and resolve with what they typed.
    *
    * Resolves with the **reason string** when they confirm (the empty string
@@ -212,6 +231,32 @@ export interface CommandConfirmRequest {
    * box parsed into a date, and this is it (X9, T6.1).
    */
   choice?: CommandConfirmChoice
+  /**
+   * A sum of money the operator sets before confirming — `wallet.credit`'s
+   * amount. Structurally `ConfirmMoneyDialog`'s own `amount`
+   * (`financials/shared/ConfirmMoneyDialog.tsx:93`) plus the callback `choice`
+   * already established, so a host that renders one renders this. **Additive:**
+   * `confirm` still resolves the reason or `null`.
+   */
+  amount?: CommandConfirmAmount
+}
+
+/**
+ * The money field of a confirm step. **AC-384** — the ceiling bounds the input
+ * and the refusal names it; an amount is never silently trimmed, because a
+ * quietly reduced credit is worse than a clear refusal.
+ */
+export interface CommandConfirmAmount {
+  /** All three already translated. */
+  label: string
+  help: string
+  message: string
+  /** The ceiling, in halalas. The primary stays disabled above it. */
+  maxHalalas: number
+  /** What the field opens on, in halalas. The operator may change it. */
+  initialHalalas: number
+  /** The value reaches `run` as it changes — `choice.onSelect`'s shape. */
+  onChange(halalas: number): void
 }
 
 /** One option of a confirm step's closed set. `ConfirmDialog`'s own shape. */

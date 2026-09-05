@@ -41,26 +41,46 @@
 
 import {
   listApplicants,
+  listComplaints,
   listDrivers,
+  listOperators,
+  listPlans,
+  listRequests,
   listSubscriptions,
   listTickets,
   listTrips,
+  listWallets,
   search,
 } from '@/data/clients'
 import type {
   Applicant,
+  Complaint,
   Driver,
   ProfileEntityType,
+  RideRequest,
   Subscription,
+  SubscriptionPlan,
+  TeamUser,
   Ticket,
   Trip,
+  WalletSummary,
 } from '@/data/types'
 import { APPLICANT_COMMANDS } from './applicants'
 import { CAPTAIN_COMMANDS } from './captains'
-import type { CommandRegistry } from './registry'
+import { CASH_COMMANDS } from './cash'
+import { COMPLAINT_COMMANDS } from './complaints'
+import { DISPUTE_COMMANDS } from './disputes'
+import { FAIRNESS_COMMANDS } from './fairness'
+import { PLAN_COMMANDS } from './pricing'
+import type { Command, CommandRegistry } from './registry'
+import { REQUEST_COMMANDS } from './requests'
+import { SAFETY_COMMANDS } from './safety'
+import { SESSION_COMMANDS } from './sessionCommands'
 import { SUBSCRIPTION_COMMANDS } from './subscriptions'
+import { TEAM_COMMANDS } from './team'
 import { TICKET_COMMANDS } from './tickets'
 import { TRIP_COMMANDS } from './trips'
+import { WALLET_COMMANDS } from './wallets'
 
 /** §CQ-1 caps the list at 8 rows; a candidate list longer than that is scrolled past, not read. */
 export const TARGET_LIMIT = 8
@@ -139,11 +159,18 @@ async function rankedIds(
  * because a blank list reads as *"there are none"* — R8's two empties are
  * different things and this one is neither.
  */
-async function listFor<T extends { id: string }>(
+async function listFor<T>(
   source: Pick<TargetSource<T>, 'entityType' | 'byIds'>,
   page: (signal?: AbortSignal) => Promise<readonly T[]>,
   query: string,
   signal?: AbortSignal,
+  /**
+   * Where the id lives on the record. Defaults to `id`, which every resource
+   * but one has — `WalletSummary` is keyed by `riderId` and carries no `id`
+   * field at all, and a source that could not say so would have needed its own
+   * copy of this whole function.
+   */
+  idOf: (row: T) => string = (row) => (row as { id: string }).id,
 ): Promise<readonly T[]> {
   const needle = query.trim()
   if (needle === '') return page(signal)
@@ -152,7 +179,7 @@ async function listFor<T extends { id: string }>(
   const rows = await source.byIds(ids, signal)
   /* The server ranked these; restore that order after the id read, which
      returns them in the resource's own order. */
-  return [...rows].sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id))
+  return [...rows].sort((a, b) => ids.indexOf(idOf(a)) - ids.indexOf(idOf(b)))
 }
 
 /* ────────────────────────────── captains ────────────────────────────── */
@@ -345,6 +372,205 @@ const subscriptionSource: TargetSource<Subscription> = {
   describe: (sub) => ({ id: sub.id, title: sub.riderName, subtitle: sub.id }),
 }
 
+/* ────────────────────────────── ride requests ────────────────────────────── */
+
+/**
+ * **The queue's own order, which is a RULE and not a preference.** `urgency`
+ * descending is legacy `reqUrgencyScore` (`:10057`) — breached first, then
+ * longest waiting — because *"a broken promise is not a queue position"*
+ * (`:19076`). The palette does not get to reorder that.
+ *
+ * `search()` indexes a request by its id, its rider **and both place names**
+ * (`clients/profile.ts:490`), so `KAFD` finds the ride as readily as `REQ-508`.
+ */
+const requestSource: TargetSource<RideRequest> = {
+  entityType: 'request',
+  commands: REQUEST_COMMANDS,
+  pluralKey: 'command.entity.request.other',
+  nounKey: 'command.entity.request.plural',
+
+  list: (query, signal) =>
+    listFor(
+      requestSource,
+      async (s) =>
+        (
+          await listRequests(
+            { pageSize: TARGET_LIMIT, sort: { field: 'urgency', dir: 'desc' } },
+            s,
+          )
+        ).items,
+      query,
+      signal,
+    ),
+
+  async byIds(ids, signal) {
+    if (ids.length === 0) return []
+    const page = await listRequests(
+      { filters: [{ field: 'id', op: 'in', value: [...ids] }], pageSize: ids.length },
+      signal,
+    )
+    return page.items
+  },
+
+  /* The id on line one because that is what the row, the work order and the
+     rider's message all carry; the rider on line two because that is who the
+     operator is about to phone. The route is deliberately not here — an arrow
+     between two place names cannot mirror outside a dictionary (§9.5). */
+  describe: (request) => ({ id: request.id, title: request.id, subtitle: request.riderName }),
+}
+
+/* ─────────────────────────── rider wallets ─────────────────────────── */
+
+/**
+ * **Keyed by the rider, because a wallet is not a record of its own.**
+ * `WalletSummary` has no `id`; it has a `riderId`, and `search()` indexes
+ * riders. So the entity type is `rider` and every id in this source is an
+ * `RDR-*` — which is also what makes the 360° layer openable from a wallet row
+ * without inventing a second identity for the same person.
+ *
+ * There is exactly one source per entity type (`targetSourceFor` finds the
+ * first), so `rider` belongs to wallets and to nothing else today. **Reported:**
+ * the day a rider registry exists, `TargetSource` needs a way to carry two
+ * command sets for one type, or the two registries have to merge.
+ */
+const walletSource: TargetSource<WalletSummary> = {
+  entityType: 'rider',
+  commands: WALLET_COMMANDS,
+  pluralKey: 'command.entity.wallet.other',
+  nounKey: 'command.entity.wallet.plural',
+
+  list: (query, signal) =>
+    listFor(
+      walletSource,
+      /* Alphabetical by rider — `WalletsScreen`'s own opening order, so an
+         operator who reaches the same wallets two ways does not have to
+         re-find their place. */
+      async (s) =>
+        (await listWallets({ pageSize: TARGET_LIMIT, sort: { field: 'riderName', dir: 'asc' } }, s))
+          .items,
+      query,
+      signal,
+      (wallet) => wallet.riderId,
+    ),
+
+  async byIds(ids, signal) {
+    if (ids.length === 0) return []
+    const page = await listWallets(
+      { filters: [{ field: 'riderId', op: 'in', value: [...ids] }], pageSize: ids.length },
+      signal,
+    )
+    return page.items
+  },
+
+  /* The person on line one and their id on line two — the same arrangement the
+     captain source uses, and for the same reason: two riders share a family
+     name and the id is what tells them apart (§4.3.4). */
+  describe: (wallet) => ({ id: wallet.riderId, title: wallet.riderName, subtitle: wallet.riderId }),
+}
+
+/* ──────────────────────────────── complaints ─────────────────────────────── */
+
+const complaintSource: TargetSource<Complaint> = {
+  entityType: 'complaint',
+  commands: COMPLAINT_COMMANDS,
+  pluralKey: 'command.entity.complaint.other',
+  nounKey: 'command.entity.complaint.plural',
+
+  list: (query, signal) =>
+    listFor(
+      complaintSource,
+      /* §8.4's queue order — soonest deadline first, which is the screen's own
+         and a rule there rather than an operator preference. */
+      async (s) =>
+        (await listComplaints({ pageSize: TARGET_LIMIT, sort: { field: 'slaDueAt', dir: 'asc' } }, s))
+          .items,
+      query,
+      signal,
+    ),
+
+  async byIds(ids, signal) {
+    if (ids.length === 0) return []
+    const page = await listComplaints(
+      { filters: [{ field: 'id', op: 'in', value: [...ids] }], pageSize: ids.length },
+      signal,
+    )
+    return page.items
+  },
+
+  /* The grievance on line one — it is what the operator remembers — and the id
+     on line two, which is what two complaints about the same thing differ by.
+     `subject` is the rider's own words and is not translated. */
+  describe: (complaint) => ({
+    id: complaint.id,
+    title: complaint.subject,
+    subtitle: complaint.id,
+  }),
+}
+
+/* ──────────────────────────────── colleagues ─────────────────────────────── */
+
+const operatorSource: TargetSource<TeamUser> = {
+  entityType: 'operator',
+  commands: TEAM_COMMANDS,
+  pluralKey: 'command.entity.operator.other',
+  nounKey: 'command.entity.operator.plural',
+
+  list: (query, signal) =>
+    listFor(
+      operatorSource,
+      async (s) =>
+        (await listOperators({ pageSize: TARGET_LIMIT, sort: { field: 'name', dir: 'asc' } }, s))
+          .items,
+      query,
+      signal,
+    ),
+
+  async byIds(ids, signal) {
+    if (ids.length === 0) return []
+    const page = await listOperators(
+      { filters: [{ field: 'id', op: 'in', value: [...ids] }], pageSize: ids.length },
+      signal,
+    )
+    return page.items
+  },
+
+  /* The email on line two rather than the id: `searchEntities` indexes a
+     colleague by both (`clients/profile.ts:469`), and an administrator asked to
+     revoke somebody was given an address, not a `USR-4`. */
+  describe: (user) => ({ id: user.id, title: user.name, subtitle: user.email }),
+}
+
+/* ────────────────────────── subscription plans ────────────────────────── */
+
+const planSource: TargetSource<SubscriptionPlan> = {
+  entityType: 'plan',
+  commands: PLAN_COMMANDS,
+  pluralKey: 'command.entity.plan.other',
+  nounKey: 'command.entity.plan.plural',
+
+  /* `listPlans` takes no query and returns the whole catalogue — there are
+     four — so the page is sliced here rather than asked for. */
+  list: (query, signal) =>
+    listFor(
+      planSource,
+      async (s) => (await listPlans(s)).slice(0, TARGET_LIMIT),
+      query,
+      signal,
+    ),
+
+  async byIds(ids, signal) {
+    if (ids.length === 0) return []
+    const plans = await listPlans(signal)
+    return plans.filter((plan) => ids.includes(plan.id))
+  },
+
+  /* The English name on line one and the Arabic one on line two, because both
+     are the plan's real name and an operator may have been told either — which
+     is exactly why `searchEntities` weights `nameAr` as a name and not as a
+     detail (`clients/profile.ts:478`). */
+  describe: (plan) => ({ id: plan.id, title: plan.nameEn, subtitle: plan.nameAr }),
+}
+
 /* ─────────────────────────────── the table ─────────────────────────────── */
 
 /**
@@ -365,9 +591,80 @@ export const TARGET_SOURCES: readonly TargetSource[] = [
   applicantSource,
   ticketSource,
   subscriptionSource,
+  requestSource,
+  walletSource,
+  complaintSource,
+  operatorSource,
+  planSource,
 ]
 
 export function targetSourceFor(entityType: ProfileEntityType | null): TargetSource | null {
   if (entityType === null) return null
   return TARGET_SOURCES.find((source) => source.entityType === entityType) ?? null
 }
+
+/* ──────────────────── every registry, findable or not ──────────────────── */
+
+/**
+ * **A registry plus where its targets come from, or `null` when there is
+ * nowhere.** The seam F6 needed and `TARGET_SOURCES` could not be.
+ *
+ * `TARGET_SOURCES` answers *"how do I find a record of this type"*. It was
+ * doing a second job it was never shaped for — being the list the palette walks
+ * to discover **commands** (`usePalette.ts:786`, `:849`) — and that conflation
+ * is invisible until a command has no findable target. Two kinds now do:
+ *
+ *   - **`scope: 'global'`** — `sessionCommands.ts`. There is no record to find;
+ *     `Switch to Arabic` acts on the session. Under the old walk these were
+ *     unreachable, because a registry with no entity type had no row to sit in.
+ *   - **`scope: 'route'`** — `safety.ts`, `cash.ts`, `disputes.ts`,
+ *     `fairness.ts`. These act on records that have **no `ProfileEntityType`**
+ *     at all (`types/profile.ts`), so `search()` cannot rank one and
+ *     `resolveProfile` cannot open one. Every command in them carries
+ *     `hiddenFromPalette` saying exactly that (**CM-4**), so they are declared
+ *     once for the row menu and the bulk bar — which is C-1's whole value,
+ *     *"worth doing whether or not the palette is ever built"* — and the
+ *     palette does not offer what it could not complete.
+ *
+ * **For the palette's owner:** iterate this for commands and `TARGET_SOURCES`
+ * for targets. The first five entries are identical to the old walk, so the
+ * change is additive in behaviour as well as in type.
+ *
+ * **Reported to mock-data-engineer:** `incident`, `cash-report`, `dispute` and
+ * `fairness-case` need entries in `PROFILE_ENTITY_TYPES`, in `resolveLocally`
+ * and in `searchEntities` before any of those twelve commands can reach ⌘K.
+ */
+export interface CommandGroup {
+  /** A name for the table and for the test's failure messages. Never rendered. */
+  name: string
+  commands: readonly Command<never>[]
+  /** `null` where the records this acts on have no `ProfileEntityType`. */
+  source: TargetSource | null
+}
+
+/**
+ * `Command<T>`'s methods are declared with method syntax, so they are bivariant
+ * and a `Command<Driver>` is assignable to `Command<never>`. The cast is what
+ * lets one table hold eleven record types; `domains.test.ts` does the same.
+ */
+function group(name: string, commands: CommandRegistry<never>, source: TargetSource | null): CommandGroup {
+  return { name, commands, source }
+}
+
+export const COMMAND_GROUPS: readonly CommandGroup[] = [
+  group('captains', CAPTAIN_COMMANDS as CommandRegistry<never>, driverSource),
+  group('trips', TRIP_COMMANDS as CommandRegistry<never>, tripSource),
+  group('applications', APPLICANT_COMMANDS as CommandRegistry<never>, applicantSource),
+  group('tickets', TICKET_COMMANDS as CommandRegistry<never>, ticketSource),
+  group('subscriptions', SUBSCRIPTION_COMMANDS as CommandRegistry<never>, subscriptionSource),
+  group('requests', REQUEST_COMMANDS as CommandRegistry<never>, requestSource),
+  group('wallets', WALLET_COMMANDS as CommandRegistry<never>, walletSource),
+  group('complaints', COMPLAINT_COMMANDS as CommandRegistry<never>, complaintSource),
+  group('team', TEAM_COMMANDS as CommandRegistry<never>, operatorSource),
+  group('plans', PLAN_COMMANDS as CommandRegistry<never>, planSource),
+  group('safety', SAFETY_COMMANDS as CommandRegistry<never>, null),
+  group('cash', CASH_COMMANDS as CommandRegistry<never>, null),
+  group('disputes', DISPUTE_COMMANDS as CommandRegistry<never>, null),
+  group('fairness', FAIRNESS_COMMANDS as CommandRegistry<never>, null),
+  group('session', SESSION_COMMANDS, null),
+]

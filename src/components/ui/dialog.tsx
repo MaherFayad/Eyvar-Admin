@@ -6,6 +6,10 @@
  *              forms, 560px default, 800px content-rich. Exposed as
  *              `size="sm" | "default" | "lg"`. The stock viewport-clamp plus
  *              breakpoint max-width is replaced.
+ *   override   a FOURTH, `palette`, exists only for the command centre, whose
+ *              geometry the owner fixed at 640 with a 16vh top edge (RULINGS,
+ *              "The command palette is a centred modal"). It is not a size a
+ *              screen may choose; `command.tsx` is its only caller.
  *
  * ## Which size — G6, and it is a rule, not a judgement
  *
@@ -126,8 +130,12 @@ function DialogContent({
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  /** 440 confirmations and one-field forms | 560 default | 800 content-rich. */
-  size?: "sm" | "default" | "lg"
+  /**
+   * 440 confirmations and one-field forms | 560 default | 800 content-rich.
+   * `palette` is the fourth and last: the command centre, licensed by the
+   * standing owner override of 2026-09-05, at 640 with a fixed top edge.
+   */
+  size?: "sm" | "default" | "lg" | "palette"
   showCloseButton?: boolean
 }) {
   /*
@@ -159,7 +167,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-size={size}
         className={cn(
-          "fixed top-1/2 start-1/2 z-50 grid w-140 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground border border-border shadow-3 duration-200 outline-none data-[size=sm]:w-110 data-[size=lg]:w-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 compact:start-4 compact:end-4 compact:translate-x-0 compact:rtl:translate-x-0 compact:max-h-svh compact:overflow-y-auto compact:data-[size=sm]:w-auto compact:data-[size=default]:w-auto compact:data-[size=lg]:w-auto",
+          "fixed top-1/2 start-1/2 z-50 grid w-140 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground border border-border shadow-3 duration-200 outline-none data-[size=sm]:w-110 data-[size=lg]:w-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 compact:start-4 compact:end-4 compact:translate-x-0 compact:rtl:translate-x-0 compact:max-h-svh compact:overflow-y-auto compact:data-[size=sm]:w-auto compact:data-[size=default]:w-auto compact:data-[size=lg]:w-auto data-[size=palette]:w-160 data-[size=palette]:top-palette-top data-[size=palette]:translate-y-0 data-[size=palette]:max-h-palette-max data-[size=palette]:flex data-[size=palette]:flex-col data-[size=palette]:gap-0 data-[size=palette]:p-0 data-[size=palette]:overflow-hidden data-[size=palette]:data-open:duration-150 data-[size=palette]:data-closed:duration-100 data-[size=palette]:motion-reduce:data-open:zoom-in-100 data-[size=palette]:motion-reduce:data-closed:zoom-out-100 compact:data-[size=palette]:w-auto compact:data-[size=palette]:start-0 compact:data-[size=palette]:end-0 compact:data-[size=palette]:top-0 compact:data-[size=palette]:rounded-t-none",
           className
         )}
         {...props}

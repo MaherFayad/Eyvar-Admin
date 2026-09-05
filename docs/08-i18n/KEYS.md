@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6455** |
-| Reachable from `EN` (what the shell renders) | 6109 |
-| Keys in `AR` | 6455 |
+| **Translatable keys, all dictionaries** | **6820** |
+| Reachable from `EN` (what the shell renders) | 6474 |
+| Keys in `AR` | 6820 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 346 |
 | Plural forms (`key#category`) inside `EN` | 63 |
@@ -19,8 +19,8 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **89** |
-| **Arabic values carrying an em dash (the ratchet)** | **93** |
+| **English values carrying an em dash (the ratchet)** | **84** |
+| **Arabic values carrying an em dash (the ratchet)** | **87** |
 | **English values over their word budget (the ratchet)** | **147** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **89** English and **93** Arabic, measured **89** and **93**. **X14**:
+Ceilings **84** English and **87** Arabic, measured **84** and **87**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -47,14 +47,14 @@ Both ceilings only ever fall.
 | Language | File | Values |
 |---|---|---:|
 | ar | `src/i18n/ar/adminData.ts` | 13 |
-| ar | `src/i18n/ar/adminTeam.ts` | 4 |
+| ar | `src/i18n/ar/adminTeam.ts` | 3 |
 | ar | `src/i18n/ar/adminWorkspace.ts` | 18 |
 | ar | `src/i18n/ar/auth.ts` | 1 |
 | ar | `src/i18n/ar/conversations.ts` | 2 |
 | ar | `src/i18n/ar/disputes.ts` | 2 |
 | ar | `src/i18n/ar/fairness.ts` | 1 |
 | ar | `src/i18n/ar/financials.ts` | 30 |
-| ar | `src/i18n/ar/onboarding.ts` | 10 |
+| ar | `src/i18n/ar/onboarding.ts` | 5 |
 | ar | `src/i18n/ar/policy.ts` | 5 |
 | ar | `src/i18n/ar/pwa.ts` | 1 |
 | ar | `src/i18n/ar/safety.ts` | 2 |
@@ -70,7 +70,7 @@ Both ceilings only ever fall.
 | en | `src/screens/admin/workspace/copy.ts` | 18 |
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
-| en | `src/screens/onboarding/copy.ts` | 7 |
+| en | `src/screens/onboarding/copy.ts` | 2 |
 | en | `src/screens/support/conversations/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
 | en | `src/screens/support/fairness/copy.ts` | 1 |
@@ -108,7 +108,6 @@ Both ceilings only ever fall.
 | en | `adminData.retention.days.90` | 90 days — standard |
 | en | `adminData.retention.months.13` | 13 months — a year plus headroom |
 | ar | `admin.team.sessions.title` | الجلسات — {name} |
-| ar | `admin.team.matrix.desc` | ما يستطيع كل دور فعله. تعديلها موقوف على نموذج الأدوار — انظر الملاحظة أسفل الجدول. |
 | ar | `admin.audit.team.securityPolicy` | حُفظت سياسة الأمان — الخمول {idleMinutes} دقيقة، والانتهاء المطلق {expiryHours} ساعة، وتغيّر اشتراط عامل التحقق الثاني: {twoFactor} |
 | ar | `admin.audit.team.rota` | حُفظ جدول المناوبة — الأساسي {primary} |
 | en | `admin.team.sessions.title` | Sessions — {name} |
@@ -227,18 +226,8 @@ Both ceilings only ever fall.
 | ar | `onboarding.intro.finance` | أنت من يحرّك المال ويحاسب عليه — المستحقات والضمان والخصومات والتسوية. يمكنك الاطلاع على الملفات الشخصية، ولا يمكنك تغيير حالة كابتن. |
 | ar | `onboarding.intro.support` | أنت من يجيب الركاب والكباتن، وأول من يسمع حين يسوء شيء. يمكنك رؤية حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. |
 | ar | `onboarding.trackEmpty` | لا توجد خطوات متاحة لهذا الدور بعد — يمكن للمالك مراجعة صلاحياتك من إدارة النظام › الفريق والصلاحيات. |
-| ar | `onboarding.step.finance.ledger.body` | تعلّم اصطلاح الإشارة، وتعلّم أن الصف المُقيَّد لا يُعدَّل أبدًا — بل يُعكَس بصف ثانٍ. لا شيء في المالية يتراجع عن نفسه. |
-| ar | `onboarding.step.finance.escrow.body` | افتح صف ضمان واحدًا واقرأه كاملًا. الإفراج ينقل المال إلى كابتن، ولا تراجع عنه — إلا بقيد عكسي. |
-| ar | `onboarding.step.ops.application.body` | اقرأ المستندات، ثم وافق أو ارفض. يمنحك الصف علامة صح وعلامة خطأ و«عرض» — لا قائمة تُفتح. |
-| ar | `onboarding.step.ops.requests.body` | راقب مؤقّت SLA وأنت تحمله. اقرأ ما معنى الإخلال — الإخلال هدف لم يُدرَك، لا تقصير في التصرّف. |
-| ar | `onboarding.step.support.boundary.body` | يمكنك رؤية كل حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. اقرأ حادثة واحدة، وقف عند ذلك. |
 | en | `onboarding.intro.opsManager` | You keep trips covered and captains working — applications, requests, assurance and dispatch. |
 | en | `onboarding.trackEmpty` | No steps are available for this role yet — an owner can check your permissions in Admin › Team & Access. |
-| en | `onboarding.step.finance.ledger.body` | Learn the sign convention, and learn that a posted row is never edited — it is reversed by a second row. Nothing in Financials undoes itself. |
-| en | `onboarding.step.finance.escrow.body` | Open one escrow row and read it through. Release moves money to a captain, and there is no undo — only a reversing entry. |
-| en | `onboarding.step.ops.application.body` | Read the documents, then approve or reject. The row gives you a tick, a cross and View — there is no menu to open. |
-| en | `onboarding.step.ops.requests.body` | Watch the SLA clock while you hold it. Read what a breach means — a breach is a missed target, not a failure to act. |
-| en | `onboarding.step.support.boundary.body` | You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there. |
 | ar | `policy.sla.grid.desc` | تعمل قائمة العمل على القيمة الافتراضية للمستوى ما لم تتجاوزها. الهدف المتجاوَز يتوقف عن اتّباع المستوى — أعده لتعيده إلى الوراثة. |
 | ar | `policy.reasons.desc` | المفردات المغلقة التي يُصنَّف بها كل إلغاء واسترداد وإيقاف ونزاع. لا يُحذف الرمز ولا يُعاد تسميته أبدًا — أوقفه واذكر ما حلّ محله، لأن السجلات التاريخية تشير إلى المفتاح. |
 | ar | `policy.reasons.new.desc` | اختر المفتاح بعناية — فهو لا يُعاد تسميته ولا يُعاد استخدامه أبدًا، حتى بعد إيقافه. |
@@ -410,13 +399,12 @@ Measured on English only, and a placeholder counts as one word.
 | title | 6 | `onboarding.step.ops.assurance.title` | Cover one trip before it departs |
 | title | 6 | `onboarding.step.support.goodwill.title` | Credit a rider, inside your cap |
 | title | 6 | `onboarding.step.support.ticket.title` | Answer one ticket end to end |
+| title | 6 | `onboarding.welcome.step2.title` | Your work arrives in one place |
 | title | 5 | `admin.integrations.reveal.key.rotated.title` | Copy the new key now |
 | title | 5 | `admin.integrations.reveal.webhook.issued.title` | Copy this signing secret now |
 | title | 5 | `auth.enroll.title` | Set up your verification code |
 | title | 5 | `auth.otp.superseded.title` | That code has been replaced |
 | title | 5 | `driver.timeline.trip-no-show.title` | Trip recorded as a no-show |
-| title | 5 | `fairness.overturn.title` | Overturn the decision against {name}? |
-| title | 5 | `fairness.uphold.title` | Uphold the decision against {name}? |
 | title | 5 | `fin.bulk.apply.confirm.title#one` | Apply {amount} from 1 deduction? |
 | title | 5 | `fin.bulk.apply.confirm.title#other` | Apply {amount} from {count} deductions? |
 | title | 5 | `fin.bulk.release.confirm.title#one` | Release {amount} from 1 hold? |
@@ -425,6 +413,7 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `fin.bulk.waive.confirm.title#other` | Waive {amount} on {count} deductions? |
 | title | 5 | `fin.debt.repay.title` | Record a repayment from {captain}? |
 | title | 5 | `fin.overview.positions.heading` | Where the money is held |
+| title | 5 | `fin.quickEditor.calc.heading` | Fare for the example trip |
 | title | 5 | `nav.count.operations-corporate` | {count} corporate accounts awaiting approval |
 | title | 5 | `nav.count.operations-my-work` | {count} items in your work |
 | title | 5 | `onboarding.step.finance.routing.title` | Know which queue reaches you |
@@ -440,29 +429,29 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 852 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 899 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
+| `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 266 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 236 |
-| `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 214 |
+| `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 206 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 189 |
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 184 |
-| `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
+| `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 173 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
-| `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 168 |
+| `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
 | `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 115 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
+| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 104 |
 | `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
-| `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
-| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 81 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 77 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 69 |

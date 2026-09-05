@@ -47,7 +47,7 @@ export const ONBOARDING_AR: Dictionary = {
   'onboarding.welcome.step2.title': 'يصل عملك إلى مكان واحد',
   'onboarding.welcome.step2.body':
     'كل طابور يمكنك رؤيته يصل إلى «عملي». استلم عنصرًا ليصبح لك، واعمل عليه في شاشته، ثم اتركه. لا يُسنَد إليك شيء في صمت.',
-  'onboarding.welcome.step3.title': 'انتقل إلى أي مكان من لوحة المفاتيح',
+  'onboarding.welcome.step3.title': 'انتقل من لوحة المفاتيح',
   'onboarding.welcome.step3.body':
     'اضغط ⌘K، أو Ctrl K على ويندوز، لفتح طابور، أو العثور على سجل بمعرّفه، أو تنفيذ إجراء من دون مغادرة الصفحة التي أنت فيها.',
   'onboarding.welcome.step4.title': 'مهامك الأولى: {count}',

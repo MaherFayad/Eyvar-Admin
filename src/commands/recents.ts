@@ -57,7 +57,7 @@
  * which is a change in a file this task does not own.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cachedUiState, getUiState, updateUiState } from '@/data/clients'
 import type { CommandId } from './registry'
 
@@ -70,7 +70,7 @@ const DO = 'do:'
  * How much history the derivations see. Recency uses the head of it; frequency
  * counts within it. Both meanings move together, on purpose.
  */
-const LOG_LIMIT = 40
+export const LOG_LIMIT = 40
 
 /** §4 — "the last three destinations". The number is the spec's. */
 export const RESUME_LIMIT = 3
@@ -81,11 +81,24 @@ export const RECENT_COMMAND_LIMIT = 5
 /** Coalesces a burst of navigations into one PATCH. Shorter than a deliberate click. */
 const WRITE_DEBOUNCE_MS = 400
 
+/**
+ * F5 — what the log knows about one command, as a ranking weight.
+ *
+ * `recentIndex` is the index of its **latest** entry (the log is
+ * most-recent-first), so a small number means "used a moment ago".
+ */
+export interface CommandUsage {
+  count: number
+  recentIndex: number
+}
+
 export interface PaletteRecents {
   /** Sub-tab ids, most recent first, current route excluded. */
   resume: readonly string[]
   /** Command ids, most-used first within the window, ties broken by recency. */
   recentCommands: readonly CommandId[]
+  /** F5 — frequency and recency per command id, for `scoreCommand`'s weight. */
+  usage: ReadonlyMap<string, CommandUsage>
   /** Record that a command ran. Called from the palette's one dispatch path. */
   recordCommand: (id: CommandId) => void
 }
@@ -126,6 +139,23 @@ export function deriveRecentCommands(log: readonly string[]): CommandId[] {
       return byUse !== 0 ? byUse : (firstSeen.get(a) ?? 0) - (firstSeen.get(b) ?? 0)
     })
     .slice(0, RECENT_COMMAND_LIMIT) as CommandId[]
+}
+
+/**
+ * F5 — the third derivation over the same log: how often each command was run
+ * inside the window, and how recently. Ranking reads it; nothing else does.
+ */
+export function deriveCommandUsage(log: readonly string[]): Map<string, CommandUsage> {
+  const out = new Map<string, CommandUsage>()
+  log.forEach((entry, index) => {
+    if (!entry.startsWith(DO)) return
+    const id = entry.slice(DO.length)
+    if (id === '') return
+    const found = out.get(id)
+    if (found === undefined) out.set(id, { count: 1, recentIndex: index })
+    else found.count += 1
+  })
+  return out
 }
 
 function push(log: readonly string[], entry: string): readonly string[] {
@@ -219,9 +249,12 @@ export function usePaletteRecents(currentSubTabId: string | null): PaletteRecent
 
   const recordCommand = useCallback((id: CommandId) => record(`${DO}${id}`), [record])
 
-  return {
-    resume: deriveResume(log, currentSubTabId),
-    recentCommands: deriveRecentCommands(log),
-    recordCommand,
-  }
+  /* Memoised because each derivation is a fresh array or Map: handing the
+     palette a new identity on every render rebuilds every row, and `cmdk`
+     resets its active item when the item identities change mid-typing. */
+  const resume = useMemo(() => deriveResume(log, currentSubTabId), [currentSubTabId, log])
+  const recentCommands = useMemo(() => deriveRecentCommands(log), [log])
+  const usage = useMemo(() => deriveCommandUsage(log), [log])
+
+  return { resume, recentCommands, usage, recordCommand }
 }

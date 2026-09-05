@@ -65,7 +65,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Money } from '@/components/Money'
-import { parseMoneyInput, type Translate } from '@/lib'
+import { formatMoneyInput, parseMoneyInput, type Translate } from '@/lib'
 import type { Halalas } from '@/data/types'
 
 export interface ConfirmLine {
@@ -130,7 +130,7 @@ export function ConfirmMoneyDialog({
     setRaw(
       request?.amount?.initialHalalas === undefined
         ? ''
-        : majorUnits(request.amount.initialHalalas),
+        : formatMoneyInput(request.amount.initialHalalas),
     )
     setReason('')
     setTouched(false)
@@ -260,18 +260,4 @@ export function ConfirmMoneyDialog({
       </DialogContent>
     </Dialog>
   )
-}
-
-/**
- * Integer halalas to the major-unit string an operator edits.
- *
- * On the digits, not by `n / 100`: `1999 / 100` is a float that renders
- * differently once in a while, and a prefilled amount that changes when it
- * round-trips is a bug nobody reproduces.
- */
-function majorUnits(halalas: Halalas): string {
-  const magnitude = Math.abs(halalas)
-  const major = Math.trunc(magnitude / 100)
-  const minor = magnitude % 100
-  return `${halalas < 0 ? '-' : ''}${major}.${String(minor).padStart(2, '0')}`
 }

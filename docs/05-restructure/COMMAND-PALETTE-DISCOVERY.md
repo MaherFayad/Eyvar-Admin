@@ -226,19 +226,224 @@ P1 alone answers the ask in the screenshot. P2 is what makes it *"actually power
 
 ## 9. Decisions only the owner can make
 
-| # | Question | Recommendation |
-|---|---|---|
-| **Q-P1** | Override §2.6 and CQ-1: the palette becomes a centred modal. | Yes. The ask says so; record it in RULINGS. |
-| **Q-P2** | The top-bar field: keep as a trigger, or remove and rely on ⌘K. | Keep as a 240px trigger reading *Search or run a command ⌘K*. Discoverability for new operators; the onboarding welcome already teaches ⌘K. |
-| **Q-P3** | `Esc` with a chip present: ascend one step, or close. | Ascend. Backspace does the same; closing throws away a half-built command. |
-| **Q-P4** | Prefix modes (`>` `#` `@` `/`). | Yes, quiet: no UI beyond a chip when typed and one footer hint at rest. |
-| **Q-P5** | Persistence for recents and ranking (CQ-6 / Q1). | Use the UI store that already persists theme and language, per operator, on this machine. Server-side later if it matters. |
-| **Q-P6** | Preview pane. | Phase 3, records only, 880px panel when shown. Decide after P2 is in hands. |
-| **Q-P7** | Which domains grow the registry first. | Dispatch and wallets: the most-repeated actions in My Work today. |
-| **Q-P8** | `/` as a door. | Yes, when focus is not in a field. Jira's habit; one key. |
+**All eight were decided as recommended on 2026-09-05**; the *Decided* column
+records that rather than leaving the table reading as an open ask. Q-P1's
+override is written up in `docs/RULINGS.md`.
+
+| # | Question | Recommendation | Decided |
+|---|---|---|---|
+| **Q-P1** | Override §2.6 and CQ-1: the palette becomes a centred modal. | Yes. The ask says so; record it in RULINGS. | as recommended, 2026-09-05 |
+| **Q-P2** | The top-bar field: keep as a trigger, or remove and rely on ⌘K. | Keep as a 240px trigger reading *Search or run a command ⌘K*. Discoverability for new operators; the onboarding welcome already teaches ⌘K. | as recommended, 2026-09-05 |
+| **Q-P3** | `Esc` with a chip present: ascend one step, or close. | Ascend. Backspace does the same; closing throws away a half-built command. | as recommended, 2026-09-05 |
+| **Q-P4** | Prefix modes (`>` `#` `@` `/`). | Yes, quiet: no UI beyond a chip when typed and one footer hint at rest. | as recommended, 2026-09-05 |
+| **Q-P5** | Persistence for recents and ranking (CQ-6 / Q1). | Use the UI store that already persists theme and language, per operator, on this machine. Server-side later if it matters. | as recommended, 2026-09-05 |
+| **Q-P6** | Preview pane. | Phase 3, records only, 880px panel when shown. Decide after P2 is in hands. | as recommended, 2026-09-05 |
+| **Q-P7** | Which domains grow the registry first. | Dispatch and wallets: the most-repeated actions in My Work today. | as recommended, 2026-09-05 |
+| **Q-P8** | `/` as a door. | Yes, when focus is not in a field. Jira's habit; one key. | as recommended, 2026-09-05 |
 
 ---
 
 ## 10. Files this would touch
 
 `src/shell/GlobalSearch.tsx` (becomes the trigger plus a `CommandDialog`), `src/components/command/CommandPalette.tsx` (rows, groups, footer), `src/commands/usePalette.ts` (rest-state diet, argument carry, record step, prefixes, ranking), `src/commands/copy.ts` and `src/i18n/ar/commands.ts` (new keys), `src/commands/<domain>.ts` (F6), `docs/RULINGS.md` (the override), `docs/05-restructure/design/05-command-centre.md` (CQ-1 superseded, §3 gains the record step), `scripts/harness/palette.mjs` (new), `src/commands/palette.test.tsx` (extended).
+
+---
+
+## 11. F6 status — the registry, as built
+
+**43 commands in 15 registries**, up from 13 in 5. Every id below is declared in
+`src/commands/<domain>.ts` and asserted by `src/commands/domains.test.ts`.
+
+| Domain | File | Command ids | Arity | Affordance |
+|---|---|---|---|---|
+| Captains | `captains.ts` | `captain.openProfile` · `captain.suspend` · `captain.reinstate` | target / input / target | default |
+| Trips | `trips.ts` | `trip.flag` · `trip.unflag` | input / target | default |
+| Applications | `applicants.ts` | `applicant.approve` · `applicant.reject` | target / input | default |
+| Tickets | `tickets.ts` | `ticket.claim` · `ticket.resolve` · `ticket.reopen` | target | default |
+| Subscriptions | `subscriptions.ts` | `subscription.freeze` · `subscription.unfreeze` · `subscription.cancel` | input / target / input | default · default · **destructive** |
+| **Dispatch** | `requests.ts` | `request.claimNext` **immediate** · `request.claim` · `request.assign` · `request.expire` | immediate / target / input / target | default ×3 · **destructive** |
+| **Wallets** | `wallets.ts` | `wallet.adjust` · `wallet.goodwill` | input | default |
+| **Complaints** | `complaints.ts` | `complaint.uphold` · `complaint.dismiss` | input | affirm / reject |
+| **Team** | `team.ts` | `operator.suspend` · `operator.reinstate` · `operator.resendInvite` · `operator.revokeInvite` · `operator.offboard` | input / target / target / target / input | default ×3 · **destructive** ×2 |
+| **Pricing** | `pricing.ts` | `plan.publish` · `plan.archive` | target | default (both carry an undo) |
+| **Safety** | `safety.ts` | `incident.claim` · `incident.suspend` · `incident.close` | target / input / target | default ×2 · **destructive** |
+| **Cash** | `cash.ts` | `cashReport.resolve` · `cashReport.escalate` | input | affirm / reject |
+| **Disputes** | `disputes.ts` | `dispute.refund` · `dispute.decline` | input | affirm / reject |
+| **Fairness** | `fairness.ts` | `fairnessCase.overturn` · `fairnessCase.uphold` | input | affirm / reject |
+| **Session** | `sessionCommands.ts` | `session.arabic` · `session.english` · `session.themeLight` · `session.themeDark` · `session.themeSystem` · `session.signOut` | immediate | default |
+
+**Reachable from ⌘K:** ten registries. `TARGET_SOURCES` gained five entries —
+`request`, `rider` (a wallet is keyed by its rider), `complaint`, `operator`,
+`plan` — beside the five that existed.
+
+**Not reachable, and why (CM-4).** Twelve commands in `safety`, `cash`,
+`disputes` and `fairness` carry `hiddenFromPalette`: those records have **no
+`ProfileEntityType`**, so `search()` cannot rank one and `CommandScope`'s
+`entity` kind cannot name them. They are declared for the row menu and the bulk
+bar, which is C-1's value on its own. Unblocking ⌘K for them needs `incident`,
+`cash-report`, `dispute` and `fairness-case` in `PROFILE_ENTITY_TYPES`, in
+`resolveLocally` and in `searchEntities` — mock-data-engineer.
+
+**Left out, with the reason.** `Invite operator` (three typed fields;
+`CommandConfirmRequest` collects one reason, one closed choice and one amount).
+`Change role` (no role-change operation exists in `clients/team.ts`).
+`Duplicate plan` (no `createPlan`). `Freeze wallet` (no such operation).
+`Release` / `take over` on every queue (`CommandSession` carries no operator
+identity). A wallet **debit** (the screen only ever credits; taking money out
+from a palette is a product decision nobody has made).
+
+**Contract additions, both additive.** `CommandConfirmRequest.amount`
+(`CommandConfirmAmount`, structurally `ConfirmMoneyDialog`'s own `amount` plus
+the `onChange` callback `choice.onSelect` established) and three optional
+`CommandHost` capabilities — `setLanguage`, `setTheme`, `signOut` — which the
+session commands refuse with a keyed sentence until `GlobalSearch` wires them.
+
+**`COMMAND_GROUPS`** (`targets.ts`) is new: `TARGET_SOURCES` answers *how do I
+find a record*, which is a different question from *what commands exist*, and
+the conflation made every global and route command invisible. A surface
+iterates the first for commands and the second for targets.
+## 12. P2 model status — `pal/model`
+
+Built in `src/commands/usePalette.ts` (plus additive helpers in `recents.ts` and
+`shortcuts.ts`); proved in `src/commands/palette.model.test.tsx`, nine tests, one per
+criterion.
+
+| Item | State |
+|---|---|
+| **F1** rest state as context | done. `On this screen` · `Resume` · `Recent commands` · `Go to`, each capped at 3 and the whole at 10 rows in 4 groups. `Queues` does not render at rest; the guide row keeps its place inside `Resume` and inside the cap. |
+| **AC-CP4** queues on demand | done. `command.queue.keywords` is a comma-separated, translated match vocabulary (`queue, queues, waiting, backlog` / `طابور, الطوابير, منتظر, بانتظار, قوائم العمل`); a queue's own title also matches. The block renders first when it is asked for. |
+| **F3** argument carry | done. A command whose leading tokens name it is **scored on those tokens**, not on the whole query — without that, `suspend nora` scores below `MIN_MATCH_SCORE` and the palette could not take an argument at all. The remainder shows on the row as `command.carry` and pre-fills the target step. |
+| **F7** prefix modes | done. `>` commands, `#` records whose id contains the query, `@` people records, `/` destinations. The glyph is stripped into `model.scope = { label, onRemove }`; `Backspace` and `Escape` take the scope off before they ascend. `>` with an empty query lists every command. |
+| **F2** record step | done. `step: 'record'`, one block `command.block.recordActions` naming the record, `Open 360° profile` first, then the entity's commands with their §11.2 refusals. `Enter` on a record row still opens the profile (`descends: false`); `onDescend` is the second affordance. |
+| **F4** shortcuts, data side | done for `Go to`: `subTabChord` reads the same letters `useSubTabShortcut` assigns, rendered `G X`. No chords invented for commands — no scheme exists to match. |
+| **F5** ranking that learns | done. `deriveCommandUsage` over the existing `paletteRecents` log; frequency and recency weight the text score by at most 7 %, so a habit breaks a tie and never beats a better match. |
+| **§6** telemetry | `palette.ran` (command id, step depth, keystrokes, ms since open) and `palette.abandoned` (query length, step). `palette.opened` stays the surface's. |
+| Contract fields | `kind`, `shortcut`, `descends`, `onDescend` filled on every row the model emits; `count` and `scope` filled on the model. |
+
+**Persistence (Q-P5) needed no new key.** `UI_STATE_KEYS.paletteRecents` already exists and
+`createCachedStore` already namespaces by operator id, so ranking, `Resume` and `Recent
+commands` read one per-operator log. `src/lib/persistence.ts` is unchanged.
+
+**Three tests in `palette.test.tsx` now fail, and must change**, because AC-CP3 removed the
+block they assert: *offers live queue counts … with nothing typed*, *does not show a prompt
+where it now has something to offer*, and *ascends on Backspace … and closes only from
+root* (this last one uses the `Queues` group only as a proxy for "still open"; any rest-state
+group works). The file's owner is the surface.
+## 13. P1 status — 2026-09-05
+
+Built on `pal/surface`, against §3 (Look), §4 (Feel) and the *look* half of §6. The model
+(`usePalette.ts`) and the registry (`commands/<domain>.ts`) were built in parallel on their
+own branches; the row contract they meet at is `PaletteRow`'s optional fields.
+
+**Landed.** The centred `Dialog` at 640 × 16vh capped at 60vh, over the existing scrim, as
+`DialogContent size="palette"` — the one place that geometry is written. The 240px top-bar
+trigger with a platform-correct keycap, and it is a real `DialogTrigger`, which is what
+AC-CP10 rests on. Three doors: `⌘K` / `Ctrl K`, the trigger, and `/` outside a typing
+target. A 52px input row carrying the magnifier, the committed chips, the prefix scope chip
+and an `Esc` legend, with the query at 16px. One-line rows with a glyph by `kind`, the meta
+after ` · `, and a right slot for the shortcut's keycaps, a count, a chevron and the active
+row's `↵`; `kind: 'record'` is the one two-line row; the matched substring of the query is
+bolded in the title. A 36px footer with the step's key hints, the prefix hint at rest and
+the tally at inline-end. `Tab` / `Shift+Tab` move a group at a time and `→` descends where
+the row says it can, both of which needed `cmdk` to become controlled.
+
+**Left out, and why.** `⌘↵` (run a destination and keep the palette open) is not built: a
+destination row's `onSelect` closes the palette from inside the model, and there is no way
+to ask it not to from the surface. It needs a model-side variant and belongs with F5.
+
+**Verified.** `npx tsc -b --noEmit` clean. `src/commands` + `src/shell`: 370 of 371, the one
+failure a load-dependent timeout in `commands.test.tsx` that is present at `7aa8e98` and
+passes when that file runs alone. `scripts/harness/palette.mjs` PASS at 1280×720 and
+1280×900, in Arabic and in dark: width 640, top edge 115 / 144 against a wanted 115 / 144,
+the two inline gaps equal at 320, no vertical movement when a 32-row result arrives, focus
+in the input on open and back on the trigger after `Esc`.
+
+**Not P1, and still open.** The rest-state diet (AC-CP3 / AC-CP4, "no queues before a key is
+pressed") is the model's half and is not done here — the harness shows five queue rows at
+rest. Row glyphs fall back to `row.icon`, so commands have one and queues and destinations
+do not until the model fills `kind`.
+
+
+## 14. Integration — 2026-09-05
+
+The three branches (`pal/registry`, `pal/model`, `pal/surface`) met on `pal/int`.
+Four seams were open where they touched; all four are closed.
+
+**Discovery through `COMMAND_GROUPS`.** `usePalette` walked `TARGET_SOURCES` in
+three places to find commands, which answers *how do I find a record* and not
+*what commands exist*. It now walks `COMMAND_GROUPS` for commands and keeps
+`TARGET_SOURCES` for targets, as `targets.ts`'s header instructs — so the six
+`session.*` commands and the four route registries are reachable rather than
+invisible. An `immediate` command has its refusal evaluated at render against
+the empty target list it runs against, because it has no target step to be
+refused in (§11.2).
+
+**The host's three capabilities.** `TopBar` already held the shell's language
+setter, `useTheme().setTheme` and the sign-out that asks about unsaved work
+(AC-568); it hands the same three to `GlobalSearch`, which passes them to
+`usePalette`'s `CommandHost`. `session.arabic` flips `dir` on the document,
+`session.themeDark` puts `.dark` on it, and `session.signOut` reaches
+`SignOutDirtyDialog` — never `clients/auth`'s bare mutation.
+
+**The amount field (AC-384).** `CommandConfirmRequest.amount` had no renderer,
+so the four money commands could not run from the palette. `ConfirmStep` now
+draws it above the reason, in `ConfirmMoneyDialog`'s shape: `SAR` as an
+inline-start prefix (§4.2), `initialHalalas` prefilled, the ceiling refused with
+its sentence rather than trimmed, and the message stated once the field is left.
+The model gates `submit` on it, so `Enter` from either field confirms only a
+usable amount. `majorUnits` moved to `lib/parse/input.ts` as `formatMoneyInput`,
+beside its inverse, rather than being copied.
+
+**The rest-state tests.** Three in `palette.test.tsx` still read the `Queues`
+group at rest, which AC-CP3 removed. Two now assert the diet itself through the
+production tree, the Backspace/Escape proxy is `command.block.goTo`, and
+*excludes the route the operator is already on* asks for the queues before
+reading them instead of skipping its own assertion.
+
+### What remains
+
+- **`⌘↵` without closing** is deferred, unchanged from §13: a destination row's
+  `onSelect` closes the palette from inside the model and the surface has no way
+  to ask it not to. It needs a model-side variant.
+- **The placeholder still reads *Search***. §6 asks for one that names the
+  verbs (*Type a command, a name or an ID*); the palette renders
+  `shell.search.placeholder`, which is the old top-bar field's word. A new key
+  is a copy decision and `npm run i18n:keys` currently refuses to write (below),
+  so it is left for the owner rather than invented here.
+- **Group labels stay muted, in the case the dictionary writes them in** —
+  `text-xs font-medium text-muted-foreground`, no `uppercase` and no tracking.
+  §3's sketch says small-caps; D18 is the rule that wins.
+- **The palette input carries no focus ring**, by design and by design only: the
+  palette opens with it focused, so a ring would be permanent chrome. The reason
+  is written at the control in `CommandPalette.tsx`; every other control on the
+  surface keeps its ring (§7.2).
+- **The four record-less domains are still unreachable from ⌘K.** Twelve
+  commands in `safety`, `cash`, `disputes` and `fairness` keep
+  `hiddenFromPalette`. Unblocking them is not the mechanical pattern
+  `request`/`complaint` set, because a `ProfileEntityType` is not only a search
+  key — it is a 360° record. Each of the four needs, at minimum: a union member
+  and an array entry in `types/profile.ts`; a `SECTIONS` list in
+  `clients/profile.ts` (*which cards does a safety incident's 360° show* is a
+  design decision, not a mapping); a `resolveLocally` branch and a
+  `searchEntities` push in the same file; a `ProfileRecord` variant in
+  `components/profile/record.ts` (all four getters — `getSafetyIncident`,
+  `getCashReport`, `getDispute`, `getFairnessCase` — already exist); four
+  switches in `components/profile/rail.tsx` and the identity card in
+  `sections.tsx`; an `INDEX_ROUTE` entry in `screens/entity/back.ts`; and a
+  `QUERIES` entry in `clients/search.test.ts`, whose *"a search hit is never a
+  404"* test then requires the whole chain to render. Only then do the twelve
+  `hiddenFromPalette` reasons come off, with the `REGISTRIES` table in
+  `domains.test.ts` and four new `TargetSource`s in `targets.ts`. Owned by
+  mock-data-engineer and product-designer, not by this integration.
+- **`npm run i18n:keys` refuses to write on this branch**, so `docs/08-i18n/`
+  and `scripts/i18n-budget.json` are unchanged and stale for the 43-command
+  registry. Verbatim: *"REFUSING to write: overBudget is 160 against a ceiling
+  of 147. The ceiling never rises. Cut the value to its class budget (X18), or
+  move the explanation behind InfoHint."* Ten of the over-budget values are new
+  since the pre-merge tree and all ten are §11's own copy in
+  `src/commands/copy.ts` — `cashReport.action.escalate`,
+  `incident.action.suspend`, `request.action.claimNext`,
+  `session.action.themeDark` · `themeLight` · `themeSystem`,
+  `operator.offboard.title`, `request.assign.title`, `request.expire.title`,
+  `wallet.toast.pending`. Shortening a command title is a copy decision, and
+  the ceiling was not raised.
