@@ -67,17 +67,20 @@
  *               (**AC-71**).
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   getOnCallRota,
   getRouteTable,
   getTeamUser,
+  markOnboardingAutoOpened,
   markNotificationRead,
   switchMockUser,
   updateUiState,
 } from '@/data/clients'
+import { shouldAutoOpen } from '@/data/clients'
+import { track } from '@/lib/analytics'
 import { PROFILE_ENTITY_TYPES } from '@/data/types'
 import type { Notification, ProfileEntityType, ShellLayerId } from '@/data/types'
 import type { Language } from '@/lib'
@@ -159,13 +162,14 @@ export function AppLayout() {
   /* AC-22 — one layer at a time, enforced by the writer. Opening a second
      deletes the first's param; there is no path that can set two. */
   const setLayer = useCallback(
-    (layer: ShellLayerId | null, value = '') => {
+    (layer: ShellLayerId | null, value = '', opts: { replace?: boolean } = {}) => {
       navigate(
         { pathname: location.pathname, search: withOverlay(location.search, layer, value) },
         /* Opening PUSHES, so browser Back closes the layer and stays on the
            underlying route (**AC-21**). Closing REPLACES, so Escape does not
-           leave a re-openable entry behind it. */
-        { replace: layer === null },
+           leave a re-openable entry behind it. A caller may replace to update
+           the value of an already-open layer without growing history. */
+        { replace: layer === null || opts.replace === true },
       )
     },
     [navigate, location.pathname, location.search],
@@ -238,38 +242,65 @@ export function AppLayout() {
   const focus = useFocusCapture({ captured: lifecycle.frozenReason !== null })
 
   /**
-   * **AC-594 — DEFERRED, and the blocker is in the seam, not in this file.**
-   *
-   * The criterion is *"the layer opens automatically **exactly once**, on the
-   * first session of an account that **has never had onboarding state**. A
-   * second sign-in does not auto-open it."*
-   *
-   * **There is no signal that says "never had state".** `getOnboarding` creates
-   * a blank `OnboardingState` on its first read (`stateFor` writes into the
-   * store), and the shell's own read is that first read — so by the time any
-   * code could ask, the answer is always *"it has state, and the state is
-   * blank"*. `startedAt` is stamped at creation, not at first sight.
-   *
-   * The obvious heuristic — auto-open when nothing is completed, skipped or
-   * dismissed — **violates the second half of the criterion outright**: it
-   * re-opens on every sign-in, indefinitely, for an operator who has read the
-   * checklist and chosen to do nothing about it yet. That is a worse failure
-   * than not auto-opening, because it is the one behaviour §5.6's *"MUST NOT
-   * resurrect it"* clause is written against, and it would be invisible in a
-   * single-session test.
-   *
-   * So the layer does **not** auto-open. It is reachable from the account menu
-   * at all times (**AC-598**), which is the path **AC-613** tests, and the
-   * count advertises the outstanding work (**AC-599**). **Requested from
-   * mock-data-engineer: one field** — `autoOpenedAt: IsoDateTime | null` on
-   * `OnboardingState`, or `startedAt: null` until first *sight* rather than
-   * first read. Either makes this six lines, with no design or component
-   * change.
-   *
-   * **AC-593** (*"an operator activating from an invite reaches their landing
-   * route with the onboarding layer open"*) is deferred with it, and for the
-   * same reason.
+   * AC-593/AC-594 — the layer opens itself exactly once: on the landing route,
+   * after the content region's first load has finished (no `aria-busy` left
+   * inside `<main>`), never for a dismissed account and never a second time.
+   * `shouldAutoOpen` is the one answer to "has this operator seen it";
+   * `markAutoOpened` is stamped before the layer opens so a reload cannot
+   * repeat it. A layer already open on arrival (AC-593) counts as seen.
    */
+  /* Settled per account: a mock user switch is a new first session. */
+  const autoOpenSettledFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (shell.onboardingStatus !== 'content' || shell.onboarding === null) return
+    if (autoOpenSettledFor.current === shell.onboarding.userId) return
+    const settle = () => {
+      autoOpenSettledFor.current = shell.onboarding?.userId ?? null
+    }
+    if (!shouldAutoOpen(shell.onboarding.state)) {
+      settle()
+      return
+    }
+    if (route.overlay === 'onboarding') {
+      settle()
+      void markOnboardingAutoOpened()
+      return
+    }
+    const landing = shell.session?.landingRoute
+    if (!landing || location.pathname !== landing || route.overlay !== null) return
+    const main = document.getElementById(CONTENT_LANDMARK_ID)
+    if (main === null) return
+    const busy = () => main.querySelector('[aria-busy="true"]') !== null
+    const open = () => {
+      settle()
+      void markOnboardingAutoOpened()
+      track('onboarding.opened', { source: 'auto' })
+      setLayer('onboarding', '1')
+    }
+    if (!busy()) {
+      open()
+      return
+    }
+    const observer = new MutationObserver(() => {
+      if (busy()) return
+      observer.disconnect()
+      open()
+    })
+    observer.observe(main, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['aria-busy'],
+    })
+    return () => observer.disconnect()
+  }, [
+    shell.onboardingStatus,
+    shell.onboarding,
+    shell.session?.landingRoute,
+    location.pathname,
+    route.overlay,
+    setLayer,
+  ])
 
   /**
    * §11.6 row 23 `language-switching` — **AC-70's only production call site.**
@@ -632,7 +663,10 @@ export function AppLayout() {
               /* §10.4 — the permanent account-menu entry, and **AC-613**'s
                  keyboard path into the layer. `?onboarding=1`: the value is the
                  literal `1`, not an id. */
-              onOpenOnboarding={() => setLayer('onboarding', '1')}
+              onOpenOnboarding={() => {
+                track('onboarding.opened', { source: 'menu' })
+                setLayer('onboarding', '1')
+              }}
               onOpenNotification={openNotificationTarget}
               onSwitchUser={switchUser}
               onSignOut={() => {
@@ -819,7 +853,15 @@ export function AppLayout() {
           route: browser Back closes it and stays put, and it does not consume a
           navigation level. One layer at a time is enforced by `withOverlay`,
           which deletes the other three params on every write (**AC-22**). */}
-      {route.overlay === 'onboarding' && <OnboardingLayer open onClose={closeLayer} t={t} />}
+      {route.overlay === 'onboarding' && (
+        <OnboardingLayer
+          open
+          onClose={closeLayer}
+          t={t}
+          initialStepId={route.overlayValue === '1' ? null : route.overlayValue}
+          onStepChange={(stepId) => setLayer('onboarding', stepId ?? '1', { replace: true })}
+        />
+      )}
 
       {/* **AC-568**. Dismissible, unlike the re-auth modal: the session is
           alive, nothing is frozen, and cancelling is the safe outcome. */}

@@ -20,6 +20,7 @@ import type {
 } from '../types/applicant'
 import type { ComplianceDocumentFileRead, DocumentType } from '../types/driver'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -211,9 +212,9 @@ export async function claimApplicant(
   signal?: AbortSignal,
 ): Promise<Applicant> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Applicant>(`/applications/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<Applicant>(`/applications/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(APPLICANT_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(APPLICANT_OPERATIONS.claim, signal, () => {
     const row = applicantFixtures.find((a) => a.id === id)
     if (!row) throw notFound('application', id)
     const held = liveClaim(row.claim)
@@ -253,7 +254,7 @@ export async function claimApplicant(
           : (held?.takeovers ?? []),
     }
     return { ...row, claim }
-  })
+  }))
 }
 
 /**
@@ -283,9 +284,9 @@ export async function releaseApplicant(id: string, signal?: AbortSignal): Promis
  */
 export async function approveApplicant(id: string, signal?: AbortSignal): Promise<Applicant> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Applicant>(`/applications/${id}/approve`, undefined, { signal })
+    return signalled('application.decided', http.post<Applicant>(`/applications/${id}/approve`, undefined, { signal }))
   }
-  return mockMutation(APPLICANT_OPERATIONS.approve, signal, () => {
+  return signalled('application.decided', mockMutation(APPLICANT_OPERATIONS.approve, signal, () => {
     const row = applicantFixtures.find((a) => a.id === id)
     if (!row) throw notFound('application', id)
     const unverified = row.docs.filter((d) => d.status !== 'verified')
@@ -310,7 +311,7 @@ export async function approveApplicant(id: string, signal?: AbortSignal): Promis
       decidedAt: EYVAR_NOW,
       decidedByUserId: currentMockUserId(),
     }
-  })
+  }))
 }
 
 /**
@@ -325,9 +326,9 @@ export async function rejectApplicant(
   signal?: AbortSignal,
 ): Promise<Applicant> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Applicant>(`/applications/${id}/reject`, { reason }, { signal })
+    return signalled('application.decided', http.post<Applicant>(`/applications/${id}/reject`, { reason }, { signal }))
   }
-  return mockMutation(APPLICANT_OPERATIONS.reject, signal, () => {
+  return signalled('application.decided', mockMutation(APPLICANT_OPERATIONS.reject, signal, () => {
     const row = applicantFixtures.find((a) => a.id === id)
     if (!row) throw notFound('application', id)
     if (!reason.trim()) {
@@ -347,7 +348,7 @@ export async function rejectApplicant(
       decidedAt: EYVAR_NOW,
       decidedByUserId: currentMockUserId(),
     }
-  })
+  }))
 }
 
 /* ── the documents ──────────────────────────────────────────────────────

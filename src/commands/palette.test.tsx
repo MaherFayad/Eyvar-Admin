@@ -45,7 +45,7 @@ function Harness({ selection }: HarnessProps) {
   usePublishCommandSelection('driver', selection ?? [])
   return (
     <>
-      <GlobalSearch t={t} onOpenEntity={() => {}} />
+      <GlobalSearch t={t} onOpenEntity={() => {}} onOpenOnboarding={() => {}} />
       <button type="button" onClick={() => navigate('/support/tickets')}>
         go-elsewhere
       </button>

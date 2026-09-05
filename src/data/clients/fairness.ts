@@ -17,6 +17,7 @@ import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import type { FairnessCase, FairnessCaseKind, FairnessCaseStatus } from '../types/fairness'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -190,13 +191,13 @@ export async function claimFairnessCase(
   signal?: AbortSignal,
 ): Promise<FairnessCase> {
   if (DATA_SOURCE === 'http') {
-    return http.post<FairnessCase>(`/fairness-cases/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<FairnessCase>(`/fairness-cases/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(FAIRNESS_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(FAIRNESS_OPERATIONS.claim, signal, () => {
     const row = fairnessCaseFixtures.find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     return { ...row, claim: nextClaim('fairness', id, row.claim, opts.takeOver) }
-  })
+  }))
 }
 
 /**
@@ -251,9 +252,9 @@ export async function decideFairnessCase(
   signal?: AbortSignal,
 ): Promise<FairnessCase> {
   if (DATA_SOURCE === 'http') {
-    return http.post<FairnessCase>(`/fairness-cases/${id}/decide`, { outcome, rationale }, { signal })
+    return signalled('queue.item.disposed', http.post<FairnessCase>(`/fairness-cases/${id}/decide`, { outcome, rationale }, { signal }))
   }
-  return mockMutation(FAIRNESS_OPERATIONS.decide, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(FAIRNESS_OPERATIONS.decide, signal, () => {
     const row = fairnessCaseFixtures.find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     if (row.status !== 'open') {
@@ -293,7 +294,7 @@ export async function decideFairnessCase(
           : row.averageAdjusted,
       reinstatedAt: overturned && row.kind === 'suspension-appeal' ? EYVAR_NOW : row.reinstatedAt,
     }
-  })
+  }))
 }
 
 /**

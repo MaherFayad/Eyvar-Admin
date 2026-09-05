@@ -101,19 +101,39 @@ import type { Translator } from '@/lib'
 import { ShellLayer } from '@/shell/ShellLayer'
 import { useShell } from '@/shell/ShellContext'
 import { splitAroundPlaceholder } from '@/components/auth/IsolatedValue'
+import type { RoleName } from '@/data/types/session'
+import { track } from '@/lib/analytics'
 import { ROLE_INTRO_KEYS, ROLE_KEYS } from './copy'
+import { CompleteArt, ROLE_ART } from './illustrations'
 import { OnboardingStepRow } from './OnboardingStepRow'
 
 export interface OnboardingLayerProps {
   open: boolean
   onClose: () => void
   t: Translator
+  /** The step the URL names (`?onboarding=<id>`), so Back lands on the row the operator left. */
+  initialStepId?: string | null
+  /** Reports the expanded step so the shell can write it into the URL. */
+  onStepChange?: (stepId: string | null) => void
 }
 
 /** The sub-tab §8.3 part 3 links to. One id, from the route table, never a path. */
 const MY_WORK_SUB_TAB = 'operations-my-work'
 
-export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
+/** The three steps every track shares (AC-618). Done together, the intro says so. */
+const COMMON_STEP_IDS = ['common.account', 'common.mywork', 'common.audit'] as const
+
+function daysSince(iso: string): number {
+  return Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 86_400_000))
+}
+
+export function OnboardingLayer({
+  open,
+  onClose,
+  t,
+  initialStepId = null,
+  onStepChange,
+}: OnboardingLayerProps) {
   const navigate = useNavigate()
   /**
    * **One read, at the shell, consumed here.** The account-menu entry carries
@@ -147,6 +167,9 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
     if (!open || data === null) return
     setExpanded((current) => {
       if (current !== undefined) return current
+      if (initialStepId !== null && data.steps.some((step) => step.id === initialStepId)) {
+        return initialStepId
+      }
       const first = data.steps.find(
         (step) =>
           step.reachable &&
@@ -155,7 +178,7 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
       )
       return first?.id
     })
-  }, [open, data])
+  }, [open, data, initialStepId])
 
   const run = useCallback(
     async (id: string, errorKey: string, action: () => Promise<OnboardingChecklist>) => {
@@ -227,6 +250,10 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
                 size="default"
                 disabled={pending !== null}
                 onClick={() => {
+                  track('onboarding.dismissed', {
+                    done: data?.doneCount ?? 0,
+                    total: data?.totalCount ?? 0,
+                  })
                   void run('footer', 'onboarding.error.dismiss', () => dismissOnboarding())
                   onClose()
                 }}
@@ -266,7 +293,9 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
       ) : data.isComplete ? (
         /* **AC-635** — the list collapses to a done line and `Dismiss` takes
            primary emphasis in the footer. */
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-3">
+          {/* The one hero-sized picture, because it is the one moment (plan §5 C-2). */}
+          <CompleteArt className="h-28 w-40 max-w-full" />
           <p className="flex items-center gap-1 text-xs font-semibold text-success-foreground">
             <CheckGlyph />
             {t('onboarding.done')}
@@ -282,6 +311,8 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
             introKey={ROLE_INTRO_KEYS[data.role] ?? 'onboarding.intro.support'}
             held={data.permissionsHeld}
             total={data.permissionsTotal}
+            role={data.role}
+            commonDone={COMMON_STEP_IDS.every((id) => data.state.completedStepIds.includes(id))}
             onOpenMyWork={() => {
               const row = findSubTabById(MY_WORK_SUB_TAB)
               if (row) {
@@ -296,8 +327,12 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
           <Accordion
             type="single"
             collapsible
-            value={expanded}
-            onValueChange={(next) => setExpanded(next === '' ? undefined : next)}
+            value={expanded ?? ''}
+            onValueChange={(next) => {
+              const id = next === '' ? undefined : next
+              setExpanded(id)
+              onStepChange?.(id ?? null)
+            }}
             className="gap-0"
           >
             {steps
@@ -317,16 +352,34 @@ export function OnboardingLayer({ open, onClose, t }: OnboardingLayerProps) {
                        or `Mark as done` does that. */
                     const path = destinationPath(step)
                     if (path === null) return
-                    onClose()
+                    track('onboarding.step.opened', { stepId: step.id, role: data.role })
+                    /* A push, not a close: the entry behind it still carries
+                       `?onboarding=<step>`, so Back returns to this row (plan D-1). */
                     navigate(path)
                   }}
                   onMarkDone={() =>
-                    void run(step.id, 'onboarding.error.mark', () =>
-                      completeStep(step.id, 'manual'),
-                    )
+                    void run(step.id, 'onboarding.error.mark', async () => {
+                      const next = await completeStep(step.id, 'manual')
+                      track('onboarding.step.completed', {
+                        stepId: step.id,
+                        role: next.role,
+                        mode: 'manual',
+                      })
+                      if (next.isComplete) {
+                        track('onboarding.completed', {
+                          role: next.role,
+                          days: daysSince(next.state.startedAt),
+                        })
+                      }
+                      return next
+                    })
                   }
                   onSkip={() =>
-                    void run(step.id, 'onboarding.error.skip', () => skipStep(step.id, true))
+                    void run(step.id, 'onboarding.error.skip', async () => {
+                      const next = await skipStep(step.id, true)
+                      track('onboarding.step.skipped', { stepId: step.id, role: next.role })
+                      return next
+                    })
                   }
                 />
               ))}
@@ -379,14 +432,19 @@ function Intro({
   introKey,
   held,
   total,
+  role,
+  commonDone,
   onOpenMyWork,
 }: {
   t: Translator
   introKey: string
   held: number
   total: number
+  role: RoleName
+  commonDone: boolean
   onOpenMyWork: () => void
 }) {
+  const Art = ROLE_ART[role]
   const row = findSubTabById(MY_WORK_SUB_TAB)
   const subTab = row ? t(row.titleKey) : ''
   /* One key, one placeholder, one substitution point — split on a sentinel so
@@ -395,7 +453,8 @@ function Intro({
   const [before, after] = splitAroundPlaceholder(t, 'onboarding.intro.myWork', 'subTab')
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-muted p-3">
+    <div className="flex items-start gap-3 rounded-xl bg-muted p-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
       <p className="text-sm text-foreground">{t(introKey)}</p>
       {/* Two numbers in one sentence — `t()`, not `t.plural`. `pluralCountIn`
           refuses two numerics on purpose: there is no defensible way to guess
@@ -403,6 +462,11 @@ function Intro({
       <p className="text-sm text-muted-foreground">
         {t('onboarding.intro.permissions', { held, total })}
       </p>
+      {commonDone ? (
+        /* C-3 — once the shared three are done the third line says so, once,
+           in the card. No banner, no toast. */
+        <p className="text-sm text-muted-foreground">{t('onboarding.intro.commonDone')}</p>
+      ) : (
       <p className="text-sm text-muted-foreground">
         {before}
         <button
@@ -414,6 +478,10 @@ function Intro({
         </button>
         {after}
       </p>
+      )}
+      </div>
+      {/* Decorative, `aria-hidden` inside the component; the text carries everything. */}
+      {Art !== undefined && <Art className="h-16 w-24 shrink-0" />}
     </div>
   )
 }

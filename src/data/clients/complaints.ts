@@ -30,6 +30,7 @@ import {
   type ComplaintStatus,
 } from '../types/complaint'
 import { http } from './http'
+import { signalled } from '../signals'
 import { currentMockUserId } from './session'
 import { nextClaim } from './requests'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -259,13 +260,13 @@ export async function claimComplaint(
   signal?: AbortSignal,
 ): Promise<Complaint> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Complaint>(`/complaints/${id}/claim`, opts, { signal })
+    return signalled('queue.item.claimed', http.post<Complaint>(`/complaints/${id}/claim`, opts, { signal }))
   }
-  return mockMutation(COMPLAINT_OPERATIONS.claim, signal, () => {
+  return signalled('queue.item.claimed', mockMutation(COMPLAINT_OPERATIONS.claim, signal, () => {
     const row = complaintFixtures.find((c) => c.id === id)
     if (!row) throw notFound('complaint', id)
     return { ...row, claim: nextClaim('complaint', id, row.claim, opts.takeOver) }
-  })
+  }))
 }
 
 /**
@@ -334,9 +335,9 @@ export async function resolveComplaint(
   signal?: AbortSignal,
 ): Promise<Complaint> {
   if (DATA_SOURCE === 'http') {
-    return http.post<Complaint>(`/complaints/${id}/resolve`, { ...input }, { signal })
+    return signalled('queue.item.disposed', http.post<Complaint>(`/complaints/${id}/resolve`, { ...input }, { signal }))
   }
-  return mockMutation(COMPLAINT_OPERATIONS.resolve, signal, () => {
+  return signalled('queue.item.disposed', mockMutation(COMPLAINT_OPERATIONS.resolve, signal, () => {
     const row = complaintFixtures.find((c) => c.id === id)
     if (!row) throw notFound('complaint', id)
     if (!isOpenComplaint(row.status)) {
@@ -402,7 +403,7 @@ export async function resolveComplaint(
         resolvedByUserName: me.name,
       },
     }
-  })
+  }))
 }
 
 /**

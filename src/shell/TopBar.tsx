@@ -158,7 +158,7 @@ export function TopBar({
       </div>
 
       {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}
-      <GlobalSearch t={t} onOpenEntity={onOpenEntity} />
+      <GlobalSearch t={t} onOpenEntity={onOpenEntity} onOpenOnboarding={onOpenOnboarding} />
 
       <div className="flex min-w-0 flex-1 compact:flex-none items-center justify-end gap-1.5">
         {/* Slot 3a — `Mine`. Renders nothing at zero (AC-26). Routes to

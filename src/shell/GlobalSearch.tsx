@@ -91,11 +91,14 @@ import type { ProfileEntityType, ProfileRef } from '@/data/types'
 import type { Translate } from '@/lib'
 import { useShell } from './ShellContext'
 import { useRouteState } from './routeState'
+import { track } from '@/lib/analytics'
 
 export interface GlobalSearchProps {
   t: Translate
   /** Opening the 360° profile layer for an entity hit (§6.2). */
   onOpenEntity: (entityId: string) => void
+  /** Opening the getting-started checklist (plan D-2). */
+  onOpenOnboarding: () => void
 }
 
 /**
@@ -114,7 +117,7 @@ export interface GlobalSearchProps {
  */
 const ESCAPE_HATCH_PATH = '/operations/people'
 
-export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
+export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearchProps) {
   const navigate = useNavigate()
   const shell = useShell()
   const route = useRouteState()
@@ -199,6 +202,27 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
     [onOpenEntity],
   )
 
+  /* One row for the checklist while it is open work: incomplete, undismissed,
+     and with at least one reachable step. */
+  const onboarding = shell.onboarding
+  const guide = useMemo(
+    () =>
+      onboarding !== null &&
+      !onboarding.isComplete &&
+      onboarding.state.dismissedAt === null &&
+      onboarding.totalCount > 0
+        ? {
+            done: onboarding.doneCount,
+            total: onboarding.totalCount,
+            open: () => {
+              track('onboarding.opened', { source: 'command' })
+              onOpenOnboarding()
+            },
+          }
+        : null,
+    [onboarding, onOpenOnboarding],
+  )
+
   const palette = usePalette({
     open,
     close,
@@ -214,6 +238,7 @@ export function GlobalSearch({ t, onOpenEntity }: GlobalSearchProps) {
     permissions: shell.permissions,
     navigate,
     openProfile,
+    guide,
   })
 
   const hasQuery = palette.query.trim() !== ''
