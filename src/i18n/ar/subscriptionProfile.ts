@@ -43,7 +43,7 @@ export const SUBSCRIPTION_PROFILE_AR: Dictionary = {
   'profile.subscription.rail.captain': 'الكابتن',
   'profile.subscription.rail.noCaptain': 'لم يُسند كابتن لهذه الدورة',
   'profile.subscription.rail.cycle': 'الدورة',
-  'profile.subscription.rail.window': '{from} — {to}',
+  'profile.subscription.rail.window': '{from} – {to}',
   'profile.subscription.rail.frozenUntil': 'مجمّدة حتى {date}',
   'profile.subscription.rail.cancelledOn': 'أُلغيت في {date}',
   'profile.subscription.rail.escrow': 'محتجز في الضمان',

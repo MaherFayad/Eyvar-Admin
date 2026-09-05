@@ -39,6 +39,7 @@ import {
   listSubscriptions,
   listTickets,
   listTrips,
+  mockFailures,
   resetDataLayer,
 } from '@/data/clients'
 import type { Applicant, Driver, Subscription, Ticket, Trip } from '@/data/types'
@@ -737,10 +738,14 @@ describe('subscriptions', () => {
       resolveCommands(SUBSCRIPTION_COMMANDS, { entityType: 'subscription', plural: false }).map(
         (c) => c.id,
       ),
-    ).toEqual(['subscription.cancel'])
+    ).toEqual(['subscription.freeze', 'subscription.unfreeze', 'subscription.cancel'])
+    /* T6.1 — a school holiday freezes a cohort, so both holds are plural;
+       `subscription.cancel` is not, and that is the only one withheld. */
     expect(
-      resolveCommands(SUBSCRIPTION_COMMANDS, { entityType: 'subscription', plural: true }),
-    ).toEqual([])
+      resolveCommands(SUBSCRIPTION_COMMANDS, { entityType: 'subscription', plural: true }).map(
+        (c) => c.id,
+      ),
+    ).toEqual(['subscription.freeze', 'subscription.unfreeze'])
   })
 
   it('refuses a subscription the client would refuse, restating its 409', () => {
@@ -787,10 +792,81 @@ describe('subscriptions', () => {
     expect(changed?.status).toBe('cancelled')
     /* R9 — the toast names the object and the figure the SERVER returned, not
        the browser's estimate. */
-    expect(result.outcome?.message).toMatch(/^Subscription cancelled — /)
+    expect(result.outcome?.message).toMatch(/^Subscription cancelled · /)
     /* D18 fails on both clauses: no inverse client, and money left the
        console. The confirmation above is the whole net. */
     expect(result.outcome?.undo).toBeUndefined()
+  })
+
+  /* T6.1 — the duration is a closed, typed option list, not a parsed box. */
+  it('asks for the duration as a closed option list whose values are dates', async () => {
+    const { host, asked } = fakeHost('School holiday')
+    await runCommand(
+      command(SUBSCRIPTION_COMMANDS, 'subscription.freeze'),
+      context([liveSubscription], { host }),
+    )
+    const choice = asked[0]?.choice
+    expect(choice?.options).toHaveLength(4)
+    for (const option of choice?.options ?? []) {
+      expect(option.value, option.label).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      assertRealCopy(option.label, 'freeze duration label')
+    }
+    expect(choice?.initial).toBe(choice?.options[1]?.value)
+  })
+
+  it('freezes to the window the operator picked, not to the default', async () => {
+    const asked: CommandConfirmRequest[] = []
+    let chosen = ''
+    const host: CommandHost = {
+      openProfile: () => {},
+      confirm: (request) => {
+        asked.push(request)
+        /* The HOST moves the selection and the command reads it back — which
+           is the whole of the additive contract T6.1 added. */
+        chosen = request.choice?.options.at(-1)?.value ?? ''
+        request.choice?.onSelect(chosen)
+        return Promise.resolve('School holiday')
+      },
+    }
+    const result = await runCommand(
+      command(SUBSCRIPTION_COMMANDS, 'subscription.freeze'),
+      context([liveSubscription], { host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    expect(chosen).not.toBe(asked[0]?.choice?.initial)
+    expect((result.outcome?.changed?.[0] as Subscription | undefined)?.frozenUntil).toBe(chosen)
+  })
+
+  /** **D18** — the inverse is `subscription.unfreeze`, through the seam. */
+  it('offers an undo on a freeze and reverses it through the client', async () => {
+    const { host } = fakeHost('School holiday')
+    const result = await runCommand(
+      command(SUBSCRIPTION_COMMANDS, 'subscription.freeze'),
+      context([liveSubscription], { host }),
+    )
+    if (result.kind !== 'ran' || !result.outcome?.undo) throw new Error('no undo handle')
+    expect(result.outcome.undo.label).toBe('Undo')
+    expect(result.outcome.undo.doneMessage).toBe(`${liveSubscription.id} is running again`)
+    /* The inverse goes through the SEAM, so failure injection on the client's
+       own operation is what proves it — a local reversal would resolve. */
+    mockFailures.always('subscriptions.unfreeze')
+    await expect(result.outcome.undo.run()).rejects.toBeTruthy()
+    mockFailures.clear()
+    await expect(result.outcome.undo.run()).resolves.toBeUndefined()
+  })
+
+  it('refuses to resume a subscription that is not on hold, before any write', async () => {
+    const { host, asked } = fakeHost()
+    const result = await runCommand(
+      command(SUBSCRIPTION_COMMANDS, 'subscription.unfreeze'),
+      context([liveSubscription], { host }),
+    )
+    expect(result).toEqual({
+      kind: 'refused',
+      reason: 'This subscription is not on hold.',
+    })
+    expect(asked).toEqual([])
   })
 })
 

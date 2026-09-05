@@ -1,57 +1,40 @@
 /**
- * **A subscription's three commands, mounted on the record sheet** — the footer
- * row and the two forms behind it.
- *
- * The queue offers `Freeze`, `Change captain` and `Cancel and settle` on every
- * row; the owner asked for the same three on the sheet that row opens. This is
- * that, and every part of it that could have become a second answer is instead
- * a call into `./subscription.ts`:
- *
- * | | comes from |
- * |---|---|
- * | who may run it, and the sentence when they may not | `freezeRefusal` · `cancelRefusal` · `reassignRefusal` |
- * | the write, its toast, its error contract | `runFreeze` · `runCancel` |
- * | the five termination reasons | `SETTLE_REASONS` |
- * | the form | `FreezeModal` · `CancelSettleModal` · `ChangeDriverModal`, the queue's own |
- *
- * So there is nothing here for the two surfaces to disagree about. What is
- * local is only which controls are on this footer and what happens after a
- * write lands — the sheet re-reads its one record, where the queue holds an
- * override over a paged list.
- *
- * ## §5.5, suspended knowingly
- *
- * A modal may not open inside a drawer. These forms are modals, and mounting
- * them here breaks that rule. It was put to the owner as a choice against the
- * in-place expansion §4.7 / §6.4 would otherwise give, and **the owner chose to
- * reuse the existing modals** — one confirmation implementation, at the cost of
- * being two surfaces deep while it is open. `ActionBar`'s header carries the
- * full reasoning and what the way back looks like.
- *
- * ## `onDone` and why it is not a refetch here
- *
- * A write returns the updated record, and this component hands it up rather
- * than re-reading. The sheet's record is owned by `ProfileLayer`'s
- * `useProfileRecord`, and the honest way to refresh it is that read's own
- * `refetch` — one owner for the record, one for the write, and no third copy of
- * a `Subscription` living in this file.
+ * A subscription's commands on the record sheet, resolved from
+ * `src/commands/subscriptions.ts` so the queue, this sheet and the palette hold
+ * one answer and one write (X9, D9), and `Freeze` carries D18's undo here too.
+ * `Change captain` stays a screen action beside them; `reassignRefusal` is the
+ * one predicate both surfaces ask. §5.5 is suspended knowingly — see `ActionBar`.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
+import {
+  SETTLE_REASONS,
+  SUBSCRIPTION_COMMANDS,
+  reassignRefusal,
+  resolveCommands,
+  runCommand,
+  toastOutcome,
+  unavailableReason,
+  type Command,
+  type CommandConfirmChoice,
+  type CommandContext,
+  type CommandHost,
+  type CommandResult,
+} from '@/commands'
+import { reassignSubscriptionDriver } from '@/data/clients'
 import type { Subscription } from '@/data/types'
 import type { Language, Translate } from '@/lib'
 import { ActionBar, type SheetAction } from './ActionBar'
 import { CancelSettleModal } from './CancelSettleModal'
 import { ChangeDriverModal } from './ChangeDriverModal'
 import { FreezeModal } from './FreezeModal'
-import {
-  SETTLE_REASONS,
-  cancelRefusal,
-  freezeRefusal,
-  reassignRefusal,
-  runCancel,
-  runFreeze,
-} from './subscription'
+
+/** CM-1 — the sheet acts on one record, so the row kebab's list. */
+const SHEET_COMMANDS = resolveCommands(SUBSCRIPTION_COMMANDS, {
+  entityType: 'subscription',
+  plural: false,
+})
 
 export interface SubscriptionActionsProps {
   subscription: Subscription
@@ -75,46 +58,85 @@ export function SubscriptionActions({
   const [freezing, setFreezing] = useState(false)
   const [settling, setSettling] = useState(false)
   const [reassigning, setReassigning] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [choice, setChoice] = useState<CommandConfirmChoice | null>(null)
+  const asking = useRef<string>('')
+  const answer = useRef<((reason: string | null) => void) | null>(null)
+  const settled = useRef<{ ok: () => void; fail: (error: unknown) => void } | null>(null)
 
-  /* D17 / D21 rule 5 — a permission refusal outranks every domain refusal, and
-     the same `roleReason` the queue builds. */
-  const context = {
-    roleReason: canWrite ? null : t('subs.action.noPermission'),
+  const host: CommandHost = {
+    /* The sheet IS the profile surface, so a command asking to open one has
+       nowhere further to go. */
+    openProfile: () => onOpenFullRecord(),
+    confirm: (request) =>
+      new Promise<string | null>((resolve) => {
+        answer.current = resolve
+        setChoice(request.choice ?? null)
+        if (asking.current === 'subscription.cancel') setSettling(true)
+        else setFreezing(true)
+      }),
+  }
+
+  /* A set of one — the predicate takes an array because the bulk bar does, and
+     passing `[record]` is what makes a single record impossible to refuse
+     differently from the same record inside a selection. */
+  const context = (): CommandContext<Subscription> => ({
+    targets: [subscription],
     t,
     language,
+    session: { canWrite },
+    host,
+  })
+
+  async function dispatch(command: Command<Subscription>) {
+    if (busy) return
+    asking.current = command.id
+    setBusy(true)
+    let result: CommandResult<Subscription>
+    try {
+      result = await runCommand(command, context())
+    } catch (error: unknown) {
+      settled.current?.fail(error)
+      settled.current = null
+      setBusy(false)
+      return
+    }
+    settled.current?.ok()
+    settled.current = null
+    setBusy(false)
+    setFreezing(false)
+    setSettling(false)
+    setChoice(null)
+    if (result.kind === 'refused') {
+      toast(result.reason)
+      return
+    }
+    if (result.kind === 'cancelled' || result.outcome === null) return
+    onDone()
+    toastOutcome(result.outcome, t)
   }
-  /* **A set of one.** The predicates take an array because the queue's bulk bar
-     does, and passing `[record]` here is what makes a single record impossible
-     to refuse differently from the same record inside a selection. */
-  const one = [subscription]
-  const freeze = freezeRefusal(one, context)
-  const cancel = cancelRefusal(one, context)
-  const reassign = reassignRefusal(context)
+
+  /* §11.2 — the same sentence the queue's row menu shows, from one function. */
+  const reassign = reassignRefusal(subscription, { canWrite, t })
 
   const actions: SheetAction[] = [
     {
       id: 'subscription-change-driver',
       label: t('subs.action.changeDriver'),
       onSelect: () => setReassigning(true),
-      /* §11.2 — rendered, refused, and the sentence says the write does not
-         exist rather than implying the operator lacks a permission. */
-      disabled: true,
+      disabled: reassign !== null || busy,
       reason: reassign,
     },
-    {
-      id: 'subscription-freeze',
-      label: t('subs.action.freeze'),
-      onSelect: () => setFreezing(true),
-      disabled: freeze.refused,
-      reason: freeze.reason,
-    },
-    {
-      id: 'subscription-cancel',
-      label: t('subs.action.cancel'),
-      onSelect: () => setSettling(true),
-      disabled: cancel.refused,
-      reason: cancel.reason,
-    },
+    ...SHEET_COMMANDS.map((command) => {
+      const refusal = unavailableReason(command, context())
+      return {
+        id: command.id,
+        label: t(command.titleKey),
+        onSelect: () => void dispatch(command),
+        disabled: refusal !== null || busy,
+        reason: refusal,
+      }
+    }),
   ]
 
   return (
@@ -126,12 +148,20 @@ export function SubscriptionActions({
       />
 
       <FreezeModal
-        subscriptions={freezing ? one : []}
-        onClose={() => setFreezing(false)}
-        onConfirm={async (subs, until) => {
-          await runFreeze(subs, until, { onRecord: onDone, t, language })
+        subscriptions={freezing ? [subscription] : []}
+        choice={choice}
+        onClose={() => {
+          answer.current?.(null)
+          answer.current = null
           setFreezing(false)
         }}
+        onConfirm={(_subs, reason) =>
+          new Promise<void>((ok, fail) => {
+            settled.current = { ok, fail }
+            answer.current?.(reason)
+            answer.current = null
+          })
+        }
         language={language}
         t={t}
       />
@@ -140,23 +170,33 @@ export function SubscriptionActions({
         subscription={subscription}
         reasonKeys={SETTLE_REASONS}
         open={settling}
-        onClose={() => setSettling(false)}
-        onConfirm={async (_id, reason) => {
-          await runCancel(subscription, reason, { onRecord: onDone, t, language })
+        onClose={() => {
+          answer.current?.(null)
+          answer.current = null
           setSettling(false)
         }}
+        onConfirm={(_id, reason) =>
+          new Promise<void>((ok, fail) => {
+            settled.current = { ok, fail }
+            answer.current?.(reason)
+            answer.current = null
+          })
+        }
         language={language}
         t={t}
       />
 
-      {/* Refused for every row and every role — there is no client operation
-          behind it. Mounted anyway, because §11.2 puts the refusal on a control
-          an operator can see rather than removing the control. */}
       <ChangeDriverModal
         subscription={reassigning ? subscription : null}
         open={reassigning}
         onClose={() => setReassigning(false)}
-        onConfirm={() => Promise.reject(new Error(reassign))}
+        onConfirm={async (id, driverId, driverName, reason) => {
+          const changed = await reassignSubscriptionDriver(id, driverId, reason)
+          setReassigning(false)
+          onDone()
+          /* R9 — one line naming the object, and the name the SERVER returned. */
+          toast(t('subs.toast.reassigned', { name: changed.driverName ?? driverName }))
+        }}
         unavailableReason={reassign}
         t={t}
       />

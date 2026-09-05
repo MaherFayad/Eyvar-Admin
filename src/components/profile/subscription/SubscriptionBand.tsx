@@ -38,8 +38,8 @@
  *              are the one warning tone. There is no red badge.
  */
 
-import { XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CloseIcon } from '@/components/icons'
 import { SheetClose, SheetTitle } from '@/components/ui/sheet'
 import { StatusBadge } from '@/components/StatusBadge'
 import type { ProfileRef, Subscription } from '@/data/types'
@@ -83,7 +83,7 @@ export function SubscriptionBand({ entity, subscription, t }: SubscriptionBandPr
           size="icon-xs"
           className="absolute end-3 top-3 text-hero-foreground hover:bg-hero-2 hover:text-hero-foreground focus-visible:ring-hero-foreground focus-visible:ring-offset-hero"
         >
-          <XIcon aria-hidden="true" />
+          <CloseIcon aria-hidden="true" />
           <span className="sr-only">{t('shell.layer.close')}</span>
         </Button>
       </SheetClose>

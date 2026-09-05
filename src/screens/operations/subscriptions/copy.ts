@@ -71,24 +71,28 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   /* ── row actions (§7.8) ─────────────────────────────────────────────── */
   'subs.action.view': 'Open',
   'subs.action.freeze': 'Freeze',
+  'subs.action.unfreeze': 'Resume',
   'subs.action.changeDriver': 'Change captain',
   'subs.action.cancel': 'Cancel and settle',
   'subs.action.noPermission':
     'You cannot change a subscription. Ask an Owner for the “Subscription control” permission.',
-  /* **The one control on this screen with no write behind it.** §11.2 says a
-     blocked control is disabled in place with a stated reason, never hidden, so
-     it renders and says this rather than quietly reassigning nothing. */
-  'subs.action.changeDriver.unavailable':
-    'Reassigning a captain is not connected yet. Nothing would be saved.',
+  /* D21's three sentences per command. The `.all` leaf is the one a
+     hand-written predicate forgets, and it is invisible until an operator
+     selects a wholly ineligible set. */
   'subs.action.freeze.blocked.one': 'This subscription is cancelled or expired.',
+  'subs.action.freeze.blocked.other':
+    '{count} of the selected subscriptions are cancelled or expired.',
+  'subs.action.freeze.blocked.all':
+    'All {count} selected subscriptions are cancelled or expired.',
+  'subs.action.unfreeze.blocked.one': 'This subscription is not on hold.',
+  'subs.action.unfreeze.blocked.other': '{count} of the selected subscriptions are not on hold.',
+  'subs.action.unfreeze.blocked.all': 'None of the {count} selected subscriptions is on hold.',
+  'subs.action.changeDriver.blocked.one': 'This subscription is cancelled or expired.',
   'subs.action.cancel.blocked.one': 'This subscription is already cancelled or expired.',
 
   /* ── the bulk bar (P4-T1) ───────────────────────────────────────────── */
   'subs.bulk.freeze': 'Freeze',
-  /* **The set rule.** Refused if ANY selected record would be refused on its
-     own row, naming how many of how many AND why. No partial application. */
-  'subs.bulk.freeze.blocked':
-    '{count} of {total} selected subscriptions cannot be frozen — they are cancelled or expired.',
+  'subs.bulk.unfreeze': 'Resume',
 
   /* ── the freeze form ────────────────────────────────────────────────── */
   'subs.freeze.title.one': 'Freeze {id}?',
@@ -98,6 +102,13 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'subs.freeze.body.other':
     'Each rider keeps every unused trip and is charged nothing while paused. They resume on their own, and you can cancel a freeze at any time.',
   'subs.freeze.duration': 'How long',
+  /* The three lines a `ConfirmDialog` host renders around a closed option
+     list. The queue and the sheet use `FreezeModal`, which needs the label
+     alone; §11.6 still wants the empty and invalid sentences to exist. */
+  'subs.freeze.durationHelp': 'The subscription resumes on its own.',
+  'subs.freeze.durationPlaceholder': 'Choose a window',
+  'subs.freeze.durationMessage': 'Choose how long the hold lasts.',
+  'subs.freeze.durationEmpty': 'No freeze window is available.',
   'subs.freeze.reason': 'Reason for the hold',
   'subs.freeze.reasonPlaceholder': 'Rider travel, medical leave, school holiday',
   'subs.freeze.resumeOn': 'Resumes on {date}',
@@ -107,6 +118,18 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'subs.freeze.saveError': 'Couldn’t freeze the subscription. Nothing was changed.',
   'subs.toast.frozen.one': 'Subscription frozen',
   'subs.toast.frozen.other': '{count} subscriptions frozen',
+  /* D18's four leaves per reversible command. The undone sentence names the
+     record; the failed one states what is still true, as a fact. */
+  'subs.toast.frozen.undone.one': '{id} is running again',
+  'subs.toast.frozen.undone.other': '{count} subscriptions are running again',
+  'subs.toast.frozen.undoFailed.one': '{id} is still on hold',
+  'subs.toast.frozen.undoFailed.other': '{count} subscriptions are still on hold',
+  'subs.toast.resumed.one': 'Subscription resumed',
+  'subs.toast.resumed.other': '{count} subscriptions resumed',
+  'subs.toast.resumed.undone.one': '{id} is on hold again',
+  'subs.toast.resumed.undone.other': '{count} subscriptions are on hold again',
+  'subs.toast.resumed.undoFailed.one': '{id} is still running',
+  'subs.toast.resumed.undoFailed.other': '{count} subscriptions are still running',
 
   /* ── the cancel and settle form ─────────────────────────────────────── */
   'subs.settle.title': 'Cancel and settle {id}?',
@@ -129,7 +152,8 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
     'An estimate from the unused trips. Finance calculates the settlement when the cancellation is confirmed.',
   'subs.settle.confirm': 'Cancel subscription',
   'subs.settle.saveError': 'Couldn’t cancel the subscription. Nothing was changed.',
-  'subs.toast.cancelled': 'Subscription cancelled — {amount} refunded',
+  /* X14 — the qualifier takes the product's own separator, never an em dash. */
+  'subs.toast.cancelled': 'Subscription cancelled · {amount} refunded',
   'subs.reason.noDriver': 'No replacement captain available',
   'subs.reason.serviceFailure': 'Service failure or repeated missed trips',
   'subs.reason.relocated': 'Rider moved outside the service zone',
@@ -150,9 +174,10 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'subs.drawer.notFound': 'Subscription {id} is not on file.',
 
   /* ── states (§11.1, §11.5) ──────────────────────────────────────────── */
-  'subs.empty.firstRun.heading': 'Standing journeys, and the captain committed to each one',
+  /* X18 — an empty title is at most 5 words and a body 12, in one sentence. */
+  'subs.empty.firstRun.heading': 'Standing journeys land here',
   'subs.empty.firstRun.body':
-    'A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed.',
+    'A journey booked on a schedule appears here with its captain.',
   'subs.empty.firstRun.action': 'Show every subscription',
   'subs.empty.noMatch': 'No subscription matches this search.',
   'subs.error.list': 'Couldn’t load subscriptions. The filters are unchanged.',
@@ -168,8 +193,8 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'sub.changeDriver.saveError': 'Couldn’t reassign the captain. Nothing was changed.',
   'sub.changeDriver.error':
     'Captains didn’t load. Try again, or close this and reassign from the captain’s profile.',
-  'sub.changeDriver.empty':
-    'No other captain is active right now. Reassignment reopens when one comes online.',
+  /* X18 — an empty body is one sentence of at most 12 words. */
+  'sub.changeDriver.empty': 'No other captain is active right now.',
   'sub.currentDriver': 'Current captain',
   /* O9 — the absence is why the operator opened Change captain. */
   'sub.noDriver': 'No captain assigned',
@@ -177,10 +202,22 @@ export const SUBSCRIPTIONS_EN: Dictionary = {
   'sub.progress': 'Trips completed',
   'sub.selectDriver': 'New captain',
   'sub.selectDriverLoading': 'Loading captains',
-  'sub.selectDriverPlaceholder': 'Choose an active captain',
-  'sub.driverOption': '{name} — {city} · {rating} · {active}/{max} subs',
+  'sub.selectDriverPlaceholder': 'Choose a captain',
+  /* §11.2 — the client's three 422s, at render. An ineligible captain is
+     listed and disabled with the sentence, never hidden from the picker. */
+  'sub.candidate.same': 'Already the captain on this subscription.',
+  'sub.candidate.unavailable': 'This captain is not active.',
+  'sub.candidate.belowPlan': 'Their vehicle is below the plan’s tier.',
+  /* X14 / AC-75 — one key, named placeholders, the product's own separator. The
+     second is O9: an unrated captain drops the clause rather than printing a
+     mark for a rating nobody has given. */
+  'sub.driverOption': '{name} · {city} · {rating} · {active}/{max} subs',
+  'sub.driverOption.unrated': '{name} · {city} · {active}/{max} subs',
   'sub.confirmChange': 'Reassign captain',
   'sub.reassigning': 'Reassigning…',
+  'sub.changeDriver.reason': 'Reason for the change',
+  'sub.changeDriver.reasonPlaceholder': 'What the rider was told, and who approved it',
+  'subs.toast.reassigned': 'Captain changed to {name}',
   'action.cancel': 'Cancel',
 
   /* §7.4.5 — the settle dialog's reason select used its own LABEL as the

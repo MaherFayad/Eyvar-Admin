@@ -382,8 +382,11 @@ describe('T9.3 / O9 — the fare column says what it knows and nothing more', ()
     expect(fareCell(open)).toHaveTextContent(t('trips.fare.notSettled'))
   })
 
-  it('is blank on a cancelled or no-show trip, not a zero and not a mark', async () => {
-    const ended = page.find((trip) => trip.status === 'cancelled' || trip.status === 'no-show')
+  it('is blank on a trip that ended with no money, not a zero and not a mark', async () => {
+    const ended = page.find(
+      (trip) =>
+        (trip.status === 'cancelled' || trip.status === 'no-show') && trip.fareHalalas === 0,
+    )
     if (!ended) throw new Error('Page one must carry a cancelled trip or this test asserts nothing.')
     renderApp()
     await screen.findByText(ended.id)
@@ -391,6 +394,29 @@ describe('T9.3 / O9 — the fare column says what it knows and nothing more', ()
     /* `textContent`, not `toHaveTextContent('')` — jest-dom treats the empty
        string as a substring match and passes on any content at all. */
     expect(fareCell(ended).textContent).toBe('')
+  })
+
+  /**
+   * A no-show still charges. Money that moved is not an absent value, and the
+   * qualifier is what stops the figure reading as a completed fare.
+   */
+  it('prints a no-show fee with its qualifier rather than a blank', async () => {
+    /* Read through the client and reached by the URL's own search, because the
+       charged no-show is older than page one of `startedAt desc`. */
+    const charged = (
+      await listTrips({
+        pageSize: 500,
+        filters: [{ field: 'kind', op: 'eq', value: 'Quick ride' }],
+      })
+    ).items.find((trip) => trip.status === 'no-show' && trip.fareHalalas > 0)
+    if (!charged) throw new Error('The fixtures must carry a charged no-show or this asserts nothing.')
+    renderApp(`${INDEX}?q=${charged.id}`)
+    await screen.findByText(charged.id)
+
+    const cell = fareCell(charged)
+    expect(cell).toHaveTextContent(t('trips.fare.noShowFee'))
+    expect(cell).toHaveTextContent(/\d/)
+    expect(cell).not.toHaveTextContent(t('trips.fare.notSettled'))
   })
 
   it('still prints the money on a completed trip', async () => {

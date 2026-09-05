@@ -44,8 +44,10 @@ export const TRIPS_EN: Dictionary = {
   'trips.col.distance': 'Distance',
   'trips.col.duration': 'Duration',
 
-  /* O9 — the fare of a trip still under way. A cancelled trip renders blank. */
+  /* O9 — the fare of a trip still under way. A cancelled trip renders blank,
+     and a no-show that charged a fee names the fee it charged. */
   'trips.fare.notSettled': 'Not settled',
+  'trips.fare.noShowFee': 'No-show fee',
 
   /* §7.7 — line 2 qualifies line 1. ONE key with two named placeholders;
      `pickup + ' → ' + destination` is exactly what AC-75 forbids. */
@@ -174,9 +176,10 @@ export const TRIPS_EN: Dictionary = {
   'trips.drawer.close': 'Close',
 
   /* ── states (§11.1, §11.5) ──────────────────────────────────────────── */
-  'trips.empty.firstRun.heading': 'Every journey taken, and what it earned',
+  /* X18 — an empty title is at most 5 words and a body 12, in one sentence. */
+  'trips.empty.firstRun.heading': 'Every journey lands here',
   'trips.empty.firstRun.body':
-    'Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating.',
+    'A leg or a quick ride appears here once it starts.',
   'trips.empty.firstRun.action': 'Show every trip',
   'trips.empty.noMatch': 'No trip matches this search.',
   'trips.error.list': 'Couldn’t load trips. The filters are unchanged.',

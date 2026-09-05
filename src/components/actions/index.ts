@@ -11,10 +11,10 @@
  * allowed. The screens import them back from here, so their call sites are
  * unchanged.
  *
- * **The trip commands are gone from here** (X9): `TripActions` resolves
- * `src/commands/trips.ts`, so `Flag` and `Remove flag` carry D18's undo on
- * every surface. `subscription.ts` stays until `Freeze` can be declared as a
- * command — see its header for the two things that blocks on.
+ * **No commands are declared here** (X9, T6.1): `TripActions` resolves
+ * `src/commands/trips.ts` and `SubscriptionActions` resolves
+ * `src/commands/subscriptions.ts`, so every write carries D18's undo where the
+ * ruling allows one, and `subscription.ts` is gone.
  */
 
 export { ActionBar, type ActionBarProps, type SheetAction } from './ActionBar'
@@ -24,14 +24,3 @@ export { FlagTripModal } from './FlagTripModal'
 export { FreezeModal } from './FreezeModal'
 export { SubscriptionActions, type SubscriptionActionsProps } from './SubscriptionActions'
 export { TripActions, type TripActionsProps } from './TripActions'
-export {
-  SETTLE_REASONS,
-  cancelRefusal,
-  freezeRefusal,
-  isTerminalSubscription,
-  reassignRefusal,
-  runCancel,
-  runFreeze,
-  type SubscriptionCommandContext,
-  type SubscriptionWriteContext,
-} from './subscription'

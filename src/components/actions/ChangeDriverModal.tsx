@@ -1,86 +1,51 @@
 /**
- * **Change assigned captain** — the modal behind *Change captain* on
- * Operations › Subscriptions. `surfaces.md`: a short focused form is a modal.
- *
- * **Remediation §2.1.** The candidate list used to be `allDriverFixtures`
- * filtered in the component. It now comes from `listDrivers`, the client that
- * already existed. The *current* captain is excluded by the query rather than
- * by a `.filter()` afterwards — `id neq {current}` — so the server, not the
- * screen, decides what "another captain" means, and the count the operator sees
- * is the count that was matched.
- *
- * **A picker that is still loading is not an empty picker.** Same contract as
- * `ManualDispatchModal`, and for the same reason: an operator who opens a
- * dropdown mid-flight and sees nothing concludes there is nobody to reassign
- * to, and leaves the rider with the captain they complained about.
- *
- *   loading  trigger DISABLED with `aria-busy`; the placeholder says so.
- *   error    one sentence and a retry bound to `refetch`, uncarded — the dialog
- *            is already the surface.
- *   empty    the read succeeded and nobody else is qualified. A different
- *            sentence, and no retry, because retrying is not the fix.
- *   content  the list.
- *
- * Rules applied
- *   §2.1        `@/data/clients` only.
- *   AC-36       all four states.
- *   §7.2        `aria-busy` on the disabled trigger; focus ring untouched.
- *   R3          one primary — `Reassign captain`.
- *
- * ## P4 — **this form has no write behind it, and it now says so**
- *
- * `handleConfirm` ran `setTimeout(…, 200)` and then called `onConfirm`, which
- * set a local `{ driverId, driverName }` override on the row and toasted
- * success. The override was discarded by the next refetch, so the reassignment
- * the operator was told had happened had not happened.
- *
- * **`clients/subscriptions.ts` has no reassign operation.** It has
- * `listSubscriptions`, `getSubscription`, `freezeSubscription` and
- * `cancelSubscription` and nothing else, so there is nothing this modal could
- * have called. The signature requested from mock-data-engineer is in the
- * handoff:
- *
- * ```ts
- * reassignSubscriptionDriver(id: string, driverId: string, signal?: AbortSignal)
- *   : Promise<Subscription>
- * //  409 when the subscription is not `active`
- * //  409 when the captain is at `maxSubscriptions`
- * //  422 when `driverId` is empty or is the captain already assigned
- * ```
- *
- * Until it exists the **entry point is disabled in place with its reason**
- * (§11.2) — `SubscriptionsScreen` passes `unavailableReason`, the row action
- * carries the same sentence, and this modal's primary refuses even if some
- * future path reaches it. That is the honest state: a control an operator can
- * see, cannot use, and is told why. It is not hidden, and it does not lie.
- *
- * Everything else here is finished and waiting: `onConfirm` is a promise this
- * awaits, the failure renders in place, and the dialog does not close until the
- * write lands.
- *
- * Known, not fixed here: the `t(key, { defaultValue })` calls are §4.2's wave.
+ * **Change assigned captain** — the modal behind *Change captain* on the
+ * Subscriptions queue and on the record sheet. `surfaces.md`: a short focused
+ * form is a modal.
+ */
+
+/**
+ * **A picker that is still loading is not an empty picker** (AC-36): the
+ * trigger is disabled with `aria-busy` while the read is in flight, an error
+ * offers a retry, and an empty result says nobody else is active and offers
+ * none. An operator who opens a dropdown mid-flight and sees nothing concludes
+ * there is nobody to reassign to.
+ */
+
+/**
+ * **T1.2 — the write exists.** `reassignSubscriptionDriver(id, driverId, reason)`
+ * refuses a cancelled cycle (409) and three cases at 422: the captain already
+ * holds it, the captain is not active, and their vehicle is below the plan's
+ * tier. Each renders here as real text with the operator's choice still on
+ * screen (§11.2); `unavailableReason` covers the standing refusals.
  */
 
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ErrorState } from '@/components/ErrorState'
+import { reassignCandidateRefusal } from '@/commands'
 import { listDrivers } from '@/data/clients'
-import { isApiError, type Driver, type FilterSpec, type Paginated, type Subscription } from '@/data/types'
+import { isApiError, type Driver, type Paginated, type Subscription } from '@/data/types'
 import { useAsync } from '@/hooks'
 import type { Translate } from '@/lib'
 
-/** One screenful of candidates. The picker is a shortlist, not a directory. */
-const CANDIDATE_PAGE_SIZE = 50
+/**
+ * One screenful of candidates, hoisted so it is a **cache dependency**:
+ * `useAsync` with a `cacheKey` needs everything the fetcher varies on in
+ * `deps`, and a literal inside the closure is invisible to the key.
+ */
+const CANDIDATE_QUERY = { pageSize: 50 } as const
 
 interface ChangeDriverModalProps {
   subscription: Subscription | null
   open: boolean
   onClose: () => void
   /** Awaited. The screen owns the write; this owns busy, failure and closing. */
-  onConfirm: (subId: string, driverId: string, driverName: string) => Promise<void>
+  onConfirm: (subId: string, driverId: string, driverName: string, reason: string) => Promise<void>
   /**
    * §11.2 — why this cannot be committed right now, as a sentence. Non-null
    * disables the primary **in place** and renders the sentence beside it. Never
@@ -99,6 +64,7 @@ export function ChangeDriverModal({
   t,
 }: ChangeDriverModalProps) {
   const [selectedDriverId, setSelectedDriverId] = useState<string>('')
+  const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   /** §11.2 — the last write's refusal, as real text inside this dialog. */
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -108,31 +74,18 @@ export function ChangeDriverModal({
      previous row's failure must not survive into it. */
   useEffect(() => {
     setSelectedDriverId('')
+    setReason('')
     setSubmitError(null)
   }, [subscriptionId])
 
-  /* The one exclusion the domain asks for: you cannot reassign a subscription
-     to the captain it already has. `driverId` is nullable — an unassigned
-     subscription excludes nobody, so the filter is omitted rather than sent
-     with a `null` the query engine would have to guess at. */
-  const currentDriverId = subscription?.driverId ?? null
-  const excludeCurrent: FilterSpec[] = currentDriverId
-    ? [{ field: 'id', op: 'neq', value: currentDriverId }]
-    : []
-
-  /* `enabled: open` — the modal is mounted for the whole session by the screen;
-     opening it is what should issue the read. `deps` carries the exclusion so
-     switching rows re-queries instead of reusing the previous row's list. */
+  /* **§11.2 — the query no longer hides the ineligible.** It used to filter to
+     `status: 'active'` and exclude the current captain, so two of the client's
+     three 422s were unreachable and unexplained. Every candidate is listed and
+     `reassignCandidateRefusal` disables the ones the write would refuse, with
+     the sentence on the row. `enabled: open` issues the read on opening. */
   const drivers = useAsync<Paginated<Driver>>(
-    (signal) =>
-      listDrivers(
-        { status: 'active', filters: excludeCurrent, pageSize: CANDIDATE_PAGE_SIZE },
-        signal,
-      ),
-    /* `excludeCurrent` is derived from `currentDriverId`, so that one dep is
-       the whole of what the fetcher varies on. The key is `[s:<id>]`, distinct
-       from every other `drivers.list` reader. */
-    { deps: [currentDriverId], enabled: open, cacheKey: 'drivers.list' },
+    (signal) => listDrivers(CANDIDATE_QUERY, signal),
+    { deps: [CANDIDATE_QUERY], enabled: open, cacheKey: 'drivers.list' },
   )
 
   /* Hooks first, guard second — the early return must never change the hook
@@ -147,11 +100,11 @@ export function ChangeDriverModal({
   const handleConfirm = async () => {
     if (!selectedDriverId || unavailableReason !== null) return
     const driver = qualifiedDrivers.find((d) => d.id === selectedDriverId)
-    if (!driver) return
+    if (!driver || reassignCandidateRefusal(subscription, driver, t) !== null) return
     setBusy(true)
     setSubmitError(null)
     try {
-      await onConfirm(subscription.id, driver.id, driver.name)
+      await onConfirm(subscription.id, driver.id, driver.name, reason)
       setSelectedDriverId('')
       onClose()
     } catch (error: unknown) {
@@ -228,17 +181,52 @@ export function ChangeDriverModal({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {qualifiedDrivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {/* O9 — an unrated captain drops the clause, never a glyph. */}
-                      {d.name} ({d.city}
-                      {d.rating === null ? '' : ` · ★${d.rating.toFixed(1)}`} ·{' '}
-                      {d.activeSubscriptions}/{d.maxSubscriptions} subs)
-                    </SelectItem>
-                  ))}
+                  {qualifiedDrivers.map((d) => {
+                    const refused = reassignCandidateRefusal(subscription, d, t)
+                    return (
+                      <SelectItem key={d.id} value={d.id} disabled={refused !== null}>
+                        <span className="flex flex-col items-start">
+                          {/* AC-75 — one key with named placeholders, never six
+                              JSX fragments. O9 — an unrated captain drops the
+                              clause rather than printing a mark. */}
+                          <span>
+                            {t(
+                              d.rating === null ? 'sub.driverOption.unrated' : 'sub.driverOption',
+                              {
+                                name: d.name,
+                                city: d.city,
+                                rating: d.rating === null ? '' : d.rating.toFixed(1),
+                                active: String(d.activeSubscriptions),
+                                max: String(d.maxSubscriptions),
+                              },
+                            )}
+                          </span>
+                          {/* §11.2 — the refusal is real text on the control it
+                              refuses, never a tooltip and never a hidden row. */}
+                          {refused !== null && (
+                            <span className="text-2xs text-muted-foreground">{refused}</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="change-driver-reason" className="text-xs font-medium">
+              {t('sub.changeDriver.reason')}
+            </Label>
+            {/* Optional, and it reaches the write: `reassignSubscriptionDriver`
+                records it beside the change. */}
+            <Input
+              id="change-driver-reason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder={t('sub.changeDriver.reasonPlaceholder')}
+            />
           </div>
 
           {/* §11.2 / §8.4.4 — a refusal is REAL TEXT, never a tooltip. The

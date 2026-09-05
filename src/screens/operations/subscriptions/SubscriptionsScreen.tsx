@@ -9,13 +9,9 @@
  * `bulkActions` is non-empty, and this screen declared none. Selecting rows
  * produced no bar, no count and no way to clear.
  *
- * **`Freeze` is the bulk command, and it is the only one.** A school holiday or
- * a Ramadan schedule freezes a cohort, which is the canonical bulk act on this
- * resource and is fully backed by `freezeSubscription`. `Cancel and settle` is
- * deliberately **not** offered over a set: it moves money, the refund is
- * server-computed per record, and twelve refunds committed from one pill is a
- * different risk from twelve freezes. That is a narrowing I am reporting rather
- * than a rule I found — flagged to product-designer in the handoff.
+ * **`Freeze` and `Resume` are the bulk commands.** `Cancel and settle` declares
+ * `plural: false`: it moves money, the refund is server-computed per record,
+ * and twelve refunds from one pill is a different risk from twelve freezes.
  *
  * **D21, in full.** A bulk command is refused if **any** selected subscription
  * would be refused on its own row; the refusal names the count in one of three
@@ -35,16 +31,11 @@
  * without `manage_subscriptions` saw a kebab with two navigation items and no
  * sign that freezing or cancelling exists. They render and refuse now.
  *
- * **`Change captain` has no write behind it and now says so.** It set a local
- * `{ driverId, driverName }` override and toasted success; the next refetch
- * discarded it. `clients/subscriptions.ts` has no reassign operation — the
- * signature requested is in `ChangeDriverModal`'s header and in the handoff —
- * so the action is disabled in place with its reason. A truthful dead control
- * beats a button that reports a reassignment nobody made.
- *
- * **There is now a subscription record to open.** `getSubscription` had no
- * consumer and 21 fields were reachable from nowhere; see
- * `SubscriptionDetailDrawer`.
+ * **T1.2 / T6.1.** `Change captain` has a write (`reassignSubscriptionDriver`)
+ * and is enabled; `Freeze`, `Resume` and `Cancel and settle` are resolved from
+ * `src/commands/subscriptions.ts`, so the row menu, the bulk bar, the record
+ * sheet and ⌘K hold one predicate and one write, and a freeze carries D18's
+ * undo on every one of them.
  *
  * Rules applied
  *   §9.1 / AC-43  the first data cell is the identity and **a link**.
@@ -57,9 +48,10 @@
  *   AC-74/75      every string is a key in `./copy.ts`, named placeholders only.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { listSubscriptions } from '@/data/clients'
+import { toast } from 'sonner'
+import { listSubscriptions, reassignSubscriptionDriver } from '@/data/clients'
 import type { Paginated, SubTabRoute, Subscription, SubscriptionStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
@@ -72,33 +64,45 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withOverlay, withView } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, NumCell } from '@/screens/queues/cells'
-import type { SetRefusal } from '../bulkRefusal'
 import { EntityLink, useEntityLinks } from '../EntityLink'
 import { withFallback } from '../localCopy'
 import { SUBSCRIPTIONS_EN } from './copy'
 /**
- * **The three commands are declared in `components/actions/subscription.ts`,
- * not here.**
- *
- * They were here while this screen was their only caller. The record sheet now
- * offers the same three, and a command with two callers needs one declaration
- * or the two surfaces disagree about who may run it — the same argument this
- * file already made for the row menu and the bulk bar. The forms moved with
- * them (they were always pure presentation) and are imported back, so nothing
- * about how this screen renders them changed.
+ * **The commands are declared in `src/commands/subscriptions.ts`** — D9 / X9,
+ * the way Trips does it. The row menu, the bulk bar, the record sheet and ⌘K
+ * resolve one registry, so `Freeze` and `Resume` carry D18's undo everywhere.
+ * `Change captain` stays a screen action: its confirmation is an asynchronous
+ * captain picker, which `CommandConfirmRequest` cannot describe.
  */
 import {
-  CancelSettleModal,
-  ChangeDriverModal,
-  FreezeModal,
   SETTLE_REASONS,
-  cancelRefusal as cancelRefusalFor,
-  freezeRefusal as freezeRefusalFor,
-  reassignRefusal as reassignRefusalFor,
-  runCancel as runCancelCommand,
-  runFreeze as runFreezeCommand,
-} from '@/components/actions'
+  SUBSCRIPTION_COMMANDS,
+  reassignRefusal,
+  resolveCommands,
+  runCommand,
+  toastOutcome,
+  unavailableReason,
+  type Command,
+  type CommandConfirmChoice,
+  type CommandContext,
+  type CommandHost,
+  type CommandResult,
+} from '@/commands'
+import { CancelSettleModal, ChangeDriverModal, FreezeModal } from '@/components/actions'
 import { SUBSCRIPTION_TONE } from './tone'
+
+/**
+ * Resolved once at module scope because they depend on nothing the screen
+ * holds — CM-1. `plural: false` is the row kebab, `plural: true` the bulk bar.
+ */
+const ROW_COMMANDS = resolveCommands(SUBSCRIPTION_COMMANDS, {
+  entityType: 'subscription',
+  plural: false,
+})
+const BULK_COMMANDS = resolveCommands(SUBSCRIPTION_COMMANDS, {
+  entityType: 'subscription',
+  plural: true,
+})
 
 export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -183,43 +187,105 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
     })
   }, [])
 
-  /* ── D21, one predicate per command ─────────────────────────────────── */
+  /* ── the registry: one declaration, four surfaces ───────────────── */
 
-  /** D17 / D21 rule 5 — a permission refusal outranks every domain refusal. */
-  const roleReason = canWrite ? null : t('subs.action.noPermission')
+  /**
+   * The confirmation each command asks for is one of this screen's own forms,
+   * because both collect more than a sentence: a duration (`FreezeModal`, from
+   * `request.choice`) and a reason code (`CancelSettleModal`). The command owns
+   * the copy and the write, so the palette cannot ask a different question.
+   */
+  const pending = useRef<readonly Subscription[]>([])
+  /** The id of the command whose question is on screen. Picks the form. */
+  const asking = useRef<string>('')
+  const answer = useRef<((reason: string | null) => void) | null>(null)
+  const settled = useRef<{ ok: () => void; fail: (error: unknown) => void } | null>(null)
+  /** The duration list the running command declared. See `FreezeModal`. */
+  const [choice, setChoice] = useState<CommandConfirmChoice | null>(null)
 
-  /* The command context every predicate takes, built once. */
-  const commands = useMemo(() => ({ roleReason, t, language }), [roleReason, t, language])
+  /** CQ-4 — the only things a command may reach this screen for. */
+  const host: CommandHost = {
+    openProfile: (_entityType, id) =>
+      navigate({
+        pathname: location.pathname,
+        search: withOverlay(location.search, 'entity', id),
+      }),
+    confirm: (request) =>
+      new Promise<string | null>((resolve) => {
+        answer.current = resolve
+        setChoice(request.choice ?? null)
+        /* One form per command: cancel needs the reason-code list, freeze the
+           duration the request just carried. */
+        if (asking.current === 'subscription.cancel') setSettling(pending.current[0] ?? null)
+        else setFreezing(pending.current)
+      }),
+  }
 
-  const freezeRefusal = useCallback(
-    (targets: readonly Subscription[]): SetRefusal => freezeRefusalFor(targets, commands),
-    [commands],
+  const context = useCallback(
+    (targets: readonly Subscription[]): CommandContext<Subscription> => ({
+      targets,
+      t,
+      language,
+      /* CQ-7 / Q4 — one boolean, read only by `roleRefusal`. */
+      session: { canWrite },
+      host,
+    }),
+    // `host` is rebuilt every render and holds only refs and the router.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, language, canWrite],
   )
 
-  const cancelRefusal = useCallback(
-    (targets: readonly Subscription[]): SetRefusal => cancelRefusalFor(targets, commands),
-    [commands],
-  )
-
-  const reassignRefusal = reassignRefusalFor(commands)
-
-  /* ── the writes. Every bulk action reaches the data layer ────────────── */
-
-  const runFreeze = useCallback(
-    async (subs: readonly Subscription[], until: string) => {
-      await runFreezeCommand(subs, until, { onRecord: record, t, language })
-      /* The selection is this screen's and not the command's — the sheet has
-         none to clear. */
+  /**
+   * **The one dispatch path.** `runCommand` re-checks the refusal, runs the
+   * write, and `toastOutcome` renders D18's undo handle — a bare `toast` would
+   * state the sentence and drop the inverse on the floor.
+   */
+  const dispatch = useCallback(
+    async (command: Command<Subscription>, targets: readonly Subscription[]) => {
+      pending.current = targets
+      asking.current = command.id
+      let result: CommandResult<Subscription>
+      try {
+        result = await runCommand(command, context(targets))
+      } catch (error: unknown) {
+        /* §11.2 — the refusal renders inside the form that asked, with the
+           operator's input still on screen. */
+        settled.current?.fail(error)
+        settled.current = null
+        return
+      }
+      settled.current?.ok()
+      settled.current = null
+      setFreezing([])
+      setSettling(null)
+      setChoice(null)
+      if (result.kind === 'refused') {
+        toast(result.reason)
+        return
+      }
+      if (result.kind === 'cancelled' || result.outcome === null) return
+      record(result.outcome.changed ?? [])
       table.clearSelection()
+      toastOutcome(result.outcome, t)
     },
-    [record, table, t, language],
+    [context, record, table, t],
   )
 
-  const runCancel = useCallback(
-    async (sub: Subscription, reason: string) => {
-      await runCancelCommand(sub, reason, { onRecord: record, t, language })
+  /** §11.2 — `Change captain` is a screen action; one predicate, two surfaces. */
+  const reassignReason = useCallback(
+    (sub: Subscription) => reassignRefusal(sub, { canWrite, t }),
+    [canWrite, t],
+  )
+
+  const runReassign = useCallback(
+    async (id: string, driverId: string, driverName: string, reason: string) => {
+      const changed = await reassignSubscriptionDriver(id, driverId, reason)
+      record([changed])
+      setReassigning(null)
+      /* R9 — one line naming the object, and the name the SERVER returned. */
+      toast(t('subs.toast.reassigned', { name: changed.driverName ?? driverName }))
     },
-    [record, t, language],
+    [record, t],
   )
 
   /** The selection as RECORDS, which is what every predicate takes. */
@@ -291,8 +357,13 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         dataType: 'text',
         sortField: 'riderName',
         filter: { kind: 'text', field: 'riderName' },
+        /* **T5.1** — the widest Arabic rider on the fixtures measures 309px and
+           this column's share of the 870px Arabic budget is 134, so a long
+           patronymic chain clips. The `title` keeps the clipped half readable
+           rather than lost; the width itself is the column-set decision the
+           harness's numbers record. */
         cell: (sub) => (
-          <Cell>
+          <Cell title={sub.riderName}>
             <EntityLink
               href={hrefFor(sub.riderId)}
               label={t('subs.open.rider', { name: sub.riderName })}
@@ -314,7 +385,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         /* §11.2 / P8-T1 — an unassigned subscription has no captain to open, so
            the cell is plain muted text with the reason, never a dead link. */
         cell: (sub) => (
-          <Cell>
+          <Cell title={sub.driverName ?? undefined}>
             <EntityLink
               href={hrefFor(sub.driverId)}
               label={t('subs.open.captain', { name: sub.driverName ?? '' })}
@@ -488,68 +559,73 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
     [t, language, hrefFor, captainReason],
   )
 
-  /* ── row actions (§7.8 / D8 — four declared, so a kebab) ─────────────── */
+  /* ── row actions (§7.8 / D8 ─ five declared, so a kebab) ─────────── */
 
   const rowActions: ReadonlyArray<RowAction<Subscription>> = useMemo(
     () => [
       {
         label: t('subs.action.view'),
-        /* **The record sheet is the 360° layer, not a drawer this screen
-           owns.** It used to be `SubscriptionDetailDrawer`, a second record
-           surface built here — so a cycle opened from this table and the same
-           cycle opened from a rider's profile were two different sheets showing
-           two subsets of one record. `?entity=SUB-*` is the one address and
-           `components/profile/subscription` is the one arrangement behind it,
-           which is the move `TripsScreen` already made for the same reason. */
+        /* The record sheet is the 360° layer, not a drawer this screen owns:
+           `?entity=SUB-*` is the one address, which is the move `TripsScreen`
+           already made for the same reason. */
         onSelect: (sub: Subscription) =>
           navigate({
             pathname: location.pathname,
             search: withOverlay(location.search, 'entity', sub.id),
           }),
-        /* **P0-2 — the declared row-click target.** `Freeze`, `Change driver`
-           and `Cancel` all mutate; none may carry this. */
+        /* **P0-2 — the declared row-click target.** Everything below mutates. */
         rowClick: true,
       },
       {
-        label: t('subs.action.freeze'),
-        onSelect: (sub: Subscription) => setFreezing([sub]),
-        disabled: (sub: Subscription) => freezeRefusal([sub]).refused,
-        reason: (sub: Subscription) => freezeRefusal([sub]).reason,
-      },
-      {
-        /* §11.2 — rendered, refused, and the sentence says the write does not
-           exist rather than implying the operator lacks a permission. */
+        /* Not a command — see the import header. §11.2: gated at render, and
+           the sentence is the same one the record sheet shows. */
         label: t('subs.action.changeDriver'),
         onSelect: (sub: Subscription) => setReassigning(sub),
-        disabled: () => true,
-        reason: () => reassignRefusal,
+        disabled: (sub: Subscription) => reassignReason(sub) !== null,
+        reason: reassignReason,
       },
-      {
-        label: t('subs.action.cancel'),
-        onSelect: (sub: Subscription) => setSettling(sub),
-        disabled: (sub: Subscription) => cancelRefusal([sub]).refused,
-        reason: (sub: Subscription) => cancelRefusal([sub]).reason,
-      },
+      /* CM-1 — ids, no declarations. §11.2 / AC-368: `disabled` and `reason`
+         are the same call, so a dead control cannot lose its sentence. */
+      ...ROW_COMMANDS.map((command) => ({
+        label: t(command.titleKey),
+        onSelect: (sub: Subscription) => void dispatch(command, [sub]),
+        disabled: (sub: Subscription) => unavailableReason(command, context([sub])) !== null,
+        reason: (sub: Subscription) => unavailableReason(command, context([sub])),
+      })),
     ],
-    [t, freezeRefusal, cancelRefusal, reassignRefusal],
+    [t, context, dispatch, reassignReason, navigate, location.pathname, location.search],
   )
 
-  /* ── the bulk bar ─────────────────────────────────────────────────────── */
+  /* ── the bulk bar (§13.4 ─ the inverted strip takes the compact form) ── */
 
-  const bulkActions: ReadonlyArray<BulkAction> = useMemo(() => {
-    const freeze = freezeRefusal(selected)
-    return [
-      {
-        label: t('subs.bulk.freeze'),
-        onClick: () => setFreezing(selected),
-        disabled: freeze.refused,
-        reason: freeze.reason,
-        /* D21 — a narrowing, not a partial apply. Empty when every selected
-           subscription is terminal, and the bar renders no control then. */
-        eligibleIds: freeze.eligibleIds,
-      },
-    ]
-  }, [selected, freezeRefusal, t])
+  const bulkActions: ReadonlyArray<BulkAction> = useMemo(
+    () =>
+      BULK_COMMANDS.map((command) => {
+        const refusal = selected.length === 0 ? null : unavailableReason(command, context(selected))
+        /* **D21's escape hatch, and it is not a partial apply.** The ids in the
+           CURRENT selection the command would accept, from the SAME predicate;
+           `DataTable` narrows the selection through `table.selectOnly`, so the
+           bar's count changes before the command can run (AC-959, AC-960). */
+        const eligibleIds = new Set(
+          selected
+            .filter((sub) => unavailableReason(command, context([sub])) === null)
+            .map((sub) => sub.id),
+        )
+        return {
+          label: t(command.compactTitleKey ?? command.titleKey),
+          onClick: (ids: ReadonlySet<string>) =>
+            void dispatch(
+              command,
+              rows.filter((sub) => ids.has(sub.id)),
+            ),
+          disabled: refusal !== null,
+          reason: refusal,
+          eligibleIds: eligibleIds.size === selected.length ? undefined : eligibleIds,
+        }
+      }),
+    [selected, rows, context, dispatch, t],
+  )
+
 
   const tabs = views.map((v) => ({ id: v.id, label: t(v.titleKey) }))
   const total = data.data?.total ?? 0
@@ -614,8 +690,23 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
 
       <FreezeModal
         subscriptions={freezing}
-        onClose={() => setFreezing([])}
-        onConfirm={runFreeze}
+        choice={choice}
+        /* Dismissing answers the command with `null`, which is how `run` learns
+           it was cancelled and returns without writing anything. */
+        onClose={() => {
+          answer.current?.(null)
+          answer.current = null
+          setFreezing([])
+        }}
+        /* Resolved when the command settles, so the form stays open for the
+           round trip and a refusal lands in place (§11.2). */
+        onConfirm={(_subs, reason) =>
+          new Promise<void>((ok, fail) => {
+            settled.current = { ok, fail }
+            answer.current?.(reason)
+            answer.current = null
+          })
+        }
         language={language}
         t={t}
       />
@@ -624,11 +715,8 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         subscription={reassigning}
         open={reassigning !== null}
         onClose={() => setReassigning(null)}
-        /* There is no write. The modal's primary is dead and states why; this
-           exists only so the promise contract is satisfied and so a future
-           `reassignSubscriptionDriver` has one obvious place to land. */
-        onConfirm={() => Promise.reject(new Error(reassignRefusal))}
-        unavailableReason={reassignRefusal}
+        onConfirm={runReassign}
+        unavailableReason={reassigning === null ? null : reassignReason(reassigning)}
         t={t}
       />
 
@@ -636,9 +724,17 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         subscription={settling}
         reasonKeys={SETTLE_REASONS}
         open={settling !== null}
-        onClose={() => setSettling(null)}
+        onClose={() => {
+          answer.current?.(null)
+          answer.current = null
+          setSettling(null)
+        }}
         onConfirm={(_id, reason) =>
-          settling === null ? Promise.resolve() : runCancel(settling, reason)
+          new Promise<void>((ok, fail) => {
+            settled.current = { ok, fail }
+            answer.current?.(reason)
+            answer.current = null
+          })
         }
         language={language}
         t={t}
