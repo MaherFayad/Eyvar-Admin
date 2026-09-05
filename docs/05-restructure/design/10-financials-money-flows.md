@@ -95,7 +95,7 @@ A slot defined by what it currently holds drifts. Each slot below is defined by 
 | ② **resolved subject** | Renders **only** where the operator named a target by typing it. Never renders for a row-raised act — the row is already on screen behind the dialog. Never editable. Never carries an action other than the way back. |
 | ③ **money lines** | Never coloured. Never a percentage. Never a line for a number the act does not change. Never a number the operator cannot also find on the surface behind the dialog. Exactly one line carries `emphasis`, and it is the amount the act commits. |
 | ④ **standing note** | Never an error. Never a substitute for disabling the primary — a note states a consequence that still permits the act. Never more than one. |
-| ⑤ **caution block** | A **pale tinted card**, warning tone (**R1**, **R16**). Never critical tone, never a saturated strip, never two. Precedent for a banner inside a modal is in the reference: `11-apps-and-channels/app-uninstall-confirm-modal.webp`. It is not a page-level banner, so **R10**'s one-banner clause is untouched. |
+| ⑤ **caution block** | A **pale tinted card**, warning tone (**R1**, **R16**). Never critical tone, never a saturated strip, never two. Precedent for a banner inside a modal is in the reference: the inherited capture. It is not a page-level banner, so **R10**'s one-banner clause is untouched. |
 | ⑥ **reason code** | Never a free-text field (**RC-1**). Never pre-selected. Never the whole support taxonomy. |
 | ⑦ **note** | Never optional where the act is discretionary. Never the field whose value is written into `reasonCode`. |
 | ⑧ **commit error** | Renders **only** for an act raised from a page-level control, because such an act has no row to fail on. Never becomes a toast; never becomes a page banner; the dialog stays open and every entered value survives. |
@@ -796,9 +796,9 @@ between two equal rulings, and filling it is the job.
 2. **D8's decision-pair row already renders three controls directly at n=2 dispositions.** A rule
    that shows three at two and hides two at two is incoherent on its own terms.
 3. **Every overflow menu I opened in the reference is a genuine list, and the one row control I
-   found is a labelled button.** `04-customers/customer-segments-row-actions-menu.webp` — five
-   items, `Delete` separated last. `02-orders/order-detail-more-actions-menu.webp` — six.
-   `03-products/product-edit-variants-bulk-actions-menu.webp` — five, one of them disabled in
+   found is a labelled button.** The inherited capture — five
+   items, `Delete` separated last. The inherited capture — six.
+   the inherited capture — five, one of them disabled in
    place. And in that last capture **every variant row carries a single labelled `Edit` button
    rather than a kebab**, which is D8's n=1 rule already in the source material. I did not read
    all 159 captures, so this is evidence for D8's premise — *the kebab is a list container* — not
@@ -1065,7 +1065,7 @@ with an ellipsis at 60, never the verb** (**R9**).
 | Departure | Rule it suspends | Why |
 |---|---|---|
 | **None.** | — | Everything above sits inside an existing licence, and the three that look like deviations are not: a **row action on Payouts, Escrow and Deductions** is on an **index** table, and §8.3's prohibition is on **ledger** rows; a **page-level action on a ledger** is neither a row action nor bulk selection, and spec §3.6 Path 2 already rules it in; **no illustration on any Financials empty** declines **R8**'s permission rather than exceeding it. |
-| **D8-b** amends **D8** | It fills D8's undefined n=2 row and moves `DataTable`'s threshold. It suspends nothing in `DESIGN.md` — §3.1's kebab is Shopify's and **R13** voids its figures | D8's own reason, its own decision-pair row, and 159 screenshots with no two-item overflow menu |
+| **D8-b** amends **D8** | It fills D8's undefined n=2 row and moves `DataTable`'s threshold. It suspends nothing in `DESIGN.md` — §3.1's kebab is inherited and **R13** voids its figures | D8's own reason, its own decision-pair row, and 159 screenshots with no two-item overflow menu |
 | **§9.2**'s *"a ledger is NEVER first-run empty"* narrows | **LR-1** | It is true of a platform ledger and was generalised from one. **AC-427** describes a party ledger, and both are real |
 
 ---

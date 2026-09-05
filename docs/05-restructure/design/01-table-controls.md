@@ -48,7 +48,7 @@ popover, a filter row or a frozen column again.
 | The sort caret is an **indicator**; the control is a popover the **page** supplies through `toolbar` | The caret is **still** an indicator. The control exists in **two** places, both owned by `DataTable`: the column's own header menu, and the toolbar popover it now renders itself. Neither is hand-built by a page. |
 | **Headers are not interactive anywhere in the product** (`00-shell.md` §9.1, `DataTable.tsx:34`) | Superseded. A header cell contains **exactly one** interactive element — a menu trigger — or **none**. See **D-6**. |
 | Filtering is a `ReactNode` (`filterRow`) the page passes in | A column **declares** its filter. `DataTable` renders the header control, the popover and the chip. `filterRow` is removed; `extraFilters` covers filters bound to no visible column. |
-| Column pinning is governed for **one** surface — §2.5's bulk grid, *"Bulk grids MUST be edge-to-edge with a sticky header row and a **frozen identity column**"* (`DESIGN.md:1200`) — and for no other | New **§8.5** generalises that MUST to every dense table, written with §8's evidence discipline. Shopify does it in the bulk-edit grid `[observed]`; the legacy Eyvar app already does it, with an RTL defect `[code]`. |
+| Column pinning is governed for **one** surface — §2.5's bulk grid, *"Bulk grids MUST be edge-to-edge with a sticky header row and a **frozen identity column**"* (`DESIGN.md:1200`) — and for no other | New **§8.5** generalises that MUST to every dense table, written with §8's evidence discipline. The inherited baseline freezes a column in its bulk-edit grid; the legacy Eyvar app already does it, with an RTL defect `[code]`. |
 | A table wider than the card clips at the inline-end edge | The table scrolls horizontally. The R5a marker, the selection checkbox, the identity column and the row kebab never leave the viewport. |
 
 **One thing does not change, and it is load-bearing:** a column filter is a `FilterSpec` in
@@ -82,7 +82,7 @@ This is not a screen. It is a capability added to `DataTable` (D-01), which appe
 | **R4** | numeric / currency / count columns align inline-end, header and value sharing one edge. Constrains where the menu caret may sit (§3.2). |
 | **R7 / R5a** | the header carries no badge and no red. Filter state is carried typographically. |
 | **R8** | an empty filter list is one grey sentence, never an illustration. |
-| **R13** | no §1–§5 pixel figure binds. The 200 px sort-popover width below is adopted as a *relationship* (a menu is narrower than the table), not because Shopify measured 200. |
+| **R13** | no §1–§5 pixel figure binds. The 200 px sort-popover width below is adopted as a *relationship* (a menu is narrower than the table), not because anything measured 200. |
 | **§6.2 D-2** | 13 px body, 32 px rows. Every value here is on the 4 px grid. |
 | **§6.2 D-6** (new, §17.1) | header cells become interactive. |
 | **§7.2 / §7.3 / §7.5 / §7.7** | focus, keyboard, live regions, hit targets. These beat everything in §1–§5. |
@@ -98,12 +98,12 @@ This is not a screen. It is a capability added to `DataTable` (D-01), which appe
 
 Design from what is there, not from a memory of what admin panels look like.
 
-### 2.1 Shopify does freeze a column — measured, not recalled
+### 2.1 The inherited baseline does freeze a column — measured, not recalled
 
-`03-products/products-bulk-editor-grid.webp` and `03-products/products-bulk-editor-price-columns.webp`
+the inherited captures
 are the same grid at two horizontal scroll offsets.
 
-| | grid.webp | price-columns.webp |
+| | the grid | the price columns |
 |---|---|---|
 | Columns visible | Product title · Tags · Status · Product category · Vendor · *Base…* (clipped) | Product title · Status · Product category · Vendor · Base price USD · Available quantity |
 | Cell text in `Product title` | Custom handcrafted mug / Example Hat / Grey / Example Pants / Jeans, W32H34 | identical, at identical x |
@@ -117,9 +117,9 @@ scrolling region x 230+ :  mean channel diff 8.25   max 220
 ```
 
 `[observed]` **The first column is frozen and the rest of the grid scrolls under it.** This is the
-adjacent Shopify pattern §8's evidence discipline requires me to look for before claiming absence.
+adjacent inherited pattern §8's evidence discipline requires me to look for before claiming absence.
 It is not in the *index* table — only in the full-bleed bulk editor — which is why the pattern still
-needs writing for Eyvar, but the claim "Shopify has nothing like this" would have been false.
+needs writing for Eyvar, but the claim "nothing like this exists" would have been false.
 
 ### 2.2 The frozen boundary is a hairline, and it does not change with scroll
 
@@ -147,13 +147,13 @@ statement of which column, no visual treatment, no cap and **no RTL clause** —
 whole §9 exists because directional geometry is where this product breaks. §8.5 generalises that
 MUST rather than inventing a rule beside it.
 
-### 2.3 Shopify's index table clips, and §3.1 already guesses what happens next
+### 2.3 The inherited index table clips, and §3.1 already guesses what happens next
 
-`02-orders/orders-list-with-metrics-row.webp` — the `Tags` column is cut off at the card's
+the inherited capture — the `Tags` column is cut off at the card's
 inline-end edge with no scrollbar in frame. `[observed]`
 
 `DESIGN.md` §3.1 already concedes the rest: *"That they **scroll horizontally**, and that the
-checkbox + primary cell stay pinned while they do, are both `[Polaris]` — a static frame cannot show
+checkbox + primary cell stay pinned while they do, are both inferred from the pattern's own documentation — a static frame cannot show
 a scroll."* So the document has **already committed to implicit pinning of the checkbox and the
 identity column**, on recall, without a rule. §8.5 turns that into one.
 
@@ -185,18 +185,17 @@ Three things follow, and all three are load-bearing:
 
 ### 2.5 What a sort control looks like here already
 
-`03-products/products-list-sort-popover.webp` `[observed]` — anchored under the toolbar's sort icon,
+the inherited capture — anchored under the toolbar's sort icon,
 narrow, a `Sort by` label, a **radio group** of fields, a divider, then a direction pair rendered
 with **arrows**: `↑ A–Z`, `↓ Z–A`, active one highlighted. The direction glyph in this product's
 vocabulary is an **arrow**. The *chevron* is what a filter chip carries (`Product vendor ⌄`,
-`Tagged with ⌄`, `Status ⌄` — `03-products/products-list-search-and-filters.webp` `[observed]`) and
+`Tagged with ⌄`, `Status ⌄` — the inherited capture) and
 what §1.5 reserves: *"SHOULD reserve the trailing caret exclusively for controls that open a menu or
 select."* §3 below assigns the two glyphs disjointly on that basis.
 
 ### 2.6 Where filters live today
 
-`03-products/products-list-search-and-filters.webp` and
-`02-orders/orders-list-search-mode-add-filter.webp` `[observed]` — filters are **chips in a row
+the inherited captures — filters are **chips in a row
 beneath the search field**, each with a trailing chevron, ending `Add filter +`, with `Clear all` at
 the row's inline-end when anything is applied. Nothing is in the header. §6.3 keeps that row exactly
 as it is and makes the header a **second entry point to the same state**, not a second state.
@@ -281,7 +280,7 @@ anything:
   — restated at §9.1 translation row 9 as normative for Eyvar.
 
 Both cannot hold once every header is a menu. The precedence ladder settles it without a new ruling:
-both are §1–§5, both describe Shopify, and **§6.2 beats both**. So **D-6** (§17.1) assigns them:
+both are §1–§5, both describe the inherited baseline, and **§6.2 beats both**. So **D-6** (§17.1) assigns them:
 
 | Glyph | Means | Where |
 |---|---|---|
@@ -562,7 +561,7 @@ operator affordance.** No menu item and no columns-popover toggle offers an end 
    the row's action control puts a moving boundary around the one control that must stay put.
 2. Two operator-controlled regions doubles the state space — two caps, two guards, two boundary
    hairlines, two RTL mappings — for a need nobody has named.
-3. Shopify freezes exactly one region, at the start. `[observed]` §2.1.
+3. The inherited baseline freezes exactly one region, at the start (§2.1).
 
 **The identity column is never hideable and never unpinnable.** §3.1: *"The first data cell MUST be
 the record's identity and MUST be a link to the record's detail page."* You cannot hide or scroll
@@ -630,7 +629,7 @@ real and the question is fair. The answer is still **no shadow, no tier**:
    it. Giving it an x-offset creates a fourth token that **must** mirror in Arabic — reintroducing
    exactly the class of defect §1.3 constraint 2 exists to prevent, and the exact defect the legacy
    app already has at `:751` (`-4px 0 6px -4px`, no RTL counterpart).
-2. **The measurement says hairline.** §2.2: Shopify's frozen boundary is a single 1 px step and it
+2. **The measurement says hairline.** §2.2: the frozen boundary is a single 1 px step and it
    is **identical scrolled and unscrolled**. No ramp, no shadow.
 3. **The primary signal is not the line, it is the motion.** Content visibly moves and the pinned
    block does not. The boundary is a supporting delimiter, which under `docs/ref/a11y.md` is a
@@ -1370,7 +1369,7 @@ Each names the rule it suspends. A deviation that does not name its rule is a de
 | 1 | **Header cells are interactive** — one menu trigger per cell | **New §6.2 D-6** (§17.1), suspending §3.1's *"Exactly one header MUST show the active sort indicator; the rest MUST show no resting affordance"* and the derived AC-45 clause *"headers are not interactive anywhere in the product"* | The business owner asked for per-column controls in the component. The indicator half of AC-45 survives verbatim; the inertness half is replaced by a stronger, type-level guarantee (§9). |
 | 2 | **A resting `⌄` on every controllable header** | §3.1 — *"the rest MUST show no resting affordance"* | Named inside D-6. Hover-only capability does not exist for a keyboard operator (§7.2, AC-68's precedent). |
 | 3 | **The sort indicator is an arrow, not a chevron** | §3.1's `[observed]` chevron | Named inside D-6. §1.5 and §9.1 row 9 reserve the trailing caret for menu-openers; the two glyphs cannot both mean sort. §3.2's direction pair already uses arrows `[observed]`. |
-| 4 | **Column pinning on every dense table** | none — **new §8.5** (§17.2) **generalises an existing MUST** | §2.5 already requires *"a frozen identity column"* for bulk grids (`DESIGN.md:1200`) and says nothing about any other table. Shopify does it in the bulk editor `[observed]`; the legacy app does it with an RTL defect `[code]`. This is a §8 addition, not an exception. |
+| 4 | **Column pinning on every dense table** | none — **new §8.5** (§17.2) **generalises an existing MUST** | §2.5 already requires *"a frozen identity column"* for bulk grids (`DESIGN.md:1200`) and says nothing about any other table. The inherited baseline does it in its bulk editor; the legacy app does it with an RTL defect `[code]`. This is a §8 addition, not an exception. |
 | 5 | **The pinned boundary is a hairline, not an elevation tier** | none — **§1.3's closed set of three is intact** | Tier none is a legitimate row in §1.3's own table. The set is not extended, no fourth token appears, no x-offset is introduced. §7.3. |
 | 6 | **The columns control renders below 7 columns** | §9.1 — *"more than ~6 columns ⇒ a column-visibility control"* | Widened, not suspended: `> 6` **or** any column pinnable/hideable. Without it, pinning is unreachable on a five-column table. |
 | 7 | **The toolbar sort control grows a label when a sort is active** | none — §3.2's popover shape is untouched | §7.5: with horizontal scroll, a header caret can leave the viewport, so it can no longer be the only carrier. |

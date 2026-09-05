@@ -108,7 +108,7 @@ that hover may change emphasis and must never gate reachability — and knowing 
 reachability. The spec's own §1 names the problem: today "the operator cannot trust the rail to say
 where they are."
 
-`05-online-store/theme-editor-home-page-section-tree.webp` is the closest real precedent for the
+The inherited capture set is the closest real precedent for the
 whole two-level shape — a ~56 px icon rail beside a ~312 px labelled panel — and it is icon-only.
 It is also a three-item rail in a mode-switching editor, not a five-workspace console someone works
 in for eight hours. Structure adopted; label decision reversed, deliberately.
@@ -228,7 +228,7 @@ varying by language is a custom property, not a §6.2 deviation.
 | `--ev-shellbar-h` | 32 px | 32 px | impersonation / call / offline strip |
 | `--ev-navrow-h` | ~~32 px~~ **28 px** | ~~36 px~~ **32 px** | sub-tab row — **V1**. Gap between rows is **0**, so pitch ≡ height |
 | **`--ev-bg-nav`** | `#eaecf1` | `#eaecf1` | **V3** — ground for the rail and the sub-tab column. The darkest grey at which `--ev-text-2` clears 4.5 : 1 (4.523; `#e9ebf0` = 4.482 fails) |
-| **`--ev-nav-chip`** | `#dadee6` | `#dadee6` | **V3** — nav count-badge plate. 1.141 : 1 against `--ev-bg-nav`; Shopify's measured chip is 1.139 : 1 |
+| **`--ev-nav-chip`** | `#dadee6` | `#dadee6` | **V3** — nav count-badge plate. 1.141 : 1 against `--ev-bg-nav`; an ordinary console chip measures 1.139 : 1 |
 | `--ev-row-h` | 32 px | 36 px | table row (text) |
 | `--ev-row-h-media` | 44 px | 48 px | table row with a thumbnail |
 | `--ev-control-h` | 28 px | 32 px | input, select, compact button |
@@ -272,8 +272,8 @@ Full derivation, the pixel measurements behind them, and an honest account of wh
 | **`--ev-shadow-3`** | `dialog` and `alert-dialog` at **440 / 560 / 800** — every scrimmed surface, and nothing else. §5.0 forbids a modal inside a drawer, so tier 3 never composites over tier 2 |
 
 **The shell drawers take `--ev-shadow-2` *and* a 1 px `--ev-hairline` on their inline-start edge.**
-Both. The reference (`01-home/home-guide-side-panel-in-progress.webp`) shows a hairline and **no**
-measurable shadow, but §1.4's rule names drawers in a MUST, and Eyvar's drawer — unlike Shopify's
+Both. The reference  shows a hairline and **no**
+measurable shadow, but §1.4's rule names drawers in a MUST, and Eyvar's drawer — unlike the inherited one
 page-bound guide panel — opens over full-bleed content that reaches the viewport edge, where a
 `#E4E2DA` hairline on white is a 1.1 : 1 step. Argued in `00-decisions-r3.md` §1.5.
 
@@ -385,12 +385,12 @@ character and must not be flipped.
 > **SUPERSEDED by V2** (business-owner decision: *"this active state
 > looks ugly"*, *"remove the bluish line on the left"*). The paragraph below argued the marker
 > from a three-signal-redundancy premise. That premise was sound but the conclusion was wrong,
-> and the measurement says why: on `03-products/products-list-default.webp` Shopify's active
+> and the measurement says why: the inherited baseline's active
 > row has **no chroma anywhere** at its leading edge (`|R − B| = 0` across x = 2–15) and **no
 > darker stroke** at its border. It is a plain white pill and nothing else.
 >
 > The marker and the hairline were **compensation for a ground that was too light**. White on
-> our `--ev-bg` is 1.142 : 1; white on Shopify's `#EBEBEB` is 1.192 : 1. **V3's `--ev-bg-nav`
+> our `--ev-bg` is 1.142 : 1; white on a `#EBEBEB` nav is 1.192 : 1. **V3's `--ev-bg-nav`
 > (`#eaecf1`, 1.182 : 1) is what carries the pill instead**, and it is a hard dependency of
 > this change — removing the marker without darkening the ground makes the active state weaker
 > than the version that was rejected.
@@ -430,7 +430,7 @@ mechanical point of the rebuild (spec §3.1, **AC-08**). No handler ever sets it
 > `1.073 : 1` **lighter** than its ground — invisible — so everything was promoted to
 > `attention` just to be seen, and the warning chip is `1.005 : 1`, the *same luminance* as the
 > nav, so it reads as a **stain** rather than a chip. V3's `--ev-nav-chip` (`#dadee6`,
-> `1.141 : 1` **darker**, matching Shopify's measured `1.139 : 1`) gives the neutral chip a
+> `1.141 : 1` **darker**, matching the `1.139 : 1` an ordinary console runs) gives the neutral chip a
 > shape, which removes the incentive to reach for colour at all. **Nav chip digits are
 > `--ev-ink`**, because `--ev-text-2` on any plate dark enough to read fails AA at 11 px.
 >
@@ -550,9 +550,9 @@ two-entry-points-for-one-thing drift (**D-L10**) is not recreated.
 
 | Element | Spec |
 |---|---|
-| Ground | **`--ev-bg-nav` `#eaecf1`** (V3), not `--ev-bg`. Measured Shopify runs its nav a step darker than its canvas (1.055 : 1); ours ran them **identical** (1.000 : 1), which is why three regions read as one flat sheet |
+| Ground | **`--ev-bg-nav` `#eaecf1`** (V3), not `--ev-bg`. An ordinary console runs its nav a step darker than its canvas (1.055 : 1); ours ran them **identical** (1.000 : 1), which is why three regions read as one flat sheet |
 | Heading | the workspace's **full** name, 13 px/600 `--ev-ink`, **48 px row** (was 40), 1 px hairline below. No control in this row. **48 because `--ev-topbar-h` is 48** — at 40 the shell drew two full-width horizontal rules 8 px apart, with the first nav row starting between them |
-| Row | **28 px** (`--ev-navrow-h`, was 32), inset **8 px** from the column edges (was 4), radius 8 px, **8 px** inline padding (was 10), **0 px between rows** (was 2). Pitch **28**, measured parity with Shopify's 28; ours was 34 |
+| Row | **28 px** (`--ev-navrow-h`, was 32), inset **8 px** from the column edges (was 4), radius 8 px, **8 px** inline padding (was 10), **0 px between rows** (was 2). Pitch **28**, parity with the 28 an ordinary console runs; ours was 34 |
 | Group separator | **8 px** of extra space (was 13, which was also off the 4 px grid) |
 | List padding-block-start | 8 px, so the first row clears the header rule |
 | Label | 13 px/400 `--ev-text-2`; active 13 px/**600** `--ev-ink`. Never truncated — the longest label, `Ledger & Payment Controls`, measures ≈160 px at 13 px, and 224 px accommodates it plus a 3-digit badge with 12 px of slack |
@@ -633,7 +633,7 @@ D-3: light, 48 px, spanning the content region. Slots run inline-start → inlin
 | # | Slot | Spec |
 |---:|---|---|
 | 1 | Back arrow | 28 × 28 icon button, present when `route.shape` is `detail` or `bleed`, absent on sub-tab index routes (§2.2). Accessible name `Back`. **Mirrors** in Arabic (`←` → `→`, §9.5). Derived from the route's shape, never from a stack depth — this retires `navStack.length` (`:7005`, **D-L5**) |
-| ~~2~~ | ~~`Title › Subtitle`~~ | **DELETED — V4.** The screen said the same thing three times: the trail, the `<h1>`, and the subtitle beneath it. This slot's justification was wayfinding while the level-2 column was collapsed at 1280 — **decision 1 removes the collapse, so the column always shows the workspace name in its header and the sub-tab name in its active pill.** The trail now restates the two things immediately to its inline-start. Shopify's top bar carries no route echo either (measured on `03-products/products-list-default.webp`: store mark, centred search, bell, account chip — nothing else). **The inline-start of the top bar is left empty on index routes and is not filled with anything.** Remaining slots renumber to 1, 2, 3a–3d |
+| ~~2~~ | ~~`Title › Subtitle`~~ | **DELETED — V4.** The screen said the same thing three times: the trail, the `<h1>`, and the subtitle beneath it. This slot's justification was wayfinding while the level-2 column was collapsed at 1280 — **decision 1 removes the collapse, so the column always shows the workspace name in its header and the sub-tab name in its active pill.** The trail now restates the two things immediately to its inline-start. An ordinary console's top bar carries no route echo either (measured on the inherited capture: store mark, centred search, bell, account chip — nothing else). **The inline-start of the top bar is left empty on index routes and is not filled with anything.** Remaining slots renumber to 1, 2, 3a–3d |
 | 3 | Global search | §5. 400 px field, 28 px tall, **centred on the viewport** (§2.1), leading magnifier, trailing `⌘ K` / `Ctrl K` keycap chip. Expands in place into a 480 px anchored popover |
 | 4a | `Mine` chip | Secondary chip, 24 px, label `Mine` + count badge. Routes to `/operations/my-work` — **this fixes D-L1**, which routes it to Support Center. Renders nothing at zero. Accessible name from one key with a placeholder: `Work assigned to you: {count} items` |
 | 4b | `On call` chip | Secondary chip, 24 px, `On call: {name}`. Routes to `/admin/team`. When the rota has a gap it reads `On call: unassigned` in **warning** tone — that gap is the entire reason the chip exists |
@@ -719,7 +719,7 @@ call runs. One fewer component to build and one fewer thing to drift.
 §4.3.4 is explicit that this is part of the shell contract, not a convenience: four settings panes
 changed workspace and seven merges moved familiar pages, and search is what makes that survivable.
 
-Reference: `14-global-search/search-modal-order-results-list.webp` — an anchored popover on the
+an anchored popover on the
 field, not a centred command palette (§2.6 forbids relocating it), a removable scope chip inside the
 input, two-line result rows with inline badges, and an escape-hatch row always last.
 
@@ -778,7 +778,7 @@ Against §5.0's decision table, row by row:
 | *"A list of commands on an object → popover menu"* | The **bell preview** is this. The expanded notification centre is not — it is a browse-and-triage surface with four tiers and six filter chips, which §5.5 explicitly calls a drawer case ("browse-and-pick catalogue with more items than a menu can hold") |
 
 **Decision: one mechanism, three layers, all `sheet` per §5.5 — right-anchored, no scrim,
-`--ev-drawer-w` 406 px.** Reference: `04-customers/customer-segment-templates-panel.webp` shows the
+`--ev-drawer-w` 406 px.** The inherited capture shows the
 no-scrim drawer with the page fully legible behind it.
 
 **Why 406 px and not 648 px.** §5.5 permits ~648 px when a panel needs internal columns, and the
@@ -846,7 +846,7 @@ the legacy file — which is why this is the highest-value single component in t
 Two sizes, one model.
 
 **Bell popover (the preview)** — anchored under the bell, 360 px, top 8 by **priority, never
-recency alone**. Reference: `12-notifications/alerts-popover-with-channel-issue.webp`.
+recency alone**. 
 
 ```
                                           ┌────────────────────────────────┐ 360px
@@ -955,9 +955,9 @@ Four shapes, from `patterns.md` and spec §3.10. Every destination resolves to e
 > Two sibling sub-tabs in the same workspace cannot put their `<h1>` in two different places.
 > Nothing else about them differs, so the operator reads the movement as breakage.
 >
-> **Every single-column page is full width, 16 px inline padding.** Shopify keeps alignment
-> fixed the same way — content starts at x = 264 on both `03-products/products-list-default.webp`
-> (a dense table) and `04-customers/customers-empty-state.webp` (an empty state). The page frame
+> **Every single-column page is full width, 16 px inline padding.** The inherited baseline keeps alignment
+> fixed the same way — content starts at x = 264 on both the inherited capture
+> (a dense table) and the inherited capture (an empty state). The page frame
 > is the constant; what varies is what sits inside it.
 >
 > **Measure is not abandoned, it moves down one level** — to the thing that actually needs it,
@@ -973,13 +973,13 @@ Four shapes, from `patterns.md` and spec §3.10. Every destination resolves to e
 > `--ev-page-max: 1120px` survives as a token with one consumer, `FullBleedEditorShell` (§7.3),
 > which sits outside the layout and has no sibling to be inconsistent with.
 
-~~**Why 1120.** Four metric tiles at 268 px plus three 16 px gutters. Shopify's ~955 px is indicative
+~~**Why 1120.** Four metric tiles at 268 px plus three 16 px gutters. the inherited ~955 px is indicative
 only (R13) and Eyvar's tiles are denser and more numerous.~~ *(The arithmetic survives — it is now
 the tile grid's 4-column cap, not a page width.)*
 
 ### 7.2 Main + right rail — the 4 level-3 details and the profile's full-page escape
 
-Reference: `02-orders/order-detail-unfulfilled-payment-pending.webp`.
+Reference: the inherited capture.
 
 **Wide (≥ 1344 px):**
 
@@ -1051,7 +1051,7 @@ Three rules, all testable (**AC-34**):
 ### 7.3 Full-bleed editor — `/financials/pricing/plans/:planId/edit`, and nothing else
 
 The shell **unmounts entirely**: no rail, no sub-tab column, no app top bar (**AC-13**).
-Reference: `05-online-store/theme-editor-home-page-section-tree.webp`.
+
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
@@ -1130,7 +1130,7 @@ Fits with the column open; **AC-31** holds.
 | 4c | Primary | **at most one per header**, brand blue (R3, D-1). On a task-shaped page it moves to the bottom of the rail summary card and the header carries none — **except at base width**, where §7.2's rule returns it here |
 | 5 | Record pager | `‹ ›`, rightmost of all, **record-detail pages in an ordered list only**. Chevrons mirror in Arabic (§9.5) |
 | — | ~~Subtitle row~~ → **Meta row** | **RENAMED AND NARROWED — V4.** Second row, 12 px `--ev-text-2`, null renders nothing. **It carries only content derived from the data on screen** — counts, a record's identifiers, a timestamp. `Applied 19 Jul · Riyadh · APP-2201` (the example above) and `4 218 captains · 611 riders` (§7.1's example) are both correct; **`Where the shift stands right now` is not.** If it cannot change when the data changes, it does not belong here. `PageHeader`'s prop is renamed `subtitle` → `meta` so the wrong content is harder to pass by accident. **`routeTable.subtitleKey` stops being rendered on index routes** — a sub-tab that genuinely needs explaining gets that in its **first-run empty state**, where the operator is actually stuck, and nowhere else |
-| — | Unavailable actions | render **greyed in place**, never removed (§2.2). **Carve-out added by V4:** on a `first-run` empty state, a header action that the empty state's own action row **repeats** is **omitted** from the header, not disabled — it has *moved*, not become unavailable. Actions that are genuinely impossible with zero records (`Export`) stay, disabled. Observed on `04-customers/customers-empty-state.webp`, where Shopify drops `Export` / `Import` / `Add customer` from the header that `04-customers/customers-list-single-customer.webp` shows populated |
+| — | Unavailable actions | render **greyed in place**, never removed (§2.2). **Carve-out added by V4:** on a `first-run` empty state, a header action that the empty state's own action row **repeats** is **omitted** from the header, not disabled — it has *moved*, not become unavailable. Actions that are genuinely impossible with zero records (`Export`) stay, disabled. The inherited baseline does the same: it drops `Export` / `Import` / `Add customer` from the header that the inherited capture shows populated |
 | — | Header during loading and error | **the header renders in full**, with its actions **disabled in place**. The title comes from the route table and is known before the fetch starts; a header that appears after the data is a layout shift on every navigation (V4) |
 | — | Alignment | title's inline-start edge = first card's inline-start edge; last control's inline-end edge = the rail's inline-end edge (§2.2) |
 | — | Scroll | the page header **scrolls with the content**. The top bar is the fixed wayfinding; two sticky bars is one too many at 13 px |
@@ -1142,9 +1142,9 @@ Fits with the column open; **AC-31** holds.
 ### 9.1 The index table every list inherits
 
 One **card** holds the view tabs, the filter row, the header row, the rows and the bulk action bar.
-Never a bare `<table>` (§3.1). Reference: `03-products/products-list-default.webp`,
-`03-products/products-list-bulk-selection-action-bar.webp`,
-`03-products/products-list-search-and-filters.webp`, `03-products/products-list-sort-popover.webp`.
+Never a bare `<table>` (§3.1). Reference: the inherited capture,
+the inherited capture,
+the inherited capture, the inherited capture.
 
 ```
 ┌─ card ──────────────────────────────────────────────────────────────────────────────┐
@@ -1184,7 +1184,7 @@ Never a bare `<table>` (§3.1). Reference: `03-products/products-list-default.we
 **Alignment — R4, and the Arabic clause.** Numeric, currency and count columns use
 `text-align: end` (**never** `text-align: right` — §9.2), with header and value sharing one edge and
 `font-variant-numeric: tabular-nums` on every one. **Eyvar inline-end-aligns every numeric column,
-on every screen**; do not reproduce Shopify's customers-index exception (§3.1). In Arabic the *column* mirrors — the numbers
+on every screen**; do not reproduce the inherited customers-index exception (§3.1). In Arabic the *column* mirrors — the numbers
 hug the physical left edge — and the *numeral run* does not (**AC-73**).
 
 **Row and header**
@@ -1370,8 +1370,7 @@ Applied to People:
 
 ### 10.1 The two layouts, and never a third
 
-Reference: `09-discounts/discount-create-shipping-with-code.webp` (layout A),
-`15-account/account-general-unsaved-changes.webp` (layout B).
+Two layouts, A and B, are drawn below.
 
 **A. Resource editor** — main column of cards + right rail (status / summary / metadata only).
 Used by the plan editor and every create/edit surface. The rail holds a live `Summary` card that
@@ -1494,7 +1493,7 @@ pairs, with `aria-live="polite"`.
    the field. Never colour alone. The label above keeps its normal colour.
 2. **Page-level critical banner.** **One**, first element of the content block spanning main + rail,
    stating the **count** and listing each blocking item. **A pale tinted card, not the saturated red
-   strip** in `02-orders/draft-order-validation-error-banner.webp` — that is banner Family A and
+   strip** in the inherited capture — that is banner Family A and
    **R1 kills it**. The page's primary and save actions render **disabled but visible** while it is
    up.
 3. **Disabled-until-valid.** `Save` greyed in the save bar; `Discard` always enabled (**AC-52**).
@@ -1510,13 +1509,13 @@ Never two page-level banners: two or more conditions merge into one carrying a c
 
 > **AMENDED by the visual-refinement rulings.** The two kinds are right and stay. Three
 > geometry / behaviour corrections, all from measuring
-> `04-customers/customers-empty-state.webp` against the build:
+> the inherited capture against the build:
 >
-> 1. **The state renders inside a card.** Shopify's empty state is a **442 px tall card** at the
+> 1. **The state renders inside a card.** The inherited empty state is a **442 px tall card** at the
 >    content region's full width, with `Learn more about customers.` **outside and 16 px beneath
 >    it**. Ours rendered directly on `--ev-bg` with no ground, which reads as broken chrome
 >    rather than a designed state. This applies to **all four states**, not just this one.
-> 2. **Illustration is 144 px, not ~160.** Shopify's measures **146 × 146** CSS px; 144 is the
+> 2. **Illustration is 144 px, not ~160.** The inherited one measures **146 × 146** CSS px; 144 is the
 >    nearest 4 px-grid value below it (D-2). Padding-block inside the card is 64.
 > 3. **The header carve-out** — see §8's `Unavailable actions` row. A header action the empty
 >    state repeats is *omitted*, not disabled.
@@ -1527,7 +1526,7 @@ Never two page-level banners: two or more conditions merge into one carrying a c
 | **`no-match`** — empty card, section, timeline, or filtered-to-zero | **One grey sentence**, 13 px `--ev-text-2`, centred, `py-10`, **with the card's toolbar still rendered above it** so the query that returned nothing can be changed. No illustration, no heading. One plain-button action only where one genuinely exists (`Clear filters` when `table.isFiltered`, nothing otherwise) |
 
 **Choosing wrongly is a defect.** Filtered-to-zero is never `first-run` — the illustration implies
-the data does not exist (**AC-37**, **AC-38**). Reference: `04-customers/customers-empty-state.webp`.
+the data does not exist (**AC-37**, **AC-38**).
 
 Exemplar copy (Operations › People, `Captains` view):
 
@@ -1918,13 +1917,13 @@ a defect.
 |---:|---|---|---|
 | 1 | **Two-level navigation** — 80 px icon+label workspace rail + 224 px sub-tab column, ~~operator-collapsible~~ **always visible** | **New §6.2 D-4** — see §16.1 for the full text and the five §2.1 clauses it names | Replaces the hover-expanding icon rail. Written into the partial as part of this step. **The collapse clause is struck** (business-owner decision 1, the visual-refinement rulings V7) |
 | 2 | **Settings is a route** — Admin is a workspace and its level-2 column is its settings nav | **New §6.2 D-5**, suspending §2.4's overlay and `nav 289 + gutter 27 + pane 707` rules | Reclassified from defect **D3**. See §16.2 |
-| ~~3~~ | ~~**Nav / canvas separated by a 1 px hairline, not a tonal step**~~ **→ WITHDRAWN, V3** | ~~§2.1~~ — nothing is suspended any more; §2.1 is now **honoured** | The premise was *"Eyvar's token set has no neutral darker than `--ev-bg`"*. It now has one: **`--ev-bg-nav` `#eaecf1`**, 1.035 : 1 against the canvas (Shopify's measured step is 1.055 : 1). The deviation existed because the token was missing, not because the rule was wrong — and the measurement showed the cost: with nav ≡ canvas at **1.000 : 1**, the white active pill fell to 1.142 : 1 and had to be propped up with a border and a 3 px marker, which is what the business owner rejected. **Withdrawing this deviation is what let V2 delete them.** The hairline stays as well; a step *and* a rule is what the reference does |
+| ~~3~~ | ~~**Nav / canvas separated by a 1 px hairline, not a tonal step**~~ **→ WITHDRAWN, V3** | ~~§2.1~~ — nothing is suspended any more; §2.1 is now **honoured** | The premise was *"Eyvar's token set has no neutral darker than `--ev-bg`"*. It now has one: **`--ev-bg-nav` `#eaecf1`**, 1.035 : 1 against the canvas (the inherited step measures 1.055 : 1). The deviation existed because the token was missing, not because the rule was wrong — and the measurement showed the cost: with nav ≡ canvas at **1.000 : 1**, the white active pill fell to 1.142 : 1 and had to be propped up with a border and a 3 px marker, which is what the business owner rejected. **Withdrawing this deviation is what let V2 delete them.** The hairline stays as well; a step *and* a rule is what the reference does |
 | 4 | **The top bar spans the content region; both nav columns run full height** | §2.1 — *"a dark top bar spanning the full viewport width"* | D-3 already moved the wordmark to the rail, which is what made the full-width bar's left slot meaningful. Named inside the new D-4 |
 | 5 | **The save bar's inline-start slot carries the dirty label, not a logo** | §2.3 — *"MUST keep the product logo in the left slot"* | Already void for Eyvar under **D-3**; restated so nobody restores it |
 | 6 | **`--ev-topbar-h` is 48 px, not D-3's 50 px** | none — this is **D-2** applied | 50 px is off-grid. D-2 sanctions smaller values **on the 4 px grid**; D15 records off-grid literals as a defect |
 | 7 | **The `new` badge tone is an outline, not a fill** | none — **R7's five tones are intact** | The token set has no fifth pale tint and §6.4 forbids adding a colour. An outline is a treatment, not a sixth tone |
 | 8 | **The toast is dark** | none — this **closes D7** | Recorded because the legacy toast is a light tinted card and someone will "restore" it as a regression fix |
-| 9 | **Sub-tab nav row is 28 px, matching Shopify rather than undercutting it** | none — **R13** voids §2.3's pixel figure; **D-2** sanctions smaller, it does not *require* smaller | Recorded because it looks like D-2 is unhonoured. It is not: the binding thing is the §2.3 ↔ §3.1 **relationship** (nav row shorter than data row), which 32 broke and 28 restores. 24 would be denser still and was rejected under **§7.7** — at 24 a 20 px line box leaves no room for a focus indicator inside the row, and §7.7 may not be traded against D-2 |
+| 9 | **Sub-tab nav row is 28 px, matching the ordinary console rhythm rather than undercutting it** | none — **R13** voids §2.3's pixel figure; **D-2** sanctions smaller, it does not *require* smaller | Recorded because it looks like D-2 is unhonoured. It is not: the binding thing is the §2.3 ↔ §3.1 **relationship** (nav row shorter than data row), which 32 broke and 28 restores. 24 would be denser still and was rejected under **§7.7** — at 24 a 20 px line box leaves no room for a focus indicator inside the row, and §7.7 may not be traded against D-2 |
 | 10 | **One page width. `SingleColumnPage` has no `capped` mode** | §7.1's own two-mode rule (now struck) | Measured: `capped` moved the `<h1>` **244 px** between two sibling sub-tabs at 1920. Measure moves to the tile grid, the form column and the prose block, where it cannot move the page frame. the visual-refinement rulings V5 |
 | 11 | **A workspace tile's badge is never toned** | **Q12**'s tone roll-up (`00-decisions-r3.md` §4) and **AC-27**'s tone assertion. AC-27's *count* clause is untouched | A tile's number is a sum of heterogeneous queues and a sum has no status. Measured: the old rule left **4 of 5 tiles permanently amber**. the visual-refinement rulings V6 |
 | 12 | **The nav count badge does not use the badge component's fills** | none — **R7**'s five tones and **R15**'s 8 px radius both hold | The badge palette is tuned for `--ev-surface`. On `--ev-bg-nav` the neutral fill lands *lighter* than its ground (1.073 : 1, invisible) and the warning fill lands at **1.005 : 1** — literally the same luminance as the nav, so it reads as a stain rather than a chip. The nav gets `--ev-nav-chip` with `--ev-ink` digits. the visual-refinement rulings V3 |
@@ -1935,7 +1934,7 @@ a defect.
 **The R-3 / R-1 / F-9 / Q12 decision pass adds no tenth.** The elevation scale (§1.3) creates the
 token category §6.4 requires and legacy defect **D16** records as missing — that is compliance with
 §6.4, not an exception to it, and it introduces no colour, so no R19-style ruling applies.
-`--ev-shadow-3`'s shorter reach than the measured Shopify figure is **R13 plus D-2 applied**, the same
+`--ev-shadow-3`'s shorter reach than the inherited figure is **R13 plus D-2 applied**, the same
 way `--ev-topbar-h: 48px` was. Reasoning in `00-decisions-r3.md` §5.
 
 ---

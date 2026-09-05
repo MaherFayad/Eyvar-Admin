@@ -22,13 +22,7 @@
 > **Register read in full:** `DECISIONS.md` **D1–D14**. Four of the rulings below are
 > amendments to it and each says so.
 >
-> **Reference examined, this pass, not recalled:**
-> `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` ·
-> `07-analytics/analytics-live-view-globe-map.webp` ·
-> `08-finances/finances-overview-earnings-donut-and-payouts.webp` ·
-> `00-auth/login-password-step-empty.webp` ·
-> `navattic-web/5b908c10.webp` · `navattic-web/82923d3f.webp` · `navattic-web/223f15e5.webp`
->
+> >
 > **Rulings applied:** R5a · R6 · R7 · R8 · R9 · R10 · R13 · R15 · R16 · R17 · R19 ·
 > sanctioned deviations **D-9**, **D-11**. **D-2 is retired** (D7) and is cited nowhere.
 >
@@ -79,16 +73,13 @@ or overrule me, which is their right.
 
 ### 1.2 The evidence, in the order that decided it
 
-**(a) There is no categorical chart in either reference set. 174 frames, zero.** Shopify's
+**(a) There is no categorical chart in any reference set examined. 174 frames, zero.** One set's
 analytics dashboard draws six chart cards and every one is a single blue line with a pale
-area fill; the only second mark on any of them is the dotted comparison period
-(`07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`). Navattic's analytics board
-draws six sparklines, all one blue (`navattic-web/5b908c10.webp`). The one chart in either set
+area fill; the only second mark on any of them is the dotted comparison period. The other's analytics board
+draws six sparklines, all one blue. The one chart in either set
 that *structurally* needs categorical colour — the Finances earnings donut — resolves to a
-**single teal segment** because there is one channel
-(`08-finances/finances-overview-earnings-donut-and-payouts.webp`). Live View's `Top locations`
-draws ranked horizontal bars, all one hue, distinguished by their **labels**
-(`07-analytics/analytics-live-view-globe-map.webp`). Neither reference has ever had to solve
+**single teal segment** because there is one channel. Live View's `Top locations`
+draws ranked horizontal bars, all one hue, distinguished by their **labels**. Neither reference has ever had to solve
 this, so neither can be cited for it, and `globals.css:959` deleting the ramp is not an
 oversight to correct — it is the reference restated.
 
@@ -465,12 +456,11 @@ contract ruling rather than a design one.
 
 - **Funnel/label rows** — `Online store conversion rate` renders `Added to cart` over a grey
   sub-label `0 sessions`, a right-aligned `0.00%`, and a delta at the far right
-  (`07-analytics/analytics-dashboard-today-no-data.webp`, and visible again in
-  `analytics-dashboard-saved-toast-last-7-days.webp`).
+  .
 - **Ranked bar rows** — Live View's `Top locations` renders `Singapore • Singapore` above a
   horizontal bar with the value `4` at its end, then `Boardman • United States` / `2` below it.
   `Top products` renders a thumbnail, a linked title, and a right-aligned amount
-  (`07-analytics/analytics-live-view-globe-map.webp`).
+.
 
 **Eyvar takes one construction, not two**, and it is the union of the two:
 
@@ -1004,7 +994,7 @@ rule**, which is exactly the difference between a rule and a rule with a hole in
 R15's current text, in the shipped `DESIGN.md`:
 
 > *"**THE AVATAR CLAUSE IS KILLED BY D7.** '~30px rounded squares, never circles' is
-> falsified: Navattic's identity avatar is a **32px circle**, and this is measured rather than
+> falsified: the identity avatar is a **32px circle**, and this is measured rather than
 > eyeballed — the horizontal inset one destination pixel below the top edge is 5px, which a
 > 9-destination-px-radius **circle** predicts at 4.88 and an 8px rounded square predicts at
 > 1.54. **Avatars are 32px circles.**"*
@@ -1023,7 +1013,7 @@ square"*).
 > `ui/avatar.tsx` gains `shape?: 'person' | 'entity'`, defaulting to **`person`**
 > (`rounded-full`). `entity` is `rounded-lg` at 8px and is for a **corporate account, a
 > workspace, an app, or a plan** — anything whose avatar is a logo rather than a face. This is
-> not a hedge: a circle crops a wordmark badly and reads as a person, and Shopify separates the
+> not a hedge: a circle crops a wordmark badly and reads as a person, and the inherited baseline separates the
 > two for the same reason.
 
 Consequences: `AccountMenu`'s 28px avatar becomes a circle and its two contradictory comments
@@ -1353,7 +1343,7 @@ ships, §7's build ships, §8's build ships — so a decision can take as long a
 
 > | # | Conflict | Ruling for Eyvar |
 > |---|---|---|
-> | R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles, and R15 governs three object classes and no others: badges, toasts and avatars.** The **badge radius is 4px** and the **toast radius 8px** — neither is a stadium pill, and Eyvar's existing `border-radius:999px` badges (`:117`) are a defect under this ruling. **Avatars are 32px circles for a person and 8px rounded squares for a non-person identity** (a corporate account, a workspace, an app): the circle is measured, not eyeballed — Navattic's identity avatar's horizontal inset one destination pixel below the top edge is 5px, which a 9-destination-px-radius circle predicts at 4.88 and an 8px rounded square predicts at 1.54 (D7; `design/03-visual-language.md` §4.5, §6). **Everything else takes its radius from the token ladder** — `--radius-sm` 4, `--ev-radius-control` 8, `--ev-radius-card` 8 — and R15 has nothing to say about it. **`rounded-full` is legal outside those three classes only where the shape is the mechanism rather than a style:** a switch's track and thumb, a segmented control's track and its active pill, and a progress or meter track. In each the fully-rounded end is what states that something travels or fills. **A fourth candidate must argue that its geometry is load-bearing, in a ruling, not in a component file.** `DECISIONS.md` **D12**'s narrow exception is withdrawn as unnecessary — the segmented control is covered by the principle, not exempted from the rule. |
+> | R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles, and R15 governs three object classes and no others: badges, toasts and avatars.** The **badge radius is 4px** and the **toast radius 8px** — neither is a stadium pill, and Eyvar's existing `border-radius:999px` badges (`:117`) are a defect under this ruling. **Avatars are 32px circles for a person and 8px rounded squares for a non-person identity** (a corporate account, a workspace, an app): the circle is measured, not eyeballed — the identity avatar's horizontal inset one destination pixel below the top edge is 5px, which a 9-destination-px-radius circle predicts at 4.88 and an 8px rounded square predicts at 1.54 (D7; `design/03-visual-language.md` §4.5, §6). **Everything else takes its radius from the token ladder** — `--radius-sm` 4, `--ev-radius-control` 8, `--ev-radius-card` 8 — and R15 has nothing to say about it. **`rounded-full` is legal outside those three classes only where the shape is the mechanism rather than a style:** a switch's track and thumb, a segmented control's track and its active pill, and a progress or meter track. In each the fully-rounded end is what states that something travels or fills. **A fourth candidate must argue that its geometry is load-bearing, in a ruling, not in a component file.** `DECISIONS.md` **D12**'s narrow exception is withdrawn as unnecessary — the segmented control is covered by the principle, not exempted from the rule. |
 >
 > **Nothing about the built product changes when this is signed** except five stale code
 > comments and one component default (§14). The bulk-action bar stays at 8px; it always

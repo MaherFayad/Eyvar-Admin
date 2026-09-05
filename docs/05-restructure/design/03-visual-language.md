@@ -806,6 +806,6 @@ hand-edited.**
 | `01-foundations.md` | A D7 banner at the head of §1: the section's colour, spacing, radius, type and elevation figures are **provenance for how the rules were derived, not authority over what Eyvar ships**. Same for §2, §3, §4, §5. |
 
 **Screenshot citations in §1–§5 are kept.** They are what makes the derivation auditable —
-you can still open `products-list-default.webp` and check what the analyst saw. They are now
+you can still open the inherited capture and check what the analyst saw. They are now
 **provenance, not authority**, and each section says so at its head. Deleting them would
 destroy the audit trail and leave §1–§5 as unsourced assertion, which is worse.

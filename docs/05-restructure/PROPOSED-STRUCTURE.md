@@ -1,9 +1,13 @@
-# Proposed Information Architecture
+# The information architecture
 
-> **Author:** Head of Operations / Business Owner
-> **Audience:** founders, engineering lead, ops lead, finance lead
-> **Basis:** `docs/00-index/GROUND-TRUTH-INVENTORY.md` (41 pages · 21 settings sub-tabs · 1,042 functions · 355 click handlers), 60 module documents in `docs/01-modules/`, and `docs/04-relations/data/db-usage-matrix.tsv` (1,183 collection↔function edges).
-> **Companion document:** [`PAGE-TRACEABILITY-MATRIX.md`](PAGE-TRACEABILITY-MATRIX.md) — where each of the 41 legacy pages went.
+> **Status:** adopted as written, `DECISIONS.md` **D1** and **D1a**. Five workspaces, thirty-five
+> sub-tabs. A disagreement with anything here goes into `DECISIONS.md`; it is not re-argued in a
+> spec or a review.
+> **Basis:** `docs/00-index/GROUND-TRUTH-INVENTORY.md` (the legacy console: 41 pages, 21 settings
+> sub-tabs, 1,042 functions, 355 click handlers), the 60 module documents in `docs/01-modules/`,
+> and `docs/04-relations/data/db-usage-matrix.tsv` (1,183 collection-to-function edges).
+> **Companion document:** [`PAGE-TRACEABILITY-MATRIX.md`](PAGE-TRACEABILITY-MATRIX.md) — where
+> each of the 41 legacy pages went.
 
 ---
 
@@ -13,7 +17,7 @@ Eyvar's operations panel has 41 pages hanging off 9 flat sidebar sections, plus 
 
 The list has grown by accretion. It is organised by *how the software was built*, not by *how the business is run*. The clearest evidence is that four separate sidebar sections — Overview, Operations, Fleet, and half of Support — are all worked by the same one or two people during the same shift, while Finance's three pages and Config's 21 settings tabs are opened by a different person once a week.
 
-**What I am proposing:** collapse everything into **5 workspaces** with **34 sub-tabs**, Slack-style, where each workspace corresponds to a job someone is actually paid to do.
+**The structure:** everything collapses into **5 workspaces**, each corresponding to a job someone is actually paid to do. D1a later adds Reports, making thirty-five sub-tabs.
 
 | | Today | Proposed |
 |---|---|---|
@@ -33,7 +37,7 @@ The list has grown by accretion. It is organised by *how the software was built*
 
 **Two things that stop being tabs and become part of the shell:** the **360° profile** (`p-profile`) and the **notification centre** (`p-notifications-all`). Neither belongs to a workspace. `riders`, `drivers`, `subscriptions` and `trips` are touched by 112, 112, 86 and 61 distinct functions respectively; they cut across all five workspaces. Making any workspace their owner would be arbitrary. They get an entity-detail layer reachable identically from all five.
 
-**The honest part.** This panel has **zero persistence and zero network calls**. `grep -n "localStorage\|sessionStorage"` returns zero matches across all 21,857 lines; so do `indexedDB`, `document.cookie`, `fetch` and `XHR` (`00b` §9.1, `00d` §4, `03c` §13). Every approval, payout, refund, suspension and settings change is destroyed on refresh. Roughly a third of what looks like functionality is scaffolding: seven of the Finance page's KPI tiles are hardcoded strings that contradict the live table two inches below them; the promo engine has no redemption path; the surge/rate-card system prices nothing; `renderOnCall()` targets a DOM element that does not exist. **This proposal is an information architecture for a rebuild, not a re-skin of the current file.** Section 12 names exactly what must not be carried forward.
+**The honest part.** This panel has **zero persistence and zero network calls**. `grep -n "localStorage\|sessionStorage"` returns zero matches across all 21,857 lines; so do `indexedDB`, `document.cookie`, `fetch` and `XHR` (`00b` §9.1, `00d` §4, `03c` §13). Every approval, payout, refund, suspension and settings change is destroyed on refresh. Roughly a third of what looks like functionality is scaffolding: seven of the Finance page's KPI tiles are hardcoded strings that contradict the live table two inches below them; the promo engine has no redemption path; the surge/rate-card system prices nothing; `renderOnCall()` targets a DOM element that does not exist. **This is an information architecture for a rebuild, not a re-skin of the legacy file.** Section 12 names what is not carried forward.
 
 ---
 
@@ -47,7 +51,7 @@ These are the rules I applied. Where I rejected a rule, I say so and why.
 The test for a sub-tab is "is there a person whose shift consists mostly of this?" Not "is this a different table?" This is why Drivers, Driver Onboarding and Compliance merge: one person does supply. It is also why Payouts & Escrow and Cash & Driver Debt stay separate: the first is a scheduled disbursement run, the second is a collections and trust problem with its own eight KPIs (`12b` §8.1–8.2).
 
 **P2 — Workspaces own queues and decisions; entities own their records.**
-No workspace owns a rider, a driver, a subscription or a trip. The `db-usage-matrix.tsv` makes this non-negotiable: those four collections are touched by 112 / 112 / 86 / 61 distinct functions each, spread across every proposed tab. Each workspace surfaces the *slice* of an entity it needs as a card on the shared 360° profile. See §9.
+No workspace owns a rider, a driver, a subscription or a trip. The `db-usage-matrix.tsv` makes this non-negotiable: those four collections are touched by 112 / 112 / 86 / 61 distinct functions each, spread across every sub-tab. Each workspace surfaces the *slice* of an entity it needs as a card on the shared 360° profile. See §9.
 
 **P3 — Three levels, hard ceiling: Tab → Sub-tab → Detail.**
 A filter or a saved view on an index table is **not** a navigation level — it is a control on the same screen. This is the pattern already sanctioned in `docs/06-design-reference/_partials/06-eyvar-mapping.md` §6.4 ("Index table + view tabs + filters + bulk action bar"). It is what lets Requests hold both instant and subscription requests, and lets People hold captains, applications and compliance, without a fourth level.
@@ -70,7 +74,7 @@ An Overview built on hardcoded figures is worse than no Overview, because it tra
 Tempting — the current sidebar has one. But predictive signals and fraud flags are *inputs to a decision*, not a place you live. Neither has an owned work queue; both terminate in a `go()` to another page (`02a` §11: every action button is `go('compliance')`, `go('safety')`, `go('zones')`). They belong inside Management as one sub-tab.
 
 **Rejected: merging Coverage & Capacity into the intelligence surface.**
-The brief proposed "Predictive + Fraud + Coverage into one intelligence surface." I merged the first two and rejected the third. Coverage & Capacity is not a signal — it is a work queue with two permission-gated write actions (`assignBackup` L13187, `promoteBackup` L13226, both requiring `manage_subscriptions`) and a named daily outcome: every active subscription must have a pre-assigned backup captain. Filing it under intelligence would move a daily ops task into a screen an executive reads weekly. It goes to Operations › Trip Assurance.
+An early sketch put Predictive, Fraud and Coverage on one intelligence surface. The first two merged; the third did not. Coverage & Capacity is not a signal — it is a work queue with two permission-gated write actions (`assignBackup` L13187, `promoteBackup` L13226, both requiring `manage_subscriptions`) and a named daily outcome: every active subscription must have a pre-assigned backup captain. Filing it under intelligence would move a daily ops task into a screen an executive reads weekly. It goes to Operations › Trip Assurance.
 
 **Rejected: a separate "Fleet" workspace.**
 Fleet is currently 7 sidebar items. But three of them (Captain Fairness, Coverage, Plan Commitment) are subscription-delivery concerns, one (Safety) is an incident queue, and only Drivers + Compliance are genuinely roster management. A Fleet tab would be a container for four unrelated jobs. Splitting them by *who works them* is the whole point of this exercise.
@@ -79,7 +83,7 @@ Fleet is currently 7 sidebar items. But three of them (Captain Fairness, Coverag
 The brief grouped "Drivers + Driver onboarding + Compliance + Safety". I accepted the first three and rejected Safety. Every safety incident is a coded case with a four-step protocol, an SLA clock and a 24/7 on-call escalation — structurally identical to a ticket, and worked by the same people at 02:00. Its one operational side effect (precautionary suspension) is a driver-record action, reachable from the 360° profile from any workspace. Safety goes to Customer Support.
 
 **Rejected: keeping Settings as a single page with its own left nav.**
-It works visually — the Shopify reference sanctions it (§2.4) — but it hides the fact that a third of those 21 tabs are not settings. Payment gateways with live transaction counts is a finance report. The double-entry ledger with a trial balance is a finance control. The rate card with a propose/approve workflow is pricing. Leaving them in a config drawer is why nobody in Finance has ever opened them.
+It works visually — a settings drawer is an ordinary console pattern (§2.4) — but it hides the fact that a third of those 21 tabs are not settings. Payment gateways with live transaction counts is a finance report. The double-entry ledger with a trial balance is a finance control. The rate card with a propose/approve workflow is pricing. Leaving them in a config drawer is why nobody in Finance has ever opened them.
 
 **Rejected: a "Reports" or "Analytics" workspace.**
 Every workspace needs its own numbers. A separate reports tab guarantees the numbers drift from the operational screens — which is precisely the defect `16b-settings-data-integrity.md` was written to solve ("a rider profile showed '6 trips · 750.67 SAR paid' in the header and 'no trips on record' two centimetres below it", L18471–18481). Numbers stay next to the work.
@@ -202,7 +206,7 @@ This is the largest workspace by a wide margin: **21 of the 41 pages**. That is 
 | **Subscriptions** | `subscriptions` + `renewal` | All · Active · Expiring ≤7d · At risk · Frozen | Renewal Pipeline is a date filter on the subscription list plus a health score. It is `DB.subscriptions` filtered to `ends` within 7 days of `EYVAR_TODAY` (`L11232`) scored by `subHealthScore()` (`L14210`). That is a saved view, not a page. |
 | **Corporate Accounts** | `corporate` + `corp-detail` | — | Own sub-tab, not a view of Subscriptions, because companies are a different entity with their own detail page. Placed in Operations rather than Financials on the evidence of the permission gates: 5 of 6 write actions require `manage_subscriptions`; only invoice-sending requires `view_finance`. |
 | **Trips** | `trips` + `quickrides` + `live` (history mode) | All · Quick rides · Subscription legs · Flagged · Low rating · Route history | Quick Rides is `DB.trips` filtered to `kind==='Quick ride'` — the same table with a different filter. Its four KPI tiles are **entirely hardcoded** (`06b` §17 item 1) and its "today" claim is false (no date filter is applied, `L3443`). Route history is a replay control over the same trip records; it belongs with trips, not with live dispatch. |
-| **Trip Assurance** | `readiness` + `coverage` + `commitment` | Departing next 24h · No backup captain · Awaiting confirmation · Absences | **The most consequential merge in this proposal.** All three answer one question: *will tomorrow's subscription trip actually happen?* Readiness watches the next few hours (driver available? moving? rider confirmed?). Coverage watches structural exposure (does this subscription have a backup captain?). Commitment watches the captain's nightly confirmation and the absence counter. They share `DB.upcomingSubTrips` (27 functions), `DB.subBackups`/`backupRegistry`, `DB.planConfirmations` and `DB.absenceEvents` (16 functions) — and today an operator has to open three pages to assemble one picture of one trip. |
+| **Trip Assurance** | `readiness` + `coverage` + `commitment` | Departing next 24h · No backup captain · Awaiting confirmation · Absences | **The most consequential merge here.** All three answer one question: *will tomorrow's subscription trip actually happen?* Readiness watches the next few hours (driver available? moving? rider confirmed?). Coverage watches structural exposure (does this subscription have a backup captain?). Commitment watches the captain's nightly confirmation and the absence counter. They share `DB.upcomingSubTrips` (27 functions), `DB.subBackups`/`backupRegistry`, `DB.planConfirmations` and `DB.absenceEvents` (16 functions) — and today an operator has to open three pages to assemble one picture of one trip. |
 | **People** | `drivers` + `all-pending` + `applicant-detail` + `compliance` + `riders` | Captains · Applications · Compliance · Riders | Onboarding is the front of the captain lifecycle and compliance is the back of it; both write to the same record. The evidence that the split is harmful: `DRV-0106` exists on the roster but has **no `DB.driverDocs` entry**, so it is invisible to `complianceScan()` and can never be auto-suspended for an expired document (`08a` §17 item 9). Two pages, two data sets, one entity, one gap nobody sees. Riders joins as a fourth view because it is the same shape of screen (roster + risk filter + drill-down to 360°). |
 
 ### 5.3 Structure
@@ -433,7 +437,7 @@ flowchart TB
 
 `docs/04-relations/data/db-usage-matrix.tsv` settles the argument about who owns what:
 
-| Collection | Distinct functions touching it | Appears in which proposed tab? |
+| Collection | Distinct functions touching it | Which sub-tab it appears in |
 |---|---:|---|
 | `riders` | **112** | all 5 |
 | `drivers` | **112** | all 5 |
@@ -590,7 +594,7 @@ Three defects to fix on the way: `alert` — by far the most common runtime type
 | 7 | Config → Settings → **Permissions** tab → expand a page row → per-action checkboxes | 4 | Admin → Team & Access → *(matrix expands inline; expansion is not navigation)* | **2** |
 | 8 | Support → **Support Center** → *ticket-detail* → linked trip → 360° profile | 4 | Customer Support → Tickets → Ticket detail → *(profile opens as a drawer)* | **3** |
 
-### 11.2 Every proposed path proven ≤ 3
+### 11.2 Every path is at most three levels deep
 
 | Destination class | Path | Levels |
 |---|---|:--:|
@@ -610,7 +614,7 @@ Three defects to fix on the way: `alert` — by far the most common runtime type
 
 ---
 
-## 12. What I am retiring, and why
+## 12. What is retired, and why
 
 ### 12.1 Pages retired outright
 
@@ -695,7 +699,7 @@ Three defects to fix on the way: `alert` — by far the most common runtime type
 
 ## 13. Risks & open questions for the business
 
-### 13.1 Risks in the proposal itself
+### 13.1 Risks the structure carries
 
 | # | Risk | Mitigation |
 |---|---|---|
@@ -703,7 +707,7 @@ Three defects to fix on the way: `alert` — by far the most common runtime type
 | R2 | **Four settings tabs move to Financials.** Finance has never opened them; they will feel unfamiliar. | Global search resolves the old names to the new locations. One training session. |
 | R3 | **The 360° drawer is a bigger engineering commitment than a page.** Overlay + scoped back-stack + 11 entity types + section contributions from 5 workspaces. | It is also the highest-value single component in the rebuild — `openProfile` already has 100 call sites. Build it second, right after persistence. |
 | R4 | **Merging Readiness + Coverage + Commitment into Trip Assurance creates a dense screen.** | Views, not stacked cards. Default view = "departing in the next 24h", which is what the ops manager opens it for. |
-| R5 | **Support gains Safety and Fairness.** With 3 permissions today, the Support role is not equipped for a suspension decision. | This is why §10.4 proposes a Trust & Safety role. Until it exists, Safety & Incidents write actions stay Ops-Manager-gated and Support sees them read-only. |
+| R5 | **Support gains Safety and Fairness.** With 3 permissions today, the Support role is not equipped for a suspension decision. | This is why §10.4 names a Trust & Safety role. Until it exists, Safety & Incidents write actions stay Ops-Manager-gated and Support sees them read-only. |
 
 ### 13.2 Open questions I need the business to answer
 
@@ -718,7 +722,7 @@ Three defects to fix on the way: `alert` — by far the most common runtime type
 
 ---
 
-## Addendum — the six runtime groups this proposal did not compare against
+## Addendum — the six runtime groups checked against this structure
 
 **Added after the census correction in `00-index/GROUND-TRUTH-INVENTORY.md` §Q.**
 
@@ -740,10 +744,10 @@ tab keys and their permission ownership, never from the markup groups — the
 correct level of analysis, and unaffected by this correction.
 
 **What it does add is a comparison §8.2 never made.** The author had already
-arrived at a six-group structure, and it agrees with this proposal on the two
+arrived at a six-group structure, and it agrees with this one on the two
 hardest calls:
 
-| Question | Author's runtime grouping | This proposal | Agree? |
+| Question | The runtime grouping | This structure | Agree? |
 |---|---|---|---|
 | Do money settings belong with the rest of Admin? | **No** — separate "Money" group | **No** — moved to Financials | ✅ |
 | Are team / permissions / security one thing? | **Yes** — "People & access" | **Yes** — "Team & Access" | ✅ |
@@ -763,11 +767,11 @@ choice is defensible in at least one:
   integrity checks reconcile *financial* totals against their records
   (`16b`), so it is a money-safety tool wearing a data-governance label.
 - `rota` in **Daily operations** reflects how it is used (who covers tonight's
-  shift), where this proposal filed it by what it is (an access question).
+  shift), where this structure files it by what it is (an access question).
 - The `activity`/`export` split here is deliberate and I would keep it: one is
   a read surface, the other moves data out of the building.
 
-**Method note.** This addendum exists because the proposal was written against
+**Method note.** This addendum exists because the structure was derived against
 a census that described the markup rather than the runtime UI. The lesson is
 recorded in `00-index/GROUND-TRUTH-INVENTORY.md` §Q: in this codebase, static
 markup does not describe the rendered interface, and any analysis that greps

@@ -10,14 +10,7 @@
 > **mock-data-engineer** (§10's device rows, §10.5's 21 fixture steps) ·
 > **product-owner** (§15 — seven spec overrules, each with its clause; two conceded in §15.1).
 >
-> **Reference examined, this pass, not recalled:**
-> `00-auth/login-password-step-empty.webp` · `00-auth/login-two-factor-authenticator-code.webp` ·
-> `00-auth/login-two-factor-code-entered.webp` · `00-auth/forgot-password-request-reset.webp` ·
-> `00-auth/login-reset-link-sent-banner.webp` · `00-auth/login-password-reset-success-banner.webp` ·
-> `00-auth/reset-password-strength-meter.webp` · `00-auth/login-email-validation-error.webp` ·
-> `01-home/home-guide-side-panel-in-progress.webp` ·
-> `01-home/home-setup-guide-side-panel-completed.webp`.
->
+> >
 > **Rulings applied:** R1 · R2 · R3 · R5a · R6 · R7 · R8 · R9 · R10 · R13 · R15 · R16 · R17 · R19
 > (checked and *not* spent) · **R4-2** · **R4-3**.
 > **Decisions applied:** D1 · D2 · D5 · D7 · D8 · D14 · D-9 · D-11 · D15.
@@ -64,7 +57,7 @@ F-1 and F-2 are closed. Nothing in this document is designed without a row.
 
 ### 1.2 Precedence, stated once so no argument reopens
 
-A MUST in `DESIGN.md` §1–§5 describes **Shopify**, not Eyvar. What binds here is the Rulings
+A MUST in `DESIGN.md` §1–§5 describes the **inherited baseline**, not Eyvar. What binds here is the Rulings
 table, §6.2's sanctioned deviations, §7–§9, and `DECISIONS.md`. **R13 voids every pixel figure
 in §1–§5**, so no measurement below is justified by one. Every number cites a token, a ruling,
 or is marked `[originated]`.
@@ -77,7 +70,7 @@ further corrections, both mine, both new:**
 
 | §2.5 D clause | Spec §3.4 / AC-503 said | **My ruling** |
 |---|---|---|
-| *"field order: identity → primary action → alternates → …"*, and AC-503's explicit order | `Forgot password?` sits **after** the full-width primary | **Overruled. It sits directly under the password field, above the primary.** Two frames show it there unambiguously — `login-password-step-empty.webp` and `login-reset-link-sent-banner.webp` — and D14 sends card order to Shopify. The product reason is stronger than the reference one: `Forgot password?` is an escape from *the password*, not from the card, and it is the control an operator reaches for in the second after the primary just failed. Below the primary it reads as an afterthought and sits under the fold a banner re-render pushes down. **Overrules AC-503; rewrite in §15** |
+| *"field order: identity → primary action → alternates → …"*, and AC-503's explicit order | `Forgot password?` sits **after** the full-width primary | **Overruled. It sits directly under the password field, above the primary.** Two frames show it there unambiguously — the inherited captures — and D14 sends card order to the inherited flow. The product reason is stronger than the reference one: `Forgot password?` is an escape from *the password*, not from the card, and it is the control an operator reaches for in the second after the primary just failed. Below the primary it reads as an afterthought and sits under the fold a banner re-render pushes down. **Overrules AC-503; rewrite in §15** |
 | *"small legal links (`Help Privacy Terms`) at the card's bottom-left"* | *"Kept as a slot, filled from Admin › Workspace's `legal` pane"* | **Kept as a slot, and the slot renders only links the pane actually provides.** Eyvar has no help centre, so `Help` is not rendered. **When the pane provides none, the row is not rendered at all** — no empty row, no dead link. A dead `Help` on a sign-in page is worse than no `Help`. Restated logically: bottom **inline-start**, not bottom-left |
 
 Everything else in §3.4 stands: content order kept, full-width primary kept, no gradient, no
@@ -304,7 +297,7 @@ against that.
 
 **D-OTP-1 — one input, not six boxes.**
 
-Evidence first: `login-two-factor-authenticator-code.webp` and `login-two-factor-code-entered.webp`
+Evidence first: the inherited captures.
 both show a **single field** holding `000000` / `369867`. `DESIGN.md` §4.2 records the same frame
 independently. There is no per-digit input anywhere in 159 frames. Under D14, per-digit-versus-single
 is *structure*, and the structure says one field. The product reasons are stronger than the
@@ -330,10 +323,10 @@ reference one:
 > a page* — carries it alone.
 
 **D-OTP-2 — label above, not the inset label.** §4.2 records an inset/floating label
-*"(auth surface only)"* from this exact frame. **Not adopted.** It exists in Shopify's auth and
+*"(auth surface only)"* from this exact frame. **Not adopted.** It exists in the inherited auth and
 nowhere else in their admin; it forces a second field anatomy in a product that has exactly one;
 and §4.2's *label above the field* is a rule about the form primitive, which D14 does not send
-to Shopify — D14 sends the flow. Recorded so nobody "restores" it.
+to the inherited flow — D14 sends the structure, not the skin. Recorded so nobody "restores" it.
 
 **D-OTP-3 — no placeholder.** The reference shows `000000`. **Overruled.** At 17 px tabular in a
 336 px field a six-zero placeholder is indistinguishable from a filled value at a glance, and
@@ -406,7 +399,7 @@ exception** to §4.2's inline-start value alignment and it is recorded in §14.
 ```
 
 **`Resend code` is a full-width secondary button**, not a link. Evidence:
-`login-two-factor-authenticator-code.webp` puts its alternate action (`Use a recovery code`) in
+The inherited capture puts its alternate action (`Use a recovery code`) in
 exactly that slot and shape. Eyvar has no recovery codes, so the slot is filled with the action
 Eyvar does have. A full-width button also gives the countdown somewhere to live without the
 label reflowing.
@@ -611,7 +604,6 @@ document.** Their absence is the design.
 ```
 
 One field, one primary, one escape (**AC-538**). Structure from
-`forgot-password-request-reset.webp`.
 
 | Slot | String | Key |
 |---|---|---|
@@ -637,7 +629,7 @@ is not used.
 
 ### 7.1 Where the confirmation lands
 
-**On `/signin`, not on `/forgot-password`.** `login-reset-link-sent-banner.webp` shows the
+**On `/signin`, not on `/forgot-password`.** The inherited capture shows the
 banner on a card headed `Log in`, with the identifier still filled — the reference returns you
 to sign-in. Under D14 that placement is structure and it is kept. It is also the better
 outcome: the operator's next act is in their mailbox, not on this screen, and §6.3 deliberately
@@ -655,8 +647,7 @@ clarification in §15, not an overrule.
 > **Title** `Check your inbox`
 > **Body** `If that address has an Eyvar account, a reset link is on its way. It expires in 60 minutes.`
 
-**Not `success`, and this is the decision.** The reference uses a green ✓
-(`login-reset-link-sent-banner.webp`). Under D14 the **placement** is Shopify's and the **tone**
+**Not `success`, and this is the decision.** The reference uses a green ✓. Under D14 the **placement** is the inherited one and the **tone**
 is ours, and success asserts that something happened — which is the exact claim this banner
 exists to refuse. A green tick over a conditional sentence is a contradiction the operator reads
 faster than the words.
@@ -702,7 +693,7 @@ worth the frontend engineer knowing that before they ship it.
    └─────────────────────────────────────────────────────┘
 ```
 
-Structure from `reset-password-strength-meter.webp`: two fields, a reveal on each, the meter as
+Structure from the inherited capture: two fields, a reveal on each, the meter as
 a full-width bar **directly under the first field**, a bold caption under the bar.
 
 **The strength meter — three levels, two tones, no red, no blue.**
@@ -1068,7 +1059,6 @@ account's sessions need `manage_team`.
 
 Pattern row: **Guided checklist (§5.6) in a shell layer (§5.5, no scrim)**, minted in R4-2 §2.2.
 `route.overlay` gains **`onboarding`** and nothing else (R4-3). Reference examined:
-`01-home/home-guide-side-panel-in-progress.webp`, `01-home/home-setup-guide-side-panel-completed.webp`.
 
 ### 10.1 Anatomy
 
@@ -1205,7 +1195,7 @@ condition to. **Stated because an engineer will otherwise add the toast.** (**AC
 | `step-unreachable-forbidden` | §10.2 | `This step needs the "{permission}" permission. An owner can grant it in Admin › Team & Access.` — key `onboarding.step.forbidden` `{permission}`. **AC-666** |
 | `step-mark-failed` (**AC-646**) | `ErrorState`, **`row` scope**, inside that row. The step returns to not-done. **Not a toast alone** — the condition outlives the toast (R10) | `Couldn't mark this step done.` + plain button `Try again` |
 | skip / dismiss failed (**AC-647**) | Same row-scoped treatment; state unchanged | `Couldn't skip this step.` / footer-scoped `Couldn't dismiss the checklist.` + `Try again` |
-| `completed` (**AC-635**) | The step list **collapses to a done line** — reference: `home-setup-guide-side-panel-completed.webp` — and `Dismiss` takes primary emphasis in the footer | `✓ Done` (12/600 `--ev-green`) + one sentence: `You've finished the {role} checklist. Reopen it any time from your account menu.` |
+| `completed` (**AC-635**) | The step list **collapses to a done line** — reference: the inherited capture — and `Dismiss` takes primary emphasis in the footer | `✓ Done` (12/600 `--ev-green`) + one sentence: `You've finished the {role} checklist. Reopen it any time from your account menu.` |
 | `dismissed` (**AC-637**, **AC-638**) | Layer closes. Account-menu entry stays, **without a count indicator**. Never auto-opens again, never raises a banner again | — |
 | `role-changed` (**AC-643**) | **One `shell` banner**, `info` tone, dismissible. **The layer never auto-opens** — the operator may be mid-task | `Your role changed to {role}.` + secondary button `Open checklist`. Key `onboarding.roleChanged` `{role}`, role itself a key |
 | `archived-steps-present` (**AC-644**) | A collapsed `collapsible` at the foot, read-only rows, **excluded from `total`**, **not deleted** | `Completed under a previous role ({count})` — key `onboarding.archived` `{count}` |
@@ -1552,8 +1542,8 @@ Each names the rule it suspends. Nothing here needs a signature; §16 says why.
 | **A-1** | The idle-warning shell banner **replaces** any other shell banner for its two-minute life instead of merging into a count | §5.2's **merge** clause, as condensed in 00-shell §4.2 | Every other shell condition is indefinite; this one has a deadline. Folding a deadline into `2 conditions need your attention.` destroys the only information it carries. **R10's invariant — one banner — is untouched**, and the displaced condition is restored automatically |
 | **A-2** | The auth card's two-condition case is resolved by **precedence**, not by a merged count (§2.3) | §5.2's merge clause | An auth card has at most two conditions and only one is ever actionable. *"2 conditions need your attention"* on a sign-in screen is worse copy than the sentence it replaces. Still one banner |
 | **A-3** | The verification-code field's value is **centred** | §4.2's inline-start value alignment | One field, and it is the only alignment that renders identically in both languages. This is what makes **AC-537 / AC-674** pass by construction rather than by care (§4.1 D-OTP-7) |
-| **A-4** | The verification-code field has **no placeholder**, against `login-two-factor-authenticator-code.webp`'s `000000` | D14's *structure from Shopify* | §4.2 permits a placeholder only as a format example; at 17 px tabular in a 336 px field, six zeros are indistinguishable from a value. The helper text carries the format instead |
-| **A-5** | The **inset/floating label** recorded in §4.2 *"(auth surface only)"* is **not adopted** | §4.2's own `[observed]` note | It exists in Shopify's auth and nowhere else in their admin, and it forces a second field anatomy in a product with exactly one. D14 sends the **flow** to Shopify, not the form primitive |
+| **A-4** | The verification-code field has **no placeholder**, against the inherited capture's `000000` | D14's *structure from the inherited flow* | §4.2 permits a placeholder only as a format example; at 17 px tabular in a 336 px field, six zeros are indistinguishable from a value. The helper text carries the format instead |
+| **A-5** | The **inset/floating label** recorded in §4.2 *"(auth surface only)"* is **not adopted** | §4.2's own observation | It exists in the inherited auth and nowhere else in that admin, and it forces a second field anatomy in a product with exactly one. D14 sends the **flow** to the inherited baseline, not the form primitive |
 | **A-6** | `Dismiss` is available **before** completion | §5.6's *"a completed guide is dismissible"* | The spec's §8.8 extension, upheld. An operator on their first shift can be handed a live safety incident in minute four, and a checklist they cannot close is a trap. §5.6's *"MUST NOT resurrect it afterwards"* is honoured exactly |
 | **A-7** | No step renders a `Learn more` link | §5.6's `SHOULD end each task description with a "Learn more" link` | It is a SHOULD, there is no help centre, and a dead link is worse than an omission. `learnMoreKey` is nullable by design (spec §8.9). **AC-605 now fails if a link renders**, and the content gap is **Q-82**. **Finding F-2** |
 | **A-8** | `Restart onboarding`, `Dismiss`, `Skip` and `Stop trusting` take **no confirmation** | §5.0's *destructive → modal* row | §5.5 forbids a modal nested inside a no-scrim layer, and 00-shell §6.4 already took this position for this layer family. Nothing irreversible is destroyed |
@@ -1573,13 +1563,13 @@ decides the trap).
 
 | # | Clause | Overruled to | Why |
 |---|---|---|---|
-| **1** | **AC-503** — *"…a full-width primary, a `Forgot password?` link, and the legal link row"* | *"…password field, a `Forgot password?` link, `Remember this device`, a full-width primary, and the legal link row"* | Two reference frames put the link between the field and the button (`login-password-step-empty.webp`, `login-reset-link-sent-banner.webp`), D14 sends card order to Shopify, and it is the control an operator reaches for the second after the primary failed — below the primary it sits under the fold a banner re-render pushes down (§1.3) |
+| **1** | **AC-503** — *"…a full-width primary, a `Forgot password?` link, and the legal link row"* | *"…password field, a `Forgot password?` link, `Remember this device`, a full-width primary, and the legal link row"* | Two reference frames put the link between the field and the button, D14 sends card order to the inherited flow, and it is the control an operator reaches for the second after the primary failed — below the primary it sits under the fold a banner re-render pushes down (§1.3) |
 | **2** | **§12.2**'s example `Sent to ••• ••• 4567` | `Sent to ••••••67` | **AC-519** forbids more than the last two digits. The criterion binds; the illustrative string was written against a four-digit habit (§4.2) |
 | **3** | **AC-567** — *"Attempting to sign in as a different operator from the re-authentication layer is **refused**, with an instruction to sign out first"* | *"The re-authentication surface has no identifier field. The account is displayed as text, bound to the expired session's `userId`, and `Sign out` is the named path to a different account. The dirty form is untouched by either."* | A refusal is a check that can be forgotten; an absent field cannot be. `00c` **F5** is what happens when that check is missed once (§8.2). **My mechanism was taken; my criterion wording was not, and rightly** — *"the surface has no identifier field"* asks QA to prove a negative, and it describes the **surface** while the risk lives in the **operation**, so it goes green on a build where `auth.reauthenticate` has already been widened. The shipped criterion is a closed control inventory plus two invariants: **the request carries no operator-supplied identity, and the returned session's `userId` is the expired one's.** That is the testable form of §8.2 and it is what the design means |
 | **4** | **AC-630** — *"No track contains a step whose destination is a workspace Overview"* | *"No track contains a step whose destination is a workspace Overview, with exactly one exception — `owner.position`, whose named facts (the trial balance and the contribution margin) exist on no other sub-tab. Any other step naming an Overview fails this criterion."* | The spec's own §8.5 gives Owner step 6 that destination, so the spec contradicts itself. AC-630 exists to stop *"explore the dashboard"* steps, which `owner.position` is not — it names two numbers the operator must be able to state (§10.5), and a `bodyKey` fixture string cannot carry a live trial balance, so banning the destination deletes the numbers. **The shipped criterion tightened my carve-out and is better than it:** a closed allow-list of one step id, plus a new clause — *no step's destination is the operator's own `session.landingRoute`*. That makes the exception principled rather than special: `financials/overview` **is** Finance's landing route and **is not** the Owner's. All 21 steps in §10.5 already satisfy it |
 | **5** | **§4.1 row 7** — `reauthenticate` as a *"shell layer, no scrim"* | A **modal**, `alert-dialog`, 440 px | Already ruled in **R4-3**; restated because the spec table still says layer |
 | **6** | **§9.1** — the state list | Add **`challenge-missing`** and **`challenge-completed-elsewhere`** | Both are required by criteria the spec already carries (**AC-582**, **AC-531**, **AC-583**) and neither has a named state to be designed against (§4.5) |
-| **7** | **AC-540** — *"an in-card banner between the heading and the field"* | Clarification, not a change: *"…on the `/signin` card, in its banner slot between the subtitle and the identifier field"* | `login-reset-link-sent-banner.webp` shows the confirmation on the login card. Under D14 that placement is structure (§7.1) |
+| **7** | **AC-540** — *"an in-card banner between the heading and the field"* | Clarification, not a change: *"…on the `/signin` card, in its banner slot between the subtitle and the identifier field"* | The inherited capture shows the confirmation on the login card. Under D14 that placement is structure (§7.1) |
 
 ---
 
@@ -1599,7 +1589,7 @@ worth more than a design spec that looks decisive, and inflating the count spend
 of the seven that are real.
 
 **One nuance I am keeping, because it is a definition and not a defence.** §6.2's phrase *"its
-colour is not [kept]"* has two readings: the **value** (don't import Shopify's green hex) and the
+colour is not [kept]"* has two readings: the **value** (don't import an inherited green hex) and the
 **tone assignment** (don't use the success tone at all). I took the second. A future designer who
 takes the first lands on Eyvar's own `success` green and rebuilds the exact contradiction §7.2
 removes — a green tick over a conditional sentence. **So: in these documents, "colour" covers tone

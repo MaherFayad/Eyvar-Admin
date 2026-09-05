@@ -6,8 +6,8 @@
 
 **Rules:** `design/07-rulings-r4.md` **R4-4** §4.1 / §4.2 / §4.3 (amended here, in place of
 their text), **R4-11** §11.2 (applied, not amended), **R4-6b** §6.6.4 (corrected)
-**Answers:** the breakdowns build's **B-1, B-2, B-3, B-8** ·
-`02-verification/metrics-boards-visual.md` **V-2, V-3, V-5, V-9, V-11, V-12, V-13**
+**Answers:** the breakdowns build's **B-1, B-2, B-3, B-8**, and the metric-board visual audit's
+**V-2, V-3, V-5, V-9, V-11, V-12, V-13**
 **Owner:** product-designer
 **Precedence:** these are rulings. They sit above every `DESIGN.md` section and above every
 acceptance criterion. Where a ruling below contradicts an AC, the AC's replacement text is
@@ -64,11 +64,11 @@ The counter-example the audit supplies is the proof: `Market & Zones` puts `Not 
 directly under each em dash, and those rows read correctly. Same mark, same emptiness, one
 sentence of difference.
 
-**And the reference does not do this at all.** `07-analytics/analytics-dashboard-today-no-data.webp`
+**And the reference does not do this at all.** The inherited capture
 — a dashboard on a day with no sales — renders `$0.00`, `0`, `0%`, `$0.00` as its four values.
 Every em dash on that page is in the **delta** position. Where a card genuinely cannot produce
 a value (`Sales by channel`) the card's whole body is replaced by one centred grey sentence,
-title retained. **Shopify never prints a bare em dash where a value goes.** So AC-601's shape
+title retained. **No console worth copying prints a bare em dash where a value goes.** So AC-601's shape
 was already a departure from the reference, and the *"and a visible reason"* half was the thing
 that made it survivable. Only the first half was built.
 
@@ -333,7 +333,7 @@ carrying a *categorical* fact, and which is what produced `Open · past their SL
 column legend repeated identically on every row, which is what a header row exists to avoid.
 
 **I looked at the reference before deciding, and it answers the question directly.**
-`07-analytics/analytics-dashboard-today-no-data.webp`, the `Online store conversion rate` card:
+In the inherited capture, the conversion-rate card:
 
 ```
 Added to cart                         0.00%    —
@@ -343,7 +343,7 @@ Added to cart                         0.00%    —
 **`0 sessions` is the second number, and it is a noun phrase in the sub-label.** The reference
 carries exactly one numeric column — the measure the list is ranked by — and puts the second
 number where it can be named. `Top locations` and `Top products` in
-`analytics-live-view-globe-map.webp` carry one number each and no second column at all.
+The inherited captures carry one number each and no second column at all.
 
 > **R4-4 §4.1, amended.** A breakdown row carries **exactly one numeric column**: the measure it
 > is ranked by. `secondaryValue` and `secondaryUnit` are **withdrawn from the row**. A second
@@ -393,7 +393,7 @@ card: **1.142 : 1**. The audit's verdict — *it buys 20px of row height and ret
 number beside it did not* — is correct **about the band and wrong about the bar**, and the
 reference is why.
 
-`07-analytics/analytics-live-view-globe-map.webp`, `Top locations`:
+the inherited capture, `Top locations`:
 
 ```
 Singapore • Singapore
@@ -493,7 +493,7 @@ exactly one, so five of six render this. `MetricBoardScreen` uses `grid-cols-1` 
 breakdown and `grid-cols-2` for two — and does the same for charts.
 
 **The reference does not give a breakdown a row of its own.** In
-`analytics-dashboard-today-no-data.webp` and `analytics-dashboard-saved-toast-last-7-days.webp`,
+the inherited captures,
 `Online store conversion rate` — a breakdown — sits in the **same three-across row** as `Total
 orders` and `Average order value`, both charts, all three sharing top and bottom edges. Its
 label-to-value distance is ~200px in the capture.
@@ -659,7 +659,7 @@ render an em dash and only one of those three is currently explained.
 ```
 │ 3                            │
 │ Operators without two-factor │
-│ —  vs 0 target               │   + .sr-only `No percentage change to state`   ← V-8
+│ —  vs 0 target               │   +.sr-only `No percentage change to state`   ← V-8
 ```
 
 **D. No value — R5-1. New.**
@@ -2181,8 +2181,7 @@ So Operations (8 tiles, `8 mod 4 = 0`) draws 251px tiles and Support (6 tiles) d
 the same screen, one navigation apart. **And Admin gaining two tiles to reach six would make every
 remaining tile 88px wider** — adding tiles makes tiles bigger, which is not what anyone predicts.
 
-**The reference does not do this.** `07-analytics/analytics-dashboard-today-no-data.webp` and
-`analytics-dashboard-saved-toast-last-7-days.webp` are three-across regardless of how many cards
+**The reference does not do this.** The inherited captures are three-across regardless of how many cards
 the dashboard holds; the card width is a property of the page, not of the contents.
 
 **I am not ruling it, and the reason is §24.2's own lesson.** Fixing it means one fixed column count

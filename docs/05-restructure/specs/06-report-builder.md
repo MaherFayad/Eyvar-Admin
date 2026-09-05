@@ -23,6 +23,43 @@
 
 ---
 
+## 0. The reference behaviour
+
+The owner set this module's target by pointing at a product-analytics segmentation chart and
+asking for *"a small module for reporting where the user can choose any data he wants and
+compare it to any data he wants."* That product is not in the repo and is not consulted; what
+binds is the behaviour, recorded here once, in Eyvar's own terms. Where `DESIGN.md` and this
+behaviour conflict on this screen and on the metric boards, **this behaviour wins** — that is
+the owner's standing override in `docs/RULINGS.md`.
+
+**The reference behaviour, in full:**
+
+1. **The question is composed on the screen, not chosen from a list.** A left panel holds the
+   controls — measure, group-by, filter, grain, window, comparison — and the chart to its
+   inline-end redraws as each control changes. No dialog, no wizard, no run button.
+2. **A measure is picked by name from a catalogue**, with a search field over it, and the panel
+   shows what it means without leaving the screen.
+3. **Two measures can sit on one chart**, each with its own colour, and the legend names them.
+4. **A group-by splits a measure into a series per group**, and the group count is visible before
+   the chart is drawn.
+5. **The window is a control of its own**, separate from the grain, and the two are never merged.
+6. **A comparison is a second layer on the same chart**, drawn as a dashed line against the solid
+   one — never as a second hue, because a hue already means a series.
+7. **The chart type is a segmented control the query constrains**: an illegal chart for the
+   current query is present and disabled, and it says why.
+8. **A saved report is a first-class object with a name**, reopened into the same panel state.
+9. **A chart pins to a dashboard**, and the dashboard is a grid of pinned charts, each of which
+   reopens into the builder.
+10. **The empty canvas is a sentence, not an illustration.** The data exists; the question has
+    not been asked yet.
+
+**Two things the reference does that Eyvar does not.** It offers funnels, retention curves,
+cohort grids and path analysis; each is a distinct query model rather than a chart type over
+this one, and §2.2 rules them out with that reason. And it uses one word for two different
+comparisons — the failure §6 exists to prevent.
+
+---
+
 ## 1. Problem
 
 An operator can read any number the product has already decided is worth showing. There are
@@ -69,7 +106,7 @@ no way to compose a question, no way to keep one, and no way to be told when an 
 | Out | Reason |
 |---|---|
 | **Any measure definition** | D13 splits ownership. A measure defined in two specs is a measure that drifts. Findings go to `05-metrics-content.md` (§4.1). |
-| **Funnels, retention curves, cohort grids, path analysis** | The owner's reference is Amplitude's *segmentation* chart specifically. Each of the others is a distinct query model, not a chart type over this one. Naming them out is what keeps this "a small module". |
+| **Funnels, retention curves, cohort grids, path analysis** | The reference behaviour §0 records is a *segmentation* chart specifically. Each of the others is a distinct query model, not a chart type over this one. Naming them out is what keeps this "a small module". |
 | **A formula / calculated-measure editor** (`measure A ÷ measure B`) | It turns the panel into an expression language with its own type system, unit algebra and error states. If an operator needs a ratio, the ratio is a measure and belongs in the catalogue. |
 | **Dual y-axes** | Two axes on one plot is the single most reliable way to make two unrelated series look correlated. §7's rules make the honest alternatives explicit instead. |
 | **Drag-and-drop dashboard grid** | Costed in §11.2. "Quick" is load-bearing in the owner's ask. Phase two. |
@@ -431,8 +468,8 @@ what to do, the panel's first control is focused, and every other control is dis
 
 ## 6. Comparison — two controls that share a word
 
-This is the failure D13 predicted and the one this section exists to prevent. The Amplitude
-reference does both of these and calls them the same thing. They are not the same thing.
+This is the failure D13 predicted and the one this section exists to prevent. The reference
+behaviour (§0) does both of these and calls them the same thing. They are not the same thing.
 
 ### 6.1 Two measures on one axis — *series comparison*
 

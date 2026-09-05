@@ -21,14 +21,14 @@ given one row there.
 | D4 — Role model — **OPEN, needed before 0.7** | Decided |
 | D5 — The sub-tab column never collapses | Decided |
 | D6 — The navigation has its own background, one step darker than the canvas | Decided |
-| D7 — Navattic replaces Shopify as the **visual** reference | Decided |
+| D7 — the **visual** language is the token layer: colour, spacing, radii, type, table style | Decided |
 | D8 — A row kebab is for *many* actions, never for one or two | Decided |
 | D9 — ⌘K is a command centre, not a search box | Decided |
 | D10 — Two rulings from the owner on chrome, applied immediately | Decided |
 | D11 — The index toolbar is TWO rows, and search is a field | Decided |
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception | Decided |
 | D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen | Decided |
-| D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language | Decided |
+| D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look | Decided |
 | AWAITING THE OWNER'S SIGNATURE — seven items | Open |
 | OPEN AFTER WAVE R4-4 — four items, none blocking | Open |
 | OPEN AFTER WAVE 3 (FINANCIALS DATA) — six spec findings for product-owner | Open |
@@ -53,7 +53,7 @@ given one row there.
 | Remediation amendment, 2026-09-02 | Log |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** | Decided |
 | D-12 — peek is the drawer, not a sixth surface | Decided |
-| D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused | Decided |
+| D-13 — motion has no duration tokens, and the request for a duration scale is refused | Decided |
 
 ## D1 — Information architecture: 5 workspaces, 34 sub-tabs
 
@@ -244,7 +244,7 @@ width = 1136 at 1440.
 ## D6 — The navigation has its own background, one step darker than the canvas
 
 **Decided**, by the business owner, pointing at the rail and the sub-tab column: *"these
-should have a different bg than the rest of the screen, as in Shopify."*
+should have a different bg than the rest of the screen."*
 
 **This retires a workaround; it does not add a deviation.** `DESIGN.md` §6.2 **D-4** listed
 §2.1's tonal-step rule as suspended, on the grounds that *"`:root` holds no neutral darker
@@ -269,12 +269,12 @@ The owner has authorised the neutral, so the hairline goes and §2.1 is met as w
   hairline, no shadow, at either level. **The ground change is a prerequisite, not a
   companion:** white on `--ev-bg` is 1.142 : 1, and removing the props from a pill that weak
   would have left the active state worse than the version the owner rejected. On the new
-  ground it is 1.182 : 1, against Shopify's own measured 1.192 : 1. `--ev-marker` survives for
+  ground it is 1.182 : 1, against an ordinary console's 1.192 : 1. `--ev-marker` survives for
   its real owner, R5a's breached-row edge.
 - **The nav count chip gets its own fill and its digits become `--ev-ink`.** The old neutral
   chip was `--ev-bg2`, which is 1.073 : 1 *lighter* than its ground — a plate nobody can see.
   That invisibility is why every nav badge had been promoted to `attention`. `--ev-nav-chip`
-  is 1.141 : 1 *darker*, matching Shopify's measured `#DDDDDD` on `#EBEBEB` (1.139 : 1).
+  is 1.141 : 1 *darker*, matching the 1.139 : 1 an ordinary console chip runs at.
 - **The top bar stays canvas-coloured.** It spans the content region, not the viewport, so it
   belongs to the content side of the seam.
 - **`DESIGN.md` §6.2 D-4 is rewritten** in `docs/06-design-reference/_partials/06-eyvar-mapping.md`
@@ -283,70 +283,61 @@ The owner has authorised the neutral, so the hairline goes and §2.1 is met as w
 
 ---
 
-## D7 — Navattic replaces Shopify as the **visual** reference
+## D7 — the **visual** language is the token layer, and it is re-derived from scratch
 
 **Decided by the business owner**, after reviewing the built shell:
 *"edit the colors and the design layout, and make the whole design look more like it"* ·
-*"even the colors, no need to be eyvars colors, take it from navattic"* ·
+*"even the colors, no need to be eyvars colors"* ·
 *"so colors, spacing, way it's organized, table style and spacing inside… everything."*
 
-Reference set: `docs/06-design-reference/navattic-web/` — 15 frames, same 768×523 downscale
-and the same S = 1.875 scale factor as the Shopify set.
+The values, their derivations and their contrast arithmetic are `design/03-visual-language.md`.
 
 **What D7 replaces.** Colour, spacing, radii, borders, type scale, page organisation, nav
 treatment, card treatment, table style and the spacing inside it. In `DESIGN.md` terms that
 is the **visual** content of §1–§5, plus §6.1's token values.
 
-**What D7 does not touch.** The structural law survives intact, because it was never
-Shopify-specific: **§7 accessibility**, **§8 the patterns Shopify never covered**, and **§9
-bidirectionality**. So do not read D7 as licence to drop a contrast ratio, a focus ring, a
-logical property or a state. Every rule in §7–§9 still binds, and the precedence ladder is
-unchanged.
+**What D7 does not touch.** The structural law survives intact, because it was never tied to
+any one reference: **§7 accessibility**, **§8 the Eyvar-only patterns**, and **§9
+bidirectionality**. Do not read D7 as licence to drop a contrast ratio, a focus ring, a logical
+property or a state. Every rule in §7–§9 still binds and the precedence ladder is unchanged.
 
 **Consequences accepted:**
+
 - ⚠ **AMENDED — see [D7a](#d7a--brand-green-replaces-near-black-as---primary-amending-d7-12) at
   the foot of this file.** The primary action is **brand green `#0C6944`**, not near-black.
   D7's colour method and every other value it set are untouched.
-- **D-1 is void.** Eyvar brand blue (`#185FA5`) is no longer the primary action colour.
-  Navattic's accent measures **`#2B6EF0`**.
+- **D-1 is void.** Eyvar brand blue (`#185FA5`) is no longer the primary action colour. The
+  accent is **`#2B6EF0`**, and it keeps three roles — focus ring, chart series, selection —
+  because at 4.574 : 1 on white it cannot carry 13px text on a tinted ground.
 - **`--ev-*` token NAMES are kept; their VALUES are replaced.** Everything in the codebase
   resolves through those names, so a re-skin is one file — `src/styles/globals.css`. Renaming
   the namespace would touch every component for no gain.
-- **D-2 (density) re-bases.** "Denser than Shopify" was measured against a roomier product.
-  Navattic is already tight; the deviation must be re-derived against the new reference or
-  retired.
-- **The active nav treatment inverts; the nav-vs-canvas direction does NOT.**
-  ~~Navattic puts a grey pill on a near-white nav, with the canvas *darker* than the nav at
-  `#F5F7F9`.~~ **Corrected twice, and both corrections agree.** The design pass sampled all
-  15 frames and the match audit read Navattic's own served stylesheet: their **canvas is pure
-  `#FFFFFF`** (`--color-bg-default`) and their **nav is `#f6f8f9`** (`bg-muted`) — the nav is
-  the *darker* surface, exactly as §2.1 has always said. `#F5F7F9` is the icon rail and the
-  tinted strips, never the ground. Only the **pill** inverts (grey on near-white instead of
-  white on grey), and it costs almost nothing: 1.172 : 1 against Shopify's 1.192.
-  My original claim here was drawn from two frames and a fast sample; it was wrong, and
-  anything built on it lands on the wrong ground.
-- **The table grows vertical column hairlines.** Navattic rules its columns; Shopify does
-  not. This is a real divergence, not an accident of the frames — it is visible across
-  every table frame in the set.
-- **Two elements are new** and have no Shopify equivalent: the sidebar's **section headings**
-  (`Analyze` · `Leads` · `Manage`) and the in-card **filter-chip strip** on a tinted ground.
-- Screenshot citations in `DESIGN.md` §1–§5 now point at a reference that no longer governs
-  the value being cited. They are kept as **provenance**, not as authority.
+- **D-2 (density) is retired.** The claim that Eyvar was denser than an ordinary console was
+  measured against a roomier baseline. Re-measured, Eyvar matches the ordinary rhythm and in
+  five places was *tighter* and has been loosened. One departure survives as **D-2′**: the page
+  gutter is 32px. `03-visual-language.md` §5.
+- **The active nav pill inverts; the nav-vs-canvas direction does NOT.** The canvas is pure
+  `#FFFFFF` and the nav is `#F8FAFB` — the nav is the *darker* surface, exactly as §2.1 has
+  always said. `#F5F7F9` is the icon rail and the tinted strips, never the ground. Only the
+  **pill** inverts, to grey on near-white, and it costs almost nothing: 1.172 : 1 against the
+  1.192 : 1 the other direction gives.
+- **The table grows vertical column hairlines**, lighter than its own outer border, so a column
+  rule never reads as an edge of the table.
+- **Two elements are Eyvar's own**, covered by no inherited pattern: the sub-tab column's
+  **section headings** and the in-card **filter-chip strip** on a tinted ground.
+- Screenshot citations in `DESIGN.md` §1–§5 point at a baseline that no longer governs the value
+  being cited. They are **provenance**, not authority (**R13**).
 
 **Why:** the owner rejected the built shell outright — *"it looks so bad and sloppy"* — and
-Navattic is a closer fit for what an ops console is: dense, neutral, low-chrome, with the
-work in a card and the colour spent almost nowhere.
+the language D7 sets is a closer fit for what an ops console is: dense, neutral, low-chrome,
+with the work in a card and the colour spent almost nowhere.
 
-### D7 addendum — the reference publishes its own tokens
+### D7 addendum — a declared value beats a sampled one
 
-`https://app.navattic.com/_next/static/css/98da06fdab16cbfa.css` serves Navattic's **declared
-token set** and its `@font-face` block. Every value cross-checked against a sampled frame
-agrees to within 1/255, and the row hairline agrees **exactly**.
-
-**Prefer it over pixel sampling.** A 768x523 downscale cannot recover a 1px stroke or small
-text colour; a stylesheet states them. Sampling remains the check on geometry and on anything
-the stylesheet does not declare — and remains the only evidence for the Shopify set, which
-publishes nothing.
+Where a value is **declared** — in a stylesheet, in `globals.css`, in a token — the declared
+value wins over anything read off a rendered image. A downscaled capture cannot recover a 1px
+stroke or a small-text colour; a declaration states them. Sampling remains the check on
+geometry, and on anything no declaration covers.
 
 ---
 
@@ -611,10 +602,10 @@ before the controls move would trade a treatment complaint for a truncation.
 
 ## D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen
 
-**Decided by the business owner**, with an Amplitude segmentation chart as the reference:
+**Decided by the business owner**, with a product-analytics segmentation chart as the reference — the behaviour is recorded in `specs/06-report-builder.md` §0:
 *"a small module for reporting where the user can choose any data he wants and compare it to
 any data he wants … number of drivers vs passengers trend, number of subscriptions vs
-whatever … more like this from amplitude."*
+whatever."*
 
 **Sequenced last, deliberately.** Every other screen answers a question somebody already
 decided is worth asking. This one lets an operator ask a question nobody anticipated, which
@@ -677,23 +668,24 @@ possibly after their role has changed.**
 
 ---
 
-## D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language
+## D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look
 
 **Proposed by product-owner in `specs/04-auth-and-onboarding.md`, for the owner to confirm
 or reverse.** Renumbered from the spec's own "D13", which collided with the Report Builder
 entry above — the register is the authority on numbering, not a spec.
 
-The owner asked for auth *"same as shopify design"*. **D7 replaced Shopify with Navattic as
+The owner asked for the auth flow to follow a familiar console's. **D7 replaced the visual
+reference as
 the product's visual language.** Both cannot be literally true, so the boundary is drawn
 where it costs least:
 
-- **Shopify governs the flow** — what screens exist, in what order, what a wrong code does,
-  how a reset is worded, how a session dies. Shopify Admin's auth is the closest
+- **The inherited flow governs the structure** — what screens exist, in what order, what a wrong code does,
+  how a reset is worded, how a session dies. That flow is the closest
   well-solved analogue to what Eyvar needs, and there is nothing to reverse-engineer:
   **the legacy app has no login screen at all.** What it has is five seeded users with
   roles (`:2831`), a change-password form that validates only in the browser (`:3011`), and
   a `twoFA` flag that is displayed and never enforced (`:3022`).
-- **Navattic keeps the look**, because a product whose login page wears a different skin is
+- **D7's token layer keeps the look**, because a product whose login page wears a different skin is
   worse than one that is a shade off a reference.
 
 D14 does not carve an exception out of D7. It records a boundary D7 drew and did not name.
@@ -1472,8 +1464,7 @@ closed instead of an instance.
 design gets read and argued with; a wrong tick gets counted and skipped.
 
 **The rule.** A document may state what it provides. It may **not** assert that a criterion
-passes. Verification is the QA role's output and lives in `docs/02-verification/`, against a
-running build. Where a design or build document wants to show it has met an obligation, it names
+passes. Verification is the QA role's output, produced against a running build. Where a design or build document wants to show it has met an obligation, it names
 **its own share** — *"the design's share is the telling, not the revoking"* — and stops there.
 
 **Two corollaries, both learned the expensive way this project:**
@@ -2589,7 +2580,7 @@ reached from the palette confirms *in* the palette. Two shapes, one decision, as
 - **`captains.ts`'s `suspend` and `reinstate` become each other's undo handle** — no new client
   operation. This is the cheapest possible first implementation and it is the proof of the model.
 - **Every registry author now has a mechanical test** for whether to write an undo handle, so the
-  question is not re-litigated per domain in Phase 2.
+  question is not re-litigated per domain.
 - **`CommandOutcome.undo` stops being an unset field**, and its comment (`registry.ts:233`) can drop
   its "the owner's call is still open" note.
 
@@ -2637,7 +2628,7 @@ window is too short and the answer is a per-record `Revert` on the detail page, 
 > **`online · away · offline` with auto-away and a hard concurrent cap (D22)**; and **email and chat
 > are one conversation, with a channel switch as an explicit, refusable act.**
 
-**P0-T4 is closed.** Phase 5 is sized.
+**P0-T4 is closed**, and the work behind it is sized.
 
 #### What was already built, and what this ruling is therefore not allowed to move
 
@@ -2658,7 +2649,7 @@ transport**, which is exactly the boundary P0-T4 was written to respect.
 | `whatsapp` | **Modelled, no rows, no compose.** The value stays in the union; the channel facet shows it at zero | It needs a vendor and a business account. **A compose box for a pipe that does not exist is the worst possible state** — the operator types, presses send, and the message goes nowhere |
 
 **Transport: the console owns it, behind `clients/realtime.ts`. No vendor is named.** The seam is
-already built with a socket driver and a mock driver behind one interface. Naming Twilio or Intercom
+already built with a socket driver and a mock driver behind one interface. Naming a vendor
 today buys nothing and costs a schema shaped like their webhook. **If a vendor is signed, it becomes
 a third `RealtimeDriver` and a `providerMessageId` that stops being `null` — the field is already
 there for exactly that day.**
@@ -2765,10 +2756,9 @@ must be re-pointed at them.
 
 - **P5-T4 … P5-T9 are unblocked and sized.** P5-T6 loses its routing half and keeps availability and
   the cap.
-- **`ContactCentreScreen`'s `INITIAL_AGENTS` and `CPT_METRICS` (`:32,:62`) are superseded** by
-  `AgentPresence` over `clients/realtime.ts`. The *"new
-  `clients/contactCentre.ts`"* is **not needed** — `clients/conversations.ts` already covers it. One
-  fewer client to build.
+- **The contact-centre screen's hardcoded agent list and captain metrics are superseded** by
+  `AgentPresence` over `clients/realtime.ts`. A separate `clients/contactCentre.ts` is **not
+  needed** — `clients/conversations.ts` already covers it. One fewer client to build.
 - **P5-T7 keeps P6-T2 as its precondition** (sender identity and templates), unchanged.
 - **`whatsapp` shipping as a modelled-but-empty channel is what makes the facet honest**: the
   operator sees that email exists and is empty rather than assuming chat is all there is.
@@ -3014,7 +3004,7 @@ Three constraints on it:
   and `reason`, so the bar can render the control without recomputing a predicate the command owns.
   **`DataTable.tsx` is a Phase-0 shared component: the shell owner makes this change, no screen
   implements it locally** — the same rule D8-b already applied to the kebab threshold.
-- **Every `unavailable` predicate written in Phase 2 declares three sentences, not two.** Cheap now,
+- **Every `unavailable` predicate declares three sentences, not two.** Cheap now,
   a six-registry retrofit later — the same argument that put Arabic `keywords` in early.
 - **P4-T1's ten screens inherit all of it** with no per-screen decision.
 - **`registry.ts:308`'s comment stops being "flagged to product-designer as the one ruling this task
@@ -3298,7 +3288,7 @@ is a schedule.** Whoever next revises them applies this list.
 
 | Plan | Task | Change |
 |---|---|---|
-| Operator-experience | **P0-T1 … P0-T5** | **All five closed.** Phase 0 has nothing left in it |
+| Operator-experience | **P0-T1 … P0-T5** | **All five closed.** |
 | | **P1-T4** | Unblocked. Scope named: one adapter + `clients/preferences.ts` + repoint `defaultUiStore` |
 | | **P1-T5** | Unblocked (class 2 under D16) |
 | | **P2-T1** | `CommandSession.canWrite` deleted; `roleRefusal` evaluates a real key. Every predicate declares **three** sentences (D21), not two |
@@ -3588,8 +3578,7 @@ screen file is edited to remove a checkbox; the five simply stop declaring comma
   prevents the twelfth**, which is §4.5's own rule about widening detectors rather than re-running
   scans.
 - **P4-T1's ten screens are unaffected** — they all gain commands, so they all keep selection.
-- **`docs/02-verification/03-financials-qa.md`'s AC-382 verdict must be re-run** against the
-  amended wording.
+- **AC-382's verdict must be re-run** against the amended wording.
 
 #### Acceptance criteria
 
@@ -3674,7 +3663,7 @@ class of defect, and the class is closed by a declared registry plus a test**, n
   `data/clients/financials.test.ts` — mock-data-engineer's files.** This is a request.
 - **`PYB` and not `PAYABLE` or `AP`**: three letters, consistent with `ARD` (accounts receivable,
   debt) which already sits beside it in the same function.
-- **Do it before Phase 7 and before the payments resource gains a screen.** After a payment id is on
+- **Do it before the payments resource gains a screen.** After a payment id is on
   an operator's screen it is a customer-quotable reference and the rename stops being free.
 
 #### Acceptance criteria
@@ -3825,7 +3814,7 @@ Arabic console to an English one, which `00d` predicts they will not.
 | the `defaultValue` count | — | **The 483 figure is stale; it is 243.** The Arabic total is ≈3,875, not 200 and not 2,300 |
 | | §4.5 | Two detectors added: the selection-without-commands guard (**AC-981**) and the id-prefix injectivity guard (**AC-988**) |
 | | Wave 5 → Wave 6 | Wave 5's three steps are now explicitly the **precondition** for briefing a translator |
-| `docs/02-verification/03-financials-qa.md` | AC-382 verdict | Re-run against the amended wording |
+| the financials QA pass | AC-382 verdict | Re-run against the amended wording |
 
 **Three shared-file changes requested, none made here**, each with its single owner:
 
@@ -3841,9 +3830,9 @@ signature register by whoever confirms it**, which is not a product-owner call t
 
 ---
 
-## Round 5 addendum 2 — the conversation-composer design pass, 2026-09-01
+## The conversation-composer design pass — four rulings
 
-Four items from `design/11-conversation-composer.md` and `design/12-refusal-and-undo-surfaces.md`,
+Four items from the inbox design (`design/12-inbox.md`) and `design/12-refusal-and-undo-surfaces.md`,
 **plus one the relay did not carry and which this register has to own because D18 created it.**
 
 Three of the four are amendments to rulings already in this round, so they take the register's
@@ -3952,8 +3941,8 @@ rule is written in terms of.
 - **The building agent ships as instructed. No change to what is in flight.**
 - **D18's table gains a scope line** — *"this table governs registry commands; a surface that sends
   its own content is §8.6"* — so the row cannot be read broadly again.
-- **`design/11-conversation-composer.md` deviation 2 is sanctioned** and cites this entry instead of
-  citing an unratified reading.
+- **The inbox design's deviation 2 is sanctioned** (`design/12-inbox.md` §10) and cites this entry
+  instead of an unratified reading.
 - **F-2 in that file — no retry operation on the seam — is unaffected and still stands** for
   mock-data-engineer: `deliveryCanRetry()` is a predicate with no operation behind it, and calling
   `replyConversation` again would mint a duplicate under a new id. `retryMessage` is the fix, and
@@ -4142,7 +4131,7 @@ one either persists or is the 10-second undo toast, asserted by one test over th
 | `DECISIONS.md` **D19** | **AC-943** | **Corrected in place, number kept.** The refusal is on `Send`, not on `Reply by email` |
 | `DECISIONS.md` **D16** | The class taxonomy | **Gains class 4 — ephemeral working state.** Three classes were incomplete |
 | `DECISIONS.md` **D22** | 45 s, cap 3 | **Unchanged.** Neither number gives; the collision was in D18's wording |
-| `design/11-conversation-composer.md` | Deviation 2 | **Sanctioned.** Cites D18a |
+| `design/12-inbox.md` | Deviation 2 | **Sanctioned.** Cites D18a |
 | | F-4 | **Closed** |
 | | F-5 | **Closed** — class 4 |
 | | F-1 | **Closed** — narrow reading ratified |
@@ -4458,7 +4447,7 @@ that integration wants a purpose-built endpoint with its own audit trail, not a 
 
 ### D7a — Brand green replaces near-black as `--primary`, amending D7 §1.2
 
-**Ruled during remediation.** `design/13-plane-refresh.md` §0.4 held its whole Phase 1 open —
+**Ruled during remediation.** A visual proposal held its whole colour pass open —
 *"Introducing brand green as `--primary` amends D7 §1.2. That is the owner's call, not mine."*
 The call is made: **`--primary` is the Eyvar brand green `#0C6944`.**
 
@@ -4479,7 +4468,7 @@ by `eyvar.com/en` and drawn by the whole `logo2.svg` wordmark. It is not eyedrop
 **What D7 keeps.** Everything else. D7's method, its measurements and its whole ramp stand.
 R3 stays killed and D-1 stays void — the primary action did **not** go back to blue, and
 Eyvar brand *blue* `#185FA5` remains dead. The reason D7 chose near-black was a correct
-reading of Navattic; the reason it is now green is that **the reference is not the brand**,
+reading of a neutral reference; the reason it is now green is that **a reference is not the brand**,
 and doc 13 §0.2's finding decides it: the admin contained zero Eyvar green, so a product with
 a green identity shipped a blue-and-black console.
 
@@ -4490,7 +4479,7 @@ ratio *improved*: the focus ring goes 4.574 → **6.731** on white, 4.294 → **
 `--ev-bg2`, 3.887 → **5.721** on the rail; the chart series goes 4.006 → **5.793** against its
 own area fill.
 
-> **`13-plane-refresh.md` §1.2 states white on `#0C6944` = 8.42 : 1 and "clears AAA". It is
+> **That proposal stated white on `#0C6944` = 8.42 : 1 and "clears AAA". It is
 > wrong.** `L(#0C6944) = 0.10601`, so `1.05 / 0.15601` = **6.731 : 1**. Do not cite 8.42.
 
 **The success/primary hue collision (doc 13 §1.4) is resolved, not accepted.** `--ev-green`
@@ -4574,11 +4563,11 @@ mode of a drawer.
 
 ---
 
-## D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused
+## D-13 — motion has no duration tokens, and the request for a duration scale is refused
 
 **Status:** ruled and implemented, 2026-09-02.
 
-Doc 13 Phase 4.2 proposes six motion tokens. **Implementing it is the defect.** `globals.css`
+A visual proposal asked for six motion tokens. **Minting them is the defect.** `globals.css`
 states the reason at the token: Tailwind's duration scale *is* the token set, and a second
 source drifts. `--ev-live-loop: 1800ms` remains the only motion token, because it feeds an
 `animation` shorthand the scale cannot reach.

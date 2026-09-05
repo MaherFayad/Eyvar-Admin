@@ -81,8 +81,8 @@ difference on day one, day two, or ever.
 
 | Out | Reason |
 |---|---|
-| **Single sign-on / SAML / OIDC, and social providers** | `DESIGN.md` §2.5 D describes three social-provider tiles because Shopify has them. Eyvar has one identity source: the team roster in `DB.teamUsers` (`:2830`). Shipping provider buttons that authenticate against nothing is chrome, and under D14 the *structure* we borrow from Shopify is the flow, not the providers it happens to offer. Revisit when an identity provider exists. |
-| **Self-service sign-up** | There is no such thing as a self-registering ops operator. Every account is created by someone holding `manage_team` (`:10530`). `signup-create-account-email-password.webp` is out of scope entirely. |
+| **Single sign-on / SAML / OIDC, and social providers** | `DESIGN.md` §2.5 D describes three social-provider tiles because the inherited baseline has them. Eyvar has one identity source: the team roster in `DB.teamUsers` (`:2830`). Shipping provider buttons that authenticate against nothing is chrome, and under D14 the *structure* we inherit is the flow, not the providers a consumer product happens to offer. Revisit when an identity provider exists. |
+| **Self-service sign-up** | There is no such thing as a self-registering ops operator. Every account is created by someone holding `manage_team` (`:10530`). The inherited capture is out of scope entirely. |
 | **The password hashing scheme, token format, and rate-limit implementation** | Server-side and not mine to choose. §11 states the *guarantee* each must meet; the mechanism is the engineering lead's. |
 | **Impersonation ("act as team member")** | Already exists (`:3086`–`:3113`) and already has four recorded defects (`00c` F3–F7, including a total RBAC bypass at `:3098`). It is a **separate spec** and folding it in here would let its defects ride in on an auth review. Named as a cross-wave blocker in **§16.1 B-1**. |
 | **Editing another operator's password, role or permissions** | Admin › Team & Access, wave 7. This spec covers only what an operator does to their *own* credentials. |
@@ -102,49 +102,45 @@ not a re-spec.
 
 ### 3.1 The two instructions that appear to collide
 
-> *"even the authentication of login and forget password, and otp create them as same as shopify
-> design in them."* — business owner, this request.
+> *"even the authentication of login and forget password, and otp — create them the same as a
+> familiar console's."* — business owner, this request.
 
-> **D7** — *"Navattic replaces Shopify as the **visual** reference … colour, spacing, radii,
-> borders, type scale, page organisation, nav treatment, card treatment, table style and the
-> spacing inside it."*
+> **D7** — *"the **visual** language is the token layer … colour, spacing, radii, borders, type
+> scale, page organisation, nav treatment, card treatment, table style and the spacing inside it."*
 
-### 3.2 The proposal
+### 3.2 The boundary
 
-> **Shopify is the reference for auth STRUCTURE and FLOW. Navattic remains the reference for
-> VISUAL LANGUAGE. Neither is overridden.**
+> **The auth spec governs auth STRUCTURE and FLOW. D7's token layer governs the VISUAL
+> LANGUAGE. Neither is overridden.**
 >
-> **Structure and flow, from Shopify:** which screens exist and in what order, what the card
-> contains and in what sequence, what a failed code does, how the reset hand-off is worded, where
-> the confirmation banner sits, what the strength meter is attached to.
+> **Structure and flow:** which screens exist and in what order, what the card contains and in
+> what sequence, what a failed code does, how the reset hand-off is worded, where the
+> confirmation banner sits, what the strength meter is attached to. §4 onward states all of it.
 >
-> **Colour, spacing, radii, type, elevation, control shape, from Navattic** — i.e. from
-> `--ev-*` in `src/styles/globals.css`, which is where D7 already landed.
+> **Colour, spacing, radii, type, elevation, control shape:** `--ev-*` in
+> `src/styles/globals.css`, which is where D7 landed.
 
-### 3.3 Why — and I tested this against D7 before proposing it
+### 3.3 Why this is a boundary and not a compromise
 
-Three things make this a boundary rather than a compromise.
-
-1. **D7 already scoped itself to the visual.** Its own text names what it replaces ("the **visual**
-   content of §1–§5, plus §6.1's token values") and what it does not ("**§7 accessibility**, **§8**
-   the patterns Shopify never covered, and **§9** bidirectionality … the structural law survives
-   intact, because it was never Shopify-specific"). Auth *flow* is structural law of exactly that
-   kind. D14 does not carve an exception out of D7; it records a boundary D7 drew and did not have
-   occasion to name.
-2. **The Navattic set contains no auth frame.** 15 frames, 12 URLs, all in-product screens
-   (`docs/06-design-reference/navattic-web/urls.txt`, `README.md`). There is no Navattic evidence
-   for a sign-in screen at any level — not structure, not visual. So "make auth look like Navattic"
-   can only mean "derive it from Navattic's tokens", which is what D14 says, and "make auth look
-   like Shopify" would mean importing a second skin — a purple-to-teal gradient and a `#3E3E3E`
-   primary into a product whose accent is `#2B6EF0` and whose primary is `--ev-ink`.
-3. **A product with two skins is worse than a login page that is a shade off its reference.** The
-   sign-in screen is seen once a shift; the console is seen all day. The one that should match is
-   the console.
+1. **D7 already scoped itself to the visual.** Its own text names what it replaces (*"the
+   **visual** content of §1–§5, plus §6.1's token values"*) and what it does not (*"**§7
+   accessibility**, **§8** the Eyvar-only patterns, and **§9** bidirectionality … the structural
+   law survives intact, because it was never tied to any one reference"*). Auth *flow* is
+   structural law of exactly that kind. D14 does not carve an exception out of D7; it records a
+   boundary D7 drew and had no occasion to name.
+2. **No visual reference covers an auth screen.** D7's evidence is in-product screens; a
+   sign-in page appears in none of it. So "make auth look like the rest of the product" can only
+   mean "derive it from `--ev-*`", which is what D14 says. Importing a login page's skin — a
+   purple-to-teal gradient and a `#3E3E3E` primary — into a product whose accent is `#2B6EF0`
+   and whose primary is `--ev-ink` would mean shipping two skins.
+3. **A product with two skins is worse than a login page a shade off anyone's reference.** The
+   sign-in screen is seen once a shift; the console is seen all day. The console is the one that
+   must match.
 
 ### 3.4 What D14 costs, stated plainly
 
-`DESIGN.md` §2.5 **D** is `[observed]` Shopify and mixes both halves in one paragraph. Under D14 it
-splits:
+`DESIGN.md` §2.5 **D** is an inherited observation and mixes both halves in one paragraph. Under
+D14 it splits:
 
 | §2.5 D clause | Under D14 |
 |---|---|
@@ -157,7 +153,7 @@ splits:
 | "a row of three equal social-provider buttons beneath an `or` divider" | **Not kept.** No providers exist (§2.2). |
 | "small legal links (`Help Privacy Terms`) at the card's bottom-left" | **Kept as a slot**, filled from Admin › Workspace's `legal` pane (foundation §3.4, Admin #2). |
 
-**If the owner reverses D14** and wants Shopify visuals on auth too, the change is: the auth ground
+**If the owner reverses D14** and wants auth to carry its own skin, the change is: the auth ground
 and card get their own token subset in `globals.css`, and `docs/ref/tokens.md` grows a section
 saying so. It is one file and one design-spec section. Nothing in §4–§9 of this spec changes.
 
@@ -314,8 +310,7 @@ that will never work with no idea why, and their fix (call the Owner) requires k
 something to call about. **Trade recorded, taken deliberately, not overlooked.**
 
 **Inline field validation is format-only**: an identifier that is not a plausible email gets
-`Enter a valid email address.` under the field, in the §4.4 treatment
-(`00-auth/login-email-validation-error.webp`). That is the only thing the client is allowed to
+`Enter a valid email address.` under the field, in the §4.4 treatment. That is the only thing the client is allowed to
 judge.
 
 > **The period is deliberate and it was a change.** `docs/ref/copy.md`'s exact-wording row spelled
@@ -335,7 +330,7 @@ judge.
 
 | Property | Value | Evidence |
 |---|---|---|
-| Length | **6 digits**, numeric only | `[inferred]` — no OTP exists in the legacy app. Matches the reference (`00-auth/login-two-factor-authenticator-code.webp` shows a `000000` placeholder). |
+| Length | **6 digits**, numeric only | `[inferred]` — no OTP exists in the legacy app. Matches the reference (the inherited capture shows a `000000` placeholder). |
 | Lifetime | **10 minutes** from issue | `[inferred]` |
 | Validity | **Single-use**, and **only the most recently issued code for a challenge is valid** | `[inferred]` |
 | Binding | **Per sign-in attempt (a server-issued challenge id), not per device and not per session** | `[inferred]`. A code issued in one browser is invalid in another. This is what makes §9.5 correct. |
@@ -414,7 +409,7 @@ After a request, the operator sees the same message whether the address exists o
 > *A reset link is on its way to that address. It expires in 60 minutes.*
 
 It renders as the soft in-card banner between the heading and the fields, which is where the
-reference puts it (`00-auth/login-reset-link-sent-banner.webp`; `DESIGN.md` §5.2 Family B) — and
+reference puts it (the inherited capture; `DESIGN.md` §5.2 Family B) — and
 under D14 that placement is structure, so it is kept while its colour is not.
 
 **On which card, and in which tone — both settled by the design spec.**
@@ -455,8 +450,7 @@ is one factor; the console asks for two.
 ### 6.4 The reset form (`reset-password`)
 
 New password, confirm, a reveal control on each (`DESIGN.md` §4.2:
-`00-auth/login-password-step-empty.webp`), and a strength meter under the first field
-(`00-auth/reset-password-strength-meter.webp`).
+the inherited capture), and a strength meter under the first field.
 
 **The policy is stated before the operator types, not after they fail.** Minimum **12 characters**.
 No composition rules — no "must contain a symbol", which pushes people toward `Password1!` and
@@ -469,8 +463,7 @@ policy failure that can only appear after submission.
 
 ### 6.5 After a successful reset
 
-Every other session for that account is terminated server-side, and the operator is told so
-(`login-password-reset-success-banner.webp`). The device they are on continues to §5. Trusted
+Every other session for that account is terminated server-side, and the operator is told so. The device they are on continues to §5. Trusted
 devices (§7.4) are **all revoked** — a password reset is the signal that something may be wrong,
 and a remembered device that survives it is a factor the attacker may already hold.
 
@@ -1114,7 +1107,7 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   centre — and when the pane provides none the row is absent rather than empty.
   **Source: design §15 overrule 1 (design §1.3, §2.2).** `Forgot password?` moved from below the
   primary to directly beneath the password field: two reference frames put it there
-  unambiguously, D14 sends card order to Shopify, and it is the control an operator reaches for in
+  unambiguously, D14 sends card order to the inherited flow, and it is the control an operator reaches for in
   the second after the primary just failed — below the primary it sits under the fold a banner
   re-render pushes down. The trailing clause about the legal row is mine, added because design
   §1.3 makes the row conditional and *"contains … the legal link row. Nothing else."* would
@@ -1703,7 +1696,7 @@ was not an overrule at all. The design spec and this spec no longer contradict e
    the two. **C-2 is closed on both sides** — `copy.md:33` and rule 8 carry the period. Also §16 **Q-82**
    (`Learn more` has no destination — now a recorded content gap, not a SHOULD left to fail).
 2. **Confirm or overturn D14** in your spec, and write the §2.5 D split from §3.4 into it — which
-   clauses are structure (kept) and which are Shopify visual (replaced from `--ev-*`).
+   clauses are structure (kept) and which are inherited visual (replaced from `--ev-*`).
 3. **Final copy for every state in §9.1 and §9.2** — 24 auth states and 11 onboarding states.
    Especially: the one generic credential-rejection sentence (used by three different causes), the
    non-committal reset confirmation, and the three code outcomes in §5.3, whose distinctions only
@@ -1755,7 +1748,7 @@ was not an overrule at all. The design spec and this spec no longer contradict e
 
 Spec written: `docs/05-restructure/specs/04-auth-and-onboarding.md`, AC-500–AC-681, covering six
 auth screens, **one shell layer and one modal** (R4-3), four onboarding tracks and 37 named states. **D14 proposed** —
-Shopify governs auth structure and flow, Navattic keeps the visual language; the owner confirms or
+The auth spec governs structure and flow, D7's token layer keeps the visual language; the owner confirms or
 reverses.
 
 **Blocked and named:** ~~F-1/F-2~~ **closed** by R4-2 and R4-3 · **Q-78** — **AC-663 is

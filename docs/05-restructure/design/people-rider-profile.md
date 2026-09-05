@@ -35,16 +35,16 @@ Two things follow that people keep getting wrong on this screen:
   again."* Nobody may argue "density lets me make this smaller". The surviving departure is
   **D-2′** and it is about the page gutter and nothing else.
 - **No §1–§5 pixel figure binds** (R13). Every measurement below is either a token, a ratio,
-  or a measured Navattic/Eyvar figure carried by name.
+  or a measured Eyvar figure carried by name.
 
 Reference evidence opened for this spec, cited where used:
 
 | File | What it settles |
 |---|---|
-| `04-customers/customer-detail-no-orders-yet.webp` | main + rail on a person record; identity facts live in the rail; the empty main card is one grey sentence with one action |
-| `02-orders/order-detail-unfulfilled-payment-pending.webp` | the money summary card; card-local actions (`Fulfill item`, `Create shipping label`) that navigate rather than mutate in place |
-| `02-orders/orders-list-with-metrics-row.webp` | the three-up summary band: **sentence-case labels above values, divided by vertical rules** |
-| `02-orders/order-detail-timeline-full-history.webp` | the timeline: date heading, a dot at the inline-start of each row, timestamp at the inline-end, no connecting rule. Also the **`Fraud analysis` rail card**, where a *risk level* renders as a labelled scale — never a badge, never red |
+| the inherited capture | main + rail on a person record; identity facts live in the rail; the empty main card is one grey sentence with one action |
+| the inherited capture | the money summary card; card-local actions (`Fulfill item`, `Create shipping label`) that navigate rather than mutate in place |
+| the inherited capture | the three-up summary band: **sentence-case labels above values, divided by vertical rules** |
+| the inherited capture | the timeline: date heading, a dot at the inline-start of each row, timestamp at the inline-end, no connecting rule. Also the **`Fraud analysis` rail card**, where a *risk level* renders as a labelled scale — never a badge, never red |
 
 ---
 
@@ -744,7 +744,7 @@ The reference draws five segments because the reference record's plan includes f
 │ ┌─────────────────────────────────────────────┐  ┌──────────────────────────────┐  │
 │ │ Open right now                              │  │ Identity                     │  │
 │ │ ┌─────────────────────────────────────────┐ │  │ Phone   +966 59 448 7070     │  │
-│ │ │ حي حطين ← مستشفى ...   0.00 SAR [Assign]│ │  │ Status  On demand            │  │
+│ │ │ حي حطين ← مستشفى...   0.00 SAR [Assign]│ │  │ Status  On demand            │  │
 │ │ │ TRP-9104 · 25 Jun 09:11 · Requested ·   │ │  │ Tier    New                  │  │
 │ │ │ No captain assigned                     │ │  │ City    Riyadh               │  │
 │ │ └─────────────────────────────────────────┘ │  │ Gender  Female               │  │
@@ -864,9 +864,9 @@ reasoning is worth stating because it looks like a collision and is not:
 **`Assign a captain` navigates.** There is no client operation that assigns a captain to a
 `Trip` (`clients/trips.ts` ships `setTripFlag` and nothing else; `assignRequest` acts on a
 `RideRequest`). Rather than ship a dead button or invent an operation, the control opens Live
-dispatch focused on this trip: `/operations/dispatch?trip=TRP-9104`. Shopify's own precedent
+dispatch focused on this trip: `/operations/dispatch?trip=TRP-9104`. The inherited precedent
 is in the frame I opened — `Fulfill item` and `Create shipping label` on
-`order-detail-unfulfilled-payment-pending.webp` both navigate to where the work is done.
+the inherited capture both navigate to where the work is done.
 Assignment needs a map and a captain list; a profile has neither.
 
 **`Release` is gone. See §8.3 for the ruling and its reasoning.**
@@ -1027,7 +1027,7 @@ the caption here, and subtracted across two ledgers in the wallet block there.
 
 ### 7.7 The `History` timeline
 
-§3.8. Reference: `02-orders/order-detail-timeline-full-history.webp`.
+§3.8.
 
 ```
 History
@@ -1062,8 +1062,8 @@ History
   R7's five tones are closed and none of them is critical.
 - **Not a badge at all**, which is the part that is a genuine ruling rather than a lookup.
   Churn risk is a **prediction**, and §3.4's badge family communicates **status**. A
-  prediction wearing status chrome claims a certainty the value does not have. Shopify makes
-  the same call in the frame I opened: `order-detail-timeline-full-history.webp` renders
+  prediction wearing status chrome claims a certainty the value does not have. The inherited baseline makes
+  the same call in the frame I opened: the inherited capture renders
   *Fraud analysis* as a labelled **level on a scale** — `Low · Medium · High` — with a
   recommendation sentence, and never as a badge.
 - **So it renders as a fact:** label `Churn risk`, value `High` in ink, no fill, no border,
@@ -1331,7 +1331,7 @@ Each names the rule it suspends, or it is not a deviation — it is an error.
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
 | **D-RP-1** | The body is **a rail plus tabbed sections** (sheet) and **a strip plus a two-column body plus a ledger band** (page), not a stack of collapsible cards | `00-shell.md` **§6.2**, *"a stack of collapsible cards"* | What §6.2 protects is the **contract** — *"contributed by workspaces as a declared contract… not one 600-line builder"* — and the contract is `ProfileRef.sections`, which is untouched. The stack was a *geometry*, and both of the owner's references replace it. §3.4's total placement maps preserve the guarantee that mattered: every declared section lands somewhere, and no surface can drop one. A collapsed card and a closed tab hide the same amount of content; both name what is inside. |
-| **D-RP-2** | `--ev-bg2` gains a **seventh job: the record-summary band** (the sheet's rail, the page's strip) | §6.2 **D-11**'s derived list of six jobs for the one subdued fill | The fill does work a border cannot: it says *this is a readout of what is below, not another card of content*. Shopify solves the same band with a border (`orders-list-with-metrics-row.webp`) because its canvas is grey and its cards white — an inversion **D7 removed**, so the borrowed treatment does not transfer. **No new colour and no new token**, which is what the "no new colour" rule exists to protect. |
+| **D-RP-2** | `--ev-bg2` gains a **seventh job: the record-summary band** (the sheet's rail, the page's strip) | §6.2 **D-11**'s derived list of six jobs for the one subdued fill | The fill does work a border cannot: it says *this is a readout of what is below, not another card of content*. The inherited baseline solves the same band with a border because its canvas is grey and its cards white — an inversion **D7 removed**, so the borrowed treatment does not transfer. **No new colour and no new token**, which is what the "no new colour" rule exists to protect. |
 | ~~**D-RP-3**~~ | ~~The sheet's footer carries committing actions~~ | — | **LAPSED, 2026-09-04 — the premise was withdrawn.** It suspended §6.2's *"the layer commits nothing"* on the ground that the layer was a **modal**, and therefore no longer a thing consulted beside the work. The owner reversed that instruction; the layer is a drawer again (§6.1), so the clause is back in force **and the design already complies** — the footer is `Open full profile` alone. A deviation whose premise is gone is not narrowed, it is void. Kept rather than deleted so the numbering and the reasoning survive. |
 | **D-RP-4** | A committing action inside the sheet **confirms in place** rather than in a modal | §5.0, *"Destructive / irreversible → Modal"* | **Its basis changed with the drawer and it got stronger.** It used to rest on "no modal inside a modal", which was an inference; it now rests on §5.5's explicit clause — *"a modal nested inside a drawer is FORBIDDEN"* — which is back in force and is a rule rather than a reading. §4.7's expand-in-place pattern is already sanctioned for exactly this in §6.4. Everything §5.3 requires survives: a question naming the object, a body saying what does not change, a primary restating the verb. **Nothing on either surface commits today**, so this is a standing rule for the first thing that does. |
 | **D-RP-5** | `DetailPage` gains a **`below`** full-width slot | §7.2's two-slot shape | §8.3.3 fixes the ledger at six columns and forbids hiding any; §7.3's budget for that set is 832px; §7.2's main column is ~696px at 1440. A table that fits at 1280 and overflows at 1440 cannot be read as intentional. See §13 A. |
@@ -2091,7 +2091,7 @@ The short form:
 
 - **`DESIGN.md:3291`** (*constraints in helper text, not a tooltip*) and **`:3278`**'s
   `(tooltip on an ⓘ icon)` **Don't** are **§5.7 — §1–§5**, and the Precedence ladder makes them
-  descriptions of Shopify rather than orders to Eyvar unless §6 adopts them. §6 does not adopt
+  descriptions of the inherited baseline rather than orders to Eyvar unless §6 adopts them. §6 does not adopt
   them for captions on read-only figures, and both are written about **form fields** in any
   case. **Nothing is suspended.** This amendment moves in the same direction as those rules: it
   takes prose out of tooltips by never putting it in one.

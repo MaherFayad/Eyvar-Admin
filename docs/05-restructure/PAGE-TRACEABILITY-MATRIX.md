@@ -1,8 +1,10 @@
-# Page Traceability Matrix
+# Where each legacy page went
 
-> **Purpose:** prove that all 41 current pages are accounted for in the proposed 5-tab structure. No page silently disappears.
+> **What this is:** the map from the legacy console's 41 pages to where their work is done now.
+> Read it when the legacy app does something the current product must match, and you need to know
+> which screen owns it. No page is unaccounted for.
 > **Baseline:** `docs/00-index/GROUND-TRUTH-INVENTORY.md` §A — the 41 `.page` divs, in source order.
-> **Proposal:** [`PROPOSED-STRUCTURE.md`](PROPOSED-STRUCTURE.md).
+> **The structure they map into:** [`PROPOSED-STRUCTURE.md`](PROPOSED-STRUCTURE.md).
 
 **Disposition vocabulary**
 
@@ -16,7 +18,7 @@
 
 ## 1. The 41-row audit
 
-| # | Current page (`id`) | Src line | New location | Rationale | Disposition |
+| # | Legacy page (`id`) | Src line | Where it is now | Why | Disposition |
 |---:|---|---|---|---|:---:|
 | 1 | `exec-overview` | L583 | **Management › Overview** (KPI strip, financial position, subscription growth) + **Management › Performance** (trend charts, cities health, expansion-ready, rider engagement) | Today it is a read-only dead end: no tile is clickable and the page writes nothing to `DB`. As a workspace landing view it becomes the routing surface for the Owner. The trend/cities/expansion content is analysis at a different cadence and moves to Performance. ⚠ "Avg renewal rate" renders `NaN%` on shipped seed data (`01` §17.1) and "Active drivers" uses a no-op filter (`08a` §17.2) — both replaced. | Merge (split) |
 | 2 | `corporate` | L634 | **Operations › Corporate Accounts** | Own sub-tab, not a view of Subscriptions, because a company is a different entity with its own detail screen. Placed in Operations on the evidence of its permission gates: 5 of 6 write actions require `manage_subscriptions` (L6518, L6640, L6652, L6716, L6752); only `commitSendCorpInvoice` requires `view_finance` (L6703). | Keep |

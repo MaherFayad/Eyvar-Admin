@@ -4,13 +4,12 @@
 **Pattern:** `docs/ref/patterns.md` → Index table (§3.1–3.3) beneath Metric tiles (§3.7) ·
 **Governed by:** §3.1–3.3, §3.2 (tabs), §3.7, §7.1, §7.5, §8, §9, §11.2, R3, R5a, R7, R8,
 R9, R10, R15, D8, D21, D-2′, D-11, T5.4, X18
-**Reference examined:**
-`shopify-admin-web/09-discounts/discounts-list-with-code.webp` — the structural model: a
+the inherited capture — the structural model: a
 tab strip inside the list card with `All` first, a bold code as the identity with a muted
 second line under it, a status badge mid-row and a right-aligned count at the end;
-`shopify-admin-web/09-discounts/discounts-empty-state.webp` — R8's illustrated whole-page
+the inherited capture — R8's illustrated whole-page
 empty inside the same frame the list occupies;
-`navattic-web/223f15e5.webp` — D7's visual language: hairline row rules, one 13px type
+the inherited capture — D7's visual language: hairline row rules, one 13px type
 size across the body, the search and filter cluster on one row with sort at the
 inline-end, and `1-6 of 6` with the pager at the inline-end of the footer.
 
@@ -87,7 +86,7 @@ failed table is the only primary that ever renders.
 | Sheet | row detail on `promos`, `incentives`, `messages` | — | §5.5 drawer, **no scrim**: the row behind it stays readable |
 
 **The strip is never in the page header** (§3.2). It sits at the top of the table region,
-which is where the reference puts it (`discounts-list-with-code.webp`: the tab row is the
+which is where the reference puts it (the inherited capture: the tab row is the
 first thing inside the list frame, not beside the page title).
 
 ## Column budget

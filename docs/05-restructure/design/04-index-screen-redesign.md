@@ -9,14 +9,13 @@ after this document lands.**
 **Subject:** Operations › People (`/operations/people`), the P1 / P8 / P9 index screen.
 Every other index sub-tab inherits it — the composition is the component, not the screen.
 
-**Reference:** `docs/06-design-reference/navattic-web/` — all 15 frames opened and read;
+**How the screen is drawn today:** `scripts/harness/people.mjs` and `table-density.mjs`;
 `223f15e5`, `82923d3f`, `cfa43315`, `d209473e`, `6a08206b`, `02b895df` and `79a31934`
-measured with PIL at the pixel. Colour comes from Navattic's served stylesheet
+measured at the pixel. Colour comes from the declared token set
 (`98da06fdab16cbfa.css`) per the **D7 addendum**; geometry comes from sampling.
 
-**Inputs treated as evidence, not opinion:**
-`docs/02-verification/people-match.md` round 2 · `docs/02-verification/00-craft-critique.md` ·
-`DECISIONS.md` **D2 D5 D6 D7 D8**.
+**Inputs treated as evidence, not opinion:** the match audit of the built People screen, the
+craft critique of the shell, and `DECISIONS.md` **D2 D5 D6 D7 D8**.
 
 **What still binds and is not up for negotiation:** `DESIGN.md` **§7** accessibility,
 **§8** patterns, **§9** bidirectionality, under **D7**. Where the reference cannot be
@@ -410,7 +409,7 @@ At 1440 the content column is **1040** (48 px gutter above `--ev-bp-wide`) and t
 
 ## 6. Band 3 — the query strip
 
-The second element with no Shopify equivalent, and the band that carries the whole query.
+The second element Eyvar draws that no inherited pattern covers, and the band that carries the whole query.
 
 ```
 ←32→                                                                            ←32→
@@ -497,7 +496,7 @@ It closes three things at once:
   place of a border-to-border adjacency.
 
 **This supersedes `specs/00-foundation.md` §7.1's `Container` row and `DESIGN.md` §3.1's
-one-card rule.** Both are §1–§5 Shopify observations that **D7** replaced. The bulk-action
+one-card rule.** Both are §1–§5 inherited observations that **D7** replaced. The bulk-action
 bar's home moves with them (§12.2).
 
 ### 7.2 The table scrolls; the page does not
@@ -1557,7 +1556,7 @@ not a deviation.**
 
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
-| **D-18** | **The index page has no card.** The table carries its own 1 px border and 8 px radius; the control row, query strip and pagination sit on the white content ground. | `specs/00-foundation.md` §7.1 `Container`; `DESIGN.md` §3.1's one-card rule — both §1–§5 Shopify observations replaced by **D7** | It is what the reference does in all six table frames; it collapses four inner left edges to one (F9); and it gives the border something to separate (F17). Already ordered by `03-visual-language.md` fix-list item 8. |
+| **D-18** | **The index page has no card.** The table carries its own 1 px border and 8 px radius; the control row, query strip and pagination sit on the white content ground. | `specs/00-foundation.md` §7.1 `Container`; `DESIGN.md` §3.1's one-card rule — both §1–§5 inherited observations replaced by **D7** | It is what the reference does in all six table frames; it collapses four inner left edges to one (F9); and it gives the border something to separate (F17). Already ordered by `03-visual-language.md` fix-list item 8. |
 | **D-19** | **The table body is a bounded scroller; the page does not scroll.** | Nothing named. Recorded so it is not mistaken for drift. | It is the only construction that puts the pagination row, the horizontal scrollbar and the sticky header inside the viewport at once — and each of those was a live defect (N2, S16′, F1 part 3). |
 | **D-20** | **View tabs are a segmented control in the control row**, not a tab strip inside the card. | `DESIGN.md` §3.2's tab-strip placement; **AC-47** | Owner instruction, plus §2.2 — it deletes a band. The dropdown argument is recorded and overruled in §2.3. |
 | **D-2′ (amended)** | **The page gutter is 32 below `--ev-bp-wide` and 48 at and above it**, against a reference measuring 68. | Nothing in §1–§5 (D7 replaced their visual content). A departure from the **reference**. | 32 is what the 1280 column budget can afford (§7.3); 48 buys back air at 1440 through the **existing** `wide:` variant, so no token is redefined inside a media query and the one-breakpoint check still passes. This closes finding 2 of `03-visual-language.md` §11. |
@@ -1694,7 +1693,7 @@ Work straight down. Items 1–4 are the ones a person notices from across the ro
    `--font-sans` **after** `Inter Variable`. Inter sets 291.36 px where Segoe UI sets 267.88
    at 14 / 400 — an **8.8 % reflow of every label** on a cold cache. `font-display: swap`
    stays; §7 has no rule licensing invisible text, so `block` is refused. This needs **no
-   waiver** and it is what Navattic's own site does. Match audit **N6**.
+   waiver**, and the visual language D7 sets does the same. Match audit **N6**.
 5. **`mirrorGlyph` coverage** for `‹` `›` in the pagination row, if not already covered.
 
 ### 15.4 To **product-owner** — three things I could not resolve

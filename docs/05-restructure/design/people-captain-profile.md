@@ -61,16 +61,16 @@ Reference evidence opened for this spec, cited where used:
 
 | File | What it settles |
 |---|---|
-| `01-home/home-guide-side-panel-in-progress.webp` | a ~370px drawer whose list rows **expand in place** with body prose and one control, with the state at the row's inline-**start**. No nested surface anywhere. This is §6's precedent |
-| `02-orders/order-detail-timeline-comment-with-attachment.webp` | the **file tile** — a bordered block with a leading glyph, the file's name, and `kind · size` on a second line — and `View email`, a plain per-row control that opens an artifact. §6.2 |
-| `04-customers/customer-detail-no-orders-yet.webp` | a person record's summary as **ink headings over their values, separated by space and not by rules**. §4.3's evidenced pair, half one |
-| `02-orders/orders-list-with-metrics-row.webp` | the metric band — **muted labels above values, divided by vertical rules**. §4.3's evidenced pair, half two, and the shape the rider spec cites for its own summary |
-| `10-settings/settings-billing-history.webp` | a list row carrying a title, a muted date, a state badge and a figure, and what it costs to hold them on one line |
-| `10-settings/settings-billing-overview-bills-and-credits.webp` | `View all billing history` — **a plain link at the bottom-inline-start of the card it extends**. §5.3 |
-| `02-orders/order-detail-paid-fulfilled-gift-card.webp` | the record rail as **ink sub-headings over blocks of unlabelled lines** — `Contact information`, `Shipping address`, `Billing address` — and, in `Paid`, the one place a `label … value` row is used: a **column of right-aligned money read down**. §4B.7's rule comes from this pair |
-| `11-apps-and-channels/app-detail-shop-channel-needs-attention.webp` | the same grammar in a **grid**: `Contact information` · `Location` · `Device information` three across, each a heading over stacked values. §4B.8's `Identity` tab |
-| `08-finances/finances-overview-earnings-donut-and-payouts.webp` | the metric-band grammar the captain diverges from — **muted label above the figure** — and `Payout account` as a heading, a sentence and a link rather than six rows. §4B.6, §4B.7 |
-| `03-products/products-list-default.webp` | Shopify's tab strip is an **index view switcher inside the table card**. Cited for what this page's tab row is **not**: these tabs switch sections of one record, which is why they take the `line` variant and not `segmented`. §4B.8 |
+| the inherited capture | a ~370px drawer whose list rows **expand in place** with body prose and one control, with the state at the row's inline-**start**. No nested surface anywhere. This is §6's precedent |
+| the inherited capture | the **file tile** — a bordered block with a leading glyph, the file's name, and `kind · size` on a second line — and `View email`, a plain per-row control that opens an artifact. §6.2 |
+| the inherited capture | a person record's summary as **ink headings over their values, separated by space and not by rules**. §4.3's evidenced pair, half one |
+| the inherited capture | the metric band — **muted labels above values, divided by vertical rules**. §4.3's evidenced pair, half two, and the shape the rider spec cites for its own summary |
+| the inherited capture | a list row carrying a title, a muted date, a state badge and a figure, and what it costs to hold them on one line |
+| the inherited capture | `View all billing history` — **a plain link at the bottom-inline-start of the card it extends**. §5.3 |
+| the inherited capture | the record rail as **ink sub-headings over blocks of unlabelled lines** — `Contact information`, `Shipping address`, `Billing address` — and, in `Paid`, the one place a `label … value` row is used: a **column of right-aligned money read down**. §4B.7's rule comes from this pair |
+| the inherited capture | the same grammar in a **grid**: `Contact information` · `Location` · `Device information` three across, each a heading over stacked values. §4B.8's `Identity` tab |
+| the inherited capture | the metric-band grammar the captain diverges from — **muted label above the figure** — and `Payout account` as a heading, a sentence and a link rather than six rows. §4B.6, §4B.7 |
+| the inherited capture | The inherited tab strip is an **index view switcher inside the table card**. Cited for what this page's tab row is **not**: these tabs switch sections of one record, which is why they take the `line` variant and not `segmented`. §4B.8 |
 
 ---
 
@@ -282,12 +282,12 @@ overflows by 26. §4.4.
 
 ### 4.3 D-CP-3 — the block label is a heading, not a caption
 
-Two Shopify instruments, two different jobs, and the two profiles are one of each:
+Two inherited instruments, two different jobs, and the two profiles are one of each:
 
 | | Instrument | Label treatment | Reference |
 |---|---|---|---|
-| **Rider** | a metric band | **muted**, sentence case, above the value, cells divided by rules | `02-orders/orders-list-with-metrics-row.webp` |
-| **Captain** | a record dossier | **ink, medium weight**, a heading over its facts | `04-customers/customer-detail-no-orders-yet.webp` — `Contact information`, `Default address`, `Marketing`, `Tax exemptions` |
+| **Rider** | a metric band | **muted**, sentence case, above the value, cells divided by rules | the inherited capture |
+| **Captain** | a record dossier | **ink, medium weight**, a heading over its facts | the inherited capture — `Contact information`, `Default address`, `Marketing`, `Tax exemptions` |
 
 **Ruled: `SummaryBlock`'s `<h3>` moves from `text-xs text-muted-foreground` to
 `text-xs font-medium text-foreground`.** One line. No new token, no size change, no spacing
@@ -389,7 +389,6 @@ of them is the colour:
 - Both sit at the **inline-start**, immediately beneath the last row of the list they extend,
   inside that list's own block. `NavigateControl`'s `justify-end` / `items-end` become
   `justify-start` / `items-start`. Evidence: `View all billing history` in
-  `10-settings/settings-billing-overview-bills-and-credits.webp`.
 - **Zero filled buttons on either captain surface, in every state.** The rider sheet has
   exactly one (`Assign a captain`, disabled). That difference is honest: the rider record has
   an action; the captain record has two destinations.
@@ -553,7 +552,7 @@ So `IndexToolbar`'s view tabs **are** URL-backed, and `riderProfile.test.tsx:137
 is the **eighth** consumer of an eight-year-old-shaped convention, not the first holder of a new
 one. **This changes nothing about the ruling and everything about its standing.**
 
-**Is the deep-link case real?** Yes, and it is not the Slack-message case. Three that exist in
+**Is the deep-link case real?** Yes, and it is not the pasted-chat-link case. Three that exist in
 this product today: `back.ts` restores `location.state.from` so an operator returns to where they
 were — a page whose tab is not in the URL loses their place on that return; `docs/07-api` and the
 runbooks paste `/entity/DRV-0101` into tickets, and a compliance ticket wants
@@ -710,8 +709,8 @@ entries stay regardless, because they were a defect fix and not a consequence.
 
 **Refusal 1 — the grammar, which is mine.** D-CP-3 ruled, three hours before this amendment, that
 the captain's block label is an **ink heading** because a captain profile is a *record dossier*
-(`04-customers/customer-detail-no-orders-yet.webp`: `Contact information`, `Default address`,
-`Marketing`) and not a *metric band* (`02-orders/orders-list-with-metrics-row.webp`: muted label
+(the inherited capture: `Contact information`, `Default address`,
+`Marketing`) and not a *metric band* (the inherited capture: muted label
 over figure). `MetricTile` **is** the metric-band grammar — `MetricTile.tsx:265`, the page
 surface renders its label *beneath* the numeral in `text-muted-foreground`. Putting it on this
 page would draw the dossier grammar in the strip and the metric-band grammar 400px below it, two
@@ -782,11 +781,10 @@ to the document (AC-CP-04c's method, reused).
 
 ### 4B.7 The `Payout account` block, redrawn — the answer to "thirteen label/value rows"
 
-**Evidence, opened for this section.** `04-customers/customer-detail-no-orders-yet.webp` and
-`02-orders/order-detail-paid-fulfilled-gift-card.webp`. Shopify's record rail carries **no
+**Evidence, opened for this section.** The inherited captures. That record rail carries **no
 label/value pairs at all**. `Contact information`, `Default address`, `Shipping address` and
 `Billing address` are each an **ink sub-heading over a block of unlabelled lines** — a person's
-name, a street, a city — because the *shape* of each line names it. The one place Shopify does
+name, a street, a city — because the *shape* of each line names it. The one place it does
 use `label … value` rows is the `Paid` card, where the values are a **column of right-aligned
 money you scan down and add**. That is the whole rule, and it is the one this page was breaking:
 
@@ -1092,7 +1090,7 @@ Four changes, each doing a distinct part of the work:
 4. **The badge leads line 2.** It moves from a floating position determined by the countdown's
    width to the **inline-start of the meta line**, where all five badges align in a true
    column. That is better scanning than today, not a concession — and it is `home-guide-side-
-   panel-in-progress.webp`'s construction, where a ~370px drawer puts each row's state at the
+   the inherited side-panel's construction, where a ~370px drawer puts each row's state at the
    row's inline-start.
 
 **It fits.** Line 1: 217 + caret 16 + gap 12 = **245 in 448**. Line 2: 62 + 8 + 77 + 10 + 78 =
@@ -1158,7 +1156,7 @@ Three candidates, ruled:
 
 | Candidate | Ruling |
 |---|---|
-| **Inline expansion on the row** | **Ruled in.** §4.7's sanctioned accordion — *"expanding one reveals rich body content and collapses the siblings"*. It is what D-RP-4 already established as this drawer's disclosure mechanism. Precedent: `01-home/home-guide-side-panel-in-progress.webp` |
+| **Inline expansion on the row** | **Ruled in.** §4.7's sanctioned accordion — *"expanding one reveals rich body content and collapses the siblings"*. It is what D-RP-4 already established as this drawer's disclosure mechanism. Precedent: the inherited capture |
 | A dedicated route, `…/documents/:docType` | **Refused.** Navigating changes the route, which closes the sheet — a drawer exists to be consulted *against* the page behind it (§5.5), and a control inside it that dismisses it is a category error |
 | A second drawer over the first | **Refused.** `DESIGN.md` :4114 tolerates a nested surface only with double-`Escape` handling, `ShellLayer` has no stacking model, and a 480px drawer over a 480px drawer at 1280 leaves the workspace unreadable — the one thing a drawer promises |
 
@@ -1423,7 +1421,7 @@ one is struck.**
 | **3** | `file !== null` and a file read exists | the same block, as a link. §6.6 |
 
 **Branch 2 — the scan record.** Built from
-`02-orders/order-detail-timeline-comment-with-attachment.webp`'s `products.csv` construction:
+the inherited capture's `products.csv` construction:
 
 ```
 ┌───────────────────────────────────────────────────┐   rounded-lg border border-border
@@ -2282,7 +2280,7 @@ Digits stay Western `0–9`. The record row's `{kind} · {size}` stays two `<bdi
 |---|---|---|---|
 | **D-CP-1** | The band carries **two meta rows**, person then equipment, at two ink ranks | `00-shell.md` §8's single meta row; the rider spec §5.2's one-row band | A captain record is a person **and** a vehicle; `bandMeta` today runs both through one row at one rank and wraps to three lines at 480. No fact is added, moved or removed — only the row |
 | **D-CP-2** | The four summary blocks are **never a single column** on either surface | the rider spec §6.2's stacked sheet summary and AC-34's "restack to one column" as applied to the *strip* | The strip is a projection, not a section; AC-34 governs the **rail's** cards and is untouched. 2×2 halves the sheet summary's height, and it is the largest non-colour differentiator available. §4.2 |
-| **D-CP-3** | The block label is **ink at medium weight**, not muted | the rider spec §6.3's block shape (`text-xs text-muted-foreground` label) | Two evidenced Shopify instruments — the metric band and the record dossier — and the captain is the second. §4.3. **No size change, no spacing change, D-2 not cited** |
+| **D-CP-3** | The block label is **ink at medium weight**, not muted | the rider spec §6.3's block shape (`text-xs text-muted-foreground` label) | Two evidenced inherited instruments — the metric band and the record dossier — and the captain is the second. §4.3. **No size change, no spacing change, D-2 not cited** |
 | **D-CP-4** | The sheet body is **one column**, and `compact:` overrides are deleted rather than kept | nothing — it **restores** the rider spec §6.1's measured refusal to the captain | `compact` is a viewport query and never fired in a 480px panel. The two-column body overflows by the same measured margin the rider's did. §4.4 |
 | **D-CP-5** | The document list is ordered by **`expiresOn` ascending**, not by `DOC_ORDER` | `facts.tsx`'s stated *"the order the file is read in"* | A profile answers *what is about to stop this captain driving*; a Compliance table answers *which document is which*, and it keeps `DOC_ORDER`. §4.5 |
 | **D-CP-6** | **No filled button on either captain surface** | nothing — R3 caps the count at one and does not require one | The surface commits nothing (`DriverFooter`), and a filled control in a drawer is the affordance for a commit. §4.6 |
@@ -2353,13 +2351,13 @@ met before this screen existed** — `fileSize`'s own comment names the other tw
 | # | Where | What it renders |
 |---|---|---|
 | 1 | `AdminWorkspaceScreen` | a `${n} KB` template literal — **a user-visible string outside the dictionary** |
-| 2 | `ConversationPane.tsx:844` | `formatCount(bytes / 1024)` into a key **carrying no unit**, so an attachment reads `report.pdf · 240` — **a live defect** |
+| 2 | the conversation thread's attachment line | `formatCount(bytes / 1024)` into a key **carrying no unit**, so an attachment read `report.pdf · 240` — **a live defect, now fixed by `formatFileSize`** |
 | 3 | `profile/driver/facts.tsx` | `fileSize` — the only correct one |
 
 So this is not "one call site that works and might get a second". It is the third copy of a
 question three files have already answered three ways, one of them wrongly. **Move it to
-`src/lib/format`, with `fileSize` as its first consumer and `ConversationPane` as the defect it
-fixes on the way.** Withdrawing J would leave a formatter for a general-purpose value in an
+`src/lib/format`, with `fileSize` as its first consumer and the thread's attachment line as the
+defect it fixes on the way.** It landed as `src/lib/format/fileSize.ts`. Withdrawing J would leave a formatter for a general-purpose value in an
 entity-specific barrel, which is how the next consumer imports `profile/driver` to render an
 email attachment.
 
@@ -3064,19 +3062,19 @@ Four corollaries, and between them they decide every string on all four surfaces
 | **D** | **The always-on test.** A string that renders on *every* record, in *every* state, under a figure whose own label already names it — **that** is what the owner is looking at. | Exactly one family on this surface qualifies: the four notes under the Earnings tile's money lines. That is the whole of the problem, and §13.3 deletes it. |
 
 **Evidence, because this is a judgement and the reference settles it.**
-`08-finances/finances-overview-earnings-donut-and-payouts.webp` puts three money figures on
+the inherited capture puts three money figures on
 one row — `Net sales $19.00`, `Gross profit $9.00`, `Gross margin 47.37%` — and **none of the
 three carries a definition.** The one second line on that row is
 *"3 out of 5 items sold had product costs. Add cost per item"*, which is a **data-completeness
 caveat with a link**, not an explanation of what gross margin is. Same on
-`02-orders/orders-list-with-metrics-row.webp`: seven metric tiles, muted label + figure +
-sparkline, **zero captions**. Same in the dossier — `04-customers/customer-detail-no-orders-yet.webp`'s
+the inherited capture: seven metric tiles, muted label + figure +
+sparkline, **zero captions**. Same in the dossier — the inherited capture's
 rail runs `Contact information` / `Default address` / `Marketing` / `Tax exemptions` / `Notes`,
 and every second line under every heading is a **fact** (`Will receive notifications in
 English`, `Email not subscribed`, `No exemptions`), never a definition. **Not one ⓘ in the
 whole dossier.**
 
-And the sharpest one: `03-products/product-edit-pricing-inventory-shipping.webp` shows the
+And the sharpest one: The inherited capture shows the
 circled `?` on `Compare-at price` and `Cost per item` — **inside the input**, on a field — while
 `Profit $5.00` and `Margin 33.3%`, the two **derived, read-only** values on the same card, carry
 **no ⓘ and no caption at all.** The reference's help icon is a *field* affordance. Its
@@ -3142,7 +3140,7 @@ only inside form fields.
 
 **What would earn a tooltip on these surfaces.** One thing, and it is already spent:
 **an icon-only control whose action or destination needs naming in ≤3 words** (§5.4,
-`03-products/products-list-draft-tab-create-view-tooltip.webp` — *"Create view"*, two words,
+the inherited capture — *"Create view"*, two words,
 sentence case, no period, on a `+` button). `ReturnControl` is that control. **The ⓘ names an
 action. It never carries a fact.**
 
@@ -3335,7 +3333,7 @@ time, because "no deviation" is a claim and not a shrug:
 
 | Candidate | Verdict |
 |---|---|
-| `DESIGN.md:3291` — *"MUST put constraints and consequences in helper text under the field, not in a tooltip"* | **Never in force here, and not suspended.** It is **§5.7 — §1–§5**, and the Precedence ladder is explicit: *"A MUST in §1–§5 is a description of Shopify, not an order to Eyvar, unless §6 adopts it."* §6 does not adopt it for captions on read-only figures. And it is written about **a field**: helper text *under the field*, constraints on an input. Nothing on either captain surface is a field. **This amendment moves in the same direction as that rule anyway** — it takes prose *out* of tooltips by never putting it in one. |
+| `DESIGN.md:3291` — *"MUST put constraints and consequences in helper text under the field, not in a tooltip"* | **Never in force here, and not suspended.** It is **§5.7 — §1–§5**, and the Precedence ladder is explicit: *"A MUST in §1–§5 is a description of the inherited baseline, not an order to Eyvar, unless §6 adopts it."* §6 does not adopt it for captions on read-only figures. And it is written about **a field**: helper text *under the field*, constraints on an input. Nothing on either captain surface is a field. **This amendment moves in the same direction as that rule anyway** — it takes prose *out* of tooltips by never putting it in one. |
 | `DESIGN.md:3278`'s do/don't row — the `(tooltip on an ⓘ icon)` **Don't** | Same status, and it is now **supporting evidence for D-CP-16**, not an obstacle to it. |
 | `DESIGN.md:3107` — *"MUST give every icon-only control a tooltip naming its action in ≤3 words"* | **Not reached.** It is a rule about controls that exist. This amendment adds no icon-only control. `ReturnControl` already satisfies it. |
 | `DESIGN.md:3292` — no period on a tooltip | **Not reached.** No tooltip is added. §13.6 resolves it for the override case. |
@@ -3365,7 +3363,7 @@ time, because "no deviation" is a claim and not a shrug:
   *"Source: `DESIGN.md` §5.7. These are MUSTs"* and **no ladder caveat**. A reader who checks
   the small file — which the brief tells everyone to do first — gets a binding-sounding rule
   that is not binding. Two agents read the same line and reach opposite answers. **Suggest one
-  sentence at the head of that file**: *"§5.7 is §1–§5. These MUSTs describe Shopify and bind
+  sentence at the head of that file**: *"§5.7 is §1–§5. These MUSTs describe the inherited baseline and bind
   Eyvar only where §6 adopts them; §7–§9 and the Rulings table beat them."* Owner of
   `docs/ref/` to decide. Not my file.
 

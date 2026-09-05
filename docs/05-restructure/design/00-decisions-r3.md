@@ -4,7 +4,7 @@
 
 # 00 — Four decisions raised against the shell spec
 
-> **Phase 0, decision pass.** Owner: product-designer.
+> **Decision pass.** Owner: product-designer.
 > Consumers: **frontend-engineer** (0.7, the shell build — **R-3 unblocks it**),
 > **utilities-engineer** (0.5, `src/styles/globals.css`), **mock-data-engineer** (0.6, `nav.badgeTone`).
 >
@@ -14,13 +14,7 @@
 > every edit).
 > **Rulings applied:** R7 · R8 · R13 · R15 · R19 (as precedent only) · sanctioned deviation **D-2**.
 >
-> **Reference examined** (all under `docs/06-design-reference/shopify-admin-web/`), sampled pixel by
-> pixel with PIL, not eyeballed:
-> `03-products/products-list-sort-popover.webp` ·
-> `03-products/products-list-archive-confirm-modal.webp` ·
-> `03-products/products-list-default.webp` ·
-> `03-products/products-list-bulk-selection-action-bar.webp` ·
-> `01-home/home-guide-side-panel-in-progress.webp`
+> > pixel with PIL, not eyeballed:
 >
 > **No `DESIGN.md` amendment is needed for any of the four.** §6 explains why, per decision. The
 > partials are untouched and no rebuild is required by this pass.
@@ -57,7 +51,7 @@ written in terms of these tokens. See §1.7 for the collision between them.
 
 | Token | Surfaces | Why |
 |---|---|---|
-| **none** | workspace rail · sub-tab column · top bar · save bar · shell banner strip · nested blocks inside a card · table rows · page canvas · the scrim itself | Frame, not layer. §1.4: *border signals "part of the page."* The save bar is explicitly shadowless in the reference (`15-account/account-general-unsaved-changes.webp`), and it replaces the top bar **in place at identical height** (00-shell §4.1) — a shadow appearing on save would be a visible layout event where AC-51 requires none |
+| **none** | workspace rail · sub-tab column · top bar · save bar · shell banner strip · nested blocks inside a card · table rows · page canvas · the scrim itself | Frame, not layer. §1.4: *border signals "part of the page."* The save bar is explicitly shadowless in the reference, and it replaces the top bar **in place at identical height** (00-shell §4.1) — a shadow appearing on save would be a visible layout event where AC-51 requires none |
 | **`--ev-shadow-1`** | card (`--ev-radius-card`) · metric tile · chart card · form card · the sticky table header **once the body has scrolled under it** · the bulk-action bar's host card | Attached furniture. Border does the work; the shadow is a 1 px contact seam so a white card does not hard-band against `--ev-bg`. §1.4: *"MUST give persistent surfaces a border and **at most a hairline shadow**"*, and *"MUST NOT give a card a large drop shadow — a card that appears to float is a bug"* |
 | **`--ev-shadow-2`** | `popover` · `dropdown-menu` · `tooltip` · `command` / combobox list · sort, filter and date-range popovers · global search popover (480 px) · bell popover (360 px) · sub-tab popover (224 px) · toast · bulk-action bar · **the three shell drawers (`--ev-drawer-w` 406 px)** | Detached, near the page, dismissible, **no scrim**. Everything here sits over content the operator is still reading, so the shadow must resolve inside ~8 px. §1.4: *"MUST give transient surfaces (popovers, modals, drawers, toasts, floating action bars) a shadow"* |
 | **`--ev-shadow-3`** | `dialog` and `alert-dialog` at **440 / 560 / 800 px** — and nothing else | The only scrimmed surfaces in the product. §5.0 forbids a modal nested in a drawer, so tier 3 never composites over tier 2 |
@@ -66,7 +60,7 @@ written in terms of these tokens. See §1.7 for the collision between them.
 Both, not either. Justified in §1.5 — the reference does **not** support this and I say so there.
 
 The auth card is outside this spec's scope. When it is designed its default is `--ev-shadow-2`
-(`00-auth/login-password-step-empty.webp` shows a card floating on a backdrop, with no canvas
+(the inherited capture shows a card floating on a backdrop, with no canvas
 relationship to anchor a border); that spec may argue otherwise.
 
 ### 1.3 The measurements
@@ -77,11 +71,11 @@ Distances are converted at **1 image px ≈ 1.97 CSS px** (768 px wide from a ~1
 
 | Surface | Frame | Peak α | Downward reach | Lateral reach |
 |---|---|---:|---:|---:|
-| Card on canvas | `products-list-default.webp` | **0.04** | ~2 px | **0** |
-| Popover | `products-list-sort-popover.webp` | **0.07** | ~8 px | ~4 px |
-| Bulk-action bar (on white) | `products-list-bulk-selection-action-bar.webp` | **0.075** | ~8 px | — |
-| Drawer, no scrim | `home-guide-side-panel-in-progress.webp` | **0.00** | — | **0** |
-| Modal (over scrim) | `products-list-archive-confirm-modal.webp` | **0.15** | ~30 px | ~5 px |
+| Card on canvas | the inherited capture | **0.04** | ~2 px | **0** |
+| Popover | the inherited capture | **0.07** | ~8 px | ~4 px |
+| Bulk-action bar (on white) | the inherited capture | **0.075** | ~8 px | — |
+| Drawer, no scrim | the inherited capture | **0.00** | — | **0** |
+| Modal (over scrim) | the inherited capture | **0.15** | ~30 px | ~5 px |
 
 Two profiles worth printing, because they are what the tiers are built from.
 
@@ -117,7 +111,7 @@ answer:
    ~2 px reach, not a recovered value.
 2. **I cannot separate blur from spread.** `0 4px 8px 0` and `0 8px 16px -4px` produce nearly
    identical profiles at this resolution. The two-layer decompositions in §1.1 are a **model that
-   reproduces the measured falloff**, not a recovery of Shopify's actual declaration. I verified the
+   reproduces the measured falloff**, not a recovery of any declaration. I verified the
    model numerically — a Gaussian approximation of `--ev-shadow-2` predicts α 0.078 at the bottom
    edge against 0.07 measured, and 0.038 laterally against ~0.03; `--ev-shadow-3` predicts 0.156
    against 0.15 measured, and 0.074 laterally against 0.083 — but a different two-layer pair would
@@ -143,11 +137,11 @@ Three reasons, and the third is the one that decides it:
 1. §1.4's own **rule** — as opposed to its observation table — names drawers in a MUST: *"MUST give
    transient surfaces (popovers, modals, drawers, toasts, floating action bars) a shadow."* The rule
    and the observation disagree inside one section of `DESIGN.md`.
-2. Shopify's guide panel is a **companion** to the page it opened from — semi-persistent, part of the
+2. The inherited guide panel is a **companion** to the page it opened from — semi-persistent, part of the
    home surface. Eyvar's three shell layers are **dismissible overlays reachable from anywhere**
    (`openProfile` has 100 call sites) that close on `Escape` and vanish from the URL. They are
    transient in a way the guide panel is not.
-3. **Eyvar's drawer can land on white.** Shopify's guide panel abuts the grey canvas at `241`, where
+3. **Eyvar's drawer can land on white.** The inherited guide panel abuts a grey canvas at `241`, where
    a `235` hairline is a legible step. Eyvar's drawer opens over the **monitoring shell** and over
    full-bleed content that reaches the viewport edge with no card boundary to butt against; a
    hairline alone at `#E4E2DA` on `#FFFFFF` is a 1.1:1 step. The shadow is what keeps the boundary
@@ -157,22 +151,22 @@ The hairline stays as well, because at 406 px on a 1280 px viewport the drawer's
 the operator's only cue about how much page is left, and an 8 px gradient is a softer edge than the
 density warrants (D-2). Belt and hairline.
 
-### 1.6 Why these numbers and not Shopify's — D-2 applied
+### 1.6 Why these numbers and not the inherited ones — D-2 applied
 
 **Blur and offset compress. Alpha does not.** That is the whole rule, and it is worth stating because
 it is the non-obvious half.
 
-- **Dimensions compress.** Shopify's modal shadow blooms ~30 CSS px under a product with ~40 px rows
+- **Dimensions compress.** The inherited modal shadow blooms ~30 CSS px under a product with ~40 px rows
   and a 20 px page title. Eyvar runs 32 px rows and a 17 px page title (D-2). A shadow whose bloom is
   about one table row tall reads as elevation; one that is taller than a card header reads as a
-  smudge. `--ev-shadow-3` reaches ~20 px — roughly two thirds of Shopify's, close to the density
+  smudge. `--ev-shadow-3` reaches ~20 px — roughly two thirds of that, close to the density
   ratio (32/40, 13 px body against 14). This is a judgement calibrated to D-2, not a derivation, and
   I am naming it as one.
 - **Alpha does not compress.** Alpha is a contrast signal, not a dimension, and D-2 licences smaller
   *values on the grid*, not weaker contrast. At higher density surfaces sit closer together, so they
   need **more** edge definition per pixel, not less. Scaling the alphas down would have produced the
   exact failure the brief warned about from the other direction: a scale so faint it reads as dirt.
-  `--ev-shadow-2` and `--ev-shadow-3` carry Shopify's measured peaks — 0.07 and 0.15 — reproduced by
+  `--ev-shadow-2` and `--ev-shadow-3` carry the measured peaks — 0.07 and 0.15 — reproduced by
   the layer pairs, unchanged.
 
 **On the 4 px grid.** D-2 licences smaller, never off-grid, and D15 records off-grid literals as a
@@ -203,7 +197,7 @@ lateral reach cannot be one shadow.
   border. Do not scale them.
 - **The `sonner` restyle keeps the shadow.** 00-shell §12 already deletes the action slot and
   relocates the toast; elevation is `--ev-shadow-2`, unchanged from what `sonner` ships in spirit
-  though its literal `rgb(0 0 0 / .1)` must go.
+  though its literal `rgb(0 0 0 /.1)` must go.
 - **Delete every literal.** After this lands, `grep -rn "box-shadow" src/` should return only
   `globals.css`, the focus-ring utility, and the `--ev-marker` pseudo-element. Any `shadow-sm` /
   `shadow-md` / `shadow-lg` Tailwind class is a `/token-audit` failure.
@@ -235,7 +229,7 @@ you that a component honouring both kinds does not": it gives us a cheaper way t
   media slot above a title. Using `Empty` here means suppressing every slot it has.
 - `first-run` puts the ~160 px illustration, heading, body and action row **inside the index card**,
   and the `Learn more about {resource}.` line **outside** it (00-shell §11.1,
-  `04-customers/customers-empty-state.webp`). That is a two-region layout `Empty` does not model.
+  the inherited capture. That is a two-region layout `Empty` does not model.
 
 **Cost of building it.** `EmptyState` is a switch on two values over about forty lines. Freezing
 `components.json` is worth more than forty lines, and the frozen list is what stops the inventory
@@ -359,7 +353,7 @@ For the record, the three that were checked and found not to be deviations:
 | Decision | Looks like a deviation because | Why it is not |
 |---|---|---|
 | Adding `--ev-shadow-1/2/3` | §6.4 forbids *"introducing a new colour, radius, shadow, font size"* | §6.4's rule is that such values must be **tokens**. Three tokens satisfy it. Legacy defect **D16** records that no shadow tokens exist in `eyvar_ops_panel_v40.html` — creating the category is compliance with §6.4, not an exception to it. No R19-style ruling is needed here: unlike `--ev-hairline-strong`, this introduces no colour, and §1.4 enumerates no closed shadow set to break |
-| `--ev-shadow-3` reaching ~20 px where Shopify reaches ~30 px | departs from a measured reference figure | **R13**: no pixel figure in §1–§5 binds. The relationship binds, and it is preserved — card ≪ popover < modal, downward-asymmetric. The compression is **D-2 applied**, the same way `--ev-topbar-h: 48px` was |
+| `--ev-shadow-3` reaching ~20 px where the baseline reaches ~30 px | departs from a measured reference figure | **R13**: no pixel figure in §1–§5 binds. The relationship binds, and it is preserved — card ≪ popover < modal, downward-asymmetric. The compression is **D-2 applied**, the same way `--ev-topbar-h: 48px` was |
 | The drawer taking a shadow the reference does not show | departs from a `[observed]` row in §1.4 | §1.4's own **MUST** names drawers. Where §1.4's observation table and its rule disagree, the rule governs and R13 voids the figure. Argued in §1.5 |
 
 ---
@@ -378,7 +372,7 @@ cost:
 - **R-1.** A decision not to add a component is not a design rule. `components.json`'s
   "deliberately not added" list is the right home, alongside `sidebar`.
 - **F-9.** A typo in my own spec. Nothing in `DESIGN.md` says six.
-- **Q12.** Shopify has no two-level rail, so `DESIGN.md` §8.4 has nothing to say about a parent tone
+- **Q12.** The inherited baseline has no two-level rail, so `DESIGN.md` §8.4 has nothing to say about a parent tone
   and §6.2 **D-4** already carries the two-level nav's full text without descending to badge
   arithmetic. Adding it there would push implementation detail up a level it does not belong at.
   00-shell §2.4 is the citable home.

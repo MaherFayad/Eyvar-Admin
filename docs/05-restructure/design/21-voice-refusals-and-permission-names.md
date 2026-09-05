@@ -73,7 +73,7 @@ just been stopped; the respectful move is to be exact and brief.
 | `src/screens/support/tickets/copy.ts` | 4 `*.blocked.permission` |
 | `src/screens/support/disputes/copy.ts` | 5 `*.blocked.permission` |
 | `src/commands/copy.ts` | `ticket.action.reopen.blocked.permission` |
-| `src/screens/support/conversations/copy.ts` | `conversations.composer.noPermission` |
+| `src/screens/support/inbox/copy.ts` | `conversations.composer.noPermission` |
 | `src/i18n/dictionaries.ts` | `state.forbidden.body` |
 | `src/screens/onboarding/copy.ts` | `onboarding.step.forbidden` |
 

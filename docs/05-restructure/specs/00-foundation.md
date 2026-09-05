@@ -1,6 +1,6 @@
 # 00 — Foundation: navigation model, application shell, shared vocabulary
 
-> **Phase 0, step 0.1.** Owner: product-owner. Consumers: product-designer (0.2),
+> Owner: product-owner. Consumers: product-designer (0.2),
 > frontend-engineer (0.3, 0.4, 0.7), utilities-engineer (0.5), mock-data-engineer (0.6),
 > qa + visual-qa (0.8).
 >
@@ -39,7 +39,7 @@ Underneath all of this there is no shell in the engineering sense: 41 `.page` di
 class, ~25 inline empty states (`DESIGN.md` D9), ~6 divergent banner implementations (D8), at least
 six countdown components (§8.4.2), and **`aria-` appearing zero times in the file**. The operator
 cannot navigate to a quarter of the product, cannot share where they are, cannot trust the rail to
-say where they are, and cannot reach a row action from the keyboard (D19). Nothing in Phase 1 can be
+say where they are, and cannot reach a row action from the keyboard (D19). No screen can be
 built until the frame, the route table and the shared vocabulary exist and are owned by one agent.
 
 ---
@@ -90,7 +90,7 @@ built until the frame, the route table and the shared vocabulary exist and are o
 
 ### 3.1 The decision
 
-Two levels, Slack-style.
+Two levels.
 
 - **Level 1 — workspace rail.** Five targets. Picks the *workspace*. `Admin` is pinned to the bottom
   — `DESIGN.md` §2.1: *"Settings MUST be pinned to the bottom of the nav column and MUST NOT scroll
@@ -120,7 +120,7 @@ profile is an overlay on level 3, not a fourth level (§4.3). Every path is prov
 
 Two corrections from revision 1 that the coordinator has already applied upstream and that this
 revision therefore states as fact rather than as findings: `zones` was missing from the original build plan's
-Phase 1 table, and `live` is **not** a full-bleed screen — §8.1 explicitly rejects the §2.5 mapping
+module table, and `live` is **not** a full-bleed screen — §8.1 explicitly rejects the §2.5 mapping
 for it, and only `plan-edit` unmounts the shell (§3.10).
 
 ### 3.3 The five workspaces
@@ -697,7 +697,7 @@ state**, owned here, not per-page. Renderers gate on visibility — an off-scree
 ## 5. Component inventory
 
 The point of this section: **step 0.4 adds every primitive in one pass and `components.json` is
-frozen afterwards.** A primitive missed here blocks a Phase 1 agent who is forbidden from running
+frozen afterwards.** A missing primitive blocks any agent forbidden from running
 the CLI (`CLAUDE.md`, the parallelism rules). Err toward adding.
 
 ### 5.1 Pattern keys
@@ -773,7 +773,7 @@ anything; if it was ever off, every component added since is suspect.
 | 32 | Toggle group | `toggle-group` | P6 P1 P5 | **P1** | The `live` / `history` mode switch (`setMapMode`), map filter chips, table density. A segmented control, not tabs — it does not filter one dataset into views. |
 | 33 | Chart | `chart` | P5 P6 | **P1** | 7 metric-tile pages plus 3 legacy `<canvas>` charts (`:817`, `:8255`, `:8434`). **Constraint, not a choice:** it must theme entirely to `--ev-*` and ship no built-in palette (`components.md` §"Do not import"). Engineer confirms shadcn `chart` / Recharts satisfies that before 0.4 closes. |
 
-**Deliberately not added, with the reason** — so nobody re-adds them in Phase 1:
+**Deliberately not added, with the reason** — so nobody re-adds them:
 
 | Not added | Reason |
 |---|---|
@@ -799,7 +799,7 @@ expected."*
 | S-01 | `ModuleRail` | button, tooltip, badge | SH | **P0** | §3.1, §3.3, new D-4 |
 | S-02 | `PageNav` | scroll-area, button, badge, separator | SH | **P0** | §3.7, §3.9 |
 | S-03 | `TopBar` | avatar, dropdown-menu, popover, input | SH | **P0** | **D-3** |
-| S-04 | `SaveBar` | button | SH P3 P4 | **P0** | §2.3 + **R2** (Save is the brand-blue primary; the light Save is derived from Shopify's dark bar and would be invisible on Eyvar's white one) |
+| S-04 | `SaveBar` | button | SH P3 P4 | **P0** | §2.3 + **R2** (Save is the brand-blue primary; the light Save is derived from an inherited dark bar and would be invisible on Eyvar's white one) |
 | S-05 | `GlobalSearch` | command, popover, badge | SH | **P0** | §2.6 — anchored popover, scope chip inside the input, escape-hatch row always last |
 | S-06 | `NotificationPanel` | popover, scroll-area, badge | SH | **P0** | §3.8, §5.4 |
 | S-07 | `AccountMenu` | dropdown-menu, avatar, separator | SH | **P0** | §2.1 |
@@ -922,7 +922,7 @@ spec items with a reason, not silent.
 | **Container** | One card holds the view tabs, the filter row, the header row, the rows, and the bulk action bar. Never a bare `<table>`. | §3.1 |
 | **Identity cell** | First data cell is the record's identity and is a **link to its detail route**. Semibold when the identity is a code or number (`TRP-4182`), regular when it is a name. | §3.1 |
 | **Secondary line** | A grey second line inside the identity cell instead of a new column, when the value only qualifies the primary one. | §3.1 |
-| **Alignment** | Numeric, currency and count columns right-aligned, header and value sharing a right edge (**R4**). Text and dates left-aligned. **Eyvar picks right-alignment everywhere** — do not reproduce Shopify's customers-index exception. | §3.1, R4 |
+| **Alignment** | Numeric, currency and count columns right-aligned, header and value sharing a right edge (**R4**). Text and dates left-aligned. **Eyvar picks right-alignment everywhere** — do not reproduce the inherited baseline's customers-index exception. | §3.1, R4 |
 | **Sorting** | **Exactly one** header shows the active sort indicator; the rest show no resting affordance. Sort is a popover: field as a **radio group**, then a separate direction pair. Never a flat "Name A–Z / Date new–old" list. | §3.1, §3.2 |
 | **Filtering** | Chips in a row beneath the search field, each a pill with a trailing chevron, ending with `Add filter +`. `Clear all` appears **only** when at least one filter or query is active. | §3.2 |
 | **Search mode** | Activating search **replaces the tab row in place**, does not push it down. `Cancel` restores the previous view untouched. | §3.2 |
@@ -1571,7 +1571,7 @@ needs a human.
 | **Q3** | **Does adopting `PROPOSED-STRUCTURE.md` "as written" adopt its §10.4 and §10.5 *recommendations* too?** Those sections propose two new roles (`Trust & Safety`, `Dispatcher`) and splitting `manage_settings` into three keys. They read as recommendations inside the adopted document, not as part of the IA — but §10.3's visibility matrix and §13.1 R5's mitigation both assume they exist. | Business owner | §11.2's visibility rules are written against 4 roles. Adding roles changes which workspace tiles render for whom, which is a **shell-level** change — so this one touches 0.7, not just a sub-tab spec. |
 | **Q4** | **Which permission gates each of the 34 sub-tabs?** The rule is settled (§11.3); the 34 values are not, and 19 legacy pages had nothing to inherit. | Business owner, with whoever owns identity | **AC-61**, and the `permission` field on 34 route-table rows. The shell must ship the unresolved ones as `null` with a recorded gap — today every one of those surfaces is visible to every role. |
 | **Q5** | **Does shadcn `chart` satisfy the "no imported design language" rule?** `components.md` forbids charting libraries with built-in themes. shadcn `chart` wraps Recharts and is CSS-variable driven, which looks compliant but must be verified before 0.4 freezes `components.json`. | frontend-engineer (0.4) | Five `Overview` sub-tabs plus Performance and Risk & Signals. If it fails, a chart primitive must be built — a Phase-0-sized task nobody has budgeted. |
-| **Q6** | **Is the rail built, or adopted from shadcn `sidebar`?** §5.4. | product-designer (0.2) proposes, frontend-engineer (0.4) responds | Nothing blocks, but the answer must land **inside 0.4** — `components.json` is frozen afterwards and Phase 1 may not run the CLI. |
+| **Q6** | **Is the rail built, or adopted from shadcn `sidebar`?** §5.4. | product-designer (0.2) proposes, frontend-engineer (0.4) responds | **Closed.** The rail is built, not adopted from the shadcn `sidebar` primitive. |
 | **Q7** | **Which of the four pricing models is the real one?** `DB.plans`, the `PLANS` / `CADENCE_META` constants used by the new-sub and renewal flows, `DB.quickRideTypes` + surge, and `DB.rateCard`. They disagree on commission: escrow embeds a flat 20 %, the history builder hardcodes 20 %, the rate card says 22 % on-demand, and per-plan `commission` is editable per plan. **We are computing captain earnings four different ways.** *(`PROPOSED-STRUCTURE.md` §13.2 item 2.)* | Finance lead, with the business owner | **Financials › Pricing & Plans** — the one sub-tab that exists *specifically* to put all four models on one screen (§3.7). Until Finance names one, that sub-tab is a museum of options and its spec cannot be written. This is the only one of the seven merges with a blocker of its own. |
 
 ### Raised in 0.6, when the data layer had to produce real values

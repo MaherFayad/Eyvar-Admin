@@ -14,7 +14,7 @@
 >
 > **This spec closes foundation open question Q8** (§4.3) and takes a position on **Q13** (§11).
 >
-> **Behaviour only.** The visual language is being re-derived against Navattic under **D7**. Every
+> **Behaviour only.** The visual language is `design/03-visual-language.md` under **D7**. Every
 > state below is defined by what it *is* and what the operator can do in it, never by how it looks.
 > Where this spec says "tone", it means the semantic token name, not a colour.
 

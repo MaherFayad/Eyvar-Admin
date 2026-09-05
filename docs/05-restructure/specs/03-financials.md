@@ -1,6 +1,6 @@
 # 03 — Financials: the ledger model, and all seven sub-tabs
 
-> **Phase 1, wave 3.** Owner: product-owner. Consumers: product-designer (design spec),
+> Owner: product-owner. Consumers: product-designer (design spec),
 > mock-data-engineer (types + fixtures), utilities-engineer (money helpers, the debit/credit
 > splitter), frontend-engineer (7 sub-tabs), qa + visual-qa.
 >
