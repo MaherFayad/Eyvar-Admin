@@ -201,16 +201,16 @@ describe('3 — existing links keep working, byte for byte', () => {
    * business owner's own example and the most likely link to exist in someone's
    * chat history.
    */
-  const LEGACY_RPT1 =
+  const MODELESS_RPT1 =
     'eyJtIjpbImNhcHRhaW5zLnJlZ2lzdGVyZWQiLCJyaWRlcnMucmVnaXN0ZXJlZCJdLCJnIjpudWxsLCJmIjpbXSwidyI6eyJraW5kIjoicHJlc2V0IiwicHJlc2V0IjoibGFzdC0zMGQifSwiZ3IiOiJkYXkiLCJjIjoibm9uZSIsImN0IjoibGluZSJ9'
 
   /** A second legacy link, with the three things `RPT-1` does not exercise:
       an absolute window, a filter, and a period comparison. */
-  const LEGACY_ABSOLUTE =
+  const MODELESS_ABSOLUTE =
     'eyJtIjpbInRyaXBzLmNvbXBsZXRlZCJdLCJnIjoidHJpcC5waWNrdXAiLCJmIjpbWyJ0cmlwLmtpbmQiLCJlcSIsInF1aWNrIl1dLCJ3Ijp7ImtpbmQiOiJhYnNvbHV0ZSIsImZyb20iOiIyMDI2LTAxLTAxIiwidG8iOiIyMDI2LTAzLTMxIn0sImdyIjoid2VlayIsImMiOiJwcmV2aW91cy15ZWFyIiwiY3QiOiJiYXIifQ'
 
   it('parses a link written before `mode` existed, unchanged', () => {
-    expect(deserialiseReportQuery(LEGACY_RPT1)).toEqual({
+    expect(deserialiseReportQuery(MODELESS_RPT1)).toEqual({
       measures: [{ key: 'captains.registered' }, { key: 'riders.registered' }],
       groupBy: null,
       filters: [],
@@ -223,7 +223,7 @@ describe('3 — existing links keep working, byte for byte', () => {
   })
 
   it('parses a legacy link carrying an absolute window, a filter and a comparison', () => {
-    expect(deserialiseReportQuery(LEGACY_ABSOLUTE)).toEqual({
+    expect(deserialiseReportQuery(MODELESS_ABSOLUTE)).toEqual({
       measures: [{ key: 'trips.completed' }],
       groupBy: 'trip.pickup',
       filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }],
@@ -240,8 +240,8 @@ describe('3 — existing links keep working, byte for byte', () => {
        chat message all pointing at the same place. If P7-T1 had written `mo`
        for the default, every one of them would have become a second link to
        one question. */
-    expect(serialiseReportQuery(deserialiseReportQuery(LEGACY_RPT1)!)).toBe(LEGACY_RPT1)
-    expect(serialiseReportQuery(deserialiseReportQuery(LEGACY_ABSOLUTE)!)).toBe(LEGACY_ABSOLUTE)
+    expect(serialiseReportQuery(deserialiseReportQuery(MODELESS_RPT1)!)).toBe(MODELESS_RPT1)
+    expect(serialiseReportQuery(deserialiseReportQuery(MODELESS_ABSOLUTE)!)).toBe(MODELESS_ABSOLUTE)
   })
 
   it('leaves every seeded trend report’s link untouched', () => {

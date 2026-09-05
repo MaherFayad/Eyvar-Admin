@@ -50,7 +50,7 @@ beforeEach(() => {
   disableMockLatency()
   resetDataLayer()
   /* jsdom implements neither, and Radix's select, menu and dialog all call them
-     on the trigger. The same stubs `alerts.parity.test.tsx` carries. */
+     on the trigger. The same stubs `alerts.corrections.test.tsx` carries. */
   if (!Element.prototype.hasPointerCapture) {
     Element.prototype.hasPointerCapture = () => false
     Element.prototype.setPointerCapture = () => {}

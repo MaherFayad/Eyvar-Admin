@@ -33,7 +33,7 @@ import { mock, notFound } from '../mock/delay'
  * three below are the whole of the fix. **If a fixture file grows a `filler*`
  * array, this import list is the second place to change.**
  */
-import { LEGACY_PAGE_TITLES } from '../fixtures/legacyPages'
+import { PAGE_ALIAS_TITLES } from '../fixtures/pageAliases'
 import { SUB_TABS } from '../fixtures/routeTable'
 /* Deep import, not the `@/lib` barrel: this module's dependency on the shared
    layer is one pure function, and the import should say so. */
@@ -48,7 +48,7 @@ import type {
   SearchResponse,
   SearchResult,
 } from '../types/profile'
-import { resolveLegacyPage } from './routes'
+import { resolvePageAlias } from './routes'
 import { http } from './http'
 import { getRoster } from './rosterStore'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -196,7 +196,7 @@ export async function resolveProfiles(
  *   -> SearchResponse
  *
  * Covers three kinds of target (§4.3.4): entities, destinations (by current
- * name **and by legacy name**, via the route table's `legacyPageIds`), and
+ * name **and by legacy name**, via the route table's `pageAliasIds`), and
  * named actions. Results the operator cannot open must not appear (AC-60) —
  * that filtering is the server's, because the client does not hold the
  * permission truth.
@@ -455,7 +455,7 @@ function searchEntities(needle: string): SearchResult[] {
       title,
       subtitle: `${id}${subtitle ? ` · ${subtitle}` : ''}`,
       target: { entityId: id, entityType: type },
-      matchedLegacyName: null,
+      matchedAliasName: null,
       score: toScore(score),
     })
   }
@@ -550,7 +550,7 @@ const DESTINATION_WEIGHT = {
  * edges ahead of a merely equal current-name hit. Capped back to 1 by
  * `toScore`, so the scale stays `0…100`.
  */
-const LEGACY_NAME_WEIGHT = 1.05
+const ALIAS_NAME_WEIGHT = 1.05
 
 function searchDestinations(needle: string): SearchResult[] {
   const out: SearchResult[] = []
@@ -588,30 +588,30 @@ function searchDestinations(needle: string): SearchResult[] {
       title: label,
       subtitle: viewId === null ? row.path : `${row.path}?view=${viewId}`,
       target: { path: row.path, viewId },
-      matchedLegacyName: null,
+      matchedAliasName: null,
       score: toScore(best),
     })
   }
 
   /* By legacy name — the §4.3.4 case: "Renewal pipeline" resolves to
      Operations › Subscriptions — Expiring ≤ 7 days without the operator knowing
-     it moved. `resolveLegacyPage` still decides *which* pages are candidates
-     (substring over `LEGACY_PAGE_TITLES`); this only scores what it returned.
+     it moved. `resolvePageAlias` still decides *which* pages are candidates
+     (substring over `PAGE_ALIAS_TITLES`); this only scores what it returned.
      The page id is scored too, because several are typeable names in their own
      right and do not appear in their title — `all-pending` is not a substring
      of "All Pending Applications". */
-  for (const hit of resolveLegacyPage(needle)) {
-    const legacyTitle = LEGACY_PAGE_TITLES[hit.legacyPageId] ?? hit.legacyPageId
+  for (const hit of resolvePageAlias(needle)) {
+    const aliasTitle = PAGE_ALIAS_TITLES[hit.aliasId] ?? hit.aliasId
     const score =
-      Math.max(matchScore(needle, legacyTitle), matchScore(needle, hit.legacyPageId)) *
-      LEGACY_NAME_WEIGHT
+      Math.max(matchScore(needle, aliasTitle), matchScore(needle, hit.aliasId)) *
+      ALIAS_NAME_WEIGHT
     if (score <= 0) continue
     out.push({
       kind: 'destination',
-      title: legacyTitle,
+      title: aliasTitle,
       subtitle: hit.viewId ? `${hit.path}?view=${hit.viewId}` : hit.path,
       target: { path: hit.path, viewId: hit.viewId },
-      matchedLegacyName: hit.legacyTitle,
+      matchedAliasName: hit.aliasTitle,
       score: toScore(score),
     })
   }
@@ -623,7 +623,7 @@ function searchDestinations(needle: string): SearchResult[] {
  * One row per place you can end up. The current-name and legacy-name passes can
  * both land on the same `path` + `view`, and two identical-looking rows in a
  * palette is a bug the operator has to resolve. Highest score wins; the legacy
- * row wins a tie by construction, which is what keeps `matchedLegacyName`
+ * row wins a tie by construction, which is what keeps `matchedAliasName`
  * populated so a row can still say *"was: Renewal pipeline"*.
  */
 function bestPerDestination(rows: SearchResult[]): SearchResult[] {

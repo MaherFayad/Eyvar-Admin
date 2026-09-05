@@ -91,9 +91,9 @@ export {
   getRouteTable,
   getSubTabs,
   getWorkspaces,
-  resolveLegacyPage,
+  resolvePageAlias,
   subTabViewPermissions,
-  type LegacyResolution,
+  type PageAliasResolution,
 } from './routes'
 
 export {

@@ -8,7 +8,7 @@
  * corrected, it is corrected here, once.
  */
 
-export const LEGACY_PAGE_IDS = [
+export const PAGE_ALIAS_IDS = [
   'exec-overview',
   'corporate',
   'corp-detail',
@@ -52,10 +52,10 @@ export const LEGACY_PAGE_IDS = [
   'requests-instant-all',
 ] as const
 
-export type LegacyPageId = (typeof LEGACY_PAGE_IDS)[number]
+export type PageAliasId = (typeof PAGE_ALIAS_IDS)[number]
 
-/** §3.11 — retired under D1. No route resolves to it and it appears in no row's `legacyPageIds`. */
-export const RETIRED_LEGACY_PAGE_IDS: readonly string[] = ['interventions']
+/** §3.11 — retired under D1. No route resolves to it and it appears in no row's `pageAliasIds`. */
+export const RETIRED_PAGE_ALIAS_IDS: readonly string[] = ['interventions']
 
 /**
  * The 21 settings pane keys, from `GROUND-TRUTH-INVENTORY.md` §C / §Q and the
@@ -63,7 +63,7 @@ export const RETIRED_LEGACY_PAGE_IDS: readonly string[] = ['interventions']
  * seventeen collapse into Admin's seven sub-tabs. AC-15 walks the route table
  * and asserts all 21 are reachable and none twice.
  */
-export const LEGACY_SETTINGS_PANE_KEYS = [
+export const SETTINGS_PANE_KEYS = [
   'general',
   'branding',
   'legal',
@@ -87,15 +87,15 @@ export const LEGACY_SETTINGS_PANE_KEYS = [
   'cancelpolicy',
 ] as const
 
-export type LegacySettingsPaneKey = (typeof LEGACY_SETTINGS_PANE_KEYS)[number]
+export type SettingsPaneKey = (typeof SETTINGS_PANE_KEYS)[number]
 
 /**
  * Legacy page titles — `titles` map (`eyvar_ops_panel_v40_fixed.html:2168`).
  * Kept because global search resolves **by legacy name** (§4.3.4): an operator
  * who types "Renewal pipeline" must land on Operations › Subscriptions. Without
- * this map, `legacyPageIds` resolves ids nobody types.
+ * this map, `pageAliasIds` resolves ids nobody types.
  */
-export const LEGACY_PAGE_TITLES: Record<string, string> = {
+export const PAGE_ALIAS_TITLES: Record<string, string> = {
   'exec-overview': 'Executive Overview',
   corporate: 'Corporate Accounts',
   'corp-detail': 'Corporate Account',

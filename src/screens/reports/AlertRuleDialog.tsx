@@ -61,7 +61,7 @@
  * lands. The glyph is on the title — decorative, `aria-hidden`, the words still
  * carrying the name — and the description **names the report** whenever one is
  * chosen, which on the `Create alert` path is the row the operator was standing
- * on. That third branch also closes the copy defect `alerts.parity.test.tsx`
+ * on. That third branch also closes the copy defect `alerts.corrections.test.tsx`
  * recorded: the *"save this one first"* sentence was the fallback for every
  * incomplete rule, so it rendered over a perfectly well saved one.
  *
@@ -315,7 +315,7 @@ export function AlertRuleDialog({
               incomplete rule, so an operator arriving from `Create alert` on a
               perfectly well saved report was told *"An alert watches a saved
               report. Save this one first."* — which is false and unactionable
-              on that path. `alerts.parity.test.tsx` recorded it rather than
+              on that path. `alerts.corrections.test.tsx` recorded it rather than
               working around it. Now the fallback branches on what is actually
               true: the report is named where one is chosen, the reason is given
               where none can be, and the instruction is given where one has yet

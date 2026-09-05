@@ -16,7 +16,7 @@ import {
   disableMockLatency,
   getRouteTable,
   resetDataLayer,
-  resolveLegacyPage,
+  resolvePageAlias,
   search,
 } from '@/data/clients'
 import { resetDefaultUiStores } from '@/lib'
@@ -556,7 +556,7 @@ describe('AC-73 — "In Arabic, money values, dates, ids and phone numbers read 
 
 describe('AC-30 — "Global search for a legacy destination name returns the destination it moved to. Four searches, four correct destinations"', () => {
   it('resolves Renewal pipeline to Operations › Subscriptions, view Expiring ≤ 7 days', () => {
-    const hits = resolveLegacyPage('Renewal pipeline')
+    const hits = resolvePageAlias('Renewal pipeline')
     expect(hits.map((h) => `${h.path}?view=${h.viewId}`)).toEqual([
       '/operations/subscriptions?view=expiring-7d',
     ])
@@ -566,23 +566,23 @@ describe('AC-30 — "Global search for a legacy destination name returns the des
      PATH and no longer to a view tab of Trips. The `?view=` half of this
      assertion is gone because the thing it pointed at is gone. */
   it('resolves Quick rides to Operations › Quick rides', () => {
-    const hits = resolveLegacyPage('Quick rides')
+    const hits = resolvePageAlias('Quick rides')
     expect(hits.map((h) => h.path)).toEqual(['/operations/quick-rides'])
   })
 
   it('resolves All pending applications to Operations › People, view Applications', () => {
-    const hits = resolveLegacyPage('All pending applications')
+    const hits = resolvePageAlias('All pending applications')
     expect(hits.map((h) => `${h.path}?view=${h.viewId}`)).toEqual(['/operations/people?view=applications'])
   })
 
   /**
    * **DEFECT D-8.** `Cancellation policy` is the example §4.3.4 itself uses to
    * justify global search. It is a settings PANE key (`cancelpolicy`), and
-   * `resolveLegacyPage` only searches `LEGACY_PAGE_TITLES`, which contains page
+   * `resolvePageAlias` only searches `PAGE_ALIAS_TITLES`, which contains page
    * ids and not pane keys. Nothing in the product can find it.
    */
   it.fails('DEFECT D-8 — Cancellation policy does NOT resolve to Financials › Pricing & Plans', () => {
-    const hits = resolveLegacyPage('Cancellation policy')
+    const hits = resolvePageAlias('Cancellation policy')
     expect(hits.map((h) => h.path)).toEqual(['/financials/pricing'])
   })
 

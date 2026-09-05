@@ -41,13 +41,8 @@ export interface Workspace {
    * `Overview` (§3.3, AC-06).
    */
   defaultSubTabId: string
-  /**
-   * Icon **concept**, not an asset name. product-designer specifies the glyph
-   * (0.2 handoff item 4); this string is the brief, and the legacy line is the
-   * candidate that already exists.
-   */
+  /** Icon concept, not an asset name; the design spec names the glyph. */
   iconConcept: string
-  legacyIconLine: number
 }
 
 /* ────────────────── Patterns, shapes, views ────────────────── */
@@ -253,13 +248,13 @@ export interface SubTabRoute {
    * as "Renewal pipeline" to Operations › Subscriptions — Expiring ≤ 7 days
    * (§4.3.4).
    */
-  legacyPageIds: string[]
+  pageAliasIds: string[]
   /**
    * Legacy settings pane keys absorbed by this sub-tab (§3.7). Not in §8.5's
    * field list, but **AC-15 requires it**: "a test that walks the route table
    * finds all 21 and none twice". Empty for every sub-tab that absorbs none.
    */
-  legacySettingsPanes: string[]
+  settingsPanes: string[]
   patterns: PatternKey[]
   shape: PageShape
   /**
@@ -332,7 +327,7 @@ export interface ShellLayerRoute {
   titleKey: string
   /** Deep-review full-page escape, where one exists. Only the 360° profile has one (§3.10). */
   fullPagePath: string | null
-  legacyPageIds: string[]
+  pageAliasIds: string[]
   patterns: PatternKey[]
   /**
    * The same two-key shape as `SubTabRoute` (D17), so one predicate serves both
@@ -348,7 +343,7 @@ export interface RouteTable {
   subTabs: SubTabRoute[]
   shellLayers: ShellLayerRoute[]
   /** Ids retired with no destination — `interventions` (§3.11). Present so AC-04 can assert absence, not infer it. */
-  retiredLegacyPageIds: string[]
+  retiredPageAliasIds: string[]
 }
 
 /* ─────────────────────── Nav counts ────────────────────────── */

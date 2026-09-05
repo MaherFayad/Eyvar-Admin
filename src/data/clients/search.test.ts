@@ -257,7 +257,7 @@ describe('scoring', () => {
 describe('legacy names', () => {
   it('resolves "Renewal pipeline" to the view it became, and says so', async () => {
     const { results } = await search('Renewal pipeline')
-    const hit = results.find((r) => r.matchedLegacyName === 'Renewal Pipeline')
+    const hit = results.find((r) => r.matchedAliasName === 'Renewal Pipeline')
     expect(hit).toBeDefined()
     expect(hit!.title).toBe('Renewal Pipeline')
     expect(hit!.target).toEqual({ path: '/operations/subscriptions', viewId: 'expiring-7d' })

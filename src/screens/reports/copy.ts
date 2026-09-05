@@ -1066,7 +1066,7 @@ export const REPORTS_EN: Dictionary = {
   /* **The preselected report, NAMED.** `rb.alert.form.report.unsaved` used to do
      double duty as this dialog's description until a series and a threshold
      existed — so an operator who pressed `Create alert` on a perfectly well
-     saved report was told to save it first. `alerts.parity.test.tsx` reported
+     saved report was told to save it first. `alerts.corrections.test.tsx` reported
      that as a copy defect rather than working around it; this is the key it
      asked for, and it says which report the rule will watch. */
   'rb.alert.form.preset': 'Watching “{name}”. Choose a series and a threshold.',

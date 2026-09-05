@@ -13,12 +13,12 @@ import { describe, expect, it } from 'vitest'
 
 import { ROUTE_TABLE, SHELL_LAYERS, SUB_TABS, WORKSPACES } from '../fixtures/routeTable'
 import {
-  LEGACY_PAGE_IDS,
-  LEGACY_SETTINGS_PANE_KEYS,
-  RETIRED_LEGACY_PAGE_IDS,
-} from '../fixtures/legacyPages'
+  PAGE_ALIAS_IDS,
+  SETTINGS_PANE_KEYS,
+  RETIRED_PAGE_ALIAS_IDS,
+} from '../fixtures/pageAliases'
 import { REPORTS_SUB_TAB_ID, REPORTS_VIEWS } from '@/screens/reports'
-import { findSubTabByPath, resolveLegacyPage, subTabViewPermissions } from './routes'
+import { findSubTabByPath, resolvePageAlias, subTabViewPermissions } from './routes'
 import { WORKSPACE_IDS } from '../types/navigation'
 
 describe('AC-01/AC-02 — the rail', () => {
@@ -86,49 +86,49 @@ describe('AC-04 — the merge register as data', () => {
    * AC-04, because otherwise three census ids have no home.
    */
   const unionAllRows = new Set([
-    ...SUB_TABS.flatMap((r) => r.legacyPageIds),
-    ...SHELL_LAYERS.flatMap((l) => l.legacyPageIds),
+    ...SUB_TABS.flatMap((r) => r.pageAliasIds),
+    ...SHELL_LAYERS.flatMap((l) => l.pageAliasIds),
   ])
 
   it('covers 40 of the 41 census ids — the census minus `interventions`', () => {
-    const expected = LEGACY_PAGE_IDS.filter((id) => !RETIRED_LEGACY_PAGE_IDS.includes(id))
+    const expected = PAGE_ALIAS_IDS.filter((id) => !RETIRED_PAGE_ALIAS_IDS.includes(id))
     expect(expected).toHaveLength(40)
     expect([...unionAllRows].sort()).toEqual([...expected].sort())
   })
 
   it('leaves no census id absent', () => {
-    const missing = LEGACY_PAGE_IDS.filter(
-      (id) => !unionAllRows.has(id) && !RETIRED_LEGACY_PAGE_IDS.includes(id),
+    const missing = PAGE_ALIAS_IDS.filter(
+      (id) => !unionAllRows.has(id) && !RETIRED_PAGE_ALIAS_IDS.includes(id),
     )
     expect(missing).toEqual([])
   })
 
   it('references no id that is not in the census', () => {
-    const strays = [...unionAllRows].filter((id) => !LEGACY_PAGE_IDS.includes(id as never))
+    const strays = [...unionAllRows].filter((id) => !PAGE_ALIAS_IDS.includes(id as never))
     expect(strays).toEqual([])
   })
 
   it('places `interventions` in no row, and resolves it to no route (§3.11)', () => {
     expect(unionAllRows.has('interventions')).toBe(false)
-    expect(resolveLegacyPage('interventions')).toEqual([])
+    expect(resolvePageAlias('interventions')).toEqual([])
     expect(findSubTabByPath('/queues/interventions')).toBeNull()
     expect(findSubTabByPath('/operations/interventions')).toBeNull()
   })
 
   it('records the three shell-layer ids explicitly, so the 34-vs-37 gap is visible', () => {
-    const subTabOnly = new Set(SUB_TABS.flatMap((r) => r.legacyPageIds))
+    const subTabOnly = new Set(SUB_TABS.flatMap((r) => r.pageAliasIds))
     const shellOnly = ['profile', 'notifications-all', 'my-account']
     expect(subTabOnly.size).toBe(37)
     for (const id of shellOnly) expect(subTabOnly.has(id)).toBe(false)
-    expect(SHELL_LAYERS.flatMap((l) => l.legacyPageIds).sort()).toEqual([...shellOnly].sort())
+    expect(SHELL_LAYERS.flatMap((l) => l.pageAliasIds).sort()).toEqual([...shellOnly].sort())
   })
 })
 
 describe('AC-15 — all 21 settings panes reachable, none twice', () => {
-  const claimed = SUB_TABS.flatMap((r) => r.legacySettingsPanes)
+  const claimed = SUB_TABS.flatMap((r) => r.settingsPanes)
 
   it('reaches all 21', () => {
-    expect([...claimed].sort()).toEqual([...LEGACY_SETTINGS_PANE_KEYS].sort())
+    expect([...claimed].sort()).toEqual([...SETTINGS_PANE_KEYS].sort())
   })
 
   it('claims none twice', () => {
@@ -137,7 +137,7 @@ describe('AC-15 — all 21 settings panes reachable, none twice', () => {
 
   it('routes 17 through Admin and 4 through Financials (§3.7)', () => {
     const byWorkspace = (id: string) =>
-      SUB_TABS.filter((r) => r.workspaceId === id).flatMap((r) => r.legacySettingsPanes)
+      SUB_TABS.filter((r) => r.workspaceId === id).flatMap((r) => r.settingsPanes)
     expect(byWorkspace('admin')).toHaveLength(17)
     expect(byWorkspace('financials').sort()).toEqual(['cancelpolicy', 'gateways', 'ledger', 'pricing'])
   })
@@ -293,7 +293,7 @@ describe('D1a — the Report Builder row', () => {
 
   /** It is genuinely new — AC-04 requires census ids in a row, not rows in the census. */
   it('claims no legacy page', () => {
-    expect(reports!.legacyPageIds).toEqual([])
+    expect(reports!.pageAliasIds).toEqual([])
   })
 })
 
@@ -325,7 +325,7 @@ describe('§3.8 — route resolution', () => {
 
 describe('§4.3.4 — global search resolves legacy names', () => {
   it('sends "Renewal pipeline" to Operations › Subscriptions — Expiring ≤ 7 days', () => {
-    const [hit] = resolveLegacyPage('Renewal pipeline')
+    const [hit] = resolvePageAlias('Renewal pipeline')
     expect(hit).toMatchObject({
       subTabId: 'operations-subscriptions',
       path: '/operations/subscriptions',
@@ -334,13 +334,13 @@ describe('§4.3.4 — global search resolves legacy names', () => {
   })
 
   it('sends "Cancellation Policy" to Financials › Pricing & Plans', () => {
-    const pane = SUB_TABS.find((r) => r.legacySettingsPanes.includes('cancelpolicy'))
+    const pane = SUB_TABS.find((r) => r.settingsPanes.includes('cancelpolicy'))
     expect(pane?.path).toBe('/financials/pricing')
     expect(pane?.views.map((v) => v.id)).toContain('cancellation-fees')
   })
 
   it('returns every destination of a Split page rather than picking one', () => {
-    const hits = resolveLegacyPage('exec-overview').map((h) => h.subTabId)
+    const hits = resolvePageAlias('exec-overview').map((h) => h.subTabId)
     expect(hits.sort()).toEqual(['management-overview', 'management-performance', 'management-zones'])
   })
 })
@@ -485,6 +485,6 @@ describe('table integrity', () => {
   it('exposes the whole table through one object', () => {
     expect(ROUTE_TABLE.subTabs).toBe(SUB_TABS)
     expect(ROUTE_TABLE.shellLayers).toBe(SHELL_LAYERS)
-    expect(ROUTE_TABLE.retiredLegacyPageIds).toEqual(['interventions'])
+    expect(ROUTE_TABLE.retiredPageAliasIds).toEqual(['interventions'])
   })
 })

@@ -18,7 +18,7 @@
  *   §5 / §3     the query and the committed chips live in the palette's input
  *               row. `Backspace` on an empty query ascends, `Escape` ascends
  *               from a chip and closes at root, `Enter` runs or descends.
- *   §5 / AC-30  legacy names resolve through the route table's `legacyPageIds`.
+ *   §5 / AC-30  legacy names resolve through the route table's `pageAliasIds`.
  *   §5          the escape hatch is ALWAYS last while a query is present.
  *   §7.3.3      a modal HAS a scrim, so it OWNS THE KEYBOARD and DOES trap
  *               focus. Closing returns focus to the opener (AC-CP10).

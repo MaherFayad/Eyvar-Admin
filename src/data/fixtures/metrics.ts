@@ -2758,7 +2758,7 @@ export const metricSeeds: MetricSeed[] = [
   /* ── Admin › Overview ────────────────────────────────────────────────────
      "Is the console itself safe, staffed, and inside its statutory
      obligations?" No legacy page contributes wholesale — the route-table row's
-     `legacyPageIds` is empty and says so.
+     `pageAliasIds` is empty and says so.
 
      **`admin.overview.activityEvents` is deleted — AC-685, AC-722.** A count of
      log rows measures how busy the log was, and there is no value of it that

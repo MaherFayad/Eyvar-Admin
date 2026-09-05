@@ -1,7 +1,7 @@
 /**
  * Admin › Data & Compliance — `/admin/data`, route row `admin-data`
  * (`fixtures/routeTable.ts:801`), absorbing legacy settings panes `integrity`
- * and `export` (`legacySettingsPanes`, `:810`).
+ * and `export` (`settingsPanes`, `:810`).
  *
  * Three cards, in the order an operator meets them:
  *

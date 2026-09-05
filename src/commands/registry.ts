@@ -431,7 +431,7 @@ export interface Command<T = unknown> {
    * registries later is strictly worse than writing them once.
    *
    * Legacy names come from the same vocabulary §5 already resolves
-   * destinations by — the route table's `legacyPageIds` and the legacy app's
+   * destinations by — the route table's `pageAliasIds` and the legacy app's
    * own button labels — so an operator who learnt the old console finds the
    * command by the name it had there.
    */

@@ -29,7 +29,7 @@ import {
   getSecurityPolicy,
   getSession,
   getNotificationSummary,
-  type LegacyResolution,
+  type PageAliasResolution,
 } from '@/data/clients'
 import { completeStep } from '@/data/clients'
 import { onOnboardingSignal } from '@/data/signals'
@@ -124,8 +124,8 @@ export interface ShellState {
   setSaveBar: (next: SaveBarModel | null) => void
 
   /** Global search's last legacy-name resolution, so the escape hatch can name it (**AC-30**). */
-  lastLegacyResolution: LegacyResolution | null
-  setLastLegacyResolution: (next: LegacyResolution | null) => void
+  lastLegacyResolution: PageAliasResolution | null
+  setLastLegacyResolution: (next: PageAliasResolution | null) => void
 
   /* ─────────────────── the session lifecycle (design/08 §8) ──────────────── */
 
@@ -359,7 +359,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const [saveBar, setSaveBar] = useState<SaveBarModel | null>(null)
-  const [lastLegacyResolution, setLastLegacyResolution] = useState<LegacyResolution | null>(null)
+  const [lastLegacyResolution, setLastLegacyResolution] = useState<PageAliasResolution | null>(null)
   const [writeRevokedPermission, setWriteRevokedPermission] = useState<string | null>(null)
 
   /* §11.6 row 20 — the shell's `offline` banner has had copy and a flag since

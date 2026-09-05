@@ -211,7 +211,7 @@ const openProfile: Command<Driver> = {
     'driver',
     /* Legacy vocabulary — `openProfile` is the second-most-used handler in the
        old console (100 call sites) and `drivers` is one of People's five
-       `legacyPageIds` (`fixtures/routeTable.ts:470`). */
+       `pageAliasIds` (`fixtures/routeTable.ts:470`). */
     'drivers',
     'ملف',
     'الملف الشخصي',

@@ -117,7 +117,7 @@ const flag: Command<Trip> = {
     'fare dispute',
     /* The legacy labels, verbatim (`eyvar_ops_panel_v40_fixed.html:4276`) — an
        operator who learnt the old console types these. `trips` is one of
-       Operations' `legacyPageIds`. */
+       Operations' `pageAliasIds`. */
     'flag trip',
     'trips',
     'وضع علامة',

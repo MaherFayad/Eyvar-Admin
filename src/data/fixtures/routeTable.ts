@@ -34,7 +34,7 @@ import type {
   SubTabView,
   Workspace,
 } from '../types/navigation'
-import { RETIRED_LEGACY_PAGE_IDS } from './legacyPages'
+import { RETIRED_PAGE_ALIAS_IDS } from './pageAliases'
 
 /* Small helper so the 35 rows below read as data and not as boilerplate. */
 function views(...defs: Array<[id: string, titleKey: string]>): SubTabView[] {
@@ -52,7 +52,6 @@ export const WORKSPACES: Workspace[] = [
     pinnedToBottom: false,
     defaultSubTabId: 'management-overview',
     iconConcept: 'Chart axis with a rising line',
-    legacyIconLine: 487,
   },
   {
     id: 'operations',
@@ -62,7 +61,6 @@ export const WORKSPACES: Workspace[] = [
     pinnedToBottom: false,
     defaultSubTabId: 'operations-overview',
     iconConcept: 'Concentric circles with a centre dot',
-    legacyIconLine: 498,
   },
   {
     id: 'financials',
@@ -72,7 +70,6 @@ export const WORKSPACES: Workspace[] = [
     pinnedToBottom: false,
     defaultSubTabId: 'financials-overview',
     iconConcept: 'Currency stroke through a vertical line',
-    legacyIconLine: 527,
   },
   {
     id: 'support',
@@ -82,7 +79,6 @@ export const WORKSPACES: Workspace[] = [
     pinnedToBottom: false,
     defaultSubTabId: 'support-overview',
     iconConcept: 'Speech bubble with a headset arc',
-    legacyIconLine: 533,
   },
   {
     id: 'admin',
@@ -92,7 +88,6 @@ export const WORKSPACES: Workspace[] = [
     pinnedToBottom: true,
     defaultSubTabId: 'admin-overview',
     iconConcept: 'Gear',
-    legacyIconLine: 539,
   },
 ]
 
@@ -224,8 +219,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.management.overview.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['exec-overview'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['exec-overview'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_analytics',
@@ -241,8 +236,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: null,
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['exec-overview', 'growth'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['exec-overview', 'growth'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_analytics',
@@ -260,8 +255,8 @@ export const SUB_TABS: SubTabRoute[] = [
     detailRoutes: [],
     /* M1. `fraud` moved P8 → P5 here: Risk & Signals computes a flag and routes
        elsewhere; every action is a `go()` (`:14320`, `:14336`, `:14351`, `:14363`). */
-    legacyPageIds: ['predictive', 'fraud'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['predictive', 'fraud'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_analytics',
@@ -285,8 +280,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['messages', 'growth.view.messages'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['growth'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['growth'],
+    settingsPanes: [],
     patterns: ['P5', 'P1'],
     shape: 'single',
     /* **A D17 deviation** — `◐` → `●` for Finance, who hold `manage_plans`
@@ -305,8 +300,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.management.zones.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['zones', 'exec-overview'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['zones', 'exec-overview'],
+    settingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
     /* **A D17 deviation** — `○` → `◐` for Finance. A zone map is not
@@ -338,7 +333,7 @@ export const SUB_TABS: SubTabRoute[] = [
      * the duplication cannot drift, and the screen can adopt `row.views` later
      * without a behaviour change.
      *
-     * **`legacyPageIds: []`** — genuinely new. Nothing in the 41-page census
+     * **`pageAliasIds: []`** — genuinely new. Nothing in the 41-page census
      * maps here, and AC-04 requires each census id in *at least* one row, never
      * each row to claim one.
      *
@@ -382,8 +377,8 @@ export const SUB_TABS: SubTabRoute[] = [
         patterns: ['P5'],
       },
     ],
-    legacyPageIds: [],
-    legacySettingsPanes: [],
+    pageAliasIds: [],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     /* **Self-gating** (D17): saving your own report needs no authority beyond
@@ -405,8 +400,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.overview.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['dashboard', 'inbox'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['dashboard', 'inbox'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -427,8 +422,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['everything', 'view.myWork.everything'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['inbox'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['inbox'],
+    settingsPanes: [],
     patterns: ['P10', 'P8'],
     shape: 'single',
     /* **Self-gating** (D17): claiming your own work needs no authority beyond
@@ -449,8 +444,8 @@ export const SUB_TABS: SubTabRoute[] = [
     detailRoutes: [],
     /* `interventions` is NOT listed: it is retired (§3.11). Only its one
        surviving card moves here, and a card is not a page id. */
-    legacyPageIds: ['live'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['live'],
+    settingsPanes: [],
     patterns: ['P6'],
     shape: 'monitor',
     viewPermission: 'view_operations',
@@ -475,7 +470,7 @@ export const SUB_TABS: SubTabRoute[] = [
    * `subTabId` and pins the channel, exactly as `TripsScreen` already does for
    * quick rides and subscription trips (D1b).
    *
-   * `legacyPageIds` are split the same way: `requests-instant-all` was always
+   * `pageAliasIds` are split the same way: `requests-instant-all` was always
    * the instant queue and `requests-sub-all` the subscription one. `requests`
    * — the legacy combined page — goes with the ride tab, which is where a
    * legacy deep link with no channel most nearly lands.
@@ -497,8 +492,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['expired', 'view.requests.expired'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['requests', 'requests-instant-all'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['requests', 'requests-instant-all'],
+    settingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -522,8 +517,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['expired', 'view.requests.expired'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['requests-sub-all'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['requests-sub-all'],
+    settingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -546,8 +541,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['frozen', 'view.subscriptions.frozen'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['subscriptions', 'renewal'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['subscriptions', 'renewal'],
+    settingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -563,8 +558,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.corporate.sub',
     views: [],
     detailRoutes: [CORP_DETAIL],
-    legacyPageIds: ['corporate', 'corp-detail'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['corporate', 'corp-detail'],
+    settingsPanes: [],
     patterns: ['P1', 'P2'],
     shape: 'single',
     /* **A D17 deviation** — `○` → `◐` for Support, who answer calls about
@@ -597,8 +592,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['route-history', 'view.trips.routeHistory'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['quickrides', 'live'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['quickrides', 'live'],
+    settingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -618,8 +613,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['low-rating', 'view.trips.lowRating'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['trips'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['trips'],
+    settingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -640,8 +635,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['absences', 'view.assurance.absences'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['readiness', 'coverage', 'commitment'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['readiness', 'coverage', 'commitment'],
+    settingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -666,8 +661,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['riders', 'view.people.riders'],
     ),
     detailRoutes: [APPLICANT_DETAIL],
-    legacyPageIds: ['drivers', 'all-pending', 'applicant-detail', 'compliance', 'riders'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['drivers', 'all-pending', 'applicant-detail', 'compliance', 'riders'],
+    settingsPanes: [],
     patterns: ['P1', 'P8', 'P2'],
     shape: 'single',
     viewPermission: 'view_operations',
@@ -685,8 +680,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.overview.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['finance', 'wallets', 'rwallets', 'settings'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['finance', 'wallets', 'rwallets', 'settings'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_finance',
@@ -702,8 +697,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.revenue.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['finance'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['finance'],
+    settingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
     viewPermission: 'view_finance',
@@ -719,8 +714,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.payouts.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['wallets'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['wallets'],
+    settingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
     /* **A D17 deviation from §10.3, and one of the eight named ones.** §10.3
@@ -740,8 +735,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.cash.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['wallets'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['wallets'],
+    settingsPanes: [],
     patterns: ['P7', 'P8'],
     shape: 'single',
     viewPermission: 'view_finance',
@@ -757,8 +752,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.riderWallets.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['rwallets'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['rwallets'],
+    settingsPanes: [],
     patterns: ['P7'],
     shape: 'single',
     /* **A D17 narrowing.** §10.3 gave Support `◐*` here; D17 rules `○` —
@@ -785,8 +780,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['cancellation-fees', 'view.pricing.cancellationFees'],
     ),
     detailRoutes: [PLAN_EDITOR, PLAN_CREATE, QUICK_RIDE_EDITOR, QUICK_RIDE_CREATE],
-    legacyPageIds: ['plans', 'plan-edit', 'settings'],
-    legacySettingsPanes: ['pricing', 'cancelpolicy'],
+    pageAliasIds: ['plans', 'plan-edit', 'settings'],
+    settingsPanes: ['pricing', 'cancelpolicy'],
     patterns: ['P1', 'P3'],
     shape: 'single',
     viewPermission: 'view_finance',
@@ -802,8 +797,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.financials.ledger.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['settings'],
-    legacySettingsPanes: ['ledger', 'gateways'],
+    pageAliasIds: ['settings'],
+    settingsPanes: ['ledger', 'gateways'],
     patterns: ['P7', 'P4'],
     shape: 'single',
     /* **A D17 deviation from §10.3** — `○` → `◐` for Ops Manager, for the
@@ -823,8 +818,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.support.overview.sub',
     views: [],
     detailRoutes: [],
-    legacyPageIds: ['support', 'contacts', 'safety', 'fairness'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['support', 'contacts', 'safety', 'fairness'],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_support',
@@ -847,8 +842,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['done', 'view.tickets.done'],
     ),
     detailRoutes: [TICKET_DETAIL],
-    legacyPageIds: ['support', 'ticket-detail'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['support', 'ticket-detail'],
+    settingsPanes: [],
     patterns: ['P8'],
     shape: 'single',
     viewPermission: 'view_support',
@@ -870,8 +865,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['lost-and-found', 'view.disputes.lostAndFound'],
     ),
     detailRoutes: [DISPUTE_DETAIL],
-    legacyPageIds: ['support'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['support'],
+    settingsPanes: [],
     patterns: ['P9'],
     shape: 'single',
     viewPermission: 'view_support',
@@ -892,8 +887,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['captain-economics', 'view.fairness.captainEconomics'],
     ),
     detailRoutes: [FAIRNESS_DETAIL],
-    legacyPageIds: ['fairness'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['fairness'],
+    settingsPanes: [],
     patterns: ['P5', 'P8'],
     shape: 'single',
     viewPermission: 'view_support',
@@ -915,8 +910,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['all', 'view.safety.all'],
     ),
     detailRoutes: [INCIDENT_DETAIL],
-    legacyPageIds: ['safety'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['safety'],
+    settingsPanes: [],
     patterns: ['P9'],
     shape: 'single',
     /* **The important D17 narrowing.** §10.3 gave Support `●`; its own R5 says
@@ -936,8 +931,8 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.support.contactCentre.sub',
     views: [],
     detailRoutes: [CONVERSATION_DETAIL],
-    legacyPageIds: ['contacts', 'support'],
-    legacySettingsPanes: [],
+    pageAliasIds: ['contacts', 'support'],
+    settingsPanes: [],
     patterns: ['P1'],
     shape: 'single',
     viewPermission: 'view_support',
@@ -959,8 +954,8 @@ export const SUB_TABS: SubTabRoute[] = [
        integrity, rotaGaps(), legalDocuments, the erasure queue and dataWindow.
        No legacy page contributes wholesale, so the array is empty; AC-04
        requires every census id to appear somewhere, not every row to be full. */
-    legacyPageIds: [],
-    legacySettingsPanes: [],
+    pageAliasIds: [],
+    settingsPanes: [],
     patterns: ['P5'],
     shape: 'single',
     viewPermission: 'view_admin',
@@ -981,10 +976,10 @@ export const SUB_TABS: SubTabRoute[] = [
       ['integrations', 'view.workspace.integrations'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['settings'],
+    pageAliasIds: ['settings'],
     /* `general` + `branding` merge closes a real defect: two logo stores never
        synchronised (`DB.branding.logoUrl` vs `DB.opsConfig.general.logoDataUrl`). */
-    legacySettingsPanes: ['general', 'branding', 'legal'],
+    settingsPanes: ['general', 'branding', 'legal'],
     patterns: ['P4'],
     shape: 'single',
     /* **A D17 deviation** — `○` → `◐` for Ops Manager. Read-only branding
@@ -1010,8 +1005,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['oncall', 'view.team.oncall'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['settings'],
-    legacySettingsPanes: ['team', 'permissions', 'security', 'rota'],
+    pageAliasIds: ['settings'],
+    settingsPanes: ['team', 'permissions', 'security', 'rota'],
     patterns: ['P4'],
     shape: 'single',
     /* **The one Admin row gated on its own write key** (D17). Read-only access
@@ -1039,8 +1034,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['reasons', 'view.policy.reasons'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['settings'],
-    legacySettingsPanes: ['dispatch', 'cities', 'limits', 'reasons'],
+    pageAliasIds: ['settings'],
+    settingsPanes: ['dispatch', 'cities', 'limits', 'reasons'],
     patterns: ['P4'],
     shape: 'single',
     viewPermission: 'view_admin',
@@ -1064,8 +1059,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['push', 'view.communications.push'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['settings'],
-    legacySettingsPanes: ['notifications', 'push', 'emails'],
+    pageAliasIds: ['settings'],
+    settingsPanes: ['notifications', 'push', 'emails'],
     patterns: ['P4'],
     shape: 'single',
     viewPermission: 'view_admin',
@@ -1085,8 +1080,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['exports', 'view.data.exports'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['settings'],
-    legacySettingsPanes: ['integrity', 'export'],
+    pageAliasIds: ['settings'],
+    settingsPanes: ['integrity', 'export'],
     patterns: ['P4'],
     shape: 'single',
     viewPermission: 'view_admin',
@@ -1106,8 +1101,8 @@ export const SUB_TABS: SubTabRoute[] = [
       ['by-entity', 'view.activity.byEntity'],
     ),
     detailRoutes: [],
-    legacyPageIds: ['audit-log', 'settings'],
-    legacySettingsPanes: ['activity'],
+    pageAliasIds: ['audit-log', 'settings'],
+    settingsPanes: ['activity'],
     patterns: ['P1'],
     shape: 'single',
     /* **The only row in the table with NO view key** (D17, AC-919). Every
@@ -1133,7 +1128,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     titleKey: 'shellLayer.profile',
     /* The only shell layer with a full-page escape (§3.10). */
     fullPagePath: '/entity/:entityId',
-    legacyPageIds: ['profile'],
+    pageAliasIds: ['profile'],
     patterns: ['P2'],
     /* §4.3.1 and D17 — gated on `view_profiles`, the permission that was
        enforced at **zero** call sites before D17 made it a real gate. Every one
@@ -1151,7 +1146,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     overlayParam: 'notifications',
     titleKey: 'shellLayer.notifications',
     fullPagePath: null,
-    legacyPageIds: ['notifications-all'],
+    pageAliasIds: ['notifications-all'],
     patterns: ['P10'],
     /* §11.2 — every authenticated operator. Row visibility is per-notification. */
     viewPermission: null,
@@ -1162,7 +1157,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     overlayParam: 'account',
     titleKey: 'shellLayer.account',
     fullPagePath: null,
-    legacyPageIds: ['my-account'],
+    pageAliasIds: ['my-account'],
     patterns: ['P4'],
     /* §11.2 — every operator, for their own record only. Administering others
        is Admin › Team & Access under `manage_team`. */
@@ -1174,7 +1169,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
      * **The fourth layer, minted by R4-2 §2.2 and scoped by R4-3.** The guided
      * onboarding checklist, `?onboarding=1`.
      *
-     * `legacyPageIds` is **empty and that is correct** — this surface has no
+     * `pageAliasIds` is **empty and that is correct** — this surface has no
      * legacy ancestor. It is the first row in this table that carries none, and
      * AC-04 counts the union over every row rather than requiring one per row,
      * so nothing breaks.
@@ -1190,7 +1185,7 @@ export const SHELL_LAYERS: ShellLayerRoute[] = [
     overlayParam: 'onboarding',
     titleKey: 'shellLayer.onboarding',
     fullPagePath: null,
-    legacyPageIds: [],
+    pageAliasIds: [],
     /* Guided checklist — the §6.4 row R4-2 §2.2 minted. No new page shape. */
     patterns: ['P4'],
     viewPermission: null,
@@ -1202,5 +1197,5 @@ export const ROUTE_TABLE: RouteTable = {
   workspaces: WORKSPACES,
   subTabs: SUB_TABS,
   shellLayers: SHELL_LAYERS,
-  retiredLegacyPageIds: [...RETIRED_LEGACY_PAGE_IDS],
+  retiredPageAliasIds: [...RETIRED_PAGE_ALIAS_IDS],
 }

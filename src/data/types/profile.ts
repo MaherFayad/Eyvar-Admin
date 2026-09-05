@@ -121,7 +121,7 @@ export interface SearchResult {
    * The legacy name that matched, when one did. This is what makes "Renewal
    * pipeline" a visible reason for the row rather than a mystery hit.
    */
-  matchedLegacyName: string | null
+  matchedAliasName: string | null
   /**
    * Server-scored. Legacy's name search is an unordered `for…in` returning the
    * first substring hit over riders and drivers only, so "Al-Harbi" silently

@@ -13,7 +13,7 @@
 
 import { DATA_SOURCE, registerOperations } from '../config'
 import { mock } from '../mock/delay'
-import { LEGACY_PAGE_TITLES } from '../fixtures/legacyPages'
+import { PAGE_ALIAS_TITLES } from '../fixtures/pageAliases'
 import { ROUTE_TABLE } from '../fixtures/routeTable'
 import type {
   PermissionKey,
@@ -123,9 +123,9 @@ function matchesDetailPath(pattern: string, path: string): boolean {
 
 /* ───────────────────── legacy-name resolution (§4.3.4) ──────────────────── */
 
-export interface LegacyResolution {
-  legacyPageId: string
-  legacyTitle: string | null
+export interface PageAliasResolution {
+  aliasId: string
+  aliasTitle: string | null
   subTabId: string
   workspaceId: WorkspaceId
   path: string
@@ -144,25 +144,25 @@ export interface LegacyResolution {
  * A Split page resolves to several rows; callers rank them. Returns `[]` for
  * `interventions`, which is retired and has no destination (§3.11).
  */
-export function resolveLegacyPage(idOrTitle: string): LegacyResolution[] {
+export function resolvePageAlias(idOrTitle: string): PageAliasResolution[] {
   const needle = idOrTitle.trim().toLowerCase()
-  const matchedIds = Object.keys(LEGACY_PAGE_TITLES).filter(
-    (id) => id === needle || (LEGACY_PAGE_TITLES[id] ?? '').toLowerCase().includes(needle),
+  const matchedIds = Object.keys(PAGE_ALIAS_TITLES).filter(
+    (id) => id === needle || (PAGE_ALIAS_TITLES[id] ?? '').toLowerCase().includes(needle),
   )
   const ids = matchedIds.length > 0 ? matchedIds : [needle]
 
-  const out: LegacyResolution[] = []
+  const out: PageAliasResolution[] = []
   for (const id of ids) {
-    if (ROUTE_TABLE.retiredLegacyPageIds.includes(id)) continue
+    if (ROUTE_TABLE.retiredPageAliasIds.includes(id)) continue
     for (const row of ROUTE_TABLE.subTabs) {
-      if (!row.legacyPageIds.includes(id)) continue
+      if (!row.pageAliasIds.includes(id)) continue
       out.push({
-        legacyPageId: id,
-        legacyTitle: LEGACY_PAGE_TITLES[id] ?? null,
+        aliasId: id,
+        aliasTitle: PAGE_ALIAS_TITLES[id] ?? null,
         subTabId: row.subTabId,
         workspaceId: row.workspaceId,
         path: row.path,
-        viewId: LEGACY_PAGE_TO_VIEW[id] ?? null,
+        viewId: PAGE_ALIAS_TO_VIEW[id] ?? null,
       })
     }
   }
@@ -176,9 +176,9 @@ export function resolveLegacyPage(idOrTitle: string): LegacyResolution[] {
  *
  * `live` appears in two rows with two different answers (Live Dispatch has no
  * views; Trips has `route-history`), so it is deliberately absent — the caller
- * disambiguates by row, which is why `resolveLegacyPage` returns a list.
+ * disambiguates by row, which is why `resolvePageAlias` returns a list.
  */
-const LEGACY_PAGE_TO_VIEW: Record<string, string> = {
+const PAGE_ALIAS_TO_VIEW: Record<string, string> = {
   renewal: 'expiring-7d',
   readiness: 'departing-24h',
   coverage: 'no-backup-captain',
