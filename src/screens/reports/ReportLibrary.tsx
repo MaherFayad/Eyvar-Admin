@@ -1,70 +1,22 @@
 /**
- * The saved-report library — a P1 index table over `reports.list`.
- *
- * ## Two empties, and choosing wrongly is a defect
- *
- * `states.md` makes the choice mechanical rather than a matter of taste, and
- * `DataTable` already applies it: a table filtered to zero is `no-match` — one
- * grey sentence and a way back — and a table that has never held a row is
- * `first-run`. The illustration on a filtered-to-zero library would claim the
- * reports do not exist, which is a lie the operator would act on by rebuilding
- * one they already have.
- *
- * ## Deleting a pinned report names the dashboards
- *
- * §11.3: `reports.delete` **refuses by default** when the report is pinned, and
- * it returns the dashboards as data — `{ status: 'pinned', dashboards: [{ id,
- * name }] }` — precisely so the confirmation can name them. A generic refusal
- * would throw away a list the client is already holding, and *"Remove from
- * those dashboards and delete"* has to be an explicit second step because a
- * dangling reference must not be creatable through the UI.
- *
- * Rules applied
- *   §9.1        view tabs inside the table card; the search field is the
- *               toolbar's, not a second one.
- *   §11.1       the first-run heading names what the section is FOR — *Ask the
- *               business a question* — never the absence of data.
- *   §7.3        row actions are not hover-only: `DataTable` renders the action
- *               lane always and reveals ink on hover **or** focus-within.
- *   R5a         `Delete` is destructive and is the one place in this module a
- *               destructive button is legal. It is in the row menu, not on the
- *               page header.
- *   §9.2        a report NAME is user content: never translated, and it carries
- *               its own direction inside an English UI (AC-898).
- *
- * ## An alert is an action on a report, not only a destination
- *
- * `Create alert` opens the rule form **with this row's report already chosen**
- * (`AlertRuleDialog`'s `presetReportId`). Without it the only route in is the
- * Alerts sub-tab, `New alert`, and then re-picking by name — from a list of up
- * to 100 — the report the operator had just been standing on.
- *
- * It is not the row-click target and never could be: `Open` is (§11.2 allows
- * one), and this one opens a form that writes.
- *
- * ## The row carries its kind (Amplitude's content lists)
- *
- * Every row now leads with a glyph for the report's `chartType` and names that
- * kind in words on the quiet line beneath, ahead of the description. Both are
- * **derived from `report.query`** — the saved definition — so neither can go
- * stale against the report it labels, and neither is stored on the row.
- *
- * **Two things Amplitude's row has that this one still does not, and why.** An
- * owner name would need `SavedReport.ownerId` resolved through a users client
- * this screen does not call, and an id is not a name; and the row overflow's
- * `MoreHorizontal` trigger and its per-item leading glyphs live in `DataTable`
- * and `table/rowActions.tsx` (`RowAction.label` is a `string`; there is no
- * `icon` field), which are the table layer's files and land on forty screens.
- * Both are reported rather than reached into or invented.
+ * The saved-report library, a P1 index table over `reports.list`. T9.13 gives
+ * it Amplitude's shape: the row is a kind glyph and a name, and `Type`, `Owner`
+ * and `Last run` are columns an operator can filter on rather than prose under
+ * the name. §11.3's delete is refused while a report is pinned and the
+ * confirmation names the boards (AC-868). `Delete` is R5a use #1, in the menu.
  */
 
 import { useState } from 'react'
-import { BarChart3Icon, LineChartIcon, PieChartIcon, Table2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
-import { StatusBadge } from '@/components/StatusBadge'
+import {
+  BarChartIcon,
+  LineChartIcon,
+  PieChartIcon,
+  TableChartIcon,
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -77,8 +29,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
-import { EYVAR_TODAY, deleteReport, listReports } from '@/data/clients'
-import type { ChartType, SavedReport } from '@/data/types'
+import { EYVAR_TODAY, deleteReport, listReports, listTeamUsers } from '@/data/clients'
+import type { ChartType, SavedReport, TeamUser } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { AlertRuleDialog } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
@@ -112,22 +64,19 @@ export interface ReportLibraryProps {
 }
 
 /**
- * **The row's type glyph** — Amplitude's content lists carry one, and it is the
- * same four shapes `ChartToolbar` and `DashboardTile` already use for the same
- * four `ChartType`s. One map per file is a third copy of a three-line
- * `Record`; a shared one would be a component in someone else's directory, and
- * the register is what has to match, not the module.
- *
- * **Derived, never stored.** It is read off `report.query.chartType` — the
- * saved definition — so a report re-saved as a pie stops being drawn as a line
- * the moment it is re-listed. Nothing about the kind is written to the row.
+ * The row's type glyph, from the registry (X17). Derived from
+ * `report.query.chartType` — the saved definition — never stored on the row, so
+ * a report re-saved as a pie stops being drawn as a line when it is re-listed.
  */
 const CHART_ICONS: Record<ChartType, typeof LineChartIcon> = {
   line: LineChartIcon,
-  bar: BarChart3Icon,
+  bar: BarChartIcon,
   pie: PieChartIcon,
-  table: Table2Icon,
+  table: TableChartIcon,
 }
+
+/** The `Type` filter's options, over the same closed union the glyphs cover. */
+const CHART_TYPES = Object.keys(CHART_ICONS) as ReadonlyArray<ChartType>
 
 interface PendingDelete {
   report: SavedReport
@@ -150,20 +99,9 @@ export function ReportLibrary({
   const table = useIndexTable<SavedReport>({
     mode: 'index',
     getRowId: (row) => row.id,
-    /* **`urlKey` is load-bearing here, not cosmetic.**
-
-       `tableScope('', '')` is `''` (`useIndexTable.test.ts:623`), and the
-       library is the one table in this sub-tab that mounts under the DEFAULT
-       view — `selectView` writes no `?view=` for `reports`. Unscoped, this
-       table's search parameter is a bare `?q=`, which is character-for-character
-       `REPORT_QUERY_PARAM`. Typing one letter into the library's search box
-       therefore wrote a `?q=` that `ReportsScreen` read back as a composed
-       report and rendered an empty builder over the list.
-
-       `ReportsScreen` also guards it (a non-empty `?q=` that does not
-       deserialise is not a report query), and that guard stays — it defends the
-       screen against any future writer of the same parameter. This is the fix at
-       the source: the two questions now have two names. */
+    /* Load-bearing. Unscoped, this table's search parameter is a bare `?q=`,
+       which is `REPORT_QUERY_PARAM`: one letter typed here used to render an
+       empty builder over the list. `ReportsScreen`'s own guard stays. */
     urlKey: 'lib',
   })
   const [pending, setPending] = useState<PendingDelete | null>(null)
@@ -180,6 +118,14 @@ export function ReportLibrary({
 
   const rows = reports.data?.items ?? []
 
+  /* The owner is an id on the wire; a real API joins it and the mock does not,
+     so the roster is read once and mapped here - derivable, never invented. */
+  const team = useAsync<TeamUser[]>((signal) => listTeamUsers(signal), {
+    deps: [],
+    cacheKey: 'session.teamUsers',
+  })
+  const ownerName = (id: string) => team.data?.find((user) => user.id === id)?.name ?? id
+
   const columns: Array<DataColumn<SavedReport>> = [
     {
       id: 'name',
@@ -188,14 +134,16 @@ export function ReportLibrary({
       minWidth: 260,
       sortField: 'name',
       dataType: 'text',
+      /* T9.13 — a glyph and a name, on one line. The kind is its own column
+         now, and the description reads on hover here and in full on the
+         report's own header, where an operator edits it. */
       cell: (row) => {
         const Glyph = CHART_ICONS[row.query.chartType]
         return (
-          <span className="flex min-w-0 items-center gap-1.5">
-            {/* Amplitude's per-row type glyph. Decorative and declared so: the
-                kind is named in words on the line beneath, so this is a second
-                channel and not the only one (§7.5). It is an object and does
-                not mirror (§9.5). */}
+          <span
+            className="flex min-w-0 items-center gap-1.5"
+            title={row.description ?? undefined}
+          >
             <Glyph
               aria-hidden="true"
               data-chart-kind={row.query.chartType}
@@ -210,43 +158,76 @@ export function ReportLibrary({
           </span>
         )
       },
-      /* **The kind in words, then the description.** The chart kind is a
-         translated UI string and the description is user content, so they are
-         two runs and not one sentence: no `+`, no interpolation, and the
-         separator between them is punctuation rather than a word anybody has to
-         translate. The description keeps its own isolate. */
-      secondaryLine: (row) => (
-        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="shrink-0">{t(`rb.chartType.${row.query.chartType}`)}</span>
-          {row.description !== null && (
-            <>
-              <span aria-hidden="true" className="shrink-0">
-                ·
-              </span>
-              <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
-                <bdi {...isolatedRunProps().run}>{row.description}</bdi>
-              </span>
-            </>
-          )}
+    },
+    {
+      id: 'type',
+      emphasis: 'data',
+      header: t('rb.library.col.type'),
+      width: 90,
+      dataType: 'enum',
+      /* Derived from the saved query, and filtered on the same field, so the
+         control and the client branch are one declaration. */
+      filter: {
+        kind: 'select',
+        field: 'chartType',
+        options: CHART_TYPES.map((kind) => ({
+          value: kind,
+          label: t(`rb.chartType.${kind}`),
+        })),
+      },
+      csv: (row) => row.query.chartType,
+      cell: (row) => <span>{t(`rb.chartType.${row.query.chartType}`)}</span>,
+    },
+    {
+      id: 'owner',
+      header: t('rb.library.col.owner'),
+      width: 140,
+      dataType: 'text',
+      /* The roster is the option list, so the filter offers names rather than
+         ids. Empty while it loads, which §11.6 renders as one grey sentence. */
+      filter: {
+        kind: 'select',
+        field: 'ownerId',
+        options: (team.data ?? []).map((user) => ({ value: user.id, label: user.name })),
+      },
+      csv: (row) => ownerName(row.ownerId),
+      cell: (row) => (
+        <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+          <bdi {...isolatedRunProps().run}>{ownerName(row.ownerId)}</bdi>
         </span>
       ),
     },
     {
+      id: 'lastRun',
+      emphasis: 'data',
+      header: t('rb.library.col.lastRun'),
+      width: 130,
+      sortField: 'lastRunAt',
+      dataType: 'date',
+      filter: { kind: 'date-range', field: 'lastRunAt' },
+      /* O9 — a report nobody has run has no last run, and blank is the honest
+         cell: `Never` would be a claim about a field the wire does not fill. */
+      cell: (row) =>
+        row.lastRunAt === null ? null : (
+          <bdi>{formatDate(row.lastRunAt, { style: 'day-month-time', language })}</bdi>
+        ),
+    },
+    {
       id: 'visibility',
       header: t('rb.library.col.visibility'),
-      width: 120,
+      width: 100,
+      /* H7 — a property, not a state. Six of seven rows carried the same fill,
+         which is a badge nobody reads; muted text says the same thing (T9.13). */
       cell: (row) => (
-        /* R7's closed five-tone set. `team` is not a success and `private` is
-           not a warning; both are factual, so both are neutral. */
-        <StatusBadge tone={row.visibility === 'team' ? 'info' : 'neutral'}>
+        <span className="text-muted-foreground">
           {t(`rb.save.visibility.${row.visibility}`)}
-        </StatusBadge>
+        </span>
       ),
     },
     {
       id: 'updated',
       header: t('rb.library.col.updated'),
-      width: 160,
+      width: 130,
       sortField: 'updatedAt',
       dataType: 'date',
       cell: (row) => <bdi>{formatDate(row.updatedAt, { style: 'day-month-time', language })}</bdi>,

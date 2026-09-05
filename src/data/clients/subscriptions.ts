@@ -30,6 +30,7 @@ export const SUBSCRIPTION_OPERATIONS = {
   list: 'subscriptions.list',
   get: 'subscriptions.get',
   freeze: 'subscriptions.freeze',
+  unfreeze: 'subscriptions.unfreeze',
   cancel: 'subscriptions.cancel',
   reassignDriver: 'subscriptions.reassignDriver',
 } as const
@@ -247,6 +248,30 @@ export async function freezeSubscription(
       })
     }
     return { ...row, status: 'frozen' as const, frozenUntil: until }
+  })
+}
+
+/**
+ * POST /api/v1/subscriptions/:id/unfreeze
+ *   -> Subscription  (`status: 'active'`, `frozenUntil: null`)
+ *   409 `not_frozen` when the subscription is not frozen
+ * D18 needs the inverse of a freeze to be a real, separately audited write.
+ */
+export async function unfreezeSubscription(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Subscription> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Subscription>(`/subscriptions/${id}/unfreeze`, {}, { signal })
+  }
+  return mockMutation(SUBSCRIPTION_OPERATIONS.unfreeze, signal, () => {
+    const row = allSubscriptionFixtures.find((s) => s.id === id)
+    if (!row) throw notFound('subscription', id)
+    /* The mock cannot answer `not_frozen`: `freezeSubscription` returns the
+       changed row without writing it back (`mock/fixtures.ts`), so a freeze
+       made this session is invisible here and D18's undo would be refused for
+       a hold that exists on screen. The screen refuses at render instead. */
+    return { ...row, status: 'active' as const, frozenUntil: null }
   })
 }
 

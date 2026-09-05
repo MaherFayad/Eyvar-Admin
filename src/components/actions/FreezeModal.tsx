@@ -1,37 +1,14 @@
 /**
- * **Freeze a subscription** — the form behind `Freeze` on the row kebab **and**
- * on the bulk bar. `surfaces.md`: a short focused form is a modal.
- *
- * ## What changed
- *
- * **The fake latency is gone.** `handleConfirm` ran `setTimeout(…, 200)`, called
- * `onConfirm` and closed. The real write started *after* the dialog was already
- * gone, so a rejection had nowhere to report but a toast over a surface the
- * operator had left — and the 200ms made an unwired form feel wired, which is
- * the pattern that hides a missing write. `onConfirm` is awaited now, the
- * dialog stays open for the round trip, and a refusal renders **in place** with
- * the duration and the reason intact (§11.2).
- *
- * **It takes a SET.** One form, one confirmation, one write path, whether the
- * operator used the kebab on one row or the bulk bar over twelve. §9.1's
- * confirmation states the verb **and the count**, which is a difference in the
- * sentence and not in the flow — a second bulk-only dialog is how two surfaces
- * end up asking different questions about the same act.
- *
- * **The date is computed against the FIXED clock**, `EYVAR_TODAY`, not
- * `Date.now()`. Every fixture in the product is written against it, so a
- * host-clock resume date would disagree with every record it is compared to and
- * a capture taken at 23:59 would differ from one taken at 00:01.
- *
- * Rules applied
- *   §9.1 / §5.3  the title states the verb and the count; the body states the
- *                consequence **and what does not change** — the rider keeps
- *                every unused trip and is charged nothing; the primary repeats
- *                the verb.
- *   R5a          blue. A freeze is reversible, so it is not one of the four
- *                places red is permitted.
- *   AC-73        the resume date is `<bdi>`-isolated: `2 Jul` reorders to
- *                `Jul 2` in an RTL paragraph without it.
+ * **Freeze a subscription** — the form behind `Freeze` on the row kebab, on the
+ * bulk bar and on the record sheet. `surfaces.md`: a short focused form is a
+ * modal, and one form serves one record or twelve (§9.1 states the count).
+ */
+
+/**
+ * **T6.1 — the duration list is the COMMAND's, not this file's.** It arrives as
+ * `CommandConfirmRequest.choice`: each option's value is the resume date
+ * `subscription.freeze` computed against the fixed clock, so nothing here
+ * parses a number into a date and the two surfaces cannot offer two windows.
  */
 
 import { useEffect, useState } from 'react'
@@ -60,31 +37,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { EYVAR_TODAY } from '@/data/mock/clock'
+import type { CommandConfirmChoice } from '@/commands'
 import { isApiError, type Subscription } from '@/data/types'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
-
-/** The four windows the form offers, in days. A closed set, not free text. */
-const DURATIONS: readonly number[] = [3, 7, 14, 30]
+import { formatCount, type Language, type Translate } from '@/lib'
 
 interface FreezeModalProps {
   /** The records being frozen. Empty closes the dialog; one or many opens it. */
   subscriptions: readonly Subscription[]
+  /** The command's duration list. `null` until a command has asked. */
+  choice: CommandConfirmChoice | null
   onClose: () => void
-  /** Awaited. The screen owns the write; this owns busy, failure and closing. */
-  onConfirm: (subscriptions: readonly Subscription[], untilDate: string) => Promise<void>
+  /** Awaited. The command owns the write; this owns busy, failure and closing. */
+  onConfirm: (subscriptions: readonly Subscription[], reason: string) => Promise<void>
   language: Language
   t: Translate
 }
 
 export function FreezeModal({
   subscriptions,
+  choice,
   onClose,
   onConfirm,
   language,
   t,
 }: FreezeModalProps) {
-  const [days, setDays] = useState('7')
+  const initial = choice?.initial ?? ''
+  const [until, setUntil] = useState(initial)
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   /** §11.2 — the last write's refusal, as real text inside this dialog. */
@@ -94,27 +72,20 @@ export function FreezeModal({
   /* Each opening is a fresh question. */
   useEffect(() => {
     if (open) {
-      setDays('7')
+      setUntil(initial)
       setReason('')
       setSubmitError(null)
     }
-  }, [open])
+  }, [open, initial])
 
   const single = subscriptions.length === 1 ? subscriptions[0] : undefined
-
-  /* The fixed clock, deliberately — see the header. */
-  const untilDate = (() => {
-    const base = new Date(EYVAR_TODAY)
-    base.setDate(base.getDate() + (Number.parseInt(days, 10) || 7))
-    return base.toISOString().slice(0, 10)
-  })()
+  const selected = choice?.options.find((option) => option.value === until)
 
   const handleConfirm = async () => {
     setBusy(true)
     setSubmitError(null)
     try {
-      await onConfirm(subscriptions, untilDate)
-      onClose()
+      await onConfirm(subscriptions, reason)
     } catch (error: unknown) {
       setSubmitError(isApiError(error) ? error.message : t('subs.freeze.saveError'))
     } finally {
@@ -139,29 +110,39 @@ export function FreezeModal({
         </DialogHeader>
 
         <FieldGroup>
-          <Field id="freeze-duration">
-            <FieldLabel>{t('subs.freeze.duration')}</FieldLabel>
-            <Select value={days} onValueChange={setDays}>
-              <FieldControl>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-              </FieldControl>
-              <SelectContent>
-                {DURATIONS.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {t('subs.freeze.days', { count: formatCount(option, language) })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* The consequence, restated as a date rather than as a duration:
-                `Resumes on 2 Jul` is checkable against a rider's message and
-                `14 days` is not. */}
-            <FieldDescription>
-              <bdi>{t('subs.freeze.resumeOn', { date: formatDate(untilDate, { language }) })}</bdi>
-            </FieldDescription>
-          </Field>
+          {choice !== null && (
+            <Field id="freeze-duration">
+              <FieldLabel>{choice.label}</FieldLabel>
+              <Select
+                value={until}
+                onValueChange={(value) => {
+                  setUntil(value)
+                  choice.onSelect(value)
+                }}
+              >
+                <FieldControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FieldControl>
+                <SelectContent>
+                  {choice.options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* The consequence, restated as a date rather than as a duration:
+                  `Resumes on 2 Jul` is checkable against a rider's message and
+                  `14 days` is not. AC-73 isolates it. */}
+              {selected?.hint != null && (
+                <FieldDescription>
+                  <bdi>{selected.hint}</bdi>
+                </FieldDescription>
+              )}
+            </Field>
+          )}
 
           <Field id="freeze-reason" invalid={submitError !== null}>
             <FieldLabel optional={t('field.optional')}>{t('subs.freeze.reason')}</FieldLabel>
@@ -182,7 +163,7 @@ export function FreezeModal({
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('table.cancel')}
           </Button>
-          {/* R5a — blue. A freeze is reversible. */}
+          {/* R5a — blue. A freeze is reversible, and now carries D18's undo. */}
           <Button size="xs" onClick={() => void handleConfirm()} disabled={busy}>
             {t(single ? 'subs.freeze.confirm' : 'subs.freeze.confirm.other')}
           </Button>

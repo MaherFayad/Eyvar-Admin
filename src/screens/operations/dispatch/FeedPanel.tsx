@@ -1,53 +1,35 @@
 /**
- * **The feed — the board's three lists, floating on the map.**
- *
- * One panel with three tabs, not three cards: an operator watching dispatch is
- * asking one question at a time ("what is waiting?", "what is moving?", "who is
- * on shift?"), and three stacked boxes would spend the map's whole inline-start
- * answering all three at once.
- *
- * ## Selection is the link between the list and the map
- *
- * Picking a row lights its pin, and picking a pin lights its row — `selectedId`
- * is one piece of state in `DispatchScreen` and both surfaces read it. That is
- * what makes the map worth having next to the list rather than instead of it:
- * `Al Rabwah District → Riyadh Park Mall` is a sentence, and the pin is where
- * that sentence happens.
- *
- * It is also where the row's action lives. The reference draws a clean list
- * with no buttons on it, and this screen owns a write (`Dispatch captain`) that
- * §11.2 forbids hiding. Both hold: the action appears on the row an operator
- * has *chosen*, identically for every operator, and when they may not perform
- * it the control is there and refuses with a reason rather than vanishing.
- *
- * Rules applied
- *   H1/H3     the route is the row's DATA line — 14px ink. The id and the
- *             channel are META above it, the rider and the clock META below.
- *             One thing per row is worth reading first, and it is the route.
- *   §9.1      logical utilities throughout; the `→` between two places is a
- *             mark and mirrors through `mirrorGlyph`, and every place name is
- *             wrapped in `<bdi>` so an Arabic district inside an English row
- *             cannot reorder the arrow.
- *   §11.2     a blocked control is disabled in place with a stated reason,
- *             pointed at by every control that shares it.
- *   R8        each tab carries its own `cleared` empty, naming its own scope.
+ * The feed — the board's three lists in one tabbed panel, floating on the map.
+ * `selectedId` is `DispatchScreen`'s: a row lights its pin and a pin its row.
+ * H1/H3 the route is the DATA line; §11.2 the row's write refuses in place;
+ * R8 each tab owns its `cleared` empty; O10 the arrow and chevron are registry
+ * glyphs chosen by `dir`.
  */
 
 import { type ReactNode } from 'react'
-import { Car, Clock, Navigation } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
-import type { Driver, RideRequest, Trip, TripStatus } from '@/data/types'
 import {
-  ABSENT,
-  formatCount,
-  mirrorGlyph,
-  type Direction,
-  type Language,
-  type Translate,
-} from '@/lib'
+  CaptainIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  directionalIcon,
+  forwardIcon,
+  RequestIcon,
+  TripIcon,
+} from '@/components/icons'
+import type {
+  Driver,
+  RequestChannel,
+  RideRequest,
+  Trip,
+  TripKind,
+  TripStatus,
+  VehicleClass,
+} from '@/data/types'
+import { ABSENT, formatCount, type Direction, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 
 export type FeedTab = 'pending' | 'trips' | 'fleet'
@@ -74,7 +56,7 @@ export interface FeedPanelProps {
 
   language: Language
   dir: Direction
-  t: Translate
+  t: Translator
 }
 
 const DENIED_ID = 'dispatch-feed-denied'
@@ -105,6 +87,24 @@ function toneFor(status: TripStatus): 'new' | 'info' | 'neutral' {
   return TRIP_STATUS_TONE[status as 'assigned' | 'en-route' | 'in-trip'] ?? 'neutral'
 }
 
+/* T4.2 — the three enum families the feed prints. The keys belong to the
+   registered vocabulary the requests, trips and people screens already own, so
+   Arabic is translated once and the feed cannot drift from the queues. */
+const CHANNEL_KEY: Readonly<Record<RequestChannel, string>> = {
+  instant: 'requests.channel.instant',
+  subscription: 'requests.channel.subscription',
+}
+
+const VEHICLE_CLASS_KEY: Readonly<Record<VehicleClass, string>> = {
+  Economy: 'people.class.economy',
+  Comfort: 'people.class.comfort',
+}
+
+const TRIP_KIND_KEY: Readonly<Record<TripKind, string>> = {
+  Subscription: 'trips.kind.subscription',
+  'Quick ride': 'trips.kind.quickRide',
+}
+
 export function FeedPanel({
   tab,
   onTab,
@@ -123,12 +123,17 @@ export function FeedPanel({
   dir,
   t,
 }: FeedPanelProps) {
+  /* Collapsed points forward through the reading order, open points back. */
+  const CollapseChevron = collapsed
+    ? directionalIcon(dir, ChevronRightIcon, ChevronLeftIcon)
+    : directionalIcon(dir, ChevronLeftIcon, ChevronRightIcon)
+
   const scope =
     tab === 'pending'
-      ? t('dispatch.feed.scope.pending', { count: formatCount(totals.pending, language) })
+      ? t.plural('dispatch.feed.scope.pending', { count: totals.pending })
       : tab === 'trips'
-        ? t('dispatch.feed.scope.trips', { count: formatCount(totals.trips, language) })
-        : t('dispatch.feed.scope.fleet', { count: formatCount(totals.fleet, language) })
+        ? t.plural('dispatch.feed.scope.trips', { count: totals.trips })
+        : t.plural('dispatch.feed.scope.fleet', { count: totals.fleet })
 
   return (
     <div
@@ -155,16 +160,17 @@ export function FeedPanel({
           variant="line"
           className="h-control w-full shrink-0 justify-start gap-3 border-b border-border px-3"
         >
+          {/* T9.11 — one registry glyph per entity kind, at `size-4`. */}
           <FeedTrigger value="pending" count={totals.pending} language={language} tone="warning">
-            <Clock aria-hidden="true" className="size-3.5" />
+            <RequestIcon aria-hidden="true" className="size-4" />
             {t('dispatch.tab.pending')}
           </FeedTrigger>
           <FeedTrigger value="trips" count={totals.trips} language={language} tone="ink">
-            <Navigation aria-hidden="true" className="size-3.5" />
+            <TripIcon aria-hidden="true" className="size-4" />
             {t('dispatch.tab.trips')}
           </FeedTrigger>
           <FeedTrigger value="fleet" count={totals.fleet} language={language} tone="muted">
-            <Car aria-hidden="true" className="size-3.5" />
+            <CaptainIcon aria-hidden="true" className="size-4" />
             {t('dispatch.tab.fleet')}
           </FeedTrigger>
         </TabsList>
@@ -179,9 +185,10 @@ export function FeedPanel({
             aria-expanded={!collapsed}
             className="shrink-0 rounded-sm text-2xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {collapsed ? t('dispatch.feed.expand') : t('dispatch.feed.collapse')}{' '}
-            {/* A chevron is a mark: it mirrors with the document (§9.5). */}
-            <span aria-hidden="true">{collapsed ? mirrorGlyph('›', dir) : mirrorGlyph('‹', dir)}</span>
+            {collapsed ? t('dispatch.feed.expand') : t('dispatch.feed.collapse')}
+            {/* T9.10 / O10 — a registry chevron chosen by `dir` in code, never
+                a font glyph and never rotated with CSS. */}
+            <CollapseChevron aria-hidden="true" className="ms-1 inline-block size-3.5 align-middle" />
           </button>
         </div>
 
@@ -222,8 +229,12 @@ export function FeedPanel({
                           selected={selected}
                           onSelect={() => onSelect(selected ? null : request.id)}
                           id={request.id}
-                          badge={<StatusBadge tone="warning">{request.channel}</StatusBadge>}
-                          trailing={request.vehicleClass}
+                          /* T4.2 / H7 — the channel is a property of the
+                             request, not a state, so it is meta text beside
+                             the id. Three warning fills in six rows was the
+                             badge budget spent on a noun. */
+                          qualifier={t(CHANNEL_KEY[request.channel])}
+                          trailing={t(VEHICLE_CLASS_KEY[request.vehicleClass])}
                           from={request.pickup}
                           to={request.destination}
                           meta={request.riderName}
@@ -309,7 +320,7 @@ export function FeedPanel({
                             {t(`dispatch.trip.status.${trip.status}`)}
                           </StatusBadge>
                         }
-                        trailing={trip.kind}
+                        trailing={t(TRIP_KIND_KEY[trip.kind])}
                         from={trip.pickup ?? ABSENT}
                         to={trip.destination ?? ABSENT}
                         meta={`${trip.riderName} · ${trip.driverName ?? t('dispatch.unassigned')}`}
@@ -337,7 +348,7 @@ export function FeedPanel({
                           <bdi>{driver.name}</bdi>
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          <bdi>{driver.city}</bdi> · {driver.vehicleClass}
+                          <bdi>{driver.city}</bdi> · {t(VEHICLE_CLASS_KEY[driver.vehicleClass])}
                         </p>
                       </div>
                       <div className="shrink-0 text-end">
@@ -420,6 +431,7 @@ function Row({
   onSelect,
   id,
   badge,
+  qualifier,
   trailing,
   from,
   to,
@@ -430,7 +442,10 @@ function Row({
   selected: boolean
   onSelect: () => void
   id: string
-  badge: ReactNode
+  /** A STATE, and only a state (R7/H7). A property goes in `qualifier`. */
+  badge?: ReactNode
+  /** A property of the record, as meta text beside the id. */
+  qualifier?: string
   trailing: ReactNode
   from: string
   to: string
@@ -439,6 +454,7 @@ function Row({
   reserveTrailing?: boolean
   dir: Direction
 }) {
+  const Forward = forwardIcon(dir)
   return (
     <button
       type="button"
@@ -454,13 +470,19 @@ function Row({
         <span className="flex min-w-0 items-center gap-2">
           <span className="font-mono text-2xs text-muted-foreground">{id}</span>
           {badge}
+          {qualifier !== undefined && (
+            <span className="truncate text-2xs text-muted-foreground">{qualifier}</span>
+          )}
         </span>
         <span className="shrink-0 text-xs tabular-nums text-foreground">{trailing}</span>
       </span>
       {/* H1 — the route is the row's one DATA line. `<bdi>` on each end so an
-          Arabic place name inside an English row cannot swallow the arrow. */}
-      <span className="truncate text-sm text-foreground">
-        <bdi>{from}</bdi> <span aria-hidden="true">{mirrorGlyph('→', dir)}</span> <bdi>{to}</bdi>
+          Arabic place name inside an English row cannot swallow the arrow,
+          which is a registry glyph chosen by `dir` (O10). */}
+      <span className="flex w-full min-w-0 items-center gap-1 text-sm text-foreground">
+        <bdi className="truncate">{from}</bdi>
+        <Forward aria-hidden="true" className="size-3 shrink-0 text-muted-foreground" />
+        <bdi className="truncate">{to}</bdi>
       </span>
       <span className={cn('truncate text-xs text-muted-foreground', reserveTrailing && 'pe-28')}>
         <bdi>{meta}</bdi>

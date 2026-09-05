@@ -57,9 +57,10 @@ describe('AR is complete', () => {
     /* A plural FAMILY is the exception, and the only one. Arabic has six CLDR
        categories against English's two, so `ticket.meta#two` legitimately
        exists in AR and not in EN. The family itself still has to. */
+    const declared = [...enKeys, ...Object.keys(unregistered)]
     const orphans = stray.filter((key) => {
       const family = key.split('#')[0]
-      return !enKeys.some((candidate) => candidate.startsWith(`${family}#`))
+      return !declared.some((candidate) => candidate.startsWith(`${family}#`))
     })
     expect(orphans, 'in AR, in no English dictionary — registered or not').toEqual([])
   })

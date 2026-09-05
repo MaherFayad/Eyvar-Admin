@@ -180,12 +180,10 @@ export interface SavedReportQuery extends QueryParams {
 
 /**
  * GET /api/v1/reports
- *   params: q · view=mine|team · page · pageSize
+ *   params: q · view=mine|team · filters[chartType|ownerId|lastRunAt] · page · pageSize
  *   -> Paginated<SavedReport>
  *
- * **Needs Q1.** Without a storage adapter this serves seeded rows and any save
- * is gone on reload; §9.1 states that the named, saved report is *cut* until Q1
- * lands, and the composed query is not, because §9.2 makes the URL its storage.
+ * Needs Q1: without a storage adapter this serves seeded rows (§9.1).
  */
 export async function listReports(
   params: SavedReportQuery = {},
@@ -199,6 +197,22 @@ export async function listReports(
     let rows = reports.filter((r) => r.visibility === 'team' || r.ownerId === me)
     if (params.view === 'mine') rows = rows.filter((r) => r.ownerId === me)
     if (params.view === 'team') rows = rows.filter((r) => r.visibility === 'team')
+    for (const filter of params.filters ?? []) {
+      const wanted = Array.isArray(filter.value)
+        ? filter.value.map(String)
+        : [String(filter.value)]
+      if (filter.field === 'chartType') {
+        rows = rows.filter((r) => wanted.includes(r.query.chartType))
+      }
+      if (filter.field === 'ownerId') rows = rows.filter((r) => wanted.includes(r.ownerId))
+      /* A report never run is outside every window, rather than inside all of
+         them: `null` is an absence, not a date before time. */
+      if (filter.field === 'lastRunAt') {
+        const bound = String(filter.value)
+        if (filter.op === 'gte') rows = rows.filter((r) => r.lastRunAt !== null && r.lastRunAt >= bound)
+        if (filter.op === 'lte') rows = rows.filter((r) => r.lastRunAt !== null && r.lastRunAt <= bound)
+      }
+    }
     const q = params.q?.trim().toLowerCase()
     if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q))
     return paginate(rows, params)
@@ -282,6 +296,10 @@ export async function saveReport(
       visibility: input.visibility,
       createdAt: EYVAR_NOW,
       updatedAt: EYVAR_NOW,
+      /* Saving is not running. A report saved from the builder has been run in
+         the builder, but nothing on the wire says so, so this stays `null`
+         until a run endpoint records one (T9.13). */
+      lastRunAt: null,
       pinnedToDashboardIds: [],
     }
     reports = [...reports, created]

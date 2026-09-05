@@ -129,7 +129,7 @@
  */
 
 import { useId } from 'react'
-import { DownloadIcon } from 'lucide-react'
+import { ExportIcon } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import {
   Card,
@@ -336,7 +336,7 @@ export function BreakdownList({
               {/* A download mark is an object, not a direction: it does not
                   mirror (§9.5). Drawn, never typed — Inter carries no ⎙ and
                   Windows falls through to a colour emoji font. */}
-              <DownloadIcon aria-hidden="true" />
+              <ExportIcon aria-hidden="true" />
               {t('breakdown.export')}
             </Button>
           </CardAction>
@@ -541,8 +541,11 @@ function exportBreakdown({
 /**
  * R5-9's caveat. One sentence, so it takes a period (R6). It leads with a
  * numeral in English, so it is isolated on the same terms as everything else
- * here — and unlike every other run in this file its box does **not**
+ * here, and unlike every other run in this file its box does **not**
  * truncate, which is §18.1's one deliberate departure from the caption.
+ *
+ * T9.9 leaves it inline: it states a measured share and gates the rows under
+ * it, and X15 keeps out of a tooltip anything a reader must see to act.
  */
 function Caveat({
   caveat,

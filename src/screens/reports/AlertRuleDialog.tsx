@@ -75,7 +75,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { BellIcon } from 'lucide-react'
+import { AlertRuleIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -303,7 +303,7 @@ export function AlertRuleDialog({
                 header, and this dialog is where that path lands. Decorative:
                 `aria-hidden`, with the title's own words carrying the name, so
                 `getByRole('heading')` still reads `New alert`. */}
-            <BellIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+            <AlertRuleIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             {rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}
           </DialogTitle>
           {/* AC-878 — what will happen, in words, as one key with named

@@ -225,6 +225,7 @@ import { REPORTS_EN } from '@/screens/reports/copy'
 import { REQUESTS_EN } from '@/screens/operations/requests/copy'
 import { SAFETY_EN } from '@/screens/support/safety/copy'
 import { ZONES_EN } from '@/screens/management/zones/copy'
+import { GROWTH_EN } from '@/screens/metrics/growth/copy'
 /* Arabic, whole. One module per English dictionary; see `./ar/index.ts`. */
 import { AR } from './ar'
 
@@ -569,7 +570,11 @@ const shell: Dictionary = {
   'nav.count.support-contact-centre': '{count} open conversations',
   'nav.count.admin-team': '{count} operators who have never signed in',
   'nav.count.admin-data': '{count} erasure requests past their deadline',
-  'shell.nav.backlog': '{count} items need attention',
+  /* Plural families. The count governs a noun, so it governs the sentence:
+     `1 items need attention` in English and a wrong noun form in Arabic at
+     every count but one. `Intl.PluralRules` picks the form (`plural.ts`). */
+  'shell.nav.backlog#one': '{count} item needs attention',
+  'shell.nav.backlog#other': '{count} items need attention',
 
   /* §4 — the top bar, slot by slot. */
   'shell.topbar.back': 'Back',
@@ -582,7 +587,8 @@ const shell: Dictionary = {
   'shell.topbar.notifications': 'Notifications',
   'shell.topbar.account': 'Account',
   'shell.topbar.mine': 'Mine',
-  'shell.topbar.mineA11y': 'Work assigned to you: {count} items',
+  'shell.topbar.mineA11y#one': 'Work assigned to you: {count} item',
+  'shell.topbar.mineA11y#other': 'Work assigned to you: {count} items',
   'shell.topbar.onCall': 'On call: {name}',
   'shell.topbar.onCallUnassigned': 'On call: unassigned',
 
@@ -737,7 +743,8 @@ const shell: Dictionary = {
   /* §6.3 — the bell popover's own unread chip. It rendered `{unread} new` as a
      hardcoded English template with a raw JS numeral beside it; the numeral now
      goes through `formatCount` and the word through this key. */
-  'shell.notifications.newCount': '{count} new',
+  'shell.notifications.newCount#one': '{count} new',
+  'shell.notifications.newCount#other': '{count} new',
   /* §6.3 — the six filter chips. They rendered the raw `NotificationFilter` id
      (`all`, `unread`, `alert`, …) — untranslated English on a shell surface. */
   'shell.notifications.filter.all': 'All',
@@ -1133,6 +1140,7 @@ export const EN: Dictionary = {
   ...REQUESTS_EN,
   ...SAFETY_EN,
   ...ZONES_EN,
+  ...GROWTH_EN,
   ...PEOPLE_EN,
   ...TICKETS_EN,
   ...TRIPS_EN,

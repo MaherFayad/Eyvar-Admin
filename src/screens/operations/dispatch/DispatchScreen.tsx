@@ -1,82 +1,45 @@
 /**
- * **Operations › Live Dispatch** — `routeTable.ts:328`, shape `monitor`,
- * pattern **P6**.
+ * Operations › Live Dispatch — `routeTable.ts:328`, shape `monitor`, pattern P6.
  *
- * ## What this screen is now, and why it changed shape
+ * A full-bleed map with the three feeds floating on one side and the layers,
+ * alerts and legend on the other; it shares `components/map` with Market &
+ * Zones so the two boards cannot disagree about where a district is.
  *
- * It was a two-column monitor: a card grid of trips, a list of pending
- * requests and a grid of captain cards on the left, a velocity card and the
- * interventions on the right. Every row of it named a place — `Al Sahafa
- * District → King Saud University` — and none of it could say **where**. A
- * dispatch board whose whole subject is a city, drawn as three lists, is the
- * one representation that cannot answer the question an operator opens it to
- * ask: is the demand where the captains are?
- *
- * So the screen is a map now, full-bleed, with the three feeds floating on it
- * as one panel and the layers, alerts and legend on the other side. It is the
- * same arrangement Management › Market & Zones arrived at for the same reason,
- * and it uses **literally the same map** — `components/map` holds the
- * projection, the OpenStreetMap basemap fitted to it, the pan-and-zoom surface
- * and the zoom controls, so the two boards cannot disagree about where a
- * district is. See `components/map/projection.ts` for why that sharing is
- * load-bearing rather than tidy.
- *
- * ## What did NOT change
- *
- * Everything the remediation pass fixed here is intact and is listed below,
- * because a redesign is exactly where those regressions come back:
- *
- *   §2.1        the three feeds still come from `listTrips`, `listRequests`
- *               and `listDrivers`. No fixture import, no module-level record.
- *   AC-35       loading is a skeleton, never a spinner.
- *   AC-24       the board fails, the shell does not. `ErrorState scope="page"`
- *               with a retry bound to all three reads; the rail, the sub-tab
- *               list and the top bar keep working.
- *   R8 / AC-38  two kinds of empty. All three feeds at zero is the illustrated
- *               first-run; one feed at zero while the others carry rows is that
- *               scope being CLEAR, in `FeedPanel`.
- *   §11.2       `Dispatch captain` renders and refuses. It is on the row an
- *               operator has selected rather than on all six at once, which is
- *               a change of placement and not of policy — see `FeedPanel`.
- *   AC-74/75    every string is a key in `./copy.ts`, no `defaultValue`, no
- *               concatenation.
- *
- * ## Still not fixed, and now visible
- *
- *   §2.2  **nothing on this board carries a coordinate.** `Trip`,
- *         `RideRequest` and `Driver` have no position field, so `./geo.ts`
- *         places every mark from its place NAME and a captain from their
- *         registered district. That file says exactly what the API still owes
- *         us and the legend says it to the operator. This is the single most
- *         important thing to fix when the backend arrives.
+ * §2.1 three clients, no fixture import. AC-35 skeleton. AC-24 the board fails,
+ * the shell does not. R8/AC-38 two kinds of empty. §11.2 every write refuses in
+ * place. §2.2 nothing on the wire carries a coordinate: `geo.ts` places a mark
+ * from a NAME and a captain from a registered district, and says so (O6).
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { withFallback } from '../localCopy'
 import { DISPATCH_EN } from './copy'
 import {
   EYVAR_NOW,
+  acknowledgeIntervention,
   assignRequest,
   getDispatchTelemetry,
   listDrivers,
   listInterventions,
   listRequests,
   listTrips,
+  reassignIntervention,
 } from '@/data/clients'
-import type {
-  DispatchTelemetry,
-  Driver,
-  Intervention,
-  Paginated,
-  RideRequest,
-  SubTabRoute,
-  Trip,
-  TripStatus,
+import {
+  isApiError,
+  type DispatchTelemetry,
+  type Driver,
+  type Intervention,
+  type Paginated,
+  type RideRequest,
+  type SubTabRoute,
+  type Trip,
+  type TripStatus,
 } from '@/data/types'
-import { useAsync } from '@/hooks'
-import { formatCount, formatDate, formatPercent } from '@/lib'
+import { getTickCount, useAsync, useTick } from '@/hooks'
+import { formatCount, formatPercent, type Language, type Translate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -101,6 +64,14 @@ const ACTIVE_TRIP_STATUSES: readonly TripStatus[] = ['assigned', 'en-route', 'in
 
 /** One screenful of each feed. A monitor shows what is happening, not an archive. */
 const FEED_PAGE_SIZE = 50
+
+/**
+ * T1.3 / AC-28 — how often the board re-reads, on the shell's one clock. Twenty
+ * seconds rather than five: the reads are five, and a monitor whose rows move
+ * under the cursor is worse than one that is twenty seconds old. It is also not
+ * a divisor of thirty, so a capture taken twice thirty seconds apart differs.
+ */
+const REFRESH_SECONDS = 20
 
 export function DispatchScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
@@ -202,13 +173,33 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     pendingRequests.length === 0 &&
     onlineDrivers.length === 0
 
+  /** The second the five reads were last asked for — the meta's `ago`. */
+  const [readAtSecond, setReadAtSecond] = useState(() => getTickCount())
+
   const retry = () => {
     trips.refetch()
     requests.refetch()
     fleet.refetch()
     telemetry.refetch()
     interventionFeed.refetch()
+    setReadAtSecond(getTickCount())
   }
+  /* `retry` is rebuilt every render and the effect below must fire on the tick
+     alone, so it reads the latest through a ref rather than a dependency. */
+  const retryRef = useRef(retry)
+  retryRef.current = retry
+
+  /* T1.3 — the board re-reads on the shell's clock (AC-28: one interval for
+     the app). The mount pass is skipped; the five reads have already run. */
+  const refreshTick = useTick(REFRESH_SECONDS)
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      return
+    }
+    retryRef.current()
+  }, [refreshTick])
 
   const [manualDispatchReq, setManualDispatchReq] = useState<{
     id: string
@@ -218,16 +209,40 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
 
   const canWrite = shell.permissions.permissions.includes('live_ops')
 
-  /**
-   * **The two intervention handlers are gone, and that is the fix.**
-   *
-   * They each spliced the literal array above and toasted success. Nothing was
-   * acknowledged and no captain was reassigned — the alert vanished because
-   * this component forgot it, and returned on the next reload. §11.2 says a
-   * blocked control is disabled in place **with a stated reason**, never
-   * hidden, so `InterventionsCard` renders both and refuses both.
-   */
-  const interventionsUnavailable = t('dispatch.interventions.unavailable')
+  /* §11.2 — the only thing that now blocks both intervention controls is the
+     permission. The sentence names it and who can grant it. */
+  const forbidden = t('state.forbidden.body', { permission: permissionName(t, 'live_ops') })
+
+  /* T1.2 — acknowledge is a write. It throws on the 409 and `InterventionsCard`
+     states the refusal on the row that made it. */
+  const handleAcknowledge = async (item: Intervention) => {
+    await acknowledgeIntervention(item.id)
+    toast.success(t('dispatch.toast.acknowledged', { id: item.id }))
+    retry()
+  }
+
+  const [reassigning, setReassigning] = useState<Intervention | null>(null)
+
+  const handleReassignConfirm = async (
+    interventionId: string,
+    driverId: string,
+    driverName: string,
+  ) => {
+    await reassignIntervention(interventionId, driverId)
+    toast.success(t('dispatch.toast.reassigned', { id: interventionId, name: driverName }))
+    retry()
+  }
+
+  /* The two 422s are different corrections — pick somebody else, pick somebody
+     available — so each gets its own sentence inside the dialog (§11.2). */
+  const reassignRefusal = (error: unknown): string | null => {
+    if (!isApiError(error)) return null
+    if (error.code === 'same_driver') return t('dispatch.intervention.refusal.same_driver')
+    if (error.code === 'driver_unavailable') {
+      return t('dispatch.intervention.refusal.driver_unavailable')
+    }
+    return null
+  }
 
   /**
    * **The write, and it used to not exist.**
@@ -266,23 +281,15 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
     fleet: fleet.data?.total ?? onlineDrivers.length,
   } as const
 
-  /* T1.1 — the meta names a count and **when the figures were measured**. It
-     used to read "live telemetry connected", which nothing in this screen was
-     (X4). Both halves need their read, so it waits for both. */
+  /* T1.3 — the meta says how old the board is, not that it is connected (X4).
+     The count it used to carry is on the feed's tabs and the layer rail; R10
+     says a figure is stated once. */
   const header = (
     <PageHeader
       title={title}
       meta={
         trips.data && telemetry.data ? (
-          <span className="flex items-center gap-2">
-            {/* The connection dot. Static — R18: a pulsing "live" indicator is
-                the first thing an operator's eye learns to discard. */}
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-chart-series" />
-            {t('dispatch.meta', {
-              count: formatCount(trips.data.total, language),
-              time: formatDate(telemetry.data.asOf, { style: 'time', language }),
-            })}
-          </span>
+          <Freshness readAtSecond={readAtSecond} language={language} t={t} />
         ) : null
       }
       aside={
@@ -397,9 +404,7 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                   selectedId={selectedId}
                   onSelect={setSelectedId}
                   canDispatch={canWrite}
-                  deniedReason={t('state.forbidden.body', {
-                    permission: permissionName(t, 'live_ops'),
-                  })}
+                  deniedReason={forbidden}
                   onDispatch={(request) =>
                     setManualDispatchReq({
                       id: request.id,
@@ -432,7 +437,9 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
                     <InterventionsCard
                       items={interventions}
                       now={telemetry.data?.asOf ?? EYVAR_NOW}
-                      unavailableReason={interventionsUnavailable}
+                      unavailableReason={canWrite ? null : forbidden}
+                      onAcknowledge={handleAcknowledge}
+                      onReassign={setReassigning}
                       t={t}
                     />
                   }
@@ -444,15 +451,41 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
             />
           )}
 
-          {/* Declared in the bleed because it renders through a portal — where
-              it sits in this tree decides nothing about where it paints. */}
+          {/* Declared in the bleed because they render through a portal — where
+              they sit in this tree decides nothing about where they paint. */}
           <ManualDispatchModal
-            requestId={manualDispatchReq?.id ?? null}
-            riderName={manualDispatchReq?.riderName ?? ''}
-            pickup={manualDispatchReq?.pickup ?? ''}
+            subjectId={manualDispatchReq?.id ?? null}
+            title={t('dispatch.manual.title')}
+            description={t('dispatch.manual.desc', {
+              id: manualDispatchReq?.id ?? '',
+              rider: manualDispatchReq?.riderName ?? '',
+              pickup: manualDispatchReq?.pickup ?? '',
+            })}
+            facts={[
+              { label: t('column.rider'), value: manualDispatchReq?.riderName ?? '' },
+              { label: t('trip.pickup'), value: manualDispatchReq?.pickup ?? '' },
+            ]}
+            confirmLabel={t('dispatch.assignCaptain')}
             open={!!manualDispatchReq}
             onClose={() => setManualDispatchReq(null)}
             onConfirm={handleManualDispatchConfirm}
+            t={t}
+          />
+
+          {/* T1.2 — the same picker, on an intervention. */}
+          <ManualDispatchModal
+            subjectId={reassigning?.id ?? null}
+            title={t('dispatch.reassign.title')}
+            description={t('dispatch.reassign.desc')}
+            facts={[
+              { label: t('column.rider'), value: reassigning?.riderName ?? '' },
+              { label: t('dispatch.place'), value: reassigning?.place ?? '' },
+            ]}
+            confirmLabel={t('dispatch.reassignCaptain')}
+            open={reassigning !== null}
+            onClose={() => setReassigning(null)}
+            onConfirm={handleReassignConfirm}
+            refusalFor={reassignRefusal}
             t={t}
           />
         </>
@@ -466,6 +499,34 @@ export function DispatchScreen({ row }: { row: SubTabRoute }) {
           ever goes there. */}
       {pageState}
     </SingleColumnPage>
+  )
+}
+
+/**
+ * How old the board is, in its own component so the one-second bucket
+ * re-renders a sentence and not fifty map marks (AC-28's second half).
+ */
+function Freshness({
+  readAtSecond,
+  language,
+  t,
+}: {
+  readAtSecond: number
+  language: Language
+  t: Translate
+}) {
+  /* `useTick(1)` IS the second counter `readAtSecond` was taken from, so the
+     subtraction is exact and needs no clock of its own. */
+  const second = useTick(1)
+  return (
+    <span className="flex items-center gap-2">
+      {/* The connection dot. Static — R18: a pulsing "live" indicator is the
+          first thing an operator's eye learns to discard. */}
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-chart-series" />
+      {t('dispatch.meta', {
+        seconds: formatCount(Math.max(0, second - readAtSecond), language),
+      })}
+    </span>
   )
 }
 

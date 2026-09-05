@@ -148,7 +148,7 @@
  */
 
 import { useId, useMemo, useState, type ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, DownloadIcon, SearchIcon } from 'lucide-react'
+import { SortAscIcon, SortDescIcon, SortNoneIcon, ExportIcon, SearchIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -403,7 +403,7 @@ export function ResultTable({
 
           {onExport && (
             <Button type="button" variant="ghost" size="xs" onClick={onExport}>
-              <DownloadIcon aria-hidden="true" className="size-4" />
+              <ExportIcon aria-hidden="true" className="size-4" />
               {t('rb.table.export')}
             </Button>
           )}
@@ -676,7 +676,7 @@ function SortableHeader({
   t: Translator
 }) {
   if (!active) return <>{children}</>
-  const Caret = state === 'none' ? ChevronsUpDownIcon : state === 'descending' ? ArrowDownIcon : ArrowUpIcon
+  const Caret = state === 'none' ? SortNoneIcon : state === 'descending' ? SortDescIcon : SortAscIcon
   return (
     <button
       type="button"

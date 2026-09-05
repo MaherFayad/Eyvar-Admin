@@ -66,6 +66,13 @@ export const OVERVIEW_EN: Dictionary = {
      not start on a Monday and a reader who assumes it does will read the
      Monday column as the first one. `periods.ts` carries the same distinction
      in code. */
+  /* T1.5 — the band's re-read control. One word, and the sentence beside it
+     names what a re-read costs an operator: nothing but the figures moving. */
+  'overview.refresh': 'Refresh',
+  /* T5.7 — the pill states its SCOPE when the chart under the band covers a
+     different window from the leads above it. One key with named parameters,
+     never two labels concatenated (AC-713). */
+  'overview.period.scope': 'Leads: {leads} · chart: {chart}',
   'overview.period.label': 'Change the period',
   /* Two jobs, one string, and they are the same claim: the FIRST entry in the
      picker's list, and the trigger's own label on a board that has not been
@@ -132,7 +139,7 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.lede.operations-overview':
     'What the console owes right now: work claimed, work unclaimed, and the clocks running against it.',
   'overview.lede.support-overview':
-    'Everything open in front of a person — incidents, tickets and the response times on them.',
+    'Everything open in front of a person. Incidents, tickets and the response times on them.',
   'overview.lede.support-fairness':
     'Whether decisions taken about captains hold up when someone appeals them.',
   'overview.lede.admin-overview':
@@ -363,19 +370,20 @@ export const OVERVIEW_EN: Dictionary = {
      Three figures that redraw one chart beneath them are one control, not
      three. A radiogroup with no accessible name is three unrelated buttons to
      anyone who cannot see that they share a band. */
-  'overview.hero.group': 'Lead metrics — pick one to chart',
+  'overview.hero.group': 'Lead metrics · pick one to chart',
 
   /* ── the whole-board empty state (R8, AC-38) ─────────────────────────
-     The heading names what the section is FOR, never the absence of data. */
-  'overview.empty.heading': 'Captains, riders, trips and subscriptions, on one board',
-  'overview.empty.body':
-    'This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count.',
+     The heading names what the section is FOR, never the absence of data.
+     Both sit inside X18's budget: title 5 words, body 12 in one sentence. */
+  'overview.empty.heading': 'Your workspace in numbers',
+  'overview.empty.body': 'Numbers appear as soon as there is activity to count.',
   /* D1b — `Trips` is no longer a destination; it split into `Quick rides` and
      `Subscription trips`. This button navigates to `/operations/quick-rides`,
      so it now names where it actually goes. Caught by the copy audit, not by
      a test: a label naming a sub-tab that no longer exists still compiles,
-     still renders, and is the first control a new operator is offered. */
-  'overview.empty.action': 'Go to quick rides',
+     still renders, and is the first control a new operator is offered.
+     Three words, X18's button budget. */
+  'overview.empty.action': 'Open quick rides',
 
   /* ══════════════════ metric labels — one per `Metric.key` ═════════════
      A tile label is a fragment and takes no period (R6). It names WHAT the

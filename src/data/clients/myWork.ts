@@ -15,7 +15,9 @@
  * Seven of the nine queues project here. `absence` records a fact rather than
  * a task (Q-60) and `erasure` has no client yet.
  *
- * No row carries a sentence: every title is a key plus its values (X2, T4.1).
+ * No row carries a sentence: every title is a key plus its values (X2, T4.1),
+ * and the title is the row's IDENTITY: the person, the trip, the record's id.
+ * The kind, the reason and the record's own prose belong to `subtitleKey`.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -29,32 +31,26 @@ import type { SafetyIncidentType } from '../types/safety'
 import type { TicketPriority } from '../types/ticket'
 import type { VehicleClass } from '../types/driver'
 import type { WorkItem } from '../types/work'
-import { WORK_QUEUE_ROUTE, WORK_ROUTING } from '../types/work'
+import { WORK_QUEUE_ROUTE, WORK_REQUEST_ROUTE, WORK_ROUTING } from '../types/work'
 import type { WorkItemSeverity, WorkQueueId } from '../types/workQueue'
 import type { RoleName } from '../types/session'
+import { currentApplicants } from './applicants'
+import { currentAssuranceTrips } from './assurance'
 import { currentDisputes } from './disputes'
+import { currentFairnessCases } from './fairness'
+import { currentRequests } from './requests'
+import { currentSafetyIncidents } from './safety'
 import { http } from './http'
 import { currentMockUserId } from './session'
 import { findOperator, trackRoleFor } from './rosterStore'
 import { currentTickets } from './tickets'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
-/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
-   import: a static one pins seeded data into every build, including the http
-   build that can never read it. Bound before any mock read, because `mock()`
-   and `mockMutation()` await `loadFixtures()`. */
-let allRequestFixtures!: Fixtures['allRequestFixtures']
-let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
-let applicantFixtures!: Fixtures['applicantFixtures']
-let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
-let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
-onFixturesLoaded((f) => {
-  allRequestFixtures = f.allRequestFixtures
-  assuranceTripFixtures = f.assuranceTripFixtures
-  applicantFixtures = f.applicantFixtures
-  fairnessCaseFixtures = f.fairnessCaseFixtures
-  safetyIncidentFixtures = f.safetyIncidentFixtures
-})
+/* **AC-288 — every projected queue is read through its own client, never off
+   the fixture module.** A claim is written into the client's session rows, so
+   reading the seed here painted the row this screen had just claimed as
+   `Unclaimed` on the next poll. `currentTickets` and `currentDisputes` always
+   did it this way, which is why those two were the only queues where a claim
+   held. */
 
 export const WORK_OPERATIONS = {
   list: 'work.list',
@@ -137,22 +133,53 @@ function applicationSubtitle(
   }
 }
 
-/** An uncovered leg, a named captain who has not confirmed, or no captain at all. */
-function assuranceTitle(
+/**
+ * The channel word, the rider and the class: line TWO of a request row. Line
+ * one is the route (instant) or the rider (subscription), so the subscription
+ * form drops the rider rather than printing it twice.
+ */
+function requestSubtitle(
+  channel: string,
+  status: string,
+  riderName: string,
+  vehicleClass: VehicleClass,
+): Pick<WorkItem, 'subtitleKey' | 'subtitleParams'> {
+  const form = channel === 'instant' ? 'instant' : 'subscription'
+  const suffix = status === 'no-drivers' ? '.noCaptain' : ''
+  const klass = { key: VEHICLE_CLASS_KEY[vehicleClass] }
+  return {
+    subtitleKey: `myWork.item.request.${form}.sub${suffix}`,
+    subtitleParams: form === 'instant' ? { rider: riderName, vehicleClass: klass } : { vehicleClass: klass },
+  }
+}
+
+/**
+ * Why the leg needs a human: uncovered, a named captain who has not confirmed,
+ * or no captain at all. Line TWO. Line one is the subscription the leg belongs
+ * to, which is the thing an operator recognises across all three cases.
+ */
+function assuranceSubtitle(
   uncovered: boolean,
-  subscriptionId: string,
+  riderName: string,
+  planName: string,
   driverName: string | null,
-): Pick<WorkItem, 'titleKey' | 'titleParams'> {
+): Pick<WorkItem, 'subtitleKey' | 'subtitleParams'> {
   if (uncovered) {
     return {
-      titleKey: 'myWork.item.assurance.uncovered',
-      titleParams: { subscription: subscriptionId },
+      subtitleKey: 'myWork.item.assurance.sub.uncovered',
+      subtitleParams: { rider: riderName, plan: planName },
     }
   }
   if (driverName === null) {
-    return { titleKey: 'myWork.item.assurance.unconfirmed.noCaptain', titleParams: {} }
+    return {
+      subtitleKey: 'myWork.item.assurance.sub.unconfirmed.noCaptain',
+      subtitleParams: { rider: riderName },
+    }
   }
-  return { titleKey: 'myWork.item.assurance.unconfirmed', titleParams: { captain: driverName } }
+  return {
+    subtitleKey: 'myWork.item.assurance.sub.unconfirmed',
+    subtitleParams: { rider: riderName, captain: driverName },
+  }
 }
 
 /**
@@ -194,7 +221,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   const items: WorkItem[] = []
 
   /* ── applications (wave 1) ───────────────────────────────────────────── */
-  for (const a of applicantFixtures) {
+  for (const a of currentApplicants()) {
     if (a.status !== 'pending' && a.status !== 'in-review') continue
     items.push({
       key: `application:${a.id}`,
@@ -223,24 +250,22 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── requests ────────────────────────────────────────────────────────── */
-  for (const r of allRequestFixtures) {
+  for (const r of currentRequests()) {
     if (r.status !== 'searching' && r.status !== 'offered' && r.status !== 'no-drivers') continue
     items.push({
       key: `request:${r.id}`,
       queue: 'request',
       id: r.id,
+      /* An instant request IS its route; a subscription request is its rider.
+         The channel word moves to line two, which the queue column agrees
+         with. */
       titleKey:
         r.channel === 'instant' ? 'myWork.item.request.instant' : 'myWork.item.request.subscription',
       titleParams:
         r.channel === 'instant'
           ? { pickup: r.pickup, destination: r.destination }
           : { rider: r.riderName },
-      subtitleKey:
-        r.status === 'no-drivers' ? 'myWork.item.request.sub.noCaptain' : 'myWork.item.request.sub',
-      subtitleParams: {
-        rider: r.riderName,
-        vehicleClass: { key: VEHICLE_CLASS_KEY[r.vehicleClass] },
-      },
+      ...requestSubtitle(r.channel, r.status, r.riderName, r.vehicleClass),
       dueAt: r.slaDueAt,
       breached: r.slaBreachedAt !== null,
       /* `no-drivers` is the status the tick engine writes *at* the breach
@@ -248,7 +273,9 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       severity: r.status === 'no-drivers' ? 'high' : 'normal',
       entityId: r.riderId,
       entityType: 'rider',
-      route: route('request', r.id),
+      /* AC-281 — the queue that HOLDS it. Both channels used to open Ride
+         requests, whose sub-tab pins `channel: instant`. */
+      route: WORK_REQUEST_ROUTE[r.channel],
       routedToMyRole: WORK_ROUTING.request.includes(role),
       claim: r.claim,
       slaStartedAt: r.slaStartedAt,
@@ -263,7 +290,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── trip assurance ──────────────────────────────────────────────────── */
-  for (const t of assuranceTripFixtures) {
+  for (const t of currentAssuranceTrips()) {
     /**
      * Legs that need a human: nobody has *actually* confirmed, or there is
      * nobody to fall back on. A confirmed, covered leg is not work.
@@ -283,12 +310,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `assurance:${t.id}`,
       queue: 'assurance',
       id: t.id,
-      ...assuranceTitle(t.uncovered, t.subscriptionId, t.driverName),
+      titleKey: 'myWork.item.assurance',
+      titleParams: { subscription: t.subscriptionId },
       /* **`departs {ISO}` is gone.** It printed the raw instant into the cell;
          a time is the UI's to format (§8.3) and this row already carries a
          deadline column. The Assurance queue owns the departure clock. */
-      subtitleKey: 'myWork.item.assurance.sub',
-      subtitleParams: { rider: t.riderName, plan: t.planName },
+      ...assuranceSubtitle(t.uncovered, t.riderName, t.planName, t.driverName),
       dueAt: t.slaDueAt,
       breached: t.slaBreachedAt !== null,
       /* Legacy pushes an uncovered leg at `critical` (`:19161`) — the rider is
@@ -311,19 +338,19 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── safety ──────────────────────────────────────────────────────────── */
-  for (const i of safetyIncidentFixtures) {
+  for (const i of currentSafetyIncidents()) {
     if (i.status !== 'open') continue
     items.push({
       key: `incident:${i.id}`,
       queue: 'incident',
       id: i.id,
       titleKey: 'myWork.item.incident',
-      titleParams: { type: { key: SAFETY_TYPE_KEY[i.type] }, summary: i.summary },
-      /* `INC-017`. Legacy prints `Reporter undefined` here (`:13432`). */
-      subtitleKey: i.reporterName
-        ? 'myWork.item.incident.sub'
-        : 'myWork.item.incident.sub.noReporter',
-      subtitleParams: i.reporterName ? { name: i.reporterName } : {},
+      titleParams: { type: { key: SAFETY_TYPE_KEY[i.type] }, id: i.id },
+      /* The summary is a SENTENCE in the reporter's own words: on line one it
+         wanted 666px of a 208px column. Line two, where it truncates without
+         taking the identity with it. */
+      subtitleKey: 'myWork.item.text',
+      subtitleParams: { text: i.summary },
       /* The **response** clock leads on this queue: an SOS breaches its promise
          to answer long before its promise to resolve. */
       dueAt: i.firstResponseDueAt ?? i.slaDueAt,
@@ -346,17 +373,17 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── fairness ────────────────────────────────────────────────────────── */
-  for (const c of fairnessCaseFixtures) {
+  for (const c of currentFairnessCases()) {
     if (c.status !== 'open') continue
     items.push({
       key: `fairness:${c.id}`,
       queue: 'fairness',
       id: c.id,
       titleKey: 'myWork.item.fairness',
-      titleParams: { kind: { key: FAIRNESS_KIND_KEY[c.kind] }, captain: c.driverName },
-      /* The case's own words, which are data and not copy. */
-      subtitleKey: 'myWork.item.text',
-      subtitleParams: { text: c.detail },
+      titleParams: { captain: c.driverName },
+      /* The kind, then the case's own words, which are data and not copy. */
+      subtitleKey: 'myWork.item.fairness.sub',
+      subtitleParams: { kind: { key: FAIRNESS_KIND_KEY[c.kind] }, text: c.detail },
       dueAt: c.slaDueAt,
       breached: c.slaBreachedAt !== null || c.firstResponseBreachedAt !== null,
       severity: 'normal',
@@ -387,11 +414,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       key: `ticket:${k.id}`,
       queue: 'ticket',
       id: k.id,
-      /* The subject is the customer's own words: data, not copy. */
-      titleKey: 'myWork.item.text',
-      titleParams: { text: k.subject },
+      /* The subject is the customer's own words and runs to a full line of
+         prose, so the identity is the ticket and who it is about. */
+      titleKey: 'myWork.item.ticket',
+      titleParams: { id: k.id, entity: k.entityName },
       subtitleKey: 'myWork.item.ticket.sub',
-      subtitleParams: { entity: k.entityName, category: k.category },
+      subtitleParams: { category: k.category, subject: k.subject },
       dueAt: k.slaDueAt,
       breached: k.slaBreached,
       severity: TICKET_SEVERITY[k.priority],
@@ -424,9 +452,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       queue: 'dispute',
       id: d.id,
       titleKey: 'myWork.item.dispute',
-      titleParams: { kind: { key: DISPUTE_KIND_KEY[d.kind] }, claimant: d.claimantName },
+      titleParams: { claimant: d.claimantName },
       subtitleKey: d.againstName === null ? 'myWork.item.dispute.sub.platform' : 'myWork.item.dispute.sub',
-      subtitleParams: d.againstName === null ? {} : { name: d.againstName },
+      subtitleParams:
+        d.againstName === null
+          ? { kind: { key: DISPUTE_KIND_KEY[d.kind] } }
+          : { kind: { key: DISPUTE_KIND_KEY[d.kind] }, name: d.againstName },
       dueAt: d.dueAt,
       breached,
       severity: 'normal',

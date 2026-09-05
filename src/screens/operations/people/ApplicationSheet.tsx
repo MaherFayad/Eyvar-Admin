@@ -4,7 +4,7 @@
  *
  * ```
  *  ┌──────────────────────────────────────────────────────┐
- *  │ APPLICATION 1 OF 7                    [↑] [↓] [✕]    │
+ *  │ APPLICATION 1 OF 7            [prev] [next] [close]  │
  *  │ Rakan Al-Otaibi                                      │
  *  │ APP-2205 · RIYADH · ECONOMY · APPLIED 21 JUN 16:30   │
  *  ├──────────────────────────────────────────────────────┤
@@ -58,14 +58,13 @@
  *   R3          one primary. `Approve captain` is it; `Reject` is the one red
  *               control R5a permits (a destructive button), and `Request
  *               re-upload` is secondary.
- *   §8.3.1      `—` is not-applicable only.
+ *   O9          an absent value renders BLANK, never a dash.
  *   AC-73       `<bdi>` on every id, phone, IBAN and date run.
  */
 
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowDownIcon, ArrowUpIcon, XIcon } from 'lucide-react'
 import {
   approveApplicant,
   rejectApplicant,
@@ -77,7 +76,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBadge } from '@/components/StatusBadge'
-import { ABSENT, formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { CloseIcon, nextIcon, previousIcon, useIconDirection } from '@/components/icons'
+import { InfoHint } from '@/components/InfoHint'
+import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 import {
   DOC_STATUS_LABEL,
@@ -88,6 +89,7 @@ import {
   firstUnreviewed,
   verifiedCount,
 } from './documentReview'
+import { BANK_STATUS_KEY } from './domain'
 
 /** The applicant detail route (`fixtures/routeTable.ts`, `APPLICANT_DETAIL`). */
 const DETAIL_PATH = '/operations/people/applications'
@@ -116,6 +118,12 @@ export function ApplicationSheet({
   t,
   language,
 }: ApplicationSheetProps) {
+  /* T9.10 / O10 — the step controls are pager chevrons chosen by `dir` in code,
+     never a font glyph and never mirrored with CSS. */
+  const dir = useIconDirection()
+  const PreviousIcon = previousIcon(dir)
+  const NextIcon = nextIcon(dir)
+
   const [busy, setBusy] = useState(false)
   /* §5.5 / §6.4 — the reject form EXPANDS IN PLACE. A modal inside a drawer is
      forbidden, and this is the shape that rule licenses instead. */
@@ -187,7 +195,7 @@ export function ApplicationSheet({
                     onClick={() => previous && onSelect(previous)}
                     aria-label={t('applicant.sheet.previous')}
                   >
-                    <ArrowUpIcon aria-hidden="true" />
+                    <PreviousIcon aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -196,7 +204,7 @@ export function ApplicationSheet({
                     onClick={() => next && onSelect(next)}
                     aria-label={t('applicant.sheet.next')}
                   >
-                    <ArrowDownIcon aria-hidden="true" />
+                    <NextIcon aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -204,7 +212,7 @@ export function ApplicationSheet({
                     onClick={onClose}
                     aria-label={t('applicant.sheet.close')}
                   >
-                    <XIcon aria-hidden="true" />
+                    <CloseIcon aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -212,14 +220,14 @@ export function ApplicationSheet({
               <h2 className="text-base font-semibold text-foreground">
                 <bdi>{applicant.name}</bdi>
               </h2>
+              {/* AC-75 — the same key the detail page's meta line renders. */}
               <p className="text-2xs tracking-wider text-muted-foreground uppercase">
                 <bdi>
-                  {[
-                    applicant.id,
-                    applicant.city,
-                    applicant.vehicleClass,
-                    formatDate(applicant.appliedAt, { style: 'day-month-time', language }),
-                  ].join(' · ')}
+                  {t('applicant.meta', {
+                    id: applicant.id,
+                    city: applicant.city,
+                    applied: formatDate(applicant.appliedAt, { style: 'day-month-time', language }),
+                  })}
                 </bdi>
               </p>
             </header>
@@ -238,7 +246,12 @@ export function ApplicationSheet({
                   <Pair
                     label={t('applicant.vehicleModel')}
                     value={
-                      <bdi>{`${applicant.vehicle} · ${applicant.plate}`}</bdi>
+                      <bdi>
+                        {t('applicant.vehiclePlate', {
+                          vehicle: applicant.vehicle,
+                          plate: applicant.plate,
+                        })}
+                      </bdi>
                     }
                   />
                   <Pair label={t('applicant.iban')} value={<bdi>{applicant.bank.iban}</bdi>} />
@@ -248,14 +261,21 @@ export function ApplicationSheet({
                       <StatusBadge
                         tone={applicant.bank.status === 'Verified' ? 'success' : 'warning'}
                       >
-                        {applicant.bank.status}
+                        {/* X2 - the member is an English display string on the
+                            record, so it printed Latin on an Arabic page. */}
+                        {t(BANK_STATUS_KEY[applicant.bank.status])}
                       </StatusBadge>
                     }
                   />
                 </dl>
               </Section>
 
-              <Section title={t('applicant.review.signals')}>
+              {/* T9.7 — `screeningDesc` explains what the three lines are for;
+                  it changes nothing the operator does, so it is a hint (X15). */}
+              <Section
+                title={t('applicant.review.signals')}
+                hint={<InfoHint t={t}>{t('applicant.screeningDesc')}</InfoHint>}
+              >
                 <Signals applicant={applicant} t={t} />
               </Section>
 
@@ -300,12 +320,17 @@ export function ApplicationSheet({
               </Section>
 
               {/* §5.5 / §6.4 — the reject form expands here rather than opening
-                  a modal over the drawer. */}
+                  a modal over the drawer. T9.7 — what a rejection DOES is
+                  explained beside the title; the field says what to type. */}
               {rejecting && (
-                <Section title={t('applicant.reject.title')}>
-                  <p className="text-xs text-muted-foreground">
-                    {t('applicant.reject.desc', { name: applicant.name })}
-                  </p>
+                <Section
+                  title={t('applicant.reject.title')}
+                  hint={
+                    <InfoHint t={t}>
+                      {t('applicant.reject.desc', { name: applicant.name })}
+                    </InfoHint>
+                  }
+                >
                   <Label htmlFor="application-reject-reason" className="text-xs">
                     {t('applicant.reject.reason')}
                   </Label>
@@ -403,11 +428,14 @@ export function ApplicationSheet({
 function Section({
   title,
   meta,
+  hint,
   action,
   children,
 }: {
   title: string
   meta?: string
+  /** X15 — the sentence that EXPLAINS the section, asked for beside its title. */
+  hint?: React.ReactNode
   action?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -422,6 +450,7 @@ function Section({
               <bdi>{meta}</bdi>
             </>
           )}
+          {hint}
         </h3>
         {action}
       </div>
@@ -434,7 +463,8 @@ function Pair({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate font-medium text-foreground">{value ?? ABSENT}</dd>
+      {/* O9 — an absent value is blank, never a dash. */}
+      <dd className="min-w-0 truncate font-medium text-foreground">{value}</dd>
     </div>
   )
 }

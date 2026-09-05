@@ -14,8 +14,14 @@
    barrel, so there is no cycle. */
 import { mockFailures as failureRegistry } from '../config'
 import { resetNavCounts as resetCounts } from './navCounts'
-import { resetAssurance as resetAssuranceState } from './assurance'
-import { resetSafetyIncidents as resetSafety } from './safety'
+import { resetAssurance as resetAssuranceState, resetAssuranceTrips } from './assurance'
+import { resetSafetyIncidents as resetSafety, resetSafetyIncidentRows } from './safety'
+/* AC-288 — the six queues that hold their rows for the session now that a
+   claim is written back. */
+import { resetRequests } from './requests'
+import { resetApplicants } from './applicants'
+import { resetFairnessCases } from './fairness'
+import { resetComplaintRows } from './complaints'
 import { resetNotifications as resetNotifs } from './notifications'
 import { resetMockSession as resetSession } from './session'
 import { resetAudit as resetAuditLog } from './audit'
@@ -50,6 +56,8 @@ import { resetRetention as resetRetentionState } from './retention'
 import { resetEmails as resetEmailState } from './emails'
 import { resetIntegrations as resetIntegrationsState } from './integrations'
 import { resetPreferences as resetPreferencesState } from './preferences'
+/* T7.1 — the four Growth lists. Pause and activate are session state. */
+import { resetGrowth as resetGrowthState } from './growth'
 
 const clearFailures = () => failureRegistry.clear()
 
@@ -191,6 +199,7 @@ export {
   listSubscriptions,
   reassignSubscriptionDriver,
   subscriptionCount,
+  unfreezeSubscription,
   type SubscriptionQuery,
 } from './subscriptions'
 
@@ -208,6 +217,22 @@ export {
   type CorporateQuery,
   type CreateCorporateAccountInput,
 } from './corporateAccounts'
+
+/* T7.1 — Management › Growth, the four `?view=` index tables (O3). */
+export {
+  GROWTH_OPERATIONS,
+  getGrowthIncentiveFacets,
+  getGrowthMessageFacets,
+  getGrowthPromoFacets,
+  getGrowthReferralFacets,
+  listGrowthBulkMessages,
+  listGrowthIncentives,
+  listGrowthPromos,
+  listGrowthReferrals,
+  resetGrowth,
+  setGrowthIncentiveActive,
+  setGrowthPromoStatus,
+} from './growth'
 
 /* Live Dispatch — T1.1 and T1.2. The telemetry read replaces a `TELEMETRY`
    literal; the intervention writes replace two controls that toasted success
@@ -681,6 +706,15 @@ export function resetDataLayer(): void {
   resetNotifs()
   resetSafety()
   resetAssuranceState()
+  /* AC-288 — a claim, a release or a take-over is written into the client's
+     session rows, so it has to be undone between test files the same way a
+     ticket's is. */
+  resetRequests()
+  resetApplicants()
+  resetAssuranceTrips()
+  resetFairnessCases()
+  resetSafetyIncidentRows()
+  resetComplaintRows()
   resetAuditLog()
   resetLedgerState()
   resetRevenueState()
@@ -710,6 +744,7 @@ export function resetDataLayer(): void {
      changes — an acknowledgement, an unlinked employee, a sent invoice. */
   resetDispatchState()
   resetCorporateState()
+  resetGrowthState()
   /* P6-T4. `integrity` holds a run counter and a per-check last-run stamp; a
      leaked one makes the next file's first run `IRUN-0004` and its catalogue
      already dated, which is exactly the non-determinism the checks are written

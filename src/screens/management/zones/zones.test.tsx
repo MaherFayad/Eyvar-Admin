@@ -17,10 +17,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   disableMockLatency,
+  getMetricBoard,
   getNavCounts,
   getRouteTable,
   getZoneHealth,
   listCities,
+  listMetrics,
   listZones,
   resetDataLayer,
   starvedZoneCount,
@@ -267,17 +269,14 @@ describe('the cities table is gone, and what replaced it', () => {
    * `avgFailureRate` tile, and `Riyadh` is the secondary line of every table
    * row. The fourth — coverage — is now a clause in the meta line.
    */
-  it('renders NO table at all, and no card headed Cities', async () => {
+  it('the map surface renders no table, and no card headed Cities', async () => {
     renderZones()
     await zonesReady()
 
     expect(screen.queryByRole('heading', { name: 'Cities' })).toBeNull()
-    /* **Zero, and it used to be one.** The cities card went first — it was the
-       second `<table>` and the reason the old helper had to index. The zone
-       table went with the redesign. The assertion is kept rather than deleted
-       because it is now the stronger claim: this board renders a map and a
-       panel, and a table reappearing on it would be a regression somebody
-       should have to argue for. */
+    /* **Zero on the map surface**, which is what O5 decided: the table is a
+       second view reached by `?view=table`, not a thing stacked under a map
+       nobody scrolled past. A table here would be the old defect back. */
     expect(document.querySelectorAll('table')).toHaveLength(0)
   })
 
@@ -291,7 +290,7 @@ describe('the cities table is gone, and what replaced it', () => {
     const all = listCities().length
     expect(live).toBe(1)
     expect(all).toBe(4)
-    expect(screen.getByText(`6 zones · 2 starved · ${live} of ${all} cities live`)).toBeTruthy()
+    expect(screen.getByText(`2/6 starved · ${live}/${all} cities live`)).toBeTruthy()
   })
 
   /**
@@ -310,5 +309,139 @@ describe('the cities table is gone, and what replaced it', () => {
     expect(within(panel).getAllByText(ABSENT).length).toBeGreaterThan(0)
     expect(document.body.textContent).not.toMatch(/Infinity/)
     expect(document.body.textContent).not.toMatch(/NaN/)
+  })
+})
+
+/* ─────────────────── T7.3 — the table, back as a view ───────────────────── */
+
+/**
+ * **Owner decision O5**: a city with thirty zones is a list you query, so the
+ * P1 index table returns as `?view=table` beside the map rather than under it.
+ * Every assertion is scoped to the table, because the map surface lists the
+ * same zones and would otherwise answer for it.
+ */
+describe('T7.3 — ?view=table restores the index table', () => {
+  const TABLE = '/management/zones?view=table'
+
+  async function tableReady(): Promise<HTMLElement> {
+    const table = await screen.findByRole('table')
+    await waitFor(() => expect(within(table).getAllByText('Al Narjis').length).toBeGreaterThan(0))
+    return table
+  }
+
+  it('offers both surfaces as a switch, and the map is the one on by default', async () => {
+    renderZones()
+    await zonesReady()
+
+    const map = screen.getByRole('tab', { name: ZONES_EN['zones.view.map'] as string })
+    const table = screen.getByRole('tab', { name: ZONES_EN['zones.view.table'] as string })
+    expect(map).toHaveAttribute('aria-selected', 'true')
+    expect(table).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('renders every zone the client returns as a row', async () => {
+    renderZones(TABLE)
+    const table = await tableReady()
+
+    const rows = await listZones({ pageSize: 100 })
+    for (const each of rows.items) {
+      expect(within(table).getByText(each.name)).toBeTruthy()
+    }
+    /* And the map is not also on: two surfaces answering at once is the stack
+       O5 replaced. */
+    expect(document.querySelector('aside')).toBeNull()
+  })
+
+  /**
+   * Scoped to the table's own toolbar: the board half above it exports too, so
+   * an unscoped `Export CSV` would pass on the board's button and prove nothing
+   * about the table.
+   */
+  function tableToolbar(): HTMLElement {
+    const search = screen.getByPlaceholderText(ZONES_EN['zones.search'] as string)
+    let node = search.parentElement
+    while (node && !within(node).queryByRole('button', { name: EN['table.columns'] as string })) {
+      node = node.parentElement
+    }
+    if (!node) throw new Error('No table toolbar on the page')
+    return node
+  }
+
+  it('carries the affordances the map cannot offer: sort, filter, columns and CSV', async () => {
+    renderZones(TABLE)
+    await tableReady()
+
+    const toolbar = within(tableToolbar())
+    for (const name of [
+      EN['table.sort'],
+      EN['table.filter'],
+      EN['table.columns'],
+      EN['table.export'],
+    ]) {
+      expect(toolbar.getByRole('button', { name: name as string })).toBeEnabled()
+    }
+  })
+
+  it('R4-6 §6.4 clause 2 — both row actions are labelled on every row, never a kebab', async () => {
+    renderZones(TABLE)
+    const table = await tableReady()
+
+    const rows = await listZones({ pageSize: 100 })
+    expect(
+      within(table).getAllByRole('button', { name: ZONES_EN['zones.action.steer'] as string }),
+    ).toHaveLength(rows.items.length)
+    expect(
+      within(table).getAllByRole('button', { name: ZONES_EN['zones.action.recruit'] as string }),
+    ).toHaveLength(rows.items.length)
+  })
+
+  /**
+   * **X6 — the seeded board had no surface.** The assertion walks the fixture
+   * rather than a list of names, so a metric added to `management-zones` and
+   * left unrendered fails here instead of shipping unseen.
+   */
+  it('renders the seeded management-zones metrics as the board half (R4-6b)', async () => {
+    /* Through the client, not `fixtures/metrics`: `seam.test.ts` property 4
+       forbids a fixture import outside `src/data`. `listMetrics` is a second
+       read of the same seeds, so the cross-check still catches a board that
+       drops one. */
+    const seeded = await listMetrics({ subTabId: 'management-zones', pageSize: 200 })
+    const board = await getMetricBoard('management-zones')
+    expect(board.metrics.map((each) => each.key).sort()).toEqual(
+      seeded.items.map((each) => each.key).sort(),
+    )
+
+    renderZones(TABLE)
+    await tableReady()
+
+    for (const metric of board.metrics) {
+      expect(screen.getAllByText(EN[`metric.${metric.key}`] as string).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('renders the citiesHealth breakdown, which is where L-6 is answered', async () => {
+    const board = await getMetricBoard('management-zones')
+    expect(board.breakdowns.map((each) => each.key)).toEqual(['zones.citiesHealth'])
+
+    renderZones(TABLE)
+    await tableReady()
+
+    expect(screen.getByText(EN['breakdown.zones.citiesHealth'] as string)).toBeTruthy()
+  })
+
+  /**
+   * **Two questions, two parameters.** `view` names the surface and `scope` is
+   * the strip's tile toggle; one parameter could not carry both, because
+   * `table` is not a zone filter and `starved` is not a surface.
+   */
+  it('the tile toggles narrow the table without leaving it', async () => {
+    renderZones(`${TABLE}&scope=starved`)
+    const table = await tableReady()
+
+    const rows = await listZones({ pageSize: 100 })
+    const starved = rows.items.filter((each) => each.starved)
+    expect(starved.length).toBeGreaterThan(0)
+    expect(starved.length).toBeLessThan(rows.items.length)
+    expect(within(table).getAllByRole('row').length - 1).toBe(starved.length)
   })
 })

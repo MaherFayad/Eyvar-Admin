@@ -46,17 +46,21 @@ export const QUEUE_SHARED_EN: Dictionary = {
   /* Q-53 — the replacement for `'🔒 ' + claimedBy`. One key, one placeholder. */
   'queue.owner.heldBy': 'Held by {name}',
   /* **AC-207** — the 30-minute expiry, stated on the queue. */
-  'queue.owner.expiry': 'A claim is released after {minutes} minutes without activity.',
+  /* A plural family: `{minutes} minutes` is `دقيقتين` at two and `دقائق` at
+     three, and no single Arabic string covers both. */
+  'queue.owner.expiry#one': 'A claim is released after {minutes} minute without activity.',
+  'queue.owner.expiry#other':
+    'A claim is released after {minutes} minutes without activity.',
 
   /* **AC-203** — the confirmation names the current owner and states that they
      lose the item **without being asked**. Rule 9: it also says what does not
      change. */
-  'queue.takeOver.title': 'Take this over from {name}?',
+  'queue.takeOver.title': 'Take over from {name}?',
   'queue.takeOver.body':
     '{name} loses this item without being asked, and both names go on the record. Nothing else about the item changes.',
   'queue.takeOver.confirm': 'Take over',
   /* **AC-209** — disposing of someone else's item takes the same confirmation. */
-  'queue.takeOver.decide.title': 'Decide this while {name} holds it?',
+  'queue.takeOver.decide.title': 'Decide instead of {name}?',
   'queue.takeOver.decide.body':
     '{name} is working this now. Deciding it takes the item from them without being asked, and both names go on the record.',
   'queue.takeOver.decide.confirm': 'Take over and decide',

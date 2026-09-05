@@ -65,6 +65,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { InfoHint } from '@/components/InfoHint'
 import type { FilterSpec } from '@/data/types'
 import type { PinRefusal, PinnedColumn, RovingItemProps, TableSorting } from '@/hooks'
 import type { ColumnFilterValue, Language, Translate } from '@/lib'
@@ -237,6 +238,11 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
 
   const caret = <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
 
+  /* X15 — the explanation, beside the label rather than under every row. It
+     sits OUTSIDE the menu trigger: a button cannot contain a button, and the
+     hint answers a different question from the menu. */
+  const hint = column.headerHint ? <InfoHint t={t}>{column.headerHint}</InfoHint> : null
+
   const cellWidth = width ?? column.width
 
   const cellClass = cn(
@@ -282,7 +288,11 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
         style={pinnedStyle(pinned, cellWidth, overflowing, column.minWidth)}
         className={cn(cellClass, 'px-3', end && 'text-end')}
       >
-        {column.header}
+        <span className={cn('flex items-center gap-1', end && 'justify-end')}>
+          {end && hint}
+          {column.header}
+          {!end && hint}
+        </span>
         {resizeHandle}
       </TableHead>
     )
@@ -309,6 +319,10 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
         }}
       >
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          {/* The hint is a sibling of the trigger, never a child: one flex row
+              so the button still fills the cell and the icon keeps the edge
+              §3.2 gives the caret's opposite. */}
+          <div className={cn('flex w-full items-center', end && 'flex-row-reverse')}>
           <PopoverAnchor asChild>
             <DropdownMenuTrigger asChild>
               <button
@@ -322,7 +336,7 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
                      at 32 (`03-navattic-language.md` §1.4); a header button
                      still sized `h-row` silently makes every header row 40px
                      and the tint band with it. */
-                  'flex h-(--ev-row-h-head) w-full items-center gap-1 px-3 text-xs font-medium',
+                  'flex h-(--ev-row-h-head) w-full min-w-0 items-center gap-1 px-3 text-xs font-medium',
                   'text-muted-foreground transition-colors',
                   end ? 'justify-end' : 'justify-start',
                   /* AC-82 — the AC-68 two-step. Never `opacity: 0`. */
@@ -349,6 +363,8 @@ export function ColumnHeaderCell<T>(props: ColumnHeaderCellProps<T>) {
               </button>
             </DropdownMenuTrigger>
           </PopoverAnchor>
+          {hint}
+          </div>
 
           <DropdownMenuContent
             align={end ? 'end' : 'start'}

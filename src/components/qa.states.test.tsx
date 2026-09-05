@@ -10,6 +10,8 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '@/lib'
+import { EN } from '@/i18n/dictionaries'
 import { EmptyState } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingSkeleton, type SkeletonPattern } from './LoadingSkeleton'
@@ -227,5 +229,72 @@ describe('AC-69 — "With prefers-reduced-motion: reduce set, no element in the 
     const { container } = render(<LoadingSkeleton pattern="P1" />)
     const animated = container.querySelectorAll('[class*="animate-"]')
     expect(animated.length).toBeGreaterThan(0)
+  })
+})
+
+/* ══════════════════ X15 — the empty state's hint slot ═══════════════════ */
+
+/**
+ * The sentence a one-line body cannot hold, asked for rather than read. It
+ * explains and does not change what the operator does next, so X15 puts it
+ * behind the icon; the body beside it still says everything needed to act.
+ */
+describe('X15 — an empty state explains itself on request, in every arm', () => {
+  const t = createTranslator({ dictionary: EN })
+
+  it('opens the sentence from the first-run heading', async () => {
+    const user = userEvent.setup()
+    render(
+      <EmptyState
+        kind="first-run"
+        heading="Your work, across every queue"
+        body="Anything you hold or nobody has picked up, sorted by deadline."
+        actions={[{ label: 'Show every queue', onClick: () => undefined }]}
+        hint="It spans every queue from Requests to Safety."
+        t={t}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'What this means' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'It spans every queue from Requests to Safety.',
+    )
+  })
+
+  it('opens the sentence from the no-match line, which has no heading to hang it on', async () => {
+    const user = userEvent.setup()
+    render(
+      <EmptyState
+        kind="no-match"
+        message="Nothing is open in the queues routed to your role."
+        hint="Other queues may still have work."
+        t={t}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'What this means' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Other queues may still have work.',
+    )
+  })
+
+  it('opens the sentence from the cleared heading', async () => {
+    const user = userEvent.setup()
+    render(
+      <EmptyState
+        kind="cleared"
+        heading="Nothing owed"
+        body="Every queue is clear."
+        hint="Routing decides which queues count."
+        t={t}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'What this means' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Routing decides which queues count.',
+    )
+  })
+
+  it('draws no icon at all when the arm has no hint', () => {
+    render(<EmptyState kind="cleared" heading="Nothing owed" body="Every queue is clear." t={t} />)
+    expect(screen.queryByRole('button', { name: 'What this means' })).toBeNull()
   })
 })

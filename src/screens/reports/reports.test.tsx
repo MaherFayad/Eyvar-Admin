@@ -587,15 +587,12 @@ describe('§12 — the client half of alerts, and the two fields nobody has deci
     expect(rules.every((rule) => rule.minReArmMinutes === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts', <ReportsScreen />)
-    const unset = await screen.findAllByText(REPORTS_EN['rb.alert.cadence.unset'] as string)
-    expect(unset.length).toBe(rules.length)
-    /* And it says what "unset" means, once, where an operator will read it.
-       That sentence MOVED: it was a footnote under the table and it is now the
-       page banner above it (R10), so the assertion follows it to the key the
-       banner carries rather than being deleted. `rb.alert.cadence.explain` is
-       still live — it is the sentence beside the disabled cadence field in
-       `AlertRuleDialog`, which is a different surface with a different reader. */
-    expect(screen.getByText(REPORTS_EN['rb.alerts.banner.body'] as string)).toBeInTheDocument()
+    /* R10/T9.15 — the banner says it once for the page, so the `Checked`
+       column repeats nothing and the cell is blank (O9). */
+    expect(
+      await screen.findByText(REPORTS_EN['rb.alerts.banner.body'] as string),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(REPORTS_EN['rb.alert.cadence.unset'] as string)).toBeNull()
   })
 
   it('AC-885 — a firing rule uses the word and a warning tone, and no red anywhere', async () => {

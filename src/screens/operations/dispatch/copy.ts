@@ -1,24 +1,7 @@
 /**
- * Operations > Live Dispatch - every operator-facing string, as keys (**AC-74**),
- * with no concatenation anywhere (**AC-75**).
- *
- * **This screen is not registered in `src/i18n/dictionaries.ts` yet**, and that
- * file has a single owner. Until it is, `withFallback` (`../localCopy`) resolves
- * these keys against this dictionary - the same arrangement Trips and
- * Subscriptions already use.
- *
- * Before this file, Dispatch carried **41 `defaultValue` literals inside JSX**
- * across three components. That is the arrangement `copy.ts` exists to prevent:
- * `defaultValue` slips past the missing-key guard in `lib/i18n/translate.ts:98`,
- * so a translation pass cannot see the string at all, and an English literal in
- * a `.tsx` drifts the moment someone edits it in place.
- *
- * Requested of the shell owner:
- *
- * ```ts
- * import { DISPATCH_EN } from '@/screens/operations/dispatch/copy'
- * // ...and `...DISPATCH_EN` in the English assembly.
- * ```
+ * Operations › Live Dispatch — every string as a key (AC-74, AC-75).
+ * Unregistered: `withFallback` tries the shell dictionary first, so the enum
+ * families this file omits resolve through the shared vocabulary (T4.2).
  */
 
 import type { Dictionary } from '@/lib'
@@ -26,44 +9,55 @@ import type { Dictionary } from '@/lib'
 export const DISPATCH_EN: Dictionary = {
   'action.cancel': 'Cancel',
   'column.rider': 'Rider',
-  'dispatch.activeAlerts': 'Active',
   'dispatch.assignCaptain': 'Dispatch captain',
-  'dispatch.autoMatchRate': 'Auto-match rate',
-  'dispatch.avgMatchTime': 'Average match time',
-  'dispatch.confirmAssign': 'Dispatch captain',
   'dispatch.dismissAlert': 'Acknowledge',
   'dispatch.empty.board.action': 'Go to requests',
-  'dispatch.empty.board.body': 'Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts.',
+  'dispatch.empty.board.body': 'Trips, waiting requests and captains appear here.',
   'dispatch.empty.board.heading': 'Nothing is moving yet',
   'dispatch.empty.fleet.body': 'Captains appear here as they come on shift.',
   'dispatch.empty.fleet.heading': 'No captain is online',
-  'dispatch.empty.pending.body': 'Every ride request has a captain. Unmatched requests appear here.',
+  'dispatch.empty.pending.body': 'Unmatched requests appear here.',
   'dispatch.empty.pending.heading': 'Nothing waiting',
-  'dispatch.empty.trips.body': 'No trip is on the road right now. New trips appear here as captains accept them.',
+  'dispatch.empty.trips.body': 'New trips appear here as captains accept them.',
   'dispatch.empty.trips.heading': 'Nothing in transit',
-  'dispatch.error.telemetry': "Dispatch velocity isn't available while the board is down.",
-  'dispatch.feed.activeTrips': 'Active trips',
-  'dispatch.feed.fleet': 'Fleet online',
-  'dispatch.feed.pendingMatch': 'Pending dispatch',
-  'dispatch.fleet.active': 'Active',
-  'dispatch.fleetUtilization': 'Fleet utilisation',
-  'dispatch.inTransit': 'in-transit',
+  'dispatch.fleet.subs': '{active}/{max} subscriptions',
   'dispatch.intervention.delayed': 'Delayed arrival · {trip}',
   'dispatch.intervention.sos': 'Emergency signal · {trip}',
   'dispatch.intervention.stranded': 'Rider stranded · {trip}',
   'dispatch.intervention.sub': '{captain} · {rider} at {place}',
   'dispatch.intervention.sub.noCaptain': 'No captain · {rider} at {place}',
-  'dispatch.intervention.elapsed': '{minutes}m open',
+  /* A plural FAMILY (`./plural.ts`). English abbreviates the unit and so
+     never inflects; Arabic has six forms and `مفتوح منذ {minutes} دقيقة`
+     was wrong at every count but 11 and up. */
+  'dispatch.intervention.elapsed#one': '{minutes}m open',
+  'dispatch.intervention.elapsed#other': '{minutes}m open',
+  /* §11.2 — one sentence per refusal the two writes can raise, keyed by the
+     code `clients/dispatch.ts` sends. The server's own message names a user id
+     and a timestamp; an operator needs to know what to do instead. */
+  'dispatch.intervention.refusal.already_acknowledged': 'Somebody else has already acknowledged this.',
+  'dispatch.intervention.refusal.same_driver': 'That captain is already on this trip.',
+  'dispatch.intervention.refusal.driver_unavailable': 'That captain is not on shift.',
+  'dispatch.intervention.refusal.failed': 'Nothing changed. Try again.',
+  'dispatch.interventions.active#one': '{count} active',
+  'dispatch.interventions.active#other': '{count} active',
   'dispatch.interventions.title': 'Live interventions',
-  'dispatch.interventions.unavailable': 'Interventions are read-only until the live alert feed is connected. Acknowledging or reassigning here would save nothing.',
-  'dispatch.liveConnected': 'Live telemetry connected',
-  'dispatch.liveTelemetry': 'Dispatch velocity',
+  'dispatch.interventions.open': 'Open',
+  'dispatch.interventions.strip#one': '{count} intervention',
+  'dispatch.interventions.strip#other': '{count} interventions',
   'dispatch.map.a11y.desc': 'A map of Riyadh carrying {trips} trips in flight, {pending} requests waiting for a captain, and {captains} captains online.',
+  /* T2.2 — the frame is declared (`geo.ts`) and deliberately tighter than the
+     gazetteer, so a mark can fall outside it with no way back but the zoom.
+     This re-fits the frame to every mark on the board. */
+  'dispatch.map.fit': 'Fit to fleet',
   'dispatch.map.heading': 'Dispatch map',
   'dispatch.map.pin.request': 'Request {id}, waiting at {pickup}, going to {destination}',
   'dispatch.map.pin.trip': 'Trip {id}, picked up at {pickup}, going to {destination}',
   'dispatch.map.unknownPlace': 'an unrecorded place',
-  'dispatch.map.unplaced': '{count} rows are outside this map',
+  /* R8 — a row with no coordinate is counted, never dropped in silence. It is
+     most often a captain registered in another city (`fixtures/drivers.ts`),
+     which no re-framing of Riyadh can bring in. */
+  'dispatch.map.unplaced#one': '{count} row has no place on file',
+  'dispatch.map.unplaced#other': '{count} rows have no place on file',
   'dispatch.map.zoom.in': 'Zoom in',
   'dispatch.map.zoom.out': 'Zoom out',
   'dispatch.layers.captains': 'Captains',
@@ -75,56 +69,59 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.legend.title': 'What the marks mean',
   'dispatch.legend.tripDestination': 'Trip destination',
   'dispatch.legend.tripPickup': 'Trip pickup',
-  /* The captain marks are placed from a registered district, not from
-     telemetry. Saying so under the legend is the difference between a board an
-     operator can trust and one they find out about later. See `geo.ts`. */
+  /* X15 — the caveat behind `InfoHint` on the legend title. The marks are
+     placed from a registered district, not from telemetry (`geo.ts`). */
   'dispatch.legend.note': 'Captain marks show the district a captain is registered in, not a live position.',
   'dispatch.feed.collapse': 'Collapse',
   'dispatch.feed.expand': 'Expand',
-  'dispatch.feed.scope.fleet': '{count} captains on shift',
-  'dispatch.feed.scope.pending': '{count} waiting for a captain',
-  'dispatch.feed.scope.trips': '{count} on the road',
-  'dispatch.fleet.subs': '{active}/{max} subscriptions',
-  'dispatch.interventions.open': 'Open',
-  'dispatch.interventions.strip': '{count} interventions',
-  'dispatch.meta': '{count} in transit · as of {time}',
+  'dispatch.feed.scope.fleet#one': '{count} captain on shift',
+  'dispatch.feed.scope.fleet#other': '{count} captains on shift',
+  'dispatch.feed.scope.pending#one': '{count} waiting for a captain',
+  'dispatch.feed.scope.pending#other': '{count} waiting for a captain',
+  'dispatch.feed.scope.trips#one': '{count} on the road',
+  'dispatch.feed.scope.trips#other': '{count} on the road',
+  /* T1.3 — the board re-reads on the shell's clock and the meta says how old
+     the figures are. It used to claim a live connection (X4). */
+  'dispatch.meta': 'Updated {seconds}s ago',
   'dispatch.reading.autoMatch': 'Auto-match',
   'dispatch.reading.seconds': '{seconds}s',
   'dispatch.reading.matchTime': 'Match time',
   'dispatch.reading.utilisation': 'Utilisation',
   'dispatch.manual.desc': 'Assign a captain to request {id} for {rider}, picking up at {pickup}.',
   'dispatch.manual.assignError': "Couldn't assign the captain. Nothing was changed.",
-  'dispatch.manual.empty': 'No captain is on shift. Assignment reopens when one comes online.',
+  'dispatch.manual.empty': 'Assignment reopens when a captain comes on shift.',
   'dispatch.manual.error': "Captains didn't load. Try again, or close this and dispatch from the queue.",
   'dispatch.manual.loading': 'Loading captains',
   'dispatch.manual.title': 'Assign a captain',
   'dispatch.noInterventions': 'Every live trip is within its SLA.',
+  'dispatch.place': 'Place',
   'dispatch.reassignCaptain': 'Reassign',
+  'dispatch.reassign.desc': 'Choose the captain who goes to this rider.',
+  'dispatch.reassign.title': 'Reassign captain',
   /* The feed's tabs and the map's layers name the same three things and are
      NOT the same key: a tab is a place to stand and a layer is a thing to
      draw, and the reference labels the fleet tab `Fleet` while the layer that
-     paints its dots is `Captains`. One key for both would have forced one of
-     the two to read wrong. */
+     paints its dots is `Captains`. */
   'dispatch.tab.fleet': 'Fleet',
   'dispatch.tab.pending': 'Pending',
   'dispatch.tab.trips': 'Trips',
+  'dispatch.toast.acknowledged': 'Acknowledged {id}',
   'dispatch.toast.dispatched': 'Request {id} assigned to captain {name}',
-  /* The three active statuses, restated here rather than reached for in
-     `trips/copy.ts`. Two unregistered screen dictionaries importing each
-     other is a coupling neither one declares, and the words are a translation
-     unit either way — the day Dispatch wants `En route to pickup` where the
+  'dispatch.toast.reassigned': '{id} reassigned to {name}',
+  /* The three active statuses, restated rather than reached for in
+     `trips/copy.ts`: the day Dispatch wants `En route to pickup` where the
      trips table wants `En route`, one shared key would have to serve both. */
   'dispatch.trip.status.assigned': 'Assigned',
   'dispatch.trip.status.en-route': 'En route',
   'dispatch.trip.status.in-trip': 'In trip',
   'dispatch.unassigned': 'Unassigned',
-  'sub.selectDriverPlaceholder': 'Choose an active captain',
+  /* The same key both captain pickers use, so it carries the same words in
+     both; `i18n-inventory --check` fails on a key with two English values. */
+  'sub.selectDriverPlaceholder': 'Choose a captain',
   'trip.pickup': 'Pickup',
-  /* Screen-specific, NOT the generic `action.*` key. `action.saving`,
-     `action.goBack` and `sub.selectDriver` each carried a DIFFERENT value in a
-     different screen dictionary, and the last spread into `EN` wins - so
-     registering this dictionary would have silently relabelled three modals.
-     A key that means four things is not a key. */
+  /* Screen-specific, NOT the generic `action.*` key: `action.saving` carries a
+     different value in three other screen dictionaries and the last spread
+     into `EN` wins. A key that means four things is not a key. */
   'dispatch.action.assigning': 'Assigning…',
   'dispatch.selectCaptain': 'Select an available captain',
 }

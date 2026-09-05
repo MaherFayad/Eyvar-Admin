@@ -90,7 +90,7 @@ import {
   type Trip,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate, type Translator } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -484,7 +484,7 @@ const STEP_LABEL: Readonly<Record<SafetyProtocolStepKey, string>> = {
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 export interface SafetyDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   canWrite: boolean

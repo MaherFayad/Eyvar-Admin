@@ -47,7 +47,7 @@
  *               animates is a board an operator learns to stop looking at.
  */
 
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   Basemap,
   BasemapAttribution,
@@ -60,7 +60,7 @@ import {
   type Projection,
 } from '@/components/map'
 import type { Driver, RideRequest, Trip } from '@/data/types'
-import { formatCount, type Language, type Translate } from '@/lib'
+import { formatCount, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { captainPoint, MAP_BOUNDS } from './geo'
 
@@ -125,7 +125,7 @@ export interface DispatchMapProps {
   /** Floats over the inline-end. */
   endPanel: ReactNode
   language: Language
-  t: Translate
+  t: Translator
 }
 
 export function DispatchMap({
@@ -143,7 +143,7 @@ export function DispatchMap({
   const describedBy = 'dispatch-map-desc'
 
   const viewport = useMapViewport()
-  const { boxRef, viewH, view, panning, zoomAt, canZoomIn, canZoomOut } = viewport
+  const { boxRef, viewH, view, panning, zoomAt, canZoomIn, canZoomOut, resetView } = viewport
 
   const rtl = language === 'ar'
   const reserveStart = viewport.reserveFor(RESERVE_START_PX)
@@ -164,6 +164,14 @@ export function DispatchMap({
    */
   const freeSide = rtl ? 'start' : 'end'
 
+  /**
+   * T2.2 — the frame the operator has asked for, or `null` for the declared
+   * one. Snapshotted on the press rather than recomputed per render: a frame
+   * that re-fits as rows change is the moving ground `MAP_BOUNDS` exists to
+   * prevent.
+   */
+  const [fittedBounds, setFittedBounds] = useState<readonly GeoPoint[] | null>(null)
+
   const projection = useMemo<Projection>(
     () =>
       fitProjection([], {
@@ -174,9 +182,9 @@ export function DispatchMap({
         view,
         pad: FIT_PAD,
         /* Declared, so the ground does not move when the board does. */
-        bounds: MAP_BOUNDS,
+        bounds: fittedBounds ?? MAP_BOUNDS,
       }),
-    [viewH, reserveStart, reserveEnd, rtl, view],
+    [viewH, reserveStart, reserveEnd, rtl, view, fittedBounds],
   )
 
   /* ── rows → pins. A row the gazetteer cannot place is counted, not hidden. ── */
@@ -232,6 +240,38 @@ export function DispatchMap({
       }),
     [captains],
   )
+
+  /* T2.2 — every point the board is currently drawing, which is what the frame
+     control fits. Layer-aware: a frame sized around marks the operator has
+     switched off is empty space with no explanation on it. */
+  const drawnPoints = useMemo<GeoPoint[]>(
+    () => [
+      ...(layers.trips
+        ? tripPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to]))
+        : []),
+      ...(layers.pending
+        ? requestPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to]))
+        : []),
+      ...(layers.captains ? captainMarks.map((mark) => mark.at) : []),
+    ],
+    [tripPins, requestPins, captainMarks, layers],
+  )
+
+  /* The two corners of everything drawn. `null` when nothing is placeable, so
+     pressing the control then leaves the declared frame alone. */
+  const fitToDrawn = () => {
+    if (drawnPoints.length === 0) return
+    setFittedBounds([
+      {
+        lat: Math.min(...drawnPoints.map((p) => p.lat)),
+        lng: Math.min(...drawnPoints.map((p) => p.lng)),
+      },
+      {
+        lat: Math.max(...drawnPoints.map((p) => p.lat)),
+        lng: Math.max(...drawnPoints.map((p) => p.lng)),
+      },
+    ])
+  }
 
   /* R8 — the rows that have no point. Named in the caption, never dropped in
      silence. Captains are counted separately because they are placed from a
@@ -398,6 +438,28 @@ export function DispatchMap({
               ))}
           </ul>
 
+          {/* T2.2 — the declared frame is tighter than the gazetteer, so this
+              re-fits it to what is on the board and pressing it again gives
+              the corridor back. It sits above the zoom stack in the same free
+              corner, and it resets the pan so the new fit is what is seen. */}
+          <button
+            type="button"
+            aria-pressed={fittedBounds !== null}
+            onClick={() => {
+              if (fittedBounds === null) fitToDrawn()
+              else setFittedBounds(null)
+              resetView()
+            }}
+            className={cn(
+              'absolute z-10 rounded-lg border border-border bg-card px-2 py-1 text-2xs shadow-2 transition-colors',
+              'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+              fittedBounds === null ? 'text-muted-foreground' : 'text-foreground',
+              freeSide === 'start' ? 'bottom-18 start-3' : 'bottom-25 end-3',
+            )}
+          >
+            {t('dispatch.map.fit')}
+          </button>
+
           <MapZoomControls
             zoomAt={zoomAt}
             canZoomIn={canZoomIn}
@@ -420,7 +482,7 @@ export function DispatchMap({
             )}
           >
             {unplaced > 0 && (
-              <span>{t('dispatch.map.unplaced', { count: formatCount(unplaced, language) })}</span>
+              <span>{t.plural('dispatch.map.unplaced', { count: unplaced })}</span>
             )}
             <BasemapAttribution />
           </div>

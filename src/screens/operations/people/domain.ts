@@ -27,6 +27,7 @@
 import type {
   ApplicantStatus,
   BadgeTone,
+  BankAccountStatus,
   ChurnRisk,
   ComplianceDocState,
   DriverStatus,
@@ -94,6 +95,15 @@ export const WORST_STATE: Readonly<Record<ComplianceDocState | 'none', { tone: B
     expired: { tone: 'neutral', key: 'people.compliance.worst.expired' },
     none: { tone: 'neutral', key: 'people.compliance.worst.none' },
   }
+
+/* X2 — `BankAccountStatus`'s members are English display strings on the record,
+   so a badge printing the member printed Latin on an Arabic page. Exhaustive,
+   so a fourth member fails the build here rather than reaching an operator. */
+export const BANK_STATUS_KEY: Readonly<Record<BankAccountStatus, string>> = {
+  Verified: 'applicant.bank.status.verified',
+  'Pending verification': 'applicant.bank.status.pending',
+  Rejected: 'applicant.bank.status.rejected',
+}
 
 export const VEHICLE_CLASS: Readonly<Record<'Economy' | 'Comfort', string>> = {
   Economy: 'people.class.economy',

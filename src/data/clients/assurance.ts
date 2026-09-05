@@ -24,8 +24,8 @@ import {
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { nextClaim } from './requests'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { nextClaim, persistRow } from './requests'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
@@ -33,12 +33,15 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
    and `mockMutation()` await `loadFixtures()`. */
 let absenceEventFixtures!: Fixtures['absenceEventFixtures']
 let absenceEventHistoryFixtures!: Fixtures['absenceEventHistoryFixtures']
+/* A session COPY: a claim is written back here (AC-288). See `requests.ts`. */
+let assuranceTripSeed!: Fixtures['assuranceTripFixtures']
 let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   absenceEventFixtures = f.absenceEventFixtures
   absenceEventHistoryFixtures = f.absenceEventHistoryFixtures
-  assuranceTripFixtures = f.assuranceTripFixtures
+  assuranceTripSeed = f.assuranceTripFixtures
+  assuranceTripFixtures = [...f.assuranceTripFixtures]
   teamUserFixtures = f.teamUserFixtures
 })
 
@@ -250,7 +253,10 @@ export async function claimAssuranceTrip(
   return signalled('queue.item.claimed', mockMutation(ASSURANCE_OPERATIONS.claim, signal, () => {
     const row = assuranceTripFixtures.find((t) => t.id === id)
     if (!row) throw notFound('assurance trip', id)
-    return { ...row, claim: nextClaim('assurance', id, row.claim, opts.takeOver) }
+    return persistRow(assuranceTripFixtures, {
+      ...row,
+      claim: nextClaim('assurance', id, row.claim, opts.takeOver),
+    })
   }))
 }
 
@@ -270,7 +276,7 @@ export async function releaseAssuranceTrip(
     const row = assuranceTripFixtures.find((t) => t.id === id)
     if (!row) throw notFound('assurance trip', id)
     if (!row.claim) return row
-    return {
+    return persistRow(assuranceTripFixtures, {
       ...row,
       claim: {
         ...row.claim,
@@ -278,7 +284,7 @@ export async function releaseAssuranceTrip(
         releasedAt: EYVAR_NOW,
         releaseReason: 'manual' as const,
       },
-    }
+    })
   })
 }
 
@@ -529,4 +535,27 @@ export function useAbsenceHistory(): void {
 
 export function resetAssurance(): void {
   absenceScenario = 'empty'
+}
+
+/* ── AC-288 session state ──────────────────────────────────────────────── */
+
+/**
+ * Back to the seeded rows. Registered in `resetDataLayer`, for the reason
+ * `tickets.ts` gives: one file's claim would otherwise ride into the next
+ * file's count of open legs.
+ */
+export function resetAssuranceTrips(): void {
+  if (!fixturesLoaded()) return
+  assuranceTripFixtures = [...assuranceTripSeed]
+}
+
+/**
+ * The session's rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts`. Reads the same array a claim writes, so a claim made
+ * from My Work is the claim this queue reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentAssuranceTrips(): readonly AssuranceTrip[] {
+  return assuranceTripFixtures ?? []
 }

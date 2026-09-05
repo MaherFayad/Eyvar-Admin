@@ -1,42 +1,32 @@
 /**
- * **Live operational interventions** - the aside on Operations > Live Dispatch.
+ * Live operational interventions — the card the map rail's alert strip opens.
  *
- * ## The two controls that lied, and what they are now
- *
- * `Acknowledge` and `Reassign` each spliced a hardcoded local array in
- * `DispatchScreen` and toasted success. Nothing was acknowledged; no captain
- * was reassigned; the alert disappeared because the component forgot it, and it
- * came back on the next reload. `Reassign` was the worse of the two - it
- * reported that *"automated captain reassignment"* had been dispatched for a
- * rider who was still waiting.
- *
- * **T1.2 — the model now exists**: `types/dispatch.ts`, `fixtures/dispatch.ts`
- * and `clients/dispatch.ts` with `acknowledgeIntervention(id, note)` and
- * `reassignIntervention(id, driverId)`. This card reads `listInterventions()`.
- *
- * Both controls still render **disabled with a stated reason** (§11.2): wiring
- * them is a wave-2 screen task, and a hidden control teaches the operator that
- * intervening is not a thing this console does.
+ * T1.2 — both controls are real writes now (`clients/dispatch.ts`). §11.2: a
+ * refusal disables the control it belongs to, in place, with its own sentence;
+ * a missing permission disables both with `unavailableReason`.
  */
 
-import { AlertTriangle, Clock, RefreshCw, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { Intervention, IsoDateTime } from '@/data/types'
-import type { Translate } from '@/lib'
+import { BreachedIcon, PendingIcon } from '@/components/icons'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isApiError, type Intervention, type IsoDateTime } from '@/data/types'
+import type { Translator } from '@/lib'
 
 interface InterventionsCardProps {
   items: Intervention[]
   /** The fixed clock the row's elapsed time is measured against (`mock/clock.ts`). */
   now: IsoDateTime
   /**
-   * §11.2 - why neither control can be used, as a sentence. Non-null disables
+   * §11.2 — why neither control can be used, as a sentence. Non-null disables
    * both **in place** and renders the sentence once at the foot of the card.
-   * `null` would enable them, and nothing passes `null` today because there is
-   * no client behind either act.
    */
   unavailableReason: string | null
-  t: Translate
+  /** Throws on refusal; this card states it on the row that refused. */
+  onAcknowledge: (item: Intervention) => Promise<void>
+  onReassign: (item: Intervention) => void
+  t: Translator
 }
 
 const REFUSAL_ID = 'dispatch-intervention-refusal'
@@ -48,97 +38,142 @@ const KIND_KEY: Readonly<Record<Intervention['kind'], string>> = {
   stranded: 'dispatch.intervention.stranded',
 }
 
-export function InterventionsCard({ items, now, unavailableReason, t }: InterventionsCardProps) {
+/* The codes `acknowledgeIntervention` and `reassignIntervention` raise. The
+   server's own message names a user id; these say what to do instead. */
+const REFUSAL_KEY: Readonly<Record<string, string>> = {
+  already_acknowledged: 'dispatch.intervention.refusal.already_acknowledged',
+  same_driver: 'dispatch.intervention.refusal.same_driver',
+  driver_unavailable: 'dispatch.intervention.refusal.driver_unavailable',
+}
+
+export function InterventionsCard({
+  items,
+  now,
+  unavailableReason,
+  onAcknowledge,
+  onReassign,
+  t,
+}: InterventionsCardProps) {
   const blocked = unavailableReason !== null
+  /** The row whose write is in flight, and the rows whose write was refused. */
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [refused, setRefused] = useState<Readonly<Record<string, string>>>({})
+
   const elapsed = (raisedAt: IsoDateTime) =>
     Math.max(0, Math.round((Date.parse(now) - Date.parse(raisedAt)) / 60_000))
+
+  const acknowledge = async (item: Intervention) => {
+    setBusyId(item.id)
+    try {
+      await onAcknowledge(item)
+    } catch (error: unknown) {
+      const key = isApiError(error) ? REFUSAL_KEY[error.code] : undefined
+      setRefused((current) => ({
+        ...current,
+        [item.id]: t(key ?? 'dispatch.intervention.refusal.failed'),
+      }))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <Card className="border-border">
-      <CardHeader className="pb-3 border-b border-border bg-muted/20">
+      <CardHeader className="border-b border-border bg-muted/20 pb-3">
         <div className="flex items-center justify-between">
-          {/* H2/H3 — the card title takes ink; it was the same size and the
-              same grey as the rows beneath it. */}
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-            <ShieldAlert className="h-4 w-4 text-warning-foreground" />
+          {/* H2/H3 — the title takes ink. T9.11: no glyph on a card title. */}
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-foreground">
             {t('dispatch.interventions.title')}
           </CardTitle>
-          <span className="text-xs font-semibold text-warning-foreground bg-warning px-2 py-0.5 rounded-full border border-border">
-            {items.length} {t('dispatch.activeAlerts')}
-          </span>
+          <StatusBadge tone="warning">
+            {t.plural('dispatch.interventions.active', { count: items.length })}
+          </StatusBadge>
         </div>
       </CardHeader>
-      <CardContent className="p-0 divide-y divide-border">
+      <CardContent className="divide-y divide-border p-0">
         {items.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground">
             {t('dispatch.noInterventions')}
           </div>
         ) : (
-          items.map((item) => (
-            <div key={item.id} className="p-3 text-xs flex flex-col gap-2 hover:bg-muted/30">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    {item.kind === 'sos' ? (
-                      <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
-                    ) : (
-                      <Clock className="h-3.5 w-3.5 text-warning-foreground shrink-0" />
-                    )}
-                    <span className="font-semibold text-foreground">
-                      {t(KIND_KEY[item.kind], { trip: item.tripId ?? item.riderName })}
-                    </span>
+          items.map((item) => {
+            const refusal = refused[item.id]
+            const busy = busyId === item.id
+            const KindIcon = item.kind === 'sos' ? BreachedIcon : PendingIcon
+            return (
+              <div key={item.id} className="flex flex-col gap-2 p-3 text-xs hover:bg-muted/30">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <KindIcon
+                        aria-hidden="true"
+                        className={
+                          item.kind === 'sos'
+                            ? 'size-4 shrink-0 text-destructive'
+                            : 'size-4 shrink-0 text-warning-foreground'
+                        }
+                      />
+                      <span className="font-semibold text-foreground">
+                        {t(KIND_KEY[item.kind], { trip: item.tripId ?? item.riderName })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {item.driverName === null
+                        ? t('dispatch.intervention.sub.noCaptain', {
+                            rider: item.riderName,
+                            place: item.place,
+                          })
+                        : t('dispatch.intervention.sub', {
+                            captain: item.driverName,
+                            rider: item.riderName,
+                            place: item.place,
+                          })}
+                    </p>
                   </div>
-                  {/* H2 — 11px arbitrary, off the ramp. META is `--text-xs`. */}
-                  <p className="text-xs text-muted-foreground">
-                    {item.driverName === null
-                      ? t('dispatch.intervention.sub.noCaptain', {
-                          rider: item.riderName,
-                          place: item.place,
-                        })
-                      : t('dispatch.intervention.sub', {
-                          captain: item.driverName,
-                          rider: item.riderName,
-                          place: item.place,
-                        })}
-                  </p>
+                  {/* H2 — an SLA figure is a VALUE, not a badge label. */}
+                  <span className="shrink-0 font-mono text-xs text-warning-foreground">
+                    {t.plural('dispatch.intervention.elapsed', { minutes: elapsed(item.raisedAt) })}
+                  </span>
                 </div>
-                {/* H2 — an SLA figure is a VALUE, not a badge label, so it
-                    leaves `--text-2xs`. H7 rule 3 already had it right: toned
-                    text rather than a second chip on a row that carries one. */}
-                <span className="text-xs font-mono text-warning-foreground shrink-0">
-                  {t('dispatch.intervention.elapsed', { minutes: elapsed(item.raisedAt) })}
-                </span>
-              </div>
 
-              {/* §11.2 - rendered and REFUSED, never removed. Both used to
-                  splice a local array and toast success over an act nobody
-                  performed. */}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  disabled={blocked}
-                  aria-describedby={blocked ? REFUSAL_ID : undefined}
-                  className="h-6 px-2 text-2xs"
-                >
-                  {t('dispatch.dismissAlert')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  disabled={blocked}
-                  aria-describedby={blocked ? REFUSAL_ID : undefined}
-                  className="h-6 gap-1 px-2 text-2xs"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  {t('dispatch.reassignCaptain')}
-                </Button>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    disabled={blocked || busy || refusal !== undefined}
+                    aria-describedby={
+                      blocked ? REFUSAL_ID : refusal !== undefined ? rowRefusalId(item.id) : undefined
+                    }
+                    className="h-6 px-2 text-2xs"
+                    onClick={() => void acknowledge(item)}
+                  >
+                    {t('dispatch.dismissAlert')}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    disabled={blocked || busy}
+                    aria-describedby={blocked ? REFUSAL_ID : undefined}
+                    className="h-6 px-2 text-2xs"
+                    onClick={() => onReassign(item)}
+                  >
+                    {t('dispatch.reassignCaptain')}
+                  </Button>
+                </div>
+
+                {/* §11.2 — the refusal on the row that made it, so an operator
+                    reads it beside the control that will not run. */}
+                {refusal !== undefined && (
+                  <p id={rowRefusalId(item.id)} role="alert" className="text-2xs text-muted-foreground">
+                    {refusal}
+                  </p>
+                )}
               </div>
-            </div>
-          ))
+            )
+          })
         )}
 
-        {/* §8.4.4 - ONE sentence for every disabled control in the card,
-            pointed at by all of them. */}
+        {/* §8.4.4 — ONE sentence for every control the permission blocks. */}
         {blocked && items.length > 0 && (
           <p id={REFUSAL_ID} className="p-3 text-2xs text-muted-foreground">
             {unavailableReason}
@@ -148,3 +183,5 @@ export function InterventionsCard({ items, now, unavailableReason, t }: Interven
     </Card>
   )
 }
+
+const rowRefusalId = (id: string) => `${REFUSAL_ID}-${id}`

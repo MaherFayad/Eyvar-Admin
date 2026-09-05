@@ -51,7 +51,7 @@
  *              are whole sentences in the dictionary.
  */
 
-import type { ReactNode } from 'react'
+import { Children, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { formatCount, invariant, type Language, type Translate } from '@/lib'
 import type { Metric, MetricCategory } from '@/data/types'
@@ -214,6 +214,9 @@ export function SectionHeading({ title, note }: { title: string; note?: string |
   return (
     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <h2 className="text-lg font-medium text-foreground">{title}</h2>
+      {/* T9.9 — stays inline. `chapterSummary` counts the figures below that
+          moved the wrong way, so this reports the data rather than explaining
+          the chrome, and X15 leaves a data fact where a reader scans. */}
       {note && <span className="text-xs text-muted-foreground">{note}</span>}
       <span aria-hidden="true" className="h-px min-w-8 flex-1 self-center bg-border" />
     </div>
@@ -237,34 +240,34 @@ export function Chapter({ category, title, summary, children, t }: ChapterProps)
 }
 
 /**
- * The figures of one chapter.
- *
- * **Three across and no more, at every count.** The supporting grid this
- * replaces chose between three, four and five columns by the row's own length,
- * which was the right rule for a grid of bordered tiles filling a page — a
- * remainder of one left a visible hole in a row of boxes. Chapters change the
- * arithmetic: a chapter is two to five figures, the last row is page ground
- * rather than a gap in a border, and holding every chapter to the same three
- * columns is what lets a reader's eye come down the same three tracks through
- * the whole board instead of re-finding them at each heading.
- *
- * **The gutter is `FIGURE_GUTTER` and is not written here.** The band's row and
- * this one have to be the same three tracks or a reader's eye stops coming down
- * one line from the band through every chapter; two grids that each spell their
- * own gutter is exactly how they drifted 4px apart before. It was 44px — three
- * times the 12px the bordered grid used — and §E7's density pass took it to 24,
- * still wide enough that space alone separates one figure's caption from the
- * next figure's numeral, which is all it has to do with no card edges.
- *
- * The row pitch comes down with it, 36 → 28.
+ * The columns a chapter of `n` figures takes (T5.6): three across at three or
+ * more, two halves at two. A fixed third track left a third of every Overview
+ * chapter row as page ground. Static class strings only — a computed count is
+ * a class Tailwind's scanner never sees, and it ships as one column.
+ */
+function chapterColumns(figures: number): string {
+  if (figures <= 1) return 'grid-cols-1'
+  if (figures === 2) return 'grid-cols-2'
+  return 'grid-cols-3'
+}
+
+/**
+ * The figures of one chapter, in as many tracks as it has figures, to three.
+ * The gutter is `FIGURE_GUTTER` and is not written here, so the band's row and
+ * this one cannot drift apart (§E7).
  */
 export function ChapterFigures({ children }: { children: ReactNode }) {
+  /* The count decides the tracks, so it is read off the children rather than
+     passed: a caller that had to state it could state it wrongly. */
+  const figures = Children.count(children)
   return (
     <ul
       data-numeric
+      data-slot="chapter-figures"
       role="list"
       className={cn(
-        'grid list-none grid-cols-3 gap-y-7 compact:grid-cols-1 compact:gap-y-6',
+        'grid list-none gap-y-7 compact:grid-cols-1 compact:gap-y-6',
+        chapterColumns(figures),
         FIGURE_GUTTER,
       )}
     >

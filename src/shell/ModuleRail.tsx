@@ -93,7 +93,7 @@ import { cn } from '@/lib/utils'
 import { formatCount } from '@/lib'
 import { useRovingFocus } from '@/hooks'
 import type { NavCounts, SubTabRoute, Workspace, WorkspaceId } from '@/data/types'
-import type { Translate } from '@/lib'
+import type { Translator } from '@/lib'
 import { WorkspaceGlyph } from './icons'
 import { badgeOverflows, workspaceBadge, type NavBadge } from './navBadges'
 
@@ -124,7 +124,7 @@ export interface ModuleRailProps {
   /** Derived from the URL. Never set by a handler (**AC-08**). */
   activeWorkspaceId: WorkspaceId | null
   landingRoute: string
-  t: Translate
+  t: Translator
 }
 
 export function ModuleRail({
@@ -217,7 +217,7 @@ interface RailTileProps {
   active: boolean
   badge: NavBadge | null
   badgeLoading: boolean
-  t: Translate
+  t: Translator
   tabIndex: 0 | -1
   onKeyDown?: React.KeyboardEventHandler<HTMLElement>
   onFocus?: () => void
@@ -321,7 +321,7 @@ function RailTile({
                than as a collision. On an ACTIVE tile that ground is the white
                pill; everywhere else it is the nav. */
             className={cn('absolute top-1 end-1 ring-2', active ? 'ring-card' : 'ring-nav')}
-            aria-label={t('shell.nav.backlog', { count: badge.count })}
+            aria-label={t.plural('shell.nav.backlog', { count: badge.count })}
           >
             {badgeOverflows(badge.count) ? t('shell.nav.countOverflow') : formatCount(badge.count)}
           </Badge>

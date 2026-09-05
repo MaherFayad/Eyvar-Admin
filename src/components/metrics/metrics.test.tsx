@@ -38,6 +38,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
@@ -138,10 +139,18 @@ function renderCard(s: TimeSeries, reportHref: string | null = null) {
   )
 }
 
+/* T9.9 — what explains the plot rather than reports it lives behind the hint
+   beside the card's title. Opened by click, which is what a touch reaches. */
+async function readChartHint(): Promise<string> {
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: EN['shell.hint.show'] as string }))
+  return (await screen.findByRole('tooltip')).textContent ?? ''
+}
+
 describe('MetricTile — §3.7 delta rules', () => {
-  it('renders an em dash and the reason when there is no comparison, never 0%', () => {
+  it('renders the reason and NO mark when there is no comparison, never 0% (O9)', () => {
     renderTile(metric())
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.getByText('No comparison period yet')).toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
@@ -270,15 +279,15 @@ describe('ChartCard — the four states of a window (§3.7, SeriesWindow)', () =
     ).not.toBeInTheDocument()
   })
 
-  it('a window with GAPS counts them in words and does not call itself zero', () => {
+  it('a window with GAPS counts them in words and does not call itself zero', async () => {
     renderCard(series([day(1, 4), day(2, null), day(3, 6), day(4, null)]))
-    expect(screen.getByText('No reading on 2 of 4 days.')).toBeInTheDocument()
+    expect(await readChartHint()).toContain('No reading on 2 of 4 days.')
     expect(screen.queryByText('Every value in this range is zero.')).not.toBeInTheDocument()
   })
 
-  it('an ALL-NULL window is a full house of gaps, not an empty range', () => {
+  it('an ALL-NULL window is a full house of gaps, not an empty range', async () => {
     renderCard(series([day(1, null), day(2, null), day(3, null)]))
-    expect(screen.getByText('No reading on 3 of 3 days.')).toBeInTheDocument()
+    expect(await readChartHint()).toContain('No reading on 3 of 3 days.')
     expect(
       screen.queryByText('There was no data found for this date range.'),
     ).not.toBeInTheDocument()
@@ -376,9 +385,9 @@ describe('MetricTile — a target that exists is never "no comparison period yet
     expect(screen.queryByText('No target set')).not.toBeInTheDocument()
   })
 
-  it('still shows §3.7’s em dash where the percentage would be, never 0%', () => {
+  it('leaves the percentage slot blank rather than marking it, and never 0% (O9)', () => {
     renderTile(againstZeroTarget)
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
 
@@ -417,9 +426,8 @@ describe('MetricTile — a target that exists is never "no comparison period yet
   it('announces the absent delta to a screen reader, not only draws it (V-8)', () => {
     const { container } = renderTile(againstZeroTarget)
     expect(screen.getByText('No percentage change to state')).toBeInTheDocument()
-    /* The mark itself stays out of the tree — it says nothing on its own. */
-    const dash = screen.getByText('—')
-    expect(dash).toHaveAttribute('aria-hidden', 'true')
+    /* O9 — no mark at all now, so the clause is the whole of what is said. */
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     /* And the companion is not drawn. */
     const sr = container.querySelector('.sr-only')
     expect(sr?.textContent).toBe('No percentage change to state')

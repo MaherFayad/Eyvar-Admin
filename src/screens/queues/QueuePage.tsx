@@ -67,6 +67,9 @@ export interface QueueViews {
   selectTab: (id: string) => void
 }
 
+/** A stable identity, so `useQueueViews`'s memo does not rebuild every render. */
+const EMPTY_VIEWS: readonly SubTabView[] = []
+
 /** The translated tab row. Separate so a screen can decorate a label. */
 function toTabs(views: readonly SubTabView[], t: Translate): readonly ToolbarTab[] {
   return views.map((view) => ({ id: view.id, label: t(view.titleKey) }))
@@ -87,19 +90,25 @@ function toTabs(views: readonly SubTabView[], t: Translate): readonly ToolbarTab
  * So `defaultView` is a constant on each screen, named in that screen's file
  * with the sentence from §5.3 / §6.3 / §7.3 / §8.9 / §9.3 that chose it.
  *
- * §12's `pending` → `needs-decision` rename has landed (T3.2). The `all` views
- * it also asked for on Assurance and Fairness have not.
+ * `extra` carries a view §12 asked the route table for and the route table has
+ * not grown yet — Assurance's `all`, and Fairness's when it lands. It is merged
+ * and ordered exactly like a declared view, so the screen reads the same either
+ * way and the row can absorb it later with no code change here.
  */
 export function useQueueViews(
   row: SubTabRoute,
   defaultView: string,
   t: Translate,
+  extra: readonly SubTabView[] = EMPTY_VIEWS,
 ): QueueViews {
   const route = useRouteState()
   const location = useLocation()
   const navigate = useNavigate()
 
-  const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
+  const views = useMemo(
+    () => [...row.views, ...extra].sort((a, b) => a.order - b.order),
+    [row.views, extra],
+  )
 
   const activeTab = views.some((view) => view.id === route.view)
     ? (route.view as string)
@@ -120,18 +129,36 @@ export function useQueueViews(
 export function QueuePage({
   row,
   meta,
+  hint = null,
   t,
   dir,
   children,
 }: {
   row: SubTabRoute
   meta: string | null
+  /**
+   * X15 — one sentence explaining the `meta` line, asked for rather than read.
+   * Optional and additive: a queue whose count needs no explaining passes
+   * nothing and renders exactly as before.
+   */
+  hint?: ReactNode
   t: Translate
   dir: Direction
   children: ReactNode
 }) {
+  /* Still ONE line (V4): the hint is a 14px icon on the same baseline, not a
+     second row. `null` meta with a hint would be an icon beside nothing. */
+  const line =
+    meta === null ? null : hint === null ? (
+      meta
+    ) : (
+      <span className="inline-flex items-center gap-0.5">
+        {meta}
+        {hint}
+      </span>
+    )
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}>
+    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={line} t={t} dir={dir} />}>
       {children}
     </SingleColumnPage>
   )
@@ -286,20 +313,26 @@ export interface QueueTableProps<T> {
    * is the prop `DataTable` grew for **F-3**; passing it is what makes
    * **AC-234** pass.
    */
-  cleared: { heading: string; body: string }
+  cleared: { heading: string; body: string; hint?: ReactNode }
   /**
    * §4.7 **E3** — reachable on exactly one of these five queues (Q-37). Every
    * other queue passes copy that will never render, because `emptyKind` is
    * `'cleared'` on all of them; the prop stays required so an empty state can
    * never be a TODO.
    */
-  firstRun: { heading: string; body: string; actions: { label: string; onClick: () => void }[] }
+  /** `hint` is X15's slot: `EmptyState` draws it beside the heading. */
+  firstRun: {
+    heading: string
+    body: string
+    actions: { label: string; onClick: () => void }[]
+    hint?: ReactNode
+  }
   /**
    * §4.7 **E3 vs E1**, decided by the CALL SITE (F-3). Only Safety passes
    * `'first-run'`, and only when its whole corpus is empty.
    */
   emptyKind?: 'cleared' | 'first-run'
-  noMatch: { message: string; action?: { label: string; onClick: () => void } }
+  noMatch: { message: string; action?: { label: string; onClick: () => void }; hint?: ReactNode }
   error: { message: string; onRetry: () => void }
 }
 

@@ -24,7 +24,7 @@ export const ZONES_EN: Dictionary = {
      four rows were an em dash because three of the four cities are not
      launched; that is one number, not a table. `{cities} of {allCities}` is
      the whole of what the card carried that nothing else on the screen did. */
-  'zones.meta': '{zones} zones · {starved} starved · {cities} of {allCities} cities live',
+  'zones.meta': '{starved}/{zones} starved · {cities}/{allCities} cities live',
   'zones.search': 'Search zones',
 
   /* The five derived tiles. Two of them narrow the table; three state a total. */
@@ -61,6 +61,11 @@ export const ZONES_EN: Dictionary = {
   'zones.tile.starvedZones.note': 'of {total}',
   'zones.tile.unservedRequests30d.note': '30 days',
 
+  /* The two surfaces (T7.3). A map answers where; a table answers which. */
+  'zones.view.label': 'View',
+  'zones.view.map': 'Map',
+  'zones.view.table': 'Table',
+
   'zones.col.zone': 'Zone',
   'zones.col.demandSupply': 'Demand : supply',
   'zones.col.failureRate': 'Failure rate',
@@ -86,8 +91,11 @@ export const ZONES_EN: Dictionary = {
   /* The offer is an invitation, and the copy says so: captains are independent
      and each one accepts or ignores it (`:14011`). */
   'zones.steer.title': 'Steer captains to {zone}?',
+  /* T9.1 — two clauses, two sentences, and no em dash in a string an operator
+     reads. T9.12 takes it from 185 characters to 137 by dropping the clause the
+     next sentence already implies. */
   'zones.steer.body':
-    'Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended.',
+    'The offer is an invitation. Each captain can accept or ignore it. It runs for {hours} hours or until {cap} is spent, and cannot be extended.',
   'zones.steer.confirm': 'Send offer',
   'zones.steer.amount.label': 'Bonus per completed trip in the zone',
   'zones.steer.amount.help': 'Paid on top of the fare, per trip, inside this zone.',
@@ -101,9 +109,9 @@ export const ZONES_EN: Dictionary = {
 
   'zones.noMatch': 'No zone matches these filters.',
   'zones.noMatch.action': 'Show every zone',
-  'zones.empty.heading': 'Where demand and supply meet, district by district',
+  'zones.empty.heading': 'No zone is tracked yet',
   'zones.empty.body':
-    'A zone is a district where demand and supply are measured. None is tracked in this city yet.',
+    'A zone is a district where demand and supply are measured.',
   'zones.empty.action': 'Show every zone',
 
   /* ── the zone map ──────────────────────────────────────────────────────

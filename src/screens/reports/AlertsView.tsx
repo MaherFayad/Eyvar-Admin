@@ -1,119 +1,34 @@
 /**
- * The threshold-alert rule list — §12, and **only the half the client honestly
- * owns.**
- *
- * ## What is here and what is not
- *
- * Something has to evaluate a threshold when nobody is looking at the screen.
- * **That is a scheduler, it is server work, and it does not exist.** Building it
- * client-side would produce a feature that fires only while a tab is open,
- * *"which is not an alert — it is a chart with an opinion."* So this screen owns
- * the rule list, its four base states, its domain states, and `Test this rule`.
- * It owns **no evaluation loop, no timer and no polling.**
- *
- * ## The cadence is unset, and it is rendered as unset
- *
- * Every seeded rule carries `cadence: null` and `minReArmMinutes: null`. The
- * business has specified neither, and **AC-453** is this project's standing rule
- * for the case: *an invented window is indistinguishable from a measured one
- * once it ships.* So the column reads `Not set`, the sentence beside it says
- * what that means and what follows from it, and **the form does not offer a
- * value to choose.** A picker defaulted to `Daily` would put a business decision
- * nobody made into a saved record, where the next reader would take it for one.
- *
- * ## The correction outranked itself, and now it does not
- *
- * That unset cadence means **nothing evaluates**, and four of the five state
- * words are present tense for a machine that is running: `Armed` means
- * *watching*, `Cooling` means *counting down*. The two sentences that said
- * otherwise used to render **after** the `DataTable`, below pagination — a 12px
- * grey paragraph contradicting a `success`-toned badge on every row, which is
- * the least authoritative element on the page arguing with the most
- * authoritative one on each row.
- *
- * R10 puts a standing condition in a banner, so both sentences moved into one
- * — §5.2 permits exactly one page-level banner, so they MERGE rather than
- * stack — above the table, and each row carries `rb.alert.cadence.rowNote`
- * under its badge.
- *
- * **No state word was removed or softened.** Each is a true statement about the
- * last recorded state; what was false was the present tense a bare badge
- * implies, and that is what the qualifier fixes.
- *
- * ## Every mutation confirms, and one of them is destructive
- *
- * §5.1 asks for a toast on every successful mutation *including ones inside a
- * modal*, and saving a rule used to close the dialog and refetch in silence.
- * `Delete alert` is R5a use #1 — the row menu, never the header — behind a
- * confirm that names the rule (§5.3) and says what goes and what stays.
- *
- * That is a deliberate departure from **AC-875**, which lists a cadence among
- * the fields a rule requires before `Save` is enabled. The criterion and the
- * ruling cannot both hold; the ruling wins and the departure is named in the
- * handoff rather than absorbed.
- *
- * ## No red, and the argument rather than the assumption
- *
- * R5a enumerates red's four permitted uses — a destructive button, one
- * page-level critical banner, a breached-row leading-edge marker, a map marker.
- * **A threshold breach is none of them.** It is not destructive; it is not
- * page-level, because a dashboard can carry several firing tiles at once and
- * §5.2 forbids stacking banners; and the row marker belongs to §8.4's work
- * queues, which this is not. So a firing rule is carried by **the word**
- * (`Firing`) and a `warning`-tone badge from R7's closed five-tone set
- * (**AC-885**). There is no red badge and no sixth tone.
- *
- * ## No nav badge either
- *
- * §12.6, argued not assumed: tone is a property of a queue, not of one
- * operator's configuration; the two-`attention` cap is asserted mechanically
- * and a user-configurable producer makes that test unassertable; and
- * `attention` means *a breach whose harm is irreversible or statutory*, which a
- * threshold typed into a form last Tuesday cannot satisfy. **The notification
- * centre is the only surface** (AC-884).
- *
- * ## A state is a shape before it is a word (§H, §A6)
- *
- * Amplitude's inbox is built so that what needs attention reads at a glance,
- * and five badges in one geometry differing only in fill is the opposite of
- * that. `STATE_GLYPH` gives each of the five a literal glyph, and `muted`,
- * `enabled: false` and `cadence: null` — three facts that are **not** states —
- * get their own, so none of them can be mistaken for a sixth badge. Every glyph
- * is `aria-hidden` and every word is still present, so the glyph is redundancy
- * and never the carrier (§7.5).
- *
- * The `Threshold` column joins them for the same reason: `Last reading` had
- * nothing beside it to be read against, and the line it is tested against lived
- * only inside the rule sentence in the identity cell.
- *
- * **What could not be done here, and where it belongs.** §1.5 and the register
- * `ChartToolbar` and `DashboardTile` set also want the row overflow to carry a
- * `MoreHorizontal` glyph and a leading glyph per menu item. Both live in
- * `DataTable` (the trigger renders a text `⋯`) and in `table/rowActions.tsx`
- * (`RowAction.label` is a `string` and there is no `icon` field), which are the
- * table layer's files and land on forty screens. Reported to that owner rather
- * than reached into from here.
+ * The threshold-alert rule list (§12). Nothing evaluates a rule while the tab
+ * is shut, so R10 states that once in the banner and no row repeats it (T9.15).
+ * One badge per row; muted and off are tooltipped glyphs, a suspension reason
+ * an `InfoHint` (X15). No red: a breach is not one of R5a's four uses (AC-885).
  */
 
 import { useState } from 'react'
-import {
-  BellOffIcon,
-  BellRingIcon,
-  CalendarClockIcon,
-  CalendarOffIcon,
-  CircleAlertIcon,
-  HourglassIcon,
-  PauseIcon,
-  PowerOffIcon,
-  ShieldCheckIcon,
-} from 'lucide-react'
 import { toast } from 'sonner'
-import { Banner, BannerConditionList } from '@/components/Banner'
+import { Banner } from '@/components/Banner'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { DataTable, type RowAction } from '@/components/DataTable'
+import { InfoHint, hintLines } from '@/components/InfoHint'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import {
+  ArmedIcon,
+  CoolingIcon,
+  DisabledIcon,
+  FiringIcon,
+  MutedIcon,
+  NotWorkingIcon,
+  SuspendedIcon,
+} from '@/components/icons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { DataColumn } from '@/components/table/columns'
 /* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
    `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
@@ -136,18 +51,9 @@ import { reportsViewTabs, type ReportsView } from './views'
 export interface AlertsViewProps {
   title: string
   /**
-   * §A11's view strip, as **state plus a callback rather than as markup**.
-   *
-   * There used to be a third member here, `views?: React.ReactNode`, and it was
-   * the sixth dead prop the audit found: declared on this interface and on
-   * `ReportLibraryProps`, never destructured, never read, never passed. It is
-   * **deleted rather than wired**, and the reason is that wiring it would have
-   * created a second way to put the same strip on the same screen. Every view
-   * builds its own tabs from `reportsViewTabs` (`./views`) — one list, so the
-   * three views cannot offer different sets — and a caller-supplied node would
-   * be a parallel source that agrees today and drifts later. `ReportsScreen`
-   * already owns the only decision a caller has: which view is current, and
-   * what happens when another is chosen.
+   * §A11's view strip, as state plus a callback rather than as markup. Every
+   * view builds its own tabs from `reportsViewTabs`, so the three cannot offer
+   * different sets and a caller cannot supply a parallel strip that drifts.
    */
   activeView?: ReportsView
   onSelectView?: (view: ReportsView) => void
@@ -159,12 +65,10 @@ export interface AlertsViewProps {
 }
 
 /**
- * The state, as a word plus a tone from the closed five.
- *
- * `firing` is `warning` — the one attention tone R17 gives — and never red.
- * `suspended` and `error` are **neutral**: both are inert, terminal facts about
- * the rule rather than about the business, and R7 puts a terminal factual
- * outcome in neutral. A rule that stopped working is not a breach.
+ * The state, as a word plus a tone from R7's closed five. `firing` is `warning`
+ * and never red (R5a). `suspended` and `error` are neutral: both are inert,
+ * terminal facts about the rule rather than about the business, and a rule that
+ * stopped working is not a breach.
  */
 const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'neutral'> = {
   armed: 'success',
@@ -175,43 +79,20 @@ const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'n
 }
 
 /**
- * **The same five states, each carrying a glyph as well as its word** — §A6/§H.
- *
- * Amplitude's principle on an inbox is that *what needs attention reads at a
- * glance*: a state is a shape before it is a word, so a scan down the column
- * separates `Firing` from `Armed` without reading either. Five badge words in
- * the same geometry, differing only in fill, is exactly the scan this replaces.
- *
- * **The glyph is redundancy and never the carrier.** Every one is
- * `aria-hidden`, the word stays inside the `StatusBadge` beside it, and
- * `StatusBadge`'s own type requires that word — so a glyph-only state is
- * unrepresentable rather than merely discouraged (§7.5). Remove colour and
- * remove the glyph and the state still reads; that is the test.
- *
- * The choices are literal rather than decorative: a bell that is *ringing* for
- * `firing`, an hourglass *running* for `cooling`, a shield *set* for `armed`, a
- * pause for a rule stopped on purpose, and the ordinary "something is wrong
- * with this object" disc for `error`. None of them is red — R5a's four uses do
- * not include a threshold breach (see the header), and each renders in
- * `text-muted-foreground`, so the badge's tone remains the only colour in the
- * cell.
+ * A state is a shape before it is a word (§A6/§H), from the registry (X17).
+ * Every glyph is `aria-hidden` and the badge keeps the word, so the glyph is
+ * redundancy and never the carrier (§7.5).
  */
-const STATE_GLYPH: Record<AlertRule['state'], typeof ShieldCheckIcon> = {
-  armed: ShieldCheckIcon,
-  firing: BellRingIcon,
-  cooling: HourglassIcon,
-  suspended: PauseIcon,
-  error: CircleAlertIcon,
+const STATE_GLYPH: Record<AlertRule['state'], typeof ArmedIcon> = {
+  armed: ArmedIcon,
+  firing: FiringIcon,
+  cooling: CoolingIcon,
+  suspended: SuspendedIcon,
+  error: NotWorkingIcon,
 }
 
-/**
- * The State filter's options, **derived from the tone map rather than typed a
- * second time.** `STATE_TONE` is a `Record` over the closed union, so a sixth
- * state does not compile without a tone — and therefore cannot reach the filter
- * without one either. A hand-written list of five would silently keep filtering
- * on five after the union grew to six, which is how a row disappears from an
- * index nobody has touched.
- */
+/* Derived from the tone map, never typed twice: a sixth state cannot reach the
+   filter without a tone, so no row can vanish from an index nobody touched. */
 const ALERT_STATES = Object.keys(STATE_TONE) as ReadonlyArray<AlertRule['state']>
 
 export function AlertsView({
@@ -237,6 +118,17 @@ export function AlertsView({
     deps: [JSON.stringify(table.params)],
     cacheKey: 'alerts.list',
   })
+
+  const rows = rules.data?.items ?? []
+  const rulesById = new Map(rows.map((rule) => [rule.id, rule]))
+  /* The banner's `Test a rule` target, and the condition it renders on: a rule
+     nothing checks, that a test is allowed to read (§13.3 refuses a suspended
+     one). Undefined means neither the banner nor the action has a subject. */
+  const testable = rows.find((rule) => rule.cadence === null && rule.state !== 'suspended')
+  /* One condition, read twice: the banner renders on it and the `Checked`
+     column blanks on it, so the cell can never go silent with nothing above
+     it saying why (R10). */
+  const bannerShown = testable !== undefined
 
   /* `Test this rule`'s answer, per rule. Held on the screen rather than pushed
      into the row, because a test changes nothing about the rule and a result
@@ -304,17 +196,22 @@ export function AlertsView({
       csv: (row) => row.name,
       header: t('rb.alerts.col.name'),
       alwaysVisible: true,
-      minWidth: 240,
+      minWidth: 280,
       sortField: 'name',
       dataType: 'text',
+      /* T9.15 — the name on one line. The rule sentence used to wrap to two
+         and truncate mid-clause; it reads in full in the row's `title` and in
+         the rule's own dialog, which is where an operator edits it. */
+      /* `block`, or `overflow-hidden` does not apply: an inline span does not
+         clip, and an Arabic rule name ran across the State column (§5.4). */
       cell: (row) => (
-        <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+        <span
+          {...isolatedRunProps({ className: 'block min-w-0 truncate' }).box}
+          title={alertSentence(row, t, language)}
+        >
           <bdi {...isolatedRunProps().run}>{row.name}</bdi>
         </span>
       ),
-      /* AC-878 — ONE key with named parameters. Never `a + ' vs ' + b`, and
-         never a sentence assembled from translated fragments. */
-      secondaryLine: (row) => <AlertSentence rule={row} t={t} language={language} />,
     },
     {
       id: 'state',
@@ -339,83 +236,41 @@ export function AlertsView({
           label: t(`rb.alert.state.${state}`),
         })),
       },
+      /* T9.15 — ONE badge, on one line. `enabled: false` and `mutedUntil` are
+         not states, so they ride as registry glyphs a tooltip names; the
+         server's suspension reason is an explanation, so it is an `InfoHint`
+         (X15). Nothing here wraps, so the row stays one line tall. */
       cell: (row) => {
         const Glyph = STATE_GLYPH[row.state]
         return (
-          <span className="flex flex-col items-start gap-1">
-            <span className="flex items-center gap-1.5">
-              {/* Decorative by declaration, and identified for the test by a
-                  data attribute rather than by a class name — a lucide icon's
-                  own `lucide-bell-ring` class is the library's, and asserting on
-                  it would make a lucide upgrade a UI test failure. */}
-              <Glyph
-                aria-hidden="true"
-                data-state-glyph={row.state}
-                className="size-4 shrink-0 text-muted-foreground"
-              />
-              <StatusBadge tone={STATE_TONE[row.state]}>
-                {t(`rb.alert.state.${row.state}`)}
-              </StatusBadge>
-            </span>
-            {/* `enabled: false` is the OPERATOR's switch; `suspended` is the
-                server's; `mutedUntil` silences without stopping. Three different
-                facts and none of them is the other — so each gets its own glyph
-                and its own word, and neither of these two is a state badge. */}
+          <span className="flex items-center gap-1.5">
+            <Glyph
+              aria-hidden="true"
+              data-state-glyph={row.state}
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+            <StatusBadge tone={STATE_TONE[row.state]}>
+              {t(`rb.alert.state.${row.state}`)}
+            </StatusBadge>
             {!row.enabled && (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <PowerOffIcon
-                  aria-hidden="true"
-                  data-state-glyph="disabled"
-                  className="size-4 shrink-0"
-                />
-                {t('rb.alert.disabled')}
-              </span>
+              <GlyphNote
+                glyph={DisabledIcon}
+                kind="disabled"
+                label={t('rb.alert.disabled')}
+              />
             )}
             {row.mutedUntil && (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BellOffIcon
-                  aria-hidden="true"
-                  data-state-glyph="muted"
-                  className="size-4 shrink-0"
-                />
-                {/* A timestamp opens the sentence's tail with digits, which the
-                    UBA throws to the far end of an Arabic line without an
-                    isolate. */}
-                <bdi>
-                  {t('rb.alert.muted', {
-                    time: formatDate(row.mutedUntil, {
-                      style: 'day-month-time',
-                      language,
-                    }),
-                  })}
-                </bdi>
-              </span>
+              <GlyphNote
+                glyph={MutedIcon}
+                kind="muted"
+                label={t('rb.alert.muted', {
+                  time: formatDate(row.mutedUntil, { style: 'day-month-time', language }),
+                })}
+              />
             )}
-          </span>
-        )
-      },
-      /**
-       * The qualifier, in the slot the suspended and error reasons already use.
-       *
-       * **The row note is added, never substituted.** It answers *is anything
-       * checking this?* and `stateReasonKey` answers *why is it in this state?*
-       * — two different questions, and the second is the one the disabled
-       * `Test this rule` action points at (`reason: () => null` below is only
-       * legal while the reason is on the row). A rule with a cadence shows the
-       * reason alone; a rule without one shows both, in that order, because the
-       * present tense is what needs qualifying first.
-       */
-      secondaryLine: (row) => {
-        const lines = [
-          ...(row.cadence === null ? [t('rb.alert.cadence.rowNote')] : []),
-          ...(row.stateReasonKey === null ? [] : [t(row.stateReasonKey)]),
-        ]
-        if (lines.length === 0) return null
-        return (
-          <span className="flex flex-col text-xs text-muted-foreground">
-            {lines.map((line) => (
-              <span key={line}>{line}</span>
-            ))}
+            {row.stateReasonKey !== null && (
+              <InfoHint t={t}>{hintLines([t(row.stateReasonKey)])}</InfoHint>
+            )}
           </span>
         )
       },
@@ -423,43 +278,24 @@ export function AlertsView({
     {
       id: 'cadence',
       header: t('rb.alerts.col.cadence'),
-      width: 120,
-      /* Unset, and rendered AS unset. Not blank, not a guess, not a dash that
-         could be read as "none needed". The glyph is the same fact in a second
-         channel — a calendar with a line through it — and the word is still the
-         one thing that carries it. */
+      width: 100,
+      /* R10 — WHILE THE BANNER SHOWS the cell does not repeat it once per row,
+         so it is blank (O9). With no banner nothing else states the absence,
+         and O9 gives it the muted word. */
       cell: (row) =>
-        row.cadence === null ? (
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <CalendarOffIcon
-              aria-hidden="true"
-              data-state-glyph="cadence-unset"
-              className="size-4 shrink-0"
-            />
-            {t('rb.alert.cadence.unset')}
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5">
-            <CalendarClockIcon aria-hidden="true" className="size-4 shrink-0" />
-            {row.cadence}
-          </span>
+        row.cadence !== null ? (
+          <span>{row.cadence}</span>
+        ) : bannerShown ? null : (
+          <span className="text-muted-foreground">{t('rb.alert.cadence.unset')}</span>
         ),
     },
     {
-      /* **The line, beside the reading tested against it.** It was only ever
-         inside the rule sentence on the identity cell, so an operator scanning
-         the `Last reading` column had nothing to compare it with without
-         reading a paragraph two columns away. §H's principle: what needs
-         attention reads at a glance.
-
-         The unit is STATED under the number rather than assumed from the
-         format (AC-876's sentence, the same key the rule form uses): a count
-         formats as a bare numeral, and a bare numeral in a `Threshold` column
-         is the one reading nobody can check. */
+      /* The line, beside the reading tested against it (§H). T9.15 deletes the
+         unit line under it: `formatMetricValue` already prints the unit. */
       id: 'threshold',
       emphasis: 'data',
       header: t('rb.alerts.col.threshold'),
-      width: 150,
+      width: 130,
       align: 'end',
       dataType: 'number',
       csv: (row) => row.threshold,
@@ -468,31 +304,27 @@ export function AlertsView({
           {formatMetricValue(row.threshold, row.thresholdUnit, language)}
         </span>
       ),
-      secondaryLine: (row) => (
-        <span className="text-xs text-muted-foreground">
-          {t('rb.alert.form.threshold.unit', {
-            unit: t(`rb.unit.${row.thresholdUnit}`),
-          })}
-        </span>
-      ),
     },
     {
       id: 'lastValue',
       header: t('rb.alerts.col.lastValue'),
-      width: 140,
+      width: 130,
       align: 'end',
       dataType: 'number',
-      cell: (row) => (
-        <span className="tabular-nums">
-          {formatMetricValue(row.lastValue, row.thresholdUnit, language)}
-        </span>
-      ),
+      /* O9 — a rule nothing has read has no last reading, and that is not a
+         fact the operator acts on: the cell is blank, never a dash. */
+      cell: (row) =>
+        row.lastValue === null ? null : (
+          <span className="tabular-nums">
+            {formatMetricValue(row.lastValue, row.thresholdUnit, language)}
+          </span>
+        ),
     },
     {
       id: 'lastEvaluated',
       emphasis: 'data',
       header: t('rb.alerts.col.lastEvaluated'),
-      width: 160,
+      width: 140,
       dataType: 'date',
       /* **A word, not a placeholder.** `formatMetricValue(null, …)` rendered the
          no-data dash, which cannot tell *never checked* from *checked, and the
@@ -576,45 +408,49 @@ export function AlertsView({
       }
     >
       <div className="flex flex-col gap-3">
-        {/* **R10 — the standing condition, above the rows it qualifies.**
-
-            §11.4 puts a page-level banner first in the content block, and §5.2
-            allows exactly ONE — so the cadence sentence and the re-arm sentence
-            are merged into this single `info` banner rather than stacked. They
-            used to be two 12px paragraphs BELOW the table and below pagination,
-            where they were the last thing on the page contradicting a
-            `success`-toned badge on every row.
-
-            `info`, not `warning`: nothing is wrong and nothing is degrading.
-            A decision has not been made, which is a fact about the product and
-            not an incident. `role="status"` for the same reason — it is true,
-            not a rejection, and it does not earn a screen-reader interruption.
-
-            Rendered only while a rule on this page actually has no cadence, so
-            the day one is set the banner stops asserting something false. */}
-        {(rules.data?.items ?? []).some((rule) => rule.cadence === null) && (
+        {/* R10 — the standing condition, above the rows it qualifies, and §5.2
+            allows exactly one. T9.15 cuts it to one sentence plus the action
+            that answers it; the re-arm rule is an explanation, so it is an
+            `InfoHint` on the title (X15). `info` and `role="status"`: a decision
+            has not been made, which is true rather than wrong. */}
+        {bannerShown && testable !== undefined && (
           <Banner
             role="status"
             banner={{
               id: 'management-reports-alerts-no-cadence',
               tone: 'info',
               title: t('rb.alerts.banner.title'),
-              body: t('rb.alerts.banner.body'),
+              actions: [
+                {
+                  label: t('rb.alerts.banner.action'),
+                  onClick: () => void runTest(testable),
+                },
+              ],
             }}
           >
-            {/* The second merged condition. §4.2's one-line-per-condition list
-                is what a merge renders, so the two facts stay two facts. */}
-            <BannerConditionList lines={[t('rb.alert.rearm.explain')]} />
+            {/* The sentence and its hint on ONE line: `body` would put the
+                glyph on a line of its own, and X15 puts it beside what it
+                explains. */}
+            <span className="inline-flex items-center gap-1">
+              {t('rb.alerts.banner.body')}
+              <InfoHint t={t}>{hintLines([t('rb.alert.rearm.explain')])}</InfoHint>
+            </span>
           </Banner>
         )}
 
         {/* AC-877 — it reports the bucket, the value and whether it WOULD have
-            fired. It never changes the rule and never emits a notification, and
-            the sentence says so out loud so nobody reads a test as a firing. */}
+            fired, and it names the rule, because the banner's `Test a rule` and
+            four row menus write into one list. It never changes the rule and
+            never emits a notification, and the sentence says so. */}
         {Object.entries(tested).length > 0 && (
           <ul role="status" className="flex list-none flex-col gap-1">
             {Object.entries(tested).map(([ruleId, evaluation]) => (
               <li key={ruleId} className="text-sm text-muted-foreground">
+                <bdi>
+                  {t('rb.alert.test.of', {
+                    name: rulesById.get(ruleId)?.name ?? ruleId,
+                  })}
+                </bdi>{' '}
                 {evaluation === 'failed'
                   ? t('rb.alert.test.failed')
                   : describeEvaluation(evaluation, t, language)}{' '}
@@ -626,7 +462,7 @@ export function AlertsView({
 
         <DataTable
           table={table}
-          rows={rules.data?.items ?? []}
+          rows={rows}
           columns={columns}
           getRowId={(row) => row.id}
           status={rules.status}
@@ -701,53 +537,65 @@ export function AlertsView({
 }
 
 /**
- * What the rule will do, in words — **one key, named parameters** (AC-878).
- *
- * `describeAlertRule` returns the key and its params; the measure arrives as its
- * own translation key, and the comparator as one of four. Both are resolved
- * before interpolation so the sentence is assembled by the translator and never
- * by `+`. Arabic does not put the noun where English does, and a concatenated
- * sentence is untranslatable by construction.
+ * A fact that is not a state, as a glyph a tooltip names (T9.15). The name is
+ * on the element, so the word survives with the tooltip closed and with no
+ * pointer; the trigger is focusable and rings, so it is reachable (§7.2).
  */
-function AlertSentence({
-  rule,
-  t,
-  language,
+function GlyphNote({
+  glyph: Glyph,
+  kind,
+  label,
 }: {
-  rule: AlertRule
-  t: Translator
-  language: Language
+  glyph: typeof MutedIcon
+  kind: string
+  label: string
 }) {
-  const described = describeAlertRule(rule)
   return (
-    <span className="text-xs text-muted-foreground">
-      {t(described.key, {
-        measure: t(String(described.params['measure'])),
-        comparator: t(`rb.alert.comparator.${String(described.params['comparator'])}`),
-        threshold: formatMetricValue(rule.threshold, rule.thresholdUnit, language),
-        /* The noun, not the control label. */
-        grain: t(`rb.grainNoun.${rule.evaluationGrain}`),
-      })}{' '}
-      {t(
-        crossingIsGoodNews(rule, described.params['higherIsBetter'] === true)
-          ? 'rb.alert.direction.good'
-          : 'rb.alert.direction.bad',
-      )}
-    </span>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            role="img"
+            tabIndex={0}
+            aria-label={label}
+            data-state-note={kind}
+            className="inline-flex rounded-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Glyph aria-hidden="true" data-state-glyph={kind} className="size-4 shrink-0" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <bdi>{label}</bdi>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
 /**
- * **Whether crossing this line is good news, and why one field cannot answer it.**
- *
- * `higherIsBetter` says which direction of the MEASURE is desirable. The
- * comparator says which direction of the LINE the rule watches. Gross revenue
- * is a measure where higher is better, and a rule that fires when it *falls
- * below* SAR 400 is firing on bad news — the same measure, the opposite
- * reading. Wording it from `higherIsBetter` alone told the operator the
- * opposite of the truth, which is exactly the failure F-7 exists to prevent:
- * *"to word a comparator honestly and to decide whether over the line is good
- * news."*
+ * What the rule will do, in words — one key with named parameters (AC-878).
+ * The measure and the comparator are resolved before interpolation, so the
+ * translator assembles the sentence and never `+`.
+ */
+function alertSentence(rule: AlertRule, t: Translator, language: Language): string {
+  const described = describeAlertRule(rule)
+  return `${t(described.key, {
+    measure: t(String(described.params['measure'])),
+    comparator: t(`rb.alert.comparator.${String(described.params['comparator'])}`),
+    threshold: formatMetricValue(rule.threshold, rule.thresholdUnit, language),
+    grain: t(`rb.grainNoun.${rule.evaluationGrain}`),
+  })} ${t(
+    crossingIsGoodNews(rule, described.params['higherIsBetter'] === true)
+      ? 'rb.alert.direction.good'
+      : 'rb.alert.direction.bad',
+  )}`
+}
+
+/**
+ * Whether crossing this line is good news. `higherIsBetter` is a property of
+ * the measure and the comparator is a property of the rule, so neither alone
+ * answers it: revenue rising past a line and revenue falling below one are the
+ * same measure and opposite news (F-7).
  */
 function crossingIsGoodNews(rule: AlertRule, higherIsBetter: boolean): boolean {
   const crossingUpward = rule.comparator === 'gt' || rule.comparator === 'gte'

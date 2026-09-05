@@ -1,58 +1,9 @@
 /**
- * **Manual captain assignment** — the modal behind *Dispatch captain* on the
- * Live Dispatch pending feed. `surfaces.md`: a short focused form is a modal.
- *
- * **Remediation §2.1.** The captain list used to be `allDriverFixtures`
- * filtered in the component. It now comes from `listDrivers`, the client that
- * already existed, so a backend cutover reaches this picker too.
- *
- * **A picker that is still loading is not an empty picker.** The seam makes the
- * read genuinely asynchronous and genuinely failable, so the select has to say
- * which it is. An operator who opens a dropdown mid-flight and sees no captains
- * concludes there are none — and then dispatches nobody. So:
- *
- *   loading  the trigger is DISABLED with `aria-busy`, and its placeholder says
- *            the captains are still arriving. Not an empty list.
- *   error    the select is replaced by one sentence and a retry bound to
- *            `refetch` (`ErrorState scope="card"`, uncarded — the dialog is
- *            already the surface, so a second card inside it is furniture).
- *   empty    the read succeeded and nobody is on shift. That is a different
- *            sentence from the error, and it offers no retry, because retrying
- *            is not the fix.
- *   content  the list.
- *
- * Rules applied
- *   §2.1        `@/data/clients` only.
- *   AC-36       all four states, in a surface small enough that people skip them.
- *   §7.2        the disabled trigger keeps its focus ring class; `aria-busy` is
- *               what a screen reader hears, not a visual-only spinner.
- *   §10.2       the select is the shadcn primitive, unmodified geometry.
- *   R3          one primary — `Dispatch captain`. `Cancel` is secondary.
- *
- * ## P4 — the form used to lie, and this is the fix
- *
- * `handleConfirm` ran `setTimeout(…, 200)` and then called `onConfirm`, which
- * toasted success and refetched. The refetch re-rendered the same request
- * **still unassigned**, so the console contradicted the sentence the operator
- * had just read. A form that reports a write it never made is worse than a form
- * that refuses.
- *
- * Three things changed:
- *
- *   - **`onConfirm` returns a promise and this modal awaits it.** The screen
- *     calls `assignRequest` (`clients/requests.ts:246`, complete with its 422
- *     `driver_required` and its 409 `request_not_open`); the real call supplies
- *     the real latency, so the fake 200ms is gone.
- *   - **A failed write reports HERE, in the surface that made it** (§11.2). The
- *     dialog stays open with the operator's choice intact, the sentence names
- *     what the server said, and the primary is still live so retrying costs one
- *     click. Closing on failure and toasting is what loses the selection.
- *   - **The dialog does not close until the write lands.** `busy` covers the
- *     whole round trip, so a double-submit cannot produce a second assignment.
- *
- * **§4.2 is closed** (2026-09-02): the `defaultValue` calls are gone. The strings
- * live in `./copy.ts` and reach this component through the `t` its parent builds
- * with `withFallback`, so nothing here needed to change but the call sites.
+ * The captain picker — one dialog behind *Dispatch captain* on the pending feed
+ * and *Reassign* on an intervention. `surfaces.md`: a short focused form is a
+ * modal. Four states on the captain read (AC-36); the caller owns the write and
+ * this owns the busy state and the refusal, which reports HERE with the
+ * operator's choice intact (§11.2). §2.1: `listDrivers`, never a fixture.
  */
 
 import { useEffect, useState } from 'react'
@@ -70,27 +21,36 @@ import type { Translate } from '@/lib'
 const CANDIDATE_PAGE_SIZE = 50
 
 interface ManualDispatchModalProps {
-  requestId: string | null
-  riderName: string
-  pickup: string
+  /** The record a captain is being put on. `null` renders nothing. */
+  subjectId: string | null
+  title: string
+  description: string
+  /** The two facts an operator checks before choosing. */
+  facts: ReadonlyArray<{ label: string; value: string }>
+  confirmLabel: string
   open: boolean
   onClose: () => void
   /**
-   * **Returns a promise, and this modal awaits it.** The screen owns the write
-   * (`assignRequest`); this owns the busy state, the failure sentence and the
-   * decision not to close until the record has actually changed.
+   * **Returns a promise, and this modal awaits it.** The screen owns the write;
+   * this owns the busy state, the failure sentence and the decision not to
+   * close until the record has actually changed.
    */
-  onConfirm: (requestId: string, driverId: string, driverName: string) => Promise<void>
+  onConfirm: (subjectId: string, driverId: string, driverName: string) => Promise<void>
+  /** §11.2 — the flow's own sentence for a refusal it can name. */
+  refusalFor?: (error: unknown) => string | null
   t: Translate
 }
 
 export function ManualDispatchModal({
-  requestId,
-  riderName,
-  pickup,
+  subjectId,
+  title,
+  description,
+  facts,
+  confirmLabel,
   open,
   onClose,
   onConfirm,
+  refusalFor,
   t,
 }: ManualDispatchModalProps) {
   const [selectedDriverId, setSelectedDriverId] = useState<string>('')
@@ -103,7 +63,7 @@ export function ManualDispatchModal({
   useEffect(() => {
     setSelectedDriverId('')
     setSubmitError(null)
-  }, [requestId])
+  }, [subjectId])
 
   /* `enabled: open` — the modal is mounted by the screen for the whole session,
      so an unconditional read would fetch captains on every page load and hold a
@@ -120,7 +80,7 @@ export function ManualDispatchModal({
 
   /* Hooks first, guard second — the early return must never change the hook
      order between renders. */
-  if (!requestId) return null
+  if (!subjectId) return null
 
   const availableDrivers = drivers.data?.items ?? []
   const isLoading = drivers.status === 'loading'
@@ -134,17 +94,15 @@ export function ManualDispatchModal({
     setBusy(true)
     setSubmitError(null)
     try {
-      await onConfirm(requestId, driver.id, driver.name)
+      await onConfirm(subjectId, driver.id, driver.name)
       setSelectedDriverId('')
       onClose()
     } catch (error: unknown) {
-      /* The server's own sentence when it has one — `REQ-0007 is already
-         assigned` is more use than a generic failure line, and `assignRequest`
-         raises exactly that on 409. */
+      /* The flow's own sentence first (§11.2), then the server's when it has
+         one — `REQ-0007 is already assigned` beats a generic failure line. */
       setSubmitError(
-        isApiError(error)
-          ? error.message
-          : t('dispatch.manual.assignError'),
+        refusalFor?.(error) ??
+          (isApiError(error) ? error.message : t('dispatch.manual.assignError')),
       )
     } finally {
       setBusy(false)
@@ -155,26 +113,20 @@ export function ManualDispatchModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent size="sm">
         <DialogHeader>
-          <DialogTitle>{t('dispatch.manual.title')}</DialogTitle>
-          <DialogDescription>
-            {t('dispatch.manual.desc', {
-              id: requestId,
-              rider: riderName,
-              pickup,
-            })}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="py-3 space-y-3">
-          <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs flex flex-col gap-1">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('column.rider')}:</span>
-              <span className="font-medium text-foreground">{riderName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('trip.pickup')}:</span>
-              <span className="font-medium text-foreground">{pickup}</span>
-            </div>
+        <div className="space-y-3 py-3">
+          <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/40 p-3 text-xs">
+            {facts.map((fact) => (
+              <div key={fact.label} className="flex justify-between gap-3">
+                <span className="text-muted-foreground">{fact.label}</span>
+                <span className="truncate font-medium text-foreground">
+                  <bdi>{fact.value}</bdi>
+                </span>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-1.5">
@@ -245,7 +197,7 @@ export function ManualDispatchModal({
             onClick={() => void handleConfirm()}
             disabled={!selectedDriverId || busy || isLoading || isFailed || isEmpty}
           >
-            {busy ? t('dispatch.action.assigning') : t('dispatch.confirmAssign')}
+            {busy ? t('dispatch.action.assigning') : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

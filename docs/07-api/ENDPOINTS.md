@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**321 endpoints across 48 client modules.**
+**332 endpoints across 49 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -231,6 +231,21 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/financials/overview` | `FinancialsOverview` | `from · to` | - | `getFinancialsOverview()` |
 
+## `src/data/clients/growth.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/growth/incentives` | `Paginated<GrowthIncentive>` | `q · page · pageSize · sort · filter` | - | `listGrowthIncentives()` |
+| PATCH | `/api/v1/growth/incentives/:id` | `GrowthIncentive` | `{ active: boolean }` | **404** when the rule does not exist | `setGrowthIncentiveActive()` |
+| GET | `/api/v1/growth/incentives/facets` | `Facets` | - | - | `getGrowthIncentiveFacets()` |
+| GET | `/api/v1/growth/messages` | `Paginated<GrowthBulkMessage>` | `q · page · pageSize · sort · filter` | - | `listGrowthBulkMessages()` |
+| GET | `/api/v1/growth/messages/facets` | `Facets` | - | - | `getGrowthMessageFacets()` |
+| GET | `/api/v1/growth/promos` | `Paginated<GrowthPromo>` | `q · page · pageSize · sort · filter` | - | `listGrowthPromos()` |
+| PATCH | `/api/v1/growth/promos/:code/status` | `GrowthPromo` | `{ status: 'active' \| 'paused' }` | **404** unknown code · 409 `campaign_not_pausable` when exhausted or expired | `setGrowthPromoStatus()` |
+| GET | `/api/v1/growth/promos/facets` | `Facets` | - | - | `getGrowthPromoFacets()` |
+| GET | `/api/v1/growth/referrals` | `Paginated<GrowthReferral>` | `q · page · pageSize · sort · filter` | - | `listGrowthReferrals()` |
+| GET | `/api/v1/growth/referrals/facets` | `Facets` | - | - | `getGrowthReferralFacets()` |
+
 ## `src/data/clients/integrations.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
@@ -397,7 +412,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| GET | `/api/v1/reports` | `Paginated<SavedReport>` | `q · view=mine\|team · page · pageSize` | - | `listReports()` |
+| GET | `/api/v1/reports` | `Paginated<SavedReport>` | `q · view=mine\|team · filters[chartType\|ownerId\|lastRunAt] · page · pageSize` | - | `listReports()` |
 | POST | `/api/v1/reports` | `Single<SavedReport>` | `{ name, description, query, visibility }` | - | `saveReport()` |
 | DELETE | `/api/v1/reports/:id` | `204, or 409 with the dashboards that pin it` | - | - | `deleteReport()` |
 | GET | `/api/v1/reports/:id` | `Single<SavedReport>` | - | - | `getReport()` |
@@ -493,6 +508,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/subscriptions/:id/cancel` | `Subscription  (with `refundedHalalas` computed for unused trips)` | `{ reason: string }` | - | `cancelSubscription()` |
 | POST | `/api/v1/subscriptions/:id/driver` | `Subscription` | `{ driverId: string, reason: string }` | **404** when the subscription or the captain does not exist<br>**409** `not_reassignable` when the subscription is cancelled or expired<br>**422** `same_driver` when the captain named already holds it<br>**422** `driver_unavailable` when the captain is not active<br>**422** `vehicle_class_below_plan` when their vehicle is below the plan's tier | `reassignSubscriptionDriver()` |
 | POST | `/api/v1/subscriptions/:id/freeze` | `Subscription` | `{ until: IsoDate }` | **409** when the subscription is cancelled or expired | `freezeSubscription()` |
+| POST | `/api/v1/subscriptions/:id/unfreeze` | `Subscription  (`status: 'active'`, `frozenUntil: null`)` | - | **409** `not_frozen` when the subscription is not frozen | `unfreezeSubscription()` |
 | GET | `/api/v1/subscriptions/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getSubscriptionFacets()` |
 
 ## `src/data/clients/team.ts`

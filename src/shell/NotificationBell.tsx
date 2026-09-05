@@ -40,13 +40,13 @@ import { formatCount, formatDate, formatLocalisedText } from '@/lib'
 import { useAsync } from '@/hooks'
 import { previewNotifications } from '@/data/clients'
 import type { Notification, NotificationSummary } from '@/data/types'
-import type { Language, Translate } from '@/lib'
+import type { Language, Translate, Translator } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 
 export interface NotificationBellProps {
   summary: NotificationSummary | null
-  t: Translate
+  t: Translator
   language: Language
   onSeeAll: () => void
   onOpenNotification: (notification: Notification) => void
@@ -156,7 +156,7 @@ export function NotificationBell({
                the numeral from `formatCount`, so Arabic gets Arabic-Indic
                digits like every other count in the shell. */
             <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-              {t('shell.notifications.newCount', { count: formatCount(unread, language) })}
+              {t.plural('shell.notifications.newCount', { count: unread })}
             </span>
           )}
         </div>

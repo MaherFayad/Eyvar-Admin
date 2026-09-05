@@ -1,59 +1,15 @@
 /**
  * **Operations > Corporate accounts** - `routeTable.ts`, shape `index`.
- *
- * ## What P4-T1 and P8-T1 changed here
- *
- * **The create form used to lose seven fields on failure.** `handleCreateCorp`
- * caught the error and toasted it - but `NewCorpModal` had already closed
- * itself behind a `setTimeout`, so a rejected create put the operator back on
- * the index with a toast and every field they had typed gone. The modal now
- * awaits this handler, so the error is re-thrown rather than swallowed and the
- * dialog stays open with the form intact (§11.2).
- *
- * **§11.2 - `New corporate account` and the row `View` were hidden behind
- * `canWrite`.** An operator without `manage_subscriptions` saw an index with no
- * sign that accounts can be created at all, which is exactly what §11.2 says
- * teaches the wrong thing. The primary renders and refuses.
- *
- * **P8-T1 - the company name is a real link.** It was a `<button
- * onClick={navigate}>`; it is an `<a>` now, so it is middle-clickable and its
- * address can be copied, and the redundant `View` button at the end of every
- * row is gone with it. That column existed only because the name was not a
- * link.
- *
- * ## The one thing I could not fix in my own files, and it is reported
- *
- * **This table renders a checkbox column with nothing behind it.** `mode:
- * 'index'` sets `canSelect: true` unconditionally (`useIndexTable.ts:460`),
- * so every row has a checkbox and the header a select-all - while `DataTable`
- * draws the bulk bar only when `bulkActions` is non-empty. Selecting rows here
- * therefore does nothing at all.
- *
- * **And there is no honest bulk command to declare.** `clients/corporateAccounts.ts`
- * offers `createCorporateAccount`, `updateCorporateUsagePolicy` and
- * `addCorporateEmployee`; none of the three means anything over a set of
- * accounts. Inventing one - a bulk suspend, a bulk invoice - would be a design
- * decision, and I do not make those.
- *
- * So the right fix is to **suppress the selection**, and that cannot be done
- * from here: `IndexTableOptions` has no way to decline the checkbox column, and
- * `useIndexTable.ts` has a single owner. The exact diff requested is in the
- * handoff. Until it lands the checkboxes remain, and they are named here rather
- * than left for visual-QA to find.
- *
- * Rules applied
- *   §9.1 / AC-43  the first data cell is the identity and **a link**.
- *   §9.1 / R4     headcount and spend are inline-END with `tabular-nums`.
- *   R3            one primary - `New corporate account` - and it is refused in
- *                 place rather than hidden.
- *   §11.2         gated at RENDER, disabled in place, with the reason.
+ * AC-43 the identity cell is a link; R4 counts and money inline-END; R3 one
+ * primary, refused in place (§11.2); X2 every enum reaches the cell keyed;
+ * T5.4 `Company` is the one flexible column and every other line truncates.
  */
 
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { createCorporateAccount, listCorporateAccounts, type CreateCorporateAccountInput } from '@/data/clients'
-import type { CorporateAccount, Paginated, SubTabRoute } from '@/data/types'
+import type { CorporateAccount, CorporateAccountStatus, CorporateBillingType, Paginated, SubTabRoute } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
 import { DataTable, type DataColumn } from '@/components/DataTable'
@@ -67,24 +23,37 @@ import { withFallback } from '../localCopy'
 import { CORPORATE_EN } from './copy'
 import { NewCorpModal } from './NewCorpModal'
 
-const STATUS_TONES: Record<string, 'success' | 'warning' | 'info' | 'neutral' | 'new'> = {
-  Active: 'success',
-  Pending: 'info',
-  Trial: 'new',
-  Suspended: 'neutral',
+/**
+ * R7 tone and the copy key for each account state, as one record over the
+ * union - so a fifth state is a compile error here rather than an untranslated
+ * value reaching an Arabic screen (X2).
+ */
+const STATUS: Readonly<
+  Record<CorporateAccountStatus, { tone: 'success' | 'warning' | 'info' | 'neutral' | 'new'; key: string }>
+> = {
+  Active: { tone: 'success', key: 'corp.status.Active' },
+  Trial: { tone: 'new', key: 'corp.status.Trial' },
+  Pending: { tone: 'info', key: 'corp.status.Pending' },
+  Suspended: { tone: 'neutral', key: 'corp.status.Suspended' },
 }
+
+const STATUS_VALUES = Object.keys(STATUS) as CorporateAccountStatus[]
+
+/** The two billing methods, keyed. The values are the domain's own (X2). */
+const BILLING: Readonly<Record<CorporateBillingType, string>> = {
+  'Monthly invoice': 'corp.billing.monthly',
+  'Prepaid balance': 'corp.billing.prepaid',
+}
+
+const BILLING_VALUES = Object.keys(BILLING) as CorporateBillingType[]
 
 export function CorporateScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const navigate = useNavigate()
-  /* AC-74 - the copy lives in `./copy.ts`. `withFallback` resolves keys the
-     shell dictionary has not registered yet against that dictionary, so no
-     English literal sits in this file. See `../localCopy`. */
+  /* AC-74 - the copy lives in `./copy.ts`; `withFallback` resolves keys the
+     shell dictionary has not registered yet. Memoised because several screens
+     carry `t` in a `deps` array and a fresh wrapper re-runs the fetch. */
   const t = useMemo(
-    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
-       function on every call, and several screens carry `t` in a `deps`
-       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
-       which rebuilt the wrapper. Two suites hung outright. */
     () => withFallback(shell.language.t, CORPORATE_EN),
     [shell.language.t],
   )
@@ -106,13 +75,8 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
 
   const canWrite = shell.permissions.permissions.includes('manage_subscriptions')
 
-  /**
-   * **The failure is re-thrown, not swallowed.** `NewCorpModal` awaits this and
-   * keeps itself open with all seven fields intact when it rejects. Catching
-   * here and toasting put the operator back on the index having lost the form
-   * (§11.2) - and the modal closed itself before this ran, so the toast landed
-   * over a surface they had already left.
-   */
+  /* §11.2 - the failure is re-thrown, not swallowed: `NewCorpModal` awaits this
+     and stays open with all seven fields intact when it rejects. */
   const handleCreateCorp = async (input: CreateCorporateAccountInput) => {
     const created = await createCorporateAccount(input)
     setCreatedAccounts((prev) => [created, ...prev])
@@ -125,6 +89,12 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
     return [...createdAccounts, ...raw.filter((r) => !createdAccounts.some((c) => c.id === r.id))]
   }, [createdAccounts, data.data?.items])
 
+  /**
+   * **T5.4 - the width contract, §7.3.** `Company` is the one flexible column;
+   * the six px columns sum with its floor to 870, the ARABIC inner width and
+   * the binding one, so nothing is fitted away and English's 40px residual
+   * lands on the identity. Every line truncates, so the pitch is one value.
+   */
   const columns: DataColumn<CorporateAccount>[] = useMemo(
     () => [
       {
@@ -133,48 +103,37 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         emphasis: 'primary',
         csv: (c) => c.companyName,
         header: t('column.company'),
-        width: 200,
+        minWidth: 172,
         dataType: 'text',
-        /* **P8-T1 / AC-43 - the identity is a LINK, not a button.** A button
-           cannot be middle-clicked into a new tab, its address cannot be
-           copied, and this one carried `focus:outline-none` with nothing in its
-           place. The `<Link>` keeps `globals.css`'s `:focus-visible` ring, so
-           there is no ring declaration here to get wrong. */
+        /* AC-43 - the identity is a `<Link>`: middle-clickable, its address can
+           be copied, and it keeps `globals.css`'s `:focus-visible` ring. */
         cell: (c) => (
           <Link
             to={`/operations/corporate/${c.id}`}
-            className="group flex flex-col rounded-sm text-start"
+            className="group flex min-w-0 flex-col rounded-sm text-start"
           >
-            {/* **H1/H3 — the name now carries NO type classes at all, and
-                that is the point.** The column declares `emphasis: 'primary'`,
-                so `DataTable` puts ink and 500 on the cell; `body` sets 14px.
-                The span used to override all three with `--text-xs` at 600 —
-                a step SMALLER than the body it leads, wearing a weight ABOVE
-                the rank that is supposed to mark it, which is the ramp
-                inverted in one line. `globals.css` names this shape exactly:
-                most body text should carry no size class, and the explicit
-                ones are *"largely sites climbing back up to a default
-                something else knocked them off"*. Deleting them is the fix.
-                H2 — the id line leaves `--text-2xs`, whose declared job is a
-                badge label and a count numeral. An id is META, `--text-xs`. */}
-            <span className="group-hover:underline">{c.companyName}</span>
-            <span className="font-mono text-xs font-normal text-muted-foreground">{c.id}</span>
+            <span className="truncate group-hover:underline">{c.companyName}</span>
+            <span className="truncate font-mono text-xs font-normal text-muted-foreground">{c.id}</span>
           </Link>
         ),
       },
       {
         id: 'contact',
         header: t('column.contact'),
-        width: 180,
+        width: 140,
+        /* A floor for the operator's own resize, not a second flexible column:
+           140 is the widest contact name on the fixtures plus its padding. */
+        minWidth: 132,
         dataType: 'text',
+        /* H1 - the person is DATA, the address is META. T5.4: the address is a
+           second line only where the column is wide enough to hold it, which at
+           the 1280 floor it is not; widening the column reveals it. */
         cell: (c) => (
-          /* H1 — the two-line contact cell splits into its two tiers rather
-             than rendering both at one size: the person is DATA (14px ink,
-             400 — weight belongs to the identity column), the address is META
-             (12px grey). The address was at an arbitrary 11px, off the ramp. */
-          <div className="flex flex-col">
-            <span className="text-foreground">{c.contactName}</span>
-            <span className="text-xs text-muted-foreground">{c.contactEmail}</span>
+          <div className="@container flex min-w-0 flex-col">
+            <span className="truncate text-foreground">{c.contactName}</span>
+            <span className="hidden truncate text-xs text-muted-foreground @3xs:block">
+              {c.contactEmail}
+            </span>
           </div>
         ),
       },
@@ -182,21 +141,13 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         id: 'headcount',
         emphasis: 'data',
         header: t('column.employees'),
-        width: 110,
+        width: 100,
+        minWidth: 96,
         align: 'end',
         dataType: 'number',
+        /* AC-73 - `0 / 40` is two numerals around a bidi-NEUTRAL slash, so an
+           Arabic paragraph renders it `40 / 0`. Isolation is the cell's job. */
         cell: (c) => (
-          /* H1 DATA — the column declares the tier, so the ink and the size
-             come from `DataTable` and `body`; only the figures are local.
-
-             **`<bdi>` — AC-73, and this cell was failing it.** `0 / 40` is two
-             numerals either side of a bidi-NEUTRAL slash, so in an Arabic
-             paragraph the UBA resolves the run right-to-left and the cell
-             renders `40 / 0`. The headcount and the ceiling swap places: not a
-             cosmetic mirror, a WRONG NUMBER. Found at 1512 under `dir="rtl"`
-             on this screen; `queues/cells.tsx` records the identical shape in
-             its own header (*"`4 / 5` renders as `5 / 4`"*). Isolation is the
-             component's job, never the string's. */
           <span className="tabular-nums">
             <bdi>
               {c.employeeCount} {c.expectedEmployees ? `/ ${c.expectedEmployees}` : ''}
@@ -209,15 +160,10 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         emphasis: 'data',
         csv: (c) => c.totalSpendHalalas,
         header: t('column.totalSpend'),
-        width: 130,
+        width: 112,
         align: 'end',
         dataType: 'money',
         cell: (c) => (
-          /* H1/H3 DATA — 14px ink at 400, all of it declared rather than
-             written here. The `font-semibold` this span carried was weight
-             spent to compensate for a size two steps under the body; with the
-             size right the weight is not needed, and it goes back to meaning
-             "this is the identity". */
           <span className="tabular-nums">
             <Money amount={c.totalSpendHalalas} />
           </span>
@@ -225,90 +171,65 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'billingType',
+        /* The filter's VALUES are the domain's; its LABELS are keyed, so the
+           option set reads in Arabic and still matches what the rows carry. */
         filter: {
           kind: 'select',
           field: 'billingType',
-          options: (['Monthly invoice', 'Prepaid balance'] as const).map((value) => ({
-            value,
-            label: value,
-          })),
+          options: BILLING_VALUES.map((value) => ({ value, label: t(BILLING[value]) })),
         },
         sortField: 'billingType',
         header: t('column.billing'),
-        width: 140,
+        /* T5.4 - the narrowest width that still fits `Monthly invoice`, which
+           `corporate.mjs` measures at 132 rather than the 128 the ruling
+           assumed; 128 clipped it on nine rows. The 20px it gives back goes to
+           `Company`, which was the column wrapping. */
+        width: 132,
+        minWidth: 120,
         dataType: 'enum',
-        /* No `emphasis`, so this column is META by declaration — and the cell
-           was overriding that with ink at 12px, which is a value arguing with
-           its own column. It now takes the tier `DataTable` gives it. */
-        cell: (c) => <span>{c.billingType}</span>,
+        cell: (c) => <span className="block truncate">{t(BILLING[c.billingType])}</span>,
       },
       {
         id: 'status',
-        /* The four states an account can be in. **The label is the value**, which
-           is what the cell renders too — these reach the screen untranslated, and a
-           filter that invented labels the rows do not carry would be worse than one
-           that matches them. Raised as an i18n gap rather than papered over here. */
         filter: {
           kind: 'select',
           field: 'status',
-          options: (['Active', 'Trial', 'Pending', 'Suspended'] as const).map((value) => ({
-            value,
-            label: value,
-          })),
+          options: STATUS_VALUES.map((value) => ({ value, label: t(STATUS[value].key) })),
         },
         sortField: 'status',
         emphasis: 'data',
         header: t('column.status'),
-        width: 100,
+        width: 80,
         dataType: 'enum',
         cell: (c) => (
-          <StatusBadge tone={STATUS_TONES[c.status] ?? 'neutral'}>
-            {c.status}
-          </StatusBadge>
+          <StatusBadge tone={STATUS[c.status].tone}>{t(STATUS[c.status].key)}</StatusBadge>
         ),
       },
       {
         id: 'nextInvoice',
         header: t('column.nextInvoice'),
-        width: 140,
+        width: 114,
+        /* Arabic wants 121 and the 870 budget leaves 114 once every header
+           fits on one line; the schedule line is what pays for the shortfall. */
+        minWidth: 104,
         dataType: 'date',
         cell: (c) => (
-          <div className="flex flex-col text-xs">
-            <span className="text-muted-foreground">
-              {c.nextInvoiceOn ? formatDate(c.nextInvoiceOn, { language }) : `Day ${c.invoiceDayOfMonth}`}
+          <div className="flex min-w-0 flex-col text-xs">
+            <span className="truncate text-muted-foreground">
+              {c.nextInvoiceOn
+                ? formatDate(c.nextInvoiceOn, { language })
+                : t('corp.billingDay.value', { day: String(c.invoiceDayOfMonth) })}
             </span>
             {c.invoiceOverdue && (
-              /* **Two defects in one span.** It carried Tailwind's own amber
-                 at stop 700, plus a dark-mode variant of the same ramp at stop
-                 400 — palette classes, not tokens, and the dark half could
-                 never apply, since this product has no dark mode.
-                 `globals.css` records the same disposition for the rose
-                 variants in `DataTable`: deletion, not translation. The size
-                 was an arbitrary bracketed value at ten pixels, below the
-                 ramp's own floor and with no token at it.
-
-                 **A class name written in PROSE is a class name.** Tailwind v4
-                 scans comments as plain text, so the sentence above deliberately
-                 spells out the palette and the size rather than quoting them —
-                 `globals.css` and `MetricTileRow` both record a rule shipping to
-                 `dist` from a comment that named the thing it was warning about.
-                 H7 rule 3 is the shape of the fix: an overdue invoice is a
-                 second signal on a row that already carries a status badge, so
-                 it becomes **text in the tone's own foreground** —
-                 `--ev-amber-dk` #7a3e12, 8.32 : 1 on white and 7.49 : 1 on the
-                 darkest ground a row can take. Same tone, same word, no plate,
-                 and the row's one badge keeps the colour budget. */
-              <span className="text-xs font-medium text-warning-foreground">
+              /* H7 rule 3 - the row already carries one badge, so a second
+                 signal is text in the tone's own foreground, not a plate. */
+              <span className="truncate text-xs font-medium text-warning-foreground">
                 {t('corp.invoiceOverdue')}
               </span>
             )}
           </div>
         ),
       },
-      /* **The `View` column is gone.** It existed only because the company name
-         was a `<button>` rather than a link; §7.8 gives the action lane to
-         `rowActions`, and a second control that goes exactly where the identity
-         link goes is furniture that costs 80px of §7.3's width budget. */
     ],
     [language, t]
   )
@@ -318,20 +239,9 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
   const meta = t('corp.meta.count', { count: formatCount(total, language) })
 
   /**
-   * §9.2 #3 / **AC-24**, **AC-36** — the failed read is the SCREEN's, not the
-   * shell's: the rail, the sub-tab column and the top bar stay interactive and
-   * the operator navigates away without a reload.
-   *
-   * The page-scoped state (heading + body + retry) replaces the table rather
-   * than sitting inside it. `DataTable`'s own card-scoped error is right when a
-   * *query* failed and the toolbar is still worth keeping; here the whole list
-   * read failed, there is nothing for the toolbar to act on, and §11.2 gives
-   * that case the page scope. Retry is bound to `data.refetch`, which re-runs
-   * `listCorporateAccounts` with the same params.
-   *
-   * **R3** — the page error's `Try again` is `variant="default"`, so it is the
-   * one primary on a screen showing nothing else. The header's *New Corporate
-   * Account* is withheld in this branch rather than competing with it.
+   * AC-24 / AC-36 - the failed WHOLE read is the screen's, not the shell's: the
+   * rail and the top bar stay interactive. `Try again` is the one primary here,
+   * so the header's own primary is withheld in this branch (R3).
    */
   if (data.status === 'error') {
     return (
@@ -352,11 +262,9 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         <PageHeader
           title={title}
           meta={meta}
-          /* §11.2 - R3's one primary, RENDERED and refused rather than
-             removed. `PageAction` carries `disabled` but has no field for a
-             reason, which is a gap reported to the `PageHeader` owner; the
-             sentence lives in the empty state's action and in the handoff
-             until it has somewhere to go. */
+          /* §11.2 - R3's one primary, rendered and refused rather than removed.
+             `PageAction` has no field for the reason; it is stated on the
+             dialog's dead primary instead. */
           primaryAction={{
             label: t('corp.newAccount'),
             onClick: () => setNewCorpOpen(true),
@@ -381,12 +289,9 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         firstRun={{
           heading: t('corp.empty.heading'),
           body: t('corp.empty.body'),
-          /* §11.2 - the action RENDERS whether or not the role can commit it.
-             `EmptyAction` carries no `disabled` field (reported to the
-             `EmptyState` owner), so the refusal happens one step later: the
-             dialog opens and its primary is dead with the reason beside it,
-             which is still a stated refusal rather than a capability the
-             operator is never told exists. */
+          /* §11.2 - the action renders whether or not the role can commit it;
+             `EmptyAction` carries no `disabled`, so the refusal lands one step
+             later, on the dialog's primary. */
           actions: [
             {
               label: t('corp.newAccount'),
@@ -404,11 +309,7 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         onClose={() => setNewCorpOpen(false)}
         onConfirm={handleCreateCorp}
         /* §11.2 - the role refusal, as a sentence beside a dead primary. */
-        unavailableReason={
-          canWrite
-            ? null
-            : t('corp.action.noPermission.create')
-        }
+        unavailableReason={canWrite ? null : t('corp.action.noPermission.create')}
         t={t}
       />
     </SingleColumnPage>

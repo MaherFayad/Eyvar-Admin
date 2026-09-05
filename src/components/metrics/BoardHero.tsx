@@ -62,10 +62,10 @@
  */
 
 import type { KeyboardEvent, ReactNode } from 'react'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, RefreshIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { PAGE_BLOCK_INSET } from '@/components/PageShell'
-import { BoardPeriodControl } from './BoardPeriodControl'
+import { BoardPeriodControl, periodPillLabel } from './BoardPeriodControl'
 import { formatDate, type Language, type Translate } from '@/lib'
 import type { IsoDate } from '@/data/types'
 
@@ -110,6 +110,19 @@ export interface BoardHeroProps {
    */
   periodSlot?: ReactNode
   /**
+   * T5.7 — the window of the chart drawn under the band. Given and different
+   * from `period`, the pill names both scopes rather than one.
+   */
+  chartPeriod?: { start: IsoDate; end: IsoDate } | null
+  /**
+   * T1.5 — given, the band draws a `Refresh` control beside the period pill.
+   * Absent in every state but `content`: a board that has not loaded has
+   * nothing to re-read, and `Try again` already owns the error state.
+   */
+  onRefresh?: () => void
+  /** True while a re-read is in flight, so the control names its own state. */
+  refreshing?: boolean
+  /**
    * The lead figures. Three of them, rendered by the caller at
    * `surface="band"`. Absent while the board is loading, failed or empty —
    * the band is then its title, its lede and nothing else.
@@ -126,6 +139,9 @@ export function BoardHero({
   period,
   onPeriod,
   periodSlot,
+  chartPeriod = null,
+  onRefresh,
+  refreshing = false,
   children,
   t,
   language,
@@ -146,41 +162,58 @@ export function BoardHero({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-2">
-          {/* **The control does not wait for the board to have a window.**
-              `onPeriod` is the screen saying *my read honours a range*, and that
-              is the whole condition — a board whose every figure is
-              point-in-time has no period to print and is exactly the board an
-              operator wants to put one on. The static pill is what is left when
-              a board states a window it cannot be asked to change. */}
-          {periodSlot ?? (onPeriod ? (
-            <BoardPeriodControl
-              period={period}
-              onChange={onPeriod}
-              t={t}
-              language={language}
-            />
-          ) : (
-            period && (
-              /* `<bdi>` isolates it: `11 – 25 Jun` is a numeral run whose
-                 leading digit the UBA otherwise moves to the far end of an
-                 Arabic line. */
-              <span className="flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2 text-2xs tabular-nums text-hero-foreground">
-                {/* The reference's calendar mark. **Drawn, not typed**: the
-                    Unicode glyph that would do this is not in Inter, so the
-                    browser falls through to an emoji font and paints a colour
-                    no token audit can see. `lucide` is monochrome SVG on
-                    `currentColor`. It does not mirror — a calendar is an
-                    object, not a direction (§9.5). */}
-                <CalendarIcon aria-hidden="true" className="size-3.5 text-hero-label" />
-                <bdi>
-                  {t('overview.period', {
-                    from: formatDate(period.start, { style: 'day-month', language }),
-                    to: formatDate(period.end, { style: 'day-month', language }),
-                  })}
-                </bdi>
-              </span>
-            )
-          ))}
+          <div className="flex items-center gap-2">
+            {/* T1.5 — the board's own re-read, beside the window it re-reads
+                over. Not R3's primary: a board offers no primary (§8 slot 4c),
+                and this changes nothing but the figures' freshness. */}
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                aria-busy={refreshing}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2',
+                  'text-2xs text-hero-foreground transition-colors hover:bg-hero-line',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-foreground',
+                  'focus-visible:ring-offset-2 focus-visible:ring-offset-hero',
+                )}
+              >
+                {/* A refresh mark turns; it does not point. It does not mirror
+                    (§9.5), and R18 keeps it still. */}
+                <RefreshIcon aria-hidden="true" className="size-3.5 text-hero-label" />
+                {t('overview.refresh')}
+              </button>
+            )}
+            {/* **The control does not wait for the board to have a window.**
+                `onPeriod` is the screen saying *my read honours a range*, and
+                that is the whole condition — a board whose every figure is
+                point-in-time has no period to print and is exactly the board an
+                operator wants to put one on. The static pill is what is left
+                when a board states a window it cannot be asked to change. */}
+            {periodSlot ?? (onPeriod ? (
+              <BoardPeriodControl
+                period={period}
+                onChange={onPeriod}
+                chartPeriod={chartPeriod}
+                t={t}
+                language={language}
+              />
+            ) : (
+              period && (
+                /* `<bdi>` isolates it: `11 – 25 Jun` is a numeral run whose
+                   leading digit the UBA otherwise moves to the far end of an
+                   Arabic line. */
+                <span className="flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2 text-2xs tabular-nums text-hero-foreground">
+                  {/* The reference's calendar mark, drawn rather than typed —
+                      Inter carries no such glyph and the browser falls through
+                      to a colour emoji font. It does not mirror: a calendar is
+                      an object, not a direction (§9.5). */}
+                  <CalendarIcon aria-hidden="true" className="size-3.5 text-hero-label" />
+                  <bdi>{periodPillLabel({ period, chartPeriod, t, language })}</bdi>
+                </span>
+              )
+            ))}
+          </div>
           {/* §8 slot 2 — the board's freshness, in the band rather than above
               it. Same key, same format, same content as the `PageHeader` line
               it replaces. */}

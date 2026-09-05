@@ -481,9 +481,11 @@ interface DataTableBaseProps<T> {
     body: string
     actions: EmptyAction[]
     illustration?: ReactNode | null
+    /** X15 — the clause the 12-word body dropped, behind an `InfoHint`. */
+    hint?: ReactNode
   }
   /** §11.5 — the `no-match` sentence. The ACTION is optional; this supplies a default. */
-  noMatch: { message: string; action?: EmptyAction }
+  noMatch: { message: string; action?: EmptyAction; hint?: ReactNode }
   /**
    * **F-3 — which empty an UNFILTERED zero is** (`specs/02-work-queues.md`
    * §4.7, **AC-234**).
@@ -523,7 +525,7 @@ interface DataTableBaseProps<T> {
    * from `No open incidents`, and a queue with one sentence for four views is
    * telling three of them a half-truth.
    */
-  cleared?: { heading: string; body: string }
+  cleared?: { heading: string; body: string; hint?: ReactNode }
   /**
    * **A sentence that defines the COLUMNS, rendered as a real `<caption>`
    * between the toolbar row and the header row.**
@@ -2107,9 +2109,20 @@ export function DataTable<T>(props: DataTableProps<T>) {
               kind="no-match"
               message={noMatch.message}
               action={noMatchAction}
+              /* X15 - one slot, passed through so a screen's explanation lands
+                 beside its own empty state rather than in the body sentence. */
+              hint={noMatch.hint}
+              t={t}
             />
           ) : emptyKind === 'cleared' && cleared ? (
-            <EmptyState card={false} kind="cleared" heading={cleared.heading} body={cleared.body} />
+            <EmptyState
+              card={false}
+              kind="cleared"
+              heading={cleared.heading}
+              body={cleared.body}
+              hint={cleared.hint}
+              t={t}
+            />
           ) : (
             <EmptyState
               card={false}
@@ -2117,6 +2130,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
               heading={firstRun.heading}
               body={firstRun.body}
               actions={firstRun.actions}
+              hint={firstRun.hint}
+              t={t}
               /* **Three values forwarded as three, which is the whole point.**
                  `EmptyState` reads `illustration === null ? null : (illustration
                  ?? <Default/>)`, so `undefined` MUST reach it as `undefined` to

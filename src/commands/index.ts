@@ -18,7 +18,7 @@
  * | `TRIP_COMMANDS` | `trip` | flag, remove flag |
  * | `APPLICANT_COMMANDS` | `applicant` | approve, reject |
  * | `TICKET_COMMANDS` | `ticket` | claim, resolve, reopen |
- * | `SUBSCRIPTION_COMMANDS` | `subscription` | cancel and settle |
+ * | `SUBSCRIPTION_COMMANDS` | `subscription` | freeze, resume, cancel and settle |
  *
  * C-1 shipped captains alone, and this header said so for long enough that the
  * palette executed with one screen's worth of commands behind it while the
@@ -39,9 +39,9 @@
  *   - **claim / release / take over**, on every work queue — `CommandSession`
  *     carries one boolean and no operator identity, and `release` without it
  *     would let one operator drop another's claim.
- *   - **`subscription.freeze`, `ticket.reply`** — `CommandConfirmRequest`
- *     carries one free-text `reason` field, and neither a duration nor a
- *     message-with-a-channel fits in it.
+ *   - **`ticket.reply`** — a message with a channel does not fit
+ *     `CommandConfirmRequest`. `subscription.freeze`'s duration now does:
+ *     `choice` is a typed option list (T6.1).
  *   - **`Open …` commands** — `CommandHost` has `openProfile` and `confirm`
  *     and no `navigate`, so a command cannot reach a detail ROUTE. ⌘K's `Find`
  *     verb already resolves an id to the 360° layer (§5).
@@ -52,7 +52,14 @@ export { CAPTAIN_COMMANDS } from './captains'
 export { TRIP_COMMANDS, FLAG_REASONS } from './trips'
 export { APPLICANT_COMMANDS } from './applicants'
 export { TICKET_COMMANDS } from './tickets'
-export { SUBSCRIPTION_COMMANDS } from './subscriptions'
+export {
+  FREEZE_DAYS,
+  SETTLE_REASONS,
+  SUBSCRIPTION_COMMANDS,
+  isTerminalSubscription,
+  reassignCandidateRefusal,
+  reassignRefusal,
+} from './subscriptions'
 export { blockedBy, blockedSentence } from './refusal'
 export { undoHandle, type UndoOptions } from './undo'
 export { COMMANDS_EN } from './copy'

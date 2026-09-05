@@ -1,57 +1,30 @@
 /**
  * **Operations > Corporate > account detail** - `/operations/corporate/:corpId`.
- *
- * ## What P4 changed here, and why each one was a defect
- *
- * **Two controls reported writes that never happened.** `handleRemoveEmployee`
- * filtered a local array and toasted *"Employee rider unlinked"*; the next read
- * of the account brought the rider straight back. `handleSendInvoice` toasted
- * *"Consolidated invoice sent to {email}"* and did nothing at all - there is no
- * invoicing operation anywhere in `@/data/clients`. Both are now **disabled in
- * place with their reason** (§11.2), and the two client operations they need
- * are named in the handoff:
- *
- * ```ts
- * removeCorporateEmployee(id: string, riderId: string, signal?: AbortSignal)
- *   : Promise<CorporateAccount>          // 409 when the rider has open rides on this account
- * sendCorporateInvoice(id: string, signal?: AbortSignal)
- *   : Promise<CorporateInvoice>          // the period, the total and the delivery record
- * ```
- *
- * A disabled control with a sentence is not a worse product than a working
- * button; it is a truthful one. The button that lied taught the operator the
- * unlink had happened, and the invoice had gone out.
- *
- * **The vehicle-tier select wrote a value the type forbids.**
- * `CorporateUsagePolicy.vehicleTier` is `'Economy' | 'Comfort' | 'any'`; the
- * options offered `'economy'` and `'comfort'`, and an `as any` cast on the
- * handler hid it. So saving the policy PATCHed a lowercase string the domain
- * does not recognise, and reopening the form showed the placeholder because
- * neither option matched. The cast is gone and `VEHICLE_TIERS` is derived from
- * the union, so a fourth tier is a compile error here rather than a silent
- * mismatch.
- *
- * **`catch (err: any)`** on the link handler is gone with it. `any` in a data
- * path is a defect; `isApiError` is the narrowing the client's own 409 was
- * written for.
- *
- * **§11.2 - refused controls are disabled, not hidden.** `canWrite` used to
- * remove `Link employee`, the policy save bar and every row's unlink from the
- * page. An operator without `manage_subscriptions` therefore saw a read-only
- * page with no indication that any of it was ever editable, which is exactly
- * what §11.2 says teaches the wrong thing. They are now rendered, disabled, and
- * they say why.
+ * §11.2 every refused control renders disabled with its reason, and each reason
+ * is a fact the account already carries, so the refusal precedes the click.
+ * X15 an explanatory sentence opens from `InfoHint` on the card title (§1.5
+ * keeps icons off card titles); §5.3 the unlink is confirmed.
  */
 
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { addCorporateEmployee, getCorporateAccount, listRiders, updateCorporateUsagePolicy } from '@/data/clients'
-import { isApiError, type CorporateAccount, type Paginated, type Rider } from '@/data/types'
+import {
+  addCorporateEmployee,
+  getCorporateAccount,
+  listRiders,
+  removeCorporateEmployee,
+  sendCorporateInvoice,
+  updateCorporateUsagePolicy,
+} from '@/data/clients'
+import { isApiError, type CorporateAccount, type CorporateBillingType, type Paginated, type Rider } from '@/data/types'
 import { useAsync } from '@/hooks'
 import { formatCount, formatDate } from '@/lib'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { CloseIcon } from '@/components/icons'
+import { InfoHint } from '@/components/InfoHint'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
@@ -62,27 +35,22 @@ import { withFallback } from '../localCopy'
 import { CORPORATE_EN } from './copy'
 import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Building2, CreditCard, Plus, ShieldAlert, Trash2, Users } from 'lucide-react'
 import { AddEmployeeModal } from './AddEmployeeModal'
 
 /**
- * The three values `CorporateUsagePolicy.vehicleTier` actually accepts, keyed
- * to their copy. Typed as a record over the union rather than three loose
- * `<SelectItem>`s, so the option values cannot drift from the domain again -
- * which is precisely how `'economy'` came to be written to a field that only
- * knows `'Economy'`.
+ * The three values `CorporateUsagePolicy.vehicleTier` accepts, keyed. Typed as a
+ * record over the union so an option value cannot drift from the domain, which
+ * is how `'economy'` came to be written to a field that knows `'Economy'`.
  */
 const VEHICLE_TIERS: Readonly<
   Record<CorporateAccount['usagePolicy']['vehicleTier'], { key: string }>
 > = {
-  /* `fallback` is gone: all three keys exist in `./copy.ts`, and the fallbacks
-     had DRIFTED from them -- `corp.tier.any` reads 'Any tier' there and read
-     'Any tier (Economy, Comfort, Exec)' here. One source, not two. */
   any: { key: 'corp.tier.any' },
   Economy: { key: 'corp.tier.economy' },
   Comfort: { key: 'corp.tier.comfort' },
@@ -92,19 +60,20 @@ const VEHICLE_TIER_VALUES = Object.keys(
   VEHICLE_TIERS,
 ) as Array<CorporateAccount['usagePolicy']['vehicleTier']>
 
+/** X2 - the billing method reaches the screen keyed, never as its own value. */
+const BILLING_KEYS: Readonly<Record<CorporateBillingType, string>> = {
+  'Monthly invoice': 'corp.billing.monthly',
+  'Prepaid balance': 'corp.billing.prepaid',
+}
+
 export function CorporateDetailScreen() {
   const shell = useShell()
   const navigate = useNavigate()
   const location = useLocation()
   const { corpId = '' } = useParams<{ corpId: string }>()
-  /* AC-74 - the copy lives in `./copy.ts`. `withFallback` resolves keys the
-     shell dictionary has not registered yet against that dictionary, so no
-     English literal sits in this file. See `../localCopy`. */
+  /* AC-74 - the copy lives in `./copy.ts`. Memoised: several screens carry `t`
+     in a `deps` array and a fresh wrapper re-runs the fetch. */
   const t = useMemo(
-    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
-       function on every call, and several screens carry `t` in a `deps`
-       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
-       which rebuilt the wrapper. Two suites hung outright. */
     () => withFallback(shell.language.t, CORPORATE_EN),
     [shell.language.t],
   )
@@ -112,9 +81,6 @@ export function CorporateDetailScreen() {
 
   const account = useAsync<CorporateAccount>(
     (signal) => getCorporateAccount(corpId, signal),
-    /* `corpId` is the fetcher's only input - the one dep that must not be
-       missing on a detail read, or one account's record serves under another's
-       id. Policy edits are held in `localPolicy`, which shadows this. */
     { deps: [corpId], cacheKey: 'corporate.get' }
   )
 
@@ -122,9 +88,15 @@ export function CorporateDetailScreen() {
   const [localPolicy, setLocalPolicy] = useState<CorporateAccount['usagePolicy'] | null>(null)
   const [policyDirty, setPolicyDirty] = useState(false)
   const [savingPolicy, setSavingPolicy] = useState(false)
-  const [localEmployees, setLocalEmployees] = useState<string[] | null>(null)
+  /* Every write returns the whole account, so one piece of state shadows the
+     read for all three of them. Discarded the moment a different id lands. */
+  const [written, setWritten] = useState<CorporateAccount | null>(null)
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const [busy, setBusy] = useState(false)
 
-  const data = account.data
+  const fetched = account.data
+  const data =
+    written !== null && fetched !== null && written.id === fetched.id ? written : fetched
 
   const currentPolicy = localPolicy ?? data?.usagePolicy ?? {
     monthlyCapHalalas: null,
@@ -139,28 +111,13 @@ export function CorporateDetailScreen() {
     approverEmail: null,
   }
 
-  const currentEmployees = localEmployees ?? data?.riderIds ?? []
+  const currentEmployees = data?.riderIds ?? []
 
   /**
-   * The linked employee riders, read through the seam.
-   *
-   * This used to be `riderFixtures.filter(...)`, which meant the card kept
-   * serving mocks after a `VITE_DATA_SOURCE=http` cutover — the seam's whole
-   * point (`REMEDIATION-PLAN.md` §2.1). `id in [...]` is a declared rider
-   * filter (`clients/riders.ts` — `filterable.id`, operator `in`), so no new
-   * client operation is needed.
-   *
-   * An empty `in` set matches nothing, so an account with no employees lands on
-   * `empty` without a special case, and `pageSize` is the size of the set so
-   * the page can never truncate the answer.
-   *
-   * The dep is the joined id list, not the array: `useAsync` compares deps
-   * shallowly, and a fresh array each render would re-fetch forever.
-   *
-   * `enabled` holds the read until the account is in hand. This is a DEPENDENT
-   * read — without the gate it fires once against an empty id set before
-   * `riderIds` exists and again after, which is a wasted request and, worse,
-   * silently swallows a `mockFailures.once` injection on the throwaway call.
+   * The linked employee riders, read through the seam (`id in [...]` is a
+   * declared rider filter). The dep is the joined id list, not the array;
+   * `enabled` holds the dependent read until the account is in hand, so a
+   * `mockFailures.once` injection cannot be swallowed by a throwaway call.
    */
   const employeeIdKey = currentEmployees.join(',')
   const employees = useAsync<Paginated<Rider>>(
@@ -172,21 +129,13 @@ export function CorporateDetailScreen() {
         },
         signal,
       ),
-    /**
-     * The other half of the collision documented on `AddEmployeeModal`'s read:
-     * same operation id, same `join(',')` dep, opposite filter operator. The
-     * operator is now in `deps` on both sides, so `riders.list::[s:<ids>,s:in]`
-     * here cannot be served `…,s:nin` there. `pageSize` follows the id set and
-     * so is already determined by `employeeIdKey`.
-     */
+    /* The operator is in `deps` on both sides of the collision with
+       `AddEmployeeModal`'s read, so `…,s:in` here cannot be served `…,s:nin`. */
     { deps: [employeeIdKey, 'in'], cacheKey: 'riders.list', enabled: account.status === 'content' },
   )
 
-  /**
-   * **P8-T1** - the 360 profile layer, as an overlay param on THIS route
-   * (AC-21 / AC-22). A rider named on this page is a rider an operator can
-   * open, without losing the account they are looking at.
-   */
+  /* P8-T1 / AC-21 - the 360 profile opens as an overlay param on THIS route, so
+     the account behind it is not lost. */
   const profileHref = (id: string) => ({
     pathname: location.pathname,
     search: withOverlay(location.search, 'entity', id),
@@ -195,16 +144,25 @@ export function CorporateDetailScreen() {
   const canWrite = shell.permissions.permissions.includes('manage_subscriptions')
 
   /**
-   * §11.2 - one sentence per refusal, and the control renders disabled beside
-   * it rather than disappearing. `noWrite` is the role refusal; the other two
-   * are *"there is no operation behind this"*, which is a different fact and
-   * gets a different sentence.
+   * §11.2 - one sentence per refusal, stated before the click. `noWrite` is the
+   * role; the other two are account facts the client's own 409 and 422 turn on
+   * (`clients/corporateAccounts.ts`), so the control never offers a write the
+   * server would refuse.
    */
-  const noWrite = canWrite
-    ? null
-    : t('corp.action.noPermission')
-  const unlinkUnavailable = t('corp.action.unlink.unavailable')
-  const invoiceUnavailable = t('corp.action.invoice.unavailable')
+  const noWrite = canWrite ? null : t('corp.action.noPermission')
+  const unlinkRefusal =
+    noWrite ?? (data?.invoiceOverdue === true ? t('corp.unlink.blocked.unbilled') : null)
+  const invoiceRefusal =
+    noWrite ??
+    (data === null || data === undefined
+      ? null
+      : data.status !== 'Active'
+        ? t('corp.invoice.blocked.notActive')
+        : data.billingType !== 'Monthly invoice'
+          ? t('corp.invoice.blocked.prepaid')
+          : data.totalSpendHalalas <= 0
+            ? t('corp.invoice.blocked.noSpend')
+            : null)
 
   const handlePolicyChange = (patch: Partial<CorporateAccount['usagePolicy']>) => {
     setLocalPolicy({ ...currentPolicy, ...patch })
@@ -228,18 +186,51 @@ export function CorporateDetailScreen() {
   const handleAddEmployee = async (riderId: string) => {
     if (!data) return
     try {
-      await addCorporateEmployee(data.id, riderId)
-      const next = [...currentEmployees, riderId]
-      setLocalEmployees(next)
+      setWritten(await addCorporateEmployee(data.id, riderId))
       toast.success(t('corp.toast.employeeAdded'))
     } catch (error: unknown) {
-      /* Re-thrown, not swallowed: `AddEmployeeModal` awaits this and renders
-         the 409 - which names the company already covering the rider - beside
-         the choice that produced it. A toast here would close the dialog over
-         the one sentence the operator needs. */
-      throw isApiError(error)
-        ? error
-        : new Error(t('corp.toast.employeeError'))
+      /* Re-thrown: `AddEmployeeModal` awaits this and renders the 409 - which
+         names the company already covering the rider - beside the choice that
+         produced it. A toast would close the dialog over that sentence. */
+      throw isApiError(error) ? error : new Error(t('corp.toast.employeeError'))
+    }
+  }
+
+  /* R5a - the ordinary primary, not red: an unlink is reversible from this
+     console through `Link employee`. §5.3 still confirms it. */
+  const askUnlink = (rider: Rider) => {
+    if (!data) return
+    setConfirm({
+      title: t('corp.unlink.confirm.title', { name: rider.name }),
+      body: t('corp.unlink.confirm.body'),
+      confirmLabel: t('corp.unlink.confirm.action'),
+      onConfirm: () => void handleRemoveEmployee(data.id, rider),
+    })
+  }
+
+  const handleRemoveEmployee = async (id: string, rider: Rider) => {
+    setBusy(true)
+    try {
+      setWritten(await removeCorporateEmployee(id, rider.id))
+      toast.success(t('corp.toast.employeeRemoved', { name: rider.name }))
+      setConfirm(null)
+    } catch {
+      toast.error(t('corp.toast.employeeRemoveError'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleSendInvoice = async () => {
+    if (!data) return
+    setBusy(true)
+    try {
+      setWritten(await sendCorporateInvoice(data.id))
+      toast.success(t('corp.toast.invoiceSent', { name: data.companyName }))
+    } catch {
+      toast.error(t('corp.toast.invoiceError'))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -275,18 +266,13 @@ export function CorporateDetailScreen() {
   const header = (
     <PageHeader
       title={data.companyName}
-      meta={`${data.id} · ${data.billingType} · ${data.status}`}
+      /* AC-75 - one key, one separator, no line assembled in JSX. */
+      meta={t('corp.detail.meta', {
+        id: data.id,
+        billing: t(BILLING_KEYS[data.billingType]),
+        status: t(`corp.status.${data.status}`),
+      })}
       onBack={() => navigate('/operations/corporate')}
-      /* **`Generate invoice` has moved out of the header, and it is now
-         refused rather than faked.** It toasted `Consolidated invoice sent to
-         {email}` with no client, no invoice record and no delivery - the
-         operator was told a bill had gone to a customer. There is no
-         invoicing operation to call, so it cannot be R3's primary; and
-         `PageAction` has a `disabled` flag but no field for a REASON, so a
-         disabled header primary could not satisfy §11.2 either. It sits in the
-         *Invoicing schedule* rail card instead, disabled, with its sentence
-         beside it - which is also where an operator looks for it. The missing
-         `PageAction.disabledReason` is reported to the `PageHeader` owner. */
       t={t}
       dir={dir}
     />
@@ -294,67 +280,69 @@ export function CorporateDetailScreen() {
 
   const main = (
     <div className="flex flex-col gap-5">
-      {/* 1. Account Summary Card */}
+      {/* 1. Account summary */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.companyDetails')}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {t('corp.card.companyDetailsDesc')}
-              </CardDescription>
-            </div>
-            <StatusBadge tone={data.status === 'Active' ? 'success' : data.status === 'Pending' ? 'info' : 'new'}>
-              {data.status}
+          <div className="flex items-start justify-between">
+            <CardTitle className="flex items-center gap-1">
+              {t('corp.card.companyDetails')}
+              <InfoHint t={t}>{t('corp.hint.companyDetails')}</InfoHint>
+            </CardTitle>
+            <StatusBadge
+              tone={
+                data.status === 'Active' ? 'success' : data.status === 'Pending' ? 'info' : 'new'
+              }
+            >
+              {t(`corp.status.${data.status}`)}
             </StatusBadge>
           </div>
         </CardHeader>
         <CardContent>
+          {/* AC-73 - an address and a number are Latin runs inside an Arabic
+              line, so each is `<bdi>` isolated and each cell truncates rather
+              than spilling into the one beside it. */}
           <div className="grid grid-cols-4 gap-4 text-xs compact:grid-cols-2">
-            <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.contact')}</span>
-              <span className="font-medium text-foreground">{data.contactName}</span>
+            <div className="min-w-0">
+              <span className="mb-0.5 block text-muted-foreground">{t('corp.contact')}</span>
+              <bdi className="block truncate font-medium text-foreground">{data.contactName}</bdi>
             </div>
-            <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.email')}</span>
-              <span className="font-medium text-foreground">{data.contactEmail}</span>
+            <div className="min-w-0">
+              <span className="mb-0.5 block text-muted-foreground">{t('corp.email')}</span>
+              <bdi className="block truncate font-medium text-foreground">{data.contactEmail}</bdi>
             </div>
-            <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.phone')}</span>
-              {/* O9 — a missing contact number is a fact the operator chases. */}
+            <div className="min-w-0">
+              <span className="mb-0.5 block text-muted-foreground">{t('corp.phone')}</span>
+              {/* O9 - a missing contact number is a fact the operator chases. */}
               {data.contactPhone === null ? (
-                <span className="font-medium text-muted-foreground">{t('corp.phone.notSet')}</span>
+                <span className="block truncate font-medium text-muted-foreground">
+                  {t('corp.phone.notSet')}
+                </span>
               ) : (
-                <span className="font-medium text-foreground">{data.contactPhone}</span>
+                <bdi className="block truncate font-medium text-foreground">
+                  {data.contactPhone}
+                </bdi>
               )}
             </div>
-            <div>
-              <span className="text-muted-foreground block mb-0.5">{t('corp.createdAt')}</span>
-              <span className="font-medium text-foreground">{formatDate(data.createdAt, { language })}</span>
+            <div className="min-w-0">
+              <span className="mb-0.5 block text-muted-foreground">{t('corp.createdAt')}</span>
+              <span className="block truncate font-medium text-foreground">
+                {formatDate(data.createdAt, { language })}
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 2. Usage Policy Editor */}
+      {/* 2. Usage policy. T9.6 - one field grid, no nested bordered box. */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.usagePolicy')}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {t('corp.card.usagePolicyDesc')}
-              </CardDescription>
-            </div>
+          <div className="flex items-start justify-between">
+            <CardTitle className="flex items-center gap-1">
+              {t('corp.card.usagePolicy')}
+              <InfoHint t={t}>{t('corp.hint.usagePolicy')}</InfoHint>
+            </CardTitle>
             {/* §11.2 - the save bar appears when the form is dirty and is
-                DISABLED with its reason when the role cannot commit it, rather
-                than the whole form being silently read-only. */}
+                disabled with its reason when the role cannot commit it. */}
             {policyDirty && (
               <span className="flex items-center gap-2">
                 {noWrite !== null && (
@@ -374,29 +362,42 @@ export function CorporateDetailScreen() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="grid grid-cols-3 gap-4 compact:grid-cols-1">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.monthlyCap')}</Label>
-              <Input
-                type="number"
-                value={currentPolicy.monthlyCapHalalas ? currentPolicy.monthlyCapHalalas / 100 : ''}
-                onChange={(e) =>
-                  handlePolicyChange({
-                    monthlyCapHalalas: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
-                  })
-                }
-                placeholder="No limit"
-                disabled={!canWrite}
-              />
+              <Label htmlFor="corp-cap" className="text-xs font-medium">
+                {t('corp.policy.monthlyCap')}
+              </Label>
+              {/* §10.2 - a money INPUT carries `SAR` as an in-field
+                  inline-START prefix, never as a placeholder. */}
+              <InputGroup>
+                <InputGroupAddon>
+                  <InputGroupText>{t('corp.sar')}</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="corp-cap"
+                  type="number"
+                  className="text-end tabular-nums"
+                  value={currentPolicy.monthlyCapHalalas ? currentPolicy.monthlyCapHalalas / 100 : ''}
+                  onChange={(e) =>
+                    handlePolicyChange({
+                      monthlyCapHalalas: e.target.value
+                        ? Math.round(parseFloat(e.target.value) * 100)
+                        : null,
+                    })
+                  }
+                  placeholder={t('corp.policy.monthlyCap.placeholder')}
+                  disabled={!canWrite}
+                />
+              </InputGroup>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.vehicleTier')}</Label>
-              {/* The option values ARE the domain's values. `as any` used to
-                  hide `'economy'` being written to a field whose union is
-                  `'Economy' | 'Comfort' | 'any'`; the cast is gone and the
-                  narrowing is a real one. */}
+              <Label htmlFor="corp-tier" className="text-xs font-medium">
+                {t('corp.policy.vehicleTier')}
+              </Label>
+              {/* The option values ARE the domain's values; the narrowing below
+                  is what an `as any` cast used to hide. */}
               <Select
                 value={currentPolicy.vehicleTier}
                 onValueChange={(val) => {
@@ -405,7 +406,7 @@ export function CorporateDetailScreen() {
                 }}
                 disabled={!canWrite}
               >
-                <SelectTrigger>
+                <SelectTrigger id="corp-tier">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -419,69 +420,81 @@ export function CorporateDetailScreen() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.approvalThreshold')}</Label>
-              <Input
-                type="number"
-                value={currentPolicy.requireApprovalAboveHalalas ? currentPolicy.requireApprovalAboveHalalas / 100 : ''}
-                onChange={(e) =>
-                  handlePolicyChange({
-                    requireApprovalAboveHalalas: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
-                  })
-                }
-                placeholder="No approval needed"
-                disabled={!canWrite}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border compact:grid-cols-1">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
-              <div className="space-y-0.5">
-                {/* H2/H3 §2.4 — the settings row is label PRIMARY over helper
-                    META. 14px/500 ink over 12px/400 grey; the helper was at an
-                    arbitrary 11px, off the ramp entirely. */}
-                <span className="text-sm font-medium text-foreground block">{t('corp.policy.workHoursOnly')}</span>
-                <span className="text-xs text-muted-foreground block">{t('corp.policy.workHoursDesc')}</span>
-              </div>
-              <Switch
-                checked={currentPolicy.workHoursOnly}
-                onCheckedChange={(checked) => handlePolicyChange({ workHoursOnly: checked })}
-                disabled={!canWrite}
-              />
+              <Label htmlFor="corp-approval" className="text-xs font-medium">
+                {t('corp.policy.approvalThreshold')}
+              </Label>
+              <InputGroup>
+                <InputGroupAddon>
+                  <InputGroupText>{t('corp.sar')}</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="corp-approval"
+                  type="number"
+                  className="text-end tabular-nums"
+                  value={
+                    currentPolicy.requireApprovalAboveHalalas
+                      ? currentPolicy.requireApprovalAboveHalalas / 100
+                      : ''
+                  }
+                  onChange={(e) =>
+                    handlePolicyChange({
+                      requireApprovalAboveHalalas: e.target.value
+                        ? Math.round(parseFloat(e.target.value) * 100)
+                        : null,
+                    })
+                  }
+                  placeholder={t('corp.policy.approvalThreshold.placeholder')}
+                  disabled={!canWrite}
+                />
+              </InputGroup>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('corp.policy.approverEmail')}</Label>
+              <Label htmlFor="corp-approver" className="text-xs font-medium">
+                {t('corp.policy.approverEmail')}
+              </Label>
               <Input
+                id="corp-approver"
                 type="email"
                 value={currentPolicy.approverEmail ?? ''}
                 onChange={(e) => handlePolicyChange({ approverEmail: e.target.value || null })}
-                placeholder="manager@company.sa"
+                placeholder={t('corp.policy.approverEmail.placeholder')}
                 disabled={!canWrite}
               />
+            </div>
+
+            {/* T9.6 - the work-hours switch is a field in this grid; its
+                sentence moved to the card title's `InfoHint`. */}
+            <div className="space-y-1.5">
+              <Label htmlFor="corp-work-hours" className="text-xs font-medium">
+                {t('corp.policy.workHoursOnly')}
+              </Label>
+              <div className="flex h-8 items-center">
+                <Switch
+                  id="corp-work-hours"
+                  checked={currentPolicy.workHoursOnly}
+                  onCheckedChange={(checked) => handlePolicyChange({ workHoursOnly: checked })}
+                  disabled={!canWrite}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 3. Linked Employees Table */}
+      {/* 3. Linked employees */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                {t('corp.card.linkedEmployees')}
-                {/* The count comes from the ACCOUNT's `riderIds`, not from the
-                    rider read, so the number does not appear, vanish and
-                    reappear as the second request resolves (§11.3 — nothing
-                    moves when the data lands). */}
-                <span className="text-xs font-normal text-muted-foreground">({currentEmployees.length})</span>
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {t('corp.card.linkedEmployeesDesc')}
-              </CardDescription>
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-1">
+              {t('corp.card.linkedEmployees')}
+              {/* §11.3 - the count comes from the ACCOUNT, not from the rider
+                  read, so it does not appear, vanish and reappear. */}
+              <span className="font-normal text-muted-foreground">
+                ({formatCount(currentEmployees.length, language)})
+              </span>
+              <InfoHint t={t}>{t('corp.hint.linkedEmployees')}</InfoHint>
+            </CardTitle>
             {/* §11.2 - rendered and refused, never removed. */}
             <span className="flex items-center gap-2">
               {noWrite !== null && (
@@ -495,25 +508,18 @@ export function CorporateDetailScreen() {
                 onClick={() => setAddEmployeeOpen(true)}
                 disabled={!canWrite}
                 aria-describedby={noWrite === null ? undefined : 'corp-link-refusal'}
-                className="gap-1"
               >
-                <Plus className="h-3.5 w-3.5" />
                 {t('corp.linkEmployee')}
               </Button>
             </span>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Four states for the card's OWN read — loading, error, empty,
-              content, in that order. `card={false}` on both states: this card
-              already exists, and a state card inside it would be a second
-              frame. */}
+          {/* Four states for the card's own read. `card={false}`: this card is
+              already a frame and a second one inside it is two. */}
           {employees.status === 'loading' ? (
             <LoadingSkeleton pattern="P1" rows={3} />
           ) : employees.status === 'error' ? (
-            /* §11.2 — card scope: the rest of the detail page (summary,
-               policy form, rail) is unaffected and stays interactive, so only
-               this card reports. Retry re-runs the rider read. */
             <ErrorState
               scope="card"
               card={false}
@@ -528,42 +534,47 @@ export function CorporateDetailScreen() {
               body={t('corp.noEmployeesBody')}
             />
           ) : (
-            <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+            <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
               {linkedRiders.map((rider) => (
                 <div
                   key={rider.id}
                   className="group/row flex items-center justify-between bg-card p-3 text-xs hover:bg-muted/30 focus-within:bg-muted/30"
                 >
                   <div className="flex min-w-0 flex-col">
-                    {/* **P8-T1** - a cell that NAMES an entity opens that
-                        entity. A real `<Link>`: focusable, middle-clickable,
-                        and its address can be copied. */}
+                    {/* P8-T1 - a cell that names an entity opens that entity. */}
                     <Link
                       to={profileHref(rider.id)}
                       className="truncate rounded-sm font-semibold text-foreground hover:underline"
                     >
                       {rider.name}
                     </Link>
-                    <span className="truncate font-mono text-xs text-muted-foreground">
-                      {rider.id} · {rider.phone} · {rider.city}
-                    </span>
+                    {/* AC-75 - one key, one separator. The row sets `text-xs`,
+                        so the line inherits its size rather than restating it
+                        as the 12px paragraph X15 counts. */}
+                    <bdi className="truncate font-mono text-muted-foreground">
+                      {t('corp.employee.meta', {
+                        id: rider.id,
+                        phone: rider.phone,
+                        city: rider.city,
+                      })}
+                    </bdi>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-muted-foreground">
-                      {t('corp.activeSubs', { count: formatCount(rider.subscriptionIds.length, language) })}
+                      {t('corp.activeSubs', {
+                        count: formatCount(rider.subscriptionIds.length, language),
+                      })}
                     </span>
-                    {/* §11.2 - disabled IN PLACE with its reason. This used to
-                        filter a local array and toast success over an unlink
-                        that the next read undid. */}
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      disabled
+                      onClick={() => askUnlink(rider)}
+                      disabled={unlinkRefusal !== null || busy}
                       aria-label={t('corp.unlinkEmployee', { name: rider.name })}
-                      aria-describedby="corp-unlink-refusal"
+                      aria-describedby={unlinkRefusal === null ? undefined : 'corp-unlink-refusal'}
                       className="text-muted-foreground"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <CloseIcon aria-hidden="true" className="size-4" />
                     </Button>
                   </div>
                 </div>
@@ -571,13 +582,11 @@ export function CorporateDetailScreen() {
             </div>
           )}
 
-          {/* §8.4.4 - ONE sentence for the whole column of disabled unlink
-              buttons, pointed at by every one of them. Twenty-five copies of
-              the same line would be noise; a `title` would be invisible to the
-              keyboard. */}
-          {employees.status === 'content' && (
+          {/* §8.4.4 - ONE sentence for the whole column of refused unlinks,
+              pointed at by every one of them. */}
+          {employees.status === 'content' && unlinkRefusal !== null && (
             <p id="corp-unlink-refusal" className="pt-2 text-2xs text-muted-foreground">
-              {noWrite ?? unlinkUnavailable}
+              {unlinkRefusal}
             </p>
           )}
         </CardContent>
@@ -588,52 +597,46 @@ export function CorporateDetailScreen() {
   const rail = [
     <Card key="spend-summary">
       <CardHeader className="pb-2">
-        {/* H3 — this is a metric tile's LABEL wearing a card title, so it
-            keeps the META rank (12px, --ev-text-2, 400) rather than the card
-            title's. `font-medium` was the decoration H3 exists to take back:
-            weight below the numeral it labels inverts the two channels. */}
-        <CardTitle className="text-xs text-muted-foreground">{t('corp.lifetimeSpend')}</CardTitle>
+        {/* H3 - a metric tile's LABEL wearing a card title keeps the META rank
+            rather than the title's; weight below the numeral inverts them. */}
+        <CardTitle className="flex items-center gap-1 text-xs text-muted-foreground">
+          {t('corp.lifetimeSpend')}
+          <InfoHint t={t}>
+            {t('corp.hint.lifetimeSpend', {
+              count: formatCount(currentEmployees.length, language),
+            })}
+          </InfoHint>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* **H4, and this was the ramp's one real weight defect.**
-            `globals.css` names this line by file: `text-xl font-bold` (700)
-            where the rank says 600, and *"the only `font-bold` on a title
-            anywhere in `src/`"*. It is not a title — it is a KPI numeral — so
-            it takes `--text-kpi` at 600 and the `metric-value` slot that pins
-            the tabular figures, exactly as `MetricTile` does. `text-xl` would
-            have been the wrong answer at the right size: that step is THE PAGE
-            TITLE, one per screen, and this screen already has one. */}
+        {/* H4 - a KPI numeral, not a title: `--text-kpi` at 600 in the
+            `metric-value` slot that pins the tabular figures. */}
         <div data-slot="metric-value" className="text-kpi font-semibold text-foreground">
           <Money amount={data.totalSpendHalalas} />
         </div>
-        <span className="text-xs text-muted-foreground block mt-1">
-          {t('corp.activeRidersCount', { count: currentEmployees.length })}
-        </span>
       </CardContent>
     </Card>,
     <Card key="invoicing-schedule">
       <CardHeader className="pb-2">
-        {/* H2/H3 — a card title is ink, never quieter than the body it sits
-            over. This one was 12px grey above 12px grey body: same size, same
-            colour, no scan path into the card. `CardTitle`'s own
-            `text-sm font-semibold text-foreground` is the rank; only the icon
-            layout is overridden here. */}
-        <CardTitle className="flex items-center gap-1.5">
-          <CreditCard className="h-3.5 w-3.5" />
-          {t('corp.invoicingSchedule')}
-        </CardTitle>
+        <CardTitle>{t('corp.invoicingSchedule')}</CardTitle>
       </CardHeader>
-      <CardContent className="text-xs space-y-2">
+      <CardContent className="space-y-2 text-xs">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.method')}:</span>
-          <span className="font-medium text-foreground">{data.billingType}</span>
+          <span className="text-muted-foreground">{t('corp.method')}</span>
+          <span className="font-medium text-foreground">
+            {t(BILLING_KEYS[data.billingType])}
+          </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.billingDay')}:</span>
-          <span className="font-medium text-foreground">Day {data.invoiceDayOfMonth} of month</span>
+          <span className="text-muted-foreground">{t('corp.billingDay')}</span>
+          <span className="font-medium text-foreground">
+            <bdi>
+              {t('corp.billingDay.value', { day: String(data.invoiceDayOfMonth) })}
+            </bdi>
+          </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">{t('corp.nextInvoice')}:</span>
+          <span className="text-muted-foreground">{t('corp.nextInvoice')}</span>
           <span className="font-medium text-foreground">
             {data.nextInvoiceOn
               ? formatDate(data.nextInvoiceOn, { language })
@@ -641,22 +644,24 @@ export function CorporateDetailScreen() {
           </span>
         </div>
 
-        {/* §11.2 - the invoice action, disabled IN PLACE with its reason as
-            real text. It used to be the page's primary and it used to toast
-            success over an invoice that was never generated and never sent. */}
+        {/* §11.2 - the invoice write, refused in place with the account fact
+            that would produce the 409 or the 422. */}
         <div className="flex flex-col gap-1 border-t border-border pt-2">
           <Button
             size="xs"
             variant="secondary"
-            disabled
-            aria-describedby="corp-invoice-refusal"
+            onClick={() => void handleSendInvoice()}
+            disabled={invoiceRefusal !== null || busy}
+            aria-describedby={invoiceRefusal === null ? undefined : 'corp-invoice-refusal'}
             className="w-full"
           >
-            {t('corp.sendInvoice')}
+            {busy ? t('corp.action.invoicing') : t('corp.sendInvoice')}
           </Button>
-          <span id="corp-invoice-refusal" className="text-2xs text-muted-foreground">
-            {noWrite ?? invoiceUnavailable}
-          </span>
+          {invoiceRefusal !== null && (
+            <span id="corp-invoice-refusal" className="text-2xs text-muted-foreground">
+              {invoiceRefusal}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>,
@@ -665,6 +670,8 @@ export function CorporateDetailScreen() {
   return (
     <>
       <DetailPage header={header} main={main} rail={rail} />
+
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={busy} t={t} />
 
       <AddEmployeeModal
         corpId={data.id}

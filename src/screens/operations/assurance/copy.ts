@@ -14,6 +14,11 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.meta.absences.one': '1 absence',
   'assurance.meta.absences.other': '{count} absences',
 
+  /* §12 asked the route table for an `all` view on this queue and it has not
+     grown one; the screen declares it through `useQueueViews`, so the label is
+     the screen's key rather than a `view.assurance.*` the shell would own. */
+  'assurance.view.all': 'All legs',
+
   'assurance.search.legs': 'Search by rider, captain, route or subscription',
   'assurance.search.absences': 'Search by captain or subscription',
 
@@ -61,7 +66,7 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.ack.whatsapp': 'Attested on WhatsApp',
   /* `ACK_SOURCE` (`:18135`): *"Not a confirmation. Use only when the leg must
      proceed and somebody has decided to carry the risk."* The word says so. */
-  'assurance.ack.assumed': 'Assumed — not confirmed',
+  'assurance.ack.assumed': 'Assumed · not confirmed',
   'assurance.ack.by': '{source} · {name}',
   'assurance.ack.handedOff': 'Handed to backup',
 
@@ -70,8 +75,11 @@ export const ASSURANCE_EN: Dictionary = {
      and the row states the reason by name. This is the gap `renderCoverage`
      calls the only number that matters (`:17517`). */
   'assurance.backup.none': 'Nobody registered',
-  'assurance.backup.eligible': '{name} — eligible',
-  'assurance.backup.ineligible': '{name} — {reason}',
+  /* The filter's own label. `backup.eligible` carries a name and reads as
+     `· eligible` with that name blank, which is not a control label. */
+  'assurance.backup.filter.eligible': 'Backup eligible',
+  'assurance.backup.eligible': '{name} · eligible',
+  'assurance.backup.ineligible': '{name} · {reason}',
   'assurance.backup.offered': 'Offered to {name}',
   'assurance.backup.nearby.one': '1 captain nearby',
   'assurance.backup.nearby.other': '{count} captains nearby',
@@ -89,7 +97,7 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.confirm.commit': 'Record confirmation',
   'assurance.confirm.choice': 'How was it confirmed?',
   'assurance.confirm.choice.help':
-    'The source is on the record. “Assumed” is not a confirmation — it is a risk somebody accepted.',
+    '“Assumed” is not a confirmation. It is a risk somebody accepted, on the record.',
   'assurance.confirm.choice.message': 'Choose how this was confirmed.',
   'assurance.confirm.choice.placeholder': 'Choose a source',
   'assurance.confirm.choice.empty': 'No confirmation source is available.',
@@ -98,7 +106,7 @@ export const ASSURANCE_EN: Dictionary = {
     'Required for “Assumed”. Name the person who decided this leg proceeds unconfirmed.',
   'assurance.confirm.reason.message': 'Say who is carrying the risk.',
 
-  'assurance.offer.title': 'Hand {id} to a backup captain?',
+  'assurance.offer.title': 'Hand {id} to backup?',
   'assurance.offer.body':
     'The backup has 20 minutes to answer. The leg is not covered until they do, and the primary captain keeps the leg until then.',
   'assurance.offer.commit': 'Send the offer',
@@ -151,7 +159,7 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.absence.frozen': 'Frozen {days} days',
   'assurance.action.waive': 'Waive',
   'assurance.action.waive.help': 'Waive this strike, with a reason on the record',
-  'assurance.waive.title': 'Waive this strike against {name}?',
+  'assurance.waive.title': 'Waive {name}’s strike?',
   'assurance.waive.body':
     'The strike stays in the ledger and stops counting towards the next tier. The forfeited earnings are not returned from here.',
   'assurance.waive.confirm': 'Waive strike',
@@ -172,8 +180,12 @@ export const ASSURANCE_EN: Dictionary = {
 
   'assurance.empty.firstRun.heading': 'Tomorrow’s subscription trips land here',
   'assurance.empty.firstRun.body':
-    'Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue.',
+    'Legs departing soon, plans with no backup, and commitments nobody confirmed.',
   'assurance.empty.firstRun.action': 'Show every leg',
+  /* X15 - the clause the 12-word body dropped. It explains the scope; it does
+     not change what the operator does next, so it is asked for. */
+  'assurance.firstRun.hint':
+    'Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue.',
 
   'assurance.empty.noMatch': 'No leg matches this search.',
   'assurance.empty.noMatch.absences': 'No absence matches this search.',

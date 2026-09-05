@@ -14,36 +14,67 @@ import {
   ArrowUpIcon as RawArrowUp,
   ArrowUpDownIcon as RawArrowUpDown,
   BanIcon as RawBan,
+  BanknoteIcon as RawBanknote,
   BellOffIcon as RawBellOff,
   Building2Icon as RawBuilding2,
+  CalendarIcon as RawCalendar,
+  ChartLineIcon as RawChartLine,
+  BarChart3Icon as RawBarChart3,
+  BellIcon as RawBell,
   CarFrontIcon as RawCarFront,
   CheckIcon as RawCheck,
   ChevronDownIcon as RawChevronDown,
   ChevronLeftIcon as RawChevronLeft,
   ChevronRightIcon as RawChevronRight,
+  ChevronsUpDownIcon as RawChevronsUpDown,
+  CircleAlertIcon as RawCircleAlert,
   CircleCheckIcon as RawCircleCheck,
   CirclePauseIcon as RawCirclePause,
   CircleXIcon as RawCircleX,
   ClockIcon as RawClock,
   Columns3Icon as RawColumns3,
+  DivideIcon as RawDivide,
+  CopyIcon as RawCopy,
   DownloadIcon as RawDownload,
   EllipsisIcon as RawEllipsis,
+  FilePlus2Icon as RawFilePlus2,
+  FileSpreadsheetIcon as RawFileSpreadsheet,
+  FilterIcon as RawFilter,
   FlagIcon as RawFlag,
   FileTextIcon as RawFileText,
+  HashIcon as RawHash,
+  GitBranchIcon as RawGitBranch,
+  GripVerticalIcon as RawGripVertical,
+  HistoryIcon as RawHistory,
+  HourglassIcon as RawHourglass,
+  ImageIcon as RawImage,
   InboxIcon as RawInbox,
   InfoIcon as RawInfo,
+  LayoutDashboardIcon as RawLayoutDashboard,
+  LibraryBigIcon as RawLibraryBig,
   LifeBuoyIcon as RawLifeBuoy,
+  LineChartIcon as RawLineChart,
+  Link2Icon as RawLink2,
   ListFilterIcon as RawListFilter,
   MapIcon as RawMap,
+  PercentIcon as RawPercent,
+  Maximize2Icon as RawMaximize2,
+  MinusIcon as RawMinus,
+  PlusIcon as RawPlus,
+  PieChartIcon as RawPieChart,
   RefreshCwIcon as RawRefreshCw,
   RepeatIcon as RawRepeat,
   ReplaceIcon as RawReplace,
   RouteIcon as RawRoute,
+  SaveIcon as RawSave,
   ScaleIcon as RawScale,
   SearchIcon as RawSearch,
   ShieldCheckIcon as RawShieldCheck,
   SirenIcon as RawSiren,
   SnowflakeIcon as RawSnowflake,
+  StarIcon as RawStar,
+  Table2Icon as RawTable2,
+  Trash2Icon as RawTrash2,
   TriangleAlertIcon as RawTriangleAlert,
   UserRoundIcon as RawUserRound,
   UserRoundPlusIcon as RawUserRoundPlus,
@@ -114,11 +145,64 @@ export const SortAscIcon = icon(RawArrowUp, 'SortAscIcon')
 export const SortDescIcon = icon(RawArrowDown, 'SortDescIcon')
 export const ColumnsIcon = icon(RawColumns3, 'ColumnsIcon')
 export const RefreshIcon = icon(RawRefreshCw, 'RefreshIcon')
+/* The map surface's three: two zoom steps and the expand (T9.11, X17). */
+export const ZoomInIcon = icon(RawPlus, 'ZoomInIcon')
+export const ZoomOutIcon = icon(RawMinus, 'ZoomOutIcon')
+export const ExpandIcon = icon(RawMaximize2, 'ExpandIcon')
 export const SearchIcon = icon(RawSearch, 'SearchIcon')
 export const MoreIcon = icon(RawEllipsis, 'MoreIcon')
 export const InfoIcon = icon(RawInfo, 'InfoIcon')
 export const CheckIcon = icon(RawCheck, 'CheckIcon')
 export const CloseIcon = icon(RawX, 'CloseIcon')
+export const CopyIcon = icon(RawCopy, 'CopyIcon')
+export const DeleteIcon = icon(RawTrash2, 'DeleteIcon')
+export const SaveIcon = icon(RawSave, 'SaveIcon')
+export const LinkIcon = icon(RawLink2, 'LinkIcon')
+export const DragHandleIcon = icon(RawGripVertical, 'DragHandleIcon')
+export const SortNoneIcon = icon(RawChevronsUpDown, 'SortNoneIcon')
+/* Reorder, not sort: a tile moves up or down an ordered list (§11.2). */
+export const MoveUpIcon = icon(RawArrowUp, 'MoveUpIcon')
+export const MoveDownIcon = icon(RawArrowDown, 'MoveDownIcon')
+export const CsvIcon = icon(RawFileSpreadsheet, 'CsvIcon')
+export const ImageIcon = icon(RawImage, 'ImageIcon')
+export const NewReportIcon = icon(RawFilePlus2, 'NewReportIcon')
+export const LibraryIcon = icon(RawLibraryBig, 'LibraryIcon')
+export const HistoryIcon = icon(RawHistory, 'HistoryIcon')
+export const CalendarIcon = icon(RawCalendar, 'CalendarIcon')
+
+/* ── Report shapes and modes (§12). One glyph per `ChartType` and per mode. ─ */
+
+export const LineChartIcon = icon(RawLineChart, 'LineChartIcon')
+export const BarChartIcon = icon(RawBarChart3, 'BarChartIcon')
+export const PieChartIcon = icon(RawPieChart, 'PieChartIcon')
+export const TableChartIcon = icon(RawTable2, 'TableChartIcon')
+/* Lucide's `Filter` IS the funnel outline; `ListFilter` is the toolbar action
+   above. A journey branches, so it keeps `GitBranch`. */
+export const FunnelIcon = icon(RawFilter, 'FunnelIcon')
+export const JourneyIcon = icon(RawGitBranch, 'JourneyIcon')
+export const RetentionIcon = icon(RawRepeat, 'RetentionIcon')
+export const DashboardIcon = icon(RawLayoutDashboard, 'DashboardIcon')
+export const AlertRuleIcon = icon(RawBell, 'AlertRuleIcon')
+export const CoolingIcon = icon(RawHourglass, 'CoolingIcon')
+export const NotWorkingIcon = icon(RawCircleAlert, 'NotWorkingIcon')
+
+/* ── Measures. One glyph per `MetricUnit`, plus the two marks a board's
+      chrome draws. The §1.5 card-title exception is `ChartCard`'s own and is
+      recorded there; nothing else may put one on a heading. ─────────────── */
+
+export const MoneyIcon = icon(RawBanknote, 'MoneyIcon')
+export const CountIcon = icon(RawHash, 'CountIcon')
+export const PercentIcon = icon(RawPercent, 'PercentIcon')
+export const DurationIcon = icon(RawClock, 'DurationIcon')
+export const RatingIcon = icon(RawStar, 'RatingIcon')
+export const RatioIcon = icon(RawDivide, 'RatioIcon')
+export const ChartIcon = icon(RawChartLine, 'ChartIcon')
+
+/* ── Deltas. A caret encodes magnitude, not reading order: it never mirrors
+      (§9.5), which is why it is not in the directional block below. ─────── */
+
+export const DeltaUpIcon = icon(RawArrowUp, 'DeltaUpIcon')
+export const DeltaDownIcon = icon(RawArrowDown, 'DeltaDownIcon')
 
 /* ── Directional glyphs. Never used raw; go through the helpers below. ──── */
 

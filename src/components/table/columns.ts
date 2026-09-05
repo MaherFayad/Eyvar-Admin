@@ -101,6 +101,12 @@ export interface DataColumn<T> {
   /** Already translated. Rendered 12px/500 `--ev-text-2`, no uppercase (D18). */
   header: string
   /**
+   * X15 — what this column MEANS, behind an `InfoHint` beside the header
+   * label. For an explanation only: anything the operator must read to act
+   * belongs in the cell or in the page's own copy, never in a tooltip.
+   */
+  readonly headerHint?: ReactNode
+  /**
    * §9.1 — text and dates inline-START; numeric, currency and count
    * inline-END. The header follows the value, so the two share one edge
    * (**AC-44**), and §3.2 puts the menu caret on the far side of the label.

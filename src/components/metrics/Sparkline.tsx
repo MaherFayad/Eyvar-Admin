@@ -35,7 +35,9 @@ export function Sparkline({ values, description, className }: SparklineProps) {
   const peak = readings.length > 0 ? Math.max(...readings, 0) : 0
 
   return (
-    <div className={cn('flex', className)}>
+    /* `relative` is the `sr-only` span's containing block: absolute with none
+       resolves against the ICB and stretches the document past the viewport. */
+    <div className={cn('relative flex', className)}>
       <span className="sr-only">{description}</span>
       {/* §9.2 — the plot area does not mirror. */}
       <div dir="ltr" aria-hidden="true" className="min-w-0 flex-1">

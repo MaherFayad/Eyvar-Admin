@@ -307,3 +307,28 @@ describe('the summary, which the header and the chip both read', () => {
     expect(`${parts.before}${parts.value}${parts.after}`).toBe('City: Riyadh')
   })
 })
+
+/* ═══════════════ X15 — what a column MEANS, beside its label ═════════════ */
+
+describe('a column explains itself on request', () => {
+  it('opens the sentence from an icon beside the header, on a controllable column', async () => {
+    const user = userEvent.setup()
+    render(<Harness cols={columns({ headerHint: 'Only completed trips count.' })} />)
+    await user.click(screen.getByRole('button', { name: 'What this means' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Only completed trips count.')
+  })
+
+  it('opens it on an INERT header too, which has no menu to hang it on', async () => {
+    const user = userEvent.setup()
+    const cols = columns()
+    cols[3] = { ...cols[3]!, headerHint: 'Nothing sorts or filters here.' }
+    render(<Harness cols={cols} />)
+    await user.click(screen.getByRole('button', { name: 'What this means' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Nothing sorts or filters here.')
+  })
+
+  it('draws no icon on a column that declares none', () => {
+    render(<Harness cols={columns()} />)
+    expect(screen.queryByRole('button', { name: 'What this means' })).toBeNull()
+  })
+})

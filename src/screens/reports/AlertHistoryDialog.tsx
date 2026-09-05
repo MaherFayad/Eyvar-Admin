@@ -49,7 +49,7 @@
  */
 
 import { useMemo } from 'react'
-import { HistoryIcon } from 'lucide-react'
+import { HistoryIcon } from '@/components/icons'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import type { DataColumn } from '@/components/table/columns'

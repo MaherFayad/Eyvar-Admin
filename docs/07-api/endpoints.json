@@ -1710,6 +1710,116 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/growth/incentives",
+      "client": "src/data/clients/growth.ts",
+      "function": "listGrowthIncentives",
+      "params": "q · page · pageSize · sort · filter",
+      "body": null,
+      "returns": "Paginated<GrowthIncentive>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/growth/incentives/:id",
+      "client": "src/data/clients/growth.ts",
+      "function": "setGrowthIncentiveActive",
+      "params": null,
+      "body": "{ active: boolean }",
+      "returns": "GrowthIncentive",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the rule does not exist"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/incentives/facets",
+      "client": "src/data/clients/growth.ts",
+      "function": "getGrowthIncentiveFacets",
+      "params": null,
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/messages",
+      "client": "src/data/clients/growth.ts",
+      "function": "listGrowthBulkMessages",
+      "params": "q · page · pageSize · sort · filter",
+      "body": null,
+      "returns": "Paginated<GrowthBulkMessage>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/messages/facets",
+      "client": "src/data/clients/growth.ts",
+      "function": "getGrowthMessageFacets",
+      "params": null,
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/promos",
+      "client": "src/data/clients/growth.ts",
+      "function": "listGrowthPromos",
+      "params": "q · page · pageSize · sort · filter",
+      "body": null,
+      "returns": "Paginated<GrowthPromo>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/growth/promos/:code/status",
+      "client": "src/data/clients/growth.ts",
+      "function": "setGrowthPromoStatus",
+      "params": null,
+      "body": "{ status: 'active' | 'paused' }",
+      "returns": "GrowthPromo",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "unknown code · 409 `campaign_not_pausable` when exhausted or expired"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/promos/facets",
+      "client": "src/data/clients/growth.ts",
+      "function": "getGrowthPromoFacets",
+      "params": null,
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/referrals",
+      "client": "src/data/clients/growth.ts",
+      "function": "listGrowthReferrals",
+      "params": "q · page · pageSize · sort · filter",
+      "body": null,
+      "returns": "Paginated<GrowthReferral>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth/referrals/facets",
+      "client": "src/data/clients/growth.ts",
+      "function": "getGrowthReferralFacets",
+      "params": null,
+      "body": null,
+      "returns": "Facets",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/incidents",
       "client": "src/data/clients/safety.ts",
       "function": "listSafetyIncidents",
@@ -2772,7 +2882,7 @@
       "path": "/api/v1/reports",
       "client": "src/data/clients/reports.ts",
       "function": "listReports",
-      "params": "q · view=mine|team · page · pageSize",
+      "params": "q · view=mine|team · filters[chartType|ownerId|lastRunAt] · page · pageSize",
       "body": null,
       "returns": "Paginated<SavedReport>",
       "statuses": []
@@ -3149,6 +3259,21 @@
         {
           "code": "409",
           "when": "when the subscription is cancelled or expired"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/subscriptions/:id/unfreeze",
+      "client": "src/data/clients/subscriptions.ts",
+      "function": "unfreezeSubscription",
+      "params": null,
+      "body": null,
+      "returns": "Subscription  (`status: 'active'`, `frozenUntil: null`)",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`not_frozen` when the subscription is not frozen"
         }
       ]
     },

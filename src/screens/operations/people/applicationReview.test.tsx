@@ -23,7 +23,7 @@
  *      case and must never render as an error.
  */
 
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -37,6 +37,8 @@ import {
 import { DOCUMENT_TYPES, type Applicant } from '@/data/types'
 import { createTranslator, type Translator } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
+import { ShellProvider } from '@/shell/ShellContext'
+import { ApplicantDetailScreen } from './ApplicantDetailScreen'
 import { ApplicationSheet } from './ApplicationSheet'
 import { approvalChecklist, approvalRefusal, documentsFor, openDocuments } from './documentReview'
 
@@ -314,6 +316,51 @@ describe('the document store answers the four outcomes', () => {
        sentence to an operator and a different bug to whoever is called. */
     const read = await getApplicationDocumentFile(empty.id)
     expect(read.outcome).toBe('no-file-on-record')
+  })
+})
+
+/* === 6 · the detail page's own refusal and rail order (X1, §11.2) ======= */
+
+/**
+ * The checklist is the answer to *can I approve this yet*, so it is the rail's
+ * first card rather than its last: at 1280 x 800 it sat below the fold, under
+ * the button it explains.
+ */
+describe('the applicant page refuses the approval where the operator is looking', () => {
+  function mountDetail(id: string) {
+    return render(
+      <MemoryRouter initialEntries={[`/operations/people/applications/${id}`]}>
+        <ShellProvider>
+          <Routes>
+            <Route
+              path="/operations/people/applications/:applicantId"
+              element={<ApplicantDetailScreen />}
+            />
+          </Routes>
+        </ShellProvider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('disables Approve captain and states the reason on the page while a document is open', async () => {
+    const applicant = await applicationWithOpenDocuments()
+    mountDetail(applicant.id)
+    const approve = await screen.findByRole('button', { name: en('applicant.action.approve') })
+    expect(approve).toBeDisabled()
+    /* The same sentence the predicate returns, so the two cannot drift. */
+    const reason = approvalRefusal(applicant, applicant.status, true, t)
+    expect(screen.getByText(reason!)).toBeInTheDocument()
+  })
+
+  it('puts the checklist first in the rail, before the record cards', async () => {
+    const applicant = await applicationWithOpenDocuments()
+    mountDetail(applicant.id)
+    const checklist = await screen.findByText(en('applicant.check.heading'))
+    const bank = screen.getByText(en('applicant.bankDetails'))
+    /* Document order, which is the rail's restack order too (AC-34). */
+    expect(
+      checklist.compareDocumentPosition(bank) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })
 
