@@ -109,6 +109,7 @@ export interface BoardHeroProps {
    * would be two sets of presets for one window (§3.2). Outranks `onPeriod`.
    */
   periodSlot?: ReactNode
+  /**
    * T5.7 — the window of the chart drawn under the band. Given and different
    * from `period`, the pill names both scopes rather than one.
    */
