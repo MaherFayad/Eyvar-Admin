@@ -147,6 +147,10 @@ async function probe(page, opts, compact) {
         return r.left >= p.left - 1 && r.right <= p.right + 1
       }) : true
       const identityWidth = line2 ? Math.round(line2.getBoundingClientRect().width) : null
+      /* R-2: no line-2 text shows cut; a word is whole or sr-only. */
+      const line2Truncated = line2
+        ? [...line2.querySelectorAll('*')].filter((el) => visible(el) && !el.classList.contains('sr-only') && el.scrollWidth > el.clientWidth + 1).length
+        : 0
       /* R-1: the customer's name in the reply tab fits whole unless it truly cannot. */
       const tabName = composer ? composer.querySelector('[data-inbox-tab-name]') : null
       const nameFits = tabName ? tabName.scrollWidth <= tabName.clientWidth : true
@@ -188,6 +192,7 @@ async function probe(page, opts, compact) {
         headerCollisions,
         clockVisible,
         identityWidth,
+        line2Truncated,
         tabsOutside,
         nameFits,
         headerButtons: header ? [...header.querySelectorAll('button')].filter(visible).map((b) => b.textContent?.trim() || b.getAttribute('aria-label')) : [],
@@ -230,6 +235,7 @@ for (const language of ['en', 'ar']) {
         if (!opts.emptyThread && !opts.longName && !opts.snoozed && facts.avatarClusters < 2) bad.push(`avatar clusters ${facts.avatarClusters}`)
         if (facts.headerCollisions !== 0) bad.push(`header collisions ${facts.headerCollisions}`)
         if (!facts.clockVisible) bad.push('clock clipped')
+        if (facts.line2Truncated !== 0) bad.push(`line 2 truncated ${facts.line2Truncated}`)
         if (facts.tabsOutside !== 0) bad.push(`tabs outside list ${facts.tabsOutside}`)
         if (!opts.longName && !facts.nameFits) bad.push('tab name truncated')
         /* Zero filled in the header while held; `Claim` is the one filled button when unheld (§4.1). */

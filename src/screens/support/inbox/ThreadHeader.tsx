@@ -3,8 +3,8 @@
  * layer, channel · status · the one running clock, then the actions. `Claim`,
  * `Take over` and `Reopen` are the only filled buttons; while held, `Send` is
  * the screen's (§8.6, R2). A `⋯` exists only when it holds three or more (D8-b);
- * fewer render as labelled ghosts. Line 2 clips in order: channel word, status
- * badge, never the clock. A refusal renders once beneath (§8.6.8).
+ * fewer render as labelled ghosts. Line 2 yields in order: the channel word goes
+ * sr-only (the glyph carries it), then the status badge hides, never the clock. A refusal renders once beneath (§8.6.8).
  */
 
 import { useLayoutEffect, useRef, useState } from 'react'
@@ -80,7 +80,7 @@ export function ThreadHeader({
   const pool = compact ? [...visible.slice(kept.length), ...overflow] : overflow
   const menu = pool.length >= 3 ? pool : []
   const shown = pool.length >= 3 ? kept : [...kept, ...pool]
-  const { line2, hideBadge } = useLine2Clip()
+  const { line2, hideChannel, hideBadge } = useLine2Clip()
 
   return (
     <header className="flex flex-col border-b border-border">
@@ -102,7 +102,9 @@ export function ThreadHeader({
           <div ref={line2} data-inbox-line2="" className="flex min-w-0 items-center gap-2 overflow-hidden text-xs text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1">
               <Glyph className="size-3.5 shrink-0" />
-              <span className="min-w-0 truncate">{t(CHANNEL_KEY[conversation.channel])}</span>
+              <span data-inbox-channel="" className={hideChannel ? 'sr-only' : 'whitespace-nowrap'}>
+                {t(CHANNEL_KEY[conversation.channel])}
+              </span>
             </span>
             <span data-inbox-badge="" className={hideBadge ? 'hidden' : 'shrink-0'}>
               <StatusBadge tone={STATUS_TONE[conversation.status]}>{t(STATUS_KEY[conversation.status])}</StatusBadge>
@@ -174,33 +176,46 @@ export function ThreadHeader({
   )
 }
 
-/** The channel word already truncates; the badge shrinks to nothing so the pill never clips. */
-const CHANNEL_MIN_PX = 24
+/** The channel glyph is `size-3.5`; its gap to the word is 4px. */
+const GLYPH_PX = 14
+const WORD_GAP_PX = 4
 const GAP_PX = 8
 
-/* Line 2 clips in order (V-1): the channel word truncates first, then the
-   status badge hides, and the running clock is never clipped. Measured with a
-   ResizeObserver; a zero-width line (jsdom) hides nothing. */
-function useLine2Clip(): { line2: React.RefObject<HTMLDivElement | null>; hideBadge: boolean } {
+/* Line 2 yields in order (V-1, R-2): the channel word goes sr-only when it
+   cannot show whole, then the status badge hides, and the running clock is
+   never clipped. Measured with a ResizeObserver; a zero-width line (jsdom)
+   hides nothing. */
+function useLine2Clip(): {
+  line2: React.RefObject<HTMLDivElement | null>
+  hideChannel: boolean
+  hideBadge: boolean
+} {
   const line2 = useRef<HTMLDivElement | null>(null)
   const badgeWidth = useRef(0)
+  const wordWidth = useRef(0)
+  const [hideChannel, setHideChannel] = useState(false)
   const [hideBadge, setHideBadge] = useState(false)
   useLayoutEffect(() => {
     const el = line2.current
     if (!el || typeof ResizeObserver === 'undefined') return undefined
     const measure = () => {
       const badge = el.querySelector<HTMLElement>('[data-inbox-badge]')
+      const word = el.querySelector<HTMLElement>('[data-inbox-channel]')
       const clock = el.querySelector<HTMLElement>('[data-inbox-clock]')
       if (badge && badge.offsetWidth > 0) badgeWidth.current = badge.offsetWidth
+      if (word && word.offsetWidth > 0) wordWidth.current = word.scrollWidth
       const width = el.clientWidth
       if (width === 0) return
-      const needed = CHANNEL_MIN_PX + GAP_PX + badgeWidth.current + (clock ? GAP_PX + clock.offsetWidth : 0)
-      setHideBadge(needed > width)
+      const base = GLYPH_PX + (clock ? GAP_PX + clock.offsetWidth : 0)
+      const withBadge = base + GAP_PX + badgeWidth.current
+      const whole = withBadge + WORD_GAP_PX + wordWidth.current
+      setHideChannel(whole > width)
+      setHideBadge(withBadge > width)
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(el)
     return () => observer.disconnect()
   })
-  return { line2, hideBadge }
+  return { line2, hideChannel, hideBadge }
 }
