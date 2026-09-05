@@ -53,6 +53,23 @@ rule's own site and add it to the list below. Overridden so far:
 Not overridden, and not to be assumed overridden: R7's "comparison differs by dash, never by
 hue", and `pairRefusal`'s rule for what may share one y-axis.
 
+### A surface recesses, and nothing casts a shadow (2026-09-06)
+
+The owner ruled on how layers stack. **D15 — a surface is recessed.** A card, container,
+popover, dropdown, dialog, sheet or command palette is DARKER than the page it sits on, in
+both themes. The page is the lightest layer; nothing is ever raised above it. In light the
+page stays white and a card reads as a grey panel on it. In dark the page keeps its value and
+a card sits below it.
+
+**D16 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
+drop shadow, an inset highlight or a glow. Separation is the value step plus a hairline,
+nothing else. A dark card therefore keeps a real hairline edge, because the inset highlight
+that used to draw it is gone. The modal scrim survives: a scrim is what makes a modal modal,
+and it is not a shadow. A focus ring survives: a ring is not a shadow.
+
+AC-CC-01 keeps its magnitude and loses its direction. A card must still clear 1.25:1 against
+its ground; it now clears it downward.
+
 ### Onboarding may welcome once and may float its progress (2026-09-05)
 
 The owner asked for a welcome on first arrival, a floating progress indicator, and pictures in
@@ -149,6 +166,8 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception |
 | D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen |
 | D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look |
+| D15 — a surface RECESSES: a card, container, popover, dialog or sheet is darker than the page it sits on, in both themes |
+| D16 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |
