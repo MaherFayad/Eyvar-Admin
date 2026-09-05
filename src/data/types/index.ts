@@ -62,6 +62,7 @@ export { WORKSPACE_IDS } from './navigation'
 export type {
   PermissionDelta,
   ProposedRoleName,
+  RoleId,
   RoleName,
   Session,
   TeamUser,
@@ -76,7 +77,9 @@ export type {
  * `clients/session.ts` and `clients/auth.ts` and from **nothing in the UI**,
  * which re-derives no authority of its own (§8.2).
  */
-export { ROLE_NAMES, ROLE_PERMISSIONS, effectivePermissions, granterRoleFor } from './session'
+export { ROLE_NAMES, ROLE_PERMISSIONS, effectivePermissions, granterRoleFor, isBuiltInRole } from './session'
+
+export type { PermissionDeltaInput, PermissionHolder, RbacGuardCode, Role, RoleInput } from './rbac'
 
 export type {
   Notification,
@@ -550,6 +553,7 @@ export {
 
 export type {
   OnCallRota,
+  OperatorSession,
   OperatorSessionsResult,
   SecurityPolicy,
   TeamGuardCode,

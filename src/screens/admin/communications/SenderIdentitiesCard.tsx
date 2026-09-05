@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { toast } from 'sonner'
 import { listSenderIdentities, requestSenderVerification, setDefaultSenderIdentity } from '@/data/clients'
 import type { Paginated } from '@/data/types'
@@ -26,7 +27,7 @@ import type { SenderIdentity } from '@/data/types/email'
 import { formatDate, type Language, type Translate } from '@/lib'
 import { useAsync } from '@/hooks'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -106,9 +107,10 @@ export function SenderIdentitiesCard({ t, language, actorId, canWrite }: SenderI
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('comms.identity.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('comms.identity.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('comms.identity.title')}
+        <InfoHint t={t}>{t('comms.identity.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="p-0">
         {data.status === 'loading' && (
           <div className="p-3">

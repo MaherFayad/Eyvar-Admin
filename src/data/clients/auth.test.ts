@@ -70,16 +70,8 @@ async function challengeFor(email = 'yousef@eyvar.com') {
 /**
  * **The two roles D17 minted have no onboarding track and no landing route.**
  *
- * `RoleName` is six since D17 (`Dispatcher`, `Trust & Safety`). Their track
- * content and their landing routes are product decisions that live in
- * `fixtures/onboardingTracks.ts` and `fixtures/teamUsers.ts`, and neither is the
- * role model's to invent — D17 gives the two landings (`/operations/dispatch`
- * and `/support/safety`) but not the eight-step checklist behind them.
- *
- * So the tests below iterate **the roles that have a track** rather than
- * `ROLE_NAMES`, and `AC-617` is asserted as the recorded gap it now is. When the
- * fixture owner seeds the two tracks, `TRACKED_ROLES` grows and the AC-617 test
- * below goes red naming exactly what changed.
+ * Every D17 role has a seeded holder, a landing route and a track; `TRACKED_ROLES`
+ * is derived from the fixture so a role added without one fails AC-617 by name.
  */
 const TRACKED_ROLES = Object.keys(ONBOARDING_TRACKS) as RoleName[]
 
@@ -518,17 +510,12 @@ describe('6 — the 21 onboarding steps, diffed against §10.5', () => {
     }
   })
 
-  it('AC-617 — RECORDED GAP: two of the six roles have no track', () => {
-    /* AC-617 is "every track a row, no default and no fallback". Four of six
-       hold. `resolveSteps` throws `notFound` for the other two rather than
-       inheriting somebody else's checklist, which is AC-617's other half and is
-       the behaviour that must not change while the gap is open.
-
-       Owner: `fixtures/onboardingTracks.ts`. Delete this test and restore the
-       `ROLE_NAMES` loop when the two tracks land. */
-    for (const role of TRACKED_ROLES) expect(ONBOARDING_TRACKS[role], role).toBeDefined()
-    const missing = ROLE_NAMES.filter((r) => ONBOARDING_TRACKS[r] === undefined)
-    expect(missing).toEqual(['Dispatcher', 'Trust & Safety'])
+  it('AC-617 — every one of the six roles has a track, and none is a fallback', () => {
+    /* `resolveSteps` throws `notFound` for a role without a track rather than
+       inheriting somebody else's checklist. The seed now gives every D17 role a
+       holder and a track, so the loop is over `ROLE_NAMES`, not a subset. */
+    for (const role of ROLE_NAMES) expect(ONBOARDING_TRACKS[role], role).toBeDefined()
+    expect(TRACKED_ROLES.sort()).toEqual([...ROLE_NAMES].sort())
   })
 
   it('points every destination at a row that exists in routeTable.ts — AC-608', async () => {

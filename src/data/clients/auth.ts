@@ -33,7 +33,6 @@ import { mock, mockMutation, notFound } from '../mock/delay'
 import type { IsoDateTime } from '../types/common'
 import { ApiError } from '../types/common'
 import type { WorkspaceId } from '../types/navigation'
-import { effectivePermissions } from '../types/session'
 import type { Session } from '../types/session'
 import { subTabViewPermissions } from './routes'
 import type {
@@ -53,6 +52,18 @@ import type {
   VerifyFailureReason,
 } from '../types/auth'
 import { http } from './http'
+import { notifyTeam } from './notifications'
+import {
+  findInviteByToken,
+  findOperator,
+  getInvites,
+  getRoster,
+  inviteExpired,
+  resolvePermissions,
+  setInvites,
+  setRoster,
+  trackRoleFor,
+} from './rosterStore'
 import { currentMockUserId } from './session'
 import { AUTH_FIXTURE_CODES, AUTH_FIXTURE_PASSWORD } from '../mock/credentials'
 import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -74,7 +85,6 @@ let authTokenFixtures!: Fixtures['authTokenFixtures']
 let deviceSessionFixtures!: Fixtures['deviceSessionFixtures']
 let DEFAULT_LANDING!: Fixtures['DEFAULT_LANDING']
 let ROLE_LANDING!: Fixtures['ROLE_LANDING']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 let claimFixtures!: Fixtures['claimFixtures']
 onFixturesLoaded((f) => {
   AUTH_BREACHED_PASSWORDS = f.AUTH_BREACHED_PASSWORDS
@@ -90,7 +100,6 @@ onFixturesLoaded((f) => {
   deviceSessionFixtures = f.deviceSessionFixtures
   DEFAULT_LANDING = f.DEFAULT_LANDING
   ROLE_LANDING = f.ROLE_LANDING
-  teamUserFixtures = f.teamUserFixtures
   claimFixtures = f.claimFixtures
   AUTH_FIXTURE_TOKENS.length = 0
   AUTH_FIXTURE_TOKENS.push(...authTokenFixtures.map((t) => t.token))
@@ -260,15 +269,15 @@ function openChallenge(
  */
 function profilePhoneFor(userId: string | null): string | null {
   if (userId === null) return null
-  return teamUserFixtures.find((u) => u.id === userId)?.phone ?? null
+  return findOperator(userId)?.phone ?? null
 }
 
 function buildSessionFor(userId: string): Session {
-  const user = teamUserFixtures.find((u) => u.id === userId)
+  const user = findOperator(userId)
   if (!user) {
     throw new ApiError({ status: 500, message: `No team user ${userId} to build a session from` })
   }
-  const landing = ROLE_LANDING[user.role] ?? DEFAULT_LANDING
+  const landing = ROLE_LANDING[trackRoleFor(user.role) ?? user.role] ?? DEFAULT_LANDING
   return {
     userId: user.id,
     name: user.name,
@@ -280,7 +289,7 @@ function buildSessionFor(userId: string): Session {
        operator, which is the free-floating permission set D17 rules out. The
        server computes this and delivers it resolved, so nothing in the UI ever
        re-derives its own authority (§8.2). */
-    permissions: effectivePermissions(user.role, user.permissionDelta),
+    permissions: resolvePermissions(user),
     landingRoute: landing.path,
     landingWorkspaceId: landing.workspaceId as WorkspaceId,
     /* One entry per sub-tab, derived from the route table's `viewPermission`
@@ -701,8 +710,15 @@ export async function validateResetToken(
     return http.get<ValidateTokenOutcome>(`/auth/reset-token/${token}`, undefined, { signal })
   }
   return mock(AUTH_OPERATIONS.validateResetToken, signal, () => {
+    /* An invitation minted on Team & Access is judged by its own expiry (T3.2). */
+    const invite = findInviteByToken(token)
+    if (invite) {
+      const user = findOperator(invite.userId)
+      if (inviteExpired(invite) || !user) return { state: 'expired', email: null, purpose: null, role: null }
+      return { state: 'valid', email: invite.email, purpose: 'invite', role: trackRoleFor(user.role) }
+    }
     const row = authTokenFixtures.find((t) => t.token === token)
-    /* Anything not seeded is `unknown`, and it leaks nothing: no email, no
+    /* An unknown token says nothing about who it was for: no email, no
        purpose, no role (**AC-543**). */
     if (!row) return { state: 'unknown', email: null, purpose: null, role: null }
     return { state: row.state, email: row.email, purpose: row.purpose, role: row.role }
@@ -751,6 +767,8 @@ export async function resetPassword(
  * disagreeing about which links still work.
  */
 function deadToken(token: string): { kind: 'failed'; reason: Exclude<TokenState, 'valid'> } | null {
+  const invite = findInviteByToken(token)
+  if (invite) return inviteExpired(invite) ? { kind: 'failed', reason: 'expired' } : null
   const row = authTokenFixtures.find((t) => t.token === token)
   if (!row) return { kind: 'failed', reason: 'unknown' }
   if (row.state === 'valid') return null
@@ -785,7 +803,18 @@ export async function activateInvite(
     if (AUTH_BREACHED_PASSWORDS.includes(input.password)) {
       return { kind: 'failed', reason: 'breached' }
     }
-    /* An invited account has never signed in anywhere, so nothing is ended. */
+    /* Activation is what turns an `Invited` row into an operator who can sign in. */
+    const invite = findInviteByToken(input.token)
+    if (invite) {
+      setRoster(
+        getRoster().map((u) =>
+          u.id === invite.userId ? { ...u, status: 'Active', lastLoginAt: EYVAR_NOW } : u,
+        ),
+      )
+      setInvites(getInvites().filter((i) => i.token !== input.token))
+      const who = findOperator(invite.userId)
+      if (who) notifyTeam('admin.notification.team.inviteAccepted', { name: who.name }, who.id)
+    }
     return { kind: 'reset', otherSessionsEnded: 0 }
   })
 }
@@ -859,7 +888,7 @@ export async function reauthenticate(
     /* The ordinary challenge, opened against the identity the **server** holds.
        `verifyCode` finishes it and returns the session — same operation, same
        attempt ladder, same cooldown. */
-    const email = teamUserFixtures.find((u) => u.id === userId)?.email ?? null
+    const email = findOperator(userId)?.email ?? null
     const found = email === null ? null : identity(email)
     if (!found?.secondFactor) {
       /* No enrolled factor to challenge. Nothing to prove beyond the password

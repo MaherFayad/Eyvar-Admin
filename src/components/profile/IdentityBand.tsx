@@ -67,6 +67,7 @@ const PERSON_KINDS: ReadonlySet<ProfileRef['entityType']> = new Set([
   'new-rider',
   'driver',
   'applicant',
+  'operator',
 ])
 
 /**

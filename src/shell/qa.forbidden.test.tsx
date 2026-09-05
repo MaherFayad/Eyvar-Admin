@@ -94,7 +94,7 @@ afterEach(() => {
 
 describe('AC-56 — "Loading a route the current role cannot see renders the forbidden state naming the permission required"', () => {
   it('renders the forbidden state, and it NAMES the permission', async () => {
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
 
     expect(await screen.findByText(en('state.forbidden.title'))).toBeInTheDocument()
@@ -110,15 +110,15 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
       screen.getByText(
         (en('state.forbidden.body') as string).replace(
           '{permission}',
-          en('perm.manage_settings.name') as string,
+          en('perm.manage_security_policy.name') as string,
         ),
       ),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/manage_settings/)).toBeNull()
+    expect(screen.queryByText(/manage_security_policy/)).toBeNull()
   })
 
   it('names the route the operator asked for, rather than an anonymous page', async () => {
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     /* §4.7 — the route's own title is the `<h1>`. They typed or clicked
        something and are owed the name of what they asked for. */
@@ -133,7 +133,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
   })
 
   it('is not a redirect: the URL the operator opened is still the URL', async () => {
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     await screen.findByText(en('state.forbidden.title'))
     /* §11.2 — never a silent redirect. A redirect teaches the operator that the
@@ -142,7 +142,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
   })
 
   it('keeps the shell intact, so the operator can still see where they are', async () => {
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     await screen.findByText(en('state.forbidden.title'))
 
@@ -152,7 +152,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
   })
 
   it('offers a way out that goes to the role\'s own landing route', async () => {
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     expect(
       await screen.findByRole('button', { name: en('state.forbidden.action') }),
@@ -200,7 +200,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
     await screen.findByRole('heading', { level: 1, name: en('subtab.admin.team') })
     first.unmount()
 
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     await waitFor(() => expect(screen.getByText(en('state.forbidden.title'))).toBeInTheDocument())
   })
@@ -210,7 +210,7 @@ describe('AC-56 — "Loading a route the current role cannot see renders the for
        what the content region RENDERS. Round 1's S-3 said the two criteria
        overlapped in a way that hid a defect, so they are pinned apart here:
        a denied route still leaves the operator a way to navigate. */
-    denyWith = 'manage_settings'
+    denyWith = 'manage_security_policy'
     renderApp('/admin/team')
     await screen.findByText(en('state.forbidden.title'))
 

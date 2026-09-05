@@ -14,7 +14,7 @@
  *      destination is a route in the new table.
  */
 
-import type { IsoDateTime } from './common'
+import type { IsoDateTime, LocalisedText } from './common'
 
 /**
  * Legacy `notifIcon` covers ten (`:2171`). All ten are typed; §4.3.2 records
@@ -33,6 +33,8 @@ export type NotificationType =
   | 'warning'
   | 'error'
   | 'info'
+  /* Team & Access events, for `manage_team` holders (plan T6.5). */
+  | 'team'
 
 /** Legacy `NOTIF_PRIORITY_RANK` (`:2186`). Sorting is priority-first, never recency alone. */
 export type NotificationPriority = 'critical' | 'high' | 'medium' | 'low'
@@ -51,6 +53,13 @@ export interface Notification {
   priority: NotificationPriority
   title: string
   body: string | null
+  /**
+   * Keyed copy, when the console minted the row itself (T6.5). A renderer
+   * prefers these to `title` and `body`, so no English is assembled in the
+   * data layer (finding X2).
+   */
+  titleText?: LocalisedText | null
+  bodyText?: LocalisedText | null
   createdAt: IsoDateTime
   read: boolean
   /**

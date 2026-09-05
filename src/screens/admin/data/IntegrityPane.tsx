@@ -74,6 +74,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { Link, useLocation } from 'react-router-dom'
 import { RefreshCw, ShieldCheck } from 'lucide-react'
 
@@ -103,7 +104,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useShell } from '@/shell/ShellContext'
@@ -159,7 +160,7 @@ export function IntegrityPane() {
      other write already used; the run itself changes nothing, but a scan over
      every collection in the product is not a read every role should be able to
      start. See the handoff — nothing can currently fail this. */
-  const canRun = shell.permissions.permissions.includes('manage_settings')
+  const canRun = shell.permissions.permissions.includes('manage_data_governance')
   const blockedReason = canRun ? null : t('adminData.integrity.blocked.permission')
 
   /* A static catalogue of check definitions; the fetcher takes only a signal.
@@ -222,11 +223,9 @@ export function IntegrityPane() {
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
               {t('adminData.integrity.title')}
+              <InfoHint t={t}>{t('adminData.integrity.desc')}</InfoHint>
             </CardTitle>
-            <CardDescription className="max-w-2xl text-xs">
-              {t('adminData.integrity.desc')}
-            </CardDescription>
-          </div>
+            </div>
           {/* R3 — this is the ONE primary on the screen. The export and the
               retention save are both secondary; a data-integrity scan is the
               act this page exists for. */}

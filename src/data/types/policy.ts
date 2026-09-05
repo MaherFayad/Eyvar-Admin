@@ -328,6 +328,12 @@ export interface SafetyLimits {
   maxCaptainDailyDrivingMinutes: number
   maxConcurrentSubscriptionsPerCaptain: number
   maxRiderDailyCancellations: number
+  /**
+   * Legacy `compPolicy` (`:15379`): what an operator may credit a rider wallet
+   * without a second approval, per role, in halalas. `null` is no cap. An
+   * operator's own cap on Team & Access overrides it (O-T5).
+   */
+  compensationCapHalalasByRole: Record<string, number | null>
 }
 
 /* ═══════════════════ the document ═══════════════════ */

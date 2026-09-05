@@ -54,7 +54,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useAsync } from '@/hooks'
-import { formatCount, formatDate } from '@/lib'
+import { formatCount, formatDate, formatLocalisedText } from '@/lib'
 import { listNotifications, markAllNotificationsRead } from '@/data/clients'
 import {
   NOTIFICATION_PRIORITY_RANK,
@@ -78,7 +78,7 @@ import { ShellLayer } from '../ShellLayer'
  * until its `shell.notifications.filter.*` key exists, which is the whole point
  * of deriving the label from the id rather than typing it out twice.
  */
-const FILTERS = ['all', 'unread', 'alert', 'ticket', 'payout', 'renewal'] as const satisfies readonly NotificationFilter[]
+const FILTERS = ['all', 'unread', 'alert', 'ticket', 'payout', 'renewal', 'team'] as const satisfies readonly NotificationFilter[]
 
 /** §6.3 — four priority tiers as SECTION HEADINGS, in rank order. */
 const TIERS: readonly NotificationPriority[] = ['critical', 'high', 'medium', 'low']
@@ -319,7 +319,7 @@ function Row({
         dir="auto"
         className={cn('text-sm', notification.read ? 'font-normal' : 'font-semibold')}
       >
-        {notification.title}
+        {notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title}
       </span>
       {/* §7.5 — G5's weight-only marker. Font weight is not a carrier a screen
           reader has, and neither is a tint or a dot, so the word stays and the
@@ -327,9 +327,9 @@ function Row({
           title's `dir="auto"` span so it cannot flip the direction the title
           inferred. */}
       {!notification.read && <span className="sr-only">{t('shell.notifications.unread')}</span>}
-      {notification.body && (
+      {(notification.bodyText || notification.body) && (
         <span dir="auto" className="text-sm text-muted-foreground">
-          {notification.body}
+          {notification.bodyText ? formatLocalisedText(notification.bodyText, t) : notification.body}
         </span>
       )}
     </>
@@ -360,7 +360,9 @@ function Row({
           onClick={onMarkRead}
           /* The visible label is the same six characters on every row, so the
              accessible name names the row it acts on (§7.2). */
-          aria-label={t('shell.notifications.markReadA11y', { title: notification.title })}
+          aria-label={t('shell.notifications.markReadA11y', {
+            title: notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title,
+          })}
         >
           {t('shell.notifications.markRead')}
         </Button>

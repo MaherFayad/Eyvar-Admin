@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**312 endpoints across 47 client modules.**
+**321 endpoints across 48 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -381,6 +381,18 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/entities/resolve` | `{ entities: Record<string, ProfileRef | null> }` | `{ ids: string[] }` | - | `resolveProfiles()` |
 | GET | `/api/v1/search` | `SearchResponse` | `q · scope · limit` | - | `search()` |
 
+## `src/data/clients/rbac.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/rbac/holders/:key` | `{ items: PermissionHolder[] }` | - | - | `holdersOf()` |
+| GET | `/api/v1/rbac/roles` | `{ items: Role[] }` | - | - | `listRoles()` |
+| POST | `/api/v1/rbac/roles` | `Role` | - | - | `createRole()` |
+| DELETE | `/api/v1/rbac/roles/:name` | `{ deleted: true }` | - | - | `deleteRole()` |
+| PUT | `/api/v1/rbac/roles/:name` | `Role` | - | - | `updateRole()` |
+| PUT | `/api/v1/team/operators/:id/override` | `TeamUser` | - | - | `setPermissionDelta()` |
+| POST | `/api/v1/team/operators/:id/role` | `TeamUser` | - | - | `changeRole()` |
+
 ## `src/data/clients/reports.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
@@ -489,6 +501,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/team/invites` | `{ items: TeamInvite[] }` | - | - | `listInvites()` |
 | DELETE | `/api/v1/team/invites/:userId` | `{ revoked: true }` | - | - | `revokeInvite()` |
+| GET | `/api/v1/team/invites/:userId` | `TeamInvite` | - | - | `getInvite()` |
 | POST | `/api/v1/team/invites/:userId/resend` | `TeamInvite` | - | - | `resendInvite()` |
 | GET | `/api/v1/team/on-call` | `OnCallRota` | - | - | `getOnCallRota()` |
 | PUT | `/api/v1/team/on-call` | `OnCallRota` | `{ primaryUserId, secondaryUserId }` | - | `updateOnCallRota()` |
@@ -496,11 +509,12 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/team/operators` | `TeamUser` | `{ name, email, phone, role, compensationCapHalalas }` | - | `inviteOperator()` |
 | DELETE | `/api/v1/team/operators/:id` | `{ offboarded: true }` | - | - | `offboardOperator()` |
 | GET | `/api/v1/team/operators/:id` | `TeamUser` | - | - | `getOperator()` |
-| PUT | `/api/v1/team/operators/:id/permissions` | `TeamUser` | `{ permissions }` | - | `setOperatorPermissions()` |
+| PUT | `/api/v1/team/operators/:id/compensation-cap` | `TeamUser` | - | - | `setCompensationCap()` |
 | POST | `/api/v1/team/operators/:id/reinstate` | `TeamUser` | - | - | `reinstateOperator()` |
 | GET | `/api/v1/team/operators/:id/sessions` | `{ items: DeviceSession[], canRevoke, refusal }` | - | - | `listOperatorSessions()` |
 | DELETE | `/api/v1/team/operators/:id/sessions/:deviceId` | `{ revoked: true }` | - | - | `revokeOperatorSession()` |
 | POST | `/api/v1/team/operators/:id/suspend` | `TeamUser` | `{ reason }` | - | `suspendOperator()` |
+| GET | `/api/v1/team/sessions` | `{ items: OperatorSession[] }` | - | - | `listAllSessions()` |
 
 ## `src/data/clients/tickets.ts`
 

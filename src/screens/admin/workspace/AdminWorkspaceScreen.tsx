@@ -43,6 +43,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { toast } from 'sonner'
 import {
   getWorkspaceSettings,
@@ -59,7 +60,8 @@ import type {
   WorkspaceTimezone,
 } from '@/data/types'
 import { isApiError, MAX_LOGO_BYTES } from '@/data/types'
-import { useAsync } from '@/hooks'
+import { useAsync, useScreenViews, type ScreenView } from '@/hooks'
+import { ViewTabs } from '@/components/ViewTabs'
 import { ABSENT, formatDate, formatFileSize } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { EmptyState } from '@/components/EmptyState'
@@ -69,7 +71,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { useShell } from '@/shell/ShellContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -87,6 +89,14 @@ import { ADMIN_WORKSPACE_EN } from './copy'
 const TIMEZONES: readonly WorkspaceTimezone[] = ['Asia/Riyadh', 'Asia/Dubai', 'Europe/London']
 const CURRENCIES: readonly WorkspaceCurrency[] = ['SAR', 'AED']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
+
+/* D20's four Workspace panes, as `?view=` (the route row declares the same ids). */
+const WORKSPACE_PANES: readonly ScreenView[] = [
+  { id: 'general', titleKey: 'view.workspace.general' },
+  { id: 'branding', titleKey: 'view.workspace.branding' },
+  { id: 'legal', titleKey: 'view.workspace.legal' },
+  { id: 'integrations', titleKey: 'view.workspace.integrations' },
+]
 
 /** The one element every page-level refusal on this screen describes itself by. */
 const READ_ONLY_REASON_ID = 'admin-workspace-read-only-reason'
@@ -293,6 +303,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
   const settings = draft
   const logo = data.data?.logo ?? null
   const readOnlyReason = canWrite ? null : t('admin.workspace.readOnly')
+  const panes = useScreenViews(WORKSPACE_PANES, 'general', t)
 
   const content = settings === null ? null : (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -309,17 +320,23 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
         </div>
       )}
 
+      <ViewTabs
+        tabs={panes.tabs}
+        activeTab={panes.activeTab}
+        onSelectTab={panes.selectTab}
+        label={t('admin.panes')}
+      />
+
       {/* ── 1. general ──────────────────────────────────────────────────── */}
+      {panes.activeTab === 'general' && (
       <Card>
         <CardHeader className="border-b border-border pb-3">
           <CardTitle className="flex items-center gap-2">
             <Building className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.general.title')}
+            <InfoHint t={t}>{t('admin.workspace.general.desc')}</InfoHint>
           </CardTitle>
-          <CardDescription className="text-xs">
-            {t('admin.workspace.general.desc')}
-          </CardDescription>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
           {/* **Two columns, unprefixed. Sweep S7.**
 
@@ -411,17 +428,17 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
         </CardContent>
       </Card>
 
+      )}
       {/* ── 2. branding, and the one logo ───────────────────────────────── */}
+      {panes.activeTab === 'branding' && (
       <Card>
         <CardHeader className="border-b border-border pb-3">
           <CardTitle className="flex items-center gap-2">
             <Palette className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.branding.title')}
+            <InfoHint t={t}>{t('admin.workspace.branding.desc')}</InfoHint>
           </CardTitle>
-          <CardDescription className="text-xs">
-            {t('admin.workspace.branding.desc')}
-          </CardDescription>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4 text-xs">
           <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
             <Field
@@ -534,15 +551,17 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
         </CardContent>
       </Card>
 
+      )}
       {/* ── 3. legal & consent ──────────────────────────────────────────── */}
+      {panes.activeTab === 'legal' && (
       <Card>
         <CardHeader className="border-b border-border pb-3">
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('admin.workspace.legal.title')}
+            <InfoHint t={t}>{t('admin.workspace.legal.desc')}</InfoHint>
           </CardTitle>
-          <CardDescription className="text-xs">{t('admin.workspace.legal.desc')}</CardDescription>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-4 text-xs">
           {(data.data?.legalDocuments ?? []).map((document) => {
             /* Two kinds of refusal, and only ONE of them gets its own line:
@@ -609,6 +628,7 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
         </CardContent>
       </Card>
 
+      )}
       {/* ── 4. integrations ─────────────────────────────────────────────── */}
       {/* **D20** — API keys and webhooks ship as a pane on THIS sub-tab. There
           is no eighth Admin sub-tab and the count stays 35, so this is a
@@ -617,12 +637,14 @@ export function AdminWorkspaceScreen({ row }: { row: SubTabRoute }) {
           is part of the save bar's dirty set, because every act in it commits
           immediately and a save bar claiming a revoked key was still pending
           would be the same lie the old `setTimeout` was telling. */}
+      {panes.activeTab === 'integrations' && (
       <IntegrationsSection
         t={t}
         language={language}
         canWrite={canWrite}
         held={shell.permissions.permissions}
       />
+      )}
     </div>
   )
 

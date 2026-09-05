@@ -21,10 +21,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { listEmailDeliveries, resendEmailDelivery } from '@/data/clients'
-import type { Paginated, SubTabRoute } from '@/data/types'
+import type { Paginated } from '@/data/types'
 import {
   EMAIL_DELIVERY_STATES,
   EMAIL_TEMPLATE_KEYS,
@@ -37,7 +36,6 @@ import { useAsync, useIndexTable } from '@/hooks'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { StatusBadge } from '@/components/StatusBadge'
 import type { BadgeTone } from '@/data/types'
-import { withView } from '@/shell/routeState'
 
 /** R7's five tones, and no red: a bounce is a fact to work through, not an alarm (R5a). */
 const STATE_TONE: Record<EmailDeliveryState, BadgeTone> = {
@@ -83,7 +81,8 @@ const OUTBOX_EMPTY = { heading: 'comms.log.empty.outbox.heading', body: 'comms.l
 const INBOX_EMPTY = { heading: 'comms.log.empty.inbox.heading', body: 'comms.log.empty.inbox.body' }
 
 export interface EmailLogCardProps {
-  row: SubTabRoute
+  /** Which half of the log: the page's `?view=` pane (D20), never local state. */
+  view: 'inbox' | 'outbox'
   t: Translate
   language: Language
   canWrite: boolean
@@ -91,16 +90,9 @@ export interface EmailLogCardProps {
   onTotals?: (totals: { total: number; attention: number }) => void
 }
 
-const DEFAULT_VIEW = 'outbox'
-
-export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogCardProps) {
-  const location = useLocation()
-  const navigate = useNavigate()
+export function EmailLogCard({ view, t, language, canWrite, onTotals }: EmailLogCardProps) {
   const [resending, setResending] = useState<string | null>(null)
-
-  const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
-  const activeView = new URLSearchParams(location.search).get('view')
-  const activeTab = views.some((view) => view.id === activeView) ? (activeView as string) : DEFAULT_VIEW
+  const activeTab: string = view
 
   const table = useIndexTable<EmailDelivery>({
     mode: 'index',
@@ -181,7 +173,12 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
         width: 240,
         dataType: 'text',
         cell: (delivery) => (
-          <span className="truncate text-xs text-foreground">{delivery.subject}</span>
+          /* `block`, for the reason the recipient cell gives: an inline
+             `truncate` clips nothing, and the subject ran under the next
+             column. */
+          <span className="block truncate text-xs text-foreground" title={delivery.subject}>
+            {delivery.subject}
+          </span>
         ),
       },
       {
@@ -275,8 +272,6 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
     [activeTab, language, t],
   )
 
-  const tabs = views.map((view) => ({ id: view.id, label: t(view.titleKey) }))
-
   return (
     <DataTable
       table={table}
@@ -289,11 +284,6 @@ export function EmailLogCard({ row, t, language, canWrite, onTotals }: EmailLogC
       language={language}
       tableId="admin-communications-log"
       view={activeTab}
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={(id) =>
-        navigate({ pathname: location.pathname, search: withView(location.search, id) })
-      }
       searchPlaceholder={t('comms.log.search')}
       /* **NO `isRowCritical`.** This card's own header: *R7's five tones, and
          no red: a bounce is a fact to work through, not an alarm (R5a).*

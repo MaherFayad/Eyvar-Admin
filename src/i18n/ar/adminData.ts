@@ -182,6 +182,7 @@ export const ADMIN_DATA_AR: Dictionary = {
   'adminData.export.error': 'تعذّر بناء ملف التصدير. أعد المحاولة.',
   'adminData.export.omitted': 'حُذفت {count} سلسلة — لا يمكنك الاطلاع عليها',
   'adminData.retention.title': 'جداول الاحتفاظ',
+  'adminData.audit.retentionSaved': 'حُفظ الاحتفاظ: التدقيق {audit} يومًا، والقياس {telemetry} يومًا، والنافذة التشغيلية {months} شهرًا',
   'adminData.retention.desc': 'كم يُحتفظ بكل نوع من السجلات قبل حذفه أو إخفاء هويته. تقصير النافذة يتلف أدلة قد تحتاجها — ويجب ألّا تقل أبدًا عن نافذة النزاع لدى مزوّد الدفع.',
   'adminData.retention.audit': 'سجلات التدقيق والتشغيل',
   'adminData.retention.telemetry': 'قياسات GPS عالية التردد',

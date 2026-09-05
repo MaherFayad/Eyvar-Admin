@@ -15,16 +15,9 @@ import type { Paginated } from '../types/common'
 import type { AuditAction, AuditEntry } from '../types/audit'
 import { http } from './http'
 import { currentMockUserId } from './session'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { findOperator } from './rosterStore'
+import { fixtures, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
-/* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
-   import: a static one pins seeded data into every build, including the http
-   build that can never read it. Bound before any mock read, because `mock()`
-   and `mockMutation()` await `loadFixtures()`. */
-let teamUserFixtures!: Fixtures['teamUserFixtures']
-onFixturesLoaded((f) => {
-  teamUserFixtures = f.teamUserFixtures
-})
 
 export const AUDIT_OPERATIONS = { list: 'audit.list' } as const
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -42,9 +35,23 @@ registerOperations(...Object.values(AUDIT_OPERATIONS))
 let entries: AuditEntry[] = []
 let sequence = 0
 
+/* T7.6: the seeded roster's own history, so the log does not open empty. */
+onFixturesLoaded(seedAudit)
+
+function seedAudit(f: Fixtures): void {
+  entries = f.auditFixtures.map((e) => ({ ...e }))
+  sequence = 100
+}
+
+/** Empties the log. Tests count from zero; the app boots on the seed. */
 export function resetAudit(): void {
   entries = []
   sequence = 0
+}
+
+/** The state the app boots with, for a test that asserts on it. */
+export function resetAuditToSeed(): void {
+  seedAudit(fixtures())
 }
 
 /** Internal. Called by every mutation in `src/data/clients/`, never by a screen. */
@@ -60,7 +67,7 @@ export function appendAudit(input: {
   actorId?: string
 }): AuditEntry {
   const actorId = input.actorId ?? currentMockUserId()
-  const actor = teamUserFixtures.find((u) => u.id === actorId)
+  const actor = findOperator(actorId)
   sequence += 1
   const entry: AuditEntry = {
     id: `AUD-${String(sequence).padStart(5, '0')}`,
@@ -88,6 +95,7 @@ export async function listAuditEntries(
   params: {
     subjectType?: string
     subjectId?: string
+    actorId?: string
     action?: AuditAction
     page?: number
     pageSize?: number
@@ -101,6 +109,7 @@ export async function listAuditEntries(
     const rows = entries
       .filter((e) => !params.subjectType || e.subjectType === params.subjectType)
       .filter((e) => !params.subjectId || e.subjectId === params.subjectId)
+      .filter((e) => !params.actorId || e.actorId === params.actorId)
       .filter((e) => !params.action || e.action === params.action)
       .slice()
       .reverse()

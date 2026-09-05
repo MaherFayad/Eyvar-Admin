@@ -306,6 +306,8 @@ export const ADMIN_DATA_EN: Dictionary = {
   /* ═══════════════════════ retention schedules ══════════════════════ */
 
   'adminData.retention.title': 'Retention schedules',
+  'adminData.audit.retentionSaved':
+    'Retention saved: audit {audit} days, telemetry {telemetry} days, operational window {months} months',
   'adminData.retention.desc':
     'How long each kind of record is kept before it is deleted or anonymised. Shortening a window destroys evidence you may still need — it must never be shorter than the payment provider’s dispute window.',
 

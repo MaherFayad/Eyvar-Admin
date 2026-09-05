@@ -64,9 +64,9 @@ beforeEach(async () => {
   await switchMockUser('USR-1')
 })
 
-function renderScreen() {
+function renderScreen(path = '/admin/workspace') {
   return render(
-    <MemoryRouter initialEntries={['/admin/workspace']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AdminWorkspaceScreen row={row()} />
         <SaveBarProbe />
@@ -144,7 +144,7 @@ describe('the save is real', () => {
 describe('the logo button, which had no handler at all', () => {
   it('uploads a file into the ONE logo store, and audits it', async () => {
     const user = userEvent.setup()
-    renderScreen()
+    renderScreen('/admin/workspace?view=branding')
 
     const button = await screen.findByRole('button', { name: text('admin.workspace.logo.upload') })
     expect(button).toBeEnabled()
@@ -167,7 +167,7 @@ describe('the logo button, which had no handler at all', () => {
 
   it('refuses an over-sized file without writing anything', async () => {
     const user = userEvent.setup()
-    renderScreen()
+    renderScreen('/admin/workspace?view=branding')
     await screen.findByRole('button', { name: text('admin.workspace.logo.upload') })
 
     const input = document.querySelector('input[type="file"]')
@@ -183,7 +183,7 @@ describe('the logo button, which had no handler at all', () => {
 describe('re-consent states a number instead of claiming one', () => {
   it('queues the pending accounts and reports how many', async () => {
     const user = userEvent.setup()
-    renderScreen()
+    renderScreen('/admin/workspace?view=legal')
 
     /* Terms of service — 214 accounts on an older version. */
     const buttons = await screen.findAllByRole('button', {
@@ -200,7 +200,7 @@ describe('re-consent states a number instead of claiming one', () => {
   })
 
   it('refuses in place, with its reason, when everybody is already current', async () => {
-    renderScreen()
+    renderScreen('/admin/workspace?view=legal')
     /* `driverAgreement` is seeded at zero pending — a legal, reachable state
        that is not the same as "we could not send them". */
     expect(
@@ -216,18 +216,24 @@ describe('§11.2 — a role that cannot configure the workspace', () => {
   it('states the refusal once and disables every write in place', async () => {
     /* `USR-3` is Support and holds no `manage_settings`. */
     await switchMockUser('USR-3')
-    renderScreen()
+    const general = renderScreen()
 
     expect(await screen.findByText(text('admin.workspace.readOnly'))).toBeInTheDocument()
+    /* Disabled, not removed — the fields are still on screen and readable. */
+    expect(screen.getByDisplayValue('support@eyvar.app')).toBeDisabled()
+    general.unmount()
+
+    const branding = renderScreen('/admin/workspace?view=branding')
     expect(
-      screen.getByRole('button', { name: text('admin.workspace.logo.upload') }),
+      await screen.findByRole('button', { name: text('admin.workspace.logo.upload') }),
     ).toBeDisabled()
-    for (const button of screen.getAllByRole('button', {
+    branding.unmount()
+
+    renderScreen('/admin/workspace?view=legal')
+    for (const button of await screen.findAllByRole('button', {
       name: text('admin.workspace.legal.queue'),
     })) {
       expect(button).toBeDisabled()
     }
-    /* Disabled, not removed — the fields are still on screen and readable. */
-    expect(screen.getByDisplayValue('support@eyvar.app')).toBeDisabled()
   })
 })

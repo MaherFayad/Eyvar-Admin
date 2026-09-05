@@ -368,6 +368,8 @@ export type MetricCategory =
   | 'revenue'
   | 'subscriptions'
   | 'supply'
+  /* Operators: the Admin board's people are the team, not the captains. */
+  | 'team'
   | 'demand'
   | 'service'
   | 'risk'

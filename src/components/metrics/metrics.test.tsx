@@ -349,7 +349,7 @@ describe('MetricTile — R4-4 §4.2, the caption', () => {
   it('isolates the caption for bidi — a denominator is a numeral run (§9.2, AC-73)', () => {
     const { container } = renderTile(metric({ caption: 'caption.rotaSlots' }))
     const caption = container.querySelector('span.truncate > bdi')
-    expect(caption?.textContent).toBe('7 days, 3 blocks, 2 tiers.')
+    expect(caption?.textContent).toBe('Primary and secondary on the rota.')
   })
 })
 
@@ -880,8 +880,6 @@ describe('BreakdownList — the row label is a union (R5-7 / V-4)', () => {
   it('translates a KEY label, and a key label is not isolated', () => {
     renderList(
       breakdown({
-        key: 'admin.rotaGapsByDay',
-        dimension: 'rota-day',
         rows: [row({ label: { kind: 'key', key: 'breakdown.rotaDay.fri', params: null } })],
       }),
     )
@@ -1113,8 +1111,6 @@ describe('BreakdownList — the bar (R5-6)', () => {
   it('draws no bar when every row is worth the same, even where the list permits one', () => {
     const { container } = renderList(
       breakdown({
-        key: 'admin.rotaGapsByDay',
-        dimension: 'rota-day',
         bar: true,
         rows: [
           row({ id: 'fri', value: 6, barFraction: 1 }),

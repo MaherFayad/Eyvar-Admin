@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5700,
-    "en": 5421,
-    "ar": 5700,
+    "keys": 5860,
+    "en": 5581,
+    "ar": 5860,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,8 +10,8 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
+    "emDashEn": 109,
+    "emDashAr": 113,
     "overBudget": 192
   },
   "registered": [
@@ -40,19 +40,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/components/profile/copy.ts",
+      "exports": [
+        "PROFILE_EN"
+      ],
+      "keys": 275,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/metrics/copy.ts",
       "exports": [
         "OVERVIEW_EN"
       ],
       "keys": 250,
-      "notInEN": 0
-    },
-    {
-      "file": "src/components/profile/copy.ts",
-      "exports": [
-        "PROFILE_EN"
-      ],
-      "keys": 249,
       "notInEN": 0
     },
     {
@@ -64,11 +64,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/admin/team/copy.ts",
+      "exports": [
+        "ADMIN_TEAM_EN"
+      ],
+      "keys": 214,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/data/copy.ts",
       "exports": [
         "ADMIN_DATA_EN"
       ],
-      "keys": 188,
+      "keys": 189,
       "notInEN": 0
     },
     {
@@ -92,7 +100,7 @@
       "exports": [
         "POLICY_EN"
       ],
-      "keys": 164,
+      "keys": 166,
       "notInEN": 0
     },
     {
@@ -101,14 +109,6 @@
         "CONVERSATIONS_EN"
       ],
       "keys": 164,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/admin/team/copy.ts",
-      "exports": [
-        "ADMIN_TEAM_EN"
-      ],
-      "keys": 118,
       "notInEN": 0
     },
     {
@@ -186,19 +186,19 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/operations/requests/copy.ts",
+      "file": "src/screens/onboarding/copy.ts",
       "exports": [
-        "REQUESTS_EN"
+        "ONBOARDING_EN"
       ],
       "keys": 81,
       "notInEN": 0
     },
     {
-      "file": "src/screens/onboarding/copy.ts",
+      "file": "src/screens/operations/requests/copy.ts",
       "exports": [
-        "ONBOARDING_EN"
+        "REQUESTS_EN"
       ],
-      "keys": 78,
+      "keys": 81,
       "notInEN": 0
     },
     {
@@ -278,7 +278,7 @@
       "exports": [
         "ADMIN_ACTIVITY_EN"
       ],
-      "keys": 22,
+      "keys": 25,
       "notInEN": 0
     },
     {
@@ -508,18 +508,6 @@
     {
       "file": "src/i18n/ar/adminTeam.ts",
       "lang": "ar",
-      "key": "admin.team.rota.option",
-      "value": "{name} — {role}"
-    },
-    {
-      "file": "src/i18n/ar/adminTeam.ts",
-      "lang": "ar",
-      "key": "admin.audit.team.permissionsChanged",
-      "value": "تغيّرت صلاحيات {name} — أُضيفت {added} وأُزيلت {removed}"
-    },
-    {
-      "file": "src/i18n/ar/adminTeam.ts",
-      "lang": "ar",
       "key": "admin.audit.team.securityPolicy",
       "value": "حُفظت سياسة الأمان — الخمول {idleMinutes} دقيقة، والانتهاء المطلق {expiryHours} ساعة، وتغيّر اشتراط عامل التحقق الثاني: {twoFactor}"
     },
@@ -534,24 +522,6 @@
       "lang": "en",
       "key": "admin.team.sessions.title",
       "value": "Sessions — {name}"
-    },
-    {
-      "file": "src/screens/admin/team/copy.ts",
-      "lang": "en",
-      "key": "admin.team.matrix.desc",
-      "value": "What each role can do. Editing it is blocked on the role model — see the note below the table."
-    },
-    {
-      "file": "src/screens/admin/team/copy.ts",
-      "lang": "en",
-      "key": "admin.team.rota.option",
-      "value": "{name} — {role}"
-    },
-    {
-      "file": "src/screens/admin/team/copy.ts",
-      "lang": "en",
-      "key": "admin.audit.team.permissionsChanged",
-      "value": "Changed {name}’s permissions — {added} added, {removed} removed"
     },
     {
       "file": "src/screens/admin/team/copy.ts",

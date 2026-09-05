@@ -455,6 +455,35 @@ const views: Dictionary = {
 
   'view.communications.inbox': 'Inbox',
   'view.communications.outbox': 'Outbox',
+  'view.communications.senders': 'Sender identities',
+  'view.communications.templates': 'Templates',
+  'view.communications.push': 'Push',
+
+  /* D20's Admin panes, as views (§2.4 through D-5: the sub-tab column is the
+     settings nav, so a pane is a `?view=` and never a third nav pattern). */
+  'view.workspace.general': 'General',
+  'view.workspace.branding': 'Branding',
+  'view.workspace.legal': 'Legal',
+  'view.workspace.integrations': 'Integrations',
+  'view.team.operators': 'Operators',
+  'view.team.roles': 'Roles & permissions',
+  'view.team.overrides': 'Overrides',
+  'view.team.sessions': 'Sessions & devices',
+  'view.team.security': 'Security policy',
+  'view.team.oncall': 'On-call',
+  'view.policy.dispatch': 'Dispatch',
+  'view.policy.cities': 'Cities',
+  'view.policy.limits': 'Limits',
+  'view.policy.reasons': 'Reason codes & SLA',
+  'view.data.integrity': 'Integrity checks',
+  'view.data.retention': 'Retention & erasure',
+  'view.data.exports': 'Exports',
+  'admin.panes': 'Sections',
+  /* `AccessPreview`: the router's own answer to "what will they see" (AC-924). */
+  'access.preview.title': 'What they will see',
+  'access.preview.full': 'Read and act',
+  'access.preview.view': 'Read only',
+  'access.preview.none': 'Nothing. This set opens no workspace.',
 
   'view.activity.byActor': 'By actor',
   'view.activity.byAction': 'By action',
@@ -717,6 +746,10 @@ const shell: Dictionary = {
   'shell.notifications.filter.ticket': 'Tickets',
   'shell.notifications.filter.payout': 'Payouts',
   'shell.notifications.filter.renewal': 'Renewals',
+  'shell.notifications.filter.team': 'Team',
+  'admin.notification.team.inviteAccepted': '{name} accepted the invitation and can sign in',
+  'admin.notification.team.suspended': '{name} was suspended',
+  'admin.notification.team.roleChanged': '{name} is now {role}',
   /* §6.3 — the four priority tiers as section headings. They rendered the raw
      `NotificationPriority` id under a CSS `capitalize`, which is a no-op in
      Arabic. */

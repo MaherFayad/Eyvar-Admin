@@ -31,6 +31,7 @@ import {
   getComplaint,
   getCorporateAccount,
   getDriver,
+  getOperator,
   getPayment,
   getPlan,
   getRequest,
@@ -53,6 +54,7 @@ import type {
   RideRequest,
   Subscription,
   SubscriptionPlan,
+  TeamUser,
   Ticket,
   Trip,
 } from '@/data/types'
@@ -71,6 +73,7 @@ export type ProfileRecord =
   | { entityType: 'payment'; data: Payment }
   | { entityType: 'complaint'; data: Complaint }
   | { entityType: 'request'; data: RideRequest }
+  | { entityType: 'operator'; data: TeamUser }
 
 export type ProfileRecordResult = AsyncResult<ProfileRecord>
 
@@ -103,6 +106,7 @@ const RECORD_OPERATIONS: Record<ProfileRecord['entityType'], string> = {
   payment: 'payments.get',
   complaint: 'complaints.get',
   request: 'requests.get',
+  operator: 'team.get',
 }
 
 /**
@@ -205,6 +209,8 @@ export function useProfileRecord(entity: ProfileRef | null): ProfileRecordResult
           return { entityType: 'complaint', data: await getComplaint(id, signal) }
         case 'request':
           return { entityType: 'request', data: await getRequest(id, signal) }
+        case 'operator':
+          return { entityType: 'operator', data: await getOperator(id, signal) }
         case 'plan':
           return { entityType: 'plan', data: await getPlan(id as PlanKey, signal) }
         case 'new-rider': {

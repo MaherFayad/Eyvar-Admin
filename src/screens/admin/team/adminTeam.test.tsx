@@ -27,6 +27,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import {
   disableMockLatency,
+  useTwoManageTeamHolders,
   getRouteTable,
   mockFailures,
   resetDataLayer,
@@ -39,6 +40,7 @@ import type { SubTabRoute } from '@/data/types'
 import { ShellProvider, useShell } from '@/shell/ShellContext'
 import { AdminTeamScreen } from './AdminTeamScreen'
 import { ADMIN_TEAM_EN } from './copy'
+import { EN } from '@/i18n/dictionaries'
 
 /**
  * The save bar is rendered by `AppLayout`, which this test deliberately does
@@ -96,9 +98,9 @@ beforeEach(async () => {
   await switchMockUser('USR-1')
 })
 
-function renderScreen() {
+function renderScreen(path = '/admin/team') {
   return render(
-    <MemoryRouter initialEntries={['/admin/team']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AdminTeamScreen row={row()} />
         <SaveBarProbe />
@@ -113,7 +115,7 @@ const text = (key: keyof typeof ADMIN_TEAM_EN) => ADMIN_TEAM_EN[key] as string
 async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
   const row = (await screen.findByText(name)).closest('tr')
   if (!row) throw new Error(`No row for ${name}`)
-  const trigger = within(row).getByRole('button', { name: text('admin.team.rowActions') })
+  const trigger = within(row).getByRole('button', { name: /More actions/ })
   await user.click(trigger)
   return screen.findByRole('menu')
 }
@@ -123,9 +125,11 @@ describe('the four states', () => {
     renderScreen()
     expect(await screen.findByText('Sarah Al-Rashid')).toBeInTheDocument()
     expect(screen.getByText('Yousef Al-Balawi')).toBeInTheDocument()
-    /* The security policy and the rota are part of the same page. */
-    expect(screen.getByText(text('admin.team.security.title'))).toBeInTheDocument()
-    expect(screen.getByText(text('admin.team.rota.title'))).toBeInTheDocument()
+    /* D20: the security policy and the rota are panes of the same sub-tab,
+       reached through the view strip rather than stacked under the roster. */
+    expect(screen.getByRole('tab', { name: 'Security policy' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'On-call' })).toBeInTheDocument()
+    expect(screen.queryByText(text('admin.team.security.title'))).toBeNull()
   })
 
   it.each([['team.list'], ['securityPolicy.get'], ['team.rota']])(
@@ -193,7 +197,8 @@ describe('§11.2 — refused, not hidden', () => {
     const menu = await openRowMenu(user, 'Sarah Al-Rashid')
     /* Six declared actions, so D8's kebab is the right shape and every one of
        them is present whether or not it is available. */
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(6)
+    /* Six transitions plus the read-only sessions item. */
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(7)
   })
 
   it('keeps every control in place for a role that cannot administer the team', async () => {
@@ -213,11 +218,11 @@ describe('§11.2 — refused, not hidden', () => {
     /* …and the row menu still opens, with every item refused. */
     const menu = await openRowMenu(user, 'Yousef Al-Balawi')
     const items = within(menu).getAllByRole('menuitem')
-    expect(items).toHaveLength(6)
-    /* `View sessions` is a read and stays available; the five writes do not. */
+    expect(items).toHaveLength(7)
+    /* `View sessions` is a read and stays available; the six writes do not. */
     expect(
       items.filter((item) => item.getAttribute('aria-disabled') === 'true'),
-    ).toHaveLength(5)
+    ).toHaveLength(6)
   })
 })
 
@@ -284,10 +289,200 @@ describe('the lifecycle reaches the data layer', () => {
   })
 })
 
+describe('the invite dialog follows the role', () => {
+  it('names roles by their label and fills the compensation cap from the chosen role', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    await user.click(await screen.findByRole('button', { name: text('admin.team.invite') }))
+    /* Support is the default and its seeded cap is 100 SAR. The cap is the
+       dialog's one numeric field. */
+    expect(screen.getByRole('spinbutton')).toHaveValue(100)
+
+    await user.click(screen.getByLabelText(text('admin.team.invite.role')))
+    /* The option is the translated label, never the `RoleName` literal. */
+    await user.click(await screen.findByRole('option', { name: EN['role.finance'] as string }))
+
+    expect(screen.getByRole('spinbutton')).toHaveValue(500)
+  })
+})
+
+describe('TA-1 — a pane has an address', () => {
+  it('opens the pane the URL names, and only that pane', async () => {
+    renderScreen('/admin/team?view=oncall')
+    expect(await screen.findByText(text('admin.team.rota.title'))).toBeInTheDocument()
+    expect(screen.queryByText('Sarah Al-Rashid')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'On-call' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('moves between panes through the view strip, and the URL follows', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+    await screen.findByText('Sarah Al-Rashid')
+    await user.click(screen.getByRole('tab', { name: 'Roles & permissions' }))
+    expect(await screen.findByText(text('admin.team.roles.title'))).toBeInTheDocument()
+    /* The roster is gone; the holders facet may still name an operator. */
+    expect(screen.queryByText('sarah@eyvar.com')).toBeNull()
+  })
+})
+
+describe('TA-3 — a role change names both states, takes a reason, and is audited', () => {
+  it('moves Yousef to Dispatcher from the row menu and the roster shows the new role', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+    const menu = await openRowMenu(user, 'Yousef Al-Balawi')
+    await user.click(within(menu).getByRole('menuitem', { name: text('admin.team.action.changeRole') }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Now Ops Manager.')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: EN['role.dispatcher'] as string }))
+    /* The preview is the router's own answer: a Dispatcher sees Operations. */
+    expect(await within(dialog).findByText(EN['workspace.operations'] as string)).toBeInTheDocument()
+    await user.type(within(dialog).getByLabelText(text('admin.team.confirm.reason.label')), 'night shift')
+    await user.click(within(dialog).getByRole('button', { name: text('admin.team.role.dialog.confirm') }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const row = (await screen.findByText('Yousef Al-Balawi')).closest('tr') as HTMLElement
+    expect(within(row).getByText(EN['role.dispatcher'] as string)).toBeInTheDocument()
+  })
+
+  it('refuses to move the last manage_team holder off it, in place, with the F-016 sentence', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+    const menu = await openRowMenu(user, 'Sarah Al-Rashid')
+    await user.click(within(menu).getByRole('menuitem', { name: text('admin.team.action.changeRole') }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: EN['role.finance'] as string }))
+    await user.type(within(dialog).getByLabelText(text('admin.team.confirm.reason.label')), 'stepping back')
+    expect(within(dialog).getByText(text('admin.team.refusal.lastManageTeamHolder'))).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: text('admin.team.role.dialog.confirm') })).toBeDisabled()
+  })
+})
+
+describe('TA-4 — a custom role is duplicated from a built-in on the Roles pane', () => {
+  it('creates a role from Dispatcher, and it appears as a column with no holders', async () => {
+    const user = userEvent.setup()
+    renderScreen('/admin/team?view=roles')
+    expect(await screen.findByText(text('admin.team.roles.title'))).toBeInTheDocument()
+    /* Six built-ins, six duplicate controls; the third column is Dispatcher. */
+    const duplicates = await screen.findAllByRole('button', { name: text('admin.team.roles.duplicate') })
+    expect(duplicates).toHaveLength(6)
+    await user.click(duplicates[2]!)
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('New role from Dispatcher')).toBeInTheDocument()
+    await user.type(within(dialog).getByLabelText(text('admin.team.roles.editor.name')), 'Night dispatcher')
+    await user.click(within(dialog).getByRole('button', { name: text('admin.team.roles.editor.create') }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(await screen.findByText('Night dispatcher')).toBeInTheDocument()
+    expect(screen.getByText(text('admin.team.roles.custom'))).toBeInTheDocument()
+    /* Unheld, so it can be deleted; a built-in cannot, and says so. */
+    expect(screen.getByRole('button', { name: text('admin.team.roles.delete') })).toBeEnabled()
+  })
+})
+
+describe('AC-921 — an override is granted on the Overrides pane and shown as a delta', () => {
+  it('grants release_escrow to Lina and lists her as Support plus the key', async () => {
+    const user = userEvent.setup()
+    renderScreen('/admin/team?view=overrides')
+    expect(await screen.findByText(text('admin.team.overrides.empty'))).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText(text('admin.team.override.picker')))
+    await user.click(await screen.findByRole('option', { name: 'Lina Al-Otaibi' }))
+    await user.click(screen.getByRole('button', { name: text('admin.team.overrides.add') }))
+
+    const dialog = await screen.findByRole('dialog')
+    const escrowRow = within(dialog)
+      .getByText(EN['account.permission.release_escrow'] as string)
+      .closest('li') as HTMLElement
+    await user.click(within(escrowRow).getByRole('radio', { name: text('admin.team.override.state.granted') }))
+    await user.click(within(dialog).getByRole('button', { name: text('admin.team.override.save') }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const row = (await screen.findByText('Lina Al-Otaibi')).closest('tr') as HTMLElement
+    expect(within(row).getByText(`+ ${EN['account.permission.release_escrow']}`)).toBeInTheDocument()
+    expect(within(row).getAllByText(EN['role.support'] as string).length).toBeGreaterThan(0)
+  })
+})
+
+describe('TA-2 / O-T6 — the invite dialog previews the role and hands over the link', () => {
+  it('shows what the role will see, then the activation link after the send', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+    await user.click(await screen.findByRole('button', { name: text('admin.team.invite') }))
+    const dialog = await screen.findByRole('dialog')
+    /* Support sees Customer Support and no Financials; the preview is the router's answer. */
+    await user.click(await within(dialog).findByRole('button', { name: text('admin.team.invite.preview') }))
+    expect(await within(dialog).findByText(EN['workspace.support'] as string)).toBeInTheDocument()
+    expect(within(dialog).queryByText(EN['workspace.financials'] as string)).toBeNull()
+
+    await user.type(within(dialog).getByLabelText(text('admin.team.invite.name')), 'Rana Al-Harbi')
+    await user.type(within(dialog).getByLabelText(text('admin.team.invite.email')), 'rana@eyvar.com')
+    await user.click(within(dialog).getByRole('button', { name: text('admin.team.invite.send') }))
+
+    expect(await screen.findByText('Invitation sent to Rana Al-Harbi')).toBeInTheDocument()
+    const link = screen.getByLabelText(text('admin.team.invite.link')) as HTMLInputElement
+    expect(link.value).toMatch(/\/activate\?token=INV-/)
+    await user.click(screen.getByRole('button', { name: text('admin.team.invite.done') }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('states how long the seeded invitation has left', async () => {
+    renderScreen()
+    const row = (await screen.findByText('Noura Al-Fahad')).closest('tr') as HTMLElement
+    expect(within(row).getByText(/Invite expires in 1 days|Invite expires today/)).toBeInTheDocument()
+  })
+})
+
+describe('TA-5 — Sessions & devices lists every live session and ends one', () => {
+  it('shows sessions across the roster and ends one after an in-row confirmation', async () => {
+    const user = userEvent.setup()
+    renderScreen('/admin/team?view=sessions')
+    const ends = await screen.findAllByRole('button', { name: text('admin.team.sessionsPane.end') })
+    const before = ends.length
+    expect(before).toBeGreaterThan(3)
+    /* Yousef holds one session; end it and the count drops by one. */
+    const row = (await screen.findAllByText('Yousef Al-Balawi'))[0]!.closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: text('admin.team.sessionsPane.end') }))
+    await user.click(within(row).getByRole('button', { name: text('admin.team.sessions.confirm') }))
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: text('admin.team.sessionsPane.end') })).toHaveLength(before - 1),
+    )
+  })
+})
+
+describe('AC-957 — the Security pane writes only under manage_security_policy', () => {
+  it('renders read-only for an Ops Manager granted manage_team, with the refusal stated once', async () => {
+    useTwoManageTeamHolders()
+    await switchMockUser('USR-5')
+    renderScreen('/admin/team?view=security')
+    expect(await screen.findByText(text('admin.team.security.readOnly'))).toBeInTheDocument()
+    expect(screen.getByRole('switch')).toBeDisabled()
+    expect(screen.getByLabelText(text('admin.team.security.idle'))).toBeDisabled()
+  })
+})
+
+describe('T4.3 — the two-factor posture is one fact with a filter', () => {
+  it('states the count once and filters the roster to the operators without a second factor', async () => {
+    const user = userEvent.setup()
+    renderScreen()
+    const toggle = await screen.findByRole('button', { name: /without a second factor/ })
+    expect(toggle).toHaveTextContent('3 without a second factor')
+    await user.click(toggle)
+    expect(screen.queryByText('Sarah Al-Rashid')).toBeNull()
+    expect(screen.getByText('Fahad Al-Dosari')).toBeInTheDocument()
+    expect(screen.getByText('Lina Al-Otaibi')).toBeInTheDocument()
+    expect(screen.getByText('Noura Al-Fahad')).toBeInTheDocument()
+  })
+})
+
 describe('the security policy and the rota actually save', () => {
   it('persists a changed idle timeout across a re-mount', async () => {
     const user = userEvent.setup()
-    const view = renderScreen()
+    const view = renderScreen('/admin/team?view=security')
 
     const select = await screen.findByLabelText(text('admin.team.security.idle'))
     await user.click(select)
@@ -302,7 +497,7 @@ describe('the security policy and the rota actually save', () => {
     await waitFor(() => expect(screen.getByText('60 minutes')).toBeInTheDocument())
 
     view.unmount()
-    renderScreen()
+    renderScreen('/admin/team?view=security')
     expect(await screen.findByText('60 minutes')).toBeInTheDocument()
   })
 })

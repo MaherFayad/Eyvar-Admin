@@ -14,12 +14,13 @@
  */
 
 import { useCallback } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { listPushBroadcasts } from '@/data/clients'
 import type { Paginated } from '@/data/types'
 import type { PushAudienceId, PushBroadcast, PushBroadcastState } from '@/data/types/email'
 import { formatCount, formatDate, formatPercent, type Language, type Translate } from '@/lib'
 import { useAsync } from '@/hooks'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -67,9 +68,10 @@ export function PushBroadcastsCard({ t, language, reloadToken }: PushBroadcastsC
   return (
     <Card>
       <CardHeader className="border-b border-border pb-3">
-        <CardTitle>{t('comms.push.title')}</CardTitle>
-        <CardDescription className="text-xs">{t('comms.push.desc')}</CardDescription>
-      </CardHeader>
+        <CardTitle>{t('comms.push.title')}
+        <InfoHint t={t}>{t('comms.push.desc')}</InfoHint>
+      </CardTitle>
+        </CardHeader>
       <CardContent className="p-0">
         {data.status === 'loading' && (
           <div className="p-3">

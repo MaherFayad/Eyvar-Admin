@@ -146,6 +146,7 @@ export const OVERVIEW_EN: Dictionary = {
   'overview.category.revenue': 'Money',
   'overview.category.subscriptions': 'Subscriptions',
   'overview.category.supply': 'Captains',
+  'overview.category.team': 'Operators',
   'overview.category.demand': 'Demand',
   'overview.category.service': 'Service',
   'overview.category.risk': 'Risk',
@@ -563,7 +564,7 @@ export const OVERVIEW_EN: Dictionary = {
      Trimmed from `… Higher is better here.`, 42 characters, to 37. */
   'caption.overturnIsNotFailure': 'Of decided appeals. Higher is better.',
   'caption.statutoryThirtyDays': 'The statutory deadline is 30 days.',
-  'caption.rotaSlots': '7 days, 3 blocks, 2 tiers.',
+  'caption.rotaSlots': 'Primary and secondary on the rota.',
 
   /* ══════════════════ chart titles — one per `TimeSeries.key` ══════════
      A card title is a fragment (R6) and says what is plotted, not what to
@@ -611,7 +612,6 @@ export const OVERVIEW_EN: Dictionary = {
   'breakdown.zones.citiesHealth': 'All 4 cities, by zones live',
   'breakdown.operations.backlogByQueue': 'All 5 queues, by open items',
   'breakdown.support.contactReasons': 'Top 5 contact reasons, per 1,000 trips',
-  'breakdown.admin.rotaGapsByDay': 'All 7 days, by on-call slots unassigned',
 
   /* AC-696, one key, one sentence, every breakdown. R4-4 §4.1 writes it out:
      `Showing the top {n} of {total} {dimension}.` — the dimension is named

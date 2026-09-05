@@ -807,10 +807,9 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
 
   const allBreakdowns = async () => (await boards()).flatMap((b) => b.breakdowns)
 
-  it('gives six of the eight boards a ranked list, which is the number F-1 predicted', async () => {
+  it('gives five of the eight boards a ranked list: F-1 predicted six, and O-T4 retired the rota one', async () => {
     const withOne = (await boards()).filter((b) => b.breakdowns.length > 0).map((b) => b.subTabId)
     expect(withOne.sort()).toEqual([
-      'admin-overview',
       'management-performance',
       'management-risk',
       'management-zones',
@@ -958,21 +957,18 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
     expect(unclaimedTile.value).toBe(unassigned.total)
   })
 
-  it('AC-695 — the rota breakdown sums to the rota tile', async () => {
-    /* 7 days × 6 slots = 42, and `DB.onCallSchedule.assign` is `{}` (`:19604`),
-       so every slot is a gap and nobody is on call at any hour (L-9, AC-682). */
-    const board = await getMetricBoard('admin-overview')
-    const rota = board.breakdowns.find((b) => b.key === 'admin.rotaGapsByDay')!
-    const tile = board.metrics.find((m) => m.key === 'admin.overview.rotaGaps')!
-    expect(rota.rows.reduce((t, r) => t + r.value, 0)).toBe(tile.value)
-    expect(tile.value).toBe(42)
-    /* `WEEKEND` is `['fri','sat']` (`:19596`) and the night block is high-risk
-       every day, so 6 + 6 + 2×5 = 22 high-risk gaps — `rotaStats().highRisk`. */
-    expect(rota.rows.reduce((t, r) => t + Number(r.subLabelParams?.count ?? 0), 0)).toBe(22)
-    /* **V-13, by rule.** Seven rows all valued 6 means `max === min`, so R5-6
-       forbids the bar and no row may carry a fraction. */
-    expect(rota.bar).toBe(false)
-    expect(rota.rows.every((r) => r.barFraction === null)).toBe(true)
+  it('TA-7 — the on-call tile counts the empty rota slots and moves with the rota', async () => {
+    /* O-T4: one on-call model. The seed fills both slots, so the tile reads 0. */
+    const { updateOnCallRota, resetTeam } = await import('./team')
+    resetTeam()
+    let board = await getMetricBoard('admin-overview')
+    expect(board.metrics.find((m) => m.key === 'admin.overview.rotaGaps')!.value).toBe(0)
+    expect(board.breakdowns.find((b) => b.key === 'admin.rotaGapsByDay')).toBeUndefined()
+
+    await updateOnCallRota({ primaryUserId: null, secondaryUserId: 'USR-3' })
+    board = await getMetricBoard('admin-overview')
+    expect(board.metrics.find((m) => m.key === 'admin.overview.rotaGaps')!.value).toBe(1)
+    resetTeam()
   })
 
   it('AC-694 — no row carries anything that could mutate a record', async () => {
@@ -1081,12 +1077,12 @@ describe('10 — a board declares conditions; the page renders at most one (R4-4
     expect(board.notices.every((n) => n.params?.count === 2)).toBe(true)
   })
 
-  it('leaves the rota gaps a tile rather than a notice, though all 42 are empty', async () => {
+  it('leaves the rota gaps a tile rather than a notice', async () => {
     /* R4-4 §4.3: severe, visible, and **recoverable** — somebody can be
        assigned at any moment. A notice is for a condition where the delay
        itself does the damage. Same test as R4-10b, one level up. */
     const board = await getMetricBoard('admin-overview')
-    expect(board.metrics.find((m) => m.key === 'admin.overview.rotaGaps')!.value).toBe(42)
+    expect(board.metrics.find((m) => m.key === 'admin.overview.rotaGaps')!.value).toBe(0)
     expect(board.notices.map((n) => n.key)).toEqual(['notice.admin.erasureOverdue'])
   })
 })
@@ -1681,8 +1677,8 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
         "support.overview.repeatContactRate = 1.8 · -25 down vs previous-period:2.4",
         "admin.overview.operatorsWithoutTwoFactor = 3 · null up vs target:0",
         "admin.overview.erasureOverdue = 1 · -50 down vs previous-period:2",
-        "admin.overview.rotaGaps = 42 · 0 flat vs previous-period:42",
-        "admin.overview.activeOperators = 4 · 33.3 up vs previous-period:3",
+        "admin.overview.rotaGaps = 0 · 0 flat vs target:0",
+        "admin.overview.activeOperators = 6 · 100 up vs previous-period:3",
         "admin.overview.itemsResolvedPerOperatorHour = 4.8 · 17.1 up vs previous-period:4.1",
         "admin.overview.workloadBalance = 1.4 · 16.7 up vs previous-period:1.2",
         "support.fairness.overturnRate = 63 · 0 flat vs previous-period:63",

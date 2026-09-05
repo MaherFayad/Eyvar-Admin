@@ -78,7 +78,6 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { runQuery, type QueryShape } from '../mock/query'
-import { effectivePermissions } from '../types/session'
 import type { AuditAction, AuditEntry } from '../types/audit'
 import { ApiError, type Paginated, type QueryParams } from '../types/common'
 import {
@@ -96,6 +95,7 @@ import {
 import type { PermissionKey } from '../types/navigation'
 import { appendAudit } from './audit'
 import { http } from './http'
+import { findOperator, resolvePermissions } from './rosterStore'
 import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
@@ -106,12 +106,10 @@ import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixture
 let apiKeyFixtures!: Fixtures['apiKeyFixtures']
 let webhookDeliveryFixtures!: Fixtures['webhookDeliveryFixtures']
 let webhookEndpointFixtures!: Fixtures['webhookEndpointFixtures']
-let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
   apiKeyFixtures = f.apiKeyFixtures
   webhookDeliveryFixtures = f.webhookDeliveryFixtures
   webhookEndpointFixtures = f.webhookEndpointFixtures
-  teamUserFixtures = f.teamUserFixtures
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
   keys = apiKeyFixtures.map(cloneKey)
@@ -250,8 +248,8 @@ function mintSecret(tag: 'evk_live' | 'whsec'): IssuedSecret {
  * this function becomes a one-line call to it.
  */
 function issuerPermissions(): readonly PermissionKey[] {
-  const user = teamUserFixtures.find((each) => each.id === currentMockUserId())
-  return user === undefined ? [] : effectivePermissions(user.role, user.permissionDelta)
+  const user = findOperator(currentMockUserId())
+  return user === undefined ? [] : resolvePermissions(user)
 }
 
 /* ─────────────────────────── the audit funnel ─────────────────────────── */

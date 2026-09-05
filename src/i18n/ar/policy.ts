@@ -60,6 +60,8 @@ export const POLICY_AR: Dictionary = {
   'policy.limits.drivingHours.help': '{value} ساعة.',
   'policy.limits.concurrentSubs': 'الاشتراكات المتزامنة لكل كابتن',
   'policy.limits.riderCancels': 'إلغاءات الراكب اليومية',
+  'policy.limits.caps': 'حد التعويض حسب الدور، ريال',
+  'policy.limits.caps.help': 'ما يجوز للمشغّل إضافته إلى محفظة راكب دون موافقة ثانية. الفراغ يعني بلا حد. الحد المحدّد على المشغّل في الفريق والصلاحيات هو الغالب.',
   'policy.sla.tiers.title': 'القيم الافتراضية لمستويات SLA',
   'policy.sla.tiers.desc': 'المؤقّت الذي تستخدمه قائمة العمل حين لا تعلن تجاوزًا خاصًّا بها. غيّر واحدًا هنا وتتحرك معه كل خلية موروثة أدناه.',
   'policy.sla.tier.T1': 'حرِج',

@@ -2681,43 +2681,22 @@ export const metricSeeds: MetricSeed[] = [
     drilldownRoute: '/admin/data',
   },
   {
-    /**
-     * Day × block × tier slots with nobody assigned — `rotaGaps()`
-     * (`:19650`), `rotaStats()` (`:19663`). 7 days × 3 blocks × 2 tiers = **42
-     * slots**, and `DB.onCallSchedule.assign` is seeded `{}` (`:19604`), so
-     * **all 42 are gaps and nobody is on call at any hour** (defect **L-9**,
-     * AC-682). That is the number this board exists to surface.
-     *
-     * **Not a notice, a tile** (R4-4 §4.3): it is severe, it is visible, and it
-     * is *recoverable* — somebody can be assigned at any moment. A notice is
-     * for a condition where the delay itself does the damage.
-     */
+    /* O-T4: the two-name rota is the one on-call model. Derived from
+       `clients/team.ts`, so this tile and the top bar's chip move together. */
     key: 'admin.overview.rotaGaps',
     subTabId: 'admin-overview',
-    category: 'supply',
-    value: 42,
+    category: 'team',
+    value: null,
     absenceReason: null,
     unit: 'count',
     currency: null,
     asOf: EYVAR_NOW,
     periodStart: null,
     periodEnd: null,
-    /**
-     * **42 then, 42 now, and the flat delta is the finding.** All forty-two rota
-     * slots are empty and have been for a fortnight: nobody is on call at any
-     * hour of any day, and nothing has moved. `0.0 %` with `direction: flat` says
-     * that. The em-dash said only that we had not looked. This is the one tile in
-     * the product that exercises the flat arm.
-     */
-    comparison: {
-      kind: 'previous-period',
-      value: 42,
-      periodStart: SNAPSHOT_PREVIOUS.start,
-      periodEnd: SNAPSHOT_PREVIOUS.end,
-    },
+    comparison: { kind: 'target', value: 0, setByUserId: 'USR-1', effectiveFrom: '2026-01-01' },
     higherIsBetter: false,
     caption: 'caption.rotaSlots',
-    sourceResource: null,
+    sourceResource: 'team-rota',
     drilldownRoute: '/admin/team',
   },
   {
@@ -2752,7 +2731,7 @@ export const metricSeeds: MetricSeed[] = [
        would cut first."* Four of five operators are Active. */
     key: 'admin.overview.activeOperators',
     subTabId: 'admin-overview',
-    category: 'supply',
+    category: 'team',
     value: null,
     absenceReason: null,
     unit: 'count',
@@ -4201,58 +4180,10 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
    * ship**, for the same reason its tile is `null`: `integrityScan()`
    * (`:18565`) reads a payments ledger this layer does not hold.
    */
-  'admin-overview': [
-    {
-      key: 'admin.rotaGapsByDay',
-      dimension: 'rota-day',
-      rowsShown: 7,
-      rowsTotal: 7,
-      bar: false,
-      /* R5-9 §18.1 / §20.2 — no caveat. The only key in the vocabulary is
-         `breakdown.caveat.uncodedRanking`; its gate is
-         `support.uncodedContactShare`, whose value is `not-computable`, so
-         there is no threshold to have crossed. R5-11 — every one of these
-         cards has its store; the two absences that lack one are tiles. */
-      caveat: null,
-      awaitingStore: null,
-      rows: [
-        rotaDay('fri', 6, 6),
-        rotaDay('sat', 6, 6),
-        rotaDay('sun', 6, 2),
-        rotaDay('mon', 6, 2),
-        rotaDay('tue', 6, 2),
-        rotaDay('wed', 6, 2),
-        rotaDay('thu', 6, 2),
-      ],
-    },
-  ],
+  /* O-T4: the on-call tile reads the two-name rota and has no day breakdown. */
+  'admin-overview': [],
 }
 
-/**
- * One day of the on-call rota. `DAY_KEYS` (`:19594`) is a closed set, so unlike
- * a captain or a city this row's label really is a translation **key** — this
- * is the `kind: 'key'` half of `BreakdownLabel`, and the one that must lay out
- * RTL in an Arabic console.
- */
-function rotaDay(day: string, gaps: number, highRisk: number): MetricBreakdownRow {
-  return {
-    id: `ROTA-${day}`,
-    label: { kind: 'key', key: `breakdown.rotaDay.${day}`, params: null },
-    /* The high-risk count is a noun phrase now, not a second column — R5-5.
-       `Weekend · all 6 are high-risk` on Friday and Saturday, where every gap
-       is high-risk; `Night block · 2 are high-risk` on the other five, where
-       only the night block is. */
-    subLabelKey: highRisk === gaps ? 'breakdown.sub.rotaWeekend' : 'breakdown.sub.rotaNightBlock',
-    subLabelParams: { count: highRisk },
-    value: gaps,
-    unit: 'count',
-    currency: null,
-    /* `null`: seven rows all valued 6, so `max === min`, so `bar` is false and
-       a row may not draw one (R5-6, V-13). */
-    barFraction: null,
-    drilldownRoute: '/admin/team',
-  }
-}
 
 /* ═════════════════════════════ board notices ═══════════════════════════ */
 

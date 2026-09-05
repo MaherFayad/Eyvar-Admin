@@ -77,9 +77,9 @@ function SaveBarProbe() {
   )
 }
 
-function renderPolicy() {
+function renderPolicy(path = '/admin/policy') {
   return render(
-    <MemoryRouter initialEntries={['/admin/policy']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <AdminPolicyScreen row={row()} />
         <SaveBarProbe />
@@ -122,24 +122,24 @@ describe('four states', () => {
     expect(await screen.findByText(copy('policy.dispatch.title'))).toBeInTheDocument()
   })
 
-  it('renders every pane once the document arrives', async () => {
-    renderPolicy()
-    for (const key of [
-      'policy.dispatch.title',
-      'policy.cities.title',
-      'policy.limits.title',
-      'policy.sla.tiers.title',
-      'policy.sla.grid.title',
-      'policy.reasons.title',
-    ]) {
-      expect(await screen.findByText(copy(key))).toBeInTheDocument()
+  it('renders every pane once the document arrives, one per view (D20)', async () => {
+    const panes: Array<[string, string[]]> = [
+      ['dispatch', ['policy.dispatch.title']],
+      ['cities', ['policy.cities.title']],
+      ['limits', ['policy.limits.title']],
+      ['reasons', ['policy.sla.tiers.title', 'policy.sla.grid.title', 'policy.reasons.title']],
+    ]
+    for (const [view, keys] of panes) {
+      const mounted = renderPolicy('/admin/policy?view=' + view)
+      for (const key of keys) expect(await screen.findByText(copy(key))).toBeInTheDocument()
+      mounted.unmount()
     }
   })
 
   /** AC-921 — the registry's first-run empty, which is not the filtered one. */
   it('renders the first-run empty when no reason code is defined', async () => {
     useEmptyReasonCodes()
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     expect(await screen.findByText(copy('policy.reasons.empty.heading'))).toBeInTheDocument()
     expect(screen.getByText(copy('policy.reasons.empty.body'))).toBeInTheDocument()
   })
@@ -154,7 +154,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * and no spinbutton anywhere in the cell.
    */
   it('renders text and an Override button, and no spinbutton', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     const dispute = await queueSection('policy.sla.queue.dispute')
 
     expect(dispute.getAllByText(copy('policy.sla.state.inherited')).length).toBeGreaterThan(0)
@@ -178,7 +178,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * spinbutton, this would fail.
    */
   it('renders a field and a revert control on a queue that overrides', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     const incident = await queueSection('policy.sla.queue.incident')
 
     expect(incident.getAllByText(copy('policy.sla.state.overridden')).length).toBeGreaterThan(0)
@@ -199,7 +199,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * because the draft is byte-identical to what was loaded again.
    */
   it('override then revert leaves the screen clean', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     const disputeLabel = copy('policy.sla.queue.dispute')
 
     const override = await screen.findByRole('button', {
@@ -229,7 +229,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * seventy-two. The screen-level statement of the F-014 criterion.
    */
   it('saves only the target the operator overrode', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     const before = await getOperationalPolicy()
 
     await userEvent.click(
@@ -263,14 +263,14 @@ describe('an inherited SLA target has no field to read back', () => {
 
 describe('the reason-code registry', () => {
   it('shows a retired code in the table, badged and dated', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     expect(await screen.findByText('TRP_GHOST_COMPLETE')).toBeInTheDocument()
     expect(screen.getAllByText(copy('policy.reasons.state.retired')).length).toBeGreaterThan(0)
     expect(screen.getByText('Use TRP_FALSE_COMPLETE instead')).toBeInTheDocument()
   })
 
   it('renders both labels, with the Arabic one in its own direction', async () => {
-    renderPolicy()
+    renderPolicy('/admin/policy?view=reasons')
     const arabic = await screen.findByText('عدم حضور الكابتن')
     expect(arabic).toHaveAttribute('dir', 'rtl')
     expect(arabic).toHaveAttribute('lang', 'ar')
@@ -283,12 +283,15 @@ describe('a role that cannot write', () => {
   it('disables the controls rather than hiding them, and states why', async () => {
     /* USR-3 leads Customer Support and holds no `manage_settings`. */
     await switchMockUser('USR-3')
-    renderPolicy()
+    const dispatch = renderPolicy()
 
     expect(await screen.findByText(copy('policy.dispatch.title'))).toBeInTheDocument()
     /* The control is still there — that is the rule — and it is dead. */
     expect(screen.getByLabelText(copy('policy.dispatch.radius'))).toBeDisabled()
-    expect(screen.getByRole('button', { name: copy('policy.cities.add') })).toBeDisabled()
     expect(screen.getAllByText(copy('policy.blocked.permission')).length).toBeGreaterThan(0)
+    dispatch.unmount()
+
+    renderPolicy('/admin/policy?view=cities')
+    expect(await screen.findByRole('button', { name: copy('policy.cities.add') })).toBeDisabled()
   })
 })

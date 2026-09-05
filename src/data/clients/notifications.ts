@@ -9,7 +9,8 @@
 import { DATA_SOURCE, registerOperations } from '../config'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
-import type { Paginated, QueryParams } from '../types/common'
+import type { LocalisedText, Paginated, QueryParams } from '../types/common'
+import { EYVAR_NOW } from '../mock/clock'
 import {
   NOTIFICATION_PREVIEW_SIZE,
   NOTIFICATION_PRIORITY_RANK,
@@ -51,6 +52,7 @@ registerOperations(...Object.values(NOTIFICATION_OPERATIONS))
 
 /** Mutable copy so `markRead` is observable in the mock. Reset by `resetNotifications()`. */
 let rows!: Notification[]
+let mintedSequence = 900
 
 /**
  * Which seeded set `rows` is built from. A **flag rather than a direct write**,
@@ -189,5 +191,50 @@ function sorted(all: Notification[]): Notification[] {
     const byPriority = NOTIFICATION_PRIORITY_RANK[a.priority] - NOTIFICATION_PRIORITY_RANK[b.priority]
     if (byPriority !== 0) return byPriority
     return Date.parse(b.createdAt) - Date.parse(a.createdAt)
+  })
+}
+
+/**
+ * A notification the console mints on its own act (T6.5). Keyed copy only:
+ * `title` stays empty and every renderer prefers `titleText`.
+ */
+export function pushNotification(input: {
+  type: Notification['type']
+  priority: Notification['priority']
+  titleText: LocalisedText
+  bodyText?: LocalisedText | null
+  route?: string | null
+  entityId?: string | null
+  entityType?: string | null
+}): Notification | null {
+  if (!fixturesLoaded()) return null
+  mintedSequence += 1
+  const row: Notification = {
+    id: `NTF-${mintedSequence}`,
+    type: input.type,
+    priority: input.priority,
+    title: '',
+    body: null,
+    titleText: input.titleText,
+    bodyText: input.bodyText ?? null,
+    createdAt: EYVAR_NOW,
+    read: false,
+    route: input.route ?? null,
+    entityId: input.entityId ?? null,
+    entityType: input.entityType ?? null,
+  }
+  rows = [row, ...rows]
+  return { ...row }
+}
+
+/** A team event for `manage_team` holders, as a key and params (T6.5). */
+export function notifyTeam(key: string, params: Record<string, string | number>, userId: string): void {
+  pushNotification({
+    type: 'team',
+    priority: 'low',
+    titleText: { key, params },
+    route: '/admin/team',
+    entityId: userId,
+    entityType: 'operator',
   })
 }

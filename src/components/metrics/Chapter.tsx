@@ -86,6 +86,7 @@ const CATEGORY_ORDER: readonly MetricCategory[] = [
   'revenue',
   'subscriptions',
   'supply',
+  'team',
   'demand',
   'service',
   'risk',

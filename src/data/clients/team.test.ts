@@ -48,12 +48,21 @@ import {
   resendInvite,
   resetTeam,
   revokeInvite,
-  setOperatorPermissions,
   suspendOperator,
   transitionRefusal,
   useTwoManageTeamHolders,
 } from './team'
-import { getOnCallRota, updateOnCallRota } from './team'
+import { getInvite, getOnCallRota, listOperatorSessions, revokeOperatorSession, updateOnCallRota } from './team'
+import { listEmailDeliveries, resetEmails } from './emails'
+import { activateInvite, validateResetToken } from './auth'
+import { EYVAR_NOW } from '../mock/clock'
+import { claimTicket, getTicket, resetTickets } from './tickets'
+import { getOperationalPolicy, resetPolicy, saveOperationalPolicy } from './policy'
+import { capForRole, releaseHoldingsOf } from './team'
+import { resetAuditToSeed, auditLogSize as logSize } from './audit'
+import { resetAuth } from './auth'
+import { setPermissionDelta } from './rbac'
+import { resetMockSession, switchMockUser } from './session'
 import { isApiError, type ApiError } from '../types/common'
 import { ROLE_PERMISSIONS } from '../types/session'
 import type { TeamUser } from '../types/session'
@@ -99,10 +108,7 @@ describe('F-016 — the last `manage_team` holder', () => {
     const offboard = await refusalOf(offboardOperator('USR-1', 'because'))
     /* The *stripped of it* clause: every permission except `manage_team`. */
     const strip = await refusalOf(
-      setOperatorPermissions(
-        'USR-1',
-        (await find('USR-1')).permissions.filter((key) => key !== 'manage_team'),
-      ),
+      setPermissionDelta('USR-1', { granted: [], revoked: ['manage_team'] }),
     )
 
     for (const refusal of [suspend, offboard, strip]) {
@@ -124,7 +130,7 @@ describe('F-016 — the last `manage_team` holder', () => {
     await refusalOf(offboardOperator('USR-1', 'because'))
     expect(await roster()).toStrictEqual(before)
 
-    await refusalOf(setOperatorPermissions('USR-1', ['view_profiles']))
+    await refusalOf(setPermissionDelta('USR-1', { granted: [], revoked: ['manage_team'] }))
     expect(await roster()).toStrictEqual(before)
 
     const owner = await find('USR-1')
@@ -135,7 +141,7 @@ describe('F-016 — the last `manage_team` holder', () => {
   it('writes no audit entry for a refused transition', async () => {
     await refusalOf(suspendOperator('USR-1', 'because'))
     await refusalOf(offboardOperator('USR-1', 'because'))
-    await refusalOf(setOperatorPermissions('USR-1', ['view_profiles']))
+    await refusalOf(setPermissionDelta('USR-1', { granted: [], revoked: ['manage_team'] }))
     /* A refusal is not an act. An audit log that records attempts as if they
        were changes is a log that cannot be read. */
     expect(auditLogSize()).toBe(0)
@@ -151,7 +157,7 @@ describe('F-016 — the last `manage_team` holder', () => {
     useTwoManageTeamHolders()
     expect(manageTeamHolderCount(await roster())).toBe(2)
 
-    await expect(setOperatorPermissions('USR-1', ['view_profiles'])).resolves.toMatchObject({
+    await expect(setPermissionDelta('USR-1', { granted: [], revoked: ['manage_team'] })).resolves.toMatchObject({
       id: 'USR-1',
     })
     /* Stripping the key leaves USR-5 as the only holder; suspending USR-1 is
@@ -169,7 +175,7 @@ describe('F-016 — the last `manage_team` holder', () => {
   it('protects whoever the last holder is, not `USR-1` specifically', async () => {
     useTwoManageTeamHolders()
     /* Remove the original holder entirely. `USR-5` is now the last one. */
-    await setOperatorPermissions('USR-1', ['view_profiles'])
+    await setPermissionDelta('USR-1', { granted: [], revoked: ['manage_team'] })
     expect(manageTeamHolderCount(await roster())).toBe(1)
 
     const refusal = await refusalOf(suspendOperator('USR-5', 'because'))
@@ -293,7 +299,7 @@ describe('the lifecycle', () => {
       }),
     )
     expect(refusal.code).toBe('email_taken')
-    expect((await roster()).length).toBe(5)
+    expect((await roster()).length).toBe(7)
   })
 
   it('resends and revokes an invitation, and refuses both on an operator who has signed in', async () => {
@@ -427,5 +433,170 @@ describe('the seam holds for every new operation', () => {
       compensationCapHalalas: null,
     })
     expect(second).toStrictEqual(first)
+  })
+})
+
+describe('sessions and devices (D20): a colleague’s sessions under manage_team', () => {
+  beforeEach(() => {
+    resetAuth()
+    resetMockSession()
+  })
+
+  it('lets the Owner list and end a colleague’s session, and audits it', async () => {
+    const before = await listOperatorSessions('USR-5')
+    expect(before.canRevoke).toBe(true)
+    expect(before.refusal).toBeNull()
+    expect(before.items.length).toBeGreaterThan(0)
+    const audits = auditLogSize()
+
+    await revokeOperatorSession('USR-5', before.items[0]!.id)
+
+    const after = await listOperatorSessions('USR-5')
+    expect(after.items.length).toBe(before.items.length - 1)
+    expect(auditLogSize()).toBe(audits + 1)
+    expect((await listAuditEntries({ page: 1, pageSize: 1 })).items[0]?.action).toBe('team.sessionRevoke')
+  })
+
+  it('refuses a colleague’s list to an operator without manage_team, and still allows their own', async () => {
+    await switchMockUser('USR-3')
+    const theirs = await listOperatorSessions('USR-5')
+    expect(theirs.canRevoke).toBe(false)
+    expect(theirs.refusal).toBe('no_manage_team')
+
+    const own = await listOperatorSessions('USR-3')
+    expect(own.canRevoke).toBe(true)
+    expect(own.refusal).toBeNull()
+  })
+})
+
+describe('the invitation is a link and an email (T3.1 to T3.3)', () => {
+  beforeEach(() => {
+    resetEmails()
+    resetAuth()
+  })
+
+  it('mints a token, records a `team.invite` send on the outbox, and the link activates the account', async () => {
+    const created = await inviteOperator({
+      name: 'Rana Al-Harbi',
+      email: 'rana@eyvar.com',
+      phone: null,
+      role: 'Support',
+      compensationCapHalalas: null,
+    })
+    const invite = await getInvite(created.id)
+    expect(invite.token).toMatch(/^INV-/)
+
+    const outbox = await listEmailDeliveries({ view: 'outbox', pageSize: 5 })
+    expect(outbox.items[0]).toMatchObject({ recipient: 'rana@eyvar.com', templateKey: 'team.invite', state: 'queued' })
+
+    expect(await validateResetToken(invite.token)).toMatchObject({ state: 'valid', purpose: 'invite', role: 'Support' })
+    await expect(activateInvite({ token: invite.token, password: 'Long-enough-passphrase-9' })).resolves.toMatchObject({
+      kind: 'reset',
+    })
+    const activated = (await roster()).find((u) => u.id === created.id)
+    expect(activated?.status).toBe('Active')
+    expect(activated?.lastLoginAt).toBe(EYVAR_NOW)
+    expect((await validateResetToken(invite.token)).state).toBe('unknown')
+  })
+
+  it('renews the expiry on resend, keeps the token, and records a second send', async () => {
+    const before = await getInvite('USR-4')
+    const outboxBefore = (await listEmailDeliveries({ view: 'outbox', pageSize: 200 })).total
+    const renewed = await resendInvite('USR-4')
+    expect(renewed.token).toBe(before.token)
+    expect(Date.parse(renewed.expiresAt)).toBeGreaterThan(Date.parse(before.expiresAt))
+    expect((await listEmailDeliveries({ view: 'outbox', pageSize: 200 })).total).toBe(outboxBefore + 1)
+  })
+
+  it('refuses an expired invitation at the door, with the expiry named', async () => {
+    const created = await inviteOperator({
+      name: 'Late Joiner',
+      email: 'late@eyvar.com',
+      phone: null,
+      role: 'Support',
+      compensationCapHalalas: null,
+    })
+    const invite = await getInvite(created.id)
+    /* Age the invitation past its life through the store the client reads. */
+    const { getInvites, setInvites } = await import('./rosterStore')
+    setInvites(getInvites().map((i) => (i.token === invite.token ? { ...i, expiresAt: '2026-06-01T00:00:00+03:00' } : i)))
+    expect((await validateResetToken(invite.token)).state).toBe('expired')
+    await expect(activateInvite({ token: invite.token, password: 'Long-enough-passphrase-9' })).resolves.toMatchObject({
+      kind: 'failed',
+      reason: 'expired',
+    })
+    expect((await roster()).find((u) => u.id === created.id)?.status).toBe('Invited')
+  })
+})
+
+/* ─────────────────────── T6.4: the handover on suspend ────────────────── */
+
+describe('T6.4 — what a suspended or offboarded operator held returns to Unassigned', () => {
+  beforeEach(() => {
+    resetTickets()
+  })
+
+  it('releases the claim in the same act, and the audit entry names the count', async () => {
+    await claimTicket('TKT-501', 'USR-3', 'Lina')
+    expect((await getTicket('TKT-501')).ownerId).toBe('USR-3')
+
+    await suspendOperator('USR-3', 'on leave')
+
+    expect((await getTicket('TKT-501')).ownerId).toBeNull()
+    /* The seed already has Lina holding work; the count is everything she held. */
+    const entry = (await listAuditEntries({ action: 'team.suspend' })).items[0]
+    expect(entry?.detail.params?.released).toBeGreaterThanOrEqual(1)
+  })
+
+  it('releases on offboarding too, and reports zero for an operator holding nothing', async () => {
+    await useTwoManageTeamHolders()
+    await claimTicket('TKT-502', 'USR-5', 'Yousef', { takeOver: true })
+    await offboardOperator('USR-5', 'left the company')
+    expect((await getTicket('TKT-502')).ownerId).toBeNull()
+    /* An operator who holds nothing releases nothing. */
+    const fresh = await inviteOperator({
+      name: 'Holds Nothing',
+      email: 'nothing@eyvar.com',
+      phone: null,
+      role: 'Support',
+      compensationCapHalalas: null,
+    })
+    expect(await releaseHoldingsOf(fresh.id)).toBe(0)
+  })
+})
+
+/* ─────────────────────── T2.6: the cap default is policy ──────────────── */
+
+describe('T2.6 — the compensation cap default comes from the Limits pane', () => {
+  beforeEach(() => {
+    resetPolicy()
+  })
+
+  it('reads the role default from the policy document and follows a saved change', async () => {
+    expect(capForRole('Dispatcher')).toBe(50_00)
+    expect(capForRole('Owner')).toBeNull()
+
+    const policy = await getOperationalPolicy()
+    await saveOperationalPolicy({
+      dispatch: policy.dispatch,
+      cities: policy.cities.map(({ activeCaptains: _derived, ...city }) => ({ ...city })),
+      sla: policy.sla,
+      limits: {
+        ...policy.limits,
+        compensationCapHalalasByRole: { ...policy.limits.compensationCapHalalasByRole, Dispatcher: 75_00 },
+      },
+    })
+    expect(capForRole('Dispatcher')).toBe(75_00)
+  })
+})
+
+/* ─────────────────────── T7.6: the log the app boots with ─────────────── */
+
+describe('T7.6 — the Activity Log opens on the seeded history', () => {
+  it('boots with the roster\'s own entries, and a reset empties them for tests', async () => {
+    resetAuditToSeed()
+    expect(await logSize()).toBe(4)
+    resetAudit()
+    expect(await logSize()).toBe(0)
   })
 })

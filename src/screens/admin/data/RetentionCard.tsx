@@ -42,6 +42,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { InfoHint } from '@/components/InfoHint'
 import { toast } from 'sonner'
 import { Lock } from 'lucide-react'
 
@@ -61,7 +62,7 @@ import { formatDate } from '@/lib'
 import { useAsync } from '@/hooks'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useShell } from '@/shell/ShellContext'
 import { BlockedButton } from './BlockedButton'
@@ -88,7 +89,7 @@ export function RetentionCard() {
     [shell.language.t],
   )
   const { language } = shell.language
-  const canWrite = shell.permissions.permissions.includes('manage_settings')
+  const canWrite = shell.permissions.permissions.includes('manage_data_governance')
 
   /**
    * **Deliberately NOT cached (P3-13).** A save keeps the server's copy in
@@ -159,11 +160,9 @@ export function RetentionCard() {
         <CardTitle className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-muted-foreground" />
           {t('adminData.retention.title')}
+          <InfoHint t={t}>{t('adminData.retention.desc')}</InfoHint>
         </CardTitle>
-        <CardDescription className="max-w-2xl text-xs">
-          {t('adminData.retention.desc')}
-        </CardDescription>
-      </CardHeader>
+        </CardHeader>
 
       <CardContent className="pt-4 text-xs">
         {policy.status === 'loading' && (

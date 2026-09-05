@@ -110,6 +110,12 @@ export function resetPolicy(): void {
 
 /* ───────────────────────── read ───────────────────────── */
 
+/** The role's cap default from the Limits pane, sync, for the invite and the roster (O-T5). `undefined` when unset. */
+export function roleCapDefault(role: string): number | null | undefined {
+  if (!fixturesLoaded()) return undefined
+  return policyState.limits.compensationCapHalalasByRole[role]
+}
+
 /**
  * GET /api/v1/policy
  *   -> OperationalPolicy

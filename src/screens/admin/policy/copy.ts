@@ -87,6 +87,8 @@ export const POLICY_EN: Dictionary = {
   'policy.limits.drivingHours.help': '{value} hours.',
   'policy.limits.concurrentSubs': 'Concurrent subscriptions per captain',
   'policy.limits.riderCancels': 'Rider daily cancellations',
+  'policy.limits.caps': 'Compensation cap by role, SAR',
+  'policy.limits.caps.help': 'What an operator may credit a rider wallet without a second approval. Blank is no cap. A cap set on the operator in Team & Access wins.',
 
   /* ── 4a. SLA tier defaults ────────────────────────────────────── */
   'policy.sla.tiers.title': 'SLA tier defaults',
