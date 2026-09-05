@@ -405,6 +405,11 @@ reading them instead of skipping its own assertion.
 - **`⌘↵` without closing** is deferred, unchanged from §13: a destination row's
   `onSelect` closes the palette from inside the model and the surface has no way
   to ask it not to. It needs a model-side variant.
+- **The placeholder still reads *Search***. §6 asks for one that names the
+  verbs (*Type a command, a name or an ID*); the palette renders
+  `shell.search.placeholder`, which is the old top-bar field's word. A new key
+  is a copy decision and `npm run i18n:keys` currently refuses to write (below),
+  so it is left for the owner rather than invented here.
 - **Group labels stay muted, in the case the dictionary writes them in** —
   `text-xs font-medium text-muted-foreground`, no `uppercase` and no tracking.
   §3's sketch says small-caps; D18 is the rule that wins.
@@ -430,3 +435,15 @@ reading them instead of skipping its own assertion.
   `hiddenFromPalette` reasons come off, with the `REGISTRIES` table in
   `domains.test.ts` and four new `TargetSource`s in `targets.ts`. Owned by
   mock-data-engineer and product-designer, not by this integration.
+- **`npm run i18n:keys` refuses to write on this branch**, so `docs/08-i18n/`
+  and `scripts/i18n-budget.json` are unchanged and stale for the 43-command
+  registry. Verbatim: *"REFUSING to write: overBudget is 160 against a ceiling
+  of 147. The ceiling never rises. Cut the value to its class budget (X18), or
+  move the explanation behind InfoHint."* Ten of the over-budget values are new
+  since the pre-merge tree and all ten are §11's own copy in
+  `src/commands/copy.ts` — `cashReport.action.escalate`,
+  `incident.action.suspend`, `request.action.claimNext`,
+  `session.action.themeDark` · `themeLight` · `themeSystem`,
+  `operator.offboard.title`, `request.assign.title`, `request.expire.title`,
+  `wallet.toast.pending`. Shortening a command title is a copy decision, and
+  the ceiling was not raised.
