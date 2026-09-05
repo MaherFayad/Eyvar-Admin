@@ -493,3 +493,59 @@ Updated by whoever is executing. One line per task: id, status, evidence, date.
 | T9.2 | done | `scripts/harness/admin-access.mjs` and its README row. Run against `HARNESS_BASE=http://localhost:4331`: every role's rail as D17 draws it, `/admin/team` forbidden for the five non-Owner roles, Arabic panes rendering `dir="rtl"` with no horizontal overflow; the reasons pane at 5361px is the one pane still taller than a screen, and carries 8 em dashes from the reason-code content (X14, not this plan's) | 2026-09-05 |
 | — | closing | Full suite 2026-09-05: 177 files pass, 3 tests fail. `localisedKeys` (mine, fixed since), `inventory.test` on two committed `label:` lines in `clients/metrics.ts` this plan did not write, and `commands.test` CM-3 which passes alone and timed out under full-suite load. Typecheck clean outside the other session's `onboarding/illustrations`. Nothing is committed; the other session shares this tree | 2026-09-05 |
 | — | note | `onboarding.test.tsx` and `qa.shell.test.tsx` fail at collection on that same missing import, not on an assertion; both ran green on this plan's changes before it appeared. Re-run when the tree is whole. Typecheck is clean outside `onboarding/illustrations` and `AppLayout.tsx`, both the other session's. | 2026-09-05 |
+
+## 8. Round 2: nothing opens over the page (2026-09-05)
+
+**Owner feedback, verbatim in substance:** a role must be creatable from the Roles pane; roles and each
+operator's permissions must be editable; the twenty-row matrix is "in bulk" and unreadable; the Overrides
+pane's picker plus dialog "is the worst thing in the world"; the Reason codes & SLA pane and the Templates
+pane need a full redesign.
+
+**One pattern for all four.** A list of the things on the start side, the selected thing edited in place on
+the end side (`MasterDetailPage`, FINANCIALS-UX-PLAN §4.1). No dialog anywhere on these panes except the
+destructive confirm on *Delete role* (G5, one `ConfirmDialog`).
+
+| Pane | Before | After |
+|---|---|---|
+| Roles & permissions | 6 columns × 20 rows of ticks; *Duplicate as custom* under each column; editing in a dialog | List of roles with *New role* in the list header; the selected role's twenty keys as six workspace groups with a switch each; a built-in is read-only with *Duplicate as custom*; a custom role saves, discards and deletes in place. `permissionGroups.ts`, `panes/PermissionGroupList.tsx`, `panes/RolesPane.tsx` |
+| Overrides | Picker, *Add override*, a dialog | List of every operator, the ones with an override marked and their delta in words; the selected operator's keys as the same six groups with *As role / Granted / Revoked*; the cap field; save, discard and *Remove override* in place. `panes/OverridesPane.tsx` |
+| Reason codes & SLA | One pane, 5,361 px tall: tier defaults, nine stacked queue grids of 8 cells, the registry | Two panes. *SLA targets*: tier defaults, then a list of nine queues stating how many targets each overrides, and the selected queue's four tiers edited in place (1,294 px). *Reason codes*: the registry alone. `SlaPolicyCards.tsx`, route view `sla` |
+| Templates | Every event with every language row stacked; *Edit* opened a dialog | List of events with their language coverage in words; the selected event's template edited in place, English or Arabic by a toggle. `EmailTemplatesCard.tsx`, `TemplateEditor.tsx` |
+
+Deleted: `RoleEditorDialog.tsx`, `OverrideDialog.tsx`, `TemplateEditorDialog.tsx`, 26 copy keys nothing read.
+Kept: every acceptance test the panes had, retargeted to the in-place editors (TA-4, AC-921, AC-922 to
+AC-925, AC-C4 to AC-C6, the Arabic template round trip). A pane's own write no longer swaps the page for
+its skeleton (`AdminTeamScreen` keeps the last roster through a refresh), which is what made a saved role
+lose its selection.
+
+### 8.1 View, edit and delete: what exists and what does not
+
+The owner asked for permissions at three levels. Today's model (D17) has two: a **view** key per workspace
+and **write** keys per capability, which is what the six groups on the Roles pane now show. There is no
+**delete** tier: the irreversible acts sit inside the write keys (offboarding an operator and deleting a
+role inside `manage_team`, erasure inside `manage_data_governance`, cancelling a subscription inside
+`manage_subscriptions`, revoking an API key inside `manage_workspace`, deleting a template inside
+`manage_communications`, retiring a reason code inside `manage_ops_policy`).
+
+**Proposed:** one destructive key per workspace group, granted separately from the write keys, shown as a
+third row in each group of the Roles and Overrides panes and seeded to the Owner and Ops Manager only.
+
+| Step | Work | Estimate |
+|---|---|---|
+| D17 amendment naming the six destructive acts per group | `docs/RULINGS.md`, owner sign-off on the list above | half a day, owner time |
+| Six keys, role seeds, session resolution, copy in both languages | `types/navigation.ts`, `types/session.ts`, `fixtures`, `dictionaries.ts`, `ar/shell.ts` | half a day |
+| Gate the twelve irreversible acts at render (§11.2, refused in place with the reason) | the six clients and their screens' action registries | one day |
+| Roles and Overrides panes show the third row; the access preview names it | `permissionGroups.ts`, `AccessPreview.tsx` | half a day |
+| Tests per criterion, harness captures, key and API docs regenerated | | half a day |
+
+**Total: about three working days**, one of which waits on the owner's list. The panes as landed need no
+change of shape to receive it: the group model already has a slot for a third row.
+
+### 8.2 Left over from this round
+
+- `npm run i18n:keys` refuses to write while the word budget stands at 152 against a ceiling of 147. The five
+  over are onboarding step titles of 7 to 13 words added by a parallel session on this tree
+  (`onboarding.step.*.title`); none of this round's keys is over budget. The key docs regenerate once those
+  are cut.
+- A second session was writing `src/screens/onboarding/*` and `src/shell/AppLayout.tsx` in this working tree
+  during this round; its edit is mid-flight and fails typecheck at `AppLayout.tsx:898`. Not touched here.

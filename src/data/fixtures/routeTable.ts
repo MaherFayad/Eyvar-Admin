@@ -1003,6 +1003,7 @@ export const SUB_TABS: SubTabRoute[] = [
       ['dispatch', 'view.policy.dispatch'],
       ['cities', 'view.policy.cities'],
       ['limits', 'view.policy.limits'],
+      ['sla', 'view.policy.sla'],
       ['reasons', 'view.policy.reasons'],
     ),
     detailRoutes: [],

@@ -65,7 +65,7 @@
  *              terminal factual outcome, not an alarm.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InfoHint } from '@/components/InfoHint'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -239,7 +239,14 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
     isEmpty: () => false,
   })
 
-  const users = useMemo(() => roster.data?.items ?? [], [roster.data])
+  /* A refetch after a pane's own write is a refresh, not a first load: the
+     panes stay mounted on the last roster rather than yielding to a skeleton. */
+  const lastUsers = useRef<TeamUser[]>([])
+  const users = useMemo(() => {
+    const items = roster.data?.items
+    if (items) lastUsers.current = items
+    return items ?? (roster.isRefreshing ? lastUsers.current : [])
+  }, [roster.data, roster.isRefreshing])
 
   const refetchAll = () => {
     roster.refetch()
@@ -538,7 +545,7 @@ export function AdminTeamScreen({ row }: { row: SubTabRoute }) {
   const status: 'loading' | 'error' | 'empty' | 'content' =
     roster.status === 'error' || policy.status === 'error' || rota.status === 'error'
       ? 'error'
-      : roster.status === 'loading' || policy.status === 'loading' || rota.status === 'loading'
+      : (roster.status === 'loading' && !roster.isRefreshing) || policy.status === 'loading' || rota.status === 'loading'
         ? 'loading'
         : users.length === 0
           ? 'empty'

@@ -28,6 +28,7 @@ const ADMIN = [
   '/admin/team?view=sessions',
   '/admin/team?view=security',
   '/admin/policy',
+  '/admin/policy?view=sla',
   '/admin/policy?view=reasons',
   '/admin/communications?view=outbox',
   '/admin/communications?view=templates',
@@ -73,7 +74,8 @@ const facts = () =>
     }
   })
 
-await page.goto(BASE + '/admin/overview', { waitUntil: 'networkidle' })
+await page.goto(BASE + '/admin/overview', { waitUntil: 'load', timeout: 120_000 })
+await page.getByRole('heading', { level: 1 }).first().waitFor({ timeout: 60_000 })
 await page.waitForTimeout(1500)
 
 /* Per sub-tab and pane, as the Owner, in English. */

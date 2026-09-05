@@ -153,17 +153,12 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.template.inUse': 'In use',
   'comms.template.draft': 'Draft',
   'comms.template.sends': '{count} in the log',
-  'comms.template.updated': 'Updated {date}',
-  'comms.template.edit': 'Edit',
-  'comms.template.preview': 'Preview',
   'comms.template.empty.heading': 'No transactional template yet',
   'comms.template.empty.body':
     'A template turns a system event into the message a customer reads. Each one is written per language.',
   'comms.template.error': 'Templates could not be loaded.',
-  'comms.template.coverageError': 'Language coverage could not be loaded.',
 
   /* ── the editor ─────────────────────────────────────────────────────── */
-  'comms.editor.title': 'Edit template',
   'comms.editor.subject': 'Subject',
   'comms.editor.body': 'Body',
   'comms.editor.variables': 'Variables',
@@ -174,8 +169,8 @@ export const COMMUNICATIONS_EN: Dictionary = {
   'comms.editor.previewBody': 'Body',
   'comms.editor.save': 'Save template',
   'comms.editor.saving': 'Saving',
-  'comms.editor.cancel': 'Cancel',
-  'comms.editor.close': 'Close',
+  'comms.editor.discard': 'Discard changes',
+  'comms.template.language': 'Language',
   'comms.editor.issueError': 'Error',
   'comms.editor.issueWarning': 'Note',
   'comms.editor.declare': 'Declare {variable}',

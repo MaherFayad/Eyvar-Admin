@@ -32,7 +32,10 @@
  *             Neither is red; nothing here is a breach.
  */
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MasterDetailPage } from '@/components/PageShell'
+import { cn } from '@/lib/utils'
 import { InfoHint } from '@/components/InfoHint'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -178,20 +181,30 @@ export function SlaTierDefaultsCard({ draft, onChange, canWrite, blockedReason, 
   )
 }
 
-/* ═══════════════════ the queue × tier grid ═══════════════════ */
+/* ═══════════════════ the queues, one at a time ═══════════════════ */
 
+/**
+ * The 72 targets read as a list of nine queues and ONE queue's four tiers, not
+ * as nine stacked grids. The start side names each queue and how much of it
+ * departs from the tier defaults; the end side is the selected queue, its two
+ * clocks per tier and its breach policy, edited in place.
+ */
 export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, language }: SlaProps) {
   const tally = overrideTally(draft)
+  const [selectedId, setSelectedId] = useState<WorkQueueId | null>(null)
+  const queue = draft.sla.queues.find((each) => each.queueId === selectedId) ?? draft.sla.queues[0]
 
-  return (
-    <Card>
+  const overriddenIn = (each: (typeof draft.sla.queues)[number]) =>
+    each.tiers.reduce((n, cell) => n + SLA_TARGET_FIELDS.filter((field) => cell[field] !== null).length, 0)
+
+  const list = (
+    <Card className="self-start">
       <CardHeader className="border-b border-border pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <CardTitle>{t('policy.sla.grid.title')}
+          <CardTitle className="flex items-center gap-2">
+            {t('policy.sla.grid.title')}
             <InfoHint t={t}>{t('policy.sla.grid.desc')}</InfoHint>
           </CardTitle>
-            </div>
           <StatusBadge tone="neutral">
             {t('policy.sla.overrides.count', {
               count: formatCount(tally.overridden, language),
@@ -200,122 +213,136 @@ export function SlaQueueGridCard({ draft, onChange, canWrite, blockedReason, t, 
           </StatusBadge>
         </div>
       </CardHeader>
-
-      <CardContent className="flex flex-col gap-4 p-3">
-        {draft.sla.queues.map((queue) => (
-          <section
-            key={queue.queueId}
-            aria-label={t(queue.labelKey)}
-            className="rounded-md border border-border"
-          >
-            <h3 className="border-b border-border px-3 py-2 text-xs font-semibold text-foreground">
-              {t(queue.labelKey)}
-            </h3>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
-                  <tr>
-                    <th scope="col" className="p-2 text-start">{t('policy.sla.col.tier')}</th>
-                    <th scope="col" className="p-2 text-start">{t('policy.sla.col.firstResponse')}</th>
-                    <th scope="col" className="p-2 text-start">{t('policy.sla.col.resolution')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {SLA_TIER_KEYS.map((tier) => (
-                    <tr key={tier}>
-                      <th scope="row" className="p-2 text-start font-medium text-foreground">
-                        {tier}
-                      </th>
-                      {SLA_TARGET_FIELDS.map((field) => (
-                        <td key={field} className="p-2 align-top">
-                          <SlaTargetCell
-                            draft={draft}
-                            onChange={onChange}
-                            queueId={queue.queueId}
-                            tier={tier}
-                            field={field}
-                            canWrite={canWrite}
-                            t={t}
-                            language={language}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <fieldset className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border p-3">
-              <legend className="sr-only">{t('policy.sla.breach.title')}</legend>
-              <span className="text-xs font-medium text-muted-foreground">
-                {t('policy.sla.breach.title')}
-              </span>
-
-              <label className="flex items-center gap-2 text-xs text-foreground">
-                <Switch
-                  checked={queue.breach.marksRow}
-                  disabled={!canWrite}
-                  aria-label={t('policy.sla.breach.marksRow.a11y', { queue: t(queue.labelKey) })}
-                  onCheckedChange={(checked) =>
-                    onChange(setBreachPolicy(draft, queue.queueId, { marksRow: checked }))
-                  }
-                />
-                {t('policy.sla.breach.marksRow')}
-              </label>
-
-              <label className="flex items-center gap-2 text-xs text-foreground">
-                <Switch
-                  checked={queue.breach.reordersQueue}
-                  disabled={!canWrite}
-                  aria-label={t('policy.sla.breach.reordersQueue.a11y', { queue: t(queue.labelKey) })}
-                  onCheckedChange={(checked) =>
-                    onChange(setBreachPolicy(draft, queue.queueId, { reordersQueue: checked }))
-                  }
-                />
-                {t('policy.sla.breach.reordersQueue')}
-              </label>
-
-              <div className="flex items-center gap-2">
-                <Label htmlFor={`escalate-${queue.queueId}`} className="text-xs font-medium">
-                  {t('policy.sla.breach.escalate')}
-                </Label>
-                <Select
-                  value={queue.breach.escalateToRole ?? 'none'}
-                  disabled={!canWrite}
-                  onValueChange={(value) =>
-                    onChange(
-                      setBreachPolicy(draft, queue.queueId, {
-                        escalateToRole: value === 'none' ? null : value,
-                      }),
-                    )
-                  }
+      <CardContent className="p-0">
+        <ul aria-label={t('policy.sla.grid.title')} className="divide-y divide-border">
+          {draft.sla.queues.map((each) => {
+            const active = queue?.queueId === each.queueId
+            const count = overriddenIn(each)
+            return (
+              <li key={each.queueId}>
+                <button
+                  type="button"
+                  aria-current={active ? 'true' : undefined}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-xs hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                    active && 'bg-accent',
+                  )}
+                  onClick={() => setSelectedId(each.queueId)}
                 >
-                  <SelectTrigger id={`escalate-${queue.queueId}`} size="sm" className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('policy.sla.breach.escalate.none')}</SelectItem>
-                    <SelectItem value="ops_supervisor">
-                      {t('policy.sla.breach.escalate.ops_supervisor')}
-                    </SelectItem>
-                    <SelectItem value="finance_lead">
-                      {t('policy.sla.breach.escalate.finance_lead')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </fieldset>
-          </section>
-        ))}
-
-        {blockedReason ? (
-          <p className="text-xs text-muted-foreground">{blockedReason}</p>
-        ) : null}
+                  <span className="font-medium text-foreground">{t(each.labelKey)}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {count === 0
+                      ? t('policy.sla.queue.inherits')
+                      : t('policy.sla.queue.overriddenCount', { count: formatCount(count, language) })}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </CardContent>
     </Card>
   )
+
+  const detail = queue ? (
+    <section aria-label={t(queue.labelKey)} className="flex flex-col gap-3">
+      <Card>
+        <CardHeader className="border-b border-border pb-3">
+          <CardTitle>{t(queue.labelKey)}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t('policy.sla.queue.help')}</p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-xs">
+            <thead className="border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
+              <tr>
+                <th scope="col" className="p-3 text-start">{t('policy.sla.col.tier')}</th>
+                <th scope="col" className="p-3 text-start">{t('policy.sla.col.firstResponse')}</th>
+                <th scope="col" className="p-3 text-start">{t('policy.sla.col.resolution')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {SLA_TIER_KEYS.map((tier) => {
+                const tierDefault = draft.sla.tiers.find((each) => each.key === tier)
+                return (
+                  <tr key={tier}>
+                    <th scope="row" className="p-3 text-start align-top font-medium text-foreground">
+                      <span className="font-semibold">{tier}</span>{' '}
+                      {tierDefault && <span className="font-normal text-muted-foreground">{t(tierDefault.labelKey)}</span>}
+                    </th>
+                    {SLA_TARGET_FIELDS.map((field) => (
+                      <td key={field} className="p-3 align-top">
+                        <SlaTargetCell
+                          draft={draft}
+                          onChange={onChange}
+                          queueId={queue.queueId}
+                          tier={tier}
+                          field={field}
+                          canWrite={canWrite}
+                          t={t}
+                          language={language}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          <fieldset className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border p-3">
+            <legend className="sr-only">{t('policy.sla.breach.title')}</legend>
+            <span className="text-xs font-medium text-muted-foreground">{t('policy.sla.breach.title')}</span>
+
+            <label className="flex items-center gap-2 text-xs text-foreground">
+              <Switch
+                checked={queue.breach.marksRow}
+                disabled={!canWrite}
+                aria-label={t('policy.sla.breach.marksRow.a11y', { queue: t(queue.labelKey) })}
+                onCheckedChange={(checked) => onChange(setBreachPolicy(draft, queue.queueId, { marksRow: checked }))}
+              />
+              {t('policy.sla.breach.marksRow')}
+            </label>
+
+            <label className="flex items-center gap-2 text-xs text-foreground">
+              <Switch
+                checked={queue.breach.reordersQueue}
+                disabled={!canWrite}
+                aria-label={t('policy.sla.breach.reordersQueue.a11y', { queue: t(queue.labelKey) })}
+                onCheckedChange={(checked) => onChange(setBreachPolicy(draft, queue.queueId, { reordersQueue: checked }))}
+              />
+              {t('policy.sla.breach.reordersQueue')}
+            </label>
+
+            <div className="flex items-center gap-2">
+              <Label htmlFor={`escalate-${queue.queueId}`} className="text-xs font-medium">
+                {t('policy.sla.breach.escalate')}
+              </Label>
+              <Select
+                value={queue.breach.escalateToRole ?? 'none'}
+                disabled={!canWrite}
+                onValueChange={(value) =>
+                  onChange(setBreachPolicy(draft, queue.queueId, { escalateToRole: value === 'none' ? null : value }))
+                }
+              >
+                <SelectTrigger id={`escalate-${queue.queueId}`} size="sm" className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('policy.sla.breach.escalate.none')}</SelectItem>
+                  <SelectItem value="ops_supervisor">{t('policy.sla.breach.escalate.ops_supervisor')}</SelectItem>
+                  <SelectItem value="finance_lead">{t('policy.sla.breach.escalate.finance_lead')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </fieldset>
+
+          {blockedReason ? <p className="border-t border-border p-3 text-xs text-muted-foreground">{blockedReason}</p> : null}
+        </CardContent>
+      </Card>
+    </section>
+  ) : null
+
+  return <MasterDetailPage list={list} detail={detail} />
 }
 
 /* ─────────────────────── one cell ─────────────────────── */

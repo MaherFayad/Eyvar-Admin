@@ -94,9 +94,16 @@ const copy = (key: string): string => {
   return value
 }
 
-/** The `<section>` for one queue in the grid, so a cell query cannot stray. */
+/** Selects one queue on the start side; its `<section>` is the end side. */
+async function selectQueue(labelKey: string) {
+  const list = within(await screen.findByRole('list', { name: copy('policy.sla.grid.title') }))
+  await userEvent.click(list.getByRole('button', { name: new RegExp(`^${copy(labelKey)}`) }))
+  return screen.findByRole('region', { name: copy(labelKey) })
+}
+
+/** The `<section>` for one queue, so a cell query cannot stray. */
 async function queueSection(labelKey: string) {
-  return within(await screen.findByRole('region', { name: copy(labelKey) }))
+  return within(await selectQueue(labelKey))
 }
 
 /* ═══════════════ the four states ═══════════════ */
@@ -127,11 +134,12 @@ describe('four states', () => {
       ['dispatch', ['policy.dispatch.title']],
       ['cities', ['policy.cities.title']],
       ['limits', ['policy.limits.title']],
-      ['reasons', ['policy.sla.tiers.title', 'policy.sla.grid.title', 'policy.reasons.title']],
+      ['sla', ['policy.sla.tiers.title', 'policy.sla.grid.title']],
+      ['reasons', ['policy.reasons.title']],
     ]
     for (const [view, keys] of panes) {
       const mounted = renderPolicy('/admin/policy?view=' + view)
-      for (const key of keys) expect(await screen.findByText(copy(key))).toBeInTheDocument()
+      for (const key of keys) expect((await screen.findAllByText(copy(key))).length).toBeGreaterThan(0)
       mounted.unmount()
     }
   })
@@ -154,7 +162,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * and no spinbutton anywhere in the cell.
    */
   it('renders text and an Override button, and no spinbutton', async () => {
-    renderPolicy('/admin/policy?view=reasons')
+    renderPolicy('/admin/policy?view=sla')
     const dispute = await queueSection('policy.sla.queue.dispute')
 
     expect(dispute.getAllByText(copy('policy.sla.state.inherited')).length).toBeGreaterThan(0)
@@ -178,7 +186,7 @@ describe('an inherited SLA target has no field to read back', () => {
    * spinbutton, this would fail.
    */
   it('renders a field and a revert control on a queue that overrides', async () => {
-    renderPolicy('/admin/policy?view=reasons')
+    renderPolicy('/admin/policy?view=sla')
     const incident = await queueSection('policy.sla.queue.incident')
 
     expect(incident.getAllByText(copy('policy.sla.state.overridden')).length).toBeGreaterThan(0)
@@ -199,8 +207,9 @@ describe('an inherited SLA target has no field to read back', () => {
    * because the draft is byte-identical to what was loaded again.
    */
   it('override then revert leaves the screen clean', async () => {
-    renderPolicy('/admin/policy?view=reasons')
+    renderPolicy('/admin/policy?view=sla')
     const disputeLabel = copy('policy.sla.queue.dispute')
+    await selectQueue('policy.sla.queue.dispute')
 
     const override = await screen.findByRole('button', {
       name: 'Override the resolution target for Disputes at T2',
@@ -229,8 +238,9 @@ describe('an inherited SLA target has no field to read back', () => {
    * seventy-two. The screen-level statement of the F-014 criterion.
    */
   it('saves only the target the operator overrode', async () => {
-    renderPolicy('/admin/policy?view=reasons')
+    renderPolicy('/admin/policy?view=sla')
     const before = await getOperationalPolicy()
+    await selectQueue('policy.sla.queue.dispute')
 
     await userEvent.click(
       await screen.findByRole('button', {

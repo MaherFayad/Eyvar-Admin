@@ -342,10 +342,9 @@ describe('the screen', () => {
   it('previews a template with its sample values substituted — AC-C4', async () => {
     const user = userEvent.setup()
     mount('/admin/communications?view=templates')
-    const receipt = await screen.findByText('Trip receipt')
-    const family = receipt.closest('li')
-    const editButtons = within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })
-    await user.click(editButtons[0] as HTMLElement)
+    /* The event is a row on the start side; its English template opens in place. */
+    await user.click(await screen.findByRole('button', { name: /Trip receipt/ }))
+    expect(screen.queryByRole('dialog')).toBeNull()
 
     const subject = await screen.findByTestId('preview-subject')
     expect(subject).toHaveTextContent('Your Eyvar receipt for trip TRP-24817')
@@ -356,9 +355,7 @@ describe('the screen', () => {
   it('blocks the save and names the undeclared variable — AC-C5', async () => {
     const user = userEvent.setup()
     mount('/admin/communications?view=templates')
-    const reset = await screen.findByText('Reset your password')
-    const family = reset.closest('li')
-    await user.click(within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })[0] as HTMLElement)
+    await user.click(await screen.findByRole('button', { name: /Reset your password/ }))
 
     expect(
       await screen.findByText('The body uses expiryMinutes, which this template does not declare.'),
@@ -376,9 +373,9 @@ describe('the screen', () => {
   it('warns before saving a template that is in use — AC-C6', async () => {
     const user = userEvent.setup()
     mount('/admin/communications?view=templates')
-    const receipt = await screen.findByText('Trip receipt')
-    const family = receipt.closest('li')
-    await user.click(within(family as HTMLElement).getAllByRole('button', { name: 'Edit' })[0] as HTMLElement)
+    await user.click(await screen.findByRole('button', { name: /Trip receipt/ }))
+    /* A save asks only once something changed. */
+    await user.type(await screen.findByLabelText('Subject'), ' ')
 
     await user.click(await screen.findByRole('button', { name: 'Save template' }))
     expect(await screen.findByText('This template is live')).toBeInTheDocument()
@@ -432,10 +429,13 @@ describe('the screen', () => {
       const log = mount()
       expect(await screen.findByText('nora.alharbi@example.com')).toBeInTheDocument()
       log.unmount()
-      /* The Arabic template's own subject line, rendered beside the English
-         one on the same coverage row of the Templates pane. */
+      /* The Arabic template's own subject line, once its language is chosen on
+         the selected event of the Templates pane. */
       mount('/admin/communications?view=templates')
-      expect(await screen.findByText('إيصال إيفار لرحلتك {{tripId}}')).toBeInTheDocument()
+      const user = userEvent.setup()
+      await user.click(await screen.findByRole('button', { name: /Trip receipt/ }))
+      await user.click(screen.getByRole('radio', { name: 'Arabic' }))
+      expect(await screen.findByDisplayValue('إيصال إيفار لرحلتك {{tripId}}')).toBeInTheDocument()
     } finally {
       /* In a `finally`, so a failed assertion cannot leak `dir="rtl"` into the
          next test in this file — which is how one failure becomes two. */

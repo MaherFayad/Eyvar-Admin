@@ -62,6 +62,7 @@ const POLICY_PANES: readonly ScreenView[] = [
   { id: 'dispatch', titleKey: 'view.policy.dispatch' },
   { id: 'cities', titleKey: 'view.policy.cities' },
   { id: 'limits', titleKey: 'view.policy.limits' },
+  { id: 'sla', titleKey: 'view.policy.sla' },
   { id: 'reasons', titleKey: 'view.policy.reasons' },
 ]
 
@@ -214,17 +215,14 @@ export function AdminPolicyScreen({ row }: { row: SubTabRoute }) {
         {panes.activeTab === 'dispatch' && <DispatchCard {...paneProps} />}
         {panes.activeTab === 'cities' && <CitiesCard {...paneProps} fleetById={fleetById} />}
         {panes.activeTab === 'limits' && <LimitsCard {...paneProps} />}
-        {panes.activeTab === 'reasons' && (
+        {panes.activeTab === 'sla' && (
           <>
             <SlaTierDefaultsCard {...paneProps} />
             <SlaQueueGridCard {...paneProps} />
-            <ReasonCodesCard
-              canWrite={canWrite}
-              blockedReason={blockedReason}
-              t={t}
-              language={language}
-            />
           </>
+        )}
+        {panes.activeTab === 'reasons' && (
+          <ReasonCodesCard canWrite={canWrite} blockedReason={blockedReason} t={t} language={language} />
         )}
       </div>
     </SingleColumnPage>

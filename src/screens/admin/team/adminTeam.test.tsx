@@ -361,50 +361,83 @@ describe('TA-3 — a role change names both states, takes a reason, and is audit
   })
 })
 
-describe('TA-4 — a custom role is duplicated from a built-in on the Roles pane', () => {
-  it('creates a role from Dispatcher, and it appears as a column with no holders', async () => {
+describe('TA-4 — a custom role is duplicated from a built-in on the Roles pane, in place', () => {
+  it('creates a role from Dispatcher without a dialog, and the new role is selected with no holders', async () => {
     const user = userEvent.setup()
     renderScreen('/admin/team?view=roles')
-    expect(await screen.findByText(text('admin.team.roles.title'))).toBeInTheDocument()
-    /* Six built-ins, six duplicate controls; the third column is Dispatcher. */
-    const duplicates = await screen.findAllByRole('button', { name: text('admin.team.roles.duplicate') })
-    expect(duplicates).toHaveLength(6)
-    await user.click(duplicates[2]!)
+    const list = () => within(screen.getByRole('list', { name: text('admin.team.roles.title') }))
+    await screen.findByRole('list', { name: text('admin.team.roles.title') })
+    await user.click(list().getByRole('button', { name: /^Dispatcher/ }))
+    await user.click(screen.getByRole('button', { name: text('admin.team.roles.duplicate') }))
+    expect(screen.queryByRole('dialog')).toBeNull()
 
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('New role from Dispatcher')).toBeInTheDocument()
-    await user.type(within(dialog).getByLabelText(text('admin.team.roles.editor.name')), 'Night dispatcher')
-    await user.click(within(dialog).getByRole('button', { name: text('admin.team.roles.editor.create') }))
+    await user.type(screen.getByLabelText(text('admin.team.roles.editor.name')), 'Night dispatcher')
+    await user.click(screen.getByRole('button', { name: text('admin.team.roles.editor.create') }))
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(await screen.findByText('Night dispatcher')).toBeInTheDocument()
-    expect(screen.getByText(text('admin.team.roles.custom'))).toBeInTheDocument()
-    /* Unheld, so it can be deleted; a built-in cannot, and says so. */
+    const created = await list().findByRole('button', { name: /Night dispatcher/ })
+    expect(created).toHaveAttribute('aria-current', 'true')
+    expect(within(created).getByText(text('admin.team.roles.custom'))).toBeInTheDocument()
+    /* Unheld, so it can be deleted; a built-in has no delete at all. */
     expect(screen.getByRole('button', { name: text('admin.team.roles.delete') })).toBeEnabled()
+  })
+
+  it('starts a blank role from the list header with every switch live', async () => {
+    const user = userEvent.setup()
+    renderScreen('/admin/team?view=roles')
+    await user.click(await screen.findByRole('button', { name: text('admin.team.roles.new') }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByLabelText(text('admin.team.roles.editor.name'))).toHaveValue('')
+    const escrow = screen.getByRole('switch', { name: EN['account.permission.release_escrow'] as string })
+    expect(escrow).toBeEnabled()
   })
 })
 
-describe('AC-921 — an override is granted on the Overrides pane and shown as a delta', () => {
+describe('AC-921 — an override is granted on the Overrides pane, in place, and shown as a delta', () => {
   it('grants release_escrow to Lina and lists her as Support plus the key', async () => {
     const user = userEvent.setup()
     renderScreen('/admin/team?view=overrides')
     expect(await screen.findByText(text('admin.team.overrides.empty'))).toBeInTheDocument()
 
-    await user.click(screen.getByLabelText(text('admin.team.override.picker')))
-    await user.click(await screen.findByRole('option', { name: 'Lina Al-Otaibi' }))
-    await user.click(screen.getByRole('button', { name: text('admin.team.overrides.add') }))
+    const list = within(screen.getByRole('list', { name: text('admin.team.overrides.title') }))
+    await user.click(list.getByRole('button', { name: /Lina Al-Otaibi/ }))
+    expect(screen.queryByRole('dialog')).toBeNull()
 
-    const dialog = await screen.findByRole('dialog')
-    const escrowRow = within(dialog)
-      .getByText(EN['account.permission.release_escrow'] as string)
-      .closest('li') as HTMLElement
+    const escrowRow = screen
+      .getAllByText(EN['account.permission.release_escrow'] as string)
+      .map((node) => node.closest('li') as HTMLElement | null)
+      .find((li): li is HTMLElement => li !== null && within(li).queryAllByRole('radio').length > 0) as HTMLElement
     await user.click(within(escrowRow).getByRole('radio', { name: text('admin.team.override.state.granted') }))
-    await user.click(within(dialog).getByRole('button', { name: text('admin.team.override.save') }))
+    await user.click(screen.getByRole('button', { name: text('admin.team.override.save') }))
 
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    const row = (await screen.findByText('Lina Al-Otaibi')).closest('tr') as HTMLElement
+    const row = await within(screen.getByRole('list', { name: text('admin.team.overrides.title') })).findByRole('button', {
+      name: /Lina Al-Otaibi/,
+    })
     expect(within(row).getByText(`+ ${EN['account.permission.release_escrow']}`)).toBeInTheDocument()
-    expect(within(row).getAllByText(EN['role.support'] as string).length).toBeGreaterThan(0)
+    expect(within(row).getByText(EN['role.support'] as string)).toBeInTheDocument()
+    expect(screen.getByText(text('admin.team.overrides.count').replace('{count}', '1'))).toBeInTheDocument()
+  })
+})
+
+describe('the Overrides list is searched, not scrolled', () => {
+  it('narrows the operators to the query and keeps the selection', async () => {
+    const user = userEvent.setup()
+    renderScreen('/admin/team?view=overrides')
+    const listEl = await screen.findByRole('list', { name: text('admin.team.overrides.title') })
+    const list = within(listEl)
+    await user.click(await list.findByRole('button', { name: /Lina Al-Otaibi/ }))
+
+    const search = screen.getByRole('searchbox', { name: text('admin.team.search') })
+    await user.type(search, 'fahad')
+    expect(list.getByRole('button', { name: /Fahad Al-Dosari/ })).toBeInTheDocument()
+    expect(list.getByRole('button', { name: /Noura Al-Fahad/ })).toBeInTheDocument()
+    expect(list.queryByRole('button', { name: /Lina Al-Otaibi/ })).toBeNull()
+    expect(
+      screen.getByText(text('admin.team.override.dialog.title').replace('{name}', 'Lina Al-Otaibi')),
+    ).toBeInTheDocument()
+
+    await user.clear(search)
+    await user.type(search, 'zzz')
+    expect(screen.getByText(text('admin.team.noMatch'))).toBeInTheDocument()
   })
 })
 

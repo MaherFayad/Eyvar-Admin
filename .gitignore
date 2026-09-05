@@ -14,3 +14,5 @@ shot-page.png
 scripts/harness/shots/
 __pycache__/
 .tmp/
+
+dist-harness

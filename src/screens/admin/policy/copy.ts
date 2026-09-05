@@ -108,7 +108,6 @@ export const POLICY_EN: Dictionary = {
   'policy.sla.coverage.continuous': 'Around the clock',
   'policy.sla.coverage.business-hours': 'Business hours',
   'policy.sla.pause.a11y': 'Pause the {tier} resolution clock while waiting on the customer',
-  'policy.sla.minutes': '{count} min',
   'policy.sla.atRisk': 'At risk at',
   'policy.sla.atRisk.help': 'Percent of the resolution window consumed before a row reads at risk.',
   'policy.sla.uncodedCeiling': 'Uncoded ceiling',
@@ -119,6 +118,9 @@ export const POLICY_EN: Dictionary = {
   'policy.sla.grid.title': 'SLA targets per queue',
   'policy.sla.grid.desc':
     'A queue answers on the tier default unless it overrides it. An overridden target stops following the tier — revert it to put it back.',
+  'policy.sla.queue.inherits': 'Inherits every target',
+  'policy.sla.queue.overriddenCount': '{count} overridden',
+  'policy.sla.queue.help': 'Each tier shows the tier default until you override it for this queue.',
   'policy.sla.overrides.count': '{count} of {total} targets overridden',
   /* One per `WorkQueueId` (`data/types/workQueue.ts`). The keys are the
      canonical singular ids, so a queue's SLA row and its work items are named
