@@ -438,9 +438,12 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         dataType: 'text',
         sortField: 'riderName',
         filter: { kind: 'text', field: 'riderName' },
-        /* **P8-T1** — a cell that names a rider opens that rider. */
+        /* **P8-T1** — a cell that names a rider opens that rider. **T5.1** —
+           the widest Arabic name on the fixtures measures 309px against this
+           column's 131px share of the 870px Arabic budget, so the `title`
+           keeps the clipped half readable rather than lost. */
         cell: (trip) => (
-          <Cell>
+          <Cell title={trip.riderName}>
             <EntityLink
               href={hrefFor(trip.riderId)}
               label={t('trips.open.rider', { name: trip.riderName })}
@@ -476,7 +479,7 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
          * *"no captain accepted this"* is a known fact worth stating in words.
          */
         cell: (trip) => (
-          <Cell>
+          <Cell title={trip.driverName ?? undefined}>
             <EntityLink
               href={hrefFor(trip.driverId)}
               label={t('trips.open.captain', { name: trip.driverName ?? '' })}

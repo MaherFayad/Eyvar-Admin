@@ -593,9 +593,10 @@ const STATUS: Readonly<Record<RequestStatus, { tone: 'success' | 'warning' | 'in
 }
 
 /**
- * §7.3's width contract, for this view:
- * `104 + 104 + 136 + 176 + 176 = 696`, plus the identity's `minWidth: 168`
- * = **864**, inside the Arabic budget of 870 and the English one of 910.
+ * §7.3's width contract, for this view, after T5.2 took `Type`'s 104:
+ * `104 + 136 + 176 + 176 = 592`, plus the identity's `minWidth: 168` = **760**,
+ * inside the Arabic budget of 870 and the English one of 910. The 110px (en) /
+ * 70px (ar) of residual is the identity's, so `Ride` renders at 278 / 238.
  *
  * **136 on `Deadline` is measured too.** `overdue 12h 11m` inside an 11/600
  * badge is ~107px, and 120 clipped it to `overdue 12h 11r` — a countdown a
@@ -849,8 +850,12 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
              assembling a sentence around a component and a link inside a
              translated template cannot be moved by a translator. */
           if (row.offeredToDriverId !== null && row.offeredToDriverName !== null) {
+            /* **T5.1** — the name and the qualifier STACK. Side by side they
+               spent 200px of a 176px column and clipped to `Reem A… · awaiting
+               t…` (§3.7); stacked, the column has to hold the wider of the two
+               rather than their sum, and §7.7's shape says the same thing. */
             return (
-              <Cell className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Cell className="flex flex-col justify-center text-xs text-muted-foreground">
                 <EntityLink
                   href={deps.hrefFor(row.offeredToDriverId)}
                   label={t('requests.a11y.openCaptain', { name: row.offeredToDriverName })}

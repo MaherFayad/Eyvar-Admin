@@ -357,8 +357,13 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         dataType: 'text',
         sortField: 'riderName',
         filter: { kind: 'text', field: 'riderName' },
+        /* **T5.1** — the widest Arabic rider on the fixtures measures 309px and
+           this column's share of the 870px Arabic budget is 134, so a long
+           patronymic chain clips. The `title` keeps the clipped half readable
+           rather than lost; the width itself is the column-set decision the
+           harness's numbers record. */
         cell: (sub) => (
-          <Cell>
+          <Cell title={sub.riderName}>
             <EntityLink
               href={hrefFor(sub.riderId)}
               label={t('subs.open.rider', { name: sub.riderName })}
@@ -380,7 +385,7 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         /* §11.2 / P8-T1 — an unassigned subscription has no captain to open, so
            the cell is plain muted text with the reason, never a dead link. */
         cell: (sub) => (
-          <Cell>
+          <Cell title={sub.driverName ?? undefined}>
             <EntityLink
               href={hrefFor(sub.driverId)}
               label={t('subs.open.captain', { name: sub.driverName ?? '' })}

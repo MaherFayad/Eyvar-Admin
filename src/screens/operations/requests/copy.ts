@@ -121,12 +121,11 @@ export const REQUESTS_EN: Dictionary = {
   /* §11.2 — the id is on the row but the resolver says it names nothing. A
      different fact from "there is no id", with a different next action. */
   'requests.entity.unresolved': 'There is no record on file for this reference.',
-  /* The half-sentence that follows the captain's LINK in the decision cell.
-     Split from `requests.offered.withCaptain` rather than interpolated around
-     an `<a>`: AC-75 forbids assembling a sentence around a component, and a
-     translator cannot move a link that is inside a template. The one-name
-     version stays for the row that has no captain id to open. */
-  'requests.offered.waiting': '· awaiting their reply',
+  /* Line 2 under the captain's LINK in the decision cell. Split from
+     `requests.offered.withCaptain` rather than interpolated around an `<a>`:
+     AC-75 forbids assembling a sentence around a component. T5.1 stacked the
+     two, so the leading `·` that joined them inline is gone. */
+  'requests.offered.waiting': 'Awaiting their reply',
 
   'requests.bulk.claim': 'Claim',
   'requests.action.claim.blocked.one': 'This request is already claimed, or already decided.',

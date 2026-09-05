@@ -71,7 +71,7 @@ export const REQUESTS_AR: Dictionary = {
   'requests.decided.cancelled': 'ملغى',
   'requests.a11y.openCaptain': 'فتح الملف الشامل لـ{name}',
   'requests.entity.unresolved': 'لا يوجد سجل محفوظ لهذا المرجع.',
-  'requests.offered.waiting': '· بانتظار ردّه',
+  'requests.offered.waiting': 'بانتظار ردّه',
   'requests.bulk.claim': 'استلام',
   'requests.action.claim.blocked.one': 'هذا الطلب مُستلَم بالفعل، أو تم البتّ فيه.',
   'requests.action.claim.blocked.other': '{count} من الطلبات المحدَّدة مُستلَمة بالفعل، أو تم البتّ فيها.',
