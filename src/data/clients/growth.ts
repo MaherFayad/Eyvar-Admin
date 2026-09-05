@@ -80,6 +80,9 @@ const promoShape: QueryShape<GrowthPromo> = {
     expiresOn: (p) => p.expiresOn,
     status: (p) => p.status,
     createdAt: (p) => p.createdAt,
+    /* The Target column declares this as its sort field, and a declared field
+       with no accessor throws rather than falling back (`query.ts`). */
+    target: (p) => p.target,
   },
   filterable: {
     code: (p) => p.code,
