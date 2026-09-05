@@ -179,7 +179,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
+import { DeltaDownIcon, DeltaUpIcon } from '@/components/icons'
 import { forwardIcon } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -887,7 +887,7 @@ export function MetricDelta({
     )
   }
 
-  const Caret = deltaPercent > 0 ? ArrowUpIcon : deltaPercent < 0 ? ArrowDownIcon : null
+  const Caret = deltaPercent > 0 ? DeltaUpIcon : deltaPercent < 0 ? DeltaDownIcon : null
 
   /* The LONG clause, and it is the screen reader's. */
   const direction =

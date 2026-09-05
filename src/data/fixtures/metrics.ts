@@ -1071,7 +1071,11 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'drivers',
-    drilldownRoute: '/operations/people?view=compliance',
+    /* T7.2 / O4 — pre-filtered to the tile's own population, not to every
+       compliance row. The predicate is `complianceShape`'s own `needs-attention`
+       view: anything not clean. `compliance.` scopes the parameter to the view
+       (`tableScope`); the list carries suspend, so the act comes with it. */
+    drilldownRoute: '/operations/people?view=compliance&compliance.filter=worstState:neq:valid',
   },
   {
     /**

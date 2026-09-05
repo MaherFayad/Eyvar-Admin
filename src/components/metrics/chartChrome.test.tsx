@@ -25,6 +25,7 @@
  */
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTranslator, resetAnnouncer, currentAnnouncement } from '@/lib'
@@ -235,15 +236,23 @@ describe('the legend names the unit the scale is in (§A9)', () => {
       </MemoryRouter>,
     )
 
-  it('names riyals on a money series — the one chart whose marks are rescaled', () => {
+  /* T9.9 — the scale's noun explains the plot rather than reporting it, so it
+     moved from the legend into the hint beside the card's title (X15). */
+  const openHint = async (name = EN['shell.hint.show'] as string) => {
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name }))
+    return (await screen.findByRole('tooltip')).textContent ?? ''
+  }
+
+  it('names riyals on a money series — the one chart whose marks are rescaled', async () => {
     /* `TrendChart` divides money marks by 100, so a revenue plot's scale reads
        `300 / 200` with no currency anywhere on the panel. This is the sentence
        that makes those two numbers mean something. */
     renderCard({ unit: 'money', currency: 'SAR' })
-    expect(screen.getByText('Measured in riyals')).toBeInTheDocument()
+    expect(await openHint()).toContain('Measured in riyals')
   })
 
-  it('names the unit of every other measure from the series, not from a default', () => {
+  it('names the unit of every other measure from the series, not from a default', async () => {
     const cases: Array<[TimeSeries['unit'], string]> = [
       ['count', 'Measured in counts'],
       ['percent', 'Measured in per cent'],
@@ -253,24 +262,27 @@ describe('the legend names the unit the scale is in (§A9)', () => {
     ]
     for (const [unit, sentence] of cases) {
       const { unmount } = renderCard({ unit })
-      expect(screen.getByText(sentence), `${unit} names no unit`).toBeInTheDocument()
+      expect(await openHint(), `${unit} names no unit`).toContain(sentence)
       unmount()
     }
   })
 
-  it('sits in the legend row and not inside the SVG (§9.2)', () => {
+  it('sits in the card chrome and not inside the SVG (§9.2)', async () => {
     /* §9.2 forbids giving the axis group a direction, so an Arabic axis title
        would neither shape nor align. The noun belongs to the chrome, which
        mirrors. */
-    const { container } = renderCard({ unit: 'money', currency: 'SAR' }, 'ar')
+    renderCard({ unit: 'money', currency: 'SAR' }, 'ar')
+    await openHint(AR['shell.hint.show'] as string)
     const line = screen.getByText('وحدة القياس: الريالات')
     expect(line.closest('svg')).toBeNull()
-    expect(container.querySelector('[data-slot="card-footer"]')?.contains(line)).toBe(true)
   })
 
   it('says nothing when there is no plot to put a scale under', () => {
     renderCard({ current: { periodStart: '2026-06-19', periodEnd: '2026-06-21', points: [] } })
     expect(screen.queryByText(/^Measured in/u)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: EN['shell.hint.show'] as string }),
+    ).not.toBeInTheDocument()
   })
 })
 

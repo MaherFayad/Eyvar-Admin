@@ -311,6 +311,15 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
     },
   )
 
+  /* T1.5 — a board an operator comes back to after an hour in another window
+     is an hour stale, and `asOf` is the only thing that ever said so. A window
+     focus re-reads; `refetch` bypasses the cache, so the read is real. */
+  const { refetch } = board
+  useEffect(() => {
+    window.addEventListener('focus', refetch)
+    return () => window.removeEventListener('focus', refetch)
+  }, [refetch])
+
   const title = t(row.titleKey)
   const data = board.status === 'content' ? board.data : null
   /* **The lede is keyed by sub-tab and resolved here rather than in the band**,
@@ -392,6 +401,19 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
    */
   const leadChoice = selectableLeads.length >= 2
 
+  /**
+   * T5.7 — the window of the chart the band sits over, when the band sits over
+   * one. The hoisted chart if a lead is charted; otherwise a board's SOLE
+   * chart, which is Risk & Signals: point-in-time leads, so the pill reads
+   * *All time*, above one plot covering seven days and saying so nowhere.
+   * `null` where a board draws several, because there is no one window to name.
+   */
+  const featuredChart = data?.charts.find((chart) => chart.key === featuredKey) ?? null
+  const scopedChart = featuredChart ?? (data?.charts.length === 1 ? data.charts[0] : null)
+  const chartPeriod = scopedChart
+    ? { start: scopedChart.current.periodStart, end: scopedChart.current.periodEnd }
+    : null
+
   return (
     /* `flow` rather than the default `fill`. The board is now a long page —
        a band, then chapters, then a chart row — and `fill` claims the content
@@ -411,6 +433,9 @@ export function MetricBoardScreen({ row }: { row: SubTabRoute }) {
             asOf={data.asOf}
             period={period ?? boardPeriod(data.metrics)}
             onPeriod={setPeriod}
+            chartPeriod={chartPeriod}
+            onRefresh={board.refetch}
+            refreshing={board.isRefreshing}
             t={t}
             language={language}
           >

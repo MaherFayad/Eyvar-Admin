@@ -21,6 +21,8 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.asOf': 'احتُسب {time}',
 
   /* البند العلوي للوحة — الفترة، والمقدمة، وعناوين الفصول. */
+  'overview.refresh': 'تحديث',
+  'overview.period.scope': 'المؤشرات: {leads} · المخطط: {chart}',
   'overview.period.label': 'تغيير الفترة',
   'overview.period.none': 'كل الفترات',
   'overview.period.presets': 'الفترات',
@@ -55,7 +57,7 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.lede.operations-overview':
     'ما الذي على الوحدة الآن: العمل المُستلَم، والعمل غير المُستلَم، والمهل الجارية عليه.',
   'overview.lede.support-overview':
-    'كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها.',
+    'كل ما هو مفتوح أمام شخص. الحوادث والتذاكر وأزمنة الاستجابة عليها.',
   'overview.lede.support-fairness':
     'هل تصمد القرارات المتَّخذة بحق الكباتن عند الاعتراض عليها؟',
   'overview.lede.admin-overview':
@@ -129,10 +131,10 @@ export const OVERVIEW_AR: Dictionary = {
   'overview.report.analysisFor': 'لـ{report}',
   /* اسم مجموعة الاختيار في البند العلوي: الأرقام الرئيسية الثلاثة تختار
      المخطط المرسوم تحتها، فهي عنصر تحكّم واحد لا ثلاثة أزرار متفرقة. */
-  'overview.hero.group': 'المؤشرات الرئيسية — اختر واحدًا لعرض مخططه',
-  'overview.empty.heading': 'الكباتن والركاب والرحلات والاشتراكات، على لوحة واحدة',
-  'overview.empty.body': 'تعرض هذه اللوحة الكباتن والركاب والرحلات والاشتراكات. تظهر الأرقام هنا فور وجود نشاط يمكن إحصاؤه.',
-  'overview.empty.action': 'الانتقال إلى الرحلات الفورية',
+  'overview.hero.group': 'المؤشرات الرئيسية · اختر واحدًا لعرض مخططه',
+  'overview.empty.heading': 'مساحة عملك بالأرقام',
+  'overview.empty.body': 'تظهر الأرقام فور وجود نشاط يمكن إحصاؤه.',
+  'overview.empty.action': 'فتح الرحلات الفورية',
   'metric.management.overview.contributionMargin': 'هامش المساهمة',
   'metric.management.overview.grossRevenue': 'إجمالي الإيرادات',
   'metric.management.overview.activeSubscriptions': 'الاشتراكات النشطة',

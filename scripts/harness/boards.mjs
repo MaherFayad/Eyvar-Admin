@@ -1,0 +1,133 @@
+/**
+ * The four management boards at 1280 x 800: every 12px muted paragraph inside a
+ * card (X15/T9.9), the chapter grids' column counts (T5.6) and the band's
+ * period pill (T5.7). jsdom draws no grid and no chart, so this is the only
+ * thing that measures them. Run `npx vite --port 4341` first.
+ *
+ *   node scripts/harness/boards.mjs [label] [port]
+ */
+import { chromium } from 'playwright'
+import { mkdirSync } from 'node:fs'
+
+const BASE = `http://localhost:${process.argv[3] ?? 4341}`
+const LABEL = process.argv[2] ?? 'now'
+const OUT = './scripts/harness/shots'
+mkdirSync(OUT, { recursive: true })
+
+const ROUTES = [
+  ['mgmt-overview', '/management/overview'],
+  ['mgmt-performance', '/management/performance'],
+  ['mgmt-risk', '/management/risk'],
+  ['mgmt-growth', '/management/growth'],
+]
+
+const browser = await chromium.launch()
+for (const [name, url] of ROUTES) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await ctx.newPage()
+  const errors = []
+  page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)))
+  await page.goto(BASE + url, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1200)
+  if (LABEL === 'ar') {
+    await page.getByRole('button', { name: 'Account' }).click()
+    await page.getByRole('menuitemradio', { name: 'Arabic' }).click()
+    await page.waitForTimeout(2400)
+  }
+  /* The shell scrolls a MAIN region, not the window, so `fullPage` frames the
+     viewport and paints white below it. One screenshot per screenful of that
+     region instead, which is what "at 1280 x 800" means here. */
+  const screenfuls = await page.evaluate(() => {
+    const pane = [...document.querySelectorAll('*')].find(
+      (n) => n.scrollHeight > n.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(n).overflowY),
+    )
+    return pane ? Math.ceil(pane.scrollHeight / pane.clientHeight) : 1
+  })
+  for (let i = 0; i < screenfuls; i += 1) {
+    await page.evaluate((step) => {
+      const pane = [...document.querySelectorAll('*')].find(
+        (n) => n.scrollHeight > n.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(n).overflowY),
+      )
+      if (pane) pane.scrollTop = step * pane.clientHeight
+    }, i)
+    await page.waitForTimeout(700)
+    await page.screenshot({ path: `${OUT}/board-${name}-${LABEL}-${i}.png` })
+  }
+
+  const facts = await page.evaluate(() => {
+    const visible = (n) => n.getBoundingClientRect().height > 0
+    const cards = [...document.querySelectorAll('[data-slot="card"]')]
+    /* The X15 target: a 12px muted PARAGRAPH inside a card. */
+    const mutedParas = cards.flatMap((c) =>
+      [...c.querySelectorAll('p.text-xs.text-muted-foreground')].filter(visible),
+    )
+    /* Every 12px muted node inside a card, paragraph or not, for the count. */
+    const mutedNodes = cards.flatMap((c) =>
+      [...c.querySelectorAll('.text-xs.text-muted-foreground')].filter(visible),
+    )
+    /* Every figure grid on the page, named by the heading above it. Matched on
+       the markup both cuts share so one run measures before and after T5.6. */
+    const chapters = [...document.querySelectorAll('ul[data-numeric][role="list"]')].map((ul) => ({
+      chapter: ul.closest('section')?.querySelector('h2')?.textContent?.trim() ?? 'band',
+      tiles: ul.children.length,
+      columns: getComputedStyle(ul).gridTemplateColumns.split(' ').length,
+      widths: getComputedStyle(ul)
+        .gridTemplateColumns.split(' ')
+        .map((w) => Math.round(parseFloat(w))),
+    }))
+    const hints = [...document.querySelectorAll('[data-slot="card"] button')].filter(
+      (b) => (b.getAttribute('aria-label') ?? '') === 'What this means',
+    ).length
+    const pill = document.querySelector('h1')?.closest('section')?.querySelector('button bdi')
+    return {
+      cards: cards.length,
+      mutedParagraphsInCards: mutedParas.length,
+      mutedParagraphText: mutedParas.map((p) => p.textContent.trim().slice(0, 60)),
+      mutedNodesInCards: mutedNodes.length,
+      infoHintsInCards: hints,
+      chapterGrids: chapters,
+      periodPill: pill ? pill.textContent.trim() : null,
+      /* T1.5 — the control's own box, so RTL puts it where the band's row does. */
+      refresh: (() => {
+        const band = document.querySelector('h1')?.closest('section')
+        const b = [...(band?.querySelectorAll('button') ?? [])].find((n) =>
+          n.querySelector('svg.lucide-refresh-cw'),
+        )
+        if (!b) return null
+        const r = b.getBoundingClientRect()
+        return { label: b.textContent.trim(), x: Math.round(r.x), width: Math.round(r.width) }
+      })(),
+      emDashes: (document.body.innerText.match(/—/g) ?? []).length,
+      dir: document.documentElement.dir,
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }
+  })
+  /* T5.6 — every chapter on its own, so a one-tile and a two-tile chapter can
+     be compared side by side rather than inferred from the grid's numbers. */
+  const grids = page.locator('ul[data-numeric][role="list"]')
+  for (let i = 0; i < (await grids.count()); i += 1) {
+    const section = grids.nth(i).locator('xpath=..')
+    await section.scrollIntoViewIfNeeded()
+    await section.screenshot({ path: `${OUT}/chapter-${name}-${i}-${LABEL}.png` })
+  }
+  /* §7.2 - the new control is reachable and visibly focused. jsdom draws no
+     ring, so the proof is a frame with the ring in it. */
+  if (facts.refresh) {
+    const refresh = page.getByRole('button', { name: facts.refresh.label }).first()
+    await refresh.focus()
+    facts.refreshFocused = await refresh.evaluate((n) => n === document.activeElement)
+    /* Clipped with 12px of band around it: a ring draws OUTSIDE the element
+       box, so an element screenshot cuts off the thing being proved. */
+    const box = await refresh.boundingBox()
+    if (box) {
+      await page.screenshot({
+        path: `${OUT}/refresh-focus-${name}-${LABEL}.png`,
+        clip: { x: box.x - 12, y: box.y - 12, width: box.width + 24, height: box.height + 24 },
+      })
+    }
+  }
+  console.log(`${name} ${LABEL}`, JSON.stringify(facts, null, 1))
+  if (errors.length) console.log(name, 'ERRORS', errors)
+  await ctx.close()
+}
+await browser.close()

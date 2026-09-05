@@ -38,6 +38,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
@@ -136,6 +137,14 @@ function renderCard(s: TimeSeries, reportHref: string | null = null) {
       <ChartCard series={s} reportHref={reportHref} t={t} language="en" />
     </MemoryRouter>,
   )
+}
+
+/* T9.9 — what explains the plot rather than reports it lives behind the hint
+   beside the card's title. Opened by click, which is what a touch reaches. */
+async function readChartHint(): Promise<string> {
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: EN['shell.hint.show'] as string }))
+  return (await screen.findByRole('tooltip')).textContent ?? ''
 }
 
 describe('MetricTile — §3.7 delta rules', () => {
@@ -270,15 +279,15 @@ describe('ChartCard — the four states of a window (§3.7, SeriesWindow)', () =
     ).not.toBeInTheDocument()
   })
 
-  it('a window with GAPS counts them in words and does not call itself zero', () => {
+  it('a window with GAPS counts them in words and does not call itself zero', async () => {
     renderCard(series([day(1, 4), day(2, null), day(3, 6), day(4, null)]))
-    expect(screen.getByText('No reading on 2 of 4 days.')).toBeInTheDocument()
+    expect(await readChartHint()).toContain('No reading on 2 of 4 days.')
     expect(screen.queryByText('Every value in this range is zero.')).not.toBeInTheDocument()
   })
 
-  it('an ALL-NULL window is a full house of gaps, not an empty range', () => {
+  it('an ALL-NULL window is a full house of gaps, not an empty range', async () => {
     renderCard(series([day(1, null), day(2, null), day(3, null)]))
-    expect(screen.getByText('No reading on 3 of 3 days.')).toBeInTheDocument()
+    expect(await readChartHint()).toContain('No reading on 3 of 3 days.')
     expect(
       screen.queryByText('There was no data found for this date range.'),
     ).not.toBeInTheDocument()
