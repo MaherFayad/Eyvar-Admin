@@ -110,7 +110,7 @@ export function MapRail({
                 {t.plural('dispatch.interventions.strip', { count: interventionCount })}
               </span>
             </span>
-            <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">
+            <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
               {t('dispatch.interventions.open')}
               {/* T9.10 / O10 — a registry chevron chosen by `dir` in code. */}
               <OpenChevron aria-hidden="true" className="size-3.5" />

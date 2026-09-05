@@ -1197,7 +1197,7 @@ export function TabCount({ value, language }: { value: TabCountValue; language: 
   if (value === 'loading') return <Skeleton className="h-4 w-5" />
   if (value === 'unknown') return null
   return (
-    <span className="rounded-md bg-neutral px-1.5 text-2xs tabular-nums text-neutral-foreground">
+    <span className="rounded-md bg-neutral px-1.5 text-xs tabular-nums text-neutral-foreground">
       {formatCount(value, language)}
     </span>
   )

@@ -63,7 +63,7 @@ export function SubscriptionFigures({ subscription, t, language }: SubscriptionF
           </bdi>
         </span>
         <LegMeter used={tripsCompleted} total={tripsIncluded} />
-        <span className="text-2xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           <bdi>
             {t('profile.subscription.figure.legsLeft', {
               count: formatCount(left, language),

@@ -2043,7 +2043,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           empty white inside a border on `/financials/revenue` at 2400, which is
           ruling S1's objection turned on its side — and one cap on the shared
           parent does that for the band and the toolbar at once. */}
-      <div className="flex min-h-0 flex-initial flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex min-h-0 flex-initial flex-col overflow-hidden rounded-xl border border-card-border bg-card">
         {status === 'loading' && !refreshing && (
           <div className="p-3">
             <LoadingSkeleton pattern={pattern} />
@@ -2937,7 +2937,7 @@ function BulkBarMenuItem({ action, onRun }: { action: BulkAction; onRun: () => v
       {reason !== null && (
         <span
           id={reasonId}
-          className="block text-2xs font-normal whitespace-normal text-muted-foreground"
+          className="block text-xs font-normal whitespace-normal text-muted-foreground"
         >
           {reason}
         </span>

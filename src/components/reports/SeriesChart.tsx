@@ -597,7 +597,7 @@ export function SeriesTooltip({
                 <bdi>{entry.title}</bdi>
               </span>
               {entry.comparison && row.comparisonLabel !== null && (
-                <span className="shrink-0 text-2xs">
+                <span className="shrink-0 text-xs">
                   <bdi>{t('rb.panel.tooltip.on', { date: row.comparisonLabel })}</bdi>
                 </span>
               )}

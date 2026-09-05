@@ -440,7 +440,7 @@ export function TripMap({
           own description line, and a second copy under a full-screen canvas
           would be the same sentence twice. */}
       {isInline && (
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-2xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-col">
           {from && to ? (
             <bdi>

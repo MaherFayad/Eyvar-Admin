@@ -204,7 +204,7 @@ export function ChangeDriverModal({
                           {/* §11.2 — the refusal is real text on the control it
                               refuses, never a tooltip and never a hidden row. */}
                           {refused !== null && (
-                            <span className="text-2xs text-muted-foreground">{refused}</span>
+                            <span className="text-xs text-muted-foreground">{refused}</span>
                           )}
                         </span>
                       </SelectItem>

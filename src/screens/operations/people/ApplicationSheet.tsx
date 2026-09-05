@@ -289,7 +289,7 @@ export function ApplicationSheet({
                   unreviewed === null ? null : (
                     <Link
                       to={`${DETAIL_PATH}/${applicant.id}?doc=${unreviewed.type}`}
-                      className="text-2xs text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                      className="text-xs text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
                     >
                       {t('applicant.review.openFirst')}
                     </Link>
@@ -369,7 +369,7 @@ export function ApplicationSheet({
                   a tooltip the keyboard cannot reach. */}
               <p
                 id="application-approve-refusal"
-                className="min-w-0 flex-1 text-2xs text-muted-foreground"
+                className="min-w-0 flex-1 text-xs text-muted-foreground"
               >
                 {refusal ?? t('applicant.review.allVerified')}
               </p>

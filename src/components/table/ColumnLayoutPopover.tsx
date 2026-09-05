@@ -200,7 +200,7 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
                 {pinReasonKey !== null ? (
                   <p
                     id={pinReasonId}
-                    className="ps-1 text-2xs text-muted-foreground"
+                    className="ps-1 text-xs text-muted-foreground"
                   >
                     {t(pinReasonKey)}
                   </p>
@@ -249,7 +249,7 @@ export function ColumnLayoutPopover<T>(props: ColumnLayoutPopoverProps<T>) {
         >
           {t("table.columns.reset")}
         </Button>
-        <p className="text-2xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {t("table.columns.identityLocked")}
         </p>
       </PopoverContent>

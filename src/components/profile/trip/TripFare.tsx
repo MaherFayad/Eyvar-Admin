@@ -85,14 +85,14 @@ export function TripFare({ trip, paymentHref, t }: TripFareProps) {
       {residual !== 0 && (
         /* `role="status"` — it appears when a record is opened rather than in
            response to an action, so it is announced without stealing focus. */
-        <p role="status" className="text-2xs text-muted-foreground">
+        <p role="status" className="text-xs text-muted-foreground">
           {t('profile.trip.fare.reconcile', {
             amount: (residual / 100).toFixed(2),
           })}
         </p>
       )}
 
-      <p className="text-2xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {trip.paymentId === null ? (
           /* Not `—`: "no payment was taken" is a known fact about a cancelled
              ride, and §8.3.1 keeps the dash for facts that do not apply. */

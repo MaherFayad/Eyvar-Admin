@@ -375,7 +375,7 @@ export function RequestMap({
           part of the ride. It is a real link either way — a licence a screen
           reader cannot reach is not a licence notice. */}
       {isInline && (
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-2xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-xs text-muted-foreground">
         <span>
           {from && to ? (
             <bdi>
@@ -477,7 +477,7 @@ export function RequestFigures({
              already has the status badge in its band. */
           <span
             className={cn(
-              'text-2xs',
+              'text-xs',
               slaBreached ? 'text-tone-warning-fg' : 'text-muted-foreground',
             )}
           >
@@ -496,7 +496,7 @@ export function RequestFigures({
         >
           <span className="flex items-baseline gap-1">
             <Money amount={amount} unit="none" className="text-xl font-medium" />
-            <span className="text-2xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('profile.request.rail.unit')}
             </span>
           </span>

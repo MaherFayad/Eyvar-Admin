@@ -53,7 +53,7 @@ export function InstallAffordance() {
          none. An operator reading a queue must not be interrupted by an offer to
          install — the offer waits until they look at it. */
       aria-label={t('pwa.install.title')}
-      className="fixed bottom-4 end-4 z-50 w-80 rounded-xl border border-border bg-card p-3 text-sm text-card-foreground shadow-1"
+      className="fixed bottom-4 end-4 z-50 w-80 rounded-xl border border-card-border bg-card p-3 text-sm text-card-foreground shadow-1"
     >
       <p className="font-medium">{t('pwa.install.title')}</p>
       <p className="mt-1 text-muted-foreground">{t('pwa.install.body')}</p>

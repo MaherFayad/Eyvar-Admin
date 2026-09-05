@@ -181,7 +181,7 @@ export function BoardPeriodControl({
           className={cn(
             /* The pill's own geometry, unchanged — see the note above. */
             'flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2',
-            'text-2xs tabular-nums text-hero-foreground transition-colors',
+            'text-xs tabular-nums text-hero-foreground transition-colors',
             'hover:bg-hero-line focus-visible:outline-none focus-visible:ring-2',
             'focus-visible:ring-hero-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-hero',
           )}

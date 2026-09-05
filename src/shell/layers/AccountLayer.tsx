@@ -227,7 +227,7 @@ export function AccountLayer({
             ) : (
             <section
               key={section}
-              className="overflow-hidden rounded-xl border border-border bg-card shadow-1"
+              className="overflow-hidden rounded-xl border border-card-border bg-card shadow-1"
             >
               <div className="flex h-10 items-center justify-between gap-2 px-3">
                 <h3 className="text-sm font-semibold text-foreground">{t(SECTION_TITLE[section])}</h3>

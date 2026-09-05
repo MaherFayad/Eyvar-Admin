@@ -445,7 +445,7 @@ export function TrendTooltip({ active, payload, unit, t, language }: TrendToolti
                   {comparison ? t('overview.legend.comparison') : t('overview.legend.current')}
                 </span>
                 {on !== null && (
-                  <span className="text-2xs">
+                  <span className="text-xs">
                     <bdi>{t('overview.tooltip.on', { date: on })}</bdi>
                   </span>
                 )}

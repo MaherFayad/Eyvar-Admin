@@ -1121,7 +1121,7 @@ function PlanDetailPanel({
                 )}
                 {/* §4.4 — the footer rate, `percentOrNull` so a zero gross is
                     an em dash rather than a manufactured `0%` (AC-342). */}
-                <p className="pt-1 text-2xs text-muted-foreground">
+                <p className="pt-1 text-xs text-muted-foreground">
                   {t('fin.revenue.plan.refunds.rate', {
                     rate: refundRate === null ? ABSENT : formatPercent(refundRate, language),
                   })}
