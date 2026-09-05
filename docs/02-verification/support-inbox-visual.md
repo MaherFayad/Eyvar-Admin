@@ -312,3 +312,33 @@ regression: the register tab elides a 13-character name at the design viewport i
 languages, which is the first carrier of AC-CC-11 failing on the reference fixture. It is a
 one-class change (`flex-none` on the `Internal note` trigger) and a one-line harness assertion.
 R-2 should land with it; R-3 needs product-designer; R-4 and R-5 are notes.
+
+---
+
+## 7. Re-audit 2 at `0c30fc1` (a85d889 · b3888ba · 71e608e · ce890aa · 0c30fc1)
+
+**Server:** `npx vite --port 4357` from the worktree, stopped after the run. **Matrix:** the same
+32 runs as §6 (`CNV-102`, `-101`, `-111`, `-107` × en/ar × 1280/390 × light/dark); page and
+console errors **0**, `overflowX` **0**, header collisions **0**, clock inside line 2 in every run
+that has one. Probe: `.pw-tmp/vqa-inbox-r2.mjs`; captures `inbox/r2-*.png`.
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| R-1 | name fits on `CNV-102` at 1280 | **Fixed.** Reply tab **268px** en / **235px** ar (was 199 / 179), `Internal note` at its natural 130 / 123px; the name span's `scrollWidth <= clientWidth` on `CNV-102` and `CNV-111` in both languages and both themes. `CNV-101` still elides, cleanly: tab inside the list (`outside 0`), verb and icon whole, name span 161px for a 252px name with `text-overflow: ellipsis`, en and ar | `inbox/r2-CNV-102-wide-{en,ar}-light.png`, `r2-CNV-101-wide-{en,ar}-light.png`; probe `tabs[0].nameFits true`, `nameW/nameNeeds` |
+| R-2 | no line-2 text ends in an ellipsis | **Fixed.** No visible descendant of `[data-inbox-line2]` is cut in any of the 32 runs. Where the word cannot show whole (`CNV-102` at 1280 ar, line 2 179px; `CNV-101`/`-107` at 390) `[data-inbox-channel]` is `sr-only` and still carries `Chat` / `محادثة` for AT; the glyph stays; the badge hides only after the word, and the clock never | probe `cut` (only the `sr-only` span reports), `channelState sr-only:…` / `visible:…` |
+| R-3 | snoozed header `CNV-111` | **Fixed and reads right.** At 1280: `Create ticket · ⋯[Transfer · Close conversation · Snooze until…]` — a `⋯` of three, no filled button, identity 201px en / 179px ar, no collision. At 390 the compact fold gives `⋯[Create ticket · Transfer · Close conversation · Snooze until…]`. Every capability present; §4.1's snoozed row and §10 row 12 now state this form with D8-b as the reason and *a new wake time* as the case for `Snooze until…` | `inbox/r2-CNV-111-wide-{en,ar}-menu.png`, `r2-CNV-111-{wide,compact}-{en,ar}-light.png`; probe `menu` |
+| R-4 | one control height in the toolbar | **Fixed.** `Insert template`, `Reply by email`, `Send` all **32px / 14px** en (36px ar, 44 / 48 at 390, by token) | probe `toolbar`; `r2-CNV-102-wide-en-light.png` |
+| seam | dark register, both states | **None.** A 12px pixel column through the selected-tab / body boundary is a single colour: `#1a1f26` in Reply, `#26231a` in Internal note, en and ar | `inbox/r2-note-wide-{en,ar}-dark.png`; probe `seams.*.distinct` |
+
+One note, not a finding: at **390** en on `CNV-107` (`Khaled Al-Zahrani`, 17 characters) the
+name span is 119px for a 122px name and elides by 3px. The reply tab there is 226px of a 356px
+list; 390 is below D2's 1280 minimum and R-1's probe was scoped to 1280 by `0c30fc1`. Recorded
+so it is not rediscovered.
+
+### 7.1 Verdict
+
+**Merge-ready.** V-1 to V-5 and R-1 to R-4 are fixed and measured fixed; the register has no
+seam in dark in either state or language; header weight, kebab count, type floor, tokens and
+Arabic mirroring are as measured in §2 and §6. Open items that do not block the merge: V-9
+(deep link outside the default folder shows no selected row — product-designer), V-7 (dark
+elevation is Phase A's), and the 3px elision at 390 above.
