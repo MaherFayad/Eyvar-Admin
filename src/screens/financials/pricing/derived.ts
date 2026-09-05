@@ -234,10 +234,14 @@ export interface DerivedValue {
   unit: DerivedFieldDefinition['unit']
   /** `null` when any input it reads is blank — **AC-393**. */
   value: number | null
+  /** `substituted`, split at the operands it replaced. `null` with it. */
+  substitutedParts: SubstitutionPart[] | null
   /**
    * **The expression with every name replaced by the number it held** —
    * `12 × 2.50 + 8 × 1.80` where `expression` reads
-   * `exampleMinutes × perMinuteHalalas + exampleKm × perKmHalalas`.
+   * `exampleMinutes × perMinuteHalalas + exampleKm × perKmHalalas`, or
+   * `12 min × 2.50 + 8 km × 1.80` when the caller passes a
+   * `SubstitutionRenderer`.
    *
    * ## Why the editor needed this
    *
@@ -305,6 +309,32 @@ function substituteValue(name: string, raw: number, isMoney: boolean): string {
 }
 
 /**
+ * How one substituted operand is written for a reader — **FINANCIALS-UX-PLAN
+ * §11**.
+ *
+ * The screen supplies it so the arithmetic layer never owns a word: given the
+ * scope name the expression used and the number already formatted, it returns
+ * what the working should print. `exampleMinutes` becomes `20 min`, a rate
+ * stays `0.95`. Omit it and the working is numbers only, which is what it was.
+ *
+ * **It cannot change which names are substituted or in what order** — it only
+ * decorates a value `substituteExpression` has already resolved from
+ * `expression` — so AC-397's "one string, printed and evaluated" survives it.
+ */
+export type SubstitutionRenderer = (name: string, formatted: string) => string
+
+/**
+ * One run of a substituted expression. `operand` marks the runs that replaced an
+ * identifier: those may be in another script once a renderer gives them a unit
+ * word, so the view isolates each one and the operators between them keep the
+ * formula's own order (§9, `docs/ref/rtl.md`).
+ */
+export interface SubstitutionPart {
+  operand: boolean
+  text: string
+}
+
+/**
  * Replace every identifier in `expression` with its value from `scope`.
  *
  * Returns `null` if any name it needs is blank or unknown — see
@@ -315,21 +345,44 @@ function substituteValue(name: string, raw: number, isMoney: boolean): string {
  * through untouched, so the working keeps the shape of the formula above it and
  * a reader can line the two up name by name.
  */
+export function substituteParts(
+  expression: string,
+  scope: Record<string, number | null>,
+  moneyIds: ReadonlySet<string>,
+  renderName?: SubstitutionRenderer,
+): SubstitutionPart[] | null {
+  const parts: SubstitutionPart[] = []
+  const names = /[A-Za-z][A-Za-z0-9]*/g
+  let cursor = 0
+
+  for (let match = names.exec(expression); match !== null; match = names.exec(expression)) {
+    const name = match[0]
+    const value = scope[name]
+    if (value === null || value === undefined || !Number.isFinite(value)) return null
+    if (match.index > cursor) {
+      parts.push({ operand: false, text: expression.slice(cursor, match.index) })
+    }
+    const formatted = substituteValue(name, value, moneyIds.has(name))
+    parts.push({
+      operand: true,
+      text: renderName === undefined ? formatted : renderName(name, formatted),
+    })
+    cursor = match.index + name.length
+  }
+
+  if (cursor < expression.length) parts.push({ operand: false, text: expression.slice(cursor) })
+  return parts
+}
+
+/** The same walk, joined. One source, so the two cannot disagree. */
 export function substituteExpression(
   expression: string,
   scope: Record<string, number | null>,
   moneyIds: ReadonlySet<string>,
+  renderName?: SubstitutionRenderer,
 ): string | null {
-  let blank = false
-  const out = expression.replace(/[A-Za-z][A-Za-z0-9]*/g, (name) => {
-    const value = scope[name]
-    if (value === null || value === undefined || !Number.isFinite(value)) {
-      blank = true
-      return name
-    }
-    return substituteValue(name, value, moneyIds.has(name))
-  })
-  return blank ? null : out
+  const parts = substituteParts(expression, scope, moneyIds, renderName)
+  return parts === null ? null : parts.map((part) => part.text).join('')
 }
 
 /**
@@ -352,6 +405,7 @@ export function derivePlanClass(
   inputs: PlanPricingInputs,
   planClass: PlanClass,
   definitions: readonly DerivedFieldDefinition[] = PLAN_PRICING_DEFINITIONS,
+  renderName?: SubstitutionRenderer,
 ): DerivedValue[] {
   const scope: Record<string, number | null> = {
     exampleMinutes: PLAN_EXAMPLE_INPUTS.exampleMinutes,
@@ -378,7 +432,8 @@ export function derivePlanClass(
        is about to be overwritten with the value it produced. Building the
        string after the assignment would substitute a definition that reads its
        own id with its own result. */
-    const substituted = substituteExpression(definition.expression, scope, moneyIds)
+    const parts = substituteParts(definition.expression, scope, moneyIds, renderName)
+    const substituted = parts === null ? null : parts.map((part) => part.text).join('')
     const raw = evaluateExpression(definition.expression, scope)
     /* M-1 — the first and only rounding in the chain is the one the definition
        declares. `platformKeeps` takes the residual after it, so the legs sum. */
@@ -394,6 +449,7 @@ export function derivePlanClass(
       /* One condition with `value`, so a rendered equation always has a
          rendered answer and neither can appear without the other. */
       substituted: value === null ? null : substituted,
+      substitutedParts: value === null ? null : parts,
     })
   }
   return out
@@ -408,10 +464,13 @@ export function derivePlanClass(
  * `fareFor(…, {isPlanLeg: true})` forces the multiplier to 1, `:21474`). The
  * note states that assumption on the panel; it is not folded in silently.
  */
-export function derivePlan(inputs: PlanPricingInputs): Record<PlanClass, DerivedValue[]> {
+export function derivePlan(
+  inputs: PlanPricingInputs,
+  renderName?: SubstitutionRenderer,
+): Record<PlanClass, DerivedValue[]> {
   return {
-    economy: derivePlanClass(inputs, 'economy'),
-    comfort: derivePlanClass(inputs, 'comfort'),
+    economy: derivePlanClass(inputs, 'economy', PLAN_PRICING_DEFINITIONS, renderName),
+    comfort: derivePlanClass(inputs, 'comfort', PLAN_PRICING_DEFINITIONS, renderName),
   }
 }
 
