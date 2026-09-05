@@ -430,4 +430,25 @@ export const COMMANDS_AR: Dictionary = {
   'command.scope.people': 'الأشخاص',
   'command.scope.destinations': 'الوجهات',
   'command.queue.keywords': 'طابور, الطوابير, منتظر, بانتظار, قوائم العمل',
+  /* ── pal/surface ──────────────────────────────────────────────────────
+     R4 — a keycap legend is a Latin mark and is left alone; its POSITION
+     mirrors with the row, its glyph order does not (§14). R8 — Western
+     digits. The prefix hint keeps `>` and `#`, which are typed keys. */
+  'command.trigger.label': 'ابحث أو نفِّذ أمرًا',
+  'command.palette.description': 'ابحث عن سجل أو صفحة، أو نفِّذ أمرًا، ثم اضغط Enter.',
+  'command.key.arrows': '↑↓',
+  'command.key.enter': '↵',
+  'command.key.tab': 'Tab',
+  'command.key.backspace': '⌫',
+  'command.key.esc': 'Esc',
+  'command.footer.move': 'تنقّل',
+  'command.footer.select': 'اختيار',
+  'command.footer.nextGroup': 'المجموعة التالية',
+  'command.footer.back': 'رجوع',
+  'command.footer.confirm': 'تأكيد',
+  'command.footer.cancel': 'إلغاء',
+  'command.footer.suggestions': '{count} اقتراحًا',
+  'command.footer.results': '{count} نتيجة',
+  'command.footer.prefixes': '> الأوامر · # المعرّفات',
+  'command.step.confirm': 'تأكيد',
 }

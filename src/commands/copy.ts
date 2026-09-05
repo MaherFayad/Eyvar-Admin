@@ -715,4 +715,32 @@ export const COMMANDS_EN: Dictionary = {
   /* AC-CP4 — what an operator types when they mean the work queues. A
      comma-separated match vocabulary, keyed because Arabic needs its own. */
   'command.queue.keywords': 'queue, queues, waiting, backlog',
+  /* ── pal/surface ──────────────────────────────────────────────────────
+     The centred palette's own chrome: the top-bar trigger, the keycap
+     legends, the footer's hints and its tally. `⌘ K` / `Ctrl K` keep the
+     existing `shell.topbar.*` keys, because the top bar already owned them.
+
+     R6    a hint is a LABEL and takes no full stop; the description is a
+           sentence and takes one.
+     R4    a keycap legend is a mark, not prose: it is identical in Arabic,
+           and it is keyed anyway so no literal reaches a render (AC-74).
+     AC-75 the two tallies carry `{count}` as a named placeholder. */
+  'command.trigger.label': 'Search or run a command',
+  'command.palette.description':
+    'Search for a record or a page, or run a command, then press Enter.',
+  'command.key.arrows': '↑↓',
+  'command.key.enter': '↵',
+  'command.key.tab': 'Tab',
+  'command.key.backspace': '⌫',
+  'command.key.esc': 'Esc',
+  'command.footer.move': 'move',
+  'command.footer.select': 'select',
+  'command.footer.nextGroup': 'next group',
+  'command.footer.back': 'back',
+  'command.footer.confirm': 'confirm',
+  'command.footer.cancel': 'cancel',
+  'command.footer.suggestions': '{count} suggestions',
+  'command.footer.results': '{count} results',
+  'command.footer.prefixes': '> commands · # IDs',
+  'command.step.confirm': 'Confirm',
 }
