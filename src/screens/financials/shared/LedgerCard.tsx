@@ -255,8 +255,7 @@ export interface LedgerHeaderProps {
   t: Translate
   /**
    * The width the table beneath this header stops growing at, from
-   * `tableCeiling`. The header ends where the table ends, so the balance sits
-   * over the balance column instead of at the far edge of the viewport.
+   * `tableCeiling`, so the header never runs wider than the ledger it heads.
    *
    * `undefined` on a ledger whose columns declare no ceiling, which is the
    * pre-existing full-width behaviour.
@@ -288,21 +287,12 @@ export function LedgerHeader({ ledger, t, maxInlineSize, figures = [] }: LedgerH
       : t('fin.ledger.subject.party', { account: definition.label, name: ledger.subjectName })
 
   return (
-    /* **The header is capped to the table's own width.** Measured before this
-       on `/financials/wallets` at 2400: the account name ended at x=689 and its
-       `Balance` block began at x=2400 — **1,711px apart**, the second-worst
-       instance of the defect in the product after the boundary rows. It is not
-       a `justify-between` problem: an account name at one edge and its balance
-       at the other is the right shape for this pair, and it reads correctly at
-       1280. What was wrong is that the pair was allowed to stretch to a width
-       the table beneath it does not use.
-
-       Ending where the table ends puts the balance over the balance column,
-       which is the same argument the boundary rows make one row lower. */
-    <div
-      className="flex flex-wrap items-end justify-between gap-3 pb-3"
-      style={{ maxInlineSize }}
-    >
+    /* **One start-aligned group, never `justify-between`.** The subject and its
+       balance sat ~900px apart at 1280 with the figure at the far edge; a
+       balance is a fact about the account named beside it, so it follows the
+       heading block after 32px and the clusters keep that gap between them.
+       `maxInlineSize` still caps the group to the table's own width. */
+    <div className="flex flex-wrap items-start gap-x-8 gap-y-2 pb-3" style={{ maxInlineSize }}>
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="truncate text-sm font-semibold text-foreground">
           <bdi>{subject}</bdi>
@@ -313,29 +303,26 @@ export function LedgerHeader({ ledger, t, maxInlineSize, figures = [] }: LedgerH
       </div>
 
       {/* Each figure is one cluster — label directly over its numeral, unit
-         inline — and the clusters sit side by side at the inline-end. §8.3.2:
-         the sign is typographic, and no tone goes near it. */}
-      <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
-        {figures.map((figure) => (
-          <ViewFigureBlock key={figure.label} figure={figure} size="lg" />
-        ))}
-        <div className="flex flex-col items-start gap-0.5 text-start">
-          <ViewFigureBlock
-            figure={{
-              label: t('fin.ledger.balance'),
-              amountHalalas: ledger.closingBalanceHalalas,
-            }}
-            size="lg"
-          />
-          {ledger.pendingHalalas !== 0 && (
-            <span className="text-xs text-muted-foreground">
-              {t('fin.ledger.pending')} <Money amount={ledger.pendingHalalas} />
-            </span>
-          )}
-          {ledger.pendingHalalas !== 0 && (
-            <span className="text-xs text-muted-foreground">{t('fin.ledger.pending.help')}</span>
-          )}
-        </div>
+         inline. §8.3.2: the sign is typographic, and no tone goes near it. */}
+      {figures.map((figure) => (
+        <ViewFigureBlock key={figure.label} figure={figure} size="lg" />
+      ))}
+      <div className="flex flex-col items-start gap-0.5 text-start">
+        <ViewFigureBlock
+          figure={{
+            label: t('fin.ledger.balance'),
+            amountHalalas: ledger.closingBalanceHalalas,
+          }}
+          size="lg"
+        />
+        {ledger.pendingHalalas !== 0 && (
+          <span className="text-xs text-muted-foreground">
+            {t('fin.ledger.pending')} <Money amount={ledger.pendingHalalas} />
+          </span>
+        )}
+        {ledger.pendingHalalas !== 0 && (
+          <span className="text-xs text-muted-foreground">{t('fin.ledger.pending.help')}</span>
+        )}
       </div>
     </div>
   )
