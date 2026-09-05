@@ -216,6 +216,7 @@ import { ADMIN_TEAM_EN } from '@/screens/admin/team/copy'
 import { ADMIN_WORKSPACE_EN } from '@/screens/admin/workspace/copy'
 import { ASSURANCE_EN } from '@/screens/operations/assurance/copy'
 import { CONVERSATIONS_EN } from '@/screens/support/conversations/copy'
+import { INBOX_EN } from '@/screens/support/inbox/copy'
 import { DISPUTES_EN } from '@/screens/support/disputes/copy'
 import { FAIRNESS_EN } from '@/screens/support/fairness/copy'
 import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
@@ -1160,6 +1161,7 @@ export const EN: Dictionary = {
   ...ADMIN_WORKSPACE_EN,
   ...ASSURANCE_EN,
   ...CONVERSATIONS_EN,
+  ...INBOX_EN,
   ...DISPUTES_EN,
   ...FAIRNESS_EN,
   ...MY_WORK_EN,

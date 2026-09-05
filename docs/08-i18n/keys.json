@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 6440,
-    "en": 6094,
-    "ar": 6440,
+    "keys": 6486,
+    "en": 6136,
+    "ar": 6486,
     "arMissing": 0,
-    "arExtra": 346,
-    "copyFiles": 37,
+    "arExtra": 350,
+    "copyFiles": 38,
     "unregisteredKeys": 194,
-    "pluralForms": 63,
+    "pluralForms": 65,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 89,
@@ -255,6 +255,14 @@
         "QUEUE_SHARED_EN"
       ],
       "keys": 47,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/inbox/copy.ts",
+      "exports": [
+        "INBOX_EN"
+      ],
+      "keys": 42,
       "notInEN": 0
     },
     {

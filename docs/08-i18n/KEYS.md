@@ -9,13 +9,13 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6440** |
-| Reachable from `EN` (what the shell renders) | 6094 |
-| Keys in `AR` | 6440 |
+| **Translatable keys, all dictionaries** | **6486** |
+| Reachable from `EN` (what the shell renders) | 6136 |
+| Keys in `AR` | 6486 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 346 |
-| Plural forms (`key#category`) inside `EN` | 63 |
-| `copy.ts` files | 37 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
+| Plural forms (`key#category`) inside `EN` | 65 |
+| `copy.ts` files | 38 |
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
@@ -470,6 +470,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 47 |
+| `src/screens/support/inbox/copy.ts` | `INBOX_EN` | 42 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |

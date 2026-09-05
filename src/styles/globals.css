@@ -784,6 +784,14 @@
      is a D7 measurement and --ev-brand is the brand; neither of those moves
      for a chart. */
   --ev-brand-lt: #e7f0ec;
+  /* The inbox thread (design 12 §9, Q-CC2). Only --ev-ink sits on a bubble:
+     --ev-text-2 fails AA on both tints. --ev-note is a warm neutral, not
+     --ev-amber-lt, because a note is not a warning (R17, R14). */
+  --ev-bubble-in: #eaeef2;
+  --ev-bubble-out: #e2ede9;
+  --ev-bubble-out-ink: #171a21;
+  --ev-note: #faf7ef;
+  --ev-note-bar: #9a8a4e;
 
   /* --- A LARGE brand-coloured SURFACE, as opposed to a brand-coloured
      control. One consumer: the auth brand panel.
@@ -1543,6 +1551,11 @@
      floor the page block is 912, so 280 + 20 + 612 leaves the detail's day
      chart above R4-1's 268px plot floor. */
   --ev-master-list-w: 280px;
+  /* The inbox's three tracks (design 12 §2). 976 - 272 - 272 leaves the
+     thread 432 at the 1280 floor; the collapsed rail is one icon button wide. */
+  --ev-inbox-list-w: 272px;
+  --ev-inbox-rail-w: 272px;
+  --ev-inbox-rail-min-w: 40px;
   /* M — 406 -> 480, and R13's NAMED-FIGURE CARVE-OUT IS SPENT HERE.
      `9eb629ea` / `1ef8248f` / `79a31934`: the drawer's leading edge is at
      destination x = 505.5 and the frame ends at 767.5 -> 262 x 1.875 = 491.
@@ -1784,6 +1797,12 @@
      block introduces no sixth — these are the same five, re-derived. */
   --ev-brand: #4fb183;
   --ev-brand-lt: #14291f;
+  /* Inbox thread, dark (design 12 §9, Q-CC1). */
+  --ev-bubble-in: #232a33;
+  --ev-bubble-out: #27423c;
+  --ev-bubble-out-ink: #e6f2ec;
+  --ev-note: #26231a;
+  --ev-note-bar: #c2ad63;
   /* See the light declaration: the FIELD keeps its weight while the control
      inverts. 11.23 : 1 for the text on it, 1.285 : 1 for the panel on the
      page. */
@@ -2606,6 +2625,14 @@
      level on a large brand field, that is a new surface and it comes back
      here with its ground named — the same bar --ev-brand-field cleared. */
   --color-brand-lt: var(--ev-brand-lt);
+  /* The inbox thread's grounds (design 12 §9). Mapped straight from layer 1,
+     as --color-brand-lt is: Eyvar surfaces with no shadcn role. Only
+     `text-foreground` goes on a bubble; `text-bubble-out-ink` on the outbound one. */
+  --color-bubble-in: var(--ev-bubble-in);
+  --color-bubble-out: var(--ev-bubble-out);
+  --color-bubble-out-ink: var(--ev-bubble-out-ink);
+  --color-note: var(--ev-note);
+  --color-note-bar: var(--ev-note-bar);
 
   /* The board band, mapped straight from layer 1 for --color-brand-field's
      reason: it is an Eyvar surface and there is no shadcn role it belongs in.
@@ -2704,6 +2731,10 @@
   --spacing-monitor-aside: var(--ev-monitor-aside-w);
   --spacing-drawer: var(--ev-drawer-w);
   --spacing-marker: var(--ev-marker);
+  /* design 12 §2 — `w-inbox-list`, `w-inbox-rail`, `w-inbox-rail-min`. */
+  --spacing-inbox-list: var(--ev-inbox-list-w);
+  --spacing-inbox-rail: var(--ev-inbox-rail-w);
+  --spacing-inbox-rail-min: var(--ev-inbox-rail-min-w);
   /* D-2' — the page gutter, exposed so a page shape can write `p-page-pad`
      rather than `p-[var(--ev-page-pad)]`. ONE constant, `PAGE_BLOCK` in
      `PageShell.tsx`, is its only consumer. */
@@ -2742,6 +2773,11 @@
   /* master-detail  §4.1 — the list LEADS, so the fixed track is first and the
      detail takes `minmax(0, 1fr)` and can therefore shrink below its content. */
   --grid-template-columns-master-detail: var(--ev-master-list-w) minmax(0, 1fr);
+  /* inbox  design 12 §2 — three tracks; the rail's track collapses to one icon
+     button, and below `wide:` the rail leaves the grid for a Sheet. */
+  --grid-template-columns-inbox: var(--ev-inbox-list-w) minmax(0, 1fr) var(--ev-inbox-rail-w);
+  --grid-template-columns-inbox-collapsed: var(--ev-inbox-list-w) minmax(0, 1fr) var(--ev-inbox-rail-min-w);
+  --grid-template-columns-inbox-narrow: var(--ev-inbox-list-w) minmax(0, 1fr);
 
   /* Radius. Explicit, all on the 4px grid — shadcn's stock
      calc(--radius * 0.6) produces 4.8px, which D15 records as a defect.

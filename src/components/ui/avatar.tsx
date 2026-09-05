@@ -27,14 +27,15 @@ function Avatar({
   size = "default",
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Root> & {
-  size?: "default" | "sm" | "lg"
+  /* `xs` is the 20px owner mark on an inbox row (design 12 §3.1). */
+  size?: "default" | "xs" | "sm" | "lg"
 }) {
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
       data-size={size}
       className={cn(
-        "group/avatar relative flex size-control shrink-0 overflow-hidden rounded-lg border border-border bg-muted select-none data-[size=lg]:size-control-lg data-[size=sm]:size-6",
+        "group/avatar relative flex size-control shrink-0 overflow-hidden rounded-lg border border-border bg-muted select-none data-[size=lg]:size-control-lg data-[size=sm]:size-6 data-[size=xs]:size-5 data-[size=xs]:rounded-sm",
         className
       )}
       {...props}
@@ -66,7 +67,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs group-data-[size=xs]/avatar:rounded-sm group-data-[size=xs]/avatar:text-2xs",
         className
       )}
       {...props}

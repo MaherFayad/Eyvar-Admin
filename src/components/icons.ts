@@ -37,6 +37,8 @@ import {
   CopyIcon as RawCopy,
   DownloadIcon as RawDownload,
   EllipsisIcon as RawEllipsis,
+  EyeOffIcon as RawEyeOff,
+  SendHorizontalIcon as RawSendHorizontal,
   FilePlus2Icon as RawFilePlus2,
   FileSpreadsheetIcon as RawFileSpreadsheet,
   FilterIcon as RawFilter,
@@ -56,7 +58,11 @@ import {
   LineChartIcon as RawLineChart,
   Link2Icon as RawLink2,
   ListFilterIcon as RawListFilter,
+  MailIcon as RawMail,
   MapIcon as RawMap,
+  MessageCircleIcon as RawMessageCircle,
+  MessageSquareIcon as RawMessageSquare,
+  PhoneIcon as RawPhone,
   PercentIcon as RawPercent,
   Maximize2Icon as RawMaximize2,
   MinusIcon as RawMinus,
@@ -169,6 +175,20 @@ export const NewReportIcon = icon(RawFilePlus2, 'NewReportIcon')
 export const LibraryIcon = icon(RawLibraryBig, 'LibraryIcon')
 export const HistoryIcon = icon(RawHistory, 'HistoryIcon')
 export const CalendarIcon = icon(RawCalendar, 'CalendarIcon')
+
+/* ── Conversation channels (D19, design 12 §3.1). One glyph per channel; the
+      WhatsApp one is a generic bubble, since the registry carries no brand
+      marks (§1.5). None mirrors. ─────────────────────────────────────────── */
+
+export const ChatIcon = icon(RawMessageSquare, 'ChatIcon')
+export const EmailIcon = icon(RawMail, 'EmailIcon')
+export const PhoneIcon = icon(RawPhone, 'PhoneIcon')
+export const WhatsAppIcon = icon(RawMessageCircle, 'WhatsAppIcon')
+
+/* The composer's two registers (AC-CC-11 carrier 1): a reply leaves the
+   building, a note never does. Neither mirrors. */
+export const SendIcon = icon(RawSendHorizontal, 'SendIcon')
+export const NoteIcon = icon(RawEyeOff, 'NoteIcon')
 
 /* ── Report shapes and modes (§12). One glyph per `ChartType` and per mode. ─ */
 
