@@ -320,13 +320,12 @@ describe('AC-288 — a claim made here is the same claim in the queue that owns 
   }
 
   /**
-   * **DEFECT — no claim written from any queue survives the read that follows.**
-   * `claimRequest` returns `{ ...row, claim }` and never writes it back to
-   * `allRequestFixtures` (`clients/requests.ts:237-241`); the same shape is in
-   * `applicants.ts:238-278` and `assurance.ts:250-254`. My Work re-reads after
-   * a claim, so the row it just claimed paints `Unclaimed` again.
+   * The claim is written into the client's session rows now (`persistRow`), so
+   * the read that follows reports it. Every queue client held its rows for one
+   * call and dropped the write, which made My Work repaint `Unclaimed` on the
+   * row an operator had just taken.
    */
-  it.skip('claiming a request from the projection shows the same claim on the Requests client', async () => {
+  it('claiming a request from the projection shows the same claim on the Requests client', async () => {
     const user = userEvent.setup()
     const unassigned = await projection('unassigned')
     const candidates = new Set(
@@ -386,13 +385,11 @@ describe('AC-288 — a claim made here is the same claim in the queue that owns 
   })
 
   /**
-   * **DEFECT — a subscription request opened from My Work lands on the wrong
-   * queue.** `WORK_QUEUE_ROUTE.request` is `/operations/ride-requests` for both
-   * channels (`data/types/work.ts:161`), and that sub-tab pins
-   * `channel: 'instant'`, so `SREQ-003` opens a queue that cannot contain it.
-   * AC-281 asks for *the item's owning queue*. Skipped until it is fixed.
+   * `WORK_REQUEST_ROUTE` sends each channel to the sub-tab that holds it. Both
+   * used to open Ride requests, which pins `channel: 'instant'`, so `SREQ-003`
+   * opened a queue that cannot contain it.
    */
-  it.skip('AC-281 — a subscription request opens the queue that holds it', async () => {
+  it('AC-281 — a subscription request opens the queue that holds it', async () => {
     const items = await projection('everything')
     const sub = items.find((item) => item.queue === 'request' && item.id.startsWith('SREQ'))
     if (!sub) throw new Error('The fixtures must carry a subscription request in the projection.')

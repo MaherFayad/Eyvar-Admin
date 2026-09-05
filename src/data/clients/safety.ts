@@ -26,19 +26,24 @@ import { SAFETY_PROTOCOL_STEPS } from '../types/safety'
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { nextClaim } from './requests'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { nextClaim, persistRow } from './requests'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
+/* A session COPY: a claim is written back here (AC-288). See `requests.ts`. */
+let safetyIncidentSeed!: Fixtures['safetyIncidentFixtures']
 let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
+let safetyClosedSeed!: Fixtures['safetyIncidentFixturesAllClosed']
 let safetyIncidentFixturesAllClosed!: Fixtures['safetyIncidentFixturesAllClosed']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
-  safetyIncidentFixtures = f.safetyIncidentFixtures
-  safetyIncidentFixturesAllClosed = f.safetyIncidentFixturesAllClosed
+  safetyIncidentSeed = f.safetyIncidentFixtures
+  safetyIncidentFixtures = [...f.safetyIncidentFixtures]
+  safetyClosedSeed = f.safetyIncidentFixturesAllClosed
+  safetyIncidentFixturesAllClosed = [...f.safetyIncidentFixturesAllClosed]
   teamUserFixtures = f.teamUserFixtures
 })
 
@@ -269,12 +274,12 @@ export async function claimSafetyIncident(
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     const respondingNow = row.firstResponseAt === null
-    return {
+    return persistRow(rows(), {
       ...row,
       claim: nextClaim('incident', id, row.claim, opts.takeOver),
       firstResponseAt: respondingNow ? EYVAR_NOW : row.firstResponseAt,
       firstResponseBreachedAt: respondingNow ? null : row.firstResponseBreachedAt,
-    }
+    })
   }))
 }
 
@@ -293,7 +298,7 @@ export async function releaseSafetyIncident(
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     if (!row.claim) return row
-    return {
+    return persistRow(rows(), {
       ...row,
       claim: {
         ...row.claim,
@@ -301,7 +306,7 @@ export async function releaseSafetyIncident(
         releasedAt: EYVAR_NOW,
         releaseReason: 'manual' as const,
       },
-    }
+    })
   })
 }
 
@@ -490,4 +495,28 @@ export function useQuietSafetyQueue(): void {
 
 export function resetSafetyIncidents(): void {
   scenario = 'default'
+}
+
+/* ── AC-288 session state ──────────────────────────────────────────────── */
+
+/**
+ * Back to the seeded rows. Registered in `resetDataLayer`, for the reason
+ * `tickets.ts` gives: one file's claim would otherwise ride into the next
+ * file's count of open incidents.
+ */
+export function resetSafetyIncidentRows(): void {
+  if (!fixturesLoaded()) return
+  safetyIncidentFixtures = [...safetyIncidentSeed]
+  safetyIncidentFixturesAllClosed = [...safetyClosedSeed]
+}
+
+/**
+ * The session's rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts`. Reads the same array a claim writes, so a claim made
+ * from My Work is the claim this queue reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentSafetyIncidents(): readonly SafetyIncident[] {
+  return safetyIncidentFixtures ?? []
 }

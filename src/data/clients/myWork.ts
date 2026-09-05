@@ -31,10 +31,15 @@ import type { SafetyIncidentType } from '../types/safety'
 import type { TicketPriority } from '../types/ticket'
 import type { VehicleClass } from '../types/driver'
 import type { WorkItem } from '../types/work'
-import { WORK_QUEUE_ROUTE, WORK_ROUTING } from '../types/work'
+import { WORK_QUEUE_ROUTE, WORK_REQUEST_ROUTE, WORK_ROUTING } from '../types/work'
 import type { WorkItemSeverity, WorkQueueId } from '../types/workQueue'
 import type { RoleName } from '../types/session'
+import { currentApplicants } from './applicants'
+import { currentAssuranceTrips } from './assurance'
 import { currentDisputes } from './disputes'
+import { currentFairnessCases } from './fairness'
+import { currentRequests } from './requests'
+import { currentSafetyIncidents } from './safety'
 import { http } from './http'
 import { currentMockUserId } from './session'
 import { currentTickets } from './tickets'
@@ -44,20 +49,17 @@ import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
    import: a static one pins seeded data into every build, including the http
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
-let allRequestFixtures!: Fixtures['allRequestFixtures']
-let assuranceTripFixtures!: Fixtures['assuranceTripFixtures']
-let applicantFixtures!: Fixtures['applicantFixtures']
-let fairnessCaseFixtures!: Fixtures['fairnessCaseFixtures']
-let safetyIncidentFixtures!: Fixtures['safetyIncidentFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
-  allRequestFixtures = f.allRequestFixtures
-  assuranceTripFixtures = f.assuranceTripFixtures
-  applicantFixtures = f.applicantFixtures
-  fairnessCaseFixtures = f.fairnessCaseFixtures
-  safetyIncidentFixtures = f.safetyIncidentFixtures
   teamUserFixtures = f.teamUserFixtures
 })
+
+/* **AC-288 — every projected queue is read through its own client, never off
+   the fixture module.** A claim is written into the client's session rows, so
+   reading the seed here painted the row this screen had just claimed as
+   `Unclaimed` on the next poll. `currentTickets` and `currentDisputes` always
+   did it this way, which is why those two were the only queues where a claim
+   held. */
 
 export const WORK_OPERATIONS = {
   list: 'work.list',
@@ -228,7 +230,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   const items: WorkItem[] = []
 
   /* ── applications (wave 1) ───────────────────────────────────────────── */
-  for (const a of applicantFixtures) {
+  for (const a of currentApplicants()) {
     if (a.status !== 'pending' && a.status !== 'in-review') continue
     items.push({
       key: `application:${a.id}`,
@@ -257,7 +259,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── requests ────────────────────────────────────────────────────────── */
-  for (const r of allRequestFixtures) {
+  for (const r of currentRequests()) {
     if (r.status !== 'searching' && r.status !== 'offered' && r.status !== 'no-drivers') continue
     items.push({
       key: `request:${r.id}`,
@@ -280,7 +282,9 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       severity: r.status === 'no-drivers' ? 'high' : 'normal',
       entityId: r.riderId,
       entityType: 'rider',
-      route: route('request', r.id),
+      /* AC-281 — the queue that HOLDS it. Both channels used to open Ride
+         requests, whose sub-tab pins `channel: instant`. */
+      route: WORK_REQUEST_ROUTE[r.channel],
       routedToMyRole: WORK_ROUTING.request.includes(role),
       claim: r.claim,
       slaStartedAt: r.slaStartedAt,
@@ -295,7 +299,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── trip assurance ──────────────────────────────────────────────────── */
-  for (const t of assuranceTripFixtures) {
+  for (const t of currentAssuranceTrips()) {
     /**
      * Legs that need a human: nobody has *actually* confirmed, or there is
      * nobody to fall back on. A confirmed, covered leg is not work.
@@ -343,7 +347,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── safety ──────────────────────────────────────────────────────────── */
-  for (const i of safetyIncidentFixtures) {
+  for (const i of currentSafetyIncidents()) {
     if (i.status !== 'open') continue
     items.push({
       key: `incident:${i.id}`,
@@ -378,7 +382,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
   }
 
   /* ── fairness ────────────────────────────────────────────────────────── */
-  for (const c of fairnessCaseFixtures) {
+  for (const c of currentFairnessCases()) {
     if (c.status !== 'open') continue
     items.push({
       key: `fairness:${c.id}`,

@@ -32,17 +32,20 @@ import {
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { nextClaim } from './requests'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { nextClaim, persistRow } from './requests'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
+/* A session COPY: a claim is written back here (AC-288). See `requests.ts`. */
+let complaintSeed!: Fixtures['complaintFixtures']
 let complaintFixtures!: Fixtures['complaintFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 onFixturesLoaded((f) => {
-  complaintFixtures = f.complaintFixtures
+  complaintSeed = f.complaintFixtures
+  complaintFixtures = [...f.complaintFixtures]
   teamUserFixtures = f.teamUserFixtures
 })
 
@@ -265,7 +268,10 @@ export async function claimComplaint(
   return signalled('queue.item.claimed', mockMutation(COMPLAINT_OPERATIONS.claim, signal, () => {
     const row = complaintFixtures.find((c) => c.id === id)
     if (!row) throw notFound('complaint', id)
-    return { ...row, claim: nextClaim('complaint', id, row.claim, opts.takeOver) }
+    return persistRow(complaintFixtures, {
+      ...row,
+      claim: nextClaim('complaint', id, row.claim, opts.takeOver),
+    })
   }))
 }
 
@@ -281,7 +287,7 @@ export async function releaseComplaint(id: string, signal?: AbortSignal): Promis
     const row = complaintFixtures.find((c) => c.id === id)
     if (!row) throw notFound('complaint', id)
     if (!row.claim) return row
-    return {
+    return persistRow(complaintFixtures, {
       ...row,
       claim: {
         ...row.claim,
@@ -289,7 +295,7 @@ export async function releaseComplaint(id: string, signal?: AbortSignal): Promis
         releasedAt: EYVAR_NOW,
         releaseReason: 'manual' as const,
       },
-    }
+    })
   })
 }
 
@@ -426,4 +432,27 @@ export async function getComplaintFacets(
   return mock(COMPLAINT_OPERATIONS.facets, signal, () =>
     computeFacets(complaintFixtures, complaintShape, view),
   )
+}
+
+/* ── AC-288 session state ──────────────────────────────────────────────── */
+
+/**
+ * Back to the seeded rows. Registered in `resetDataLayer`, for the reason
+ * `tickets.ts` gives: one file's claim would otherwise ride into the next
+ * file's count of open complaints.
+ */
+export function resetComplaintRows(): void {
+  if (!fixturesLoaded()) return
+  complaintFixtures = [...complaintSeed]
+}
+
+/**
+ * The session's rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts`. Reads the same array a claim writes, so a claim made
+ * from My Work is the claim this queue reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentComplaints(): readonly Complaint[] {
+  return complaintFixtures ?? []
 }
