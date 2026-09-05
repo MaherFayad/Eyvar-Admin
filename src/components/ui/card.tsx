@@ -8,10 +8,9 @@
  *   §1.1 / D1   the card is `--ev-surface` (white) on an `--ev-bg` canvas, so
  *               canvas and card are finally distinct. This closes legacy
  *               defect D1, where both were white.
- *   §2.1        separated from the canvas by a 1px `--ev-hairline` BORDER, not
- *               a ring and not a shadow. The stock 1px translucent ring
- *               is a translucent black ring over an unknown backdrop; a token
- *               hairline is the sanctioned separator (design spec §1.1).
+ *   §2.1        separated from the canvas by `border-card-border`: the 1px
+ *               hairline in light, nothing in dark, where the card's lift and
+ *               the inset highlight in `shadow-1` carry the edge (AC-CC-01).
  *   §10.1       ONE CONCERN PER CARD. Bold card title, 12px internal padding,
  *               12px between cards. `--card-spacing` is 12px, not the stock
  *               16px — D-2, density is the product.
@@ -40,7 +39,7 @@ function Card({
       data-size={size}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden",
-        "rounded-xl border border-border bg-card shadow-1 py-(--card-spacing)",
+        "rounded-xl border border-card-border bg-card shadow-1 py-(--card-spacing)",
         "text-sm text-card-foreground",
         "[--card-spacing:--spacing(3)] data-[size=sm]:[--card-spacing:--spacing(2)]",
         "has-data-[slot=card-footer]:pb-0",
