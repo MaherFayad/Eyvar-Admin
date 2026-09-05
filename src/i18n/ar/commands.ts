@@ -194,8 +194,8 @@ export const COMMANDS_AR: Dictionary = {
   'wallet.toast.pending': '{amount} لـ {rider} بانتظار معتمِد ثانٍ',
 
   'incident.action.claim': 'الاستجابة للبلاغ',
-  'incident.action.suspend': 'إيقاف الكابتن',
-  'incident.bulk.suspend': 'إيقاف',
+  'incident.action.suspend': 'رفع الكابتن من الإرسال',
+  'incident.bulk.suspend': 'رفع من الإرسال',
   'incident.action.close': 'إغلاق البلاغ',
   'incident.bulk.close': 'إغلاق',
   'incident.action.noPermission': 'لا يمكنك التصرف في بلاغات السلامة. اطلب من المالك صلاحية “السلامة”.',
@@ -213,7 +213,7 @@ export const COMMANDS_AR: Dictionary = {
   'incident.suspend.title': 'إيقاف {captain} عن الإرسال؟',
   'incident.suspend.body':
     'يتوقف استقباله للرحلات أثناء التحقيق. حسابه ورحلاته وأرباحه دون تغيير، ولا يُحسم شيء بشأن البلاغ بهذا الإجراء.',
-  'incident.suspend.confirm': 'إيقاف الكابتن',
+  'incident.suspend.confirm': 'الرفع من الإرسال',
   'incident.suspend.reason.label': 'السبب',
   'incident.suspend.reason.help': 'يُعرض هذا على الكابتن.',
   'incident.suspend.reason.message': 'أدخل السبب.',
@@ -269,7 +269,7 @@ export const COMMANDS_AR: Dictionary = {
   'complaint.note.message': 'أدخل ملاحظة.',
   'complaint.uphold.title': 'قبول {id} من {rider}؟',
   'complaint.uphold.body':
-    'يُعوَّض الراكب من صلاحيتك وتُغلق الشكوى. ولا يُحسم تقييم {captain} ولا موقفه بهذا الإجراء — بل بقضية إنصاف.',
+    'يُعوَّض الراكب من صلاحيتك وتُغلق الشكوى. ولا يُحسم تقييم {captain} ولا موقفه بهذا الإجراء. قضية الإنصاف هي التي تحسمهما.',
   'complaint.uphold.confirm': 'قبول الشكوى',
   'complaint.uphold.amount.label': 'التعويض',
   'complaint.uphold.amount.help': 'حتى {cap}. اتركه صفرًا للقبول دون دفع.',
@@ -307,7 +307,8 @@ export const COMMANDS_AR: Dictionary = {
     'لا يتحرك أي مبلغ وتُغلق المطالبة. يُبلَّغ المطالِب بالنتيجة، ولا يتغير شيء في الرحلة ولا في الكابتن.',
   'dispute.decline.confirm': 'رفض المطالبة',
   'dispute.toast.refunded': 'سُوِّي {id} · {amount}',
-  'dispute.toast.declined': 'رُفض {id}',
+  /* `dispute.toast.declined` belongs to `screens/support/disputes/copy.ts` and
+     is already translated there; the command reads it rather than forking it. */
 
   'fairnessCase.action.overturn': 'نقض القرار',
   'fairnessCase.bulk.overturn': 'نقض',

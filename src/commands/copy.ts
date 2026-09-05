@@ -403,8 +403,11 @@ export const COMMANDS_EN: Dictionary = {
 
   /* ── safety incidents (safety.ts) ────────────────────────────────────── */
   'incident.action.claim': 'Respond to incident',
-  'incident.action.suspend': 'Suspend the captain',
-  'incident.bulk.suspend': 'Suspend',
+  /* Not `Suspend captain`: **CM-2** reserves that literal for
+     `people.action.suspend`, and this is a different act with a different
+     inverse — the captain stops receiving rides, their account is untouched. */
+  'incident.action.suspend': 'Take the captain off dispatch',
+  'incident.bulk.suspend': 'Off dispatch',
   'incident.action.close': 'Close incident',
   'incident.bulk.close': 'Close',
   'incident.action.noPermission':
@@ -432,7 +435,8 @@ export const COMMANDS_EN: Dictionary = {
   'incident.suspend.title': 'Take {captain} off dispatch?',
   'incident.suspend.body':
     'They stop receiving rides while this is investigated. Their account, their trips and their earnings are untouched, and nothing about the incident is decided by this.',
-  'incident.suspend.confirm': 'Suspend captain',
+  /* §5.3 — the primary repeats the verb in the title above it. */
+  'incident.suspend.confirm': 'Take off dispatch',
   'incident.suspend.reason.label': 'Reason',
   'incident.suspend.reason.help': 'The captain is shown this.',
   'incident.suspend.reason.message': 'Enter a reason.',
@@ -506,7 +510,7 @@ export const COMMANDS_EN: Dictionary = {
   'complaint.note.message': 'Enter a note.',
   'complaint.uphold.title': 'Uphold {id} from {rider}?',
   'complaint.uphold.body':
-    'The rider is compensated from your authority and the complaint closes. {captain}’s rating and standing are not decided by this — a fairness case is.',
+    'The rider is compensated from your authority and the complaint closes. {captain}’s rating and standing are not decided by this. A fairness case decides those.',
   'complaint.uphold.confirm': 'Uphold complaint',
   'complaint.uphold.amount.label': 'Compensation',
   'complaint.uphold.amount.help': 'Up to {cap}. Leave it at zero to uphold without paying.',
@@ -548,7 +552,10 @@ export const COMMANDS_EN: Dictionary = {
     'No money moves and the claim closes. The claimant is told the outcome; nothing on the trip or the captain changes.',
   'dispute.decline.confirm': 'Decline claim',
   'dispute.toast.refunded': '{id} settled · {amount}',
-  'dispute.toast.declined': '{id} declined',
+  /* `dispute.toast.declined` is NOT declared here. `DisputesScreen` already
+     owns it — `{id} declined — no money moved` — and reusing a screen's key is
+     correct where the command states the same fact; redeclaring it would be
+     silently shadowed (`domains.test.ts`). */
 
   /* ── fairness cases (fairness.ts) ────────────────────────────────────── */
   'fairnessCase.action.overturn': 'Overturn the decision',
