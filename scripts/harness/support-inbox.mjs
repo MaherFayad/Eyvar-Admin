@@ -22,6 +22,9 @@ const ROUTES = [
   ['inbox-thread', '/support/contact-centre/CNV-102', { thread: true }],
   ['inbox-note', '/support/contact-centre/CNV-102', { thread: true, note: true }],
   ['inbox-empty-thread', '/support/contact-centre/CNV-107', { thread: true, emptyThread: true }],
+  /* V-1 and V-2: the long Arabic name, unheld; V-4: a snoozed row's three ghosts. */
+  ['inbox-long-name', '/support/contact-centre/CNV-101', { thread: true, longName: true }],
+  ['inbox-snoozed', '/support/contact-centre/CNV-111', { thread: true, snoozed: true }],
 ]
 
 const VIEWPORTS = [
@@ -127,6 +130,32 @@ async function probe(page, opts, compact) {
       const bubbleSidesOk = sides.every((s) =>
         dir === 'rtl' ? (s.dir === 'inbound' ? s.end < s.start : s.start < s.end) : s.dir === 'inbound' ? s.start < s.end : s.end < s.start,
       )
+      /* V-1: no header button rect intersects any line-2 child rect. */
+      const intersects = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+      const line2 = header ? header.querySelector('[data-inbox-line2]') : null
+      /* A clipped child still reports its full box; only its painted part can collide. */
+      const clip = (r, box) => ({ left: Math.max(r.left, box.left), right: Math.min(r.right, box.right), top: Math.max(r.top, box.top), bottom: Math.min(r.bottom, box.bottom) })
+      const line2Box = line2 ? line2.getBoundingClientRect() : null
+      const line2Children = line2
+        ? [...line2.querySelectorAll('*')].filter(visible).map((el) => clip(el.getBoundingClientRect(), line2Box)).filter((r) => r.right > r.left && r.bottom > r.top)
+        : []
+      const headerButtons = header ? [...header.querySelectorAll('button')].filter(visible).map((b) => b.getBoundingClientRect()) : []
+      const headerCollisions = headerButtons.filter((b) => line2Children.some((c) => intersects(b, c))).length
+      const clockVisible = line2 ? [...line2.querySelectorAll('[data-inbox-clock]')].every((el) => {
+        const r = el.getBoundingClientRect()
+        const p = line2.getBoundingClientRect()
+        return r.left >= p.left - 1 && r.right <= p.right + 1
+      }) : true
+      const identityWidth = line2 ? Math.round(line2.getBoundingClientRect().width) : null
+      /* V-2: neither register tab leaves the list's box. */
+      const tabList = composer ? composer.querySelector('[role="tablist"]') : null
+      const tabsOutside = tabList
+        ? [...tabList.querySelectorAll('[role="tab"]')].filter((tab) => {
+            const r = tab.getBoundingClientRect()
+            const l = tabList.getBoundingClientRect()
+            return r.left < l.left - 1 || r.right > l.right + 1
+          }).length
+        : 0
       const surface = composer ? composer.querySelector('[data-inbox-composer-surface]') : null
       const noteSurface = surface ? getComputedStyle(surface).backgroundColor : null
       const held = header
@@ -153,6 +182,11 @@ async function probe(page, opts, compact) {
         sendEdge,
         bubbleSidesOk,
         noteSurface,
+        headerCollisions,
+        clockVisible,
+        identityWidth,
+        tabsOutside,
+        headerButtons: header ? [...header.querySelectorAll('button')].filter(visible).map((b) => b.textContent?.trim() || b.getAttribute('aria-label')) : [],
         text: opts.emptyThread ? (thread?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 120) : undefined,
       }
     },
@@ -189,11 +223,14 @@ for (const language of ['en', 'ar']) {
       }
       if (opts.thread) {
         if (facts.bordered !== 0) bad.push(`bordered bubbles ${facts.bordered}`)
-        if (!opts.emptyThread && facts.avatarClusters < 2) bad.push(`avatar clusters ${facts.avatarClusters}`)
+        if (!opts.emptyThread && !opts.longName && !opts.snoozed && facts.avatarClusters < 2) bad.push(`avatar clusters ${facts.avatarClusters}`)
+        if (facts.headerCollisions !== 0) bad.push(`header collisions ${facts.headerCollisions}`)
+        if (!facts.clockVisible) bad.push('clock clipped')
+        if (facts.tabsOutside !== 0) bad.push(`tabs outside list ${facts.tabsOutside}`)
         /* Zero filled in the header while held; `Claim` is the one filled button when unheld (§4.1). */
         if (facts.headerFilled !== (facts.held ? 0 : 1)) bad.push(`header filled ${facts.headerFilled} (held ${facts.held})`)
         if (facts.composerFilled !== (opts.note ? 0 : 1)) bad.push(`composer filled ${facts.composerFilled}`)
-        if (facts.smallProse > 2) bad.push(`small text ${facts.smallProse} of ${facts.small} ${facts.smallSamples.join(',')}`)
+        if (facts.smallProse > 0) bad.push(`small text ${facts.smallProse} of ${facts.small} ${facts.smallSamples.join(',')}`)
         if (!facts.bubbleSidesOk) bad.push('bubble sides')
         if (!opts.note && facts.sendEdge !== null && facts.sendEdge > 12) bad.push(`send edge ${facts.sendEdge}`)
       }

@@ -256,18 +256,19 @@ describe('AC-CC-08 j, k, Enter and Esc', () => {
 /* ═══════════════════════ AC-CC-09 · one filled button ═════════════════ */
 
 describe('AC-CC-09 Send is the only filled button while the operator holds the conversation', () => {
-  it('renders Create ticket and Transfer as ghosts, the rest in More actions, and Send as the one default variant', async () => {
+  it('renders Create ticket as a ghost, the other three in More actions, and Send as the one default variant', async () => {
     const user = userEvent.setup()
     const name = await nameOf('CNV-102')
     renderInbox(at('CNV-102'))
     await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })
     const header = screen.getByRole('banner')
-    /* CNV-102 is held, past its resolution deadline and unticketed: §4.1's fourth row. */
+    /* CNV-102 is held, past its resolution deadline and unticketed: §4.1's fourth row (D8-b). */
     expect(within(header).getByRole('button', { name: copy('conversations.ticket.create') })).toHaveAttribute('data-variant', 'ghost')
-    expect(within(header).getByRole('button', { name: copy('conversations.transfer') })).toHaveAttribute('data-variant', 'ghost')
+    expect(within(header).queryByRole('button', { name: copy('conversations.transfer') })).toBeNull()
     expect(within(header).queryAllByRole('button').filter((b) => b.getAttribute('data-variant') === 'default')).toHaveLength(0)
     await user.click(within(header).getByRole('button', { name: copy('inbox.header.more') }))
-    expect(await screen.findByRole('menuitem', { name: copy('conversations.snooze') })).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: copy('conversations.transfer') })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: copy('conversations.snooze') })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: copy('conversations.close') })).toBeInTheDocument()
     await user.keyboard('{Escape}')
     const filled = screen.getAllByRole('button').filter((b) => b.getAttribute('data-variant') === 'default')

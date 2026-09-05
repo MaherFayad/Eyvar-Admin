@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 6486,
-    "en": 6136,
-    "ar": 6486,
+    "keys": 6487,
+    "en": 6137,
+    "ar": 6487,
     "arMissing": 0,
     "arExtra": 350,
     "copyFiles": 38,
@@ -262,7 +262,7 @@
       "exports": [
         "INBOX_EN"
       ],
-      "keys": 42,
+      "keys": 43,
       "notInEN": 0
     },
     {

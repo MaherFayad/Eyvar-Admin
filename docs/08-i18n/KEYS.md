@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6486** |
-| Reachable from `EN` (what the shell renders) | 6136 |
-| Keys in `AR` | 6486 |
+| **Translatable keys, all dictionaries** | **6487** |
+| Reachable from `EN` (what the shell renders) | 6137 |
+| Keys in `AR` | 6487 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
 | Plural forms (`key#category`) inside `EN` | 65 |
@@ -470,7 +470,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 47 |
-| `src/screens/support/inbox/copy.ts` | `INBOX_EN` | 42 |
+| `src/screens/support/inbox/copy.ts` | `INBOX_EN` | 43 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
