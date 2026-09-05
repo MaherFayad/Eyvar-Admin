@@ -236,7 +236,7 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.escrow.col.amount': 'المبلغ (SAR)',
   'fin.escrow.col.progress': 'التقدّم',
   'fin.escrow.col.state': 'الحالة',
-  'fin.escrow.progress': '{completed}/{required} رحلة مُنفَّذة',
+  'fin.escrow.progress': '{completed}/{required} رحلة',
   'fin.escrow.action.release': 'إفراج',
   'fin.escrow.blocked.trips': 'الإفراج يتم عند تنفيذ كل رحلات الباقة.',
   'fin.escrow.blocked.state': 'هذا الحجز {state} بالفعل.',
@@ -734,10 +734,6 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.overview.refused.body':
     'كل قيد مرفوض محفوظ ويمكن قراءته، ولا شيء منها داخل هذه الإجماليات.',
 
-  'fin.wallets.header.caption': '{wallets} محفظة · {negative} دون الصفر',
-  'fin.wallets.authority.label': 'صلاحيتك لمنح التعويض',
-  'fin.wallets.authority.daily': 'اليوم {used} من {cap}',
-  'fin.wallets.authority.caps': 'لكل حالة {perCase} · {countCap} لكل راكب خلال 30 يومًا',
 
   'fin.pricing.plan.col.gross': 'الإجمالي (SAR)',
 
@@ -901,4 +897,12 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.deduction.figure.count': 'بانتظار قرار',
 
   'fin.cash.figure.open': 'التقارير المفتوحة',
+
+  /* ── FINANCIALS-UX-PLAN §10 lane D ── */
+  'fin.wallets.figure.wallets': 'المحافظ',
+  'fin.wallets.figure.negative': 'دون الصفر',
+  'fin.wallets.figure.dailyUsed': 'المستخدم اليوم',
+  'fin.wallets.authority.envelope':
+    'السقف اليومي {cap} · لكل حالة {perCase} · {countCap} لكل راكب خلال 30 يومًا',
+  /* ── end lane D ── */
 }

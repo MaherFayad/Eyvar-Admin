@@ -304,7 +304,9 @@ describe('AC-364 — releasing escrow', () => {
   /**
    * **AC-365** — *"an escrow hold with `tripsCompleted < tripsRequired` renders
    * its `Release` action disabled in place, with the reason visible, and the
-   * progress stated as `4/5 trips delivered`."*
+   * progress stated as `4/5 trips delivered`."* The words shortened to
+   * `4/5 trips` when the state column took the width the refusal needs; the
+   * criterion is the progress on the row, and it is.
    *
    * Three clauses, three assertions. The control is **present** and disabled —
    * hidden would fail — the progress is in words on the row, and the row that
@@ -317,7 +319,7 @@ describe('AC-364 — releasing escrow', () => {
     await waitFor(() => expect(screen.getByText('ESC-1041')).toBeTruthy())
 
     /* 4 of 5 — the progress, in words, on the row. */
-    expect(within(rowFor('ESC-1041')).getByText('4/5 trips delivered')).toBeTruthy()
+    expect(within(rowFor('ESC-1041')).getByText('4/5 trips')).toBeTruthy()
 
     const blocked = await rowActionControl(
       user,

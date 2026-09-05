@@ -555,7 +555,7 @@ function PayoutsView({
         header: t('fin.payout.col.trips'),
         dataType: 'number',
         align: 'end',
-        width: 76,
+        width: 68,
         sortField: 'tripsInPeriod',
         cell: (payout) => (
           <span className="tabular-nums">{formatCount(payout.tripsInPeriod, language)}</span>
@@ -568,7 +568,7 @@ function PayoutsView({
         header: t('fin.payout.col.payable'),
         dataType: 'money',
         align: 'end',
-        width: 124,
+        width: 112,
         sortField: 'payableHalalas',
         cell: (payout) => <MoneyCell amount={payout.payableHalalas} />,
       },
@@ -578,7 +578,7 @@ function PayoutsView({
         header: t('fin.payout.col.debt'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 112,
         sortField: 'cashDebtHalalas',
         cell: (payout) => <MoneyCell amount={payout.cashDebtHalalas} />,
       },
@@ -589,7 +589,7 @@ function PayoutsView({
         header: t('fin.payout.col.net'),
         dataType: 'money',
         align: 'end',
-        width: 140,
+        width: 110,
         /* **Derived**, from two independently-true server values. Never a third
            wire field that can disagree with both. */
         cell: (payout) => (
@@ -607,9 +607,11 @@ function PayoutsView({
         dataType: 'enum',
         /* **H6 preset.** `fitWidths` shrinks an `enum` to 76px when the table
            is over budget, which rendered `Du` / `Pa` / `Re` under a header
-           reading `Sta`. The floor is what makes the words render. */
-        width: 120,
-        minWidth: 120,
+           reading `Sta`. Since R2-3 the floor is also the REFUSAL's: at 120px
+           `Add a bank account before paying this captain.` clipped inside
+           `line-clamp-2`, and AC-368 wants the reason readable in place. */
+        width: 190,
+        minWidth: 190,
         cell: (payout) =>
           payout.state === 'failed' ? (
             /* R5 — no red badge exists. The state is the words. */
@@ -927,14 +929,14 @@ function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         id: 'captain',
         header: t('fin.escrow.col.captain'),
         dataType: 'text',
-        width: 170,
+        width: 150,
         cell: (hold) => <EntityName href={hrefFor(hold.captainId)} name={hold.captainName} t={t} />,
       },
       {
         id: 'rider',
         header: t('fin.escrow.col.rider'),
         dataType: 'text',
-        width: 170,
+        width: 150,
         cell: (hold) => <EntityName href={hrefFor(hold.riderId)} name={hold.riderName} t={t} />,
       },
       {
@@ -952,7 +954,7 @@ function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         id: 'progress',
         header: t('fin.escrow.col.progress'),
         dataType: 'text',
-        width: 160,
+        width: 104,
         /* **AC-365** — the progress is stated as `4/5 trips delivered`, in
            words, beside the disabled control that names the same reason. */
         cell: (hold) => (
@@ -970,11 +972,13 @@ function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         emphasis: 'data',
         /* **R2-3 / AC-368** — the refused `Release` explains itself under the
            state word. Undeclared, the reason fell to the identity cell and
-           wrapped it to a third line (§10.4). */
+           wrapped it to a third line (§10.4). The floor is the REASON's: at
+           132px `Release when every plan trip is delivered.` clipped. */
         carriesRefusalReason: true,
         header: t('fin.escrow.col.state'),
         dataType: 'enum',
-        width: 132,
+        width: 190,
+        minWidth: 190,
         /* **AC-452** — `held | released | reversed` is the DOCUMENT's lifecycle.
            An escrow posting settles on arrival, because money arriving is a
            fact; this badge is the hold's state and never a posting's. */
@@ -1248,7 +1252,7 @@ function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         dataType: 'id',
         /* **R2-7** — the floor that keeps the waiver's actor and reason on ONE
            second line rather than wrapping the cell to a third. */
-        minWidth: 300,
+        minWidth: 286,
         sortField: 'id',
         cell: (deduction) => (
           <span className="block font-medium tabular-nums">
@@ -1286,7 +1290,7 @@ function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         dataType: 'text',
         /* Narrowed by what the identity column took: a captain's name fits, and
            the waiver's second line is the cell that could not wrap. */
-        width: 160,
+        width: 96,
         sortField: 'captainName',
         cell: (deduction) => (
           <EntityName href={hrefFor(deduction.captainId)} name={deduction.captainName} t={t} />
@@ -1296,7 +1300,7 @@ function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         id: 'trip',
         header: t('fin.deduction.col.trip'),
         dataType: 'id',
-        width: 112,
+        width: 76,
         /* §8.3.1 — a deduction raised against no trip renders nothing here, as
            it always has. It is the ABSENCE of a reference, not an unknown one. */
         cell: (deduction) =>
@@ -1313,7 +1317,7 @@ function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         header: t('fin.deduction.col.amount'),
         dataType: 'money',
         align: 'end',
-        width: 128,
+        width: 88,
         sortField: 'amountHalalas',
         cell: (deduction) => <MoneyCell amount={deduction.amountHalalas} />,
       },
@@ -1321,11 +1325,13 @@ function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
         id: 'status',
         emphasis: 'data',
         /* **R2-3 / AC-368** — as Escrow and Payouts: the refusal reads under the
-           state word, not under the identifier. */
+           state word, not under the identifier, and the floor is the reason's:
+           `This deduction is already Applied.` reads in two lines at 168. */
         carriesRefusalReason: true,
         header: t('fin.deduction.col.status'),
         dataType: 'enum',
-        width: 132,
+        width: 168,
+        minWidth: 168,
         cell: (deduction) => (
           <StatusBadge tone={deduction.status === 'applied' ? 'success' : deduction.status === 'waived' ? 'neutral' : 'warning'}>
             {t(`fin.deduction.status.${deduction.status}`)}

@@ -190,12 +190,6 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
   /* **§10.4** — the view's figures ride the stadium's row, published by the
      view that reads them. The drill-in's one figure is server policy. */
   const [facts, setFacts] = useState<ViewFacts | null>(null)
-  const capFacts = useMemo<ViewFacts>(
-    () => ({
-      figures: [{ label: t('fin.debt.figure.cap'), amountHalalas: cashDebtCapHalalas() }],
-    }),
-    [t],
-  )
 
   /* **AC-378 / P0-3** — one banner, one count, and it is the only banner this
      sub-tab raises. **There is no breach banner**, because there is no breach
@@ -251,9 +245,10 @@ export function CashScreen({ row }: { row: SubTabRoute }) {
       viewRow={
         <ViewRow
           label={parentView}
-          /* **R2-2** — the drill-in's one figure is the cap every balance under
-             it is read against; it was a small run of prose on the same row. */
-          facts={captainId === null ? facts : capFacts}
+          /* **R2-2** — on the drill-in the row carries the way back and nothing
+             else: the cap is a figure beside the balance it qualifies, in the
+             ledger header, rather than a second figure one row above it. */
+          facts={captainId === null ? facts : null}
           lead={
             captainId === null ? (
               <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
@@ -1158,8 +1153,14 @@ function CaptainDebtLedger({
     return () => onSubject(null)
   }, [subjectName, onSubject])
 
-  /* **R2-2** — the way back and the cap left this row for the header's
-     breadcrumb slot, so the ledger header follows the title row directly. */
+  /* **R2-2** — the way back left this row for the header's breadcrumb slot and
+     the cap moved beside the balance it qualifies, so the ledger header follows
+     the title row directly. */
+  const capFigures = useMemo(
+    () => [{ label: t('fin.debt.figure.cap'), amountHalalas: cashDebtCapHalalas() }],
+    [t],
+  )
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <LedgerCard
@@ -1170,6 +1171,7 @@ function CaptainDebtLedger({
         t={t}
         language={language}
         tableId="financials-captain-debt-ledger"
+        figures={capFigures}
         onRetry={ledger.refetch}
         hasHistory={(ledger.data?.lifetimePostings ?? 0) > 0}
         firstRun={{

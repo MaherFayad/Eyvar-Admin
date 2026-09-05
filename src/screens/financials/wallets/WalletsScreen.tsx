@@ -347,39 +347,45 @@ function WalletIndex({
     return () => onNegativeCount(0)
   }, [negativeTotal, onNegativeCount])
 
-  /* **§10.4** — the position this sub-tab is an index of, and the words that
-     are not a figure: the two counts, and on `Goodwill` the operator's own
-     envelope (**AC-384**), which a used-of-cap pair cannot state as one
-     numeral. The row states nothing while the position is still being read. */
+  /* **§10.4** — the position this sub-tab is an index of. A count is a figure,
+     not a sentence; only the operator's own CEILINGS stay words, because a
+     daily cap, a per-case cap and a count cap are three numbers and not one
+     (**AC-384**). The row states nothing while the position is being read. */
   const facts = useMemo<ViewFacts | null>(() => {
     if (!overview.data) return null
     const authority = envelope.data
     return {
       figures: [
         {
+          label: t('fin.wallets.figure.wallets'),
+          value: formatCount(allWallets.data?.total ?? 0, language),
+        },
+        {
+          label: t('fin.wallets.figure.negative'),
+          value: formatCount(negativeTotal, language),
+        },
+        {
           label: t('fin.ledger.balance'),
           amountHalalas: overview.data.riderWalletLiabilityHalalas,
         },
-      ],
-      caption: [
-        t('fin.wallets.header.caption', {
-          wallets: formatCount(allWallets.data?.total ?? 0, language),
-          negative: formatCount(negativeTotal, language),
-        }),
         ...(authority
           ? [
-              t('fin.wallets.authority.label'),
-              t('fin.wallets.authority.daily', {
-                used: formatMoney(authority.dailyUsedHalalas),
-                cap: formatMoney(authority.dailyCapHalalas),
-              }),
-              t('fin.wallets.authority.caps', {
-                perCase: formatMoney(authority.perCaseCapHalalas),
-                countCap: formatCount(authority.per30dCountCap, language),
-              }),
+              {
+                label: t('fin.wallets.figure.dailyUsed'),
+                amountHalalas: authority.dailyUsedHalalas,
+              },
             ]
           : []),
       ],
+      caption: authority
+        ? [
+            t('fin.wallets.authority.envelope', {
+              cap: formatMoney(authority.dailyCapHalalas),
+              perCase: formatMoney(authority.perCaseCapHalalas),
+              countCap: formatCount(authority.per30dCountCap, language),
+            }),
+          ]
+        : [],
     }
   }, [overview.data, envelope.data, allWallets.data, negativeTotal, t, language])
   usePublishFacts(onFacts, facts)

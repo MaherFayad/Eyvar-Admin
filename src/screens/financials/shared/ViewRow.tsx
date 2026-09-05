@@ -36,9 +36,10 @@ export interface ViewFacts {
   /** One to four. Beyond that it is a figure strip, which R2-1 replaced. */
   figures?: readonly ViewFigure[]
   /**
-   * V-3's facts rung, under the figures: 11px uppercase tracked muted, **one
-   * line**. Each entry is its own translated sentence; the separator between
-   * them is drawn, never written into a string (AC-443).
+   * V-3's facts rung, directly under the figures it belongs to and sharing
+   * their inline-start: 11px uppercase tracked muted, **one line**. Each entry
+   * is its own translated sentence; the separator between them is drawn, never
+   * written into a string (AC-443).
    */
   caption?: readonly string[]
 }
@@ -94,16 +95,23 @@ export function ViewRow({ lead, label, facts, control, className }: ViewRowProps
     >
       {lead}
       {(control || figures.length > 0 || caption.length > 0) && (
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-6 gap-y-1">
+        /* `ms-auto` and not `justify-between` alone: when the figures wrap to a
+           line of their own under a wide stadium, a lone flex item sits at the
+           line's START. The auto inline-start margin puts it at the end on
+           both the shared line and the wrapped one. */
+        <div className="flex ms-auto min-w-0 flex-wrap items-start justify-end gap-x-6 gap-y-1">
           {control}
           {(figures.length > 0 || caption.length > 0) && (
-            <div className="flex min-w-0 flex-col items-end gap-0.5">
+            /* One cluster: the figures, and the caption directly beneath them
+               sharing their inline-start. A caption never sits across the row
+               from the numeral it describes. */
+            <div className="flex min-w-0 flex-col items-start gap-0.5 text-start">
               {figures.length > 0 && (
                 <ul
                   data-numeric
                   role="list"
                   aria-label={label}
-                  className="flex list-none flex-wrap items-end justify-end gap-x-6 gap-y-1"
+                  className="flex list-none flex-wrap items-start justify-end gap-x-6 gap-y-1"
                 >
                   {figures.map((figure) => (
                     <li key={figure.label}>
@@ -115,7 +123,7 @@ export function ViewRow({ lead, label, facts, control, className }: ViewRowProps
               {caption.length > 0 && (
                 /* V-9.4 — size, case, tracking and muted ink in the console's
                    own face; `globals.css` refuses `--ev-text-3` as text ink. */
-                <span className="max-w-full truncate text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
+                <span className="max-w-full truncate text-2xs leading-none font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
                   {caption.map((line, index) => (
                     <Fragment key={line}>
                       {index > 0 && <span aria-hidden="true"> · </span>}
@@ -132,21 +140,35 @@ export function ViewRow({ lead, label, facts, control, className }: ViewRowProps
   )
 }
 
-function ViewFigureBlock({ figure }: { figure: ViewFigure }) {
+/**
+ * One figure, one cluster: the label directly above its numeral on the same
+ * inline-start, the unit inline after it. `lg` is the ledger header's size,
+ * where the numeral sits over a table column rather than over a view.
+ */
+export function ViewFigureBlock({
+  figure,
+  size = 'kpi',
+}: {
+  figure: ViewFigure
+  size?: 'kpi' | 'lg'
+}) {
   const isMoney = figure.amountHalalas !== undefined
   const unit = isMoney ? MONEY_UNIT : (figure.unit ?? null)
 
   return (
     /* **Two lines, not three.** The unit sits on the numeral's baseline rather
        than under it: a third line cost every view 16px before its first row. */
-    <div className="flex min-w-0 flex-col items-end gap-0.5">
+    <div className="flex min-w-0 flex-col items-start gap-0.5 text-start">
       <span className="text-xs leading-none text-muted-foreground">{figure.label}</span>
       <span className="flex items-baseline gap-1.5">
         {/* H4 — `data-slot="metric-value"` is what pins the tabular figures in
             `@layer base`, rather than a class here. */}
         <span
           data-slot="metric-value"
-          className="text-kpi leading-none font-semibold text-foreground"
+          className={cn(
+            'leading-none font-semibold text-foreground',
+            size === 'lg' ? 'text-lg' : 'text-kpi',
+          )}
         >
           {isMoney ? (
             <Money amount={figure.amountHalalas ?? null} unit="none" />
@@ -154,7 +176,9 @@ function ViewFigureBlock({ figure }: { figure: ViewFigure }) {
             <bdi>{figure.value}</bdi>
           )}
         </span>
-        {unit !== null && <span className="text-xs text-muted-foreground">{unit}</span>}
+        {unit !== null && (
+          <span className="text-xs leading-none text-muted-foreground">{unit}</span>
+        )}
       </span>
     </div>
   )

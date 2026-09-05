@@ -357,7 +357,7 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.escrow.col.amount': 'Amount (SAR)',
   'fin.escrow.col.progress': 'Progress',
   'fin.escrow.col.state': 'State',
-  'fin.escrow.progress': '{completed}/{required} trips delivered',
+  'fin.escrow.progress': '{completed}/{required} trips',
   'fin.escrow.action.release': 'Release',
   'fin.escrow.blocked.trips': 'Release when every plan trip is delivered.',
   'fin.escrow.blocked.state': 'This hold is already {state}.',
@@ -1058,11 +1058,7 @@ export const FINANCIALS_EN: Dictionary = {
     'Every refused posting is kept and can be read. None of them is in these totals.',
 
   /* §5.3 — the wallets view header, in `LedgerCard`'s Balance shape. */
-  'fin.wallets.header.caption': '{wallets} wallets · {negative} below zero',
   /* AC-384 — the ceiling is on the page before the dialog opens. */
-  'fin.wallets.authority.label': 'Your goodwill authority',
-  'fin.wallets.authority.daily': 'Daily {used} of {cap}',
-  'fin.wallets.authority.caps': 'Per case {perCase} · {countCap} per rider in 30 days',
 
   /* §5.4 — the plan's money page is Revenue, not this catalogue. The period
      is on the page meta and on the control above the table, so the header
@@ -1250,4 +1246,12 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.figure.count': 'Awaiting a decision',
 
   'fin.cash.figure.open': 'Open reports',
+
+  /* ── FINANCIALS-UX-PLAN §10 lane D ── */
+  'fin.wallets.figure.wallets': 'Wallets',
+  'fin.wallets.figure.negative': 'Below zero',
+  'fin.wallets.figure.dailyUsed': 'Daily used',
+  'fin.wallets.authority.envelope':
+    'Daily cap {cap} · per case {perCase} · {countCap} per rider in 30 days',
+  /* ── end lane D ── */
 }
