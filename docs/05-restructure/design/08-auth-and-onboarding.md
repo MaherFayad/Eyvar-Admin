@@ -1215,10 +1215,9 @@ condition to. **Stated because an engineer will otherwise add the toast.** (**AC
 
 | Action | Behaviour | Confirmation |
 |---|---|---|
-| **Skip a step** | Any step, any time. Recorded distinctly from *done*. The row moves to `Skipped ({count})` at the foot | **None** |
-| **Re-enter a skipped step** | From inside the group: a plain button `Do this step` — un-skips it, returns it to its position in the list, and expands it (**AC-633**) | **None** |
-| Progress | `{done} of {total} completed` counts **completed only**. A skip does not fake progress (**AC-634**) | — |
-| **Track complete** | Every reachable step done **or** skipped → `completed` state (§10.3) | — |
+| **Skip a step** | **There is no Skip control.** A step is done or it is not done, and there is no `Skipped` group. The data layer keeps `skipStep` and `skippedStepIds`; the UI never writes them. Withdrawn by the owner along with AC-632, AC-633 and AC-634 | — |
+| Progress | `{done} of {total} completed` counts completed steps | — |
+| **Track complete** | Every reachable step done → `completed` state (§10.3) | — |
 | **Dismiss** | Available **at any time**, not only at completion (**AC-636**). A deliberate extension of §5.6, which only makes a *completed* guide dismissible: an operator on their first shift can be handed a live safety incident in minute four, and a checklist they cannot close is a trap. §5.6's *"MUST NOT resurrect it afterwards"* is honoured exactly — no auto-open, no banner, ever again | **None** |
 | **Resume** | The account-menu entry is permanent, for every role (**AC-598**) | — |
 | **Restart** | `Restart onboarding` clears completions **for the current track only**, un-dismisses, and re-renders at `0 of {total}` (**AC-640**). Also available to a `manage_team` holder against another operator from Admin › Team & Access (**AC-641**) | **None** |
@@ -1256,6 +1255,106 @@ route with the layer open (**AC-593**).
 modal wizards (**AC-615**). R8's first-run empty means *nothing has ever existed here*, and wave
 2's **E1 `queue clear`** prohibition (Q-36) is exactly right: a training checklist at the moment
 an operator finishes their queue is the opposite signal (**AC-614**).
+
+### 10.6 The welcome, and the beacon
+
+Three positions in `DESIGN.md` yield to the owner's standing override, and only this far. The
+override is recorded in `docs/RULINGS.md`; this section is its design.
+
+**The welcome dialog** (`WelcomeDialog.tsx`). **One** modal, **four** slides, shown **once per
+account** on the first session and never again, stamped by `autoOpenedAt`. Closing it by any
+route — `Not now`, the close control, `Escape`, an outside click — counts as seen.
+`Start the checklist` opens the layer. This is the only licence §5.6's "MUST NOT use modal
+wizards for onboarding" yields, and it licenses no other wizard, tour, coach mark or spotlight.
+
+| | |
+|---|---|
+| Layout | split: the picture at inline-start in a 3:2 frame at three fifths of the width; eyebrow, title, body and any extra line at inline-end, vertically centred. Arabic mirrors it |
+| Slide 1 | what Eyvar is and what your role reaches. Eyebrow `Eyvar Admin`, title `Welcome, {firstName}` — the **first** name; the full name stays in the account menu |
+| Slide 2 | My Work, shown as a capture of the product itself |
+| Slide 3 | the command centre, shown as a capture |
+| Slide 4 | the operator's own checklist, with the step count, over the role's own picture |
+| The role sentence | *Your role reaches Management, Operations, Financials, Support, and Admin*, built from `visibleWorkspaces` through `Intl.ListFormat`, so a Support operator is never told they reach Financials (**AC-916**) |
+| Captures | 3:2 crops in both colour themes, chosen at render time by `useTheme` |
+
+**Why four slides and not five.** Each extra slide loses a share of the people still reading,
+and the checklist's own `common.audit` step already takes the operator to the activity log. A
+slide is justified only when nothing else in the product will teach the same thing.
+
+**The beacon** (`OnboardingBeacon.tsx`). A **48px progress ring** with the completed percentage
+inside it (`formatPercent`, rounded), fixed **24px from each edge** at the bottom inline-end
+corner. It is present only while the track is incomplete, undismissed, and the layer is closed,
+and it is **absent on the compact shell**. It raises no toast and no banner.
+
+Activating it opens a **320px popover above it**: the title, `n of m completed`, the
+percentage, the step list with a tick on each done step, and two plain actions —
+*Open the full checklist* and *Hide until next sign-in*. A step in the panel goes straight to
+its screen; a done step, or one with no screen, opens the layer on it instead.
+`destinationPath` lives in `destination.ts` so the panel and the layer resolve a step the same
+way.
+
+`Hide until next sign-in` hides the beacon **for the session only**. R10's "one event, one
+surface" yields exactly this far: the checklist has **two** standing surfaces, the account-menu
+entry and the beacon, and no third.
+
+**The layer is quiet.** No sub-card behind the expanded step: body text in the muted ink, one
+primary `Open`, `Mark as done` as a plain button, and the picture at inline-end. No group
+labels. The intro picture is 112x80.
+
+**Illustration.** R8 ("an illustration appears only on a whole-page, zero-records-ever empty
+state") yields for the guide only: a guide's intro card, its expanded task and its completed
+state may each carry a **decorative** illustration. Empty states are unchanged, and
+`track-empty` and E1 still carry none.
+
+### 10.7 The illustration set
+
+**Files.** `docs/05-restructure/design/onboarding-illustrations/source/` holds the 26 subjects;
+the shipped components are one per subject under `src/screens/onboarding/illustrations/`,
+exported through a map keyed by step id and role name.
+
+**The style is flat two-tone**: brand-green fills, ink outlines, pale brand-green tints, white
+ground. It is chosen because it survives the reduction to 96px — a tinted shield, a code slot
+and a ticked list are all still readable there — and because it sits inside a `--ev-bg2` card
+without needing a frame. A monoline outline style was tried and declined: below roughly 150px
+the drawing dissolves into lines, and a technical diagram is closer to the product's own icon
+set than to a picture, so it adds nothing the icons do not.
+
+**Two rules on what a drawing may contain.**
+
+- **No arrows and no cursors.** An arrow encodes a reading direction, and art is never mirrored
+  with CSS (O10).
+- **No digits and no text.** A code slot renders empty, which is correct: any glyph inside a
+  drawing is a string that cannot be translated.
+
+**Where the art appears.**
+
+| Surface | Art | Size | Rule |
+|---|---|---|---|
+| The expanded step | that step's illustration at the inline-end of the description, above the buttons on narrow widths | 96 x 64 | decorative: `aria-hidden`, `focusable="false"`, no `<title>` |
+| The intro card | the role's illustration at the inline-end | 112 x 80 | one per role, four in total |
+| The completed state (AC-635) | the completion illustration above the done line | 160 x 106 | the one hero-sized picture, because it is the one moment |
+| Collapsed rows, the archived group, the account menu, the banner | **none** | — | a picture per row is noise; the row's job is scanning |
+| Any empty state, including `track-empty` | **none** | — | R8 and Q-36 unchanged |
+
+**The test that keeps it decorative:** remove every SVG and every acceptance criterion still
+passes. The art carries no meaning the text does not.
+
+**Five fills, and only five.** A drawing enters the tree tokenised. Any fill outside these five
+is a rejected image:
+
+| Source fill | Becomes |
+|---|---|
+| `rgb(12,105,68)` | `fill-primary` |
+| `rgb(23,26,33)` | `fill-foreground` |
+| `rgb(231,240,236)` | `fill-brand-lt` |
+| `rgb(255,255,255)` | `fill-background` |
+| `rgb(107,114,128)` | `fill-muted-foreground` |
+
+Every one of those is a theme colour in `globals.css`, and the edit gate's literal-colour check
+forces the substitution. Before tokenising, a drawing is stripped of its provenance metadata
+block and of its `style`, `width`, `height` and `preserveAspectRatio` attributes. Budget: 12 KB
+per file, about 300 KB on the onboarding chunk, which is lazy-loaded. `scripts/illustrations/`
+does the strip and the substitution, so a new batch is one command.
 
 ### 10.5 The four tracks — 21 steps, final copy
 
@@ -1608,6 +1707,16 @@ files do not implement. **A comment asserting an unimplemented MUST is how the n
 frontend-engineer, one line each, and it is the cheapest defect prevention in this document.
 
 ---
+
+
+### 16.2 Onboarding questions still open
+
+| # | Question | Who answers | Default while it is open |
+|---|---|---|---|
+| **Q-O2** | The help centre (Q-82): who writes the 21 short *More about this* articles, and where they live. | content-designer, then the owner | `learnMoreKey` stays `null` and nothing renders. |
+| **Q-O3** | Should auto-open wait for the landing route's first successful render (§10.4), or open on the shell's first paint? | product-designer | Wait for the first successful render, as designed. Opening a layer over a skeleton is noise. |
+| **Q-O4** | D4: whether a Trust & Safety and a Dispatcher role exist. Each adds a track and a role illustration. | business owner | Four tracks. |
+| **Q-O5** | Should the role illustration also appear in the account-menu header? | product-designer | No; the menu is a list. |
 
 ## 17. Handoff
 

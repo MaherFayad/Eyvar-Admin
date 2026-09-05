@@ -807,7 +807,7 @@ paths.
 
 | Action | Behaviour |
 |---|---|
-| **Skip a step** | Any step, at any time. Recorded distinctly from *done*. Skipped steps collect in a `Skipped (n)` group at the foot of the list and can be re-entered from there. The progress line stays `{done} of {total} completed` — a skip does not fake progress |
+| **Skip a step** | **Withdrawn by the owner.** There is no Skip control and no `Skipped (n)` group; a step is done or it is not done. The data layer keeps `skipStep` and `skippedStepIds` and the UI never writes them. See AC-632 to AC-634 |
 | **Track complete** | Every step is done **or** skipped. The card collapses to the §5.6 `✓ Done` line and reveals `Dismiss` |
 | **Dismiss** | Available **at any time**, not only at completion. This is a deliberate extension of §5.6, which only makes a *completed* guide dismissible: an operator on their first shift can be handed a live safety incident in minute four, and a checklist they cannot close is a trap. §5.6's *"MUST NOT resurrect it afterwards"* is honoured exactly — a dismissed track never auto-opens and never raises a banner again |
 | **Resume** | The account-menu entry is permanent. It carries `n / m` while the track is incomplete and undismissed, and no indicator otherwise |
@@ -948,7 +948,7 @@ Registered through `mock()` / `mockMutation()`, so `?mockFail=` reaches all of t
 | `session.trustDevice` / `session.revokeDevice` | §7.4 | AC-571 |
 | `onboarding.get` | Track + state | AC-649 |
 | `onboarding.completeStep` | Mark done | AC-646 |
-| `onboarding.skipStep` | Skip | AC-647 |
+| `onboarding.skipStep` | — kept at the seam, never called from the UI (AC-632) | AC-647 |
 | `onboarding.dismiss` | Dismiss | AC-647 |
 | `onboarding.restart` | Restart, self or via `manage_team` | AC-640 |
 
@@ -1066,7 +1066,7 @@ offenders are predictable, so here they are up front, each as **one key with nam
 | `Resend in 27s` | `auth.otp.resendIn` `{seconds}` | Same |
 | `Sent to ••••••67` | `auth.otp.sentTo` `{hint}` | The masked run is a **numeric run**: it does not reorder in RTL and needs bidi isolation (foundation §7.5 rule 6). **The example string is corrected from `••• ••• 4567`, which exposed four digits and broke this spec's own AC-519 — applied from design §15 overrule 2. The criterion binds; the illustration was written against a four-digit habit** |
 | `3 of 8 completed` | `onboarding.progress` `{done}` `{total}` | §5.6's required format |
-| `Skipped (2)` | `onboarding.skipped` `{count}` | |
+| ~~`Skipped (2)`~~ | withdrawn with AC-632; the key is unused | |
 | `Your role changed to Ops Manager` | `onboarding.roleChanged` `{role}` | Role names are themselves keys (`role.opsManager`), not English literals interpolated into Arabic |
 | `You hold 3 of 13 permissions` | `onboarding.intro.permissions` `{held}` `{total}` | |
 | `Signed out of 4 other sessions` | `auth.reset.otherSessionsEnded` `{count}` | |
@@ -1481,13 +1481,13 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
 
 ### 13.8 Onboarding — lifecycle (AC-632 – AC-648)
 
-- **AC-632** Any step can be skipped.
-- **AC-633** A skipped step moves to a `Skipped (n)` group at the foot of the list and can be
-  re-entered from there.
-- **AC-634** Skipping does not change `done`; the progress line's numerator counts completed steps
-  only.
-- **AC-635** When every reachable step is done or skipped, the list collapses to a done line and
-  reveals `Dismiss`.
+- **AC-632** **WITHDRAWN by the owner.** No step offers a Skip control, on any track, in any
+  state.
+- **AC-633** **WITHDRAWN by the owner**, with AC-632. No `Skipped (n)` group renders anywhere.
+- **AC-634** **WITHDRAWN by the owner**, with AC-632. The progress line's numerator counts
+  completed steps.
+- **AC-635** When every reachable step is done, the list collapses to a done line and reveals
+  `Dismiss`.
 - **AC-636** `Dismiss` is available at any time, not only at completion.
 - **AC-637** After dismissal the layer never auto-opens again and no onboarding banner is ever
   raised again for that track.
