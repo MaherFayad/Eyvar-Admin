@@ -81,18 +81,25 @@ export function PlanCalculations({
         </div>
       </Card>
 
-      <CalculationCard
-        heading={t('fin.planEditor.preview.class.economy')}
-        values={derived.economy}
-        t={t}
-        language={language}
-      />
-      <CalculationCard
-        heading={t('fin.planEditor.preview.class.comfort')}
-        values={derived.comfort}
-        t={t}
-        language={language}
-      />
+      {/* Two up, so each class's rows fill their own card rather than leaving
+          the inline-end half of a full-width card empty, and the twelve lines
+          read in one screen instead of two. `compact:` is the only narrower
+          variant there is (§0.1); below it two cards would be ~370px and the
+          label/amount pair stops being addable. */}
+      <div className="grid grid-cols-2 gap-4 compact:grid-cols-1">
+        <CalculationCard
+          heading={t('fin.planEditor.preview.class.economy')}
+          values={derived.economy}
+          t={t}
+          language={language}
+        />
+        <CalculationCard
+          heading={t('fin.planEditor.preview.class.comfort')}
+          values={derived.comfort}
+          t={t}
+          language={language}
+        />
+      </div>
     </div>
   )
 }

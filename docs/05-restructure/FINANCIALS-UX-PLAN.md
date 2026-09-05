@@ -544,6 +544,13 @@ and a sign only where one is true. No identifier, no code face, and the assumpti
 under (`10 km · 20 min × 5 trips`, the commission and discount rates, the surge exclusion) open the
 view rather than trailing it.
 
+**The two class cards are two-up.** Full width they each left their inline-end half empty — a
+`FigureRow` caps its label/amount pair at `max-w-md`, which is the width the ledger idiom reads at —
+and twelve lines ran past the fold. Side by side in a two-column grid inside the data column, each
+card is 400px at 1280 and 480px at 1440, the rows fill their card, and the whole view is on one
+screen. The assumptions card stays full width above them. Below `compact:` — the only narrower
+variant there is (§0.1) — they stack, because two cards at ~370px stop being addable.
+
 The choice lives in **`?tab=`**, and the default view carries no parameter — the same rule `?view=`
 follows on the index screens (AC-389), so the editor's own address stays the plain one.
 
@@ -628,6 +635,7 @@ in Arabic — 16 captures:
 | Fact | Result |
 |---|---|
 | data column / preview column | 816 / 416 at 1280 · 976 / 416 at 1440, side by side in every capture |
+| Economy / Comfort cards | 400 / 400 at 1280 · 480 / 480 at 1440, sharing one top in every capture |
 | phone frame | 256 × 578 |
 | `overflowX` | 0 everywhere |
 | text nodes in the Calculations view matching `/[a-z][A-Z]\|Halalas/` | 0 |
