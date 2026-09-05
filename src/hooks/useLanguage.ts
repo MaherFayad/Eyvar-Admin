@@ -53,6 +53,13 @@ export interface LanguageState {
    * a `Translator` is assignable to it.
    */
   t: Translator
+  /**
+   * A translator for a language that is **not** the active one. The only caller
+   * is the language-switch confirmation: `t` is still the pre-switch translator
+   * during `setLanguage`, so the toast would name Arabic in English on the page
+   * that just became Arabic.
+   */
+  translatorFor: (language: Language) => Translator
 }
 
 export interface UseLanguageStateOptions {
@@ -107,24 +114,33 @@ export function useLanguageState(options: UseLanguageStateOptions): LanguageStat
     [store, applyToDocument, doc],
   )
 
-  const t = useMemo(
-    () =>
+  const translatorFor = useCallback(
+    (which: Language) =>
       createTranslator({
-        dictionary: dictionaries[language],
+        dictionary: dictionaries[which],
         // English is the fallback for every language, including itself.
         // AC-74: an empty Arabic dictionary shows English, never a raw key.
         fallback: dictionaries.en,
         // Plural selection needs to know which locale's CLDR table to read.
         // Arabic has six cardinal forms; English has two.
-        language,
+        language: which,
         fallbackLanguage: 'en',
       }),
-    [dictionaries, language],
+    [dictionaries],
   )
 
+  const t = useMemo(() => translatorFor(language), [translatorFor, language])
+
   return useMemo(
-    () => ({ language, dir: directionFor(language), locale: localeFor(language), setLanguage, t }),
-    [language, setLanguage, t],
+    () => ({
+      language,
+      dir: directionFor(language),
+      locale: localeFor(language),
+      setLanguage,
+      t,
+      translatorFor,
+    }),
+    [language, setLanguage, t, translatorFor],
   )
 }
 

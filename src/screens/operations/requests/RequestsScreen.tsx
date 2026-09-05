@@ -80,7 +80,7 @@ import type {
   SubTabRoute,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translate, type Translator } from '@/lib'
 import { toast } from 'sonner'
 import { setRefusal } from '../bulkRefusal'
 import { EntityLink, useEntityLinks } from '../EntityLink'
@@ -566,7 +566,7 @@ const BREACH_FILTER = (t: Translate): readonly ExtraFilterSpec[] => [
 /* ─────────────────────────────── columns ─────────────────────────────── */
 
 export interface ColumnDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   canWrite: boolean

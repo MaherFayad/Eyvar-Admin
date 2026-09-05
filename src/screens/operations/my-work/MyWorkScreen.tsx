@@ -78,7 +78,7 @@ import type {
   WorkQueueId,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, type Language, type Translate } from '@/lib'
+import { type Language, type Translate, type Translator } from '@/lib'
 import { toast } from 'sonner'
 import { setRefusal } from '../bulkRefusal'
 import { ErrorState } from '@/components/ErrorState'
@@ -179,12 +179,10 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
   }, [heldRefetch, openRefetch])
   const meta = useMemo(
     () =>
-      backlog === null
-        ? null
-        : t(`myWork.meta.${backlog === 1 ? 'one' : 'other'}`, {
-            count: formatCount(backlog, language),
-          }),
-    [backlog, t, language],
+      /* `t.plural`, not `backlog === 1 ? one : other`: that has two branches
+         and Arabic counts in six (`lib/i18n/plural.ts`). */
+      backlog === null ? null : t.plural('myWork.meta', { count: backlog }),
+    [backlog, t],
   )
   /* The table reports its own total to nobody: the header line above is the
      backlog, not this view's count. */
@@ -410,9 +408,7 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
       )
       table.clearSelection()
       toast(
-        targets.length === 1
-          ? t('queue.toast.claimed')
-          : t('myWork.toast.claimed.other', { count: formatCount(targets.length, language) }),
+        t.plural('myWork.toast.claimed', { count: targets.length }),
       )
     } catch {
       toast(t('myWork.error.row.claim'))
@@ -649,7 +645,7 @@ const QUEUE_LABEL: Readonly<Record<WorkQueueId, string>> = {
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 export interface WorkDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   currentUserId: string

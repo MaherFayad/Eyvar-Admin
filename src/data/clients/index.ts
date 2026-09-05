@@ -14,8 +14,14 @@
    barrel, so there is no cycle. */
 import { mockFailures as failureRegistry } from '../config'
 import { resetNavCounts as resetCounts } from './navCounts'
-import { resetAssurance as resetAssuranceState } from './assurance'
-import { resetSafetyIncidents as resetSafety } from './safety'
+import { resetAssurance as resetAssuranceState, resetAssuranceTrips } from './assurance'
+import { resetSafetyIncidents as resetSafety, resetSafetyIncidentRows } from './safety'
+/* AC-288 — the six queues that hold their rows for the session now that a
+   claim is written back. */
+import { resetRequests } from './requests'
+import { resetApplicants } from './applicants'
+import { resetFairnessCases } from './fairness'
+import { resetComplaintRows } from './complaints'
 import { resetNotifications as resetNotifs } from './notifications'
 import { resetMockSession as resetSession } from './session'
 import { resetAudit as resetAuditLog } from './audit'
@@ -682,6 +688,15 @@ export function resetDataLayer(): void {
   resetNotifs()
   resetSafety()
   resetAssuranceState()
+  /* AC-288 — a claim, a release or a take-over is written into the client's
+     session rows, so it has to be undone between test files the same way a
+     ticket's is. */
+  resetRequests()
+  resetApplicants()
+  resetAssuranceTrips()
+  resetFairnessCases()
+  resetSafetyIncidentRows()
+  resetComplaintRows()
   resetAuditLog()
   resetLedgerState()
   resetRevenueState()

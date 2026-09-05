@@ -24,6 +24,7 @@ import {
   listApplicants,
   rejectApplicant,
   releaseApplicant,
+  resetApplicants,
 } from './applicants'
 import {
   acknowledgeLeg,
@@ -32,12 +33,26 @@ import {
   offerBackup,
   releaseAssuranceTrip,
   resetAssurance,
+  resetAssuranceTrips,
   useAbsenceHistory,
   waiveAbsence,
 } from './assurance'
-import { claimFairnessCase, decideFairnessCase, listFairnessCases, releaseFairnessCase } from './fairness'
+import {
+  claimFairnessCase,
+  decideFairnessCase,
+  listFairnessCases,
+  releaseFairnessCase,
+  resetFairnessCases,
+} from './fairness'
 import { listWorkItems, myWorkBacklogSize } from './myWork'
-import { assignRequest, claimRequest, expireRequest, listRequests, releaseRequest } from './requests'
+import {
+  assignRequest,
+  claimRequest,
+  expireRequest,
+  listRequests,
+  releaseRequest,
+  resetRequests,
+} from './requests'
 
 import {
   claimSafetyIncident,
@@ -46,6 +61,7 @@ import {
   precautionarilySuspend,
   releaseSafetyIncident,
   resetSafetyIncidents,
+  resetSafetyIncidentRows,
   setSafetyProtocolStep,
 } from './safety'
 
@@ -54,6 +70,13 @@ beforeEach(() => {
   mockFailures.clear()
   resetSafetyIncidents()
   resetAssurance()
+  /* AC-288 — a claim is session state now, so it has to be undone between
+     tests in this file the way `resetDataLayer` undoes it between files. */
+  resetApplicants()
+  resetRequests()
+  resetSafetyIncidentRows()
+  resetFairnessCases()
+  resetAssuranceTrips()
 })
 
 /** The four wave-2 queues that carry a claim, plus the wave-1 one that started it. */
@@ -428,5 +451,41 @@ describe('My Work is a routing layer, not a sixth queue', () => {
       (w) => w.claim === null || w.claim.state !== 'claimed' || w.claim.ownerId === 'USR-1',
     )
     expect(myWorkBacklogSize()).toBe(notHeldByOthers.length)
+  })
+})
+
+describe('AC-288 — a claim is the same claim on the next read', () => {
+  /** The first row of this queue nobody is holding. */
+  async function unclaimed(list: () => Promise<{ items: readonly unknown[] }>) {
+    const rows = (await list()).items as unknown as QueueRow[]
+    const row = rows.find((each) => each.claim === null || each.claim.state !== 'claimed')
+    expect(row, 'the fixtures must carry an unclaimed row').toBeDefined()
+    return row!
+  }
+
+  it.each(QUEUES)('$name keeps a claim across the list read that follows it', async ({ list, claim }) => {
+    const before = await unclaimed(list)
+    await claim(before.id)
+
+    const after = ((await list()).items as unknown as QueueRow[]).find((r) => r.id === before.id)
+    expect(after?.claim?.state, before.id).toBe('claimed')
+    expect(after?.claim?.ownerName, before.id).toBe('Sarah Al-Rashid')
+  })
+
+  it.each(QUEUES)('$name keeps a release across the list read that follows it', async ({ list, claim, release }) => {
+    const row = await unclaimed(list)
+    await claim(row.id)
+    await release(row.id)
+
+    const after = ((await list()).items as unknown as QueueRow[]).find((r) => r.id === row.id)
+    expect(after?.claim?.state, row.id).toBe('released')
+  })
+
+  it.each(QUEUES)('$name keeps a take-over across the list read that follows it', async ({ list, claim, heldByOther }) => {
+    await claim(heldByOther, { takeOver: true })
+
+    const after = ((await list()).items as unknown as QueueRow[]).find((r) => r.id === heldByOther)
+    expect(after?.claim?.ownerName, heldByOther).toBe('Sarah Al-Rashid')
+    expect(after?.claim?.takeovers.length, heldByOther).toBeGreaterThan(0)
   })
 })

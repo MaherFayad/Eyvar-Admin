@@ -240,7 +240,7 @@ export {
 } from './assurance'
 
 export type { WorkItem, WorkItemParam, WorkItemParams } from './work'
-export { WORK_QUEUE_ROUTE, WORK_ROUTING } from './work'
+export { WORK_QUEUE_ROUTE, WORK_REQUEST_ROUTE, WORK_ROUTING } from './work'
 
 /* ── wave 4: metric tiles and chart cards ────────────────────────────── */
 

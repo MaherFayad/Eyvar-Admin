@@ -72,7 +72,7 @@ import type {
   SubTabRoute,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatDate, type Direction, type Language, type Translate } from '@/lib'
+import { formatDate, type Direction, type Language, type Translate, type Translator } from '@/lib'
 import {
   BoardBand,
   BoardHeroItem,
@@ -176,7 +176,7 @@ interface ViewProps {
   tabs: readonly { id: string; label: string }[]
   activeTab: string
   onSelectTab: (id: string) => void
-  t: Translate
+  t: Translator
   dir: Direction
   language: Language
 }
@@ -702,7 +702,7 @@ const REASON_CODES: readonly FairnessReasonCode[] = [
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 export interface CaseDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   canWrite: boolean

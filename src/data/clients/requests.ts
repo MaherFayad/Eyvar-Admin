@@ -19,17 +19,22 @@ import type { RequestChannel, RequestStatus, RideRequest } from '../types/reques
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { onFixturesLoaded, type Fixtures } from '../mock/fixtures'
+import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
    import: a static one pins seeded data into every build, including the http
    build that can never read it. Bound before any mock read, because `mock()`
    and `mockMutation()` await `loadFixtures()`. */
+/* **A session COPY, not the fixture array.** A claim is written back here
+   (AC-288), and the fixture module is shared by every client and every test
+   file, so the seed is kept apart and `resetRequests` puts it back. */
+let requestSeed!: Fixtures['allRequestFixtures']
 let allRequestFixtures!: Fixtures['allRequestFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
 let OWNERSHIP_STALE_MINUTES!: Fixtures['OWNERSHIP_STALE_MINUTES']
 onFixturesLoaded((f) => {
-  allRequestFixtures = f.allRequestFixtures
+  requestSeed = f.allRequestFixtures
+  allRequestFixtures = [...f.allRequestFixtures]
   teamUserFixtures = f.teamUserFixtures
   OWNERSHIP_STALE_MINUTES = f.OWNERSHIP_STALE_MINUTES
 })
@@ -237,7 +242,10 @@ export async function claimRequest(
   return signalled('queue.item.claimed', mockMutation(REQUEST_OPERATIONS.claim, signal, () => {
     const row = allRequestFixtures.find((r) => r.id === id)
     if (!row) throw notFound('request', id)
-    return { ...row, claim: nextClaim('request', id, row.claim, opts.takeOver) }
+    return persistRow(allRequestFixtures, {
+      ...row,
+      claim: nextClaim('request', id, row.claim, opts.takeOver),
+    })
   }))
 }
 
@@ -253,10 +261,10 @@ export async function releaseRequest(id: string, signal?: AbortSignal): Promise<
     const row = allRequestFixtures.find((r) => r.id === id)
     if (!row) throw notFound('request', id)
     if (!row.claim) return row
-    return {
+    return persistRow(allRequestFixtures, {
       ...row,
       claim: { ...row.claim, state: 'released' as const, releasedAt: EYVAR_NOW, releaseReason: 'manual' as const },
-    }
+    })
   })
 }
 
@@ -433,9 +441,45 @@ export function nextClaim(
   }
 }
 
+/**
+ * **AC-288 — the write half of a claim.** Replaces `next` in the session array
+ * a client holds and hands it back, so the read that follows a claim, a release
+ * or a take-over reports the claim that was just made. Every queue client used
+ * to return the new row and drop it, which is why My Work repainted `Unclaimed`
+ * on the row an operator had just taken.
+ */
+export function persistRow<T extends { id: string }>(rows: T[], next: T): T {
+  const index = rows.findIndex((row) => row.id === next.id)
+  if (index !== -1) rows[index] = next
+  return next
+}
+
 /** A claim past the stale window is already free — legacy `whoHolds` (`:18866`), minus the write. */
 export function liveClaim(claim: Claim | null): Claim | null {
   if (!claim || claim.state !== 'claimed') return null
   const idleMinutes = (Date.parse(EYVAR_NOW) - Date.parse(claim.touchedAt)) / 60_000
   return idleMinutes > OWNERSHIP_STALE_MINUTES ? null : claim
+}
+
+/* ── AC-288 session state ──────────────────────────────────────────────── */
+
+/**
+ * Back to the seeded rows. Registered in `resetDataLayer`, for the reason
+ * `tickets.ts` gives: one file's claim would otherwise ride into the next
+ * file's count of open requests.
+ */
+export function resetRequests(): void {
+  if (!fixturesLoaded()) return
+  allRequestFixtures = [...requestSeed]
+}
+
+/**
+ * The session's rows, synchronously, for the cross-queue projection in
+ * `clients/myWork.ts`. Reads the same array a claim writes, so a claim made
+ * from My Work is the claim this queue reports.
+ *
+ * Mock only. In http mode My Work is one server query and this is never called.
+ */
+export function currentRequests(): readonly RideRequest[] {
+  return allRequestFixtures ?? []
 }

@@ -9,8 +9,10 @@
 import type { Dictionary } from '@/lib'
 
 export const MY_WORK_EN: Dictionary = {
-  'myWork.meta.one': '1 item',
-  'myWork.meta.other': '{count} items',
+  /* A plural family, chosen by `Intl.PluralRules` rather than by the screen.
+     `count === 1 ? … : …` has two branches and Arabic needs six. */
+  'myWork.meta#one': '1 item',
+  'myWork.meta#other': '{count} items',
   /* **X3 / O8 / X15** — the header line counts the BACKLOG, so it agrees with
      the rail badge and disagrees with the mounted view. That surprise is what
      this sentence answers, and it is asked for rather than read. */
@@ -24,35 +26,46 @@ export const MY_WORK_EN: Dictionary = {
      `Captain application — {name}` and print enum slugs; it now hands a key and
      its values, and every enum member resolves through the key the owning
      screen already ships (`fairness.kind.*`, `safety.type.*`, `people.class.*`,
-     `dispute.kind.*`). Nothing below concatenates (AC-75). */
+     `dispute.kind.*`). Nothing below concatenates (AC-75).
+
+     **Line one is the identity and nothing else** — the person, the trip, the
+     record's own id. The kind, the reason and the record's own prose are line
+     two. Line one used to lead with the kind and, on two queues, WAS the prose:
+     an incident summary and a ticket subject wanted 593px and 666px of a 208px
+     column, and a name-led row wanted 402px. An identity fits; a sentence never
+     will, at any width. */
   /** The source record's own words: a subject line, a case detail. Data, not copy. */
   'myWork.item.text': '{text}',
 
-  'myWork.item.application': 'Captain application · {name}',
-  'myWork.item.application.sub': '{vehicleClass} · {documents} awaiting verification',
-  'myWork.item.application.sub.clear': '{vehicleClass} · every document verified',
+  'myWork.item.application': '{name}',
+  'myWork.item.application.sub': 'Captain application · {vehicleClass} · {documents} awaiting verification',
+  'myWork.item.application.sub.clear': 'Captain application · {vehicleClass} · every document verified',
 
-  'myWork.item.request.instant': 'Ride request · {pickup} → {destination}',
-  'myWork.item.request.subscription': 'Subscription request · {rider}',
-  'myWork.item.request.sub': '{rider} · {vehicleClass}',
-  'myWork.item.request.sub.noCaptain': '{rider} · {vehicleClass} · no captain found',
+  'myWork.item.request.instant': '{pickup} → {destination}',
+  'myWork.item.request.subscription': '{rider}',
+  'myWork.item.request.instant.sub': 'Ride request · {rider} · {vehicleClass}',
+  'myWork.item.request.instant.sub.noCaptain': 'Ride request · {rider} · no captain found',
+  'myWork.item.request.subscription.sub': 'Subscription request · {vehicleClass}',
+  'myWork.item.request.subscription.sub.noCaptain':
+    'Subscription request · {vehicleClass} · no captain found',
 
-  'myWork.item.assurance.uncovered': 'Leg uncovered · {subscription}',
-  'myWork.item.assurance.unconfirmed': 'Unconfirmed leg · {captain}',
-  'myWork.item.assurance.unconfirmed.noCaptain': 'Unconfirmed leg · no captain assigned',
-  'myWork.item.assurance.sub': '{rider} · {plan}',
+  'myWork.item.assurance': '{subscription}',
+  'myWork.item.assurance.sub.uncovered': 'Leg uncovered · {rider} · {plan}',
+  'myWork.item.assurance.sub.unconfirmed': 'Unconfirmed leg · {rider} · {captain}',
+  'myWork.item.assurance.sub.unconfirmed.noCaptain':
+    'Unconfirmed leg · {rider} · no captain assigned',
 
-  'myWork.item.incident': '{type} · {summary}',
-  'myWork.item.incident.sub': 'Reported by {name}',
-  'myWork.item.incident.sub.noReporter': 'Raised automatically · no reporter',
+  'myWork.item.incident': '{type} · {id}',
 
-  'myWork.item.fairness': '{kind} · {captain}',
+  'myWork.item.fairness': '{captain}',
+  'myWork.item.fairness.sub': '{kind} · {text}',
 
-  'myWork.item.ticket.sub': '{entity} · {category}',
+  'myWork.item.ticket': '{id} · {entity}',
+  'myWork.item.ticket.sub': '{category} · {subject}',
 
-  'myWork.item.dispute': '{kind} · {claimant}',
-  'myWork.item.dispute.sub': 'Against {name}',
-  'myWork.item.dispute.sub.platform': 'Against Eyvar',
+  'myWork.item.dispute': '{claimant}',
+  'myWork.item.dispute.sub': '{kind} · against {name}',
+  'myWork.item.dispute.sub.platform': '{kind} · against Eyvar',
 
   'myWork.a11y.open': 'Open {title}',
   'myWork.action.open': 'Open',
@@ -111,7 +124,8 @@ export const MY_WORK_EN: Dictionary = {
     '{count} of the selected items are already claimed, or their queue is not connected yet.',
   'myWork.action.claim.blocked.all':
     'All {count} selected items are already claimed, or their queue is not connected yet.',
-  'myWork.toast.claimed.other': '{count} items claimed',
+  'myWork.toast.claimed#one': '1 item claimed',
+  'myWork.toast.claimed#other': '{count} items claimed',
 
   'myWork.claim.unavailable': 'Claim this from {queue}. It is not built yet.',
 

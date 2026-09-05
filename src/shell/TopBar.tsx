@@ -70,7 +70,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { formatCount } from '@/lib'
 import type { ThemeChoice } from '@/hooks'
-import type { Language, Translate } from '@/lib'
+import type { Language, Translator } from '@/lib'
 import type { Notification, Session } from '@/data/types'
 import { AccountMenu } from './AccountMenu'
 import { GlobalSearch } from './GlobalSearch'
@@ -79,7 +79,7 @@ import type { ShellState } from './ShellContext'
 
 export interface TopBarProps {
   shell: ShellState
-  t: Translate
+  t: Translator
   language: Language
   onOpenEntity: (entityId: string) => void
   onOpenNotifications: () => void
@@ -168,7 +168,7 @@ export function TopBar({
             variant="secondary"
             size="xs"
             asChild
-            aria-label={t('shell.topbar.mineA11y', { count: session?.claimedCount ?? 0 })}
+            aria-label={t.plural('shell.topbar.mineA11y', { count: session?.claimedCount ?? 0 })}
           >
             <Link to="/operations/my-work">
               {t('shell.topbar.mine')}

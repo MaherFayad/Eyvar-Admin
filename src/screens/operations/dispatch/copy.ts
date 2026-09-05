@@ -26,7 +26,11 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.intervention.stranded': 'Rider stranded · {trip}',
   'dispatch.intervention.sub': '{captain} · {rider} at {place}',
   'dispatch.intervention.sub.noCaptain': 'No captain · {rider} at {place}',
-  'dispatch.intervention.elapsed': '{minutes}m open',
+  /* A plural FAMILY (`./plural.ts`). English abbreviates the unit and so
+     never inflects; Arabic has six forms and `مفتوح منذ {minutes} دقيقة`
+     was wrong at every count but 11 and up. */
+  'dispatch.intervention.elapsed#one': '{minutes}m open',
+  'dispatch.intervention.elapsed#other': '{minutes}m open',
   /* §11.2 — one sentence per refusal the two writes can raise, keyed by the
      code `clients/dispatch.ts` sends. The server's own message names a user id
      and a timestamp; an operator needs to know what to do instead. */
@@ -34,10 +38,12 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.intervention.refusal.same_driver': 'That captain is already on this trip.',
   'dispatch.intervention.refusal.driver_unavailable': 'That captain is not on shift.',
   'dispatch.intervention.refusal.failed': 'Nothing changed. Try again.',
-  'dispatch.interventions.active': '{count} active',
+  'dispatch.interventions.active#one': '{count} active',
+  'dispatch.interventions.active#other': '{count} active',
   'dispatch.interventions.title': 'Live interventions',
   'dispatch.interventions.open': 'Open',
-  'dispatch.interventions.strip': '{count} interventions',
+  'dispatch.interventions.strip#one': '{count} intervention',
+  'dispatch.interventions.strip#other': '{count} interventions',
   'dispatch.map.a11y.desc': 'A map of Riyadh carrying {trips} trips in flight, {pending} requests waiting for a captain, and {captains} captains online.',
   /* T2.2 — the frame is declared (`geo.ts`) and deliberately tighter than the
      gazetteer, so a mark can fall outside it with no way back but the zoom.
@@ -50,7 +56,8 @@ export const DISPATCH_EN: Dictionary = {
   /* R8 — a row with no coordinate is counted, never dropped in silence. It is
      most often a captain registered in another city (`fixtures/drivers.ts`),
      which no re-framing of Riyadh can bring in. */
-  'dispatch.map.unplaced': '{count} rows have no place on file',
+  'dispatch.map.unplaced#one': '{count} row has no place on file',
+  'dispatch.map.unplaced#other': '{count} rows have no place on file',
   'dispatch.map.zoom.in': 'Zoom in',
   'dispatch.map.zoom.out': 'Zoom out',
   'dispatch.layers.captains': 'Captains',
@@ -67,9 +74,12 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.legend.note': 'Captain marks show the district a captain is registered in, not a live position.',
   'dispatch.feed.collapse': 'Collapse',
   'dispatch.feed.expand': 'Expand',
-  'dispatch.feed.scope.fleet': '{count} captains on shift',
-  'dispatch.feed.scope.pending': '{count} waiting for a captain',
-  'dispatch.feed.scope.trips': '{count} on the road',
+  'dispatch.feed.scope.fleet#one': '{count} captain on shift',
+  'dispatch.feed.scope.fleet#other': '{count} captains on shift',
+  'dispatch.feed.scope.pending#one': '{count} waiting for a captain',
+  'dispatch.feed.scope.pending#other': '{count} waiting for a captain',
+  'dispatch.feed.scope.trips#one': '{count} on the road',
+  'dispatch.feed.scope.trips#other': '{count} on the road',
   /* T1.3 — the board re-reads on the shell's clock and the meta says how old
      the figures are. It used to claim a live connection (X4). */
   'dispatch.meta': 'Updated {seconds}s ago',

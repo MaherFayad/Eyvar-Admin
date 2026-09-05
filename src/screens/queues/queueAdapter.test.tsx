@@ -11,21 +11,24 @@ import { MemoryRouter } from 'react-router-dom'
 import { disableMockLatency, getRouteTable, resetDataLayer } from '@/data/clients'
 import type { Claim, SubTabRoute } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
-import type { Translate } from '@/lib'
+import { createTranslator, type Translator } from '@/lib'
 import { useIndexTable } from '@/hooks'
 import type { DataColumn } from '@/components/DataTable'
 import { QUEUE_SHARED_EN } from './copy'
 import { Absent, Cell, Identity, SubjectIdentity } from './cells'
-import { DecisionBadge, OwnerChip, SlaCell, queueClock } from './queue'
+import { CLAIM_EXPIRY_MINUTES, DecisionBadge, OwnerChip, SlaCell, queueClock } from './queue'
 import { QueuePage, QueueTable, useQueueMeta, useQueueViews } from './QueuePage'
 
 /* The shared queue keys resolve from `QUEUE_SHARED_EN`, everything else from
    the shell dictionary — exactly as `withFallback` resolves them on a screen. */
-const t: Translate = (key, params = {}) =>
-  Object.entries(params).reduce(
-    (s, [k, v]) => s.replace(`{${k}}`, String(v)),
-    (QUEUE_SHARED_EN[key] ?? EN[key] ?? key) as string,
-  )
+const t: Translator = createTranslator({
+  dictionary: { ...EN, ...QUEUE_SHARED_EN },
+  fallback: EN,
+  language: 'en',
+  /* The screens throw on a missing key; a unit test naming one should read the
+     key rather than blow up inside a render. */
+  onMissingKey: (key) => key,
+})
 
 const NOW = '2026-06-25T09:00:00+03:00'
 
@@ -254,7 +257,9 @@ describe('§4.2 / AC-201 / AC-202 — Claim, Release and Take over are three sep
   })
 
   it('AC-207 — the 30-minute expiry is stated on the queue itself, in all three chip states', () => {
-    const expiry = t('queue.owner.expiry', { minutes: '30' })
+    /* A plural family since the count agreement fix: the form is the
+       selector's, and `CLAIM_EXPIRY_MINUTES` is what the chip passes. */
+    const expiry = t.plural('queue.owner.expiry', { minutes: CLAIM_EXPIRY_MINUTES })
     const { unmount } = renderChip()
     expect(screen.getByRole('button', { name: t('queue.claim') })).toHaveAttribute('title', expiry)
     unmount()

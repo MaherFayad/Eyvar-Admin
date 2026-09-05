@@ -12,4 +12,5 @@ scratch/
 __shot.mjs
 shot-page.png
 scripts/harness/shots/
+__pycache__/
 .tmp/

@@ -320,6 +320,11 @@ export const PEOPLE_AR: Dictionary = {
   'applicant.bankDetails': 'IBAN والتحقق البنكي',
   'applicant.bankName': 'البنك',
   'applicant.bankStatus': 'التحقق',
+  /* The same three words `profile.driver.bank.status.*` uses, so an operator
+     reading a captain and an applicant reads one vocabulary. */
+  'applicant.bank.status.verified': 'موثَّق',
+  'applicant.bank.status.pending': 'قيد التوثيق',
+  'applicant.bank.status.rejected': 'مرفوض',
   'applicant.cancelledTrips': 'الرحلات الملغاة',
   'applicant.city': 'مدينة التشغيل',
   'applicant.confirmReject': 'رفض الطلب',

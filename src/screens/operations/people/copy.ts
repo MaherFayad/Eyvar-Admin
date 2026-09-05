@@ -375,6 +375,13 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.bankDetails': 'IBAN and bank verification',
   'applicant.bankName': 'Bank',
   'applicant.bankStatus': 'Verification',
+  /* X2 — the three `BankAccountStatus` members. The rail printed the enum's own
+     English words, so the badge stayed Latin on an Arabic page. Keyed here and
+     not reused from `profile.driver.bank.status.*`: that family belongs to the
+     captain profile, and an applicant is not a captain yet. */
+  'applicant.bank.status.verified': 'Verified',
+  'applicant.bank.status.pending': 'Pending verification',
+  'applicant.bank.status.rejected': 'Rejected',
   'applicant.cancelledTrips': 'Cancelled trips',
   'applicant.city': 'Operating city',
   'applicant.confirmReject': 'Reject application',
