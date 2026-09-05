@@ -89,6 +89,7 @@ import {
   firstUnreviewed,
   verifiedCount,
 } from './documentReview'
+import { BANK_STATUS_KEY } from './domain'
 
 /** The applicant detail route (`fixtures/routeTable.ts`, `APPLICANT_DETAIL`). */
 const DETAIL_PATH = '/operations/people/applications'
@@ -260,7 +261,9 @@ export function ApplicationSheet({
                       <StatusBadge
                         tone={applicant.bank.status === 'Verified' ? 'success' : 'warning'}
                       >
-                        {applicant.bank.status}
+                        {/* X2 - the member is an English display string on the
+                            record, so it printed Latin on an Arabic page. */}
+                        {t(BANK_STATUS_KEY[applicant.bank.status])}
                       </StatusBadge>
                     }
                   />

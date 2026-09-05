@@ -82,7 +82,6 @@ import {
   type Applicant,
   type ApplicantDoc,
   type ApplicantDocRejectionCode,
-  type BankAccountStatus,
   type DocumentType,
 } from '@/data/types'
 import { useAsync } from '@/hooks'
@@ -110,6 +109,7 @@ import { useShell } from '@/shell/ShellContext'
 import { cn } from '@/lib/utils'
 import { withFallback } from '../localCopy'
 import { PEOPLE_EN } from './copy'
+import { BANK_STATUS_KEY } from './domain'
 import { DocumentScan } from './DocumentScan'
 import {
   DOC_STATUS_LABEL,
@@ -123,15 +123,6 @@ import {
 } from './documentReview'
 
 const QUEUE_PATH = '/operations/people?view=applications'
-
-/* X2 — `BankAccountStatus`'s members are English display strings on the record,
-   so the rail badge printed Latin on an Arabic page. Keyed by member, exhaustive
-   so a fourth member fails the build here rather than leaking to the operator. */
-const BANK_STATUS_KEY: Readonly<Record<BankAccountStatus, string>> = {
-  Verified: 'applicant.bank.status.verified',
-  'Pending verification': 'applicant.bank.status.pending',
-  Rejected: 'applicant.bank.status.rejected',
-}
 
 export function ApplicantDetailScreen() {
   const shell = useShell()

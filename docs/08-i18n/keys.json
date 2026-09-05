@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5831,
-    "en": 5481,
-    "ar": 5831,
+    "keys": 5834,
+    "en": 5484,
+    "ar": 5834,
     "arMissing": 0,
     "arExtra": 350,
     "copyFiles": 36,
@@ -124,7 +124,7 @@
       "exports": [
         "ASSURANCE_EN"
       ],
-      "keys": 114,
+      "keys": 115,
       "notInEN": 0
     },
     {
@@ -202,17 +202,17 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "exports": [
-        "ZONES_EN"
-      ],
-      "keys": 67,
-      "notInEN": 0
-    },
-    {
       "file": "src/screens/operations/my-work/copy.ts",
       "exports": [
         "MY_WORK_EN"
+      ],
+      "keys": 69,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/management/zones/copy.ts",
+      "exports": [
+        "ZONES_EN"
       ],
       "keys": 67,
       "notInEN": 0

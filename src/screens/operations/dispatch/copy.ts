@@ -115,7 +115,9 @@ export const DISPATCH_EN: Dictionary = {
   'dispatch.trip.status.en-route': 'En route',
   'dispatch.trip.status.in-trip': 'In trip',
   'dispatch.unassigned': 'Unassigned',
-  'sub.selectDriverPlaceholder': 'Choose an active captain',
+  /* The same key both captain pickers use, so it carries the same words in
+     both; `i18n-inventory --check` fails on a key with two English values. */
+  'sub.selectDriverPlaceholder': 'Choose a captain',
   'trip.pickup': 'Pickup',
   /* Screen-specific, NOT the generic `action.*` key: `action.saving` carries a
      different value in three other screen dictionaries and the last spread
