@@ -42,10 +42,11 @@ const buttonVariants = cva(
     "text-sm font-medium whitespace-nowrap select-none",
     "transition-colors outline-hidden",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    // §4.6 — disabled says "this will become available". It is never used to
-    // express a derived value (§8.2.1) and never to hide a missing permission:
-    // an action the role cannot use renders disabled IN PLACE (§11.2).
-    "disabled:pointer-events-none disabled:opacity-50",
+    // §4.6 / §11.2 — disabled renders IN PLACE, never hidden. It drops fill,
+    // border and shadow and keeps its label in --ev-text-2, so it stays legible
+    // in dark and the one live primary is the only full-weight control
+    // (CONTACT-CENTRE-REDESIGN-PLAN §3 item 5). Never opacity.
+    "disabled:pointer-events-none disabled:border-transparent disabled:bg-transparent disabled:text-muted-foreground disabled:shadow-none",
     "aria-invalid:border-destructive",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0",
     "[&_svg:not([class*='size-'])]:size-4",

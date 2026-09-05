@@ -31,7 +31,7 @@
  *              with no simulation. Legacy refuses at commit (`:21586`).
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getLiveRateCard,
@@ -69,6 +69,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { KEY_VALUE_CELL, KEY_VALUE_HEAD, KEY_VALUE_ROW, KeyValueTable } from '@/components/KeyValueGrid'
 import { MoneyCell } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
+import { RefusalLine } from '@/components/table/rowActions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -547,6 +548,7 @@ function RateCardCard({
   /* **AC-404 / AC-405** — both refusals are properties of the draft, read at
      render. A proposer cannot approve their own card, and a card nobody
      modelled cannot be approved at all. */
+  const approveReasonId = useId()
   const proposedByMe = approve !== undefined && card.proposedByUserId === approve.currentUserId
   const noSimulation = card.simulation === null
   const approveBlockedReason = !approve
@@ -666,16 +668,19 @@ function RateCardCard({
         </p>
 
         {approve && (
-          <div>
-            {/* **Stage B is BLOCKED (AC-403–406) and this control is disabled in
-                place with the reason on it.** It is not a stub: it commits
-                nothing and promises nothing, and the reason names the open
-                question rather than implying a permission problem. */}
-            <Button variant="secondary" size="xs" disabled title={approveBlockedReason ?? undefined}>
+          <div className="flex flex-col items-start gap-1">
+            {/* Stage B is BLOCKED (AC-403–406): disabled in place, the reason as
+                real text the control describes itself by (§11.2). */}
+            <Button
+              variant="secondary"
+              size="xs"
+              disabled
+              aria-describedby={approveBlockedReason === null ? undefined : approveReasonId}
+            >
               {t('fin.pricing.rateCard.approve')}
             </Button>
-            {approveBlockedReason && (
-              <p className="pt-1 text-xs text-muted-foreground">{approveBlockedReason}</p>
+            {approveBlockedReason !== null && (
+              <RefusalLine id={approveReasonId}>{approveBlockedReason}</RefusalLine>
             )}
           </div>
         )}
