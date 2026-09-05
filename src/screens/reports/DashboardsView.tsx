@@ -31,7 +31,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
-import { InfoHint, hintLines } from '@/components/InfoHint'
+import { hintLines } from '@/components/InfoHint'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { DashboardIcon } from '@/components/icons'
@@ -199,10 +199,13 @@ export function DashboardsView({
          down. Both states are on the record; neither is invented. */
       id: 'range',
       header: t('rb.dashboards.col.range'),
+      /* T9.14/X15 — what `Range` means, beside the label it qualifies. It sat
+         in the page header only because `DataColumn` had no slot for it. */
+      headerHint: hintLines([t('rb.dashboards.range.hint')]),
       width: 150,
       dataType: 'text',
       /* T9.14/X18 — two words, never a sentence: `Each report's own range`
-         wrapped every row. The explanation is the page header's `InfoHint`. */
+         wrapped every row. The explanation is the header's `InfoHint`. */
       cell: (row) => {
         if (row.range === null) {
           /* R8/rule 10 — an absence is stated in words, never left blank. */
@@ -319,10 +322,6 @@ export function DashboardsView({
         <PageHeader
           title={title}
           meta={null}
-          /* T9.14/X15 — what `Range` means, asked for rather than read. It
-             cannot hang off the column header: `DataColumn.header` is a
-             `string`, and the table layer is not this screen's to change. */
-          badges={<InfoHint t={t}>{hintLines([t('rb.dashboards.range.hint')])}</InfoHint>}
           primaryAction={{ label: t('rb.dashboards.new'), onClick: () => setCreating(true) }}
           t={t}
           dir={dir}

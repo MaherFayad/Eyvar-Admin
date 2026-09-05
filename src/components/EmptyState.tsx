@@ -58,9 +58,21 @@
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { InfoHint } from '@/components/InfoHint'
+import type { Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 
 export type EmptyKind = 'first-run' | 'no-match' | 'cleared'
+
+/**
+ * **X15 — the half-sentence the one-line body had to drop.**
+ *
+ * The body stays inside its 12-word budget and says what the operator must read
+ * to act; the clause that only explains sits behind the icon beside the title.
+ * `t` is required by the arm that admits a hint, so `hint` alone does not type
+ * check and cannot render a button with no accessible name.
+ */
+type HintSlot = { hint?: ReactNode; t: Translate } | { hint?: undefined; t?: undefined }
 
 export interface EmptyAction {
   label: string
@@ -154,10 +166,14 @@ interface ClearedProps {
   className?: string
 }
 
-export type EmptyStateProps = FirstRunProps | NoMatchProps | ClearedProps
+export type EmptyStateProps = (FirstRunProps | NoMatchProps | ClearedProps) & HintSlot
 
 export function EmptyState(props: EmptyStateProps) {
   const carded = props.card ?? true
+  /* X15 — one icon, whichever arm renders. Beside the title, never instead of
+     it: `InfoHint` returns `null` for a nullish child, so an arm with no hint
+     draws nothing at all rather than an empty tooltip. */
+  const hintIcon = props.t ? <InfoHint t={props.t}>{props.hint}</InfoHint> : null
 
   if (props.kind === 'cleared') {
     const { heading, body, className } = props
@@ -172,7 +188,10 @@ export function EmptyState(props: EmptyStateProps) {
           className,
         )}
       >
-        <p className="text-sm font-medium text-foreground">{heading}</p>
+        <p className="flex items-center gap-1 text-sm font-medium text-foreground">
+          {heading}
+          {hintIcon}
+        </p>
         <p className="max-w-96 text-sm text-muted-foreground">{body}</p>
       </div>
     )
@@ -187,7 +206,12 @@ export function EmptyState(props: EmptyStateProps) {
          GENUINELY exists — `Clear filters` when `table.isFiltered`, nothing
          otherwise. */
       <div className={cn('flex flex-col items-center gap-2 px-3 py-10 text-center', className)}>
-        <p className="text-sm text-muted-foreground">{message}</p>
+        {/* No heading on this arm (R8), so the icon sits beside the sentence
+            that stands in for one. */}
+        <p className="flex items-center gap-1 text-sm text-muted-foreground">
+          {message}
+          {hintIcon}
+        </p>
         {action && (
           <Button variant="ghost" size="default" onClick={action.onClick}>
             {action.label}
@@ -221,7 +245,10 @@ export function EmptyState(props: EmptyStateProps) {
             replaced. */}
         {illustration === null ? null : (illustration ?? <DefaultIllustration />)}
       </div>
-      <h3 className="text-base font-semibold text-foreground">{heading}</h3>
+      <h3 className="flex items-center gap-1 text-base font-semibold text-foreground">
+        {heading}
+        {hintIcon}
+      </h3>
       {/* Constrained to 384px so the sentence keeps a readable measure. 96
           spacing units = 384px, on the 4px grid — no arbitrary value. */}
       <p className="max-w-96 text-sm text-muted-foreground">{body}</p>

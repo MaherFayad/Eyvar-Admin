@@ -139,11 +139,16 @@ export const MY_WORK_EN: Dictionary = {
      offers to switch routing off **in place** (**AC-287**). Legacy shows this
      message even when routing is off, where it is simply false (`:19290`). */
   'myWork.empty.routed': 'Nothing is open in the queues routed to your role.',
+  /* X15 - the second sentence the one-line budget dropped. */
+  'myWork.routed.hint': 'Other queues may still have work.',
 
   'myWork.empty.firstRun.heading': 'Your work, across every queue',
   'myWork.empty.firstRun.body':
     'Anything you hold or nobody has picked up, sorted by deadline.',
   'myWork.empty.firstRun.action': 'Show every queue',
+  /* X15 - the scope and the sort order the shortened body dropped. */
+  'myWork.firstRun.hint':
+    'It spans every queue from Requests to Safety, ordered by deadline rather than by label.',
 
   'myWork.empty.noMatch': 'No item matches this search.',
 

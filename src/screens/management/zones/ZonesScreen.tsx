@@ -86,6 +86,7 @@ import {
   BreakdownList,
   Chapter,
   ChapterFigures,
+  ChartCard,
   chaptersOf,
   chapterSummary,
   MetricTile,
@@ -447,13 +448,11 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         width: 120,
         sortField: 'subMomentum',
         /* **`null` when no subscription request maps to this zone at all.** A
-           `0` would claim we measured flat growth. */
+           `0` would claim we measured flat growth, and O9 makes the
+           not-applicable cell blank rather than a mark. */
         cell: (zone) => (
-          <span
-            className="block text-end tabular-nums"
-            aria-label={zone.subMomentum === null ? ABSENT : undefined}
-          >
-            {zone.subMomentum === null ? ABSENT : formatPercent(zone.subMomentum, language)}
+          <span className="block text-end tabular-nums">
+            {zone.subMomentum === null ? '' : formatPercent(zone.subMomentum, language)}
           </span>
         ),
       },
@@ -743,9 +742,30 @@ function ZoneBoard({
         </Chapter>
       ))}
 
-      {/* L-6's computed answer, which the removed `Cities` card could not hold:
-          a city with no reading and a city reading zero stay different facts. */}
+      {/* **AC-651 — the board's charts, beside its ranked list.** The seeded
+          `management.zones.unservedRequests` series reached no surface: this
+          half rendered chapters and breakdowns and skipped `charts`, which is
+          the one panel every other board hoists. `find` by key gives each card
+          its headline and report link, exactly as `MetricBoardScreen` does.
+
+          L-6's computed answer follows it, which the removed `Cities` card
+          could not hold: a city with no reading and a city reading zero stay
+          different facts. */}
       <div className="grid gap-5 wide:grid-cols-2">
+        {loaded.charts.map((chart) => {
+          const owner = loaded.metrics.find((metric) => metric.key === chart.key) ?? null
+          return (
+            <ChartCard
+              key={chart.key}
+              series={chart}
+              headline={owner}
+              reportHref={owner?.drilldownRoute ?? null}
+              t={t}
+              language={language}
+            />
+          )
+        })}
+
         {loaded.breakdowns.map((breakdown) => (
           <BreakdownList
             key={breakdown.key}

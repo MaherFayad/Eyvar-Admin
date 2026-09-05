@@ -54,7 +54,7 @@
  * and a modal footer is neither.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Translate } from '@/lib'
 import { Button } from '@/components/ui/button'
 import {
@@ -132,31 +132,61 @@ export function ConfirmDialog({
     setTouched(false)
   }, [request?.title])
 
-  if (request === null) return null
+  /* The request that is on screen, which outlives `request` by one close: the
+     dialog has to keep its title and its buttons while Radix animates out and
+     hands focus back. */
+  const [shown, setShown] = useState<ConfirmRequest | null>(request)
+  useEffect(() => {
+    if (request !== null) setShown(request)
+  }, [request])
 
-  const reasonMissing = request.reason !== undefined && reason.trim() === ''
-  const choiceMissing = request.choice !== undefined && choice === ''
+  /* §7.2 — the control the operator opened this from, so `Escape` gives focus
+     back to it. A LAYOUT effect, because Radix moves focus into the content in
+     an ordinary one and would otherwise have taken it before this reads. */
+  const opener = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (request !== null) opener.current = document.activeElement as HTMLElement | null
+  }, [request])
+
+  if (shown === null) return null
+
+  const reasonMissing = shown.reason !== undefined && reason.trim() === ''
+  const choiceMissing = shown.choice !== undefined && choice === ''
   const invalid = reasonMissing || choiceMissing
-  const noOptions = request.choice !== undefined && request.choice.options.length === 0
+  const noOptions = shown.choice !== undefined && shown.choice.options.length === 0
 
   return (
-    /* Un-dismissable while the write is in flight: `Escape` and the scrim both
-       stop answering once `busy`, so a commit cannot be abandoned halfway by a
-       keystroke that used to mean "nothing happened". */
-    <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent size="sm">
+    /* **`open` is DRIVEN and the dialog is not unmounted** (§7.2). Returning
+       `null` on close meant Radix never ran its close-time focus restore, so
+       `Escape` dropped focus to `<body>` on five screens; it renders the last
+       request through the closing frame instead. Un-dismissable while the write
+       is in flight: `Escape` and the scrim both stop answering once `busy`. */
+    <Dialog open={request !== null} onOpenChange={(open) => !open && !busy && onClose()}>
+      <DialogContent
+        size="sm"
+        /* Radix restores focus to a TRIGGER, and this dialog has none: every
+           caller opens it from state. So the opener is restored by hand, and
+           only while it is still on the page. */
+        onCloseAutoFocus={(event) => {
+          const node = opener.current
+          opener.current = null
+          if (node === null || !node.isConnected) return
+          event.preventDefault()
+          node.focus()
+        }}
+      >
         <DialogHeader>
-          <DialogTitle>{request.title}</DialogTitle>
-          <DialogDescription>{request.body}</DialogDescription>
+          <DialogTitle>{shown.title}</DialogTitle>
+          <DialogDescription>{shown.body}</DialogDescription>
         </DialogHeader>
 
-        {request.choice && (
+        {shown.choice && (
           <div className="flex flex-col gap-1">
-            <Label htmlFor="confirm-choice">{request.choice.label}</Label>
+            <Label htmlFor="confirm-choice">{shown.choice.label}</Label>
             {noOptions ? (
               /* §11.6 — one grey sentence. An empty picker with a caret is a
                  control that looks operable and is not. */
-              <p className="text-sm text-muted-foreground">{request.choice.emptyMessage}</p>
+              <p className="text-sm text-muted-foreground">{shown.choice.emptyMessage}</p>
             ) : (
               <Select value={choice} onValueChange={setChoice}>
                 <SelectTrigger
@@ -165,10 +195,10 @@ export function ConfirmDialog({
                   aria-describedby="confirm-choice-help"
                   className="w-full"
                 >
-                  <SelectValue placeholder={request.choice.placeholder} />
+                  <SelectValue placeholder={shown.choice.placeholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  {request.choice.options.map((option) => (
+                  {shown.choice.options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.hint ? `${option.label} · ${option.hint}` : option.label}
                     </SelectItem>
@@ -178,15 +208,15 @@ export function ConfirmDialog({
             )}
             <p id="confirm-choice-help" className="text-xs text-muted-foreground">
               {touched && choiceMissing && !noOptions
-                ? request.choice.message
-                : request.choice.help}
+                ? shown.choice.message
+                : shown.choice.help}
             </p>
           </div>
         )}
 
-        {request.reason && (
+        {shown.reason && (
           <div className="flex flex-col gap-1">
-            <Label htmlFor="confirm-reason">{request.reason.label}</Label>
+            <Label htmlFor="confirm-reason">{shown.reason.label}</Label>
             {/* A `textarea`, not an `input`. Every reason here is a sentence
                 somebody outside this console reads — a captain reading why
                 their appeal was upheld, or why a strike stands — and a
@@ -201,7 +231,7 @@ export function ConfirmDialog({
               aria-describedby="confirm-reason-help"
             />
             <p id="confirm-reason-help" className="text-xs text-muted-foreground">
-              {touched && reasonMissing ? request.reason.message : request.reason.help}
+              {touched && reasonMissing ? shown.reason.message : shown.reason.help}
             </p>
           </div>
         )}
@@ -211,11 +241,11 @@ export function ConfirmDialog({
             {t('confirm.cancel')}
           </Button>
           <Button
-            variant={request.destructive === true ? 'destructive' : 'default'}
+            variant={shown.destructive === true ? 'destructive' : 'default'}
             disabled={invalid || busy}
-            onClick={() => request.onConfirm({ reason: reason.trim(), choice })}
+            onClick={() => shown.onConfirm({ reason: reason.trim(), choice })}
           >
-            {request.confirmLabel}
+            {shown.confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

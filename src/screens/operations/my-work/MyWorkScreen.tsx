@@ -507,6 +507,8 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
         firstRun={{
           heading: t('myWork.empty.firstRun.heading'),
           body: t('myWork.empty.firstRun.body'),
+          /* X15 - the scope sentence, asked for rather than read. */
+          hint: t('myWork.firstRun.hint'),
           actions: [
             {
               label: t('myWork.empty.firstRun.action'),
@@ -530,6 +532,7 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
           routed && table.filters.length === 1 && table.query.trim() === ''
             ? {
                 message: t('myWork.empty.routed'),
+                hint: t('myWork.routed.hint'),
                 action: {
                   label: t('myWork.routing.clear'),
                   onClick: () => table.removeFilter('routedToMyRole'),

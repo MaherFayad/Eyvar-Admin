@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5831** |
-| Reachable from `EN` (what the shell renders) | 5481 |
-| Keys in `AR` | 5831 |
+| **Translatable keys, all dictionaries** | **5834** |
+| Reachable from `EN` (what the shell renders) | 5484 |
+| Keys in `AR` | 5834 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
 | Plural forms (`key#category`) inside `EN` | 65 |
@@ -458,7 +458,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 164 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 118 |
-| `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 114 |
+| `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 115 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 110 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
 | `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
@@ -468,8 +468,8 @@ Measured on English only, and a placeholder counts as one word.
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 81 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
+| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 69 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
-| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 67 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |

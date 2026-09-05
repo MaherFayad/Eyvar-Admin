@@ -12,7 +12,7 @@
  *   check sees the colour, which is the one carrier §7.5 forbids relying on.
  *
  *   **The absent branch.** A delta with nothing to compare against renders the
- *   no-baseline sentence, not a bare number and not a silent gap. This is the
+ *   no-baseline sentence and no mark (O9), not a bare number. This is the
  *   branch a fixture with a comparison in it never exercises.
  *
  *   **Derivation.** The sentence is computed from the data, so moving the data
@@ -266,18 +266,13 @@ describe('the read sentence is derived, not authored', () => {
 /* ────────── the branch a card must not skip: no comparison at all ───────── */
 
 describe('with no comparison the card says so, rather than showing a bare number', () => {
-  it('renders the no-baseline sentence and an em dash, never 0%', () => {
+  it('renders the no-baseline sentence and no mark, never 0% (O9)', () => {
     renderCard(result('none', [seriesOf()]))
     expect(
       screen.getByText('No comparison period yet, so there is no trend to state.'),
     ).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
-  })
-
-  it('hides the em dash from a reader, because the sentence is what replaces it', () => {
-    renderCard(result('none', [seriesOf()]))
-    expect(screen.getByText('—').getAttribute('aria-hidden')).toBe('true')
   })
 
   it('still states the number — the headline is not withheld with the delta', () => {

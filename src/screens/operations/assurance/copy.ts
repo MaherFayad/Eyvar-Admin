@@ -182,6 +182,10 @@ export const ASSURANCE_EN: Dictionary = {
   'assurance.empty.firstRun.body':
     'Legs departing soon, plans with no backup, and commitments nobody confirmed.',
   'assurance.empty.firstRun.action': 'Show every leg',
+  /* X15 - the clause the 12-word body dropped. It explains the scope; it does
+     not change what the operator does next, so it is asked for. */
+  'assurance.firstRun.hint':
+    'Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue.',
 
   'assurance.empty.noMatch': 'No leg matches this search.',
   'assurance.empty.noMatch.absences': 'No absence matches this search.',

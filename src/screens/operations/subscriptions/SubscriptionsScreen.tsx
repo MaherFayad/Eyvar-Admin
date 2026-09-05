@@ -424,6 +424,10 @@ export function SubscriptionsScreen({ row }: { row: SubTabRoute }) {
         id: 'paidHalalas',
         emphasis: 'data',
         header: t('subs.col.paid'),
+        /* T5.1 - off by default and in the picker. A subscription's paid total
+           is a detail-surface figure; the 112px it spends is what `Rider` and
+           `Captain` need to stop clipping the name the row is about. */
+        defaultHidden: true,
         width: 112,
         align: 'end',
         dataType: 'money',

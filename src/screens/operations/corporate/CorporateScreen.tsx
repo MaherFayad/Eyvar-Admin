@@ -180,7 +180,11 @@ export function CorporateScreen({ row }: { row: SubTabRoute }) {
         },
         sortField: 'billingType',
         header: t('column.billing'),
-        width: 152,
+        /* T5.4 - the narrowest width that still fits `Monthly invoice`, which
+           `corporate.mjs` measures at 132 rather than the 128 the ruling
+           assumed; 128 clipped it on nine rows. The 20px it gives back goes to
+           `Company`, which was the column wrapping. */
+        width: 132,
         minWidth: 120,
         dataType: 'enum',
         cell: (c) => <span className="block truncate">{t(BILLING[c.billingType])}</span>,

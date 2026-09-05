@@ -518,12 +518,10 @@ describe('§7.2 — the keyboard reaches every action and Escape returns focus',
   })
 
   /**
-   * **DEFECT — focus is dropped to `<body>` when `ConfirmDialog` closes.** The
-   * trigger is still mounted and is the same node; `ConfirmDialog` renders
-   * `<Dialog open>` and is UNMOUNTED when the request goes `null`, so Radix
-   * never runs its close-time focus restore. Skipped until it is fixed (§7.2).
+   * §7.2 — the trigger is still mounted and is the same node, so Radix restores
+   * focus to it. It could not while `ConfirmDialog` unmounted itself on close.
    */
-  it.skip('Escape closes the disposition confirmation and returns focus to the control that opened it', async () => {
+  it('Escape closes the disposition confirmation and returns focus to the control that opened it', async () => {
     const user = userEvent.setup()
     const rows = await open('instant')
     const free = rows.find((row) => row.claim === null || row.claim.state !== 'claimed')!

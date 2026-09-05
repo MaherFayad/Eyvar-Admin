@@ -84,9 +84,12 @@ export const MY_WORK_AR: Dictionary = {
   'myWork.empty.cleared.unassigned': 'كل عنصر مفتوح في قوائم العمل يعمل عليه أحد.',
   'myWork.empty.cleared.everything': 'كل قوائم العمل خالية.',
   'myWork.empty.routed': 'لا يوجد عمل مفتوح في قوائم العمل الموجَّهة إلى دورك.',
+  'myWork.routed.hint': 'قد يكون في قوائم العمل الأخرى عمل مفتوح.',
   'myWork.empty.firstRun.heading': 'عملك في كل قوائم العمل',
   'myWork.empty.firstRun.body': 'كل ما تحمله أو لم يستلمه أحد، مرتَّبًا حسب الموعد النهائي.',
   'myWork.empty.firstRun.action': 'عرض كل قوائم العمل',
+  'myWork.firstRun.hint':
+    'يشمل كل قوائم العمل من الطلبات إلى السلامة، مرتَّبًا حسب الموعد النهائي لا حسب التصنيف.',
   'myWork.empty.noMatch': 'لا يوجد عنصر يطابق هذا البحث.',
   'myWork.banner.one': 'عنصر واحد تراه تجاوز موعده النهائي.',
   'myWork.banner.other': '{count} من العناصر التي تراها تجاوزت موعدها النهائي.',

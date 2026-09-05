@@ -125,7 +125,7 @@ export const DISPATCH_AR: Dictionary = {
   'dispatch.trip.status.en-route': 'في الطريق',
   'dispatch.trip.status.in-trip': 'قيد التنفيذ',
   'dispatch.unassigned': 'غير مُسنَد',
-  'sub.selectDriverPlaceholder': 'اختر كابتن نشطًا',
+  'sub.selectDriverPlaceholder': 'اختر كابتن',
   'trip.pickup': 'نقطة الالتقاء',
   'dispatch.action.assigning': 'جارٍ الإسناد…',
   'dispatch.selectCaptain': 'اختر كابتن متاحًا',

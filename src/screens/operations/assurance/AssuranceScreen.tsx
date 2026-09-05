@@ -515,6 +515,8 @@ function LegsView({
         firstRun={{
           heading: t('assurance.empty.firstRun.heading'),
           body: t('assurance.empty.firstRun.body'),
+          /* X15 - what the queue holds, asked for rather than read. */
+          hint: t('assurance.firstRun.hint'),
           /* The label says *Show every leg* and now there is a view that
              does; before `ALL_VIEW` it dropped the operator on the 24-hour
              scope instead. */
@@ -639,6 +641,8 @@ function AbsencesView({ row, tabs, activeTab, onSelectTab }: ViewProps) {
         firstRun={{
           heading: t('assurance.empty.firstRun.heading'),
           body: t('assurance.empty.firstRun.body'),
+          /* X15 - what the queue holds, asked for rather than read. */
+          hint: t('assurance.firstRun.hint'),
           /* The label says *Show every leg* and now there is a view that
              does; before `ALL_VIEW` it dropped the operator on the 24-hour
              scope instead. */

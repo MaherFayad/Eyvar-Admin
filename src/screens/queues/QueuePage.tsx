@@ -313,20 +313,26 @@ export interface QueueTableProps<T> {
    * is the prop `DataTable` grew for **F-3**; passing it is what makes
    * **AC-234** pass.
    */
-  cleared: { heading: string; body: string }
+  cleared: { heading: string; body: string; hint?: ReactNode }
   /**
    * §4.7 **E3** — reachable on exactly one of these five queues (Q-37). Every
    * other queue passes copy that will never render, because `emptyKind` is
    * `'cleared'` on all of them; the prop stays required so an empty state can
    * never be a TODO.
    */
-  firstRun: { heading: string; body: string; actions: { label: string; onClick: () => void }[] }
+  /** `hint` is X15's slot: `EmptyState` draws it beside the heading. */
+  firstRun: {
+    heading: string
+    body: string
+    actions: { label: string; onClick: () => void }[]
+    hint?: ReactNode
+  }
   /**
    * §4.7 **E3 vs E1**, decided by the CALL SITE (F-3). Only Safety passes
    * `'first-run'`, and only when its whole corpus is empty.
    */
   emptyKind?: 'cleared' | 'first-run'
-  noMatch: { message: string; action?: { label: string; onClick: () => void } }
+  noMatch: { message: string; action?: { label: string; onClick: () => void }; hint?: ReactNode }
   error: { message: string; onRetry: () => void }
 }
 

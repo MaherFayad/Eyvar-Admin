@@ -184,7 +184,6 @@ import { forwardIcon } from '@/components/icons'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
-  ABSENT,
   directionFor,
   formatDate,
   invariant,
@@ -608,7 +607,10 @@ export function OpenAnalysis({
       to={href}
       data-slot="open-analysis"
       className={cn(
-        'inline-flex w-fit items-center gap-1.5 rounded-lg text-xs font-medium outline-none transition-colors',
+        /* `relative` gives the `sr-only` span below a containing block: an
+           absolutely positioned descendant of the scrolled region otherwise
+           resolves against the ICB and stretches the document. */
+        'relative inline-flex w-fit items-center gap-1.5 rounded-lg text-xs font-medium outline-none transition-colors',
         'focus-visible:ring-2 focus-visible:ring-offset-2',
         onBand
           ? 'text-hero-muted hover:text-hero-foreground focus-visible:ring-hero-foreground focus-visible:ring-offset-hero'
@@ -668,17 +670,6 @@ function comparisonParts({
   const againstBox = isolatedRunProps({
     className: cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground'),
   })
-
-  /* §3.7's em dash, wherever a delta cannot be stated. A MARK, so it is hidden
-     from a reader in every branch and every branch puts words in its place. */
-  const dash = (
-    <span
-      aria-hidden="true"
-      className={cn('text-sm', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
-    >
-      {ABSENT}
-    </span>
-  )
 
   const reasonLine = (text: string) => (
     <span className={cn('text-xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}>
@@ -747,15 +738,12 @@ function comparisonParts({
    */
   if (comparison.kind === 'target' && deltaPercent === null) {
     return {
+      /* O9 — the magnitude of the miss is not statable, so the slot is blank
+         rather than a mark; the target is named on the note line below, and
+         V-8 is carried by the clause a reader hears. `relative` gives the
+         `sr-only` span a containing block inside the scrolled region. */
       delta: (
-        <span className="flex items-baseline gap-1.5">
-          {/* The magnitude of the miss is not statable; the target is, and it
-              is on the note line below. */}
-          {dash}
-          {/* **V-8, and it is the only branch that needed it.** `— vs 0 target`
-              hides its em dash from a reader and puts nothing in its place, so
-              the tile announced the target and said nothing at all about the
-              delta — an absence drawn and not announced. */}
+        <span className="relative flex items-baseline gap-1.5">
           <span className="sr-only">{t('overview.compare.targetNoDelta.sr')}</span>
         </span>
       ),
@@ -763,13 +751,13 @@ function comparisonParts({
     }
   }
 
-  /* §3.7 — an em dash, never `0%` and never blank, plus the reason in words.
-     The three reasons read very differently to an operator: one resolves itself
-     next month, one is a setting nobody has filled in, and one will not resolve
-     until the volume is there. `types/metrics.ts` names all three. */
+  /* O9 supersedes §3.7's mark: the slot is blank and the reason carries the
+     absence in words. The three reasons read very differently to an operator:
+     one resolves itself next month, one is a setting nobody has filled in, and
+     one will not resolve until the volume is there. */
   if (comparison.kind === 'none' || deltaPercent === null) {
     return {
-      delta: dash,
+      delta: null,
       note: reasonLine(
         t(`overview.noCompare.${comparison.kind === 'none' ? comparison.reason : 'no-history'}`),
       ),
@@ -851,10 +839,10 @@ function comparisonParts({
  * `--ev-red` measures 1.79 : 1 on `--ev-hero` — so the band has its own pair,
  * derived against that one ground and nothing else. See `--ev-hero-up`.
  *
- * ## `null` is an em dash and never `0%`
+ * ## `null` is blank and never `0%`
  *
- * AC-834. The dash is `aria-hidden`, because a mark is not a sentence: every
- * caller pairs it with words — the tile's reason line, the card's
+ * O9 supersedes AC-834's mark: an absent delta draws nothing, because every
+ * caller already pairs it with words — the tile's reason line, the card's
  * `overview.chart.read.noBaseline`. A caller that renders this with `null` and
  * says nothing beside it has a defect, not a delta.
  */
@@ -876,16 +864,7 @@ export function MetricDelta({
   t: Translate
   language: Language
 }) {
-  if (deltaPercent === null) {
-    return (
-      <span
-        aria-hidden="true"
-        className={cn('text-sm', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
-      >
-        {ABSENT}
-      </span>
-    )
-  }
+  if (deltaPercent === null) return null
 
   const Caret = deltaPercent > 0 ? DeltaUpIcon : deltaPercent < 0 ? DeltaDownIcon : null
 
@@ -922,7 +901,14 @@ export function MetricDelta({
           : 'text-critical-foreground'
 
   return (
-    <span className={cn('flex items-center gap-1 text-xs font-medium tabular-nums', valenceClass)}>
+    /* `relative` so the `sr-only` clause below has a containing block inside
+       the scrolled region and cannot stretch the document. */
+    <span
+      className={cn(
+        'relative flex items-center gap-1 text-xs font-medium tabular-nums',
+        valenceClass,
+      )}
+    >
       {Caret && <Caret aria-hidden="true" className="size-3" />}
       {/* Isolated for the same reason as the value. `+8.1%` renders `8.1%+`
           without it under `dir="rtl"`, its leading sign being bidi-neutral. */}

@@ -122,6 +122,8 @@ export const ASSURANCE_AR: Dictionary = {
   'assurance.empty.firstRun.heading': 'تصل رحلات اشتراك الغد هنا',
   'assurance.empty.firstRun.body': 'مراحل تغادر قريبًا، وباقات بلا كابتن بديل، والتزامات لم يؤكدها أحد.',
   'assurance.empty.firstRun.action': 'عرض كل المراحل',
+  'assurance.firstRun.hint':
+    'تظهر في هذا الطابور كل مرحلة تغادر قريبًا، وكل باقة بلا كابتن بديل، وكل التزام لم يؤكده أحد.',
   'assurance.empty.noMatch': 'لا توجد مرحلة تطابق هذا البحث.',
   'assurance.empty.noMatch.absences': 'لا يوجد غياب يطابق هذا البحث.',
   'assurance.banner.one': 'مرحلة واحدة تجاوزت موعدها النهائي.',
