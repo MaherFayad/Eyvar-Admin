@@ -1469,10 +1469,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     if (trimmed === '') return blocks.length === 0 ? 'empty' : 'content'
     if (results.status === 'loading') return 'loading'
     /* **A failed search with matching commands is not an empty palette.** The
-       `Do` section is local and still answers, so the error line renders above
-       it rather than instead of it — §11.2's "never a dead end", and the reason
-       `error` and `empty` were split apart in the first place. */
-    if (results.status === 'error') return doRows.length > 0 ? 'content' : 'error'
+       `Do` section is local and still answers, and the surface renders the
+       blocks whatever the status is — so `error` puts the failure line ABOVE
+       them rather than instead of them. Reporting `content` here hid the
+       failure entirely the moment any command matched (§11.2, AC-39). */
+    if (results.status === 'error') return 'error'
     return blocks.length === 0 ? 'empty' : 'content'
   })()
 
