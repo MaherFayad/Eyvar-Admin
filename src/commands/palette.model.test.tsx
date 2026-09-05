@@ -232,6 +232,45 @@ describe('AC-CP4 — typing queue shows the Queues group with waiting counts', (
   })
 })
 
+/* ══════════ F6 — every registry is discovered, not only the findable ══════ */
+
+describe('F6 — commands come from COMMAND_GROUPS, so a registry with no target source is reachable', () => {
+  const doGroup = () => screen.findByRole('region', { name: /^Do \(/ })
+
+  it.each([
+    ['arabic', 'session.action.arabic'],
+    ['dark', 'session.action.themeDark'],
+    ['sign out', 'session.action.signOut'],
+  ])('finds the global session command for "%s"', async (query, titleKey) => {
+    const user = userEvent.setup()
+    mount()
+    await user.type(field(), query)
+    expect(within(await doGroup()).getByText(en(titleKey))).toBeInTheDocument()
+  })
+
+  it('lists every session command under the > prefix, refused in place while the host is unwired', async () => {
+    const user = userEvent.setup()
+    mount()
+    await user.type(field(), '>')
+
+    const rows = within(await doGroup()).getAllByRole('button')
+    const titles = rows.map((row) => row.textContent ?? '')
+    for (const key of [
+      'session.action.arabic',
+      'session.action.english',
+      'session.action.themeLight',
+      'session.action.themeDark',
+      'session.action.themeSystem',
+      'session.action.signOut',
+    ]) {
+      expect(titles.some((title) => title.includes(en(key)))).toBe(true)
+    }
+    /* §11.2 — a host with no `setTheme` refuses in place with its sentence,
+       and never hides the row. */
+    expect(screen.getAllByText(en('session.action.theme.unwired')).length).toBe(3)
+  })
+})
+
 /* ═════════════════ AC-CP5 — Backspace, and what it takes off ════════════ */
 
 describe('AC-CP5 — Backspace on an empty query ascends', () => {

@@ -113,7 +113,7 @@ import {
   type CommandSession,
 } from './registry'
 import { readCommandSelection, type CommandSelection } from './selection'
-import { targetSourceFor, TARGET_LIMIT, TARGET_SOURCES, type TargetSource } from './targets'
+import { COMMAND_GROUPS, targetSourceFor, TARGET_LIMIT, type TargetSource } from './targets'
 
 /* ───────────────────────────── the row shape ───────────────────────────── */
 
@@ -377,7 +377,8 @@ function commandsFirst(query: string, commands: readonly ScoredCommand[]): boole
 
 interface ScoredCommand {
   command: Command
-  source: TargetSource
+  /** `null` where the registry's records have no `ProfileEntityType` — `COMMAND_GROUPS`. */
+  source: TargetSource | null
   score: number
   /** The first token's score on its own — what CQ-2's "leading verb" means. */
   leadingScore: number
@@ -907,8 +908,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     ): PaletteRow => {
       /* §11.2 — evaluated at RENDER against whatever the command would act on.
          With no pre-seed there is nothing to refuse yet, so the row is offered
-         and the target step does the refusing one level down, per record. */
-      const refusal = rows === null ? null : unavailableReason(command, context(rows))
+         and the target step does the refusing one level down, per record. An
+         `immediate` command has no target step to refuse in, so it is asked
+         now with the empty target list it will actually run against. */
+      const against = rows ?? (command.arity === 'immediate' ? [] : null)
+      const refusal = against === null ? null : unavailableReason(command, context(against))
 
       let narrow: PaletteRow['narrow'] = null
       const selectOnly = seed?.selectOnly
@@ -980,11 +984,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         rows.push(commandRow(command, seed.source, seedRecords, 'seeded'))
       }
     }
-    /* 2. Route commands. **None are declared today** — `scope.kind === 'route'`
-       arrives with `shell.ts` in P2-T7 — so this contributes nothing yet, and is
-       written now rather than remembered later. */
-    for (const source of TARGET_SOURCES) {
-      for (const command of paletteCommands(source.commands)) {
+    /* 2. Route commands, over `COMMAND_GROUPS` rather than `TARGET_SOURCES`:
+       a registry whose records have no `ProfileEntityType` has no target source
+       and was invisible under the old walk (`targets.ts` header). */
+    for (const group of COMMAND_GROUPS) {
+      for (const command of paletteCommands(group.commands)) {
         if (command.scope.kind !== 'route' || command.scope.subTabId !== subTabId) continue
         rows.push(commandRow(command, null, [], 'route'))
       }
@@ -1030,11 +1034,12 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const recentRows = useMemo<PaletteRow[]>(() => {
     const rows: PaletteRow[] = []
     for (const id of recentCommands) {
-      for (const source of TARGET_SOURCES) {
-        const command = source.commands.find((each) => each.id === id)
+      for (const group of COMMAND_GROUPS) {
+        const command = group.commands.find((each) => each.id === id)
         if (command === undefined || command.hiddenFromPalette !== undefined) continue
-        const seededFor = seed !== null && seed.source === source ? seedRecords : null
-        rows.push(commandRow(command, source, seededFor, 'recent', 'recent'))
+        const seededFor =
+          seed !== null && group.source !== null && seed.source === group.source ? seedRecords : null
+        rows.push(commandRow(command, group.source, seededFor, 'recent', 'recent'))
         break
       }
     }
@@ -1051,8 +1056,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     const tokens = trimmed === '' ? [] : trimmed.split(/\s+/)
     const leading = tokens[0] ?? ''
     const out: ScoredCommand[] = []
-    for (const source of TARGET_SOURCES) {
-      for (const command of paletteCommands(source.commands)) {
+    /* `COMMAND_GROUPS`, not `TARGET_SOURCES`: the six `session.*` commands and
+       every route registry live in a group with no target source, and walking
+       the sources made them unfindable (`targets.ts` header). */
+    for (const group of COMMAND_GROUPS) {
+      for (const command of paletteCommands(group.commands)) {
         const title = t(command.titleKey)
         const carry = carryFor(tokens, title, command.keywords)
         /* F3 — an argument is not a typo. `suspend nora` is scored on
@@ -1063,7 +1071,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         if (!listAll && score < MIN_MATCH_SCORE) continue
         out.push({
           command,
-          source,
+          source: group.source,
           /* F5 — frequency and recency weight the text score; they never
              replace it, and the cap keeps a habit from beating a better match. */
           score: score * learnedBoost(usage.get(command.id)),
