@@ -139,15 +139,47 @@ beforeEach(async () => {
 /* ══════════════ P3-T8 — populated before a key is pressed ══════════════ */
 
 describe('P3-T8 — the palette is populated before a key is pressed', () => {
-  it('offers live queue counts, each a one-key jump, with nothing typed', async () => {
+  it('AC-CP3 — offers context, not inventory: no Queues, at most ten rows in four groups', async () => {
     const user = userEvent.setup()
     mount()
     await openPalette(user)
 
+    await screen.findByRole('group', { name: en('command.block.goTo') })
+    /* F1 — the queues are inventory. Nobody asked for them, and they push the
+       blocks about what is in front of the operator below the fold. */
+    expect(screen.queryByRole('group', { name: en('command.block.queues') })).toBeNull()
+    const groups = screen.getAllByRole('group')
+    expect(groups.length).toBeLessThanOrEqual(4)
+    expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(10)
+  })
+
+  it('AC-CP4 — brings the queues back, with their counts, when they are asked for', async () => {
+    const user = userEvent.setup()
+    mount()
+    const input = await openPalette(user)
+    await user.type(input, 'queue')
+
     const queues = await screen.findByRole('group', { name: en('command.block.queues') })
+    const rows = within(queues).getAllByRole('option')
     /* §8.4 — the same counts the rail badges read. AC-26: a zero renders
        nothing at all, so every row here has a real backlog behind it. */
-    expect(within(queues).getAllByRole('option').length).toBeGreaterThan(0)
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows[0]?.textContent ?? '').toMatch(/\d/)
+  })
+
+  it('gives every row the glyph its kind names, now that the model fills kind', async () => {
+    const user = userEvent.setup()
+    const input = await (async () => {
+      mount()
+      return openPalette(user)
+    })()
+
+    const goTo = await screen.findByRole('group', { name: en('command.block.goTo') })
+    expect(within(goTo).getAllByRole('option')[0]?.querySelector('.lucide-compass')).not.toBeNull()
+
+    await user.type(input, 'queue')
+    const queues = await screen.findByRole('group', { name: en('command.block.queues') })
+    expect(within(queues).getAllByRole('option')[0]?.querySelector('.lucide-inbox')).not.toBeNull()
   })
 
   it('does not show a prompt where it now has something to offer', async () => {
@@ -155,7 +187,7 @@ describe('P3-T8 — the palette is populated before a key is pressed', () => {
     mount()
     await openPalette(user)
 
-    await screen.findByRole('group', { name: en('command.block.queues') })
+    await screen.findByRole('group', { name: en('command.block.goTo') })
     /* R8's first empty is for a surface with nothing to say. This one has
        four blocks' worth. */
     expect(screen.queryByText(en('shell.search.prompt'))).toBeNull()
@@ -175,14 +207,15 @@ describe('P3-T8 — the palette is populated before a key is pressed', () => {
   it('excludes the route the operator is already on', async () => {
     const user = userEvent.setup()
     mount()
-    await openPalette(user)
+    /* The queues are on demand now (AC-CP4), so they are asked for before the
+       exclusion can be read off them. */
+    const input = await openPalette(user)
+    await user.type(input, 'queue')
 
-    const queues = screen.queryByRole('group', { name: en('command.block.queues') })
-    if (queues !== null) {
-      /* A one-key jump to where you already are is a wasted row, and it is the
-         row an operator's eye lands on first. */
-      expect(within(queues).queryByText(en('subtab.operations.people'))).toBeNull()
-    }
+    const queues = await screen.findByRole('group', { name: en('command.block.queues') })
+    /* A one-key jump to where you already are is a wasted row, and it is the
+       row an operator's eye lands on first. */
+    expect(within(queues).queryByText(en('subtab.operations.people'))).toBeNull()
   })
 })
 
@@ -380,11 +413,12 @@ describe('P3-T5 and P3-T6 — root → target → confirm, one field', () => {
        descending cleared it. */
     await user.type(input, '{Backspace}')
     await waitFor(() => expect(screen.queryByText(en('command.target.heading'))).toBeNull())
-    /* Still open. Escape from the root is what closes. */
-    expect(screen.getByRole('group', { name: en('command.block.queues') })).toBeInTheDocument()
+    /* Still open. Escape from the root is what closes. Any rest-state group is
+       the proxy; `Go to` is the one that always has rows. */
+    expect(screen.getByRole('group', { name: en('command.block.goTo') })).toBeInTheDocument()
     await user.type(input, '{Escape}')
     await waitFor(() =>
-      expect(screen.queryByRole('group', { name: en('command.block.queues') })).toBeNull(),
+      expect(screen.queryByRole('group', { name: en('command.block.goTo') })).toBeNull(),
     )
   })
 
