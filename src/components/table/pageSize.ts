@@ -1,10 +1,7 @@
 /**
- * **`ui.pageSize`, wired** — D16 class 2, and `density.ts`'s store for its
- * reasons. Its schema doc names the missing half: *"which sizes are offered is
- * P1-T5's toolbar decision, not the schema's"*.
- *
- * Class 1 still beats class 2: the preference supplies the size only when the
- * caller names none.
+ * `ui.pageSize` (D16 class 2) supplies the fetch chunk under infinite scroll
+ * when a screen names no size. There is no operator control for it: tables
+ * scroll, they do not page, so a "rows per page" choice would act on nothing.
  */
 
 import { useSyncExternalStore } from 'react'
@@ -12,11 +9,7 @@ import { isUiPageSize } from '@/data/clients/preferences'
 import { DEFAULT_PAGE_SIZE } from '@/data/types/common'
 import { UI_STATE_KEYS, currentUiStateOwner, defaultUiStore } from '@/lib/persistence'
 
-/**
- * The sizes the control offers. 25 is `DEFAULT_PAGE_SIZE` and stays the default;
- * 50 and 100 are the two an operator working a backlog reaches for. Four
- * options is a menu, three is a choice.
- */
+/** The sizes the store accepts; 25 is `DEFAULT_PAGE_SIZE`. */
 export const TABLE_PAGE_SIZES: readonly number[] = [25, 50, 100] as const
 
 const listeners = new Set<() => void>()
