@@ -137,7 +137,7 @@ export function WelcomeDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
+        <DialogFooter className="flex-row items-center justify-between gap-2">
           <ol
             className="flex items-center gap-1.5"
             aria-label={t('onboarding.welcome.progress', { current: index + 1, total: SLIDE_IDS.length })}

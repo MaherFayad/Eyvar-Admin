@@ -153,7 +153,7 @@ export const COMMANDS_AR: Dictionary = {
   'request.assign.choice.message': 'اختر كابتنًا.',
   'request.assign.choice.placeholder': 'ابحث عن كابتن…',
   'request.assign.choice.empty': 'لا يوجد كابتن نشط الآن.',
-  'request.expire.title': 'إغلاق {id} دون كابتن؟',
+  'request.expire.title': 'إنهاء {id} دون إسناد؟',
   'request.expire.title.other': 'إغلاق {count} من الطلبات دون كابتن؟',
   'request.expire.body':
     'يُبلَّغ الراكب بعدم توفر كابتن ولا يُخصم شيء. لا يمكن إعادة فتح الطلب، وعليه أن يطلب من جديد.',
@@ -194,7 +194,7 @@ export const COMMANDS_AR: Dictionary = {
   'wallet.toast.pending': '{amount} لـ {rider} بانتظار معتمِد ثانٍ',
 
   'incident.action.claim': 'الاستجابة للبلاغ',
-  'incident.action.suspend': 'رفع الكابتن من الإرسال',
+  'incident.action.suspend': 'إيقاف عن الإرسال',
   'incident.bulk.suspend': 'رفع من الإرسال',
   'incident.action.close': 'إغلاق البلاغ',
   'incident.bulk.close': 'إغلاق',
@@ -230,7 +230,7 @@ export const COMMANDS_AR: Dictionary = {
 
   'cashReport.action.resolve': 'اعتماد تقرير النقد',
   'cashReport.bulk.resolve': 'اعتماد',
-  'cashReport.action.escalate': 'التصعيد إلى الثقة والسلامة',
+  'cashReport.action.escalate': 'تصعيد التقرير',
   'cashReport.bulk.escalate': 'تصعيد',
   'cashReport.action.noPermission': 'لا يمكنك البتّ في تقارير النقد. اطلب من المالك صلاحية “تسوية النقد”.',
   'cashReport.action.resolve.blocked.one': 'صدر قرار في هذا التقرير بالفعل.',
@@ -373,7 +373,7 @@ export const COMMANDS_AR: Dictionary = {
   'operator.revokeInvite.body':
     'تتوقف الدعوة المرسلة إلى {email} ويغادر الصف قائمة الفريق. ولا شيء في اللوحة يعيدها، بل يلزم توجيه دعوة جديدة.',
   'operator.revokeInvite.confirm': 'سحب الدعوة',
-  'operator.offboard.title': 'إزالة {name} من الفريق؟',
+  'operator.offboard.title': 'إزالة {name}؟',
   'operator.offboard.body':
     'يفقد الوصول، وتعود مهامه إلى قوائم العمل، ويُرفع من جدول المناوبة. ويحتفظ سجل التدقيق بكل ما قام به. لا يمكن التراجع عن هذا.',
   'operator.offboard.confirm': 'إزالة الزميل',
@@ -415,9 +415,9 @@ export const COMMANDS_AR: Dictionary = {
   'session.action.english': 'التحويل إلى الإنجليزية',
   'session.action.english.already': 'أنت تقرأ الإنجليزية بالفعل.',
   'session.action.language.unwired': 'لا تستطيع هذه اللوحة تغيير اللغة من هنا بعد.',
-  'session.action.themeLight': 'استخدام المظهر الفاتح',
-  'session.action.themeDark': 'استخدام المظهر الداكن',
-  'session.action.themeSystem': 'مطابقة مظهر النظام',
+  'session.action.themeLight': 'المظهر الفاتح',
+  'session.action.themeDark': 'المظهر الداكن',
+  'session.action.themeSystem': 'مظهر النظام',
   'session.action.theme.unwired': 'لا تستطيع هذه اللوحة تغيير المظهر من هنا بعد.',
   'session.action.signOut': 'تسجيل الخروج',
   'session.action.signOut.unwired': 'لا تستطيع هذه اللوحة تسجيل خروجك من هنا بعد.',

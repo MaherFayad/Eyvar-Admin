@@ -314,7 +314,7 @@ export const COMMANDS_EN: Dictionary = {
   'command.entity.plan.plural': 'plans',
 
   /* ── dispatch (requests.ts) ──────────────────────────────────────────── */
-  'request.action.claimNext': 'Claim the next request',
+  'request.action.claimNext': 'Claim next request',
   'request.bulk.claimNext': 'Claim next',
   'request.action.claim': 'Claim request',
   'request.action.assign': 'Assign a captain',
@@ -338,7 +338,7 @@ export const COMMANDS_EN: Dictionary = {
   'request.action.expire.blocked.other': '{count} of the selected requests are already closed.',
   'request.action.expire.blocked.all': 'All {count} selected requests are already closed.',
 
-  'request.assign.title': 'Assign a captain to {id}?',
+  'request.assign.title': 'Assign captain to {id}?',
   /* §5.7 rule 9 — what will NOT change, alongside what will. The subscription
      line names the capture because that is the one disposition where money
      moves (§5.1). */
@@ -353,7 +353,7 @@ export const COMMANDS_EN: Dictionary = {
   'request.assign.choice.placeholder': 'Search captains…',
   'request.assign.choice.empty': 'No captain is active right now.',
 
-  'request.expire.title': 'Close {id} with no captain?',
+  'request.expire.title': 'Expire {id} unassigned?',
   'request.expire.title.other': 'Close {count} requests with no captain?',
   'request.expire.body':
     'The rider is told no captain was found and nothing is charged. The request cannot be reopened; they would have to ask again.',
@@ -399,14 +399,14 @@ export const COMMANDS_EN: Dictionary = {
   'wallet.toast.goodwill': '{amount} goodwill credited to {rider}',
   /* AC-386 — above the second-approval threshold the posting waits. The toast
      says which of the two happened rather than claiming money moved. */
-  'wallet.toast.pending': '{amount} for {rider} is waiting for a second approver',
+  'wallet.toast.pending': '{amount} for {rider} awaits a second approver',
 
   /* ── safety incidents (safety.ts) ────────────────────────────────────── */
   'incident.action.claim': 'Respond to incident',
   /* Not `Suspend captain`: **CM-2** reserves that literal for
      `people.action.suspend`, and this is a different act with a different
      inverse — the captain stops receiving rides, their account is untouched. */
-  'incident.action.suspend': 'Take the captain off dispatch',
+  'incident.action.suspend': 'Pull from dispatch',
   'incident.bulk.suspend': 'Off dispatch',
   'incident.action.close': 'Close incident',
   'incident.bulk.close': 'Close',
@@ -456,7 +456,7 @@ export const COMMANDS_EN: Dictionary = {
   /* ── cash reports (cash.ts) ──────────────────────────────────────────── */
   'cashReport.action.resolve': 'Approve cash report',
   'cashReport.bulk.resolve': 'Approve',
-  'cashReport.action.escalate': 'Escalate to Trust & Safety',
+  'cashReport.action.escalate': 'Escalate report',
   'cashReport.bulk.escalate': 'Escalate',
   'cashReport.action.noPermission':
     'You cannot decide cash reports. Ask an Owner for the “Cash reconciliation” permission.',
@@ -639,7 +639,7 @@ export const COMMANDS_EN: Dictionary = {
   'operator.revokeInvite.body':
     'The invitation to {email} stops working and the row leaves the roster. Nothing in the console puts it back; they would have to be invited again.',
   'operator.revokeInvite.confirm': 'Revoke invitation',
-  'operator.offboard.title': 'Remove {name} from the team?',
+  'operator.offboard.title': 'Remove {name}?',
   'operator.offboard.body':
     'They lose access, their claims go back to the queues and they come off the on-call rota. The audit log keeps every act they took. This cannot be undone.',
   'operator.offboard.confirm': 'Remove colleague',
@@ -689,9 +689,9 @@ export const COMMANDS_EN: Dictionary = {
   'session.action.english': 'Switch to English',
   'session.action.english.already': 'You are already reading English.',
   'session.action.language.unwired': 'This console cannot change language from here yet.',
-  'session.action.themeLight': 'Use the light theme',
-  'session.action.themeDark': 'Use the dark theme',
-  'session.action.themeSystem': 'Match the system theme',
+  'session.action.themeLight': 'Light theme',
+  'session.action.themeDark': 'Dark theme',
+  'session.action.themeSystem': 'System theme',
   'session.action.theme.unwired': 'This console cannot change theme from here yet.',
   'session.action.signOut': 'Sign out',
   'session.action.signOut.unwired': 'This console cannot sign you out from here yet.',

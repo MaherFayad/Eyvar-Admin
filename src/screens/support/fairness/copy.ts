@@ -73,11 +73,11 @@ export const FAIRNESS_EN: Dictionary = {
   'fairness.action.overturn': 'Overturn',
   'fairness.action.overturn.help': 'Reverse the original decision',
 
-  'fairness.uphold.title': 'Uphold the decision against {name}?',
+  'fairness.uphold.title': 'Uphold penalty on {name}?',
   'fairness.uphold.body':
     'The original decision stands and your reason goes on the captain’s record. It cannot be changed from here.',
   'fairness.uphold.confirm': 'Uphold',
-  'fairness.overturn.title': 'Overturn the decision against {name}?',
+  'fairness.overturn.title': 'Overturn penalty on {name}?',
   'fairness.overturn.body':
     'The original decision is reversed and your reason goes on the captain’s record. It cannot be changed from here.',
   'fairness.overturn.confirm': 'Overturn',

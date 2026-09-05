@@ -1252,7 +1252,7 @@ describe('ride requests', () => {
       command(REQUEST_COMMANDS, 'request.assign'),
       context([openRequest], { host }),
     )
-    expect(asked[0]?.title).toBe(`Assign a captain to ${openRequest.id}?`)
+    expect(asked[0]?.title).toBe(`Assign captain to ${openRequest.id}?`)
     expect(asked[0]?.confirmLabel).toBe('Assign captain')
     expect((asked[0]?.choice?.options.length ?? 0), 'no captains offered').toBeGreaterThan(0)
     expect(result.kind).toBe('ran')

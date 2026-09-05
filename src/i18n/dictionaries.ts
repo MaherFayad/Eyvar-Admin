@@ -744,7 +744,7 @@ const shell: Dictionary = {
   'shell.saveBar.saving': 'Saving',
 
   /* §5 — global search. */
-  'shell.search.placeholder': 'Search',
+  'shell.search.placeholder': 'Type a command, a name or an ID',
   'shell.search.destinations': 'Destinations ({count})',
   'shell.search.records': 'Records ({count})',
   'shell.search.actions': 'Actions ({count})',

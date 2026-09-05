@@ -356,7 +356,7 @@ export const SHELL_AR: Dictionary = {
   'shell.saveBar.discard': 'تجاهل',
   'shell.saveBar.save': 'حفظ',
   'shell.saveBar.saving': 'جارٍ الحفظ',
-  'shell.search.placeholder': 'بحث',
+  'shell.search.placeholder': 'اكتب أمرًا أو اسمًا أو معرّفًا',
   'shell.search.destinations': 'الوجهات ({count})',
   'shell.search.records': 'السجلات ({count})',
   'shell.search.actions': 'الإجراءات ({count})',
