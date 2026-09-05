@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc -b --noEmit && node scripts/sortfield-check.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "api:contract": "python scripts/extract-api-contract.py",
@@ -16,7 +16,8 @@
     "i18n:check": "python scripts/i18n-inventory.py --check",
     "dev:pseudo": "vite --mode pseudo",
     "build:pseudo": "tsc -b && vite build --mode pseudo",
-    "test:changed": "node scripts/test-changed.mjs"
+    "test:changed": "node scripts/test-changed.mjs",
+    "check:sort": "node scripts/sortfield-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

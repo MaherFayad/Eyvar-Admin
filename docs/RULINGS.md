@@ -107,8 +107,8 @@ Text: [`design/05-command-centre.md`](05-restructure/design/05-command-centre.md
 | ID | Ruling in one line |
 |---|---|
 | R1 | Banners are soft tinted cards everywhere. |
-| R2 | Save uses the same primary as every other primary; under D7 that is `--ev-ink`. |
-| R3 | The primary action is `--ev-ink` near-black; links are `--ev-blue-dk` with an underline (rewritten by D7). |
+| R2 | Save uses the same primary as every other primary; under D7a that is `--ev-brand`. |
+| R3 | The primary action is `--ev-brand` green; links are `--ev-blue-dk` with an underline (rewritten by D7, recoloured by D7a). |
 | R4 | Numeric, currency and count columns right-align with tabular figures; this does not flip in Arabic. |
 | R5 | No red badge for lifecycle state; critical page-level state is a banner. |
 | R5a | The four permitted uses of red: a destructive button, one page-level banner, a breached-row edge marker, a map marker. |
@@ -141,6 +141,7 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D5 — The sub-tab column never collapses |
 | D6 — The navigation has its own background, one step darker than the canvas |
 | D7 — the **visual** language is the token layer: colour, spacing, radii, type, table style |
+| D7a — the primary action is brand green, not near-black; amends R2 and R3 by one colour name and no behaviour |
 | D8 — A row kebab is for *many* actions, never for one or two |
 | D9 — ⌘K is a command centre, not a search box |
 | D10 — Two rulings from the owner on chrome, applied immediately |
