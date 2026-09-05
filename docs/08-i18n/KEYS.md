@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5615** |
-| Reachable from `EN` (what the shell renders) | 5336 |
-| Keys in `AR` | 5615 |
+| **Translatable keys, all dictionaries** | **5709** |
+| Reachable from `EN` (what the shell renders) | 5430 |
+| Keys in `AR` | 5709 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -536,7 +536,7 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 785 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 564 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 335 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
@@ -557,8 +557,8 @@ Measured on English only, and a placeholder counts as one word.
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
+| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 81 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
-| `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
@@ -599,5 +599,8 @@ A value that is only punctuation, or that opens or closes on whitespace, is
 half a sentence something else completes -- **AC-75**. It reads correctly in
 English and puts the two halves on opposite sides of the run in Arabic.
 
-None.
+| File | Key | Value |
+|---|---|---|
+| `src/i18n/ar/financials.ts` | `metric.delta.points` | ` نقطة` |
+| `src/screens/financials/copy.ts` | `metric.delta.points` | ` pts` |
 

@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5615,
-    "en": 5336,
-    "ar": 5615,
+    "keys": 5709,
+    "en": 5430,
+    "ar": 5709,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 694,
+      "keys": 785,
       "notInEN": 0
     },
     {
@@ -186,19 +186,19 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/operations/requests/copy.ts",
+      "file": "src/screens/onboarding/copy.ts",
       "exports": [
-        "REQUESTS_EN"
+        "ONBOARDING_EN"
       ],
       "keys": 81,
       "notInEN": 0
     },
     {
-      "file": "src/screens/onboarding/copy.ts",
+      "file": "src/screens/operations/requests/copy.ts",
       "exports": [
-        "ONBOARDING_EN"
+        "REQUESTS_EN"
       ],
-      "keys": 78,
+      "keys": 81,
       "notInEN": 0
     },
     {
@@ -324,7 +324,18 @@
     }
   ],
   "defaultValueByFile": [],
-  "fragments": [],
+  "fragments": [
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "key": "metric.delta.points",
+      "value": " نقطة"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "metric.delta.points",
+      "value": " pts"
+    }
+  ],
   "emDash": [
     {
       "file": "src/i18n/ar/adminData.ts",
