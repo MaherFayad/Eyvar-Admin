@@ -154,13 +154,14 @@ export function Thread({
         </p>
       )}
 
-      {/* §4.3: centred 12px above the composer, elevation 2, polite. */}
+      {/* §4.3: centred 12px above the composer, polite. No elevation — owner
+          ruling: separation is the value step and the hairline, never a shadow. */}
       {!pinned && pendingCount > 0 && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
           <Button
             variant="secondary"
             size="xs"
-            className="pointer-events-auto shadow-2"
+            className="pointer-events-auto"
             aria-live="polite"
             aria-label={t('inbox.thread.new.label')}
             onClick={scrollToBottom}

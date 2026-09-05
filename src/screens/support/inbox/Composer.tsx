@@ -255,7 +255,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
                 ? t('inbox.composer.placeholder.note')
                 : t('inbox.composer.placeholder.reply', { name: customerName })
           }
-          className="min-h-16 max-h-48 resize-none rounded-none border-0 bg-transparent px-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:bg-transparent"
+          className="min-h-16 max-h-48 resize-none rounded-none border-0 bg-transparent px-3 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:bg-transparent"
           onChange={(event) => {
             setBody(event.target.value)
             if (channel !== 'chat' || note) return
