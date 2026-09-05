@@ -61,11 +61,12 @@ above the page. In light the page stays white and a card reads as a grey panel o
 the page keeps its value and a card sits below it. Both page values are pinned: `#ffffff` in
 light and `#14181e` in dark. Only the surfaces on them move.
 
-**D34 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
-drop shadow, an inset highlight or a glow. Separation is the value step plus a hairline,
-nothing else. A dark card therefore keeps a real hairline edge, because the inset highlight
-that used to draw it is gone. The modal scrim survives: a scrim is what makes a modal modal,
-and it is not a shadow. A focus ring survives: a ring is not a shadow.
+**D33a — a surface that COVERS the page is not a surface that sits ON it.** A modal sheet,
+dialog or the command palette replaces the page rather than resting on it, and its ground is
+the scrim, not the canvas. In light those stay white or near it: darkening the thing the
+operator was sent to look at, until it is duller than the page behind it, is backwards. In
+dark they still recess, because there a darker panel against a dark scrim reads as the
+focused object. Cards, containers and tables sit ON the page and recess in both themes.
 
 **D33b — the light recess is a whisper, and the ceilings are numbers.** A card is at most
 1.03:1 below the page; a tint inside a card at most 1.02:1 below the card; the badge plate
@@ -81,16 +82,15 @@ the covering tier the rest, which leaves `--ev-bg2` lighter than `--ev-surface`.
 a defect and must not be "fixed".** The alternative on offer was card 1.100 / tint 1.041 /
 overlay 1.072, and it was declined.
 
+**D34 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
+drop shadow, an inset highlight or a glow. Separation is the value step plus a hairline,
+nothing else. A dark card therefore keeps a real hairline edge, because the inset highlight
+that used to draw it is gone. The modal scrim survives: a scrim is what makes a modal modal,
+and it is not a shadow. A focus ring survives: a ring is not a shadow.
+
 AC-CC-01 keeps its magnitude and loses its direction: a dark card is that far *below* its
 ground, not above. The 1.25:1 figure is not reachable downward from a pinned page, so the
 criterion is met at 1.113:1, the largest step the theme can physically produce.
-
-**D33a — a surface that COVERS the page is not a surface that sits ON it.** A modal sheet,
-dialog or the command palette replaces the page rather than resting on it, and its ground is
-the scrim, not the canvas. In light those stay white or near it: darkening the thing the
-operator was sent to look at, until it is duller than the page behind it, is backwards. In
-dark they still recess, because there a darker panel against a dark scrim reads as the
-focused object. Cards, containers and tables sit ON the page and recess in both themes.
 
 ### Onboarding may welcome once and may float its progress (2026-09-05)
 
