@@ -77,10 +77,11 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
-  FilePlus2Icon,
   FilterIcon,
-  LibraryBigIcon,
-} from 'lucide-react'
+  LibraryIcon,
+  NewReportIcon,
+  forwardIcon,
+} from '@/components/icons'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -143,7 +144,6 @@ import {
   type TeamUser,
 } from '@/data/types'
 import { tileSpan } from '@/data/types/report'
-import { forwardIcon } from '@/components/icons'
 import { directionFor, formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { withFallback } from '../operations/localCopy'
@@ -1352,7 +1352,7 @@ function AddContentDialog({
                 className="h-auto w-full items-start justify-start gap-2 py-2 text-start"
                 onClick={() => setStep('existing')}
               >
-                <LibraryBigIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                <LibraryIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-medium">{t('rb.dashboard.addContent.existing')}</span>
                   <span className="text-xs font-normal text-wrap text-muted-foreground">
@@ -1368,7 +1368,7 @@ function AddContentDialog({
                 className="h-auto w-full items-start justify-start gap-2 py-2 text-start"
                 onClick={onNewReport}
               >
-                <FilePlus2Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                <NewReportIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-medium">{t('rb.dashboard.addContent.new')}</span>
                   <span className="text-xs font-normal text-wrap text-muted-foreground">

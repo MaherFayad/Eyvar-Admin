@@ -36,6 +36,7 @@ import {
   EllipsisIcon as RawEllipsis,
   FilePlus2Icon as RawFilePlus2,
   FileSpreadsheetIcon as RawFileSpreadsheet,
+  FilterIcon as RawFilter,
   FlagIcon as RawFlag,
   FileTextIcon as RawFileText,
   GitBranchIcon as RawGitBranch,
@@ -148,6 +149,9 @@ export const LinkIcon = icon(RawLink2, 'LinkIcon')
 export const ExpandIcon = icon(RawMaximize2, 'ExpandIcon')
 export const DragHandleIcon = icon(RawGripVertical, 'DragHandleIcon')
 export const SortNoneIcon = icon(RawChevronsUpDown, 'SortNoneIcon')
+/* Reorder, not sort: a tile moves up or down an ordered list (§11.2). */
+export const MoveUpIcon = icon(RawArrowUp, 'MoveUpIcon')
+export const MoveDownIcon = icon(RawArrowDown, 'MoveDownIcon')
 export const CsvIcon = icon(RawFileSpreadsheet, 'CsvIcon')
 export const ImageIcon = icon(RawImage, 'ImageIcon')
 export const NewReportIcon = icon(RawFilePlus2, 'NewReportIcon')
@@ -161,7 +165,10 @@ export const LineChartIcon = icon(RawLineChart, 'LineChartIcon')
 export const BarChartIcon = icon(RawBarChart3, 'BarChartIcon')
 export const PieChartIcon = icon(RawPieChart, 'PieChartIcon')
 export const TableChartIcon = icon(RawTable2, 'TableChartIcon')
-export const FunnelIcon = icon(RawGitBranch, 'FunnelIcon')
+/* Lucide's `Filter` IS the funnel outline; `ListFilter` is the toolbar action
+   above. A journey branches, so it keeps `GitBranch`. */
+export const FunnelIcon = icon(RawFilter, 'FunnelIcon')
+export const JourneyIcon = icon(RawGitBranch, 'JourneyIcon')
 export const RetentionIcon = icon(RawRepeat, 'RetentionIcon')
 export const DashboardIcon = icon(RawLayoutDashboard, 'DashboardIcon')
 export const AlertRuleIcon = icon(RawBell, 'AlertRuleIcon')

@@ -131,7 +131,7 @@ export function ReportLibrary({
       id: 'name',
       header: t('rb.library.col.name'),
       alwaysVisible: true,
-      minWidth: 220,
+      minWidth: 260,
       sortField: 'name',
       dataType: 'text',
       /* T9.13 — a glyph and a name, on one line. The kind is its own column
@@ -163,7 +163,7 @@ export function ReportLibrary({
       id: 'type',
       emphasis: 'data',
       header: t('rb.library.col.type'),
-      width: 110,
+      width: 90,
       dataType: 'enum',
       /* Derived from the saved query, and filtered on the same field, so the
          control and the client branch are one declaration. */
@@ -181,7 +181,7 @@ export function ReportLibrary({
     {
       id: 'owner',
       header: t('rb.library.col.owner'),
-      width: 150,
+      width: 140,
       dataType: 'text',
       /* The roster is the option list, so the filter offers names rather than
          ids. Empty while it loads, which §11.6 renders as one grey sentence. */
@@ -201,7 +201,7 @@ export function ReportLibrary({
       id: 'lastRun',
       emphasis: 'data',
       header: t('rb.library.col.lastRun'),
-      width: 140,
+      width: 130,
       sortField: 'lastRunAt',
       dataType: 'date',
       filter: { kind: 'date-range', field: 'lastRunAt' },
@@ -215,7 +215,7 @@ export function ReportLibrary({
     {
       id: 'visibility',
       header: t('rb.library.col.visibility'),
-      width: 110,
+      width: 100,
       /* H7 — a property, not a state. Six of seven rows carried the same fill,
          which is a badge nobody reads; muted text says the same thing (T9.13). */
       cell: (row) => (
@@ -227,7 +227,7 @@ export function ReportLibrary({
     {
       id: 'updated',
       header: t('rb.library.col.updated'),
-      width: 150,
+      width: 130,
       sortField: 'updatedAt',
       dataType: 'date',
       cell: (row) => <bdi>{formatDate(row.updatedAt, { style: 'day-month-time', language })}</bdi>,

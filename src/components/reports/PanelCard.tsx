@@ -227,12 +227,12 @@
 import { useRef, type ReactNode, type Ref } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  BarChart3Icon,
-  LayoutDashboardIcon,
+  BarChartIcon,
+  DashboardIcon,
   LineChartIcon,
-  MoreHorizontalIcon,
-  RefreshCwIcon,
-} from 'lucide-react'
+  MoreIcon,
+  RefreshIcon,
+} from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -692,7 +692,7 @@ export function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; 
               to={board.path}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <LayoutDashboardIcon aria-hidden="true" className="size-4 shrink-0" />
+              <DashboardIcon aria-hidden="true" className="size-4 shrink-0" />
               <span className="truncate">{t(board.titleKey)}</span>
             </Link>
           </li>
@@ -706,7 +706,7 @@ export function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; 
 
 /** One glyph per shape. Decorative twice over: the label names it, and the plot is the thing. */
 function ChartKindGlyph({ kind, t }: { kind: 'line' | 'bar'; t: Translator }) {
-  const Glyph = kind === 'bar' ? BarChart3Icon : LineChartIcon
+  const Glyph = kind === 'bar' ? BarChartIcon : LineChartIcon
   const label = t('rb.panel.chartKind', { chartType: t(`rb.chartType.${kind}`) })
   return (
     /* `title` on the SVG would be a tooltip only a mouse can reach. The label
@@ -743,12 +743,12 @@ function PanelActions({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button type="button" variant="ghost" size="icon-xs" aria-label={t('rb.panel.actions')}>
-          <MoreHorizontalIcon aria-hidden="true" className="size-4" />
+          <MoreIcon aria-hidden="true" className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => onRetrySeries(measureKey)}>
-          <RefreshCwIcon aria-hidden="true" className="size-4" />
+          <RefreshIcon aria-hidden="true" className="size-4" />
           {t('rb.panel.reload')}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -813,7 +813,7 @@ function BoardAction({
       data-slot="panel-action"
       className="flex items-center gap-1.5 rounded-md text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <LayoutDashboardIcon aria-hidden="true" className="size-4 shrink-0" />
+      <DashboardIcon aria-hidden="true" className="size-4 shrink-0" />
       <bdi>{t('rb.panel.action.open', { board: label })}</bdi>
     </Link>
   )

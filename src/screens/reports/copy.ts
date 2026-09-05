@@ -357,7 +357,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.funnel.tooManySteps':
     'A funnel reads up to {max} steps. This one has {steps}; remove some, or split it into two reports.',
   'rb.funnel.duplicateStep':
-    'Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own.',
+    'Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing. Change its measure, or give it a filter of its own.',
 
   'rb.cohort.needsAnchor': 'Choose the event that puts a person in a cohort and starts their clock.',
   'rb.cohort.anchorNotSubject':
@@ -484,7 +484,7 @@ export const REPORTS_EN: Dictionary = {
 
   /* §A11 — the table renders WITH the chart, not instead of it, so it needs a
      heading of its own. It names what the rows are, not what the control does. */
-  'rb.canvas.table.heading': 'The numbers behind this chart',
+  'rb.canvas.table.heading': 'Numbers behind this chart',
 
   /* ─────────── conditions the result states out loud, never silently ─────── */
 
@@ -508,7 +508,8 @@ export const REPORTS_EN: Dictionary = {
   /* ───────────────────────────── a panel ────────────────────────────────── */
 
   'rb.panel.measure': '{measure}',
-  'rb.panel.measureByGroup': '{measure} — {group}',
+  /* X14 — the product's own qualifier separator, never an em dash. */
+  'rb.panel.measureByGroup': '{measure} · {group}',
   /* The base, stated. A number whose base is only in its definition gets quoted
      without it, so the base sits on the panel and not in a tooltip. */
   'rb.panel.readings': '{readings} of {total} buckets have a reading.',
@@ -559,13 +560,13 @@ export const REPORTS_EN: Dictionary = {
   /* §P4 — the thing the click actually does, as a real anchor one row under the
      plot. An imperative, because it is an action; §A12's strip below it is a
      statement about the catalogue and is worded as one. */
-  'rb.panel.action.open': 'Open the {board} board',
+  'rb.panel.action.open': 'Open {board}',
 
   /* ── §A12 — the closing strip ──────────────────────────────────────────
      Amplitude's `Related Charts` is a similarity model. This is not: it is
      F-9's back-reference, naming the boards that display THIS measure over THIS
      population. The heading says exactly that and claims nothing more. */
-  'rb.related.heading': 'This measure also appears on',
+  'rb.related.heading': 'Also appears on',
 
   'rb.unit.count': 'whole numbers',
   'rb.unit.money': 'Saudi riyals',
@@ -630,7 +631,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.save': 'Save',
   'rb.saveAs': 'Save as new',
   'rb.save.title': 'Save this report',
-  'rb.saveAs.title': 'Save as a new report',
+  'rb.saveAs.title': 'Save a new report',
   /* The dialog's DESCRIPTION. It used to render `rb.save.visibility`, which is
      the visibility LEGEND — so the sentence under the title read "Who can see
      it", a label doing a description's job and saying nothing about what the
@@ -724,7 +725,7 @@ export const REPORTS_EN: Dictionary = {
      re-pick by name the report they had just left. */
   'rb.library.createAlert': 'Create alert',
   'rb.library.delete': 'Delete',
-  'rb.library.firstRun.heading': 'Ask the business a question',
+  'rb.library.firstRun.heading': 'Ask a question',
   'rb.library.firstRun.body':
     'Pick a measure and a range, then compare it with a second measure or with the period before. Save what you want to keep.',
   'rb.library.firstRun.action': 'New report',
@@ -739,7 +740,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.delete.cancel': 'Cancel',
   /* §11.3 — the refusal NAMES the dashboards, because `deleteReport` returns
      them. A generic refusal here would throw away data the client already has. */
-  'rb.delete.pinned.title': 'This report is on other dashboards',
+  'rb.delete.pinned.title': 'Pinned to other dashboards',
   'rb.delete.pinned.body': 'Deleting {name} removes it from each of these:',
   'rb.delete.pinned.confirm': 'Remove from those dashboards and delete',
   'rb.delete.failed': 'The report wasn’t deleted. Nothing was changed.',
@@ -756,7 +757,7 @@ export const REPORTS_EN: Dictionary = {
      unanswerable from the list. */
   'rb.dashboards.col.owner': 'Owner',
   'rb.dashboards.open': 'Open',
-  'rb.dashboards.firstRun.heading': 'Put the reports you read every morning in one place',
+  'rb.dashboards.firstRun.heading': 'Boards for daily reading',
   'rb.dashboards.firstRun.body':
     'A dashboard is an ordered list of saved reports. It shows each one’s current definition, so editing a report updates every dashboard that holds it.',
   'rb.dashboards.firstRun.action': 'New dashboard',
@@ -839,7 +840,7 @@ export const REPORTS_EN: Dictionary = {
      a step and not a dismissal — cancelling here would lose the choice as well
      as the step. */
   'rb.dashboard.addContent.back': 'Back',
-  'rb.dashboard.add.title': 'Add a report to this dashboard',
+  'rb.dashboard.add.title': 'Add a report',
   /* AC-867 stated where the decision is made: the tile points at the report,
      so editing the report changes every board that holds it. */
   'rb.dashboard.add.body':
@@ -859,8 +860,8 @@ export const REPORTS_EN: Dictionary = {
      template gallery. Naming them here would advertise features nobody has
      built, so the sentence names what is actually on the other side of the
      button. */
-  'rb.dashboard.empty.heading': 'This dashboard has no reports yet',
-  'rb.dashboard.empty.body': 'Add a saved report and it appears here, in the order you choose.',
+  'rb.dashboard.empty.heading': 'No reports pinned yet',
+  'rb.dashboard.empty.body': 'Add a saved report and it appears here.',
   'rb.dashboard.empty.action': 'Add content',
   /* §C4 — the description placeholder. The field is on the record and the
      rename dialog is where it is written, so this is a real control and not a
@@ -953,7 +954,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.tile.ownRange': 'Own range',
   'rb.dashboard.tile.ownRange.why':
     'The board range doesn’t work for this report, so it keeps the one it was saved with.',
-  'rb.dashboard.tile.filterRefused': 'Not filtered by {field} — this report can’t be.',
+  'rb.dashboard.tile.filterRefused': 'Not filtered by {field}. This report can’t be.',
 
   /* §C5 — the tile size, as a menu item rather than a drag. §11.2 rejected a
      drag grid on keyboard-operability grounds and that ruling has not moved. */
@@ -963,13 +964,12 @@ export const REPORTS_EN: Dictionary = {
   'rb.dashboard.tile.span.halfA11y': 'Make {name} half width',
   'rb.dashboard.tile.span.toast': 'Layout saved',
 
-  /* §E6/§E7 — the content list carries a preview. This one draws the board's
-     LAYOUT, not its numbers: tile count and each tile's width are on the
-     record, and running nine reports to paint a row of a table is not. */
   'rb.dashboards.col.range': 'Range',
-  /* The preview itself carries no text and is `aria-hidden`: the count it
-     draws is already a column, and a second reading of the same number is a
-     second thing that can disagree with the first. */
+  /* T9.14 — two words in a 150px column. `Each report's own range` wrapped on
+     every row; the sentence it lost is the header's `InfoHint` below. */
+  'rb.dashboards.range.perReport': 'Per report',
+  'rb.dashboards.range.hint':
+    'Range is the window a board imposes on every tile. Per report leaves each tile the one it was saved with.',
   'rb.dashboards.duplicate': 'Duplicate',
   'rb.dashboards.duplicate.name': '{name} (copy)',
   'rb.dashboards.duplicate.failed': '{name} wasn’t duplicated. Nothing was changed.',
@@ -987,7 +987,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.alerts.col.threshold': 'Threshold',
   'rb.alerts.col.lastValue': 'Last reading',
   'rb.alerts.col.lastEvaluated': 'Last checked',
-  'rb.alerts.firstRun.heading': 'Be told when a number crosses a line',
+  'rb.alerts.firstRun.heading': 'Alerts on crossed thresholds',
   'rb.alerts.firstRun.body':
     'An alert watches one series of one saved report and posts to the notification centre when it crosses your threshold.',
   'rb.alerts.firstRun.action': 'New alert',

@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5609,
-    "en": 5330,
-    "ar": 5609,
+    "keys": 5615,
+    "en": 5336,
+    "ar": 5615,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
-    "overBudget": 192
+    "emDashEn": 109,
+    "emDashAr": 112,
+    "overBudget": 180
   },
   "registered": [
     {
@@ -28,7 +28,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 564,
+      "keys": 570,
       "notInEN": 0
     },
     {
@@ -1485,42 +1485,6 @@
       "value": "An installed window drops the browser toolbar and gives back about 90px — roughly another table row."
     },
     {
-      "file": "src/i18n/ar/reports.ts",
-      "lang": "ar",
-      "key": "rb.funnel.duplicateStep",
-      "value": "الخطوة {position} تكرّر خطوة سابقة. وخطوتان متطابقتان تحوّلان بنسبة 100 %، وهو ما لا يقيس شيئًا — غيّر مقياسها، أو أعطها تصفية خاصة بها."
-    },
-    {
-      "file": "src/i18n/ar/reports.ts",
-      "lang": "ar",
-      "key": "rb.panel.measureByGroup",
-      "value": "{measure} — {group}"
-    },
-    {
-      "file": "src/i18n/ar/reports.ts",
-      "lang": "ar",
-      "key": "rb.dashboard.tile.filterRefused",
-      "value": "لم تُطبَّق تصفية {field} — لا يقبلها هذا التقرير."
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "lang": "en",
-      "key": "rb.funnel.duplicateStep",
-      "value": "Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own."
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "lang": "en",
-      "key": "rb.panel.measureByGroup",
-      "value": "{measure} — {group}"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "lang": "en",
-      "key": "rb.dashboard.tile.filterRefused",
-      "value": "Not filtered by {field} — this report can’t be."
-    },
-    {
       "file": "src/i18n/ar/requests.ts",
       "lang": "ar",
       "key": "requests.offered.withCaptain",
@@ -1699,14 +1663,6 @@
       "value": "Waiting on customer"
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.alerts.banner.body",
-      "class": "banner",
-      "words": 33,
-      "budget": 20,
-      "value": "No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value."
-    },
-    {
       "file": "src/screens/financials/copy.ts",
       "key": "fin.empty.firstRun.action",
       "class": "button",
@@ -1849,14 +1805,6 @@
       "words": 4,
       "budget": 3,
       "value": "Add the first code"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.panel.action.open",
-      "class": "button",
-      "words": 4,
-      "budget": 3,
-      "value": "Open the {board} board"
     },
     {
       "file": "src/screens/support/fairness/copy.ts",
@@ -2219,14 +2167,6 @@
       "value": "A top-up, a goodwill credit or a refund to the wallet opens one."
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.dashboard.empty.body",
-      "class": "empty body",
-      "words": 13,
-      "budget": 12,
-      "value": "Add a saved report and it appears here, in the order you choose."
-    },
-    {
       "file": "src/screens/operations/subscriptions/copy.ts",
       "key": "sub.changeDriver.empty",
       "class": "empty body",
@@ -2395,14 +2335,6 @@
       "value": "Document expiry, for the whole fleet"
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.dashboard.empty.heading",
-      "class": "empty title",
-      "words": 6,
-      "budget": 5,
-      "value": "This dashboard has no reports yet"
-    },
-    {
       "file": "src/screens/management/zones/copy.ts",
       "key": "zones.meta",
       "class": "meta",
@@ -2515,14 +2447,6 @@
       "value": "Read the role matrix, and decide if it still holds"
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.dashboards.firstRun.heading",
-      "class": "title",
-      "words": 10,
-      "budget": 4,
-      "value": "Put the reports you read every morning in one place"
-    },
-    {
       "file": "src/i18n/dictionaries.ts",
       "key": "state.saveInvalid.title",
       "class": "title",
@@ -2617,14 +2541,6 @@
       "words": 8,
       "budget": 4,
       "value": "Tell a stale feed from a dead one"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.alerts.firstRun.heading",
-      "class": "title",
-      "words": 8,
-      "budget": 4,
-      "value": "Be told when a number crosses a line"
     },
     {
       "file": "src/screens/auth/copy.ts",
@@ -2955,22 +2871,6 @@
       "value": "Decide this while {name} holds it?"
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.dashboard.add.title",
-      "class": "title",
-      "words": 6,
-      "budget": 4,
-      "value": "Add a report to this dashboard"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.delete.pinned.title",
-      "class": "title",
-      "words": 6,
-      "budget": 4,
-      "value": "This report is on other dashboards"
-    },
-    {
       "file": "src/screens/admin/workspace/copy.ts",
       "key": "admin.integrations.reveal.key.rotated.title",
       "class": "title",
@@ -3163,38 +3063,6 @@
       "value": "Take this over from {name}?"
     },
     {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.canvas.table.heading",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "The numbers behind this chart"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.library.firstRun.heading",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Ask the business a question"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.related.heading",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "This measure also appears on"
-    },
-    {
-      "file": "src/screens/reports/copy.ts",
-      "key": "rb.saveAs.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Save as a new report"
-    },
-    {
       "file": "src/screens/operations/requests/copy.ts",
       "key": "requests.assign.title",
       "class": "title",
@@ -3230,19 +3098,19 @@
   "overBudgetByClass": [
     [
       "title",
-      94
+      86
     ],
     [
       "empty body",
-      48
+      47
     ],
     [
       "empty title",
-      20
+      19
     ],
     [
       "button",
-      19
+      18
     ],
     [
       "meta",
@@ -3250,10 +3118,6 @@
     ],
     [
       "badge",
-      1
-    ],
-    [
-      "banner",
       1
     ]
   ]

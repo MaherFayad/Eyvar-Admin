@@ -86,12 +86,12 @@
 
 import { useId, useState } from 'react'
 import {
-  FilterIcon,
-  GitBranchIcon,
+  FunnelIcon,
+  JourneyIcon,
   LineChartIcon,
-  RepeatIcon,
-  Table2Icon,
-} from 'lucide-react'
+  RetentionIcon,
+  TableChartIcon,
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -285,26 +285,18 @@ export interface ModeFieldProps {
  * Each glyph is the closest honest match for **this product's** five, not for
  * Amplitude's:
  *
- * | Mode | Glyph | Why |
- * |---|---|---|
- * | `trend` | `LineChartIcon` | a number over a range is a line |
- * | `funnel` | `FilterIcon` | successive narrowing — lucide has no funnel |
- * | `table` | `Table2Icon` | the same numbers, listed |
- * | `cohort` | `RepeatIcon` | came back, and came back again |
- * | `journey` | `GitBranchIcon` | what people did next, as a branch |
- *
- * Every one is `aria-hidden`: **the label carries the name**, so the
- * accessible name of the funnel button is still `Funnel` and the `aria-pressed`
- * selection is still what is announced. None of them mirrors — a chart glyph is
- * an object, not a reading-order mark (§9.5).
+ * Every one is `aria-hidden` and comes from the registry (X17): **the label
+ * carries the name**, so the accessible name of the funnel button is still
+ * `Funnel` and the `aria-pressed` selection is still what is announced. None of
+ * them mirrors — a chart glyph is an object, not a reading-order mark (§9.5).
  */
 /** One glyph per mode. Decorative; the label beside it carries the name. */
 const MODE_ICONS: Record<ReportMode, typeof LineChartIcon> = {
   trend: LineChartIcon,
-  funnel: FilterIcon,
-  table: Table2Icon,
-  cohort: RepeatIcon,
-  journey: GitBranchIcon,
+  funnel: FunnelIcon,
+  table: TableChartIcon,
+  cohort: RetentionIcon,
+  journey: JourneyIcon,
 }
 
 export function ModeField({ query, onChange, t }: ModeFieldProps) {

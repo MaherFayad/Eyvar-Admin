@@ -18,6 +18,7 @@ Screenshots land in `scripts/harness/shots/` (git-ignored).
 | `amp-builder-ar-dark.mjs` | Arabic (via the account menu's Arabic radio) and dark (`colorScheme`) |
 | `amp-dash.mjs` | dashboard tiles, which reuse the same `ResultCanvas` at a third of the width |
 | `table-density.mjs` | row pitch, rows per 800px viewport, column widths and clipped identity cells, at 1280 and 1152. Takes a label: `node scripts/harness/table-density.mjs before` |
+| `reports-chrome.mjs` | T9.13/T9.14/T9.15: per row height, wrapped and clipped cells, em dashes and overflow on the three Reports list views, both languages, at 1280. Port 4343 |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here
 small; a harness nobody runs is scratch, and scratch is not committed.

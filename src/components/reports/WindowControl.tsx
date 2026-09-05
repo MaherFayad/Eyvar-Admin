@@ -67,7 +67,7 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { CalendarIcon, CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { CalendarIcon, CheckIcon, ChevronDownIcon } from '@/components/icons'
 import { forwardIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

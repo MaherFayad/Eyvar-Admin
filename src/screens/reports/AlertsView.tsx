@@ -125,6 +125,10 @@ export function AlertsView({
      nothing checks, that a test is allowed to read (§13.3 refuses a suspended
      one). Undefined means neither the banner nor the action has a subject. */
   const testable = rows.find((rule) => rule.cadence === null && rule.state !== 'suspended')
+  /* One condition, read twice: the banner renders on it and the `Checked`
+     column blanks on it, so the cell can never go silent with nothing above
+     it saying why (R10). */
+  const bannerShown = testable !== undefined
 
   /* `Test this rule`'s answer, per rule. Held on the screen rather than pushed
      into the row, because a test changes nothing about the rule and a result
@@ -192,15 +196,17 @@ export function AlertsView({
       csv: (row) => row.name,
       header: t('rb.alerts.col.name'),
       alwaysVisible: true,
-      minWidth: 240,
+      minWidth: 280,
       sortField: 'name',
       dataType: 'text',
       /* T9.15 — the name on one line. The rule sentence used to wrap to two
          and truncate mid-clause; it reads in full in the row's `title` and in
          the rule's own dialog, which is where an operator edits it. */
+      /* `block`, or `overflow-hidden` does not apply: an inline span does not
+         clip, and an Arabic rule name ran across the State column (§5.4). */
       cell: (row) => (
         <span
-          {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}
+          {...isolatedRunProps({ className: 'block min-w-0 truncate' }).box}
           title={alertSentence(row, t, language)}
         >
           <bdi {...isolatedRunProps().run}>{row.name}</bdi>
@@ -272,11 +278,16 @@ export function AlertsView({
     {
       id: 'cadence',
       header: t('rb.alerts.col.cadence'),
-      width: 120,
-      /* R10 — the banner above says nothing checks these rules, so the cell
-         does not repeat it once per row. O9: an absence the banner already
-         states is blank. */
-      cell: (row) => (row.cadence === null ? null : <span>{row.cadence}</span>),
+      width: 100,
+      /* R10 — WHILE THE BANNER SHOWS the cell does not repeat it once per row,
+         so it is blank (O9). With no banner nothing else states the absence,
+         and O9 gives it the muted word. */
+      cell: (row) =>
+        row.cadence !== null ? (
+          <span>{row.cadence}</span>
+        ) : bannerShown ? null : (
+          <span className="text-muted-foreground">{t('rb.alert.cadence.unset')}</span>
+        ),
     },
     {
       /* The line, beside the reading tested against it (§H). T9.15 deletes the
@@ -284,7 +295,7 @@ export function AlertsView({
       id: 'threshold',
       emphasis: 'data',
       header: t('rb.alerts.col.threshold'),
-      width: 150,
+      width: 130,
       align: 'end',
       dataType: 'number',
       csv: (row) => row.threshold,
@@ -297,7 +308,7 @@ export function AlertsView({
     {
       id: 'lastValue',
       header: t('rb.alerts.col.lastValue'),
-      width: 140,
+      width: 130,
       align: 'end',
       dataType: 'number',
       /* O9 — a rule nothing has read has no last reading, and that is not a
@@ -313,7 +324,7 @@ export function AlertsView({
       id: 'lastEvaluated',
       emphasis: 'data',
       header: t('rb.alerts.col.lastEvaluated'),
-      width: 160,
+      width: 140,
       dataType: 'date',
       /* **A word, not a placeholder.** `formatMetricValue(null, …)` rendered the
          no-data dash, which cannot tell *never checked* from *checked, and the
@@ -402,14 +413,13 @@ export function AlertsView({
             that answers it; the re-arm rule is an explanation, so it is an
             `InfoHint` on the title (X15). `info` and `role="status"`: a decision
             has not been made, which is true rather than wrong. */}
-        {testable !== undefined && (
+        {bannerShown && testable !== undefined && (
           <Banner
             role="status"
             banner={{
               id: 'management-reports-alerts-no-cadence',
               tone: 'info',
               title: t('rb.alerts.banner.title'),
-              body: t('rb.alerts.banner.body'),
               actions: [
                 {
                   label: t('rb.alerts.banner.action'),
@@ -418,7 +428,13 @@ export function AlertsView({
               ],
             }}
           >
-            <InfoHint t={t}>{hintLines([t('rb.alert.rearm.explain')])}</InfoHint>
+            {/* The sentence and its hint on ONE line: `body` would put the
+                glyph on a line of its own, and X15 puts it beside what it
+                explains. */}
+            <span className="inline-flex items-center gap-1">
+              {t('rb.alerts.banner.body')}
+              <InfoHint t={t}>{hintLines([t('rb.alert.rearm.explain')])}</InfoHint>
+            </span>
           </Banner>
         )}
 

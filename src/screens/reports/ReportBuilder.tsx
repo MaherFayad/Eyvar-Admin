@@ -160,14 +160,14 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   CopyIcon,
-  DownloadIcon,
-  FileSpreadsheetIcon,
+  CsvIcon,
+  DeleteIcon,
+  ExportIcon,
   ImageIcon,
-  Link2Icon,
-  MoreHorizontalIcon,
+  LinkIcon,
+  MoreIcon,
   SaveIcon,
-  Trash2Icon,
-} from 'lucide-react'
+} from '@/components/icons'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import {
@@ -984,7 +984,7 @@ export function ReportBuilder({
                 size="icon"
                 aria-label={t('shell.moreActions')}
               >
-                <MoreHorizontalIcon aria-hidden="true" className="size-4" />
+                <MoreIcon aria-hidden="true" className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -997,7 +997,7 @@ export function ReportBuilder({
                    they did not cause. Disabled IN PLACE (D9 CQ-3). */
                 disabled={plan.violations.length > 0}
               >
-                <Link2Icon aria-hidden="true" className="size-4" />
+                <LinkIcon aria-hidden="true" className="size-4" />
                 {t('rb.canvas.link.copy')}
               </DropdownMenuItem>
 
@@ -1015,12 +1015,12 @@ export function ReportBuilder({
               {/* §B4's `Export ▸`. Three formats, one of which exists. */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                  <DownloadIcon aria-hidden="true" className="size-4" />
+                  <ExportIcon aria-hidden="true" className="size-4" />
                   {t('rb.export.menu')}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onSelect={() => void exportCsv()} disabled={result === null}>
-                    <FileSpreadsheetIcon aria-hidden="true" className="size-4" />
+                    <CsvIcon aria-hidden="true" className="size-4" />
                     {t('rb.export')}
                   </DropdownMenuItem>
                   {/* **Blocked, and rendered anyway.** §11.2 gates at render and
@@ -1050,7 +1050,7 @@ export function ReportBuilder({
                    nothing left to delete on one already gone. */
                 disabled={report === null || deleted}
               >
-                <Trash2Icon aria-hidden="true" className="size-4" />
+                <DeleteIcon aria-hidden="true" className="size-4" />
                 {t('rb.library.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>

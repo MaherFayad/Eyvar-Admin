@@ -31,8 +31,10 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
+import { InfoHint, hintLines } from '@/components/InfoHint'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
+import { DashboardIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -58,8 +60,7 @@ import {
   saveDashboard,
 } from '@/data/clients'
 import { useNowIso } from '@/screens/queues'
-import { REPORT_NAME_MAX, type Dashboard, type DashboardTile, type TeamUser } from '@/data/types'
-import { tileSpan } from '@/data/types/report'
+import { REPORT_NAME_MAX, type Dashboard, type ReportPreset, type TeamUser } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { reportsViewTabs, type ReportsView } from './views'
 
@@ -71,6 +72,30 @@ export interface DashboardsViewProps {
   t: Translator
   language: Language
   dir: 'ltr' | 'rtl'
+}
+
+/**
+ * The four rolling windows already have a short label for the chart toolbar
+ * (`7 days`); the other five presets are two words already. T9.14 puts the
+ * short one in the column so `Range` reads at 150px without wrapping.
+ */
+const SHORT_PRESETS: ReadonlyArray<ReportPreset> = ['last-7d', 'last-30d', 'last-90d', 'last-365d']
+
+/**
+ * T5.10 — cut at the last space before the cap, never inside a word (`Nothing
+ * pinr`). The full sentence stays in the cell's `title`, so nothing is lost.
+ * 44 is under what the identity column fits at 1280 in both languages, so this
+ * cut lands before the CSS one, which clips mid-word and shows no ellipsis.
+ */
+const DESCRIPTION_CAP = 44
+
+function truncateOnWord(text: string, cap: number): string {
+  if (text.length <= cap) return text
+  const cut = text.slice(0, cap)
+  const space = cut.lastIndexOf(' ')
+  /* Trailing punctuation goes with the space: `review.…` reads as a typo. */
+  const kept = (space > 0 ? cut.slice(0, space) : cut).replace(/[\s.,;:،؛]+$/u, '')
+  return `${kept}…`
 }
 
 export function DashboardsView({
@@ -115,28 +140,29 @@ export function DashboardsView({
       minWidth: 300,
       sortField: 'name',
       dataType: 'text',
+      /* T9.14 — one dashboard glyph per row, from the registry (X17). The tile
+         grid it replaces encoded the `Reports` count a column away at 16px.
+         The glyph sits OUTSIDE the isolated run: a `<bdi>` takes its direction
+         from its first strong character, and a graphic inside one can push the
+         name to the wrong edge (AC-898). */
       cell: (row) => (
-        /* §E6/§E7 — Amplitude's content list leads with a thumbnail, and this
-           is that slot, filled with the one preview this product can produce
-           honestly. See `LayoutPreview`. Layout on the box, isolation on the
-           run (AC-898); the preview sits OUTSIDE the isolated run, because a
-           `<bdi>` resolves its direction from its first strong character and a
-           graphic inside one can push the name to the wrong edge. */
         <span className="flex min-w-0 items-center gap-2">
-          <LayoutPreview tiles={row.tiles} />
+          <DashboardIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
             <bdi {...isolatedRunProps().run}>{row.name}</bdi>
           </span>
         </span>
       ),
-      /* What the board is FOR, on the second line - the same treatment the
-         report library gives a saved report's description. `null` renders
-         nothing rather than a blank line, so an unwritten description costs the
-         row no height. */
+      /* What the board is FOR, on the second line. T5.10 cuts it on a word
+         boundary and keeps the whole sentence in the cell's `title`; `null`
+         renders nothing, so an unwritten description costs the row no height. */
       secondaryLine: (row) =>
         row.description === null ? null : (
-          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
-            <bdi {...isolatedRunProps().run}>{row.description}</bdi>
+          <span
+            {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}
+            title={row.description}
+          >
+            <bdi {...isolatedRunProps().run}>{truncateOnWord(row.description, DESCRIPTION_CAP)}</bdi>
           </span>
         ),
     },
@@ -173,14 +199,29 @@ export function DashboardsView({
          down. Both states are on the record; neither is invented. */
       id: 'range',
       header: t('rb.dashboards.col.range'),
-      width: 170,
+      width: 150,
       dataType: 'text',
+      /* T9.14/X18 — two words, never a sentence: `Each report's own range`
+         wrapped every row. The explanation is the page header's `InfoHint`. */
       cell: (row) => {
         if (row.range === null) {
           /* R8/rule 10 — an absence is stated in words, never left blank. */
-          return <span className="text-muted-foreground">{t('rb.dashboard.range.own')}</span>
+          return (
+            <span className="text-muted-foreground">{t('rb.dashboards.range.perReport')}</span>
+          )
         }
-        if (row.range.kind === 'preset') return <span>{t(`rb.preset.${row.range.preset}`)}</span>
+        if (row.range.kind === 'preset') {
+          const preset = row.range.preset
+          return (
+            <span>
+              {t(
+                SHORT_PRESETS.includes(preset)
+                  ? `rb.toolbar.range.${preset}`
+                  : `rb.preset.${preset}`,
+              )}
+            </span>
+          )
+        }
         const resolved = resolveWindow(row.range, today)
         /* `<bdi>` and `tabular-nums`: `13 Aug – 11 Sep` opens with a digit,
            which the UBA throws to the far end of an Arabic line. */
@@ -278,6 +319,10 @@ export function DashboardsView({
         <PageHeader
           title={title}
           meta={null}
+          /* T9.14/X15 — what `Range` means, asked for rather than read. It
+             cannot hang off the column header: `DataColumn.header` is a
+             `string`, and the table layer is not this screen's to change. */
+          badges={<InfoHint t={t}>{hintLines([t('rb.dashboards.range.hint')])}</InfoHint>}
           primaryAction={{ label: t('rb.dashboards.new'), onClick: () => setCreating(true) }}
           t={t}
           dir={dir}
@@ -356,107 +401,6 @@ export function DashboardsView({
         </AlertDialogContent>
       </AlertDialog>
     </SingleColumnPage>
-  )
-}
-
-/**
- * **§E6/§E7's thumbnail — the board's LAYOUT, never its numbers.**
- *
- * Amplitude's content list leads every row with a preview of the dashboard, and
- * a list of names with a count beside them is the thinnest surface in this
- * module. The obvious port is a miniature of the charts, and it is the one
- * thing this cannot be: painting it means running every report on every row of
- * every page — nine `reports.run` calls to draw one 40px graphic — and a
- * *stale* or *sampled* miniature is a picture of numbers that are not the
- * numbers, which is the defect this module refuses everywhere else.
- *
- * What is real, on the record, and free is **the arrangement**: how many tiles
- * the board holds and how wide each one is. That is what this draws — the same
- * hero-over-grid shape the board itself lays out, at 1/20 scale — so two boards
- * are told apart at a glance by their shape and by their size, and nothing on
- * screen claims to be data.
- *
- * `aria-hidden`, because the count it depicts is already the `Reports` column
- * and a second reading of one number is a second thing that can disagree with
- * the first. Every fill is a token. It does not mirror (§9.5): it is an object,
- * and there is no reading direction in a grid of rectangles.
- */
-function LayoutPreview({ tiles }: { tiles: readonly DashboardTile[] }) {
-  const CELL = 9
-  const GAP = 2
-  const COLUMNS = 2
-  /* Nine is what fits at this size; past it the shapes stop being
-     distinguishable and start being texture. The board's own order is the
-     order drawn, so the hero is where the hero is. */
-  const CAP = 9
-  const ordered = [...tiles].sort((a, b) => a.order - b.order).slice(0, CAP)
-
-  const boxes: Array<{ x: number; y: number; w: number }> = []
-  let column = 0
-  let rowIndex = 0
-  for (const tile of ordered) {
-    const full = tileSpan(tile) === 'full'
-    /* A full tile takes a whole row, so a half tile left dangling beside it
-       moves down — the same reflow CSS grid does with `col-span-2`. */
-    if (full && column === 1) {
-      column = 0
-      rowIndex += 1
-    }
-    boxes.push({
-      x: column * (CELL + GAP),
-      y: rowIndex * (CELL + GAP),
-      w: full ? COLUMNS * CELL + GAP : CELL,
-    })
-    if (full) {
-      column = 0
-      rowIndex += 1
-    } else if (column === COLUMNS - 1) {
-      column = 0
-      rowIndex += 1
-    } else {
-      column += 1
-    }
-  }
-
-  const width = COLUMNS * CELL + GAP
-  const rows = Math.max(1, column === 0 ? rowIndex : rowIndex + 1)
-  const height = rows * CELL + (rows - 1) * GAP
-
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      viewBox={`0 0 ${width} ${Math.max(height, CELL)}`}
-      className="size-7 shrink-0"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      {/* A board with no tiles is a valid record (AC-865) and it gets the frame
-          it will fill, not a blank cell: the empty outline says *a board,
-          empty* where nothing at all says *a bug*. */}
-      {boxes.length === 0 ? (
-        <rect
-          x="0.5"
-          y="0.5"
-          width={width - 1}
-          height={CELL - 1}
-          rx="1.5"
-          fill="none"
-          className="stroke-border"
-        />
-      ) : (
-        boxes.map((box, index) => (
-          <rect
-            key={index}
-            x={box.x}
-            y={box.y}
-            width={box.w}
-            height={CELL}
-            rx="1.5"
-            className="fill-muted-foreground"
-          />
-        ))
-      )}
-    </svg>
   )
 }
 

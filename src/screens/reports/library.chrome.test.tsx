@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
+import { EN as SHELL_EN } from '@/i18n/dictionaries'
 import {
   disableMockLatency,
   listReports,
@@ -140,8 +141,17 @@ describe('T9.13 — the library reads as Amplitude’s, not as prose', () => {
       .getAllByRole('columnheader')
       .find((cell) => cell.textContent?.includes(EN('rb.library.col.type')))!
 
-    await user.click(within(header).getByRole('button'))
-    await user.click(await screen.findByRole('menuitem', { name: EN(`rb.chartType.${kind}`) }))
+    /* The column's own filter: its menu, then `Filter…`, then the radio the
+       popover draws. AC-97 makes the menu close before the popover opens. */
+    await user.click(
+      within(header).getByRole('button', {
+        name: new RegExp(EN('rb.library.col.type')),
+      }),
+    )
+    await user.click(
+      await screen.findByRole('menuitem', { name: SHELL_EN['table.filter.open'] as string }),
+    )
+    await user.click(await screen.findByRole('radio', { name: EN(`rb.chartType.${kind}`) }))
 
     await waitFor(() =>
       expect(screen.getAllByRole('row').length - 1).toBe(wanted.length),

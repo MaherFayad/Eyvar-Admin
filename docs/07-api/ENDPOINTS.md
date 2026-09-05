@@ -385,7 +385,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| GET | `/api/v1/reports` | `Paginated<SavedReport>` | `q · view=mine\|team · page · pageSize` | - | `listReports()` |
+| GET | `/api/v1/reports` | `Paginated<SavedReport>` | `q · view=mine\|team · filters[chartType\|ownerId\|lastRunAt] · page · pageSize` | - | `listReports()` |
 | POST | `/api/v1/reports` | `Single<SavedReport>` | `{ name, description, query, visibility }` | - | `saveReport()` |
 | DELETE | `/api/v1/reports/:id` | `204, or 409 with the dashboards that pin it` | - | - | `deleteReport()` |
 | GET | `/api/v1/reports/:id` | `Single<SavedReport>` | - | - | `getReport()` |

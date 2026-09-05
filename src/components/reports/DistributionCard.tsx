@@ -157,7 +157,7 @@
  */
 
 import { Cell, Pie, PieChart, Bar, BarChart, XAxis, YAxis } from 'recharts'
-import { ChartPieIcon, BarChart3Icon } from 'lucide-react'
+import { PieChartIcon, BarChartIcon } from '@/components/icons'
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -253,9 +253,9 @@ export function DistributionCard({
         {/* §1.5 — the shape this is drawn in, in the card's own corner slot. */}
         <CardAction className="flex items-center text-muted-foreground">
           {kind === 'pie' ? (
-            <ChartPieIcon aria-hidden="true" className="size-4" />
+            <PieChartIcon aria-hidden="true" className="size-4" />
           ) : (
-            <BarChart3Icon aria-hidden="true" className="size-4" />
+            <BarChartIcon aria-hidden="true" className="size-4" />
           )}
           <span className="sr-only">
             {t('rb.panel.chartKind', { chartType: t(`rb.chartType.${kind}`) })}

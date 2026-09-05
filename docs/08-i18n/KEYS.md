@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5609** |
-| Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5609 |
+| **Translatable keys, all dictionaries** | **5615** |
+| Reachable from `EN` (what the shell renders) | 5336 |
+| Keys in `AR` | 5615 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values carrying an em dash (the ratchet)** | **109** |
+| **Arabic values carrying an em dash (the ratchet)** | **112** |
+| **English values over their word budget (the ratchet)** | **180** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **109** English and **112** Arabic, measured **109** and **112**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -61,7 +61,6 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/people.ts` | 2 |
 | ar | `src/i18n/ar/policy.ts` | 5 |
 | ar | `src/i18n/ar/pwa.ts` | 1 |
-| ar | `src/i18n/ar/reports.ts` | 3 |
 | ar | `src/i18n/ar/requests.ts` | 3 |
 | ar | `src/i18n/ar/safety.ts` | 2 |
 | ar | `src/i18n/ar/shell.ts` | 1 |
@@ -88,7 +87,6 @@ Both ceilings only ever fall.
 | en | `src/screens/operations/people/copy.ts` | 2 |
 | en | `src/screens/operations/requests/copy.ts` | 3 |
 | en | `src/screens/operations/subscriptions/copy.ts` | 3 |
-| en | `src/screens/reports/copy.ts` | 3 |
 | en | `src/screens/support/conversations/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
 | en | `src/screens/support/fairness/copy.ts` | 1 |
@@ -292,12 +290,6 @@ Both ceilings only ever fall.
 | en | `policy.audit.codeSaved` | Reason code {code} edited — {count} fields changed: {fields} |
 | ar | `pwa.install.body` | النافذة المثبَّتة تُخفي شريط أدوات المتصفح وتعيد نحو 90 بكسل — أي صفًّا إضافيًا في الجدول تقريبًا. |
 | en | `pwa.install.body` | An installed window drops the browser toolbar and gives back about 90px — roughly another table row. |
-| ar | `rb.funnel.duplicateStep` | الخطوة {position} تكرّر خطوة سابقة. وخطوتان متطابقتان تحوّلان بنسبة 100 %، وهو ما لا يقيس شيئًا — غيّر مقياسها، أو أعطها تصفية خاصة بها. |
-| ar | `rb.panel.measureByGroup` | {measure} — {group} |
-| ar | `rb.dashboard.tile.filterRefused` | لم تُطبَّق تصفية {field} — لا يقبلها هذا التقرير. |
-| en | `rb.funnel.duplicateStep` | Step {position} repeats an earlier step. Two identical steps convert at 100 %, which measures nothing — change its measure, or give it a filter of its own. |
-| en | `rb.panel.measureByGroup` | {measure} — {group} |
-| en | `rb.dashboard.tile.filterRefused` | Not filtered by {field} — this report can’t be. |
 | ar | `requests.offered.withCaptain` | معروض على {name} — بانتظار ردّه |
 | ar | `requests.offered.unnamed` | معروض على أحد الكباتن — بانتظار ردّه |
 | ar | `requests.offered.waiting` | — بانتظار ردّه |
@@ -331,27 +323,25 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **180**, measured **180**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 94 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
-| button | 3 | 19 |
+| title | 4 | 86 |
+| empty body | 12 | 47 |
+| empty title | 5 | 19 |
+| button | 3 | 18 |
 | meta | 6 | 9 |
 | badge | 2 | 1 |
-| banner | 20 | 1 |
 
 <details><summary>Every key over budget</summary>
 
 | Class | Words | Key | Value |
 |---|---:|---|---|
 | badge | 3 | `ticket.status.waiting` | Waiting on customer |
-| banner | 33 | `rb.alerts.banner.body` | No checking schedule has been set for this product. Every state below is the last one recorded and will not change on its own. Use Test this rule to read the current value. |
 | button | 5 | `fin.empty.firstRun.action` | Read the chart of accounts |
 | button | 4 | `auth.activate.tokenInvalid.action` | Go to sign in |
 | button | 4 | `auth.reset.tokenInvalid.action` | Request a new link |
@@ -370,7 +360,6 @@ Measured on English only, and a placeholder counts as one word.
 | button | 4 | `overview.empty.action` | Go to quick rides |
 | button | 4 | `policy.reasons.action.restore` | Put back in use |
 | button | 4 | `policy.reasons.empty.action` | Add the first code |
-| button | 4 | `rb.panel.action.open` | Open the {board} board |
 | empty body | 34 | `fairness.empty.firstRun.body` | A suspension appealed, a rating disputed, a rider reported. A high overturn rate here is not a failure — it means the appeal route is catching bad calls before they cost you a captain. |
 | empty body | 33 | `admin.integrations.key.empty.body` | An API key lets a billing job, a partner portal or a warehouse export read and write through the same permissions your operators have. Each key carries only the scopes you grant it. |
 | empty body | 31 | `admin.integrations.webhook.empty.body` | A webhook endpoint receives a signed payload the moment a trip completes, a subscription lapses or a payout settles — so a partner system does not have to poll for it. |
@@ -416,7 +405,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 13 | `fin.refused.empty.body` | A posting the ledger will not write is kept here with its reason. |
 | empty body | 13 | `fin.trial.empty.body` | Every account in the chart is listed the moment anything posts to it. |
 | empty body | 13 | `fin.wallet.empty.body` | A top-up, a goodwill credit or a refund to the wallet opens one. |
-| empty body | 13 | `rb.dashboard.empty.body` | Add a saved report and it appears here, in the order you choose. |
 | empty body | 13 | `sub.changeDriver.empty` | No other captain is active right now. Reassignment reopens when one comes online. |
 | empty body | 13 | `ticket.empty.body` | Inbound customer care tickets and the calls operators log against them arrive here. |
 | empty title | 10 | `admin.team.empty.heading` | Everyone who can sign in, and what each may do |
@@ -438,7 +426,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 6 | `fin.wallet.empty.heading` | No rider holds a wallet balance |
 | empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
 | empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
-| empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
 | meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
 | meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
 | meta | 10 | `adminData.meta` | Data exports, retention schedules and the integrity checks behind them |
@@ -453,7 +440,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 10 | `fin.pricing.stageA.title` | Prices are read-only until the rate card owner is decided. |
 | title | 10 | `integrity.check.ref.ledger-subject.title` | Ledger postings name a subject and an entry that exist |
 | title | 10 | `onboarding.step.owner.team.title` | Read the role matrix, and decide if it still holds |
-| title | 10 | `rb.dashboards.firstRun.heading` | Put the reports you read every morning in one place |
 | title | 10 | `state.saveInvalid.title` | To save this {entity}, {count} changes need to be made: |
 | title | 9 | `admin.integrations.reveal.warning.key.title` | This is the only time this key is shown |
 | title | 9 | `integrity.check.invariant.status-fields.title` | A status agrees with the fields that justify it |
@@ -466,7 +452,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 8 | `onboarding.step.finance.goodwill.title` | Find the cap that bounds a goodwill credit |
 | title | 8 | `onboarding.step.finance.ledger.title` | Read a ledger before you post to one |
 | title | 8 | `onboarding.step.ops.dispatch.title` | Tell a stale feed from a dead one |
-| title | 8 | `rb.alerts.firstRun.heading` | Be told when a number crosses a line |
 | title | 7 | `auth.otp.resent.title` | A new code is on its way |
 | title | 7 | `auth.reauth.blocked.title` | This account can no longer sign in |
 | title | 7 | `fin.cash.escalated.title` | One report is with Trust & Safety. |
@@ -508,8 +493,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 6 | `onboarding.step.support.goodwill.title` | Credit a rider, inside your cap |
 | title | 6 | `onboarding.step.support.ticket.title` | Answer one ticket end to end |
 | title | 6 | `queue.takeOver.decide.title` | Decide this while {name} holds it? |
-| title | 6 | `rb.dashboard.add.title` | Add a report to this dashboard |
-| title | 6 | `rb.delete.pinned.title` | This report is on other dashboards |
 | title | 5 | `admin.integrations.reveal.key.rotated.title` | Copy the new key now |
 | title | 5 | `admin.integrations.reveal.webhook.issued.title` | Copy this signing secret now |
 | title | 5 | `assurance.waive.title` | Waive this strike against {name}? |
@@ -534,10 +517,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `people.takeOver.title` | Take this application from {name}? |
 | title | 5 | `policy.sla.breach.title` | When a target is breached |
 | title | 5 | `queue.takeOver.title` | Take this over from {name}? |
-| title | 5 | `rb.canvas.table.heading` | The numbers behind this chart |
-| title | 5 | `rb.library.firstRun.heading` | Ask the business a question |
-| title | 5 | `rb.related.heading` | This measure also appears on |
-| title | 5 | `rb.saveAs.title` | Save as a new report |
 | title | 5 | `requests.assign.title` | Assign a captain to {id}? |
 | title | 5 | `requests.expire.title` | Close {id} with no captain? |
 | title | 5 | `rider.timeline.trip-no-show.title` | Trip recorded as a no-show |
@@ -550,7 +529,7 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 564 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
