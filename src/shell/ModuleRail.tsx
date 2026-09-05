@@ -270,16 +270,12 @@ function RailTile({
           `primary` because it wanted BLUE. The active state's carriers are the
           pill, weight 600 and `aria-current` (§7.5). */}
       <WorkspaceGlyph workspaceId={workspace.id} className="size-5" />
-      {/* `truncate` is a GUARD, not a mechanism. Every rail label is ≤ 7
-          characters, and 7 characters at 11px measure ~40px inside a 72px
-          content box, so it cannot fire — verified by measurement, not by eye.
-          It stays because a workspace label is still translatable free text and
-          an Arabic string is not bound by the English count.
-          `leading-3` (12px), not `leading-none`: that is the term that makes
-          the tile sum to 44 on the 4px grid (V1). */}
+      {/* 12px, the reading floor (AC-CC-03): only the count numerals sit under
+          it. `truncate` is a guard for a translated label, never expected to
+          fire. `leading-3` keeps the tile at 44 on the 4px grid (V1). */}
       <span
         className={cn(
-          'w-full truncate text-center text-2xs leading-3',
+          'w-full truncate text-center text-xs leading-3',
           active ? 'font-semibold' : 'font-medium',
         )}
       >
