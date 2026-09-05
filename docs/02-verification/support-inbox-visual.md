@@ -265,3 +265,50 @@ while unheld and zero while held; a clean token grep; and a fully mirrored Arabi
 After V-1 and V-2 are fixed, re-verify with the two harness probes suggested in §1 added to
 `support-inbox.mjs` (header rect intersection; `CNV-101` in the route list), and land V-3, V-5
 before Phase D. V-4 and V-9 are product-designer decisions.
+
+---
+
+## 6. Re-audit at `f11fd98` (3ea414a · 7b93cce · f11fd98)
+
+**Server:** `npx vite --port 4353` from the worktree (4351 was held by a vite from the
+`fin-quick` worktree, PID 37776, not mine). **Matrix:** `CNV-102`, `CNV-101`, `CNV-111`,
+`CNV-107` × {en, ar} × {1280×800, 390×844} × {light, dark} = **32 runs**, page and console
+errors **0**, `overflowX` **0**; plus a walk of `CNV-101`..`CNV-111` at 1280 en light for the
+kebab and the refusal sentences. Probe: `.pw-tmp/vqa-inbox-re.mjs`. The engineer's harness
+with its new probes (`headerCollisions`, `clockVisible`, `tabsOutside`, `smallProse > 0`,
+routes `CNV-101` and `CNV-111`) run against the same server: **30/30 ok**.
+
+### 6.1 The five findings
+
+| # | Was | Now | Evidence |
+|---|---|---|---|
+| V-1 | pill under the first action, 58×20 at 1280 | **Fixed.** Header button rects intersect no line-2 child rect, raw or painted, in all 32 runs; the clock (`[data-inbox-clock]`, 80–85px) is inside line 2 every time. Line 2 is 201px en / 179px ar at 1280 on `CNV-102`, 248 / 204 on `CNV-101`; at 390 the badge hides on `CNV-101`/`CNV-107` (134 / 126px) and the clock stays | `inbox/re-CNV-102-wide-{en,ar}-light.png`, `re-CNV-101-compact-{en,ar}-light.png`; probe `rawCollisions [] paintedCollisions [] clockInside true` |
+| V-2 | tabs 44–65px outside the list, verb clipped | **Overflow fixed**, `tabsOutside 0` in all 32; the verb, icon and `Internal note` are whole; `aria-label` carries the full `Reply to {name}`. **But see R-1**: the name now truncates on ordinary names too | `re-CNV-101-wide-{en,ar}-light.png`; probe `tabs[].outside 0` |
+| V-3 | `Insert template` 11px | **Fixed.** `TemplatePicker` `size="default"`: 14px, 32px high. Non-badge text under 12px in pane B: **0** in all 32 runs (en and ar) | probe `small []`; walk `toolbar` |
+| V-4 | `⋯` of two or one | **Fixed.** Walk `CNV-101`..`CNV-111`: `⋯` holds 4 (101, 103, 104, 107, 109, 110), 3 (102, 105, 108), or does not exist (106: `Reopen`[filled] · `Create ticket`; 111: `Transfer` · `Create ticket`). No `⋯` under three anywhere. Filled count unchanged: one unheld, zero held | `re-state-CNV-102-menu.png`, `re-state-CNV-106-en-light.png`, `re-state-CNV-111-en-light.png`; walk `menu` |
+| V-5 / D-1 | two refusal sentences under one refused composer | **Fixed.** `CNV-103`: one sentence (`Lina Al-Otaibi is handling this conversation.`). `CNV-111`: one (`Grab this conversation before replying.`). `CNV-106`: the closed sentence renders **once**, under the composer (`This conversation is closed. Reopen it to reply.`); the header's own line is a **different** reason for a different control (`This conversation is the thread of TKT-502.`, pointed at by the disabled `Create ticket` via `aria-describedby`), which §8.6.8 allows — one sentence per reason, not one per screen. The email-toggle sentence no longer appears while the composer is refused (`CNV-108`, live, still shows it, correctly) | walk `composerLines`, `headerReason`, `describedBy`; `re-state-CNV-103-en-light.png`, `re-state-CNV-106-en-light.png` |
+
+### 6.2 New findings from the fix round
+
+| # | Severity | Rule | What was observed | Evidence | Suggested fix |
+|---|---|---|---|---|---|
+| R-1 | **blocking** | AC-CC-11 carrier 1 (*full label*); design 12 §5.x as restated (*the name is its own span with `truncate`*, meant for long names) | **Ordinary names now truncate at 1280.** `nameTruncated true` in all 32 runs: `Reply to Nora Al-Ha…` (en, 199px tab), `الرد على …a Al-Harbi` (ar, 179px tab) on `CNV-102`, the harness's own fixture; `Khaled Al-Zahrani`, `Sara Al-Ghamdi` likewise. Cause: both triggers keep the primitive's `flex-1`, so the list splits 50/50 (199/199 en, 179/179 ar) although `Internal note` needs ~130px; the reply tab needs ~202px for a 13-character name. The new harness probe (`tabsOutside`) cannot see this | `inbox/re-CNV-102-wide-en-light.png`, `re-CNV-102-wide-ar-light.png`; probe `tabs[0].nameTruncated true`, `tabs[].w` | `Composer.tsx`: `Internal note` trigger `flex-none` (it already has `shrink-0`), so the reply tab takes the remainder (~268px en / ~235px ar) and only genuinely long names elide. Harness: assert the name span's `scrollWidth <= clientWidth` on `CNV-102` |
+| R-2 | should fix | §4.1 line 2; §5.7 (copy is read, not decoded); the restatement's own order *channel word truncates first* | The channel word truncates to **one letter and an ellipsis**: `م…` for `محادثة` at 1280 in Arabic on `CNV-102` (line 2 179px), `C…` for `Chat` at 390 on `CNV-101`/`CNV-107` (`channelClipped true` in 14 of 32 runs). `ThreadHeader.tsx` reserves `CHANNEL_MIN_PX = 24` for the word, which is one glyph plus the ellipsis. The channel glyph beside it already carries the channel | `re-CNV-102-wide-ar-light.png`, `re-CNV-101-compact-en-light.png`; probe `line2Facts.channelClipped` | Collapse the word (keep it `sr-only`) when it cannot show whole, before the badge hides; the glyph is the visible carrier. `CHANNEL_MIN_PX` becomes the glyph's 14px |
+| R-3 | should fix (decision) | D8-b, **D8-c** | §10 row 12 drops `Close conversation` from a snoozed header citing D8-c. D8-c's text (`DECISIONS.md:415`) licenses dropping *"the control that only navigates"*, a duplicate of the identity link; `Close` is not one. Under D8-b as written, snoozed = three declared actions → **one `⋯` of three with nothing visible**, which keeps every capability and needs no new ruling. The build's two-ghost header renders cleanly (identity 155px en / 159px ar, no collision), so this is not a visual defect; it is a capability removed on a ruling that does not cover it | `re-state-CNV-111-en-light.png`; probe `re-CNV-111-wide-{en,ar}-light` | product-designer: either the `⋯`-of-three form, or an owner decision that `Close` is withheld while snoozed, recorded in §10 row 12 with its real reason |
+| R-4 | note | no rule; design 12 §5 paired `ghost xs` with `Toggle sm` | The composer toolbar now seats a 32px / 14px `Insert template` beside a 24px / 12px `Reply by email` toggle. The 12px label is at the floor and 24px is a legal target, so nothing is violated; the row reads as two control sizes because V-3 moved one of the pair | walk `toolbar`: `Insert template 14px h32`, `Reply by email 12px h24`; `re-CNV-102-wide-en-light.png` | Suggestion for product-designer: `Toggle size="default"` (`--ev-control-h`, `text-sm`) so the toolbar has one control height, and §5's table says `default` for both |
+| R-5 | note | §10 row 13 | At 390 on `CNV-111` en the identity is **53px** (back · `Transfer` · `Create ticket` · `Details`, all labelled): the name reads `Sa…`. No collision, badge hidden, `Chat` whole. Tight, not broken; the two-ghost snoozed header is the widest case | probe `re-CNV-111-compact-en-light` → `line2 w 53` | Falls away with R-3 either way |
+
+### 6.3 The three restatements
+
+- **§10 row 11 — held, unbreached: `Transfer` alone visible, `Snooze until…` in `⋯`.** Reads right. `CNV-105` shows `Transfer · ⋯[Snooze until… · Create ticket · Close conversation]`: a `⋯` of three, D8-b satisfied, identity intact, nothing hidden that D8-b would show. The cost is one more click on Snooze, which D8-b accepts at three.
+- **§10 row 12 — snoozed drops `Close conversation` until wake.** Does **not** read right as cited: R-3. The alternative D8-b already gives (a `⋯` of three) was not weighed in the row.
+- **§10 row 13 — compact header has no avatar.** Reads right. On `CNV-101` at 390 the identity grows from 78px to 134px (en) / 126px (ar), above the clock's 80–85px, and the list row the operator just left carried the avatar. Every remaining header control is 44px.
+
+### 6.4 Verdict
+
+**Not merge-ready, on R-1 alone.** V-1 to V-5 are fixed and measured fixed in 32 runs plus the
+walk; the engineer's harness passes 30/30 with its new probes. R-1 is the fix round's own
+regression: the register tab elides a 13-character name at the design viewport in both
+languages, which is the first carrier of AC-CC-11 failing on the reference fixture. It is a
+one-class change (`flex-none` on the `Internal note` trigger) and a one-line harness assertion.
+R-2 should land with it; R-3 needs product-designer; R-4 and R-5 are notes.
