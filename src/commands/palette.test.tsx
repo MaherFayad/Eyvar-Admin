@@ -18,6 +18,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { CommandPalette, PaletteFooter } from '@/components/command/CommandPalette'
+import { Command } from '@/components/ui/command'
 import { Toaster } from '@/components/ui/sonner'
 import { disableMockLatency, listDrivers, mockFailures, resetDataLayer } from '@/data/clients'
 import type { Driver } from '@/data/types'
@@ -27,6 +29,7 @@ import { GlobalSearch } from '@/shell/GlobalSearch'
 import { ShellProvider } from '@/shell/ShellContext'
 import { resetCommandSelection, usePublishCommandSelection } from './selection'
 import { deriveRecentCommands, deriveResume } from './recents'
+import type { PaletteModel, PaletteRow } from './usePalette'
 
 const t = createTranslator({ dictionary: EN })
 const en = (key: string, params?: Record<string, string | number>) => t(key, params)
@@ -49,6 +52,8 @@ function Harness({ selection }: HarnessProps) {
       <button type="button" onClick={() => navigate('/support/tickets')}>
         go-elsewhere
       </button>
+      {/* A field on the page behind, so `/` can be asked to yield to one. */}
+      <input aria-label="a-field-on-the-page" />
       <Toaster />
     </>
   )
@@ -66,7 +71,6 @@ function mount(props: HarnessProps = {}, path = '/operations/people') {
 
 /** The top bar holds a TRIGGER; the query lives in the dialog's own input. */
 const trigger = () => screen.getByRole('button', { name: en('command.trigger.label') })
-const field = () => screen.getByRole('searchbox', { name: en('shell.topbar.search') })
 
 /**
  * The characters the operator typed are bolded inside the title, so the title's
@@ -419,5 +423,284 @@ describe('P3-T9 / D18 — the outcome toast carries a real inverse', () => {
     /* Twice failed: the console stops promising, and points at the record. */
     await screen.findByRole('button', { name: en('command.undo.openRecord') })
     expect(screen.queryByRole('button', { name: en('command.undo.retry') })).toBeNull()
+  })
+})
+
+/* ══════════ P1 — the centred surface, one test per criterion ═══════════ */
+
+/**
+ * A hand-built model, because `usePalette` does not populate `kind`,
+ * `shortcut` or `descends` yet — the model branch does. These criteria are
+ * about what the SURFACE draws when it is handed one, so they are driven
+ * through the surface directly rather than waiting on that branch.
+ */
+function paletteModel(partial: Partial<PaletteModel> = {}): PaletteModel {
+  return {
+    step: 'root',
+    chips: [],
+    query: '',
+    setQuery: () => {},
+    placeholder: en('shell.search.placeholder'),
+    busy: false,
+    blocks: [],
+    listStatus: 'content',
+    retry: () => {},
+    confirm: null,
+    handleKeyDown: () => false,
+    ...partial,
+  }
+}
+
+function paletteRow(partial: Partial<PaletteRow> & { key: string; title: string }): PaletteRow {
+  return {
+    subtitle: null,
+    refusal: null,
+    badge: null,
+    narrow: null,
+    onSelect: () => {},
+    ...partial,
+  }
+}
+
+function renderSurface(model: PaletteModel) {
+  return render(
+    <Command shouldFilter={false} loop label={en('command.palette.label')}>
+      <CommandPalette palette={model} t={t} escapeHatch={null} />
+      <PaletteFooter palette={model} t={t} language="en" />
+    </Command>,
+  )
+}
+
+describe('AC-CP1 — every door opens the palette with focus in its input', () => {
+  it('opens on Ctrl K', async () => {
+    const user = userEvent.setup()
+    mount()
+    await screen.findByRole('button', { name: en('command.trigger.label') })
+    await user.keyboard('{Control>}k{/Control}')
+    expect(await screen.findByRole('searchbox', { name: en('shell.topbar.search') })).toHaveFocus()
+  })
+
+  it('opens on the top-bar trigger', async () => {
+    const user = userEvent.setup()
+    mount()
+    expect(await openPalette(user)).toHaveFocus()
+  })
+
+  it('opens on "/" when focus is not in a typing target', async () => {
+    const user = userEvent.setup()
+    mount()
+    await screen.findByRole('button', { name: en('command.trigger.label') })
+    await user.keyboard('/')
+    expect(await screen.findByRole('searchbox', { name: en('shell.topbar.search') })).toHaveFocus()
+  })
+
+  it('leaves "/" alone inside a field, because a grammar of bare keys yields', async () => {
+    const user = userEvent.setup()
+    mount()
+    const onPage = await screen.findByRole('textbox', { name: 'a-field-on-the-page' })
+    await user.click(onPage)
+    await user.keyboard('/')
+
+    expect(screen.queryByRole('searchbox', { name: en('shell.topbar.search') })).toBeNull()
+    /* And the slash reached the field the operator was typing in. */
+    expect(onPage).toHaveValue('/')
+  })
+})
+
+describe('AC-CP10 — closing returns focus to the opener', () => {
+  it('puts focus back on the trigger after Escape', async () => {
+    const user = userEvent.setup()
+    mount()
+    const opener = trigger()
+    await openPalette(user)
+    await user.keyboard('{Escape}')
+
+    await waitFor(() =>
+      expect(screen.queryByRole('searchbox', { name: en('shell.topbar.search') })).toBeNull(),
+    )
+    await waitFor(() => expect(opener).toHaveFocus())
+  })
+})
+
+describe('AC-CP8 — the shortcut is on the row and the keys are in the footer', () => {
+  it('splits `G O` into one keycap per key', () => {
+    renderSurface(
+      paletteModel({
+        blocks: [
+          {
+            id: 'goTo',
+            heading: en('command.block.goTo'),
+            rows: [
+              paletteRow({
+                key: 'go:operations-overview',
+                title: 'Overview',
+                kind: 'destination',
+                shortcut: 'G O',
+              }),
+            ],
+          },
+        ],
+      }),
+    )
+
+    const row = screen.getByRole('option', { name: /Overview/ })
+    const caps = [...row.querySelectorAll('kbd')].map((cap) => cap.textContent)
+    /* Two chips, in order, and then the `↵` the active row carries. */
+    expect(caps).toEqual(['G', 'O', en('command.key.enter')])
+  })
+
+  it('states what the keys do at the root step, and how much is on offer', () => {
+    renderSurface(
+      paletteModel({
+        blocks: [
+          {
+            id: 'goTo',
+            heading: en('command.block.goTo'),
+            rows: [
+              paletteRow({ key: 'a', title: 'Overview' }),
+              paletteRow({ key: 'b', title: 'My Work' }),
+            ],
+          },
+        ],
+      }),
+    )
+
+    for (const hint of ['move', 'select', 'nextGroup', 'back']) {
+      expect(screen.getByText(en(`command.footer.${hint}`))).toBeInTheDocument()
+    }
+    expect(screen.getByText(en('command.footer.suggestions', { count: '2' }))).toBeInTheDocument()
+  })
+
+  it('states confirm and cancel in the confirm step instead', () => {
+    renderSurface(
+      paletteModel({
+        step: 'confirm',
+        confirm: {
+          request: {
+            title: 'Suspend 1 captain?',
+            body: 'The captain stops receiving requests.',
+            confirmLabel: 'Suspend captains',
+          },
+          reason: '',
+          setReason: () => {},
+          submit: () => {},
+          cancel: () => {},
+        },
+      }),
+    )
+
+    expect(screen.getByText(en('command.footer.confirm'))).toBeInTheDocument()
+    expect(screen.getByText(en('command.footer.cancel'))).toBeInTheDocument()
+    expect(screen.getByText(en('command.step.confirm'))).toBeInTheDocument()
+    expect(screen.queryByText(en('command.footer.nextGroup'))).toBeNull()
+  })
+})
+
+describe('the row shapes P1 introduces', () => {
+  it('§11.2 — keeps a refused row, disabled, with its reason as real text', () => {
+    renderSurface(
+      paletteModel({
+        blocks: [
+          {
+            id: 'do',
+            heading: en('command.block.do', { count: '1' }),
+            rows: [
+              paletteRow({
+                key: 'do:captain.suspend',
+                title: en('people.action.suspend'),
+                kind: 'command',
+                refusal: en('people.action.suspend.blocked.one'),
+              }),
+            ],
+          },
+        ],
+      }),
+    )
+
+    const row = screen.getByRole('option', { name: new RegExp(en('people.action.suspend')) })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByText(en('people.action.suspend.blocked.one'))).toBeInTheDocument()
+  })
+
+  it('gives a record two lines and everything else one', () => {
+    renderSurface(
+      paletteModel({
+        blocks: [
+          {
+            id: 'records',
+            heading: en('shell.search.records', { count: '1' }),
+            rows: [
+              paletteRow({
+                key: 'record:DRV-0204',
+                title: 'Nora Al-Harbi DRV-0204',
+                subtitle: 'Active',
+                kind: 'record',
+              }),
+            ],
+          },
+          {
+            id: 'goTo',
+            heading: en('command.block.goTo'),
+            rows: [
+              paletteRow({
+                key: 'go:people',
+                title: 'People',
+                subtitle: 'Operations',
+                kind: 'destination',
+              }),
+            ],
+          },
+        ],
+      }),
+    )
+
+    /* The one-line row states its meta AFTER the title, behind a separator; the
+       record row is the one that puts it on a line of its own. */
+    const record = screen.getByRole('option', { name: /Nora Al-Harbi/ })
+    expect(record.textContent).toContain('Active')
+    expect(record.textContent).not.toContain('·')
+
+    const destination = screen.getByRole('option', { name: /People/ })
+    expect(destination.textContent).toContain('· Operations')
+  })
+
+  it('draws a chevron on a row that descends rather than runs', () => {
+    renderSurface(
+      paletteModel({
+        blocks: [
+          {
+            id: 'do',
+            heading: en('command.block.do', { count: '2' }),
+            rows: [
+              paletteRow({ key: 'a', title: 'Suspend captain', kind: 'command', descends: true }),
+              paletteRow({ key: 'b', title: 'Open my work', kind: 'destination' }),
+            ],
+          },
+        ],
+      }),
+    )
+
+    expect(
+      screen.getByRole('option', { name: /Suspend captain/ }).querySelector('.lucide-chevron-right'),
+    ).not.toBeNull()
+    expect(
+      screen.getByRole('option', { name: /Open my work/ }).querySelector('.lucide-chevron-right'),
+    ).toBeNull()
+  })
+})
+
+describe('Tab moves the highlight a group at a time', () => {
+  it('lands on the first row of the next group', async () => {
+    const user = userEvent.setup()
+    mount()
+    const input = await openPalette(user)
+    const groups = await screen.findAllByRole('group')
+    expect(groups.length).toBeGreaterThan(1)
+
+    const second = within(groups[1]!).getAllByRole('option')[0]!
+    await user.tab()
+    await waitFor(() => expect(second).toHaveAttribute('aria-selected', 'true'))
+    /* The operator is still typing into the same field. */
+    expect(input).toHaveFocus()
   })
 })

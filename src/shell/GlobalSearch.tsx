@@ -83,13 +83,8 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
   /** `cmdk`'s active row, controlled so `Tab` and `→` can move it. */
   const [active, setActive] = useState('')
 
-  /**
-   * Opening with nothing focused would hand Radix `document.body` as the node
-   * to restore to. Focusing the trigger first makes AC-CP10 true for every
-   * door without the dialog having to guess who opened it.
-   */
-  const openPalette = useCallback((source: 'shortcut' | 'trigger' | 'slash') => {
-    if (source !== 'trigger') triggerRef.current?.focus()
+  /** The two keyboard doors. The third is the trigger, which opens itself. */
+  const openPalette = useCallback((source: 'shortcut' | 'slash') => {
     track('palette.opened', { source })
     setOpen(true)
   }, [])
@@ -229,36 +224,41 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
   )
 
   return (
-    <>
-      {/* Q-P2 — a 240px trigger that LOOKS like a field, so the operator who
-          reaches for "the search box" still lands in the palette's input. */}
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => openPalette('trigger')}
-        /* The keycap is a legend and would otherwise land in the accessible
-           name; `aria-keyshortcuts` is where a shortcut belongs (§13.2). */
-        aria-label={t('command.trigger.label')}
-        aria-keyshortcuts="Meta+K Control+K"
-        className="flex h-control w-60 shrink-0 items-center gap-1.5 rounded-lg border border-input bg-card px-2 text-start outline-hidden compact:w-auto compact:min-w-0 compact:flex-1 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <MagnifierGlyph />
-        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {t('command.trigger.label')}
-        </span>
-        {/* A chord hint on a device with no keyboard is decoration that costs
-            width. It is a `<kbd>` with no semantics and no tab stop, so hiding
-            it takes nothing out of the keyboard's or the reader's path. */}
-        <Kbd className="shrink-0 compact:hidden">
-          {t(isApplePlatform() ? 'shell.topbar.searchShortcut' : 'shell.topbar.searchShortcutWin')}
-        </Kbd>
-      </button>
-
-      <CommandDialog
-        open={open}
+    <CommandDialog
+      open={open}
         onOpenChange={setOpen}
         title={t('command.palette.label')}
         description={t('command.palette.description')}
+        /* Q-P2 — a 240px trigger that LOOKS like a field, so the operator who
+           reaches for "the search box" still lands in the palette's input. It
+           is the real `DialogTrigger`, which is what AC-CP10 rests on. */
+        trigger={
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => track('palette.opened', { source: 'trigger' })}
+            /* The keycap is a legend and would otherwise land in the accessible
+               name; `aria-keyshortcuts` is where a shortcut belongs (§13.2). */
+            aria-label={t('command.trigger.label')}
+            aria-keyshortcuts="Meta+K Control+K"
+            className="flex h-control w-60 shrink-0 items-center gap-1.5 rounded-lg border border-input bg-card px-2 text-start outline-hidden compact:w-auto compact:min-w-0 compact:flex-1 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <MagnifierGlyph />
+            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+              {t('command.trigger.label')}
+            </span>
+            {/* A chord hint on a device with no keyboard is decoration that
+                costs width. It is a `<kbd>` with no semantics and no tab stop,
+                so hiding it takes nothing out of any path. */}
+            <Kbd className="shrink-0 compact:hidden">
+              {t(
+                isApplePlatform()
+                  ? 'shell.topbar.searchShortcut'
+                  : 'shell.topbar.searchShortcutWin',
+              )}
+            </Kbd>
+          </button>
+        }
         /* AC-CP1 — the input, deterministically. Radix would otherwise focus
            the first tabbable, which is a committed chip when one is present. */
         onOpenAutoFocus={(event) => {
@@ -329,7 +329,6 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
 
           <PaletteFooter palette={palette} t={t} language={language} />
         </Command>
-      </CommandDialog>
-    </>
+    </CommandDialog>
   )
 }

@@ -39,6 +39,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   InputGroup,
@@ -63,15 +64,17 @@ function Command({
 }
 
 /**
- * Restyled on arrival. Three changes, all defects in the stock component:
- * the title and description were OUTSIDE `DialogContent`, so nothing labelled
- * the dialog; the geometry was three arbitrary overrides, and is now
- * `size="palette"`; and the copy defaulted to two English literals, which
- * AC-74 forbids, so both are required props.
+ * Restyled on arrival. Four changes, all defects in the stock component: the
+ * title and description were OUTSIDE `DialogContent`, so nothing labelled the
+ * dialog; the geometry was three arbitrary overrides and is now
+ * `size="palette"`; the copy defaulted to two English literals, which AC-74
+ * forbids; and there was no trigger slot, so Radix had nothing to return focus
+ * to on close (AC-CP10).
  */
 function CommandDialog({
   title,
   description,
+  trigger,
   children,
   className,
   showCloseButton = false,
@@ -80,12 +83,15 @@ function CommandDialog({
 }: React.ComponentProps<typeof Dialog> & {
   title: string
   description: string
+  /** Rendered in place, as the real `DialogTrigger`, so focus comes back to it. */
+  trigger?: React.ReactNode
   className?: string
   showCloseButton?: boolean
   onOpenAutoFocus?: React.ComponentProps<typeof DialogContent>["onOpenAutoFocus"]
 }) {
   return (
     <Dialog {...props}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent
         size="palette"
         className={className}
