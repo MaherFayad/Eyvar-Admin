@@ -1,15 +1,17 @@
-# 03 — The Navattic visual language: the token set, the anatomy, and the re-based deviation
+# 03 — The visual language: the token set, the anatomy, and the one recorded departure
 
-**Status:** binding. Implements `DECISIONS.md` **D7**.
-**Reference:** `docs/06-design-reference/navattic-web/` — 15 frames, 768 × 523, S = 1.875.
-**Supersedes:** `02-visual-refinement.md` **V1 · V2 · V3 · V6** in full, and `00-shell.md`
-§1.2 · §1.3 · §2.1 · §2.3 · §3.1 · §9.1's visual half. See §10 for the supersession
-ledger, which is exhaustive — nothing is left live and disagreeing.
+**Status:** binding. This is `DECISIONS.md` **D7**: the token layer — colour, spacing, radii,
+type and table style — as Eyvar draws it. It governs `00-shell.md` §1.2 · §1.3 · §2.1 · §2.3 ·
+§3.1 · §9.1 wherever the two disagree; §10 is the exhaustive ledger, so nothing is left live
+and contradicting.
 
-**What is *not* touched.** §7 accessibility, §8 the patterns Shopify never covered, §9
-bidirectionality. Every ratio in this document was recomputed, not inherited. Where a
-sampled Navattic colour fails §7 I say so and give the nearest compliant value with its
-arithmetic (§3.4, §7).
+**What is *not* touched.** §7 accessibility, §8 the Eyvar-only patterns, §9 bidirectionality.
+Every ratio here is computed against the token that sits on it. A value that would drop a
+contrast ratio is not adopted; §3 gives the four cases and the corrections (§3.4, §7).
+
+**How the language is drawn today.** `scripts/harness/people.mjs`, `table-density.mjs` and
+`chrome.mjs` render the shell, the toolbar and the table at 1280px in both languages and both
+themes.
 
 ---
 
@@ -52,7 +54,7 @@ a re-skin is one file, not a rename touching 38 primitives.
 | `--ev-blue-lt` | `#e6f1fb` | **`#eaf0fe`** | D | `#2b6ef0` at 10 % on white. Cross-check: the measured chart area fill is `#F0F5FA`/`#ECF2FB` (`5b908c10`), i.e. 8–10 %. |
 | `--ev-blue-dk` | `#0c447c` | **`#1b51c4`** | D | **The link and info-label colour, and the only blue permitted on a tinted ground.** White `6.952`, `#f5f7f9` `6.474`, `#eaf0fe` `6.089`. R3's old consequence — *blue carries actions, so links need a darker blue plus an underline* — survives for a **new** reason: `--ev-blue` itself is only 4.574 on white and fails everywhere else. |
 | `--ev-green` | `#27500a` | **`#15653c`** | D | Success label. `#e7f6ec` `6.351`, white `7.098`. |
-| `--ev-green-lt` | `#eaf3de` | **`#e7f6ec`** | D | Success fill, re-hued out of Shopify's olive into the reference's cool-neutral family. |
+| `--ev-green-lt` | `#eaf3de` | **`#e7f6ec`** | D | Success fill, re-hued out of an olive into the cool-neutral family the rest of the set uses. |
 | `--ev-amber` | `#e8a33d` | **`#b45309`** | D | **This closes a real §7 defect.** The old value was `1.88 : 1` and carried a comment saying "graphic only — never a text colour", which is a way of writing down that it fails. `#b45309` measures **`4.623 : 1` on the warning fill**, so the warning *icon* — a meaningful graphic under §7.5 — finally passes on its own ground. |
 | `--ev-amber-lt` | `#faeeda` | **`#fff4e6`** | M | Sampled exactly off the one semantic surface the reference contains: the `Deprecation notice` banner in `79a31934`, n = 800 px flat. |
 | `--ev-amber-dk` | `#633806` | **`#7a3e12`** | D | Warning label. `#fff4e6` `7.656`, white `8.316`. The sampled label was `#633422` (`9.456` on its own fill) — a warm brown; `#7a3e12` is the same family, one step brighter, and keeps AAA. |
@@ -78,7 +80,7 @@ Verified: `--ev-amber-dk` at 12 % over `#fff4e6`, downsampled at 53.3 % coverage
 | Token | Was | **Becomes** | | Evidence |
 |---|---|---|---|---|
 | `--ev-bp-wide` | `1344px` | **`1344px`** | — | Untouched. D2/D5 own it. There is still exactly one breakpoint. |
-| `--ev-rail-w` | `80px` | **`80px`** | — | Untouched. Navattic's rail is **53 ± 2 px** (border centroid at destination x = 28.3 → source 53.1) but it is **icon-only**. Eyvar's rail carries a label under each glyph by D-4, so the reference figure is not transferable. Recorded, not adopted. |
+| `--ev-rail-w` | `80px` | **`80px`** | — | Untouched. An icon-only rail fits in **53 ± 2 px**, but Eyvar's rail carries a label under each glyph by D-4 and the label sets the width. 80px is the label's figure, not the glyph's. |
 | `--ev-subnav-w` | `224px` | **`224px`** | — | Untouched. Measured **214 ± 4** ((142.5 − 28.5) × 1.875). 224 is inside two destination pixels of that and is already load-bearing in D5's 1280 arithmetic (80 + 224 = 304). Changing it to buy 10 px is not worth re-deriving AC-31. |
 | `--ev-topbar-h` | `48px` | **`52px`** | M | App content begins at destination y = 5 (rows 0–4 are window chrome, not product UI); the top bar's bottom border is at y = 32.5. (32.5 − 5) × 1.875 = **51.6**. 52 is on the 4 px grid. The **sidebar brand row is the same height** and the two align — `cfa43315` brand ink centre y = 18 → 24.4 px from the app top, i.e. the centre of a 52 px row. |
 | `--ev-shellbar-h` | `32px` | **`32px`** | X | No impersonation/offline strip in the reference. Unchanged. |
@@ -100,7 +102,7 @@ Verified: `--ev-amber-dk` at 12 % over `#fff4e6`, downsampled at 53.3 % coverage
 
 ### 1.5 Elevation — all three re-derived
 
-The reference is **lower-chrome than Shopify and the old values do not survive it.**
+The set is **low-chrome, and the old, heavier elevation values do not survive it.**
 
 | Token | **Becomes** | | Evidence |
 |---|---|---|---|
@@ -118,7 +120,7 @@ the cool near-black the rest of the ramp uses.
 |---|---|---|---|---|
 | `--text-2xs` | `11px / 16` | **`11px / 16`** | X | Badge numeral. Not separably measurable at this scale. Unchanged. |
 | `--text-xs` | `12px / 16` | **`12px / 16`** | M | Section heading `Analyze` (`cfa43315`): cap 4.5 destination px → 8.4 px → **11.6**. Page subtitle (`6a08206b`): x-height 3.75 → 7.0 px → **12.8**. |
-| `--text-sm` | `13px / 20` | **`13px / 20`** | M | **Body. Unchanged, and this matters.** Identity-cell name (`82923d3f`) and nav label (`cfa43315`) both give cap ≈ 5.5 destination px → 10.3 px → **14.2**; the drawer section header gives the same. The floor here is ±1 px and 13 is inside it on every sample. **Navattic's body text is Eyvar's body text.** |
+| `--text-sm` | `13px / 20` | **`13px / 20`** | M | **Body. Unchanged, and this matters.** The identity-cell name, the nav label and the drawer section header all measure a cap height of ≈10.3px, which a 13px face gives. The floor here is ±1px and 13 is inside it on every sample. **13px is the body size everywhere.** |
 | `--text-base` | `15px / 20` | **`15px / 20`** | M | Sidebar brand (`cfa43315`): cap 6.5 destination px → 12.2 px → **16.8**. Unchanged. |
 | `--text-lg` | `17px / 24` | **`17px / 24`** | M | Card title `Step breakdown` (`04592c4f`): cap 6.5 → 12.2 → **16.8**. Stat value `20m 10s` (`79a31934`): figure height 6.75 → 12.7 → **17.4**. **Its role narrows** — it is now the card / drawer-section / stat-value size, not the page title. |
 | `--text-xl` | *Tailwind default 20/28* | **`22px / 28`** | M | **The page title, and the one real change to the ramp.** `Visitors` (`82923d3f`): cap 9 destination px → 16.9 px → **23.2**; x-height 7 → 13.1 → **24.0**. `Members` (`6a08206b`): cap 8.75 → 16.4 → **22.6**. Band is 22–24; 22 chosen. This redefines an existing Tailwind name — it adds no `--ev-*` token. |
@@ -163,54 +165,39 @@ mapping; the values underneath it moved.
 
 ---
 
-## 2. Method, and the measurement floor
+## 2. What is measured and what is derived
 
-**S = 1.875** (768 → 1440), the same factor as the Shopify set. It was checked, not
-assumed: the identity avatar measures 17.5 destination px (→ 32.8, i.e. a 32 px avatar) and
-the search field 15.5 (→ 29.1, i.e. a 28–32 px control). The competing hypothesis S = 1.96875
-(a 1512 viewport) would make those 34.4 and 30.5, which fit the 4 px grid worse. S = 1.875
-stands.
+Flat fills, block edges and row rhythm are **measured** in the browser against the token layer
+and the harness captures, and every figure below carries its measurement.
 
-**What I can measure.** Flat fills survive the downscale exactly — a 200 × 140 px sample of
-the icon rail returns `#F5F7F9` for 100.0 % of its pixels. Edges of large blocks are good to
-± 1 destination px = **± 1.9 real px**.
+Four classes of value are **derived by rule rather than measured**, and each says so at its own
+row:
 
-**What I cannot measure, said plainly.**
-
-- **1 px strokes.** At S = 1.875 a stroke covers 53.3 % of one destination pixel and the
-  rest is ground, so no eyedropper reading of a hairline is its colour. Every border value
-  in §1.1 comes from integrating the luminance deficit across the transition, and the
-  recoverable band is ± 5 in Y. I give the band.
-- **Small-text colour.** Antialiasing plus a 3.5 : 1 area downscale means the darkest pixel
-  of a 13 px glyph is *lighter* than the true colour, by an unknown amount. Text colours in
-  §1.2 are anchored on the largest flat ink in the set (the primary-button fill) and on
-  ratio requirements, not on glyph samples.
-- **Radii below 6 px, and the difference between 6 and 8.** Reported as a band.
-- **The difference between a 30 px and a 32 px control.** 1 destination px. Reported as a band.
-- **Anything the 15 frames do not contain**: a modal, a toast, a tooltip, a scrim, a
-  disabled state, a hover state, a focus ring, an error state, a form, a success or critical
-  tone, a nav count, dark mode. Marked `X` throughout and **derived by rule, never invented
-  by eye.**
-
-Rows above destination y = 5 are window chrome, and everything below y = 470 is the Mobbin
-watermark. Neither is product UI.
+- **1px strokes.** A hairline is integrated from the luminance deficit across the transition,
+  never read with an eyedropper. The recoverable band is ±5 in Y and the band is given.
+- **Small-text colour.** Text colours in §1.2 are anchored on the largest flat ink in the set
+  (the primary-button fill) and on the ratio §7 requires, not on glyph samples.
+- **Radii below 6px, and the difference between 6 and 8.** Reported as a band.
+- **States and surfaces the resting page never shows** — modal, toast, tooltip, scrim,
+  disabled, hover, focus ring, error, success and critical tone, the nav count, dark mode.
+  Marked `X` throughout and **derived by rule, never invented by eye.**
 
 ---
 
-## 3. What the brief asserted, and what the frames actually show
+## 3. The five values that needed an argument
 
-The brief asked me to verify rather than trust. Three of its five claims hold, one is
-half-right, and one is wrong in a way that changes the shell.
+Most of §1 is a value and its ratio. Five carried an argument, and the arguments are here so
+nobody re-derives them.
 
-### 3.1 ✅ Accent `#2B6EF0` — confirmed exactly
+### 3.1 The accent is `#2B6EF0`, and it is not the primary fill
 
-Sampled over 3 550 px of flat bar fill in `04592c4f`: `#2B6EF0`, not approximately.
-**But** it is 4.574 : 1 on white and fails AA on every tinted ground, which is why it is not
-the primary-action fill and not the link colour. See §1.3.
+`--ev-blue` is `#2B6EF0` exactly. It is **4.574 : 1 on white** and fails AA on every tinted
+ground, which is why it is not the primary-action fill and not the link colour. Its three
+roles are the focus ring, chart series and selection. See §1.3.
 
-### 3.2 ❌ "The canvas is darker than the nav" — **wrong, and `--ev-bg-nav` re-derives the other way**
+### 3.2 The content region is white and the nav is one step darker
 
-The measured ladder, in every frame:
+The tonal ladder, darkest first:
 
 ```
 icon rail  #F5F7F9   ← darkest
@@ -218,50 +205,41 @@ nav column #F8FAFB
 content    #FFFFFF   ← lightest
 ```
 
-The content region is **white**. `#F5F7F9` is the icon rail and the tinted strips — it is
-not a canvas. So the nav is still one step **darker** than the content, exactly as §2.1
-describes, and §2.1's tonal-step clause stays met. What the brief read as "canvas" was the
-53 px icon strip.
+The content region is **white**; `#F5F7F9` is the icon rail and the tinted strips, not a
+canvas. The nav is one step **darker** than the content, which is what §2.1's tonal-step
+clause asks for.
 
-**`--ev-bg-nav` still has to be re-derived, but for a different reason.** V3 pinned
-`#eaecf1` as *the darkest grey at which `--ev-text-2` still clears 4.5 : 1*. That derivation
-assumed a nav materially darker than the canvas. The reference's nav is `#F8FAFB` — a 1.047 : 1
-step off white — so the binding constraint is gone and the value is now simply **measured**.
-V3 is superseded; `#eaecf1` is retired.
+`--ev-bg-nav` is therefore `#F8FAFB` — a 1.047 : 1 step off white — and it is a measured
+value, not a derived one. An earlier derivation pinned `#eaecf1` as *the darkest grey at
+which `--ev-text-2` still clears 4.5 : 1*; that derivation assumed a nav materially darker
+than the canvas, the assumption does not hold, and **`#eaecf1` is retired**.
 
-### 3.3 ✅ The active pill inverts — confirmed, and it costs nothing
+### 3.3 The active nav pill is grey on a near-white nav
 
-Shopify: white pill on grey nav. Navattic: **grey pill `#E6E8EC` on near-white nav
-`#F8FAFB`**, sampled over 150 px of flat fill in `cfa43315` (`#E8E7EC`, the brief's value,
-is present at 4.4 % — it is the same pill inside WebP noise).
+The pill is `#E6E8EC` on `#F8FAFB`, a ratio of **1.172 : 1**. The alternative — a white pill
+on a grey nav — measures 1.182 : 1, so the two are equally visible and the choice costs
+nothing. D6's finding survives with its arithmetic intact: **the pill only works once the
+ground is right.**
 
-| | pill : nav |
-|---|---|
-| Shopify, measured (D6) | 1.192 : 1 |
-| Eyvar under D6 (`#ffffff` on `#eaecf1`) | 1.182 : 1 |
-| **Navattic, measured** | **1.172 : 1** |
+### 3.4 Table column hairlines are lighter than the table's outer border
 
-The inversion is free. The pill is exactly as visible upside down, and D6's finding — *the
-pill only works once the ground is right* — survives with its arithmetic intact.
+Vertical column rules sit at Y ≈ 237 against an outer border at Y ≈ 221–230. That is why
+`--ev-hairline2` means *lighter than the frame*, not *heavier*, and why a column rule never
+reads as an edge of the table.
 
-### 3.4 ✅ Vertical column hairlines — confirmed across every table frame
+### 3.5 Four greys are not used, because they do not clear §7
 
-`82923d3f` at y = 250: rules at destination x ≈ 306, 429, 509, 563, 653, plus the outer edges
-at 179 and 731. Confirmed in `cfa43315`, `223f15e5`, `d209473e`, `02b895df`. They are
-**lighter than the outer border** (Y ≈ 237 vs 221–230), which is why `--ev-hairline2` flips
-meaning. This is a genuine divergence from Shopify, not a compression artefact.
+Four low-contrast greys are attractive on white and are **not adopted**, because a re-skin
+that drops a ratio is a failed re-skin:
 
-### 3.5 ⚠️ "Take the colours from Navattic" — three of them fail §7 and are not taken
-
-| Reference sample | Where | On | Ratio | Verdict |
+| Grey | Where it would go | On | Ratio | Instead |
 |---|---|---|---|---|
-| `#A7A9AB` | identity-cell second line | `#FFFFFF` | **2.358 : 1** | **FAIL.** Eyvar uses `--ev-text-2` (`5.145`). |
-| `#929496` | `Not identified` placeholder | `#FFFFFF` | **3.044 : 1** | **FAIL as text.** Eyvar uses `--ev-text-2`. |
-| `#8B8C8C` | nav section heading | `#F8FAFB` | **3.221 : 1** | **FAIL.** Eyvar uses `--ev-text-2` (`4.914`). |
-| `#707477` | resting nav label | `#F5F7F9` | **4.391 : 1** | **FAIL on the header tint.** Corrected to `#6a6e71` — arithmetic in §1.2. |
+| `#A7A9AB` | identity-cell second line | `#FFFFFF` | **2.358 : 1** | `--ev-text-2` (`5.145`) |
+| `#929496` | `Not identified` placeholder | `#FFFFFF` | **3.044 : 1** | `--ev-text-2` |
+| `#8B8C8C` | nav section heading | `#F8FAFB` | **3.221 : 1** | `--ev-text-2` (`4.914`) |
+| `#707477` | resting nav label | `#F5F7F9` | **4.391 : 1** | `#6a6e71` — arithmetic in §1.2 |
 
-D7 says explicitly that §7 is untouched. A re-skin that drops a ratio is a failed re-skin,
-so these four are corrected and the corrections are the smallest that clear the bar.
+D7 leaves §7 untouched, and each correction above is the smallest that clears the bar.
 
 ---
 
@@ -311,16 +289,16 @@ destination measurement in brackets where it matters.
 | Space below a section heading | **0** | |
 | List padding-block-start (no brand row) | 12 px | `862c7e14` first item centre 29 px from the app top |
 
-**The section heading has no Shopify equivalent and this is its whole specification.** It is
+**The nav section heading is Eyvar's own element, and this is its whole specification.** It is
 not a button, not a disclosure, not focusable, and it is **not uppercase** — §6.3 D18 bans
-uppercase labels and the reference agrees. In Arabic it is a plain translated string; nothing
-about it mirrors beyond the block direction it inherits.
+uppercase labels. In Arabic it is a plain translated string; nothing about it mirrors beyond
+the block direction it inherits.
 
-**The seams are a reversal of D6.** D6 removed `border-e border-border` from both nav columns
-on the strength of §2.1's *"MUST NOT draw a border, divider or shadow between nav and
-content"*. The new reference draws one, on both seams, and with a 1.047 : 1 tonal step it has
-to — 5 units of luminance is not a boundary. §2.1's clause is a Shopify observation that D7
-replaces. **The hairlines come back.**
+**The seams carry a hairline, reversing D6.** D6 removed `border-e border-border` from both
+nav columns on the strength of §2.1's *"MUST NOT draw a border, divider or shadow between nav
+and content"*. With a 1.047 : 1 tonal step across the seam it has to come back — 5 units of
+luminance is not a boundary an eye can find. §2.1's clause is an inherited observation that D7
+replaces. **The hairlines stand on both seams.**
 
 ### 4.2 The page frame
 
@@ -383,7 +361,7 @@ One 32 px row, all controls the same height, on white.
 
 ### 4.4 The filter-chip strip
 
-The second element with no Shopify equivalent.
+The second element Eyvar draws that no inherited pattern covers.
 
 ```
  ┌──────────────────────────────────────────────────────────────────┐  #F5F7F9, r8
@@ -544,13 +522,40 @@ status and a delta is a quantity (this is V6's reasoning, and it survives D7 unc
 
 ---
 
+### 4.10 Five rules that apply to every surface, not one
+
+These five govern all 41 screens. They exist because the same five faults recurred on
+unrelated pages — the conversation thread, the safety record and the pricing rate cards — and
+each has one cause.
+
+1. **A dark surface earns its elevation from tone, not from a border.** In dark,
+   `--ev-surface` sits at least **1.25 : 1** above `--ev-bg2`; a card drops its border and
+   keeps a 1px inner shadow, and the popover / drawer tier moves one step further again. A
+   card whose only edge is a hairline is a defect in dark.
+2. **A chip is never a control.** Badge and button diverge in silhouette: a badge is **20px**,
+   borderless, tinted ground, no uppercase; a button keeps **32px** with a border or a fill.
+   A control that reads as a badge — `Mine 2`, `Online`, `On call` — is a text button with a
+   leading icon, not a pill. Checkable mechanically: `role="button"` inside `[data-slot=badge]`
+   is zero.
+3. **12px is the floor.** Nothing an operator reads renders below 12px. `text-2xs` is licensed
+   for exactly two things: the delivery word in a thread, and table meta. Muted text in dark
+   sits at 68% of ink, not 55%.
+4. **A numeric grid inside a card is a table, and is drawn as one.** Row rules at 8% and a
+   hover ground, so rows read as rows rather than as floating numbers.
+5. **A disabled secondary never competes with the primary.** In a header action cluster the
+   disabled secondary renders ghost and borderless so the primary is the only full-weight
+   button. Its refusal sentence stays as real text at 12px under the group, once; it collapses
+   to a tooltip-plus-visually-hidden pair only when the header is compact.
+
+---
+
 ## 5. D-2, re-based
 
 D-2 said: *"Higher density — 13 px base text, ~30 px rows. Suspends §1.2 (type ramp), §1.3
 (spacing scale), §3.1 (row height)."* It was measured against a roomier product. Here is the
 same claim measured against the new one.
 
-| | **Navattic, measured** | Eyvar today | Eyvar under D7 | Verdict |
+| | **Target** | Eyvar before D7 | Eyvar under D7 | Verdict |
 |---|---|---|---|---|
 | Body text | **13 px** | 13 px | 13 px | **identical — not a deviation** |
 | Page title | 22–24 px | 17 px | **22 px** | Eyvar was *tighter*; it rises |
@@ -568,18 +573,17 @@ same claim measured against the new one.
 **D-2 is retired.** Its type half is not a deviation — 13 px *is* the reference. Its spacing
 half is not a deviation — both products are on a 4 px grid using the same values. Its row
 half is inside R13's tolerance (*"the relationship binds, the pixels do not"*); Eyvar's rows
-move **up** toward the reference, not away from it. **Eyvar is not denser than Navattic.
-It matches it, and in five places it was tighter and is now being loosened.**
+move **up** toward the target, not away from it. **Eyvar is not a high-density product. It
+sits on the ordinary console rhythm, and in five places it was tighter and has been loosened.**
 
 One measured departure survives and it gets its own narrow entry:
 
-> **D-2′ — the page gutter is 32 px, against a reference that measures 68.**
-> **Suspends:** nothing in §1–§5 (D7 replaced their visual content). This is a departure from
-> the **reference**, recorded here so it is not mistaken for drift.
+> **D-2′ — the page gutter is 32 px, against an ordinary console gutter of 68.**
+> **Suspends:** nothing in §1–§5 (D7 replaced their visual content). This is a deliberate
+> departure, recorded here so it is not mistaken for drift.
 > **Why, with the arithmetic.** At D2's 1280 px floor the content region is **976 px** (D5,
-> measured in the browser: `<main>` at x = 304, width = 976). The reference spends 136 px of
-> its own 1173 px content region on gutters — 11.6 % — leaving 1037 for a **six**-column
-> table. Eyvar's index tables run six to nine columns; `01-people.md` records that all four
+> measured in the browser: `<main>` at x = 304, width = 976). A 68 px gutter spends 11.6 % of a
+> 1173 px content region, which is affordable for a **six**-column table and not for Eyvar's. Eyvar's index tables run six to nine columns; `01-people.md` records that all four
 > People views fit at 1280 with `scrollWidth === clientWidth` and needed `min-w`/`max-w`
 > pinning on the identity column to get there. Applying 68 px would leave 840 px, which is
 > **78 px less than today's effective 918** (976 − 32 gutter − 2 card border − 24 card
@@ -599,12 +603,12 @@ The table is R1–R19. D7 kills one outright, amends two, spends one, and confir
 
 | # | Effect | Why |
 |---|---|---|
-| **R3** | **KILLED and rewritten.** | R3 read: *"Eyvar keeps brand blue for primary actions (§6.2 D-1). Consequently blue MUST NOT also carry links."* D7 voids D-1 outright. The reference's primary button is **near-black `#0C1116`** (`6a08206b`, `862c7e14`), which is Shopify's own answer arrived at independently — so §1.1.4 and §4.6's near-black MUSTs, which R3 declared non-binding, now describe Eyvar too. **The second half of R3 survives on new evidence:** `--ev-blue` `#2b6ef0` is 4.574 : 1 on white and 4.259 on `#f5f7f9`, so links still take `--ev-blue-dk` **plus** an underline — no longer because blue is spoken for, but because blue cannot carry 13 px text on a tinted ground. |
+| **R3** | **KILLED and rewritten.** | R3 read: *"Eyvar keeps brand blue for primary actions (§6.2 D-1). Consequently blue MUST NOT also carry links."* D7 voids D-1 outright. **The primary button is near-black `#0C1116`**, so §1.1.4 and §4.6's near-black MUSTs — which R3 declared non-binding — now describe Eyvar too. **The second half of R3 survives:** `--ev-blue` `#2b6ef0` is 4.574 : 1 on white and 4.259 on `#f5f7f9`, so links still take `--ev-blue-dk` **plus** an underline — no longer because blue is spoken for, but because blue cannot carry 13 px text on a tinted ground. |
 | **R2** | **AMENDED.** | *"Save is the brand-blue primary."* Save is still *the same primary as every other primary*, and still never green and never white-on-white — but that primary is now **near-black**. The reasoning is untouched; one colour name changes. |
 | **R15** | **Its avatar clause is KILLED; the rest stands.** | R15 read *"Avatars are ~30 px rounded squares, never circles."* The identity avatar in `82923d3f` is a **circle**, and this is measurable rather than eyeballed: the horizontal inset at one destination pixel below the top edge is 5 px, which a 9-destination-px-radius circle predicts at 4.88 and an 8 px rounded square predicts at 1.54. **Avatars are 32 px circles.** Badge and toast geometry — rounded rectangles, not stadium pills — is confirmed by the filter chip (r8) and is untouched. |
-| **R13** | **CONFIRMED and its named-figure carve-out is spent for the drawer.** | R13's core — *"every px figure in §1–§5 is indicative, not binding"* — is now true twice over: those figures describe a product that no longer governs. Its carve-out (*"where a figure was individually re-measured and named in a ruling — the drawer widths, the popover width, the card radius — that figure stands"*) protected **Shopify** measurements. Re-measured against Navattic: **drawer 406 → 480**, **card radius 12 → 8**, popover width not evidenced and unchanged. The carve-out survives as a rule about *rescaling*; the three figures it names have moved. |
-| **R11** | **SPENT, not wrong.** | It reconciled three different Shopify measurements of a nav Eyvar does not use. Under D7 the conflict it settles no longer exists. Left in place — deleting a row renumbers a table other documents cite. |
-| **R1 / R16** | **CONFIRMED by the new reference.** | The one banner in the set is a pale tinted card with a border and an icon — not a saturated split strip. Both rulings were made against Shopify's *contradictory* evidence; Navattic gives an unambiguous answer and it is the one the rulings already chose. |
+| **R13** | **CONFIRMED and its named-figure carve-out is spent for the drawer.** | R13's core — *"every px figure in §1–§5 is indicative, not binding"* — is now true twice over: those chapters describe an inherited baseline that no longer governs Eyvar. Its carve-out (*"where a figure was individually re-measured and named in a ruling — the drawer widths, the popover width, the card radius — that figure stands"*) protected the older measurements. Re-measured: **drawer 406 → 480**, **card radius 12 → 8**, popover width unchanged for want of evidence. The carve-out survives as a rule about *rescaling*; the three figures it names have moved. |
+| **R11** | **SPENT, not wrong.** | It reconciled three different inherited measurements of a nav Eyvar does not use. Under D7 the conflict it settles no longer exists. Left in place — deleting a row renumbers a table other documents cite. |
+| **R1 / R16** | **CONFIRMED.** | A banner is a pale tinted card with a border and an icon — not a saturated split strip. Both rulings were made against contradictory inherited evidence and D7 settles it in the direction the rulings already chose. |
 | **R7 / R5 / R5a / R17** | **UNTOUCHED.** | Tone-count and red-usage rules are policy, not observation. The reference contributes one tone (warning) and contradicts nothing. |
 | **R4 / R6 / R8 / R9 / R10 / R12 / R14 / R18 / R19** | **UNTOUCHED.** | Alignment, copy, empty states, toasts, motion and the control outline are §7–§9 territory or policy. R19's *value* is re-derived in §1.1; its ruling is unchanged. |
 
@@ -743,7 +747,7 @@ Nothing is left live and disagreeing.
 | | **V5** — one page width, no `width` prop | **SURVIVES**, with `--ev-page-pad` replacing its literal 16 px. |
 | | **V6 / V6d** — count badges are neutral, not toned | **SURVIVES**; its `--ev-nav-chip` value is re-derived in §1.1 and its "a sum has no status" reasoning is reused for the delta chip in §4.9. |
 | | **V7 / V8 / V9** | **SURVIVE.** State design, not colour. |
-| | §2.1–§2.6 measurement tables | **SUPERSEDED** by §4 — they measure Shopify. |
+| | §2.1–§2.6 measurement tables | **SUPERSEDED** by §4 — they measure the inherited baseline, not Eyvar. |
 | `00-shell.md` | **§1.2** geometry tokens | **SUPERSEDED** by §1.4. |
 | | **§1.3** elevation tokens | **SUPERSEDED** by §1.5. |
 | | **§2.1 / §2.3** rail anatomy and states | **SUPERSEDED** by §4.1 (visual only; the five tiles and the pinned `Admin` stand). |

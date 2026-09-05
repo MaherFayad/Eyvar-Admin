@@ -1,7 +1,7 @@
 # 13 — The Plane refresh: brand, density, motion
 
 **Status:** proposal, not ratified. Nothing here supersedes D7 until the owner rules on §0.4.
-**Inputs:** Plane web (26 frames, Mobbin, Sep 2026) · `eyvar.com/en` brand extraction · `globals.css` · `DESIGN.md` §1.6 / §7.6 / §8.1.6 · D7 `03-navattic-language.md`
+**Inputs:** Plane web (26 frames, Mobbin, Sep 2026) · `eyvar.com/en` brand extraction · `globals.css` · `DESIGN.md` §1.6 / §7.6 / §8.1.6 · D7 `03-visual-language.md`
 **Scope:** the token layer, the shell, the table, the detail surface, motion, **forms and inputs**, and **the command centre**. 41 screens inherit it.
 
 ---

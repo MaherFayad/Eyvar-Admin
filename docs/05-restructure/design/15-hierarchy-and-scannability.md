@@ -116,7 +116,7 @@ Then, per screen, mark the two-to-four columns the operator actually scans as `d
 ### H4 · Let the KPI number be a number
 `MetricTile` value: `text-lg` (17px) → **`text-xl` (22px)**, and invert the order so the label sits **above** the value at `text-2xs` uppercase-tracked, per Plane's analytics tiles. The tile keeps its glyph, caption and delta chip exactly as they are.
 
-This is a deliberate, documented amendment to `03-navattic-language.md` §4.9, on the grounds that Eyvar's metric boards answer a different question than the reference's stat strip. It should be recorded in `DECISIONS.md`, not slipped in.
+This is a deliberate, documented amendment to `03-visual-language.md` §4.9, on the grounds that Eyvar's metric boards answer a different question than the reference's stat strip. It should be recorded in `DECISIONS.md`, not slipped in.
 
 ### H5 · Put the critical row back on-token — **and re-derive the ink on it**
 
@@ -217,6 +217,6 @@ Slots into `14-system-wide-ux-plan.md` Part C. Small and mostly mechanical.
 **H1, steps 2–3: two days.** It is the difference between a table where the operator reads every cell to find the one that matters, and a table where the three columns that matter are the only ones that catch the eye. Everything else in this document is refinement around it.
 
 ### The one ruling this needs
-**H4 and H1 both amend `03-navattic-language.md`** — §4.9 for the metric value, §4.5 for row ink distribution. Both amendments rest on the same argument, and it should be accepted or rejected once, as a whole:
+**H4 and H1 both amend `03-visual-language.md`** — §4.9 for the metric value, §4.5 for row ink distribution. Both amendments rest on the same argument, and it should be accepted or rejected once, as a whole:
 
 > The reference is a marketing-analytics product whose tables and stat strips are supporting elements. Eyvar is an operations console where the numbers *are* the work. D7's derivation is sound; its conclusion was calibrated for a page with a different job. **The fix is not more ink overall — it is the same ink, spent on the columns the operator actually reads.**

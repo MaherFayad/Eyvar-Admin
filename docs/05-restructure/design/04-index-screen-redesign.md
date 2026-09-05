@@ -2,7 +2,7 @@
 
 **Status:** binding. This is a **total redesign of the index screen**, not a fix list.
 It supersedes, clause by clause, the parts of `00-shell.md`, `01-table-controls.md`,
-`02-visual-refinement.md` and `03-navattic-language.md` that describe this screen's
+`02-visual-refinement.md` and `03-visual-language.md` that describe this screen's
 composition. §14.5 is the exhaustive supersession ledger. **No two live specs may disagree
 after this document lands.**
 
@@ -123,7 +123,7 @@ added.
 **Inline gutter** — `--ev-page-pad`, **32 px** both sides at every width below
 `--ev-bp-wide`; **48 px** at and above it, through the **existing** `wide:` variant. No new
 breakpoint, no token redefined inside a media query. This closes finding 2 of
-`03-navattic-language.md` §11 and amends **D-2′** (§14.3).
+`03-visual-language.md` §11 and amends **D-2′** (§14.3).
 
 **Derivation of the table's height, and why the page itself does not scroll.**
 
@@ -229,7 +229,7 @@ authorisation.
 
 Height **52** (`--ev-topbar-h`), ground `--ev-bg` `#ffffff`, 1 px `--ev-hairline` `#f0f2f4`
 on the block-end. It spans the content region only, not the viewport — the nav columns own
-their own ground, and the seam between them is their border (`03-navattic-language.md`
+their own ground, and the seam between them is their border (`03-visual-language.md`
 §4.1, restored by **D7** over **D6** bullet 2).
 
 Confirmed by measurement, unchanged: the top-bar rule sits at destination y 32.5 in
@@ -469,7 +469,7 @@ sort moved out of the toolbar.
 
 ### 6.5 What the strip replaces
 
-`03-navattic-language.md` §4.4 put the strip above the card. `build/03-table-controls.md`
+`03-visual-language.md` §4.4 put the strip above the card. `build/03-table-controls.md`
 put it inside the card at a 0 px block-end gap. **Both are superseded**: with the card gone
 (§7.1) there is no inside, and the strip is a first-class band with a declared 12 px on both
 sides. Owner: `src/components/table/FilterChipRow.tsx`.
@@ -482,7 +482,7 @@ sides. Owner: `src/components/table/FilterChipRow.tsx`.
 
 **The table is the bordered object.** The control row, the query strip and the pagination
 row sit on the white content ground outside it. This was ordered by
-`03-navattic-language.md` fix-list item 8 and never done, and it is what the reference does
+`03-visual-language.md` fix-list item 8 and never done, and it is what the reference does
 in every table frame.
 
 It closes three things at once:
@@ -1498,10 +1498,10 @@ not a deviation.**
 
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
-| **D-18** | **The index page has no card.** The table carries its own 1 px border and 8 px radius; the control row, query strip and pagination sit on the white content ground. | `specs/00-foundation.md` §7.1 `Container`; `DESIGN.md` §3.1's one-card rule — both §1–§5 Shopify observations replaced by **D7** | It is what the reference does in all six table frames; it collapses four inner left edges to one (F9); and it gives the border something to separate (F17). Already ordered by `03-navattic-language.md` fix-list item 8. |
+| **D-18** | **The index page has no card.** The table carries its own 1 px border and 8 px radius; the control row, query strip and pagination sit on the white content ground. | `specs/00-foundation.md` §7.1 `Container`; `DESIGN.md` §3.1's one-card rule — both §1–§5 Shopify observations replaced by **D7** | It is what the reference does in all six table frames; it collapses four inner left edges to one (F9); and it gives the border something to separate (F17). Already ordered by `03-visual-language.md` fix-list item 8. |
 | **D-19** | **The table body is a bounded scroller; the page does not scroll.** | Nothing named. Recorded so it is not mistaken for drift. | It is the only construction that puts the pagination row, the horizontal scrollbar and the sticky header inside the viewport at once — and each of those is a live defect (N2, S16′, F1 part 3, `build/03` §2.1). |
 | **D-20** | **View tabs are a segmented control in the control row**, not a tab strip inside the card. | `DESIGN.md` §3.2's tab-strip placement; **AC-47** | Owner instruction, plus §2.2 — it deletes a band. The dropdown argument is recorded and overruled in §2.3. |
-| **D-2′ (amended)** | **The page gutter is 32 below `--ev-bp-wide` and 48 at and above it**, against a reference measuring 68. | Nothing in §1–§5 (D7 replaced their visual content). A departure from the **reference**. | 32 is what the 1280 column budget can afford (§7.3); 48 buys back air at 1440 through the **existing** `wide:` variant, so no token is redefined inside a media query and the one-breakpoint check still passes. This closes finding 2 of `03-navattic-language.md` §11. |
+| **D-2′ (amended)** | **The page gutter is 32 below `--ev-bp-wide` and 48 at and above it**, against a reference measuring 68. | Nothing in §1–§5 (D7 replaced their visual content). A departure from the **reference**. | 32 is what the 1280 column budget can afford (§7.3); 48 buys back air at 1440 through the **existing** `wide:` variant, so no token is redefined inside a media query and the one-breakpoint check still passes. This closes finding 2 of `03-visual-language.md` §11. |
 | **D-21** | **The resting value of a lifecycle column is plain text; only departures from rest take a tone.** | Narrows §3.4's *permission* to badge a lifecycle state; suspends nothing | 25 of 25 identical badges communicate nothing and make the two rows that matter invisible. Craft-critique F4, F8. |
 
 **Proposed rulings.** Binding for this screen; **raised, not applied**, for `DESIGN.md` —
@@ -1564,7 +1564,7 @@ the placeholder class (`gray-400` → `--ev-text-2`), and the nav section headin
 | | **V6 / V6d** counts are neutral | **SURVIVES**, and **R21** says which shape carries them. |
 | | **V8** the three unstyled-state defects | **SURVIVES**, and §10 completes it. |
 | | **V9** *no icon on the error state* | **SUPERSEDED** by §10.6 — error and empty rendered identically and the operator could only tell them apart by reading (F10). A 16 px critical glyph is the distinguisher, and §7.5 is satisfied because the word `Couldn't` carries it too. |
-| `03-navattic-language.md` | §1 the token set | **SURVIVES**, with the four values the match audit corrected, plus §15.1's five changes. |
+| `03-visual-language.md` | §1 the token set | **SURVIVES**, with the four values the match audit corrected, plus §15.1's five changes. |
 | | §4.2 the page frame | **SUPERSEDED** by §1.2 — gaps become 24 / 20 / 12 / 0. |
 | | §4.3 the toolbar | **SUPERSEDED** by §5 — four controls become two, and the tabs join them. |
 | | §4.4 the filter strip *above the card* | **SUPERSEDED** by §6 — it is a band with a 12 px gap on both sides, and it always renders. |

@@ -148,7 +148,7 @@ globally mounted in the app shell and an engineer will reach for it.
 | Wordmark | `<AuthWordmark>` — the existing `EyvarMark` at **24 px** + the word `Eyvar` at `--text-base` 15/600 `--ev-ink`, 8 px gap. **New composition, frontend-engineer.** The mark glyph does not mirror (`rtl.md`, logos); the **pair** sits at the card's inline-start in both languages |
 | h1 | `--text-xl` (22/28), `--ev-ink`, 600. Exactly one `<h1>` per card, and it is the accessible name of the surface |
 | Subtitle | 13/20 `--ev-text-2`. A **fragment**, no period (R6), except where it is a sentence and then it takes one |
-| Field height | **`--ev-control-h-lg` 40 px**, not the 32 px compact control. This is the token's declared job (*"one 8 px step above the compact control"*, `03-navattic-language.md` §1.4) and its **first consumer**. Density is a console decision for a screen holding forty controls; this card holds two. §4.2's *one field height per surface* is honoured — every field on the card is 40 |
+| Field height | **`--ev-control-h-lg` 40 px**, not the 32 px compact control. This is the token's declared job (*"one 8 px step above the compact control"*, `03-visual-language.md` §1.4) and its **first consumer**. Density is a console decision for a screen holding forty controls; this card holds two. §4.2's *one field height per surface* is honoured — every field on the card is 40 |
 | Primary | `--ev-control-h-lg`, **full width** (§2.5 D, kept), `bg-primary` = `--ev-ink` under D7 §1.8. One primary per card, always |
 | Reveal control | `input-group` trailing button, 32 px hit target inside the 40 px field, accessible name `Show password` / `Hide password`, keyboard-operable, `type="button"` so `Enter` never toggles it (**AC-510**) |
 | Autocomplete | `email` `current-password` `new-password` `one-time-code` on the four field kinds. A password manager must fill this card without help (**AC-679**) |
@@ -715,7 +715,7 @@ a full-width bar **directly under the first field**, a bold caption under the ba
 
 Track `--ev-bg2`, 4 px tall, `--ev-radius-control`. **No red at any level** — R5a, and a weak
 password is not a blocked one. `--ev-blue` is not used either: its declared roles are focus ring,
-chart series, selection and a link on white (`03-navattic-language.md` §1.3), and a strength bar
+chart series, selection and a link on white (`03-visual-language.md` §1.3), and a strength bar
 is none of them.
 
 **The meter never gates submission.** It is a courtesy (spec §11.2). Only the 12-character minimum,
@@ -1118,7 +1118,7 @@ Pattern row: **Guided checklist (§5.6) in a shell layer (§5.5, no scrim)**, mi
 
 | Part | Spec |
 |---|---|
-| Surface | `sheet`, anchored **inline-end**, `--ev-drawer-w` **480 px**, `--ev-shadow-2`, **no scrim** (§5.5). *(00-shell §6.1 says 406; `03-navattic-language.md` §1.4 moved the token to 480 under D7 and supersedes it.)* |
+| Surface | `sheet`, anchored **inline-end**, `--ev-drawer-w` **480 px**, `--ev-shadow-2`, **no scrim** (§5.5). *(00-shell §6.1 says 406; `03-visual-language.md` §1.4 moved the token to 480 under D7 and supersedes it.)* |
 | Behind it | The workspace stays **visible, readable and operable** — rail, sub-tab column and top bar all respond (**AC-595**, **AC-596**) |
 | Header | Title `Getting started` 13/600, subtitle = the role name 12 px `--ev-text-2`, `✕` at inline-end |
 | Route | `?onboarding=1` — an overlay **param**, never a route of its own. Browser Back closes it and stays put |
@@ -1396,7 +1396,7 @@ or right.
 | The step marker column | **Yes** — markers at inline-start | |
 | The re-auth modal | **Yes**; `Cancel`-slot button before the primary in reading order | |
 | Elevation | **No** — all three tiers are `offset-x: 0` (`tokens.md`) | Nothing goes under `:root:lang(ar)` |
-| Field and control heights | **Yes, they grow.** `--ev-control-h-lg` 40 → **44** under `:root:lang(ar)` | `03-navattic-language.md` §1.7 |
+| Field and control heights | **Yes, they grow.** `--ev-control-h-lg` 40 → **44** under `:root:lang(ar)` | `03-visual-language.md` §1.7 |
 
 **The 400 px card does not widen in Arabic.** Only the eight dimensions in §1.7 step up, and the
 card is not one of them. Checked against the longest Arabic string on the surface — the reset

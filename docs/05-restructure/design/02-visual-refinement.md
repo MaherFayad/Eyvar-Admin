@@ -1,9 +1,9 @@
 # 02 — Visual refinement: the measured diff, nine rulings, and the four states drawn
 
-> ## ⚠ PARTIALLY SUPERSEDED by `03-navattic-language.md` — `DECISIONS.md` D7
+> ## ⚠ PARTIALLY SUPERSEDED by `03-visual-language.md` — `DECISIONS.md` D7
 >
 > D7 replaced the **visual** reference. Everything in this document was measured against
-> Shopify, so its colour and density work no longer governs. **Read `03-navattic-language.md`
+> Shopify, so its colour and density work no longer governs. **Read `03-visual-language.md`
 > §10 for the clause-by-clause ledger.** In short:
 >
 > | | |

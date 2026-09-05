@@ -1,6 +1,6 @@
 # 04 — The Navattic re-skin
 
-**Implements:** `DECISIONS.md` **D7** · `design/03-navattic-language.md` §9 fix list items
+**Implements:** `DECISIONS.md` **D7** · `design/03-visual-language.md` §9 fix list items
 **1, 2, 3 (part), 4, 5, 10 (audit clause), 14 (token), 15 (token), 16 (token), 19**
 **Corrected mid-build by:** `docs/02-verification/people-match.md` — Navattic serves its own
 stylesheet, and where a declared value disagrees with a sampled one, **the declared value wins.**
@@ -247,7 +247,7 @@ npx vitest run           765 tests, 741 passed, 24 failed  (see below)
 
 The two in `nav.test.tsx` are both named *"expresses ACTIVE as a white pill alone — no marker,
 no border (§2.3)"* and both assert `bg-card` on the active tile / row. The pill is
-**`bg-nav-chip`** — grey — which is D7 §3.3 and §4.1, and which `03-navattic-language.md` §10
+**`bg-nav-chip`** — grey — which is D7 §3.3 and §4.1, and which `03-visual-language.md` §10
 records explicitly: *"V2 — the plain white pill — **SUPERSEDED**. The pill is grey now."* The
 flip was already in the tree before this task (the owner's hand-edit); this build kept it and
 gave it the declared value. **These two need re-cutting to the grey pill, not reverting.**

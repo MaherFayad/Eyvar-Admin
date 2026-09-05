@@ -1,6 +1,6 @@
 # 06 — The metric boards: eight table-less sub-tabs
 
-**Implements:** `DESIGN.md` **§3.7** · `design/03-navattic-language.md` **§4.9** (tile anatomy),
+**Implements:** `DESIGN.md` **§3.7** · `design/03-visual-language.md` **§4.9** (tile anatomy),
 **§1.3** (the two chart roles) · `specs/00-foundation.md` **§3.4**
 **Consumes:** `src/data/types/metrics.ts` and `src/data/clients/metrics.ts` (mock-data-engineer)
 **Owner:** frontend-engineer (wave 4)

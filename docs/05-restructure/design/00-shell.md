@@ -1,8 +1,8 @@
 # 00 — Shell: two-level navigation, page shells, table and form anatomy, the four state components
 
-> ## ⚠ SUPERSEDED AGAIN by `03-navattic-language.md` — `DECISIONS.md` D7
+> ## ⚠ SUPERSEDED AGAIN by `03-visual-language.md` — `DECISIONS.md` D7
 >
-> D7 replaced the **visual** reference. **Read `03-navattic-language.md` before this document
+> D7 replaced the **visual** reference. **Read `03-visual-language.md` before this document
 > and before `02-visual-refinement.md`;** its §10 holds the clause-by-clause ledger. In short:
 >
 > | Section | Status |
