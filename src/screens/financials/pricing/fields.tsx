@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import type { Field } from '@/hooks'
-import { parseNumericInput } from '@/lib'
+import { formatMoney, parseMoneyInput, parseNumericInput } from '@/lib'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -36,6 +36,44 @@ export function NumberField({
            no colour transition and no count-up. A controlled value is what
            makes that true rather than a debounce nobody can see. */
         onChange={(event) => onChange(parseNumericInput(event.target.value))}
+        onBlur={field.onBlur}
+      />
+      <p id={field.errorId} className="text-xs text-muted-foreground">
+        {field.error ?? ''}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * A money field bound to the form, typed in major units and held in halalas
+ * (§8.3). It owns its text so `1.` survives a keystroke; the form sees integer
+ * halalas or `null`, and the message under it is the form's (AC-394).
+ */
+export function MoneyField({
+  field,
+  label,
+  onChange,
+}: {
+  field: Field<number | null>
+  label: string
+  onChange: (value: number | null) => void
+}) {
+  const id = field.controlProps.id
+  const [text, setText] = useState(() =>
+    field.value === null ? '' : formatMoney(field.value, { unit: 'none' }),
+  )
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        {...field.controlProps}
+        inputMode="decimal"
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value)
+          onChange(parseMoneyInput(event.target.value))
+        }}
         onBlur={field.onBlur}
       />
       <p id={field.errorId} className="text-xs text-muted-foreground">

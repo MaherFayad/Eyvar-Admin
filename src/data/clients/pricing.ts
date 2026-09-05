@@ -35,6 +35,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { ApiError } from '../types/common'
+import type { Halalas } from '../types/common'
 import type {
   CancellationRule,
   QuickRideType,
@@ -44,7 +45,6 @@ import type {
   SurgeWindow,
 } from '../types/pricing'
 import { SURGE_SUSPENSION_MAX_HOURS } from '../types/pricing'
-import type { PlanKey } from '../types/subscription'
 import { appendAudit } from './audit'
 import { http } from './http'
 import { currentMockUserId } from './session'
@@ -72,6 +72,7 @@ onFixturesLoaded((f) => {
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
   planState = subscriptionPlanFixtures.map((p) => ({ ...p }))
+  quickRideState = quickRideTypeFixtures.map((q) => ({ ...q }))
   suspensionState = surgeSuspensionFixtures.map((s) => ({ ...s }))
   suspensionSequence = surgeSuspensionFixtures.length
 })
@@ -80,8 +81,12 @@ export const PRICING_OPERATIONS = {
   plans: 'pricing.plans',
   plan: 'pricing.plan',
   savePlan: 'pricing.savePlan',
+  createPlan: 'pricing.createPlan',
   rateCards: 'pricing.rateCards',
   quickRides: 'pricing.quickRides',
+  quickRide: 'pricing.quickRide',
+  saveQuickRide: 'pricing.saveQuickRide',
+  createQuickRide: 'pricing.createQuickRide',
   cancellationRules: 'pricing.cancellationRules',
   surgeWindows: 'pricing.surgeWindows',
   surgeSuspensions: 'pricing.surgeSuspensions',
@@ -96,6 +101,7 @@ export const PRICING_OPERATIONS = {
 registerOperations(...Object.values(PRICING_OPERATIONS))
 
 let planState!: SubscriptionPlan[]
+let quickRideState!: QuickRideType[]
 let suspensionState!: SurgeSuspension[]
 let suspensionSequence = 0
 
@@ -105,6 +111,7 @@ export function resetPricing(): void {
      binder in this module seeds fresh state when it does land. */
   if (!fixturesLoaded()) return
   planState = subscriptionPlanFixtures.map((p) => ({ ...p }))
+  quickRideState = quickRideTypeFixtures.map((q) => ({ ...q }))
   suspensionState = surgeSuspensionFixtures.map((s) => ({ ...s }))
   suspensionSequence = surgeSuspensionFixtures.length
 }
@@ -130,7 +137,7 @@ export async function listPlans(signal?: AbortSignal): Promise<SubscriptionPlan[
  * GET /api/v1/plans/:id
  *   -> SubscriptionPlan
  */
-export async function getPlan(id: PlanKey, signal?: AbortSignal): Promise<SubscriptionPlan> {
+export async function getPlan(id: string, signal?: AbortSignal): Promise<SubscriptionPlan> {
   if (DATA_SOURCE === 'http') return http.get<SubscriptionPlan>(`/plans/${id}`, undefined, { signal })
   return mock(PRICING_OPERATIONS.plan, signal, () => {
     const plan = planState.find((p) => p.id === id)
@@ -177,7 +184,7 @@ export interface SavePlanInput {
  * here is refused rather than coerced, so the two can never disagree (AC-395).
  */
 export async function savePlan(
-  id: PlanKey,
+  id: string,
   input: SavePlanInput,
   signal?: AbortSignal,
 ): Promise<SubscriptionPlan> {
@@ -187,7 +194,92 @@ export async function savePlan(
   return mockMutation(PRICING_OPERATIONS.savePlan, signal, () => {
     const plan = planState.find((p) => p.id === id)
     if (!plan) throw notFound('plan', id)
+    refusePlanInput(input)
 
+    /* Only the catalogue half is written. The pricing half is untouched, which
+       is the Stage-A boundary made mechanical. */
+    const next: SubscriptionPlan = { ...plan, ...input }
+    planState = planState.map((p) => (p.id === id ? next : p))
+    appendAudit({
+      action: 'plan.save',
+      subjectType: 'plan',
+      subjectId: id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'fin.audit.planSaved', params: { plan: input.nameEn } },
+    })
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/plans
+ *   body: SavePlanInput
+ *   -> SubscriptionPlan, with a server-assigned id and the pricing half taken
+ *      from the live rate card (`pricingSource: 'rate-card'`)
+ *   422 on the same rules as PUT
+ *
+ * The catalogue half is the operator's; the pricing half is not on the wire
+ * (Stage A, §4.5) and arrives from the live rate card, so a new plan opens in
+ * the editor with the same disabled pricing fields an existing one has.
+ */
+export async function createPlan(input: SavePlanInput, signal?: AbortSignal): Promise<SubscriptionPlan> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<SubscriptionPlan>('/plans', input, { signal })
+  }
+  return mockMutation(PRICING_OPERATIONS.createPlan, signal, () => {
+    refusePlanInput(input)
+    const live = rateCardFixtures.find((card) => card.status === 'live')
+    const economy = live?.classes.find((c) => c.id === 'economy')
+    const comfort = live?.classes.find((c) => c.id === 'comfort')
+    const next: SubscriptionPlan = {
+      id: uniqueId(slug(input.nameEn), planState.map((p) => p.id)),
+      ...input,
+      commissionPercent: live?.commission.subscriptionPercent ?? 0,
+      discountPercent: 0,
+      economyPerMinuteHalalas: economy?.perMinHalalas ?? 0,
+      economyPerKmHalalas: economy?.perKmHalalas ?? 0,
+      comfortPerMinuteHalalas: comfort?.perMinHalalas ?? 0,
+      comfortPerKmHalalas: comfort?.perKmHalalas ?? 0,
+      pricingSource: 'rate-card',
+      pricingEditable: false,
+    }
+    planState = [...planState, next]
+    appendAudit({
+      action: 'plan.create',
+      subjectType: 'plan',
+      subjectId: next.id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'fin.audit.planCreated', params: { plan: input.nameEn } },
+    })
+    return next
+  })
+}
+
+/** A URL-safe id from a name: `Weekend Saver` becomes `weekend-saver`. */
+function slug(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+  return base === '' ? 'item' : base
+}
+
+function uniqueId(base: string, taken: readonly string[]): string {
+  if (!taken.includes(base)) return base
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base}-${n}`
+    if (!taken.includes(candidate)) return candidate
+  }
+}
+
+/** The 422 both plan writes share. */
+function refusePlanInput(input: SavePlanInput): void {
+  {
     const details: Array<{ field: string; code: string; message: string }> = []
     if (!input.nameEn.trim()) details.push({ field: 'nameEn', code: 'required', message: 'Enter an English name' })
     if (!input.nameAr.trim()) details.push({ field: 'nameAr', code: 'required', message: 'Enter an Arabic name' })
@@ -215,22 +307,7 @@ export async function savePlan(
         retryable: false,
       })
     }
-
-    /* Only the catalogue half is written. The pricing half is untouched, which
-       is the Stage-A boundary made mechanical. */
-    const next: SubscriptionPlan = { ...plan, ...input }
-    planState = planState.map((p) => (p.id === id ? next : p))
-    appendAudit({
-      action: 'plan.save',
-      subjectType: 'plan',
-      subjectId: id,
-      amountHalalas: null,
-      reasonCode: null,
-      note: null,
-      detail: { key: 'fin.audit.planSaved', params: { plan: input.nameEn } },
-    })
-    return next
-  })
+  }
 }
 
 /* ────────────────────────── rate card ───────────────────────── */
@@ -290,7 +367,127 @@ export async function listQuickRideTypes(signal?: AbortSignal): Promise<QuickRid
   if (DATA_SOURCE === 'http') {
     return http.get<QuickRideType[]>('/quick-ride-types', undefined, { signal })
   }
-  return mock(PRICING_OPERATIONS.quickRides, signal, () => quickRideTypeFixtures)
+  return mock(PRICING_OPERATIONS.quickRides, signal, () => quickRideState)
+}
+
+/**
+ * GET /api/v1/quick-ride-types/:id
+ *   -> QuickRideType
+ *   404 when the class does not exist
+ */
+export async function getQuickRideType(id: string, signal?: AbortSignal): Promise<QuickRideType> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<QuickRideType>(`/quick-ride-types/${id}`, undefined, { signal })
+  }
+  return mock(PRICING_OPERATIONS.quickRide, signal, () => {
+    const type = quickRideState.find((q) => q.id === id)
+    if (!type) throw notFound('quick-ride class', id)
+    return type
+  })
+}
+
+/**
+ * Everything on a quick-ride class but its id. The rates ARE on the wire:
+ * this store is the class's own (spec §4.3 row `DB.quickRideTypes`, written
+ * under `manage_plans`), not the rate card's (§12).
+ */
+export interface SaveQuickRideTypeInput {
+  name: string
+  nameAr: string
+  baseFareHalalas: Halalas
+  perKmHalalas: Halalas
+  perMinHalalas: Halalas
+  active: boolean
+}
+
+/**
+ * PUT /api/v1/quick-ride-types/:id
+ *   body: SaveQuickRideTypeInput
+ *   -> QuickRideType
+ *   404 when the class does not exist
+ *   422 when either name is empty or a rate is not a whole number of halalas
+ *       at or above zero
+ */
+export async function saveQuickRideType(
+  id: string,
+  input: SaveQuickRideTypeInput,
+  signal?: AbortSignal,
+): Promise<QuickRideType> {
+  if (DATA_SOURCE === 'http') {
+    return http.put<QuickRideType>(`/quick-ride-types/${id}`, input, { signal })
+  }
+  return mockMutation(PRICING_OPERATIONS.saveQuickRide, signal, () => {
+    const type = quickRideState.find((q) => q.id === id)
+    if (!type) throw notFound('quick-ride class', id)
+    refuseQuickRideInput(input)
+    const next: QuickRideType = { ...type, ...input }
+    quickRideState = quickRideState.map((q) => (q.id === id ? next : q))
+    appendAudit({
+      action: 'quickRide.save',
+      subjectType: 'quick-ride-class',
+      subjectId: id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'fin.audit.quickRideSaved', params: { name: input.name } },
+    })
+    return next
+  })
+}
+
+/**
+ * POST /api/v1/quick-ride-types
+ *   body: SaveQuickRideTypeInput
+ *   -> QuickRideType, with a server-assigned id
+ *   422 on the same rules as PUT
+ */
+export async function createQuickRideType(
+  input: SaveQuickRideTypeInput,
+  signal?: AbortSignal,
+): Promise<QuickRideType> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<QuickRideType>('/quick-ride-types', input, { signal })
+  }
+  return mockMutation(PRICING_OPERATIONS.createQuickRide, signal, () => {
+    refuseQuickRideInput(input)
+    const next: QuickRideType = {
+      id: uniqueId(slug(input.name), quickRideState.map((q) => q.id)),
+      ...input,
+    }
+    quickRideState = [...quickRideState, next]
+    appendAudit({
+      action: 'quickRide.create',
+      subjectType: 'quick-ride-class',
+      subjectId: next.id,
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'fin.audit.quickRideCreated', params: { name: input.name } },
+    })
+    return next
+  })
+}
+
+function refuseQuickRideInput(input: SaveQuickRideTypeInput): void {
+  const details: Array<{ field: string; code: string; message: string }> = []
+  if (!input.name.trim()) details.push({ field: 'name', code: 'required', message: 'Enter an English name' })
+  if (!input.nameAr.trim()) details.push({ field: 'nameAr', code: 'required', message: 'Enter an Arabic name' })
+  for (const field of ['baseFareHalalas', 'perKmHalalas', 'perMinHalalas'] as const) {
+    const value = input[field]
+    if (!Number.isInteger(value) || value < 0) {
+      details.push({ field, code: 'range', message: 'Enter an amount of 0 or more' })
+    }
+  }
+  if (details.length) {
+    throw new ApiError({
+      status: 422,
+      kind: 'validation',
+      code: 'quick_ride_invalid',
+      message: 'Fix the fields below',
+      details,
+      retryable: false,
+    })
+  }
 }
 
 /* ─────────────────── cancellation fees ──────────────────────── */

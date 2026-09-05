@@ -179,6 +179,38 @@ const PLAN_EDITOR: DetailRoute = {
   patterns: ['P3'],
 }
 
+/** The same screen, opened on a blank record (§12). */
+const PLAN_CREATE: DetailRoute = {
+  kind: 'plan-editor',
+  path: '/financials/pricing/plans/new',
+  parentSubTabId: 'financials-pricing',
+  paramName: 'planId',
+  titleKey: 'route.pricing.planCreate',
+  shape: 'bleed',
+  patterns: ['P3'],
+}
+
+/** A quick-ride class, edited and created in the plan editor's shape (§12). */
+const QUICK_RIDE_EDITOR: DetailRoute = {
+  kind: 'quick-ride-editor',
+  path: '/financials/pricing/quick-rides/:typeId/edit',
+  parentSubTabId: 'financials-pricing',
+  paramName: 'typeId',
+  titleKey: 'route.pricing.quickRideEditor',
+  shape: 'bleed',
+  patterns: ['P3'],
+}
+
+const QUICK_RIDE_CREATE: DetailRoute = {
+  kind: 'quick-ride-editor',
+  path: '/financials/pricing/quick-rides/new',
+  parentSubTabId: 'financials-pricing',
+  paramName: 'typeId',
+  titleKey: 'route.pricing.quickRideCreate',
+  shape: 'bleed',
+  patterns: ['P3'],
+}
+
 /* ─────────────────── The 35 sub-tabs (§3.4, and D1a) ─────────────────── */
 
 export const SUB_TABS: SubTabRoute[] = [
@@ -752,7 +784,7 @@ export const SUB_TABS: SubTabRoute[] = [
       /* "Cancellation Policy" resolves here — the search case §4.3.4 names. */
       ['cancellation-fees', 'view.pricing.cancellationFees'],
     ),
-    detailRoutes: [PLAN_EDITOR],
+    detailRoutes: [PLAN_EDITOR, PLAN_CREATE, QUICK_RIDE_EDITOR, QUICK_RIDE_CREATE],
     legacyPageIds: ['plans', 'plan-edit', 'settings'],
     legacySettingsPanes: ['pricing', 'cancelpolicy'],
     patterns: ['P1', 'P3'],

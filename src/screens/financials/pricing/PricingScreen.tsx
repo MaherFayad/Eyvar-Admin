@@ -95,6 +95,7 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
   const { t, dir, language } = shell.language
   const gate = useWriteGate(row, t)
   const { period, setPeriod } = usePeriod()
+  const navigate = useNavigate()
 
   /* The route table carries this sub-tab's views; the screen's constant is the
      fallback for a row that has not been given them. Where the table has them,
@@ -155,6 +156,27 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
         <ViewRow
           label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
           lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+          /* §12 — the screen's one primary, on the two catalogue views. It
+             opens the editor blank; the gate is `manage_plans`, stated on the
+             disabled control rather than refused after a click. */
+          control={
+            activeTab === 'subscription-plans' || activeTab === 'quick-rides' ? (
+              <Button
+                variant="default"
+                disabled={!gate.canWrite}
+                title={gate.canWrite ? undefined : gate.reason}
+                onClick={() =>
+                  navigate(
+                    activeTab === 'quick-rides'
+                      ? '/financials/pricing/quick-rides/new'
+                      : '/financials/pricing/plans/new',
+                  )
+                }
+              >
+                {t(activeTab === 'quick-rides' ? 'fin.pricing.quick.add' : 'fin.pricing.plan.add')}
+              </Button>
+            ) : undefined
+          }
         />
       }
       banners={banners}
@@ -372,6 +394,7 @@ function PlansView({
 function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
+  const navigate = useNavigate()
   const table = useIndexTable<QuickRideType>({ mode: 'queue', getRowId: (type) => type.id })
 
   const types = useAsync<QuickRideType[]>((signal) => listQuickRideTypes(signal), {
@@ -391,6 +414,8 @@ function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
         minWidth: 200,
         sortField: 'name',
         cell: (type) => <span className="font-medium">{type.name}</span>,
+        /* Both names are required on save, so both are shown (§12). */
+        secondaryLine: (type) => <bdi dir="rtl">{type.nameAr}</bdi>,
       },
       {
         id: 'base',
@@ -437,6 +462,18 @@ function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
     [t],
   )
 
+  /* A class has no money page of its own, so the row IS the editor (R2-4):
+     a click, and Enter on the focused row, open it; the lane repeats it. */
+  const openEditor = useCallback(
+    (type: QuickRideType) =>
+      navigate(`/financials/pricing/quick-rides/${encodeURIComponent(type.id)}/edit`),
+    [navigate],
+  )
+  const rowActions = useMemo<RowAction<QuickRideType>[]>(
+    () => [{ label: t('fin.pricing.plan.action.edit'), onSelect: openEditor }],
+    [t, openEditor],
+  )
+
   return (
     <DataTable
       table={table}
@@ -451,6 +488,8 @@ function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
       view={activeTab}
       searchPlaceholder={t('fin.pricing.quick.search')}
       skeletonPattern="P1"
+      onRowClick={openEditor}
+      rowActions={rowActions}
       firstRun={{
         heading: t('fin.pricing.quick.empty.heading'),
         body: t('fin.pricing.quick.empty.body'),
