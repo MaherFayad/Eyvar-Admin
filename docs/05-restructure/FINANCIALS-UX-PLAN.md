@@ -623,6 +623,47 @@ in the data column, the toggle and the phone in the preview column — not `P3`,
 three-across form pattern this screen no longer is. **Empty does not apply**: the editor is reached
 with a record.
 
+### 11.8 Trial numbers — every input the working reads is a control
+
+The owner's follow-up on §11.2 was *"for calculations give me the ability to change the numbers
+also."* The Calculations view now carries every number the chain reads as an input, placed where
+its effect is:
+
+| Input | Where | What it is |
+|---|---|---|
+| Distance (km), Duration (min) | assumptions card | the example trip, `PLAN_EXAMPLE_INPUTS` as the starting value |
+| Trips in the plan | assumptions card | **the form's own field**, the same one Details carries; saved with the plan |
+| Commission %, Discount % | assumptions card | trial values starting at the plan's |
+| Per minute (SAR), Per km (SAR) | at the top of each class card | trial values starting at the plan's rates, typed in major units and held in halalas |
+
+**A trial value is not form state.** It lives beside the form, never dirties it, and `savePlan()`
+never sees it, so Stage A's pricing boundary (spec §4.5, Q7) holds at the seam exactly as before:
+the operator can try any number against the working and the rider preview, and `Save` stays where
+the catalogue fields left it. The assumptions card says so in one sentence, and the preview adds
+*Includes trial numbers that are not saved* while any trial differs from the plan. `Reset to plan`
+appears in the same condition and returns every input to the plan's numbers.
+
+Blank or out-of-range text (a percentage outside 0–100, a negative rate) gives the chain `null`, so
+every dependent line renders the em dash (AC-393) and the message sits on the input that caused it
+(AC-394). The range rule is spec §8.5's, enforced in code.
+
+The AC-399 header (`10 km · 20 min × 5 trips`) is no longer a sentence: the three literal inputs are
+the three labelled controls, and the test reads them there.
+
+**Verified (2026-09-05, `fin/calc-trial`).** `npm run typecheck` clean outside the admin modules
+(five pre-existing errors there, not finance). `pricing.test.tsx` 21 tests pass, three of them new:
+AC-399 read from the inputs, a trial number moving `Captain earns` with `Save` still disabled, and
+`Reset to plan`. Chromium at 1280, console `en` and `ar`, `/financials/pricing/plans/weekly/edit?tab=calculations`:
+
+| Fact | Result |
+|---|---|
+| assumptions card / class cards | 816 · 400 · 400 wide, in both languages |
+| page height | 900 — the whole view on one screen, `overflowX` 0 |
+| commission 20 → 30 and Economy per km 1.10 → 2 | `Captain share` 80% → 70%, `Gross per trip` 30.00 → 39.00 SAR, `Plan total` 150.00 → 195.00 SAR, the preview's total 150.00 → 195.00 SAR, the trial caption present, `Reset to plan` present |
+| discount 150 | message *Enter a percentage between 0 and 100.* on the input, `aria-invalid`, eight em dashes below it |
+| `Reset to plan` | every input and every line back to the plan's numbers, the button gone |
+| Arabic | `dir="rtl"`, inputs mirrored, the seven runs of `Gross per trip`'s working in strictly increasing x |
+
 ### 11.7 Verified (2026-09-05, `fin/plan-editor`)
 
 `npm run typecheck` clean. `npx vitest run src/screens/financials` — 17 files, 321 tests, all pass;

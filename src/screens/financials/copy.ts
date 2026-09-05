@@ -1292,4 +1292,14 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.planEditor.rider.subscribe': 'Subscribe',
   'fin.planEditor.rider.unnamed': 'Untitled plan',
   /* ── end §11 ── */
+  /* ── FINANCIALS-UX-PLAN §11.8 — trial numbers on the Calculations view ── */
+  'fin.planEditor.calc.trial.help': 'Change any number to see the working. Trial values are not saved with the plan.',
+  'fin.planEditor.calc.trial.reset': 'Reset to plan',
+  'fin.planEditor.calc.distance.label': 'Distance (km)',
+  'fin.planEditor.calc.duration.label': 'Duration (min)',
+  'fin.planEditor.calc.rate.minute': 'Per minute (SAR)',
+  'fin.planEditor.calc.rate.km': 'Per km (SAR)',
+  'fin.planEditor.calc.nonNegative': 'Enter 0 or more.',
+  'fin.planEditor.preview.caption.trial': 'Includes trial numbers that are not saved.',
+  /* ── end §11.8 ── */
 }

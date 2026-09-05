@@ -40,6 +40,8 @@ export interface PlanPreviewProps {
    * caption then states nothing about VAT rather than asserting it.
    */
   vatIncluded: boolean | null
+  /** A Calculations trial number is in force, so the price shown is not the plan's (§11.8). */
+  trialActive: boolean
 }
 
 export function PlanPreview({
@@ -50,6 +52,7 @@ export function PlanPreview({
   t,
   translatorFor,
   vatIncluded,
+  trialActive,
 }: PlanPreviewProps) {
   const tp = translatorFor(previewLanguage)
   const chain = derived[quotedClass(values)]
@@ -189,6 +192,11 @@ export function PlanPreview({
           ? t('fin.planEditor.preview.caption.vat')
           : t('fin.planEditor.preview.caption')}
       </p>
+      {trialActive && (
+        <p className="text-center text-xs text-muted-foreground">
+          {t('fin.planEditor.preview.caption.trial')}
+        </p>
+      )}
     </div>
   )
 }
