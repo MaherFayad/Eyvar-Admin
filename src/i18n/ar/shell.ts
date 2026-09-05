@@ -182,6 +182,7 @@ export const SHELL_AR: Dictionary = {
   'route.tickets.detail': 'التذكرة',
   'route.disputes.detail': 'مطالبة',
   'route.safety.detail': 'حادثة',
+  'route.fairness.detail': 'حالة',
   'route.contacts.conversation': 'المحادثة',
   'route.pricing.planEditor': 'تعديل الباقة',
   'shellLayer.profile': 'الملف الشخصي',

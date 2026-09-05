@@ -471,6 +471,7 @@ const routes: Dictionary = {
   'route.tickets.detail': 'Ticket',
   'route.disputes.detail': 'Claim',
   'route.safety.detail': 'Incident',
+  'route.fairness.detail': 'Case',
   'route.contacts.conversation': 'Conversation',
   'route.pricing.planEditor': 'Edit plan',
 

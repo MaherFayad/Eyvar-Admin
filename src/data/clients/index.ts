@@ -16,6 +16,7 @@ import { mockFailures as failureRegistry } from '../config'
 import { resetNavCounts as resetCounts } from './navCounts'
 import { resetAssurance as resetAssuranceState } from './assurance'
 import { resetSafetyIncidents as resetSafety } from './safety'
+import { resetFairnessCases } from './fairness'
 import { resetNotifications as resetNotifs } from './notifications'
 import { resetMockSession as resetSession } from './session'
 import { resetAudit as resetAuditLog } from './audit'
@@ -686,6 +687,7 @@ export function resetDataLayer(): void {
   resetCounts()
   resetNotifs()
   resetSafety()
+  resetFairnessCases()
   resetAssuranceState()
   resetAuditLog()
   resetLedgerState()

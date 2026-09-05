@@ -90,6 +90,21 @@ export const FAIRNESS_EN: Dictionary = {
   'fairness.rationale.help': 'The captain reads this. Say what decided it.',
   'fairness.rationale.message': 'Enter a reason the captain can read.',
 
+  /* ── the record (S-8) ──────────────────────────────────────────────── */
+  'fairness.detail.back': 'Back to cases',
+  'fairness.detail.notFound': 'That case is not on record',
+  'fairness.detail.notFoundBody': 'Nothing here answers to {id}. The link may be old.',
+  'fairness.detail.contested': 'What the captain contests',
+  'fairness.detail.decision': 'Decision',
+  'fairness.detail.noRationale': 'No reason was recorded.',
+  'fairness.detail.reinstated': 'Reinstated',
+  'fairness.detail.trip': 'Trip',
+  'fairness.detail.decidedInTime': 'Decided inside its window.',
+  'fairness.detail.parties': 'Parties',
+  'fairness.detail.captain': 'Captain {name}',
+  'fairness.detail.rider': 'Rider {name}',
+  'fairness.decided.blocked': 'This case is decided. A decision is not reversed from here.',
+
   'fairness.toast.upheld': 'Case upheld',
   'fairness.toast.overturned': 'Case overturned',
 

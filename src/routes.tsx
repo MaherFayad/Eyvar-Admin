@@ -139,6 +139,9 @@ const IncidentDetailScreen = lazy(() =>
 const FairnessScreen = lazy(() =>
   import('@/screens/support/fairness').then((m) => ({ default: m.FairnessScreen })),
 )
+const CaseDetailScreen = lazy(() =>
+  import('@/screens/support/fairness').then((m) => ({ default: m.CaseDetailScreen })),
+)
 const ContactCentreScreen = lazy(() =>
   import('@/screens/support/contacts').then((m) => ({ default: m.ContactCentreScreen })),
 )
@@ -570,6 +573,9 @@ function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
   }
   if (detail.kind === 'incident') {
     return <IncidentDetailScreen />
+  }
+  if (detail.kind === 'fairness-case') {
+    return <CaseDetailScreen />
   }
   return <SubTabScreen row={row} />
 }

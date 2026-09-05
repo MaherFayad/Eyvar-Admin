@@ -326,6 +326,7 @@ function CasesView({ row, tabs, activeTab, onSelectTab, t, dir, language }: View
     canWrite,
     currentUserId,
     profileHref: (id) => `${location.pathname}${withOverlay(location.search, 'entity', id)}`,
+    detailHref: (id) => `/support/fairness/${id}${location.search}`,
     failure: actions.failure,
     onClaim: (fairnessCase) => claim(fairnessCase, false),
     onRelease: (fairnessCase) =>
@@ -709,6 +710,7 @@ export interface CaseDeps {
   canWrite: boolean
   currentUserId: string
   profileHref: (id: string) => string
+  detailHref: (id: string) => string
   failure: (id: string) => RowFailure | undefined
   onClaim: (row: FairnessCase) => void
   onRelease: (row: FairnessCase) => void
@@ -834,7 +836,8 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
         <>
           {clockFor(row).breached && <RowCriticalMarker />}
           <Identity
-            to={deps.profileHref(row.driverId)}
+            /* §12.1: the identity opens the record (S-8); the captain's profile is in its rail. */
+            to={deps.detailHref(row.id)}
             name={row.driverName}
             /* §7.7 — what they are contesting, and the case id. ONE key. */
             secondary={t('fairness.line', {

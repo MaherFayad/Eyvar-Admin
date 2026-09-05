@@ -32,6 +32,20 @@ onFixturesLoaded((f) => {
   teamUserFixtures = f.teamUserFixtures
 })
 
+/* Session state: a mutation's result replaces its row, so the record and the
+   queue read the same case after a claim or a decision (S-8). */
+let dynamic: FairnessCase[] | null = null
+const rows = (): readonly FairnessCase[] => dynamic ?? fairnessCaseFixtures
+
+function commit(updated: FairnessCase): FairnessCase {
+  dynamic = rows().map((c) => (c.id === updated.id ? updated : c))
+  return updated
+}
+
+export function resetFairnessCases(): void {
+  dynamic = null
+}
+
 export const FAIRNESS_OPERATIONS = {
   facets: 'fairness.facets',
   list: 'fairness.list',
@@ -160,7 +174,7 @@ export async function listFairnessCases(
       ...(params.status ? [{ field: 'status', op: 'eq' as const, value: params.status }] : []),
     ]
     const filters = extra.length ? [...(params.filters ?? []), ...extra] : params.filters
-    return runQuery(fairnessCaseFixtures, { ...params, filters }, fairnessShape)
+    return runQuery(rows(), { ...params, filters }, fairnessShape)
   })
 }
 
@@ -173,7 +187,7 @@ export async function getFairnessCase(id: string, signal?: AbortSignal): Promise
     return http.get<FairnessCase>(`/fairness-cases/${id}`, undefined, { signal })
   }
   return mock(FAIRNESS_OPERATIONS.get, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     return row
   })
@@ -193,9 +207,9 @@ export async function claimFairnessCase(
     return http.post<FairnessCase>(`/fairness-cases/${id}/claim`, opts, { signal })
   }
   return mockMutation(FAIRNESS_OPERATIONS.claim, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
-    return { ...row, claim: nextClaim('fairness', id, row.claim, opts.takeOver) }
+    return commit({ ...row, claim: nextClaim('fairness', id, row.claim, opts.takeOver) })
   })
 }
 
@@ -208,10 +222,10 @@ export async function releaseFairnessCase(id: string, signal?: AbortSignal): Pro
     return http.post<FairnessCase>(`/fairness-cases/${id}/release`, undefined, { signal })
   }
   return mockMutation(FAIRNESS_OPERATIONS.release, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     if (!row.claim) return row
-    return {
+    return commit({
       ...row,
       claim: {
         ...row.claim,
@@ -219,7 +233,7 @@ export async function releaseFairnessCase(id: string, signal?: AbortSignal): Pro
         releasedAt: EYVAR_NOW,
         releaseReason: 'manual' as const,
       },
-    }
+    })
   })
 }
 
@@ -254,7 +268,7 @@ export async function decideFairnessCase(
     return http.post<FairnessCase>(`/fairness-cases/${id}/decide`, { outcome, rationale }, { signal })
   }
   return mockMutation(FAIRNESS_OPERATIONS.decide, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     if (row.status !== 'open') {
       throw new ApiError({
@@ -277,7 +291,7 @@ export async function decideFairnessCase(
     }
     const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const overturned = outcome === 'overturned'
-    return {
+    return commit({
       ...row,
       status: outcome,
       decidedAt: EYVAR_NOW,
@@ -292,7 +306,7 @@ export async function decideFairnessCase(
             false
           : row.averageAdjusted,
       reinstatedAt: overturned && row.kind === 'suspension-appeal' ? EYVAR_NOW : row.reinstatedAt,
-    }
+    })
   })
 }
 
@@ -309,6 +323,6 @@ export async function getFairnessFacets(
     return http.get<Facets>('/fairness-cases/facets', { view: view ?? undefined }, { signal })
   }
   return mock(FAIRNESS_OPERATIONS.facets, signal, () =>
-    computeFacets(fairnessCaseFixtures, fairnessShape, view),
+    computeFacets(rows(), fairnessShape, view),
   )
 }

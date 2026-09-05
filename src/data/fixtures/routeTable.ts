@@ -148,6 +148,16 @@ const INCIDENT_DETAIL: DetailRoute = {
   patterns: ['P2'],
 }
 
+const FAIRNESS_DETAIL: DetailRoute = {
+  kind: 'fairness-case',
+  path: '/support/fairness/:caseId',
+  parentSubTabId: 'support-fairness',
+  paramName: 'caseId',
+  titleKey: 'route.fairness.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
 const TICKET_DETAIL: DetailRoute = {
   kind: 'ticket',
   path: '/support/tickets/:ticketId',
@@ -840,7 +850,7 @@ export const SUB_TABS: SubTabRoute[] = [
       ['rider-reports', 'view.fairness.riderReports'],
       ['captain-economics', 'view.fairness.captainEconomics'],
     ),
-    detailRoutes: [],
+    detailRoutes: [FAIRNESS_DETAIL],
     legacyPageIds: ['fairness'],
     legacySettingsPanes: [],
     patterns: ['P5', 'P8'],
