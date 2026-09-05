@@ -396,16 +396,16 @@
   --ev-surface-2: #ffffff;
   /* A card's edge, in BOTH themes. It can no longer be nothing in dark, where
      it leaned on the inset highlight inside a shadow (D34 retired both).
-       light  --ev-hairline #e3e7ea   1.168 : 1 on the card, 1.244 on the page
+       light  --ev-hairline #e3e7ea   1.200 : 1 on the card, 1.244 on the page
        dark   --ev-hairline #313944   1.698 : 1 on the card, 1.526 on the page
      Dark reads heavier on purpose: its card sits 1.113 under the page against
      light's 1.122, but a dark card's fill is near the floor of the display, so
      the line is what an operator actually sees. */
   --ev-surface-edge: var(--ev-hairline);
   /* THE RAISED TIER'S EDGE, the FIRM weight rather than the structure one.
-     A dropdown over a card has a fill step of 1.054 in light and 1.060 in dark
+     A dropdown over a card has a fill step of 1.036 in light and 1.060 in dark
      and no shadow behind it (D34), so the line carries the rest.
-       light  #d0d7dd  1.295 on the fill, 1.365 over a card, 1.454 over page
+       light  #d0d7dd  1.454 on the white fill, 1.403 over a card
        dark   #3c4451  2.138 on the fill, 2.018 over a card, 1.813 over page
      Every one of those is at or above the card edge's own weight, which is the
      ordering a floating surface needs against a resting one. This file already
@@ -431,9 +431,9 @@
      1.130 under the card they usually open over. Judgement call, recorded so
      it can be reversed in one line if it reads badly. */
   --ev-surface-modal: #ffffff;
-  /* The neutral badge plate. The same tint as --ev-bg2, one step under the
-     card it sits on; its own name so dark can move the plate without moving
-     the strip (R7). Its ink is --ev-text-2 at 4.934 : 1 here. */
+  /* The neutral badge plate, on the same rung and under the same ceiling as
+     --ev-bg2: 1.019 : 1 under the card. Its own name so dark can move the plate
+     without moving the strip (R7). Its ink is --ev-text-2 at 5.743 : 1. */
   --ev-neutral-lt: #f7f9fb;
   /* THE HOVER FILL for anything inside a card or a floating surface: a table
      row, a key/value row, a menu item, a command in the palette. --accent
@@ -468,38 +468,39 @@
      UNCHECKED checkbox on a selected ground needs a ruling, not this token. */
   --ev-selected: #dce1e6;
 
-  /* THE ONE TINT INSIDE A CONTAINER, and it does five jobs: the table header
-     row, the filter-chip strip, a card's section-header strip, a promo band,
-     an inner empty panel. It is --muted in layer 2.
+  /* THE ONE TINT INSIDE A CONTAINER: the table header row, the filter-chip
+     strip, a card's section-header strip, a promo band, an inner empty panel.
+     It is --muted in layer 2.
 
-     **THE SMALLEST STEP IN THE PRODUCT, ON PURPOSE: 1.026 : 1 under the card.**
-     The owner rejected a 1.075 version on a report table as too dark, and the
-     reason is stacking (see --ev-bg). A table header is separated by its rule
-     and its type weight; this fill only has to stop it reading as another row.
-     The value is the midpoint of the reference's gray-50 and gray-100, derived
-     rather than declared because no declared step is small enough:
-       rgb((246+240)/2, (248+242)/2, (249+244)/2) = rgb(243 245 247) = #f3f5f7
+     **1.019 : 1 under the card, the smallest step in the product.** That is
+     the owner's ceiling, not a preference (see --ev-bg): it STACKS on the
+     card's own 1.036, and it is the stacking that reads as heavy. A table
+     header is separated by its rule and its type weight; this fill only stops
+     it reading as another row.
 
-     It is a TEXT GROUND: --ev-text-2 is 5.067 : 1 here and --ev-ink 15.9. Do
-     not darken it without re-reading --ev-text-2, which is the ink of every
-     ordinary table cell in the product. */
+     Derived rather than declared, because no stop on the reference's ramp is
+     small enough at this end: it is --ev-surface #fafbfc walked three units
+     down the same blue-grey axis, rgb(247 249 251).
+
+     It is a TEXT GROUND: --ev-text-2 is 5.743 : 1 here and --ev-ink 16.497. */
   --ev-bg2: #f7f9fb;
 
   /* --- The nav's own greys. ------------------------------------------------
-     THE NAV COLUMN IS A PANEL, AND UNDER D33 SO IS A CARD, so the two hold one
-     value. `[css]` `--color-bg-muted: gray-50 = hsl(207 20% 97%)` = **#f6f8f9**;
-     the frame sample of the nav column reads mean 247.0 against the declared
-     247.4, and D7 §1.1's #f8fafb is superseded by it. See --ev-bg for why one
-     recessed material for every panel is the ruling and not an accident.
+     `[css]` `--color-bg-muted: gray-50 = hsl(207 20% 97%)` = **#f6f8f9**; the
+     frame sample of the nav column reads mean 247.0 against the declared
+     247.4, and D7 §1.1's #f8fafb is superseded by it.
 
-     1.065 : 1 under the page, the same step a card takes. --ev-text-2 is
-     5.198 : 1 on it and --ev-ink 16.344.
+     **IT IS DARKER THAN A CARD, AND THAT IS NOT AN INVERSION OF D33.** The nav
+     is a REGION of the shell, not a surface resting on the page: it keeps the
+     reference's measured tint at 1.065 under the page while a card whispers at
+     1.036, because a card is judged against the content beside it and the nav
+     is judged against the whole page. The two held one value for one pass and
+     parted when the owner ruled the card down. --ev-text-2 is 5.689 : 1 on it.
 
      BOTH NAV SEAMS CARRY A 1px --ev-hairline, and that reverses D6's second
      bullet. A border is present at destination x = 28 AND x = 142 in every
      sidebar frame. §2.1's "MUST NOT draw a border between nav and content" is
-     a SHOPIFY observation that D7 replaces; D-4 names it as suspended. Do not
-     take the borders off again. */
+     a SHOPIFY observation that D7 replaces; D-4 names it as suspended. */
   --ev-bg-nav: #f6f8f9;
 
   /* The RAIL is a third step, darker than the sub-tab column.
@@ -541,15 +542,15 @@
      ends up with an invisible selection. */
   --ev-nav-chip-rail: #d8dde5;
 
-  /* The nav's hover fill, and it is --ev-row-hover's value: the product has ONE
-     hover and it steps TOWARD the page (rule 2 at --ev-bg). White on the
-     #f6f8f9 nav, 1.065 : 1.
-       hover  #ffffff  1.065 OVER the nav ground
-       pill   #e5e7eb  1.162 UNDER it
-     Hover and active now sit on OPPOSITE sides of the ground rather than the
-     same side, which separates them by more than either separates from the nav
-     and removes the old constraint that a hovered label had to be re-coloured
-     in the same rule to stay legal. --ev-text-2 on white is 5.538 : 1. */
+  /* The nav's hover fill. It sits BETWEEN the nav ground and the active pill so
+     hover and active stay separable, and both of those are declared, so the
+     midpoint is too: `[css]` `gray-100`.
+       nav #f6f8f9 (gray-50) -> hover #f0f2f4 (gray-100) -> pill #e5e7eb (200)
+       1.000                    1.054 : 1                   1.162 : 1
+     Like a row's hover it steps AWAY from the page (rule 2 at --ev-bg).
+     --ev-text-2 is 5.400 : 1 on it, so unlike the pair before 2026-09-06 it is
+     a legal text ground on its own and no longer depends on `hover:bg-nav-hover`
+     and `hover:text-foreground` being written in the same rule. */
   --ev-nav-hover: #f0f2f4;
 
   /* THE ACTIVE PILL **AND** THE RESTING COUNT PLATE. Rewritten by D7; the old
@@ -734,20 +735,22 @@
      they are about to click the checkbox. #828b99 measures 2.929 there and
      fails. Re-solved against that ground, with the whole set recomputed:
 
-       on --ev-bg               #ffffff   3.441 : 1   PASS  the page
-       on --ev-surface          #f6f8f9   3.231 : 1   PASS  card, nav, table
-       on --ev-bg2              #f3f5f7   3.149 : 1   PASS  a tinted row
-       on --ev-surface-2        #f0f2f4   3.066 : 1   PASS  popover, dropdown
-       on --ev-neutral-lt       #f0f2f4   3.066 : 1   PASS  a badge plate
+       on --ev-bg / --ev-surface-2 #ffffff  3.629 : 1   PASS  page, popover
+       on --ev-surface          #fafbfc   3.503 : 1   PASS  card, table body
+       on --ev-bg2 / the plate  #f7f9fb   3.439 : 1   PASS  a tinted row
+       on --ev-row-hover        #f4f6f8   3.350 : 1   PASS  a hovered row
+       on --ev-bg-nav           #f6f8f9   3.407 : 1   PASS
+       on --ev-nav-hover        #f0f2f4   3.234 : 1   PASS
        on --ev-bg-rail          #e9edf1   3.084 : 1   PASS  **NEWLY LEGAL**
-       on --ev-row-hover        #ffffff   3.441 : 1   PASS  a hovered row
        on --ev-row-critical     #fff7f6   3.437 : 1   PASS
        on --ev-row-critical-emphasis #fef0ee 3.268 : 1 PASS
-     Nine grounds, all clear, and the tightest margins are 0.066 on the badge
-     plate and 0.084 on the rail. **THOSE TWO PIN THE VALUE NOW**, where
-     --ev-row-critical-emphasis used to; one step deeper on either and R19
-     fails silently, with nothing on screen to show it. #828b99, the value
-     before this, is 2.925 on the rail and failed there.
+     Nine grounds, all clear, and the rail is the tightest at 0.084. **IT PINS
+     THE VALUE NOW**, where --ev-row-critical-emphasis used to; #828b99, the
+     value before this, is 2.925 there and failed. TWO GROUNDS ARE OUT OF THE
+     SET AND BOTH ARE DELIBERATE: the active nav pill (2.931) carries no
+     checkbox, and --ev-selected (2.757) carries a CHECKED one, which is a
+     --primary fill rather than an outline. A screen that wants an unchecked
+     checkbox on either needs a ruling, not this token.
 
      It stays far lighter than --ev-text-2 (#626974, 4.934 on the same worst
      ground) so it cannot be read as a text colour, and it has no counterpart
@@ -783,28 +786,30 @@
 
      -- RE-DERIVED 2026-09-06: #6b7280 -> #626974. THE RECESSED LADDER PAID
         FOR ITSELF IN INK, and this is the one place it was charged. ────────
-     D33 put a card at #f6f8f9, a tint inside it at #f3f5f7 and the badge
-     plate at #f0f2f4. The old value is `[css]` gray-500 #6b7280, and
-     it clears AA on white by 0.334 and on gray-50 by 0.038. On the plate it
-     does not clear it at all:
-       #6b7280  on #f3f5f7  4.423  FAIL      on #f0f2f4  4.308  FAIL
+     D33 put a card at #fafbfc, a tint inside it at #f7f9fb, a hover at
+     #f4f6f8 and a SELECTED row at #dce1e6. The reference value is `[css]`
+     gray-500 #6b7280; it clears AA on white by 0.334, on gray-50 by 0.038,
+     and on the selected ground not at all:
+       #6b7280  on #dce1e6  3.673  FAIL      #626974 there  4.276  FAIL
      There was no lighter ladder available either: --ev-bg2's own block shows
      the tint is fixed by the card, and the card is fixed by the ruling. So
      the ink moved instead, to the value --ev-text-2-rail already carried,
      which was itself solved against a tinted nav ground for this same reason.
 
-       ink #626974      on --ev-bg / --ev-row-hover  #ffffff  5.538  AA
-                        on --ev-surface / --ev-bg-nav #f6f8f9 5.198  AA
-                        on --ev-bg2               #f3f5f7  5.067  AA
-                        on --ev-surface-2 / plate #f0f2f4  4.934  AA
-                        on --ev-bg-rail           #e9edf1  4.707  AA  binding
-                        on --ev-row-critical      #fff7f6  5.244  AA
-                        on --ev-row-critical-emphasis #fef0ee 4.987 AA
-     Every ground the product renders, with 0.207 of margin at the worst of
-     them, against 0.038 before. **Every ratio quoted against --ev-text-2
-     elsewhere in this file is now conservative by 0.7 or so** and was left
-     alone rather than restated; the direction of the change is monotone, so a
-     pair that passed still passes.
+       ink #5c636e      on --ev-bg / --ev-surface-2 #ffffff  6.061  AA
+                        on --ev-surface           #fafbfc  5.850  AA
+                        on --ev-bg2 / the plate   #f7f9fb  5.743  AA
+                        on --ev-row-hover         #f4f6f8  5.594  AA
+                        on --ev-bg-nav            #f6f8f9  5.689  AA
+                        on --ev-nav-hover         #f0f2f4  5.400  AA
+                        on --ev-bg-rail           #e9edf1  5.151  AA
+                        on --ev-selected          #dce1e6  4.605  AA  BINDING
+                        on --ev-row-critical      #fff7f6  5.739  AA
+                        on --ev-row-critical-emphasis #fef0ee 5.458 AA
+     Every ground the product renders. **THE SELECTED GROUND PINS IT**: at
+     4.605 the margin is 0.105, and #626974 measures 4.276 there and fails.
+     Every ratio quoted against --ev-text-2 elsewhere in this file is now
+     conservative; the change is monotone, so a pair that passed still passes.
 
      WHAT IT COSTS: the muted rung sits closer to --ev-ink than it did (5.538
      against 17.406, where it was 4.834). H5's finding is unchanged in kind —
@@ -2328,7 +2333,7 @@
      --ev-row-hover is defined relationally, one step further from the page
      than whatever surface it lands on, and it already carried that job for
      table rows:
-       light  #ffffff on a card #f6f8f9              1.065 : 1
+       light  #f4f6f8 on a card #fafbfc              1.046 : 1
        dark   #14181e on the card          #080a0d   1.113 : 1
               #14181e on the overlay       #000000   1.179 : 1
      A hover is now visible on every surface in both themes, which is what
@@ -2364,9 +2369,10 @@
      every ground a focusable thing sits on — comfortably better than the blue
      it replaces, on all of them:
        on --ev-bg      #ffffff   **6.731**   (was 4.574)
-       on --ev-surface #f6f8f9   **6.319**   (was 4.294)
-       on --ev-bg2     #f3f5f7   **6.159**
-       on --ev-surface-2 #f0f2f4 **5.998**   (was 4.076)
+       on --ev-surface   #fafbfc  **6.497**   (was 4.294)
+       on --ev-bg2       #f7f9fb  **6.378**
+       on --ev-row-hover #f4f6f8  **6.213**
+       on --ev-selected  #dce1e6  **5.114**
        on --ev-bg-rail #e9edf1   **5.721**   (was 3.887)
        on --ev-nav-chip #e5e7eb  **5.437**   (was 3.694)
        on --ev-nav-hover #f0f2f4 **5.998**   (was 4.076)
@@ -2405,8 +2411,8 @@
 
        --ev-amber #b45309   on --ev-amber-lt #fff4e6   4.623   AA ✓
                             on white         #ffffff   5.022   AA ✓
-                            on --ev-surface  #f6f8f9   4.714   AA ✓
-                            on --ev-bg2      #f3f5f7   4.595   AA ✓
+                            on --ev-surface  #fafbfc   4.847   AA ✓
+                            on --ev-bg2      #f7f9fb   4.758   AA ✓
                             on --ev-row-critical-emphasis      4.523   +0.023
                             on --ev-bg-rail  #e9edf1   4.268   **FAIL**
 
@@ -2475,12 +2481,12 @@
      with it. Every tone foreground on every ground a row can take, computed
      here rather than carried over:
 
-       tone foreground              page   card    row-crit  row-crit-emph
-       success  --ev-green    #1d723c  5.958   5.593     5.643      5.366  ✓
-       warning  --ev-amber-dk #7a3e12  8.316   7.806     7.875      7.489  ✓
-       info     --ev-blue-dk  #1b51c4  6.952   6.526     6.584      6.261  ✓
-       critical --ev-red      #b42318  6.574   6.172     6.226      5.921  ✓
-       neutral  --ev-text-2   #626974  5.538   5.198     5.244      4.987  ✓
+       tone foreground              page   card   selected  row-crit-emph
+       success  --ev-green    #1d723c  5.958   5.751    4.527      5.366  ✓
+       warning  --ev-amber-dk #7a3e12  8.316   8.027    6.318      7.489  ✓
+       info     --ev-blue-dk  #1b51c4  6.952   6.710    5.282      6.261  ✓
+       critical --ev-red      #b42318  6.574   6.346    4.995      5.921  ✓
+       neutral  --ev-text-2   #5c636e  6.061   5.850    4.605      5.458  ✓
 
      **THE ONE FAILURE IN THIS TABLE IS GONE, AND NOT BY LUCK.** It used to
      read "a demoted neutral inside a breached row FAILS AA at 4.354", on
@@ -2557,15 +2563,15 @@
      ground per theme; the other two rows are where a third consumer could
      land it. Dark is re-derived in the `.dark` block and measured there.
 
-       ink on --ev-bg2 #f3f5f7, the ground it ships on
-       THIS TOKEN   = --ev-red   the word `High`  6.015   AA ✓
-       --ev-ink     `Medium` / `Low`, UNCHANGED  15.931   AAA ✓
-       --ev-text-2  §8.2's reason line            5.067   AA ✓
+       ink on --ev-bg2 #f7f9fb, the ground it ships on
+       THIS TOKEN   = --ev-red   the word `High`  6.229   AA ✓
+       --ev-ink     `Medium` / `Low`, UNCHANGED  16.497   AAA ✓
+       --ev-text-2  §8.2's reason line            5.743   AA ✓
        THIS TOKEN on --ev-surface and --ev-bg     6.574   AA ✓
 
      All clear 4.5:1, so the reading is legal at BODY size and not only at
      the 20px it renders at in the rail. The §8.2 reason line beside it keeps
-     --muted-foreground: 5.067, which the 2026-09-06 ink move bought back
+     --muted-foreground: 5.743, which the 2026-09-06 ink move bought back
      from the 4.538 the whole product used to rest on.
 
      **THE DARK VALUE COMES FOR FREE AND THAT IS THE POINT OF LAYER 1.**
