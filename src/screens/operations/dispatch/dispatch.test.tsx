@@ -171,27 +171,45 @@ describe('T1.1 — the three header figures come from a read, not a literal', ()
 })
 
 describe('T1.3 — the board ticks on the shell clock', () => {
+  /** The age the meta line prints, read back out of the rendered sentence. */
+  const AGE = new RegExp(copy('dispatch.meta').replace('{seconds}', String.raw`(\d+)`))
+  const printedAge = (): number => {
+    const line = screen.getByText(AGE).textContent ?? ''
+    const found = AGE.exec(line)
+    if (!found) throw new Error(`The meta line prints no age: ${line}`)
+    return Number(found[1])
+  }
+
+  beforeEach(() => {
+    /* The tick count is module state, so a previous test leaves this one at an
+       arbitrary point in the 20-second refresh bucket — and a refresh resets
+       the age to zero mid-assertion. Reset before the first subscriber. */
+    resetClock()
+    /* `shouldAdvanceTime` — Testing Library polls `findBy*` on a real interval
+       and cannot see vitest's fakes, so a frozen clock hangs every await in
+       this block. AC-28's one interval is still what `advanceTimersByTime`
+       drives; this only keeps the awaits alive. */
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
   afterEach(() => {
     vi.useRealTimers()
     resetClock()
   })
 
   it('ages the meta line a second at a time', async () => {
-    /* Installed before the render: the one interval starts on the first
-       subscriber, and a clock the test replaced afterwards is not that one. */
-    vi.useFakeTimers()
     renderDispatch()
-    await screen.findByText(fill('dispatch.meta', { seconds: '0' }))
+    await screen.findByText(AGE)
+    const before = printedAge()
 
     await act(async () => {
-      vi.advanceTimersByTime(5_000)
+      await vi.advanceTimersByTimeAsync(5_000)
     })
 
-    expect(screen.getByText(fill('dispatch.meta', { seconds: '5' }))).toBeInTheDocument()
+    await waitFor(() => expect(printedAge()).toBeGreaterThanOrEqual(before + 5))
   })
 
   it('re-reads the feeds when the refresh bucket turns over', async () => {
-    vi.useFakeTimers()
     renderDispatch()
     await screen.findByRole('img', { name: /trips in flight/i })
 
@@ -199,7 +217,7 @@ describe('T1.3 — the board ticks on the shell clock', () => {
        only mean the screen asked the client again. */
     mockFailures.always('trips.list')
     await act(async () => {
-      vi.advanceTimersByTime(20_000)
+      await vi.advanceTimersByTimeAsync(20_000)
     })
 
     expect(
@@ -326,6 +344,34 @@ describe('T2.2 — Fit to fleet re-frames the board', () => {
 
     await user.click(fit)
     expect(positionOf()).toBe(declared)
+  })
+
+  it('frames what is drawn, not what a switched-off layer would have drawn', async () => {
+    const user = userEvent.setup()
+    const request = await firstPending()
+    renderDispatch()
+
+    const pin = await screen.findByRole('button', {
+      name: fill('dispatch.map.pin.request', {
+        id: request.id,
+        pickup: request.pickup,
+        destination: request.destination,
+      }),
+    })
+    const positionOf = () => (pin.closest('li') as HTMLElement).style.insetInlineStart
+
+    await user.click(screen.getByRole('button', { name: copy('dispatch.map.fit') }))
+    const withCaptains = positionOf()
+
+    /* Fifty captain dots are most of the board's extent, so dropping them is
+       the visible difference between the two frames. */
+    await user.click(screen.getByRole('button', { name: copy('dispatch.map.fit') }))
+    await user.click(
+      screen.getByRole('switch', { name: new RegExp(copy('dispatch.layers.captains')) }),
+    )
+    await user.click(screen.getByRole('button', { name: copy('dispatch.map.fit') }))
+
+    expect(positionOf()).not.toBe(withCaptains)
   })
 })
 

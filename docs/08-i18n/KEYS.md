@@ -9,19 +9,19 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5609** |
+| **Translatable keys, all dictionaries** | **5606** |
 | Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5609 |
+| Keys in `AR` | 5606 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 276 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 175 |
+| Keys in a `copy.ts` the shell has NOT registered | 172 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **112** |
 | **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values over their word budget (the ratchet)** | **189** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -331,7 +331,7 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **189**, measured **189**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
@@ -339,10 +339,10 @@ Measured on English only, and a placeholder counts as one word.
 | Class | Budget, in words | Over |
 |---|---:|---:|
 | title | 4 | 94 |
-| empty body | 12 | 48 |
+| empty body | 12 | 46 |
 | empty title | 5 | 20 |
 | button | 3 | 19 |
-| meta | 6 | 9 |
+| meta | 6 | 8 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
 
@@ -380,7 +380,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 23 | `subs.empty.firstRun.body` | A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed. |
 | empty body | 22 | `adminData.integrity.empty.body` | Nothing is scanned in the background. Run the checks and each one reports what it found, with its name on every row. |
 | empty body | 22 | `comms.log.empty.outbox.body` | Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them. |
-| empty body | 22 | `dispatch.empty.board.body` | Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts. |
 | empty body | 22 | `dispute.lf.empty.body` | Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back. |
 | empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
 | empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
@@ -399,7 +398,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 17 | `ticket.thread.empty.body` | This ticket was raised from an operations event. The first message or logged call will appear here. |
 | empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
-| empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
 | empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
 | empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
@@ -446,7 +444,6 @@ Measured on English only, and a placeholder counts as one word.
 | meta | 9 | `admin.workspace.meta` | Company details, branding, and the legal versions in force |
 | meta | 9 | `comms.meta` | {total} messages in the log · {attention} needing attention |
 | meta | 8 | `admin.team.meta` | Operators, permissions, security policy and the on-call rota |
-| meta | 7 | `dispatch.meta` | {count} in transit · as of {time} |
 | meta | 7 | `profile.trip.band.meta` | {id} · {date} · {rider} · {captain} |
 | title | 13 | `onboarding.step.support.profile.title` | Open a 360° profile, and know what you may not do with it |
 | title | 10 | `admin.integrations.reveal.warning.webhook.title` | This is the only time this signing secret is shown |
@@ -594,7 +591,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
 | `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 93 | 92 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 82 | 80 |
 
 ## Screens with no `copy.ts`
 

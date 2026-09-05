@@ -1,18 +1,18 @@
 {
   "totals": {
-    "keys": 5609,
+    "keys": 5606,
     "en": 5330,
-    "ar": 5609,
+    "ar": 5606,
     "arMissing": 0,
-    "arExtra": 279,
+    "arExtra": 276,
     "copyFiles": 36,
-    "unregisteredKeys": 175,
+    "unregisteredKeys": 172,
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 112,
     "emDashAr": 115,
-    "overBudget": 192
+    "overBudget": 189
   },
   "registered": [
     {
@@ -304,8 +304,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 85,
-      "notInEN": 83
+      "keys": 82,
+      "notInEN": 80
     }
   ],
   "noCopyFile": [
@@ -1931,14 +1931,6 @@
       "value": "Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them."
     },
     {
-      "file": "src/screens/operations/dispatch/copy.ts",
-      "key": "dispatch.empty.board.body",
-      "class": "empty body",
-      "words": 22,
-      "budget": 12,
-      "value": "Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts."
-    },
-    {
       "file": "src/screens/support/disputes/copy.ts",
       "key": "dispute.lf.empty.body",
       "class": "empty body",
@@ -2081,14 +2073,6 @@
       "words": 16,
       "budget": 12,
       "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
-    },
-    {
-      "file": "src/screens/operations/dispatch/copy.ts",
-      "key": "dispatch.empty.trips.body",
-      "class": "empty body",
-      "words": 16,
-      "budget": 12,
-      "value": "No trip is on the road right now. New trips appear here as captains accept them."
     },
     {
       "file": "src/screens/operations/my-work/copy.ts",
@@ -2457,14 +2441,6 @@
       "words": 8,
       "budget": 6,
       "value": "Operators, permissions, security policy and the on-call rota"
-    },
-    {
-      "file": "src/screens/operations/dispatch/copy.ts",
-      "key": "dispatch.meta",
-      "class": "meta",
-      "words": 7,
-      "budget": 6,
-      "value": "{count} in transit · as of {time}"
     },
     {
       "file": "src/components/profile/trip/copy.ts",
@@ -3234,7 +3210,7 @@
     ],
     [
       "empty body",
-      48
+      46
     ],
     [
       "empty title",
@@ -3246,7 +3222,7 @@
     ],
     [
       "meta",
-      9
+      8
     ],
     [
       "badge",

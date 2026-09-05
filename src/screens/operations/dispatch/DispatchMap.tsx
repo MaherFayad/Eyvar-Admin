@@ -241,15 +241,20 @@ export function DispatchMap({
     [captains],
   )
 
-  /* T2.2 — every point the board can draw, whatever layer is on: the fleet is
-     the fleet whether or not its dots are painted. */
+  /* T2.2 — every point the board is currently drawing, which is what the frame
+     control fits. Layer-aware: a frame sized around marks the operator has
+     switched off is empty space with no explanation on it. */
   const drawnPoints = useMemo<GeoPoint[]>(
     () => [
-      ...tripPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to])),
-      ...requestPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to])),
-      ...captainMarks.map((mark) => mark.at),
+      ...(layers.trips
+        ? tripPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to]))
+        : []),
+      ...(layers.pending
+        ? requestPins.flatMap((pin) => (pin.to === null ? [pin.from] : [pin.from, pin.to]))
+        : []),
+      ...(layers.captains ? captainMarks.map((mark) => mark.at) : []),
     ],
-    [tripPins, requestPins, captainMarks],
+    [tripPins, requestPins, captainMarks, layers],
   )
 
   /* The two corners of everything drawn. `null` when nothing is placeable, so

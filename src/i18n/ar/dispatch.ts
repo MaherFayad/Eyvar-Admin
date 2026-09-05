@@ -59,7 +59,10 @@ export const DISPATCH_AR: Dictionary = {
   'dispatch.feed.scope.fleet': '{count} كابتن على الوردية',
   'dispatch.feed.scope.pending': '{count} تنتظر كابتن',
   'dispatch.feed.scope.trips': '{count} على الطريق',
-  'dispatch.meta': 'حُدِّث قبل {seconds} ثانية',
+  /* Abbreviated, as the English is (`Updated {seconds}s ago`), and because the
+     counter passes through 3-10 every few seconds — the range where a spelled
+     unit would need the broken plural. Same `ث` as `dispatch.reading.seconds`. */
+  'dispatch.meta': 'حُدِّث قبل {seconds} ث',
   'dispatch.reading.autoMatch': 'المطابقة الآلية',
   'dispatch.reading.seconds': '{seconds} ث',
   'dispatch.reading.matchTime': 'زمن المطابقة',
