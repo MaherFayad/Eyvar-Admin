@@ -5,7 +5,7 @@
 > **HTML lines:** L713–L767
 > **Primary render:** `renderSubscriptionsTable()` (L3477–L3573)
 > **Related functions:** `subEconomics()` (L3605), `computeSettlement()` (L3632), `openSettlement()` (L3639), `refreshSettlePreview()` (L3668), `commitSettlement()` (L3684), `subLocBtn()` (L3284), `buildSubProfile()` (L4279), `cancelSubDispatch()` (L5022)
-> **Legacy note:** a former `p-sub-detail` page was deleted; the removal comment sits at L758–L765 and states it was hardcoded to `SUB-1041` and unreachable. Per-subscription detail is now `openProfile(subId)` → `buildSubProfile()` (L4279).
+> **Removed page:** a former `p-sub-detail` page was deleted; the removal comment sits at L758–L765 and states it was hardcoded to `SUB-1041` and unreachable. Per-subscription detail is now `openProfile(subId)` → `buildSubProfile()` (L4279).
 
 ---
 

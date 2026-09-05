@@ -483,7 +483,7 @@ The **only** Arabic actually rendered by this pane is the per-code `labelAr` col
 
 ## 13. Gaps, dead code, UNVERIFIED items
 
-1. **`owner` has no routing or filtering** — but it is **not** dead. It is displayed on the ticket SLA detail chip (L14831) and is a rendered column of the Contact-drivers CPT report (L15001 → L15035, header L15041, reading instruction L15044). What is missing is an owner *filter*, owner-based *routing* and owner-based *escalation*; the reporting half of the comment at L14666 is implemented. *(Correction: an earlier revision of this document called `owner` DEAD, contradicting `13a` and `13c`, which were right. See `docs/02-verification/corrections-applied.md` Part 2 §2.)*
+1. **`owner` has no routing or filtering** — but it is **not** dead. It is displayed on the ticket SLA detail chip (L14831) and is a rendered column of the Contact-drivers CPT report (L15001 → L15035, header L15041, reading instruction L15044). What is missing is an owner *filter*, owner-based *routing* and owner-based *escalation*; the reporting half of the comment at L14666 is implemented.
 2. **`target` is invisible and inert.** Not rendered in the table, not read by any code — so a `driver`-targeted code is offered in the rider wallet-credit picker (L3970) exactly like a rider code.
 3. **`hours: 'business'` on T4 is not implemented.** `slaState()` uses raw wall-clock deltas, so a low-priority contact opened at 02:00 accrues breach time overnight — precisely the scenario the design comment at L14645–14646 says it wants to avoid. The field is also read-only in the UI.
 4. **`breachEscalateTo:'ops_supervisor'` is dead** (L14658). Escalation names the on-call person instead (L14945).

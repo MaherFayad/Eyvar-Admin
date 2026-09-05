@@ -396,7 +396,7 @@ These describe a **6-group settings-tab taxonomy that the markup does not carry 
 
 So **six of the seven are consumed at runtime**, and the true orphan count is **1**: `stabgrp.other` (`L21307`). Its `leftovers` branch (`L21302–L21310`) can only fire if a `[data-tab]` button exists that `SETTINGS_GROUPS` does not name, and the six groups cover all 21 rail tabs (5+4+3+3+4+2 = 21), so it is unreachable in this build.
 
-The inversion runs the other way as well: the **three static** group keys — `stabgrp.workspace` (`L1420`), `stabgrp.operations` (`L1424`), `stabgrp.system` (`L1436`) — are the ones that never render, because `reorderSettingsTabs()` removes every `.settings-tab-group-lbl` from the nav at **`L21288`** (and again at `L21311`) before appending its own. The refactor was **completed in JS**, not abandoned; only the static markup was left behind. *(`03c` L546 already documented `stabgrp.comms` as live at L21274. Correction recorded in `docs/02-verification/corrections-applied.md` Part 2 §6.)*
+The inversion runs the other way as well: the **three static** group keys — `stabgrp.workspace` (`L1420`), `stabgrp.operations` (`L1424`), `stabgrp.system` (`L1436`) — are the ones that never render, because `reorderSettingsTabs()` removes every `.settings-tab-group-lbl` from the nav at **`L21288`** (and again at `L21311`) before appending its own. The refactor was **completed in JS**, not abandoned; only the static markup was left behind.
 
 ---
 

@@ -12,9 +12,9 @@ these are the raw inputs to the narrative documents in `docs/04-relations/`.
 | `collections-late-assigned.txt` | collections created later via `DB.x=` | grep `^DB\.[a-z]*=` |
 | `collections-referenced.txt` | every `DB.<key>` referenced anywhere | grep + sort -u |
 
-## Caveat recorded during extraction
+## A trap in the extraction
 
-A first attempt at "collections defined but never read" produced 13 false
+Asking for "collections defined but never read" naively produces 13 false
 positives (`weekly`, `monthly`, `approve_driver`, `permission_denied`, …). These
 are **nested keys** inside `DB.plans` and `DB.actionLabels`, not top-level
 collections — the parser matched any two-space-indented `key:`. The pattern was
@@ -24,7 +24,7 @@ is only trustworthy if the method that produced it is visible.
 
 ---
 
-## Addendum — write matrix (added during the relations pass)
+## Addendum — write matrix
 
 | File | Contents | How produced |
 |---|---|---|
@@ -119,6 +119,5 @@ Deleting the evidence of a flawed input makes the flaw harder to trace, not
 easier. The read side remains usable and is what the 1,183-edge figure quoted
 elsewhere refers to.
 
-*Found by the relationship-mapping agent, which rebuilt the write side rather
-than accepting the supplied data — and verified independently: filtering this
-file for `riders`/`drivers`/`trips`/`subscriptions` writes returns 0 rows each.*
+Verify it directly: filtering this file for `riders`, `drivers`, `trips` or
+`subscriptions` writes returns 0 rows each.

@@ -812,7 +812,7 @@ reqRenderPager(document.getElementById('requests-sub-all-pager'),
                rows.length,_reqSubAllPage,REQ_ALL_PAGE_SIZE,'gotoReqSubAllPage'); /* L10168 */
 ```
 
-Consequences worth recording for a rebuild:
+Consequences of creating both pagers in the renderer:
 
 - Neither id appears anywhere in the page markup — a search of the `.page` divs for `requests-sub-all-pager` finds nothing. They exist only after their renderer has run.
 - **Neither pager survives an empty result set.** When `rows.length===0` the function writes the *"No subscription requests match."* / *"No instant ride requests match."* empty state and **returns before L10164** (L10158–L10161 for sub, L10205–L10208 for instant). The pager div is never created in that path, which is correct — but it means the ids are conditionally present, not merely conditionally filled.

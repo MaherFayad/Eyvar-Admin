@@ -904,16 +904,14 @@ Two independent reasons, either one sufficient:
 
 So the dead surface is **21 lines of JS (L6313–L6333) + 13 rows of seed data (L2817–L2829) + 7 CSS rules (L171–L177)**.
 
-### 21.4 Correction to the Pass 1 finding
+### 21.4 How the function actually exits
 
-Pass 1 §6 states the function *"always returns early at L6317"*. That line number is wrong and the mechanism is under-stated:
+- **L6317 is `if(wrap){` — a guard, not a return.** It skips the driver-picker block; it does not exit the function.
+- **The unconditional early return is L6325** (`if(!lbl)return;`), reached because `#circuit-riders-list` is absent.
+- **Both** mount points are missing, not one: `circuit-driver-select-wrap` and `circuit-riders-list`. Restoring the picker container alone would still render nothing.
+- `DB.circuits` carries **3** references: the seed, L6315 and L6318.
 
-- **L6317 is `if(wrap){` — a guard, not a return.** It causes the driver-picker block to be *skipped*, not the function to exit.
-- **The unconditional early return is L6325** (`if(!lbl)return;`), reached because `#circuit-riders-list` is also absent.
-- Pass 1 identified only **one** missing mount point (`circuit-driver-select-wrap`). **Both** mount points are missing. That makes the finding stronger, not weaker: even a rebuild that restored the picker container alone would still render nothing.
-- Pass 1 counts `DB.circuits` as having *"just 2 references… the seed and L6315"*. There are **3**: the seed, L6315 and L6318.
-
-The Pass 1 verdict — dead code, orphaned collection — is **confirmed**. Only its supporting line cites needed correcting.
+Dead code over an orphaned collection.
 
 ### 21.5 What the feature was evidently meant to do
 

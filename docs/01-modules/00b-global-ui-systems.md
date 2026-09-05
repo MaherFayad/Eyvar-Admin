@@ -1462,7 +1462,7 @@ Step 5 is the widget's `onchange` equivalent. The safety argument is at L5406–
 
 > *"`onChangeExpr` is an authored call expression from our own templates (e.g. `"onChangeDriverReason('SUB-1041')"`), never user input — used so a handler can receive the same arguments a native onchange attribute would have had access to via closure."*
 
-Two behavioural consequences that matter for a rebuild:
+Two behavioural consequences:
 
 - **The `catch(e){}` is silent** (L5411). If the change handler throws, the pick still stands — the hidden input already holds the new value from step 1 — but nothing downstream runs and nothing is logged or toasted. A dropdown can appear to work while its dependent panel never updates.
 - `new Function` re-parses the expression string on **every** pick. Since the string is always authored template text (never a value from `DB` or a user field), this is not an injection surface; it is, however, why an `onChangeExpr` must be a global function call and cannot be a closure.

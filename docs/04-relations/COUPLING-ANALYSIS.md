@@ -3,7 +3,6 @@
 > **Source:** `eyvar_ops_panel_v40_fixed.html` (21,857 lines). `L####` = line in that file.
 > **Companion documents:** `ENTITY-RELATIONSHIPS.md` (what links to what),
 > `MODULE-DEPENDENCY-MAP.md` (who reads and writes what), `DATA-FLOW.md` (where the chains break).
-> **§4 of this document is the direct input to the restructure phase.**
 
 ---
 
@@ -119,8 +118,8 @@ functions in a single statement (`L8819`); `support` is handled by **two** branc
 
 ## 4. Where the sidebar cuts across the real data boundaries
 
-**This section is the direct input to the restructure phase.** Each row is a concrete mismatch between
-the current IA and the data, with the evidence and the implication.
+Each row is a concrete mismatch between the prototype's IA and its data, with the evidence and
+the implication.
 
 ### 4.1 One data surface split into two nav items
 
@@ -177,7 +176,7 @@ of which is where an operator's shift begins.
 
 ---
 
-## 5. What the restructure has to decide
+## 5. The decisions this coupling forces
 
 Ranked by how much of the coupling each decision removes.
 

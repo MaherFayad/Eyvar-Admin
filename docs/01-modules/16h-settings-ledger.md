@@ -11,7 +11,7 @@
 
 ## 1. Purpose
 
-A **double-entry ledger model** plus an **idempotency register**, presented as a trial balance, a reconciliation against the panel's legacy money arrays, and a journal-entry tail.
+A **double-entry ledger model** plus an **idempotency register**, presented as a trial balance, a reconciliation against the panel's flat money arrays, and a journal-entry tail.
 
 Pane description, verbatim (L1732):
 > "Double-entry postings and idempotency keys — the two things that stop money being paid twice or going unaccounted. Modelled here so the backend has an unambiguous specification: these accounts, these postings, these keys."
@@ -398,7 +398,7 @@ Boot registration: `{name:'ledger', fn:ledgerBoot, needs:['ledger','idempotency'
 | `demoDoubleRefund` | 20133, 20136 | this tab |
 | `ledgerReconcile` | 20063–20066 | this tab |
 
-`accountBalance`, `trialBalance`, `idemStats` and `DB.ledger` have **no readers outside the ledger module**. No dashboard, Finance page, export, or KPI reads the ledger. `exportPayments()` and the Finance page read `DB.refunds` / `DB.payments` / `DB.goodwillLedger` directly — the legacy arrays, not the books.
+`accountBalance`, `trialBalance`, `idemStats` and `DB.ledger` have **no readers outside the ledger module**. No dashboard, Finance page, export, or KPI reads the ledger. `exportPayments()` and the Finance page read `DB.refunds` / `DB.payments` / `DB.goodwillLedger` directly — the flat arrays, not the books.
 
 ---
 

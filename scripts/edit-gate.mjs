@@ -1,6 +1,6 @@
 // PostToolUse hook for Edit, Write and MultiEdit (wired in .claude/settings.json).
 // Reads the hook payload on stdin and checks ONLY the text the tool just wrote, so
-// legacy content in the same file never produces noise. Findings go to stderr with
+// pre-existing content in the same file never produces noise. Findings go to stderr with
 // exit 2, which is how a PostToolUse hook hands a report back to the agent. It never
 // blocks the edit and never touches the file.
 import { readFileSync } from 'node:fs'

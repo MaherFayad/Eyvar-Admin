@@ -287,7 +287,7 @@ JE 1 'fare_capture'   : debit cash.gateway gross | credit revenue.fares net | cr
 JE 2 'driver_accrual' : debit expense.driver_pay drv | credit liability.driver drv    (only if drv)
 ```
 
-### 5.12 Reconciliation vs. the legacy arrays (`ledgerReconcile`, `L20057`–`L20068`)
+### 5.12 Reconciliation vs. the flat money arrays (`ledgerReconcile`, `L20057`–`L20068`)
 ```
 walletTotal   = SUM over DB.riders of (r.wallet ? r.wallet.balance : 0)
 refundTotal   = SUM over DB.refunds of (r.amount || 0)
