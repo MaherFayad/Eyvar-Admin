@@ -138,12 +138,12 @@ describe('the chart headline states a quantity AND a change', () => {
 /* ───── the branch a card must not skip: no comparison, said in words ────── */
 
 describe('with nothing to compare against, the card says so', () => {
-  it('renders the no-baseline sentence and an em dash, never 0%', () => {
+  it('renders the no-baseline sentence and no mark at all, never 0% (O9)', () => {
     renderCard(series(), metric())
     expect(
       screen.getByText('No comparison period yet, so there is no trend to state.'),
     ).toBeInTheDocument()
-    expect(screen.getByText('—').getAttribute('aria-hidden')).toBe('true')
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
 

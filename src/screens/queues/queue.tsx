@@ -257,10 +257,9 @@ export function OwnerChip({
             (4.689). The one place the tone is safe on both grounds is the place
             that already computes it.
 
-            **The two OWNED states keep their chips**, deliberately: a claim by
-            a person is a lifecycle state an operator acts on, it is not the
-            resting value, and both tones clear AA on all four grounds
-            (`--ev-green` 5.37 worst case, `--ev-amber-dk` 7.49). */}
+            **`Yours` keeps its chip**: a claim by you is a lifecycle state an
+            operator acts on, and `--ev-green` clears AA on all four grounds
+            (5.37 worst case). A name is not a state and no longer takes one. */}
         <span className="min-w-0 shrink truncate">{t('queue.owner.unclaimed')}</span>
         <Button
           variant="ghost"
@@ -309,28 +308,16 @@ export function OwnerChip({
       className="flex min-w-0 items-center gap-1.5"
       title={t('queue.owner.heldBy', { name: held.ownerName })}
     >
-      <StatusBadge tone="warning" className="min-w-0 shrink justify-start truncate">
-        {held.ownerName}
-      </StatusBadge>
-      {/* **`shrink-0` on the button and `shrink` on the chip — both halves are
-          needed, and only one of them is obvious.** `badgeVariants`' own base
-          carries `shrink-0` and `whitespace-nowrap` (`ui/badge.tsx:44`), so a
-          `truncate` passed in through `className` can never fire: the chip
-          refuses to shrink and the BUTTON yields instead. At 140px that
-          rendered `Yousef Al-Balawi` beside `Tak`.
-          `justify-start` is the third half: the badge base is
-          `justify-center`, so a clipped label loses characters from BOTH ends
-          and `Yousef Al-Balawi` rendered as `ef Al-B` — a name that is not a
-          name. Truncation has to happen at one end for the ellipsis to mean
-          anything, and it is the inline-END, which mirrors on its own.
-          A truncated name is still a name and the full one is in `title`; a
-          truncated verb is an unusable control. Q-56 flags this cell as one of
-          the two that must be checked at their longest in Arabic.
-          Without it the flex row shrinks whichever child yields first, and at
-          140px that was the BUTTON: the cell rendered `Yousef Al-Balawi` beside
-          `Tak`. A truncated name is still a name and the full one is in
-          `title`; a truncated verb is an unusable control. Q-56 flags this cell
-          as one of the two that must be checked at their longest in Arabic. */}
+      {/* T5.12/H7 — a name is DATA, not a status, so it takes no fill: with the
+          reason and the deadline both filled this was the third on one row.
+          No colour class, so the word inherits the cell's own ink, which
+          `DataTable` already derives per row (`--ev-text-2-row-critical` on a
+          breached one). */}
+      <span className="min-w-0 shrink truncate">{held.ownerName}</span>
+      {/* `shrink-0` on the button, `shrink` on the name: the flex row otherwise
+          yields whichever child gives first, and at 140px that was the BUTTON
+          (`Yousef Al-Balawi` beside `Tak`). A truncated name is still a name
+          and the full one is in `title`; a truncated verb is unusable. */}
       <Button
         variant="ghost"
         size="xs"

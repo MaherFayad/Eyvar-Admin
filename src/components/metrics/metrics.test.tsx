@@ -148,9 +148,9 @@ async function readChartHint(): Promise<string> {
 }
 
 describe('MetricTile — §3.7 delta rules', () => {
-  it('renders an em dash and the reason when there is no comparison, never 0%', () => {
+  it('renders the reason and NO mark when there is no comparison, never 0% (O9)', () => {
     renderTile(metric())
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.getByText('No comparison period yet')).toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
@@ -385,9 +385,9 @@ describe('MetricTile — a target that exists is never "no comparison period yet
     expect(screen.queryByText('No target set')).not.toBeInTheDocument()
   })
 
-  it('still shows §3.7’s em dash where the percentage would be, never 0%', () => {
+  it('leaves the percentage slot blank rather than marking it, and never 0% (O9)', () => {
     renderTile(againstZeroTarget)
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
 
@@ -426,9 +426,8 @@ describe('MetricTile — a target that exists is never "no comparison period yet
   it('announces the absent delta to a screen reader, not only draws it (V-8)', () => {
     const { container } = renderTile(againstZeroTarget)
     expect(screen.getByText('No percentage change to state')).toBeInTheDocument()
-    /* The mark itself stays out of the tree — it says nothing on its own. */
-    const dash = screen.getByText('—')
-    expect(dash).toHaveAttribute('aria-hidden', 'true')
+    /* O9 — no mark at all now, so the clause is the whole of what is said. */
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     /* And the companion is not drawn. */
     const sr = container.querySelector('.sr-only')
     expect(sr?.textContent).toBe('No percentage change to state')

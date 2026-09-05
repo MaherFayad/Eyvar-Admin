@@ -458,6 +458,51 @@ export function ApplicantDetailScreen() {
         }
         /* AC-34 — the array IS the restack order below `--ev-bp-wide`. */
         rail={[
+          /* **The checklist is the rail's FIRST card (X1).** It is the answer
+             to *can I approve this yet*, derived from the same predicate the
+             header's primary is disabled by, so the two cannot disagree; last
+             in the rail it sat at y=1140 on a 800px viewport, below the fold
+             and below the button it explains. */
+          <RailCard
+            key="checklist"
+            title={t('applicant.check.heading')}
+            meta={t('applicant.review.progress', {
+              verified: formatCount(verifiedCount(record), language),
+              total: formatCount(docs.length, language),
+            })}
+          >
+            <ul role="list" className="flex list-none flex-col gap-1.5 text-xs">
+              {checklist.map((check) => (
+                <li key={check.id} className="flex items-start gap-2">
+                  {/* A box and a tick, not a colour: §7.5, and it survives
+                      greyscale. T9.10 — the registry's `Check`, at the box and
+                      glyph sizes `ui/checkbox.tsx` already uses, so no
+                      arbitrary radius or type size is needed. `aria-hidden`
+                      because the row says `done` in its own text beside it. */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-sm border',
+                      check.done
+                        ? 'border-chart-series bg-chart-series text-card'
+                        : 'border-border',
+                    )}
+                  >
+                    {check.done && <CheckIcon className="size-3" />}
+                  </span>
+                  <span className={check.done ? 'text-muted-foreground' : 'text-foreground'}>
+                    {t(check.labelKey, {
+                      document:
+                        check.documentType === undefined
+                          ? ''
+                          : t(docLabelKey(check.documentType)),
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </RailCard>,
+
           <RailCard key="driver" title={t('applicant.personalDetails')}>
             <Pair label={t('applicant.nationalId')} value={<bdi>{record.nationalId}</bdi>} />
             <Pair
@@ -516,49 +561,6 @@ export function ApplicantDetailScreen() {
             />
           </RailCard>,
 
-          /* **The checklist, and it is the rail's last word on purpose.** It is
-             the answer to *why can I not approve this yet*, derived from the
-             same predicate the header's primary is disabled by, so the two
-             cannot disagree. */
-          <RailCard
-            key="checklist"
-            title={t('applicant.check.heading')}
-            meta={t('applicant.review.progress', {
-              verified: formatCount(verifiedCount(record), language),
-              total: formatCount(docs.length, language),
-            })}
-          >
-            <ul role="list" className="flex list-none flex-col gap-1.5 text-xs">
-              {checklist.map((check) => (
-                <li key={check.id} className="flex items-start gap-2">
-                  {/* A box and a tick, not a colour: §7.5, and it survives
-                      greyscale. T9.10 — the registry's `Check`, at the box and
-                      glyph sizes `ui/checkbox.tsx` already uses, so no
-                      arbitrary radius or type size is needed. `aria-hidden`
-                      because the row says `done` in its own text beside it. */}
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-sm border',
-                      check.done
-                        ? 'border-chart-series bg-chart-series text-card'
-                        : 'border-border',
-                    )}
-                  >
-                    {check.done && <CheckIcon className="size-3" />}
-                  </span>
-                  <span className={check.done ? 'text-muted-foreground' : 'text-foreground'}>
-                    {t(check.labelKey, {
-                      document:
-                        check.documentType === undefined
-                          ? ''
-                          : t(docLabelKey(check.documentType)),
-                    })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </RailCard>,
         ]}
       />
 
