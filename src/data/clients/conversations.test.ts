@@ -13,10 +13,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { disableMockLatency, knownOperations, mockFailures, seedMockFailuresFromLocation } from '../config'
+import { EYVAR_NOW } from '../mock/clock'
 import { isApiError } from '../types/common'
-import { deliveryIsWellFormed } from '../types/conversation'
+import { CHAT_FIRST_RESPONSE_SECONDS, CHAT_RESOLUTION_MINUTES, deliveryIsWellFormed } from '../types/conversation'
 import type { Conversation, Message } from '../types/conversation'
-import { resetTickets } from './tickets'
+import { replyTicket, resetTickets } from './tickets'
 import {
   CONVERSATION_OPERATIONS,
   CONVERSATION_QUEUE_TOPIC,
@@ -30,6 +31,8 @@ import {
   listAgentPresence,
   listConversationMessages,
   listConversations,
+  markConversationRead,
+  receiveInboundMessage,
   releaseConversation,
   createTicketForConversation,
   reopenConversation,
@@ -77,6 +80,7 @@ const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
   { op: CONVERSATION_OPERATIONS.release, call: () => releaseConversation('CNV-102') },
   { op: CONVERSATION_OPERATIONS.transfer, call: () => transferConversation('CNV-101', 'USR-3') },
   { op: CONVERSATION_OPERATIONS.close, call: () => closeConversation('CNV-101', 'resolved') },
+  { op: CONVERSATION_OPERATIONS.markRead, call: () => markConversationRead('CNV-101') },
   { op: CONVERSATION_OPERATIONS.reply, call: () => replyConversation('CNV-101', { body: 'hello' }) },
   /* `CMSG-1031` on `CNV-104` is the seeded `bounced` message — the one row a
      retry has something to retry. */
@@ -619,6 +623,107 @@ describe('the subscription surface', () => {
     const presence = await setMyPresence('away')
     expect(presence.state).toBe('away')
     expect((await listAgentPresence()).find((p) => p.userId === 'USR-1')?.state).toBe('away')
+  })
+})
+
+describe('the inbox seam — CONTACT-CENTRE-REDESIGN-PLAN §4', () => {
+  it('1 — markConversationRead clears unread, announces it, is idempotent, and 404s an unknown id', async () => {
+    const updates: string[] = []
+    const stop = subscribeToConversationQueue((e) => {
+      if (e.type === 'conversation.updated' && e.conversationId === 'CNV-101') updates.push(e.type)
+    })
+    await flushRealtime()
+
+    /* Reading the record is not marking it read: two intents. */
+    expect((await getConversation('CNV-101')).unreadCount).toBe(2)
+
+    const read = await markConversationRead('CNV-101')
+    expect(read.unreadCount).toBe(0)
+    expect((await getConversation('CNV-101')).unreadCount).toBe(0)
+    expect(updates).toHaveLength(1)
+
+    const again = await markConversationRead('CNV-101')
+    expect(again).toEqual(read)
+    expect(updates).toHaveLength(1)
+    stop()
+
+    await expect(markConversationRead('CNV-NOPE')).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('2 — no live chat conversation has a null first-response clock, and it is D22’s 45 s from opening', async () => {
+    const { items } = await listConversations({ view: 'all', ...ALL })
+    const liveChats = items.filter((c) => c.channel === 'chat' && c.status !== 'closed')
+    expect(liveChats.length).toBeGreaterThan(0)
+    for (const c of liveChats) {
+      expect(c.firstResponseDueAt, c.id).not.toBeNull()
+      expect(c.slaSource, c.id).toBe('chat-policy')
+      expect(c.slaTargetMinutes, c.id).toBe(CHAT_RESOLUTION_MINUTES)
+      expect(Date.parse(c.firstResponseDueAt!) - Date.parse(c.createdAt), c.id).toBe(
+        CHAT_FIRST_RESPONSE_SECONDS * 1_000,
+      )
+      /* Past the window with nobody having answered is a stamp, never `dueAt < now` (R5a). */
+      const windowClosed = Date.parse(c.firstResponseDueAt!) < Date.parse(EYVAR_NOW)
+      if (c.firstResponseAt === null && c.status === 'waiting' && windowClosed) {
+        expect(c.firstResponseBreachedAt, c.id).toBe(c.firstResponseDueAt)
+      }
+      if (c.firstResponseAt !== null) expect(c.firstResponseBreachedAt, c.id).toBeNull()
+    }
+  })
+
+  it('3 — lastMessageAuthorKind follows the newest customer-visible message through reply, ticket mirror and inbound', async () => {
+    const { items } = await listConversations({ view: 'all', ...ALL })
+    for (const c of items) {
+      const visible = customerVisible(c.messages)
+      const expected = visible.length === 0 ? null : visible[visible.length - 1]!.authorKind
+      expect(c.lastMessageAuthorKind, c.id).toBe(expected)
+      /* `null` exactly when the preview is `null`: an empty thread and a phone thread of notes. */
+      expect(c.lastMessageAuthorKind === null, c.id).toBe(c.lastMessagePreview === null)
+    }
+    expect((await getConversation('CNV-107')).lastMessageAuthorKind).toBeNull()
+    expect((await getConversation('CNV-106')).lastMessageAuthorKind).toBeNull()
+
+    expect((await getConversation('CNV-101')).lastMessageAuthorKind).toBe('customer')
+    await replyConversation('CNV-101', { body: 'On it.' })
+    expect((await getConversation('CNV-101')).lastMessageAuthorKind).toBe('operator')
+    /* An internal note is not the preview, so it does not move the tint. */
+    await replyConversation('CNV-101', { body: 'checking billing', visibility: 'internal' })
+    expect((await getConversation('CNV-101')).lastMessageAuthorKind).toBe('operator')
+    receiveInboundMessage('CNV-101', 'Any news?')
+    expect((await getConversation('CNV-101')).lastMessageAuthorKind).toBe('customer')
+
+    /* The ticket seam mirrors a reply into its conversation (AC-S-16). */
+    receiveInboundMessage('CNV-104', 'Did the invoice go out?')
+    expect((await getConversation('CNV-104')).lastMessageAuthorKind).toBe('customer')
+    await replyTicket('TKT-501', 'Reissued the invoice.', 'USR-1', 'Sarah Al-Rashid')
+    expect((await getConversation('CNV-104')).lastMessageAuthorKind).toBe('operator')
+  })
+
+  it('4 — an inbound increments unread unless I hold the conversation; an outbound reply resets it', async () => {
+    /* CNV-101 is unheld: the customer speaks and the dot grows. */
+    expect((await getConversation('CNV-101')).unreadCount).toBe(2)
+    receiveInboundMessage('CNV-101', 'Hello?')
+    const unheld = await getConversation('CNV-101')
+    expect(unheld.unreadCount).toBe(3)
+    expect(unheld.status).toBe('waiting')
+    expect(unheld.lastMessagePreview).toBe('Hello?')
+
+    /* A note is not a reply and does not touch it; a reply resets it. */
+    await replyConversation('CNV-101', { body: 'note', visibility: 'internal' })
+    expect((await getConversation('CNV-101')).unreadCount).toBe(3)
+    await replyConversation('CNV-101', { body: 'Here now.' })
+    expect((await getConversation('CNV-101')).unreadCount).toBe(0)
+
+    /* CNV-102 is held by me (USR-1): I am reading it, so nothing is unread. */
+    expect(conversationAssignee(await getConversation('CNV-102'))?.id).toBe('USR-1')
+    receiveInboundMessage('CNV-102', 'Thanks!')
+    expect((await getConversation('CNV-102')).unreadCount).toBe(0)
+
+    /* CNV-103 is held by somebody else: to me it is unread. */
+    expect(conversationAssignee(await getConversation('CNV-103'))?.id).toBe('USR-3')
+    receiveInboundMessage('CNV-103', 'Still here')
+    expect((await getConversation('CNV-103')).unreadCount).toBe(2)
+
+    expect(() => receiveInboundMessage('CNV-113', 'late')).toThrow()
   })
 })
 
