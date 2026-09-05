@@ -22,7 +22,7 @@ const namedCorporateAccounts: CorporateAccount[] = [
     id: 'CORP-001',
     companyName: 'Al-Dossari Logistics',
     contactName: 'Fahad Al-Dossari',
-    contactEmail: 'fahad.dossari@gmail.com',
+    contactEmail: 'fahad.dossari@example.com',
     /* Seeded `null` — the nullable contact phone, on the only real row. */
     contactPhone: null,
     status: 'Pending',

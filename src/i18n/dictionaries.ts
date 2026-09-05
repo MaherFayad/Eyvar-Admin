@@ -274,7 +274,7 @@ const workspaces: Dictionary = {
   'perm.manage_workspace.name': 'Workspace settings',
   'perm.manage_data_governance.name': 'Data governance',
   'perm.manage_security_policy.name': 'Security policy',
-  'perm.manage_settings.name': 'Legacy settings',
+  'perm.manage_settings.name': 'Settings (retired)',
   'workspace.support': 'Customer Support',
   'workspace.admin': 'Admin',
 
@@ -714,7 +714,7 @@ const shell: Dictionary = {
   /* @deprecated D17 — retired and Owner-only, and it gates no row. It is listed
      because it is still a member of the union and the summary lists the union;
      the label says what it now means rather than what it used to do. */
-  'account.permission.manage_settings': 'Legacy settings access (being retired)',
+  'account.permission.manage_settings': 'Settings access (retired)',
 
   /* §11.6 row 23 `language-switching` — the control that fires it.
      `shell.account.language` is a GROUP HEADING, not an action, so it is a
