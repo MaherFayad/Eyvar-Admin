@@ -10,6 +10,12 @@ Precedence applied: `docs/RULINGS.md`, then the Rulings table, then §6.2, then 
 plan. Where the plan and `DESIGN.md` (or the token set in `globals.css`) disagree, `DESIGN.md`
 wins and the row in §10 says so. `DESIGN.md` has no inbox row; the nearest rules are cited.
 
+**Reference captures.** `scripts/harness/support-inbox.mjs` (deep probe: `inbox-{list,mine,thread,
+note,empty-thread,long-name,snoozed}-{wide,compact}-{en,ar}-<label>.png` plus `inbox-{thread,note}-
+wide-en-dark-<label>.png` under `scripts/harness/shots/`) and `scripts/harness/support-queues.mjs`
+(`contact-centre` and `contact-centre-thread` at 1280, en and ar). The verified frames are filed
+under `docs/02-verification/inbox/`.
+
 ## 1. Pattern
 
 | Pane | §6.4 row | Governing sections |
