@@ -306,7 +306,7 @@ export function BreakdownList({
     breakdown.awaitingStore === null && breakdown.rowsTotal > breakdown.rowsShown
 
   return (
-    <Card className="min-w-0 border border-border shadow-xs">
+    <Card className="min-w-0 border border-border">
       {/* The heading's rule is the panel's own divider, exactly as the chart
           footer's is. */}
       <CardHeader className="border-b border-border/50 pb-3">

@@ -195,7 +195,8 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
         "border-b border-(--ev-hairline2) transition-colors",
         // AC-68 / D19 — focus-within mirrors hover, always and everywhere.
         "hover:bg-accent focus-within:bg-accent",
-        "data-[state=selected]:bg-accent",
+        // D33 — selection outranks hover, so it takes the ground of its own.
+        "data-[state=selected]:bg-selected",
         className
       )}
       {...props}

@@ -519,16 +519,16 @@ export function MetricTile({
     />
   ) : null
 
-  /* D33 — selection is a darker GROUND under the whole tile, never an outline.
-     No token sits below `--ev-hero`, so on the band `hero-2` stands in and the
-     step is the wrong way round until one exists. The ring's offset paints
-     whichever ground it lands on, or a selected tile draws a pale halo. */
+  /* D33 — selection is a darker GROUND under the whole tile, never an outline:
+     `selected` on the page, `hero-sunken` on the band, each a measured step
+     below what it sits on. The ring's offset paints whichever of those it
+     lands on, or a selected tile draws a pale halo inside its own panel. */
   const selected = selection?.selected === true
-  const ground = onBand ? 'bg-hero-2' : 'bg-muted'
+  const ground = onBand ? 'bg-hero-sunken' : 'bg-selected'
   const ringOffset = selected
     ? onBand
-      ? 'focus-visible:ring-offset-hero-2'
-      : 'focus-visible:ring-offset-muted'
+      ? 'focus-visible:ring-offset-hero-sunken'
+      : 'focus-visible:ring-offset-selected'
     : onBand
       ? 'focus-visible:ring-offset-hero'
       : 'focus-visible:ring-offset-background'

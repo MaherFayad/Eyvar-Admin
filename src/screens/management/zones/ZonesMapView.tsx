@@ -593,7 +593,7 @@ export function ZonesMapView({
 
             `divide-y` is safe here where it was not on the KPI strip: this
             divides on the BLOCK axis, which does not mirror. */}
-        <aside className="flex w-full shrink-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-card-border bg-card shadow-2 wide:absolute wide:inset-y-2 wide:end-3 wide:z-10 wide:w-94">
+        <aside className="flex w-full shrink-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-card-border bg-card wide:absolute wide:inset-y-2 wide:end-3 wide:z-10 wide:w-94">
           {/* **The selection keeps its height; the LIST is what scrolls.**
               The panel is `inset-y` above the breakpoint, so it has a fixed
               height and something inside it has to give. Without `shrink-0`
@@ -858,7 +858,7 @@ function MapCanvas({
             the ramp's two ends unreadable; a card carries its own ground. */}
         <figcaption
           className={cn(
-            'absolute bottom-20 z-10 flex max-w-md flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-2',
+            'absolute bottom-20 z-10 flex max-w-md flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground',
             free === 'end' ? 'end-3' : 'start-3',
           )}
         >
@@ -920,7 +920,7 @@ function ZoneMarker({
         'flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap',
         /* A pill, not a tag: the reference draws these fully rounded and that
            is what separates a label ON the map from a control beside it. */
-        'rounded-full border bg-card px-2.5 py-1 text-2xs shadow-2 transition-colors',
+        'rounded-full border bg-card px-2.5 py-1 text-2xs transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected ? 'border-ring text-foreground' : 'border-border text-muted-foreground',
         'hover:border-border-strong hover:text-foreground',

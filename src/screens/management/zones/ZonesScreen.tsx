@@ -998,8 +998,8 @@ function TileToggle({
       type="button"
       aria-pressed={pressed}
       onClick={onToggle}
-      /* D33 — pressed is a darker GROUND, never an outline; hover keeps the
-         lighter `accent` so the two states stay different facts. The ring is
+      /* D33 — pressed takes `selected`, the ground that outranks hover, never
+         an outline; `accent` stays the smaller hover step. The ring is
          `-inset`: an outward one would sit under its neighbour's rule. An end
          cell BLEEDS instead of taking `EDGE_PAD` — the ground reaches into the
          strip's own padding and the text keeps the line it aligned on. */
@@ -1007,7 +1007,7 @@ function TileToggle({
         'group/tile relative block h-full min-w-0 flex-1 text-start transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         (edge === 'start' || edge === 'both') && '-ms-5',
         (edge === 'end' || edge === 'both') && '-me-5',
-        pressed && 'bg-muted hover:bg-muted',
+        pressed && 'bg-selected hover:bg-selected',
       )}
     >
       <span className="flex h-full flex-col gap-1 px-5 py-3">
