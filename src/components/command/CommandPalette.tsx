@@ -168,7 +168,14 @@ export function PaletteInputRow({
         readOnly={palette.busy}
         onChange={(event) => palette.setQuery(event.target.value)}
         onKeyDown={onKeyDown}
-        className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-hidden placeholder:text-muted-foreground"
+        /* `appearance-none` because Chromium hangs its own unstyled clear
+           cross on `type=search`, and the row already ends in `Esc`. The type
+           stays: it is what makes the control a `searchbox` to a reader.
+           §7.2 — no ring here, and it is the ONE control on this surface
+           without one: the palette opens with this focused, so a ring would be
+           permanent chrome. The caret is the indicator; the chips and the rows
+           beside it keep theirs. */
+        className="min-w-0 flex-1 appearance-none bg-transparent text-base text-foreground outline-hidden placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none"
       />
       <Kbd className="shrink-0">{t('command.key.esc')}</Kbd>
     </div>

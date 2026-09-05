@@ -72,6 +72,33 @@ the checklist. Three `DESIGN.md` positions yield, and only this far:
 
 Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11–§12.
 
+### The command palette is a centred modal (2026-09-05)
+
+The owner asked for ⌘K to open *"a command palette … centred in the page"* rather than the
+anchored dropdown it was. Two positions yield, and only for this one surface:
+
+- **§2.6** describes Shopify's global search as an anchored popover and says in so many
+  words *"not a centred command palette"*: **overridden**. The palette is a `Dialog`,
+  horizontally centred, 640px wide, its top edge fixed at 16vh so the list grows downward
+  and the panel never jumps. Every other popover in the product is unchanged, and the
+  combobox built on the same `cmdk` primitive is unchanged.
+- **CQ-1** (`design/05-command-centre.md`) re-affirmed §2.6 after the confirm step was
+  designed: **superseded**, for the reason §2.6 is. The 8-row cap it imposed goes with it;
+  the panel now caps at 60vh and the list scrolls inside.
+
+**R4-3 is not touched.** The shell still has four layers. The palette is a modal *like
+re-authentication* — it sits above them, it never writes the URL, and AC-22 (one layer at a
+time) is unaffected. §7.3.3's "a popover does not trap focus" stops applying here because
+there is no longer a popover; the Dialog focus rules apply instead, and closing returns
+focus to the trigger.
+
+Consequences recorded at their own sites: `ui/dialog.tsx` grows a fourth size, `palette`,
+which is not a size a screen may choose (G6's three widths are otherwise untouched);
+`--ev-palette-top` and `--ev-palette-max-h` are the two new tokens, because Tailwind's
+spacing scale carries no viewport unit.
+
+Text: `docs/05-restructure/COMMAND-PALETTE-DISCOVERY.md` §3, §4 and §6.
+
 ## `DESIGN.md` rulings
 
 | ID | Ruling in one line |

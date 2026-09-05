@@ -179,6 +179,16 @@ broken.
 | **CQ-3** | AC-60 says results the role cannot open **never appear**. §11.2 says an action the role cannot use renders **disabled in place with its reason**. Both cannot hold for an action row. | **Split by kind.** Destinations and records: AC-60, filtered by the server, absent. Actions: §11.2, present and disabled with the reason — because "you cannot suspend this captain, their card expired" is information the operator needs, and its absence is the exact legacy defect (`:10237`) §11.2 exists to kill. |
 | **CQ-4** | Executing from the palette means the palette can mutate. Nothing in the shell contract says a shell surface may write. | **It may, through the command registry only.** The palette never calls a client directly; it calls `command.run`. That keeps the write path identical to the button path, so there is one thing to test. |
 
+**CQ-1 is superseded (2026-09-05).** The owner overrode §2.6 for this surface and asked for
+a centred palette; the ruling is in `docs/RULINGS.md` under *Standing owner overrides*, and
+the measurement CQ-1 deferred to is what settles it. CQ-1's reason was that §2.6 forbids
+relocating the thing the operator aimed at — but under D9 the thing they aim at is a command
+centre, not a field, and a 240px trigger that opens it keeps the aim intact. The palette is
+now a `Dialog`: centred, 640px, top edge at 16vh, capped at 60vh with the list scrolling
+inside, over the existing scrim. CQ-1's 8-row cap goes with it. **CQ-2, CQ-3 and CQ-4 are
+unchanged**, and so is everything §6 below carries in except §7.3.3, which described a
+popover.
+
 Recorded as **D9** in `DECISIONS.md`.
 
 ---

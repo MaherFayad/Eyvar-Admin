@@ -242,3 +242,39 @@ P1 alone answers the ask in the screenshot. P2 is what makes it *"actually power
 ## 10. Files this would touch
 
 `src/shell/GlobalSearch.tsx` (becomes the trigger plus a `CommandDialog`), `src/components/command/CommandPalette.tsx` (rows, groups, footer), `src/commands/usePalette.ts` (rest-state diet, argument carry, record step, prefixes, ranking), `src/commands/copy.ts` and `src/i18n/ar/commands.ts` (new keys), `src/commands/<domain>.ts` (F6), `docs/RULINGS.md` (the override), `docs/05-restructure/design/05-command-centre.md` (CQ-1 superseded, §3 gains the record step), `scripts/harness/palette.mjs` (new), `src/commands/palette.test.tsx` (extended).
+
+---
+
+## 11. P1 status — 2026-09-05
+
+Built on `pal/surface`, against §3 (Look), §4 (Feel) and the *look* half of §6. The model
+(`usePalette.ts`) and the registry (`commands/<domain>.ts`) were built in parallel on their
+own branches; the row contract they meet at is `PaletteRow`'s optional fields.
+
+**Landed.** The centred `Dialog` at 640 × 16vh capped at 60vh, over the existing scrim, as
+`DialogContent size="palette"` — the one place that geometry is written. The 240px top-bar
+trigger with a platform-correct keycap, and it is a real `DialogTrigger`, which is what
+AC-CP10 rests on. Three doors: `⌘K` / `Ctrl K`, the trigger, and `/` outside a typing
+target. A 52px input row carrying the magnifier, the committed chips, the prefix scope chip
+and an `Esc` legend, with the query at 16px. One-line rows with a glyph by `kind`, the meta
+after ` · `, and a right slot for the shortcut's keycaps, a count, a chevron and the active
+row's `↵`; `kind: 'record'` is the one two-line row; the matched substring of the query is
+bolded in the title. A 36px footer with the step's key hints, the prefix hint at rest and
+the tally at inline-end. `Tab` / `Shift+Tab` move a group at a time and `→` descends where
+the row says it can, both of which needed `cmdk` to become controlled.
+
+**Left out, and why.** `⌘↵` (run a destination and keep the palette open) is not built: a
+destination row's `onSelect` closes the palette from inside the model, and there is no way
+to ask it not to from the surface. It needs a model-side variant and belongs with F5.
+
+**Verified.** `npx tsc -b --noEmit` clean. `src/commands` + `src/shell`: 370 of 371, the one
+failure a load-dependent timeout in `commands.test.tsx` that is present at `7aa8e98` and
+passes when that file runs alone. `scripts/harness/palette.mjs` PASS at 1280×720 and
+1280×900, in Arabic and in dark: width 640, top edge 115 / 144 against a wanted 115 / 144,
+the two inline gaps equal at 320, no vertical movement when a 32-row result arrives, focus
+in the input on open and back on the trigger after `Esc`.
+
+**Not P1, and still open.** The rest-state diet (AC-CP3 / AC-CP4, "no queues before a key is
+pressed") is the model's half and is not done here — the harness shows five queue rows at
+rest. Row glyphs fall back to `row.icon`, so commands have one and queues and destinations
+do not until the model fills `kind`.
