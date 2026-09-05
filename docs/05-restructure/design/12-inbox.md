@@ -1,20 +1,24 @@
 # 12 — The Contact Centre inbox: three panes, one route
 
 **Screen:** Support › Contact Centre, `/support/contact-centre` and `/support/contact-centre/:id` ·
-**Spec:** `CONTACT-CENTRE-REDESIGN-PLAN.md` §2, `DECISIONS.md` D19, D22, D16a ·
-**Supersedes:** `11-conversation-composer.md` (its §3.5 domain table, §3.6 failed message, §5 copy
-and §7 Arabic still bind wherever this file is silent) · **Owner:** product-designer ·
-**Status:** designed, 2026-09-05. Owner decisions in §11.
+**Code:** `src/screens/support/inbox/` — `InboxScreen`, `FolderNav`, `ConversationList`,
+`ConversationListItem`, `Thread`, `MessageGroup`, `Bubble`, `NoteBlock`, `DayDivider`,
+`SystemLine`, `DeliveryLine`, `ThreadHeader`, `Composer`, `ContextRail`, `CustomerCard`,
+`ThreadCard` · **Decisions:** `DECISIONS.md` D19, D22, D16a · **Owner:** product-designer.
 
-Precedence applied: `docs/RULINGS.md`, then the Rulings table, then §6.2, then §7–§9, then the
-plan. Where the plan and `DESIGN.md` (or the token set in `globals.css`) disagree, `DESIGN.md`
-wins and the row in §10 says so. `DESIGN.md` has no inbox row; the nearest rules are cited.
+This file is the whole design of the inbox: the three panes, the thread grammar, the composer,
+the domain states, the copy and the Arabic rules. Owner decisions are in §11 and the
+acceptance criteria in §13.
 
-**Reference captures.** `scripts/harness/support-inbox.mjs` (deep probe: `inbox-{list,mine,thread,
-note,empty-thread,long-name,snoozed}-{wide,compact}-{en,ar}-<label>.png` plus `inbox-{thread,note}-
-wide-en-dark-<label>.png` under `scripts/harness/shots/`) and `scripts/harness/support-queues.mjs`
-(`contact-centre` and `contact-centre-thread` at 1280, en and ar). The verified frames are filed
-under `docs/02-verification/inbox/`.
+Precedence applied: `docs/RULINGS.md`, then the Rulings table, then §6.2, then §7–§9. Where
+this file and `DESIGN.md` (or the token set in `globals.css`) disagree, `DESIGN.md` wins and the
+row in §10 says so. `DESIGN.md` has no inbox row; the nearest rules are cited.
+
+**How the screen is drawn today.** `scripts/harness/support-inbox.mjs` (deep probe:
+`inbox-{list,mine,thread,note,empty-thread,long-name,snoozed}-{wide,compact}-{en,ar}-<label>.png`
+plus `inbox-{thread,note}-wide-en-dark-<label>.png` under `scripts/harness/shots/`) and
+`scripts/harness/support-queues.mjs` (`contact-centre` and `contact-centre-thread` at 1280, en
+and ar). The verified frames are filed under `docs/02-verification/inbox/`.
 
 ## 1. Pattern
 
@@ -29,14 +33,12 @@ bar, the shape R4-2 minted for master–detail (`PageShell.tsx:376`, `grid-cols-
 extended by one track. `SingleColumnPage` and `DetailPage` are not used. This is a gap in
 §6.4 and is recorded as finding F-12-1, not improvised around: every rule below is cited
 from the nearest row. Not a monitoring shell: the thread updates live but §8.1's staleness
-apparatus and R18 ambient loop do not apply (design 11 §1).
+apparatus and R18 ambient loop do not apply.
 
-Reference examined this pass: `navattic-web/02b895df.webp` (list rows with avatar + two-line
-identity), `cfa43315.webp` (search field, toolbar, 32px controls), `bc6e6123.webp` (card
-with segmented control, empty card with one sentence), `546b7d98.webp` (muted second line);
-`shopify-admin-web/02-orders/order-detail-timeline-comment-composer.webp` (composer chrome:
-avatar beside the field, toolbar row under it, `Only you and other staff…` line outside the
-surface). There is no chat frame in either set; the bubble grammar in §4 is decided here.
+The list rows, the search-and-toolbar cluster, the segmented control and the muted second
+line all follow the shell's own language (D7, `03-visual-language.md`). The composer chrome
+— toolbar row under the field, the audience line outside the surface — and the bubble
+grammar in §4 are decided here; no other Eyvar surface is a chat.
 
 ## 2. Layout at 1280px
 
@@ -52,8 +54,8 @@ inline-start of C. All grounds `--ev-bg`; cards in C on `--ev-surface`.
 | `--ev-inbox-rail-w` | 272px | C expanded |
 | `--ev-inbox-rail-min-w` | 40px | C collapsed |
 
-B = 976 − 544 = **432px** expanded, 664px with C collapsed. Arabic 392 / 624. The plan's
-300 / 320 leave B at 356px, under the width a 14px sentence needs; see §10.
+B = 976 − 544 = **432px** expanded, 664px with C collapsed. Arabic 392 / 624. Wider panes of
+300 / 320 would leave B at 356px, under the width a 14px sentence needs; see §10.
 
 ```
 ┌ A · 272 ───────────┬ B · 432 ────────────────────────────────┬ C · 272 ──────────────┐
@@ -148,7 +150,7 @@ running clock, then `waitingSince` ascending. Not user-sortable; a sortable list
 | Owner mark | `Avatar size="xs"` 20px | initials of the holder; `aria-label` `queue.owner.heldBy` / `inbox.row.yours`; absent when unclaimed |
 | Bulk checkbox | `Checkbox` | replaces the avatar on row hover, on row focus, and while any row is checked or after `x`; never hover-only (§7.3) |
 
-`text-2xs` (12px) appears only on the age and the folder count: plan Phase A's floor holds.
+`text-2xs` (12px) appears only on the age and the folder count; nothing operator-facing goes below it.
 No `CNV-` id in the row; the id is searchable and shown in C.
 
 ### 3.2 Row states
@@ -249,14 +251,14 @@ gap 4 inside a group, 16 between groups, 24 around a divider.
 | Note | never a bubble, never aligned, no avatar. Header `text-2xs`: `conversations.thread.internal` as a neutral `StatusBadge` · author · time · `conversations.thread.notSent`. No delivery position (§8.6.2) |
 | System | `authorKind === 'system'`: centred, no ground, no avatar, time after a `·`. No rule: the rule belongs to the day divider so the two never read as one shape (R5-11's principle) |
 | Channel change | `conversations.thread.sentBy` as a `text-2xs` line above the first bubble on the new channel (§8.6.5) |
-| Failed | outline bubble (1px `--ev-hairline-control`, no ground), line in `--ev-ink`, `Send again` / `Add an email address` — design 11 §3.6 unchanged |
-| Attachments | design 11's chip under the bubble, unchanged |
+| Failed | outline bubble (1px `--ev-hairline-control`, no ground), line in `--ev-ink`, `Send again` / `Add an email address` — §4.6 |
+| Attachments | a chip under the bubble; there is no attachment control in the composer (§10 row 9) |
 | Typing | `conversations.typing`, `text-xs` `--ev-text-2`, `aria-live="polite"`, pinned above the composer |
 
 ### 4.3 Scroll, unread, the pill
 
 - Opens scrolled to the bottom. `Load earlier messages` at the top (`Button secondary xs`),
-  prepend preserves the scroll anchor (design 11 §6).
+  prepend preserves the scroll anchor.
 - A new message auto-scrolls only when the thread is within 40px of the bottom. Otherwise a
   pill appears centred 12px above the composer: `Button variant="secondary" size="xs"`,
   `MoveDownIcon` + `inbox.thread.new#one/#other`, elevation `--ev-shadow-2`, `aria-live`
@@ -276,7 +278,52 @@ gap 4 inside a group, 16 between groups, 24 around a divider.
 | Empty (`CNV-107`) | `conversations.thread.empty`, one grey sentence | normal, fully enabled |
 | Loading | three skeleton bubbles alternating sides, `aria-busy`; header renders from the list row | rendered, disabled, no reason line |
 | Error | `ErrorState scope="card"` `conversations.thread.error` + retry | disabled: `conversations.composer.threadError` |
-| Domain states | design 11 §3.5, unchanged, with `Grab` read as `Claim` | |
+| Domain states | §4.5, with `Grab` read as `Claim` | |
+
+### 4.5 Domain states — the ones that are actually the job
+
+| State | Fixture | Thread | Composer | Rail / header |
+|---|---|---|---|---|
+| **Unclaimed** | `CNV-101` | normal, read-only | disabled: `Grab this conversation before replying.` | header primary is `Claim` |
+| **Claimed by another operator** | `CNV-103` (`USR-3`, fresh) | normal, read-only | disabled: `Yousef Al-Balawi is handling this conversation.` | `Take over` (confirms, names the holder — **AC-940**) |
+| **Claim gone stale** | `CNV-112` (idle 42 min) | normal | disabled, same as unclaimed | `Claim` — a stale claim is already free |
+| **At the concurrent cap** | 3 live chats held | normal | — | `Claim` disabled: `You are holding 3 live chats, which is the limit.` (**D22**, **AC-967**) |
+| **Closed** | `CNV-109` | normal | disabled: `This conversation is closed. Reopen it to reply.` | header primary becomes `Reopen` |
+| **Snoozed** | — | normal | normal | rail shows `Snoozed until 14:00`; **both clocks paused** (D22) |
+| **First-response breached** | `CNV-104` | normal | normal | **R5a leading-edge marker** on the list row; the page banner belongs to the queue, not to the thread |
+| **Resolution breached** (>20 min) | — | normal | normal | **`Create ticket` becomes the first visible ghost.** It does not reorder and it is not an escalation (**D22**, **AC-964**, §10 row 8) |
+| **A message failed** | `CNV-104`, `CNV-110` | §4.6 | normal | — |
+| **64 messages, one page** | `CNV-108` | `Load earlier messages` at the top; the rail says `64 messages` from `messageCount`, never `messages.length` (**AC-938**) | normal | — |
+| **No write permission** | — | normal, read-only | fully disabled, §5 | `Claim`, `Transfer`, `Create ticket`, `Close` all disabled, all describing the **one** sentence |
+| **WhatsApp** | `CNV-105` | normal | **absent** — `WhatsApp isn't connected yet. This conversation is read-only.` | no compose control anywhere (**AC-948**) |
+| **Phone** | `CNV-106` | normal, every message internal | **note register only**; the `Reply` segment is absent | `A call has no message to send. Log a note instead.` |
+| **Realtime gap** | `seq` gap on reconnect | refetch; no message missing (**AC-946**) | unchanged | no banner — a reconnection that healed itself is not an event |
+
+### 4.6 A failed message — the state this screen exists for
+
+```
+                                ┌───────────────────────────────────────┐
+                                │ Following up on your refund request…  │  OUTLINE,
+                                └───────────────────────────────────────┘  no fill
+                                Yousef · 09:24
+                                Not delivered — no email address on file   --ev-ink
+                                        [ Send again ]  [ Add an email address ]
+```
+
+**No red, no badge** — §8.6.7. R5a enumerates four uses of red and this is not one; R5 says
+there is no red badge; R7 has no critical tone. The carriers are the **outline bubble** (the
+only bubble in the thread not sitting on a surface), the **full-strength ink** on a line every
+other delivery word renders muted, and **the words**.
+
+- `Send again` — always, on every failed message (**AC-945**). It **restores the body into the
+  composer, focused, caret at the end, and does not send**. A line appears under the composer:
+  `Restored from a message that didn't send.` The seam has no retry operation and this is the
+  honest behaviour until it does.
+- `Add an email address` — **only** when `failureCode === 'no_handle'`. Opens the 360° profile
+  layer (`?entity=RDR-1041`). It is the actual fix; offering only `Send again` loops the
+  operator through a refusal they cannot clear from this screen.
+- A message in `sent`, `delivered` or `read` offers neither (**AC-945**).
+
 
 ## 5. The composer
 
@@ -316,10 +363,10 @@ Docked at B's foot, `--ev-surface`, 1px `--ev-hairline-control` border, radius 8
 | Phone | `Internal note` tab only | `conversations.composer.phone` |
 | WhatsApp | no composer; `conversations.composer.whatsapp` in its place | D19 |
 
-Sending, rejection, `Send again`, the keyboard line and drafts are design 11 §6 and D16a
+Sending, rejection, `Send again` (§4.6), the keyboard line and drafts are governed by §8.6 and D16a
 verbatim. Draft per conversation and register, in memory only, indicated nowhere.
 
-### 5.x The register is unmistakable (AC-CC-11, owner ruling 2026-09-05)
+### 5.4 The register is unmistakable (AC-CC-11)
 
 Six carriers at once, none colour alone. (1) The register is a wide segmented pair on the
 composer's top edge, icon plus full label: `Reply to {name}` (send icon) and `Internal note`
@@ -387,6 +434,21 @@ selection edges via `inset-inline-start`. Does not mirror: the `↓` on the pill
 CLDR categories on the Arabic side. Pane widths do not grow in Arabic; B absorbs the 40px
 the shell takes. Harness route `ar` asserts bubble sides and `Send`'s edge (AC-CC-10).
 
+The rules, thing by thing:
+
+| Thing | Behaviour |
+|---|---|
+| The whole assembly | Mirrors. `Send` at the inline-end in both languages, which is where the sentence ends in the reading direction. **A composer with a physically-anchored send affordance is a defect.** |
+| Bubbles | `self-start` for inbound, `self-end` for outbound. In Arabic the customer is on the right and the operator on the left — correct, and it falls out of logical properties with no branch. |
+| Internal note | Full width; nothing to mirror. This is a reason to prefer the shape over an alignment. |
+| The email address in `This reply goes by email to {address}.` | **`<bdi>`-isolated.** Unisolated, the `@` and the TLD reorder. |
+| Phone number in the rail | `<bdi>`, leading `+` kept (`rtl.md`). |
+| Timestamps `09:41` | Numeral run — does **not** reorder. The line aligns inline-start; the string does not. |
+| `{count} messages` | `formatCount(n, language)`. Never `String(n)`. |
+| Delivery words | Single words, no numerals, no bidi hazard. This is a second reason not to use ticks: a glyph borrowed from a consumer app has no Arabic reading at all. |
+| `Enter sends · Shift + Enter adds a line` | Key names stay Latin; **the `·` separator and the sentence order are the translator's**, so it is one template, not three concatenated fragments. |
+| The Arabic dictionary | Every string must resolve through `t()` — a hardcoded English literal in JSX is invisible until the day the dictionary fills. |
+
 ## 9. Tokens — proposals for the token steward
 
 All five colours are new `--ev-*` entries in `globals.css`, light and dark, mapped into no
@@ -409,14 +471,14 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 | # | Departure | From | Why |
 |---|---|---|---|
 | 1 | Three-track full-height grid, no `DetailPage` | §6.4 has no row; §2.2's shape | R4-2's master–detail shape extended by one track. F-12-1 asks §6.4 for a row |
-| 2 | List rows 60px, not the plan's 56 | plan §2.1 | `--ev-row-h-media` is the two-line row token; 56 is off the token set (rule 1). Harness probe: ≥ 8 rows at 800px with folders expanded, ≥ 11 collapsed; the plan's 12 is unreachable with a vertical folder list |
-| 3 | Panes 272 / 272, not 300 / 320 | plan §2 | the content region is 976, not the plan's assumed 1280 |
-| 4 | Bubble radius 8, not 12 | plan §2.2 | no 12px radius token; design 11 §8 "no new radius" |
-| 5 | Delivery word in `--ev-text-2`, not the bubble's tint | plan §2.2 | §8.6.6 fixes the colour; DESIGN wins |
-| 6 | Refusal as real text beneath, not in the placeholder | plan §2.2 | §8.6.3 ruling; a placeholder is not real text and is not reachable by `aria-describedby` |
-| 7 | System line has no rule | plan §2.2 | §8.6.2 shape; the rule is the day divider's carrier |
-| 8 | `Create ticket` on a resolution breach is the first visible ghost, not filled | **D22**, AC-964, design 11 §3.5 | §3.9 / CLAUDE.md rule 6: one filled button per screen, and §8.6 gives it to `Send`. The prompt still renders (`conversations.ticket.overdue` in C). **Owner decision Q-CC6** |
-| 9 | No attachment control | plan §2.2 | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved before `Reply by email`. **Q-CC7** |
+| 2 | List rows are 60px | an earlier draft asked for 56 | `--ev-row-h-media` is the two-line row token; 56 is off the token set (rule 1). Harness probe: ≥ 8 rows at 800px with folders expanded, ≥ 11 collapsed |
+| 3 | Panes are 272 / 272 | an earlier draft asked for 300 / 320 | the content region is 976px, not the full 1280 |
+| 4 | Bubble radius 8 | an earlier draft asked for 12 | no 12px radius token, and this screen mints no new radius |
+| 5 | Delivery word in `--ev-text-2`, not the bubble's tint | an earlier draft tinted it | §8.6.6 fixes the colour |
+| 6 | Refusal as real text beneath, not in the placeholder | an earlier draft used the placeholder | §8.6.3; a placeholder is not real text and is not reachable by `aria-describedby` |
+| 7 | System line has no rule | an earlier draft gave it one | §8.6.2 shape; the rule is the day divider's carrier |
+| 8 | `Create ticket` on a resolution breach is the first visible ghost, not filled | **D22**, AC-964, §4.5 | §3.9 / CLAUDE.md rule 6: one filled button per screen, and §8.6 gives it to `Send`. The prompt still renders (`conversations.ticket.overdue` in C). **Owner decision Q-CC6** |
+| 9 | No attachment control | an earlier draft had one | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved before `Reply by email`. **Q-CC7** |
 | 10 | Bubble time on hover/focus-within plus visually hidden | §7.3 hover-only | the group's last time is always visible and bounds the rest within 5 min; AT gets every time |
 | 12 | Snoozed: `Create ticket` alone visible, `Transfer` · `Close conversation` · `Snooze until…` in `⋯` | §4.1's first draft (`Transfer` · `Close conversation` visible, `Create ticket` in a `⋯` of one) | D8-b: a `⋯` of one may not exist and three labelled ghosts leave the identity 0px at 1280 in English. Changing the wake time is a real act on a snoozed conversation (`snoozeConversation` sets a new `snoozedUntil`), so the `⋯` holds three and nothing is withheld; row 8 keeps `Create ticket` the first ghost |
 | 14 | Line 2 yields in order: the channel word goes `sr-only` when it cannot show whole, then the status badge hides, never the clock | §4.1 anatomy | The glyph beside it carries the channel; a word cut to one letter is decoded, not read (§5.7). The clock is the one fact that decides the next act |
@@ -429,9 +491,9 @@ Nothing here spends a sixth badge tone, a red badge, a new radius or a physical 
 
 | Q | Recommendation, adopted as default |
 |---|---|
-| Q-CC1 | Dark is a first-class theme. Phase A's dark tokens are the dark reference, captured by the harness; Navattic stays the light reference (D7). Every token in this file states both values |
+| Q-CC1 | Dark is a first-class theme. Every token in this file states a light and a dark value, and the harness captures both |
 | Q-CC2 | Brand tint on the operator bubble, §9 values. It is the one place the brand colour earns its keep |
-| Q-CC3 | Replace the table. `QueueTable` leaves this route in Phase D; conversation volume is a report on the Overview board |
+| Q-CC3 | The route carries no `QueueTable`. Conversation volume is a report on the Overview board |
 | Q-CC4 | Already answered by D22: `firstResponseDueAt` is populated on every non-phone row, chat at 45 s. The `No clock` row was a fixture defect; the pill shows the running clock and a missing clock renders nothing |
 | Q-CC5 | `@tanstack/react-virtual`, headless, engaged above 200 rows only; `inbox.list.end` renders after the last row either way |
 | Q-CC6 | `Create ticket` first visible ghost on a resolution breach, never filled (§10 row 8) |
@@ -486,10 +548,76 @@ Checks: sentence case; buttons are verbs; no exclamation, no emoji, no em dash (
 sentences take a period, fragments do not (R6); no toast is added (R10 — a send, a read
 and a scroll are not events); no string is concatenated at a call site; no `defaultValue`.
 
-## 13. Handoff
+### 12.1 The thread and composer vocabulary, in full
 
-**frontend-engineer.** Build §2–§8 against `08-eyvar-patterns.md` §8.6 and design 11 for
-the domain states. Decisions that are yours: the virtualiser's row-measurement strategy;
+These are the `conversations.*` strings the thread and composer render. They are final.
+
+| Where | English |
+|---|---|
+| Placeholder, reply | `Write a reply…` |
+| Placeholder, note | `Write a note for your team…` |
+| Register segments | `Reply` · `Internal note` |
+| Send, reply register | `Send` |
+| Send, note register | `Add note` |
+| Keyboard line, reply | `Enter sends · Shift + Enter adds a line` |
+| Keyboard line, note | `Only your team can see this. Enter adds the note · Shift + Enter adds a line.` |
+| Channel switch | `Reply by email` |
+| Channel switch, pressed | `This reply goes by email to {address}.` |
+| Delivery | `Sending…` · `Sent` · `Delivered` · `Read` |
+| Delivery, failed | `Not delivered — {failureMessage}` |
+| Failed actions | `Send again` · `Add an email address` |
+| After `Send again` | `Restored from a message that didn't send.` |
+| Channel changed mid-thread | `Sent by email` |
+| Internal note, header | `Not sent to the customer` — **in the header, never in the delivery position** (§8.6.2) |
+| Thread empty | `No messages yet.` |
+| Thread error | `Couldn't load this conversation.` · `Try again` |
+| Composer, thread error | `Couldn't load this conversation. Try again before replying.` |
+| Composer, unclaimed | `Grab this conversation before replying.` |
+| Composer, held by another | `{name} is handling this conversation.` |
+| Composer, closed | `This conversation is closed. Reopen it to reply.` |
+| Composer, phone | `A call has no message to send. Log a note instead.` |
+| Composer, WhatsApp | `WhatsApp isn't connected yet. This conversation is read-only.` |
+| Send / switch, no handle | `No email address on file for this rider.` |
+| Send, no permission | `You need the “Contact users” permission. An owner can grant it.` (D17's template) |
+| `Claim`, at the cap | `You are holding 3 live chats, which is the limit.` (D22) |
+| Send rejected, 409 | `This conversation was closed. Reopen it to send.` |
+| Send rejected, network | `Your message didn't send. Try again.` |
+| Load more | `Load earlier messages` |
+| Rail, message count | `{count} messages` |
+| Rail, snoozed | `Snoozed until {time}` |
+| Transfer dialog | title `Transfer to {name}?` · body `They own this conversation from the moment you transfer it. This can't be undone.` · primary `Transfer` |
+| Take-over dialog | title `Take over from {name}?` · body `{name} keeps their other conversations. This is recorded in the history.` · primary `Take over` |
+
+Sentence case throughout. Every button is a verb or verb + object. No exclamation marks, no
+emoji, no "successfully", no "please", no "invalid", no "failed to". Full sentences take a
+period; fragments, labels and the delivery words do not (**R6**). No string is built by
+concatenation — every one is a whole dictionary template.
+
+**There is no toast on send** (§8.6.3, R10). The message in the thread is the confirmation, and
+it is a better one: it persists, it carries the delivery state, and it is where the operator is
+already looking.
+
+## 13. Acceptance criteria
+
+| # | Criterion |
+|---|---|
+| **AC-CC-01** | The dark-theme contrast probe in `scripts/harness/support-inbox.mjs` passes AA on every text node of the list, thread and note routes. |
+| **AC-CC-02** | No element uses the badge silhouette as a control: `role=button` inside `[data-slot=badge]` is zero on every inbox route. |
+| **AC-CC-03** | No operator-facing text on an inbox route renders below 12px (`text-2xs`). |
+| **AC-CC-04** | The conversation list stays on screen while a thread is open at 1280px. |
+| **AC-CC-05** | Consecutive messages from one sender within five minutes render as one group with a single timestamp, and a day divider separates days. |
+| **AC-CC-06** | Customer and operator bubbles differ in ground *and* side; an internal note is never a bubble. |
+| **AC-CC-07** | Opening a conversation clears its unread state and the list row reflects that without a refetch. |
+| **AC-CC-08** | `j` and `k` move row focus, `Enter` opens the focused row, and `Esc` leaves the composer for the selected row — none of them firing while focus is in a field (§7). |
+| **AC-CC-09** | The composer's `Send` is the only filled button on the screen while the operator holds the conversation. |
+| **AC-CC-10** | The Arabic build mirrors every bubble side and keeps `Send` at the inline-end. |
+| **AC-CC-11** | The register is unmistakable: an operator can never send a note as a reply, or a reply as a note, without having seen which register is active (§5.4). |
+
+
+## 14. Handoff
+
+**frontend-engineer.** Build §2–§8 against `08-eyvar-patterns.md` §8.6; the domain states are
+§4.5. Decisions that are yours: the virtualiser's row-measurement strategy;
 whether `field-sizing-content` needs a JS fallback for the harness browser; how the
 `x`-checked set survives a folder change (recommend: it does not). Add `size="xs"` (20px)
 to `ui/avatar.tsx` and a channel-glyph corner slot; register four channel icons (chat,

@@ -5,7 +5,7 @@ one item needs the owner's signature and ships without it in the meantime.
 
 ## 0. Why these three are one document, and not in the composer spec
 
-`11-conversation-composer.md` is a screen. These three are **shared components used by 41
+`12-inbox.md` is a screen. These three are **shared components used by 41
 screens** — `DataTable`'s bulk bar, `table/rowActions.tsx`'s kebab item, and the single
 `Toaster`. Burying a product-wide rule inside one screen's file is how a rule stops being
 found, and `patterns.md` exists because that has happened here before.

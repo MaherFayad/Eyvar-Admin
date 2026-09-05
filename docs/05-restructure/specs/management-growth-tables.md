@@ -47,7 +47,7 @@ Out:
 - **Adding or removing an incentive rule.** Rule authoring is a settings surface, not an
   index one.
 - **Sending a bulk message.** `sendBulkMsg` (`:13750`) *sends nothing* (§18.1 item 6) and
-  the composer it needs is `design/11-conversation-composer.md`'s, not a table's. The
+  the composer it needs is the inbox's (`design/12-inbox.md` §5), not a table's. The
   `messages` view is the **send log** and is read-only.
 - **Editing referral bonus rates.** `saveReferralConfig` (`:3897`) gates on
   `manage_settings` and belongs to Admin › Workspace settings.
