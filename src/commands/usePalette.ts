@@ -96,7 +96,7 @@ import type {
 } from '@/data/types'
 import { useAsync } from '@/hooks'
 import { matchScore, MIN_MATCH_SCORE } from '@/lib/search/fuzzy'
-import { formatCount, type Language, type Translate } from '@/lib'
+import { formatCount, formatMoneyInput, parseMoneyInput, type Language, type Translate } from '@/lib'
 import { track } from '@/lib/analytics'
 import { toastOutcome } from './outcomeToast'
 import { LOG_LIMIT, usePaletteRecents, type CommandUsage } from './recents'
@@ -183,7 +183,13 @@ export interface PaletteConfirm {
   request: CommandConfirmRequest
   reason: string
   setReason: (value: string) => void
-  /** `null` while a required reason is empty — §10.4: validated here, never as a 422. */
+  /** The money field's major-unit text, when the request carries an `amount`. */
+  amount: string
+  /** Reports every valid value to `request.amount.onChange`, as `run` expects. */
+  setAmount: (value: string) => void
+  /** **AC-384** — blank, unparseable, not positive, or over `maxHalalas`. */
+  amountInvalid: boolean
+  /** `null` while a required reason or amount is unusable — §10.4: validated here, never as a 422. */
   submit: (() => void) | null
   cancel: () => void
 }
@@ -541,6 +547,8 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const [targets, setTargets] = useState<readonly unknown[] | null>(null)
   const [request, setRequest] = useState<CommandConfirmRequest | null>(null)
   const [reason, setReason] = useState('')
+  /** The confirm step's money field, in MAJOR units — what the operator types. */
+  const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   /** The pending `host.confirm` promise's resolver. See `CommandHost.confirm`. */
   const answer = useRef<((value: string | null) => void) | null>(null)
@@ -665,6 +673,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     setTargets(null)
     setRequest(null)
     setReason('')
+    setAmount('')
     setQuery('')
     setMode(null)
     setRecord(null)
@@ -738,6 +747,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
           answer.current = resolve
           setRequest(next)
           setReason('')
+          /* The command's own opening figure, shown rather than assumed: the
+             operator may lower it (AC-384). */
+          setAmount(
+            next.amount === undefined ? '' : formatMoneyInput(next.amount.initialHalalas),
+          )
           setBusy(false)
         }),
     }),
@@ -784,6 +798,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
            cost §6 rejected when it made Escape ascend. */
         setRequest(null)
         setReason('')
+        setAmount('')
         return
       }
       /* Recorded on success only. Block ④ is *commands you ran*, and a cancelled
@@ -860,6 +875,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       answer.current = null
       setRequest(null)
       setReason('')
+      setAmount('')
       if (picked?.skipped) {
         setPicked(null)
         setTargets(null)
@@ -1522,11 +1538,26 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     /* §10.4 — a required reason is validated HERE, before the write, not
        returned as a 422 the operator has to interpret. */
     const needsReason = request.reason !== undefined
-    const ready = !busy && (!needsReason || reason.trim() !== '')
+    /* **AC-384** — the ceiling bounds the input and the refusal names it. An
+       amount over it is refused, never silently trimmed. */
+    const halalas = amount.trim() === '' ? null : parseMoneyInput(amount)
+    const amountInvalid =
+      request.amount !== undefined &&
+      (halalas === null || halalas <= 0 || halalas > request.amount.maxHalalas)
+    const ready = !busy && !amountInvalid && (!needsReason || reason.trim() !== '')
     return {
       request,
       reason,
       setReason,
+      amount,
+      setAmount: (next: string) => {
+        setAmount(next)
+        /* The value reaches `run` through the command's own callback as it
+           changes — `CommandConfirmAmount.onChange`. */
+        const parsed = next.trim() === '' ? null : parseMoneyInput(next)
+        if (parsed !== null) request.amount?.onChange(parsed)
+      },
+      amountInvalid,
       submit: ready
         ? () => {
             setBusy(true)
@@ -1539,7 +1570,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
         ascend()
       },
     }
-  }, [ascend, busy, reason, request])
+  }, [amount, ascend, busy, reason, request])
 
   confirmSubmit.current = confirm?.submit ?? null
 

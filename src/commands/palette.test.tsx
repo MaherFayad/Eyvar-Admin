@@ -640,6 +640,9 @@ describe('AC-CP8 — the shortcut is on the row and the keys are in the footer',
           },
           reason: '',
           setReason: () => {},
+          amount: '',
+          setAmount: () => {},
+          amountInvalid: false,
           submit: () => {},
           cancel: () => {},
         },
@@ -650,6 +653,105 @@ describe('AC-CP8 — the shortcut is on the row and the keys are in the footer',
     expect(screen.getByText(en('command.footer.cancel'))).toBeInTheDocument()
     expect(screen.getByText(en('command.step.confirm'))).toBeInTheDocument()
     expect(screen.queryByText(en('command.footer.nextGroup'))).toBeNull()
+  })
+})
+
+/* ═════════ AC-384 — the confirm step's money field, in the palette ════════ */
+
+describe('AC-384 — a command that carries an amount collects it in the confirm step', () => {
+  const request = {
+    title: 'Credit goodwill to Sara',
+    body: 'The balance moves; nothing is charged.',
+    confirmLabel: en('wallet.goodwill.confirm'),
+    amount: {
+      label: en('wallet.goodwill.amount.label'),
+      help: en('wallet.adjust.amount.help', { cap: 'SAR 200.00' }),
+      message: en('wallet.adjust.amount.message', { role: 'supervisor', cap: 'SAR 200.00' }),
+      maxHalalas: 20000,
+      initialHalalas: 5000,
+      onChange: () => {},
+    },
+  }
+
+  it('shows the ceiling as help, and the refusal sentence once the field is left', async () => {
+    const user = userEvent.setup()
+    const model = paletteModel({
+      step: 'confirm',
+      confirm: {
+        request,
+        reason: '',
+        setReason: () => {},
+        amount: '250.00',
+        setAmount: () => {},
+        /* Over the cap: **AC-384** refuses rather than trimming. */
+        amountInvalid: true,
+        submit: null,
+        cancel: () => {},
+      },
+    })
+    renderSurface(model)
+
+    const field = screen.getByLabelText(en('wallet.goodwill.amount.label'))
+    expect(field).toHaveValue('250.00')
+    expect(screen.getByText(request.amount.help)).toBeInTheDocument()
+
+    await user.click(field)
+    await user.tab()
+    expect(screen.getByText(request.amount.message)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: request.confirmLabel })).toBeDisabled()
+  })
+
+  it('reports what was typed to the command, and confirms on Enter', async () => {
+    const user = userEvent.setup()
+    const typed: string[] = []
+    let submitted = 0
+    renderSurface(
+      paletteModel({
+        step: 'confirm',
+        confirm: {
+          request,
+          reason: '',
+          setReason: () => {},
+          amount: '50.00',
+          setAmount: (value) => typed.push(value),
+          amountInvalid: false,
+          submit: () => (submitted += 1),
+          cancel: () => {},
+        },
+      }),
+    )
+
+    const field = screen.getByLabelText(en('wallet.goodwill.amount.label'))
+    await user.type(field, '7')
+    expect(typed).toEqual(['50.007'])
+    await user.keyboard('{Enter}')
+    expect(submitted).toBe(1)
+  })
+
+  it('credits the amount the operator typed, end to end from ⌘K', async () => {
+    const user = userEvent.setup()
+    mount()
+    const input = await openPalette(user)
+    await user.type(input, 'goodwill')
+
+    const doGroup = await findDoGroup()
+    await user.click(rowNamed(doGroup, en('wallet.action.goodwill')))
+
+    const targets = await screen.findByRole('group', { name: en('command.target.heading') })
+    await user.click(within(targets).getAllByRole('option')[0]!)
+
+    const amount = await screen.findByLabelText(en('wallet.goodwill.amount.label'))
+    await user.clear(amount)
+    await user.type(amount, '12.00')
+    await user.type(
+      screen.getByLabelText(en('wallet.goodwill.reason.label')),
+      'Driver arrived late',
+    )
+    await user.click(screen.getByRole('button', { name: en('wallet.goodwill.confirm') }))
+
+    /* The toast interpolates the POSTED amount, so it is the honest proof that
+       what was typed is what was credited. */
+    await waitFor(() => expect(screen.getByText(/12\.00/)).toBeInTheDocument())
   })
 })
 

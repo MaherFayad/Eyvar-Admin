@@ -27,7 +27,7 @@
  *   §6.2 D-16   the confirm step's primary REPEATS THE VERB.
  */
 
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import {
   ChevronRightIcon,
   CircleDotIcon,
@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import type { PaletteChip, PaletteConfirm, PaletteModel, PaletteRow } from '@/commands'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { Kbd } from '@/components/ui/kbd'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -454,6 +455,11 @@ function ConfirmStep({
 }) {
   const reasonId = useId()
   const helpId = useId()
+  const amountId = useId()
+  const amountHelpId = useId()
+  /* The refusal is stated once the operator has left the field, not while they
+     are still typing the first digit. `ConfirmMoneyDialog`'s own rule. */
+  const [touched, setTouched] = useState(false)
   const { request } = confirm
 
   return (
@@ -463,6 +469,43 @@ function ConfirmStep({
         <p className="text-xs text-muted-foreground">{request.body}</p>
       </div>
 
+      {/* **AC-384** — the money field, above the reason it explains. It takes
+          focus because it is the first field, and `Enter` in it confirms, so
+          §3's `Enter to confirm` holds wherever the caret is. */}
+      {request.amount ? (
+        <div className="flex flex-col gap-1">
+          <label htmlFor={amountId} className="text-xs font-medium text-foreground">
+            {request.amount.label}
+          </label>
+          <div className="flex items-center gap-2">
+            {/* §4.2 — a money INPUT carries the code as an inline-start prefix,
+                outside the value, so the operator types digits and nothing else. */}
+            <span aria-hidden="true" className="text-sm text-muted-foreground">
+              SAR
+            </span>
+            <Input
+              id={amountId}
+              inputMode="decimal"
+              autoFocus
+              value={confirm.amount}
+              readOnly={busy}
+              onChange={(event) => confirm.setAmount(event.target.value)}
+              onBlur={() => setTouched(true)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                confirm.submit?.()
+              }}
+              aria-invalid={touched && confirm.amountInvalid ? true : undefined}
+              aria-describedby={amountHelpId}
+            />
+          </div>
+          <p id={amountHelpId} className="text-xs text-muted-foreground">
+            {touched && confirm.amountInvalid ? request.amount.message : request.amount.help}
+          </p>
+        </div>
+      ) : null}
+
       {request.reason ? (
         <div className="flex flex-col gap-1">
           <label htmlFor={reasonId} className="text-xs font-medium text-foreground">
@@ -471,7 +514,7 @@ function ConfirmStep({
           <Textarea
             id={reasonId}
             aria-describedby={helpId}
-            autoFocus
+            autoFocus={request.amount === undefined}
             value={confirm.reason}
             readOnly={busy}
             placeholder={t('command.confirm.reasonPlaceholder')}

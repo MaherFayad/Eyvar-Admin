@@ -89,7 +89,7 @@ export {
 export { isDeepEqual } from './equality'
 export { invariant, isDevEnvironment } from './invariant'
 export { pageRange, type PageRange } from './pagination'
-export { parseMoneyInput, parseNumericInput, toLatinDigits } from './parse/input'
+export { formatMoneyInput, parseMoneyInput, parseNumericInput, toLatinDigits } from './parse/input'
 export {
   UI_STATE_CACHE_PREFIX,
   UI_STATE_KEYS,
