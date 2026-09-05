@@ -82,8 +82,9 @@ const buttonVariants = cva(
       size: {
         // 28px — the compact button. --ev-control-h, 32px in Arabic.
         default: "h-control px-2.5",
-        // 24px — top-bar chips (§4 slots 4a/4b) and in-cell controls.
-        xs: "h-6 gap-1 px-2 text-2xs [&_svg:not([class*='size-'])]:size-3",
+        // 24px — top-bar text buttons (§4 slot 3) and in-cell controls. The
+        // label is 12px, the reading floor (AC-CC-03).
+        xs: "h-6 gap-1 px-2 text-xs [&_svg:not([class*='size-'])]:size-3",
         // 36px — in-form and full-width primary. --ev-control-h-lg.
         lg: "h-control-lg px-3",
         // 28 × 28 — the top-bar icon buttons, the row kebab.

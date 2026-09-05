@@ -74,8 +74,9 @@ export function AvailabilityControl({ presence, t, language }: AvailabilityContr
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
+          {/* A ghost text button led by the state dot, not a pill (AC-CC-02). */}
           <Button
-            variant="secondary"
+            variant="ghost"
             size="xs"
             disabled={presence.saving}
             aria-label={t('shell.presence.label', { state: t(`shell.presence.${state}`) })}
