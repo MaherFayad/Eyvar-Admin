@@ -487,6 +487,31 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 
 Nothing here spends a sixth badge tone, a red badge, a new radius or a physical edge.
 
+### 10.1 What the inbox deliberately does not have
+
+| Absent | Why |
+|---|---|
+| Attachments in either direction | there is no storage seam; a control for a pipe that does not exist is a lie (§10 row 9) |
+| Emoji and quick reactions | they need the customer app, which has none |
+| Saved replies with variables rendered from the record | the template store holds the text; the variables need `renderEmailPreview` wired to the conversation |
+| Assignment rules | out by **D19**: the inbox is a pull queue. Reopen only if the owner reverses D19 |
+| Multiple conversations open at once | the D22 concurrent cap of three makes it worth designing, and it is not designed |
+| Satisfaction after close | the ticket CSAT shape would be reused; it is not built here |
+
+### 10.2 What the harness asserts about the drawn screen
+
+| Probe | Value |
+|---|---|
+| Panes visible with a thread open at 1280px | 3 |
+| Bubbles with a border | 0 (only the failed bubble, §4.6) |
+| Distinct avatar clusters in a two-sender, six-message thread | 2 to 4 |
+| Filled buttons in the thread header while the conversation is held | 0 |
+| Filled buttons in the composer | 1 (`Send`) |
+| Text nodes under 12px on the route | ≤ 2 (the delivery word, table meta) |
+| Dark-theme AA failures | 0 |
+| List rows per 800px viewport | ≥ 8 with folders expanded, ≥ 11 collapsed |
+| Route changes to answer one conversation from the queue | 0 |
+
 ## 11. Owner decisions — defaults the build follows
 
 | Q | Recommendation, adopted as default |
