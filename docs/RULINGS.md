@@ -70,6 +70,13 @@ and it is not a shadow. A focus ring survives: a ring is not a shadow.
 AC-CC-01 keeps its magnitude and loses its direction. A card must still clear 1.25:1 against
 its ground; it now clears it downward.
 
+**D33a — a surface that COVERS the page is not a surface that sits ON it.** A modal sheet,
+dialog or the command palette replaces the page rather than resting on it, and its ground is
+the scrim, not the canvas. In light those stay white or near it: darkening the thing the
+operator was sent to look at, until it is duller than the page behind it, is backwards. In
+dark they still recess, because there a darker panel against a dark scrim reads as the
+focused object. Cards, containers and tables sit ON the page and recess in both themes.
+
 ### Onboarding may welcome once and may float its progress (2026-09-05)
 
 The owner asked for a welcome on first arrival, a floating progress indicator, and pictures in
@@ -166,7 +173,11 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception |
 | D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen |
 | D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look |
-| D33 — a surface RECESSES: a card, container, popover, dialog or sheet is darker than the page it sits on, in both themes |
+| D15 – D30 — text in `DECISIONS.md`; D16 – D23 are the eight delegated round-5 rulings |
+| D31 — what Admin does not do: no city scoping, no impersonation, no bulk invite |
+| D32 — the five Management rules (O1, O8, O9, O10, O11) |
+| D33 — a surface RECESSES: a card, container or table is darker than the page it sits on, in both themes |
+| D33a — a surface that COVERS the page (sheet, dialog, palette) stays white in light and recesses only in dark |
 | D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
