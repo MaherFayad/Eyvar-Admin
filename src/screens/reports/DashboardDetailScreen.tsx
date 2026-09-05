@@ -879,7 +879,7 @@ function BoardRangeControl({
               />
               {t('rb.dashboard.range.own')}
             </Button>
-            <p className="ps-7 pb-1 text-2xs text-muted-foreground">
+            <p className="ps-7 pb-1 text-xs text-muted-foreground">
               {t('rb.dashboard.range.own.hint')}
             </p>
 

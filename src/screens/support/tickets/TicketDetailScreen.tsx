@@ -558,7 +558,7 @@ export function TicketDetailScreen() {
                   {t('ticket.logCall')}
                 </Button>
                 {logCallRefusal !== null && (
-                  <span id="ticket-logcall-refusal" className="text-2xs text-muted-foreground">
+                  <span id="ticket-logcall-refusal" className="text-xs text-muted-foreground">
                     {logCallRefusal}
                   </span>
                 )}
@@ -582,7 +582,7 @@ export function TicketDetailScreen() {
                   {sendingReply ? t('ticket.reply.sending') : t('ticket.reply.send')}
                 </Button>
                 {replyRefusal !== null && (
-                  <span id="ticket-send-refusal" className="text-2xs whitespace-normal text-muted-foreground">
+                  <span id="ticket-send-refusal" className="text-xs whitespace-normal text-muted-foreground">
                     {replyRefusal}
                   </span>
                 )}

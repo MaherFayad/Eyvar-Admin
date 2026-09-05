@@ -164,7 +164,7 @@ export function TripProfile({
             sentence and not a badge. It is here rather than in the band because
             it qualifies what the whole sheet is showing. */}
         {trip.stateDesynced && (
-          <p className="rounded-lg border border-border bg-muted px-3 py-2 text-2xs text-muted-foreground">
+          <p className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
             {t('profile.trip.desynced')}
           </p>
         )}

@@ -305,7 +305,7 @@ function PartyCard({
       </p>
 
       {callRefusal !== null && (
-        <p id={refusalId} className="text-2xs text-muted-foreground">
+        <p id={refusalId} className="text-xs text-muted-foreground">
           {callRefusal}
         </p>
       )}

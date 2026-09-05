@@ -162,7 +162,7 @@ export function CancelSettleModal({
             </SummaryRow>
             {/* The sentence that stops a browser-side arithmetic result from
                 reading as a settlement Finance has agreed to. */}
-            <p className="text-2xs text-muted-foreground">{t('subs.settle.estimateHelp')}</p>
+            <p className="text-xs text-muted-foreground">{t('subs.settle.estimateHelp')}</p>
           </div>
 
           <Field id="settle-category">

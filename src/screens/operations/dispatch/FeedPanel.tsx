@@ -138,7 +138,7 @@ export function FeedPanel({
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2',
+        'flex min-h-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card shadow-2',
         /* Collapsed, the panel is its own header and nothing else, so it must
            NOT claim the region's height — hence the growth is conditional
            rather than a constant `flex-1`. */
@@ -178,12 +178,12 @@ export function FeedPanel({
         {/* The scope line and the collapse, on one rule. The sentence names
             what the tab is showing so the count on the tab has a subject. */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/20 px-3 py-1.5">
-          <span className="truncate text-2xs text-muted-foreground">{scope}</span>
+          <span className="truncate text-xs text-muted-foreground">{scope}</span>
           <button
             type="button"
             onClick={() => onCollapsed(!collapsed)}
             aria-expanded={!collapsed}
-            className="shrink-0 rounded-sm text-2xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="shrink-0 rounded-sm text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {collapsed ? t('dispatch.feed.expand') : t('dispatch.feed.collapse')}
             {/* T9.10 / O10 — a registry chevron chosen by `dir` in code, never
@@ -277,7 +277,7 @@ export function FeedPanel({
                              refusal. */
                           <p
                             id={DENIED_ID}
-                            className="bg-muted/60 px-3 pb-2.5 text-2xs text-muted-foreground"
+                            className="bg-muted/60 px-3 pb-2.5 text-xs text-muted-foreground"
                           >
                             {deniedReason}
                           </p>
@@ -471,7 +471,7 @@ function Row({
           <span className="font-mono text-2xs text-muted-foreground">{id}</span>
           {badge}
           {qualifier !== undefined && (
-            <span className="truncate text-2xs text-muted-foreground">{qualifier}</span>
+            <span className="truncate text-xs text-muted-foreground">{qualifier}</span>
           )}
         </span>
         <span className="shrink-0 text-xs tabular-nums text-foreground">{trailing}</span>

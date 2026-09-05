@@ -1,0 +1,4680 @@
+[
+ {
+  "tag": "cc-detail-en-light",
+  "errors": [],
+  "menuItems": [
+   "Close conversation"
+  ],
+  "popover": {
+   "bg": "#ffffff",
+   "under": null,
+   "lift": null,
+   "border": "1px rgb(227, 231, 234)",
+   "shadow": true
+  },
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×4"
+  ],
+  "cardsCount": 4,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Transfer",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Snooze until…",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "More actions▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Create ticket",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [
+   "Create ticket"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Send",
+    "where": "other",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-detail-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "14h r4px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 300,
+    "gridW": 298,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 3,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "298px 0px #eceded r1.17",
+     "298px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Acknowledged 24 Jun 18:5",
+      "lines": 2,
+      "align": "end"
+     },
+     {
+      "text": "overdue 13h 34m",
+      "lines": 2,
+      "align": "end"
+     },
+     {
+      "text": "Unclaimed",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Close",
+    "disabled": true,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#6b7280",
+    "labelRatio": 4.83,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": "_r_e_-r0"
+   },
+   {
+    "label": "Claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "_r_e_-r0",
+    "text": "2 protocol steps are still outstanding.",
+    "px": "12px"
+   },
+   {
+    "id": "",
+    "text": "INC-013 · Accident · opened 24 Jun 18:40",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Claim",
+   "",
+   ""
+  ],
+  "opacityDisabled": [
+   "button[checkbox]  op0.5"
+  ],
+  "disabledAnywhere": [
+   {
+    "label": "Close",
+    "where": "page-header",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "",
+    "where": "card",
+    "labelRatio": 17.41,
+    "color": "#171a21",
+    "bg": "#ffffff",
+    "border": "1px a1",
+    "opacity": "0.5"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "rate-card-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×5"
+  ],
+  "cardsCount": 5,
+  "ruleSummary": [
+   "tr #eceded on #ffffff 1.17 ×8"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "2 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px"
+  ],
+  "smallAll": 13,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "910px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "910px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "910px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "910px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "dispute-detail-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×3"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 596,
+    "gridW": 594,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 4,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "594px 0px #eceded r1.17",
+     "594px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "25.00 SAR",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 Jun 05:14",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TRP-9101",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TKT-501",
+      "lines": 2,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Resolve claim",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Take claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "DSP-101 · Nora Al-Harbi · 25.00 SAR",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Take claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "fairness-detail-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×1"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 596,
+    "gridW": 594,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "594px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Transport authority oper",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 Jun 08:50",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Uphold",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Overturn",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "Appealing a suspension · FC-0001",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "ticket-detail-en-light",
+  "errors": [],
+  "menuItems": [
+   "Transfer…",
+   "Reopen",
+   "Change reason code…",
+   "Change priority…"
+  ],
+  "popover": {
+   "bg": "#ffffff",
+   "under": null,
+   "lift": null,
+   "border": "1px rgb(227, 231, 234)",
+   "shadow": true
+  },
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Resolve",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Wait on customer",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "More actions▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Take over",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "TKT-502 · Sara Al-Otaibi · Rider left belongings in the vehi",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Take over"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Send reply",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-list-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×1"
+  ],
+  "cardsCount": 1,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×7"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "7 conversations",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "tickets-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "14h r4px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "New ticket",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "2 tickets",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "New ticket"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "disputes-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×19"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "New claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "19 claims",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "New claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-en-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×6"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "6 incidents",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-detail-en-dark",
+  "errors": [],
+  "menuItems": [
+   "Close conversation"
+  ],
+  "popover": {
+   "bg": "#2e3641",
+   "under": null,
+   "lift": null,
+   "border": "1px rgb(49, 57, 68)",
+   "shadow": true
+  },
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×4"
+  ],
+  "cardsCount": 4,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Transfer",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Snooze until…",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "More actions▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Create ticket",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [
+   "Create ticket"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Send",
+    "where": "other",
+    "labelRatio": 7.97,
+    "color": "#a9aeb4",
+    "bg": "#14181e",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-detail-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "14h r4px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 300,
+    "gridW": 298,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 3,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "298px 0px #333a42 r1.25",
+     "298px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Acknowledged 24 Jun 18:5",
+      "lines": 2,
+      "align": "end"
+     },
+     {
+      "text": "overdue 13h 34m",
+      "lines": 2,
+      "align": "end"
+     },
+     {
+      "text": "Unclaimed",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Close",
+    "disabled": true,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#a9aeb4",
+    "labelRatio": 7.97,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": "_r_e_-r0"
+   },
+   {
+    "label": "Claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "_r_e_-r0",
+    "text": "2 protocol steps are still outstanding.",
+    "px": "12px"
+   },
+   {
+    "id": "",
+    "text": "INC-013 · Accident · opened 24 Jun 18:40",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Claim",
+   "",
+   ""
+  ],
+  "opacityDisabled": [
+   "button[checkbox]  op0.5"
+  ],
+  "disabledAnywhere": [
+   {
+    "label": "Close",
+    "where": "page-header",
+    "labelRatio": 7.97,
+    "color": "#a9aeb4",
+    "bg": "#14181e",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "",
+    "where": "card",
+    "labelRatio": 12.2,
+    "color": "#e8ecf1",
+    "bg": "#232a33",
+    "border": "1px a1",
+    "opacity": "0.5"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "rate-card-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×5"
+  ],
+  "cardsCount": 5,
+  "ruleSummary": [
+   "tr #333a42 on #232a33 1.25 ×8"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "2 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px"
+  ],
+  "smallAll": 13,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "910px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "910px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "910px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 912,
+    "gridW": 910,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "910px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "Approve",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "dispute-detail-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×3"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 596,
+    "gridW": 594,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 4,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "594px 0px #333a42 r1.25",
+     "594px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "25.00 SAR",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 Jun 05:14",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TRP-9101",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TKT-501",
+      "lines": 2,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Resolve claim",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Take claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "DSP-101 · Nora Al-Harbi · 25.00 SAR",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Take claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "fairness-detail-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×1"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 596,
+    "gridW": 594,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "594px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Transport authority oper",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 Jun 08:50",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Uphold",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Overturn",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "Appealing a suspension · FC-0001",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "ticket-detail-en-dark",
+  "errors": [],
+  "menuItems": [
+   "Transfer…",
+   "Reopen",
+   "Change reason code…",
+   "Change priority…"
+  ],
+  "popover": {
+   "bg": "#2e3641",
+   "under": null,
+   "lift": null,
+   "border": "1px rgb(49, 57, 68)",
+   "shadow": true
+  },
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "Back",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "Resolve",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Wait on customer",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "More actions▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "Take over",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "TKT-502 · Sara Al-Otaibi · Rider left belongings in the vehi",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "Take over"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "Send reply",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-list-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×1"
+  ],
+  "cardsCount": 1,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×7"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "7 conversations",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "tickets-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "14h r4px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "New ticket",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "2 tickets",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "New ticket"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "disputes-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×19"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "New claim",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "19 claims",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "New claim"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-en-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "ltr",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×6"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "Skip to content 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "32h r8px",
+   "26h r3.35544e+07px",
+   "36h r0px"
+  ],
+  "smallAll": 16,
+  "smallSummary": [
+   "Exec@11(rail)",
+   "Ops@11(rail)",
+   "Finance@11(rail)",
+   "Support@11(rail)",
+   "Admin@11(rail)"
+  ],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "6 incidents",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-detail-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×4"
+  ],
+  "cardsCount": 4,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "تحويل",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "تأجيل حتى…",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إجراءات أخرى▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إنشاء تذكرة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [
+   "إنشاء تذكرة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "إرسال",
+    "where": "other",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-detail-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "14h r4px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 300,
+    "gridW": 298,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 3,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "298px 0px #eceded r1.17",
+     "298px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "أُقرّ بها 24 يونيو 18:52",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "متأخر 13h 34m",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "غير مُستلَم",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "إغلاق",
+    "disabled": true,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#6b7280",
+    "labelRatio": 4.83,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": "_r_e_-r0"
+   },
+   {
+    "label": "استلام",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "_r_e_-r0",
+    "text": "لا تزال 2 من خطوات الإجراء معلَّقة.",
+    "px": "13px"
+   },
+   {
+    "id": "",
+    "text": "INC-013 · حادث · فُتحت 24 يونيو 18:40",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام",
+   "",
+   ""
+  ],
+  "opacityDisabled": [
+   "button[checkbox]  op0.5"
+  ],
+  "disabledAnywhere": [
+   {
+    "label": "إغلاق",
+    "where": "page-header",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "",
+    "where": "card",
+    "labelRatio": 17.41,
+    "color": "#171a21",
+    "bg": "#ffffff",
+    "border": "1px a1",
+    "opacity": "0.5"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "rate-card-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×5"
+  ],
+  "cardsCount": 5,
+  "ruleSummary": [
+   "tr #eceded on #ffffff 1.17 ×8"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "2 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "870px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "870px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "870px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#171a21"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "870px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "dispute-detail-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×3"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 556,
+    "gridW": 554,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 4,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "554px 0px #eceded r1.17",
+     "554px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "25.00 SAR",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 يونيو 05:14",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TRP-9101",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TKT-501",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "حلّ المطالبة",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "استلام المطالبة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "DSP-101 · Nora Al-Harbi · 25.00 SAR",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام المطالبة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "fairness-detail-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #eceded on #ffffff 1.17 ×1"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 556,
+    "gridW": 554,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#6b7280"
+    ],
+    "valueColors": [
+     "#171a21"
+    ],
+    "ruleWidths": [
+     "554px 0px #e3e7ea r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Transport authority oper",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 يونيو 08:50",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "تأييد",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "نقض",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "استلام",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "تظلّم من إيقاف · FC-0001",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "ticket-detail-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "حلّ",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "انتظار العميل",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إجراءات أخرى▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#ffffff",
+    "color": "#171a21",
+    "labelRatio": 17.41,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "تولٍّ",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "TKT-502 · Sara Al-Otaibi · ترك الراكب متعلقات في المركبة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "تولٍّ"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "إرسال الرد",
+    "where": "card",
+    "labelRatio": 4.83,
+    "color": "#6b7280",
+    "bg": "#ffffff",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-list-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [
+   "#ffffff on #ffffff lift 1 border 1px #e3e7ea@1 r1.24 shadow true ×1"
+  ],
+  "cardsCount": 1,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×7"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "7 من المحادثات",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "tickets-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "14h r4px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "تذكرة جديدة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "2 تذكرة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "تذكرة جديدة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "disputes-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×19"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "مطالبة جديدة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#0c6944",
+    "color": "#ffffff",
+    "labelRatio": 6.73,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "19 مطالبة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "مطالبة جديدة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-ar-light",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": false,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #e3e7ea on #ffffff 1.24 ×6"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "6 من الحوادث",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-detail-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×4"
+  ],
+  "cardsCount": 4,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "تحويل",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "تأجيل حتى…",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إجراءات أخرى▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إنشاء تذكرة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [
+   "إنشاء تذكرة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "إرسال",
+    "where": "other",
+    "labelRatio": 7.97,
+    "color": "#a9aeb4",
+    "bg": "#14181e",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-detail-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "14h r4px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 300,
+    "gridW": 298,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 3,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "298px 0px #333a42 r1.25",
+     "298px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "أُقرّ بها 24 يونيو 18:52",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "متأخر 13h 34m",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "غير مُستلَم",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "إغلاق",
+    "disabled": true,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#a9aeb4",
+    "labelRatio": 7.97,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": "_r_e_-r0"
+   },
+   {
+    "label": "استلام",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "_r_e_-r0",
+    "text": "لا تزال 2 من خطوات الإجراء معلَّقة.",
+    "px": "13px"
+   },
+   {
+    "id": "",
+    "text": "INC-013 · حادث · فُتحت 24 يونيو 18:40",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام",
+   "",
+   ""
+  ],
+  "opacityDisabled": [
+   "button[checkbox]  op0.5"
+  ],
+  "disabledAnywhere": [
+   {
+    "label": "إغلاق",
+    "where": "page-header",
+    "labelRatio": 7.97,
+    "color": "#a9aeb4",
+    "bg": "#14181e",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "",
+    "where": "card",
+    "labelRatio": 12.2,
+    "color": "#e8ecf1",
+    "bg": "#232a33",
+    "border": "1px a1",
+    "opacity": "0.5"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "rate-card-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×5"
+  ],
+  "cardsCount": 5,
+  "ruleSummary": [
+   "tr #333a42 on #232a33 1.25 ×8"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "2 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "870px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "870px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "870px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   },
+   {
+    "kind": "key-value-table",
+    "cardW": 872,
+    "gridW": 870,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     1
+    ],
+    "labelColors": [
+     "#e8ecf1"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "870px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "8.00",
+      "lines": 2,
+      "align": "start"
+     },
+     {
+      "text": "12.00",
+      "lines": 2,
+      "align": "start"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   },
+   {
+    "label": "موافقة",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "dispute-detail-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×3"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 556,
+    "gridW": 554,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 4,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "554px 0px #333a42 r1.25",
+     "554px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "25.00 SAR",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 يونيو 05:14",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TRP-9101",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "TKT-501",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "حلّ المطالبة",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "استلام المطالبة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "DSP-101 · Nora Al-Harbi · 25.00 SAR",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام المطالبة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "fairness-detail-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×3"
+  ],
+  "cardsCount": 3,
+  "ruleSummary": [
+   "div[key-value-row] #333a42 on #232a33 1.25 ×1"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [
+   {
+    "kind": "key-value-grid",
+    "cardW": 556,
+    "gridW": 554,
+    "gridInset": 1,
+    "gridInsetEnd": 1,
+    "rows": 2,
+    "labelStarts": [
+     13
+    ],
+    "labelColors": [
+     "#a9aeb4"
+    ],
+    "valueColors": [
+     "#e8ecf1"
+    ],
+    "ruleWidths": [
+     "554px 0px #313944 r1.24"
+    ],
+    "valueLines": [
+     {
+      "text": "Transport authority oper",
+      "lines": 1,
+      "align": "end"
+     },
+     {
+      "text": "25 يونيو 08:50",
+      "lines": 1,
+      "align": "end"
+     }
+    ]
+   }
+  ],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "تأييد",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "نقض",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "استلام",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "تظلّم من إيقاف · FC-0001",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "استلام"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "ticket-detail-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×6"
+  ],
+  "cardsCount": 6,
+  "ruleSummary": [],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "رجوع",
+    "disabled": false,
+    "filled": false,
+    "bg": "#14181e",
+    "color": "#e8ecf1",
+    "labelRatio": 15.01,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   },
+   {
+    "label": "حلّ",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "انتظار العميل",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "إجراءات أخرى▾",
+    "disabled": false,
+    "filled": false,
+    "bg": "#232a33",
+    "color": "#e8ecf1",
+    "labelRatio": 12.2,
+    "opacity": "1",
+    "border": "1px 1",
+    "describedBy": null
+   },
+   {
+    "label": "تولٍّ",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "TKT-502 · Sara Al-Otaibi · ترك الراكب متعلقات في المركبة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "تولٍّ"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [
+   {
+    "label": "إرسال الرد",
+    "where": "card",
+    "labelRatio": 6.48,
+    "color": "#a9aeb4",
+    "bg": "#232a33",
+    "border": "1px a0",
+    "opacity": "1"
+   }
+  ],
+  "overflowX": 0
+ },
+ {
+  "tag": "cc-list-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [
+   "#232a33 on #14181e lift 1.23 border 1px #000000@0 rnull shadow true ×1"
+  ],
+  "cardsCount": 1,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×7"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "7 من المحادثات",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "tickets-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×2"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "14h r4px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "تذكرة جديدة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "2 تذكرة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "تذكرة جديدة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "disputes-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×19"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [
+   {
+    "label": "مطالبة جديدة",
+    "disabled": false,
+    "filled": true,
+    "bg": "#4fb183",
+    "color": "#232a33",
+    "labelRatio": 5.48,
+    "opacity": "1",
+    "border": "1px 0",
+    "describedBy": null
+   }
+  ],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "19 مطالبة",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [
+   "مطالبة جديدة"
+  ],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ },
+ {
+  "tag": "safety-ar-dark",
+  "errors": [],
+  "menuItems": null,
+  "popover": null,
+  "dir": "rtl",
+  "dark": true,
+  "cardSummary": [],
+  "cardsCount": 0,
+  "ruleSummary": [
+   "tr[table-row] #313944 on #232a33 1.24 ×6"
+  ],
+  "badgeAsControl": [
+   "8 in A",
+   "58 in A",
+   "2 in A",
+   "28 in A",
+   "4 in A",
+   "3 in A",
+   "14 in A",
+   "6 in A",
+   "5 in A",
+   "2 in A",
+   "7 in BUTTON"
+  ],
+  "badgeShapes": [
+   "16h r4px b0px",
+   "20h r4px b0px"
+  ],
+  "chipLikeButtons": [
+   "تخطٍّ إلى المحتوى 1h r0px"
+  ],
+  "buttonShapes": [
+   "1h r0px",
+   "24h r8px",
+   "36h r8px",
+   "30h r3.35544e+07px",
+   "40h r0px"
+  ],
+  "smallAll": 0,
+  "smallSummary": [],
+  "grids": [],
+  "headerKind": "page",
+  "headerButtons": [],
+  "refusalLines": [
+   {
+    "id": "",
+    "text": "6 من الحوادث",
+    "px": "14px"
+   }
+  ],
+  "filledEnabledAnywhere": [],
+  "opacityDisabled": [],
+  "disabledAnywhere": [],
+  "overflowX": 0
+ }
+]

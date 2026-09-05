@@ -314,14 +314,23 @@
                           `82923d3f` y=440 x=144-767 -> #FFFFFF, n=624px, one
                           colour; same on 02b895df, 6a08206b, c53f19d9,
                           546b7d98, 79a31934. THERE IS NO GREY CANVAS. */
-  --ev-surface: #ffffff; /* M — card, tile, popover, drawer, table body.
-                          IDENTICAL to --ev-bg ON PURPOSE (D-11). A card is
-                          distinguished by a 1px border and an 8px radius, not
-                          by a fill. Both names are kept so the two can be
-                          separated again without touching a component.
-                          §6.3 D1 is NARROWED, not deleted: white-on-white is a
-                          defect only when there is NO BORDER, which is what
-                          the legacy app shipped. */
+  --ev-surface: #ffffff; /* M — card, tile, table body. IDENTICAL to --ev-bg
+                          ON PURPOSE (D-11): a card is carried by its border
+                          and radius, not a fill. Two names so they can part
+                          without touching a component. */
+  /* The raised tier: popover, dropdown, dialog, drawer. White in light (D-11,
+     one ground); the dark block lifts it one step above the card (AC-CC-01). */
+  --ev-surface-2: #ffffff;
+  /* A card's edge. The hairline in light (§2.1); nothing in dark, where the
+     inset highlight in --ev-shadow-1 does the job (AC-CC-01). */
+  --ev-surface-edge: var(--ev-hairline);
+  /* The neutral badge plate. The same tint as --ev-bg2 in light; its own name
+     so dark can lift the plate above the card without moving the strip (R7). */
+  --ev-neutral-lt: #f6f8f9;
+  /* The hover ground of a row inside a card (key/value grids, the rate card).
+     --ev-bg2 in light, the same fill as --accent; its own name because in dark
+     --accent sits BELOW the card and a hover must lift, not sink (AC-CC-01). */
+  --ev-row-hover: var(--ev-bg2);
 
   /* THE ONE SUBDUED FILL, and it does six jobs: the icon rail, the table
      header row, the filter-chip strip, a card's section-header strip, a promo
@@ -496,6 +505,10 @@
      consumers are separators, the scroll thumb and the skeleton fill, none of
      which carry text. Verified rather than assumed. */
   --ev-hairline: #e3e7ea;
+  /* The row rule INSIDE a card: ink at 8% over whatever ground the card has
+     (CONTACT-CENTRE-REDESIGN-PLAN §3 item 4). 1.17:1 on the light card, 1.26:1
+     on the dark one. Never a card or control edge. */
+  --ev-hairline-soft: color-mix(in srgb, var(--ev-ink) 8%, transparent);
 
   /* **THE FIRM BOUNDARY — the second of the product's two rule weights.**
      Added deliberately, in the same commit, because --ev-hairline moved two
@@ -1208,36 +1221,15 @@
                         s5    97.6   28.2  132.2   55.7      -   58.9
                         s6    43.4   25.6   73.7   25.8   58.9      -
 
-     ── DARK. Derived AGAINST #1a1f26, not lifted from light. ──────────────
-     The same rule --ev-row-critical records: a dark surface gets its own
-     derivation. Hue FAMILY is carried across (every stop is within 6 deg of
-     its light twin) so series 2 is still "the violet one" after a theme
-     switch; saturation and lightness were re-solved against the dark card.
-
-       stop  hex       hsl                  on --card  on --ev-bg #14181e
-       s1    #4fb183   151.8 / 39% / 50%      6.269         6.741
-       s2    #9e73d3   266.9 / 52% / 64%      4.611         4.958
-       s3    #e2b03c    41.9 / 74% / 56%      8.289         8.912
-       s4    #a6598e   318.7 / 30% / 50%      3.503         3.766
-       s5    #4d6af4   229.6 / 88% / 63%      3.694         3.972
-       s6    #50d5e7   187.2 / 76% / 61%      9.474        10.188
-
-       worst-observer dE76      s1     s2     s3     s4     s5     s6
-                        s1       -   59.3   40.1   29.1   98.0   38.2
-                        s2    59.3      -  111.9   29.2   29.7   29.2
-                        s3    40.1  111.9      -   83.8  140.3   76.1
-                        s4    29.1   29.2   83.8      -   57.2   29.2
-                        s5    98.0   29.7  140.3   57.2      -   65.8
-                        s6    38.2   29.2   76.1   29.2   65.8      -
+     ── DARK. Re-solved against the dark card in the `.dark` block, not
+     lifted from light: hue family carried across within 6 deg, S/L re-solved
+     until every stop clears 3:1 on the card and the page (R4-1). ──────────
 
      ── WHAT THE SET SITS NEAR, STATED RATHER THAN DISCOVERED LATER. ───────
        light  s3 ochre  to --ev-amber #b45309   dE 24.2   distinct family
               s5 blue   to --ev-blue-dk         dE 12.6   see below
               s5 blue   to --ev-blue            dE 15.1
               s1 green  to --ev-green #1d723c   dE 10.1   PRE-EXISTING
-       dark   s3 ochre  to .dark --ev-amber     dE 18.2
-              s5 blue   to .dark --ev-blue      dE 31.2
-              s1 green  to .dark --ev-green     dE 11.8   PRE-EXISTING
      s5 is a different blue from --ev-blue-dk on purpose — reusing the link
      colour would undo Doc 13 Phase 1.2, which moved the series OFF blue. 12.6
      is a visible step and the two never meet: one is a 2px stroke inside a
@@ -1313,21 +1305,10 @@
           line — but a series fill must never be the only thing distinguishing
           a plot region from an info or warning surface.
 
-     THE DARK FILLS ARE NOT THE 10% MIX, AND THAT IS DELIBERATE. 10% of a stop
-     on #1a1f26 lands a wash at 1.175:1 — heavier than the shipped dark
-     --ev-brand-lt at **1.078**, so applying light's arithmetic to a dark
-     ground would make series 1's band change weight between themes. The dark
-     tone tints in `.dark` were not built that way either; read as HSL they are
-     one construction, `hsl(H_tone, ~34-45%, ~11-13%)`:
-       --ev-brand-lt #14291f = h151 s34% l12%   from stop h152
-       --ev-green-lt #12251a = h145 s35% l11%   from stop h145
-       --ev-blue-lt  #141c2e = h222 s39% l13%   from stop h221
-       --ev-amber-lt #2a1f10 = h035 s45% l11%   from stop h032
-     So the dark rule is that construction at a fixed `hsl(H_stop, 40%, 12%)`,
-     which reproduces the shipped --ev-brand-lt to **dE76 2.21** (#122b1f vs
-     #14291f). The shipped value wins for s1 — it is the token that is on
-     screen — and the method supplies s2..s6. Same method for the whole set,
-     one measured exception, written down. */
+     THE DARK FILLS ARE NOT THE 10% MIX: a 10% wash on a dark card changes
+     weight between themes. They are `hsl(H_stop 40% L)` one faint step above
+     the dark card, the same construction as the dark tone tints; see the
+     `.dark` block. s1 stays the shipped --ev-brand-lt. */
   --ev-series-1-lt: var(--ev-brand-lt);
   --ev-series-2-lt: #f0ebf5;
   --ev-series-3-lt: #f8f2e8;
@@ -1710,98 +1691,48 @@
    value. If a proposed entry here would be wrong for an English string in an
    Arabic workspace, it is a language value in the wrong hook. */
 /* ==========================================================================
-   1b. THE DARK THEME. Added 2026-09-02.
+   1b. THE DARK THEME.
    --------------------------------------------------------------------------
-   The file said "Eyvar ships one theme… no dark palette exists below". It does
-   now, and it is one block because layer 1 was built to make it one block:
-   every raw value lives in `--ev-*` and layer 2 only MAPS. Nothing below this
-   point changes, no component changes, and no `dark:` utility is written
-   anywhere in `src/` — the whole theme is these declarations.
-
-   **HOW IT WINS.** `:root` and `.dark` are the same element when the class is
-   on `<html>`. `.dark` has specificity (0,1,0) against `:root`'s (0,0,0), so
-   these declarations beat the light ones; layer 2's `var(--ev-*)` references
-   resolve at USE time on that element and pick up whichever won. That is the
-   entire mechanism, and it is why a re-skin is a block rather than a pass.
-
-   ── THREE DECISIONS WORTH ARGUING WITH, RATHER THAN INHERITING SILENTLY ──
-
-   **(1) THE LADDER KEEPS ITS DIRECTION. The nav is still the darker surface.**
-   §2.1's relationship — "the nav is ONE STEP DARKER than the content, and the
-   tonal direction does NOT invert" — survives literally: rail < nav < content,
-   in both themes. A dark theme is not an inverted light theme and the parts of
-   the light theme that were RELATIONSHIPS rather than values are kept.
-
-   **(2) A CARD IS ONE STEP LIGHTER THAN ITS GROUND, and this is the one place
-   the light theme's rule does NOT carry over.** D-11 makes `--ev-surface`
-   identical to `--ev-bg` on purpose: a card is distinguished by a 1px border
-   and an 8px radius, not by a fill. That works on white and it is exactly what
-   the visual research found NOT working — "cards do not read as objects" — and
-   the light-theme fix for it, a tinted ground, is a ruling this file cannot
-   make on its own (D7 §1.1).
-
-   In dark there is no such ruling to violate: there is no "pure white edge to
-   edge" clause, because there is no white. So the card takes the step that the
-   light theme is still arguing about — 1.075:1, the same order as the light
-   nav-to-content step — and D-11's reasoning is honoured rather than its
-   arithmetic: the border and the radius still do most of the work, and the
-   fill only stops a card from disappearing into its own page.
-
-   **(3) EVERY TONE IS RE-DERIVED, NOT INVERTED.** A light theme's `--ev-red`
-   #b42318 on a dark ground is 2.1:1 and unreadable. Each tone's FOREGROUND
-   moves up the ramp until it clears AA on its own tint AND on the card, and
-   each tint moves down until it sits about as far off the card as its light
-   counterpart sits off white. Measured, not eyeballed — every figure in the
-   comments below was computed against these exact values.
-
-   REVERSIBLE: delete this block. Nothing else refers to it. */
+   One block, because layer 1 was built for it: every raw value is an --ev-*
+   and layer 2 only maps. `.dark` on <html> outranks `:root` and each var()
+   resolves at use time, so no `dark:` utility exists in `src/`. The ladder
+   keeps its direction (rail < nav < content < card, §2.1) and every tone is
+   re-derived against the card, never inverted (AC-CC-01). */
 .dark {
-  /* --- The ladder. rail < nav < content < card. ------------------------- */
-  --ev-bg-rail: #0c0e12; /* darkest, as #e9edf1 is lightest-inverted */
-  --ev-bg-nav: #101319; /* 1.044 : 1 against the content ground */
-  --ev-bg2: #101319; /* the SAME value as the nav, exactly as in light */
-  --ev-bg: #14181e; /* the content region */
-  --ev-surface: #1a1f26; /* the card — 1.075 : 1 above its ground. See (2). */
+  /* --- The ladder: rail < nav < content < card < raised. The card is a full
+     step above its ground and the popover/drawer tier one more (AC-CC-01).
+     A dark card carries no hairline; its edge is the inset highlight in
+     --ev-shadow-1, so --ev-surface-edge paints nothing. */
+  --ev-bg-rail: #0c0e12;
+  --ev-bg-nav: #101319;
+  --ev-bg2: #101319;
+  --ev-bg: #14181e;
+  --ev-surface: #232a33;
+  --ev-surface-2: #2e3641;
+  --ev-surface-edge: transparent;
 
   --ev-nav-hover: #171c23;
-  --ev-nav-chip: #232a33; /* the active nav pill, a plate you can see */
+  --ev-nav-chip: #232a33;
   --ev-nav-chip-rail: #1c222a;
   --ev-text-2-rail: #9aa4b2;
 
-  /* --- The two rule weights, and they stay two. ------------------------
-       --ev-hairline         #262d36  1.192 : 1 on the card   STRUCTURE
-       --ev-hairline-control #333c47  1.481 : 1 on the card   CONTROLS
-       the two against each other     1.243 : 1  (light: 1.169)
-     The separation is slightly WIDER than in light, which is correct rather
-     than accidental: a 1px light line on a dark ground reads thinner than the
-     same step does dark-on-light, so the pair needs a little more room to stay
-     two weights. --ev-hairline2 is an alias and follows for free. */
-  --ev-hairline: #262d36;
-  --ev-hairline-control: #333c47;
-  /* R19's unchecked checkbox, and its 3:1 requirement is met: 3.588 : 1 on the
-     card, against the light theme's 3.259. */
-  --ev-hairline-strong: #6b7684;
+  /* --- Rules. Two weights, re-solved on the raised card so they stay two
+     (R23); --ev-hairline-strong keeps R19's 3:1 on the card and the dialog. */
+  --ev-hairline: #313944;
+  --ev-hairline-control: #3c4451;
+  --ev-hairline-strong: #76818f;
 
-  /* --- Ink. The same three rungs, same jobs, same relationship. ---------
-       --ev-ink     #e8ecf1   13.96 : 1 on the card   AAA
-       --ev-text-2  #9ba5b4    6.65 : 1               AA
-       --ev-text-3  #6b7684    3.59 : 1   NOT a text colour, exactly as in
-                                          light, where it is 2.536 and carries
-                                          the same warning. */
+  /* --- Ink. Muted is ink at 68% over the card (AC-CC-01). --ev-text-3 is
+     decorative only, exactly as in light. */
   --ev-ink: #e8ecf1;
-  --ev-text-2: #9ba5b4;
+  --ev-text-2: #a9aeb4;
   --ev-text-3: #6b7684;
 
-  /* --- The tones. Foreground / tint, each measured on the card. ---------
-       brand  #4fb183 on #14291f = 5.82   on card 6.27
-       green  #4fbf7e on #12251a = 6.96   on card 7.17
-       amber  #e0a055 on #2a1f10 = 7.17   on card 7.36
-       red    #f08a7e on #2a1512 = 7.12   on card 6.82
-       blue   #6c9bff on #141c2e = 6.29   on card 6.13
-     Every one clears AA on both grounds. R7's set is still FIVE tones and this
-     block introduces no sixth — these are the same five, re-derived. */
+  /* --- Tones. Each tint sits one visible step ABOVE the card, a plate not a
+     hole, and each foreground clears AA on its tint, the card and the raised
+     tier. Still R7's five; --ev-neutral-lt is the neutral plate, not a sixth. */
   --ev-brand: #4fb183;
-  --ev-brand-lt: #14291f;
+  --ev-brand-lt: #1a3628;
   /* Inbox thread, dark (design 12 §9, Q-CC1). */
   --ev-bubble-in: #232a33;
   --ev-bubble-out: #27423c;
@@ -1814,97 +1745,58 @@
   --ev-brand-field: #0d3323;
   --ev-brand-field-fg: #d8ece2;
   --ev-green: #4fbf7e;
-  --ev-green-lt: #12251a;
+  --ev-green-lt: #1b3827;
   --ev-amber: #e0a055;
-  --ev-amber-lt: #2a1f10;
-  --ev-amber-dk: #f0c48a; /* the darker amber inverts to the LIGHTER one */
+  --ev-amber-lt: #3f2f18;
+  --ev-amber-dk: #f0c48a; /* "dk" names the ROLE (the label), not lightness */
   --ev-red: #f08a7e;
-  --ev-red-lt: #2a1512;
+  --ev-red-lt: #4b2620;
   --ev-blue: #6c9bff;
-  --ev-blue-lt: #141c2e;
-  --ev-blue-dk: #9bb8ff; /* likewise: "dk" names its ROLE, not its lightness */
+  --ev-blue-lt: #222f4e;
+  --ev-blue-dk: #9bb8ff;
+  --ev-neutral-lt: #31363e;
+  /* A row's hover lift: one step above the card, under the raised tier. */
+  --ev-row-hover: #2b323b;
 
-  /* --- The critical row. Same construction as light: a tint you can just
-     see against the row ground, and a second, firmer one for the hover /
-     emphasis step. Its ink is warmed slightly off --ev-text-2 so it does not
-     read as a different colour temperature from the row it sits in. */
-  --ev-row-critical: #23161a;
-  --ev-row-critical-emphasis: #2a1512;
-  --ev-text-2-row-critical: #b5a1a4;
+  /* --- The breached row (R5a use #1): a tint just above the row ground, a
+     firmer one for hover, and a warmed muted ink that clears AA on both. */
+  --ev-row-critical: #3b292c;
+  --ev-row-critical-emphasis: #402c30;
+  --ev-text-2-row-critical: #bcaab0;
 
-  /* --- The categorical series ramp. Derived AGAINST #1a1f26, the dark card,
-     not lifted from light — the rule --ev-row-critical records. Hue family is
-     carried across (each stop within 6 deg of its light twin) so a theme
-     switch does not renumber the legend; S and L were re-solved. Contrast on
-     the card, then on --ev-bg #14181e; the worst-observer dE76 matrix and the
-     full derivation are at --ev-series-1 in the light block.
-
-       stop  hex       hsl                  on --card  on --ev-bg
-       s1    #4fb183   151.8 / 39% / 50%      6.269       6.741   = --ev-brand
-       s2    #9e73d3   266.9 / 52% / 64%      4.611       4.958
-       s3    #e2b03c    41.9 / 74% / 56%      8.289       8.912
-       s4    #a6598e   318.7 / 30% / 50%      3.503       3.766
-       s5    #4d6af4   229.6 / 88% / 63%      3.694       3.972
-       s6    #50d5e7   187.2 / 76% / 61%      9.474      10.188
-
-     All six clear 1.4.11's 3:1 on both dark grounds. Adjacent pairs in the
-     shipped order clear **57.2** and the global worst pair is **29.1**, both
-     WIDER than light's 55.7 / 25.6 — a dark ground gives the mid-lightness
-     stops more room than white does.
-
-     **s1 IS ABSENT ON PURPOSE.** --ev-series-1 is `var(--ev-brand)` in layer
-     1, and `.dark` already redeclares --ev-brand to #4fb183, so the var()
-     resolves at use time on the element and the dark stop arrives for free.
-     Declaring it here would be a second copy of a value that has one owner —
-     the same reason --churn-high-foreground has no `.dark` entry. */
+  /* --- The categorical ramp (R4-1), re-solved against the card: hue within
+     6 deg of the light twin so a theme switch never renumbers a legend, S/L
+     moved until every stop clears 3:1 on the card and the page. s1 is
+     --ev-brand and arrives through the var(). */
   --ev-series-2: #9e73d3;
   --ev-series-3: #e2b03c;
-  --ev-series-4: #a6598e;
-  --ev-series-5: #4d6af4;
+  --ev-series-4: #b264a0;
+  --ev-series-5: #6a83f6;
   --ev-series-6: #50d5e7;
 
-  /* --- The dark area fills. `hsl(H_stop, 40%, 12%)` — the construction the
-     five dark tone tints above already use, NOT light's 10%-on-white mix,
-     which on a dark card lands 1.175:1 against the shipped --ev-brand-lt's
-     1.078 and would change series 1's weight between themes. The method
-     reproduces --ev-brand-lt to dE76 2.21, so s1 keeps the shipped token and
-     s2..s6 are generated. Full reasoning at --ev-series-1-lt.
+  /* --- Area fills, hsl(H_stop 40% L) one faint step above the card; every
+     stop clears 3:1 on its own fill and both inks clear AA on all six. s1 is
+     --ev-brand-lt through the var(). */
+  --ev-series-2-lt: #392453;
+  --ev-series-3-lt: #362c17;
+  --ev-series-4-lt: #491f3c;
+  --ev-series-5-lt: #1c2241;
+  --ev-series-6-lt: #17343a;
 
-       fill  hex       on --card   stop on its own fill   --ev-ink  --ev-text-2
-       s1    #14291f    1.0779           5.816             12.950      6.172
-       s2    #1d122b    1.0803           4.982             15.081      7.187
-       s3    #2b2312    1.0662           7.774             13.093      6.239
-       s4    #2b1223    1.0448           3.660             14.585      6.951
-       s5    #12172b    1.0716           3.958             14.960      7.129
-       s6    #12282b    1.0759           8.806             12.975      6.183
-
-     Every stroke clears 3:1 on its own wash and — unlike light — BOTH inks
-     clear AA on all six. The muted level passes here and fails there, so the
-     rule at --ev-series-1-lt is written for the light case and binds in both:
-     a secondary line inside a fill never takes `text-muted-foreground`.
-     s1 is absent for the same reason the stop is: --ev-series-1-lt is
-     `var(--ev-brand-lt)` and `.dark` already moves --ev-brand-lt. */
-  --ev-series-2-lt: #1d122b;
-  --ev-series-3-lt: #2b2312;
-  --ev-series-4-lt: #2b1223;
-  --ev-series-5-lt: #12172b;
-  --ev-series-6-lt: #12282b;
-
-  /* --- Elevation. The light tiers are near-black at low alpha on white; on a
-     dark ground that is invisible, so the alphas rise and the colour goes to
-     true black. The SHAPE of all three — offsets, blurs, spreads, and
-     `offset-x: 0` so nothing mirrors in Arabic — is unchanged, which keeps
-     R-3's ladder identical across the two themes. */
-  --ev-shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px -1px rgb(0 0 0 / 0.3);
+  /* --- Elevation (R-3). Light's offsets and blurs, true black at a higher
+     alpha, and tier 1 gains the 1px inset highlight that replaces the card
+     border in dark. offset-x stays 0 so nothing mirrors (§9.1). */
+  --ev-shadow-1:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.35),
+    0 1px 3px -1px rgb(0 0 0 / 0.3);
   --ev-shadow-2:
     0 8px 24px -2px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
   --ev-shadow-3:
     0 20px 48px -12px rgb(0 0 0 / 0.7), 0 6px 12px -6px rgb(0 0 0 / 0.5);
 }
 
-/* The browser's own surfaces — form controls, the scrollbar, the caret — take
-   their cue from this and nothing else does it. Without it a dark page renders
-   a white scrollbar down its edge. */
+/* The browser's own surfaces (form controls, scrollbar, caret) take their
+   cue from this; without it a dark page paints a white scrollbar. */
 .dark {
   color-scheme: dark;
 }
@@ -2180,7 +2072,9 @@
 
   --card: var(--ev-surface);
   --card-foreground: var(--ev-ink);
-  --popover: var(--ev-surface);
+  /* `border-card-border`: the hairline in light, nothing in dark (AC-CC-01). */
+  --card-border: var(--ev-surface-edge);
+  --popover: var(--ev-surface-2);
   --popover-foreground: var(--ev-ink);
 
   /* **D7 §1.2 IS AMENDED HERE: THE PRIMARY ACTION IS BRAND GREEN.**
@@ -2226,6 +2120,8 @@
   --destructive-foreground: var(--ev-surface);
 
   --border: var(--ev-hairline);
+  /* `border-border-soft` / `divide-border-soft`: the row rule inside a card. */
+  --border-soft: var(--ev-hairline-soft);
   /* R19 — the unchecked checkbox / radio outline, and nothing else. See the
      token's own declaration for the one permitted use and the measurements. */
   --border-strong: var(--ev-hairline-strong);
@@ -2310,7 +2206,7 @@
   --tone-warning-graphic: var(--ev-amber);
   --tone-info: var(--ev-blue-lt);
   --tone-info-foreground: var(--ev-blue-dk);
-  --tone-neutral: var(--ev-bg2);
+  --tone-neutral: var(--ev-neutral-lt);
   --tone-neutral-foreground: var(--ev-text-2);
   --tone-critical: var(--ev-red-lt); /* banners only (R5a use #2) */
   --tone-critical-foreground: var(--ev-red);
@@ -2397,6 +2293,8 @@
 
      The identity cell keeps `text-foreground` (--ev-ink, 15.680:1 on the
      darker ground). Only the muted level moves. */
+  /* `hover:bg-row-hover`: a row inside a card lifts on hover in both themes. */
+  --row-hover: var(--ev-row-hover);
   --row-critical: var(--ev-row-critical);
   --row-critical-emphasis: var(--ev-row-critical-emphasis);
   --row-critical-foreground: var(--ev-text-2-row-critical);
@@ -2426,32 +2324,21 @@
      something a designer meant is worse than a lint. `/token-audit` and
      review own it.
 
-     ── EVERY INK ON EVERY GROUND THE BLOCK CAN SIT ON, BOTH THEMES. ──────
+     ── EVERY INK ON EVERY GROUND THE BLOCK CAN SIT ON, IN LIGHT. ────────
      Both consumers are `bg-muted` (= --ev-bg2), so the churn block has ONE
-     ground per theme, not two. The other two rows are the grounds a third
-     consumer could plausibly land it on; they are computed now rather than
-     discovered later.
+     ground per theme; the other two rows are where a third consumer could
+     land it. Dark is re-derived in the `.dark` block and measured there.
 
-       ground                                    light      dark
-       --ev-bg2 / bg-muted  (rail + strip)      #f6f8f9    #101319
-       --ev-surface / bg-card                   #ffffff    #1a1f26
-       --ev-bg / page                           #ffffff    #14181e
+       ink on --ev-bg2 #f6f8f9, the ground it ships on
+       THIS TOKEN   = --ev-red   the word `High`  6.172   AA ✓
+       --ev-ink     `Medium` / `Low`, UNCHANGED  16.344   AAA ✓
+       --ev-text-2  §8.2's reason line            4.538   AA ✓
+       THIS TOKEN on --ev-surface and --ev-bg     6.574   AA ✓
 
-       ink on --ev-bg2, the ground it ships on  light      dark
-       THIS TOKEN   = --ev-red   the word `High`  6.172     7.653   AA ✓
-       --ev-ink     `Medium` / `Low`, UNCHANGED  16.344    15.674   AAA ✓
-       --ev-text-2  §8.2's reason line            4.538     7.470   AA ✓
-
-       THIS TOKEN on the other two grounds        light     dark
-       on --ev-surface / bg-card                  6.574     6.816   AA ✓
-       on --ev-bg / the page                      6.574     7.329   AA ✓
-
-     All five clear 4.5:1, so the reading is legal at BODY size and not only
-     at the 20px it renders at in the rail — a consumer may set it at 14px in
-     the strip (it does) without re-deriving anything. The §8.2 reason line
-     beside it keeps --muted-foreground on both themes: 4.538 is thin but it
-     is the same --ev-text-2-on---ev-bg2 figure the whole product already
-     rests on, and this ruling does not move that ground.
+     All clear 4.5:1, so the reading is legal at BODY size and not only at
+     the 20px it renders at in the rail. The §8.2 reason line beside it keeps
+     --muted-foreground: 4.538 is thin but it is the figure the whole product
+     already rests on, and this ruling does not move that ground.
 
      **THE DARK VALUE COMES FOR FREE AND THAT IS THE POINT OF LAYER 1.**
      `.dark` redeclares --ev-red to #f08a7e; this slot is a var() that
@@ -2590,6 +2477,7 @@
   --color-nav-chip-foreground: var(--nav-chip-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -2613,13 +2501,13 @@
      no way to spell it is a token that gets replaced by a palette class.
 
      ⚠ **THE INK ON IT IS NOT --muted-foreground, AND THIS IS MEASURED.**
-       ink on --ev-brand-lt                     light #e7f0ec  dark #14291f
-       --ev-ink     `text-foreground`              14.984        12.950  ✓
-       --ev-brand   `text-primary`                  5.793         5.816  ✓
-       --ev-text-2  `text-muted-foreground`      **4.161 ✗**      6.172  ✓
-     The muted level FAILS AA on this ground in LIGHT and passes in DARK —
-     the worst shape a failure can take, because the component reviews clean
-     on whichever theme the reviewer had open. **Inside `bg-brand-lt`, a
+       ink on --ev-brand-lt, light #e7f0ec
+       --ev-ink     `text-foreground`              14.984  ✓
+       --ev-brand   `text-primary`                  5.793  ✓
+       --ev-text-2  `text-muted-foreground`      **4.161 ✗**
+     The muted level FAILS AA on this ground in LIGHT and passes in DARK.
+     That is the worst shape a failure can take, because the component
+     reviews clean on whichever theme the reviewer had open. **Inside `bg-brand-lt`, a
      secondary line takes `text-foreground` or `text-primary`, never
      `text-muted-foreground`.**
 
@@ -2662,6 +2550,7 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-border-control: var(--border-control);
+  --color-border-soft: var(--border-soft);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
@@ -2680,6 +2569,7 @@
   /* The breached row — `bg-row-critical`, `bg-row-critical-emphasis`,
      `text-row-critical-foreground`. Exposed so `DataTable` can drop
      `bg-rose-50/95` and friends for a semantic utility with no alpha. */
+  --color-row-hover: var(--row-hover);
   --color-row-critical: var(--row-critical);
   --color-row-critical-emphasis: var(--row-critical-emphasis);
   --color-row-critical-foreground: var(--row-critical-foreground);
@@ -3071,14 +2961,9 @@
      real step up rather than a new `--ev-*` name. Reported to the screen
      owner; adding a spacing token here would be the drift, not the fix. */
 
-  /* 11px. **BADGE LABEL AND COUNT-BADGE NUMERAL, AND NOTHING ELSE** (H2).
-     175 uses against a declared job that two components own, which makes this
-     the most over-spent step in the ramp. Its other uses — notably the
-     `font-mono text-2xs` id lines across the five `admin/communications`
-     cards — belong at --text-xs. An 11px step exists to let a CHIP fit inside
-     a 20px pill; it is not a size for prose, and the product reads two steps
-     below its own declared body largely because this step and --text-xs were
-     available. */
+  /* 11px. The count numeral, the delivery word and table meta, and nothing
+     else (H2, AC-CC-03). A badge label and every line an operator reads sit
+     at --text-xs or above; this step is not a size for prose. */
   --text-2xs: 11px;
   --text-2xs--line-height: 16px;
   /* Secondary line and helper text. **NOT the table column header any more:**

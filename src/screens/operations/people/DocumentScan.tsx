@@ -224,7 +224,7 @@ export function DocumentScan({
             href={state.url}
             target="_blank"
             rel="noreferrer"
-            className="absolute end-2 top-2 rounded-md border border-border bg-card/95 px-2 py-1 text-2xs font-medium text-foreground"
+            className="absolute end-2 top-2 rounded-md border border-border bg-card/95 px-2 py-1 text-xs font-medium text-foreground"
           >
             {t('applicant.review.openFull')}
           </a>
@@ -232,7 +232,7 @@ export function DocumentScan({
       </div>
 
       {file !== null && (
-        <figcaption className="text-2xs text-muted-foreground">
+        <figcaption className="text-xs text-muted-foreground">
           <bdi>
             {t('applicant.review.fileMeta', {
               kind: COMPLIANCE_DOC_FILE_KIND[file.mimeType],

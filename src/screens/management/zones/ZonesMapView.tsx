@@ -593,7 +593,7 @@ export function ZonesMapView({
 
             `divide-y` is safe here where it was not on the KPI strip: this
             divides on the BLOCK axis, which does not mirror. */}
-        <aside className="flex w-full shrink-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-2 wide:absolute wide:inset-y-2 wide:end-3 wide:z-10 wide:w-94">
+        <aside className="flex w-full shrink-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-card-border bg-card shadow-2 wide:absolute wide:inset-y-2 wide:end-3 wide:z-10 wide:w-94">
           {/* **The selection keeps its height; the LIST is what scrolls.**
               The panel is `inset-y` above the breakpoint, so it has a fixed
               height and something inside it has to give. Without `shrink-0`
@@ -719,7 +719,7 @@ function MapCanvas({
            the page out from under it; the two zoom buttons are the touch route
            in, because a pinch would fight the same gesture. */
         className={cn(
-          'relative aspect-4/3 w-full touch-none overflow-hidden rounded-xl border border-border bg-card select-none wide:aspect-auto wide:min-h-100 wide:flex-1 wide:rounded-none wide:border-x-0',
+          'relative aspect-4/3 w-full touch-none overflow-hidden rounded-xl border border-card-border bg-card select-none wide:aspect-auto wide:min-h-100 wide:flex-1 wide:rounded-none wide:border-x-0',
           view.k > 1 || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default',
         )}
       >
@@ -1326,7 +1326,7 @@ function ZoneListRow({
               style={{ inlineSize: `${Math.round(share * 100)}%` }}
             />
           </span>
-          <span className="shrink-0 text-2xs text-muted-foreground">
+          <span className="shrink-0 text-xs text-muted-foreground">
             {t('zones.demandSupply.detail', {
               demand: formatCount(zone.demand, language),
               supply: formatCount(zone.supply, language),

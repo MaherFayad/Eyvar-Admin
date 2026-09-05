@@ -144,7 +144,7 @@ export function InterventionsCard({
                     aria-describedby={
                       blocked ? REFUSAL_ID : refusal !== undefined ? rowRefusalId(item.id) : undefined
                     }
-                    className="h-6 px-2 text-2xs"
+                    className="h-6 px-2 text-xs"
                     onClick={() => void acknowledge(item)}
                   >
                     {t('dispatch.dismissAlert')}
@@ -154,7 +154,7 @@ export function InterventionsCard({
                     size="xs"
                     disabled={blocked || busy}
                     aria-describedby={blocked ? REFUSAL_ID : undefined}
-                    className="h-6 px-2 text-2xs"
+                    className="h-6 px-2 text-xs"
                     onClick={() => onReassign(item)}
                   >
                     {t('dispatch.reassignCaptain')}
@@ -164,7 +164,7 @@ export function InterventionsCard({
                 {/* §11.2 — the refusal on the row that made it, so an operator
                     reads it beside the control that will not run. */}
                 {refusal !== undefined && (
-                  <p id={rowRefusalId(item.id)} role="alert" className="text-2xs text-muted-foreground">
+                  <p id={rowRefusalId(item.id)} role="alert" className="text-xs text-muted-foreground">
                     {refusal}
                   </p>
                 )}
@@ -175,7 +175,7 @@ export function InterventionsCard({
 
         {/* §8.4.4 — ONE sentence for every control the permission blocks. */}
         {blocked && items.length > 0 && (
-          <p id={REFUSAL_ID} className="p-3 text-2xs text-muted-foreground">
+          <p id={REFUSAL_ID} className="p-3 text-xs text-muted-foreground">
             {unavailableReason}
           </p>
         )}

@@ -26,9 +26,9 @@
  *               the action cluster. Read inline-start → inline-end in
  *               importance order.
  *   §8 slot 4a  **secondary actions cap at TWO.** Beyond two, everything after
- *               the first two collapses into `More actions ▾`. This is the
- *               "designer's cap" §6.2 leaves open, and it is enforced here
- *               rather than trusted to each screen.
+ *               the first two collapses into `More actions ▾` — but only when
+ *               the menu would hold three or more (D8-b); one or two render
+ *               inline. Enforced here rather than trusted to each screen.
  *   §8 slot 4b  overflow is a `dropdown-menu`: verb-first imperatives, sentence
  *               case, no trailing punctuation, destructive item LAST and
  *               separated — but **not red** where a confirmation follows (§5.4).
@@ -158,10 +158,23 @@ export function PageHeader({
   const NextChevron = nextIcon(dir)
   const reasonId = useId()
   const visibleSecondaries = secondaryActions.slice(0, SECONDARY_CAP)
-  /* Everything past the cap SPILLS into the overflow rather than wrapping —
-     §8's rule, applied here so no screen has to remember it. */
-  const spilled = secondaryActions.slice(SECONDARY_CAP)
-  const overflow = [...spilled, ...overflowActions]
+  /* §8 — past the cap, actions spill into the menu rather than wrapping.
+     D8-b — a menu is a disclosure for a LIST: it exists only when three or more
+     would go in it; one or two render inline as labelled buttons instead. */
+  const wouldSpill = [...secondaryActions.slice(SECONDARY_CAP), ...overflowActions]
+  const overflow = wouldSpill.length >= 3 ? wouldSpill : []
+  const inline = overflow.length > 0 ? visibleSecondaries : [...visibleSecondaries, ...wouldSpill]
+  /* §11.2 / plan §3 item 5 — each distinct refusal renders ONCE, under the
+     group, at 12px; every refused control points aria-describedby at its line. */
+  const refusals: string[] = []
+  for (const action of [...inline, ...(primaryAction ? [primaryAction] : [])]) {
+    const reason = refusalOf(action)
+    if (reason !== null && !refusals.includes(reason)) refusals.push(reason)
+  }
+  const describedBy = (action: PageAction) => {
+    const reason = refusalOf(action)
+    return reason === null ? undefined : `${reasonId}-r${refusals.indexOf(reason)}`
+  }
 
   return (
     /* D7 §4.2 — title → toolbar is 20px (11 destination px). `pb-5` is 20 on
@@ -193,103 +206,111 @@ export function PageHeader({
           {badges}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {aside}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            {aside}
 
-          {visibleSecondaries.map((action, index) => (
-            <ActionWithReason key={action.label} action={action} id={`${reasonId}-s${index}`}>
+            {inline.map((action) => (
               <Button
+                key={action.label}
                 variant="secondary"
                 onClick={action.onClick}
                 disabled={action.disabled}
-                aria-describedby={refusalOf(action) === null ? undefined : `${reasonId}-s${index}`}
+                aria-describedby={describedBy(action)}
               >
                 {action.label}
               </Button>
-            </ActionWithReason>
-          ))}
+            ))}
 
-          {overflow.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary">
-                  {t('shell.moreActions')}
-                  {/* §10.2 — a dropdown BUTTON gets a single `⌄` caret; the
-                      stacked `⌃⌄` pair is reserved for a select, and that is
-                      the signal that tells the two apart. A caret is a mark:
-                      it does not mirror (§9.5), so it is written literally. */}
-                  <span aria-hidden="true">▾</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {overflow
-                  .filter((a) => !a.destructive)
-                  .map((action) => (
-                    <DropdownMenuItem
-                      key={action.label}
-                      onSelect={action.onClick}
-                      disabled={action.disabled}
-                    >
-                      {action.label}
-                    </DropdownMenuItem>
-                  ))}
-                {overflow.some((a) => a.destructive) && <DropdownMenuSeparator />}
-                {overflow
-                  .filter((a) => a.destructive)
-                  /* §5.4 — LAST and separated, but NOT red: the confirmation
-                     that follows carries the weight. */
-                  .map((action) => (
-                    <DropdownMenuItem
-                      key={action.label}
-                      onSelect={action.onClick}
-                      disabled={action.disabled}
-                    >
-                      {action.label}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+            {overflow.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">
+                    {t('shell.moreActions')}
+                    {/* §10.2 — a dropdown BUTTON gets a single `⌄` caret; the
+                        stacked `⌃⌄` pair is reserved for a select, and that is
+                        the signal that tells the two apart. A caret is a mark:
+                        it does not mirror (§9.5), so it is written literally. */}
+                    <span aria-hidden="true">▾</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {overflow
+                    .filter((a) => !a.destructive)
+                    .map((action) => (
+                      <DropdownMenuItem
+                        key={action.label}
+                        onSelect={action.onClick}
+                        disabled={action.disabled}
+                      >
+                        {action.label}
+                      </DropdownMenuItem>
+                    ))}
+                  {overflow.some((a) => a.destructive) && <DropdownMenuSeparator />}
+                  {overflow
+                    .filter((a) => a.destructive)
+                    /* §5.4 — LAST and separated, but NOT red: the confirmation
+                       that follows carries the weight. */
+                    .map((action) => (
+                      <DropdownMenuItem
+                        key={action.label}
+                        onSelect={action.onClick}
+                        disabled={action.disabled}
+                      >
+                        {action.label}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
-          {control}
+            {control}
 
-          {/* R3 — the one primary. */}
-          {primaryAction && (
-            <ActionWithReason action={primaryAction} id={`${reasonId}-p`}>
+            {/* R3 — the one primary. */}
+            {primaryAction && (
               <Button
                 variant="default"
                 onClick={primaryAction.onClick}
                 disabled={primaryAction.disabled}
-                aria-describedby={refusalOf(primaryAction) === null ? undefined : `${reasonId}-p`}
+                aria-describedby={describedBy(primaryAction)}
               >
                 {primaryAction.label}
               </Button>
-            </ActionWithReason>
-          )}
+            )}
 
-          {/* §8 slot 5 — rightmost of all. Chevrons are picked by `dir`. */}
-          {pager && (
-            <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={pager.onPrevious}
-                disabled={!pager.hasPrevious}
-                aria-label={t('table.previous')}
-              >
-                <PreviousChevron aria-hidden="true" className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={pager.onNext}
-                disabled={!pager.hasNext}
-                aria-label={t('table.next')}
-              >
-                <NextChevron aria-hidden="true" className="size-4" />
-              </Button>
-            </div>
-          )}
+            {/* §8 slot 5 — rightmost of all. Chevrons are picked by `dir`. */}
+            {pager && (
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={pager.onPrevious}
+                  disabled={!pager.hasPrevious}
+                  aria-label={t('table.previous')}
+                >
+                  <PreviousChevron aria-hidden="true" className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={pager.onNext}
+                  disabled={!pager.hasNext}
+                  aria-label={t('table.next')}
+                >
+                  <NextChevron aria-hidden="true" className="size-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        {refusals.length > 0 && (
+          <div className="flex max-w-sm flex-col items-end gap-0.5 text-end">
+            {refusals.map((reason, index) => (
+              <RefusalLine key={reason} id={`${reasonId}-r${index}`}>
+                {reason}
+              </RefusalLine>
+            ))}
+          </div>
+        )}
         </div>
       </div>
 
@@ -307,28 +328,4 @@ export function PageHeader({
 /** A refusal only while the control is disabled; an enabled control has none. */
 function refusalOf(action: PageAction): string | null {
   return action.disabled && action.reason ? action.reason : null
-}
-
-/**
- * §11.2 — the button, and beneath it the sentence saying why it is disabled.
- * The line is real text (`RefusalLine`), never a `title`, and it is bounded to
- * the button's own column so a long reason does not push the cluster apart.
- */
-function ActionWithReason({
-  action,
-  id,
-  children,
-}: {
-  action: PageAction
-  id: string
-  children: ReactNode
-}) {
-  const reason = refusalOf(action)
-  if (reason === null) return <>{children}</>
-  return (
-    <span className="flex max-w-56 flex-col items-stretch gap-1">
-      {children}
-      <RefusalLine id={id}>{reason}</RefusalLine>
-    </span>
-  )
 }

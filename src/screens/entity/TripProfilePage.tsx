@@ -218,7 +218,7 @@ export function TripProfilePage({
               />
             ) : (
               telemetry !== null && (
-                <div className="shrink-0 rounded-xl border border-border bg-card p-4">
+                <div className="shrink-0 rounded-xl border border-card-border bg-card p-4">
                   <TripStages
                     telemetry={telemetry}
                     layout="row"

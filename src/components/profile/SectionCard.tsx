@@ -52,7 +52,7 @@ export function SectionCard({ title, defaultOpen, aside, children }: SectionCard
   return (
     <Collapsible
       defaultOpen={defaultOpen}
-      className="group/collapsible overflow-hidden rounded-xl border border-border bg-card shadow-1"
+      className="group/collapsible overflow-hidden rounded-xl border border-card-border bg-card shadow-1"
     >
       <CollapsibleTrigger asChild>
         <Button

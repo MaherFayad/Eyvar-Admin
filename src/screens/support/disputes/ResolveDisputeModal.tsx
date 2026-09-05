@@ -380,7 +380,7 @@ export function ResolveDisputeModal({
             {refusal !== null && (
               <span
                 id="dispute-resolve-refusal"
-                className="block text-2xs font-normal whitespace-normal text-muted-foreground"
+                className="block text-xs font-normal whitespace-normal text-muted-foreground"
               >
                 {refusal}
               </span>

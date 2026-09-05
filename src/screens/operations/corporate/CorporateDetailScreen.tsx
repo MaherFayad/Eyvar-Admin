@@ -346,7 +346,7 @@ export function CorporateDetailScreen() {
             {policyDirty && (
               <span className="flex items-center gap-2">
                 {noWrite !== null && (
-                  <span id="corp-policy-refusal" className="text-2xs text-muted-foreground">
+                  <span id="corp-policy-refusal" className="text-xs text-muted-foreground">
                     {noWrite}
                   </span>
                 )}
@@ -498,7 +498,7 @@ export function CorporateDetailScreen() {
             {/* §11.2 - rendered and refused, never removed. */}
             <span className="flex items-center gap-2">
               {noWrite !== null && (
-                <span id="corp-link-refusal" className="text-2xs text-muted-foreground">
+                <span id="corp-link-refusal" className="text-xs text-muted-foreground">
                   {noWrite}
                 </span>
               )}
@@ -585,7 +585,7 @@ export function CorporateDetailScreen() {
           {/* §8.4.4 - ONE sentence for the whole column of refused unlinks,
               pointed at by every one of them. */}
           {employees.status === 'content' && unlinkRefusal !== null && (
-            <p id="corp-unlink-refusal" className="pt-2 text-2xs text-muted-foreground">
+            <p id="corp-unlink-refusal" className="pt-2 text-xs text-muted-foreground">
               {unlinkRefusal}
             </p>
           )}
@@ -658,7 +658,7 @@ export function CorporateDetailScreen() {
             {busy ? t('corp.action.invoicing') : t('corp.sendInvoice')}
           </Button>
           {invoiceRefusal !== null && (
-            <span id="corp-invoice-refusal" className="text-2xs text-muted-foreground">
+            <span id="corp-invoice-refusal" className="text-xs text-muted-foreground">
               {invoiceRefusal}
             </span>
           )}

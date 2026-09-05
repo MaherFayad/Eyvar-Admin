@@ -22,6 +22,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { KeyValueGrid, KeyValueRow } from '@/components/KeyValueGrid'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -215,46 +216,33 @@ export function CaseDetailScreen() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm">
           <p className="whitespace-pre-wrap text-foreground">{fairnessCase.detail}</p>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+          <KeyValueGrid>
             {fairnessCase.disputedRating !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('fairness.col.rating')}</dt>
-                <dd className="text-end text-foreground">
-                  {fairnessCase.status !== 'overturned'
-                    ? t('fairness.rating.value', { rating: String(fairnessCase.disputedRating) })
-                    : t(fairnessCase.averageAdjusted ? 'fairness.rating.recomputed' : 'fairness.rating.voidedOnly', {
-                        rating: String(fairnessCase.disputedRating),
-                      })}
-                </dd>
-              </>
+              <KeyValueRow label={t('fairness.col.rating')}>
+                {fairnessCase.status !== 'overturned'
+                  ? t('fairness.rating.value', { rating: String(fairnessCase.disputedRating) })
+                  : t(fairnessCase.averageAdjusted ? 'fairness.rating.recomputed' : 'fairness.rating.voidedOnly', {
+                      rating: String(fairnessCase.disputedRating),
+                    })}
+              </KeyValueRow>
             )}
             {fairnessCase.suspensionReason !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('fairness.col.suspension')}</dt>
-                <dd className="text-end text-foreground">{fairnessCase.suspensionReason}</dd>
-              </>
+              <KeyValueRow label={t('fairness.col.suspension')}>{fairnessCase.suspensionReason}</KeyValueRow>
             )}
             {fairnessCase.reinstatedAt !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('fairness.detail.reinstated')}</dt>
-                <dd className="text-end text-foreground">
-                  <bdi>{formatDate(fairnessCase.reinstatedAt, { style: 'day-month-time', language })}</bdi>
-                </dd>
-              </>
+              <KeyValueRow label={t('fairness.detail.reinstated')} numeric>
+                <bdi>{formatDate(fairnessCase.reinstatedAt, { style: 'day-month-time', language })}</bdi>
+              </KeyValueRow>
             )}
             {fairnessCase.tripId !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('fairness.detail.trip')}</dt>
-                <dd className="text-end font-mono">
-                  <bdi>{fairnessCase.tripId}</bdi>
-                </dd>
-              </>
+              <KeyValueRow label={t('fairness.detail.trip')} valueClassName="font-mono">
+                <bdi>{fairnessCase.tripId}</bdi>
+              </KeyValueRow>
             )}
-            <dt className="text-muted-foreground">{t('queue.col.opened')}</dt>
-            <dd className="text-end">
+            <KeyValueRow label={t('queue.col.opened')} numeric>
               <bdi>{formatDate(fairnessCase.openedAt, { style: 'day-month-time', language })}</bdi>
-            </dd>
-          </dl>
+            </KeyValueRow>
+          </KeyValueGrid>
         </CardContent>
       </Card>
 

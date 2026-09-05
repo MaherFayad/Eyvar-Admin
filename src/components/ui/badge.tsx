@@ -10,17 +10,17 @@
  *               DELETED, not restyled. Per-row criticality is carried by
  *               `RowCriticalMarker` (V-05, a 3px inset leading edge) plus the
  *               countdown pill's own words — never by a badge.
- *   R15         rounded rectangle, `rounded-lg` (8px). NEVER a stadium. This
- *               retires the legacy `border-radius:999px`. The stock
- *               the stock stadium radius is gone.
+ *   R15         rounded rectangle, `rounded-sm` (4px): a badge is never a
+ *               stadium and never shares the 8px control radius, so a chip
+ *               cannot be read as a button (AC-CC-02).
  *   R17         ONE warning tone. "Waiting on them" and "waiting on you" are
  *               separated by the LABEL, never by a second fill.
  *   §12.1       `new` is an OUTLINE, not a fifth fill — the rebuilt token set
  *               has no fifth pale tint and §6.4 forbids inventing a colour.
  *               An outline is a treatment, not a sixth tone. Do not add
  *               `--ev-teal-lt` to "solve" this.
- *   §12.1       geometry: 20px tall, 11px/600 label (12px in Arabic via the
- *               `text-2xs` token), 6px inline padding.
+ *   §12.1       geometry: 20px tall, 12px/600 label (`text-xs`, the reading
+ *               floor of AC-CC-03), 6px inline padding, no border.
  *   §2.4        the `count` size is the nav badge: 16px tall, min-width 16px,
  *               4px inline padding. It renders NOTHING at zero (AC-26) — that
  *               is the caller's job; this component never invents a `0`.
@@ -42,7 +42,7 @@ import { cn } from "@/lib/utils"
 const badgeVariants = cva(
   [
     "inline-flex w-fit shrink-0 items-center justify-center gap-1",
-    "rounded-lg border border-transparent",
+    "rounded-sm",
     "font-semibold whitespace-nowrap tabular-nums",
     "[&>svg]:pointer-events-none [&>svg]:size-3",
   ].join(" "),
@@ -72,7 +72,7 @@ const badgeVariants = cva(
            (sweep S9). Binding both ends to the info slot is what the rule
            said; --ev-blue itself has no layer-2 slot, and --tone-info-foreground
            (--ev-blue-dk) is the blue that does. 6.584 : 1 on white. */
-        new: "border-info-foreground bg-transparent text-info-foreground",
+        new: "border border-info-foreground bg-transparent text-info-foreground",
         /* The NAV's neutral count chip, and only the nav's — V3.
            This is NOT a sixth content tone and R7 is untouched: it is the same
            `neutral` meaning on a different GROUND. `--ev-bg2` is 1.073 : 1
@@ -86,8 +86,8 @@ const badgeVariants = cva(
         "nav-neutral": "bg-nav-chip text-nav-chip-foreground",
       },
       size: {
-        // Status badge: 20px, 11px/600, 6px inline padding.
-        default: "h-5 px-1.5 text-2xs",
+        // Status badge: 20px, 12px/600, 6px inline padding (AC-CC-03).
+        default: "h-5 px-1.5 text-xs",
         // Nav count badge (§2.4): 16px, min-width 16px, 4px inline padding.
         count: "h-4 min-w-4 px-1 text-2xs",
       },

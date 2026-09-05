@@ -313,7 +313,7 @@ export function ChartCard({
               next person does not have to re-derive it. */}
           <span
             aria-hidden="true"
-            className="flex items-center gap-1.5 text-2xs text-muted-foreground"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
           >
             <ChartIcon className="size-4 shrink-0" />
             {t(unitNounKey(series.unit))}
@@ -513,7 +513,7 @@ function Headline({
           />
         )}
         {facts.value !== null && facts.captionKey && (
-          <span className="text-2xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             <bdi>{t(facts.captionKey)}</bdi>
           </span>
         )}

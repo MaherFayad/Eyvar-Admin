@@ -189,7 +189,7 @@ export function LogCallModal({
             {refusal !== null && (
               <span
                 id="log-call-refusal"
-                className="text-2xs whitespace-normal text-muted-foreground"
+                className="text-xs whitespace-normal text-muted-foreground"
               >
                 {refusal}
               </span>

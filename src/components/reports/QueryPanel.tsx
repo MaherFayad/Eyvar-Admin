@@ -206,7 +206,7 @@ export function QueryPanel({
       /* The panel scrolls on its own. It is a PERSISTENT composition surface
          beside a canvas that can be twelve panels tall; tying the two together
          would put `Run` below a scroll the operator did not ask for. */
-      className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-1"
+      className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto rounded-xl border border-card-border bg-card p-3 shadow-1"
     >
       {/* ── 1 · measure ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1.5">

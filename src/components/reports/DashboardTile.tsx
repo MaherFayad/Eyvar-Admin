@@ -524,7 +524,7 @@ export function DashboardTile({
                 catalogue entry behind each `MeasureRef`), so those are the two
                 labels. Nothing here is stored on the tile. */}
             {resolved && (
-              <p className="flex min-w-0 items-center gap-1.5 text-2xs text-muted-foreground">
+              <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="truncate">{t(`rb.mode.${reportMode(resolved.query)}`)}</span>
                 {Glyph && <Glyph aria-hidden="true" className="size-4 shrink-0" />}
                 <span className="truncate">

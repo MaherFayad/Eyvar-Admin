@@ -1035,7 +1035,7 @@ export function ReportBuilder({
                     <ImageIcon aria-hidden="true" className="size-4" />
                     {t('rb.export.pdf')}
                   </DropdownMenuItem>
-                  <p className="px-1.5 py-1 text-2xs text-muted-foreground">
+                  <p className="px-1.5 py-1 text-xs text-muted-foreground">
                     {t('rb.export.blocked')}
                   </p>
                 </DropdownMenuSubContent>

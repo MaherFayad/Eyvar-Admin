@@ -206,7 +206,7 @@ export function SeriesHeadlines({
                   which the UBA throws to the far end of an Arabic line without
                   an isolate — hence `<bdi>` on both. */}
               {range !== null && (
-                <p className="text-2xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   <bdi>{t('rb.headline.window', { range })}</bdi>
                 </p>
               )}
@@ -224,7 +224,7 @@ export function SeriesHeadlines({
                   already suppressed for the same reason, and the control that
                   turns one on is two inches away saying what it is set to. */}
               {baseline !== null && (
-                <p className="text-2xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   <bdi>
                     {t('rb.headline.from', {
                       date: formatDate(baseline.from, { style: 'day-month', language }),

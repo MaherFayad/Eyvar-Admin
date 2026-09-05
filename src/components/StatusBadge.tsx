@@ -24,9 +24,9 @@
  *              outline is a TREATMENT and R7's closed set of five is intact.
  *              Nobody adds `--ev-teal-lt` to solve this.
  *
- * Geometry (§12.1): rounded rectangle, radius 8px, 20px tall, 11px/600 label
- * (12px in Arabic, through the `text-2xs` token), 6px inline padding. **Never a
- * stadium** (R15) — this retires the legacy `border-radius:999px` (`:117`).
+ * Geometry (§12.1): rounded rectangle, radius 4px, 20px tall, 12px/600 label,
+ * 6px inline padding, no border. **Never a stadium** (R15) and never the 8px
+ * control radius, so a chip is never read as a control (AC-CC-02).
  *
  * §7.5 — colour is never the only carrier: every tone pairs with a word, and
  * the word is required by the type.

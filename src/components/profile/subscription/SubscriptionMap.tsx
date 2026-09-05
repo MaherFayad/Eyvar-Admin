@@ -360,7 +360,7 @@ export function SubscriptionMap({
       </div>
 
       {isInline && (
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-2xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-4 py-2 text-xs text-muted-foreground">
         <span>
           {from && to ? (
             <bdi>
@@ -442,7 +442,7 @@ function Endpoint({
       </span>
       <bdi className="min-w-0 truncate text-foreground">{place}</bdi>
       {trailing !== null && (
-        <span className="ms-auto shrink-0 text-2xs text-muted-foreground">{trailing}</span>
+        <span className="ms-auto shrink-0 text-xs text-muted-foreground">{trailing}</span>
       )}
     </p>
   )

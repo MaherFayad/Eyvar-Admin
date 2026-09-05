@@ -117,7 +117,7 @@ export function RefusalLine({ id, children }: { id: string; children: string }) 
          the same property whose winner is stylesheet order rather than class
          order. That is what made the first attempt at this measure identically
          to the defect. */
-      className="line-clamp-2 text-2xs font-normal whitespace-normal text-muted-foreground"
+      className="line-clamp-2 text-xs font-normal whitespace-normal text-muted-foreground"
     >
       {children}
     </span>

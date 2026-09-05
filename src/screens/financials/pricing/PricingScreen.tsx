@@ -31,7 +31,7 @@
  *              with no simulation. Legacy refuses at commit (`:21586`).
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getLiveRateCard,
@@ -66,8 +66,11 @@ import { DataTable, type DataColumn, type RowAction } from '@/components/DataTab
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { KEY_VALUE_CELL, KEY_VALUE_HEAD, KEY_VALUE_ROW, KeyValueTable } from '@/components/KeyValueGrid'
 import { MoneyCell } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
+import { RefusalLine } from '@/components/table/rowActions'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
@@ -584,6 +587,7 @@ function RateCardCard({
   /* **AC-404 / AC-405** — both refusals are properties of the draft, read at
      render. A proposer cannot approve their own card, and a card nobody
      modelled cannot be approved at all. */
+  const approveReasonId = useId()
   const proposedByMe = approve !== undefined && card.proposedByUserId === approve.currentUserId
   const noSimulation = card.simulation === null
   const approveBlockedReason = !approve
@@ -635,52 +639,53 @@ function RateCardCard({
           <p className="text-xs text-muted-foreground">{t('fin.pricing.rateCard.vatIncluded')}</p>
         )}
 
-        <table className="w-full table-fixed text-sm">
+        {/* Rows rule and lift like every in-card key/value grid (plan §3 item 4). */}
+        <KeyValueTable className="text-sm">
           <thead>
-            <tr className="text-xs text-muted-foreground">
-              <th scope="col" className="py-1 text-start font-medium">
+            <tr className="border-b border-border-soft">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-start')}>
                 {t('fin.pricing.rateCard.col.class')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.base')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.perKm')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.perMin')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.minFare')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.cancelFee')}
               </th>
             </tr>
           </thead>
           <tbody>
             {card.classes.map((vehicleClass) => (
-              <tr key={vehicleClass.id}>
-                <td className="py-1 text-foreground">{vehicleClass.label}</td>
-                <td className="py-1 text-end">
+              <tr key={vehicleClass.id} className={KEY_VALUE_ROW}>
+                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{vehicleClass.label}</td>
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.baseHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.perKmHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.perMinHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.minFareHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.cancelFeeHalalas} />
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </KeyValueTable>
 
         <p className="text-xs text-muted-foreground">
           {card.simulation === null
@@ -702,16 +707,19 @@ function RateCardCard({
         </p>
 
         {approve && (
-          <div>
-            {/* **Stage B is BLOCKED (AC-403–406) and this control is disabled in
-                place with the reason on it.** It is not a stub: it commits
-                nothing and promises nothing, and the reason names the open
-                question rather than implying a permission problem. */}
-            <Button variant="secondary" size="xs" disabled title={approveBlockedReason ?? undefined}>
+          <div className="flex flex-col items-start gap-1">
+            {/* Stage B is BLOCKED (AC-403–406): disabled in place, the reason as
+                real text the control describes itself by (§11.2). */}
+            <Button
+              variant="secondary"
+              size="xs"
+              disabled
+              aria-describedby={approveBlockedReason === null ? undefined : approveReasonId}
+            >
               {t('fin.pricing.rateCard.approve')}
             </Button>
-            {approveBlockedReason && (
-              <p className="pt-1 text-xs text-muted-foreground">{approveBlockedReason}</p>
+            {approveBlockedReason !== null && (
+              <RefusalLine id={approveReasonId}>{approveBlockedReason}</RefusalLine>
             )}
           </div>
         )}

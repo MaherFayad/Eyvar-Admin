@@ -131,7 +131,7 @@ import {
 import type { Translator } from '@/lib'
 
 /** Shared by both rails, so a mode card and a query card sit on one surface. */
-const CARD = 'flex flex-col gap-4 rounded-xl border border-border bg-card p-3 shadow-1'
+const CARD = 'flex flex-col gap-4 rounded-xl border border-card-border bg-card p-3 shadow-1'
 
 /** Radix forbids an empty-string item value; this is the "unset" sentinel. */
 const NONE = '__none__'

@@ -71,6 +71,14 @@ cannot — but where they overlap, the sweep is the number to quote:
 | `people.mjs` | Operations › People at 1280 in both languages: blank `SLA`/`Owner` cells on the default Applications scope, clipped `Next expiry` cells on Compliance, and em dashes per route. Takes a label. Set `HARNESS_BASE` to point at a preview server |
 | `table-density.mjs` | row pitch, rows per 800px viewport, column widths and clipped identity cells, at 1280 and 1152. Takes a label: `node scripts/harness/table-density.mjs before` |
 
+## Support, and the dark theme
+
+| Script | Proves |
+|---|---|
+| `support-queues.mjs` | the Support surfaces at 1280, both languages: row pitch, the tab strip, horizontal overflow and the R5a marker on Disputes, Safety, Fairness and the contact centre. Reads `HARNESS_BASE` |
+| `support-tickets.mjs` | Support › Tickets at 1280, both languages: row pitch, the tab strip, overflow and the detail page. Reads `HARNESS_BASE` |
+| `dark-contrast.mjs` | **AC-CC-01 / AC-CC-03.** Switches the account menu to Dark, captures the conversation pane, the incident and the rate card, and measures every text node against the ground it sits on. Fails under 4.5 (3.0 at 18px+), prints the lowest ratio, the failing ink/ground pairs and what is still under 12px. Reads `HARNESS_BASE` (port 4334) |
+
 ## Financials, and the shell
 
 | Script | Proves |

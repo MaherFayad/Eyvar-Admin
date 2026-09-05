@@ -589,7 +589,7 @@ export function PanelTooltip({
                   {comparison ? t('rb.table.role.comparison') : t('rb.table.role.current')}
                 </span>
                 {on !== null && (
-                  <span className="text-2xs">
+                  <span className="text-xs">
                     <bdi>{t('rb.panel.tooltip.on', { date: on })}</bdi>
                   </span>
                 )}

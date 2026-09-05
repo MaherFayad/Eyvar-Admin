@@ -173,7 +173,7 @@ export function BoardHero({
                 aria-busy={refreshing}
                 className={cn(
                   'flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2',
-                  'text-2xs text-hero-foreground transition-colors hover:bg-hero-line',
+                  'text-xs text-hero-foreground transition-colors hover:bg-hero-line',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-foreground',
                   'focus-visible:ring-offset-2 focus-visible:ring-offset-hero',
                 )}
@@ -203,7 +203,7 @@ export function BoardHero({
                 /* `<bdi>` isolates it: `11 – 25 Jun` is a numeral run whose
                    leading digit the UBA otherwise moves to the far end of an
                    Arabic line. */
-                <span className="flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2 text-2xs tabular-nums text-hero-foreground">
+                <span className="flex items-center gap-2 rounded-lg border border-hero-line bg-hero-2 px-3 py-2 text-xs tabular-nums text-hero-foreground">
                   {/* The reference's calendar mark, drawn rather than typed —
                       Inter carries no such glyph and the browser falls through
                       to a colour emoji font. It does not mirror: a calendar is

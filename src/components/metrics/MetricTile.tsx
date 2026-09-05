@@ -361,7 +361,7 @@ export function MetricTile({
   )
 
   const unitNode = shown.unit ? (
-    <span className={cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}>
+    <span className={cn('text-xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}>
       {shown.unit}
     </span>
   ) : null
@@ -384,7 +384,7 @@ export function MetricTile({
     metric.value !== null && metric.caption ? (
       <span
         className={cn(
-          'truncate text-2xs',
+          'truncate text-xs',
           onBand ? 'text-hero-muted' : 'text-muted-foreground',
         )}
       >
@@ -394,7 +394,7 @@ export function MetricTile({
 
   const staleNode = isStale ? (
     <span
-      className={cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
+      className={cn('text-xs', onBand ? 'text-hero-muted' : 'text-muted-foreground')}
     >
       {t('overview.asOf', {
         time: formatDate(metric.asOf, { style: 'day-month-time', language }),
@@ -668,7 +668,7 @@ function comparisonParts({
      land and §5.4's stretched-`<bdi>` defect cannot be reintroduced by a later
      edit. */
   const againstBox = isolatedRunProps({
-    className: cn('text-2xs', onBand ? 'text-hero-muted' : 'text-muted-foreground'),
+    className: cn('text-xs', onBand ? 'text-hero-muted' : 'text-muted-foreground'),
   })
 
   const reasonLine = (text: string) => (

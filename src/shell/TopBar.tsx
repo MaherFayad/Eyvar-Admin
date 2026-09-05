@@ -65,6 +65,7 @@
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { Headset, Inbox } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -175,15 +176,18 @@ export function TopBar({
       {/* `shrink-0`: three chips, the bell and the avatar keep their width and the search field gives (§2.1). */}
       <div className="flex shrink-0 compact:flex-none items-center justify-end gap-1.5">
         {/* Slot 3a — `Mine`. Renders nothing at zero (AC-26). Routes to
-            `/operations/my-work`, which is D-L1's fix. No emoji (AC-76). */}
+            `/operations/my-work`, which is D-L1's fix. No emoji (AC-76). A
+            ghost text button with a leading icon, never a pill: a chip is not
+            a control (AC-CC-02). */}
         {!compact && (session?.claimedCount ?? 0) > 0 && (
           <Button
-            variant="secondary"
+            variant="ghost"
             size="xs"
             asChild
             aria-label={t.plural('shell.topbar.mineA11y', { count: session?.claimedCount ?? 0 })}
           >
             <Link to="/operations/my-work">
+              <Inbox aria-hidden="true" />
               {t('shell.topbar.mine')}
               <Badge size="count" tone="neutral">
                 {formatCount(session?.claimedCount ?? 0, language)}
@@ -211,8 +215,9 @@ export function TopBar({
         {!compact && availability}
 
         {!compact && (
-        <Button variant="secondary" size="xs" asChild>
+        <Button variant="ghost" size="xs" asChild>
           <Link to="/admin/team">
+            <Headset aria-hidden="true" className={cn(onCallName === null && 'text-warning-foreground')} />
             <span className={cn(onCallName === null && 'text-warning-foreground')}>
               {onCallName === null
                 ? t('shell.topbar.onCallUnassigned')

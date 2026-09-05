@@ -416,7 +416,7 @@ export function ApplicantDetailScreen() {
                     {t('applicant.doc.verify')}
                   </Button>
                   {active.file === null && (
-                    <span className="text-2xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {t('applicant.doc.verifyRefusedNoFile')}
                     </span>
                   )}

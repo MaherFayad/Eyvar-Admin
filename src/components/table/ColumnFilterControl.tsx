@@ -365,7 +365,7 @@ function NumberRangeFilter({ t, filter, label, value, onCommit }: ColumnFilterCo
       {field('to', toText, setToText)}
       {/* §4.4 — an INLINE error. Imperative, names the fix (copy.md rule 4). */}
       {inverted && (
-        <p role="alert" className="text-2xs text-destructive">
+        <p role="alert" className="text-xs text-destructive">
           {t('table.filter.rangeError')}
         </p>
       )}

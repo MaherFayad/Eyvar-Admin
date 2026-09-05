@@ -302,7 +302,7 @@ export function DispatchMap({
              the page out from under it; the two zoom buttons are the touch
              route in, because a pinch would fight the same gesture. */
           className={cn(
-            'relative aspect-4/3 w-full touch-none overflow-hidden rounded-xl border border-border bg-card select-none',
+            'relative aspect-4/3 w-full touch-none overflow-hidden rounded-xl border border-card-border bg-card select-none',
             'wide:aspect-auto wide:min-h-152 wide:flex-1 wide:rounded-none wide:border-x-0',
             view.k > 1 || panning ? (panning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default',
           )}
@@ -451,7 +451,7 @@ export function DispatchMap({
               resetView()
             }}
             className={cn(
-              'absolute z-10 rounded-lg border border-border bg-card px-2 py-1 text-2xs shadow-2 transition-colors',
+              'absolute z-10 rounded-lg border border-border bg-card px-2 py-1 text-xs shadow-2 transition-colors',
               'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
               fittedBounds === null ? 'text-muted-foreground' : 'text-foreground',
               freeSide === 'start' ? 'bottom-18 start-3' : 'bottom-25 end-3',

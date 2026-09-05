@@ -256,7 +256,7 @@ export function ChartToolbar({
       /* A card's surface and a card's hairline, and **no elevation** — R-3
          §1.3: a toolbar is chrome attached to the content beneath it, not a
          layer floating over it. */
-      className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-card px-3 py-2"
+      className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card px-3 py-2"
     >
       {/* ── LEFT: the freshness and its refresh ──────────────────────────── */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -329,7 +329,7 @@ export function ChartToolbar({
                     {/* D9 CQ-3 — the reason travels INSIDE the option it
                         describes rather than in a list at the menu's foot. */}
                     {illegal && legality?.reasonKey && (
-                      <span className="block text-2xs text-muted-foreground">
+                      <span className="block text-xs text-muted-foreground">
                         {/* **The space is load-bearing.** An option's accessible
                             name is its text content, and two adjacent inline
                             spans concatenate with nothing between them — the
@@ -370,7 +370,7 @@ export function ChartToolbar({
                     <span className="flex min-w-0 flex-col items-start gap-0.5">
                       <span>{t(`rb.grain.${option.value}`)}</span>
                       {!option.legal && option.reasonKey && (
-                        <span className="text-2xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {t(option.reasonKey, grainLabels(option.reasonParams))}
                         </span>
                       )}
@@ -445,7 +445,7 @@ export function ChartToolbar({
           {windowReasons.length > 0 && (
             <ul className="flex max-w-64 list-none flex-col gap-0.5">
               {windowReasons.map((violation: QueryViolation, index) => (
-                <li key={`${violation.code}-${index}`} className="text-2xs text-muted-foreground">
+                <li key={`${violation.code}-${index}`} className="text-xs text-muted-foreground">
                   {t(violation.reasonKey, violation.reasonParams)}
                 </li>
               ))}

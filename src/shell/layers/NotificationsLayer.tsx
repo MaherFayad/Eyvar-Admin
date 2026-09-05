@@ -216,7 +216,7 @@ export function NotificationsLayer({
                 <h3 className="mb-1 text-xs font-medium text-muted-foreground">
                   {t(`shell.notifications.tier.${tier}`)}
                 </h3>
-                <ul className="flex list-none flex-col rounded-xl border border-border bg-card shadow-1">
+                <ul className="flex list-none flex-col rounded-xl border border-card-border bg-card shadow-1">
                   {tierItems.map((notification, index) => (
                     <li key={notification.id}>
                       {index > 0 && <Separator />}

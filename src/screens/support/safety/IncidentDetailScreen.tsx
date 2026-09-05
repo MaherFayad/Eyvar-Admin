@@ -23,6 +23,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { KeyValueGrid, KeyValueRow } from '@/components/KeyValueGrid'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { RefusalLine } from '@/components/table/rowActions'
 import { Button } from '@/components/ui/button'
@@ -307,38 +308,37 @@ export function IncidentDetailScreen() {
       <CardHeader className="pb-2">
         <CardTitle>{t('safety.detail.promises')}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 text-xs">
-        <div className="flex flex-col gap-1">
-          <span className="font-medium text-foreground">{t('safety.promise.acknowledge')}</span>
-          {acknowledged ? (
-            <span className="text-muted-foreground">
+      <CardContent>
+        {/* Q-11: both promises as labelled rows, never floating pairs (plan §3 item 4). */}
+        <KeyValueGrid>
+          <KeyValueRow label={t('safety.promise.acknowledge')} numeric>
+            {acknowledged ? (
               <bdi>
                 {t('safety.detail.acknowledgedAt', {
                   date: formatDate(incident.firstResponseAt!, { style: 'day-month-time', language }),
                 })}
               </bdi>
-            </span>
-          ) : (
-            <SlaCell result={acknowledgeClock} dueAt={incident.firstResponseDueAt} t={t} language={language} />
+            ) : (
+              <SlaCell result={acknowledgeClock} dueAt={incident.firstResponseDueAt} t={t} language={language} />
+            )}
+          </KeyValueRow>
+          <KeyValueRow label={t('safety.promise.resolve')} numeric>
+            <SlaCell result={resolveClock} dueAt={incident.slaDueAt} t={t} language={language} />
+          </KeyValueRow>
+          <KeyValueRow label={t('queue.col.owner')}>
+            {held === null ? t('queue.owner.unclaimed') : <bdi>{held.ownerName}</bdi>}
+          </KeyValueRow>
+          {closed && incident.closedAt !== null && (
+            <KeyValueRow label={t('safety.decided.closed')} numeric>
+              <bdi>
+                {t('queue.decided.by', {
+                  actor: incident.closedByUserName ?? '',
+                  date: formatDate(incident.closedAt, { style: 'day-month-time', language }),
+                })}
+              </bdi>
+            </KeyValueRow>
           )}
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="font-medium text-foreground">{t('safety.promise.resolve')}</span>
-          <SlaCell result={resolveClock} dueAt={incident.slaDueAt} t={t} language={language} />
-        </div>
-        <span className="text-muted-foreground">
-          {held === null ? t('queue.owner.unclaimed') : t('queue.owner.heldBy', { name: held.ownerName })}
-        </span>
-        {closed && incident.closedAt !== null && (
-          <span className="text-muted-foreground">
-            <bdi>
-              {t('queue.decided.by', {
-                actor: incident.closedByUserName ?? '',
-                date: formatDate(incident.closedAt, { style: 'day-month-time', language }),
-              })}
-            </bdi>
-          </span>
-        )}
+        </KeyValueGrid>
       </CardContent>
     </Card>,
     <Card key="parties">
