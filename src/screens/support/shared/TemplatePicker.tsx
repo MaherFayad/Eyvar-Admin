@@ -30,6 +30,8 @@ export interface TemplatePickerProps {
   variant?: 'secondary' | 'ghost'
   /** Leads the label; the inbox passes `FileTextIcon`. */
   icon?: ReactNode
+  /** `default` keeps the label at the 12px floor; `xs` is 11px in Latin (V-3). */
+  size?: 'xs' | 'default'
 }
 
 export function TemplatePicker({
@@ -40,6 +42,7 @@ export function TemplatePicker({
   t,
   variant = 'secondary',
   icon = null,
+  size = 'xs',
 }: TemplatePickerProps) {
   const [open, setOpen] = useState(false)
   const templates = useAsync<MessagingTemplate[]>(
@@ -55,7 +58,7 @@ export function TemplatePicker({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size="xs" disabled={disabled}>
+        <Button variant={variant} size={size} disabled={disabled}>
           {icon}
           {t('ticket.template.insert')}
         </Button>

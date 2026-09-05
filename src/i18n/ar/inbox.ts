@@ -40,6 +40,7 @@ export const INBOX_AR: Dictionary = {
   'inbox.bulk.clear': 'مسح التحديد',
 
   'inbox.composer.label': 'الرد على {name}',
+  'inbox.composer.tab.verb': 'الرد على',
   'inbox.composer.consequence.reply': 'يُرسل إلى {name} عبر {channel}',
   'inbox.composer.consequence.note': 'ملاحظة داخلية. لا تُرسل إلى العميل.',
   'inbox.composer.placeholder.reply': 'اكتب ردًّا إلى {name}…',

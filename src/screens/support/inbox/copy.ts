@@ -39,6 +39,7 @@ export const INBOX_EN: Dictionary = {
 
   /* the composer, AC-CC-11: six carriers, none colour alone */
   'inbox.composer.label': 'Reply to {name}',
+  'inbox.composer.tab.verb': 'Reply to',
   'inbox.composer.consequence.reply': 'Sent to {name} by {channel}',
   'inbox.composer.consequence.note': 'Internal note. Not sent to the customer.',
   'inbox.composer.placeholder.reply': 'Write a reply to {name}…',

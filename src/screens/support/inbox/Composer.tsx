@@ -39,6 +39,8 @@ export interface ComposerHandle {
 }
 
 export interface ComposerProps {
+  /** The id of the one refusal sentence, so a header control can point at it (§8.6.8). */
+  reasonId?: string
   conversationId: string
   channel: ConversationChannel
   customerName: string
@@ -62,6 +64,7 @@ export interface ComposerProps {
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
   {
+    reasonId: reasonIdProp,
     conversationId,
     channel,
     customerName,
@@ -94,7 +97,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const [retryOf, setRetryOf] = useState<{ messageId: string; body: string } | null>(null)
   const typingSentAt = useRef(0)
   const field = useRef<HTMLTextAreaElement | null>(null)
-  const reasonId = useId()
+  const ownId = useId()
+  const reasonId = reasonIdProp ?? ownId
   const consequenceId = useId()
 
   const note = register === 'internal'
@@ -216,26 +220,28 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         >
           <TabsList
             aria-label={t('conversations.composer.register')}
-            className="h-control w-full items-stretch gap-0 rounded-none border-b border-border-control bg-muted p-0"
+            className="h-control w-full items-stretch justify-start gap-0 rounded-none border-b border-border-control bg-muted p-0"
           >
             {!noteOnly && (
               <TabsTrigger
                 value="customer"
                 disabled={blocked}
                 aria-describedby={describedBy}
-                className={tabClass('data-active:bg-card', 'data-active:border-b-card')}
+                aria-label={t('inbox.composer.label', { name: customerName })}
+                className={cn(tabClass('data-active:bg-card', 'data-active:border-b-card'), 'min-w-0')}
               >
-                <SendIcon />
-                {t('inbox.composer.label', { name: customerName })}
+                <SendIcon className="shrink-0" />
+                <span className="shrink-0">{t('inbox.composer.tab.verb')}</span>
+                <span className="min-w-0 truncate">{customerName}</span>
               </TabsTrigger>
             )}
             <TabsTrigger
               value="internal"
               disabled={blocked}
               aria-describedby={describedBy}
-              className={tabClass('data-active:bg-note', 'data-active:border-b-note')}
+              className={cn(tabClass('data-active:bg-note', 'data-active:border-b-note'), 'shrink-0')}
             >
-              <NoteIcon />
+              <NoteIcon className="shrink-0" />
               {t('conversations.composer.note')}
             </TabsTrigger>
           </TabsList>
@@ -283,6 +289,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               reasonCode={null}
               disabled={blocked}
               variant="ghost"
+              size="default"
               icon={<FileTextIcon />}
               onInsert={(text) => {
                 setBody((current) => (current.trim() ? `${current}\n${text}` : text))
@@ -297,7 +304,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               size="sm"
               pressed={byEmail}
               disabled={blocked || emailSwitch.refusal !== null}
-              aria-describedby={emailSwitch.refusal !== null ? `${reasonId}-email` : undefined}
+              aria-describedby={blocked ? describedBy : emailSwitch.refusal !== null ? `${reasonId}-email` : undefined}
               onPressedChange={setByEmail}
             >
               {t('conversations.composer.byEmail')}
@@ -327,7 +334,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           <bdi>{t('conversations.composer.byEmail.pressed', { address: emailSwitch.address })}</bdi>
         </p>
       )}
-      {emailSwitch?.refusal != null && !note && (
+      {/* §8.6.8: the toggle's own reason only while the composer is live (V-5). */}
+      {emailSwitch?.refusal != null && !note && !blocked && (
         <p id={`${reasonId}-email`} className="text-xs text-muted-foreground">
           {emailSwitch.refusal}
         </p>
