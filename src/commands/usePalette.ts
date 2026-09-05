@@ -235,6 +235,15 @@ export interface UsePaletteOptions {
   permissions: PermissionContext
   navigate: (path: string) => void
   openProfile: (entityType: ProfileEntityType, entityId: string) => void
+  /**
+   * **The shell's three capabilities, for `sessionCommands.ts` (F6).** Optional
+   * because a host that has not wired one refuses the command with a sentence
+   * (§11.2) rather than throwing at the press. `signOut` is the SHELL's — the
+   * one that asks about unsaved work (AC-568) — never `clients/auth`'s.
+   */
+  setLanguage?: (language: Language) => void
+  setTheme?: (theme: 'light' | 'dark' | 'system') => void
+  signOut?: () => void
   /** The onboarding checklist while it is incomplete and undismissed; `null` otherwise. */
   guide: { done: number; total: number; open: () => void } | null
 }
@@ -501,6 +510,9 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
     permissions,
     navigate,
     openProfile,
+    setLanguage,
+    setTheme,
+    signOut,
     guide,
   } = options
 
@@ -716,6 +728,11 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
   const host = useMemo<CommandHost>(
     () => ({
       openProfile,
+      /* F6 — handed through as given, `undefined` included: an absent
+         capability is what `sessionCommands.ts` refuses on. */
+      setLanguage,
+      setTheme,
+      signOut,
       confirm: (next) =>
         new Promise<string | null>((resolve) => {
           answer.current = resolve
@@ -724,7 +741,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
           setBusy(false)
         }),
     }),
-    [openProfile],
+    [openProfile, setLanguage, setTheme, signOut],
   )
 
   const context = useCallback(

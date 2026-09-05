@@ -40,10 +40,10 @@ import {
 } from '@/components/command/CommandPalette'
 import { commandSession, usePalette } from '@/commands'
 import { isTypingTarget } from '@/commands/shortcuts'
-import { useAsync, useLanguage } from '@/hooks'
+import { useAsync, useLanguage, type ThemeChoice } from '@/hooks'
 import { resolveProfile } from '@/data/clients'
 import type { ProfileEntityType, ProfileRef } from '@/data/types'
-import type { Translate } from '@/lib'
+import type { Language, Translate } from '@/lib'
 import { useShell } from './ShellContext'
 import { useRouteState } from './routeState'
 import { track } from '@/lib/analytics'
@@ -54,6 +54,15 @@ export interface GlobalSearchProps {
   onOpenEntity: (entityId: string) => void
   /** Opening the getting-started checklist (plan D-2). */
   onOpenOnboarding: () => void
+  /**
+   * **The shell's three capabilities, for `sessionCommands.ts` (F6).** The same
+   * three the account menu is given, so a language switch run from the palette
+   * and one picked from the menu are one act. `onSignOut` is the shell's — it
+   * asks about unsaved work first (AC-568).
+   */
+  onSetLanguage: (language: Language) => void
+  onSetTheme: (theme: ThemeChoice) => void
+  onSignOut: () => void
 }
 
 /**
@@ -70,7 +79,14 @@ function isApplePlatform(): boolean {
   return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 }
 
-export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearchProps) {
+export function GlobalSearch({
+  t,
+  onOpenEntity,
+  onOpenOnboarding,
+  onSetLanguage,
+  onSetTheme,
+  onSignOut,
+}: GlobalSearchProps) {
   const navigate = useNavigate()
   const shell = useShell()
   const route = useRouteState()
@@ -175,6 +191,11 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
     permissions: shell.permissions,
     navigate,
     openProfile,
+    /* F6 — the shell's own three, so `session.*` runs rather than refusing
+       with `.unwired`. */
+    setLanguage: onSetLanguage,
+    setTheme: onSetTheme,
+    signOut: onSignOut,
     guide,
   })
 

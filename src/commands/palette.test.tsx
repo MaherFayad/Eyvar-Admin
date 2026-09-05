@@ -17,7 +17,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CommandPalette, PaletteFooter } from '@/components/command/CommandPalette'
 import { Command } from '@/components/ui/command'
 import { Toaster } from '@/components/ui/sonner'
@@ -25,6 +25,7 @@ import { disableMockLatency, listDrivers, mockFailures, resetDataLayer } from '@
 import type { Driver } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
+import { useLanguage, useTheme } from '@/hooks'
 import { GlobalSearch } from '@/shell/GlobalSearch'
 import { ShellProvider } from '@/shell/ShellContext'
 import { resetCommandSelection, usePublishCommandSelection } from './selection'
@@ -39,16 +40,29 @@ const en = (key: string, params?: Record<string, string | number>) => t(key, par
 interface HarnessProps {
   /** Ids to publish as the on-screen selection, exactly as an index screen would. */
   selection?: readonly string[]
+  /** What the shell's sign-out did, for the one test that runs `session.signOut`. */
+  onSignOut?: () => void
 }
 
-function Harness({ selection }: HarnessProps) {
+function Harness({ selection, onSignOut }: HarnessProps) {
   const navigate = useNavigate()
   /* The seam P4-T1's screens call. Publishing `[]` is the same as publishing
      nothing, so a test that wants no pre-seed passes nothing. */
   usePublishCommandSelection('driver', selection ?? [])
+  /* F6 — the same two hooks `AppLayout` hands the top bar, so `session.*` acts
+     on the real document rather than on a spy. */
+  const { setLanguage } = useLanguage()
+  const theme = useTheme()
   return (
     <>
-      <GlobalSearch t={t} onOpenEntity={() => {}} onOpenOnboarding={() => {}} />
+      <GlobalSearch
+        t={t}
+        onOpenEntity={() => {}}
+        onOpenOnboarding={() => {}}
+        onSetLanguage={setLanguage}
+        onSetTheme={theme.setTheme}
+        onSignOut={onSignOut ?? (() => {})}
+      />
       <button type="button" onClick={() => navigate('/support/tickets')}>
         go-elsewhere
       </button>
@@ -169,6 +183,49 @@ describe('P3-T8 — the palette is populated before a key is pressed', () => {
          row an operator's eye lands on first. */
       expect(within(queues).queryByText(en('subtab.operations.people'))).toBeNull()
     }
+  })
+})
+
+/* ═══════════ F6 — the shell's three capabilities, wired to the host ═══════ */
+
+describe('F6 — session commands act on the shell, not on a spy', () => {
+  /* The three writes land on the real document and the real preference store,
+     so each test puts both back where it found them. */
+  afterEach(() => {
+    document.documentElement.setAttribute('dir', 'ltr')
+    document.documentElement.setAttribute('lang', 'en')
+    document.documentElement.classList.remove('dark')
+    localStorage.clear()
+  })
+
+  async function run(user: ReturnType<typeof userEvent.setup>, query: string, titleKey: string) {
+    const input = await openPalette(user)
+    await user.type(input, query)
+    const doGroup = await findDoGroup()
+    await user.click(rowNamed(doGroup, en(titleKey)))
+  }
+
+  it('flips the document to Arabic when session.arabic runs', async () => {
+    const user = userEvent.setup()
+    mount()
+    await run(user, 'arabic', 'session.action.arabic')
+    await waitFor(() => expect(document.documentElement.getAttribute('dir')).toBe('rtl'))
+    expect(document.documentElement.getAttribute('lang')).toBe('ar')
+  })
+
+  it('puts .dark on the document when session.themeDark runs', async () => {
+    const user = userEvent.setup()
+    mount()
+    await run(user, 'dark', 'session.action.themeDark')
+    await waitFor(() => expect(document.documentElement.classList.contains('dark')).toBe(true))
+  })
+
+  it("calls the shell's sign-out — the one that asks about unsaved work", async () => {
+    const user = userEvent.setup()
+    let signedOut = 0
+    mount({ onSignOut: () => (signedOut += 1) })
+    await run(user, 'sign out', 'session.action.signOut')
+    await waitFor(() => expect(signedOut).toBe(1))
   })
 })
 
