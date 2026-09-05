@@ -24,6 +24,7 @@ Screenshots land in `scripts/harness/shots/` (git-ignored).
 | `onboarding.mjs` | the getting-started layer: auto-open after a user switch, the checklist for each of the four roles at 1280, every illustration rendered and inside 96×64 (160×112 for the completed state), the account-menu path, Arabic with the art at inline-end. Reads `HARNESS_BASE` |
 | `boards.mjs` | the four management boards at 1280 x 800: chapter grid tracks (T5.6), 12px muted nodes inside cards against the hints that replaced them (T9.9), the period pill's scope (T5.7) and the band's focused `Refresh` (T1.5). Takes a label and a port: `node scripts/harness/boards.mjs before 4341`, and `ar` switches the language |
 | `dispatch.mjs` | Live Dispatch at 1280 × 800: the feed and rail boxes, marks off-frame and marks under a panel before and after *Fit to fleet*, enum slugs in the feed, and the meta line 30 s apart. Takes a language: `node scripts/harness/dispatch.mjs ar` |
+| `zones.mjs` | Market & Zones at 1280 × 800 in both languages, both surfaces: whether the inspector floats and its two actions are in the viewport, visible zone rows, strip columns, legend size and ground, table column widths and em dashes. Takes a label; `HARNESS_BASE` overrides the port |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here
 small; a harness nobody runs is scratch, and scratch is not committed.

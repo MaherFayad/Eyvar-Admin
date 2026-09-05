@@ -41,6 +41,9 @@ import {
   ListFilterIcon as RawListFilter,
   MapIcon as RawMap,
   PercentIcon as RawPercent,
+  Maximize2Icon as RawMaximize2,
+  MinusIcon as RawMinus,
+  PlusIcon as RawPlus,
   RefreshCwIcon as RawRefreshCw,
   RepeatIcon as RawRepeat,
   ReplaceIcon as RawReplace,
@@ -121,6 +124,10 @@ export const SortAscIcon = icon(RawArrowUp, 'SortAscIcon')
 export const SortDescIcon = icon(RawArrowDown, 'SortDescIcon')
 export const ColumnsIcon = icon(RawColumns3, 'ColumnsIcon')
 export const RefreshIcon = icon(RawRefreshCw, 'RefreshIcon')
+/* The map surface's three: two zoom steps and the expand (T9.11, X17). */
+export const ZoomInIcon = icon(RawPlus, 'ZoomInIcon')
+export const ZoomOutIcon = icon(RawMinus, 'ZoomOutIcon')
+export const ExpandIcon = icon(RawMaximize2, 'ExpandIcon')
 export const SearchIcon = icon(RawSearch, 'SearchIcon')
 export const MoreIcon = icon(RawEllipsis, 'MoreIcon')
 export const InfoIcon = icon(RawInfo, 'InfoIcon')

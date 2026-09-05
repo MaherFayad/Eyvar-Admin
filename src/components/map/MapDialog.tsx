@@ -72,7 +72,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { Maximize2Icon } from 'lucide-react'
+import { ExpandIcon } from '@/components/icons'
 import {
   Dialog,
   DialogContent,
@@ -159,7 +159,7 @@ export function MapExpandButton({ label, onClick, className }: MapExpandButtonPr
         className,
       )}
     >
-      <Maximize2Icon aria-hidden="true" className="size-3.5" />
+      <ExpandIcon aria-hidden="true" className="size-3.5" />
     </button>
   )
 }

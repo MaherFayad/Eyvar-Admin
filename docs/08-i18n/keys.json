@@ -1,17 +1,17 @@
 {
   "totals": {
-    "keys": 5606,
-    "en": 5330,
-    "ar": 5606,
+    "keys": 5612,
+    "en": 5333,
+    "ar": 5612,
     "arMissing": 0,
-    "arExtra": 276,
+    "arExtra": 279,
     "copyFiles": 36,
-    "unregisteredKeys": 172,
+    "unregisteredKeys": 175,
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 112,
-    "emDashAr": 115,
+    "emDashEn": 111,
+    "emDashAr": 114,
     "overBudget": 189
   },
   "registered": [
@@ -206,7 +206,7 @@
       "exports": [
         "ZONES_EN"
       ],
-      "keys": 64,
+      "keys": 67,
       "notInEN": 0
     },
     {
@@ -304,8 +304,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 82,
-      "notInEN": 80
+      "keys": 85,
+      "notInEN": 83
     }
   ],
   "noCopyFile": [
@@ -1671,18 +1671,6 @@
       "value": "These lines do not add up to the total — {amount} SAR is unaccounted for."
     },
     {
-      "file": "src/i18n/ar/zones.ts",
-      "lang": "ar",
-      "key": "zones.steer.body",
-      "value": "الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده."
-    },
-    {
-      "file": "src/screens/management/zones/copy.ts",
-      "lang": "en",
-      "key": "zones.steer.body",
-      "value": "Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended."
-    },
-    {
       "file": "src/i18n/dictionaries.ts",
       "lang": "en",
       "key": "table.bulk.refusalLabelled",
@@ -1931,6 +1919,14 @@
       "value": "Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them."
     },
     {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.empty.board.body",
+      "class": "empty body",
+      "words": 22,
+      "budget": 12,
+      "value": "Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts."
+    },
+    {
       "file": "src/screens/support/disputes/copy.ts",
       "key": "dispute.lf.empty.body",
       "class": "empty body",
@@ -2035,14 +2031,6 @@
       "value": "A template turns a system event into the message a customer reads. Each one is written per language."
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.empty.body",
-      "class": "empty body",
-      "words": 18,
-      "budget": 12,
-      "value": "A zone is a district where demand and supply are measured. None is tracked in this city yet."
-    },
-    {
       "file": "src/screens/support/disputes/copy.ts",
       "key": "dispute.empty.body",
       "class": "empty body",
@@ -2073,6 +2061,14 @@
       "words": 16,
       "budget": 12,
       "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.empty.trips.body",
+      "class": "empty body",
+      "words": 16,
+      "budget": 12,
+      "value": "No trip is on the road right now. New trips appear here as captains accept them."
     },
     {
       "file": "src/screens/operations/my-work/copy.ts",
@@ -2267,14 +2263,6 @@
       "value": "Captains, riders, trips and subscriptions, on one board"
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.empty.heading",
-      "class": "empty title",
-      "words": 8,
-      "budget": 5,
-      "value": "Where demand and supply meet, district by district"
-    },
-    {
       "file": "src/screens/admin/communications/copy.ts",
       "key": "comms.log.empty.outbox.heading",
       "class": "empty title",
@@ -2387,14 +2375,6 @@
       "value": "This dashboard has no reports yet"
     },
     {
-      "file": "src/screens/management/zones/copy.ts",
-      "key": "zones.meta",
-      "class": "meta",
-      "words": 11,
-      "budget": 6,
-      "value": "{zones} zones · {starved} starved · {cities} of {allCities} cities live"
-    },
-    {
       "file": "src/screens/admin/activity/copy.ts",
       "key": "admin.activity.meta",
       "class": "meta",
@@ -2441,6 +2421,14 @@
       "words": 8,
       "budget": 6,
       "value": "Operators, permissions, security policy and the on-call rota"
+    },
+    {
+      "file": "src/screens/operations/dispatch/copy.ts",
+      "key": "dispatch.meta",
+      "class": "meta",
+      "words": 7,
+      "budget": 6,
+      "value": "{count} in transit · as of {time}"
     },
     {
       "file": "src/components/profile/trip/copy.ts",
@@ -3210,14 +3198,14 @@
     ],
     [
       "empty body",
-      46
-    ],
-    [
-      "empty title",
-      20
+      47
     ],
     [
       "button",
+      19
+    ],
+    [
+      "empty title",
       19
     ],
     [

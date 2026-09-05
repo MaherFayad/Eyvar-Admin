@@ -9,18 +9,18 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5606** |
-| Reachable from `EN` (what the shell renders) | 5330 |
-| Keys in `AR` | 5606 |
+| **Translatable keys, all dictionaries** | **5612** |
+| Reachable from `EN` (what the shell renders) | 5333 |
+| Keys in `AR` | 5612 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 276 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 172 |
+| Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
+| **English values carrying an em dash (the ratchet)** | **111** |
+| **Arabic values carrying an em dash (the ratchet)** | **114** |
 | **English values over their word budget (the ratchet)** | **189** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **111** English and **114** Arabic, measured **111** and **114**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -69,7 +69,6 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/subscriptions.ts` | 3 |
 | ar | `src/i18n/ar/tickets.ts` | 1 |
 | ar | `src/i18n/ar/tripProfile.ts` | 2 |
-| ar | `src/i18n/ar/zones.ts` | 1 |
 | en | `src/components/profile/subscription/copy.ts` | 1 |
 | en | `src/components/profile/trip/copy.ts` | 2 |
 | en | `src/i18n/dictionaries.ts` | 1 |
@@ -80,7 +79,6 @@ Both ceilings only ever fall.
 | en | `src/screens/admin/workspace/copy.ts` | 18 |
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
-| en | `src/screens/management/zones/copy.ts` | 1 |
 | en | `src/screens/metrics/copy.ts` | 2 |
 | en | `src/screens/onboarding/copy.ts` | 7 |
 | en | `src/screens/operations/assurance/copy.ts` | 4 |
@@ -323,8 +321,6 @@ Both ceilings only ever fall.
 | ar | `profile.trip.fare.reconcile` | مجموع هذه البنود لا يساوي الإجمالي — {amount} ريال غير مُفسَّرة. |
 | en | `profile.trip.party.ratingWithNote` | {rating} — “{note}” |
 | en | `profile.trip.fare.reconcile` | These lines do not add up to the total — {amount} SAR is unaccounted for. |
-| ar | `zones.steer.body` | الكباتن مستقلون — والعرض دعوة يقبلها كل منهم أو يتجاهلها. يستمر {hours} ساعة أو حتى يُصرف {cap}، أيهما أسبق، ولا يمكن تمديده. |
-| en | `zones.steer.body` | Captains are independent — the offer is an invitation each one can accept or ignore. It runs for {hours} hours or until {cap} is spent, whichever comes first, and it cannot be extended. |
 | en | `table.bulk.refusalLabelled` | {action} — {reason} |
 
 </details>
@@ -339,9 +335,9 @@ Measured on English only, and a placeholder counts as one word.
 | Class | Budget, in words | Over |
 |---|---:|---:|
 | title | 4 | 94 |
-| empty body | 12 | 46 |
-| empty title | 5 | 20 |
+| empty body | 12 | 47 |
 | button | 3 | 19 |
+| empty title | 5 | 19 |
 | meta | 6 | 8 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
@@ -380,6 +376,7 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 23 | `subs.empty.firstRun.body` | A rider who books the same journey on a schedule appears here, with the captain committed to it and the trips still owed. |
 | empty body | 22 | `adminData.integrity.empty.body` | Nothing is scanned in the background. Run the checks and each one reports what it found, with its name on every row. |
 | empty body | 22 | `comms.log.empty.outbox.body` | Receipts, password resets and payout notices are recorded with the address they went to and what the mail provider did with them. |
+| empty body | 22 | `dispatch.empty.board.body` | Live Dispatch tracks trips in progress, requests waiting for a captain, and who is on shift. It fills as the day starts. |
 | empty body | 22 | `dispute.lf.empty.body` | Items reported missing after a trip appear here, from the moment a rider tells us until the moment the item is back. |
 | empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
 | empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
@@ -393,11 +390,11 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 18 | `admin.integrations.delivery.empty.body` | Once an endpoint is registered and one of its events happens, every attempt and every response appears here. |
 | empty body | 18 | `assurance.empty.firstRun.body` | Every leg departing soon, every plan without a backup captain and every unconfirmed commitment appears in this queue. |
 | empty body | 18 | `comms.template.empty.body` | A template turns a system event into the message a customer reads. Each one is written per language. |
-| empty body | 18 | `zones.empty.body` | A zone is a district where demand and supply are measured. None is tracked in this city yet. |
 | empty body | 17 | `dispute.empty.body` | Fare adjustments, cancellation fees and property damage claims arrive here from the support ticket that raised them. |
 | empty body | 17 | `ticket.thread.empty.body` | This ticket was raised from an operations event. The first message or logged call will appear here. |
 | empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
+| empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
 | empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
 | empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
@@ -422,7 +419,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 9 | `subs.empty.firstRun.heading` | Standing journeys, and the captain committed to each one |
 | empty title | 8 | `admin.activity.empty.heading` | The record of who did what, and when |
 | empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
-| empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
 | empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
 | empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
@@ -437,13 +433,13 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
 | empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
 | empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
-| meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
 | meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
 | meta | 10 | `adminData.meta` | Data exports, retention schedules and the integrity checks behind them |
 | meta | 10 | `policy.meta` | Dispatch, operating cities, safety limits, reason codes and SLA targets |
 | meta | 9 | `admin.workspace.meta` | Company details, branding, and the legal versions in force |
 | meta | 9 | `comms.meta` | {total} messages in the log · {attention} needing attention |
 | meta | 8 | `admin.team.meta` | Operators, permissions, security policy and the on-call rota |
+| meta | 7 | `dispatch.meta` | {count} in transit · as of {time} |
 | meta | 7 | `profile.trip.band.meta` | {id} · {date} · {rider} · {captain} |
 | title | 13 | `onboarding.step.support.profile.title` | Open a 360° profile, and know what you may not do with it |
 | title | 10 | `admin.integrations.reveal.warning.webhook.title` | This is the only time this signing secret is shown |
@@ -569,7 +565,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 81 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 78 |
-| `src/screens/management/zones/copy.ts` | `ZONES_EN` | 64 |
+| `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
 | `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 63 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
@@ -591,7 +587,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
 | `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 93 | 92 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 82 | 80 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 85 | 83 |
 
 ## Screens with no `copy.ts`
 
