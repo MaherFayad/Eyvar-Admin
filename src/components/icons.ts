@@ -189,6 +189,8 @@ export const WhatsAppIcon = icon(RawMessageCircle, 'WhatsAppIcon')
    building, a note never does. Neither mirrors. */
 export const SendIcon = icon(RawSendHorizontal, 'SendIcon')
 export const NoteIcon = icon(RawEyeOff, 'NoteIcon')
+/* `Insert template` in the composer toolbar (design 12 §5). */
+export const FileTextIcon = icon(RawFileText, 'FileTextIcon')
 
 /* ── Report shapes and modes (§12). One glyph per `ChartType` and per mode. ─ */
 
