@@ -305,7 +305,7 @@ export const CONVERSATIONS_EN: Dictionary = {
 
   /* ── the four states ────────────────────────────────────────────────── */
   'conversations.empty.cleared.unassigned':
-    'Every conversation has an operator. New ones appear here the moment a customer writes in.',
+    'Every conversation has an operator. New ones appear as customers write in.',
   'conversations.empty.cleared.mine': 'You are not holding any conversations.',
   'conversations.empty.cleared.waiting': 'No customer is waiting for a first reply.',
   'conversations.empty.cleared.active': 'No conversation is in progress.',
@@ -313,7 +313,7 @@ export const CONVERSATIONS_EN: Dictionary = {
   'conversations.empty.cleared.closed': 'Nothing has been closed yet.',
   'conversations.empty.firstRun.heading': 'No conversations yet',
   'conversations.empty.firstRun.body':
-    'Chat and email conversations appear here as soon as a customer opens one.',
+    'Chat and email conversations appear here when a customer opens one.',
   'conversations.empty.firstRun.action': 'Show closed conversations',
   'conversations.empty.noMatch': 'No conversation matches these filters.',
 

@@ -21,7 +21,7 @@ this file is stale or when the `defaultValue` ratchet slips.
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **84** |
 | **Arabic values carrying an em dash (the ratchet)** | **87** |
-| **English values over their word budget (the ratchet)** | **147** |
+| **English values over their word budget (the ratchet)** | **145** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -257,7 +257,7 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **147**, measured **147**. **X18**: a slot an operator scans holds a
+Ceiling **145**, measured **145**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
@@ -265,7 +265,7 @@ Measured on English only, and a placeholder counts as one word.
 | Class | Budget, in words | Over |
 |---|---:|---:|
 | title | 4 | 79 |
-| empty body | 12 | 33 |
+| empty body | 12 | 31 |
 | button | 3 | 16 |
 | empty title | 5 | 11 |
 | meta | 6 | 7 |
@@ -311,11 +311,9 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 17 | `ticket.thread.empty.body` | This ticket was raised from an operations event. The first message or logged call will appear here. |
 | empty body | 16 | `comms.log.empty.inbox.body` | When a customer answers a transactional message, the reply appears here beside the message it answers. |
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
-| empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
 | empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
 | empty body | 14 | `entity.driver.trips.empty.body` | Every trip they drive lands here, with what it earned and how it ended. |
 | empty body | 14 | `fin.empty.firstRun.body` | Postings appear the moment a fare, a payout or a credit touches this account. |
-| empty body | 13 | `conversations.empty.firstRun.body` | Chat and email conversations appear here as soon as a customer opens one. |
 | empty body | 13 | `entity.rider.movements.empty.body` | This wallet has no movements. Top-ups and refunds appear here as they happen. |
 | empty body | 13 | `fin.escrow.empty.body` | A plan subscription holds its captain earnings here until the trips are delivered. |
 | empty body | 13 | `fin.payout.empty.body` | A captain appears here as soon as a trip accrues earnings to them. |

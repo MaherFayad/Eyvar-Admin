@@ -12,7 +12,7 @@
     "defaultValueForwarded": 2,
     "emDashEn": 84,
     "emDashAr": 87,
-    "overBudget": 147
+    "overBudget": 145
   },
   "registered": [
     {
@@ -1657,14 +1657,6 @@
       "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
     },
     {
-      "file": "src/screens/support/inbox/copy.ts",
-      "key": "conversations.empty.cleared.unassigned",
-      "class": "empty body",
-      "words": 15,
-      "budget": 12,
-      "value": "Every conversation has an operator. New ones appear here the moment a customer writes in."
-    },
-    {
       "file": "src/screens/entity/DriverCopy.ts",
       "key": "entity.driver.ledger.empty.body",
       "class": "empty body",
@@ -1687,14 +1679,6 @@
       "words": 14,
       "budget": 12,
       "value": "Postings appear the moment a fare, a payout or a credit touches this account."
-    },
-    {
-      "file": "src/screens/support/inbox/copy.ts",
-      "key": "conversations.empty.firstRun.body",
-      "class": "empty body",
-      "words": 13,
-      "budget": 12,
-      "value": "Chat and email conversations appear here as soon as a customer opens one."
     },
     {
       "file": "src/screens/entity/copy.ts",
@@ -2552,7 +2536,7 @@
     ],
     [
       "empty body",
-      33
+      31
     ],
     [
       "button",
