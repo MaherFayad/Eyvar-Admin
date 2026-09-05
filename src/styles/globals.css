@@ -304,7 +304,7 @@
      forbids introducing a colour that is not a token. The `new` tone is an
      OUTLINE, not a fifth fill — do not add --ev-teal-lt here. */
 
-  /* ══ THE LADDER. **D15** (a surface recesses) and **D16** (no shadows). ══
+  /* ══ THE LADDER. **D33** (a surface recesses) and **D34** (no shadows). ══
      D-11 is overturned and R-3 is void; both rulings are in `docs/RULINGS.md`
      under 2026-09-06 and are cited, not restated. What this file has to say is
      the arithmetic, and it is one sentence long: with elevation gone a surface
@@ -327,7 +327,7 @@
 
      ── THE THREE RULES THAT GENERATE THE TABLE, so the next layer does not
         need a new decision. ────────────────────────────────────────────────
-     1. **A SURFACE RECESSES FROM THE PAGE** (D15), and each one further in
+     1. **A SURFACE RECESSES FROM THE PAGE** (D33), and each one further in
         recesses further: page, then a card, then what is inside the card,
         then what floats over it.
      2. **A HOVER STEPS TOWARD THE PAGE**, i.e. the opposite way. It is the one
@@ -352,7 +352,7 @@
      #f0f2f4 is the reference's declared gray-100 and #dde0e4 its gray-300;
      #f6f8f9 is the gray-50 --ev-bg2 used to hold. The ladder was re-assigned
      down the ramp, not repainted. */
-  --ev-bg: #ffffff; /* THE PAGE, and the one layer D15 pins. Pure white edge to
+  --ev-bg: #ffffff; /* THE PAGE, and the one layer D33 pins. Pure white edge to
                           edge, exactly as D7 measured it: `82923d3f` y=440
                           x=144-767 -> #FFFFFF, n=624px, one colour; same on
                           02b895df, 6a08206b, c53f19d9, 546b7d98, 79a31934.
@@ -365,10 +365,10 @@
      a card and the nav column is the ruling and not an accident. */
   --ev-surface: #f0f2f4;
   /* The raised tier: popover, dropdown, select, dialog, sheet, command palette.
-     **THE DEEPEST SURFACE IN THE PRODUCT**, because D15 recesses by distance
+     **THE DEEPEST SURFACE IN THE PRODUCT**, because D33 recesses by distance
      from the page and a floating surface is the furthest thing from it.
        under a card  1.130 : 1      under the page  1.268 : 1
-     Both are real steps, which matters more than it used to: D16 took the
+     Both are real steps, which matters more than it used to: D34 took the
      shadow away, so a dropdown opened over a card has only this step and
      --ev-surface-2-edge. It is NOT level with the card and it is not the
      in-card tint either, so a menu inside a popover, a tinted strip inside it
@@ -376,7 +376,7 @@
      A hover inside it is --ev-row-hover, 1.190 : 1 over this fill. */
   --ev-surface-2: #e0e5ea;
   /* A card's edge, in BOTH themes. It can no longer be nothing in dark, where
-     it leaned on the inset highlight inside a shadow (D16 retired both).
+     it leaned on the inset highlight inside a shadow (D34 retired both).
        light  --ev-hairline #d6dbe0   1.242 : 1 on the card, 1.394 on the page
        dark   --ev-hairline #313944   1.698 : 1 on the card, 1.526 on the page
      Dark reads heavier on purpose: its card sits 1.113 under the page against
@@ -385,7 +385,7 @@
   --ev-surface-edge: var(--ev-hairline);
   /* THE RAISED TIER'S EDGE, the FIRM weight rather than the structure one.
      A dropdown over a card has a fill step of 1.130 in light and 1.060 in dark
-     and no shadow behind it (D16), so the line carries the rest.
+     and no shadow behind it (D34), so the line carries the rest.
        light  #c6cbd0  1.289 on the fill, 1.456 over a card, 1.634 over page
        dark   #3c4451  2.138 on the fill, 2.018 over a card, 1.813 over page
      Every one of those is at or above the card edge's own weight, which is the
@@ -1695,7 +1695,7 @@
      token, because it feeds an `animation` shorthand. -------------------- */
   --ev-live-loop: 1800ms; /* LiveDot opacity loop, 1200-2500ms */
 
-  /* --- ELEVATION IS RETIRED. R-3 IS VOID. Owner ruling, 2026-09-06. ------
+  /* --- ELEVATION IS RETIRED. R-3 IS VOID. **D34**, 2026-09-06. ----------
      THE PRODUCT HAS NO SHADOW TOKEN AND NO SHADOW UTILITY. The owner looked at
      a metric card in dark, saw a glow around it, and ruled the mechanism out in
      both themes. R-3's three tiers, their measurements and their surface map go
@@ -1751,7 +1751,7 @@
    keeps its direction (rail < nav < content < card, §2.1) and every tone is
    re-derived against the card, never inverted (AC-CC-01). */
 .dark {
-  /* --- THE DARK LADDER UNDER **D15**. THE PAGE IS PINNED AND EVERYTHING
+  /* --- THE DARK LADDER UNDER **D33**. THE PAGE IS PINNED AND EVERYTHING
      THAT SITS ON IT RECESSES INTO A BAND 1.179 : 1 WIDE. ------------------
 
        LAYER        TOKEN            VALUE     STEP
@@ -1767,7 +1767,7 @@
      ── THE BAND IS THE WHOLE PROBLEM, AND HERE IS ITS SIZE. ───────────────
      From #14181e down to #000000 the total available contrast is **1.179 : 1**.
      That is not a design budget, it is the range: nothing darker than black
-     exists. Everything D15 puts under the page has to fit inside it, and the
+     exists. Everything D33 puts under the page has to fit inside it, and the
      card takes 1.113 of it, which is 94% of everything there was. AC-CC-01's
      1.25 was reachable when a card went UP; going down it is not reachable at
      any value, and the criterion's intent (a card must be distinguishable from
@@ -1788,7 +1788,7 @@
      what the value buys is a **1.113 : 1** hover, the strongest the theme can
      give, against 1.066 if it had stopped at the tint.
 
-     ── THE EDGES CARRY MORE HERE THAN IN LIGHT, AND THEY CAN (D16). ──────
+     ── THE EDGES CARRY MORE HERE THAN IN LIGHT, AND THEY CAN (D34). ──────
      --ev-surface-edge is no longer `transparent`: the card's edge was a 1px
      inset highlight inside a shadow and the shadow is gone. --ev-hairline is
      **1.698 : 1 on the dark card** and 1.526 against the page, so it reads from
