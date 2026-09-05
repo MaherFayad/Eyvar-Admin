@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5914,
-    "en": 5639,
-    "ar": 5914,
+    "keys": 5920,
+    "en": 5645,
+    "ar": 5920,
     "arMissing": 0,
     "arExtra": 275,
     "copyFiles": 36,
@@ -68,7 +68,7 @@
       "exports": [
         "TICKETS_EN"
       ],
-      "keys": 211,
+      "keys": 217,
       "notInEN": 0
     },
     {

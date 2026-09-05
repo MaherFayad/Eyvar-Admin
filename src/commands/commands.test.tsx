@@ -611,6 +611,7 @@ describe('T6.2 — j / k / . / g, resolved through the registry', () => {
   it('names the three row intents and yields every other press', () => {
     const bare = { metaKey: false, ctrlKey: false, altKey: false }
     expect(rowIntentFor({ ...bare, key: 'j' })).toBe('row.next')
+    expect(rowIntentFor({ ...bare, key: 'c' })).toBe('row.claim')
     expect(rowIntentFor({ ...bare, key: 'k' })).toBe('row.previous')
     expect(rowIntentFor({ ...bare, key: '.' })).toBe('row.actions')
 

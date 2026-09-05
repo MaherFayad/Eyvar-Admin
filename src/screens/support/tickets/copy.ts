@@ -110,6 +110,12 @@ export const TICKETS_EN: Dictionary = {
   /* ── the detail page ──────────────────────────────────────────────── */
   'ticket.detail.meta': '{id} · {requester} · {category}',
   'ticket.detail.back': 'Back to tickets',
+  'ticket.template.insert': 'Insert template',
+  'ticket.template.forReason': 'For this reason code',
+  'ticket.template.all': 'All templates',
+  'ticket.template.none': 'No template is set up for this channel.',
+  'ticket.template.loading': 'Loading templates',
+  'ticket.template.error': 'Templates could not be read.',
   'ticket.detail.notFound': 'That ticket is not on record',
   'ticket.detail.notFoundBody': 'Nothing here answers to {id}. It may have been merged, or the link may be old.',
 

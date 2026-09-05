@@ -45,7 +45,11 @@ import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixture
    http build. Bound before any mock read, because `mock()` awaits `loadFixtures()`. */
 let ticketFixtures!: Fixtures['ticketFixtures']
 let teamUserFixtures!: Fixtures['teamUserFixtures']
+let riderFixtures!: Fixtures['riderFixtures']
+let allDriverFixtures!: Fixtures['allDriverFixtures']
 onFixturesLoaded((f) => {
+  riderFixtures = f.riderFixtures
+  allDriverFixtures = f.allDriverFixtures
   ticketFixtures = f.ticketFixtures
   teamUserFixtures = f.teamUserFixtures
   dynamicTickets = ticketFixtures.map(normalise)
@@ -116,11 +120,21 @@ function normalise(ticket: Ticket): Ticket {
   const held = ticketIsLive(ticket) ? liveClaim(ticket.claim) : ticket.claim
   return {
     ...ticket,
+    requesterPhone: ticket.requesterPhone ?? phoneOf(ticket),
     ownerId: held?.ownerId ?? null,
     ownerName: held?.ownerName ?? null,
     slaBreached: ticket.slaBreachedAt !== null || ticket.firstResponseBreachedAt !== null,
   }
 }
+
+/* §7.5: the mock joins the number from the person's record; the server sends it. */
+function phoneOf(ticket: Pick<Ticket, 'entityType' | 'entityId'>): string | null {
+  if (ticket.entityType === 'rider') return riderFixtures?.find((r) => r.id === ticket.entityId)?.phone ?? null
+  if (ticket.entityType === 'driver') return allDriverFixtures?.find((d) => d.id === ticket.entityId)?.phone ?? null
+  return null
+}
+
+const digitsOf = (value: string | null): string => (value ?? '').replace(/\D/g, '')
 
 function find(id: string): { index: number; ticket: Ticket } {
   const index = dynamicTickets.findIndex((t) => t.id === id)
@@ -199,6 +213,8 @@ const ticketShape: QueryShape<Ticket> = {
     (t) => t.entityId,
     (t) => t.reasonCode,
     (t) => t.conversationId ?? '',
+    (t) => t.requesterPhone ?? '',
+    (t) => digitsOf(t.requesterPhone),
   ],
   sortable: {
     createdAt: (t) => t.createdAt,
@@ -822,6 +838,7 @@ export function mintTicket(input: NewTicketInput): Ticket {
     entityId: input.entityId,
     entityName: input.entityName,
     entityType: input.entityType,
+    requesterPhone: null,
     category: input.category,
     reasonCode: input.reasonCode,
     priority: input.priority ?? PRIORITY_BY_TIER[targets.tier],

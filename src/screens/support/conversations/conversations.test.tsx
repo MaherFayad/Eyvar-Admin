@@ -33,6 +33,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  getConversation,
   getTicket,
   claimConversation,
   disableMockLatency,
@@ -930,5 +931,18 @@ describe('the controls the seam unblocked', () => {
     expect(after.channel).toBe('chat')
     const sent = after.messages.find((m) => m.body === 'Sending the receipt across now.')
     expect(sent?.channel).toBe('email')
+  })
+})
+
+describe('canned responses in the composer (SUPPORT-UX-PLAN.md §7.3)', () => {
+  it('offers active chat templates and inserts one without sending', async () => {
+    const user = userEvent.setup()
+    renderConsole(['/support/contact-centre/CNV-102'])
+    const field = (await screen.findByLabelText(copy('conversations.composer.reply'))) as HTMLTextAreaElement
+    const before = (await getConversation('CNV-102')).messages.length
+    await user.click(screen.getByRole('button', { name: copy('ticket.template.insert') }))
+    await user.click(await screen.findByRole('menuitem', { name: /Acknowledge and hold/ }))
+    expect(field.value).toContain('I have this in front of me now')
+    expect((await getConversation('CNV-102')).messages.length).toBe(before)
   })
 })

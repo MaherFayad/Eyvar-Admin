@@ -64,6 +64,8 @@ export interface Ticket extends WorkQueueRow {
   entityId: string
   entityName: string
   entityType: 'rider' | 'driver' | 'corporate'
+  /** §7.5: the requester's number as on their record, so a caller reading it out is found. */
+  requesterPhone: string | null
   category: string
   /** A key in the reason-code registry. `OTHER_UNCODED` targets apply when it is not. */
   reasonCode: string

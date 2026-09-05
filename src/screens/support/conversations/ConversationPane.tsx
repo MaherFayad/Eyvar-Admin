@@ -100,6 +100,7 @@ import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SlaCell, queueClock } from '@/screens/queues'
 import { MessageComposer } from './MessageComposer'
+import { ElsewhereCard } from '../shared/ElsewhereCard'
 import { conversationSla } from './sla'
 import { CHANNEL_KEY, STATUS_KEY, STATUS_TONE } from './vocabulary'
 
@@ -576,6 +577,9 @@ export function ConversationPane({
               conversationId={id}
               channel={conversation.channel}
               t={t}
+              templateSurface={
+                conversation.channel === 'email' ? 'email' : conversation.channel === 'phone' ? null : 'chat'
+              }
               refusal={composerRefusal}
               quietlyDisabled={thread.status === 'loading'}
               noteOnly={conversation.channel === 'phone'}
@@ -619,6 +623,11 @@ export function ConversationPane({
           t={t}
           language={language}
           ticketHref={ticketHref}
+        />,
+        <ElsewhereCard
+          key="elsewhere"
+          entityType={conversation.entityType}
+          entityId={conversation.entityId}
         />,
         <HistoryCard key="history" conversation={conversation} t={t} language={language} />,
       ]}

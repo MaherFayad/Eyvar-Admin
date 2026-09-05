@@ -498,3 +498,38 @@ describe('resolving a ticket is reversible — D18', () => {
     expect(undo, 'resolve must offer its inverse, not just report success').toBeInTheDocument()
   })
 })
+
+describe('ease of use (SUPPORT-UX-PLAN.md §7)', () => {
+  /* §7.4: `c` on the focused row claims it, through the row's own control. */
+  it('claims the focused row on c', async () => {
+    const user = userEvent.setup()
+    renderApp(INDEX)
+    const rows = await screen.findAllByRole('row')
+    const queue = await listTickets({ view: 'unassigned', sort: { field: 'urgency', dir: 'asc' }, pageSize: 1 })
+    const first = rows[1]!
+    first.focus()
+    await user.keyboard('c')
+    await expect.poll(async () => (await getTicket(queue.items[0]!.id)).ownerId).toBe('USR-1')
+  })
+
+  /* §7.3 / S-9: the reason code's template comes first and inserting fills the field without sending. */
+  it('inserts a canned response into the reply, reason-coded templates first, and sends nothing', async () => {
+    const user = userEvent.setup()
+    renderApp(detail('TKT-501'))
+    await screen.findByText(en('ticket.sla.heading'))
+    const before = (await getTicket('TKT-501')).messages.length
+    await user.click(screen.getByRole('button', { name: en('ticket.template.insert') }))
+    const items = await screen.findAllByRole('menuitem')
+    expect(items[0]!).toHaveTextContent('Charge under review')
+    await user.click(items[0]!)
+    const field = document.getElementById('ticket-reply') as HTMLTextAreaElement
+    expect(field.value).toContain('reviewing the charge')
+    expect((await getTicket('TKT-501')).messages.length).toBe(before)
+  })
+
+  /* §7.1 / E4: the requester's other open support items sit in the rail. */
+  it('shows the requester elsewhere in the console, in the rail', async () => {
+    renderApp(detail('TKT-501'))
+    expect(await screen.findByText(en('profile.rider.support.heading'))).toBeInTheDocument()
+  })
+})

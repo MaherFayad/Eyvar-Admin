@@ -758,4 +758,40 @@ export const messagingTemplateFixtures: MessagingTemplate[] = [
     sampleText: 'Emergency trigger on trip {trip_id}. Ops safety desk has been alerted.',
     status: 'active',
   },
+  /* S-9: canned support replies. Notifications never send these. */
+  {
+    id: 'MSG-05',
+    code: 'support_charge_review',
+    name: 'Charge under review',
+    channel: 'whatsapp',
+    audience: 'rider',
+    sampleText:
+      'Thanks for flagging this. We are reviewing the charge now and will confirm the outcome here within the hour.',
+    status: 'active',
+    surfaces: ['chat', 'ticket', 'email'],
+    reasonCode: 'PAY_INCORRECT_CHARGE',
+  },
+  {
+    id: 'MSG-06',
+    code: 'support_lost_item_search',
+    name: 'Lost item: search under way',
+    channel: 'whatsapp',
+    audience: 'rider',
+    sampleText:
+      'We have asked the captain to check the vehicle. We will update you as soon as we hear back, usually within two hours.',
+    status: 'active',
+    surfaces: ['chat', 'ticket', 'email'],
+    reasonCode: 'TRP_LOST_ITEM',
+  },
+  {
+    id: 'MSG-07',
+    code: 'support_acknowledge',
+    name: 'Acknowledge and hold',
+    channel: 'whatsapp',
+    audience: 'both',
+    sampleText: 'Thanks, I have this in front of me now. Give me a moment to look into it.',
+    status: 'active',
+    surfaces: ['chat', 'ticket', 'email'],
+    reasonCode: null,
+  },
 ]

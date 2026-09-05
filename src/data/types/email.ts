@@ -407,6 +407,9 @@ export type MessagingChannel = 'sms' | 'push' | 'whatsapp'
 
 export type MessagingAudience = 'driver' | 'rider' | 'both'
 
+/** S-9: a composer a template may be inserted into. Absent means notifications only. */
+export type MessagingTemplateSurface = 'chat' | 'ticket' | 'email'
+
 /**
  * The catalogue that was a module literal in the screen. Distinct from
  * `EmailTemplate`: these have no subject, no per-locale row and no declared
@@ -423,4 +426,8 @@ export interface MessagingTemplate {
   audience: MessagingAudience
   sampleText: string
   status: EmailTemplateStatus
+  /** S-9: composers that offer this template. */
+  surfaces?: readonly MessagingTemplateSurface[]
+  /** S-9: offered first on a record carrying this reason code. */
+  reasonCode?: string | null
 }

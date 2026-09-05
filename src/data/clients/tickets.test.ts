@@ -365,3 +365,13 @@ describe('Take next (§6.5)', () => {
     await expect(takeNextTicket()).rejects.toSatisfy((e: unknown) => isApiError(e) && e.status === 404)
   })
 })
+
+describe('search by phone (§7.5)', () => {
+  it('finds a ticket by the digits of the requester phone number', async () => {
+    const ticket = await getTicket('TKT-501')
+    expect(ticket.requesterPhone).not.toBeNull()
+    const digits = ticket.requesterPhone!.replace(/\D/g, '').slice(-7)
+    const { items } = await listTickets({ q: digits, pageSize: 50 })
+    expect(items.map((t) => t.id)).toContain('TKT-501')
+  })
+})

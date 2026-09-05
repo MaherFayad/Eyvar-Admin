@@ -23,6 +23,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
+import { ElsewhereCard } from '../shared/ElsewhereCard'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Money } from '@/components/Money'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
@@ -347,6 +348,21 @@ export function DisputeDetailScreen() {
         )}
       </CardContent>
     </Card>,
+    /* §7.1: the claimant's other open items; the other party's when the id names a captain (DRV-). */
+    <ElsewhereCard
+      key="claimant-elsewhere"
+      entityType={dispute.claimantType === 'captain' ? 'driver' : 'rider'}
+      entityId={dispute.claimantId}
+    />,
+    ...(dispute.againstId === null
+      ? []
+      : [
+          <ElsewhereCard
+            key="against-elsewhere"
+            entityType={dispute.againstId.startsWith('DRV-') ? 'driver' : 'rider'}
+            entityId={dispute.againstId}
+          />,
+        ]),
   ]
 
   return (

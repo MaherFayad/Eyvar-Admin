@@ -48,6 +48,8 @@ import { withOverlay } from '@/shell/routeState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { ElsewhereCard } from '../shared/ElsewhereCard'
+import { TemplatePicker } from '../shared/TemplatePicker'
 import { SlaCell } from '@/screens/queues'
 import { LogCallModal } from './LogCallModal'
 import { firstResponseInput, resolutionInput, ticketIsDecided, updateInput } from './clock'
@@ -559,6 +561,13 @@ export function TicketDetailScreen() {
                   </span>
                 )}
               </span>
+              <TemplatePicker
+                surface="ticket"
+                reasonCode={record.reasonCode}
+                disabled={!canWrite || !hasChannel || record.status === 'closed'}
+                onInsert={(text) => setReplyText((current) => (current.trim() ? `${current}\n${text}` : text))}
+                t={t}
+              />
               <span className="flex flex-col items-end gap-1">
                 <Button
                   variant="secondary"
@@ -710,6 +719,11 @@ export function TicketDetailScreen() {
         </Button>
       </CardContent>
     </Card>,
+    <ElsewhereCard
+      key="ticket-elsewhere"
+      entityType={record.entityType}
+      entityId={record.entityId}
+    />,
   ]
 
   return (

@@ -1884,7 +1884,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
         if (intent !== null) {
           event.preventDefault()
           if (intent === 'row.actions') openRowActions(event.currentTarget, getRowId(row))
-          else
+          else if (intent === 'row.claim') {
+            /* §7.4: the row's own Claim control, when it renders one and it is live. */
+            const claim = event.currentTarget.querySelector<HTMLButtonElement>('[data-row-claim]')
+            if (claim !== null && !claim.disabled) claim.click()
+          } else
             rowRoving.setActiveIndex(
               Math.min(
                 Math.max(0, index + (intent === 'row.next' ? 1 : -1)),

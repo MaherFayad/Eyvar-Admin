@@ -52,6 +52,8 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react'
+import type { MessagingTemplateSurface } from '@/data/types/email'
+import { TemplatePicker } from '../shared/TemplatePicker'
 import type { ConversationChannel, Message, MessageVisibility } from '@/data/types'
 import type { Translate } from '@/lib'
 import { Button } from '@/components/ui/button'
@@ -107,6 +109,8 @@ export interface ComposerProps {
 
   /** Resolves with the accepted message, or throws with an operator sentence. */
   onSend: (input: { body: string; visibility: MessageVisibility; byEmail: boolean }) => Promise<Message>
+  /** S-9: which canned responses to offer; `null` on a channel with no customer-visible send. */
+  templateSurface?: MessagingTemplateSurface | null
   /**
    * Retry one failed message **under its own id**. Called instead of `onSend`
    * when the operator presses send on a restored body they have not edited.
@@ -124,6 +128,7 @@ export function MessageComposer({
   emailSwitch,
   restored,
   onSend,
+  templateSurface = null,
   onRetry,
 }: ComposerProps) {
   /* **`internal` when the channel has no customer-visible send.** Not a default
@@ -319,6 +324,20 @@ export function MessageComposer({
           >
             {t('conversations.composer.byEmail')}
           </Toggle>
+        )}
+
+        {templateSurface !== null && !noteRegister && (
+          <TemplatePicker
+            surface={templateSurface}
+            reasonCode={null}
+            disabled={blocked}
+            onInsert={(text) => {
+              setBody((current) => (current.trim() ? `${current}
+${text}` : text))
+              field.current?.focus()
+            }}
+            t={t}
+          />
         )}
 
         <Button
