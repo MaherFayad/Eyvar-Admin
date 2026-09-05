@@ -226,16 +226,20 @@ P1 alone answers the ask in the screenshot. P2 is what makes it *"actually power
 
 ## 9. Decisions only the owner can make
 
-| # | Question | Recommendation |
-|---|---|---|
-| **Q-P1** | Override §2.6 and CQ-1: the palette becomes a centred modal. | Yes. The ask says so; record it in RULINGS. |
-| **Q-P2** | The top-bar field: keep as a trigger, or remove and rely on ⌘K. | Keep as a 240px trigger reading *Search or run a command ⌘K*. Discoverability for new operators; the onboarding welcome already teaches ⌘K. |
-| **Q-P3** | `Esc` with a chip present: ascend one step, or close. | Ascend. Backspace does the same; closing throws away a half-built command. |
-| **Q-P4** | Prefix modes (`>` `#` `@` `/`). | Yes, quiet: no UI beyond a chip when typed and one footer hint at rest. |
-| **Q-P5** | Persistence for recents and ranking (CQ-6 / Q1). | Use the UI store that already persists theme and language, per operator, on this machine. Server-side later if it matters. |
-| **Q-P6** | Preview pane. | Phase 3, records only, 880px panel when shown. Decide after P2 is in hands. |
-| **Q-P7** | Which domains grow the registry first. | Dispatch and wallets: the most-repeated actions in My Work today. |
-| **Q-P8** | `/` as a door. | Yes, when focus is not in a field. Jira's habit; one key. |
+**All eight were decided as recommended on 2026-09-05**; the *Decided* column
+records that rather than leaving the table reading as an open ask. Q-P1's
+override is written up in `docs/RULINGS.md`.
+
+| # | Question | Recommendation | Decided |
+|---|---|---|---|
+| **Q-P1** | Override §2.6 and CQ-1: the palette becomes a centred modal. | Yes. The ask says so; record it in RULINGS. | as recommended, 2026-09-05 |
+| **Q-P2** | The top-bar field: keep as a trigger, or remove and rely on ⌘K. | Keep as a 240px trigger reading *Search or run a command ⌘K*. Discoverability for new operators; the onboarding welcome already teaches ⌘K. | as recommended, 2026-09-05 |
+| **Q-P3** | `Esc` with a chip present: ascend one step, or close. | Ascend. Backspace does the same; closing throws away a half-built command. | as recommended, 2026-09-05 |
+| **Q-P4** | Prefix modes (`>` `#` `@` `/`). | Yes, quiet: no UI beyond a chip when typed and one footer hint at rest. | as recommended, 2026-09-05 |
+| **Q-P5** | Persistence for recents and ranking (CQ-6 / Q1). | Use the UI store that already persists theme and language, per operator, on this machine. Server-side later if it matters. | as recommended, 2026-09-05 |
+| **Q-P6** | Preview pane. | Phase 3, records only, 880px panel when shown. Decide after P2 is in hands. | as recommended, 2026-09-05 |
+| **Q-P7** | Which domains grow the registry first. | Dispatch and wallets: the most-repeated actions in My Work today. | as recommended, 2026-09-05 |
+| **Q-P8** | `/` as a door. | Yes, when focus is not in a field. Jira's habit; one key. | as recommended, 2026-09-05 |
 
 ---
 
@@ -298,7 +302,7 @@ session commands refuse with a keyed sentence until `GlobalSearch` wires them.
 find a record*, which is a different question from *what commands exist*, and
 the conflation made every global and route command invisible. A surface
 iterates the first for commands and the second for targets.
-## 11. P2 model status — `pal/model`
+## 12. P2 model status — `pal/model`
 
 Built in `src/commands/usePalette.ts` (plus additive helpers in `recents.ts` and
 `shortcuts.ts`); proved in `src/commands/palette.model.test.tsx`, nine tests, one per
@@ -325,7 +329,7 @@ block they assert: *offers live queue counts … with nothing typed*, *does not 
 where it now has something to offer*, and *ascends on Backspace … and closes only from
 root* (this last one uses the `Queues` group only as a proxy for "still open"; any rest-state
 group works). The file's owner is the surface.
-## 11. P1 status — 2026-09-05
+## 13. P1 status — 2026-09-05
 
 Built on `pal/surface`, against §3 (Look), §4 (Feel) and the *look* half of §6. The model
 (`usePalette.ts`) and the registry (`commands/<domain>.ts`) were built in parallel on their
@@ -358,3 +362,71 @@ in the input on open and back on the trigger after `Esc`.
 pressed") is the model's half and is not done here — the harness shows five queue rows at
 rest. Row glyphs fall back to `row.icon`, so commands have one and queues and destinations
 do not until the model fills `kind`.
+
+
+## 14. Integration — 2026-09-05
+
+The three branches (`pal/registry`, `pal/model`, `pal/surface`) met on `pal/int`.
+Four seams were open where they touched; all four are closed.
+
+**Discovery through `COMMAND_GROUPS`.** `usePalette` walked `TARGET_SOURCES` in
+three places to find commands, which answers *how do I find a record* and not
+*what commands exist*. It now walks `COMMAND_GROUPS` for commands and keeps
+`TARGET_SOURCES` for targets, as `targets.ts`'s header instructs — so the six
+`session.*` commands and the four route registries are reachable rather than
+invisible. An `immediate` command has its refusal evaluated at render against
+the empty target list it runs against, because it has no target step to be
+refused in (§11.2).
+
+**The host's three capabilities.** `TopBar` already held the shell's language
+setter, `useTheme().setTheme` and the sign-out that asks about unsaved work
+(AC-568); it hands the same three to `GlobalSearch`, which passes them to
+`usePalette`'s `CommandHost`. `session.arabic` flips `dir` on the document,
+`session.themeDark` puts `.dark` on it, and `session.signOut` reaches
+`SignOutDirtyDialog` — never `clients/auth`'s bare mutation.
+
+**The amount field (AC-384).** `CommandConfirmRequest.amount` had no renderer,
+so the four money commands could not run from the palette. `ConfirmStep` now
+draws it above the reason, in `ConfirmMoneyDialog`'s shape: `SAR` as an
+inline-start prefix (§4.2), `initialHalalas` prefilled, the ceiling refused with
+its sentence rather than trimmed, and the message stated once the field is left.
+The model gates `submit` on it, so `Enter` from either field confirms only a
+usable amount. `majorUnits` moved to `lib/parse/input.ts` as `formatMoneyInput`,
+beside its inverse, rather than being copied.
+
+**The rest-state tests.** Three in `palette.test.tsx` still read the `Queues`
+group at rest, which AC-CP3 removed. Two now assert the diet itself through the
+production tree, the Backspace/Escape proxy is `command.block.goTo`, and
+*excludes the route the operator is already on* asks for the queues before
+reading them instead of skipping its own assertion.
+
+### What remains
+
+- **`⌘↵` without closing** is deferred, unchanged from §13: a destination row's
+  `onSelect` closes the palette from inside the model and the surface has no way
+  to ask it not to. It needs a model-side variant.
+- **Group labels stay muted, in the case the dictionary writes them in** —
+  `text-xs font-medium text-muted-foreground`, no `uppercase` and no tracking.
+  §3's sketch says small-caps; D18 is the rule that wins.
+- **The palette input carries no focus ring**, by design and by design only: the
+  palette opens with it focused, so a ring would be permanent chrome. The reason
+  is written at the control in `CommandPalette.tsx`; every other control on the
+  surface keeps its ring (§7.2).
+- **The four record-less domains are still unreachable from ⌘K.** Twelve
+  commands in `safety`, `cash`, `disputes` and `fairness` keep
+  `hiddenFromPalette`. Unblocking them is not the mechanical pattern
+  `request`/`complaint` set, because a `ProfileEntityType` is not only a search
+  key — it is a 360° record. Each of the four needs, at minimum: a union member
+  and an array entry in `types/profile.ts`; a `SECTIONS` list in
+  `clients/profile.ts` (*which cards does a safety incident's 360° show* is a
+  design decision, not a mapping); a `resolveLocally` branch and a
+  `searchEntities` push in the same file; a `ProfileRecord` variant in
+  `components/profile/record.ts` (all four getters — `getSafetyIncident`,
+  `getCashReport`, `getDispute`, `getFairnessCase` — already exist); four
+  switches in `components/profile/rail.tsx` and the identity card in
+  `sections.tsx`; an `INDEX_ROUTE` entry in `screens/entity/back.ts`; and a
+  `QUERIES` entry in `clients/search.test.ts`, whose *"a search hit is never a
+  404"* test then requires the whole chain to render. Only then do the twelve
+  `hiddenFromPalette` reasons come off, with the `REGISTRIES` table in
+  `domains.test.ts` and four new `TargetSource`s in `targets.ts`. Owned by
+  mock-data-engineer and product-designer, not by this integration.
