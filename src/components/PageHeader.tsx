@@ -26,9 +26,9 @@
  *               the action cluster. Read inline-start → inline-end in
  *               importance order.
  *   §8 slot 4a  **secondary actions cap at TWO.** Beyond two, everything after
- *               the first two collapses into `More actions ▾`. This is the
- *               "designer's cap" §6.2 leaves open, and it is enforced here
- *               rather than trusted to each screen.
+ *               the first two collapses into `More actions ▾` — but only when
+ *               the menu would hold three or more (D8-b); one or two render
+ *               inline. Enforced here rather than trusted to each screen.
  *   §8 slot 4b  overflow is a `dropdown-menu`: verb-first imperatives, sentence
  *               case, no trailing punctuation, destructive item LAST and
  *               separated — but **not red** where a confirmation follows (§5.4).
@@ -158,14 +158,16 @@ export function PageHeader({
   const NextChevron = nextIcon(dir)
   const reasonId = useId()
   const visibleSecondaries = secondaryActions.slice(0, SECONDARY_CAP)
-  /* Everything past the cap SPILLS into the overflow rather than wrapping —
-     §8's rule, applied here so no screen has to remember it. */
-  const spilled = secondaryActions.slice(SECONDARY_CAP)
-  const overflow = [...spilled, ...overflowActions]
+  /* §8 — past the cap, actions spill into the menu rather than wrapping.
+     D8-b — a menu is a disclosure for a LIST: it exists only when three or more
+     would go in it; one or two render inline as labelled buttons instead. */
+  const wouldSpill = [...secondaryActions.slice(SECONDARY_CAP), ...overflowActions]
+  const overflow = wouldSpill.length >= 3 ? wouldSpill : []
+  const inline = overflow.length > 0 ? visibleSecondaries : [...visibleSecondaries, ...wouldSpill]
   /* §11.2 / plan §3 item 5 — each distinct refusal renders ONCE, under the
      group, at 12px; every refused control points aria-describedby at its line. */
   const refusals: string[] = []
-  for (const action of [...visibleSecondaries, ...(primaryAction ? [primaryAction] : [])]) {
+  for (const action of [...inline, ...(primaryAction ? [primaryAction] : [])]) {
     const reason = refusalOf(action)
     if (reason !== null && !refusals.includes(reason)) refusals.push(reason)
   }
@@ -208,7 +210,7 @@ export function PageHeader({
           <div className="flex items-center gap-2">
             {aside}
 
-            {visibleSecondaries.map((action) => (
+            {inline.map((action) => (
               <Button
                 key={action.label}
                 variant="secondary"
