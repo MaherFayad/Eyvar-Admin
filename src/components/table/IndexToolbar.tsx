@@ -47,9 +47,9 @@ import { useRef, type ReactNode } from 'react'
 import { ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Translate } from '@/lib'
 import { cn } from '@/lib/utils'
+import { ViewSwitcher } from './ViewSwitcher'
 
 export interface ToolbarTab {
   id: string
@@ -292,76 +292,13 @@ export function IndexToolbar(props: IndexToolbarProps) {
       )}
 
       {tabs.length > 0 && (
-        /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. This was `shrink-0`,
-           measured against People's four short labels (375px of track). Wave 2's
-           labels run 565–582 — `Departing next 24 h`, `Awaiting confirmation` —
-           and Arabic takes another 40px of content column, so at the 1280 floor
-           `Sort` left the viewport entirely: +1381 and +1364 in English on Trip
-           Assurance and Captain Fairness, and −141 / −124 / −37 in Arabic on
-           those two plus Requests. D12 predicted it in writing.
-
-           A control off the viewport is UNREACHABLE; a tab behind a scroll is
-           one gesture away. So the track shrank and scrolled, and the cluster
-           kept its width.
-
-           **THAT DEGRADE IS NO LONGER TAKEN FIRST, BECAUSE THE ROW WRAPS.**
-           The degrade traded one bad outcome for a less bad one on the
-           assumption that the row could only ever be one row. It cannot: the
-           audit measured `/financials/ledger` hiding **151px of a 587px strip**
-           at 1440, with the scrollbar hidden by design so nothing signalled the
-           tabs existed — and on `/support/fairness` and `/financials/cash` the
-           FIRST tab was cut at its LEADING edge, which no drag gesture is
-           discoverable from because there is nothing to grab at the start.
-
-           Wrapping only happens when it must: the line breaks BEFORE the
-           shrink, so a screen whose track and cluster both fit is untouched
-           (People's four short labels, 375px + cluster, still one row of 56)
-           and a screen whose do not gets a second line instead of a clipped
-           one. Nothing is unreachable in either case, which was the whole
-           objection to letting the cluster move.
-
-           The root cause is still that these labels are sentences where a
-           segmented control wants nouns, and shortening them is a copy
-           decision this file cannot take. */
-        <Tabs value={activeTab} onValueChange={onSelectTab} className="min-w-0 shrink gap-0">
-          <TabsList
-            variant="segmented"
-            /* **Aligning to the inline-start is the whole of the compact
-               tab-strip defect.** `TabsList`'s base centres its children, right
-               for a control that always fits and catastrophic for one that can
-               overflow: centred content in a scroll container spills past BOTH
-               edges, and `scrollLeft` cannot go below zero, so the start-side
-               half is unreachable by any gesture. Measured at 390 with
-               `scrollLeft: 0` — `/support/tickets` put its FIRST tab at
-               x = -34 against a strip starting at x = 28, and
-               `/financials/ledger` put `Trial balance` at x = -172. Note
-               `scrollWidth` under-reports this: it counts only the END-side
-               overflow (65px on tickets), so the strip looked 65px over when it
-               was really 124, half of it unreachable.
-
-               Overriding here rather than in the primitive: the base is shared
-               with every other tab strip in the product, and centring is only
-               wrong where the container can scroll. This call site is the one
-               that declares the scroll, three utilities along. At 1440 the
-               change is a no-op — the box hugs its content there (measured 461
-               against 461 on tickets, 738 against 738 on ledger), so there is
-               no free space for either value to distribute. */
-            className="max-w-full justify-start overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                /* Overrides, not additions: `data-active:bg-accent` and
-                   `rounded-lg` come from the base trigger and are merged AWAY
-                   by `cn`, because each pair shares a utility group. */
-                className="rounded-full border-transparent px-3 text-sm data-active:border-border-control data-active:bg-card"
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        /* THE TAB TRACK YIELDS; THE CONTROLS NEVER DO. Wave 2 labels run
+           565-582px and Arabic takes 40 more, so a track that refused to give
+           put `Sort` off the viewport at the 1280 floor - unreachable, where a
+           tab behind a scroll is one gesture away. The row wraps before the
+           track shrinks, so a screen whose track and cluster both fit is
+           untouched. D12; the stadium itself is `ViewSwitcher`. */
+        <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={onSelectTab} />
       )}
 
       {/* NO SHRINK CLASS HERE, AND THAT IS THE DECISION RATHER THAN AN OMISSION.

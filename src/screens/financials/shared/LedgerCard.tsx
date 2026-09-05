@@ -89,6 +89,7 @@ import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
 import type { LedgerTable } from '@/hooks'
 import { ABSENT, formatCount, formatDate, formatMoney, type Language, type Translate } from '@/lib'
 import { localisedText } from './text'
+import { ViewFigureBlock, type ViewFigure } from './ViewRow'
 
 /* ───────────────────────────── the source link ──────────────────────────── */
 
@@ -261,6 +262,12 @@ export interface LedgerHeaderProps {
    * pre-existing full-width behaviour.
    */
   maxInlineSize?: number
+  /**
+   * **R2-2** — figures that belong beside the balance rather than on a row of
+   * their own. The Cash drill-in's cap is one: every balance under it is read
+   * against it, so the two are adjacent clusters at the same size.
+   */
+  figures?: readonly ViewFigure[]
 }
 
 /**
@@ -273,7 +280,7 @@ export interface LedgerHeaderProps {
  * a permanent `Pending 0.00 SAR` on every ledger in the product is noise, and
  * §10's *"a count of zero renders no badge"* is the same instinct.
  */
-export function LedgerHeader({ ledger, t, maxInlineSize }: LedgerHeaderProps) {
+export function LedgerHeader({ ledger, t, maxInlineSize, figures = [] }: LedgerHeaderProps) {
   const definition = accountDefinition(ledger.subjectAccount)
   const subject =
     ledger.subjectName === null
@@ -305,19 +312,30 @@ export function LedgerHeader({ ledger, t, maxInlineSize }: LedgerHeaderProps) {
         </p>
       </div>
 
-      <div className="flex flex-col items-end gap-0.5">
-        <span className="text-xs text-muted-foreground">{t('fin.ledger.balance')}</span>
-        {/* §8.3.2 — the sign is typographic. `Money` renders U+2212 in ordinary
-            ink and there is no tone anywhere near it. */}
-        <Money amount={ledger.closingBalanceHalalas} className="text-lg font-semibold" />
-        {ledger.pendingHalalas !== 0 && (
-          <span className="text-xs text-muted-foreground">
-            {t('fin.ledger.pending')} <Money amount={ledger.pendingHalalas} />
-          </span>
-        )}
-        {ledger.pendingHalalas !== 0 && (
-          <span className="text-xs text-muted-foreground">{t('fin.ledger.pending.help')}</span>
-        )}
+      {/* Each figure is one cluster — label directly over its numeral, unit
+         inline — and the clusters sit side by side at the inline-end. §8.3.2:
+         the sign is typographic, and no tone goes near it. */}
+      <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
+        {figures.map((figure) => (
+          <ViewFigureBlock key={figure.label} figure={figure} size="lg" />
+        ))}
+        <div className="flex flex-col items-start gap-0.5 text-start">
+          <ViewFigureBlock
+            figure={{
+              label: t('fin.ledger.balance'),
+              amountHalalas: ledger.closingBalanceHalalas,
+            }}
+            size="lg"
+          />
+          {ledger.pendingHalalas !== 0 && (
+            <span className="text-xs text-muted-foreground">
+              {t('fin.ledger.pending')} <Money amount={ledger.pendingHalalas} />
+            </span>
+          )}
+          {ledger.pendingHalalas !== 0 && (
+            <span className="text-xs text-muted-foreground">{t('fin.ledger.pending.help')}</span>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -354,6 +372,8 @@ export interface LedgerCardProps {
    */
   hasHistory: boolean
   firstRun: { heading: string; body: string; action: { label: string; onClick: () => void } }
+  /** **R2-2** — passed to `LedgerHeader`; figures beside the balance. */
+  figures?: readonly ViewFigure[]
   /** Rendered above the table — the R5a page banner a screen raises for its own rows. */
   banner?: ReactNode
 }
@@ -373,6 +393,7 @@ export function LedgerCard({
   hasHistory,
   firstRun,
   banner,
+  figures,
 }: LedgerCardProps) {
   const columns = useMemo(() => ledgerColumns(t, language), [t, language])
   /* One derivation, two consumers: `DataTable` caps the table and its band with
@@ -397,7 +418,9 @@ export function LedgerCard({
   if (status === 'empty' && !hasHistory && !table.isFiltered) {
     return (
       <div className="flex flex-col">
-        {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} />}
+        {ledger && (
+          <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} figures={figures} />
+        )}
         {banner}
         <EmptyState
           kind="first-run"
@@ -423,7 +446,7 @@ export function LedgerCard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} />}
+      {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} figures={figures} />}
       {banner}
       <DataTable
         table={table}

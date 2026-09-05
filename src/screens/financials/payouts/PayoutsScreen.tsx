@@ -98,7 +98,7 @@
  * no money at all, wastes their time twice.
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   applyDeduction,
@@ -128,16 +128,18 @@ import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/c
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { ViewSwitcher } from '@/components/table/ViewSwitcher'
+import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
 import { bulkRefusalText, localisedText } from '../shared/text'
 import { LedgerCard } from '../shared/LedgerCard'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { EntityName, useEntityLinks } from '../shared/entityLinks'
-import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
+import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { useMoneyActions } from '../shared/actions'
-import { Figure, FigureItem } from '../shared/Figures'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import {
   bulkRefusal,
   deductionWithheldFrom,
@@ -219,20 +221,6 @@ interface FailedScope {
 
 const NO_FAILED_SCOPE: FailedScope = { count: 0, scoped: false, showOnly: null }
 
-/**
- * The figure strip's row. `FigureGrid` is three across (§H4) and this strip is
- * four, so a `FigureGrid` would leave the hole V-5 names; `Figures.tsx` is
- * shared and not this screen's to widen, so the one differing class lives here
- * and every figure in it is still `Figure`.
- */
-function FigureStrip({ children }: { children: ReactNode }) {
-  return (
-    <ul data-numeric role="list" className="grid list-none grid-cols-4 gap-3">
-      {children}
-    </ul>
-  )
-}
-
 /** The captain whose payable ledger is open, if any. The index-of-ledgers boundary. */
 function useCaptainParam(): { captainId: string | null; open: (id: string | null) => void } {
   const location = useLocation()
@@ -256,12 +244,22 @@ function useCaptainParam(): { captainId: string | null; open: (id: string | null
 export function PayoutsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
-  const { period } = usePeriod()
+  const { period, setPeriod } = usePeriod()
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
   const { captainId, open } = useCaptainParam()
   const gate = useWriteGate(row, t)
 
   const [failed, setFailed] = useState<FailedScope>(NO_FAILED_SCOPE)
+  /* **R2-2** — the drill-in's meta names the record, and only the ledger read
+     knows its name. Lifted the way `failed` is, and cleared on unmount so the
+     index cannot inherit a captain's name. */
+  const [subject, setSubject] = useState<string | null>(null)
+  /* **§10.4** — the view's figures ride the stadium's row, so the view that
+     reads them publishes them to the row the screen owns. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
+  /* The view the drill-in belongs to: the meta names it and the way back
+     restores it, so the two cannot say different things. */
+  const parentView = tabs.find((tab) => tab.id === activeTab)?.label ?? ''
 
   /* **P0-2 / AC-367** — the banner names the count AND carries the control that
      narrows the list to it, the same shape `BreachBanner` gives every queue.
@@ -292,40 +290,79 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
   return (
     <FinancialsPage
       row={row}
-      /* **TL-2 / Q-F13** — the period is printed only where a read honours it.
-         `listCaptainPayouts`, `listEscrowHolds` and `listDeductions` take
-         `QueryParams` alone; `getCaptainPayableLedger` takes a window. */
-      meta={captainId === null ? null : periodLabel(period, t, language)}
+      /* **R2-2** — on the drill-in the meta is the parent view and the record,
+         one key with two placeholders. The period is not printed twice: the
+         control on the title row states the window it changes. */
+      meta={
+        captainId === null || subject === null
+          ? null
+          : t('fin.drill.meta', { view: parentView, record: subject })
+      }
+      /* §8 slot 4c - on the title row, and only where a read honours it. */
+      periodControl={
+        captainId === null ? undefined : (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        )
+      }
+      /* **ONE view row, in one place, on all three views** (D12) — the strip
+         was the `DataTable` toolbar's and moved with whatever the view drew
+         above it. The drill-in has no views, so the row carries the way back
+         instead: **R2-2**'s breadcrumb slot, directly under the title. */
+      viewRow={
+        <ViewRow
+          label={parentView}
+          facts={captainId === null ? facts : null}
+          lead={
+            captainId === null ? (
+              <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+            ) : (
+              <Button variant="link" onClick={() => open(null)} className="h-auto p-0 text-sm">
+                {t('fin.drill.back', { view: parentView })}
+              </Button>
+            )
+          }
+        />
+      }
       banners={banners}
       t={t}
       dir={dir}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         {captainId !== null ? (
-          <CaptainPayableLedger captainId={captainId} onBack={() => open(null)} />
+          <CaptainPayableLedger
+            captainId={captainId}
+            onBack={() => open(null)}
+            onSubject={setSubject}
+          />
         ) : (
           <>
             {activeTab === 'payouts' && (
               <PayoutsView
                 key="payouts"
-                tabs={tabs}
                 activeTab={activeTab}
                 onSelectTab={selectTab}
                 onOpenLedger={open}
                 gate={gate}
                 onFailed={setFailed}
+                onFacts={setFacts}
               />
             )}
             {activeTab === 'escrow' && (
-              <EscrowView key="escrow" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
+              <EscrowView
+                key="escrow"
+                activeTab={activeTab}
+                onSelectTab={selectTab}
+                gate={gate}
+                onFacts={setFacts}
+              />
             )}
             {activeTab === 'deductions' && (
               <DeductionsView
                 key="deductions"
-                tabs={tabs}
                 activeTab={activeTab}
                 onSelectTab={selectTab}
                 gate={gate}
+                onFacts={setFacts}
               />
             )}
           </>
@@ -335,22 +372,29 @@ export function PayoutsScreen({ row }: { row: SubTabRoute }) {
   )
 }
 
+/**
+ * What a sub-view still needs: the id it is (the CSV's `view` column) and a way
+ * to send an operator to a sibling view from an empty state. **Not `tabs`** —
+ * the view row is the screen's, rendered once above (D12).
+ */
 interface ViewProps {
-  tabs: readonly { id: string; label: string }[]
   activeTab: string
   onSelectTab: (id: string) => void
   gate: { canWrite: boolean; reason: string }
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own reads know them. Published, not rendered here. */
+  onFacts: (facts: ViewFacts | null) => void
 }
 
 /* ──────────────────────────────── payouts ──────────────────────────────── */
 
 function PayoutsView({
-  tabs,
   activeTab,
   onSelectTab,
   gate,
   onOpenLedger,
   onFailed,
+  onFacts,
 }: ViewProps & {
   onOpenLedger: (id: string) => void
   onFailed: (scope: FailedScope) => void
@@ -511,7 +555,7 @@ function PayoutsView({
         header: t('fin.payout.col.trips'),
         dataType: 'number',
         align: 'end',
-        width: 76,
+        width: 68,
         sortField: 'tripsInPeriod',
         cell: (payout) => (
           <span className="tabular-nums">{formatCount(payout.tripsInPeriod, language)}</span>
@@ -524,7 +568,7 @@ function PayoutsView({
         header: t('fin.payout.col.payable'),
         dataType: 'money',
         align: 'end',
-        width: 124,
+        width: 112,
         sortField: 'payableHalalas',
         cell: (payout) => <MoneyCell amount={payout.payableHalalas} />,
       },
@@ -534,7 +578,7 @@ function PayoutsView({
         header: t('fin.payout.col.debt'),
         dataType: 'money',
         align: 'end',
-        width: 132,
+        width: 112,
         sortField: 'cashDebtHalalas',
         cell: (payout) => <MoneyCell amount={payout.cashDebtHalalas} />,
       },
@@ -545,7 +589,7 @@ function PayoutsView({
         header: t('fin.payout.col.net'),
         dataType: 'money',
         align: 'end',
-        width: 140,
+        width: 110,
         /* **Derived**, from two independently-true server values. Never a third
            wire field that can disagree with both. */
         cell: (payout) => (
@@ -556,13 +600,18 @@ function PayoutsView({
         id: 'state',
         sortField: 'state',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — a refused `Pay` explains itself under the STATE
+           word, where an operator is already reading why the row cannot move. */
+        carriesRefusalReason: true,
         header: t('fin.payout.col.state'),
         dataType: 'enum',
         /* **H6 preset.** `fitWidths` shrinks an `enum` to 76px when the table
            is over budget, which rendered `Du` / `Pa` / `Re` under a header
-           reading `Sta`. The floor is what makes the words render. */
-        width: 120,
-        minWidth: 120,
+           reading `Sta`. Since R2-3 the floor is also the REFUSAL's: at 120px
+           `Add a bank account before paying this captain.` clipped inside
+           `line-clamp-2`, and AC-368 wants the reason readable in place. */
+        width: 190,
+        minWidth: 190,
         cell: (payout) =>
           payout.state === 'failed' ? (
             /* R5 — no red badge exists. The state is the words. */
@@ -712,47 +761,38 @@ function PayoutsView({
 
   const data = overview.data
 
+  /* **§10.4** — the four figures a period is settled against, on the screen's
+     view row. Every one is a read this view already makes. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      data
+        ? {
+            figures: [
+              {
+                label: t('fin.overview.pendingPayouts'),
+                amountHalalas: data.pendingPayoutsHalalas,
+              },
+              {
+                label: t('fin.payout.figure.net'),
+                amountHalalas: data.pendingPayoutsHalalas - data.captainDebtHalalas,
+              },
+              {
+                label: t('fin.payout.state.due'),
+                value: formatCount(due.data?.total ?? 0, language),
+              },
+              {
+                label: t('fin.payout.state.failed'),
+                value: formatCount(failedTotal, language),
+              },
+            ],
+          }
+        : null,
+    [data, due.data, failedTotal, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {/* **The four figures a period is settled against.** Supporting rank, no
-          band: this is a working page beside a table, not a board (§H4). */}
-      {data && (
-        <section className="flex flex-col gap-2" aria-labelledby="fin-payouts-figures">
-          <h2 id="fin-payouts-figures" className="sr-only">
-            {t('fin.payout.figures.heading')}
-          </h2>
-          <FigureStrip>
-            <FigureItem>
-              <Figure
-                rank="supporting"
-                label={t('fin.overview.pendingPayouts')}
-                amount={data.pendingPayoutsHalalas}
-              />
-            </FigureItem>
-            <FigureItem>
-              <Figure
-                rank="supporting"
-                label={t('fin.payout.figure.net')}
-                amount={data.pendingPayoutsHalalas - data.captainDebtHalalas}
-              />
-            </FigureItem>
-            <FigureItem>
-              <Figure
-                rank="supporting"
-                label={t('fin.payout.state.due')}
-                value={formatCount(due.data?.total ?? 0, language)}
-              />
-            </FigureItem>
-            <FigureItem>
-              <Figure
-                rank="supporting"
-                label={t('fin.payout.state.failed')}
-                value={formatCount(failedTotal, language)}
-              />
-            </FigureItem>
-          </FigureStrip>
-        </section>
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -764,9 +804,6 @@ function PayoutsView({
         language={language}
         tableId="financials-payouts"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.payout.search')}
         /* **R5a / AC-367** — a returned payout, declared once and read by both
            carriers: this tint and the leading-edge marker in the identity
@@ -801,7 +838,7 @@ function PayoutsView({
 
 /* ───────────────────────────────── escrow ──────────────────────────────── */
 
-function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
+function EscrowView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<EscrowHold>({ mode: 'index', getRowId: (hold) => hold.id })
@@ -822,6 +859,15 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     { deps: [], cacheKey: 'payouts.escrow.cancelled' },
   )
   const cancelledTotal = cancelled.data?.total ?? 0
+
+  /* **R2-1** — the two balances escrow is settled against, from the same
+     posting-derived read Payouts and Overview take (AC-346). Same `cacheKey`
+     and same deps as the payouts view's, so changing view re-reads nothing. */
+  const overview = useAsync<FinancialsOverview>((signal) => getFinancialsOverview({ signal }), {
+    deps: [],
+    cacheKey: 'financials.overview',
+    isEmpty: () => false,
+  })
 
   const rows = useMemo(() => actions.apply(holds.data?.items ?? []), [actions, holds.data])
 
@@ -844,7 +890,9 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         csv: (hold) => hold.id,
         header: t('fin.escrow.col.id'),
         dataType: 'id',
-        minWidth: 180,
+        /* **R2-7** — the floor that keeps the subscription code on the second
+           line rather than wrapping it. */
+        minWidth: 200,
         sortField: 'id',
         cell: (hold) => (
           <span className="block font-medium tabular-nums">
@@ -881,14 +929,14 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         id: 'captain',
         header: t('fin.escrow.col.captain'),
         dataType: 'text',
-        width: 170,
+        width: 150,
         cell: (hold) => <EntityName href={hrefFor(hold.captainId)} name={hold.captainName} t={t} />,
       },
       {
         id: 'rider',
         header: t('fin.escrow.col.rider'),
         dataType: 'text',
-        width: 170,
+        width: 150,
         cell: (hold) => <EntityName href={hrefFor(hold.riderId)} name={hold.riderName} t={t} />,
       },
       {
@@ -906,7 +954,7 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         id: 'progress',
         header: t('fin.escrow.col.progress'),
         dataType: 'text',
-        width: 160,
+        width: 104,
         /* **AC-365** — the progress is stated as `4/5 trips delivered`, in
            words, beside the disabled control that names the same reason. */
         cell: (hold) => (
@@ -922,9 +970,15 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         id: 'state',
         sortField: 'settlement',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — the refused `Release` explains itself under the
+           state word. Undeclared, the reason fell to the identity cell and
+           wrapped it to a third line (§10.4). The floor is the REASON's: at
+           132px `Release when every plan trip is delivered.` clipped. */
+        carriesRefusalReason: true,
         header: t('fin.escrow.col.state'),
         dataType: 'enum',
-        width: 132,
+        width: 190,
+        minWidth: 190,
         /* **AC-452** — `held | released | reversed` is the DOCUMENT's lifecycle.
            An escrow posting settles on arrival, because money arriving is a
            fact; this badge is the hold's state and never a posting's. */
@@ -977,8 +1031,11 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         reason: (hold) => {
           const withheld = releaseWithheldFrom(hold, gate.canWrite)
           if (withheld === null) return null
+          /* The refusal KEY is the identity the bulk bar orders on; the
+             SENTENCE names the state in its own words, so it never inherits
+             the badge's casing (`already Released.`). */
           return withheld === 'fin.escrow.blocked.state'
-            ? t(withheld, { state: t(`fin.settlement.${hold.settlement}`) })
+            ? t(`fin.escrow.blocked.${hold.settlement}`)
             : t(withheld)
         },
       },
@@ -1057,17 +1114,31 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     [t, confirmReleaseMany, releaseRefusal, releaseEligible],
   )
 
+  const escrow = overview.data
+
+  /* **§10.4** — this view said nothing before its rows. Held and
+     ready-to-release are balances; the third is the count **Q-F4** raises,
+     which was a sentence under the header and would be one number twice. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      escrow
+        ? {
+            figures: [
+              { label: t('fin.escrow.figure.held'), amountHalalas: escrow.escrowHeldHalalas },
+              { label: t('fin.escrow.figure.ready'), amountHalalas: escrow.escrowReadyHalalas },
+              {
+                label: t('fin.escrow.figure.cancelled'),
+                value: formatCount(cancelledTotal, language),
+              },
+            ],
+          }
+        : null,
+    [escrow, cancelledTotal, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
-      {holds.status === 'content' && cancelledTotal > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {cancelledTotal === 1
-            ? t('fin.escrow.cancelledTotal')
-            : t('fin.escrow.cancelledTotalMany', {
-                count: formatCount(cancelledTotal, language),
-              })}
-        </p>
-      )}
       <DataTable
         table={table}
         rows={rows}
@@ -1079,9 +1150,6 @@ function EscrowView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         language={language}
         tableId="financials-escrow"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.escrow.search')}
         skeletonPattern="P1"
         rowActions={rowActions}
@@ -1131,12 +1199,13 @@ function deductionRefusal(
 ): string | null {
   const withheld = deductionWithheldFrom(deduction, canWrite)
   if (withheld === null) return null
+  /* As Escrow: the key is the identity, the sentence names the state. */
   return withheld === 'fin.deduction.blocked.decided'
-    ? t(withheld, { state: t(`fin.deduction.status.${deduction.status}`) })
+    ? t(`fin.deduction.blocked.${deduction.status}`)
     : t(withheld)
 }
 
-function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
+function DeductionsView({ activeTab, onSelectTab, gate, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<Deduction>({ mode: 'index', getRowId: (deduction) => deduction.id })
@@ -1151,6 +1220,19 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
   const rows = useMemo(
     () => actions.apply(deductions.data?.items ?? []),
     [actions, deductions.data],
+  )
+
+  /* **R2-1** — what is still owed a decision, over the POPULATION rather than
+     the page: a total of whatever the toolbar has narrowed to is not what a
+     Finance lead settles. There is no aggregate endpoint, so the pending set
+     itself is read and summed. */
+  const pending = useAsync<Paginated<Deduction>>(
+    (signal) => listDeductions({ view: 'pending', pageSize: 200 }, signal),
+    { deps: ['pending'], cacheKey: 'payouts.deductions' },
+  )
+  const pendingHalalas = useMemo(
+    () => (pending.data?.items ?? []).reduce((sum, each) => sum + each.amountHalalas, 0),
+    [pending.data],
   )
 
   /* **P8-T1** — the captain, and the trip the deduction was raised against.
@@ -1172,7 +1254,9 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         csv: (deduction) => deduction.id,
         header: t('fin.deduction.col.id'),
         dataType: 'id',
-        minWidth: 190,
+        /* **R2-7** — the floor that keeps the waiver's actor and reason on ONE
+           second line rather than wrapping the cell to a third. */
+        minWidth: 286,
         sortField: 'id',
         cell: (deduction) => (
           <span className="block font-medium tabular-nums">
@@ -1193,9 +1277,12 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
           /* **AC-370** — a waived deduction keeps its actor and its reason on
              the row. It is not removed from the list. */
           if (deduction.status === 'waived' && deduction.waivedByUserName) {
+            /* Rule 7 — the reason reads in words. `TRP_ROUTE_DEVIATION` is the
+               registry's id, and `reasonLabel` falls back to it only when
+               nothing labels it. */
             return t('fin.deduction.waivedBy', {
               actor: deduction.waivedByUserName,
-              reason: deduction.waivedReasonCode ?? '',
+              reason: reasonLabel(t, deduction.waivedReasonCode) ?? '',
             })
           }
           return localisedText(t, deduction.type)
@@ -1205,7 +1292,9 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         id: 'captain',
         header: t('fin.deduction.col.captain'),
         dataType: 'text',
-        width: 180,
+        /* Narrowed by what the identity column took: a captain's name fits, and
+           the waiver's second line is the cell that could not wrap. */
+        width: 96,
         sortField: 'captainName',
         cell: (deduction) => (
           <EntityName href={hrefFor(deduction.captainId)} name={deduction.captainName} t={t} />
@@ -1215,7 +1304,7 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         id: 'trip',
         header: t('fin.deduction.col.trip'),
         dataType: 'id',
-        width: 132,
+        width: 76,
         /* §8.3.1 — a deduction raised against no trip renders nothing here, as
            it always has. It is the ABSENCE of a reference, not an unknown one. */
         cell: (deduction) =>
@@ -1232,16 +1321,21 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         header: t('fin.deduction.col.amount'),
         dataType: 'money',
         align: 'end',
-        width: 128,
+        width: 88,
         sortField: 'amountHalalas',
         cell: (deduction) => <MoneyCell amount={deduction.amountHalalas} />,
       },
       {
         id: 'status',
         emphasis: 'data',
+        /* **R2-3 / AC-368** — as Escrow and Payouts: the refusal reads under the
+           state word, not under the identifier, and the floor is the reason's:
+           `This deduction is already Applied.` reads in two lines at 168. */
+        carriesRefusalReason: true,
         header: t('fin.deduction.col.status'),
         dataType: 'enum',
-        width: 132,
+        width: 168,
+        minWidth: 168,
         cell: (deduction) => (
           <StatusBadge tone={deduction.status === 'applied' ? 'success' : deduction.status === 'waived' ? 'neutral' : 'warning'}>
             {t(`fin.deduction.status.${deduction.status}`)}
@@ -1455,6 +1549,25 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
     confirmWaiveMany,
   ])
 
+  /* **§10.4** — the two figures the queue is worked against. */
+  const pendingTotal = pending.data?.total
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      pendingTotal === undefined
+        ? null
+        : {
+            figures: [
+              { label: t('fin.deduction.figure.pending'), amountHalalas: pendingHalalas },
+              {
+                label: t('fin.deduction.figure.count'),
+                value: formatCount(pendingTotal, language),
+              },
+            ],
+          },
+    [pendingTotal, pendingHalalas, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <>
       <DataTable
@@ -1468,9 +1581,6 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
         language={language}
         tableId="financials-deductions"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.deduction.search')}
         skeletonPattern="P1"
         rowActions={rowActions}
@@ -1508,15 +1618,18 @@ function DeductionsView({ tabs, activeTab, onSelectTab, gate }: ViewProps) {
 function CaptainPayableLedger({
   captainId,
   onBack,
+  onSubject,
 }: {
   captainId: string
   onBack: () => void
+  /** **R2-2** — the page meta names the record, and only this read knows it. */
+  onSubject: (name: string | null) => void
 }) {
   const shell = useShell()
   const { t, language } = shell.language
   /* **Q-F13 / TL-2** — `getCaptainPayableLedger` is the one read on this screen
-     that takes a window, so this is the one place the control belongs. */
-  const { period, setPeriod } = usePeriod()
+     that takes a window; the control for it is on the page's title row. */
+  const { period } = usePeriod()
   const table = useIndexTable({ mode: 'ledger' })
 
   const ledger = useAsync<Ledger>(
@@ -1544,14 +1657,16 @@ function CaptainPayableLedger({
 
   const status = ledger.status === 'content' && rows.length === 0 ? 'empty' : ledger.status
 
+  const subjectName = ledger.data?.subjectName ?? null
+  useEffect(() => {
+    onSubject(subjectName)
+    return () => onSubject(null)
+  }, [subjectName, onSubject])
+
+  /* **R2-2** — the `Back to payouts` chip left this row for the header's
+     breadcrumb slot, so the ledger header follows the title row directly. */
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div>
-        <Button variant="secondary" size="xs" onClick={onBack}>
-          {t('fin.payout.back')}
-        </Button>
-      </div>
-      <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
       <LedgerCard
         table={table}
         ledger={ledger.data}

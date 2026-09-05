@@ -38,6 +38,7 @@ import {
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
+import { VOCABULARY_EN } from '@/i18n/vocabulary/copy'
 import { ShellProvider } from '@/shell/ShellContext'
 import { PayoutsScreen } from './PayoutsScreen'
 
@@ -303,7 +304,9 @@ describe('AC-364 — releasing escrow', () => {
   /**
    * **AC-365** — *"an escrow hold with `tripsCompleted < tripsRequired` renders
    * its `Release` action disabled in place, with the reason visible, and the
-   * progress stated as `4/5 trips delivered`."*
+   * progress stated as `4/5 trips delivered`."* The words shortened to
+   * `4/5 trips` when the state column took the width the refusal needs; the
+   * criterion is the progress on the row, and it is.
    *
    * Three clauses, three assertions. The control is **present** and disabled —
    * hidden would fail — the progress is in words on the row, and the row that
@@ -316,7 +319,7 @@ describe('AC-364 — releasing escrow', () => {
     await waitFor(() => expect(screen.getByText('ESC-1041')).toBeTruthy())
 
     /* 4 of 5 — the progress, in words, on the row. */
-    expect(within(rowFor('ESC-1041')).getByText('4/5 trips delivered')).toBeTruthy()
+    expect(within(rowFor('ESC-1041')).getByText('4/5 trips')).toBeTruthy()
 
     const blocked = await rowActionControl(
       user,
@@ -528,7 +531,9 @@ describe('waiving a deduction', () => {
     const waived = rowFor('DED-04')
     expect(within(waived).getByText(EN['fin.deduction.status.waived'] as string)).toBeTruthy()
     expect(waived.textContent).toContain('Sarah Al-Rashid')
-    expect(waived.textContent).toContain('TRP_ROUTE_DEVIATION')
+    /* Rule 7 — the reason reads in words. The registry's id is not the text. */
+    expect(waived.textContent).toContain(VOCABULARY_EN['reason.TRP_ROUTE_DEVIATION'])
+    expect(waived.textContent).not.toContain('TRP_ROUTE_DEVIATION')
 
     /* And it is not a red badge — a waiver is a neutral terminal outcome (R5). */
     const badge = waived.querySelector('[data-slot="badge"]')
@@ -1047,11 +1052,11 @@ describe('the returned-payouts banner acts, and the run states its figures', () 
     expect(screen.queryByText(EN['fin.payout.failed.title'] as string)).toBeNull()
   })
 
-  /** §5.1 — the four figures a period is settled against, above the index. */
+  /** §10.4 — the four figures a period is settled against, on the view row. */
   it('§5.1 — the strip states what is owed, what is net, and the two counts', async () => {
     mount(payoutsRow(), '/financials/payouts?view=payouts')
-    const strip = await screen.findByRole('region', {
-      name: EN['fin.payout.figures.heading'] as string,
+    const strip = await screen.findByRole('list', {
+      name: EN['fin.payouts.view.payouts'] as string,
     })
 
     expect(within(strip).getByText(EN['fin.overview.pendingPayouts'] as string)).toBeTruthy()
@@ -1061,28 +1066,51 @@ describe('the returned-payouts banner acts, and the run states its figures', () 
   })
 
   /**
-   * **TL-2 / Q-F13** — `listCaptainPayouts` takes no window, so the page states
-   * no period; `getCaptainPayableLedger` takes one, so the ledger does and
-   * offers the control that changes it.
+   * **TL-2 / Q-F13** — `listCaptainPayouts` takes no window, so the index
+   * offers no period control; `getCaptainPayableLedger` takes one, so the
+   * ledger carries it on its title row.
    */
-  it('Q-F13 — the index prints no period, and the ledger prints one with its control', async () => {
+  it('Q-F13 — only the ledger offers the period control, on the title row', async () => {
     const { unmount } = mount(payoutsRow(), '/financials/payouts?view=payouts')
     await waitFor(() => expect(screen.getByText('Ahmed Salem')).toBeTruthy())
-    expect(screen.queryByText(/^Period /)).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: EN['fin.overview.period.previous'] as string }),
+    ).toBeNull()
     unmount()
 
     mount(payoutsRow(), '/financials/payouts?view=payouts&captain=DRV-0101')
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
-    expect(screen.getByText(/^Period /)).toBeTruthy()
     expect(
       screen.getByRole('button', { name: EN['fin.overview.period.previous'] as string }),
     ).toBeTruthy()
   })
 
-  /** Q-F4 — the cancelled holds are counted at the top of the Escrow view. */
+  /**
+   * **R2-2** — the drill-in is one header: the meta names the parent view and
+   * the captain, and the way back is a link in the header rather than a chip on
+   * a row of its own.
+   */
+  it('R2-2 — the ledger page states the parent view and the captain, and offers the way back', async () => {
+    mount(payoutsRow(), '/financials/payouts?view=payouts&captain=DRV-0101')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByText(/^Payouts · /)).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: `Back to ${EN['fin.payouts.view.payouts'] as string}`,
+      }),
+    ).toBeTruthy()
+  })
+
+  /** Q-F4 — the cancelled holds are counted in the Escrow view's header. */
   it('§5.1 — the Escrow view states how many holds sit on a cancelled subscription', async () => {
     mount(payoutsRow(), '/financials/payouts?view=escrow')
     await waitFor(() => expect(screen.getByText('ESC-1052')).toBeTruthy())
-    expect(screen.getByText(EN['fin.escrow.cancelledTotal'] as string)).toBeTruthy()
+    const header = screen.getByRole('list', {
+      name: EN['fin.payouts.view.escrow'] as string,
+    })
+    expect(within(header).getByText(EN['fin.escrow.figure.cancelled'] as string)).toBeTruthy()
+    expect(within(header).getByText(EN['fin.escrow.figure.held'] as string)).toBeTruthy()
+    expect(within(header).getByText(EN['fin.escrow.figure.ready'] as string)).toBeTruthy()
   })
 })

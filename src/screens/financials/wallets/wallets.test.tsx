@@ -418,25 +418,32 @@ describe('§5.3 — the sub-tab states the position it is an index of', () => {
     mount('/financials/rider-wallets?view=all-wallets')
     await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
 
+    /* **§10.4** — the figures sit on the view row, named by the pill that
+       selected the view; the heading went with the row it used to cost. */
     expect(
-      screen.getByRole('heading', { name: EN['fin.wallets.header.label'] as string }),
+      screen.getByRole('list', { name: EN['fin.wallets.view.all'] as string }),
     ).toBeTruthy()
+    /* A count is a FIGURE, not a sentence: each is its own label and numeral. */
+    const figures = screen.getByRole('list', { name: EN['fin.wallets.view.all'] as string })
+    for (const [label, count] of [
+      [EN['fin.wallets.figure.wallets'] as string, all.total],
+      [EN['fin.wallets.figure.negative'] as string, negative.total],
+    ] as const) {
+      const cluster = within(figures).getByText(label).parentElement as HTMLElement
+      expect(within(cluster).getByText(String(count)), `${label} states its count`).toBeTruthy()
+    }
     expect(
-      screen.getByText(
-        (EN['fin.wallets.header.caption'] as string)
-          .replace('{wallets}', String(all.total))
-          .replace('{negative}', String(negative.total)),
-      ),
-    ).toBeTruthy()
-    expect(
-      screen.getAllByText(formatMoney(overview.riderWalletLiabilityHalalas)).length,
+      /* **R2-1** — the header's figure is the numeral; `SAR` is its unit line. */
+      screen.getAllByText(formatMoney(overview.riderWalletLiabilityHalalas, { unit: 'none' }))
+        .length,
     ).toBeGreaterThan(0)
   })
 
   /**
    * **AC-384** — *"the ceiling is known before the dialog opens rather than
    * discovered inside it."* The envelope's operator-scoped half is the only
-   * half a header may state: `per30dCount` is computed per rider.
+   * half a header may state: `per30dCount` is computed per rider. What is used
+   * today is a figure; the three ceilings are the caption under it.
    */
   it('AC-384 — the Goodwill view names the daily ceiling before any dialog is opened', async () => {
     const page = await listWallets({ view: 'goodwill', pageSize: 1 })
@@ -445,16 +452,70 @@ describe('§5.3 — the sub-tab states the position it is an index of', () => {
 
     mount('/financials/rider-wallets?view=goodwill')
     await waitFor(() =>
-      expect(screen.getByText(EN['fin.wallets.authority.label'] as string)).toBeTruthy(),
+      expect(screen.getByText(EN['fin.wallets.figure.dailyUsed'] as string)).toBeTruthy(),
     )
 
     expect(screen.queryByRole('dialog'), 'no dialog was opened').toBeNull()
     expect(
+      screen.getAllByText(formatMoney(envelope.dailyUsedHalalas, { unit: 'none' })).length,
+    ).toBeGreaterThan(0)
+    expect(
       screen.getByText(
-        (EN['fin.wallets.authority.daily'] as string)
-          .replace('{used}', formatMoney(envelope.dailyUsedHalalas))
-          .replace('{cap}', formatMoney(envelope.dailyCapHalalas)),
+        (EN['fin.wallets.authority.envelope'] as string)
+          .replace('{cap}', formatMoney(envelope.dailyCapHalalas))
+          .replace('{perCase}', formatMoney(envelope.perCaseCapHalalas))
+          .replace('{countCap}', String(envelope.per30dCountCap)),
       ),
     ).toBeTruthy()
+  })
+})
+
+/* ═════════ FINANCIALS-UX-PLAN R2-4 — the row IS the open action ═════════ */
+
+describe('R2-4 — one inline action per row, and the row opens the ledger', () => {
+  /**
+   * *"Wallets follows Payouts: the open path is the row click and its keyboard
+   * equivalent, the lane holds the one mutating action."* Both halves here: the
+   * lane no longer offers `View ledger`, and the row still opens it.
+   */
+  it('the action lane holds Adjust alone', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+    const row = rowFor('Nora Al-Harbi')
+
+    expect(
+      within(row).getByRole('button', { name: EN['fin.wallet.action.adjust'] as string }),
+    ).toBeTruthy()
+    expect(
+      within(row).queryByRole('button', { name: EN['fin.wallet.action.ledger'] as string }),
+      'View ledger left the lane',
+    ).toBeNull()
+  })
+
+  it('clicking the row opens that rider\u2019s wallet ledger', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    await user.click(rowFor('Nora Al-Harbi'))
+
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
+    )
+    expect(screen.getByRole('button', { name: EN['fin.wallet.back'] as string })).toBeTruthy()
+  })
+
+  /** The same contract by keyboard: `Enter` on the focused row (P1-5). */
+  it('Enter on the focused row opens the same ledger', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+
+    rowFor('Nora Al-Harbi').focus()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
+    )
   })
 })

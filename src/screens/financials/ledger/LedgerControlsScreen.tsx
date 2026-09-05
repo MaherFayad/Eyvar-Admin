@@ -48,7 +48,9 @@ import {
   setDefaultGateway,
   setGatewayEnabled,
 } from '@/data/clients'
+import { accountDefinition } from '@/data/types'
 import type {
+  AccountLine,
   IdempotencyStats,
   InvoiceSequence,
   JournalEntry,
@@ -62,12 +64,12 @@ import type {
   VatConfig,
 } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
-import { formatCount, formatDate, formatMoney, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, formatMoney, type Translate } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { Money, MoneyCell } from '@/components/Money'
+import { MoneyCell } from '@/components/Money'
 import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -76,6 +78,7 @@ import { cn } from '@/lib/utils'
 import { useShell } from '@/shell/ShellContext'
 import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, useWriteGate } from '../shared/FinancialsPage'
+import { ViewRow, usePublishFacts, type ViewFacts } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -94,10 +97,55 @@ const DEFAULT_VIEW = 'trial-balance'
 /** V-19 — the first four views READ the books; the two after them configure it. */
 const BOOKS_VIEW_COUNT = 4
 
+/**
+ * **R2-5** — every recipe id the books can carry, and the set is the guard: a
+ * recipe with no key renders its raw id rather than throwing on a missing
+ * translation (AC-74). Add the id here and `fin.recipe.<camelCase>` to `copy.ts`
+ * in the same change.
+ */
+const RECIPE_IDS: ReadonlySet<string> = new Set([
+  'adjustment', 'campaign_spend', 'captain_incentive', 'cash_repayment', 'cash_report_debt',
+  'cash_surplus', 'cash_topup', 'chargeback', 'chargeback_wallet', 'deduction',
+  'dispute_settlement', 'driver_accrual', 'emergency_cover', 'emergency_recovery', 'escrow_hold',
+  'escrow_release', 'fare_capture', 'fare_capture_batch', 'gateway_fee', 'invoice_raised',
+  'invoice_voided', 'opening_balance', 'payout', 'payout_reversal', 'promo_credit',
+  'referral_reward', 'refund', 'reversal', 'wallet_adjustment', 'wallet_credit',
+  'wallet_debit', 'wallet_topup',
+])
+
+/** The keyed label, or `null` when the id is one the dictionary has never seen. */
+function recipeLabel(t: Translate, type: string): string | null {
+  if (!RECIPE_IDS.has(type)) return null
+  return t(`fin.recipe.${type.replace(/_(.)/g, (_, letter: string) => letter.toUpperCase())}`)
+}
+
+/**
+ * **R2-5** — `Dr Cash at payment gateway · 32.20`. The account's display name
+ * comes from the chart of accounts, which is where the trial balance reads its
+ * own names; the account KEY is on hover and nowhere else.
+ */
+function AccountLines({ lines, prefix, t }: { lines: readonly AccountLine[]; prefix: string; t: Translate }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      {lines.map((line, index) => (
+        <span key={`${prefix}-${index}`} className="tabular-nums" title={line.account}>
+          {t(line.direction === 'debit' ? 'fin.journal.line.debit' : 'fin.journal.line.credit', {
+            account: accountDefinition(line.account).label,
+            amount: formatMoney(line.amountHalalas, { unit: 'none' }),
+          })}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
   const { t, dir, language } = shell.language
   const { tabs, activeTab, selectTab } = useScreenViews(VIEWS, DEFAULT_VIEW, t)
+  /* **§10.4** — the view's figures ride the stadium's row, published by the
+     view that reads them. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
   const gate = useWriteGate(row, t)
 
   /* Finding 11's screen: nine concurrent parameterless reads at 320 ms each.
@@ -195,11 +243,22 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
   }, [trial.data, refusedCount, activeTab, t, language, selectTab])
 
   return (
-    <FinancialsPage row={row} banners={banners} t={t} dir={dir}>
+    <FinancialsPage
+      row={row}
+      banners={banners}
+      /* **V-19 / §10.4** — one view row for the whole route: the grouped
+         stadium, and the view's own figures at its inline-end. */
+      viewRow={
+        <ViewRow
+          label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          facts={facts}
+          lead={<LedgerViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+        />
+      }
+      t={t}
+      dir={dir}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        {/* **V-19** — one view row for the whole route, grouped, above whatever
-            the view renders. See `LedgerViewTabs`. */}
-        <LedgerViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
         {activeTab === 'trial-balance' && (
           <TrialBalanceView
             key="trial"
@@ -209,10 +268,16 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             status={trial.status}
             stats={stats.data}
             onRetry={trial.refetch}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'journal' && (
-          <JournalView key="journal" activeTab={activeTab} onSelectTab={selectTab} />
+          <JournalView
+            key="journal"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            onFacts={setFacts}
+          />
         )}
         {activeTab === 'reconciliation' && (
           <ReconciliationView
@@ -220,6 +285,7 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             activeTab={activeTab}
             onSelectTab={selectTab}
             stats={stats.data}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'refused' && (
@@ -230,10 +296,17 @@ export function LedgerControlsScreen({ row }: { row: SubTabRoute }) {
             refused={refused.data ?? []}
             status={refused.status}
             onRetry={refused.refetch}
+            onFacts={setFacts}
           />
         )}
         {activeTab === 'gateways' && (
-          <GatewaysView key="gateways" activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
+          <GatewaysView
+            key="gateways"
+            activeTab={activeTab}
+            onSelectTab={selectTab}
+            gate={gate}
+            onFacts={setFacts}
+          />
         )}
         {activeTab === 'vat' && <VatView key="vat" />}
       </div>
@@ -245,6 +318,9 @@ interface ViewProps {
   /** Still passed: `DataTable` keys its per-view column state on it (§7.6). */
   activeTab: string
   onSelectTab: (id: string) => void
+  /* **§10.4** — the view's figures belong on the screen's view row, and only
+     the view's own reads know them. Published, not rendered here. */
+  onFacts: (facts: ViewFacts | null) => void
 }
 
 /* ─────────────────────────── the trial balance ─────────────────────────── */
@@ -256,6 +332,7 @@ function TrialBalanceView({
   status,
   stats,
   onRetry,
+  onFacts,
 }: ViewProps & {
   trial: TrialBalance | null
   status: 'loading' | 'error' | 'empty' | 'content'
@@ -316,9 +393,32 @@ function TrialBalanceView({
     [t],
   )
 
+  /* **V-20 / §10.4** — the balanced books on the view row. `Balanced` is a
+     WORD on the caption line and wears no colour: **AC-416** keeps out of
+     balance in the page's critical banner. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      trial === null
+        ? null
+        : {
+            figures: [
+              { label: t('fin.controls.trial.debits'), amountHalalas: trial.totalDebitsHalalas },
+              { label: t('fin.controls.trial.credits'), amountHalalas: trial.totalCreditsHalalas },
+            ],
+            caption: [
+              t(trial.balanced ? 'fin.controls.trial.balanced' : 'fin.controls.trial.unbalanced'),
+              t('fin.controls.trial.caption', {
+                entries: formatCount(trial.entryCount, language),
+                suppressed: formatCount(stats?.suppressed ?? 0, language),
+              }),
+            ],
+          },
+    [trial, stats, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      {trial && <TrialBalanceHeader trial={trial} stats={stats} t={t} language={language} />}
       <DataTable
         table={table}
         rows={rows}
@@ -353,61 +453,9 @@ function TrialBalanceView({
   )
 }
 
-/**
- * **V-20** — the balanced books in `LedgerCard`'s header shape, promoted out of
- * the table footer. `Balanced` is a WORD and wears no colour: **AC-416** keeps
- * out of balance in the page's critical banner.
- */
-function TrialBalanceHeader({
-  trial,
-  stats,
-  t,
-  language,
-}: {
-  trial: TrialBalance
-  stats: IdempotencyStats | null
-  t: Translate
-  language: Language
-}) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3 pb-1">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="truncate text-sm font-semibold text-foreground">
-          {t('fin.controls.trial.heading')}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {t(trial.balanced ? 'fin.controls.trial.balanced' : 'fin.controls.trial.unbalanced')}
-        </p>
-      </div>
-
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex items-end gap-6">
-          <span className="flex flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{t('fin.controls.trial.debits')}</span>
-            <Money amount={trial.totalDebitsHalalas} className="text-lg font-semibold" />
-          </span>
-          <span className="flex flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{t('fin.controls.trial.credits')}</span>
-            <Money amount={trial.totalCreditsHalalas} className="text-lg font-semibold" />
-          </span>
-        </div>
-        {/* **V-3** in the console's own face: `MetricTile` records the owner's
-            ruling against the reference's monospace, and `globals.css` refuses
-            `--ev-text-3` as a text colour — so size, case, tracking, muted ink. */}
-        <span className="text-2xs font-medium uppercase tracking-wider tabular-nums text-muted-foreground">
-          {t('fin.controls.trial.caption', {
-            entries: formatCount(trial.entryCount, language),
-            suppressed: formatCount(stats?.suppressed ?? 0, language),
-          })}
-        </span>
-      </div>
-    </div>
-  )
-}
-
 /* ────────────────────────────── the journal ────────────────────────────── */
 
-function JournalView({ activeTab, onSelectTab }: ViewProps) {
+function JournalView({ activeTab, onSelectTab, onFacts }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<JournalEntry>({ mode: 'queue', getRowId: (entry) => entry.id })
@@ -452,29 +500,30 @@ function JournalView({ activeTab, onSelectTab }: ViewProps) {
         header: t('fin.journal.col.type'),
         dataType: 'text',
         width: 168,
-        cell: (entry) => <span className="truncate">{entry.type}</span>,
+        csv: (entry) => entry.type,
+        /* **R2-5** — the keyed label is the cell; the raw recipe id is the
+           secondary line, where an integrator can still read it. */
+        cell: (entry) => {
+          const label = recipeLabel(t, entry.type)
+          return <span className="truncate">{label ?? entry.type}</span>
+        },
+        secondaryLine: (entry) =>
+          recipeLabel(t, entry.type) === null ? null : (
+            <span className="truncate">
+              <bdi>{entry.type}</bdi>
+            </span>
+          ),
       },
       {
         id: 'lines',
         header: t('fin.journal.col.lines'),
         dataType: 'text',
         minWidth: 300,
-        /* **AC-418** — every line reads `Dr <account> <amount>` or
-           `Cr <account> <amount>`, and each entry's debit total equals its
-           credit total by construction: an unbalanced entry is refused at write
-           time and appears in the refused view instead (**AC-343**). */
-        cell: (entry) => (
-          <span className="flex flex-col gap-0.5">
-            {entry.lines.map((line, index) => (
-              <span key={`${entry.id}-${index}`} className="tabular-nums">
-                {t(
-                  line.direction === 'debit' ? 'fin.journal.line.debit' : 'fin.journal.line.credit',
-                  { account: line.account, amount: formatMoney(line.amountHalalas) },
-                )}
-              </span>
-            ))}
-          </span>
-        ),
+        /* **AC-418** — every line reads `Dr <account> · <amount>`, and each
+           entry's debit total equals its credit total by construction: an
+           unbalanced entry is refused at write time and appears in the refused
+           view instead (**AC-343**). */
+        cell: (entry) => <AccountLines lines={entry.lines} prefix={entry.id} t={t} />,
       },
       {
         id: 'total',
@@ -490,8 +539,28 @@ function JournalView({ activeTab, onSelectTab }: ViewProps) {
     [t, language],
   )
 
+  /* **§10.4** — the entry count is the one figure this read returns; it
+     carries no window total, so the row states none. The note is the caption. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      !journal.data
+        ? null
+        : {
+            figures: [
+              {
+                label: t('fin.controls.journal.entries'),
+                value: formatCount(journal.data.total, language),
+              },
+            ],
+            caption: [t('fin.controls.journal.note')],
+          },
+    [journal.data, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
-    <DataTable
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <DataTable
       table={table}
       rows={rows}
       columns={columns}
@@ -513,13 +582,21 @@ function JournalView({ activeTab, onSelectTab }: ViewProps) {
       }}
       noMatch={{ message: t('fin.empty.noMatch') }}
       error={{ message: t('fin.error.read'), onRetry: journal.refetch }}
-    />
+      />
+    </div>
   )
 }
 
 /* ───────────────────────────  reconciliation  ──────────────────────────── */
 
-function ReconciliationView({ activeTab, onSelectTab, stats }: ViewProps & { stats: IdempotencyStats | null }) {
+function ReconciliationView({
+  activeTab,
+  onSelectTab,
+  stats,
+  onFacts,
+}: ViewProps & { stats: IdempotencyStats | null }) {
+  /* This view is a set of named checks, not a table of figures. */
+  usePublishFacts(onFacts, null)
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<ReconciliationRow>({
@@ -628,6 +705,7 @@ function RefusedView({
   refused,
   status,
   onRetry,
+  onFacts,
 }: ViewProps & {
   /* Read by the screen, because the page banner needs the same count — see
      `LedgerControlsScreen`. This view renders what it is given (**AC-419**). */
@@ -640,6 +718,23 @@ function RefusedView({
   const table = useIndexTable<RefusedPosting>({ mode: 'queue', getRowId: (each) => each.reference })
 
   const rows = refused
+
+  /* The DEBIT side, and the word in the label says so: an unbalanced refusal
+     has two different totals, so summing "the amount" would state a figure
+     neither side of the attempt carries. */
+  const attemptedDebits = useMemo(
+    () =>
+      rows.reduce(
+        (total, each) =>
+          total +
+          each.lines.reduce(
+            (sum, line) => (line.direction === 'debit' ? sum + line.amountHalalas : sum),
+            0,
+          ),
+        0,
+      ),
+    [rows],
+  )
 
   const columns = useMemo<DataColumn<RefusedPosting>[]>(
     () => [
@@ -655,7 +750,8 @@ function RefusedView({
             <bdi>{each.reference}</bdi>
           </span>
         ),
-        secondaryLine: (each) => each.type,
+        /* **R2-5** — the recipe in words, with the raw id left to the journal. */
+        secondaryLine: (each) => recipeLabel(t, each.type) ?? each.type,
       },
       {
         id: 'reason',
@@ -684,25 +780,31 @@ function RefusedView({
         header: t('fin.refused.col.lines'),
         dataType: 'text',
         width: 260,
-        cell: (each) => (
-          <span className="flex flex-col gap-0.5">
-            {each.lines.map((line, index) => (
-              <span key={`${each.reference}-${index}`} className="tabular-nums">
-                {t(
-                  line.direction === 'debit' ? 'fin.journal.line.debit' : 'fin.journal.line.credit',
-                  { account: line.account, amount: formatMoney(line.amountHalalas) },
-                )}
-              </span>
-            ))}
-          </span>
-        ),
+        cell: (each) => <AccountLines lines={each.lines} prefix={each.reference} t={t} />,
       },
     ],
     [t, language],
   )
 
+  /* **§10.4** — both figures are of the rows on screen: the read returns the
+     refusals themselves and no total of its own. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      status === 'loading'
+        ? null
+        : {
+            figures: [
+              { label: t('fin.controls.refused.count'), value: formatCount(rows.length, language) },
+              { label: t('fin.controls.refused.debits'), amountHalalas: attemptedDebits },
+            ],
+          },
+    [status, rows.length, attemptedDebits, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
-    <DataTable
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <DataTable
       table={table}
       rows={rows}
       columns={columns}
@@ -732,7 +834,8 @@ function RefusedView({
       }}
       noMatch={{ message: t('fin.empty.noMatch') }}
       error={{ message: t('fin.error.read'), onRetry }}
-    />
+      />
+    </div>
   )
 }
 
@@ -742,6 +845,7 @@ function GatewaysView({
   activeTab,
   onSelectTab,
   gate,
+  onFacts,
 }: ViewProps & { gate: { canWrite: boolean; reason: string } }) {
   const shell = useShell()
   const { t, language } = shell.language
@@ -759,6 +863,17 @@ function GatewaysView({
    */
   const gateways = useAsync<PaymentGateway[]>((signal) => listGateways(signal), { deps: [] })
   const rows = useMemo(() => actions.apply(gateways.data ?? []), [actions, gateways.data])
+
+  /* **R2-1 / AC-423** — both figures are the rows on screen summed: the list
+     read returns no totals, and a volume typed here would be the very thing
+     D-F16 records. */
+  const totals = useMemo(
+    () => ({
+      enabled: rows.filter((gateway) => gateway.enabled).length,
+      volumeHalalas: rows.reduce((sum, gateway) => sum + gateway.volumeHalalas, 0),
+    }),
+    [rows],
+  )
 
   /**
    * **AC-422** — the switch **never flips optimistically**. The rendered value
@@ -866,6 +981,28 @@ function GatewaysView({
     [t, language, gate, toggle, makeDefault],
   )
 
+  /* **§10.4** — the two figures on the view row. `of {total}` is the unit run
+     beside the enabled count, not a second figure. */
+  const facts = useMemo<ViewFacts | null>(
+    () =>
+      !gateways.data
+        ? null
+        : {
+            figures: [
+              {
+                label: t('fin.controls.gateways.enabled'),
+                value: formatCount(totals.enabled, language),
+                unit: t('fin.controls.gateways.ofTotal', {
+                  total: formatCount(rows.length, language),
+                }),
+              },
+              { label: t('fin.controls.gateways.volume'), amountHalalas: totals.volumeHalalas },
+            ],
+          },
+    [gateways.data, totals, rows.length, t, language],
+  )
+  usePublishFacts(onFacts, facts)
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {refusal && (
@@ -929,6 +1066,10 @@ function VatView() {
         />
       )}
 
+      {/* **R2-6** — the two key-value cards sit two-up, each half the width, so
+          a `FigureRow` runs to its card's edge instead of stranding its value at
+          60% of a full-width row. Same reading as V-6 on Overview. */}
+      <div className="grid grid-cols-2 gap-3 compact:grid-cols-1">
       {vat.data && (
         <Card className="gap-2">
           <div className="flex flex-col px-(--card-spacing)">
@@ -972,6 +1113,7 @@ function VatView() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   )
 }
@@ -983,7 +1125,11 @@ function VatView() {
  * slot for a divider; so the DataTables below declare no tabs, and the card
  * views lose the second, differently shaped strip they used to carry.
  */
-function LedgerViewTabs({ tabs, activeTab, onSelectTab }: ViewProps & {
+function LedgerViewTabs({
+  tabs,
+  activeTab,
+  onSelectTab,
+}: Pick<ViewProps, 'activeTab' | 'onSelectTab'> & {
   tabs: readonly { id: string; label: string }[]
 }) {
   return (

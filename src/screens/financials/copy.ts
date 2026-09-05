@@ -277,6 +277,9 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.refund.destination.instrument': 'Payment instrument',
   'fin.refund.destination.wallet': 'Rider wallet',
   'fin.refund.unsourced': 'No traceable payment',
+  /* The view header's three figures, computed from the rows on screen. */
+  'fin.refund.header.count': 'Refunds',
+  'fin.refund.header.total': 'Refunded',
   'fin.refund.search': 'Search refunds',
   'fin.refund.empty.heading': 'No refunds in this period',
   'fin.refund.empty.body': 'A refund appears here the moment one is issued, with its credit note.',
@@ -290,6 +293,8 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.creditNote.col.invoice': 'Against invoice',
   'fin.creditNote.col.issued': 'Issued',
   'fin.creditNote.unlinked': 'No matched invoice',
+  'fin.creditNote.header.count': 'Notes',
+  'fin.creditNote.header.vat': 'VAT',
   'fin.creditNote.search': 'Search credit notes',
   'fin.creditNote.empty.heading': 'No credit notes yet',
   'fin.creditNote.empty.body': 'Every refund mints one. They appear here as they are issued.',
@@ -350,12 +355,16 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.escrow.col.captain': 'Captain',
   'fin.escrow.col.rider': 'Rider',
   'fin.escrow.col.amount': 'Amount (SAR)',
-  'fin.escrow.col.progress': 'Progress',
+  /* Named for what it counts: `Progress` wrapped mid-word in the width the
+     refusal's column left it, and the cell already reads `4/5 trips`. */
+  'fin.escrow.col.progress': 'Trips',
   'fin.escrow.col.state': 'State',
-  'fin.escrow.progress': '{completed}/{required} trips delivered',
+  'fin.escrow.progress': '{completed}/{required} trips',
   'fin.escrow.action.release': 'Release',
   'fin.escrow.blocked.trips': 'Release when every plan trip is delivered.',
-  'fin.escrow.blocked.state': 'This hold is already {state}.',
+  /* The refusal's own sentence, state-free: the two below name the state and
+     are what the row renders, so no sentence borrows a badge's casing. */
+  'fin.escrow.blocked.state': 'This hold has already been settled.',
   'fin.escrow.cancelled': 'Subscription cancelled mid-plan',
   'fin.escrow.search': 'Search holds',
   'fin.escrow.empty.heading': 'Nothing is held in escrow',
@@ -376,11 +385,12 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.status.pending': 'Pending',
   'fin.deduction.status.applied': 'Applied',
   'fin.deduction.status.waived': 'Waived',
-  'fin.deduction.waivedBy': 'Waived by {actor} · {reason}',
+  /* The badge beside it already says `Waived`; the line names who and why. */
+  'fin.deduction.waivedBy': '{actor} · {reason}',
   'fin.deduction.search': 'Search deductions',
   'fin.deduction.action.apply': 'Apply',
   'fin.deduction.action.waive': 'Waive',
-  'fin.deduction.blocked.decided': 'This deduction is already {state}.',
+  'fin.deduction.blocked.decided': 'This deduction has already been decided.',
   'fin.deduction.empty.heading': 'No deductions raised',
   'fin.deduction.empty.body': 'A late pickup or a cleanliness report raises one against the captain.',
   'fin.deduction.empty.action': 'Read the payable ledger',
@@ -552,8 +562,8 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.cash.class.over_report': 'Over-reported',
   'fin.cash.class.under_report': 'Under-reported',
   'fin.cash.class.no_report': 'Never reported',
-  'fin.cash.riderConfirmed': 'Rider confirmed',
-  'fin.cash.riderUnconfirmed': 'Rider has not confirmed',
+  'fin.cash.riderConfirmed': 'Confirmed',
+  'fin.cash.riderUnconfirmed': 'Unconfirmed',
   'fin.cash.repeat': '{count} earlier under-reports',
   'fin.cash.search': 'Search cash reports',
   /* **AC-374** — a closed set of exactly two dispositions. */
@@ -934,10 +944,10 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.journal.col.id': 'Entry',
   'fin.journal.col.posted': 'Posted',
   'fin.journal.col.type': 'Recipe',
-  'fin.journal.col.lines': 'Lines',
+  'fin.journal.col.lines': 'Lines (SAR)',
   'fin.journal.col.total': 'Total (SAR)',
-  'fin.journal.line.debit': 'Dr {account} {amount}',
-  'fin.journal.line.credit': 'Cr {account} {amount}',
+  'fin.journal.line.debit': 'Dr {account} · {amount}',
+  'fin.journal.line.credit': 'Cr {account} · {amount}',
   'fin.journal.search': 'Search journal entries',
   'fin.journal.empty.heading': 'No journal entries',
   'fin.journal.empty.body': 'Every balanced entry the ledger accepts is listed here, newest first.',
@@ -965,7 +975,7 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.refused.col.type': 'Recipe',
   'fin.refused.col.reason': 'Reason',
   'fin.refused.col.attempted': 'Attempted',
-  'fin.refused.col.lines': 'Lines',
+  'fin.refused.col.lines': 'Lines (SAR)',
   'fin.refused.search': 'Search refused postings',
   'fin.refused.empty.heading': 'Nothing has been refused',
   'fin.refused.empty.body': 'A posting the ledger will not write is kept here with its reason.',
@@ -1052,21 +1062,14 @@ export const FINANCIALS_EN: Dictionary = {
     'Every refused posting is kept and can be read. None of them is in these totals.',
 
   /* §5.3 — the wallets view header, in `LedgerCard`'s Balance shape. */
-  'fin.wallets.header.label': 'Rider wallet balances',
-  'fin.wallets.header.caption': '{wallets} wallets · {negative} below zero',
   /* AC-384 — the ceiling is on the page before the dialog opens. */
-  'fin.wallets.authority.label': 'Your goodwill authority',
-  'fin.wallets.authority.daily': 'Daily {used} of {cap}',
-  'fin.wallets.authority.caps': 'Per case {perCase} · {countCap} per rider in 30 days',
 
   /* §5.4 — the plan's money page is Revenue, not this catalogue. The period
      is on the page meta and on the control above the table, so the header
      carries the unit and nothing else (§8.3.1). */
   'fin.pricing.plan.col.gross': 'Gross (SAR)',
-  'fin.pricing.plan.action.revenue': 'Open revenue',
 
   /* §5.5 / V-20 — the balanced books stated as a heading, never as a colour. */
-  'fin.controls.trial.heading': 'Trial balance',
   'fin.controls.trial.balanced': 'Balanced',
   'fin.controls.trial.unbalanced': 'Out of balance',
   'fin.controls.trial.debits': 'Total debits',
@@ -1074,14 +1077,10 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.controls.trial.caption': '{entries} entries · {suppressed} duplicates suppressed',
   /* ── FINANCIALS-UX-PLAN §5 Payouts & Cash ── */
 
-  'fin.payout.figures.heading': 'This payout run',
   'fin.payout.figure.net': 'Net payable this run',
-  'fin.escrow.cancelledTotal': 'One hold is on a cancelled subscription',
-  'fin.escrow.cancelledTotalMany': '{count} holds are on cancelled subscriptions',
   'fin.cash.status.pending': 'Awaiting decision',
   'fin.cash.status.resolved': 'Resolved',
   'fin.cash.status.escalated': 'Escalated',
-  'fin.debt.figures.heading': 'Captain debt',
   'fin.debt.figure.outstanding': 'Outstanding captain debt',
   'fin.debt.figure.cap': 'Cap',
   'fin.debt.figure.captains': 'Across {count} captains',
@@ -1183,4 +1182,84 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.overview.firstRun.body':
     'Nothing has been posted yet. The first captured fare opens the ledger and every figure here follows from it.',
   'fin.overview.firstRun.action': 'Open the ledger',
+
+  /* ── FINANCIALS-UX-PLAN §10 Wallets & Ledger ── */
+
+  /* **R2-1** — the figures the Journal, Refused and Gateways view headers
+     state. Every one is returned by the read or summed from the rows on screen. */
+  'fin.controls.journal.note': 'Newest first.',
+  'fin.controls.journal.entries': 'Entries',
+  'fin.controls.refused.count': 'Refused',
+  'fin.controls.refused.debits': 'Debits attempted',
+  'fin.controls.gateways.enabled': 'Enabled',
+  'fin.controls.gateways.ofTotal': 'of {total}',
+  'fin.controls.gateways.volume': 'Volume',
+
+  /* **R2-5** — the recipe that produced a journal entry, in words. The raw id
+     stays on the row's secondary line; no cell reads `gateway_fee` as its
+     primary text. */
+  'fin.recipe.adjustment': 'Adjustment',
+  'fin.recipe.campaignSpend': 'Campaign spend',
+  'fin.recipe.captainIncentive': 'Captain incentive',
+  'fin.recipe.cashRepayment': 'Cash repayment',
+  'fin.recipe.cashReportDebt': 'Cash report debt',
+  'fin.recipe.cashSurplus': 'Cash surplus',
+  'fin.recipe.cashTopup': 'Cash top-up',
+  'fin.recipe.chargeback': 'Chargeback',
+  'fin.recipe.chargebackWallet': 'Wallet chargeback',
+  'fin.recipe.deduction': 'Deduction',
+  'fin.recipe.disputeSettlement': 'Dispute settlement',
+  'fin.recipe.driverAccrual': 'Captain earnings accrued',
+  'fin.recipe.emergencyCover': 'Emergency cover',
+  'fin.recipe.emergencyRecovery': 'Emergency cover recovered',
+  'fin.recipe.escrowHold': 'Escrow held',
+  'fin.recipe.escrowRelease': 'Escrow released',
+  'fin.recipe.fareCapture': 'Fare captured',
+  'fin.recipe.fareCaptureBatch': 'Fares captured in a batch',
+  'fin.recipe.gatewayFee': 'Gateway fee',
+  'fin.recipe.invoiceRaised': 'Invoice raised',
+  'fin.recipe.invoiceVoided': 'Invoice voided',
+  'fin.recipe.openingBalance': 'Opening balance',
+  'fin.recipe.payout': 'Payout',
+  'fin.recipe.payoutReversal': 'Payout reversed',
+  'fin.recipe.promoCredit': 'Promotional credit',
+  'fin.recipe.referralReward': 'Referral reward',
+  'fin.recipe.refund': 'Refund',
+  'fin.recipe.reversal': 'Reversal',
+  'fin.recipe.walletAdjustment': 'Wallet adjustment',
+  'fin.recipe.walletCredit': 'Wallet credit',
+  'fin.recipe.walletDebit': 'Wallet debit',
+  'fin.recipe.walletTopup': 'Wallet top-up',
+  /* ── FINANCIALS-UX-PLAN §10 Payouts, Cash & Pricing ── */
+
+  /* R2-1 — V-21: the unit is the small line under the numeral, never at
+     `--text-kpi` beside it. Fixed in both languages: `formatMoney` prints the
+     code itself (AC-73), so a translated one here would disagree with it. */
+  /* R2-2 — the drill-in's meta: the parent view and the record it opened, one
+     key with two placeholders (AC-443). */
+  'fin.drill.meta': '{view} · {record}',
+  /* The way back names the view it returns to, because that is the view the
+     link actually restores — `?captain=` is dropped and `?view=` is kept. */
+  'fin.drill.back': 'Back to {view}',
+
+  'fin.escrow.figure.held': 'Held',
+  'fin.escrow.figure.ready': 'Ready to release',
+  'fin.escrow.figure.cancelled': 'On cancelled subscriptions',
+
+  'fin.deduction.figure.pending': 'Pending',
+  'fin.deduction.figure.count': 'Awaiting a decision',
+
+  'fin.cash.figure.open': 'Open reports',
+
+  /* ── FINANCIALS-UX-PLAN §10 lane D ── */
+  'fin.wallets.figure.wallets': 'Wallets',
+  'fin.wallets.figure.negative': 'Below zero',
+  'fin.wallets.figure.dailyUsed': 'Daily used',
+  'fin.wallets.authority.envelope':
+    'Daily cap {cap} · per case {perCase} · {countCap} per rider in 30 days',
+  'fin.escrow.blocked.released': 'This hold has already been released.',
+  'fin.escrow.blocked.reversed': 'This hold has already been reversed.',
+  'fin.deduction.blocked.applied': 'This deduction has already been applied.',
+  'fin.deduction.blocked.waived': 'This deduction has already been waived.',
+  /* ── end lane D ── */
 }

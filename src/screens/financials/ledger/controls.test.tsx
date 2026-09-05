@@ -31,6 +31,7 @@ import {
   resetDataLayer,
   useOutOfBalanceLedger,
 } from '@/data/clients'
+import { accountDefinition } from '@/data/types'
 import type { SubTabRoute } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
@@ -89,14 +90,17 @@ describe('AC-416 — debits equal credits, or the page says so in SAR', () => {
     await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(5))
 
     expect(screen.queryByText(/out of balance/i)).toBeNull()
-    /* **V-20** — the view header states the reading in words and both totals as
-       figures. It replaced the footer sentence, so the assertion follows it. */
-    expect(screen.getByRole('heading', { name: 'Trial balance' })).toBeTruthy()
+    /* **V-20 / §10.4** — the view row states the reading in words and both
+       totals as figures. The heading went: the selected pill names the view,
+       so `Balanced` is the assertion the criterion actually makes. */
     expect(screen.getByText('Balanced')).toBeTruthy()
     for (const label of ['Total debits', 'Total credits']) {
       expect(screen.getByText(label), `the header states ${label}`).toBeTruthy()
     }
-    expect(screen.getAllByText(`${money(trial.totalDebitsHalalas)} SAR`).length).toBeGreaterThan(0)
+    /* **R2-1** — the numeral is the figure and `SAR` is the small line under
+       it, so the two are separate text nodes. */
+    expect(screen.getAllByText(money(trial.totalDebitsHalalas)).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('SAR').length).toBeGreaterThan(0)
   })
 
   it('the unbalanced case renders one critical banner naming the difference in SAR', async () => {
@@ -144,7 +148,8 @@ describe('AC-418 — every journal line reads Dr/Cr, and every entry balances', 
       let credits = 0
       for (const line of entry.lines) {
         const prefix = line.direction === 'debit' ? 'Dr' : 'Cr'
-        const expected = `${prefix} ${line.account} ${money(line.amountHalalas)}`
+        /* **R2-5** — the account's DISPLAY NAME, and the key on hover only. */
+        const expected = `${prefix} ${accountDefinition(line.account).label} · ${money(line.amountHalalas)}`
         expect(row.textContent, `${entry.id} renders "${expected}"`).toContain(expected)
         if (line.direction === 'debit') debits += line.amountHalalas
         else credits += line.amountHalalas
@@ -411,5 +416,42 @@ describe('§5.5 / V-19 — six views in one row, in two groups', () => {
     expect(separators).toHaveLength(1)
     /* Between the fourth view and the fifth — the books, then configuration. */
     expect(Array.from(viewRow.children).indexOf(separators[0]!)).toBe(4)
+  })
+})
+
+/* ══════ FINANCIALS-UX-PLAN R2-5 — no raw identifier on the journal ══════ */
+
+const recipeKey = (type: string) =>
+  `fin.recipe.${type.replace(/_(.)/g, (_, letter: string) => letter.toUpperCase())}`
+
+describe('R2-5 — the journal reads in words, and the machine id is secondary', () => {
+  /**
+   * *"`Recipe` renders the keyed label with the id as the secondary line;
+   * `Lines` renders `Dr Cash at payment gateway · 32.20`, the account key on
+   * hover only."* Asserted over every cell of every row on the page, because
+   * the failure mode is one recipe rendering differently from the rest.
+   */
+  it('no cell states a snake_case recipe or a dotted account key as its own text', async () => {
+    mount('/financials/ledger?view=journal')
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(2))
+
+    const page = await listJournalEntries({ pageSize: 25 })
+    for (const entry of page.items) {
+      const row = rowFor(entry.id)
+      const cells = within(row).getAllByRole('cell')
+      /* The recipe cell states the label; the id is on the line beneath it. */
+      const label = EN[recipeKey(entry.type)] as string
+      const recipeCell = cells.find((cell) => cell.textContent?.startsWith(label))
+      expect(recipeCell, `${entry.type} reads as "${label}" first`).toBeTruthy()
+      expect(row.textContent, 'the raw recipe id is kept as the secondary line').toContain(
+        entry.type,
+      )
+      for (const line of entry.lines) {
+        const named = cells.find((cell) => cell.textContent?.includes(line.account))
+        expect(named, `${line.account} reaches no cell as text`).toBeUndefined()
+        /* …and it is still reachable, on the line's own title. */
+        expect(row.querySelector(`[title="${line.account}"]`)).toBeTruthy()
+      }
+    }
   })
 })

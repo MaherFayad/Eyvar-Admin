@@ -206,6 +206,11 @@ export function EmailLogCard({ view, t, language, canWrite, onTotals }: EmailLog
         header: t('comms.col.state'),
         width: 210,
         dataType: 'enum',
+        /* R2-3 — a refusal is a fact about the delivery's state, so it reads
+           here. Undeclared it falls to the recipient cell and stacks under the
+           address AND its second line; the rows `Resend` refuses are the ones
+           that did NOT fail, so this cell is a bare badge on every one of them. */
+        carriesRefusalReason: true,
         filter: {
           kind: 'select',
           field: 'state',

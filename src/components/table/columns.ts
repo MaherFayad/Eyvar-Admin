@@ -224,6 +224,13 @@ export interface DataColumn<T> {
    */
   emphasis?: ColumnEmphasis
   /**
+   * **R2-3** — this cell carries a refused action's reason as its secondary
+   * line, on the refused row only. Declare it on the state column; first
+   * declared wins. Undeclared or hidden, the reason falls to `primary`, so a
+   * refused row never holds a dead control with no sentence (AC-368).
+   */
+  carriesRefusalReason?: boolean
+  /**
    * **P3-12 — what this column contributes to a CSV export.**
    *
    * `cell` returns a `ReactNode` and a `ReactNode` is not a value: a badge, a
@@ -264,6 +271,22 @@ export function emphasisOf<T>(
 ): ColumnEmphasis {
   if (column.emphasis !== undefined) return column.emphasis
   return columns[0]?.id === column.id ? 'primary' : 'meta'
+}
+
+/**
+ * **R2-3** — which VISIBLE cell holds a refused action's reason. The declared
+ * carrier, else the primary column, else the first visible one; `declared` is
+ * the declaration order `emphasisOf` anchors to.
+ */
+export function refusalReasonColumnId<T>(
+  visible: ReadonlyArray<DataColumn<T>>,
+  declared: ReadonlyArray<DataColumn<T>>,
+): string | null {
+  const carrier =
+    visible.find((column) => column.carriesRefusalReason === true) ??
+    visible.find((column) => emphasisOf(column, declared) === 'primary') ??
+    visible[0]
+  return carrier?.id ?? null
 }
 
 /** §6.4 — a filter bound to no visible column. Same shape, no header. */

@@ -111,6 +111,12 @@ export interface PageHeaderProps {
    * the cap and the overflow rules can see it.
    */
   aside?: ReactNode
+  /**
+   * §8 slot 4c, for a page-level control that is no `PageAction`: `aside` is a
+   * READINGS slot and says so, and `secondaryActions` takes a label and one
+   * `onClick`. Rendered LAST before any primary, so §8's order holds.
+   */
+  control?: ReactNode
   /** Inline status badges. Rendered after the title on the same baseline. */
   badges?: ReactNode
   /** §8 slot 1. Derived from the route's shape by the caller, never a stack depth. */
@@ -135,6 +141,7 @@ export function PageHeader({
   meta,
   badges,
   aside,
+  control,
   onBack,
   secondaryActions = [],
   overflowActions = [],
@@ -243,6 +250,8 @@ export function PageHeader({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
+          {control}
 
           {/* R3 — the one primary. */}
           {primaryAction && (

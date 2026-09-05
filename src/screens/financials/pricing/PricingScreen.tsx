@@ -63,6 +63,7 @@ import { useAsync, useIndexTable, useNow } from '@/hooks'
 import { formatCount, formatDate, formatDuration, formatMoney, formatPercent } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
+import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { MoneyCell } from '@/components/Money'
@@ -72,8 +73,9 @@ import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { FigureRow } from '../shared/Figures'
-import { FinancialsPage, periodLabel, usePeriod, useWriteGate } from '../shared/FinancialsPage'
+import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
+import { ViewRow } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
 import { useMoneyActions } from '../shared/actions'
 import { useScreenViews, type ScreenView } from '@/hooks'
@@ -133,40 +135,59 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
   return (
     <FinancialsPage
       row={row}
-      meta={windowed ? periodLabel(period, t, language) : null}
+      /* **R2-1's constant strip.** A meta line on one of four views moved the
+         view row between them. The period is not lost: `PeriodControl` on the
+         title row prints the range it changes, so the line under the title was
+         the same sentence a second time (V4). */
+      meta={null}
+      /* §8 slot 4c - the period rides the title row, on the one view whose
+         read honours it (Q-F13 / TL-2). */
+      periodControl={
+        windowed ? (
+          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
+        ) : undefined
+      }
+      /* **ONE view row, in one place, on all four views** (D12) — it was the
+         `DataTable` toolbar's stadium on three views and a row of hand-rolled
+         pills above the cards on `Rate card`, so the strip changed shape and
+         moved on every click. */
+      viewRow={
+        <ViewRow
+          label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+        />
+      }
       banners={banners}
       t={t}
       dir={dir}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        {windowed && (
-          <PeriodControl period={period} onChange={setPeriod} t={t} language={language} />
-        )}
         {activeTab === 'subscription-plans' && (
           <PlansView
             key="plans"
-            tabs={tabs}
             activeTab={activeTab}
             onSelectTab={selectTab}
             period={period}
           />
         )}
         {activeTab === 'quick-rides' && (
-          <QuickRidesView key="quick" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <QuickRidesView key="quick" activeTab={activeTab} onSelectTab={selectTab} />
         )}
-        {activeTab === 'rate-card' && (
-          <RateCardView key="rate" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} gate={gate} />
-        )}
+        {activeTab === 'rate-card' && <RateCardView key="rate" gate={gate} />}
         {activeTab === 'cancellation-fees' && (
-          <CancellationView key="cancel" tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
+          <CancellationView key="cancel" activeTab={activeTab} onSelectTab={selectTab} />
         )}
       </div>
     </FinancialsPage>
   )
 }
 
+/**
+ * What a sub-view still needs: the id it is (the CSV's `view` column) and a way
+ * to send an operator to a sibling view from an empty state. **Not `tabs`** —
+ * the view row is the screen's, rendered once above (D12).
+ */
 interface ViewProps {
-  tabs: readonly { id: string; label: string }[]
   activeTab: string
   onSelectTab: (id: string) => void
 }
@@ -174,7 +195,6 @@ interface ViewProps {
 /* ─────────────────────────── subscription plans ────────────────────────── */
 
 function PlansView({
-  tabs,
   activeTab,
   onSelectTab,
   period,
@@ -296,18 +316,20 @@ function PlansView({
     [t, language, grossByPlan],
   )
 
+  /**
+   * **R2-4** — one inline action, and opening the plan is the ROW. Pricing is
+   * the catalogue; a plan's money page is the Revenue master-detail, so a plain
+   * click on the row — and `Enter` on the focused row, through the same door —
+   * opens it there, and the lane holds the one act that changes the catalogue.
+   */
+  const openRevenue = useCallback(
+    (plan: SubscriptionPlan) =>
+      navigate(`/financials/revenue?view=by-plan&plan=${encodeURIComponent(plan.id)}`),
+    [navigate],
+  )
+
   const rowActions = useMemo<RowAction<SubscriptionPlan>[]>(
     () => [
-      {
-        /* **§5.4 / P0-2 — the declared row-click target.** Pricing is the
-           catalogue; a plan's MONEY page is the Revenue master-detail, so a
-           plain click on the row opens it there. Neither destination mutates
-           anything. */
-        label: t('fin.pricing.plan.action.revenue'),
-        onSelect: (plan) =>
-          navigate(`/financials/revenue?view=by-plan&plan=${encodeURIComponent(plan.id)}`),
-        rowClick: true,
-      },
       {
         label: t('fin.pricing.plan.action.edit'),
         /* **AC-390** — the editor is a route outside the layout, so entering it
@@ -330,11 +352,9 @@ function PlansView({
       language={language}
       tableId="financials-plans"
       view={activeTab}
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.pricing.plan.search')}
       skeletonPattern="P1"
+      onRowClick={openRevenue}
       rowActions={rowActions}
       firstRun={{
         heading: t('fin.pricing.plan.empty.heading'),
@@ -349,7 +369,7 @@ function PlansView({
 
 /* ───────────────────────────── quick rides ─────────────────────────────── */
 
-function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<QuickRideType>({ mode: 'queue', getRowId: (type) => type.id })
@@ -429,9 +449,6 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
       language={language}
       tableId="financials-quick-rides"
       view={activeTab}
-      tabs={tabs}
-      activeTab={activeTab}
-      onSelectTab={onSelectTab}
       searchPlaceholder={t('fin.pricing.quick.search')}
       skeletonPattern="P1"
       firstRun={{
@@ -447,12 +464,7 @@ function QuickRidesView({ tabs, activeTab, onSelectTab }: ViewProps) {
 
 /* ────────────────────────────── the rate card ──────────────────────────── */
 
-function RateCardView({
-  tabs,
-  activeTab,
-  onSelectTab,
-  gate,
-}: ViewProps & { gate: { canWrite: boolean; reason: string } }) {
+function RateCardView({ gate }: { gate: { canWrite: boolean; reason: string } }) {
   const shell = useShell()
   const { t, language } = shell.language
   const currentUserId = shell.session?.userId ?? ''
@@ -481,8 +493,6 @@ function RateCardView({
 
   return (
     <div className="flex flex-col gap-3">
-      <ViewTabs tabs={tabs} activeTab={activeTab} onSelectTab={onSelectTab} />
-
       {live.status === 'loading' && <LoadingSkeleton pattern="P4" />}
       {live.status === 'error' && (
         <ErrorState
@@ -828,7 +838,7 @@ function SurgeCard({ gate }: { gate: { canWrite: boolean; reason: string } }) {
 
 /* ───────────────────────── cancellation fees ───────────────────────────── */
 
-function CancellationView({ tabs, activeTab, onSelectTab }: ViewProps) {
+function CancellationView({ activeTab, onSelectTab }: ViewProps) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable<CancellationRule>({ mode: 'queue', getRowId: (rule) => rule.id })
@@ -930,9 +940,6 @@ function CancellationView({ tabs, activeTab, onSelectTab }: ViewProps) {
         language={language}
         tableId="financials-cancellation"
         view={activeTab}
-        tabs={tabs}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
         searchPlaceholder={t('fin.pricing.cancel.search')}
         skeletonPattern="P1"
         firstRun={{
@@ -949,27 +956,3 @@ function CancellationView({ tabs, activeTab, onSelectTab }: ViewProps) {
   )
 }
 
-/* ───────────────────────────── the view row ────────────────────────────── */
-
-/** A view with cards instead of a table still needs the same control, in the same place. */
-function ViewTabs({ tabs, activeTab, onSelectTab }: ViewProps) {
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          aria-pressed={tab.id === activeTab}
-          onClick={() => onSelectTab(tab.id)}
-          className={
-            tab.id === activeTab
-              ? 'rounded-lg bg-accent px-2.5 py-1.5 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              : 'rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          }
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  )
-}

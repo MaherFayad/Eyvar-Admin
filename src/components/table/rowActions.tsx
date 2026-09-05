@@ -1,55 +1,17 @@
 /**
- * The row action, its two shapes, and the half of §11.2 that had nowhere to
- * live — **AC-368**.
+ * The row action, its two shapes, and §11.2's second clause — **AC-368**. An
+ * action the operator may not take is never hidden: it is disabled in place,
+ * gated at render, **with its reason**, and `RowAction.reason` is that field.
  *
- * §11.2 is one sentence with two clauses: an action the operator may not take
- * is *"never hidden, disabled in place **with its reason**"*. `DataTable` has
- * always kept the first clause — `RowAction.disabled` is a predicate evaluated
- * at RENDER, so the refusal is on screen before anyone clicks. The second
- * clause had no field to carry it, so `SingleRowAction` and the kebab item both
- * rendered a dead control that explained nothing, and three written, translated
- * refusal sentences sat unreachable in the Financials dictionary.
+ * The reason is a rendered element, never only a `title` (§5.7, §8.4.4, D17
+ * clause 3): a hover-only explanation is unreachable by keyboard and by touch.
+ * **R2-3** moved it out of the action lane — `DataTable` renders it in the row
+ * and passes its `reasonId` here, so a refused row no longer sets the pitch of
+ * every row beside it.
  *
- * `reason` is that field.
- *
- * ## Why the reason is a rendered line and not an attribute
- *
- * The obvious fix is `title`, and it is the wrong one twice over. `DESIGN.md`
- * §5.7 confines a tooltip to **naming** an icon-only control and forbids it from
- * carrying a constraint; §8.4.4 says the same thing about the blocked pin in
- * as many words — *"the reason MUST NOT be a tooltip"*, and specifies instead
- * that it renders *"on a second line inside the menu item"*. A hover-only
- * explanation is also unreachable by keyboard and unreachable on touch, which
- * is the accessibility ruling this project has already made elsewhere.
- *
- * So the reason is a real element with real text, and the control points
- * `aria-describedby` at it. Sighted operators read it; assistive technology
- * reads it as the control's description; nobody has to hover to find out why
- * the button is dead.
- *
- * ## The accessible name stays the label
- *
- * A description rendered *inside* a menu item would otherwise be folded into
- * that item's accessible name — `Pay Add a bank account before paying this
- * captain` — and every caller that finds an action by its label would stop
- * finding it. So an item carrying a reason declares `aria-label` with the bare
- * label, which wins over its contents, and hangs the sentence off
- * `aria-describedby`. Name and description stay separate, which is what the two
- * attributes are for.
- *
- * Rules applied
- *   §11.2 / AC-368
- *              gated at render, disabled in place, **and the reason with it**.
- *   §8.4.4     the reason renders on a second line inside the item. Never a
- *              tooltip, and never discovered by clicking.
- *   §5.7       a tooltip names; it does not explain a constraint.
- *   §7.2       the disabled control keeps whatever focus-ring declaration its
- *              primitive ships with; nothing here removes an outline, and no
- *              utility name is written into this comment.
- *   §7.3       the labelled shape keeps the lane's declared width — the button
- *              still truncates its label rather than widening the column. The
- *              reason line beneath it is the one thing in the lane allowed to
- *              wrap, because a truncated explanation explains nothing.
+ * The description never becomes the name: an item carrying a reason declares
+ * `aria-label` with the bare label, so a caller finding an action by its label
+ * keeps finding it.
  */
 
 import { useId } from 'react'
@@ -126,40 +88,25 @@ export function refusalFor<T>(action: RowAction<T>, row: T): string | null {
 }
 
 /**
- * The second line itself. Muted, small, and the only thing in the action lane
- * permitted to wrap (§7.3 rule 5 is about values, and this is a sentence).
- *
- * **BOUNDED, and the bound is R20.** Unbounded, this line was the largest row-
- * pitch defect in the product. Measured at 1280x800 on `/admin/communications`:
- * the lane is 88px, which is 64px of inside after the cell's inline padding, so
- * *"This message did not fail, so there is nothing to send again"* wrapped to
- * **96px of text** and the rows ran **141px** — with 205, 105 and 73 among
- * them, because a row's height then depended on whether that row happened to
- * be refused. §3.1's Rules block says row height *"MUST be uniform within a
- * table"*, and R20 makes the height the TABLE's; a sentence in a fixed-width
- * lane cannot satisfy either.
- *
- * The clamp bounds the paint and **not the text**: the full sentence is still
- * the node's only child, so the `aria-describedby` on the refused control still
- * resolves to the whole thing, and a screen reader still reads it whole. What a
- * sighted operator loses is the tail of a sentence that, on the screen where
- * this was measured, was **identical on all twenty-two rows** — the bulk bar
- * one file over already treats a reason repeated across a selection as one
- * fact, not N.
- *
- * **This is a bound, not the fix.** At 64px of wrap width two lines is a few
- * words, so the honest reading is that a sentence does not belong in a lane
- * this narrow at all. The two real fixes are a caller declaring a
- * `rowActionsWidth` wide enough to hold one, or the sentence moving off the row
- * the way the bulk bar moved it off the pill — both design decisions with an
- * owner, recorded here rather than taken in passing.
+ * **R2-3** — every distinct reason this row is refused, in declaration order.
+ * Deduplicated, because two actions refused by one cause (Deductions' `Apply`
+ * and `Waive`) are one fact and the row states it once.
  */
+export function rowRefusals<T>(actions: ReadonlyArray<RowAction<T>>, row: T): string[] {
+  const reasons: string[] = []
+  for (const action of actions) {
+    const reason = refusalFor(action, row)
+    if (reason !== null && !reasons.includes(reason)) reasons.push(reason)
+  }
+  return reasons
+}
+
 /**
- * A refusal, **rendered**. D17 clause 3, §8.4.4 and §5.7 all forbid putting one in a
- * `title=` tooltip: it is invisible until hover, unreachable by keyboard and by touch,
- * and unreadable by a screen reader as anything but a label. Exported because the
- * hand-rolled `title={canWrite ? undefined : t('…noPermission')}` shape had spread to
- * screens outside this file.
+ * A refusal, **rendered**. D17 clause 3, §8.4.4 and §5.7 forbid a `title=`
+ * being the only carrier: it is invisible until hover and unreachable by
+ * keyboard and by touch. Clamped at two lines (R20) — the clamp bounds the
+ * paint, not the text, so `aria-describedby` still resolves the whole sentence.
+ * Exported because the hand-rolled `title=` shape had spread to other screens.
  */
 export function RefusalLine({ id, children }: { id: string; children: string }) {
   return (
@@ -179,51 +126,30 @@ export function RefusalLine({ id, children }: { id: string; children: string }) 
 
 /**
  * §7.8 / **D8** — the one-action shape. A labelled control, visible at rest
- * (**AC-68**), disabled in place when the role may not use it (§11.2), and now
- * with the reason under it when there is one.
+ * (**AC-68**), disabled in place when the role may not use it (§11.2).
  *
  * The button fills its lane and clips an over-long label rather than growing
- * past the lane's declared width (§7.3) — otherwise the label pushes the column
- * wider and takes the table over budget in the one language nobody previewed.
- * The utilities are on the element below; they are deliberately not named in
- * prose here, because a hyphenated utility written in a comment is a valid
- * candidate and has shipped a real CSS rule out of a doc comment in this repo
- * more than once.
+ * past the lane's declared width (§7.3).
  */
 export function SingleRowAction<T>({
   action,
   row,
-  reserveRefusal = false,
+  reasonId,
 }: {
   action: RowAction<T>
   row: T
   /**
-   * **Hold the refusal line's space open even on a row that has no refusal.**
-   *
-   * The defect: a refusal renders as a block under the button, so a row WITH
-   * one is taller than a row without. Measured at 1440, in one table:
-   * `/support/disputes` shipped 54px and 77px rows, `/financials/payouts` the
-   * same, and `/admin/communications` shipped **three** heights — 73, 77 and
-   * 105. A table whose row pitch changes down the page cannot be scanned, and
-   * scanning is the only thing an index screen is for.
-   *
-   * **The obvious fix is forbidden and rightly so.** D17 clause 3, §8.4.4 and
-   * §5.7 all refuse to put a refusal in a hover tooltip: invisible until hover,
-   * unreachable by keyboard and by touch, and announced as a label rather than
-   * as a description. The reason must stay on the row.
-   *
-   * So the pitch is levelled UP instead of the reason being hidden. `DataTable`
-   * asks whether any row on the CURRENT PAGE carries a refusal; if one does,
-   * every row in that page reserves the same two lines and the pitch is
-   * uniform again. A page with nothing refused reserves nothing and is exactly
-   * as dense as it is today — which is most pages, and is why this is a
-   * per-page question rather than a per-table one.
+   * **R2-3** — the id of the reason already rendered IN THE ROW, which the
+   * control describes itself with instead of growing a second line of its own.
+   * Absent (the narrow card, where there is no row and no pitch to keep), the
+   * reason renders under the button as before.
    */
-  reserveRefusal?: boolean
+  reasonId?: string
 }) {
   const disabled = action.disabled?.(row) ?? false
   const reason = refusalFor(action, row)
-  const reasonId = useId()
+  const localId = useId()
+  const describedBy = reasonId ?? localId
 
   return (
     <span className="flex flex-col items-stretch gap-1">
@@ -234,21 +160,18 @@ export function SingleRowAction<T>({
         /* T6.2 — how `.` finds the row's actions when there is no menu. */
         data-row-actions="direct"
         disabled={disabled}
-        aria-describedby={reason === null ? undefined : reasonId}
+        aria-describedby={reason === null ? undefined : describedBy}
+        /* R2-3 — reinforcement beside the control now the sentence lives in
+           another cell. §5.7 forbids a tooltip being the ONLY carrier; the
+           rendered text and the description are still the carriers. */
+        title={reason ?? undefined}
         onClick={() => action.onSelect(row)}
       >
         {action.label}
       </Button>
-      {reason !== null ? (
-        <RefusalLine id={reasonId}>{reason}</RefusalLine>
-      ) : reserveRefusal ? (
-        /* Exactly the box `RefusalLine` occupies and nothing in it: `h-8` is
-           two lines of `--text-2xs` at its 16px line box, which is what
-           `line-clamp-2` bounds the real one to. `aria-hidden` because there is
-           no refusal to announce — a screen reader hears the button and stops,
-           the same as it does today on a row with nothing refused. */
-        <span aria-hidden="true" className="h-8" />
-      ) : null}
+      {reason !== null && reasonId === undefined && (
+        <RefusalLine id={localId}>{reason}</RefusalLine>
+      )}
     </span>
   )
 }

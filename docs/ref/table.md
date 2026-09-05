@@ -31,12 +31,42 @@ never achievable**: `--ev-row-h` is 40px and a row's height is set by its conten
 
 ### Row pitch, as measured
 
+Chromium at 1280 x 900, comfortable density; re-taken 2026-09-05 after R2-3.
+
 | Shape | Pitch |
 |---|---|
-| single line | **49px** |
+| single line | **41px** |
 | with a secondary line | **53px** |
 | media (People) | **60px** |
+| a REFUSED row (Payouts, Escrow, Deductions, Disputes) | **69px** |
 | support queue | **93px** — see below |
+
+**R2-3 closed the 77px block.** `reserveRefusal` used to hold two empty lines open on
+*every* row of a page where *any* row carried a refused action, so six tables shipped a flat
+77. The reason now renders in the refused row's own cell and only that row is tall: Payouts
+at 1280 x 900 fits **8 rows against 5**, the email log likewise at 69px. The email log is the
+proof that the carrier declaration earns its keep: undeclared it measured **81**, because the
+reason stacked under the recipient's address *and* its second line; declared on its state
+column it measures **69**. One row there is 105px — a bounced delivery whose state cell
+already carries a failure sentence and the provider's raw string, and whose resend is refused
+for a fourth reason. That is content, not reservation, and it is a copy decision for whoever
+owns the screen.
+
+### Where a refused action's reason renders — `carriesRefusalReason`
+
+`DataColumn.carriesRefusalReason?: boolean` names the cell whose secondary line holds the
+sentence a refused row's disabled control points `aria-describedby` at. Declare it on the
+`state` / `status` column: a refusal is a fact about the row's state, and the state cell is
+where an operator already looks for one.
+
+- At most one column per table; the first declared wins.
+- Undeclared — or declared on a column the operator has hidden — the reason falls to the
+  `primary` column, which every table has. A refused row is never left with a dead control
+  and no sentence (**AC-368**).
+- Only the labelled shape (one or two declared actions) uses it. The kebab keeps §8.4.4's
+  construction: the reason on a second line *inside* the menu item.
+- Below the table breakpoint there is no row, so `NarrowRowCards` renders the reason under
+  the button as before.
 
 **The open one.** §9.1 says a secondary line *"never truncates; the row grows to fit"*. That
 was written for a short second line — an id, a route. Under sentence-length content the
@@ -99,6 +129,11 @@ The table owns them; the screen forwards `status`. Do not add a second loading b
 a screen — every financials screen already forwards correctly, and a screen-level spinner is
 a double-render, not a fix. `emptyKind: 'first-run' | 'cleared' | 'no-match'` is a
 discriminated union and each arm carries its own required copy. See [states.md](states.md).
+
+**R2-8 — the 216px floor on the scroll container (`min-h-54`) holds a SKELETON open, not a
+rendered table.** It is inert above 216px, so the only thing it did to content was leave
+empty card under a short ledger. Measured on `/financials/rider-wallets?rider=RDR-1090` at
+1280 x 900: card 218 -> 176, scroller 216 -> 174, table 174 either way.
 
 **`no-match` is the third arm, and it exists because the branch used to infer it.** The empty
 state read `table.isFiltered || isLedger`, so **no ledger-mode table could ever render
