@@ -661,30 +661,49 @@ describe('the board toolbar governs something, or it is not there', () => {
 /* ═══ 7. the dashboards LIST ══════════════════════════════════════════════ */
 
 describe('§E6/§E7 — the content list says more than a name', () => {
-  it('leads every row with a preview of the board’s layout, and claims no data', async () => {
+  it('T9.14 — leads every row with the SAME dashboard glyph', async () => {
     const all = await boards()
+    /* Two boards with different tile counts, which is what the grid preview
+       encoded and what one glyph deliberately does not. */
+    expect(new Set(all.map((board) => board.tiles.length)).size).toBeGreaterThan(1)
 
-    const { container } = mountList()
-
+    mountList()
     await screen.findByText(all[0]?.name as string)
-    /* One preview per row. It draws the ARRANGEMENT — tile count and each
-       tile's width, both on the record — and never numbers: painting a
-       miniature of the charts means running every report on every row, and a
-       stale or sampled one is a picture of numbers that are not the numbers. */
-    const previews = Array.from(container.querySelectorAll('svg')).filter(
-      (svg) => svg.getAttribute('aria-hidden') === 'true' && svg.querySelector('rect'),
-    )
-    expect(previews.length).toBeGreaterThanOrEqual(all.length)
 
-    /* A board with no tiles gets the frame it will fill rather than a blank —
-       an empty outline reads as *a board, empty*; nothing at all reads as a
-       bug. */
-    const hasEmptyBoard = all.some((board) => board.tiles.length === 0)
-    expect(hasEmptyBoard).toBe(true)
-    expect(previews.some((svg) => svg.querySelector('rect[fill="none"]'))).toBe(true)
+    const glyphs = all.map((board) => {
+      const cell = screen.getByText(board.name).closest('td') as HTMLElement
+      const svg = cell.querySelector('svg[aria-hidden="true"]')
+      expect(svg, `no glyph on ${board.name}`).toBeTruthy()
+      return (svg as SVGElement).innerHTML
+    })
+    /* One shape for every row: nothing in the cell is drawn from the count the
+       `Reports` column already prints (X17). */
+    expect(new Set(glyphs).size).toBe(1)
   })
 
-  it('names each board’s range, including the open one, in words', async () => {
+  it('T5.10 — cuts a long description on a word boundary, and keeps it in the title', async () => {
+    const all = await boards()
+    const long = all.find(
+      (board) => board.description !== null && board.description.length > 44,
+    )
+    expect(long, 'a seeded board with a description past the cap').toBeTruthy()
+    const description = (long as Dashboard).description as string
+
+    mountList()
+    await screen.findByText((long as Dashboard).name)
+
+    const cell = screen.getByText((long as Dashboard).name).closest('td') as HTMLElement
+    const shown = within(cell).getByTitle(description)
+    /* Cut, not clipped: the visible run is a prefix of the sentence that ends
+       at a space, and the whole sentence is one hover away (`Nothing pinr`). */
+    const visible = shown.textContent as string
+    expect(visible.endsWith('…')).toBe(true)
+    const stem = visible.slice(0, -1)
+    expect(description.startsWith(stem)).toBe(true)
+    expect(description[stem.length]).toMatch(/[\s.,;:]/)
+  })
+
+  it('T9.14 — names each board’s range in two words, never a sentence', async () => {
     const all = await boards()
     const open = all.filter((board) => board.range === null)
     const scoped = all.find((board) => board.range?.kind === 'preset')
@@ -698,9 +717,11 @@ describe('§E6/§E7 — the content list says more than a name', () => {
     mountList()
 
     await screen.findByText((scoped as Dashboard).name)
-    /* R8 / copy rule 10 — an absence is stated in words, never left blank. */
-    expect(screen.getAllByText(copy('rb.dashboard.range.own')).length).toBe(open.length)
-    expect(screen.getByText(copy(`rb.preset.${preset}`))).toBeInTheDocument()
+    /* R8 / copy rule 10 — an absence is stated in words, never left blank; X18
+       says those words are two, and the sentence is the header's `InfoHint`. */
+    expect(screen.getAllByText(copy('rb.dashboards.range.perReport')).length).toBe(open.length)
+    expect(screen.queryByText(copy('rb.dashboard.range.own'))).toBeNull()
+    expect(screen.getByText(copy(`rb.toolbar.range.${preset}`))).toBeInTheDocument()
   })
 
   it('duplicates a board without duplicating the reports on it', async () => {

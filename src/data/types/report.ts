@@ -618,6 +618,12 @@ export interface SavedReport {
   createdAt: IsoDateTime
   updatedAt: IsoDateTime
   /**
+   * When the report was last RUN, which is not when it was last edited: the
+   * library's `Last run` column (T9.13). `null` on a report saved and never
+   * opened since, and blank in the cell rather than a guess (O9).
+   */
+  lastRunAt: IsoDateTime | null
+  /**
    * **Derived, read-only.** A reverse index, and the reason §11.3's delete
    * confirmation can name the dashboards it will affect (AC-868).
    */

@@ -2722,7 +2722,7 @@
       "path": "/api/v1/reports",
       "client": "src/data/clients/reports.ts",
       "function": "listReports",
-      "params": "q · view=mine|team · page · pageSize",
+      "params": "q · view=mine|team · filters[chartType|ownerId|lastRunAt] · page · pageSize",
       "body": null,
       "returns": "Paginated<SavedReport>",
       "statuses": []

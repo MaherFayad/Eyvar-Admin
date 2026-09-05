@@ -27,6 +27,7 @@ Screenshots land in `scripts/harness/shots/` (git-ignored).
 | `dispatch.mjs` | Live Dispatch at 1280 × 800: the feed and rail boxes, marks off-frame and marks under a panel before and after *Fit to fleet*, enum slugs in the feed, and the meta line 30 s apart. Takes a language: `node scripts/harness/dispatch.mjs ar` |
 | `zones.mjs` | Market & Zones at 1280 × 800 in both languages, both surfaces: whether the inspector floats and its two actions are in the viewport, visible zone rows, strip columns, legend size and ground, table column widths and em dashes. Takes a label; `HARNESS_BASE` overrides the port |
 | `corporate.mjs` | Corporate at 1280 in both languages: row pitch, lines per row, per-column clipping and header wrap, card heights and 12px paragraphs inside cards. Takes a label: `node scripts/harness/corporate.mjs before` |
+| `reports-chrome.mjs` | T9.13/T9.14/T9.15: per row height, wrapped and clipped cells, em dashes and overflow on the three Reports list views, both languages, at 1280. Port 4343 |
 
 Copy one of these for a new surface rather than writing from scratch. Keep the count here
 small; a harness nobody runs is scratch, and scratch is not committed.

@@ -267,6 +267,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -12 }),
     updatedAt: offsetFromNow({ days: -3 }),
+    lastRunAt: offsetFromNow({ hours: -3 }),
     pinnedToDashboardIds: ['DSH-1'],
   },
   {
@@ -278,6 +279,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -9 }),
     updatedAt: offsetFromNow({ days: -9 }),
+    lastRunAt: offsetFromNow({ days: -1 }),
     pinnedToDashboardIds: ['DSH-1'],
   },
   {
@@ -289,6 +291,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -20 }),
     updatedAt: offsetFromNow({ days: -1 }),
+    lastRunAt: offsetFromNow({ hours: -20 }),
     pinnedToDashboardIds: [],
   },
   {
@@ -300,6 +303,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'private',
     createdAt: offsetFromNow({ days: -30 }),
     updatedAt: offsetFromNow({ days: -30 }),
+    lastRunAt: null,
     /* Pinned to two dashboards, so §11.3's refused delete has two names to put
        in its confirmation (AC-868). */
     pinnedToDashboardIds: ['DSH-1', 'DSH-3'],
@@ -313,6 +317,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -4 }),
     updatedAt: offsetFromNow({ days: -4 }),
+    lastRunAt: offsetFromNow({ days: -4 }),
     pinnedToDashboardIds: [],
   },
   {
@@ -324,6 +329,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -8 }),
     updatedAt: offsetFromNow({ days: -8 }),
+    lastRunAt: offsetFromNow({ days: -2 }),
     /* Pinned to `DSH-3`, whose board range it cannot answer at — the reverse
        index is kept in step so §11.3's refused delete still names the board a
        delete would leave with a dangling tile. */
@@ -341,6 +347,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'private',
     createdAt: offsetFromNow({ days: -2 }),
     updatedAt: offsetFromNow({ days: -2 }),
+    lastRunAt: null,
     pinnedToDashboardIds: [],
   },
   {
@@ -352,6 +359,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'team',
     createdAt: offsetFromNow({ days: -6 }),
     updatedAt: offsetFromNow({ days: -6 }),
+    lastRunAt: offsetFromNow({ days: -6 }),
     pinnedToDashboardIds: [],
   },
   {
@@ -365,6 +373,7 @@ export const savedReportFixtures: SavedReport[] = [
     visibility: 'private',
     createdAt: offsetFromNow({ days: -5 }),
     updatedAt: offsetFromNow({ days: -5 }),
+    lastRunAt: offsetFromNow({ days: -5 }),
     pinnedToDashboardIds: [],
   },
 ]

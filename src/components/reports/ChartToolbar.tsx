@@ -71,16 +71,16 @@
 
 import { useId } from 'react'
 import {
-  BarChart3Icon,
-  FilterIcon,
-  GitBranchIcon,
+  BarChartIcon,
+  CloseIcon,
+  FunnelIcon,
+  JourneyIcon,
   LineChartIcon,
   PieChartIcon,
-  RefreshCwIcon,
-  RepeatIcon,
-  Table2Icon,
-  XIcon,
-} from 'lucide-react'
+  RefreshIcon,
+  RetentionIcon,
+  TableChartIcon,
+} from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -120,12 +120,12 @@ const COMPARISONS: ReportQuery['periodComparison'][] = ['none', 'previous-period
  */
 const VISUALISATIONS = [
   { id: 'line', mode: 'trend', chartType: 'line', icon: LineChartIcon },
-  { id: 'bar', mode: 'trend', chartType: 'bar', icon: BarChart3Icon },
+  { id: 'bar', mode: 'trend', chartType: 'bar', icon: BarChartIcon },
   { id: 'pie', mode: 'trend', chartType: 'pie', icon: PieChartIcon },
-  { id: 'table', mode: 'table', chartType: 'table', icon: Table2Icon },
-  { id: 'cohort', mode: 'cohort', chartType: null, icon: RepeatIcon },
-  { id: 'funnel', mode: 'funnel', chartType: null, icon: FilterIcon },
-  { id: 'journey', mode: 'journey', chartType: null, icon: GitBranchIcon },
+  { id: 'table', mode: 'table', chartType: 'table', icon: TableChartIcon },
+  { id: 'cohort', mode: 'cohort', chartType: null, icon: RetentionIcon },
+  { id: 'funnel', mode: 'funnel', chartType: null, icon: FunnelIcon },
+  { id: 'journey', mode: 'journey', chartType: null, icon: JourneyIcon },
 ] as const satisfies ReadonlyArray<{
   id: string
   mode: ReportMode
@@ -281,7 +281,7 @@ export function ChartToolbar({
               aria-label={t('rb.canvas.error.retry')}
               onClick={onRefresh}
             >
-              <RefreshCwIcon aria-hidden="true" className="size-4" />
+              <RefreshIcon aria-hidden="true" className="size-4" />
             </Button>
           </div>
         )}
@@ -417,7 +417,7 @@ export function ChartToolbar({
                 aria-label={t('rb.toolbar.compare.clear')}
                 onClick={() => onChange({ ...query, periodComparison: 'none' })}
               >
-                <XIcon aria-hidden="true" className="size-4" />
+                <CloseIcon aria-hidden="true" className="size-4" />
               </Button>
             )}
           </>

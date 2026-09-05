@@ -176,7 +176,7 @@
  *               all. The grip and the expand are no exception.
  *   §1.5        one icon set (lucide), 16px, `currentColor`, every glyph
  *               `aria-hidden` with the label carrying the name. The overflow
- *               trigger's text `⋯` is replaced by `MoreHorizontalIcon` for the
+ *               trigger's text `⋯` is replaced by `MoreIcon` for the
  *               same reason `ChartToolbar` gives: a text ellipsis picks up the
  *               emoji presentation on some platforms and stops being an icon.
  *   §9.1        `ms-`/`me-` only; the arrows point along an ordered LIST, which
@@ -187,16 +187,16 @@
 
 import { useCallback, useMemo } from 'react'
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BarChart3Icon,
-  GripVerticalIcon,
+  BarChartIcon,
+  DragHandleIcon,
+  ExpandIcon,
   LineChartIcon,
-  Maximize2Icon,
-  MoreHorizontalIcon,
+  MoreIcon,
+  MoveDownIcon,
+  MoveUpIcon,
   PieChartIcon,
-  Table2Icon,
-} from 'lucide-react'
+  TableChartIcon,
+} from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -252,9 +252,9 @@ import { ResultCanvas } from './ResultCanvas'
 /** §C5's `📈 Uniques`, in this product's four shapes. Decorative throughout. */
 const CHART_ICONS: Record<ChartType, typeof LineChartIcon> = {
   line: LineChartIcon,
-  bar: BarChart3Icon,
+  bar: BarChartIcon,
   pie: PieChartIcon,
-  table: Table2Icon,
+  table: TableChartIcon,
 }
 
 export interface DashboardTileProps {
@@ -457,7 +457,7 @@ export function DashboardTile({
               behaviour. §11.2 rejected a drag grid because a reorder with no
               keyboard path is a defect, so the handle marks the tile as
               movable and the three controls in the corner are what move it. */}
-          <GripVerticalIcon
+          <DragHandleIcon
             aria-hidden="true"
             className="size-4 shrink-0 text-muted-foreground"
           />
@@ -552,7 +552,7 @@ export function DashboardTile({
                   aria-label={t('rb.dashboard.tile.expand', { name: title })}
                   onClick={() => onOpen(resolved)}
                 >
-                  <Maximize2Icon aria-hidden="true" className="size-4" />
+                  <ExpandIcon aria-hidden="true" className="size-4" />
                 </Button>
               )}
               <Button
@@ -563,7 +563,7 @@ export function DashboardTile({
                 aria-label={t('rb.dashboard.tile.moveUp', { name: title })}
                 onClick={() => onMove(tile.tileId, -1)}
               >
-                <ArrowUpIcon aria-hidden="true" className="size-4" />
+                <MoveUpIcon aria-hidden="true" className="size-4" />
               </Button>
               <Button
                 type="button"
@@ -573,7 +573,7 @@ export function DashboardTile({
                 aria-label={t('rb.dashboard.tile.moveDown', { name: title })}
                 onClick={() => onMove(tile.tileId, 1)}
               >
-                <ArrowDownIcon aria-hidden="true" className="size-4" />
+                <MoveDownIcon aria-hidden="true" className="size-4" />
               </Button>
 
               {/* §11.2's coarse reorder, and the reason it is a `Select` rather
@@ -615,7 +615,7 @@ export function DashboardTile({
                     variant="ghost"
                     aria-label={t('rb.dashboard.tile.actions', { name: title })}
                   >
-                    <MoreHorizontalIcon aria-hidden="true" className="size-4" />
+                    <MoreIcon aria-hidden="true" className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
