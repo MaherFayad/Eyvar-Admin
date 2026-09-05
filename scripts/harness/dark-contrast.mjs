@@ -19,6 +19,13 @@ const ROUTES = [
   ['contact-centre-detail', '/support/contact-centre/CNV-102'],
   ['safety-detail', '/support/safety/INC-013'],
   ['pricing-rate-card', '/financials/pricing?view=rate-card'],
+  ['dispute-detail', '/support/disputes/DSP-101'],
+  ['fairness-detail', '/support/fairness/FC-0001'],
+  ['ticket-detail', '/support/tickets/TKT-502'],
+  ['contact-centre', '/support/contact-centre'],
+  ['tickets', '/support/tickets'],
+  ['disputes', '/support/disputes'],
+  ['safety', '/support/safety'],
 ]
 
 /* The account menu carries the theme radio group, beside the language one. */
