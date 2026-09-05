@@ -158,7 +158,6 @@ export const CopyIcon = icon(RawCopy, 'CopyIcon')
 export const DeleteIcon = icon(RawTrash2, 'DeleteIcon')
 export const SaveIcon = icon(RawSave, 'SaveIcon')
 export const LinkIcon = icon(RawLink2, 'LinkIcon')
-export const ExpandIcon = icon(RawMaximize2, 'ExpandIcon')
 export const DragHandleIcon = icon(RawGripVertical, 'DragHandleIcon')
 export const SortNoneIcon = icon(RawChevronsUpDown, 'SortNoneIcon')
 /* Reorder, not sort: a tile moves up or down an ordered list (§11.2). */
@@ -198,7 +197,6 @@ export const DurationIcon = icon(RawClock, 'DurationIcon')
 export const RatingIcon = icon(RawStar, 'RatingIcon')
 export const RatioIcon = icon(RawDivide, 'RatioIcon')
 export const ChartIcon = icon(RawChartLine, 'ChartIcon')
-export const CalendarIcon = icon(RawCalendar, 'CalendarIcon')
 
 /* ── Deltas. A caret encodes magnitude, not reading order: it never mirrors
       (§9.5), which is why it is not in the directional block below. ─────── */
