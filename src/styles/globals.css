@@ -1813,10 +1813,38 @@
   --ev-nav-chip-rail: #1c222a;
   --ev-text-2-rail: #9aa4b2;
 
-  /* --- Rules. Two weights, re-solved on the raised card so they stay two
-     (R23); --ev-hairline-strong keeps R19's 3:1 on the card and the dialog. */
-  --ev-hairline: #313944;
-  --ev-hairline-control: #3c4451;
+  /* --- Rules. **TAKEN DOWN ON 2026-09-06: the owner called the dark borders
+     "annoying" and they were.** The reason there is room is D33 and D34
+     together: the hairline used to compete with a shadow AND carry the whole
+     job of saying "this is a card", because a card barely differed from its
+     ground. The value step does that now, so the line only has to finish the
+     edge. Quieter is the correct weight, not a weaker one.
+
+       --ev-hairline          #313944 -> #1b232e
+         on the card   1.698 -> **1.252**   which is light's 1.242 to a hundredth
+         on the page   1.526 -> 1.125       the nav seams and the table edge
+         on the nav    1.593 -> 1.175
+       --ev-hairline-control  #3c4451 -> #272f3a
+         on the card   2.018 -> **1.467**   light's is 1.456
+         on the page   1.813 -> 1.318
+         on the raised tier #000000  2.138 -> 1.554
+       the two against each other      1.172, unchanged to a thousandth
+
+     **--ev-hairline-strong DID NOT MOVE AND CANNOT.** R19's 3:1 is a floor,
+     not a weight, and the token is already sitting on it: the lightest ground
+     a checkbox can occupy in dark is --ev-neutral-lt #31363e, where #76818f
+     measures **3.072**. Solving for 3.000 exactly gives #777f8a, one unit
+     away. There is nothing to take down. Its other grounds:
+       card #080a0d 5.009 · raised #000000 5.307 · page #14181e 4.501 ·
+       row-critical #3b292c 3.447 · its emphasis #402c30 3.274
+
+     The raised tier's edge stays --ev-hairline-control and is the one line
+     D34 leaves load-bearing: 1.554 on its own fill, 1.467 over a card and
+     1.318 over the page, all above the card edge's 1.252. It came down with
+     the family rather than staying loud, because the raised tier also has a
+     1.060 fill step under the card and 1.179 under the page. */
+  --ev-hairline: #1b232e;
+  --ev-hairline-control: #272f3a;
   --ev-hairline-strong: #76818f;
 
   /* --- Ink. Muted is ink at 68% over the card (AC-CC-01). --ev-text-3 is
