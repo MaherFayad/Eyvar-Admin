@@ -62,6 +62,24 @@ export function subTabLetters(rows: readonly SubTabRoute[]): Map<string, SubTabR
   return letters
 }
 
+/** The letter `g` reaches this row by, or `null` when the row claimed none. */
+export function subTabLetterOf(rows: readonly SubTabRoute[], subTabId: string): string | null {
+  for (const [letter, row] of subTabLetters(rows)) {
+    if (row.subTabId === subTabId) return letter
+  }
+  return null
+}
+
+/**
+ * F4 — the same chord, as the palette shows it: one kbd chip per token, Latin
+ * glyphs in both languages (§14). Display only; `useSubTabShortcut` still owns
+ * the keys themselves.
+ */
+export function subTabChord(rows: readonly SubTabRoute[], subTabId: string): string | null {
+  const letter = subTabLetterOf(rows, subTabId)
+  return letter === null ? null : `G ${letter.toUpperCase()}`
+}
+
 /** The sub-tab `g` + `letter` reaches inside `workspaceId`, or `null`. */
 export function subTabForLetter(
   workspaceId: WorkspaceId | null,

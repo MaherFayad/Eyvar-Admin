@@ -291,4 +291,25 @@ export const COMMANDS_EN: Dictionary = {
     '{count} of the selected subscriptions are already cancelled or expired.',
   'subs.action.cancel.blocked.all':
     'All {count} selected subscriptions are already cancelled or expired.',
+
+  /* ── pal/model ── */
+
+  /* F2 — the record step. The heading NAMES the record (Jira's `Issue actions
+     [LP-5]`), which is what stops a nested list reading as a second search. */
+  'command.block.recordActions': 'Actions for {name}',
+  'command.record.openProfile': 'Open 360° profile',
+
+  /* F3 — argument carry. A subtitle on the Do row, so the operator sees where
+     the rest of what they typed is going before they press Enter. */
+  'command.carry': 'Then choose a target · "{rest}" carries over',
+
+  /* F7 — the prefix modes, as the scope chip reads. Labels, so no full stop. */
+  'command.scope.commands': 'Commands',
+  'command.scope.ids': 'By ID',
+  'command.scope.people': 'People',
+  'command.scope.destinations': 'Destinations',
+
+  /* AC-CP4 — what an operator types when they mean the work queues. A
+     comma-separated match vocabulary, keyed because Arabic needs its own. */
+  'command.queue.keywords': 'queue, queues, waiting, backlog',
 }

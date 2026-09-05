@@ -106,4 +106,14 @@ export const COMMANDS_AR: Dictionary = {
   'ticket.toast.reopened.undoFailed.other': '{count} من التذاكر لا تزال مفتوحة',
   'subs.action.cancel.blocked.other': '{count} من الاشتراكات المحدَّدة ملغاة أو منتهية بالفعل.',
   'subs.action.cancel.blocked.all': 'كل الاشتراكات المحدَّدة ({count}) ملغاة أو منتهية بالفعل.',
+
+  /* ── pal/model ── */
+  'command.block.recordActions': 'إجراءات {name}',
+  'command.record.openProfile': 'فتح الملف الشامل',
+  'command.carry': 'ثم اختر الهدف · يُنقل “{rest}”',
+  'command.scope.commands': 'الأوامر',
+  'command.scope.ids': 'بالمعرّف',
+  'command.scope.people': 'الأشخاص',
+  'command.scope.destinations': 'الوجهات',
+  'command.queue.keywords': 'طابور, الطوابير, منتظر, بانتظار, قوائم العمل',
 }
