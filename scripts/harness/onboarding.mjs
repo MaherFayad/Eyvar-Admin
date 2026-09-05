@@ -141,6 +141,14 @@ for (const [slug, name] of USERS) {
     if (beacon.right !== 16 || beacon.bottom !== 16) fail(`${slug}: beacon is not 16px from the corner`)
   }
   await page.screenshot({ path: `${OUT}/beacon-${slug}.png` })
+  /* The ring opens the small panel, not the layer. */
+  await page.locator('[data-testid="onboarding-beacon"] button').first().click()
+  await page.waitForTimeout(300)
+  if ((await page.locator('[data-testid="onboarding-beacon-panel"]').count()) === 0) fail(`${slug}: the ring did not open the panel`)
+  if ((await dialog().getByText('Restart onboarding').count()) !== 0) fail(`${slug}: the ring opened the full layer`)
+  await page.screenshot({ path: `${OUT}/beacon-open-${slug}.png` })
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(200)
 }
 
 console.log('\n== arabic')

@@ -895,9 +895,14 @@ export function AppLayout() {
           <OnboardingBeacon
             checklist={shell.onboarding}
             t={t}
-            onOpen={(stepId) => {
+            language={shell.language.language}
+            onOpenLayer={(stepId) => {
               track('onboarding.opened', { source: 'beacon' })
               setLayer('onboarding', stepId ?? '1')
+            }}
+            onGo={(path) => {
+              track('onboarding.step.opened', { source: 'beacon' })
+              navigate(path)
             }}
             onHide={() => setBeaconHidden(true)}
           />

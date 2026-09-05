@@ -88,7 +88,6 @@ import {
   dismissOnboarding,
   findSubTabById,
   restartOnboarding,
-  skipStep,
 } from '@/data/clients'
 import type { OnboardingChecklist, OnboardingStep } from '@/data/types/onboarding'
 import { Accordion } from '@/components/ui/accordion'
@@ -105,7 +104,7 @@ import type { RoleName } from '@/data/types/session'
 import { track } from '@/lib/analytics'
 import { ROLE_INTRO_KEYS, ROLE_KEYS } from './copy'
 import { CompleteArt, ROLE_ART } from './illustrations'
-import { Fragment } from 'react'
+import { destinationPath } from './destination'
 import { OnboardingStepRow } from './OnboardingStepRow'
 
 export interface OnboardingLayerProps {
@@ -340,17 +339,7 @@ export function OnboardingLayer({
             {steps
               .filter((step) => !data.state.skippedStepIds.includes(step.id))
               .filter((step) => !data.state.archivedStepIds.includes(step.id))
-              .map((step, i, rows) => (
-                <Fragment key={step.id}>
-                {/* Two group labels: before the shared three and before the
-                    first role step. Structure, not decoration: the sequence
-                    is real (AC-618). */}
-                {i === 0 && (
-                  <p className="pt-1 text-xs font-medium text-muted-foreground">{t('onboarding.group.common')}</p>
-                )}
-                {i > 0 && rows[i - 1]!.id.startsWith('common.') && !step.id.startsWith('common.') && (
-                  <p className="pt-3 text-xs font-medium text-muted-foreground">{t('onboarding.group.role')}</p>
-                )}
+              .map((step) => (
                 <OnboardingStepRow
                   step={step}
                   t={t}
@@ -385,34 +374,9 @@ export function OnboardingLayer({
                       return next
                     })
                   }
-                  onSkip={() =>
-                    void run(step.id, 'onboarding.error.skip', async () => {
-                      const next = await skipStep(step.id, true)
-                      track('onboarding.step.skipped', { stepId: step.id, role: next.role })
-                      return next
-                    })
-                  }
                 />
-                </Fragment>
               ))}
           </Accordion>
-
-          {/* §10.4 — a skipped row **moves** to this group and can be
-              re-entered from it (**AC-633**). A skip does not fake progress
-              (**AC-634**): the numerator counts completions only. */}
-          <StepGroup
-            t={t}
-            label={t('onboarding.skipped', {
-              count: data.state.skippedStepIds.length,
-            })}
-            ids={data.state.skippedStepIds}
-            steps={steps}
-            action={{
-              label: t('onboarding.step.doThis'),
-              onSelect: (id) =>
-                void run(id, 'onboarding.error.skip', () => skipStep(id, false)),
-            }}
-          />
 
           {/* **AC-644** — completed under a former role and now unreachable.
               **Archived, not deleted**: a demotion must not read as regression.
@@ -501,7 +465,7 @@ function Intro({
       )}
       </div>
       {/* Decorative, `aria-hidden` inside the component; the text carries everything. */}
-      {Art !== undefined && <Art className="h-24 w-36 shrink-0" />}
+      {Art !== undefined && <Art className="h-20 w-28 shrink-0" />}
     </div>
   )
 }
@@ -643,18 +607,3 @@ function CheckGlyph() {
  * and a layer rides as an overlay param over whatever route the operator is on,
  * so it has no sub-tab of its own.
  */
-function destinationPath(step: OnboardingStep): string | null {
-  const destination = step.destination
-  if (destination === null) return null
-  if (destination.layer !== null) {
-    /* A layer is a param on the CURRENT route, so the path is the layer's own
-       param appended to wherever the operator already is. `account` is `me`;
-       `profile` needs an entity the checklist does not name, so it is not
-       navigable from here and the step is manual-completion only. */
-    return destination.layer === 'account' ? '?account=me' : null
-  }
-  if (destination.subTabId === null) return null
-  const row = findSubTabById(destination.subTabId)
-  if (!row) return null
-  return destination.view === null ? row.path : `${row.path}?view=${destination.view}`
-}

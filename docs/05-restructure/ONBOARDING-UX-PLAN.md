@@ -259,3 +259,16 @@ The owner reviewed round one and asked for three things the plan had argued agai
 | **Richer intro** | `Welcome, {name}` above the role sentence, the role art at 144×96, and two group labels in the list: *Your first three* before the shared steps and *For your role* before the rest. | `OnboardingLayer.tsx` |
 
 Evidence: `onboarding.plan.test.tsx` → 12 passed (welcome once, Not now leaves the beacon, Start opens the layer, beacon counts and opens the next step, hides per session, absent when dismissed). `scripts/harness/onboarding.mjs` → welcome for each role, the beacon 16px from the corner in English and 16px from the left edge in Arabic. Three more illustrations, one regenerated for a gradient: 45 images, about 113 credits in total.
+
+---
+
+## 12. Round three — the ring, the small panel, less of everything, and the words (2026-09-05)
+
+The owner's second review: the beacon should be a progress ring with the percentage and open a small panel rather than the drawer; the layer carries too much; Skip makes no sense; the descriptions need real work.
+
+| Move | What changed |
+|---|---|
+| **Beacon** | A 48px ring with the percentage inside (`formatPercent`, rounded). It opens a 320px popover above it: title, `n of m completed`, the percentage, the step list with done ticks, and two plain actions, *Open the full checklist* and *Hide until next sign-in*. A step in the panel goes straight to its screen; a done step or one with no screen opens the layer on it. `destinationPath` moved to `destination.ts` so the panel and the layer share it. |
+| **Skip removed** | No Skip control, no `Skipped (n)` group. The data layer keeps `skipStep` and `skippedStepIds`; nothing in the UI writes them. AC-633 and AC-634 are withdrawn by the owner; the tests that asserted the control were removed. |
+| **Quieter layer** | No sub-card behind the expanded step: body text in the muted ink, one primary `Open`, `Mark as done` as a plain button, the picture at inline-end. No group labels. The intro picture is 112×80. |
+| **Descriptions** | All 21 bodies rewritten in English and Arabic to say what to do, why, and what done looks like, in one or two sentences each. |

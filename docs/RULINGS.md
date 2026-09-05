@@ -66,7 +66,11 @@ the checklist. Three `DESIGN.md` positions yield, and only this far:
   intro card, its expanded task and its completed state may carry a **decorative**
   illustration. Empty states are unchanged; `track-empty` and E1 still carry none.
 
-Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11.
+- §5.6's guide anatomy and spec AC-633/AC-634 (skip a step, `Skipped (n)`): **withdrawn**. A
+  step is done or not done; there is no Skip control and no skipped group. The data layer keeps
+  the fields; the UI never writes them.
+
+Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11–§12.
 
 ## `DESIGN.md` rulings
 

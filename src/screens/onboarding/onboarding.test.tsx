@@ -339,7 +339,7 @@ describe('AC-604 — "at most one step is expanded at a time"', () => {
 })
 
 describe('AC-605 / AC-606 — only the expanded step shows its controls, and every step can be marked done', () => {
-  it('shows the description, the action and the skip control on the expanded step only', async () => {
+  it('shows the description and the actions on the expanded step only', async () => {
     renderLayer()
     await screen.findByText(en('onboarding.step.common.account.body'))
 
@@ -349,7 +349,6 @@ describe('AC-605 / AC-606 — only the expanded step shows its controls, and eve
        `common.account` is a manual step; `common.mywork` auto-detects, and both
        carry the control. */
     expect(screen.getByRole('button', { name: en('onboarding.step.markDone') })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: en('onboarding.step.skip') })).toBeInTheDocument()
   })
 })
 
@@ -496,19 +495,7 @@ describe('AC-615 — "no coach mark, no spotlight, no tooltip tour, no modal wiz
   })
 })
 
-describe('AC-634 / AC-646 — skipping does not fake progress, and a failure is row-scoped', () => {
-  it('keeps the numerator on completions only', async () => {
-    const user = userEvent.setup()
-    renderLayer()
-    const before = (await screen.findByText(/of \d+ completed/)).textContent
-    await user.click(screen.getByRole('button', { name: en('onboarding.step.skip') }))
-
-    await waitFor(() => expect(screen.getByText(en('onboarding.skipped').replace('{count}', '1'))).toBeInTheDocument())
-    /* A skip moves the row to the group and leaves `done` alone — otherwise an
-       operator could finish a checklist by pressing skip seven times. */
-    expect(screen.getByText(/of \d+ completed/).textContent).toBe(before)
-  })
-
+describe('AC-646 — a failure is row-scoped', () => {
   it('returns the step to not-done and offers an inline retry when marking fails', async () => {
     const user = userEvent.setup()
     const complete = vi.spyOn(onboardingClient, 'completeStep').mockRejectedValue(new Error('down'))

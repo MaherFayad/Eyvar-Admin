@@ -67,7 +67,6 @@ export interface OnboardingStepRowProps {
   errorKey: string | null
   onOpenDestination: () => void
   onMarkDone: () => void
-  onSkip: () => void
 }
 
 export function OnboardingStepRow({
@@ -78,7 +77,6 @@ export function OnboardingStepRow({
   errorKey,
   onOpenDestination,
   onMarkDone,
-  onSkip,
 }: OnboardingStepRowProps) {
   const title = t(step.titleKey)
   const unavailable = !step.reachable
@@ -132,61 +130,34 @@ export function OnboardingStepRow({
 
       {unavailable ? null : (
         <AccordionContent className="pb-3">
-          {/* §10.1's sub-card. **Only the expanded step shows its description,
-              its action and its skip control** (**AC-605**). */}
-          <div className="ms-6 flex flex-col gap-3 rounded-xl bg-muted p-3">
-            {/* The picture sits at inline-end of the description (§5.6 reference),
-                decorative and `aria-hidden`; remove it and every criterion holds. */}
-            <div className="flex items-start gap-3">
-              <p className="min-w-0 flex-1 text-sm text-foreground">{t(step.bodyKey)}</p>
-              {Art !== undefined && <Art className="h-16 w-24 shrink-0" />}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {destinationName !== null && (
-                /* The **primary** — `bg-primary` is `--ev-ink` under D7 §1.8.
-                   32 px `--ev-control-h`, not the auth card's 40: this is a
-                   console surface with several controls, not a card with two.
-                   Activating it **navigates and closes the layer**
-                   (**AC-607**), and does **not** mark the step done. */
-                <Button variant="default" size="default" onClick={onOpenDestination}>
-                  {t('onboarding.step.open', { subTab: destinationName })}
+          {/* Only the expanded step shows its description and its actions
+              (AC-605). No Skip: the owner removed it (RULINGS.md 2026-09-05).
+              The picture is decorative and sits at inline-end. */}
+          <div className="ms-6 flex items-start gap-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <p className="text-sm text-muted-foreground">{t(step.bodyKey)}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {destinationName !== null && (
+                  /* Navigates and closes the layer (AC-607); marks nothing. */
+                  <Button variant="default" size="default" onClick={onOpenDestination}>
+                    {t('onboarding.step.open', { subTab: destinationName })}
+                  </Button>
+                )}
+                {/* On every step, whether or not it auto-detects (AC-606). */}
+                <Button variant="ghost" size="default" onClick={onMarkDone} disabled={pending || done}>
+                  {t('onboarding.step.markDone')}
                 </Button>
+              </div>
+              {errorKey !== null && (
+                /* AC-646: the step returns to not-done with a retry in the row. */
+                <ErrorState
+                  scope="row"
+                  message={t(errorKey)}
+                  action={{ label: t('onboarding.tryAgain'), onClick: onMarkDone }}
+                />
               )}
-              {/* §5.6's MUST, on **every** step whether or not it auto-detects
-                  (**AC-606**). */}
-              <Button
-                variant="secondary"
-                size="default"
-                onClick={onMarkDone}
-                disabled={pending || done}
-              >
-                {t('onboarding.step.markDone')}
-              </Button>
             </div>
-
-            {/* §10.4 — any step, any time, **no confirmation**. Recorded
-                distinctly from *done*, so a skip does not fake progress
-                (**AC-634**). Its own line, 12 px plain button. */}
-            <button
-              type="button"
-              onClick={onSkip}
-              disabled={pending}
-              className="w-fit rounded-sm text-xs text-info-foreground underline underline-offset-4 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted disabled:pointer-events-none disabled:opacity-50"
-            >
-              {t('onboarding.step.skip')}
-            </button>
-
-            {errorKey !== null && (
-              /* **AC-646** — the step returns to not-done and shows an inline
-                 retry **in that row**. *Not a toast alone*: the condition
-                 outlives the toast (R10). */
-              <ErrorState
-                scope="row"
-                message={t(errorKey)}
-                action={{ label: t('onboarding.tryAgain'), onClick: onMarkDone }}
-              />
-            )}
+            {Art !== undefined && <Art className="h-16 w-24 shrink-0" />}
           </div>
         </AccordionContent>
       )}

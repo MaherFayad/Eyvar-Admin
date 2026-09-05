@@ -1,26 +1,45 @@
 /**
- * The floating progress beacon: one numbered circle per reachable step, done
- * ones filled, at the bottom inline-end corner while the track is open work
- * and the layer is closed (owner override, `docs/RULINGS.md` 2026-09-05).
- * Activating it opens the checklist on the next step; `Hide` is per session.
+ * The floating progress beacon: a ring with the percentage at the bottom
+ * inline-end corner while the track is open work and the layer is closed
+ * (owner override, `docs/RULINGS.md` 2026-09-05). It opens a small panel that
+ * lists the steps; a step goes straight to its screen, and the full checklist
+ * is one more click. `Hide` is per session.
  */
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CloseIcon } from '@/components/icons'
-import type { OnboardingChecklist } from '@/data/types/onboarding'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import type { OnboardingChecklist, OnboardingStep } from '@/data/types/onboarding'
 import { useCompactShell } from '@/hooks'
-import type { Translator } from '@/lib'
+import { formatPercent, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
+import { destinationPath } from './destination'
 
 export interface OnboardingBeaconProps {
   checklist: OnboardingChecklist
   t: Translator
-  onOpen: (stepId: string | null) => void
+  language: Language
+  /** Opens the full checklist layer, on a step when one is named. */
+  onOpenLayer: (stepId: string | null) => void
+  /** Navigates to a step's own screen. */
+  onGo: (path: string) => void
   onHide: () => void
 }
 
-export function OnboardingBeacon({ checklist, t, onOpen, onHide }: OnboardingBeaconProps) {
+/* A 40-unit ring: radius 17 leaves room for a 3-unit stroke inside the box. */
+const RADIUS = 17
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+
+export function OnboardingBeacon({
+  checklist,
+  t,
+  language,
+  onOpenLayer,
+  onGo,
+  onHide,
+}: OnboardingBeaconProps) {
   const compact = useCompactShell()
+  const [open, setOpen] = useState(false)
   if (compact) return null
 
   const { state } = checklist
@@ -28,65 +47,135 @@ export function OnboardingBeacon({ checklist, t, onOpen, onHide }: OnboardingBea
     (step) => step.reachable && !state.archivedStepIds.includes(step.id),
   )
   const isDone = (id: string) => state.completedStepIds.includes(id)
-  const next = reachable.find((step) => !isDone(step.id) && !state.skippedStepIds.includes(step.id))
+  const isSkipped = (id: string) => state.skippedStepIds.includes(id)
+  const next = reachable.find((step) => !isDone(step.id) && !isSkipped(step.id))
+  const ratio = checklist.totalCount === 0 ? 0 : checklist.doneCount / checklist.totalCount
+  const percent = formatPercent(Math.round(ratio * 100), language)
   const label = t('onboarding.beacon.label', {
     done: checklist.doneCount,
     total: checklist.totalCount,
   })
 
+  const select = (step: OnboardingStep) => {
+    setOpen(false)
+    if (isDone(step.id)) {
+      onOpenLayer(step.id)
+      return
+    }
+    const path = destinationPath(step)
+    if (path === null) onOpenLayer(step.id)
+    else onGo(path)
+  }
+
   return (
-    <div
-      data-testid="onboarding-beacon"
-      className="fixed bottom-4 end-4 z-40 flex items-center gap-1 rounded-xl border border-border bg-popover p-1 shadow-2"
-    >
-      <button
-        type="button"
-        aria-label={next ? `${label}. ${t('onboarding.beacon.next', { title: t(next.titleKey) })}` : label}
-        onClick={() => onOpen(next?.id ?? null)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ol className="flex items-center gap-1" aria-hidden="true">
-          {reachable.map((step, i) => {
-            const done = isDone(step.id)
-            const current = next?.id === step.id
-            return (
-              <li
-                key={step.id}
-                className={cn(
-                  'flex size-5 items-center justify-center rounded-full border text-xs tabular-nums',
-                  done && 'border-primary bg-primary text-primary-foreground',
-                  !done && current && 'border-primary font-semibold text-foreground',
-                  !done && !current && 'border-border text-muted-foreground',
-                )}
-              >
-                {done ? (
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    focusable="false"
+    <div data-testid="onboarding-beacon" className="fixed bottom-4 end-4 z-40">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={`${label}, ${percent}`}
+            className="relative flex size-12 items-center justify-center rounded-full border border-border bg-popover shadow-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <svg viewBox="0 0 40 40" className="absolute inset-0 size-full" aria-hidden="true" focusable="false">
+              <circle cx="20" cy="20" r={RADIUS} className="fill-none stroke-border" strokeWidth={3} />
+              <circle
+                cx="20"
+                cy="20"
+                r={RADIUS}
+                className="fill-none stroke-primary"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={CIRCUMFERENCE * (1 - ratio)}
+                transform="rotate(-90 20 20)"
+              />
+            </svg>
+            <span className="text-xs font-semibold tabular-nums text-foreground">{percent}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={8}
+          data-testid="onboarding-beacon-panel"
+          className="w-80 p-0"
+        >
+          <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <p className="text-sm font-semibold text-foreground">{t('onboarding.title')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('onboarding.progress', { done: checklist.doneCount, total: checklist.totalCount })}
+              </p>
+            </div>
+            <span className="text-sm font-semibold tabular-nums text-foreground">{percent}</span>
+          </div>
+          <ol className="flex flex-col py-1">
+            {reachable.map((step) => {
+              const done = isDone(step.id)
+              const skipped = isSkipped(step.id)
+              const current = next?.id === step.id
+              return (
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    onClick={() => select(step)}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-3 py-1.5 text-start text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                      done || skipped ? 'text-muted-foreground' : 'text-foreground',
+                      current && 'font-medium',
+                    )}
                   >
-                    <path d="M4 12.5l5 5L20 6.5" />
-                  </svg>
-                ) : (
-                  i + 1
-                )}
-              </li>
-            )
-          })}
-        </ol>
-        <span className="text-xs text-muted-foreground">
-          {t('onboarding.progress', { done: checklist.doneCount, total: checklist.totalCount })}
-        </span>
-      </button>
-      <Button variant="ghost" size="icon-xs" aria-label={t('onboarding.beacon.hide')} onClick={onHide}>
-        <CloseIcon aria-hidden="true" className="size-3.5" />
-      </Button>
+                    <Marker done={done} current={current} />
+                    <span className="min-w-0 flex-1 truncate">{t(step.titleKey)}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+          <div className="flex items-center gap-2 border-t border-border px-2 py-1.5">
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setOpen(false)
+                onOpenLayer(next?.id ?? null)
+              }}
+            >
+              {t('onboarding.beacon.open')}
+            </Button>
+            <Button variant="ghost" size="xs" className="ms-auto" onClick={onHide}>
+              {t('onboarding.beacon.hide')}
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
+  )
+}
+
+/** Decorative; the row's text and colour carry the state. */
+function Marker({ done, current }: { done: boolean; current: boolean }) {
+  if (done) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="size-4 shrink-0 text-success-foreground"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M4 12.5l5 5L20 6.5" />
+      </svg>
+    )
+  }
+  return (
+    <span
+      className={cn('size-4 shrink-0 rounded-full border', current ? 'border-primary' : 'border-border')}
+      aria-hidden="true"
+    />
   )
 }

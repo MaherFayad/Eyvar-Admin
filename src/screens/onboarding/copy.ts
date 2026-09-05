@@ -119,7 +119,7 @@ export const ONBOARDING_EN: Dictionary = {
 
   /* The floating progress beacon. */
   'onboarding.beacon.label': 'Getting started, {done} of {total} completed',
-  'onboarding.beacon.next': 'Next: {title}',
+  'onboarding.beacon.open': 'Open the full checklist',
   'onboarding.beacon.hide': 'Hide until next sign-in',
 
   /* ─────────────────────────── the step row ───────────────────────────── */
@@ -177,21 +177,21 @@ export const ONBOARDING_EN: Dictionary = {
   /* Common — all four tracks, **byte-identical by id** (**AC-618**). */
   'onboarding.step.common.account.title': 'Check the account that is now yours',
   'onboarding.step.common.account.body':
-    "Confirm the number your codes go to, then review your active sessions and end anything you don't recognise.",
+    "Make sure the phone number your sign-in codes go to is yours, then look at the devices signed in to this account and sign out any you don't recognise. Done when every session on the list is one you started.",
   'onboarding.step.common.mywork.title': 'Claim one item, then release it',
   'onboarding.step.common.mywork.body':
-    "Operations › My Work is where every queue reaches you. Claim something from Unassigned and release it again, so you learn what a claim is before you're holding six.",
+    'My Work is where every queue reaches you. Pick any item under Unassigned, claim it, then release it. The checklist notices the moment you claim something.',
   'onboarding.step.common.audit.title': 'Find your own name in the activity log',
   'onboarding.step.common.audit.body':
-    'Everything you do here is recorded with your name on it. Read the log once, and read who is on call, so you know who to reach at 2am.',
+    'Every action in the console is written to the activity log with the name of the person who took it. Find one of your own, then read the on-call rota so you know who to reach out of hours.',
 
   /* Owner — 3 common + 4 = 7 (**AC-619**). */
   'onboarding.step.owner.team.title': 'Read the role matrix, and decide if it still holds',
   'onboarding.step.owner.team.body':
-    'One account holds every administrative permission. Decide whether that is still acceptable.',
+    'Team & Access lists every operator and what each role can do. Read it once and decide whether one account should still hold every administrative permission.',
   'onboarding.step.owner.policy.title': 'Read the policy you are accountable for',
   'onboarding.step.owner.policy.body':
-    'Dispatch radius, operating limits, SLA targets and reason codes. Read them once, deliberately, rather than the first time one is disputed.',
+    'Operational Policy sets the dispatch radius, the operating limits, the SLA targets and the reason codes operators must pick from. You are accountable for these values, so read them deliberately once.',
   /* **AC-630's single named exception.** Its destination is a workspace
      Overview, and it is the only step in any track that may be — because the
      two numbers it names exist on no other sub-tab, and a `bodyKey` fixture
@@ -199,67 +199,67 @@ export const ONBOARDING_EN: Dictionary = {
      Finance's landing route and **is not** the Owner's, which is clause (b). */
   'onboarding.step.owner.position.title': 'State the current contribution margin',
   'onboarding.step.owner.position.body':
-    "The trial balance and the contribution margin are the two numbers you'll be asked about. This is where they live, and this step is done when you can say them out loud.",
+    'Financials › Overview shows the contribution margin and the trial balance. These are the two numbers you will be asked about; done when you can state both without looking.',
   'onboarding.step.owner.pricing.title': 'Settle how captains are paid',
   'onboarding.step.owner.pricing.body':
-    'The console computes captain earnings four different ways and nobody has chosen one. That decision is outstanding, and it is yours.',
+    'Pricing & Plans computes captain earnings four different ways and nobody has chosen one. Read the options; the decision is yours and it is still open.',
 
   /* Finance — 3 common + 5 = 8 (**AC-622**). */
   'onboarding.step.finance.ledger.title': 'Read a ledger before you post to one',
   /* **AC-623** — the body states that a posted row is reversed, never edited. */
   'onboarding.step.finance.ledger.body':
-    'Learn the sign convention, and learn that a posted row is never edited — it is reversed by a second row. Nothing in Financials undoes itself.',
+    'Revenue & Refunds is a ledger. Read the sign convention and notice that a posted row is never edited: a mistake is reversed with a new posting. Done when you could explain that to a colleague.',
   'onboarding.step.finance.escrow.title': 'Read what releasing escrow does, without releasing it',
   'onboarding.step.finance.escrow.body':
-    'Open one escrow row and read it through. Release moves money to a captain, and there is no undo — only a reversing entry.',
+    "Open one escrow row and read what releasing it would do to the captain's balance and the rider's wallet. Do not release it. Done when you know exactly what the button moves.",
   'onboarding.step.finance.reconciliation.title': 'Work one reconciliation item end to end',
   'onboarding.step.finance.reconciliation.body':
-    'Claim it, decide it, and watch the row convert in place. This queue is how cash and captain debt stay true to each other.',
+    'The reconciliation queue is real work. Claim one cash report, decide it, and watch the row convert in place. Done when your decision is on the row.',
   'onboarding.step.finance.goodwill.title': 'Find the cap that bounds a goodwill credit',
   'onboarding.step.finance.goodwill.body':
-    'You and Support share one compensation cap. Find the number before a rider asks you to go past it.',
+    'Goodwill credits are capped by policy, for you and for Support. Find the cap on the Goodwill view before the day you need it.',
   'onboarding.step.finance.routing.title': 'Know which queue reaches you',
   'onboarding.step.finance.routing.body':
-    "Disputes route to Finance. Turn role routing off once in My Work and see what changes, so you know what you're filtering out.",
+    'Disputes route to Finance. In My Work, turn role routing off once and see how the list changes, then turn it back on. Done when you know which queues reach you.',
 
   /* Ops Manager — 3 common + 5 = 8 (**AC-624**). */
   'onboarding.step.ops.application.title': 'Decide one captain application end to end',
   'onboarding.step.ops.application.body':
-    'Read the documents, then approve or reject. The row gives you a tick, a cross and View — there is no menu to open.',
+    'Open one captain application, read the documents, and approve or reject it. Done when the application carries a decision with your name on it.',
   /* **AC-625** — destination Operations › Requests; claim, work, dispose. */
   'onboarding.step.ops.requests.title': 'Claim, work and dispose of one request',
   'onboarding.step.ops.requests.body':
-    'Watch the SLA clock while you hold it. Read what a breach means — a breach is a missed target, not a failure to act.',
+    'Claim one ride request, watch its SLA clock, and dispose of it. Read what a breach means before one happens on your watch.',
   'onboarding.step.ops.assurance.title': 'Cover one trip before it departs',
   'onboarding.step.ops.assurance.body':
-    'Trip Assurance lists subscriptions with no backup captain. Register or replace a captain on one of them.',
+    'Trip Assurance lists subscriptions with no backup captain. Register or replace a captain on one of them before the trip departs.',
   /* **AC-626** — Live Dispatch is wave 6. Renders disabled in place with its
      reason, and becomes enabled with **no fixture change** once the sub-tab
      exists, because `available` derives from the route table. */
   'onboarding.step.ops.dispatch.title': 'Tell a stale feed from a dead one',
   'onboarding.step.ops.dispatch.body':
-    'Live Dispatch shows a freshness line. Learn the difference between data that is late and data that has stopped, before you act on either.',
+    'Live Dispatch shows every trip in motion. Read the freshness line at the top and learn the difference between a feed that is slow and a feed that has stopped.',
   'onboarding.step.ops.fairness.title': "Read one suspension appeal from the captain's side",
   'onboarding.step.ops.fairness.body':
-    "Captain Fairness shows you the economics a suspension takes away. Read one before you're asked to answer for a decision.",
+    "Captain Fairness holds suspension appeals. Open one and read the captain's economics view, because that is the case you will be asked to answer.",
 
   /* Support — 3 common + 4 = 7 (**AC-627**). */
   /* Tickets is wave 5. Disabled in place, same treatment as `ops.dispatch`. */
   'onboarding.step.support.ticket.title': 'Answer one ticket end to end',
   'onboarding.step.support.ticket.body':
-    'Open it, respond, and resolve it with a reason code. The reason code is what makes a ticket countable later.',
+    'Open one ticket, reply to it, and resolve it with a reason code. The reason code is what makes the ticket countable later.',
   'onboarding.step.support.profile.title':
     'Open a 360° profile, and know what you may not do with it',
   'onboarding.step.support.profile.body':
-    'One profile carries every piece of personal data the console holds about a person, across 11 record types. Open it only when the work in front of you needs it.',
+    'A profile holds every piece of personal data the console has about a person. Open one from any rider or captain row, and open it only when the work in front of you needs it.',
   'onboarding.step.support.goodwill.title': 'Credit a rider, inside your cap',
   'onboarding.step.support.goodwill.body':
-    "This is the one money action you take mid-call, and it's bounded by policy. Find the cap before you need it.",
+    'A goodwill credit is the one money action you take during a call, and policy caps it. Find your cap on the Goodwill view before you need it.',
   /* **AC-628** — states that safety incidents are visible to Support and
      decided by an Ops Manager, and opens Support › Safety & Incidents. */
   'onboarding.step.support.boundary.title': 'Know what you may not decide, and who does',
   'onboarding.step.support.boundary.body':
-    'You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there.',
+    'You can see a safety incident and you cannot decide one; an Ops Manager does. Open Safety & Incidents once so you know what you will be looking at when a call comes in.',
 }
 
 /**

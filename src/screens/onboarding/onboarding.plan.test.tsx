@@ -143,8 +143,8 @@ describe('AC-594 — "the welcome opens automatically exactly once, on the first
   })
 })
 
-describe('Beacon — "the floating progress shows 1, 2, 3 and opens the next step"', () => {
-  it('counts completions, names the next step, and opens the layer on it', async () => {
+describe('Beacon — "a ring with the percentage opens a small panel of the steps"', () => {
+  it('shows the percentage, lists the steps, and opens the full checklist on the next one', async () => {
     const owner = await userWithRole('Owner')
     const session = await switchMockUser(owner)
     await markOnboardingAutoOpened(owner)
@@ -153,16 +153,34 @@ describe('Beacon — "the floating progress shows 1, 2, 3 and opens the next ste
     renderShell(session.landingRoute)
 
     const beacon = await screen.findByTestId('onboarding-beacon')
-    const open = within(beacon).getByRole('button', {
-      name: new RegExp(en('onboarding.step.common.mywork.title').slice(0, 20)),
+    const ring = within(beacon).getByRole('button', {
+      name: new RegExp(en('onboarding.beacon.label').replace('{done}', '1').replace('{total}', '7')),
     })
-    expect(open).toHaveAccessibleName(
-      new RegExp(en('onboarding.beacon.label').replace('{done}', '1').replace('{total}', '7')),
-    )
-    await user.click(open)
+    expect(ring).toHaveTextContent('14%')
+    await user.click(ring)
+
+    const panel = await screen.findByTestId('onboarding-beacon-panel')
+    expect(within(panel).getByText(en('onboarding.step.common.mywork.title'))).toBeInTheDocument()
+    expect(within(panel).getByText('14%')).toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: en('onboarding.beacon.open') }))
+
     const layer = await screen.findByRole('dialog')
     expect(within(layer).getByText(en('onboarding.step.common.mywork.body'))).toBeInTheDocument()
     expect(screen.queryByTestId('onboarding-beacon')).toBeNull()
+  })
+
+  it("goes straight to a step's screen from the panel", async () => {
+    const owner = await userWithRole('Owner')
+    const session = await switchMockUser(owner)
+    await markOnboardingAutoOpened(owner)
+    const user = userEvent.setup()
+    renderShell(session.landingRoute)
+
+    await user.click(within(await screen.findByTestId('onboarding-beacon')).getByRole('button'))
+    const panel = await screen.findByTestId('onboarding-beacon-panel')
+    await user.click(within(panel).getByText(en('onboarding.step.common.audit.title')))
+    expect(await screen.findByText('screen: admin-activity')).toBeInTheDocument()
+    expect(screen.queryByTestId('onboarding-beacon-panel')).toBeNull()
   })
 
   it('hides for the session, and never shows for a dismissed track', async () => {
@@ -171,8 +189,9 @@ describe('Beacon — "the floating progress shows 1, 2, 3 and opens the next ste
     await markOnboardingAutoOpened(owner)
     const user = userEvent.setup()
     const first = renderShell(session.landingRoute)
+    await user.click(within(await screen.findByTestId('onboarding-beacon')).getByRole('button'))
     await user.click(
-      within(await screen.findByTestId('onboarding-beacon')).getByRole('button', {
+      within(await screen.findByTestId('onboarding-beacon-panel')).getByRole('button', {
         name: en('onboarding.beacon.hide'),
       }),
     )
