@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 5885,
-    "en": 5594,
-    "ar": 5885,
+    "keys": 5957,
+    "en": 5607,
+    "ar": 5957,
     "arMissing": 0,
-    "arExtra": 291,
+    "arExtra": 350,
     "copyFiles": 37,
-    "unregisteredKeys": 187,
-    "pluralForms": 53,
+    "unregisteredKeys": 194,
+    "pluralForms": 65,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 92,
@@ -36,7 +36,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 335,
+      "keys": 338,
       "notInEN": 0
     },
     {
@@ -132,7 +132,7 @@
       "exports": [
         "ASSURANCE_EN"
       ],
-      "keys": 114,
+      "keys": 115,
       "notInEN": 0
     },
     {
@@ -210,19 +210,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/operations/my-work/copy.ts",
+      "exports": [
+        "MY_WORK_EN"
+      ],
+      "keys": 69,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/management/zones/copy.ts",
       "exports": [
         "ZONES_EN"
       ],
       "keys": 67,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/operations/my-work/copy.ts",
-      "exports": [
-        "MY_WORK_EN"
-      ],
-      "keys": 64,
       "notInEN": 0
     },
     {
@@ -254,7 +254,7 @@
       "exports": [
         "QUEUE_SHARED_EN"
       ],
-      "keys": 46,
+      "keys": 47,
       "notInEN": 0
     },
     {
@@ -312,8 +312,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 82,
-      "notInEN": 80
+      "keys": 89,
+      "notInEN": 87
     }
   ],
   "noCopyFile": [
