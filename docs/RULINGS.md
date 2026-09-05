@@ -67,8 +67,23 @@ nothing else. A dark card therefore keeps a real hairline edge, because the inse
 that used to draw it is gone. The modal scrim survives: a scrim is what makes a modal modal,
 and it is not a shadow. A focus ring survives: a ring is not a shadow.
 
-AC-CC-01 keeps its magnitude and loses its direction. A card must still clear 1.25:1 against
-its ground; it now clears it downward.
+**D33b — the light recess is a whisper, and the ceilings are numbers.** A card is at most
+1.03:1 below the page; a tint inside a card at most 1.02:1 below the card; the badge plate
+takes the tint's ceiling. Steps stack, and it is the stacking that reads as heavy: a grey
+header on a grey card on a white page is three tones where the design wants one surface with
+a quiet edge.
+
+**D33c — in dark, a tint inside a card steps UP, and that is deliberate (owner, 2026-09-06).**
+The dark page is pinned and the whole band from it to black measures 1.179:1, so there is not
+enough room for the card, its tints and the covering tier to all recess. The owner chose the
+strongest possible card over a correct tint direction: the card takes 1.113:1 of the band and
+the covering tier the rest, which leaves `--ev-bg2` lighter than `--ev-surface`. **This is not
+a defect and must not be "fixed".** The alternative on offer was card 1.100 / tint 1.041 /
+overlay 1.072, and it was declined.
+
+AC-CC-01 keeps its magnitude and loses its direction: a dark card is that far *below* its
+ground, not above. The 1.25:1 figure is not reachable downward from a pinned page, so the
+criterion is met at 1.113:1, the largest step the theme can physically produce.
 
 **D33a — a surface that COVERS the page is not a surface that sits ON it.** A modal sheet,
 dialog or the command palette replaces the page rather than resting on it, and its ground is
@@ -178,6 +193,8 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D32 — the five Management rules (O1, O8, O9, O10, O11) |
 | D33 — a surface RECESSES: a card, container or table is darker than the page it sits on, in both themes |
 | D33a — a surface that COVERS the page (sheet, dialog, palette) stays white in light and recesses only in dark |
+| D33b — the light recess is a whisper: a card ≤1.03:1 under the page, a tint ≤1.02:1 under the card |
+| D33c — in dark the in-card tint steps UP, deliberately: the band below the pinned page is too narrow for both |
 | D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
