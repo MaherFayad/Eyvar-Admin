@@ -469,3 +469,29 @@ Verification per lane as §6: typecheck, `test:changed`, the finance harnesses, 
 - **R2-3 landed.** The base pitch of a table whose identity cell has no secondary line is **41px**, not the 52px §10.2 guessed; 52px is the pitch of a two-line identity cell. Payouts: 77px on every row before, 41px unrefused and 69px on a refused row after; eight rows in a 900px viewport instead of five. A refused row genuinely carries two lines because AC-368's reason is visible text; a screen declares `DataColumn.carriesRefusalReason` to choose which cell carries it, and Payouts should declare its state column (lane C).
 - **R2-8 landed** in `DataTable.tsx`, not `LedgerCard`: the `min-h-54` floor on the scroll container now applies only while refreshing or empty. The one-row wallet ledger card went from 218px to 176px.
 - **R2-1's header costs 42px** where a view had none (12px label, 28px numeral, one gap). Journal 416px → 466px first row; Wallets unchanged at 450px after the two-line figure. **Reaching the §10.3 target of a first row under 400px needs the figures to share the view row** — the stadium at the inline-start, the figures at the inline-end, the heading dropped because the selected pill already names the view. That is one change in `FinancialsPage.viewRow` for all seven screens and is lane D's, not a per-screen change.
+
+### 10.5 Round 2 as landed on `fin/merge-r2` (2026-09-05, 1280 × 900)
+
+| Screen (default view) | First row before | After | Row pitch before | After |
+|---|---|---|---|---|
+| Payouts | 490 | 422 (banner) | 77 | 41, 69 on a refused row |
+| Escrow / Deductions | 326 / 294 | 316 / 316 | 77 | 70 / 53 |
+| Payouts drill-in | 416 | 392 | 40 | 40 |
+| Cash queue | 400 | 422 (banner) | 69 | 53 |
+| Cash debt / Over cap | 404 | 329 | 53 | 53 |
+| Cash drill-in | 388 | 392 | 40 | 40 |
+| Wallets | 450 | 422 (banner) | 53 | 53 |
+| Wallets drill-in | 356 | 368 | 40 | 40 |
+| Pricing | 456 | 396 (banner) | 53 | 53 |
+| Ledger trial balance | 494 | 475 (banner) | 53 | 53 |
+| Ledger journal | 416 | 435 (banner, and a figure it did not have) | 59 | 59 |
+
+Every screen: one `ViewRow` at one top across its views, figures clustered label-over-numeral with the
+unit inline and the caption beneath, period control on the title row, zero page or table overflow,
+light and dark identical. Verified: typecheck clean; `npm test` 177 of 179 files, the two failures
+(`commands.test.tsx` CM-3, `auth.test.ts` AC-617/AC-630) reproduce on the feature branch's own
+commit 9169323; `fin-overview.mjs` and `fin-revenue.mjs` pass.
+
+**Not landed on `feat/remediation-and-ux-phase1` yet:** its working tree held another session's
+uncommitted admin-workspace work at the time. Landing is `git merge fin/merge-r2` on that branch
+once the tree is clean.
