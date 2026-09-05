@@ -286,18 +286,17 @@ describe('PageNav — AC-05, AC-19, AC-58', () => {
     const names = screen.getAllByRole('link').map((l) => l.textContent?.trim())
     expect(names).toEqual([
       EN['subtab.operations.overview'],
-      /* subscriptions — the plans, the trips they buy, the accounts that buy
-         them in bulk */
+      /* subscriptions — the plans, the trips they buy, the cover on those trips */
       EN['subtab.operations.subscriptions'],
       EN['subtab.operations.subscriptionRequests'],
       EN['subtab.operations.subscriptionTrips'],
-      EN['subtab.operations.corporate'],
-      /* rides — a request, the ride, the captain sent to it, the cover */
+      EN['subtab.operations.assurance'],
+      /* rides — a request, the ride, the captain sent to it */
       EN['subtab.operations.rideRequests'],
       EN['subtab.operations.quickRides'],
       EN['subtab.operations.dispatch'],
-      EN['subtab.operations.assurance'],
-      /* the desk */
+      /* the desk — the accounts, then what this operator owes */
+      EN['subtab.operations.corporate'],
       EN['subtab.operations.myWork'],
       EN['subtab.operations.people'],
     ])

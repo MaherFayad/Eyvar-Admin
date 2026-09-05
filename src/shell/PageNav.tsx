@@ -130,11 +130,11 @@ export interface PageNavProps {
  * `Subscription trips` are two halves of one question while `My work` is not
  * about trips at all. The three groups are the product's own shape:
  *
- *   **subscriptions** — the plans, the trips they buy, and the corporate
- *                       accounts that are subscriptions bought in bulk
- *   **rides**         — a request, the ride it becomes, the captain sent to it,
- *                       and the assurance that covers it when it fails
- *   **the desk**      — what this operator owes, and the people behind supply
+ *   **subscriptions** — the plans, the trips they buy, and the assurance that
+ *                       covers a subscription trip when it fails
+ *   **rides**         — a request, the ride it becomes, the captain sent to it
+ *   **the desk**      — corporate accounts, what this operator owes, and the
+ *                       people behind supply
  *
  * **Rules, not titles.** The owner's direction is separators only, and it is
  * the right call for a nav: a group heading in a 232px column costs a row of
@@ -155,15 +155,10 @@ const NAV_GROUPS: Readonly<Record<string, readonly (readonly string[])[]>> = {
       'operations-subscriptions',
       'operations-subscription-requests',
       'operations-subscription-trips',
-      'operations-corporate',
-    ],
-    [
-      'operations-ride-requests',
-      'operations-quick-rides',
-      'operations-dispatch',
       'operations-assurance',
     ],
-    ['operations-my-work', 'operations-people'],
+    ['operations-ride-requests', 'operations-quick-rides', 'operations-dispatch'],
+    ['operations-corporate', 'operations-my-work', 'operations-people'],
   ],
 }
 
