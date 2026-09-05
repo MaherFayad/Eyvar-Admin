@@ -1,66 +1,38 @@
 /**
- * The plan editor — the one full-bleed screen in the product. Spec §5 row 6,
- * §8, `DESIGN.md` §8.2, **AC-390–401**.
- *
- * ## The hardest thing in this wave to get right, and it is visual
- *
- * §8.2 exists because a **derived value** and a **disabled input** were
- * confusable, and this form puts them **adjacent**: `Commission %` is a
- * disabled input (editable once Q7 lands) and `Captain share` beside it is
- * derived (never editable, because it has no input of its own). **AC-392** is
- * the criterion and the treatments are deliberately different in three ways:
- *
- * | | disabled input | derived value |
- * |---|---|---|
- * | box | a bordered field, reduced contrast | **no border, no fill** |
- * | focus | focusable, in the tab order | **not focusable, absent from tab order** |
- * | semantics | `disabled` | `aria-readonly` + a polite live region |
- *
- * **AC-391** is the second half of that: a derived value has no `tabIndex`, not
- * even `-1`, because `tabIndex={-1}` is still focusable by script and by click.
- *
- * ## One definition, printed and evaluated
- *
- * The calculator panel renders each definition's expression, its working and
- * its result on one row (see `PlanCalculator`), and the preview strip
- * evaluates the **same `expression` strings** (`derived.ts`). So **AC-397** —
- * *"each line's expression matches its definition character for character"* —
- * holds by construction: there is no second copy to drift from. Legacy has two
- * artefacts that agree today, which is worse than disagreeing.
- *
- * ## The blank-input defect, closed
- *
- * One coercion serves the preview and the save (`parseNumericInput`, blank →
- * `null`), so the preview and the saved record cannot disagree about a blank
- * field (**AC-395**'s mechanism). A `null` propagates through the chain and
- * every dependent value renders an em dash (**AC-393**), and `Save` is blocked
- * with the error **on the cleared input** — never on a derived value, which has
- * no input of its own and cannot be invalid (**AC-394**, §8.6).
- *
- * ## What Stage A can and cannot exercise
- *
- * Q7 is open, so the pricing half is disabled. That makes **AC-395**, **AC-398**
- * and **AC-400** unreachable *through the discount field* — an operator cannot
- * clear a disabled input. The mechanism is built and live for every editable
- * formula input (`Trips in the plan`), and the percentage validation runs
- * whatever the source of the value; the day Q7 lands, the criteria become
- * reachable with no change here. Recorded in the handoff rather than claimed.
+ * The plan editor — the one full-bleed screen. Spec §5 row 6, §8, `DESIGN.md`
+ * §8.2, **AC-390–401**, FINANCIALS-UX-PLAN §11, which carries the two-column
+ * design, the tab and the AC-397 argument.
  */
 
-import { useCallback, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+/**
+ * §8.2's distinction, which this form puts side by side: a **disabled input**
+ * is a bordered field at reduced contrast, focusable and in the tab order; a
+ * **derived value** has no box, no `tabIndex` at all (**AC-391** — `-1` is
+ * still focusable by script) and carries `DERIVED_PROPS`. **AC-392** is that
+ * the two never read as the same thing.
+ */
+
+/**
+ * One coercion serves the preview and the save (`parseNumericInput`, blank →
+ * `null`), so they cannot disagree about a blank field (**AC-395**). A `null`
+ * propagates and every dependent renders an em dash (**AC-393**); `Save` is
+ * blocked with the error on the cleared INPUT, never on a derived value
+ * (**AC-394**, §8.6). Q7 keeps the pricing half disabled, so AC-398 and AC-400
+ * stay unreachable through the discount field.
+ */
+
+import { useCallback, useMemo, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getPlan, savePlan } from '@/data/clients'
-import { PLAN_EXAMPLE_INPUTS } from '@/data/types'
-import { cn } from '@/lib/utils'
-import type { PlanFeature, PlanKey, SubscriptionPlan } from '@/data/types'
+import { getLiveRateCard, getPlan, savePlan } from '@/data/clients'
+import type { PlanKey, RateCard, SubscriptionPlan } from '@/data/types'
 import { useAsync, useForm, type Field } from '@/hooks'
-import { ABSENT, formatCount, formatMoney, formatPercent, parseNumericInput } from '@/lib'
+import { formatCount, formatMoney, formatPercent, parseNumericInput, type Language } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { ErrorState } from '@/components/ErrorState'
-import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { FullBleedEditorShell } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -72,59 +44,52 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { useShell } from '@/shell/ShellContext'
-import { derivePlan, type DerivedValue, type PlanClass } from './derived'
+import { derivePlan, type PlanClass } from './derived'
+import { PlanCalculations } from './PlanCalculations'
+import { PlanPreview } from './PlanPreview'
+import type { PlanDerived, PlanValues } from './planForm'
 
 /**
- * The character limit on a plan's display copy — **AC-448**.
- *
- * **It is the server's number, not a new one.** `savePlan()` refuses a feature
- * line over this length and returns `code: 'maxLength'`, and `PlanFeature`'s
- * own type comment records the rule against the legacy line it came from. It is
- * stated here once so the count, the message and the block that raises it all
- * read the same figure — a limit typed into three strings is a limit that
- * disagrees with itself the first time it moves.
- *
- * **Enforced on a feature, advisory on a name.** The server validates feature
- * lines and validates neither name, so the name fields count against this and
- * never block a save: a client-only refusal would reject a save the API would
- * have accepted, which is a worse defect than a long name. Raised for
- * product-owner — if a plan name has a real limit it belongs beside the feature
- * rule in the data layer, and this becomes enforced the same day.
+ * The character limit on a plan's display copy — **AC-448**. It is the server's
+ * number: `savePlan()` refuses a longer feature line with `code: 'maxLength'`.
+ * Enforced on a feature, advisory on a name, because the server validates the
+ * first and neither validates nor refuses the second.
  */
 const PLAN_TEXT_MAX_CHARS = 60
 
-/* ─────────────────────────── the form's values ─────────────────────────── */
+type EditorTab = 'details' | 'calculations'
+
+const EDITOR_TABS: readonly EditorTab[] = ['details', 'calculations']
+const DEFAULT_TAB: EditorTab = 'details'
 
 /**
- * **The catalogue half only.** The pricing half is absent from this type for
- * the same reason it is absent from `SavePlanInput`: Stage A's boundary is
- * enforced at the seam, not by a `disabled` attribute a screen could forget.
- *
- * Numbers are `number | null` because **blank is `null`** — not `0`, which is a
- * real duration, and not the previously stored value, which is a lie.
+ * Which view of the record is open, in `?tab=`. The default view carries no
+ * parameter, so the editor's own address is the plain one — the same rule
+ * `?view=` follows on the index screens (AC-389).
  */
-interface PlanValues {
-  nameEn: string
-  nameAr: string
-  durationDays: number | null
-  executeDays: number | null
-  cancelCap: number | null
-  sortOrder: number | null
-  status: SubscriptionPlan['status']
-  features: PlanFeature[]
-  economyActive: boolean
-  comfortActive: boolean
-}
+function useEditorTab(): { tab: EditorTab; selectTab: (id: string) => void } {
+  const [params, setParams] = useSearchParams()
+  const raw = params.get('tab')
+  const tab = EDITOR_TABS.find((each) => each === raw) ?? DEFAULT_TAB
 
-interface PlanDerived {
-  economy: DerivedValue[]
-  comfort: DerivedValue[]
+  const selectTab = useCallback(
+    (id: string) => {
+      const next = new URLSearchParams(params)
+      if (id === DEFAULT_TAB) next.delete('tab')
+      else next.set('tab', id)
+      setParams(next)
+    },
+    [params, setParams],
+  )
+
+  return { tab, selectTab }
 }
 
 export function PlanEditorScreen() {
   const shell = useShell()
-  const { t, dir, language } = shell.language
+  const { t, dir, language, translatorFor } = shell.language
   const navigate = useNavigate()
   const { planId = '' } = useParams<{ planId: string }>()
 
@@ -135,6 +100,14 @@ export function PlanEditorScreen() {
     cacheKey: 'pricing.plan',
   })
 
+  /* The rider preview states whether prices include VAT, and that is the RATE
+     CARD's claim rather than this screen's. Read separately so a rate card that
+     cannot be read costs the sentence and not the editor. */
+  const rateCard = useAsync<RateCard>((signal) => getLiveRateCard(signal), {
+    cacheKey: 'pricing.rateCards',
+  })
+  const vatIncluded = rateCard.status === 'content' ? (rateCard.data?.vatIncluded ?? null) : null
+
   const exit = useCallback(() => navigate('/financials/pricing'), [navigate])
 
   if (plan.status === 'loading') {
@@ -144,10 +117,11 @@ export function PlanEditorScreen() {
         onExit={exit}
         onSave={() => undefined}
         canSave={false}
+        aside={<PreviewSkeleton />}
         t={t}
         dir={dir}
       >
-        <LoadingSkeleton pattern="P3" />
+        <FormSkeleton />
       </FullBleedEditorShell>
     )
   }
@@ -172,7 +146,15 @@ export function PlanEditorScreen() {
   }
 
   return (
-    <PlanEditorForm plan={plan.data} onExit={exit} t={t} dir={dir} language={language} />
+    <PlanEditorForm
+      plan={plan.data}
+      onExit={exit}
+      t={t}
+      dir={dir}
+      language={language}
+      translatorFor={translatorFor}
+      vatIncluded={vatIncluded}
+    />
   )
 }
 
@@ -182,13 +164,37 @@ function PlanEditorForm({
   t,
   dir,
   language,
+  translatorFor,
+  vatIncluded,
 }: {
   plan: SubscriptionPlan
   onExit: () => void
   t: ReturnType<typeof useShell>['language']['t']
   dir: ReturnType<typeof useShell>['language']['dir']
-  language: ReturnType<typeof useShell>['language']['language']
+  language: Language
+  translatorFor: ReturnType<typeof useShell>['language']['translatorFor']
+  vatIncluded: boolean | null
 }) {
+  const { tab, selectTab } = useEditorTab()
+  /* The preview's language is the PREVIEW's, not the console's, and it starts
+     where the console is so an Arabic operator opens on the screen they read. */
+  const [previewLanguage, setPreviewLanguage] = useState<Language>(language)
+
+  /**
+   * How one substituted operand is written for a reader. `20` becomes `20 min`
+   * because the expression it came from reads `exampleMinutes`; a rate stays a
+   * bare number because the label above it already says what it is.
+   */
+  const renderOperand = useCallback(
+    (name: string, formatted: string): string => {
+      if (name === 'exampleMinutes') return t('fin.planEditor.calc.unit.minutes', { value: formatted })
+      if (name === 'exampleKm') return t('fin.planEditor.calc.unit.km', { value: formatted })
+      if (name === 'executeDays') return t('fin.planEditor.calc.unit.trips', { value: formatted })
+      return formatted
+    },
+    [t],
+  )
+
   const form = useForm<PlanValues, PlanDerived>({
     initialValues: {
       nameEn: plan.nameEn,
@@ -204,34 +210,28 @@ function PlanEditorForm({
     },
 
     /**
-     * **The single source, evaluated.** The panel below renders the same
-     * definitions this reads, so a definition change moves both.
-     *
-     * The pricing half comes from the plan record because Stage A does not edit
-     * it; the moment Q7 lands it comes from `values` and nothing else here
-     * changes.
+     * **The single source, evaluated.** The Calculations view prints the same
+     * definitions this reads and the preview quotes their results, so a
+     * definition change moves all three.
      */
     derive: (values) =>
-      derivePlan({
-        commissionPercent: plan.commissionPercent,
-        discountPercent: plan.discountPercent,
-        executeDays: values.executeDays,
-        economyPerMinuteHalalas: plan.economyPerMinuteHalalas,
-        economyPerKmHalalas: plan.economyPerKmHalalas,
-        comfortPerMinuteHalalas: plan.comfortPerMinuteHalalas,
-        comfortPerKmHalalas: plan.comfortPerKmHalalas,
-      }),
+      derivePlan(
+        {
+          commissionPercent: plan.commissionPercent,
+          discountPercent: plan.discountPercent,
+          executeDays: values.executeDays,
+          economyPerMinuteHalalas: plan.economyPerMinuteHalalas,
+          economyPerKmHalalas: plan.economyPerKmHalalas,
+          comfortPerMinuteHalalas: plan.comfortPerMinuteHalalas,
+          comfortPerKmHalalas: plan.comfortPerKmHalalas,
+        },
+        renderOperand,
+      ),
 
     /**
-     * **§8.6, in code and not in an HTML attribute.** `fp3-comm` carries
-     * `max="100"` with no clamp and `fp3-disc` carries no maximum at all
-     * (`:1102`), so a discount above 100 % produces a negative plan total that
-     * renders in the preview and saves cleanly.
-     *
-     * **AC-394 / §8.6** — the message goes on the INPUT. Never on a derived
-     * value: a derived value has no input of its own and cannot be invalid, and
-     * `FormErrors` is keyed by editable field, so writing one there does not
-     * compile.
+     * **AC-394 / §8.6** — the message goes on the INPUT. A derived value has no
+     * input of its own and cannot be invalid, and `FormErrors` is keyed by
+     * editable field, so writing one there does not compile.
      */
     validate: (values) => {
       const errors: Partial<Record<keyof PlanValues, string>> = {}
@@ -242,9 +242,7 @@ function PlanEditorForm({
       }
       /* **The same two rules `savePlan()` enforces**, checked here so the
          refusal is on the field at render rather than arriving as a 422 with a
-         `features.2` path the form cannot key. `FormErrors` has one slot per
-         editable field, so the first offence is the message; the row that
-         caused it is the one whose count has gone over. */
+         `features.2` path the form cannot key. */
       for (const feature of values.features) {
         if (!feature.en.trim() || !feature.ar.trim()) {
           errors.features = t('fin.planEditor.feature.required')
@@ -276,9 +274,7 @@ function PlanEditorForm({
         economyActive: values.economyActive,
         comfortActive: values.comfortActive,
       })
-      /* G9 — a completed mutation is `success`, never a bare `toast()`.
-         A bare call renders the iconless neutral toast, which is the
-         `info` register, for something that succeeded. */
+      /* G9 — a completed mutation is `success`, never a bare `toast()`. */
       toast.success(t('fin.planEditor.toast.saved'))
     },
   })
@@ -315,7 +311,11 @@ function PlanEditorForm({
     <FullBleedEditorShell
       title={form.values.nameEn || plan.id}
       badge={
-        <StatusBadge tone={plan.status === 'active' ? 'success' : plan.status === 'draft' ? 'info' : 'neutral'}>
+        <StatusBadge
+          tone={
+            plan.status === 'active' ? 'success' : plan.status === 'draft' ? 'info' : 'neutral'
+          }
+        >
           {t(`fin.pricing.plan.status.${plan.status}`)}
         </StatusBadge>
       }
@@ -323,21 +323,17 @@ function PlanEditorForm({
       onSave={submit}
       canSave={form.canSave}
       aside={
-        /* **Section 2.5's inspector, and the answer to "show me a proper
-           calculator".** Three cards that were the last three screens of a
-           scrolling form and are now beside the fields that drive them:
-
-             1. the assumptions the example is computed under,
-             2. the calculation itself, step by step, showing FORMULA →
-                WORKING → RESULT for each of the six definitions,
-             3. what a rider is charged, per class.
-
-           Nothing here is new arithmetic. `derivePlan` already computed every
-           one of these numbers from `PLAN_PRICING_DEFINITIONS`, and AC-397's
-           rule that each expression is its definition's character for character
-           still holds — the substituted line beneath it is generated from the
-           same string and the same scope, so the two cannot drift. */
-        <PlanCalculator form={form} t={t} language={language} />
+        /* §2.5's inspector, and the answer to "show me what I am editing":
+           what the edit in progress does, shown while it is being made. */
+        <PlanPreview
+          values={form.values}
+          derived={form.derived}
+          previewLanguage={previewLanguage}
+          onSelectLanguage={setPreviewLanguage}
+          t={t}
+          translatorFor={translatorFor}
+          vatIncluded={vatIncluded}
+        />
       }
       t={t}
       dir={dir}
@@ -345,410 +341,293 @@ function PlanEditorForm({
       <div className="flex flex-col gap-4">
         {banner && <Banner banner={banner} />}
 
-        {/* ── the catalogue half — editable ──────────────────────────── */}
-        <Card className="gap-3">
-          <div className="flex flex-col gap-3 px-(--card-spacing)">
-            <h2 className="text-sm font-semibold text-foreground">
-              {t('fin.planEditor.section.catalogue')}
-            </h2>
+        <ViewSwitcher
+          tabs={[
+            { id: 'details', label: t('fin.planEditor.tab.details') },
+            { id: 'calculations', label: t('fin.planEditor.tab.calculations') },
+          ]}
+          activeTab={tab}
+          onSelectTab={selectTab}
+        />
 
-            <TextField
-              field={form.field('nameEn')}
-              label={t('fin.planEditor.nameEn.label')}
-              onChange={(value) => form.setValue('nameEn', value)}
-            />
-            <TextField
-              field={form.field('nameAr')}
-              label={t('fin.planEditor.nameAr.label')}
-              help={t('fin.planEditor.nameAr.help')}
-              onChange={(value) => form.setValue('nameAr', value)}
-              /* **AC-448** — the Arabic name field renders in Arabic reading
-                 order in BOTH document directions, because the content is
-                 Arabic whichever language the console is in.
-
-                 **The direction word is not spelled here on purpose.** A
-                 hyphenated side-word in prose is a valid Tailwind candidate and
-                 has shipped a physical CSS rule out of a doc comment three
-                 times in this repo — once out of a comment written to warn
-                 about it. Describe the utility; never spell it. */
-              dir="rtl"
-              count={t('fin.planEditor.name.count', {
-                count: formatCount(form.values.nameAr.length, language),
-                max: formatCount(PLAN_TEXT_MAX_CHARS, language),
-              })}
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField
-                field={form.field('durationDays')}
-                label={t('fin.planEditor.durationDays.label')}
-                onChange={(value) => form.setValue('durationDays', value)}
-              />
-              <NumberField
-                field={form.field('executeDays')}
-                label={t('fin.planEditor.executeDays.label')}
-                onChange={(value) => form.setValue('executeDays', value)}
-              />
-              <NumberField
-                field={form.field('cancelCap')}
-                label={t('fin.planEditor.cancelCap.label')}
-                onChange={(value) => form.setValue('cancelCap', value)}
-              />
-              <NumberField
-                field={form.field('sortOrder')}
-                label={t('fin.planEditor.sortOrder.label')}
-                onChange={(value) => form.setValue('sortOrder', value)}
-              />
-            </div>
-
-            {/* §8.6 — the status select at `:1105` is read by nothing in
-                `savePlan()`, so an operator can change it, see it change, save,
-                and lose it. It is wired (**AC-401**). */}
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="plan-status">{t('fin.planEditor.status.label')}</Label>
-              <Select
-                value={form.values.status}
-                onValueChange={(value) =>
-                  form.setValue('status', value as SubscriptionPlan['status'])
-                }
-              >
-                <SelectTrigger id="plan-status" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(['draft', 'active', 'archived'] as const).map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {t(`fin.pricing.plan.status.${status}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap gap-4">
-              <SwitchField
-                id="plan-economy"
-                label={t('fin.planEditor.economyActive.label')}
-                checked={form.values.economyActive}
-                onChange={(value) => form.setValue('economyActive', value)}
-              />
-              <SwitchField
-                id="plan-comfort"
-                label={t('fin.planEditor.comfortActive.label')}
-                checked={form.values.comfortActive}
-                onChange={(value) => form.setValue('comfortActive', value)}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* ── the feature points — the counted fields §8.6 names ─────── */}
-        {form.values.features.length > 0 && (
-          <Card className="gap-3">
-            <div className="flex flex-col gap-3 px-(--card-spacing)">
-              <h2 className="text-sm font-semibold text-foreground">
-                {t('fin.planEditor.section.features')}
-              </h2>
-              {/* **AC-401** — every one of these is read by the save handler.
-                  `features` was round-tripped through `savePlan` with no control
-                  at all: an operator could not change a line an Arabic rider
-                  reads on the subscription card, and the two written copy keys
-                  for the count and the length were unreachable (**AC-448**).
-
-                  **AC-400 / §8.6** — the message lands on the field. The form
-                  keys errors by editable field, so all feature lines share one
-                  message; the row that caused it is the one whose count has
-                  gone past its maximum, which is why the count renders on every
-                  row rather than only on the offending one. */}
-              {form.values.features.map((feature, index) => (
-                <div key={index} className="flex flex-col gap-1">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {t('fin.planEditor.feature.label', {
-                      index: formatCount(index + 1, language),
-                    })}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FeatureField
-                      id={`plan-feature-${index}-en`}
-                      label={t('fin.planEditor.feature.en')}
-                      value={feature.en}
-                      count={t('fin.planEditor.feature.count', {
-                        count: formatCount(feature.en.length, language),
-                        max: formatCount(PLAN_TEXT_MAX_CHARS, language),
-                      })}
-                      invalid={feature.en.length > PLAN_TEXT_MAX_CHARS}
-                      onChange={(value) =>
-                        form.setValue(
-                          'features',
-                          form.values.features.map((each, at) =>
-                            at === index ? { ...each, en: value } : each,
-                          ),
-                        )
-                      }
-                    />
-                    <FeatureField
-                      id={`plan-feature-${index}-ar`}
-                      label={t('fin.planEditor.feature.ar')}
-                      value={feature.ar}
-                      count={t('fin.planEditor.feature.count', {
-                        count: formatCount(feature.ar.length, language),
-                        max: formatCount(PLAN_TEXT_MAX_CHARS, language),
-                      })}
-                      invalid={feature.ar.length > PLAN_TEXT_MAX_CHARS}
-                      /* The same reading-order decision as the Arabic name, and
-                         for the same reason: the content is Arabic in either
-                         document direction. The side word is not spelled in
-                         this comment — see the note on the name field. */
-                      dir="rtl"
-                      onChange={(value) =>
-                        form.setValue(
-                          'features',
-                          form.values.features.map((each, at) =>
-                            at === index ? { ...each, ar: value } : each,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-              {form.errors.features !== undefined && (
-                <p className="text-xs text-destructive">{form.errors.features}</p>
-              )}
-            </div>
-          </Card>
+        {tab === 'details' ? (
+          <PlanDetails
+            form={form}
+            plan={plan}
+            t={t}
+            language={language}
+          />
+        ) : (
+          <PlanCalculations
+            values={form.values}
+            derived={form.derived}
+            commissionPercent={plan.commissionPercent}
+            discountPercent={plan.discountPercent}
+            t={t}
+            language={language}
+          />
         )}
-
-        {/* ── the pricing half — §4.6's DISABLED treatment ───────────── */}
-        <Card className="gap-3">
-          <div className="flex flex-col gap-3 px-(--card-spacing)">
-            <h2 className="text-sm font-semibold text-foreground">
-              {t('fin.planEditor.section.pricing')}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {t('fin.planEditor.pricing.disabled')}
-            </p>
-
-            {/* **AC-392's near half.** These are DISABLED INPUTS: a bordered
-                field at reduced contrast, focusable, in the tab order, and
-                carrying `disabled`. The derived values below carry none of
-                those, and the two sit in the same form on purpose. */}
-            <div className="grid grid-cols-2 gap-3">
-              <DisabledField
-                id="plan-commission"
-                label={t('fin.planEditor.commissionPercent.label')}
-                value={formatPercent(plan.commissionPercent, language)}
-              />
-              <DisabledField
-                id="plan-discount"
-                label={t('fin.planEditor.discountPercent.label')}
-                value={formatPercent(plan.discountPercent, language)}
-              />
-              <DisabledField
-                id="plan-economy-minute"
-                label={t('fin.planEditor.economyPerMinute.label')}
-                value={formatMoney(plan.economyPerMinuteHalalas)}
-              />
-              <DisabledField
-                id="plan-economy-km"
-                label={t('fin.planEditor.economyPerKm.label')}
-                value={formatMoney(plan.economyPerKmHalalas)}
-              />
-              <DisabledField
-                id="plan-comfort-minute"
-                label={t('fin.planEditor.comfortPerMinute.label')}
-                value={formatMoney(plan.comfortPerMinuteHalalas)}
-              />
-              <DisabledField
-                id="plan-comfort-km"
-                label={t('fin.planEditor.comfortPerKm.label')}
-                value={formatMoney(plan.comfortPerKmHalalas)}
-              />
-            </div>
-          </div>
-        </Card>
-
       </div>
     </FullBleedEditorShell>
   )
 }
 
-/* ─────────────────────────────── the calculator ─────────────────────────── */
+/* ────────────────────────────── the Details view ────────────────────────── */
 
-/**
- * **§2.5's inspector panel — the plan's arithmetic, beside the fields that
- * drive it.**
- *
- * ## The three defects this replaces
- *
- * The editor already computed everything below. What it did with the result was
- * the problem:
- *
- *   1. **The preview was an appendix.** The worked example and the formula
- *      panel were the last two cards of a ~1,600px scrolling form, so a pricing
- *      owner changing `Commission %` had to scroll past every field they had
- *      just filled in to see what it did, then scroll back to make the next
- *      edit. A preview you cannot see while editing is not a preview.
- *   2. **The formulas and the numbers were in different cards.** One card said
- *      `driverEarns = planTotal × (1 − commissionPercent/100)`. Another,
- *      further down, said `Captain earns  3,591.15 SAR`. Nothing connected the
- *      two, so checking one against the other meant holding a formula in your
- *      head while you scrolled to its answer.
- *   3. **There was no working.** Formula and result, with the substitution —
- *      the step where a reader can actually check the arithmetic — missing.
- *      The owner's words: *"the calculations to be more clear — show me a
- *      proper calculator"*. A calculator has three parts and this had two.
- *
- * ## What each row shows
- *
- * ```
- *   Captain earns                                       <- the definition's label
- *   planTotal × (1 − commissionPercent/100)             <- AC-397's expression
- *   1,554.00 × (1 − 20/100)                             <- the same, substituted
- *                                          1,243.20 SAR <- the result
- * ```
- *
- * **AC-397 is not weakened by this and is worth checking against.** Its rule is
- * that the expression rendered *"IS its definition's, character for character"*
- * and that *"there is no second copy anywhere, in code or in markup"*. Both
- * still hold: the expression is `definition.expression` as before, and the
- * substituted line is generated from that same string against the same scope by
- * `substituteExpression`, so it cannot say something the formula does not. What
- * changed is that the formula now sits ON the row it explains rather than in a
- * separate card, which is strictly less duplication than before, not more.
- *
- * **AC-393's em dash survives.** `substituted` is `null` exactly when `value`
- * is, by one condition in `derivePlanClass`, so a blank input renders the label
- * and an em dash with no half-written equation under it.
- *
- * **AC-399 / D-F4's assumptions move to the top** of the panel rather than
- * sitting between the two cards: they are the inputs the whole calculation is
- * conditional on, and a reader needs them before the working rather than after
- * it.
- */
-function PlanCalculator({
+function PlanDetails({
   form,
+  plan,
   t,
   language,
 }: {
-  form: { values: PlanValues; derived: PlanDerived }
+  form: ReturnType<typeof useForm<PlanValues, PlanDerived>>
+  plan: SubscriptionPlan
   t: ReturnType<typeof useShell>['language']['t']
-  language: ReturnType<typeof useShell>['language']['language']
+  language: Language
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* AC-399 / D-F4 — what the example assumes, before any of it. */}
-      <Card className="gap-2">
-        <div className="flex flex-col gap-1 px-(--card-spacing)">
+      {/* ── the catalogue half — editable ──────────────────────────── */}
+      <Card className="gap-3">
+        <div className="flex flex-col gap-3 px-(--card-spacing)">
           <h2 className="text-sm font-semibold text-foreground">
-            {t('fin.planEditor.preview.heading')}
+            {t('fin.planEditor.section.catalogue')}
           </h2>
-          <p className="text-xs text-muted-foreground">
-            {t('fin.planEditor.preview.column', {
-              km: String(PLAN_EXAMPLE_INPUTS.exampleKm),
-              minutes: String(PLAN_EXAMPLE_INPUTS.exampleMinutes),
-              days:
-                form.values.executeDays === null
-                  ? ABSENT
-                  : formatCount(form.values.executeDays, language),
+
+          <TextField
+            field={form.field('nameEn')}
+            label={t('fin.planEditor.nameEn.label')}
+            onChange={(value) => form.setValue('nameEn', value)}
+          />
+          <TextField
+            field={form.field('nameAr')}
+            label={t('fin.planEditor.nameAr.label')}
+            help={t('fin.planEditor.nameAr.help')}
+            onChange={(value) => form.setValue('nameAr', value)}
+            /* **AC-448** — the Arabic name field renders in Arabic reading
+               order in BOTH document directions, because the content is Arabic
+               whichever language the console is in. The direction word is not
+               spelled in prose here: a hyphenated side-word is a valid Tailwind
+               candidate and has shipped a physical CSS rule out of a comment. */
+            dir="rtl"
+            count={t('fin.planEditor.name.count', {
+              count: formatCount(form.values.nameAr.length, language),
+              max: formatCount(PLAN_TEXT_MAX_CHARS, language),
             })}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t('fin.planEditor.preview.note.plan')}
-          </p>
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              field={form.field('durationDays')}
+              label={t('fin.planEditor.durationDays.label')}
+              onChange={(value) => form.setValue('durationDays', value)}
+            />
+            <NumberField
+              field={form.field('executeDays')}
+              label={t('fin.planEditor.executeDays.label')}
+              onChange={(value) => form.setValue('executeDays', value)}
+            />
+            <NumberField
+              field={form.field('cancelCap')}
+              label={t('fin.planEditor.cancelCap.label')}
+              onChange={(value) => form.setValue('cancelCap', value)}
+            />
+            <NumberField
+              field={form.field('sortOrder')}
+              label={t('fin.planEditor.sortOrder.label')}
+              onChange={(value) => form.setValue('sortOrder', value)}
+            />
+          </div>
+
+          {/* §8.6 — the status select at `:1105` is read by nothing in
+              `savePlan()`, so an operator can change it, see it change, save,
+              and lose it. It is wired (**AC-401**). */}
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="plan-status">{t('fin.planEditor.status.label')}</Label>
+            <Select
+              value={form.values.status}
+              onValueChange={(value) =>
+                form.setValue('status', value as SubscriptionPlan['status'])
+              }
+            >
+              <SelectTrigger id="plan-status" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(['draft', 'active', 'archived'] as const).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {t(`fin.pricing.plan.status.${status}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <SwitchField
+              id="plan-economy"
+              label={t('fin.planEditor.economyActive.label')}
+              checked={form.values.economyActive}
+              onChange={(value) => form.setValue('economyActive', value)}
+            />
+            <SwitchField
+              id="plan-comfort"
+              label={t('fin.planEditor.comfortActive.label')}
+              checked={form.values.comfortActive}
+              onChange={(value) => form.setValue('comfortActive', value)}
+            />
+          </div>
         </div>
       </Card>
 
-      {/* The calculation, per vehicle class. Two cards rather than two columns:
-          each row is now four lines deep, and side by side at 416px the
-          expressions would wrap mid-formula. */}
-      <CalculatorCard
-        heading={t('fin.planEditor.preview.class.economy')}
-        values={form.derived.economy}
-        t={t}
-        language={language}
-      />
-      <CalculatorCard
-        heading={t('fin.planEditor.preview.class.comfort')}
-        values={form.derived.comfort}
-        t={t}
-        language={language}
-      />
+      {/* ── the feature points — the counted fields §8.6 names ─────── */}
+      {form.values.features.length > 0 && (
+        <Card className="gap-3">
+          <div className="flex flex-col gap-3 px-(--card-spacing)">
+            <h2 className="text-sm font-semibold text-foreground">
+              {t('fin.planEditor.section.features')}
+            </h2>
+            {/* **AC-400 / §8.6** — the message lands on the field. The form keys
+                errors by editable field, so all feature lines share one message;
+                the row that caused it is the one whose count has gone past its
+                maximum, which is why the count renders on every row. */}
+            {form.values.features.map((feature, index) => (
+              <div key={index} className="flex flex-col gap-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {t('fin.planEditor.feature.label', {
+                    index: formatCount(index + 1, language),
+                  })}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FeatureField
+                    id={`plan-feature-${index}-en`}
+                    label={t('fin.planEditor.feature.en')}
+                    value={feature.en}
+                    count={t('fin.planEditor.feature.count', {
+                      count: formatCount(feature.en.length, language),
+                      max: formatCount(PLAN_TEXT_MAX_CHARS, language),
+                    })}
+                    invalid={feature.en.length > PLAN_TEXT_MAX_CHARS}
+                    onChange={(value) =>
+                      form.setValue(
+                        'features',
+                        form.values.features.map((each, at) =>
+                          at === index ? { ...each, en: value } : each,
+                        ),
+                      )
+                    }
+                  />
+                  <FeatureField
+                    id={`plan-feature-${index}-ar`}
+                    label={t('fin.planEditor.feature.ar')}
+                    value={feature.ar}
+                    count={t('fin.planEditor.feature.count', {
+                      count: formatCount(feature.ar.length, language),
+                      max: formatCount(PLAN_TEXT_MAX_CHARS, language),
+                    })}
+                    invalid={feature.ar.length > PLAN_TEXT_MAX_CHARS}
+                    /* The same reading-order decision as the Arabic name, and
+                       for the same reason: the content is Arabic in either
+                       document direction. */
+                    dir="rtl"
+                    onChange={(value) =>
+                      form.setValue(
+                        'features',
+                        form.values.features.map((each, at) =>
+                          at === index ? { ...each, ar: value } : each,
+                        ),
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+            {form.errors.features !== undefined && (
+              <p className="text-xs text-destructive">{form.errors.features}</p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* ── the pricing half — §4.6's DISABLED treatment ───────────── */}
+      <Card className="gap-3">
+        <div className="flex flex-col gap-3 px-(--card-spacing)">
+          <h2 className="text-sm font-semibold text-foreground">
+            {t('fin.planEditor.section.pricing')}
+          </h2>
+          <p className="text-xs text-muted-foreground">{t('fin.planEditor.pricing.disabled')}</p>
+
+          {/* **AC-392's near half.** These are DISABLED INPUTS: a bordered field
+              at reduced contrast, focusable, in the tab order, and carrying
+              `disabled`. The derived values in the Calculations view carry none
+              of those, and the contrast is the point. */}
+          <div className="grid grid-cols-2 gap-3">
+            <DisabledField
+              id="plan-commission"
+              label={t('fin.planEditor.commissionPercent.label')}
+              value={formatPercent(plan.commissionPercent, language)}
+            />
+            <DisabledField
+              id="plan-discount"
+              label={t('fin.planEditor.discountPercent.label')}
+              value={formatPercent(plan.discountPercent, language)}
+            />
+            <DisabledField
+              id="plan-economy-minute"
+              label={t('fin.planEditor.economyPerMinute.label')}
+              value={formatMoney(plan.economyPerMinuteHalalas)}
+            />
+            <DisabledField
+              id="plan-economy-km"
+              label={t('fin.planEditor.economyPerKm.label')}
+              value={formatMoney(plan.economyPerKmHalalas)}
+            />
+            <DisabledField
+              id="plan-comfort-minute"
+              label={t('fin.planEditor.comfortPerMinute.label')}
+              value={formatMoney(plan.comfortPerMinuteHalalas)}
+            />
+            <DisabledField
+              id="plan-comfort-km"
+              label={t('fin.planEditor.comfortPerKm.label')}
+              value={formatMoney(plan.comfortPerKmHalalas)}
+            />
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }
 
-/**
- * One vehicle class's chain, as `formula → working → result` per step.
- *
- * `aria-live="polite"` stays on the RESULT and not on the working: the panel
- * recomputes on every keystroke, and announcing three lines per step per class
- * would make the editor unusable with a screen reader. The number is what
- * changed; the formula did not.
- */
-function CalculatorCard({
-  heading,
-  values,
-  t,
-  language,
-}: {
-  heading: string
-  values: DerivedValue[]
-  t: ReturnType<typeof useShell>['language']['t']
-  language: ReturnType<typeof useShell>['language']['language']
-}) {
+/* ─────────────────────────────── the four states ────────────────────────── */
+
+/** The data column's loading shape: the tab row, then three cards of fields. */
+function FormSkeleton() {
   return (
-    <Card className="gap-2">
-      <div className="flex flex-col gap-2 px-(--card-spacing)">
-        <h3 className="text-sm font-semibold text-foreground">{heading}</h3>
-        <dl className="flex list-none flex-col gap-2">
-          {values.map((value, index) => (
-            <div
-              key={value.id}
-              className={cn(
-                'flex flex-col gap-0.5',
-                /* A rule above every step but the first, so six steps read as
-                   six steps rather than as one block of text. */
-                index > 0 && 'border-t border-border pt-2',
-              )}
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-sm text-foreground">{t(value.labelKey)}</dt>
-                <dd
-                  aria-readonly
-                  aria-live="polite"
-                  className="shrink-0 text-sm font-semibold tabular-nums text-foreground"
-                >
-                  <bdi>{renderDerived(value, language)}</bdi>
-                </dd>
-              </div>
-              {/* AC-397's expression, character for character. **It WRAPS and
-                  must not truncate**: `exampleMinutes × perMinuteHalalas +
-                  exampleKm × perKmHalalas` is 54 characters and the panel is
-                  416px, so `truncate` cut it at `perKmH…` — a formula with its
-                  last operand missing is worse than no formula, because it
-                  looks complete. Wrapping costs a line and keeps AC-397's
-                  character-for-character promise true on screen rather than
-                  only in the source. `<bdi>` because
-                  it is a Latin formula that must not reorder inside an Arabic
-                  panel — `1 − commissionPercent/100` with its leading digit is
-                  exactly the bidi-neutral run that hops to the far end. */}
-              <code className="block text-xs break-words text-muted-foreground">
-                <bdi>{value.expression}</bdi>
-              </code>
-              {value.substituted !== null && (
-                /* THE WORKING — the third of a calculator that was missing.
-                   Suppressed rather than half-rendered when an input is blank;
-                   see `DerivedValue.substituted`. */
-                <code className="block text-xs break-words tabular-nums text-muted-foreground">
-                  <bdi>{value.substituted}</bdi>
-                </code>
-              )}
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-control w-48 rounded-full" />
+      {[0, 1].map((card) => (
+        <div key={card} className="rounded-xl border border-border bg-card p-3">
+          <Skeleton className="mb-3 h-3.5 w-24" />
+          {[0, 1, 2, 3].map((field) => (
+            <div key={field} className="mb-3 flex flex-col gap-1 last:mb-0">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-control w-full rounded-lg" />
             </div>
           ))}
-        </dl>
-      </div>
-    </Card>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The end column's loading shape: the toggle, then the phone. */
+function PreviewSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-control w-20 self-end rounded-full" />
+      <Skeleton className="mx-auto min-h-140 w-full max-w-64 rounded-3xl" />
+    </div>
   )
 }
 
@@ -756,18 +635,9 @@ function CalculatorCard({
 
 /**
  * **AC-448** — a text field, with the character count on the same line as its
- * help or its error.
- *
- * **One paragraph, two spans, not two paragraphs.** The line beneath a field is
- * one description: `aria-describedby` points at this element's id, so splitting
- * it would either lose the count from the description or need a second id on
- * every field in the editor. The help sits at the reading start and the count
- * trails it at the other edge, both mirroring with the document.
- *
- * The count is **localised** — both numbers pass through `formatCount`, so an
- * Arabic console renders Arabic-Indic digits. That is the half of AC-448 the
- * criterion is actually about; a count that always renders Latin digits beside
- * an Arabic field would satisfy a presence check and fail the criterion.
+ * help or its error. One paragraph, two spans: `aria-describedby` points at one
+ * id, so splitting it would lose the count from the description. The count is
+ * localised, which is the half of AC-448 the criterion is about.
  */
 function TextField({
   field,
@@ -807,13 +677,9 @@ function TextField({
 }
 
 /**
- * One half of one feature line — **AC-448**'s counted control.
- *
- * Not a `TextField`: a feature line is an element of an array and has no `Field`
- * of its own, because `useForm` keys by editable field and `features` is one
- * key. It carries the same anatomy — label, control, one description line with
- * the count trailing — so the two read as one field type on screen even though
- * only one of them is form-managed.
+ * One half of one feature line — **AC-448**'s counted control. Not a
+ * `TextField`: a feature line is an element of an array and has no `Field` of
+ * its own, because `useForm` keys by editable field and `features` is one key.
  */
 function FeatureField({
   id,
@@ -852,12 +718,9 @@ function FeatureField({
 }
 
 /**
- * The numeric field, and the **one** coercion (§8.2.5).
- *
- * The raw string is held in the form's own value as a number or `null`; a blank
- * field is `null`, which flows into the derived chain and renders an em dash.
- * There is no second function with a different blank-field answer, which is the
- * whole of `gv()` versus `numval()`.
+ * The numeric field, and the **one** coercion (§8.2.5). A blank field is `null`,
+ * which flows into the derived chain and renders an em dash. There is no second
+ * function with a different blank-field answer.
  */
 function NumberField({
   field,
@@ -891,10 +754,8 @@ function NumberField({
 
 /**
  * §4.6's **disabled** treatment — a bordered field at reduced contrast,
- * focusable and in the tab order, carrying `disabled` and a stated reason.
- *
- * **AC-392** turns on this being visibly a different thing from the derived
- * values in the card below. It is a real `input`, because it will become one.
+ * focusable and in the tab order, carrying `disabled`. **AC-392** turns on this
+ * being visibly a different thing from a derived value.
  */
 function DisabledField({ id, label, value }: { id: string; label: string; value: string }) {
   return (
@@ -922,21 +783,6 @@ function SwitchField({
       <Label htmlFor={id}>{label}</Label>
     </div>
   )
-}
-
-/* ───────────────────────── the derived-value column ────────────────────── */
-
-function renderDerived(
-  value: DerivedValue,
-  language: ReturnType<typeof useShell>['language']['language'],
-): string {
-  if (value.value === null || !Number.isFinite(value.value)) return ABSENT
-  if (value.unit === 'percent') return formatPercent(value.value, language)
-  /* Halalas: the chain carries full precision until `driverEarns` rounds, so a
-     mid-chain value can be fractional. `formatMoney` refuses a non-integer on
-     purpose — money is never a float — so the display rounds at the boundary
-     and the ARITHMETIC does not. */
-  return formatMoney(Math.round(value.value))
 }
 
 export type { PlanClass }

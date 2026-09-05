@@ -495,3 +495,142 @@ commit 9169323; `fin-overview.mjs` and `fin-revenue.mjs` pass.
 **Not landed on `feat/remediation-and-ux-phase1` yet:** its working tree held another session's
 uncommitted admin-workspace work at the time. Landing is `git merge fin/merge-r2` on that branch
 once the tree is clean.
+
+---
+
+## 11. The plan editor, rebuilt — two columns, two views, and a rider preview
+
+The editor at `/financials/pricing/plans/:planId/edit` was one long form with a calculator rail
+beside it, and the rail printed the evaluator's own identifiers at a Finance lead:
+`exampleMinutes × perMinuteHalalas + exampleKm × perKmHalalas`, in a code face, above the
+substituted line. The owner's judgement on it was that it is impossible to read, and the whole of
+§11 follows from that.
+
+### 11.1 What the two columns are
+
+| Column | Width at 1280 / 1440 | Holds |
+|---|---|---|
+| **Data** (inline-start) | 816 / 976 | the record, in two views, chosen by a D12 stadium at the top of the column |
+| **Preview** (inline-end) | 416, fixed | the plan as a rider sees it in the app, with its own language |
+
+The shell is unchanged: `FullBleedEditorShell` (`aside`), so back, title, status badge and the one
+primary `Save` are where they were, the preview inherits the sticky `wide:` aside, and below
+`--ev-bp-wide` it restacks under the data column at full width. `--ev-bp-wide` is **1280** (O1
+moved it there from 1344; `PageShell.tsx`'s prose still says 1344 and is stale), so D2's floor is
+the first width at which the two columns stand side by side, which is where an operator works.
+
+### 11.2 The two views of the data column
+
+**Details** is the form, unchanged: the catalogue fields, the feature lines with their counts, and
+the pricing half in §4.6's disabled treatment. Same fields, same validation, same Q7 disabling, and
+**AC-392**'s distinction intact — a disabled input keeps its box and its place in the tab order; a
+derived value has neither, and no `tabIndex` at all.
+
+**Calculations** is the worked example, rewritten as **result and working**:
+
+```
+      Gross per trip                              30.00 SAR
+        20 min × 0.95 + 10 km × 1.10
+  =   Plan total                                 150.00 SAR
+        30.00 × 5 trips
+  −   Captain earns                              120.00 SAR
+        150.00 × (1 − 20/100)
+  =   Eyvar keeps                                 30.00 SAR
+        150.00 − 120.00
+```
+
+The shape is §H5's `FigureRow` with `operator`: a gutter reserved on every row so the labels align,
+and a sign only where one is true. No identifier, no code face, and the assumptions the example runs
+under (`10 km · 20 min × 5 trips`, the commission and discount rates, the surge exclusion) open the
+view rather than trailing it.
+
+The choice lives in **`?tab=`**, and the default view carries no parameter — the same rule `?view=`
+follows on the index screens (AC-389), so the editor's own address stays the plain one.
+
+### 11.3 AC-397, and why it is not weakened
+
+AC-397 reads: *the formula panel's line count equals the number of computed-field definitions, and
+each line's expression matches its definition character for character … there is no second copy
+anywhere, in code or in markup.*
+
+- **The count holds.** One row per definition, per class: six definitions, two classes, twelve rows,
+  measured in the browser (`calcLines: 12`).
+- **The working IS the expression.** `substituteParts` walks `definition.expression` — the same
+  string `evaluateExpression` reduces to the result printed beside it — and replaces each identifier
+  with the value the scope held at that step, in the units the operator prices in. The operators,
+  the literals and the parentheses pass through untouched, so the line keeps the formula's shape.
+- **What was dropped is the second rendering, not the source.** The old panel printed the raw
+  expression *and* its substitution: two lines for one definition, of which one was written for the
+  evaluator. Removing the untranslated one removes a copy; it does not add one.
+- **AC-393 is unaffected.** `substituted` and `substitutedParts` are `null` exactly when `value` is,
+  by one condition, so a blank input renders the label and an em dash with no half-written equation
+  under it.
+
+A `SubstitutionRenderer` supplied by the screen decides how one already-formatted operand is
+written — `20` becomes `20 min` because the expression it came from reads `exampleMinutes`. It
+cannot change which names are substituted or in what order, so it cannot make the printed line
+disagree with the evaluated one.
+
+### 11.4 The preview's data contract
+
+Everything on the frame comes from form state and the same `derivePlan` evaluation the Calculations
+view reads, so an unsaved edit shows there on the `input` event (**AC-396**).
+
+| On the frame | From |
+|---|---|
+| plan name | `values.nameEn` / `values.nameAr`, by the preview's language |
+| plan total | `derived[quoted].planTotal` |
+| per trip | `derived[quoted].discountedPerTrip` |
+| duration, trips | `values.durationDays`, `values.executeDays` |
+| feature list | `values.features`, the `en` or `ar` half, blanks dropped |
+| class chips | `values.economyActive`, `values.comfortActive` |
+| `Subscribe` | disabled always — the editor subscribes nobody, so it competes with `Save` for nothing |
+
+The quoted class is Economy where the plan offers it and Comfort for a Comfort-only plan: that is the
+price the app leads with.
+
+**The language toggle is the preview's alone.** The frame carries its own `dir` and `lang`, and its
+labels resolve through `LanguageState.translatorFor(language)` — the translator the shell already
+exposes for a language that is not the active one — so nothing is hardcoded and nothing moves the
+console. An operator reading the console in English can check the Arabic card, and vice versa.
+
+**The caption states what the frame is, and the VAT half is the rate card's claim.** `getLiveRateCard`
+is read separately from the plan; the sentence prints *Prices include VAT* only where the live card
+says `vatIncluded`, and the frame says nothing about VAT where the card could not be read. A rate
+card that fails costs the sentence, never the editor.
+
+### 11.5 Arabic, and the one thing that had to be built for it
+
+A working that carries unit words is bidirectional text: `20 دقيقة × 0.95 + 10 كم × 1.10` is Arabic
+runs inside a formula that reads in operator order in either language. A single string cannot express
+that — `<bdi>` resolves its direction from the first strong character and reverses the line, and the
+project forbids U+2068/U+2069 inside a string (`format/money.ts` U-4). So the working is rendered as
+its **parts**: each substituted operand is its own `<bdi>` inside an LTR paragraph, and the operators
+between them are plain runs. Measured in Arabic at 1280: the seven runs of `grossPerTrip`'s working
+are in strictly increasing x order.
+
+### 11.6 States
+
+Content, loading and error. Loading is shaped like the two columns — the tab row and two field cards
+in the data column, the toggle and the phone in the preview column — not `P3`, which is a
+three-across form pattern this screen no longer is. **Empty does not apply**: the editor is reached
+with a record.
+
+### 11.7 Verified (2026-09-05, `fin/plan-editor`)
+
+`npm run typecheck` clean. `npx vitest run src/screens/financials` — 17 files, 321 tests, all pass;
+the plan editor's own file is 19 tests, including AC-390–401 amended for the new structure and five
+new ones for the tabs, the identifier sweep, the preview and the language toggle.
+
+Chromium at 1280 and 1440, light and dark, console `en` and `ar`, on both tabs and with the preview
+in Arabic — 16 captures:
+
+| Fact | Result |
+|---|---|
+| data column / preview column | 816 / 416 at 1280 · 976 / 416 at 1440, side by side in every capture |
+| phone frame | 256 × 578 |
+| `overflowX` | 0 everywhere |
+| text nodes in the Calculations view matching `/[a-z][A-Z]\|Halalas/` | 0 |
+| working runs out of left-to-right order (Arabic) | 0 |
+| rows in the Calculations view | 12, being six definitions × two classes |
+| enabled `bg-primary` buttons | 0 while the form is clean — `Save` and the preview's `Subscribe` are both disabled |

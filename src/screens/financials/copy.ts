@@ -1262,4 +1262,34 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.deduction.blocked.applied': 'This deduction has already been applied.',
   'fin.deduction.blocked.waived': 'This deduction has already been waived.',
   /* ── end lane D ── */
+
+  /* ── FINANCIALS-UX-PLAN §11 Plan editor ── */
+
+  /* The two views of the data column. `?tab=` carries the choice. */
+  'fin.planEditor.tab.details': 'Details',
+  'fin.planEditor.tab.calculations': 'Calculations',
+
+  /* The working, in words. Each is one substituted operand, so the unit sits
+     with the number the expression read rather than in a legend. */
+  'fin.planEditor.calc.unit.minutes': '{value} min',
+  'fin.planEditor.calc.unit.km': '{value} km',
+  'fin.planEditor.calc.unit.trips': '{value} trips',
+  'fin.planEditor.calc.assumptions': 'What this example assumes',
+
+  /* The rider-app preview. Every key below is rendered in the PREVIEW's
+     language, not the console's, so it reads as the app reads. */
+  'fin.planEditor.preview.language.label': 'Preview language',
+  'fin.planEditor.preview.language.en': 'EN',
+  'fin.planEditor.preview.language.ar': 'AR',
+  'fin.planEditor.preview.caption': 'Preview of the rider app.',
+  'fin.planEditor.preview.caption.vat': 'Preview of the rider app. Prices include VAT.',
+  'fin.planEditor.rider.perTrip': 'per trip',
+  'fin.planEditor.rider.plan': 'Plan',
+  'fin.planEditor.rider.duration': '{days} days',
+  'fin.planEditor.rider.trips': '{count} trips',
+  'fin.planEditor.rider.included': "What's included",
+  'fin.planEditor.rider.classes': 'Ride in',
+  'fin.planEditor.rider.subscribe': 'Subscribe',
+  'fin.planEditor.rider.unnamed': 'Untitled plan',
+  /* ── end §11 ── */
 }

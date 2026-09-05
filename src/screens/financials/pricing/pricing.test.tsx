@@ -22,6 +22,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   disableMockLatency,
+  getLiveRateCard,
   getPlan,
   getRouteTable,
   listCancellationRules,
@@ -33,7 +34,7 @@ import {
 } from '@/data/clients'
 import { PLAN_EXAMPLE_INPUTS, type PlanKey, type SubTabRoute } from '@/data/types'
 import { formatMoney } from '@/lib'
-import { EN } from '@/i18n/dictionaries'
+import { AR, EN } from '@/i18n/dictionaries'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppLayout } from '@/shell/AppLayout'
 import { PricingScreen } from './PricingScreen'
@@ -85,6 +86,39 @@ function mountEditor(planId = 'monthly') {
       </ShellProvider>
     </MemoryRouter>,
   )
+}
+
+const calculationsTab = () =>
+  screen.getByRole('tab', { name: EN['fin.planEditor.tab.calculations'] as string })
+const detailsTab = () =>
+  screen.getByRole('tab', { name: EN['fin.planEditor.tab.details'] as string })
+
+/**
+ * The plan total as the rider preview prints it. The preview stands beside both
+ * tabs of the data column, so it is the derived value an editor test can read
+ * without leaving the field it just typed in (§11).
+ */
+function previewTotal(): string {
+  const frame = screen.getByTestId('plan-preview-frame')
+  return (frame.querySelector('[aria-readonly="true"]')?.textContent ?? '').trim()
+}
+
+/** Every non-blank text node under `root`, each one as a reader sees it. */
+function textNodesIn(root: HTMLElement): string[] {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  const out: string[] = []
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    const text = (node.textContent ?? '').trim()
+    if (text !== '') out.push(text)
+  }
+  return out
+}
+
+/** One line of the Calculations view, by the label the definition declares. */
+function derivedLine(label: string): string {
+  const panel = screen.getByTestId('plan-calculations')
+  const term = within(panel).getAllByText(label)[0] as HTMLElement
+  return (term.nextElementSibling?.textContent ?? '').trim()
 }
 
 /* ═════════════════════ AC-389 — four views, one route ═══════════════════ */
@@ -213,11 +247,12 @@ describe('the plan editor', () => {
       expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
     )
 
-    const derivedValue = (label: string) => {
-      const term = screen.getAllByText(label)[0] as HTMLElement
-      return (term.nextElementSibling?.textContent ?? '').trim()
-    }
-    const before = derivedValue(EN['pricing.derived.planTotal'] as string)
+    /* **The rider preview is the always-visible derived value** (§11): the form
+       and the worked example are two views of one column now, so a derived
+       value sharing a tab with the input could not witness "on the `input`
+       event" without a click in between. The preview stands beside both tabs
+       and reads the same `derivePlan` result. */
+    const before = previewTotal()
     expect(before).not.toBe('')
 
     const trips = screen.getByLabelText(EN['fin.planEditor.executeDays.label'] as string)
@@ -225,7 +260,11 @@ describe('the plan editor', () => {
     await user.type(trips, '30')
 
     /* No blur, no submit — the value has already moved. */
-    expect(derivedValue(EN['pricing.derived.planTotal'] as string)).not.toBe(before)
+    expect(previewTotal()).not.toBe(before)
+
+    /* And the worked example, on the other tab, agrees with it. */
+    await user.click(calculationsTab())
+    expect(derivedLine(EN['pricing.derived.planTotal'] as string)).toBe(previewTotal())
   })
 
   /**
@@ -249,9 +288,13 @@ describe('the plan editor', () => {
     await user.tab()
 
     /* Every dependent derived value is an em dash — never `0.00 SAR` and never
-       a stale number (**AC-393's screen half**). */
-    const planTotal = screen.getAllByText(EN['pricing.derived.planTotal'] as string)[0] as HTMLElement
-    expect(planTotal.nextElementSibling?.textContent?.trim()).toBe('—')
+       a stale number (**AC-393's screen half**). Asserted in both places a
+       derived value now renders: the preview beside the form, and the worked
+       example on the Calculations tab. */
+    expect(previewTotal()).toBe('—')
+    await user.click(calculationsTab())
+    expect(derivedLine(EN['pricing.derived.planTotal'] as string)).toBe('—')
+    await user.click(detailsTab())
 
     await user.click(screen.getByRole('button', { name: EN['shell.saveBar.save'] as string }))
 
@@ -281,12 +324,18 @@ describe('the plan editor', () => {
     const user = userEvent.setup()
     mountEditor()
     await waitFor(() =>
-      expect(screen.getByText(EN['fin.planEditor.preview.heading'] as string)).toBeTruthy(),
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
     )
+    /* The worked example is the Calculations view of the data column now (§11);
+       the criterion is unchanged and is asserted where it renders. */
+    await user.click(calculationsTab())
 
     const plan = await getPlan('monthly' as PlanKey)
+    /* `10 km ·` and not `10 km`: the working under each line now states the
+       same literal input (`20 min × 0.95 + 10 km × 1.10`), which is the point
+       of it, so the header is matched on the separator only it carries. */
     const header = screen.getByText(
-      new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km`),
+      new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km ·`),
     )
     expect(header.textContent).toContain(`${PLAN_EXAMPLE_INPUTS.exampleMinutes} min`)
     expect(header.textContent).toContain(String(plan.executeDays))
@@ -295,11 +344,13 @@ describe('the plan editor', () => {
     expect(screen.getByText(EN['fin.planEditor.preview.note.plan'] as string)).toBeTruthy()
 
     /* And the header follows the input rather than the record. */
+    await user.click(detailsTab())
     const trips = screen.getByLabelText(EN['fin.planEditor.executeDays.label'] as string)
     await user.clear(trips)
     await user.type(trips, '44')
+    await user.click(calculationsTab())
     expect(
-      screen.getByText(new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km`)).textContent,
+      screen.getByText(new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km ·`)).textContent,
     ).toContain('44')
   })
 
@@ -410,6 +461,164 @@ describe('the plan editor', () => {
     const hint = field.querySelector('p')?.textContent ?? ''
     expect(hint, 'a hint is rendered beneath the Arabic name').not.toBe('')
     expect(hint, 'the hint states a character count').toMatch(/\d+\s*(of|\/)\s*\d+/)
+  })
+})
+
+/* ═══════════ FINANCIALS-UX-PLAN §11 — two columns, one tab row ══════════ */
+
+describe('§11 — the plan editor is two columns and two views', () => {
+  /**
+   * The data column holds the record in two views and the choice lives in
+   * `?tab=`. Both halves are asserted: the view actually swaps, and the URL
+   * moves with it — a pair of tabs that switched only local state would pass a
+   * count and lose the operator's place on a reload.
+   */
+  it('the two tabs swap the data column and carry the choice in ?tab=', async () => {
+    const user = userEvent.setup()
+    let location = ''
+    render(
+      <MemoryRouter initialEntries={['/financials/pricing/plans/weekly/edit']}>
+        <ShellProvider>
+          <Routes>
+            <Route
+              path="/financials/pricing/plans/:planId/edit"
+              element={
+                <>
+                  <PlanEditorScreen />
+                  <LocationProbe onChange={(next) => (location = next)} />
+                </>
+              }
+            />
+          </Routes>
+        </ShellProvider>
+      </MemoryRouter>,
+    )
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+
+    /* The default view carries no parameter at all. */
+    expect(location).toBe('/financials/pricing/plans/weekly/edit')
+    expect(detailsTab().getAttribute('aria-selected')).toBe('true')
+    expect(screen.queryByTestId('plan-calculations')).toBeNull()
+
+    await user.click(calculationsTab())
+    await waitFor(() =>
+      expect(location).toBe('/financials/pricing/plans/weekly/edit?tab=calculations'),
+    )
+    expect(screen.getByTestId('plan-calculations')).toBeTruthy()
+    /* The form is gone, not merely scrolled past. */
+    expect(screen.queryByText(EN['fin.planEditor.section.catalogue'] as string)).toBeNull()
+
+    await user.click(detailsTab())
+    await waitFor(() => expect(location).toBe('/financials/pricing/plans/weekly/edit'))
+    expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy()
+  })
+
+  /**
+   * The owner's objection to the panel this replaces was that it printed the
+   * evaluator's own names — `exampleMinutes × perMinuteHalalas` — at a Finance
+   * lead. Nothing in the view may read like source: no camel case, and no
+   * `Halalas`, which is the unit the arithmetic runs in and the operator prices
+   * in major units.
+   */
+  it('the Calculations view prints no identifier and no halalas', async () => {
+    const user = userEvent.setup()
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+    await user.click(calculationsTab())
+
+    const panel = screen.getByTestId('plan-calculations')
+    /* Per TEXT NODE, not per container: `textContent` on a card welds the
+       heading `Economy` to the first label `Captain share` and would fail on a
+       boundary no reader can see. */
+    const lines = textNodesIn(panel)
+    expect(lines.length).toBeGreaterThan(0)
+    for (const line of lines) {
+      expect(line, 'no camel-case identifier and no halalas').not.toMatch(/[a-z][A-Z]|Halalas/)
+    }
+
+    /* And it is not empty of arithmetic: every definition still renders its own
+       working, substituted from the same expression (AC-397). */
+    expect(within(panel).getAllByText(EN['pricing.derived.gross'] as string).length).toBe(2)
+    const text = panel.textContent ?? ''
+    expect(text).toContain('20 min')
+    expect(text).toContain('10 km')
+  })
+
+  /**
+   * The end column is the plan as a rider sees it, and it is drawn from form
+   * state rather than from the record — so an unsaved edit shows there.
+   */
+  it('the rider preview follows the form, not the record', async () => {
+    const user = userEvent.setup()
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+    const frame = screen.getByTestId('plan-preview-frame')
+    expect(within(frame).getByText('Weekly')).toBeTruthy()
+
+    const name = screen.getByLabelText(EN['fin.planEditor.nameEn.label'] as string)
+    await user.clear(name)
+    await user.type(name, 'Weekly Plus')
+    expect(within(frame).getByText('Weekly Plus')).toBeTruthy()
+
+    /* A feature line the rider reads follows too. */
+    const feature = screen.getAllByLabelText(EN['fin.planEditor.feature.en'] as string)[0] as HTMLElement
+    await user.clear(feature)
+    await user.type(feature, 'Airport runs included')
+    expect(within(frame).getByText('Airport runs included')).toBeTruthy()
+  })
+
+  /**
+   * The preview's language is its own. Asserted as the frame's `dir` and by the
+   * Arabic name appearing in it — with the console left in English, which is
+   * the whole point: a toggle that moved the console would pass a `dir` check
+   * and fail the criterion.
+   */
+  it('the EN / AR toggle flips the preview alone', async () => {
+    const user = userEvent.setup()
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+
+    const frame = () => screen.getByTestId('plan-preview-frame')
+    expect(frame().getAttribute('dir')).toBe('ltr')
+    expect(frame().getAttribute('lang')).toBe('en')
+
+    await user.click(
+      screen.getByRole('tab', { name: EN['fin.planEditor.preview.language.ar'] as string }),
+    )
+    expect(frame().getAttribute('dir')).toBe('rtl')
+    expect(frame().getAttribute('lang')).toBe('ar')
+    /* The Arabic name and an Arabic feature line, from the form. */
+    expect(within(frame()).getByText('الباقة الأسبوعية')).toBeTruthy()
+    expect(within(frame()).getByText(AR['fin.planEditor.rider.subscribe'] as string)).toBeTruthy()
+    /* The console did not move with it. */
+    expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('tab', { name: EN['fin.planEditor.preview.language.en'] as string }),
+    )
+    expect(frame().getAttribute('dir')).toBe('ltr')
+  })
+
+  /**
+   * The caption states what the frame is, and the VAT half is the RATE CARD's
+   * claim: printed because the live card says `vatIncluded`, and it would say
+   * nothing if the card did not.
+   */
+  it('the caption states the VAT rule the live rate card declares', async () => {
+    const card = await getLiveRateCard()
+    expect(card.vatIncluded, 'the fixture makes the VAT sentence reachable').toBe(true)
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.preview.caption.vat'] as string)).toBeTruthy(),
+    )
   })
 })
 
